@@ -60,6 +60,19 @@ CAMLprim value caml_rgb_create(value width, value height)
   CAMLreturn(ret);
 }
 
+CAMLprim value caml_rgb_copy(value _src)
+{
+  CAMLparam1(_src);
+  CAMLlocal1(ans);
+  frame *src = Frame_val(_src);
+  ans = caml_rgb_create(src->width, src->height);
+  frame *dst = Frame_val(ans);
+
+  memcpy(dst->data, src->data, 3 * src->width * src->height);
+
+  CAMLreturn(ans);
+}
+
 CAMLprim value caml_rgb_fill(value f, value col)
 {
   CAMLparam2(f, col);

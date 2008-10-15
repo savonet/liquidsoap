@@ -5,6 +5,8 @@ type color = int * int * int
 (** Create a frame of a given width / height. *)
 val create : int -> int -> t
 
+val copy : t -> t
+
 val fill : t -> color -> unit
 
 (** Fill from a YUV420 buffer (of a given width). *)
