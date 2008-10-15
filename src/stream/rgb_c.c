@@ -448,6 +448,7 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
   int i;
   unsigned char c;
 
+  caml_enter_blocking_section();
   for (i = 0; i < len; i++)
   {
     c = rgb->data[3 * i + 0]
@@ -457,6 +458,7 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
     rgb->data[3 * i + 1] = c;
     rgb->data[3 * i + 2] = c;
   }
+  caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
 }
