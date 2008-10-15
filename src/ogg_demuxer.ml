@@ -22,7 +22,7 @@
 
  (** Ogg stream demuxer *)
 
-let log = Dtools.Log.make ["ogg_demuxer"]
+let log = Dtools.Log.make ["ogg.demuxer"]
 
 module Generator = Float_pcm.Generator
 

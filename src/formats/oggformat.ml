@@ -24,6 +24,8 @@
 
 module Generator = Float_pcm.Generator
 
+let log = Dtools.Log.make ["ogg.demuxer"]
+
 let decoder file =
   let sync,fd = Ogg.Sync.create_from_file file in
   let decoder = Ogg_demuxer.init sync in
@@ -112,7 +114,8 @@ let decoder file =
             | Ogg_demuxer.End_of_stream -> ()
         done;
       with
-        | _ -> () (* TODO: log the error *)
+        | e -> log#f 4 "ogg file decoder exited on exception: %s" 
+                          (Printexc.to_string e)
     end ;
 
     let offset = AFrame.position buf in
