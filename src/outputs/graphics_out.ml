@@ -43,7 +43,7 @@ object (self)
   method output_send buf =
     if video_channels > 0 then
       let rgb = VFrame.get_rgb buf in
-        for frame = 0 to Array.length rgb.(0) - 1 do
+        for frame = 0 to 0 (* Array.length rgb.(0) - 1 *) do
           let img = RGB.to_int_image rgb.(0).(frame) in
           let img = Graphics.make_image img in
             Graphics.draw_image img 0 0
