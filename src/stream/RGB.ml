@@ -6,6 +6,8 @@ external create : int -> int -> t = "caml_rgb_create"
 
 external copy : t -> t = "caml_rgb_copy"
 
+external blit : t -> t -> unit = "caml_rgb_blit"
+
 external fill : t -> color -> unit = "caml_rgb_fill"
 
 external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420"

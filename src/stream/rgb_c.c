@@ -73,6 +73,19 @@ CAMLprim value caml_rgb_copy(value _src)
   CAMLreturn(ans);
 }
 
+CAMLprim value caml_rgb_blit(value _src, value _dst)
+{
+  CAMLparam2(_src, _dst);
+  frame *src = Frame_val(_src),
+        *dst = Frame_val(_dst);
+
+  assert(dst->width == src->width);
+  assert(dst->height == src->height);
+  memcpy(dst->data, src->data, 3 * src->width * src->height);
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value caml_rgb_fill(value f, value col)
 {
   CAMLparam2(f, col);

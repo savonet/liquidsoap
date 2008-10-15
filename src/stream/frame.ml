@@ -168,6 +168,11 @@ let blit src src_pos dst dst_pos len =
           let c x = int_of_float (float x *. r) in
             float_blit a (c src_pos) a' (c dst_pos) (c len)
       | Midi (_,m), Midi (h,m') -> m' := !m
+      | RGB src, RGB dst ->
+          (* TODO: handle offsets! *)
+          for i = 0 to Array.length src - 1 do
+            RGB.blit src.(i) dst.(i)
+          done
       | _, _ -> assert false
   done
 

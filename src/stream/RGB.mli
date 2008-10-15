@@ -7,6 +7,9 @@ val create : int -> int -> t
 
 val copy : t -> t
 
+(** [blit src dst] *)
+val blit : t -> t -> unit
+
 val fill : t -> color -> unit
 
 (** Fill from a YUV420 buffer (of a given width). *)
