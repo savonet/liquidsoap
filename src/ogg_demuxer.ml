@@ -50,13 +50,13 @@ type t =
 { 
   sync     : Ogg.Sync.t;
   eos      : bool ref;
-  streams : (int,stream) Hashtbl.t;
+  streams : (nativeint,stream) Hashtbl.t;
 }
 
 type track = Audio_track | Video_track
 
 exception Internal of Ogg.Page.t
-exception Exit of int*Ogg.Stream.t*decoders
+exception Exit of nativeint*Ogg.Stream.t*decoders
 exception Track of ((bool ref)*(decoders))
 exception Invalid_stream
 exception End_of_stream
@@ -68,7 +68,7 @@ let ogg_decoders : ((Ogg.Stream.packet -> bool)*
 
 let test page = 
   let serial = Ogg.Page.serialno page in
-  log#f 4 "Found a ogg logical stream, serial: %i" serial;
+  log#f 4 "Found a ogg logical stream, serial: %nu" serial;
   let os = Ogg.Stream.create ~serial () in
   Ogg.Stream.put_page os page ;
   (* Get first packet *)
@@ -82,7 +82,7 @@ let test page =
            else ())
       ogg_decoders#get_all;
     log#f 4 "Couldn't find a decoder for ogg logical \
-                 stream with serial %i" serial;
+                 stream with serial %nu" serial;
     raise (Exit (serial,os,Unknown))
   with
     | Exit (s,o,d) -> s,o,d
@@ -95,7 +95,7 @@ let feed_page decoder page =
       Ogg.Stream.put_page os page;
     if Ogg.Page.eos page then
       begin
-        log#f 4 "reached last page of logical stream %i" serial;
+        log#f 4 "reached last page of logical stream %nu" serial;
         Hashtbl.remove decoder.streams serial;
         eos := true;
         if Hashtbl.length decoder.streams = 0 then
