@@ -362,8 +362,10 @@ CAMLprim value caml_rgb_randomize(value f)
   int len = rgb->width * rgb->height;
   int i;
 
+  caml_enter_blocking_section();
   for (i = 0; i < 3 * len; i++)
     rgb->data[i] = rand();
+  caml_leave_blocking_section();
 
   return Val_unit;
 }
