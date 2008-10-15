@@ -1,0 +1,43 @@
+#!/sbin/runscript
+
+user=@install_user@
+group=@install_group@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+confdir=@sysconfdir@/liquidsoap
+liquidsoap=@bindir@/liquidsoap
+rundir=@localstatedir@/run/liquidsoap
+
+depend() {
+  after net icecast
+}
+
+start() {
+  cd $confdir
+  for liq in *.liq ; do
+    if test $liq != '*.liq' ; then
+      ebegin "Starting $liq"
+      start-stop-daemon --start --quiet --pidfile $rundir/${liq%.liq}.pid \
+        --chuid $user:$group --exec $liquidsoap -- -d $confdir/$liq
+      eend $?
+    fi
+  done
+}
+
+stop() {
+  cd $rundir
+  for liq in *.pid ; do
+    if test $liq != '*.pid' ; then
+      ebegin "Stopping $liq"
+      start-stop-daemon --stop --quiet --pidfile $liq
+      eend $?
+    fi
+  done
+}
+
+restart() {
+  svc_stop
+  einfo "Sleeping 4 seconds ..."
+  sleep 4
+  svc_start
+}

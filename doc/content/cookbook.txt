@@ -1,0 +1,349 @@
+title: Code Cookbook
+
+h3. Cookbook
+
+The recipes show how to build a source with a particular feature. You can try short snippets by wrapping the code in an <code>out(..)</code> operator and passing it directly to liquidsoap:
+
+%%(recipe_out.sh)
+liquidsoap -v 'out(recipe)'
+%%
+
+For longer recipes, you might want to create a short script:
+
+%%(recipe_base.liq)
+#!/usr/bin/liquidsoap -v
+
+set("log.file.path","/tmp/<script>.log")
+set("log.stdout",true)
+
+recipe = # <fill this>
+out(recipe)
+%%
+
+See the "quickstart guide":quick_start.html for more information on how to run "Liquidsoap":index.html, on what is this <code>out(..)</code> operator, etc.
+
+h4. Files
+
+A source which infinitely repeats the same URI:
+
+%%(single.liq)
+single("/my/default.ogg")
+%%
+
+A source which plays a playlist of requests -- a playlist is a file with an URI per line.
+
+%%(playlist.liq)
+# Shuffle, play every URI, start over.
+playlist("/my/playlist.txt")
+# Do not randomize
+playlist(mode="normal", "/my/pl.m3u")
+# The playlist can come from any URI,
+# can be reloaded every 10 minutes.
+playlist(reload=600,"http://my/playlist.txt")
+%%
+
+When building your stream, you'll need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe <code>single</code> or <code>playlist.safe</code>. Roughly, a single is safe when it is given a valid local audio file. A <code>playlist.safe</code> behaves just like a playlist but will check that all files in the playlist are valid local audio files. This is quite an heavy check, you don't want to have large safe playlists.
+
+h4. Transcoding
+
+"Liquidsoap":index.html can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using <code>input.http</code>, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. Also keep in mind a limitation inherent to OCaml: one "Liquidsoap":index.html instance can only use a single processor or core. You can easily work around this limitation by launching multiple "Liquidsoap":index.html instances, and thus take advantage of that 8-core Xeon server laying around in the dust in your garage.
+
+%%(transcoding.liq)
+# Input the stream,
+# from an Icecast server or any other source
+url = "http://streaming.example.com:8000/your-stream.ogg"
+input = mksafe(input.http(url))
+
+# First transcoder: MP3 32 kbps
+output.icecast.mp3(
+  mount="/your-stream-32.mp3", bitrate=32,
+  samplerate = 22050, stereo = false,
+  host="streaming.example.com", port=8000, password="xxx",
+  input)
+# Second transcoder : MP3 128 kbps
+output.icecast.mp3(
+  mount="/your-stream-128.mp3", bitrate=128,
+  host="streaming.example.com", port=8000, password="xxx",
+  input)
+%%
+
+h4. Scheduling
+
+%%(schedulers.liq)
+# A fallback switch
+fallback([playlist("http://my/playlist"),
+          single("/my/jingle.ogg")])
+# A scheduler,
+# assuming you have defined the night and day sources
+switch([ ({0h-7h}, night), ({7h-24h}, day) ])
+%%
+
+h4. Force a file/playlist to be played at least every XX minutes
+
+It can be useful to have a special playlist that is played at least every 20 minutes for instance (3 times per hour).
+You may think of a promotional playlist for instance.
+Here is the recipe:
+
+%%(play_every_xx.liq)
+# (1200 sec = 20 min)
+timed_promotions = delay(1200.,promotions)
+main_source = fallback([timed_promotions,other_source])
+%%
+
+Where promotions is a source selecting the file to be promoted.
+
+h4. Handle special events: mix or switch
+
+%%(hour_jingle.liq)
+# Add a jingle to your normal source
+# at the beginning of every hour:
+add([normal,switch([({0m0s},jingle)])])
+%%
+
+Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and skip tracks from the normal source if they contain too much silence.
+
+%%(fallback_basic.liq)
+stripped_stream = 
+  strip_blank(input.http("http://myicecast:8080/live.ogg"))
+fallback(track_sensitive=false,
+         [stripped_stream,skip_blank(normal)])
+%%
+
+Without the <code>track_sensitive=false</code> the fallback would wait the end of a track to switch to the live. When using the blank detection operators, make sure to fine-tune their <code>threshold</code> and <code>length</code> (float) parameters.
+
+h4. Unix interface, dynamic requests
+
+<code>request.dynamic</code> is a source which takes a custom function for creating its new requests. This function can be used to call an external program. The source expects a <code>()->request</code> function. To create the request, the function will have to use the <code>request</code> function which has type <code>(string,?indicators:[string])</code>. The first string is the initial URI of the request, which is resolved to get an audio file. The second argument can be used to directly specify the first row of URIs (see the "concepts page":concepts.html), in which case the initial URI is just here for naming, and the resolving process will try your list of indicators one by one until a valid audio file is obtained.
+
+The simplest example takes the output of an external script as an URI to create a new request:
+
+%%(scripted_dynamic_request.liq)
+request.dynamic(
+  { request(get_process_output("my_script my_params")) })
+%%
+
+More complex, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
+
+%%(playlist_dynamic_request.liq)
+request.dynamic(
+  { request("bar:foo",
+      indicators=
+        get_process_lines("cat "^quote("playlist.pls"))) })
+%%
+
+Of course a more interesting behaviour is obtained with a more interesting program than "cat".
+
+Another way of using an external program is to define a new protocol which uses it to resolve URIs. <code>add_protocol</code> takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program, that's how we use "bubble":bubble.html for example:
+
+%%(bubble.liq)
+add_protocol("bubble",
+  fun (arg,delay) ->
+    get_process_lines("/usr/bin/bubble-query "^quote(arg)))
+%%
+
+When resolving the URI <code>bubble:artist="seed"</code>, liquidsoap will call the function, which will call <code>bubble-query 'artist="seed"'</code> which will output 10 lines, one URI per line.
+
+h4. Dynamic input with harbor
+
+The operator <code>input.harbor</code> allows you to receive a source stream directly inside a running liquidsoap.
+
+It starts a listening server on where any Icecast2-compatible source client can connect. When a source is connected, its input if fed to the corresponding source in the script, which becomes available.
+
+This can be very useful to relay a live stream without polling the Icecast server for it.
+
+An example can be:
+
+%%(harbor.liq)
+# Serveur settings
+set("harbor.bind_addr","0.0.0.0")
+set("harbor.port",8080)
+set("harbor.password","hackme")
+
+# An emergency file
+emergency = single("/path/to/emergency/single.ogg")
+
+# A playlist
+playlist = playlist("/path/to/playlist")
+
+# A live source
+live = input.harbor("live")
+
+# fallback
+radio = fallback(track_sensitive=false,
+                 [live,playlist,emergency])
+
+# output it
+output.icecast.vorbis(radio,mount="test",host="host")
+%%
+
+This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
+Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
+
+h4@lastfm. Lastfm input
+
+You can listen to "lastfm":http://www.last.fm/ radios using "Liquidsoap":index.html. The corresponding operator is <code>input.lastfm</code> and is used that way:
+
+%%(lastfm.liq)
+lastfm_stream = input.lastfm("lastfm://artist/Wackies")
+%%
+
+Lastfm's URIs start with <code>lastfm:</code>:
+
+* <code>lastfm://user/toots5446/paylist</code>: a user's playlist
+* <code>lastfm://globaltags/creative commons</code>: songs tagged with "creative commons"
+* <code>lastfm://user/toots5446/tags/rocksteady</code>: songs tagged "rocksteady" by the user.
+
+You can find more of them on the website, "last.fm":http://www.last.fm/.
+
+Another operator allows to generate <code>lastfm:</code> URIs, <code>lastfm.uri</code>. Its parameters are:
+
+* <code>~user</code>: Lastfm user
+* <code>~password</code>: Lastfm password
+* <code>~discovery</code>: Allow lastfm suggestions
+* <code>radio</code>: URI, e.g. <code>user/toots5446/playlist</code>, <code>globaltags/rocksteady</code>
+
+Example:
+
+%%(lastfm_uri.liq)
+uri = lastfm.uri(user="toots5446", password="hackme",
+                 discovery=false,
+                 "user/toots4556/playlist")
+%%
+
+h4. Transitions
+
+There are two kinds of transitions. Transitions between two different children of a switch are not problematic. Transitions between different tracks of the same source are more tricky, since they involve a fast forward computation of the end of a track before feeding it to the transition function: such a thing is only possible when only one operator is using the source, otherwise it'll get out of sync.
+
+h5. Switch-based transitions
+
+The switch-based operators (<code>switch</code>, <code>fallback</code> and <code>random</code>) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two <code>source</code> parameters: the child which is about to be left, and the new selected child. The default transition is <code>fun (a,b) -> b</code>, it simply relays the new selected child source. Other possible transition functions:
+
+%%(simple_crossfade.liq)
+# A simple (long) cross-fade
+def crossfade(a,b)
+  add(normalize=false,
+	  [ sequence([ blank(duration=5.),
+	               fade.initial(duration=10.,b) ]),
+	    fade.final(duration=10.,a) ])
+end
+
+# Partially apply next to give it a jingle source.
+# It will fade out the old source, then play the jingle.
+# At the same time it fades in the new source.
+def next(j,a,b)
+  add(normalize=false,
+	  [ sequence(merge=true,
+	             [ blank(duration=3.),
+	               fade.initial(duration=6.,b) ]),
+	    sequence([fade.final(duration=9.,a),
+	              j,fallback([])]) ])
+end
+
+# A similar transition,
+# which does a cross-fading from A to B
+# and adds a jingle
+def transition(j,a,b)
+  add(normalize=false,
+	  [ fade.initial(b),
+	    sequence(merge=true,
+	            [blank(duration=1.),j,fallback([])]),
+	    fade.final(a) ])
+end
+%%
+
+Finally, we build a source which plays a playlist, and switches to the live show as soon as it starts, using the <code>transition</code> function as a transition. At the end of the live, the playlist comes back with a cross-fading.
+
+%%(track_sensitive_fallback.liq)
+fallback(track_sensitive=false,
+	     transitions=[ crossfade, transition(jingle) ],
+	     [ input.http("http://localhost:8000/live.ogg"),
+	       playlist("playlist.pls") ])
+%%
+
+h5. Cross-based transitions
+
+The <code>cross()</code> operator allows arbitrary transitions between tracks of a same source. Here is how to use it in order to get a cross-fade:
+
+%%(crossfade.liq)
+def crossfade(~start_next,~fade_in,~fade_out,s)
+  s = fade.in(duration=fade_in,s)
+  s = fade.out(duration=fade_out,s)
+  fader = fun (a,b) -> add(normalize=false,[b,a])
+  cross(duration=start_next,fader,s)
+end
+my_source =
+  crossfade(start_next=1.,fade_out=1.,fade_in=1.,my_source)
+%%
+
+The <code>crossfade()</code> function is already in liquidsoap. Unless you need a custom one, you should never have to copy the above example. It is implemented in the scripting language, much like this example. You can find its code in <code>utils.liq</code>.
+
+The fade-in and fade-out parameters indicate the duraction of the fading effects. The start-next parameters tells how much overlap there will be between the two tracks. If you want a long cross-fading with a smaller overlap, you should use a sequence to stick some blank section before the beginning of <code>b</code> in <code>fader</code>.
+The three parameters given here are only default values, and will be overriden by values coming from the metadata tags <code>liq_fade_in</code>, <code>liq_fade_out</code> and <code>liq_start_next</code>.
+
+For an advanced crossfading function, you can see the "smart crossfade documentation":smartcrossfade.html
+
+h5. How to get transitions on a mix?
+
+If you <code>add()</code> a special source on top of your normal stream, you might notice that the re-normalization is not smooth at all: if the special source suddenly becomes available, the normal one will be re-normalized immediately, which is not very nice to hear, especially if the special source starts with a low noise level. The <code>add()</code> operator does not support transitions but there is a solution for this kind of situation. Use a <code>fallback()</code> in order to get transitions, and simply keep playing the normal source in the transition. Here is the code.
+
+%%(smooth_add.liq)
+def smooth_add(~normal,~special)
+  d = 1.  # delay before mixing after beginning of mix
+  p = 0.2 # portion of normal when mixed
+  fade.final = fade.final(duration=d*.2.)
+  fade.initial = fade.initial(duration=d*.2.)
+  q = 1. -. p
+  c = change_volume
+  fallback(
+    track_sensitive=false,
+    [special,normal],
+    transitions=[
+      fun(normal,special)->
+        add(normalize=false,
+            [c(p,normal),
+             c(q,fade.final(normal)),
+             sequence([blank(duration=d),c(q,special)])]),
+      fun(special,normal)->
+        add(normalize=false,
+            [c(p,normal),
+             c(q,fade.initial(normal))])
+  ])
+end
+%%
+
+The first transition is used when the special source becomes available. It sums the special source (after a delay <code>d</code>) together with a reduced version of <code>normal</code> (<code>c(p,normal)</code>) and its faded-out complement (<code>c(q,normal)</code>). As a result the amplitude of <code>normal</code> will smoothly move from <code>1=p q</code> down to <code>p</code>.
+
+The second transition is called when <code>special</code> becomes unavailable. This time, the reduced version of <code>normal</code> is mixed with its faded-in complement.
+
+h4.  Alsa unbuffered output 
+
+You can use "Liquidsoap":index.html to capture and play through alsa with a minimal delay. This particulary useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
+
+This configuration is not trivial since it relies on your hardware. Some hardware will allow both recording and playing at the same time, some only one at once, and some none at all.. Those note to configure are what works for us, we don't know if they'll fit all hardware.
+
+First launch liquidsoap as a one line program
+
+%%(alsa_unbuffered_debug.sh)
+liquidsoap -v --debug 'input.alsa(bufferize=false)'
+%%
+
+Unless you're lucky, the logs are full of lines like the following:
+
+<pre>
+Partial read (940 instead of 1024)!
+Selecting another buffer size or device can help.
+</pre>
+
+The solution is then to fix the captured frame size to this value, which seems specific to your hardware. Let's try this script:
+
+%%(alsa_unbuffered.liq)
+# Set correct frame size:
+set("frame.size",940)
+
+input = input.alsa(bufferize=false)
+output.alsa(bufferize=false,input)
+%%
+
+If everything goes right, you may hear on your output the captured sound without any delay ! If you want to test the difference, just run the same script with <code>bufferize=true</code> (or without this parameter since it is the default).
+
+If you experience problems it might be a good idea to double the value of the frame size. This increases stability, but also latency.

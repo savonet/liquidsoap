@@ -1,0 +1,53 @@
+title: Liquidsoap documentation
+
+h3. Documentation index
+
+**How to use**: Start with the "quickstart":quick_start.html and 
+make sure you learn "how to find help":help.html. Then it's as you like:
+go for another tutorial, pick a specific topic in the "Documentation" section,
+or some examples from the "cookbook":cookbook.html.
+If you've understood all you need,
+just browse the "reference":reference.html and 
+compose your dream stream.
+
+If you downloaded a source tarball of liquidsoap, you may first read the
+"build instructions":build.html.
+
+h4. Tutorials
+
+* "Quickstart":quick_start.html: where anyone should start.
+* "Complete case analysis":complete_case.html: an example that is not a toy.
+* "Advanced":advanced.html: overview of more advanced features for serious usage.
+* "How to find help":help.html about operators, settings, server commands, etc.
+
+h4. Documentation
+
+* "Basic concepts":concepts.html: details what are _sources_ and _requests_.
+* "Bubble":bubble.html: a simple example of a database interface as a custom protocol.
+* "Blank detection":blank.html
+* "Queued sources":queues.html
+* "Cookbook":cookbook.html: contains lots of idiomatic examples.
+* "Customize metadata":metadata.html
+* "HTTP input vs. Harbor input":http_vs_harbor.html: relay and host external streams.
+* "Normalization and replay gain":replay_gain.html
+* "Shoutcast output":shoutcast.html
+* "Smart crossfading":smartcrossfade.html
+* "Script loading":script_loading.html: load several scripts, learn about the script library.
+
+h4. Reference
+
+* "API reference":reference.html: all the builtin functions of liquidsoap.
+* "Script language":language.html: A more detailed presentation.
+
+h4. User configurations
+
+* "Geekradio":geekradio.html
+* "RadioPi":radiopi.html
+* "Dolebraï":dolebrai.html
+* "Kube":kube.html
+* "Frequence3":frequence3.html
+* "Listen to Radio Nova":radio-nova.html
+
+h4. Code snippets
+
+* "Code example index":scripts/index.html
