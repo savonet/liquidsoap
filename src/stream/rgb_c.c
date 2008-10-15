@@ -451,9 +451,9 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
   caml_enter_blocking_section();
   for (i = 0; i < len; i++)
   {
-    c = rgb->data[3 * i + 0]
+    c = (rgb->data[3 * i + 0]
       + rgb->data[3 * i + 1]
-      + rgb->data[3 * i + 2];
+      + rgb->data[3 * i + 2]) / 3;
     rgb->data[3 * i + 0] = c;
     rgb->data[3 * i + 1] = c;
     rgb->data[3 * i + 2] = c;
