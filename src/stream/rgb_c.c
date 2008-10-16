@@ -24,6 +24,11 @@ typedef struct
   unsigned char *data;
 } frame;
 
+#define Red(rgb,i,j)     rgb->data[3*(j*rgb->width + i)]
+#define Green(rgb,i,j)   rgb->data[3*(j*rgb->width + i)+1]
+#define Blue(rgb,i,j)    rgb->data[3*(j*rgb->width + i)+2]
+#define Pixel(rgb,i,j)   {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j)}
+
 #define Frame_val(v) (*((frame**)Data_custom_val(v)))
 
 static void finalize_frame(value v)
@@ -93,16 +98,16 @@ CAMLprim value caml_rgb_fill(value f, value col)
   int r = Int_val(Field(col, 0)),
       g = Int_val(Field(col, 1)),
       b = Int_val(Field(col, 2));
-  int i;
-  int len = rgb->width * rgb->height;
+  int i,j;
 
   caml_enter_blocking_section();
-  for (i = 0; i < len; i++)
-  {
-    rgb->data[3*i] = r;
-    rgb->data[3*i+1] = g;
-    rgb->data[3*i+2] = b;
-  }
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+    {
+      Red(rgb,i,j)   = r;
+      Green(rgb,i,j) = g;
+      Blue(rgb,i,j)  = b;
+    }
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
@@ -326,15 +331,12 @@ CAMLprim value caml_rgb_get(value f, value _x, value _y)
   CAMLlocal1(ans);
   frame *rgb = Frame_val(f);
   int x = Int_val(_x), y = Int_val(_y);
-  unsigned char *p = &rgb->data[3 * (y * rgb->width + x)];
-  unsigned char r = *p,
-                g = *(p+1),
-                b = *(p+2);
+  unsigned char pix[3] = Pixel(rgb,x,y);
 
   ans = caml_alloc_tuple(3);
-  Store_field(ans, 0, Val_int(r));
-  Store_field(ans, 1, Val_int(g));
-  Store_field(ans, 2, Val_int(b));
+  Store_field(ans, 0, Val_int(pix[0]));
+  Store_field(ans, 1, Val_int(pix[1]));
+  Store_field(ans, 2, Val_int(pix[2]));
 
   CAMLreturn(ans);
 }
@@ -349,9 +351,9 @@ CAMLprim value caml_rgb_set(value f, value _x, value _y, value _rgb)
   int g = Int_val(Field(_rgb, 1));
   int b = Int_val(Field(_rgb, 2));
 
-  rgb->data[3 * (y * rgb->width + x) + 0] = r;
-  rgb->data[3 * (y * rgb->width + x) + 1] = g;
-  rgb->data[3 * (y * rgb->width + x) + 2] = b;
+  Red(rgb,x,y) = r;
+  Green(rgb,x,y) = g;
+  Blue(rgb,x,y) = b;
 
   CAMLreturn(Val_unit);
 }
@@ -457,9 +459,9 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
     line = caml_alloc_tuple(rgb->width);
     for(i=0; i < rgb->width; i++)
     {
-      c = (rgb->data[3 * (j * rgb->width + i) + 0] << 16)
-        + (rgb->data[3 * (j * rgb->width + i) + 1] << 8)
-        + rgb->data[3 * (j * rgb->width + i) + 2];
+      c = (Red(rgb,i,j) << 16)
+        + (Green(rgb,i,j) << 8)
+        + Blue(rgb,i,j);
       Store_field(line, i, Val_int(c));
     }
     Store_field(ans, j, line);
@@ -472,20 +474,20 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
 {
   CAMLparam1(_rgb);
   frame *rgb = Frame_val(_rgb);
-  int len = rgb->width * rgb->height;
-  int i;
+  int i,j;
   unsigned char c;
 
   caml_enter_blocking_section();
-  for (i = 0; i < len; i++)
-  {
-    c = (rgb->data[3 * i + 0]
-      + rgb->data[3 * i + 1]
-      + rgb->data[3 * i + 2]) / 3;
-    rgb->data[3 * i + 0] = c;
-    rgb->data[3 * i + 1] = c;
-    rgb->data[3 * i + 2] = c;
-  }
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+    {
+      c = (Red(rgb,i,j)
+        +  Green(rgb,i,j)
+        +  Blue(rgb,i,j)) / 3;
+      Red(rgb,i,j)   = c;
+      Green(rgb,i,j) = c;
+      Blue(rgb,i,j)  = c;
+    }
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
