@@ -87,7 +87,7 @@ let test page =
   with
     | Exit (s,o,d) -> s,o,d
 
-let feed_page decoder page = 
+let feed_page decoder page =
   let serial = Ogg.Page.serialno page in
   try
     let (os,eos,dec) = Hashtbl.find decoder.streams serial in
@@ -102,7 +102,9 @@ let feed_page decoder page =
           decoder.eos := true
       end
     with
-      | Not_found -> raise Invalid_stream
+      | Not_found ->
+          log#f 5 "Couldn't find a decoder for page in stream %nx" serial;
+          raise Invalid_stream
 
 let feed decoder = 
   let page = Ogg.Sync.read decoder.sync in
