@@ -38,4 +38,6 @@ val to_int_image : t -> int array array
 
 val greyscale : t -> unit
 
+val invert : t -> unit
+
 val add : t -> t -> unit

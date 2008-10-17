@@ -72,7 +72,7 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/time_wrap.ml operators/lag.ml \
-	operators/video_greyscale.ml
+	operators/video_effects.ml
 #	operators/pipe.ml
 
 analyze = analyze/analyze_rms.ml

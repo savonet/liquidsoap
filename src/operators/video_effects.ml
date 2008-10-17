@@ -22,7 +22,7 @@
 
 open Source
 
-class greyscale (source:source) =
+class effect effect (source:source) =
 object (self)
   inherit operator [source] as super
 
@@ -41,7 +41,7 @@ object (self)
         for c = 0 to Array.length b - 1 do
           let bc = b.(c) in
             for i = offset to position - 1 do
-              RGB.greyscale bc.(i)
+              effect bc.(i)
             done
         done
 end
@@ -54,4 +54,14 @@ let () =
     (fun p ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new greyscale src):>source))
+         ((new effect RGB.greyscale src):>source))
+
+let () =
+  Lang.add_operator "video.invert"
+    [ "", Lang.source_t, None, None ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Convert video to greyscale."
+    (fun p ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         ((new effect RGB.invert src):>source))

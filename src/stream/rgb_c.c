@@ -560,3 +560,17 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
 
   CAMLreturn(Val_unit);
 }
+
+CAMLprim value caml_rgb_invert(value _rgb)
+{
+  CAMLparam1(_rgb);
+  frame *rgb = Frame_val(_rgb);
+  int i, j, c;
+
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      for (c = 0; c < 3; c++)
+        Color(rgb, c, i, j) = 0xff - Color(rgb, c, i, j);
+
+  CAMLreturn(Val_unit);
+}
