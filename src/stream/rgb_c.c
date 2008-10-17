@@ -30,6 +30,8 @@ typedef struct
 #define Blue(rgb,i,j)    Color(rgb,2,i,j)
 #define Pixel(rgb,i,j)   {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j)}
 
+#define assert_same_dim(src, dst) { assert(dst->width == src->width); assert(dst->height == src->height); }
+
 #define Frame_val(v) (*((frame**)Data_custom_val(v)))
 
 static void finalize_frame(value v)
@@ -85,8 +87,7 @@ CAMLprim value caml_rgb_blit(value _src, value _dst)
   frame *src = Frame_val(_src),
         *dst = Frame_val(_dst);
 
-  assert(dst->width == src->width);
-  assert(dst->height == src->height);
+  assert_same_dim(src, dst);
   memcpy(dst->data, src->data, 3 * src->width * src->height);
 
   CAMLreturn(Val_unit);
@@ -540,6 +541,22 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
       Blue(rgb,i,j)  = c;
     }
   caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_rgb_add(value _dst, value _src)
+{
+  CAMLparam2(_dst, _src);
+  frame *dst = Frame_val(_dst),
+        *src = Frame_val(_src);
+  int i, j, c;
+
+  assert_same_dim(src, dst);
+  for (j = 0; j < dst->height; j++)
+    for (i = 0; i < dst->width; i++)
+      for (c = 0; c < 3; c++)
+        Color(dst, c, i, j) = CLIP(Color(src, c, i, j) + Color(dst, c, i, j));
 
   CAMLreturn(Val_unit);
 }

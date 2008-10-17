@@ -45,3 +45,5 @@ external to_bmp : t -> string = "caml_rgb_to_bmp"
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"
 
 external greyscale : t -> unit = "caml_rgb_greyscale"
+
+external add : t -> t -> unit = "caml_rgb_add"

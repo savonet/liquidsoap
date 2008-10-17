@@ -37,3 +37,5 @@ val to_bmp : t -> string
 val to_int_image : t -> int array array
 
 val greyscale : t -> unit
+
+val add : t -> t -> unit

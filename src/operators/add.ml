@@ -80,6 +80,7 @@ object (self)
 
     (* Sum contributions *)
     let offset = AFrame.position buf in
+    let voffset = VFrame.position buf in
     let first = ref true in
     let end_offset =
       List.fold_left
@@ -103,14 +104,24 @@ object (self)
                done ;
 
              let already = AFrame.position buffer in
+             let valready = VFrame.position buffer in
                if c<>1. && renorm then
                  Float_pcm.multiply
                    (AFrame.get_float_pcm buffer) offset (already-offset) c ;
                if not !first then
-                 Float_pcm.add
-                   (AFrame.get_float_pcm buf) offset
-                   (AFrame.get_float_pcm tmp) offset
-                   (already-offset) ;
+                 (
+                   Float_pcm.add
+                     (AFrame.get_float_pcm buf) offset
+                     (AFrame.get_float_pcm tmp) offset
+                     (already-offset) ;
+                   let vbuf = VFrame.get_rgb buf in
+                   let vtmp = VFrame.get_rgb tmp in
+                     for c = 0 to Array.length vbuf - 1 do
+                       for i = voffset to valready - 1 do
+                         RGB.add vbuf.(c).(i) vtmp.(c).(i)
+                       done
+                     done
+                 );
                first := false ;
                max end_offset already)
         offset sources
