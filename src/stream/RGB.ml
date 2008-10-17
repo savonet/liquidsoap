@@ -33,6 +33,13 @@ let scale_to src w h =
     scale dst src;
     dst
 
+external proportional_scale : t -> t -> unit = "caml_rgb_proportional_scale"
+
+let proportional_scale_to src w h =
+  let dst = create w h in
+    proportional_scale dst src;
+    dst
+
 external to_bmp : t -> string = "caml_rgb_to_bmp"
 
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"

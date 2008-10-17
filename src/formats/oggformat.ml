@@ -68,7 +68,7 @@ let decoder file =
                buf.Ogg_demuxer.y_height = Fmt.video_height () then
               b
             else
-              RGB.scale_to b (Fmt.video_width ()) (Fmt.video_height ())
+              RGB.proportional_scale_to b (Fmt.video_width ()) (Fmt.video_height ())
           in
             b.(c).(i) <- scale (RGB.of_YUV420 (buf.Ogg_demuxer.y, buf.Ogg_demuxer.u, buf.Ogg_demuxer.v) buf.Ogg_demuxer.y_width);
         in

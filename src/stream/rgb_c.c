@@ -24,9 +24,10 @@ typedef struct
   unsigned char *data;
 } frame;
 
-#define Red(rgb,i,j)     rgb->data[3*(j*rgb->width + i)]
-#define Green(rgb,i,j)   rgb->data[3*(j*rgb->width + i)+1]
-#define Blue(rgb,i,j)    rgb->data[3*(j*rgb->width + i)+2]
+#define Color(rgb,c,i,j) rgb->data[3*(j*rgb->width + i) + c]
+#define Red(rgb,i,j)     Color(rgb,0,i,j)
+#define Green(rgb,i,j)   Color(rgb,1,i,j)
+#define Blue(rgb,i,j)    Color(rgb,2,i,j)
 #define Pixel(rgb,i,j)   {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j)}
 
 #define Frame_val(v) (*((frame**)Data_custom_val(v)))
@@ -382,8 +383,59 @@ CAMLprim value caml_rgb_scale(value _dst, value _src)
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
       for (c = 0; c < 3; c++)
-        dst->data[3 * (j * dst->width + i) + c] =
-          src->data[3 * (src->width * (j * src->height / dst->height) + i * src->width / dst->width) + c];
+        Color(dst, c, i, j) = Color(src, c, i * src->width / dst->width, j * src->height / dst->height);
+  caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
+{
+  CAMLparam2(_dst, _src);
+  frame *dst = Frame_val(_dst), *src = Frame_val(_src);
+  int i, j, c;
+  int cn, cd, ox, oy;
+
+  if (dst->height * src->width < src->height * dst->width)
+  {
+    cn = dst->height;
+    cd = src->height;
+    ox = (dst->width - src->width * cn / cd) / 2;
+    oy = 0;
+  }
+  else
+  {
+    cn = dst->width;
+    cd = src->width;
+    ox = 0;
+    oy = (dst->height - src->height * cn / cd) / 2;
+  }
+
+  caml_enter_blocking_section();
+  /* Fill borders in black */
+  if (oy == 0)
+    for (j = 0; j < dst->height; j++)
+      for (c = 0; c < 3; c++)
+      {
+        for (i = 0; i < ox; i++)
+          Color(dst, c, i, j) = 0;
+        for (i = dst->width - ox; i < dst->width; i++)
+          Color(dst, c, i, j) = 0;
+      }
+  else
+    for (i = 0; i < dst->width; i++)
+      for (c = 0; c < 3; c++)
+      {
+        for (j = 0; j < oy; j++)
+          Color(dst, c, i, j) = 0;
+        for (j = dst->height - oy; j < dst->height; j++)
+          Color(dst, c, i, j) = 0;
+      }
+  /* Scale the image */
+  for (j = oy; j < dst->height - oy; j++)
+    for (i = ox; i < dst->width - ox; i++)
+      for (c = 0; c < 3; c++)
+        Color(dst, c, i, j) = Color(src, c, i * cd / cn, j * cd / cn);
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
@@ -435,8 +487,7 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
   for(j = 0; j < rgb->height; j++)
     for(i = 0; i < rgb->width; i++)
       for(c = 0; c < 3; c++)
-        bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + c + 54] =
-          rgb->data[3 * (j * rgb->width + i) + (2 - c)];
+        bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + c + 54] = Color(rgb, 2-c, i, j);
   caml_leave_blocking_section();
 
   ans = caml_alloc_string(54 + 3 * len);

@@ -97,7 +97,7 @@ let feed_page decoder page =
       log#f 7 "No decoder for page of stream %nx" serial;
     if Ogg.Page.eos page then
       begin
-        log#f 4 "reached last page of logical stream %nx" serial;
+        log#f 4 "Reached last page of logical stream %nx" serial;
         Hashtbl.remove decoder.streams serial;
         eos := true;
         if Hashtbl.length decoder.streams = 0 then

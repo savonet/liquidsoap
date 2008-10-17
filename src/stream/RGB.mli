@@ -28,6 +28,10 @@ val scale : t -> t -> unit
 
 val scale_to : t -> int -> int -> t
 
+val proportional_scale : t -> t -> unit
+
+val proportional_scale_to : t -> int -> int -> t
+
 val to_bmp : t -> string
 
 val to_int_image : t -> int array array
