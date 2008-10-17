@@ -140,13 +140,10 @@ CAMLprim value caml_rgb_fill(value f, value col)
 
 #define CLIP(color) (unsigned char)(((color)>0xFF)?0xff:(((color)<0)?0:(color)))
 
-// Warning: this needs RGB packed format
-
 void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc, frame *rgb)
 {
 /* From libv4l code. */
   int i,j;
-  unsigned char *data = rgb->data;
 
   for (i = 0; i < rgb->height; i++) {
     for (j = 0; j < rgb->width; j += 2) {
@@ -156,14 +153,14 @@ void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc
                 ((*vsrc - 128) << 2) + ((*vsrc - 128) << 1)) >> 3;
       int v1 = (((*vsrc - 128) << 1) +  (*vsrc - 128)) >> 1;
 
-      *data++ = CLIP(*ysrc + v1);
-      *data++ = CLIP(*ysrc - rg);
-      *data++ = CLIP(*ysrc + u1);
+      Red(rgb,j,i)   = CLIP(*ysrc + v1);
+      Green(rgb,j,i) = CLIP(*ysrc - rg);
+      Blue(rgb,j,i)  = CLIP(*ysrc + u1);
       ysrc++;
 
-      *data++ = CLIP(*ysrc + v1);
-      *data++ = CLIP(*ysrc - rg);
-      *data++ = CLIP(*ysrc + u1);
+      Red(rgb,j+1,i) = CLIP(*ysrc + v1);
+      Green(rgb,j+1,i) = CLIP(*ysrc - rg);
+      Blue(rgb,j+1,i) = CLIP(*ysrc + u1);
 
       ysrc++;
       usrc++;
@@ -179,8 +176,6 @@ void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc
 
 // TODO: implement multiplication-free version of 
 // this conversion, as well as ASM optimized ones..
-
-// Warning: this needs the RGB packed format !
 
 /* From Kamelia's source code.
  * http://sourceforge.net/projects/kamaelia
@@ -205,8 +200,6 @@ void RGB_to_YUV420(frame *rgb,
     int *vlineptr;
     int *ubufptr;
     int *vbufptr;
-
-    unsigned char *data = rgb->data;
 
     int halfwidth;
     halfwidth = rgb->width>>1;
@@ -239,7 +232,7 @@ void RGB_to_YUV420(frame *rgb,
 
     ubufptr = ubuf;
     vbufptr = vbuf;
-    for (row=0; row<rgb->height; row=row+1)
+    for (row=0; row<rgb->height; row++)
     {
         ulineptr = uline;
         vlineptr = vline;
@@ -247,9 +240,9 @@ void RGB_to_YUV420(frame *rgb,
         for(col=0; col<rgb->width; col++)
         {
             // even numbered pixel
-            R = (int)(*(data++));
-            G = (int)(*(data++));
-            B = (int)(*(data++));
+            R = (int)Red(rgb,col,row);
+            G = (int)Green(rgb,col,row);
+            B = (int)Blue(rgb,col,row);
 
             Y = (( 66*R + 129*G +  25*B + 128)>>8)+ 16;
             U = ((-38*R -  74*G + 112*B + 128)>>8)+128;
@@ -483,7 +476,6 @@ static void bmp_pint16(char *dst, int n)
 }
 
 /* See http://en.wikipedia.org/wiki/BMP_file_format */
-// Warning: this depends on the RGB packed format !
 CAMLprim value caml_rgb_to_bmp(value _rgb)
 {
   CAMLparam1(_rgb);
