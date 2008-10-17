@@ -36,6 +36,7 @@ typedef struct
 #define Blue(rgb,i,j)       Color(rgb,2,i,j)
 #define Alpha(rgb,i,j)      Color(rgb,3,i,j)
 #define Pixel(rgb,i,j)      {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j),Alpha(rgb,i,j)}
+#define Space_clip_color(rgb,c,i,j) (i<0||j<0||i>=rgb->width||j>=rgb->height)?0:Color(rgb,c,i,j)
 
 #define assert_same_dim(src, dst) { assert(dst->width == src->width); assert(dst->height == src->height); }
 
@@ -591,9 +592,9 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
     {
-      Alpha(dst, i, j) = (Alpha(src, i, j) + Alpha(dst, i, j)) / 2;
+      Alpha(dst, i, j) = CLIP(Alpha(src, i, j) + Alpha(dst, i, j));
       for (c = 0; c < Rgb_colors; c++)
-        Color(dst, c, i, j) = CLIP(Color(src, c, i, j) + Color(dst, c, i, j));
+        Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * Alpha(src,i,j) / 0xff + Color(dst, c, i, j) * Alpha(dst,i,j) / 0xff);
     }
   caml_leave_blocking_section();
 
@@ -642,7 +643,6 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
       oy = rgb->height / 2;
   int i, j, c,
       i2, j2;
-  unsigned char col;
 
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
@@ -651,11 +651,7 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
       {
         i2 = (i - ox) * cos(a) + (j - oy) * sin(a) + ox;
         j2 = -(i - ox) * sin(a) + (j - oy) * cos(a) + oy;
-        if (i2 < 0 || j2 < 0 || i2 >= rgb->width || j2 >= rgb->height)
-          col = 0;
-        else
-          col = Color(old, c, i2, j2);
-        Color(rgb, c, i, j) = col;
+        Color(rgb, c, i, j) = Space_clip_color(old, c, i2, j2);
       }
   rgb_free(old);
   caml_leave_blocking_section();
@@ -675,7 +671,6 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
       oy = Int_val(_oy);
   int dx = rgb->width / 2,  /* Center of scaling */
       dy = rgb->height / 2;
-  unsigned char col;
 
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
@@ -684,11 +679,7 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
       {
         i2 = (i - ox - dx) / ax + dx;
         j2 = (j - oy - dy) / ay + dy;
-        if (i2 < 0 || j2 < 0 || i2 >= rgb->width || j2 >= rgb->height)
-          col = 0;
-        else
-          col = Color(old, c, i2, j2);
-        Color(rgb, c, i, j) = col;
+        Color(rgb, c, i, j) = Space_clip_color(old, c, i2, j2);
       }
   rgb_free(old);
   caml_leave_blocking_section();
