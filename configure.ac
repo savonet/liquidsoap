@@ -179,6 +179,9 @@ fi
 
 # Add -fPIC to CFLAGS for compatibility with x86_64
 CFLAGS="$CFLAGS -fPIC"
+# Optimize for local machine
+CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
+
 ocamlcflags="-ccopt \"\$(CFLAGS)\""
 ocamllflags="-linkpkg -package unix -package threads -package str"
 requires="unix threads str"
