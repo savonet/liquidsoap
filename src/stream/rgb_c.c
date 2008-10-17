@@ -435,7 +435,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
   for (j = oy; j < dst->height - oy; j++)
     for (i = ox; i < dst->width - ox; i++)
       for (c = 0; c < 3; c++)
-        Color(dst, c, i, j) = Color(src, c, i * cd / cn, j * cd / cn);
+        Color(dst, c, i, j) = Color(src, c, (i - ox) * cd / cn, (j - oy) * cd / cn);
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
