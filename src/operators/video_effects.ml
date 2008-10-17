@@ -67,16 +67,21 @@ let () =
          ((new effect RGB.invert src):>source))
 
 let () =
-  let a = ref 0. in
-  let effect buf =
+  let effect a da buf =
     a := !a +. 2. *. 3.1416 /. (24. *. 2.);
     RGB.rotate buf !a
   in
   Lang.add_operator "video.rotate"
-    [ "", Lang.source_t, None, None ]
+    [ "", Lang.source_t, None, None;
+      "angle", Lang.float_t, Some (Lang.float 0.), Some "Initial angle in radians.";
+      "speed", Lang.float_t, Some (Lang.float 3.1416), Some "Rotation speed in radians per sec."
+    ]
     ~category:Lang.VideoProcessing
     ~descr:"Rotate video."
     (fun p ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new effect effect src):>source))
+       let angle = ref (Lang.to_float (f "angle")) in
+       let speed = Lang.to_float (f "speed") in
+       let da = speed /. float (Fmt.video_frames_per_second ()) in
+         ((new effect (effect angle da) src):>source))
