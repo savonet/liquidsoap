@@ -17,12 +17,12 @@ formats = \
 	$(if $(W_OGG),formats/oggformat.ml) \
 	$(if $(W_VORBIS),formats/vorbisduration.ml) \
 	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
-	$(if $(W_MP3),formats/mp3.ml) \
 	$(if $(W_FAAD),formats/aacformat.ml) \
 	formats/wavformat.ml \
 	formats/externalformat.ml \
 	$(if $(W_NSV),formats/nattyformat_mp3.ml) \
-	$(if $(W_NATTY),formats/nattyformat.ml) 
+	$(if $(W_NATTY),formats/nattyformat.ml) \
+	$(if $(W_MP3),formats/mp3.ml)  
 #	formats/midiformat.ml
 
 playlists = \

@@ -92,10 +92,7 @@ let feed_page decoder page =
   try
     let (os,eos,dec) = Hashtbl.find decoder.streams serial in
     if dec <> Unknown then
-      (
-        Ogg.Stream.put_page os page;
-        log#f 7 "Put page of stream %nx" serial
-      )
+        Ogg.Stream.put_page os page
     else
       log#f 7 "No decoder for page of stream %nx" serial;
     if Ogg.Page.eos page then
