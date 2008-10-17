@@ -1,6 +1,6 @@
 type t
 
-type color = int * int * int
+type color = int * int * int * int
 
 (** Create a frame of a given width / height. *)
 val create : int -> int -> t

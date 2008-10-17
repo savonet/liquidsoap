@@ -1,6 +1,6 @@
 type t
 
-type color = int * int * int
+type color = int * int * int * int
 
 external create : int -> int -> t = "caml_rgb_create"
 

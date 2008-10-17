@@ -26,14 +26,16 @@ typedef struct
 } frame;
 
 #define Rgb_num_pix(rgb)    rgb->width*rgb->height
-#define Rgb_elems_per_pixel 3
+#define Rgb_colors          3
+#define Rgb_elems_per_pixel 4
 #define Rgb_num_elem(rgb)   Rgb_elems_per_pixel*Rgb_num_pix(rgb)
 #define Rgb_data_size(rgb)  Rgb_num_elem(rgb)*sizeof(unsigned char)
 #define Color(rgb,c,i,j)    rgb->data[Rgb_elems_per_pixel*(j*rgb->width + i) + c]
 #define Red(rgb,i,j)        Color(rgb,0,i,j)
 #define Green(rgb,i,j)      Color(rgb,1,i,j)
 #define Blue(rgb,i,j)       Color(rgb,2,i,j)
-#define Pixel(rgb,i,j)      {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j)}
+#define Alpha(rgb,i,j)      Color(rgb,3,i,j)
+#define Pixel(rgb,i,j)      {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j),Alpha(rgb,i,j)}
 
 #define assert_same_dim(src, dst) { assert(dst->width == src->width); assert(dst->height == src->height); }
 
@@ -119,7 +121,8 @@ CAMLprim value caml_rgb_fill(value f, value col)
   frame *rgb = Frame_val(f);
   int r = Int_val(Field(col, 0)),
       g = Int_val(Field(col, 1)),
-      b = Int_val(Field(col, 2));
+      b = Int_val(Field(col, 2)),
+      a = Int_val(Field(col, 3));
   int i,j;
 
   caml_enter_blocking_section();
@@ -129,6 +132,7 @@ CAMLprim value caml_rgb_fill(value f, value col)
       Red(rgb,i,j)   = r;
       Green(rgb,i,j) = g;
       Blue(rgb,i,j)  = b;
+      Alpha(rgb,i,j) = a;
     }
   caml_leave_blocking_section();
 
@@ -138,7 +142,7 @@ CAMLprim value caml_rgb_fill(value f, value col)
 // TODO: Implements ASM version of these conversions,
 // See:  http://svn.netlabs.org/repos/wvgui/trunk/yuv/
 
-#define CLIP(color) (unsigned char)(((color)>0xFF)?0xff:(((color)<0)?0:(color)))
+#define CLIP(color) (unsigned char)(((color)>0xff)?0xff:(((color)<0)?0:(color)))
 
 void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc, frame *rgb)
 {
@@ -156,11 +160,13 @@ void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc
       Red(rgb,j,i)   = CLIP(*ysrc + v1);
       Green(rgb,j,i) = CLIP(*ysrc - rg);
       Blue(rgb,j,i)  = CLIP(*ysrc + u1);
+      Alpha(rgb,j,i) = 0xff;
       ysrc++;
 
       Red(rgb,j+1,i) = CLIP(*ysrc + v1);
       Green(rgb,j+1,i) = CLIP(*ysrc - rg);
       Blue(rgb,j+1,i) = CLIP(*ysrc + u1);
+      Alpha(rgb,j+1,i) = 0xff;
 
       ysrc++;
       usrc++;
@@ -185,7 +191,7 @@ void RGB_to_YUV420(frame *rgb,
                    unsigned char *u_output,
                    unsigned char *v_output)
 {
-    int R, G, B;
+    int R, G, B, A;
     int Y, U, V;
 
     int row;
@@ -243,6 +249,10 @@ void RGB_to_YUV420(frame *rgb,
             R = (int)Red(rgb,col,row);
             G = (int)Green(rgb,col,row);
             B = (int)Blue(rgb,col,row);
+            A = (int)Alpha(rgb,col,row);
+            R = R * A / 0xff;
+            G = G * A / 0xff;
+            B = B * A / 0xff;
 
             Y = (( 66*R + 129*G +  25*B + 128)>>8)+ 16;
             U = ((-38*R -  74*G + 112*B + 128)>>8)+128;
@@ -309,9 +319,6 @@ CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
   YUV420_to_RGB(y, u, v, rgb);
   caml_leave_blocking_section();
 
-  memcpy(String_val(Field(yuv, 0)), y, ylen);
-  memcpy(String_val(Field(yuv, 0)), u, ulen);
-  memcpy(String_val(Field(yuv, 0)), v, vlen);
   free(y);
   free(u);
   free(v);
@@ -350,12 +357,12 @@ CAMLprim value caml_rgb_get(value f, value _x, value _y)
   CAMLlocal1(ans);
   frame *rgb = Frame_val(f);
   int x = Int_val(_x), y = Int_val(_y);
-  unsigned char pix[3] = Pixel(rgb,x,y);
+  unsigned char pix[Rgb_elems_per_pixel] = Pixel(rgb,x,y);
+  int i;
 
-  ans = caml_alloc_tuple(3);
-  Store_field(ans, 0, Val_int(pix[0]));
-  Store_field(ans, 1, Val_int(pix[1]));
-  Store_field(ans, 2, Val_int(pix[2]));
+  ans = caml_alloc_tuple(Rgb_elems_per_pixel);
+  for (i = 0; i < Rgb_elems_per_pixel; i++)
+    Store_field(ans, i, Val_int(pix[i]));
 
   CAMLreturn(ans);
 }
@@ -369,25 +376,26 @@ CAMLprim value caml_rgb_set(value f, value _x, value _y, value _rgb)
   int r = Int_val(Field(_rgb, 0));
   int g = Int_val(Field(_rgb, 1));
   int b = Int_val(Field(_rgb, 2));
+  int a = Int_val(Field(_rgb, 4));
 
   Red(rgb,x,y) = r;
   Green(rgb,x,y) = g;
   Blue(rgb,x,y) = b;
+  Alpha(rgb,x,y) = a;
 
   CAMLreturn(Val_unit);
 }
 
-// Remark: this would also randomize alpha if
-// added at some point..
 CAMLprim value caml_rgb_randomize(value f)
 {
   frame *rgb = Frame_val(f);
-  int len = Rgb_data_size(rgb);
-  int i;
+  int i, j, c;
 
   caml_enter_blocking_section();
-  for (i = 0; i < len; i++)
-    rgb->data[i] = rand();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      for (c = 0; c < Rgb_colors; c++)
+        Color(rgb,c,i,j) = rand();
   caml_leave_blocking_section();
 
   return Val_unit;
@@ -402,7 +410,7 @@ CAMLprim value caml_rgb_scale(value _dst, value _src)
   caml_enter_blocking_section();
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
         Color(dst, c, i, j) = Color(src, c, i * src->width / dst->width, j * src->height / dst->height);
   caml_leave_blocking_section();
 
@@ -435,7 +443,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
   /* Fill borders in black */
   if (oy == 0)
     for (j = 0; j < dst->height; j++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
       {
         for (i = 0; i < ox; i++)
           Color(dst, c, i, j) = 0;
@@ -444,7 +452,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
       }
   else
     for (i = 0; i < dst->width; i++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
       {
         for (j = 0; j < oy; j++)
           Color(dst, c, i, j) = 0;
@@ -454,7 +462,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
   /* Scale the image */
   for (j = oy; j < dst->height - oy; j++)
     for (i = ox; i < dst->width - ox; i++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
         Color(dst, c, i, j) = Color(src, c, (i - ox) * cd / cn, (j - oy) * cd / cn);
   caml_leave_blocking_section();
 
@@ -481,9 +489,10 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
   CAMLparam1(_rgb);
   CAMLlocal1(ans);
   frame *rgb = Frame_val(_rgb);
-  int len = Rgb_data_size(rgb);
+  int len = Rgb_num_pix(rgb);
   char *bmp = malloc(54 + 3 * len);
-  int i, j, c;
+  int i, j;
+  unsigned char a;
 
   caml_enter_blocking_section();
   bmp[0]='B';
@@ -498,7 +507,7 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
   bmp_pint16(bmp+26, 1);
   bmp_pint16(bmp+28, 24);
   bmp_pint32(bmp+30, 0);
-  bmp_pint32(bmp+34, 3*len);
+  bmp_pint32(bmp+34, 3 * len);
   bmp_pint32(bmp+38, 2834);
   bmp_pint32(bmp+42, 2834);
   bmp_pint32(bmp+46, 0);
@@ -506,8 +515,12 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
 
   for(j = 0; j < rgb->height; j++)
     for(i = 0; i < rgb->width; i++)
-      for(c = 0; c < 3; c++)
-        bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + c + 54] = Color(rgb, 2-c, i, j);
+    {
+      a = Alpha(rgb, i, j);
+      bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + 0 + 54] = Blue(rgb, i, j) * a / 0xff;
+      bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + 1 + 54] = Green(rgb, i, j) * a / 0xff;
+      bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + 2 + 54] = Red(rgb, i, j) * a / 0xff;
+    }
   caml_leave_blocking_section();
 
   ans = caml_alloc_string(54 + 3 * len);
@@ -523,6 +536,7 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
   CAMLlocal2(ans, line);
   frame *rgb = Frame_val(_rgb);
   int i, j, c;
+  unsigned char a;
 
   ans = caml_alloc_tuple(rgb->height);
   for(j=0; j < rgb->height; j++)
@@ -530,9 +544,10 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
     line = caml_alloc_tuple(rgb->width);
     for(i=0; i < rgb->width; i++)
     {
-      c = (Red(rgb,i,j) << 16)
-        + (Green(rgb,i,j) << 8)
-        + Blue(rgb,i,j);
+      a = Alpha(rgb, i, j);
+      c = ((Red(rgb,i,j) * a / 0xff) << 16)
+        + ((Green(rgb,i,j) * a / 0xff) << 8)
+        + (Blue(rgb,i,j) * a / 0xff);
       Store_field(line, i, Val_int(c));
     }
     Store_field(ans, j, line);
@@ -575,8 +590,11 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
   caml_enter_blocking_section();
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
-      for (c = 0; c < 3; c++)
+    {
+      Alpha(dst, i, j) = (Alpha(src, i, j) + Alpha(dst, i, j)) / 2;
+      for (c = 0; c < Rgb_colors; c++)
         Color(dst, c, i, j) = CLIP(Color(src, c, i, j) + Color(dst, c, i, j));
+    }
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
@@ -591,7 +609,7 @@ CAMLprim value caml_rgb_invert(value _rgb)
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_colors; c++)
         Color(rgb, c, i, j) = 0xff - Color(rgb, c, i, j);
   caml_leave_blocking_section();
 
@@ -603,13 +621,12 @@ CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
   CAMLparam1(_rgb);
   frame *rgb = Frame_val(_rgb);
   double x = Double_val(_x);
-  int i, j, c;
+  int i, j;
 
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-      for (c = 0; c < 3; c++)
-        Color(rgb, c, i, j) = CLIP(Color(rgb, c, i, j) * x);
+      Alpha(rgb, i, j) = CLIP(Alpha(rgb, i, j) * x);
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
@@ -630,7 +647,7 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
       {
         i2 = (i - ox) * cos(a) + (j - oy) * sin(a) + ox;
         j2 = -(i - ox) * sin(a) + (j - oy) * cos(a) + oy;
@@ -663,7 +680,7 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-      for (c = 0; c < 3; c++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
       {
         i2 = (i - ox - dx) / ax + dx;
         j2 = (j - oy - dy) / ay + dy;
