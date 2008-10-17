@@ -68,7 +68,7 @@ let () =
 
 let () =
   let effect a da buf =
-    a := !a +. 2. *. 3.1416 /. (24. *. 2.);
+    a := !a +. da;
     RGB.rotate buf !a
   in
   Lang.add_operator "video.rotate"
