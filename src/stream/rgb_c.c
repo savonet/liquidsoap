@@ -606,6 +606,23 @@ CAMLprim value caml_rgb_invert(value _rgb)
   CAMLreturn(Val_unit);
 }
 
+CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
+{
+  CAMLparam1(_rgb);
+  frame *rgb = Frame_val(_rgb);
+  double x = Double_val(_x);
+  int i, j, c;
+
+  caml_enter_blocking_section();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      for (c = 0; c < 3; c++)
+        Color(rgb, c, i, j) = CLIP(Color(rgb, c, i, j) * x);
+  caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
 {
   CAMLparam1(_rgb);
