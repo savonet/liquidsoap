@@ -49,3 +49,5 @@ external greyscale : t -> unit = "caml_rgb_greyscale"
 external invert : t -> unit = "caml_rgb_invert"
 
 external add : t -> t -> unit = "caml_rgb_add"
+
+external rotate : t -> float -> unit = "caml_rgb_rotate"

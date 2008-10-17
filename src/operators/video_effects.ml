@@ -60,8 +60,23 @@ let () =
   Lang.add_operator "video.invert"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
-    ~descr:"Convert video to greyscale."
+    ~descr:"Invert video."
     (fun p ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
          ((new effect RGB.invert src):>source))
+
+let () =
+  let a = ref 0. in
+  let effect buf =
+    a := !a +. 2. *. 3.1416 /. (24. *. 2.);
+    RGB.rotate buf !a
+  in
+  Lang.add_operator "video.rotate"
+    [ "", Lang.source_t, None, None ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Rotate video."
+    (fun p ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         ((new effect effect src):>source))

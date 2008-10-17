@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 static value copy_buffer(char *buf, int len)
 {
@@ -34,11 +35,16 @@ typedef struct
 
 #define Frame_val(v) (*((frame**)Data_custom_val(v)))
 
+static void rgb_free(frame *f)
+{
+  free(f->data);
+  free(f);
+}
+
 static void finalize_frame(value v)
 {
   frame *f = Frame_val(v);
-  free(f->data);
-  free(f);
+  rgb_free(f);
 }
 
 static struct custom_operations frame_ops =
@@ -66,6 +72,17 @@ CAMLprim value caml_rgb_create(value width, value height)
   Frame_val(ret) = rgb;
 
   CAMLreturn(ret);
+}
+
+static frame *rgb_copy(frame *src)
+{
+  frame *dst = malloc(sizeof(frame));
+  dst->width = src->width;
+  dst->height = src->height;
+  dst->data = malloc(3 * src->width * src->height);
+  memcpy(dst->data, src->data, 3 * src->width * src->height);
+
+  return dst;
 }
 
 CAMLprim value caml_rgb_copy(value _src)
@@ -553,10 +570,12 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
   int i, j, c;
 
   assert_same_dim(src, dst);
+  caml_enter_blocking_section();
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
       for (c = 0; c < 3; c++)
         Color(dst, c, i, j) = CLIP(Color(src, c, i, j) + Color(dst, c, i, j));
+  caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
 }
@@ -567,10 +586,43 @@ CAMLprim value caml_rgb_invert(value _rgb)
   frame *rgb = Frame_val(_rgb);
   int i, j, c;
 
+  caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
       for (c = 0; c < 3; c++)
         Color(rgb, c, i, j) = 0xff - Color(rgb, c, i, j);
+  caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
+{
+  CAMLparam1(_rgb);
+  frame *rgb = Frame_val(_rgb);
+  frame *old = rgb_copy(rgb);
+  double a = Double_val(_angle);
+  int ox = rgb->width / 2,
+      oy = rgb->height / 2;
+  int i, j, c,
+      i2, j2;
+  unsigned char col;
+
+  caml_enter_blocking_section();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      for (c = 0; c < 3; c++)
+      {
+        i2 = (i - ox) * cos(a) + (j - oy) * sin(a) + ox;
+        j2 = -(i - ox) * sin(a) + (j - oy) * cos(a) + oy;
+        if (i2 < 0 || j2 < 0 || i2 >= rgb->width || j2 >= rgb->height)
+          col = 0;
+        else
+          col = Color(old, c, i2, j2);
+        Color(rgb, c, i, j) = col;
+      }
+  rgb_free(old);
+  caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
 }

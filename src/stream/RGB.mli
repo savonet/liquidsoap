@@ -41,3 +41,5 @@ val greyscale : t -> unit
 val invert : t -> unit
 
 val add : t -> t -> unit
+
+val rotate : t -> float -> unit
