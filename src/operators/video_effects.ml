@@ -67,14 +67,37 @@ let () =
          ((new effect RGB.invert src):>source))
 
 let () =
+  Lang.add_operator "video.scale"
+    [
+      "coef_x", Lang.float_t, Some (Lang.float 1.), Some "x scaling";
+      "coef_y", Lang.float_t, Some (Lang.float 1.), Some "y scaling";
+      "offset_x", Lang.int_t, Some (Lang.int 1), Some "x offset";
+      "offset_y", Lang.int_t, Some (Lang.int 1), Some "y offset";
+      "", Lang.source_t, None, None
+    ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Scale and translate video."
+    (fun p ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+       let cx, cy, ox, oy =
+         Lang.to_float (f "coef_x"),
+         Lang.to_float (f "coef_y"),
+         Lang.to_int (f "offset_x"),
+         Lang.to_int (f "offset_y")
+       in
+         ((new effect (fun buf -> RGB.affine buf cx cy ox oy) src):>source))
+
+let () =
   let effect a da buf =
     a := !a +. da;
     RGB.rotate buf !a
   in
   Lang.add_operator "video.rotate"
-    [ "", Lang.source_t, None, None;
+    [
       "angle", Lang.float_t, Some (Lang.float 0.), Some "Initial angle in radians.";
-      "speed", Lang.float_t, Some (Lang.float 3.1416), Some "Rotation speed in radians per sec."
+      "speed", Lang.float_t, Some (Lang.float 3.1416), Some "Rotation speed in radians per sec.";
+      "", Lang.source_t, None, None
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Rotate video."

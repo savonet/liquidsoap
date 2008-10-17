@@ -45,3 +45,5 @@ val add : t -> t -> unit
 val rotate : t -> float -> unit
 
 val scale_opacity : t -> float -> unit
+
+val affine : t -> float -> float -> int -> int -> unit

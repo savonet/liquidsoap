@@ -53,3 +53,5 @@ external add : t -> t -> unit = "caml_rgb_add"
 external rotate : t -> float -> unit = "caml_rgb_rotate"
 
 external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity"
+
+external affine : t -> float -> float -> int -> int -> unit = "caml_rgb_affine"

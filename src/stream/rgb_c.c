@@ -653,3 +653,36 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
 
   CAMLreturn(Val_unit);
 }
+
+CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, value _oy)
+{
+  CAMLparam5(_rgb, _ax, _ay, _ox, _oy);
+  frame *rgb = Frame_val(_rgb);
+  frame *old = rgb_copy(rgb);
+  double ax = Double_val(_ax),
+         ay = Double_val(_ay);
+  int i, j, i2, j2, c;
+  int ox = Int_val(_ox),
+      oy = Int_val(_oy);
+  int dx = rgb->width / 2,  /* Center of scaling */
+      dy = rgb->height / 2;
+  unsigned char col;
+
+  caml_enter_blocking_section();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      for (c = 0; c < 3; c++)
+      {
+        i2 = (i - ox - dx) / ax + dx;
+        j2 = (j - oy - dy) / ay + dy;
+        if (i2 < 0 || j2 < 0 || i2 >= rgb->width || j2 >= rgb->height)
+          col = 0;
+        else
+          col = Color(old, c, i2, j2);
+        Color(rgb, c, i, j) = col;
+      }
+  rgb_free(old);
+  caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
