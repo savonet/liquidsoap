@@ -25,11 +25,15 @@ typedef struct
   unsigned char *data;
 } frame;
 
-#define Color(rgb,c,i,j) rgb->data[3*(j*rgb->width + i) + c]
-#define Red(rgb,i,j)     Color(rgb,0,i,j)
-#define Green(rgb,i,j)   Color(rgb,1,i,j)
-#define Blue(rgb,i,j)    Color(rgb,2,i,j)
-#define Pixel(rgb,i,j)   {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j)}
+#define Rgb_num_pix(rgb)    rgb->width*rgb->height
+#define Rgb_elems_per_pixel 3
+#define Rgb_num_elem(rgb)   Rgb_elems_per_pixel*Rgb_num_pix(rgb)
+#define Rgb_data_size(rgb)  Rgb_num_elem(rgb)*sizeof(unsigned char)
+#define Color(rgb,c,i,j)    rgb->data[Rgb_elems_per_pixel*(j*rgb->width + i) + c]
+#define Red(rgb,i,j)        Color(rgb,0,i,j)
+#define Green(rgb,i,j)      Color(rgb,1,i,j)
+#define Blue(rgb,i,j)       Color(rgb,2,i,j)
+#define Pixel(rgb,i,j)      {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j)}
 
 #define assert_same_dim(src, dst) { assert(dst->width == src->width); assert(dst->height == src->height); }
 
@@ -65,8 +69,7 @@ CAMLprim value caml_rgb_create(value width, value height)
 
   rgb->width = Int_val(width);
   rgb->height = Int_val(height);
-  int len = rgb->width * rgb->height;
-  rgb->data = malloc(3 * len * sizeof(unsigned char));
+  rgb->data = malloc(Rgb_data_size(rgb));
 
   ret = caml_alloc_custom(&frame_ops, sizeof(frame*), 1, 0);
   Frame_val(ret) = rgb;
@@ -79,8 +82,8 @@ static frame *rgb_copy(frame *src)
   frame *dst = malloc(sizeof(frame));
   dst->width = src->width;
   dst->height = src->height;
-  dst->data = malloc(3 * src->width * src->height);
-  memcpy(dst->data, src->data, 3 * src->width * src->height);
+  dst->data = malloc(Rgb_data_size(src));
+  memcpy(dst->data, src->data, Rgb_data_size(src));
 
   return dst;
 }
@@ -93,7 +96,7 @@ CAMLprim value caml_rgb_copy(value _src)
   ans = caml_rgb_create(src->width, src->height);
   frame *dst = Frame_val(ans);
 
-  memcpy(dst->data, src->data, 3 * src->width * src->height);
+  memcpy(dst->data, src->data, Rgb_data_size(src));
 
   CAMLreturn(ans);
 }
@@ -105,7 +108,7 @@ CAMLprim value caml_rgb_blit(value _src, value _dst)
         *dst = Frame_val(_dst);
 
   assert_same_dim(src, dst);
-  memcpy(dst->data, src->data, 3 * src->width * src->height);
+  memcpy(dst->data, src->data, Rgb_data_size(src));
 
   CAMLreturn(Val_unit);
 }
@@ -136,6 +139,8 @@ CAMLprim value caml_rgb_fill(value f, value col)
 // See:  http://svn.netlabs.org/repos/wvgui/trunk/yuv/
 
 #define CLIP(color) (unsigned char)(((color)>0xFF)?0xff:(((color)<0)?0:(color)))
+
+// Warning: this needs RGB packed format
 
 void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc, frame *rgb)
 {
@@ -174,6 +179,8 @@ void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc
 
 // TODO: implement multiplication-free version of 
 // this conversion, as well as ASM optimized ones..
+
+// Warning: this needs the RGB packed format !
 
 /* From Kamelia's source code.
  * http://sourceforge.net/projects/kamaelia
@@ -377,14 +384,16 @@ CAMLprim value caml_rgb_set(value f, value _x, value _y, value _rgb)
   CAMLreturn(Val_unit);
 }
 
+// Remark: this would also randomize alpha if
+// added at some point..
 CAMLprim value caml_rgb_randomize(value f)
 {
   frame *rgb = Frame_val(f);
-  int len = rgb->width * rgb->height;
+  int len = Rgb_data_size(rgb);
   int i;
 
   caml_enter_blocking_section();
-  for (i = 0; i < 3 * len; i++)
+  for (i = 0; i < len; i++)
     rgb->data[i] = rand();
   caml_leave_blocking_section();
 
@@ -474,12 +483,13 @@ static void bmp_pint16(char *dst, int n)
 }
 
 /* See http://en.wikipedia.org/wiki/BMP_file_format */
+// Warning: this depends on the RGB packed format !
 CAMLprim value caml_rgb_to_bmp(value _rgb)
 {
   CAMLparam1(_rgb);
   CAMLlocal1(ans);
   frame *rgb = Frame_val(_rgb);
-  int len = rgb->width * rgb->height;
+  int len = Rgb_data_size(rgb);
   char *bmp = malloc(54 + 3 * len);
   int i, j, c;
 
