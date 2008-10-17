@@ -25,12 +25,12 @@ typedef struct
   unsigned char *data;
 } frame;
 
-#define Rgb_num_pix(rgb)    rgb->width*rgb->height
+#define Rgb_num_pix(rgb)    rgb->width * rgb->height
 #define Rgb_colors          3
 #define Rgb_elems_per_pixel 4
-#define Rgb_num_elem(rgb)   Rgb_elems_per_pixel*Rgb_num_pix(rgb)
-#define Rgb_data_size(rgb)  Rgb_num_elem(rgb)*sizeof(unsigned char)
-#define Color(rgb,c,i,j)    rgb->data[Rgb_elems_per_pixel*(j*rgb->width + i) + c]
+#define Rgb_num_elem(rgb)   Rgb_elems_per_pixel * Rgb_num_pix(rgb)
+#define Rgb_data_size(rgb)  Rgb_num_elem(rgb) * sizeof(unsigned char)
+#define Color(rgb,c,i,j)    rgb->data[Rgb_elems_per_pixel * (j * rgb->width + i) + c]
 #define Red(rgb,i,j)        Color(rgb,0,i,j)
 #define Green(rgb,i,j)      Color(rgb,1,i,j)
 #define Blue(rgb,i,j)       Color(rgb,2,i,j)
@@ -592,9 +592,9 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
     {
-      Alpha(dst, i, j) = CLIP(Alpha(src, i, j) + Alpha(dst, i, j));
       for (c = 0; c < Rgb_colors; c++)
-        Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * Alpha(src,i,j) / 0xff + Color(dst, c, i, j) * Alpha(dst,i,j) / 0xff);
+        Color(dst, c, i, j) = CLIP(Color(dst, c, i, j) * Alpha(dst,i,j) / 0xff + Color(src, c, i, j) * (0xff - Alpha(dst,i,j)) / 0xff);
+      Alpha(dst, i, j) = CLIP(Alpha(dst, i, j) + Alpha(src, i, j));
     }
   caml_leave_blocking_section();
 
