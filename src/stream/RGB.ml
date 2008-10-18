@@ -10,11 +10,11 @@ external get_height : t -> int = "caml_rgb_get_height" "noalloc"
 
 external copy : t -> t = "caml_rgb_copy"
 
-external blit : t -> t -> unit = "caml_rgb_blit"
+external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
 
-external blit_off : t -> t -> int -> int -> unit = "caml_rgb_blit_off"
+external blit_off : t -> t -> int -> int -> unit = "caml_rgb_blit_off" "noalloc"
 
-external fill : t -> color -> unit = "caml_rgb_fill"
+external fill : t -> color -> unit = "caml_rgb_fill" "noalloc"
 
 external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
 

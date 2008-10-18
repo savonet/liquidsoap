@@ -116,19 +116,17 @@ CAMLprim value caml_rgb_get_height(value rgb)
 
 CAMLprim value caml_rgb_blit(value _src, value _dst)
 {
-  CAMLparam2(_src, _dst);
   frame *src = Frame_val(_src),
         *dst = Frame_val(_dst);
 
   assert_same_dim(src, dst);
   memcpy(dst->data, src->data, Rgb_data_size(src));
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
 {
-  CAMLparam2(_src, _dst);
   frame *src = Frame_val(_src),
         *dst = Frame_val(_dst);
   int dx = Int_val(_dx),
@@ -142,12 +140,11 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
         Color(dst, c, i, j) = Space_clip_color(src, c, (i-dx), (j-dy));
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_fill(value f, value col)
 {
-  CAMLparam2(f, col);
   frame *rgb = Frame_val(f);
   int r = Int_val(Field(col, 0)),
       g = Int_val(Field(col, 1)),
@@ -166,7 +163,7 @@ CAMLprim value caml_rgb_fill(value f, value col)
     }
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 // TODO: Implements ASM version of these conversions,
