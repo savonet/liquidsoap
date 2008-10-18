@@ -24,6 +24,9 @@ val set : t -> int -> int -> color -> unit
   * frames must have the same size. *)
 val blit : t -> t -> unit
 
+(** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
+val add : t -> t -> unit
+
 (** {2 Conversions} *)
 
 (** Fill a frame from a YUV420 buffer of a given width. *)
@@ -61,17 +64,21 @@ val proportional_scale : t -> t -> unit
   * height. *)
 val proportional_scale_to : t -> int -> int -> t
 
-(** Convert the colors of the frame to greyscale. *)
+(** Convert the colors of a frame to greyscale. *)
 val greyscale : t -> unit
 
+(** Invert the colors of a frame. *)
 val invert : t -> unit
 
-val add : t -> t -> unit
-
+(** Rotate an image by a given angle (in radians). *)
 val rotate : t -> float -> unit
 
+(** Multiply opacity of the image by a coefficient (between 0 and 1). *)
 val scale_opacity : t -> float -> unit
 
+(** [affine ax ay bx by] scales the image by [(ax, ay)] and translates it of
+  * [(ox, oy)]. *)
 val affine : t -> float -> float -> int -> int -> unit
 
+(** [mask f m] sets the alpha mask of the frame [f] according to the frame [m]. *)
 val mask : t -> t -> unit
