@@ -93,7 +93,7 @@ let () =
     [
       "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
-      "speed", Lang.int_t, Some (Lang.int 0), Some "Speed in pixels per second.";
+      "speed", Lang.int_t, Some (Lang.int 100), Some "Speed in pixels per second.";
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cyle text";
       "", Lang.string_t, None, Some "Text.";
     ]
