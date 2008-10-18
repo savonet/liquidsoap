@@ -606,15 +606,20 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
   frame *dst = Frame_val(_dst),
         *src = Frame_val(_src);
   int i, j, c;
+  unsigned char sa;
 
   assert_same_dim(src, dst);
   caml_enter_blocking_section();
   for (j = 0; j < dst->height; j++)
     for (i = 0; i < dst->width; i++)
     {
-      for (c = 0; c < Rgb_colors; c++)
-        Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * Alpha(src,i,j) / 0xff + Color(dst, c, i, j) * (0xff - Alpha(src,i,j)) / 0xff);
-      Alpha(dst, i, j) = CLIP(Alpha(src, i, j) + (0xff - Alpha(src, i, j)) * Alpha(dst, i, j));
+      sa = Alpha(src,i,j);
+      if (sa != 0)
+      {
+        for (c = 0; c < Rgb_colors; c++)
+          Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * sa / 0xff + Color(dst, c, i, j) * (0xff - sa) / 0xff);
+        Alpha(dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(dst, i, j));
+      }
     }
   caml_leave_blocking_section();
 
