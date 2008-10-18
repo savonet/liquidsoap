@@ -104,6 +104,16 @@ CAMLprim value caml_rgb_copy(value _src)
   CAMLreturn(ans);
 }
 
+CAMLprim value caml_rgb_get_width(value rgb)
+{
+  return Val_int(Frame_val(rgb)->width);
+}
+
+CAMLprim value caml_rgb_get_height(value rgb)
+{
+  return Val_int(Frame_val(rgb)->height);
+}
+
 CAMLprim value caml_rgb_blit(value _src, value _dst)
 {
   CAMLparam2(_src, _dst);

@@ -4,6 +4,10 @@ type color = int * int * int * int
 
 external create : int -> int -> t = "caml_rgb_create"
 
+external get_width : t -> int = "caml_rgb_get_width"
+
+external get_height : t -> int = "caml_rgb_get_height"
+
 external copy : t -> t = "caml_rgb_copy"
 
 external blit : t -> t -> unit = "caml_rgb_blit"

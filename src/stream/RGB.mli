@@ -14,6 +14,10 @@ val create : int -> int -> t
 (** Copy a frame. *)
 val copy : t -> t
 
+val get_width : t -> int
+
+val get_height : t -> int
+
 (** Get the value of a pixel. *)
 val get_pixel : t -> int -> int -> color
 

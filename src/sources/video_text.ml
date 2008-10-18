@@ -22,7 +22,7 @@
 
 open Source
 
-class text dx dy speed text =
+class text dx dy speed cycle text =
 object (self)
   inherit source
 
@@ -72,11 +72,17 @@ object (self)
     let off = VFrame.position ab in
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
+    let tfw = RGB.get_width tf in
       for c = 0 to Array.length b - 1 do
         let buf_c = b.(c) in
           for i = off to size - 1 do
             RGB.blit_off tf buf_c.(i) pos_x pos_y;
-            pos_x <- pos_x - speed
+            pos_x <- pos_x - speed;
+            if pos_x < -tfw then
+              if cycle then
+                pos_x <- Fmt.video_width ()
+              else
+                pos_x <- -tfw (* avoid overflows *)
           done;
       done;
       AFrame.add_break ab (AFrame.size ab)
@@ -85,19 +91,21 @@ end
 let () =
   Lang.add_operator "video.text"
     [
-      "x", Lang.int_t, Some (Lang.int 0), Some "x offset.";
+      "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
       "speed", Lang.int_t, Some (Lang.int 0), Some "Speed in pixels per second.";
+      "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cyle text";
       "", Lang.string_t, None, Some "Text.";
     ]
     ~category:Lang.Input
     ~descr:"Display a text."
     (fun p ->
        let f v = List.assoc v p in
-       let x, y, speed, txt =
+       let x, y, speed, cycle, txt =
          Lang.to_int (f "x"),
          Lang.to_int (f "y"),
          Lang.to_int (f "speed"),
+         Lang.to_bool (f "cycle"),
          Lang.to_string (f "")
        in
-         ((new text x y (speed / Fmt.video_frames_per_second ()) txt):>source))
+         ((new text x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
