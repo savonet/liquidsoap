@@ -56,7 +56,7 @@ object (self)
             Printf.printf "Sdlttf error: %s\n" (Printexc.to_string e);
             exit (-1)
     in
-    let ts = Sdlttf.render_text_solid font text ~fg:Sdlvideo.white in
+    let ts = Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
     let w, h =
       let si = Sdlvideo.surface_info ts in
         si.Sdlvideo.w, si.Sdlvideo.h

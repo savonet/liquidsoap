@@ -16,9 +16,13 @@ external copy : t -> t = "caml_rgb_copy"
 
 external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
 
-external blit_off : t -> t -> int -> int -> unit = "caml_rgb_blit_off" "noalloc"
+external blit_off : t -> t -> int -> int -> bool -> unit = "caml_rgb_blit_off" "noalloc"
+
+let blit_off src dst ?(blank=true) x y = blit_off src dst x y blank
 
 external fill : t -> color -> unit = "caml_rgb_fill" "noalloc"
+
+external blank : t -> unit = "caml_rgb_blank" "noalloc"
 
 external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
 

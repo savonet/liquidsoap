@@ -129,12 +129,13 @@ CAMLprim value caml_rgb_blit(value _src, value _dst)
   return Val_unit;
 }
 
-CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
+CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy, value _blank)
 {
   frame *src = Frame_val(_src),
         *dst = Frame_val(_dst);
   int dx = Int_val(_dx),
       dy = Int_val(_dy);
+  int blank = Bool_val(_blank);
   int i, j, c;
   int istart = max(0, dx),
       iend = min(dst->width, src->width + dx),
@@ -143,28 +144,26 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
 
   caml_enter_blocking_section();
   /* Blank what's outside src */
-  for (j = 0; j < dst->height; j++)
-  {
-    if (j == jstart)
+  if (blank)
+  /*
+    for (j = 0; j < dst->height; j++)
     {
-      if (jend == dst->height)
-        break;
-      else
-        j = jend;
-    }
-    for (i = 0; i < dst->width; i++)
-    {
-      if (i == istart)
+      for (i = 0; i < dst->width; i++)
       {
-        if (iend == dst->width)
-          break;
-        else
-          i = iend;
+        if (j < jend && j > jstart && i == istart)
+        {
+          if (iend == dst->width)
+            break;
+          else
+            i = iend;
+        }
+        for (c = 0; c < Rgb_elems_per_pixel; c++)
+          Color(dst, c, i, j) = 0;
       }
-      for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = 0;
     }
-  }
+  */
+    /* This one seems to be much faster... */
+    memset(dst->data, 0, Rgb_data_size(dst));
   /* Copy src to dst for the rest */
   for (j = jstart; j < jend; j++)
     for (i = istart; i < iend; i++)
@@ -174,6 +173,16 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
 
   return Val_unit;
 }
+
+CAMLprim value caml_rgb_blank(value _rgb)
+{
+  frame *rgb = Frame_val(_rgb);
+
+  memset(rgb->data, 0, Rgb_data_size(rgb));
+
+  return Val_unit;
+}
+
 
 CAMLprim value caml_rgb_fill(value f, value col)
 {
@@ -766,10 +775,12 @@ CAMLprim value caml_rgb_lomo(value _rgb)
   frame *rgb = Frame_val(_rgb);
   int i, j, c;
 
+  caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
       for (c = 0; c < Rgb_colors; c++)
         Color(rgb, c, i, j) = CLIP((1 - cos(Color(rgb, c, i, j) * 3.1416 / 255)) * 255);
+  caml_leave_blocking_section();
 
   return Val_unit;
 }

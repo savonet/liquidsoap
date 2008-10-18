@@ -38,8 +38,10 @@ val set_pixel : t -> int -> int -> color -> unit
 val blit : t -> t -> unit
 
 (** [blit src dst dx dy] blits [src] into [dst] with a translation of [(dx,
-  * dy)]. Frames don't have to be of the same size. *)
-val blit_off : t -> t -> int -> int -> unit
+  * dy)]. Frames don't have to be of the same size. The [blank] parameter should
+  * be set to [false] if what's outside [src] in [dst] does not need to be
+  * blanked. *)
+val blit_off : t -> t -> ?blank:bool -> int -> int -> unit
 
 (** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
 val add : t -> t -> unit
@@ -69,6 +71,9 @@ val read_ppm : ?alpha:(int * int * int) -> string -> t
 val to_int_image : t -> int array array
 
 (** {2 Effetcs} *)
+
+(** Blank a frame (i.e. set colors of pixels to black and alpha to zero). *)
+val blank : t -> unit
 
 (** Fill all the pixel of a frame with a given color. *)
 val fill : t -> color -> unit
