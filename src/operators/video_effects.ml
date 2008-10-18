@@ -67,6 +67,16 @@ let () =
          ((new effect RGB.invert src):>source))
 
 let () =
+  Lang.add_operator "video.lomo"
+    [ "", Lang.source_t, None, None ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Emulate the \"Lomo effect\"."
+    (fun p ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         ((new effect RGB.lomo src):>source))
+
+let () =
   Lang.add_operator "video.scale"
     [
       "coef", Lang.float_t, Some (Lang.float 1.), Some "Scaling coefficient in both directions.";

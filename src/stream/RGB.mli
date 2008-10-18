@@ -101,3 +101,6 @@ val affine : t -> float -> float -> int -> int -> unit
 
 (** [mask f m] sets the alpha mask of the frame [f] according to the frame [m]. *)
 val mask : t -> t -> unit
+
+(** Emulate the "Lomo effect". *)
+val lomo : t -> unit
