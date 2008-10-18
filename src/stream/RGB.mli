@@ -1,3 +1,7 @@
+(** Raised when reading from a buffer of a file which is not of the expected
+  * format *)
+exception Invalid_format of string
+
 (** {2 Types} *)
 
 (** An RGBA frame. *)
@@ -48,6 +52,10 @@ val to_bmp : t -> string
 
 (** Save frame in a bitmap file. *)
 val save_bmp : t -> string -> unit
+
+val of_ppm : string -> t
+
+val read_ppm : string -> t
 
 (** Convert a frame to an array of [int] of format 0xRRGGBB. Useful for using
   * the [Graphics] module. *)
