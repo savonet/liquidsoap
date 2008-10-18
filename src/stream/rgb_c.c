@@ -11,6 +11,9 @@
 #include <assert.h>
 #include <math.h>
 
+#define max(a,b) (a>b)?a:b
+#define min(a,b) (a<b)?a:b
+
 static value copy_buffer(char *buf, int len)
 {
   value ans = caml_alloc_string(len);
@@ -36,7 +39,8 @@ typedef struct
 #define Blue(rgb,i,j)       Color(rgb,2,i,j)
 #define Alpha(rgb,i,j)      Color(rgb,3,i,j)
 #define Pixel(rgb,i,j)      {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j),Alpha(rgb,i,j)}
-#define Space_clip_color(rgb,c,i,j) (i<0||j<0||i>=rgb->width||j>=rgb->height)?0:Color(rgb,c,i,j)
+#define Is_outside(rgb,i,j) (i<0||j<0||i>=rgb->width||j>=rgb->height)
+#define Space_clip_color(rgb,c,i,j) (Is_outside(rgb,i,j))?0:Color(rgb,c,i,j)
 
 #define assert_same_dim(src, dst) { assert(dst->width == src->width); assert(dst->height == src->height); }
 
@@ -132,12 +136,40 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
   int dx = Int_val(_dx),
       dy = Int_val(_dy);
   int i, j, c;
+  int istart = max(0, dx),
+      iend = min(dst->width, src->width + dx),
+      jstart = max(0, dy),
+      jend = min(dst->height, src->height + dy);
 
   caml_enter_blocking_section();
+  /* Blank what's outside src */
   for (j = 0; j < dst->height; j++)
+  {
+    if (j == jstart)
+    {
+      if (jend == dst->height)
+        break;
+      else
+        j = jend;
+    }
     for (i = 0; i < dst->width; i++)
+    {
+      if (i == istart)
+      {
+        if (iend == dst->width)
+          break;
+        else
+          i = iend;
+      }
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = Space_clip_color(src, c, (i-dx), (j-dy));
+        Color(dst, c, i, j) = 0;
+    }
+  }
+  /* Copy src to dst for the rest */
+  for (j = jstart; j < jend; j++)
+    for (i = istart; i < iend; i++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
+        Color(dst, c, i, j) = Color(src, c, (i-dx), (j-dy));
   caml_leave_blocking_section();
 
   return Val_unit;
