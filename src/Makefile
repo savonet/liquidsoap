@@ -47,7 +47,8 @@ sources = sources/generated.ml \
 	$(if $(W_RTP),sources/rtp_input.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
-	sources/video_noise.ml
+	sources/video_noise.ml \
+	$(if $(W_SDL),sources/video_text.ml)
 
 operators = \
 	operators/insert_metadata.ml operators/fade.ml operators/add.ml \

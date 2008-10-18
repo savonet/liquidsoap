@@ -8,6 +8,8 @@ external copy : t -> t = "caml_rgb_copy"
 
 external blit : t -> t -> unit = "caml_rgb_blit"
 
+external blit_off : t -> t -> int -> int -> unit = "caml_rgb_blit_off"
+
 external fill : t -> color -> unit = "caml_rgb_fill"
 
 external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420"
@@ -20,9 +22,9 @@ let of_YUV420 (y, u, v) width =
 
 external to_YUV420 : t -> string * string * string = "caml_rgb_to_YUV420"
 
-external get : t -> int -> int -> color = "caml_rgb_get"
+external get_pixel : t -> int -> int -> color = "caml_rgb_get"
 
-external set : t -> int -> int -> color -> unit = "caml_rgb_set"
+external set_pixel : t -> int -> int -> color -> unit = "caml_rgb_set"
 
 external randomize : t -> unit = "caml_rgb_randomize"
 
@@ -41,6 +43,11 @@ let proportional_scale_to src w h =
     dst
 
 external to_bmp : t -> string = "caml_rgb_to_bmp"
+
+let save_bmp f fname =
+  let oc = open_out_bin fname in
+    output_string oc (to_bmp f);
+    close_out oc
 
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"
 

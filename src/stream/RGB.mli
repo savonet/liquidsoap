@@ -15,14 +15,18 @@ val create : int -> int -> t
 val copy : t -> t
 
 (** Get the value of a pixel. *)
-val get : t -> int -> int -> color
+val get_pixel : t -> int -> int -> color
 
 (** Set the value of a pixel. *)
-val set : t -> int -> int -> color -> unit
+val set_pixel : t -> int -> int -> color -> unit
 
 (** [blit src dst] copies the contents of the frame [src] into [dst]. Both
   * frames must have the same size. *)
 val blit : t -> t -> unit
+
+(** [blit src dst dx dy] blits [src] into [dst] with a translation of [(dx,
+  * dy)]. Frames don't have to be of the same size. *)
+val blit_off : t -> t -> int -> int -> unit
 
 (** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
 val add : t -> t -> unit
@@ -37,6 +41,9 @@ val to_YUV420 : t -> (string * string * string)
 
 (** Convert a frame to BMP format. *)
 val to_bmp : t -> string
+
+(** Save frame in a bitmap file. *)
+val save_bmp : t -> string -> unit
 
 (** Convert a frame to an array of [int] of format 0xRRGGBB. Useful for using
   * the [Graphics] module. *)

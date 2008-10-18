@@ -116,6 +116,25 @@ CAMLprim value caml_rgb_blit(value _src, value _dst)
   CAMLreturn(Val_unit);
 }
 
+CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy)
+{
+  CAMLparam2(_src, _dst);
+  frame *src = Frame_val(_src),
+        *dst = Frame_val(_dst);
+  int dx = Int_val(_dx),
+      dy = Int_val(_dy);
+  int i, j, c;
+
+  caml_enter_blocking_section();
+  for (j = 0; j < dst->height; j++)
+    for (i = 0; i < dst->width; i++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
+        Color(dst, c, i, j) = Space_clip_color(src, c, (i-dx), (j-dy));
+  caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value caml_rgb_fill(value f, value col)
 {
   CAMLparam2(f, col);
@@ -373,11 +392,12 @@ CAMLprim value caml_rgb_set(value f, value _x, value _y, value _rgb)
   CAMLparam2(f, _rgb);
   CAMLlocal1(ans);
   frame *rgb = Frame_val(f);
-  int x = Int_val(_x), y = Int_val(_y);
+  int x = Int_val(_x),
+      y = Int_val(_y);
   int r = Int_val(Field(_rgb, 0));
   int g = Int_val(Field(_rgb, 1));
   int b = Int_val(Field(_rgb, 2));
-  int a = Int_val(Field(_rgb, 4));
+  int a = Int_val(Field(_rgb, 3));
 
   Red(rgb,x,y) = r;
   Green(rgb,x,y) = g;
@@ -496,23 +516,23 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
   unsigned char a;
 
   caml_enter_blocking_section();
-  bmp[0]='B';
+  bmp[0]='B';                       /* Magic number */
   bmp[1]='M';
-  bmp_pint32(bmp+2 , 54 + 3 * len);
-  bmp_pint16(bmp+6 , 0);
-  bmp_pint16(bmp+8 , 0);
-  bmp_pint32(bmp+10, 54);
-  bmp_pint32(bmp+14, 40);
-  bmp_pint32(bmp+18, rgb->width);
-  bmp_pint32(bmp+22, rgb->height);
-  bmp_pint16(bmp+26, 1);
-  bmp_pint16(bmp+28, 24);
-  bmp_pint32(bmp+30, 0);
-  bmp_pint32(bmp+34, 3 * len);
-  bmp_pint32(bmp+38, 2834);
-  bmp_pint32(bmp+42, 2834);
-  bmp_pint32(bmp+46, 0);
-  bmp_pint32(bmp+50, 0);
+  bmp_pint32(bmp+2 , 54 + 3 * len); /* File size */
+  bmp_pint16(bmp+6 , 0);            /* Reserved */
+  bmp_pint16(bmp+8 , 0);            /* Reserved */
+  bmp_pint32(bmp+10, 54);           /* Data offset */
+  bmp_pint32(bmp+14, 40);           /* Second header size */
+  bmp_pint32(bmp+18, rgb->width);   /* Width */
+  bmp_pint32(bmp+22, rgb->height);  /* Height */
+  bmp_pint16(bmp+26, 1);            /* Nb of color planes */
+  bmp_pint16(bmp+28, 24);           /* BPP */
+  bmp_pint32(bmp+30, 0);            /* Compression */
+  bmp_pint32(bmp+34, 3 * len);      /* Image size */
+  bmp_pint32(bmp+38, 2834);         /* Horizontal resolution */
+  bmp_pint32(bmp+42, 2834);         /* Vertical resolution */
+  bmp_pint32(bmp+46, 0);            /* Number of colors */
+  bmp_pint32(bmp+50, 0);            /* Number of important colors */
 
   for(j = 0; j < rgb->height; j++)
     for(i = 0; i < rgb->width; i++)
