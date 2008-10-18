@@ -1449,14 +1449,14 @@ if test -z "$with_sdl_dir" ; then
     else
         W_SDL=yes
         AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package sdl -package sdl.sdlmixer"
+        ocamlcflags="$ocamlcflags -package sdl -package sdl.sdlmixer -package sdl.sdlttf"
         requires="$requires sdl"
     fi
 else
     echo $with_sdl_dir | grep ^/ > /dev/null 2>&1 \
         || with_sdl_dir=$PWD/$with_sdl_dir
     ocamlcflags="$ocamlcflags -I $with_sdl_dir"
-    ocamllflags="$ocamllflags sdl.$cma sdlmixer.$cma"
+    ocamllflags="$ocamllflags sdl.$cma sdlmixer.$cma sdlttf.$cma"
     requires="$requires sdl"
     W_SDL=yes
     AC_MSG_RESULT(ok)
