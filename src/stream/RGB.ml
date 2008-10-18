@@ -4,9 +4,9 @@ type color = int * int * int * int
 
 external create : int -> int -> t = "caml_rgb_create"
 
-external get_width : t -> int = "caml_rgb_get_width"
+external get_width : t -> int = "caml_rgb_get_width" "noalloc"
 
-external get_height : t -> int = "caml_rgb_get_height"
+external get_height : t -> int = "caml_rgb_get_height" "noalloc"
 
 external copy : t -> t = "caml_rgb_copy"
 
@@ -16,7 +16,7 @@ external blit_off : t -> t -> int -> int -> unit = "caml_rgb_blit_off"
 
 external fill : t -> color -> unit = "caml_rgb_fill"
 
-external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420"
+external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
 
 let of_YUV420 (y, u, v) width =
   let height = String.length y / width in
@@ -26,20 +26,20 @@ let of_YUV420 (y, u, v) width =
 
 external to_YUV420 : t -> string * string * string = "caml_rgb_to_YUV420"
 
-external get_pixel : t -> int -> int -> color = "caml_rgb_get"
+external get_pixel : t -> int -> int -> color = "caml_rgb_get_pixel"
 
-external set_pixel : t -> int -> int -> color -> unit = "caml_rgb_set"
+external set_pixel : t -> int -> int -> color -> unit = "caml_rgb_set_pixel" "noalloc"
 
-external randomize : t -> unit = "caml_rgb_randomize"
+external randomize : t -> unit = "caml_rgb_randomize" "noalloc"
 
-external scale : t -> t -> unit = "caml_rgb_scale"
+external scale : t -> t -> unit = "caml_rgb_scale" "noalloc"
 
 let scale_to src w h =
   let dst = create w h in
     scale dst src;
     dst
 
-external proportional_scale : t -> t -> unit = "caml_rgb_proportional_scale"
+external proportional_scale : t -> t -> unit = "caml_rgb_proportional_scale" "noalloc"
 
 let proportional_scale_to src w h =
   let dst = create w h in
@@ -58,8 +58,13 @@ exception Invalid_format of string
 let ppm_header = Str.regexp "P6\n\\([0-9]+\\) \\([0-9]+\\)\n\\([0-9]+\\)\n"
 
 let of_ppm data =
-  if not (Str.string_partial_match ppm_header data 0) then
-    raise (Invalid_format "Not a PPM file.");
+  (
+    try
+      if not (Str.string_partial_match ppm_header data 0) then
+        raise (Invalid_format "Not a PPM file.");
+    with
+      | _ -> raise (Invalid_format "Not a PPM file.")
+  );
   let w = int_of_string (Str.matched_group 1 data) in
   let h = int_of_string (Str.matched_group 2 data) in
   let d = int_of_string (Str.matched_group 3 data) in
@@ -91,16 +96,16 @@ let read_ppm fname =
 
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"
 
-external greyscale : t -> unit = "caml_rgb_greyscale"
+external greyscale : t -> unit = "caml_rgb_greyscale" "noalloc"
 
-external invert : t -> unit = "caml_rgb_invert"
+external invert : t -> unit = "caml_rgb_invert" "noalloc"
 
-external add : t -> t -> unit = "caml_rgb_add"
+external add : t -> t -> unit = "caml_rgb_add" "noalloc"
 
-external rotate : t -> float -> unit = "caml_rgb_rotate"
+external rotate : t -> float -> unit = "caml_rgb_rotate" "noalloc"
 
-external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity"
+external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity" "noalloc"
 
-external affine : t -> float -> float -> int -> int -> unit = "caml_rgb_affine"
+external affine : t -> float -> float -> int -> int -> unit = "caml_rgb_affine" "noalloc"
 
-external mask : t -> t -> unit = "caml_rgb_mask"
+external mask : t -> t -> unit = "caml_rgb_mask" "noalloc"

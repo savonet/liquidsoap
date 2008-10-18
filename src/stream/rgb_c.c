@@ -332,7 +332,6 @@ void RGB_to_YUV420(frame *rgb,
 
 CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
 {
-  CAMLparam2(yuv, dst);
   frame *rgb = Frame_val(dst);
   int ylen = caml_string_length(Field(yuv, 0)),
       ulen = caml_string_length(Field(yuv, 1)),
@@ -353,7 +352,7 @@ CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
   free(u);
   free(v);
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_to_YUV420(value f)
@@ -381,7 +380,7 @@ CAMLprim value caml_rgb_to_YUV420(value f)
   CAMLreturn(ans);
 }
 
-CAMLprim value caml_rgb_get(value f, value _x, value _y)
+CAMLprim value caml_rgb_get_pixel(value f, value _x, value _y)
 {
   CAMLparam1(f);
   CAMLlocal1(ans);
@@ -397,10 +396,8 @@ CAMLprim value caml_rgb_get(value f, value _x, value _y)
   CAMLreturn(ans);
 }
 
-CAMLprim value caml_rgb_set(value f, value _x, value _y, value _rgb)
+CAMLprim value caml_rgb_set_pixel(value f, value _x, value _y, value _rgb)
 {
-  CAMLparam2(f, _rgb);
-  CAMLlocal1(ans);
   frame *rgb = Frame_val(f);
   int x = Int_val(_x),
       y = Int_val(_y);
@@ -414,7 +411,7 @@ CAMLprim value caml_rgb_set(value f, value _x, value _y, value _rgb)
   Blue(rgb,x,y) = b;
   Alpha(rgb,x,y) = a;
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_randomize(value f)
@@ -434,7 +431,6 @@ CAMLprim value caml_rgb_randomize(value f)
 
 CAMLprim value caml_rgb_scale(value _dst, value _src)
 {
-  CAMLparam2(_dst, _src);
   frame *dst = Frame_val(_dst), *src = Frame_val(_src);
   int i, j, c;
 
@@ -445,12 +441,11 @@ CAMLprim value caml_rgb_scale(value _dst, value _src)
         Color(dst, c, i, j) = Color(src, c, i * src->width / dst->width, j * src->height / dst->height);
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
 {
-  CAMLparam2(_dst, _src);
   frame *dst = Frame_val(_dst), *src = Frame_val(_src);
   int i, j, c;
   int cn, cd, ox, oy;
@@ -497,7 +492,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
         Color(dst, c, i, j) = Color(src, c, (i - ox) * cd / cn, (j - oy) * cd / cn);
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 static void bmp_pint32(char *dst, int n)
@@ -589,7 +584,6 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
 
 CAMLprim value caml_rgb_greyscale(value _rgb)
 {
-  CAMLparam1(_rgb);
   frame *rgb = Frame_val(_rgb);
   int i,j;
   unsigned char c;
@@ -607,12 +601,11 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
     }
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_add(value _dst, value _src)
 {
-  CAMLparam2(_dst, _src);
   frame *dst = Frame_val(_dst),
         *src = Frame_val(_src);
   int i, j, c;
@@ -628,12 +621,11 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
     }
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_invert(value _rgb)
 {
-  CAMLparam1(_rgb);
   frame *rgb = Frame_val(_rgb);
   int i, j, c;
 
@@ -644,12 +636,11 @@ CAMLprim value caml_rgb_invert(value _rgb)
         Color(rgb, c, i, j) = 0xff - Color(rgb, c, i, j);
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
 {
-  CAMLparam1(_rgb);
   frame *rgb = Frame_val(_rgb);
   double x = Double_val(_x);
   int i, j;
@@ -660,12 +651,11 @@ CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
       Alpha(rgb, i, j) = CLIP(Alpha(rgb, i, j) * x);
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
 {
-  CAMLparam1(_rgb);
   frame *rgb = Frame_val(_rgb);
   frame *old = rgb_copy(rgb);
   double a = Double_val(_angle);
@@ -686,12 +676,11 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
   rgb_free(old);
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, value _oy)
 {
-  CAMLparam5(_rgb, _ax, _ay, _ox, _oy);
   frame *rgb = Frame_val(_rgb);
   frame *old = rgb_copy(rgb);
   double ax = Double_val(_ax),
@@ -714,12 +703,11 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
   rgb_free(old);
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_mask(value _rgb, value _mask)
 {
-  CAMLparam2(_rgb, _mask);
   frame *rgb = Frame_val(_rgb),
         *mask = Frame_val(_mask);
   int i, j;
@@ -736,5 +724,5 @@ CAMLprim value caml_rgb_mask(value _rgb, value _mask)
         Alpha(mask, i, j) / 0xff;
   caml_leave_blocking_section();
 
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
