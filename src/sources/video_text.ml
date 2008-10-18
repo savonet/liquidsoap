@@ -22,7 +22,10 @@
 
 open Source
 
-class text dx dy speed cycle text =
+(* TODO: parameter for that *)
+let text_color = 0xff, 0xff, 0xff
+
+class text ttf ttf_size dx dy speed cycle text =
 object (self)
   inherit source
 
@@ -43,11 +46,11 @@ object (self)
   val pos_y = dy
 
   initializer
-    Sdl.init [`VIDEO];
+    Sdl.init [];
     Sdlttf.init ();
     let font =
       try
-        Sdlttf.open_font "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf" 40
+        Sdlttf.open_font ttf ttf_size
       with
         | e ->
             Printf.printf "Sdlttf error: %s\n" (Printexc.to_string e);
@@ -59,10 +62,11 @@ object (self)
         si.Sdlvideo.w, si.Sdlvideo.h
     in
     let tf = RGB.create w h in
+    let tr, tg, tb = text_color in
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
-            RGB.set_pixel tf x y (r, g, b, r)
+            RGB.set_pixel tf x y (tr, tg, tb, r)
         done
       done;
       text_frame <- Some tf
@@ -91,9 +95,11 @@ end
 let () =
   Lang.add_operator "video.text"
     [
+      "font", Lang.string_t, Some (Lang.string "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"), Some "Path to ttf font file.";
+      "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
       "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
-      "speed", Lang.int_t, Some (Lang.int 100), Some "Speed in pixels per second.";
+      "speed", Lang.int_t, Some (Lang.int 70), Some "Speed in pixels per second.";
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cyle text";
       "", Lang.string_t, None, Some "Text.";
     ]
@@ -101,11 +107,13 @@ let () =
     ~descr:"Display a text."
     (fun p ->
        let f v = List.assoc v p in
-       let x, y, speed, cycle, txt =
+       let ttf, ttf_size, x, y, speed, cycle, txt =
+         Lang.to_string (f "font"),
+         Lang.to_int (f "size"),
          Lang.to_int (f "x"),
          Lang.to_int (f "y"),
          Lang.to_int (f "speed"),
          Lang.to_bool (f "cycle"),
          Lang.to_string (f "")
        in
-         ((new text x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
+         ((new text ttf ttf_size x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
