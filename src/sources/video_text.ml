@@ -22,10 +22,7 @@
 
 open Source
 
-(* TODO: parameter for that *)
-let text_color = 0xff, 0xff, 0xff
-
-class text ttf ttf_size dx dy speed cycle text =
+class text ttf ttf_size color dx dy speed cycle text =
 object (self)
   inherit source
 
@@ -62,7 +59,7 @@ object (self)
         si.Sdlvideo.w, si.Sdlvideo.h
     in
     let tf = RGB.create w h in
-    let tr, tg, tb = text_color in
+    let tr, tg, tb = RGB.rgb_of_int color in
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
@@ -97,6 +94,7 @@ let () =
     [
       "font", Lang.string_t, Some (Lang.string "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"), Some "Path to ttf font file.";
       "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
+      "color", Lang.int_t, Some (Lang.int 0xffffff), Some "Text color (in 0xRRGGBB format).";
       "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
       "speed", Lang.int_t, Some (Lang.int 70), Some "Speed in pixels per second.";
@@ -107,13 +105,14 @@ let () =
     ~descr:"Display a text."
     (fun p ->
        let f v = List.assoc v p in
-       let ttf, ttf_size, x, y, speed, cycle, txt =
+       let ttf, ttf_size, color, x, y, speed, cycle, txt =
          Lang.to_string (f "font"),
          Lang.to_int (f "size"),
+         Lang.to_int (f "color"),
          Lang.to_int (f "x"),
          Lang.to_int (f "y"),
          Lang.to_int (f "speed"),
          Lang.to_bool (f "cycle"),
          Lang.to_string (f "")
        in
-         ((new text ttf ttf_size x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
+         ((new text ttf ttf_size color x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))

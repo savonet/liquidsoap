@@ -118,6 +118,20 @@ CAMLprim value caml_rgb_get_height(value rgb)
   return Val_int(Frame_val(rgb)->height);
 }
 
+static inline void rgb_blank(frame *rgb)
+{
+  memset(rgb->data, 0, Rgb_data_size(rgb));
+}
+
+CAMLprim value caml_rgb_blank(value _rgb)
+{
+  frame *rgb = Frame_val(_rgb);
+
+  rgb_blank(rgb);
+
+  return Val_unit;
+}
+
 CAMLprim value caml_rgb_blit(value _src, value _dst)
 {
   frame *src = Frame_val(_src),
@@ -163,7 +177,7 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy, v
     }
   */
     /* This one seems to be much faster... */
-    memset(dst->data, 0, Rgb_data_size(dst));
+    rgb_blank(dst);
   /* Copy src to dst for the rest */
   for (j = jstart; j < jend; j++)
     for (i = istart; i < iend; i++)
@@ -173,16 +187,6 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy, v
 
   return Val_unit;
 }
-
-CAMLprim value caml_rgb_blank(value _rgb)
-{
-  frame *rgb = Frame_val(_rgb);
-
-  memset(rgb->data, 0, Rgb_data_size(rgb));
-
-  return Val_unit;
-}
-
 
 CAMLprim value caml_rgb_fill(value f, value col)
 {

@@ -4,7 +4,7 @@ type color = int * int * int * int
 
 let rgb_of_int n =
   if n > 0xffffff then raise (Invalid_argument "Not a color");
-  n land 0xff, (n lsr 8) land 0xff, (n lsr 16) land 0xff
+  (n lsr 16) land 0xff, (n lsr 8) land 0xff, n land 0xff
 
 external create : int -> int -> t = "caml_rgb_create"
 

@@ -84,7 +84,7 @@ let () =
       "height", Lang.int_t, Some (Lang.int (-1)), Some "Scale to width (negative means original height).";
       "x", Lang.int_t, Some (Lang.int 0), Some "x position.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y position.";
-      "alpha", Lang.int_t, Some (Lang.int (-1)), Some "Color to convert to alpha (negative means no alpha).";
+      "alpha", Lang.int_t, Some (Lang.int (-1)), Some "Color to convert to alpha (in 0xRRGGBB format, negative means no alpha).";
       "duration", Lang.float_t, Some (Lang.float 0.), None;
       "", Lang.string_t, None, Some "Path to image file.";
     ]
