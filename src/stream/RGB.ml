@@ -2,6 +2,10 @@ type t
 
 type color = int * int * int * int
 
+let rgb_of_int n =
+  if n > 0xffffff then raise (Invalid_argument "Not a color");
+  n land 0xff, (n lsr 8) land 0xff, (n lsr 16) land 0xff
+
 external create : int -> int -> t = "caml_rgb_create"
 
 external get_width : t -> int = "caml_rgb_get_width" "noalloc"
@@ -57,7 +61,7 @@ exception Invalid_format of string
 
 let ppm_header = Str.regexp "P6\n\\([0-9]+\\) \\([0-9]+\\)\n\\([0-9]+\\)\n"
 
-let of_ppm data =
+let of_ppm ?alpha data =
   (
     try
       if not (Str.string_partial_match ppm_header data 0) then
@@ -72,27 +76,33 @@ let of_ppm data =
   let datalen = String.length data - o in
     if d <> 255 then
       raise (Invalid_format (Printf.sprintf "Files of color depth %d are not handled." d));
-    if datalen <> 3*w*h then
+    if datalen < 3*w*h then
       raise (Invalid_format (Printf.sprintf "Got %d bytes of data instead of expected %d." datalen (3*w*h)));
     let ans = create w h in
       for j = 0 to h - 1 do
         for i = 0 to w - 1 do
-          set_pixel ans i j
-            (int_of_char data.[o + 3 * (j * w + i) + 0],
-             int_of_char data.[o + 3 * (j * w + i) + 1],
-             int_of_char data.[o + 3 * (j * w + i) + 2],
-             0xff)
+          let r, g, b =
+            int_of_char data.[o + 3 * (j * w + i) + 0],
+            int_of_char data.[o + 3 * (j * w + i) + 1],
+            int_of_char data.[o + 3 * (j * w + i) + 2]
+          in
+          let a =
+            match alpha with
+              | Some (ra, ga, ba) -> if r = ra && g = ga && b = ba then 0x00 else 0xff
+              | None -> 0xff
+          in
+            set_pixel ans i j (r, g, b, a);
         done
       done;
       ans
 
-let read_ppm fname =
+let read_ppm ?alpha fname =
   let ic = open_in_bin fname in
   let len = in_channel_length ic in
   let data = String.create len in
     really_input ic data 0 len;
     close_in ic;
-    of_ppm data
+    of_ppm ?alpha data
 
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"
 

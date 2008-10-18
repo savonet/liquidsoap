@@ -10,6 +10,9 @@ type t
 (** An RGBA color. *)
 type color = int * int * int * int
 
+(** {2 Utility functions} *)
+val rgb_of_int : int -> int * int * int
+
 (** {2 Basic manipulation} *)
 
 (** Create a frame of a given width and height. *)
@@ -18,8 +21,10 @@ val create : int -> int -> t
 (** Copy a frame. *)
 val copy : t -> t
 
+(** Width of a frame. *)
 val get_width : t -> int
 
+(** Height of a frame. *)
 val get_height : t -> int
 
 (** Get the value of a pixel. *)
@@ -53,9 +58,11 @@ val to_bmp : t -> string
 (** Save frame in a bitmap file. *)
 val save_bmp : t -> string -> unit
 
-val of_ppm : string -> t
+(** Read a PPM in a string. [alpha] is an optional color meaning transparency. *)
+val of_ppm : ?alpha:(int * int * int) -> string -> t
 
-val read_ppm : string -> t
+(** Same as [of_ppm] but reads PPM from a file. *)
+val read_ppm : ?alpha:(int * int * int) -> string -> t
 
 (** Convert a frame to an array of [int] of format 0xRRGGBB. Useful for using
   * the [Graphics] module. *)

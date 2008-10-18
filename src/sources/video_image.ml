@@ -22,7 +22,7 @@
 
 open Source
 
-class image fname duration width height x y =
+class image fname duration width height x y alpha =
   let nb_frames = Fmt.video_frames_of_seconds duration in
 object
   inherit source
@@ -42,7 +42,7 @@ object
 
   initializer
     (* TODO: handle more formats... *)
-    let f = RGB.read_ppm fname in
+    let f = RGB.read_ppm ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha)) fname in
     let w = if width < 0 then RGB.get_width f else width in
     let h = if height < 0 then RGB.get_height f else height in
     let f =
@@ -84,17 +84,19 @@ let () =
       "height", Lang.int_t, Some (Lang.int (-1)), Some "Scale to width (negative means original height).";
       "x", Lang.int_t, Some (Lang.int 0), Some "x position.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y position.";
+      "alpha", Lang.int_t, Some (Lang.int (-1)), Some "Color to convert to alpha (negative means no alpha).";
       "duration", Lang.float_t, Some (Lang.float 0.), None;
       "", Lang.string_t, None, Some "Path to image file.";
     ]
     (fun p ->
-       let fname, duration, w, h, x, y =
+       let fname, duration, w, h, x, y, alpha =
          let f v = List.assoc v p in
            Lang.to_string (f ""),
            Lang.to_float (f "duration"),
            Lang.to_int (f "width"),
            Lang.to_int (f "height"),
            Lang.to_int (f "x"),
-           Lang.to_int (f "y")
+           Lang.to_int (f "y"),
+           Lang.to_int (f "alpha")
        in
-         (new image fname duration w h x y :> source))
+         (new image fname duration w h x y alpha :> source))
