@@ -729,23 +729,15 @@ CAMLprim value caml_rgb_mask(value _rgb, value _mask)
   return Val_unit;
 }
 
-/* Lomo effect, inspired of http://registry.gimp.org/node/4683 */
 CAMLprim value caml_rgb_lomo(value _rgb)
 {
   frame *rgb = Frame_val(_rgb);
-  int i, j;
-  unsigned char r, g, b;
+  int i, j, c;
 
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-    {
-      r = Red(rgb, i, j);
-      g = Green(rgb, i, j);
-      b = Blue(rgb, i, j);
-      Red(rgb, i, j) = CLIP((r<=39)?(r * 610 / 256):((r<=193)?(r * 90 / 265):(r * 456 / 256)));
-      Green(rgb, i, j) = CLIP((g<=68)?(g * 264 / 256):(g * 188 / 256));
-      Blue(rgb, i, j) = CLIP((b<=94)?b:(b * 167 / 256));
-    }
+      for (c = 0; c < Rgb_colors; c++)
+        Color(rgb, c, i, j) = CLIP((1 - cos(Color(rgb, c, i, j) * 3.1416 / 255)) * 255);
 
   return Val_unit;
 }
