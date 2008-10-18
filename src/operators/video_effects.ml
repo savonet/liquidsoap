@@ -69,6 +69,7 @@ let () =
 let () =
   Lang.add_operator "video.scale"
     [
+      "coef", Lang.float_t, Some (Lang.float 1.), Some "Scaling coefficient in both directions.";
       "coef_x", Lang.float_t, Some (Lang.float 1.), Some "x scaling";
       "coef_y", Lang.float_t, Some (Lang.float 1.), Some "y scaling";
       "offset_x", Lang.int_t, Some (Lang.int 1), Some "x offset";
@@ -80,13 +81,14 @@ let () =
     (fun p ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-       let cx, cy, ox, oy =
+       let c, cx, cy, ox, oy =
+         Lang.to_float (f "coef"),
          Lang.to_float (f "coef_x"),
          Lang.to_float (f "coef_y"),
          Lang.to_int (f "offset_x"),
          Lang.to_int (f "offset_y")
        in
-         ((new effect (fun buf -> RGB.affine buf cx cy ox oy) src):>source))
+         ((new effect (fun buf -> RGB.affine buf (c*.cx) (c*.cy) ox oy) src):>source))
 
 let () =
   let effect a da buf =
