@@ -594,7 +594,7 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
     {
       for (c = 0; c < Rgb_colors; c++)
         Color(dst, c, i, j) = CLIP(Color(dst, c, i, j) * Alpha(dst,i,j) / 0xff + Color(src, c, i, j) * (0xff - Alpha(dst,i,j)) / 0xff);
-      Alpha(dst, i, j) = CLIP(Alpha(dst, i, j) + Alpha(src, i, j));
+      Alpha(dst, i, j) = CLIP(Alpha(dst, i, j) + (0xff - Alpha(dst, i, j)) * Alpha(src, i, j));
     }
   caml_leave_blocking_section();
 
@@ -682,6 +682,28 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
         Color(rgb, c, i, j) = Space_clip_color(old, c, i2, j2);
       }
   rgb_free(old);
+  caml_leave_blocking_section();
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_rgb_mask(value _rgb, value _mask)
+{
+  CAMLparam2(_rgb, _mask);
+  frame *rgb = Frame_val(_rgb),
+        *mask = Frame_val(_mask);
+  int i, j;
+
+  assert_same_dim(rgb, mask);
+  caml_enter_blocking_section();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      Alpha(rgb, i, j) =
+        CLIP(sqrt(
+              Red(mask, i, j) * Red(mask, i, j) +
+              Green(mask, i, j) * Green(mask, i, j) +
+              Blue(mask, i, j) * Blue(mask, i, j))) *
+        Alpha(mask, i, j) / 0xff;
   caml_leave_blocking_section();
 
   CAMLreturn(Val_unit);
