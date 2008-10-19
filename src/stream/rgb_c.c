@@ -743,8 +743,8 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
     for (i = 0; i < rgb->width; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
       {
-        i2 = (i - ox - dx) / ax + dx;
-        j2 = (j - oy - dy) / ay + dy;
+        i2 = (i - dx) / ax + dx - ox;
+        j2 = (j - dy) / ay + dy - oy;
         Color(rgb, c, i, j) = Space_clip_color(old, c, i2, j2);
       }
   rgb_free(old);

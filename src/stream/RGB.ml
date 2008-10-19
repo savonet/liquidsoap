@@ -123,6 +123,10 @@ external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity" "noalloc"
 
 external affine : t -> float -> float -> int -> int -> unit = "caml_rgb_affine" "noalloc"
 
+(* TODO: faster implementation? *)
+let translate f x y =
+  affine f 1. 1. x y
+
 external mask : t -> t -> unit = "caml_rgb_mask" "noalloc"
 
 external lomo : t -> unit = "caml_rgb_lomo"

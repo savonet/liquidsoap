@@ -25,7 +25,7 @@ open Source
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.
   * If the initial flag is set, only the first/current track is faded in. *)
-class fade_in ?(meta="liq_video_fade_in") ?(initial=false) duration fader source =
+class fade_in ?(meta="liq_video_fade_in") ?(initial=false) duration fader fadefun source =
 object (self)
 
   inherit operator [source] as super
@@ -63,7 +63,7 @@ object (self)
         for i=0 to min (p2-p1-1) (length-count-1) do
           let m = fade (count+i) in
             for c = 0 to Array.length rgb - 1 do
-              RGB.scale_opacity rgb.(c).(p1+i) m
+              fadefun rgb.(c).(p1+i) m
             done
         done ;
       state <- (if not initial && VFrame.is_partial ab then
@@ -76,7 +76,7 @@ end
 (** Fade-out after every frame.
   * If the final flag is set, the fade-out happens as of instantiation
   * and the source becomes unavailable once it's finished. *)
-class fade_out ?(meta="liq_video_fade_out") ?(final=false) duration fader source =
+class fade_out ?(meta="liq_video_fade_out") ?(final=false) duration fader fadefun source =
 object (self)
 
   inherit operator [source] as super
@@ -132,7 +132,7 @@ object (self)
                 for i=0 to offset2-offset1-1 do
                   let m = fade (n-i) in
                     for c=0 to Array.length buffer - 1 do
-                      RGB.scale_opacity buffer.(c).(offset1+i) m
+                      fadefun buffer.(c).(offset1+i) m
                     done
                 done
           | None -> ()
@@ -147,14 +147,18 @@ end
 
 (* TODO: share more with fade.ml *)
 let proto =
-  [ "duration", Lang.float_t, Some (Lang.float 3.), 
+  [
+    "duration", Lang.float_t, Some (Lang.float 3.),
      Some "Duration of the fading. \
            This value can be set on a per-file basis using the metadata field \
            passed as override." ;
+    "transition", Lang.string_t, Some (Lang.string "dissolve"),
+    Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down).";
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
           linear, sinusoidal, logarithmic or exponential." ;
-    "", Lang.source_t, None, None ]
+    "", Lang.source_t, None, None
+  ]
 
 let extract p =
   Lang.to_float (List.assoc "duration" p),
@@ -188,6 +192,16 @@ let extract p =
            let i = float i /. l in
              f (max 0. (min 1. i))
   ),
+  (let transition = Lang.to_string (List.assoc "transition" p) in
+   let ifm n a = int_of_float ((float_of_int n) *. a) in
+     match transition with
+       | "fade" -> RGB.scale_opacity
+       | "slide_left" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (t-.1.)) 0
+       | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (1.-.t)) 0
+       | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (1.-.t))
+       | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (t-.1.))
+       | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind."))
+  ),
   Lang.to_source (List.assoc "" p)
 
 let override_doc =
@@ -195,35 +209,35 @@ let override_doc =
         overrides the 'duration' parameter for current track." 
 
 let () =
-  Lang.add_operator 
+  Lang.add_operator
     "video.fade.in" (("override", Lang.string_t, Some (Lang.string "liq_video_fade_in"),
                override_doc) :: proto)
     ~category:Lang.SoundProcessing
     ~descr:("Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used "^
             "to set the duration for a specific track (float in seconds).")
     (fun p ->
-       let d,f,s = extract p in
+       let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         ((new fade_in ~meta d f s):>source)) ;
-  Lang.add_operator "fade.initial" proto
+         ((new fade_in ~meta d f t s):>source)) ;
+  Lang.add_operator "video.fade.initial" proto
     ~category:Lang.VideoProcessing
     ~descr:"Fade the beginning of a stream."
     (fun p ->
-       let d,f,s = extract p in
-         ((new fade_in ~initial:true d f s):>source)) ;
-  Lang.add_operator 
+       let d,f,t,s = extract p in
+         ((new fade_in ~initial:true d f t s):>source)) ;
+  Lang.add_operator
     "video.fade.out" (("override", Lang.string_t, Some (Lang.string "liq_video_fade_out"),
                override_doc) :: proto)
     ~category:Lang.SoundProcessing
     ~descr:("Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to "^
             "set the duration for a specific track (float in seconds).")
     (fun p ->
-       let d,f,s = extract p in
+       let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         ((new fade_out ~meta d f s):>source)) ;
-  Lang.add_operator "fade.final" proto
+         ((new fade_out ~meta d f t s):>source)) ;
+  Lang.add_operator "video.fade.final" proto
     ~category:Lang.VideoProcessing
     ~descr:"Fade a stream to black."
     (fun p ->
-       let d,f,s = extract p in
-         ((new fade_out ~final:true d f s):>source))
+       let d,f,t,s = extract p in
+         ((new fade_out ~final:true d f t s):>source))

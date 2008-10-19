@@ -113,6 +113,9 @@ val scale_opacity : t -> float -> unit
   * [(ox, oy)]. *)
 val affine : t -> float -> float -> int -> int -> unit
 
+(** Translate the image. *)
+val translate : t -> int -> int -> unit
+
 (** [mask f m] sets the alpha mask of the frame [f] according to the frame [m]. *)
 val mask : t -> t -> unit
 
