@@ -121,6 +121,8 @@ external rotate : t -> float -> unit = "caml_rgb_rotate" "noalloc"
 
 external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity" "noalloc"
 
+external disk_opacity : t -> int -> int -> int -> unit = "caml_rgb_disk_opacity" "noalloc"
+
 external affine : t -> float -> float -> int -> int -> unit = "caml_rgb_affine" "noalloc"
 
 (* TODO: faster implementation? *)

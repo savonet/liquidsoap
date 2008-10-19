@@ -109,6 +109,10 @@ val rotate : t -> float -> unit
 (** Multiply opacity of the image by a coefficient (between 0 and 1). *)
 val scale_opacity : t -> float -> unit
 
+(** [circle_opacity x y r] draws a circle of radius [r] centered at [(x,y)] in
+  * alpha channel. *)
+val disk_opacity : t -> int -> int -> int -> unit
+
 (** [affine ax ay bx by] scales the image by [(ax, ay)] and translates it of
   * [(ox, oy)]. *)
 val affine : t -> float -> float -> int -> int -> unit

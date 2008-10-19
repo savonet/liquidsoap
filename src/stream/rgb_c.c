@@ -731,6 +731,27 @@ CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
   return Val_unit;
 }
 
+CAMLprim value caml_rgb_disk_opacity(value _rgb, value _x, value _y, value _r)
+{
+  frame *rgb = Frame_val(_rgb);
+  int x = Int_val(_x);
+  int y = Int_val(_y);
+  int radius = Int_val(_r);
+  int i, j, r;
+
+  caml_enter_blocking_section();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+    {
+      r = sqrt((i - x) * (i - x) + (j - y) * (j - y));
+      if (r > radius)
+        Alpha(rgb, i, j) = 0;
+    }
+  caml_leave_blocking_section();
+
+  return Val_unit;
+}
+
 CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
 {
   frame *rgb = Frame_val(_rgb);
