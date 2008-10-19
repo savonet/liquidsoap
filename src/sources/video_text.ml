@@ -44,6 +44,8 @@ object (self)
 
   val mutable font = None
 
+  val mutable cur_text = text ()
+
   method render_text text =
     let font = Utils.get_some font in
     let ts = Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
@@ -74,7 +76,7 @@ object (self)
         | e ->
             raise (Lang.Invalid_value ((Lang.string ttf), Printf.sprintf "Could not open font: %s" (Printexc.to_string e)));
     );
-    self#render_text text
+    self#render_text cur_text
 
   method get_frame ab =
     let b = VFrame.get_rgb ab in
@@ -82,15 +84,11 @@ object (self)
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
     let tfw = RGB.get_width tf in
-      (
-        (* Look for new text to display. *)
-        match VFrame.get_metadata ab off with
-          | None -> ()
-          | Some m ->
-              match Utils.hashtbl_get m "liq_text" with
-                | None -> ()
-                | Some t -> self#render_text t
-      );
+      if cur_text <> text () then
+        (
+          cur_text <- text ();
+          self#render_text cur_text
+        );
       for c = 0 to Array.length b - 1 do
         let buf_c = b.(c) in
           for i = off to size - 1 do
@@ -117,7 +115,7 @@ let () =
       "y", Lang.int_t, Some (Lang.int (-5)), Some "y offset (negative means from bottom).";
       "speed", Lang.int_t, Some (Lang.int 70), Some "Speed in pixels per second.";
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cyle text";
-      "", Lang.string_t, None, Some "Text.";
+      "", Lang.string_getter_t 1, Some (Lang.string ""), Some "Text.";
     ]
     ~category:Lang.Input
     ~descr:"Display a text."
@@ -131,6 +129,6 @@ let () =
          Lang.to_int (f "y"),
          Lang.to_int (f "speed"),
          Lang.to_bool (f "cycle"),
-         Lang.to_string (f "")
+         Lang.to_string_getter (f "")
        in
          ((new text ttf ttf_size color x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))

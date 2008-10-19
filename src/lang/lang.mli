@@ -103,6 +103,7 @@ val add_operator :
 
 val to_bool : value -> bool
 val to_string : value -> string
+val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_source : value -> Source.source
@@ -144,6 +145,9 @@ val univ_t     : ?constraints:Lang_types.constraints -> int -> kind
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : kind
 
+(** A string getter. The argument is the number of the universal type parameter
+  * (should be >= 1). *)
+val string_getter_t : int -> kind
 (** A float getter. The argument is the number of the universal type parameter
   * (should be >= 1). *)
 val float_getter_t : int -> kind

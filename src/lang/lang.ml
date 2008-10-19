@@ -166,6 +166,13 @@ let to_string t = match t.value with
   | String s -> s
   | _ -> assert false
 
+let to_string_getter t = match t.value with
+  | String s -> (fun () -> s)
+  | Fun _ | FFI _ ->
+      (fun () ->
+         match (apply t []).value with String s -> s | _ -> assert false)
+  | _ -> assert false
+
 let to_float t = match t.value with
   | Float s -> s
   | _ -> assert false
@@ -246,6 +253,7 @@ let product_t a b = T.make (T.Product (a,b))
 let fun_t p b = T.make (T.Arrow (p,b))
 let univ_t ?(constraints=[]) i = T.make (T.UVar (i,constraints))
 let metadata_t = list_t (product_t string_t string_t)
+let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
 let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
 
 let mk v = { t = T.dummy ; value = v }

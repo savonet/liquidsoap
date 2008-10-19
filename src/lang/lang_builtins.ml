@@ -1314,6 +1314,28 @@ struct
 end
 
 let () =
+  add_builtin "interactive_string" ~cat:Interaction
+    ~descr:"Read a string from an interactive input."
+    ["",Lang.string_t,None,None; "",Lang.string_t,None,None ]
+    (Lang.fun_t [] Lang.string_t)
+    (fun p ->
+       let name = Lang.to_string (Lang.assoc "" 1 p) in
+       let v = Lang.to_string (Lang.assoc "" 2 p) in
+       let v = ref v in
+         Var.add
+           name
+           Lang.string_t
+           ~get:(fun () -> Printf.sprintf "%S" !v)
+           ~set:(fun s -> v := (Scanf.sscanf s "%S" (fun s -> s)))
+           ~validate:(fun s ->
+                        try
+                          ignore (Scanf.sscanf s "%S" (fun s -> s))
+                        with _ ->
+                          raise (Var.Invalid_value
+                                   (s ^ " is not a string")));
+         Lang.val_fun [] (fun p -> Lang.string !v))
+
+let () =
   add_builtin "interactive_float" ~cat:Interaction
     ~descr:"Read a float from an interactive input."
     ["",Lang.string_t,None,None; "",Lang.float_t,None,None ]
