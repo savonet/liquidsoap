@@ -153,7 +153,7 @@ let proto =
            This value can be set on a per-file basis using the metadata field \
            passed as override." ;
     "transition", Lang.string_t, Some (Lang.string "dissolve"),
-    Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down).";
+    Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down|grow).";
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
           linear, sinusoidal, logarithmic or exponential." ;
@@ -200,6 +200,7 @@ let extract p =
        | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (1.-.t)) 0
        | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (1.-.t))
        | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (t-.1.))
+       | "grow" -> fun buf t -> RGB.affine buf t t 0 0
        | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind."))
   ),
   Lang.to_source (List.assoc "" p)
