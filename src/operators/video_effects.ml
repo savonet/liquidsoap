@@ -57,6 +57,16 @@ let () =
          ((new effect RGB.greyscale src):>source))
 
 let () =
+  Lang.add_operator "video.sepia"
+    [ "", Lang.source_t, None, None ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Convert video to sepia."
+    (fun p ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         ((new effect RGB.sepia src):>source))
+
+let () =
   Lang.add_operator "video.invert"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing

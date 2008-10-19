@@ -631,9 +631,10 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
   CAMLreturn(ans);
 }
 
-CAMLprim value caml_rgb_greyscale(value _rgb)
+CAMLprim value caml_rgb_greyscale(value _rgb, value _sepia)
 {
   frame *rgb = Frame_val(_rgb);
+  int sepia = Bool_val(_sepia);
   int i,j;
   unsigned char c;
 
@@ -644,9 +645,18 @@ CAMLprim value caml_rgb_greyscale(value _rgb)
       c = (Red(rgb,i,j)
         +  Green(rgb,i,j)
         +  Blue(rgb,i,j)) / 3;
-      Red(rgb,i,j)   = c;
-      Green(rgb,i,j) = c;
-      Blue(rgb,i,j)  = c;
+      if (sepia)
+      {
+        Red(rgb,i,j)   = c;
+        Green(rgb,i,j) = c * 201 / 0xff;
+        Blue(rgb,i,j)  = c * 158 / 0xff;
+      }
+      else
+      {
+        Red(rgb,i,j)   = c;
+        Green(rgb,i,j) = c;
+        Blue(rgb,i,j)  = c;
+      }
     }
   caml_leave_blocking_section();
 

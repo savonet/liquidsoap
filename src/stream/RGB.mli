@@ -100,6 +100,9 @@ val proportional_scale_to : t -> int -> int -> t
 (** Convert the colors of a frame to greyscale. *)
 val greyscale : t -> unit
 
+(** Convert the colors of a frame to sepia. *)
+val sepia : t -> unit
+
 (** Invert the colors of a frame. *)
 val invert : t -> unit
 

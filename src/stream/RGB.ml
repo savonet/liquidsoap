@@ -111,7 +111,11 @@ let read_ppm ?alpha fname =
 
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"
 
-external greyscale : t -> unit = "caml_rgb_greyscale" "noalloc"
+external greyscale : t -> bool -> unit = "caml_rgb_greyscale" "noalloc"
+
+let sepia buf = greyscale buf true
+
+let greyscale buf = greyscale buf false
 
 external invert : t -> unit = "caml_rgb_invert" "noalloc"
 
