@@ -77,6 +77,23 @@ let () =
          ((new effect RGB.lomo src):>source))
 
 let () =
+  Lang.add_operator "video.fill"
+    [
+      "color", Lang.int_t, Some (Lang.int 0), Some "Color to fill the image with.";
+      "", Lang.source_t, None, None
+    ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Fill frame with a color."
+    (fun p ->
+       let f v = List.assoc v p in
+       let color, src =
+         Lang.to_int (f "color"),
+         Lang.to_source (f "")
+       in
+       let r,g,b = RGB.rgb_of_int color in
+         ((new effect (fun buf -> RGB.fill buf (r, g, b, 0xff)) src):>source))
+
+let () =
   Lang.add_operator "video.scale"
     [
       "coef", Lang.float_t, Some (Lang.float 1.), Some "Scaling coefficient in both directions.";

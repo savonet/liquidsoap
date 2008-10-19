@@ -11,6 +11,8 @@ type t
 type color = int * int * int * int
 
 (** {2 Utility functions} *)
+
+(** Extract the components of a color in 0xRRGGBB format. *)
 val rgb_of_int : int -> int * int * int
 
 (** {2 Basic manipulation} *)
