@@ -103,7 +103,8 @@ io = $(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
-	$(if $(W_JACK),io/jack_io.ml)
+	$(if $(W_JACK),io/jack_io.ml) \
+	io/v4l_io_c.c io/v4l_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml tools/ringbuffer.ml \

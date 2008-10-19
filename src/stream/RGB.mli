@@ -50,6 +50,8 @@ val add : t -> t -> unit
 
 (** {2 Conversions} *)
 
+val of_linear_rgb : string -> int -> t
+
 (** Fill a frame from a YUV420 buffer of a given width. *)
 val of_YUV420 : string * string * string -> int -> t
 

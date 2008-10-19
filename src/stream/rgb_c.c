@@ -426,6 +426,25 @@ CAMLprim value caml_rgb_to_YUV420(value f)
   CAMLreturn(ans);
 }
 
+CAMLprim value caml_rgb_of_linear_rgb(value _rgb, value _data)
+{
+  frame *rgb = Frame_val(_rgb);
+  char *data = String_val(_data);
+  int i, j;
+
+  /* TODO: blocking section */
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+    {
+      Red(rgb,i,j) = data[3 * (j * rgb->width + i) + 0];
+      Green(rgb,i,j) = data[3 * (j * rgb->width + i) + 1];
+      Blue(rgb,i,j) = data[3 * (j * rgb->width + i) + 2];
+      Alpha(rgb,i,j) = 0xff;
+    }
+
+  return Val_unit;
+}
+
 CAMLprim value caml_rgb_get_pixel(value f, value _x, value _y)
 {
   CAMLparam1(f);

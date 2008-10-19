@@ -24,6 +24,13 @@ external fill : t -> color -> unit = "caml_rgb_fill" "noalloc"
 
 external blank : t -> unit = "caml_rgb_blank" "noalloc"
 
+external of_linear_rgb : t -> string -> unit = "caml_rgb_of_linear_rgb" "noalloc"
+
+let of_linear_rgb data width =
+  let ans = create width (String.length data / width) in
+    of_linear_rgb ans data;
+    ans
+
 external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
 
 let of_YUV420 (y, u, v) width =
