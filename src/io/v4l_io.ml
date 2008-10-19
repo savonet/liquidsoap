@@ -3,6 +3,8 @@ external init : Unix.file_descr -> unit = "caml_v4l_init"
 external get_dims : Unix.file_descr -> int * int = "caml_v4l_get_dims"
 external capture : Unix.file_descr -> int -> int -> string = "caml_v4l_capture"
 
+let every = 5
+
 class input dev =
 object (self)
   inherit Source.active_source
@@ -20,13 +22,16 @@ object (self)
   method output_get_ready =
     fd <- Some (Unix.openfile dev [Unix.O_RDWR] 0);
     let fd = Utils.get_some fd in
-    let name, _, _, maxw, maxh, _, _ = caps fd in
+    let _, _, _, _, _, _, _ = caps fd in
       init fd;
       let w, h = get_dims fd in
         width <- w;
         height <- h
 
   method output_reset = ()
+
+  val mutable image = RGB.create 0 0
+  val mutable count = every
 
   method get_frame frame =
     assert (0 = AFrame.position frame);
@@ -39,9 +44,18 @@ object (self)
         ignore (Unix.read fd buf 0 buflen);
         buf
        *)
-      capture fd width height
+      if count = every then
+        (
+          count <- 0;
+          RGB.of_linear_rgb (capture fd width height) width
+        )
+      else
+        (
+          count <- count + 1;
+          image
+        )
     in
-    let img = RGB.of_linear_rgb img width in
+      image <- img;
       for c = 0 to Array.length buf - 1 do
         for i = 0 to VFrame.size frame - 1 do
           RGB.proportional_scale buf.(c).(i) img
