@@ -40,19 +40,12 @@ object (self)
   method remaining = 0
 
   val mutable pos_x = dx
-  val pos_y = dy
+  val mutable pos_y = dy
 
-  initializer
-    Sdl.init [];
-    Sdlttf.init ();
-    let font =
-      try
-        Sdlttf.open_font ttf ttf_size
-      with
-        | e ->
-            Printf.printf "Sdlttf error: %s\n" (Printexc.to_string e);
-            exit (-1)
-    in
+  val mutable font = None
+
+  method render_text text =
+    let font = Utils.get_some font in
     let ts = Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
     let w, h =
       let si = Sdlvideo.surface_info ts in
@@ -60,6 +53,8 @@ object (self)
     in
     let tf = RGB.create w h in
     let tr, tg, tb = RGB.rgb_of_int color in
+      if dy < 0 then
+        pos_y <- Fmt.video_height () + dy - h;
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
@@ -68,12 +63,35 @@ object (self)
       done;
       text_frame <- Some tf
 
+  initializer
+    Sdl.init [];
+    Sdlttf.init ();
+    font <- Some
+    (
+      try
+        Sdlttf.open_font ttf ttf_size
+      with
+        | e ->
+            Printf.printf "Sdlttf error: %s\n" (Printexc.to_string e);
+            exit (-1)
+    );
+    self#render_text text
+
   method get_frame ab =
     let b = VFrame.get_rgb ab in
     let off = VFrame.position ab in
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
     let tfw = RGB.get_width tf in
+      (
+        (* Look for new text to display. *)
+        match VFrame.get_metadata ab off with
+          | None -> ()
+          | Some m ->
+              match Utils.hashtbl_get m "liq_text" with
+                | None -> ()
+                | Some t -> self#render_text t
+      );
       for c = 0 to Array.length b - 1 do
         let buf_c = b.(c) in
           for i = off to size - 1 do
@@ -96,7 +114,7 @@ let () =
       "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
       "color", Lang.int_t, Some (Lang.int 0xffffff), Some "Text color (in 0xRRGGBB format).";
       "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
-      "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
+      "y", Lang.int_t, Some (Lang.int (-5)), Some "y offset (negative means from bottom).";
       "speed", Lang.int_t, Some (Lang.int 70), Some "Speed in pixels per second.";
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cyle text";
       "", Lang.string_t, None, Some "Text.";
