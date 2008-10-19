@@ -63,7 +63,7 @@ let save_bmp f fname =
 
 exception Invalid_format of string
 
-let ppm_header = Str.regexp "P6\n\\([0-9]+\\) \\([0-9]+\\)\n\\([0-9]+\\)\n"
+let ppm_header = Str.regexp "P6\n\\(#.*\n\\)?\\([0-9]+\\) \\([0-9]+\\)\n\\([0-9]+\\)\n"
 
 let of_ppm ?alpha data =
   (
@@ -73,9 +73,10 @@ let of_ppm ?alpha data =
     with
       | _ -> raise (Invalid_format "Not a PPM file.")
   );
-  let w = int_of_string (Str.matched_group 1 data) in
-  let h = int_of_string (Str.matched_group 2 data) in
-  let d = int_of_string (Str.matched_group 3 data) in
+  let go = if (Str.matched_group 1 data).[0] = '#' then 1 else 0 in
+  let w = int_of_string (Str.matched_group (1+go) data) in
+  let h = int_of_string (Str.matched_group (2+go) data) in
+  let d = int_of_string (Str.matched_group (3+go) data) in
   let o = Str.match_end () in
   let datalen = String.length data - o in
     if d <> 255 then
