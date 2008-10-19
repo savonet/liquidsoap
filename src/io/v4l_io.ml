@@ -1,6 +1,7 @@
 external caps : Unix.file_descr -> string * int * int * int * int * int * int = "caml_v4l_caps"
 external init : Unix.file_descr -> unit = "caml_v4l_init"
 external get_dims : Unix.file_descr -> int * int = "caml_v4l_get_dims"
+external capture : Unix.file_descr -> int -> int -> string = "caml_v4l_capture"
 
 class input dev =
 object (self)
@@ -17,14 +18,13 @@ object (self)
   val mutable height = 0
 
   method output_get_ready =
-    fd <- Some (Unix.openfile dev [Unix.O_RDONLY] 0);
+    fd <- Some (Unix.openfile dev [Unix.O_RDWR] 0);
     let fd = Utils.get_some fd in
     let name, _, _, maxw, maxh, _, _ = caps fd in
       init fd;
       let w, h = get_dims fd in
         width <- w;
-        height <- h;
-        () (* TODO *)
+        height <- h
 
   method output_reset = ()
 
@@ -33,10 +33,13 @@ object (self)
     let fd = Utils.get_some fd in
     let buf = VFrame.get_rgb frame in
     let img =
-      let buflen = width * height in
+      (*
+      let buflen = width * height * 3 in
       let buf = String.make buflen '\000' in
         ignore (Unix.read fd buf 0 buflen);
         buf
+       *)
+      capture fd width height
     in
     let img = RGB.of_linear_rgb img width in
       for c = 0 to Array.length buf - 1 do

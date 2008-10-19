@@ -27,7 +27,8 @@ external blank : t -> unit = "caml_rgb_blank" "noalloc"
 external of_linear_rgb : t -> string -> unit = "caml_rgb_of_linear_rgb" "noalloc"
 
 let of_linear_rgb data width =
-  let ans = create width (String.length data / width) in
+  let height = (String.length data / 3) / width in
+  let ans = create width height in
     of_linear_rgb ans data;
     ans
 

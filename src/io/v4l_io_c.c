@@ -11,6 +11,7 @@
 #include <sys/ioctl.h>
 #include <asm/types.h>
 #include <linux/videodev.h>
+#include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -55,22 +56,6 @@ CAMLprim value caml_v4l_init(value _fd)
   int fd = Int_val(_fd);
   struct video_picture pic;
 
-  /*
-  if (ioctl(fd, VIDIOCGCAPTURE, &cap))
-  {
-    perror(strerror(errno));
-    exit (-1);
-  }
-  cap.width = width;
-  cap.height = height;
-  assert(!ioctl(fd, VIDIOCSCAPTURE, &cap));
-
-  assert(!ioctl(fd, VIDIOCGWIN, &win));
-  win.width = width;
-  win.height = height;
-  assert(!ioctl(fd, VIDIOCSWIN, &win));
-  */
-
   assert(!ioctl(fd, VIDIOCGPICT, &pic));
   pic.depth = 24;
   pic.palette = VIDEO_PALETTE_RGB24;
@@ -91,6 +76,36 @@ CAMLprim value caml_v4l_get_dims(value _fd)
   ans = caml_alloc_tuple(2);
   Store_field(ans, 0, Val_int(win.width));
   Store_field(ans, 1, Val_int(win.height));
+
+  CAMLreturn(ans);
+}
+
+CAMLprim value caml_v4l_capture(value _fd, value _width, value _height)
+{
+  CAMLparam1(_fd);
+  CAMLlocal1(ans);
+  int fd = Int_val(_fd);
+  int width = Int_val(_width),
+      height = Int_val(_height);
+  int len = width * height * 3;
+  char *buf;
+  struct video_mmap mm;
+  int frame = 0;
+
+  caml_enter_blocking_section();
+  /* TODO: mmap once for all */
+  buf = mmap(0, len, PROT_READ, MAP_SHARED, fd, 0);
+  mm.frame = frame;
+  mm.height = height;
+  mm.width = width;
+  mm.format = VIDEO_PALETTE_RGB24;
+  assert(!ioctl(fd, VIDIOCMCAPTURE, &mm));
+  assert(!ioctl(fd, VIDIOCSYNC, &frame));
+  caml_leave_blocking_section();
+
+  ans = caml_alloc_string(len);
+  memcpy(String_val(ans), buf, len);
+  munmap(buf, len);
 
   CAMLreturn(ans);
 }

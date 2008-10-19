@@ -17,7 +17,7 @@ val rgb_of_int : int -> int * int * int
 
 (** {2 Basic manipulation} *)
 
-(** Create a frame of a given width and height. *)
+(** Create a frame of a given width and height (in pixels). *)
 val create : int -> int -> t
 
 (** Copy a frame. *)
@@ -50,6 +50,7 @@ val add : t -> t -> unit
 
 (** {2 Conversions} *)
 
+(** Read a buffer in RGB format of given width (in pixels). *)
 val of_linear_rgb : string -> int -> t
 
 (** Fill a frame from a YUV420 buffer of a given width. *)
