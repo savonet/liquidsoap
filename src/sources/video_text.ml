@@ -87,7 +87,8 @@ object (self)
       if cur_text <> text () then
         (
           cur_text <- text ();
-          self#render_text cur_text
+          self#render_text cur_text;
+          if pos_x = -tfw then pos_x <- Fmt.video_width ()
         );
       for c = 0 to Array.length b - 1 do
         let buf_c = b.(c) in

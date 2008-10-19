@@ -668,9 +668,18 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
       sa = Alpha(src,i,j);
       if (sa != 0)
       {
-        for (c = 0; c < Rgb_colors; c++)
-          Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * sa / 0xff + Color(dst, c, i, j) * (0xff - sa) / 0xff);
-        Alpha(dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(dst, i, j));
+        if (sa == 0xff)
+        {
+          for (c = 0; c < Rgb_colors; c++)
+            Color(dst, c, i, j) = Color(src, c, i, j);
+          Alpha(dst, i, j) = 0xff;
+        }
+        else
+        {
+          for (c = 0; c < Rgb_colors; c++)
+            Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * sa / 0xff + Color(dst, c, i, j) * (0xff - sa) / 0xff);
+          Alpha(dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(dst, i, j));
+        }
       }
     }
   caml_leave_blocking_section();
@@ -743,7 +752,7 @@ CAMLprim value caml_rgb_disk_opacity(value _rgb, value _x, value _y, value _r)
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
     {
-      r = sqrt((i - x) * (i - x) + (j - y) * (j - y));
+      r = sqrtl((i - x) * (i - x) + (j - y) * (j - y));
       if (r > radius)
         Alpha(rgb, i, j) = 0;
     }
