@@ -152,7 +152,7 @@ let proto =
      Some "Duration of the fading. \
            This value can be set on a per-file basis using the metadata field \
            passed as override." ;
-    "transition", Lang.string_t, Some (Lang.string "dissolve"),
+    "transition", Lang.string_t, Some (Lang.string "fade"),
     Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down|grow).";
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
