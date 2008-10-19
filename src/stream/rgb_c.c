@@ -11,6 +11,10 @@
 #include <assert.h>
 #include <math.h>
 
+#ifdef HAVE_MMX
+#include <mmintrin.h>
+#endif
+
 #define max(a,b) (a>b)?a:b
 #define min(a,b) (a<b)?a:b
 
@@ -509,6 +513,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
 
   caml_enter_blocking_section();
   /* Fill borders in black */
+  /*
   if (oy == 0)
     for (j = 0; j < dst->height; j++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
@@ -527,6 +532,8 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
         for (j = dst->height - oy; j < dst->height; j++)
           Color(dst, c, i, j) = 0;
       }
+  */
+  rgb_blank(dst);
   /* Scale the image */
   for (j = oy; j < dst->height - oy; j++)
     for (i = ox; i < dst->width - ox; i++)
@@ -674,13 +681,36 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
 CAMLprim value caml_rgb_invert(value _rgb)
 {
   frame *rgb = Frame_val(_rgb);
-  int i, j, c;
 
   caml_enter_blocking_section();
+#ifdef HAVE_MMX
+  /* See http://www.codeproject.com/KB/recipes/mmxintro.aspx?display=Print
+   *     http://msdn.microsoft.com/en-us/library/698bxz2w(VS.80).aspx */
+  unsigned char a1, a2;
+  int i;
+  int len = Rgb_data_size(rgb) / 4;
+  __m64 *data = (__m64*)rgb->data;
+  __m64 tmp;
+  _mm_empty();
+  __m64 f = _mm_set_pi8(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff);
+  for (i = 0; i < len; i ++)
+  {
+    tmp = _mm_subs_pu8(f, *data);
+    a1 = rgb->data[8 * i + 3];
+    a2 = rgb->data[8 * i + 7];
+    *data = tmp;
+    rgb->data[8 * i + 3] = a1;
+    rgb->data[8 * i + 7] = a2;
+    data++;
+  }
+  _mm_empty();
+#else
+  int i, j, c;
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
       for (c = 0; c < Rgb_colors; c++)
         Color(rgb, c, i, j) = 0xff - Color(rgb, c, i, j);
+#endif
   caml_leave_blocking_section();
 
   return Val_unit;
@@ -714,12 +744,13 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-      for (c = 0; c < Rgb_elems_per_pixel; c++)
-      {
-        i2 = (i - ox) * cos(a) + (j - oy) * sin(a) + ox;
-        j2 = -(i - ox) * sin(a) + (j - oy) * cos(a) + oy;
-        Color(rgb, c, i, j) = Space_clip_color(old, c, i2, j2);
-      }
+    {
+      i2 = (i - ox) * cos(a) + (j - oy) * sin(a) + ox;
+      j2 = -(i - ox) * sin(a) + (j - oy) * cos(a) + oy;
+      if (!Is_outside(old, i2, j2))
+        for (c = 0; c < Rgb_elems_per_pixel; c++)
+          Color(rgb, c, i, j) = Color(old, c, i2, j2);
+    }
   rgb_free(old);
   caml_leave_blocking_section();
 
@@ -746,12 +777,14 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
   rgb_blank(rgb);
   for (j = jstart; j < jend; j++)
     for (i = istart; i < iend; i++)
-      for (c = 0; c < Rgb_elems_per_pixel; c++)
-      {
-        i2 = (i - dx) / ax + dx - ox;
-        j2 = (j - dy) / ay + dy - oy;
-        Color(rgb, c, i, j) = Space_clip_color(old, c, i2, j2);
-      }
+    {
+      i2 = (i - dx) / ax + dx - ox;
+      j2 = (j - dy) / ay + dy - oy;
+      /* TODO: this test shouldn't be needed */
+      if (!Is_outside(old, i2, j2))
+        for (c = 0; c < Rgb_elems_per_pixel; c++)
+          Color(rgb, c, i, j) = Color(old, c, i2, j2);
+    }
   rgb_free(old);
   caml_leave_blocking_section();
 
