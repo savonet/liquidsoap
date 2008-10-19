@@ -40,6 +40,9 @@ object
 
   val mutable img = None
 
+  val mutable pos_x = x
+  val mutable pos_y = y
+
   initializer
     (* TODO: handle more formats... *)
     let f = RGB.read_ppm ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha)) fname in
@@ -51,6 +54,8 @@ object
       else
         RGB.scale_to f w h
     in
+      if x < 0 then pos_x <- Fmt.video_width () - w + x;
+      if y < 0 then pos_y <- Fmt.video_height () - h + y;
       img <- Some f
 
   method get_frame ab =
@@ -66,7 +71,7 @@ object
         for c = 0 to Array.length b - 1 do
           let buf_c = b.(c) in
             for i = off to size - 1 do
-              RGB.blit_off img buf_c.(i) x y
+              RGB.blit_off img buf_c.(i) pos_x pos_y
             done;
         done;
         AFrame.add_break ab (AFrame.size ab) ;
@@ -82,8 +87,8 @@ let () =
     [
       "width", Lang.int_t, Some (Lang.int (-1)), Some "Scale to width (negative means original width).";
       "height", Lang.int_t, Some (Lang.int (-1)), Some "Scale to width (negative means original height).";
-      "x", Lang.int_t, Some (Lang.int 0), Some "x position.";
-      "y", Lang.int_t, Some (Lang.int 0), Some "y position.";
+      "x", Lang.int_t, Some (Lang.int 0), Some "x position (negative means from right).";
+      "y", Lang.int_t, Some (Lang.int 0), Some "y position (negative means from bottom).";
       "alpha", Lang.int_t, Some (Lang.int (-1)), Some "Color to convert to alpha (in 0xRRGGBB format, negative means no alpha).";
       "duration", Lang.float_t, Some (Lang.float 0.), None;
       "", Lang.string_t, None, Some "Path to image file.";

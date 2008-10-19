@@ -72,8 +72,7 @@ object (self)
         Sdlttf.open_font ttf ttf_size
       with
         | e ->
-            Printf.printf "Sdlttf error: %s\n" (Printexc.to_string e);
-            exit (-1)
+            raise (Lang.Invalid_value ((Lang.string ttf), Printf.sprintf "Could not open font: %s" (Printexc.to_string e)));
     );
     self#render_text text
 
@@ -95,7 +94,8 @@ object (self)
       for c = 0 to Array.length b - 1 do
         let buf_c = b.(c) in
           for i = off to size - 1 do
-            RGB.blit_off tf buf_c.(i) pos_x pos_y;
+            if pos_x <> -tfw then
+              RGB.blit_off tf buf_c.(i) pos_x pos_y;
             pos_x <- pos_x - speed;
             if pos_x < -tfw then
               if cycle then
