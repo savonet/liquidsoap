@@ -201,7 +201,7 @@ let extract p =
        | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (1.-.t))
        | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (t-.1.))
        | "grow" -> fun buf t -> RGB.affine buf t t 0 0
-       | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind."))
+       | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind"))
   ),
   Lang.to_source (List.assoc "" p)
 

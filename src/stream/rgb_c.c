@@ -737,10 +737,15 @@ CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, valu
       oy = Int_val(_oy);
   int dx = rgb->width / 2,  /* Center of scaling */
       dy = rgb->height / 2;
+  int istart = max(0, (ox - dx) * ax + dx),
+      iend = min(rgb->width, (rgb->width + ox + dx) * ax + dx),
+      jstart = max(0, (oy - dy) * ay + dy),
+      jend = min(rgb->height, (rgb->height + ox + dx) * ax + dx);
 
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  rgb_blank(rgb);
+  for (j = jstart; j < jend; j++)
+    for (i = istart; i < iend; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
       {
         i2 = (i - dx) / ax + dx - ox;
