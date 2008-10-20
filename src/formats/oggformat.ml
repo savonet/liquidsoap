@@ -44,6 +44,8 @@ let decoder file =
       Unix.close fd
     with _ -> ()
   in
+  (* Intermediate frame when resize is needed *)
+  let frame = ref None in
   let fill buf =
     assert (not !closed) ;
 
@@ -62,19 +64,32 @@ let decoder file =
             int_of_float (buf.Ogg_demuxer.fps +. 0.5) <> Fmt.video_frames_per_second () (* TODO: more precise? + convert fps *)
           then
             assert false;
-          (* TODO: choose the kind of scaling *)
-          let scale b =
-            if buf.Ogg_demuxer.y_width = Fmt.video_width () &&
-               buf.Ogg_demuxer.y_height = Fmt.video_height () then
-              b
-            else
-              RGB.proportional_scale_to b (Fmt.video_width ()) (Fmt.video_height ())
-          in
-            b.(c).(i) <- scale (RGB.of_YUV420 
-                                     ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
-                                      (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))  
-                                       buf.Ogg_demuxer.y_width
-                                       buf.Ogg_demuxer.y_height);
+          if buf.Ogg_demuxer.y_width <> Fmt.video_width () ||
+             buf.Ogg_demuxer.y_height <> Fmt.video_height () then
+            let frame = 
+              let create () = 
+                let f = RGB.create buf.Ogg_demuxer.y_width
+                                   buf.Ogg_demuxer.y_height
+                in
+                frame := Some f;
+                f
+              in
+              match !frame with
+                | None -> create ()
+                | Some f when 
+                     RGB.get_width f  != buf.Ogg_demuxer.y_width ||
+                     RGB.get_height f != buf.Ogg_demuxer.y_height
+                   -> create ()
+                | Some f -> f
+            in
+            RGB.of_YUV420 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
+                          (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
+                          frame;
+            RGB.proportional_scale b.(c).(i) frame 
+          else
+            RGB.of_YUV420 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
+                          (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
+                          b.(c).(i)
         in
         feed
       in
