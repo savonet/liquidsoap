@@ -82,10 +82,9 @@ let decoder file =
                    -> create ()
                 | Some f -> f
             in
-            RGB.of_YUV420 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
+            RGB.of_YUV420_proportional b.(c).(i) frame
+                          ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
                           (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
-                          frame;
-            RGB.proportional_scale b.(c).(i) frame 
           else
             RGB.of_YUV420 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
                           (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))

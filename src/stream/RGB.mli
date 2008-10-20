@@ -111,6 +111,10 @@ val proportional_scale : t -> t -> unit
   * height. *)
 val proportional_scale_to : t -> int -> int -> t
 
+(** [dst inter yuv] converts and scale yuv frame to dest,
+  * using inter for intermediate scaling *)
+val of_YUV420_proportional : t -> t -> yuv -> unit
+
 (** Convert the colors of a frame to greyscale. *)
 val greyscale : t -> unit
 

@@ -67,6 +67,11 @@ let proportional_scale_to src w h =
     proportional_scale dst src;
     dst
 
+let of_YUV420_proportional f f' yuv = 
+  of_YUV420 yuv f';
+  proportional_scale f f'
+
+
 external to_bmp : t -> string = "caml_rgb_to_bmp"
 
 let save_bmp f fname =
