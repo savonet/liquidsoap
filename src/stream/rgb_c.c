@@ -214,8 +214,8 @@ CAMLprim value caml_rgb_fill(value f, value col)
 // See:  http://svn.netlabs.org/repos/wvgui/trunk/yuv/
 
 #define CLIP(color)  (unsigned char)(((color)>0xff)?0xff:(((color)<0)?0:(color)))
-#define Y(y,s,i,j)   y[j*s+i]
-#define UV(uv,s,i,j) uv[(j >> 1)*s+(i >> 1)]
+#define POS(x,o)     ((x << 1)+o)
+#define PIX(p,s,x,y) p[y*s+x]
 
 void YUV420_to_RGB(unsigned char *ysrc, int y_stride, unsigned char *usrc, 
                    unsigned char *vsrc, int uv_stride, frame *rgb)
@@ -223,23 +223,33 @@ void YUV420_to_RGB(unsigned char *ysrc, int y_stride, unsigned char *usrc,
 /* From libv4l code. */
   int i,j;
 
-  for (i = 0; i < rgb->height; i++) {
-    for (j = 0; j < rgb->width; j += 2) {
+  for (i = 0; i < rgb->height / 2; i++) {
+    for (j = 0; j < rgb->width / 2; j++) {
       /* fast slightly less accurate multiplication free code */
-      int u1 = (((UV(usrc,uv_stride,j,i) - 128) << 7) +  (UV(usrc,uv_stride,j,i) - 128)) >> 6;
-      int rg = (((UV(usrc,uv_stride,j,i) - 128) << 1) +  (UV(usrc,uv_stride,j,i) - 128) +
-                ((UV(vsrc,uv_stride,j,i) - 128) << 2) + ((UV(vsrc,uv_stride,j,i) - 128) << 1)) >> 3;
-      int v1 = (((UV(vsrc,uv_stride,j,i) - 128) << 1) +  (UV(vsrc,uv_stride,j,i) - 128)) >> 1;
+      int u1 = (((PIX(usrc,uv_stride,j,i) - 128) << 7) +  (PIX(usrc,uv_stride,j,i) - 128)) >> 6;
+      int rg = (((PIX(usrc,uv_stride,j,i) - 128) << 1) +  (PIX(usrc,uv_stride,j,i) - 128) +
+                ((PIX(vsrc,uv_stride,j,i) - 128) << 2) + ((PIX(vsrc,uv_stride,j,i) - 128) << 1)) >> 3;
+      int v1 = (((PIX(vsrc,uv_stride,j,i) - 128) << 1) +  (PIX(vsrc,uv_stride,j,i) - 128)) >> 1;
 
-      Red(rgb,j,i)   = CLIP(Y(ysrc,y_stride,j,i) + v1);
-      Green(rgb,j,i) = CLIP(Y(ysrc,y_stride,j,i) - rg);
-      Blue(rgb,j,i)  = CLIP(Y(ysrc,y_stride,j,i) + u1);
-      Alpha(rgb,j,i) = 0xff;
+      Red(rgb,POS(j,0),POS(i,0))   = CLIP(PIX(ysrc,y_stride,POS(j,0),POS(i,0)) + v1);
+      Green(rgb,POS(j,0),POS(i,0)) = CLIP(PIX(ysrc,y_stride,POS(j,0),POS(i,0)) - rg);
+      Blue(rgb,POS(j,0),POS(i,0))  = CLIP(PIX(ysrc,y_stride,POS(j,0),POS(i,0)) + u1);
+      Alpha(rgb,POS(j,0),POS(i,0)) = 0xff;
 
-      Red(rgb,j+1,i)   = CLIP(Y(ysrc,y_stride,j+1,i) + v1);
-      Green(rgb,j+1,i) = CLIP(Y(ysrc,y_stride,j+1,i) - rg);
-      Blue(rgb,j+1,i)  = CLIP(Y(ysrc,y_stride,j+1,i) + u1);
-      Alpha(rgb,j+1,i) = 0xff;
+      Red(rgb,POS(j,1),POS(i,0))   = CLIP(PIX(ysrc,y_stride,POS(j,1),POS(i,0)) + v1);
+      Green(rgb,POS(j,1),POS(i,0)) = CLIP(PIX(ysrc,y_stride,POS(j,1),POS(i,0)) - rg);
+      Blue(rgb,POS(j,1),POS(i,0))  = CLIP(PIX(ysrc,y_stride,POS(j,1),POS(i,0)) + u1);
+      Alpha(rgb,POS(j,1),POS(i,0)) = 0xff;
+
+      Red(rgb,POS(j,0),POS(i,1))   = CLIP(PIX(ysrc,y_stride,POS(j,0),POS(i,1)) + v1);
+      Green(rgb,POS(j,0),POS(i,1)) = CLIP(PIX(ysrc,y_stride,POS(j,0),POS(i,1)) - rg);
+      Blue(rgb,POS(j,0),POS(i,1))  = CLIP(PIX(ysrc,y_stride,POS(j,0),POS(i,1)) + u1);
+      Alpha(rgb,POS(j,0),POS(i,1)) = 0xff;
+
+      Red(rgb,POS(j,1),POS(i,1))   = CLIP(PIX(ysrc,y_stride,POS(j,1),POS(i,1)) + v1);
+      Green(rgb,POS(j,1),POS(i,1)) = CLIP(PIX(ysrc,y_stride,POS(j,1),POS(i,1)) - rg);
+      Blue(rgb,POS(j,1),POS(i,1))  = CLIP(PIX(ysrc,y_stride,POS(j,1),POS(i,1)) + u1);
+      Alpha(rgb,POS(j,1),POS(i,1)) = 0xff;
 
     }
   }
