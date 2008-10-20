@@ -70,7 +70,10 @@ let decoder file =
             else
               RGB.proportional_scale_to b (Fmt.video_width ()) (Fmt.video_height ())
           in
-            b.(c).(i) <- scale (RGB.of_YUV420 (buf.Ogg_demuxer.y, buf.Ogg_demuxer.u, buf.Ogg_demuxer.v) buf.Ogg_demuxer.y_width);
+            b.(c).(i) <- scale (RGB.of_YUV420 
+                                     ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
+                                      (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))  
+                                       buf.Ogg_demuxer.y_width);
         in
         feed
       in

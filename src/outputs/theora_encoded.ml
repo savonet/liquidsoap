@@ -48,12 +48,14 @@ let create_encoder ~quality =
     os, enc
 
 let theora_of_rgb_buffer b =
-  let y, u, v = RGB.to_YUV420 b in
+  let (y,y_stride), (u, v, uv_stride) = RGB.to_YUV420 b in
     {
       Theora.y_width = Fmt.video_width ();
       Theora.y_height = Fmt.video_height ();
+      Theora.y_stride = y_stride;
       Theora.uv_width = Fmt.video_width () / 2;
       Theora.uv_height = Fmt.video_height () / 2;
+      Theora.uv_stride = uv_stride;
       Theora.y = y;
       Theora.u = u;
       Theora.v = v;

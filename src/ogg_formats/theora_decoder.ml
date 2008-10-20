@@ -28,11 +28,11 @@ let decoder os =
   let packet1 = ref None in
   let packet2 = ref None in
   let packet3 = ref None in
-  let fill feed = 
+  let fill feed =
     (* Decoder is created upon first decoding..*)
-    let decoder,fps = 
+    let decoder,fps =
       match !decoder with
-        | None -> 
+        | None ->
            let packet1 =
              match !packet1 with
                | None ->
@@ -40,14 +40,14 @@ let decoder os =
                   packet1 := Some p; p
                | Some p -> p
            in
-           let packet2 = 
+           let packet2 =
              match !packet2 with
-               | None -> 
+               | None ->
                   let p = Ogg.Stream.get_packet os in
                   packet2 := Some p; p
                | Some p -> p
            in
-           let packet3 = 
+           let packet3 =
              match !packet3 with
                | None ->
                    let p = Ogg.Stream.get_packet os in
@@ -55,7 +55,7 @@ let decoder os =
                | Some p -> p
            in
            let (d,info,vendor,m) = Theora.Decoder.create packet1 packet2 packet3 in
-           let fps = (float (info.Theora.fps_numerator)) /. 
+           let fps = (float (info.Theora.fps_numerator)) /.
                      (float (info.Theora.fps_denominator))
            in
            meta := Some (vendor,m);
@@ -64,14 +64,16 @@ let decoder os =
         | Some d -> d
     in
     let ret = Theora.Decoder.get_yuv decoder os in
-    let ret = 
-    { 
+    let ret =
+    {
       Ogg_demuxer.
         y_width   = ret.Theora.y_width;
         y_height  = ret.Theora.y_height;
+        y_stride  = ret.Theora.y_stride;
         uv_width  = ret.Theora.uv_width;
         uv_height = ret.Theora.uv_height;
-        fps       = fps; 
+        uv_stride = ret.Theora.uv_stride;
+        fps       = fps;
         y = ret.Theora.y;
         u = ret.Theora.u;
         v = ret.Theora.v

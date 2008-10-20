@@ -53,11 +53,17 @@ val add : t -> t -> unit
 (** Read a buffer in RGB format of given width (in pixels). *)
 val of_linear_rgb : string -> int -> t
 
+(** YUV buffers. *)
+type yuv_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+(** YUV data in [(y,y_stride),(u,v,uv_stride))] format. *)
+type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
+
 (** Fill a frame from a YUV420 buffer of a given width. *)
-val of_YUV420 : string * string * string -> int -> t
+val of_YUV420 : yuv -> int -> t
 
 (** Convert a frame to YUV420 format. *)
-val to_YUV420 : t -> (string * string * string)
+val to_YUV420 : t -> yuv
 
 (** Convert a frame to BMP format. *)
 val to_bmp : t -> string

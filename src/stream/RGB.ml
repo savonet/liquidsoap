@@ -32,15 +32,19 @@ let of_linear_rgb data width =
     of_linear_rgb ans data;
     ans
 
-external of_YUV420 : string * string * string -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
+type yuv_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-let of_YUV420 (y, u, v) width =
-  let height = String.length y / width in
+type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
+
+external of_YUV420 : yuv -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
+
+let of_YUV420 ((y,y_stride), (u, v, uv_stride) as frame) width =
+  let height = Bigarray.Array1.dim y / width in
   let ans = create width height in
-    of_YUV420 (y, u, v) ans;
+    of_YUV420 frame ans;
     ans
 
-external to_YUV420 : t -> string * string * string = "caml_rgb_to_YUV420"
+external to_YUV420 : t -> yuv = "caml_rgb_to_YUV420"
 
 external get_pixel : t -> int -> int -> color = "caml_rgb_get_pixel"
 

@@ -29,25 +29,28 @@ module Generator = Float_pcm.Generator
 type metadata = string*((string*string) list)
 type 'a decoder = ('a*(metadata option) -> unit) -> unit
 type audio = (float array array)*int
-type video = 
+type video_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type video =
  {
     fps       : float; (** Video frames per second *)
     y_width   : int; (** Width of the Y' luminance plane *)
     y_height  : int; (** Height of the luminance plane *)
+    y_stride  : int; (** Length, in bytes, per line *)
     uv_width  : int; (** Width of the Cb and Cr chroma planes *)
     uv_height : int; (** Height of the chroma planes *)
-    y : string; (** luminance data *)
-    u : string; (** Cb data *)
-    v : string; (** Cr data *)
+    uv_stride : int; (** Length, in bytes, per line *)
+    y : video_data; (** luminance data *)
+    u : video_data; (** Cb data *)
+    v : video_data; (** Cr data *)
  }
-type decoders = 
+type decoders =
     | Video of video decoder
     | Audio of audio decoder
     | Unknown
 
 type stream = Ogg.Stream.t*(bool ref)*decoders
-type t = 
-{ 
+type t =
+{
   sync     : Ogg.Sync.t;
   eos      : bool ref;
   streams : (nativeint,stream) Hashtbl.t;

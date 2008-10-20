@@ -1,4 +1,5 @@
 #include <caml/alloc.h>
+#include <caml/bigarray.h>
 #include <caml/callback.h>
 #include <caml/fail.h>
 #include <caml/memory.h>
@@ -9,6 +10,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 #include <math.h>
 
 #ifdef HAVE_MMX
@@ -17,13 +19,6 @@
 
 #define max(a,b) (a>b)?a:b
 #define min(a,b) (a<b)?a:b
-
-static value copy_buffer(char *buf, int len)
-{
-  value ans = caml_alloc_string(len);
-  memcpy(String_val(ans), buf, len);
-  return ans;
-}
 
 typedef struct
 {
@@ -218,9 +213,12 @@ CAMLprim value caml_rgb_fill(value f, value col)
 // TODO: Implements ASM version of these conversions,
 // See:  http://svn.netlabs.org/repos/wvgui/trunk/yuv/
 
-#define CLIP(color) (unsigned char)(((color)>0xff)?0xff:(((color)<0)?0:(color)))
+#define CLIP(color)  (unsigned char)(((color)>0xff)?0xff:(((color)<0)?0:(color)))
+#define Y(y,s,i,j)   y[j*s+i]
+#define UV(uv,s,i,j) uv[(j >> 1)*s+(i >> 1)]
 
-void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc, frame *rgb)
+void YUV420_to_RGB(unsigned char *ysrc, int y_stride, unsigned char *usrc, 
+                   unsigned char *vsrc, int uv_stride, frame *rgb)
 {
 /* From libv4l code. */
   int i,j;
@@ -228,30 +226,21 @@ void YUV420_to_RGB(unsigned char *ysrc, unsigned char *usrc, unsigned char *vsrc
   for (i = 0; i < rgb->height; i++) {
     for (j = 0; j < rgb->width; j += 2) {
       /* fast slightly less accurate multiplication free code */
-      int u1 = (((*usrc - 128) << 7) +  (*usrc - 128)) >> 6;
-      int rg = (((*usrc - 128) << 1) +  (*usrc - 128) +
-                ((*vsrc - 128) << 2) + ((*vsrc - 128) << 1)) >> 3;
-      int v1 = (((*vsrc - 128) << 1) +  (*vsrc - 128)) >> 1;
+      int u1 = (((UV(usrc,uv_stride,j,i) - 128) << 7) +  (UV(usrc,uv_stride,j,i) - 128)) >> 6;
+      int rg = (((UV(usrc,uv_stride,j,i) - 128) << 1) +  (UV(usrc,uv_stride,j,i) - 128) +
+                ((UV(vsrc,uv_stride,j,i) - 128) << 2) + ((UV(vsrc,uv_stride,j,i) - 128) << 1)) >> 3;
+      int v1 = (((UV(vsrc,uv_stride,j,i) - 128) << 1) +  (UV(vsrc,uv_stride,j,i) - 128)) >> 1;
 
-      Red(rgb,j,i)   = CLIP(*ysrc + v1);
-      Green(rgb,j,i) = CLIP(*ysrc - rg);
-      Blue(rgb,j,i)  = CLIP(*ysrc + u1);
+      Red(rgb,j,i)   = CLIP(Y(ysrc,y_stride,j,i) + v1);
+      Green(rgb,j,i) = CLIP(Y(ysrc,y_stride,j,i) - rg);
+      Blue(rgb,j,i)  = CLIP(Y(ysrc,y_stride,j,i) + u1);
       Alpha(rgb,j,i) = 0xff;
-      ysrc++;
 
-      Red(rgb,j+1,i) = CLIP(*ysrc + v1);
-      Green(rgb,j+1,i) = CLIP(*ysrc - rg);
-      Blue(rgb,j+1,i) = CLIP(*ysrc + u1);
+      Red(rgb,j+1,i)   = CLIP(Y(ysrc,y_stride,j+1,i) + v1);
+      Green(rgb,j+1,i) = CLIP(Y(ysrc,y_stride,j+1,i) - rg);
+      Blue(rgb,j+1,i)  = CLIP(Y(ysrc,y_stride,j+1,i) + u1);
       Alpha(rgb,j+1,i) = 0xff;
 
-      ysrc++;
-      usrc++;
-      vsrc++;
-    }
-    /* Rewind u and v for next line */
-    if (i&1) {
-      usrc -= rgb->width / 2;
-      vsrc -= rgb->width / 2;
     }
   }
 }
@@ -379,24 +368,22 @@ void RGB_to_YUV420(frame *rgb,
 CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
 {
   frame *rgb = Frame_val(dst);
-  int ylen = caml_string_length(Field(yuv, 0)),
-      ulen = caml_string_length(Field(yuv, 1)),
-      vlen = caml_string_length(Field(yuv, 2));
-  unsigned char *y = malloc(ylen);
-  unsigned char *u = malloc(ulen);
-  unsigned char *v = malloc(vlen);
+  value y_val = Field(yuv, 0);
+  unsigned char *y = Caml_ba_data_val(Field(y_val, 0));
+  int y_stride = Int_val(Field(y_val, 1));
+  value uv_val = Field(yuv, 1);
+  unsigned char *u = Caml_ba_data_val(Field(uv_val, 0));
+  unsigned char *v = Caml_ba_data_val(Field(uv_val, 1));
+  int uv_stride = Int_val(Field(uv_val, 2));
 
-  memcpy(y, String_val(Field(yuv, 0)), ylen);
-  memcpy(u, String_val(Field(yuv, 1)), ulen);
-  memcpy(v, String_val(Field(yuv, 2)), vlen);
+  caml_register_global_root(&yuv);
 
+  /* TODO: check the size of the data */
   caml_enter_blocking_section();
-  YUV420_to_RGB(y, u, v, rgb);
+  YUV420_to_RGB(y, y_stride, u, v, uv_stride, rgb);
   caml_leave_blocking_section();
 
-  free(y);
-  free(u);
-  free(v);
+  caml_remove_global_root(&yuv);
 
   return Val_unit;
 }
@@ -404,9 +391,9 @@ CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
 CAMLprim value caml_rgb_to_YUV420(value f)
 {
   CAMLparam1(f);
-  CAMLlocal1(ans);
+  CAMLlocal2(tmp,ans);
   frame *rgb = Frame_val(f);
-  int len = rgb->width * rgb->height;
+  intnat len = rgb->width * rgb->height;
   unsigned char *y = malloc(len),
                 *u = malloc(len/4),
                 *v = malloc(len/4);
@@ -415,13 +402,17 @@ CAMLprim value caml_rgb_to_YUV420(value f)
   RGB_to_YUV420(rgb, y, u, v);
   caml_leave_blocking_section();
 
-  ans = caml_alloc_tuple(3);
-  Store_field(ans, 0, copy_buffer((char*)y, len));
-  Store_field(ans, 1, copy_buffer((char*)u, len/4));
-  Store_field(ans, 2, copy_buffer((char*)v, len/4));
-  free(y);
-  free(u);
-  free(v);
+  ans = caml_alloc_tuple(2);
+  tmp = caml_alloc_tuple(2);
+  Store_field(tmp, 0, caml_ba_alloc(CAML_BA_C_LAYOUT | CAML_BA_UINT8 | CAML_BA_MANAGED, 1, y, &len));
+  Store_field(tmp, 1, Val_int(rgb->width));
+  Store_field(ans, 0, tmp);
+  len /= 4;
+  tmp = caml_alloc_tuple(3);
+  Store_field(tmp, 0, caml_ba_alloc(CAML_BA_C_LAYOUT | CAML_BA_UINT8 | CAML_BA_MANAGED, 1, u, &len));
+  Store_field(tmp, 1, caml_ba_alloc(CAML_BA_C_LAYOUT | CAML_BA_UINT8 | CAML_BA_MANAGED, 1, v, &len));
+  Store_field(tmp, 2, Val_int(rgb->width / 2));
+  Store_field(ans, 1, tmp);
 
   CAMLreturn(ans);
 }
