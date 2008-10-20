@@ -73,7 +73,8 @@ let decoder file =
             b.(c).(i) <- scale (RGB.of_YUV420 
                                      ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
                                       (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))  
-                                       buf.Ogg_demuxer.y_width);
+                                       buf.Ogg_demuxer.y_width
+                                       buf.Ogg_demuxer.y_height);
         in
         feed
       in

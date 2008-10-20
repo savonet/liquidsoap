@@ -59,8 +59,8 @@ type yuv_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Ar
 (** YUV data in [(y,y_stride),(u,v,uv_stride))] format. *)
 type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
 
-(** Fill a frame from a YUV420 buffer of a given width. *)
-val of_YUV420 : yuv -> int -> t
+(** Fill a frame from a YUV420 buffer of a given width and height. *)
+val of_YUV420 : yuv -> int -> int -> t
 
 (** Create a YUV frame with [width height] size. *)
 val create_yuv : int -> int -> yuv

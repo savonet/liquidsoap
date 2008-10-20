@@ -38,8 +38,7 @@ type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
 
 external of_YUV420 : yuv -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
 
-let of_YUV420 ((y,y_stride), (u, v, uv_stride) as frame) width =
-  let height = Bigarray.Array1.dim y / width in
+let of_YUV420 ((y,y_stride), (u, v, uv_stride) as frame) width height =
   let ans = create width height in
     of_YUV420 frame ans;
     ans
