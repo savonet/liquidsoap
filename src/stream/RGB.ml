@@ -44,7 +44,9 @@ let of_YUV420 ((y,y_stride), (u, v, uv_stride) as frame) width =
     of_YUV420 frame ans;
     ans
 
-external to_YUV420 : t -> yuv = "caml_rgb_to_YUV420"
+external create_yuv : int -> int -> yuv = "caml_yuv_create"
+
+external to_YUV420 : t -> yuv -> unit = "caml_rgb_to_YUV420" "noalloc"
 
 external get_pixel : t -> int -> int -> color = "caml_rgb_get_pixel"
 

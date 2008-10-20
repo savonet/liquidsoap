@@ -62,8 +62,11 @@ type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
 (** Fill a frame from a YUV420 buffer of a given width. *)
 val of_YUV420 : yuv -> int -> t
 
-(** Convert a frame to YUV420 format. *)
-val to_YUV420 : t -> yuv
+(** Create a YUV frame with [width height] size. *)
+val create_yuv : int -> int -> yuv
+
+(** Fill a yuv buffer with a RGB frame. *)
+val to_YUV420 : t -> yuv -> unit
 
 (** Convert a frame to BMP format. *)
 val to_bmp : t -> string

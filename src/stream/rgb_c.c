@@ -388,33 +388,50 @@ CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
   return Val_unit;
 }
 
-CAMLprim value caml_rgb_to_YUV420(value f)
+CAMLprim value caml_yuv_create(value w, value h)
 {
-  CAMLparam1(f);
+  CAMLparam0();
   CAMLlocal2(tmp,ans);
-  frame *rgb = Frame_val(f);
-  intnat len = rgb->width * rgb->height;
+  int width = Int_val(w);
+  int height = Int_val(h);
+  intnat len = width * height;
   unsigned char *y = malloc(len),
                 *u = malloc(len/4),
                 *v = malloc(len/4);
 
-  caml_enter_blocking_section();
-  RGB_to_YUV420(rgb, y, u, v);
-  caml_leave_blocking_section();
-
   ans = caml_alloc_tuple(2);
   tmp = caml_alloc_tuple(2);
   Store_field(tmp, 0, caml_ba_alloc(CAML_BA_C_LAYOUT | CAML_BA_UINT8 | CAML_BA_MANAGED, 1, y, &len));
-  Store_field(tmp, 1, Val_int(rgb->width));
+  Store_field(tmp, 1, Val_int(width));
   Store_field(ans, 0, tmp);
   len /= 4;
   tmp = caml_alloc_tuple(3);
   Store_field(tmp, 0, caml_ba_alloc(CAML_BA_C_LAYOUT | CAML_BA_UINT8 | CAML_BA_MANAGED, 1, u, &len));
   Store_field(tmp, 1, caml_ba_alloc(CAML_BA_C_LAYOUT | CAML_BA_UINT8 | CAML_BA_MANAGED, 1, v, &len));
-  Store_field(tmp, 2, Val_int(rgb->width / 2));
+  Store_field(tmp, 2, Val_int(width / 2));
   Store_field(ans, 1, tmp);
 
   CAMLreturn(ans);
+}
+
+CAMLprim value caml_rgb_to_YUV420(value f, value yuv)
+{
+  frame *rgb = Frame_val(f);
+  value tmp = Field(yuv, 0);
+  unsigned char *y = Caml_ba_data_val(Field(tmp,0));
+  tmp = Field(yuv,1);
+  unsigned char *u = Caml_ba_data_val(Field(tmp,0));
+  unsigned char *v = Caml_ba_data_val(Field(tmp,1));
+
+  caml_register_global_root(&yuv);
+
+  caml_enter_blocking_section();
+  RGB_to_YUV420(rgb, y, u, v);
+  caml_leave_blocking_section();
+
+  caml_remove_global_root(&yuv);
+
+  return Val_unit;
 }
 
 CAMLprim value caml_rgb_of_linear_rgb(value _rgb, value _data)

@@ -47,23 +47,25 @@ let create_encoder ~quality =
   let enc = Encoder.create info in
     os, enc
 
-let theora_of_rgb_buffer b =
-  let (y,y_stride), (u, v, uv_stride) = RGB.to_YUV420 b in
-    {
-      Theora.y_width = Fmt.video_width ();
-      Theora.y_height = Fmt.video_height ();
-      Theora.y_stride = y_stride;
-      Theora.uv_width = Fmt.video_width () / 2;
-      Theora.uv_height = Fmt.video_height () / 2;
-      Theora.uv_stride = uv_stride;
-      Theora.y = y;
-      Theora.u = u;
-      Theora.v = v;
-    }
-
 (** Output in a ogg theora file *)
 
 class to_file ~filename ~quality source =
+  let ((y,y_stride), (u, v, uv_stride) as yuv) = 
+    RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ()) 
+  in
+  let theora_yuv = 
+  {
+    Theora.y_width = Fmt.video_width ();
+    Theora.y_height = Fmt.video_height ();
+    Theora.y_stride = y_stride;
+    Theora.uv_width = Fmt.video_width () / 2;
+    Theora.uv_height = Fmt.video_height () / 2;
+    Theora.uv_stride = uv_stride;
+    Theora.y = y;
+    Theora.u = u;
+    Theora.v = v;
+  }
+  in
 object (self)
   inherit Output.output
          ~name:filename ~kind:"output.file.theora" source true
@@ -102,7 +104,8 @@ object (self)
     let vid = VFrame.get_rgb frame in
     let vid = vid.(0) in (* TODO: handle multiple chans *)
       for i = 0 to VFrame.position frame - 1 do
-        Encoder.encode_buffer encoder os (theora_of_rgb_buffer vid.(i))
+        RGB.to_YUV420 vid.(i) yuv;
+        Encoder.encode_buffer encoder os theora_yuv
       done;
       self#send (Ogg.Stream.pagesout os)
 
