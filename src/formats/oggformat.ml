@@ -44,8 +44,10 @@ let decoder file =
       Unix.close fd
     with _ -> ()
   in
-  (* Intermediate frame when resize is needed *)
-  let frame = ref None in
+  (* Opaque converter *)
+  let converter = ref None in
+  let width = ref (Fmt.video_width ()) in
+  let height = ref (Fmt.video_height ()) in
   let fill buf =
     assert (not !closed) ;
 
@@ -64,31 +66,28 @@ let decoder file =
             int_of_float (buf.Ogg_demuxer.fps +. 0.5) <> Fmt.video_frames_per_second () (* TODO: more precise? + convert fps *)
           then
             assert false;
-          if buf.Ogg_demuxer.y_width <> Fmt.video_width () ||
-             buf.Ogg_demuxer.y_height <> Fmt.video_height () then
-            let frame = 
+            let converter = 
               let create () = 
-                let f = RGB.create buf.Ogg_demuxer.y_width
-                                   buf.Ogg_demuxer.y_height
+                let f = Video_converter.new_converter_of_YUV420 
+                          buf.Ogg_demuxer.y_width
+                          buf.Ogg_demuxer.y_height
                 in
-                frame := Some f;
+                converter := Some f;
+                width := buf.Ogg_demuxer.y_width;
+                height := buf.Ogg_demuxer.y_height;
                 f
               in
-              match !frame with
+              match !converter with
                 | None -> create ()
                 | Some f when 
-                     RGB.get_width f  != buf.Ogg_demuxer.y_width ||
-                     RGB.get_height f != buf.Ogg_demuxer.y_height
+                     !width  != buf.Ogg_demuxer.y_width ||
+                     !height != buf.Ogg_demuxer.y_height
                    -> create ()
                 | Some f -> f
             in
-            RGB.of_YUV420_proportional b.(c).(i) frame
-                          ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
-                          (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
-          else
-            RGB.of_YUV420 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
-                          (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
-                          b.(c).(i)
+            Video_converter.convert_YUV420 converter b.(c).(i) 
+                 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
+                  (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
         in
         feed
       in

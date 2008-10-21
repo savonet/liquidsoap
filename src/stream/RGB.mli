@@ -20,6 +20,14 @@ val rgb_of_int : int -> int * int * int
 (** Create a frame of a given width and height (in pixels). *)
 val create : int -> int -> t
 
+(** Returns a big array refering to the frame data  
+  * the frame is then registered as global variable 
+  * in the Gc. You have to unlock the frame using [unlock frame] *)
+val to_ba : t -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+(** Unlock a frame. All reference to its data may then be freed *)
+val unlock : t -> unit
+
 (** Copy a frame. *)
 val copy : t -> t
 
@@ -110,10 +118,6 @@ val proportional_scale : t -> t -> unit
 (** Same as [proportional_scale] but creates a new frame of given width and
   * height. *)
 val proportional_scale_to : t -> int -> int -> t
-
-(** [dst inter yuv] converts and scale yuv frame to dest,
-  * using inter for intermediate scaling *)
-val of_YUV420_proportional : t -> t -> yuv -> unit
 
 (** Convert the colors of a frame to greyscale. *)
 val greyscale : t -> unit

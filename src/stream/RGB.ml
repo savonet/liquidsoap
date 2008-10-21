@@ -8,6 +8,10 @@ let rgb_of_int n =
 
 external create : int -> int -> t = "caml_rgb_create"
 
+external to_ba : t -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t  = "caml_rgb_to_ba"
+
+external unlock : t -> unit = "caml_rgb_unlock_frame" "noalloc"
+
 external get_width : t -> int = "caml_rgb_get_width" "noalloc"
 
 external get_height : t -> int = "caml_rgb_get_height" "noalloc"
@@ -66,11 +70,6 @@ let proportional_scale_to src w h =
   let dst = create w h in
     proportional_scale dst src;
     dst
-
-let of_YUV420_proportional f f' yuv = 
-  of_YUV420 yuv f';
-  proportional_scale f f'
-
 
 external to_bmp : t -> string = "caml_rgb_to_bmp"
 

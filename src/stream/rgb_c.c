@@ -83,6 +83,21 @@ CAMLprim value caml_rgb_create(value width, value height)
   CAMLreturn(ret);
 }
 
+CAMLprim value caml_rgb_to_ba(value f)
+{
+  CAMLparam1(f);
+  frame *rgb = Frame_val(f);
+  intnat len = Rgb_data_size(rgb);
+  caml_register_global_root(&f);
+  CAMLreturn(caml_ba_alloc(CAML_BA_EXTERNAL|CAML_BA_C_LAYOUT|CAML_BA_UINT8,1,rgb->data,&len)); 
+}
+
+CAMLprim value caml_rgb_unlock_frame(value f)
+{
+  caml_remove_global_root(&f);
+  return Val_unit;
+}
+
 static frame *rgb_copy(frame *src)
 {
   frame *dst = malloc(sizeof(frame));
