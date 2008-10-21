@@ -21,10 +21,12 @@
  *****************************************************************************)
 
 (** Opaque type for converter *)
-type converter
+type t
 
 (** [width height] create a new converter *)
-val new_converter_of_YUV420 : int -> int -> converter
+val new_converter : int -> int -> t
 
 (** Perform conversion *)
-val convert_YUV420 : converter -> RGB.t -> RGB.yuv -> unit
+val yuv_to_rgb : t -> RGB.t -> RGB.yuv -> unit
+val rgb_to_yuv : t -> RGB.t -> RGB.yuv -> unit
+

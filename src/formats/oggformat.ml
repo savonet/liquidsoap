@@ -68,7 +68,7 @@ let decoder file =
             assert false;
             let converter = 
               let create () = 
-                let f = Video_converter.new_converter_of_YUV420 
+                let f = Video_converter.new_converter 
                           buf.Ogg_demuxer.y_width
                           buf.Ogg_demuxer.y_height
                 in
@@ -85,7 +85,7 @@ let decoder file =
                    -> create ()
                 | Some f -> f
             in
-            Video_converter.convert_YUV420 converter b.(c).(i) 
+            Video_converter.yuv_to_rgb converter b.(c).(i) 
                  ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
                   (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
         in

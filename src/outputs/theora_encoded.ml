@@ -66,6 +66,10 @@ class to_file ~filename ~quality source =
     Theora.v = v;
   }
   in
+  let converter = Video_converter.new_converter 
+                     (Fmt.video_width ()) 
+                     (Fmt.video_height ()) 
+  in
 object (self)
   inherit Output.output
          ~name:filename ~kind:"output.file.theora" source true
@@ -104,7 +108,7 @@ object (self)
     let vid = VFrame.get_rgb frame in
     let vid = vid.(0) in (* TODO: handle multiple chans *)
       for i = 0 to VFrame.position frame - 1 do
-        RGB.to_YUV420 vid.(i) yuv;
+        Video_converter.rgb_to_yuv converter vid.(i) yuv;
         Encoder.encode_buffer encoder os theora_yuv
       done;
       self#send (Ogg.Stream.pagesout os)

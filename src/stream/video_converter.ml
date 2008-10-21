@@ -20,18 +20,28 @@
 
  *****************************************************************************)
 
-type converter = int*int*RGB.t
+type t = int*int*RGB.t
 
-let new_converter_of_YUV420 w h =
+let new_converter w h =
   let f = RGB.create w h in
   (w,h,f)
 
-let convert_YUV420 (w,h,f') f yuv =
+let yuv_to_rgb (w,h,g) f yuv =
   if w <> Fmt.video_width () &&
      h <> Fmt.video_height () then
     begin
-      RGB.of_YUV420 yuv f';
-      RGB.proportional_scale f f'
+      RGB.of_YUV420 yuv g;
+      RGB.proportional_scale f g
     end
   else
     RGB.of_YUV420 yuv f
+
+let rgb_to_yuv (w,h,g) f yuv =
+  if w <> Fmt.video_width () &&
+     h <> Fmt.video_height () then
+    begin
+      RGB.proportional_scale g f;
+      RGB.to_YUV420 g yuv
+    end
+  else
+    RGB.to_YUV420 f yuv
