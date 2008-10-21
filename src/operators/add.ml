@@ -26,7 +26,30 @@ open Source
 
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
-class add ?(renorm=true) (sources: (int*source) list) =
+let tile_pos n =
+  let vert l x y x' y' =
+    if l = 0 then [||] else
+      let dx = (x' - x) / l in
+      let x = ref (x-dx) in
+        Array.init l (fun i -> x := !x + dx; !x, y, dx, (y'-y))
+  in
+  let x' = Fmt.video_width () in
+  let y' = Fmt.video_height () in
+  let horiz m n =
+    Array.append (vert m 0 0 x' (y'/2)) (vert n 0 (y'/2) x' y')
+  in
+    match n with
+      | 1 -> horiz 1 0
+      | 2 -> horiz 1 1
+      | 3 -> horiz 2 1
+      | 4 -> horiz 2 2
+      | 5 -> horiz 3 2
+      | 6 -> horiz 3 3
+      | 7 -> horiz 4 3
+      | 8 -> horiz 4 4
+      | _ -> assert false
+
+class add ?(renorm=true) (sources: (int*source) list) video_init video_loop =
 object (self)
   inherit operator (List.map snd sources) as super
 
@@ -82,6 +105,7 @@ object (self)
     let offset = AFrame.position buf in
     let voffset = VFrame.position buf in
     let first = ref true in
+    let nbuf = ref 0 in
     let end_offset =
       List.fold_left
         (fun end_offset (w,s) ->
@@ -114,11 +138,21 @@ object (self)
                      (AFrame.get_float_pcm buf) offset
                      (AFrame.get_float_pcm tmp) offset
                      (already-offset) ;
+                   incr nbuf;
                    let vbuf = VFrame.get_rgb buf in
                    let vtmp = VFrame.get_rgb tmp in
                      for c = 0 to Array.length vbuf - 1 do
                        for i = voffset to valready - 1 do
-                         RGB.add vbuf.(c).(i) vtmp.(c).(i)
+                         video_loop !nbuf vbuf.(c).(i) vtmp.(c).(i)
+                       done
+                     done
+                 )
+               else
+                 (
+                   let vbuf = VFrame.get_rgb buf in
+                     for c = 0 to Array.length vbuf - 1 do
+                       for i = voffset to valready - 1 do
+                         video_init vbuf.(c).(i)
                        done
                      done
                  );
@@ -133,8 +167,7 @@ object (self)
 
 end
 
-let register_add =
-
+let () =
   Lang.add_operator "add"
     ~category:Lang.SoundProcessing
     ~descr:"Mix sources, with optional normalization. \
@@ -162,5 +195,51 @@ let register_add =
              (Lang.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
-         ((new add ~renorm
-             (List.map2 (fun w s -> (w,s)) weights sources)):>source))
+         ((new add
+             ~renorm
+             (List.map2 (fun w s -> (w,s)) weights sources)
+             (fun _ -> ())
+             (fun _ buf tmp -> RGB.add buf tmp)
+         ):>source))
+
+let () =
+  Lang.add_operator "video.tile"
+    ~category:Lang.VideoProcessing
+    ~descr:"Tile sources (same as add but produces tiles of videos)."
+    [
+      "normalize", Lang.bool_t, Some (Lang.bool true), None ;
+      "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
+      Some "Relative weight of the sources in the sum. \
+            The empty list stands for the homogeneous distribution." ;
+      "", Lang.list_t Lang.source_t, None, None
+    ]
+    (fun p ->
+       let sources = Lang.to_source_list (List.assoc "" p) in
+       let weights =
+         List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
+       in
+       let weights =
+         if weights = [] then
+           Utils.make_list (List.length sources) 1
+         else
+           weights
+       in
+       let renorm = Lang.to_bool (List.assoc "normalize" p) in
+       let tp = tile_pos (List.length sources) in
+       let video_loop n buf tmp =
+         (* TODO: more efficient... *)
+         let x, y, w, h = tp.(n) in
+           RGB.blit_off ~blank:false (RGB.proportional_scale_to tmp w h) buf x y
+       in
+       let video_init buf = video_loop 0 buf buf in
+         if List.length weights <> List.length sources then
+           raise
+             (Lang.Invalid_value
+                ((List.assoc "weights" p),
+                 "there should be as many weights as sources")) ;
+         ((new add
+             ~renorm
+             (List.map2 (fun w s -> (w,s)) weights sources)
+             video_init
+             video_loop
+         ):>source))
