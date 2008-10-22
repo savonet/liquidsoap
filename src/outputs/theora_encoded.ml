@@ -109,7 +109,7 @@ object (self)
     let vid = VFrame.get_rgb frame in
     let vid = vid.(0) in (* TODO: handle multiple chans *)
       for i = 0 to VFrame.position frame - 1 do
-        convert ~proportional:true 
+        convert 
          (Video_converter.frame_of_internal_rgb vid.(i)) 
          (Video_converter.frame_of_internal_yuv 
            (Fmt.video_width ()) 

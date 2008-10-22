@@ -68,7 +68,7 @@ let decoder file =
             int_of_float (buf.Ogg_demuxer.fps +. 0.5) <> Fmt.video_frames_per_second () (* TODO: more precise? + convert fps *)
           then
             assert false;
-          convert ~proportional:true  
+          convert 
             (Video_converter.frame_of_internal_yuv  
               buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height 
               ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),

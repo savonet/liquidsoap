@@ -35,7 +35,11 @@ let video_converter_conf =
 
 let prefered_converter_conf = 
   Dtools.Conf.string ~p:(video_converter_conf#plug "prefered") ~d:"gavl"
-  "Prefered video converter" ~comments:["Prefered video converter."]
+  "Prefered video converter"
+
+let proportional_scale_conf =
+  Dtools.Conf.bool ~p:(video_converter_conf#plug "proportional_scale") ~d:true
+  "Prefered proportional scale."
 
 (* From Gavl *)
 type rgb_format = 
@@ -167,7 +171,7 @@ let find_converter src dst =
             if List.mem src sf && List.mem dst df then
              begin
               log#f 4 "Using prefered converter: %s" prefered;
-              raise (Exit (f()))
+              raise (Exit (f ()))
              end
             else
               log#f 4 "Default parser %s cannot do %s->%s" prefered
@@ -187,6 +191,7 @@ let find_converter src dst =
                  (string_of_pixel_format dst);
     raise Not_found
   with
-    | Exit x -> x
+    | Exit x -> x ~proportional:proportional_scale_conf#get
+
 
 
