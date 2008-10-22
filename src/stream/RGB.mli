@@ -51,7 +51,7 @@ val blit : t -> t -> unit
   * dy)]. Frames don't have to be of the same size. The [blank] parameter should
   * be set to [false] if what's outside [src] in [dst] does not need to be
   * blanked. *)
-val blit_off : t -> t -> ?blank:bool -> int -> int -> unit
+val blit_off : t -> t -> ?blank:bool -> ?w:int -> ?h:int -> int -> int -> unit
 
 (** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
 val add : t -> t -> unit

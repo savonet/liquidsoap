@@ -22,7 +22,13 @@ external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
 
 external blit_off : t -> t -> int -> int -> bool -> unit = "caml_rgb_blit_off" "noalloc"
 
-let blit_off src dst ?(blank=true) x y = blit_off src dst x y blank
+external blit_off_scale : t -> t -> int * int -> int * int -> bool -> unit = "caml_rgb_blit_off_scale" "noalloc"
+
+let blit_off src dst ?(blank=true) ?w ?h x y =
+   match (w,h) with
+     | None, None -> blit_off src dst x y blank
+     | Some w, Some h -> blit_off_scale src dst (x,y) (w,h) blank
+     | _, _ -> assert false
 
 external fill : t -> color -> unit = "caml_rgb_fill" "noalloc"
 

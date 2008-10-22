@@ -211,6 +211,7 @@ let () =
       "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
+      "proportional", Lang.bool_t, Some (Lang.bool false), Some "Scale preserving the proportions.";
       "", Lang.list_t Lang.source_t, None, None
     ]
     (fun p ->
@@ -225,11 +226,25 @@ let () =
            weights
        in
        let renorm = Lang.to_bool (List.assoc "normalize" p) in
+       let proportional = Lang.to_bool (List.assoc "proportional" p) in
        let tp = tile_pos (List.length sources) in
        let video_loop n buf tmp =
-         (* TODO: more efficient... *)
          let x, y, w, h = tp.(n) in
-           RGB.blit_off ~blank:false (RGB.proportional_scale_to tmp w h) buf x y
+         let x, y, w, h =
+           if proportional then
+             (
+               let sw, sh = RGB.get_width buf, RGB.get_height buf in
+                 if w * sh < sw * h then
+                   let h = sh * w / sw in
+                     x+(sh-h)/2, y, w, h
+                 else
+                   let w = sw * h / sh in
+                     x, y+(sw-w)/2, h, w
+             )
+           else
+             x, y, w, h
+         in
+           RGB.blit_off ~blank:false tmp ~w ~h buf x y
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then

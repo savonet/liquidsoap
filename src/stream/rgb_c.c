@@ -202,6 +202,34 @@ CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy, v
   return Val_unit;
 }
 
+CAMLprim value caml_rgb_blit_off_scale(value _src, value _dst, value d, value dim, value _blank)
+{
+  frame *src = Frame_val(_src),
+        *dst = Frame_val(_dst);
+  int dx = Int_val(Field(d, 0)),
+      dy = Int_val(Field(d, 1)),
+      w = Int_val(Field(dim, 0)),
+      h = Int_val(Field(dim, 1));
+  int blank = Bool_val(_blank);
+  int i, j, c;
+  int istart = max(0, dx),
+      iend = min(dst->width, w + dx),
+      jstart = max(0, dy),
+      jend = min(dst->height, h + dy);
+
+  caml_enter_blocking_section();
+  if (blank)
+    rgb_blank(dst);
+  for (j = jstart; j < jend; j++)
+    for (i = istart; i < iend; i++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
+        Color(dst, c, i, j) = Color(src, c, (i-dx)*src->width/w, (j-dy)*src->height/h);
+  caml_leave_blocking_section();
+
+  return Val_unit;
+}
+
+
 CAMLprim value caml_rgb_fill(value f, value col)
 {
   frame *rgb = Frame_val(f);
@@ -787,16 +815,17 @@ CAMLprim value caml_rgb_invert(value _rgb)
   return Val_unit;
 }
 
+#define SO_PREC 0x10000
 CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
 {
   frame *rgb = Frame_val(_rgb);
-  double x = Double_val(_x);
+  int x = Double_val(_x) * SO_PREC;
   int i, j;
 
   caml_enter_blocking_section();
   for (j = 0; j < rgb->height; j++)
     for (i = 0; i < rgb->width; i++)
-      Alpha(rgb, i, j) = CLIP(Alpha(rgb, i, j) * x);
+      Alpha(rgb, i, j) = CLIP(Alpha(rgb, i, j) * x / SO_PREC);
   caml_leave_blocking_section();
 
   return Val_unit;
