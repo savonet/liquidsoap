@@ -15,7 +15,8 @@ ogg_formats = \
 
 video_converters = \
 	video_converter.ml \
-	video_converters/native_converter.ml 
+	video_converters/native_converter.ml \
+	$(if $(W_GAVL),video_converters/gavl_converter.ml)
 
 formats = \
 	$(if $(W_OGG),formats/oggformat.ml) \

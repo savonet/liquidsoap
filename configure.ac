@@ -698,6 +698,45 @@ else
 fi
 
 #
+# Gavl
+#
+
+AC_ARG_WITH([gavl-dir],
+   AC_HELP_STRING(
+      [--with-gavl-dir=path],
+      [look for ocaml-gavl library in "path" (autodetected by default)]))
+AC_ARG_ENABLE([gavl],AC_HELP_STRING([--disable-gavl],[don't use ocaml-gavl]))
+
+if test "x$enable_gavl" != "xno" ; then
+AC_MSG_CHECKING(for ocaml-gavl)
+if test -z "$with_gavl_dir" ; then
+    if ! $OCAMLFIND query gavl > /dev/null 2>&1 ; then
+        AC_MSG_RESULT(not found)
+    else
+        W_GAVL=yes
+        AC_MSG_RESULT(ok)
+        ocamlcflags="$ocamlcflags -package gavl"
+        requires="$requires gavl"
+    fi
+else
+    echo $with_gavl_dir | grep ^/ > /dev/null 2>&1 \
+        || with_gavl_dir=$PWD/$with_gavl_dir
+    ocamlcflags="$ocamlcflags -I $with_gavl_dir"
+    ocamllflags="$ocamllflags gavl.$cma"
+    requires="$requires gavl"
+    W_GAVL=yes
+    AC_MSG_RESULT(ok)
+fi
+fi
+
+AC_SUBST(W_GAVL)
+if test "a$W_GAVL" = "ayes" ; then
+        w_GAVL=yes
+else
+        w_GAVL=no
+fi
+
+#
 # Ocaml-natty
 #
 
@@ -1696,6 +1735,9 @@ cat <<EOMSG
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
    - LADSPA            : $w_LADSPA
+
+ * Video manipulation
+   - Gavl              : $w_GAVL
 
  * Visualization
    - Graphics          : $w_GRAPHICS
