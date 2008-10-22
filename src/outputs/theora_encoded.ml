@@ -71,6 +71,14 @@ class to_file ~filename ~quality source =
       (Video_converter.RGB Video_converter.Rgba_32)
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
+  (* Basic vorbis encoder. TODO: modular ogg encoding/multiplexing..*)
+  let create_vorbis_encoder () = 
+    let os = Ogg.Stream.create () in
+    let channels = Fmt.channels () in
+    let freq = Fmt.samples_of_seconds 1. in
+    let quality = 2. in
+    os,Vorbis.Encoder.create_vbr channels freq quality
+  in 
 object (self)
   inherit Output.output
          ~name:filename ~kind:"output.file.theora" source true
@@ -80,20 +88,33 @@ object (self)
   val mutable encoder = None
   val mutable os = None
   val mutable fd = None
+  val mutable vorbis_enc = None
+  val mutable vos = None
 
   method output_start =
     assert (fd = None) ;
     let oggs, enc = create_encoder ~quality in
+    let voggs, venc = create_vorbis_encoder () in
       fd <- Some (open_out filename) ;
       os <- Some oggs;
       encoder <- Some enc;
+      vos <- Some voggs;
+      vorbis_enc <- Some venc;
       Encoder.encode_header enc oggs;
       self#send (Ogg.Stream.pageout oggs);
+      let tags = Vorbis.tags () in
+      Vorbis.Encoder.headerout venc voggs tags ;
+      self#send (Ogg.Stream.pageout voggs);
       Encoder.encode_comments oggs [];
       Encoder.encode_tables enc oggs;
       self#send (Ogg.Stream.flush oggs)
 
   method output_stop =
+    let venc = Utils.get_some vorbis_enc in
+    let voggs = Utils.get_some vos in 
+    Vorbis.Encoder.end_of_stream venc voggs;
+    self#send (Ogg.Stream.flush voggs);
+    (* TODO: generic Ogg EOS, apply for theora OS *)
     match fd with
       | None -> assert false
       | Some v -> close_out v ; fd <- None
@@ -117,7 +138,12 @@ object (self)
            yuv); (* TODO: custom video size.. *)
         Encoder.encode_buffer encoder os theora_yuv
       done;
-      self#send (Ogg.Stream.pagesout os)
+      self#send (Ogg.Stream.pagesout os);
+   let venc = Utils.get_some vorbis_enc in
+   let voggs = Utils.get_some vos in
+   let buf = AFrame.get_float_pcm frame in
+   Vorbis.Encoder.encode_buffer_float venc voggs buf 0 (Array.length buf.(0));
+   self#send (Ogg.Stream.pagesout voggs)
 
   method output_reset = ()
 end
