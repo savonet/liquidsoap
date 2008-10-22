@@ -38,16 +38,7 @@ let tile_pos n =
   let horiz m n =
     Array.append (vert m 0 0 x' (y'/2)) (vert n 0 (y'/2) x' y')
   in
-    match n with
-      | 1 -> horiz 1 0
-      | 2 -> horiz 1 1
-      | 3 -> horiz 2 1
-      | 4 -> horiz 2 2
-      | 5 -> horiz 3 2
-      | 6 -> horiz 3 3
-      | 7 -> horiz 4 3
-      | 8 -> horiz 4 4
-      | _ -> assert false
+    horiz (n/2) (n-n/2)
 
 class add ?(renorm=true) (sources: (int*source) list) video_init video_loop =
 object (self)
