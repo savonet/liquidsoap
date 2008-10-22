@@ -24,6 +24,19 @@
 
 let log = Dtools.Log.make ["video.converter"]
 
+(* TODO: is it the good place for this ? *)
+let video_conf = 
+  Dtools.Conf.void ~p:(Configure.conf#plug "video") "Video settings"
+    ~comments:["Options related to video."] 
+
+let video_converter_conf =
+  Dtools.Conf.void ~p:(video_conf#plug "converter") "Video conversion"
+    ~comments:["Options related to video conversion."]
+
+let prefered_converter_conf = 
+  Dtools.Conf.string ~p:(video_converter_conf#plug "prefered") ~d:"gavl"
+  "Prefered video converter" ~comments:["Prefered video converter."]
+
 (* From Gavl *)
 type rgb_format = 
    | Rgb_24       (* 24 bit RGB. Each color is an uint8_t. Color order is RGBRGB *)
@@ -146,6 +159,21 @@ exception Exit of converter
 
 let find_converter src dst = 
   try
+    begin
+      let prefered = prefered_converter_conf#get in
+      match video_converters#get prefered with
+        | None -> log#f 4 "Couldn't find prefered decoder %s" prefered
+        | Some (sf,df,f) -> 
+            if List.mem src sf && List.mem dst df then
+             begin
+              log#f 4 "Using prefered converter: %s" prefered;
+              raise (Exit (f()))
+             end
+            else
+              log#f 4 "Default parser %s cannot do %s->%s" prefered
+                       (string_of_pixel_format src)
+                       (string_of_pixel_format dst)
+    end;   
     List.iter
       (fun (name,(sf,df,f)) ->
            log#f 4 "Trying %s converter" name ;
