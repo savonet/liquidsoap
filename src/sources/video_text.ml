@@ -94,7 +94,7 @@ object (self)
         let buf_c = b.(c) in
           for i = off to size - 1 do
             if pos_x <> -tfw then
-              RGB.blit_off tf buf_c.(i) pos_x pos_y;
+              RGB.blit tf buf_c.(i) ~x:pos_x ~y:pos_y;
             pos_x <- pos_x - speed;
             if pos_x < -tfw then
               if cycle then

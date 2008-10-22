@@ -235,7 +235,7 @@ let () =
            else
              x, y, w, h
          in
-           RGB.blit_off ~blank:false tmp ~w ~h buf x y
+           RGB.blit ~blank:false tmp buf ~x ~y ~w ~h
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then

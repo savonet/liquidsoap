@@ -53,15 +53,12 @@ val get_pixel : t -> int -> int -> color
 (** Set the value of a pixel. *)
 val set_pixel : t -> int -> int -> color -> unit
 
-(** [blit src dst] copies the contents of the frame [src] into [dst]. Both
-  * frames must have the same size. *)
-val blit : t -> t -> unit
-
-(** [blit src dst dx dy] blits [src] into [dst] with a translation of [(dx,
-  * dy)]. Frames don't have to be of the same size. The [blank] parameter should
+(** [blit src dst] blits [src] into [dst] with a translation of [(x, y)]
+  * and a scaling of [(w,h)].
+  * Frames don't have to be of the same size. The [blank] parameter should
   * be set to [false] if what's outside [src] in [dst] does not need to be
   * blanked. *)
-val blit_off : t -> t -> ?blank:bool -> ?w:int -> ?h:int -> int -> int -> unit
+val blit : ?blank:bool -> ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
 
 (** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
 val add : t -> t -> unit

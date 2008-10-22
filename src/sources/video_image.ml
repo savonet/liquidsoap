@@ -71,7 +71,7 @@ object
         for c = 0 to Array.length b - 1 do
           let buf_c = b.(c) in
             for i = off to size - 1 do
-              RGB.blit_off img buf_c.(i) pos_x pos_y
+              RGB.blit img buf_c.(i) ~x:pos_x ~y:pos_y
             done;
         done;
         AFrame.add_break ab (AFrame.size ab) ;
