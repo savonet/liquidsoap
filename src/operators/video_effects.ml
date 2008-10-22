@@ -77,6 +77,19 @@ let () =
          ((new effect RGB.invert src):>source))
 
 let () =
+  Lang.add_operator "video.opacity"
+    [
+      "", Lang.float_t, None, Some "Coefficient to scale opacity with.";
+      "", Lang.source_t, None, None
+    ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Invert video."
+    (fun p ->
+       let a = Lang.to_float (Lang.assoc "" 1 p) in
+       let src = Lang.to_source (Lang.assoc "" 2 p) in
+         ((new effect (fun buf -> RGB.scale_opacity buf a) src):>source))
+
+let () =
   Lang.add_operator "video.lomo"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
