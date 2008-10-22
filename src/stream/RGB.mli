@@ -25,8 +25,18 @@ val create : int -> int -> t
   * in the Gc. You have to unlock the frame using [unlock frame] *)
 val to_ba : t -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+(** Create a native frame,
+  * and place big array data.
+  * Similary to [to_ba], you
+  * need to unlock the bigarray
+  * afterwards. *)
+val of_ba : int -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> t
+
 (** Unlock a frame. All reference to its data may then be freed *)
-val unlock : t -> unit
+val unlock_frame : t -> unit
+
+(** Unlock a big array *)
+val unlock_ba : (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> unit
 
 (** Copy a frame. *)
 val copy : t -> t

@@ -57,10 +57,26 @@ static void finalize_frame(value v)
   rgb_free(f);
 }
 
+static void finalize_frame_no_data(value v)
+{
+  frame *f = Frame_val(v);
+  free(f);
+}
+
 static struct custom_operations frame_ops =
 {
   "liquidsoap_rgb_frame",
   finalize_frame,
+  custom_compare_default,
+  custom_hash_default,
+  custom_serialize_default,
+  custom_deserialize_default
+};
+
+static struct custom_operations frame_no_data_ops =
+{
+  "liquidsoap_rgb_frame_no_data",
+  finalize_frame_no_data,
   custom_compare_default,
   custom_hash_default,
   custom_serialize_default,
@@ -87,12 +103,30 @@ CAMLprim value caml_rgb_to_ba(value f)
 {
   CAMLparam1(f);
   frame *rgb = Frame_val(f);
-  intnat len = Rgb_data_size(rgb);
   caml_register_global_root(&f);
+  intnat len = Rgb_data_size(rgb);
   CAMLreturn(caml_ba_alloc(CAML_BA_EXTERNAL|CAML_BA_C_LAYOUT|CAML_BA_UINT8,1,rgb->data,&len)); 
 }
 
-CAMLprim value caml_rgb_unlock_frame(value f)
+CAMLprim value caml_rgb_of_ba(value width, value height, value ba)
+{
+  CAMLparam1(ba);
+  CAMLlocal1(ret);
+  frame *rgb = malloc(sizeof(frame));
+
+  caml_register_global_root(&ba);
+
+  rgb->width = Int_val(width);
+  rgb->height = Int_val(height);
+  rgb->data = Caml_ba_data_val(ba);
+
+  ret = caml_alloc_custom(&frame_no_data_ops, sizeof(frame*), 1, 0);
+  Frame_val(ret) = rgb;
+
+  CAMLreturn(ret);
+}
+
+CAMLprim value caml_rgb_unlock_value(value f)
 {
   caml_remove_global_root(&f);
   return Val_unit;

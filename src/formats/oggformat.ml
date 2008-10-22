@@ -45,9 +45,11 @@ let decoder file =
     with _ -> ()
   in
   (* Opaque converter *)
-  let converter = ref None in
-  let width = ref (Fmt.video_width ()) in
-  let height = ref (Fmt.video_height ()) in
+  let convert = 
+    Video_converter.find_converter 
+      (Video_converter.YUV Video_converter.Yuvj_420)
+      (Video_converter.RGB Video_converter.Rgba_32)
+  in
   let fill buf =
     assert (not !closed) ;
 
@@ -66,28 +68,12 @@ let decoder file =
             int_of_float (buf.Ogg_demuxer.fps +. 0.5) <> Fmt.video_frames_per_second () (* TODO: more precise? + convert fps *)
           then
             assert false;
-            let converter = 
-              let create () = 
-                let f = Video_converter.new_converter 
-                          buf.Ogg_demuxer.y_width
-                          buf.Ogg_demuxer.y_height
-                in
-                converter := Some f;
-                width := buf.Ogg_demuxer.y_width;
-                height := buf.Ogg_demuxer.y_height;
-                f
-              in
-              match !converter with
-                | None -> create ()
-                | Some f when 
-                     !width  != buf.Ogg_demuxer.y_width ||
-                     !height != buf.Ogg_demuxer.y_height
-                   -> create ()
-                | Some f -> f
-            in
-            Video_converter.yuv_to_rgb converter b.(c).(i) 
-                 ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
-                  (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride))
+          convert ~proportional:true  
+            (Video_converter.frame_of_internal_yuv  
+              buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height 
+              ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
+                (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride)))
+            (Video_converter.frame_of_internal_rgb b.(c).(i))
         in
         feed
       in

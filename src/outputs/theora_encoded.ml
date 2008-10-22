@@ -66,9 +66,10 @@ class to_file ~filename ~quality source =
     Theora.v = v;
   }
   in
-  let converter = Video_converter.new_converter 
-                     (Fmt.video_width ()) 
-                     (Fmt.video_height ()) 
+  let convert = 
+    Video_converter.find_converter 
+      (Video_converter.RGB Video_converter.Rgba_32)
+      (Video_converter.YUV Video_converter.Yuvj_420)
   in
 object (self)
   inherit Output.output
@@ -108,7 +109,12 @@ object (self)
     let vid = VFrame.get_rgb frame in
     let vid = vid.(0) in (* TODO: handle multiple chans *)
       for i = 0 to VFrame.position frame - 1 do
-        Video_converter.rgb_to_yuv converter vid.(i) yuv;
+        convert ~proportional:true 
+         (Video_converter.frame_of_internal_rgb vid.(i)) 
+         (Video_converter.frame_of_internal_yuv 
+           (Fmt.video_width ()) 
+           (Fmt.video_height ())
+           yuv); (* TODO: custom video size.. *)
         Encoder.encode_buffer encoder os theora_yuv
       done;
       self#send (Ogg.Stream.pagesout os)

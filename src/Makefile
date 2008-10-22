@@ -1,6 +1,6 @@
 
 SUBDIRS= operators sources tools formats protocols outputs io plugins stream \
-		 visualization lang analyze playlists ogg_formats
+         visualization lang analyze playlists ogg_formats video_converters
 
 DISTFILES = $(wildcard *.mli) Makefile \
 	$(wildcard *.ml) META.in
@@ -12,6 +12,10 @@ ogg_formats = \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml)
+
+video_converters = \
+	video_converter.ml \
+	video_converters/native_converter.ml 
 
 formats = \
 	$(if $(W_OGG),formats/oggformat.ml) \
@@ -130,7 +134,7 @@ liquidsoap_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
-	tools/harbor.ml \
+	tools/harbor.ml $(video_converters) \
 	$(ogg_formats) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(visualization) $(formats) \
 	shebang.ml \
@@ -140,10 +144,10 @@ liquidsoap_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
 	main.ml
 
 OCAML_CFLAGS= -thread \
-	-I tools -I lang -I playlists -I stream -I outputs -I formats \
+	-I tools -I lang -I playlists -I stream -I outputs -I formats -I video_converters \
 	-I sources -I operators -I io -I visualization -I analyze -I ogg_formats
 OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp)
-DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists \
+DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists -I video_converters \
 		  -I outputs -I io -I stream -I visualization -I analyze -I ogg_formats
 
 liquidsoap_doc_sources= \
@@ -200,7 +204,7 @@ libliq_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
 	tools/server.ml tools/server_builtins.ml \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
-	tools/harbor.ml \
+	tools/harbor.ml $(video_converters) \
 	$(ogg_formats) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(formats) \
 	lang/lang_builtins.ml

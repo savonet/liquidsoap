@@ -10,7 +10,11 @@ external create : int -> int -> t = "caml_rgb_create"
 
 external to_ba : t -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t  = "caml_rgb_to_ba"
 
-external unlock : t -> unit = "caml_rgb_unlock_frame" "noalloc"
+external of_ba : int -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> t = "caml_rgb_of_ba"
+
+external unlock_frame : t -> unit = "caml_rgb_unlock_value" "noalloc"
+
+external unlock_ba : (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> unit = "caml_rgb_unlock_value"
 
 external get_width : t -> int = "caml_rgb_get_width" "noalloc"
 
