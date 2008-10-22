@@ -555,6 +555,71 @@ CAMLprim value caml_rgb_randomize(value f)
   return Val_unit;
 }
 
+CAMLprim value caml_rgb_scale(value _dst, value _src, value xscale, value yscale)
+{
+  frame *dst = Frame_val(_dst),
+        *src = Frame_val(_src);
+  int i, j, c;
+  int xn = Int_val(Field(xscale, 0)),
+      xd = Int_val(Field(xscale, 1)),
+      yn = Int_val(Field(yscale, 0)),
+      yd = Int_val(Field(yscale, 1));
+  int ox = (dst->width - src->width * xn / xd) / 2,
+      oy = (dst->height - src->height * yn / yd) / 2;
+
+  assert(ox >= 0 && oy >= 0);
+
+  caml_enter_blocking_section();
+  if (ox != 0 || oy != 0)
+    rgb_blank(dst);
+  for (j = oy; j < dst->height - oy; j++)
+    for (i = ox; i < dst->width - ox; i++)
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
+        Color(dst, c, i, j) = Color(src, c, (i - ox) * xd / xn, (j - oy) * yd / yn);
+  caml_leave_blocking_section();
+
+  return Val_unit;
+}
+
+CAMLprim value caml_rgb_bilinear_scale(value _dst, value _src, value xscale, value yscale)
+{
+  frame *dst = Frame_val(_dst),
+        *src = Frame_val(_src);
+  int i, j, c, i2, j2;
+  float ax = Double_val(xscale),
+        ay = Double_val(yscale);
+  int ox = (dst->width - src->width * ax) / 2,
+      oy = (dst->height - src->height * ay) / 2;
+  float dx, dy;
+
+  assert(ox >= 0 && oy >= 0);
+
+  caml_enter_blocking_section();
+  if (ox != 0 || oy != 0)
+    rgb_blank(dst);
+  for (j = oy; j < dst->height - oy; j++)
+    for (i = ox; i < dst->width - ox; i++)
+    {
+      dx = (i - ox) / ax;
+      i2 = floorl(dx);
+      dx -= i2;
+      dy = (j - oy) / ay;
+      j2 = floorl(dy);
+      dy -= j2;
+      for (c = 0; c < Rgb_elems_per_pixel; c++)
+        Color(dst, c, i, j) =
+          CLIP((int)
+              ((Space_clip_color(src, c, i2, j2) * (1-dx) * (1-dy)) +
+              (Space_clip_color(src, c, i2+1, j2) * dx * (1-dy)) +
+              (Space_clip_color(src, c, i2, j2+1) * (1-dx) * dy) +
+              (Space_clip_color(src, c, i2+1, j2+1) * dx * dy)));
+    }
+  caml_leave_blocking_section();
+
+  return Val_unit;
+}
+
+/*
 CAMLprim value caml_rgb_scale(value _dst, value _src)
 {
   frame *dst = Frame_val(_dst), *src = Frame_val(_src);
@@ -592,29 +657,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
   }
 
   caml_enter_blocking_section();
-  /* Fill borders in black */
-  /*
-  if (oy == 0)
-    for (j = 0; j < dst->height; j++)
-      for (c = 0; c < Rgb_elems_per_pixel; c++)
-      {
-        for (i = 0; i < ox; i++)
-          Color(dst, c, i, j) = 0;
-        for (i = dst->width - ox; i < dst->width; i++)
-          Color(dst, c, i, j) = 0;
-      }
-  else
-    for (i = 0; i < dst->width; i++)
-      for (c = 0; c < Rgb_elems_per_pixel; c++)
-      {
-        for (j = 0; j < oy; j++)
-          Color(dst, c, i, j) = 0;
-        for (j = dst->height - oy; j < dst->height; j++)
-          Color(dst, c, i, j) = 0;
-      }
-  */
   rgb_blank(dst);
-  /* Scale the image */
   for (j = oy; j < dst->height - oy; j++)
     for (i = ox; i < dst->width - ox; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
@@ -623,6 +666,7 @@ CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
 
   return Val_unit;
 }
+*/
 
 static void bmp_pint32(char *dst, int n)
 {

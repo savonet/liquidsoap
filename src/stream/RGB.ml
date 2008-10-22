@@ -16,6 +16,8 @@ external get_width : t -> int = "caml_rgb_get_width" "noalloc"
 
 external get_height : t -> int = "caml_rgb_get_height" "noalloc"
 
+let get_dims f = get_width f, get_height f
+
 external copy : t -> t = "caml_rgb_copy"
 
 external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
@@ -63,18 +65,39 @@ external set_pixel : t -> int -> int -> color -> unit = "caml_rgb_set_pixel" "no
 
 external randomize : t -> unit = "caml_rgb_randomize" "noalloc"
 
-external scale : t -> t -> unit = "caml_rgb_scale" "noalloc"
+external scale_coef : t -> t -> int * int -> int * int -> unit = "caml_rgb_scale" "noalloc"
+
+external bilinear_scale_coef : t -> t -> float -> float -> unit = "caml_rgb_bilinear_scale" "noalloc"
+
+let scale src dst =
+  let sw, sh = get_dims src in
+  let dw, dh = get_dims dst in
+    scale_coef dst src (dw, sw) (dh, sh)
 
 let scale_to src w h =
+  let sw, sh = get_dims src in
   let dst = create w h in
-    scale dst src;
+    scale_coef dst src (w, sw) (h, sh);
     dst
 
-external proportional_scale : t -> t -> unit = "caml_rgb_proportional_scale" "noalloc"
+let proportional_scale ?(bilinear=false) dst src =
+  let sw, sh = get_dims src in
+  let dw, dh = get_dims dst in
+  let n, d =
+    if dh * sw < sh * dw then
+      dh, sh
+    else
+      dw, sw
+  in
+    if bilinear then
+      let a = float_of_int n /. float_of_int d in
+        bilinear_scale_coef dst src a a
+    else
+      scale_coef dst src (n, d) (n, d)
 
-let proportional_scale_to src w h =
+let proportional_scale_to ?(bilinear=false) src w h =
   let dst = create w h in
-    proportional_scale dst src;
+    proportional_scale ~bilinear dst src;
     dst
 
 external to_bmp : t -> string = "caml_rgb_to_bmp"

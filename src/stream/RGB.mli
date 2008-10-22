@@ -113,11 +113,11 @@ val scale_to : t -> int -> int -> t
 
 (** [proportional_scale dst src] scales the frame [src] to the frame [dst]. The
   * width / height ratio is preserved and black borders are added if necessary. *)
-val proportional_scale : t -> t -> unit
+val proportional_scale : ?bilinear:bool -> t -> t -> unit
 
 (** Same as [proportional_scale] but creates a new frame of given width and
   * height. *)
-val proportional_scale_to : t -> int -> int -> t
+val proportional_scale_to : ?bilinear:bool -> t -> int -> int -> t
 
 (** Convert the colors of a frame to greyscale. *)
 val greyscale : t -> unit
