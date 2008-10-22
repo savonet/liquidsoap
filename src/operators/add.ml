@@ -211,7 +211,7 @@ let () =
       "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
-      "proportional", Lang.bool_t, Some (Lang.bool false), Some "Scale preserving the proportions.";
+      "proportional", Lang.bool_t, Some (Lang.bool true), Some "Scale preserving the proportions.";
       "", Lang.list_t Lang.source_t, None, None
     ]
     (fun p ->
@@ -235,11 +235,11 @@ let () =
              (
                let sw, sh = RGB.get_width buf, RGB.get_height buf in
                  if w * sh < sw * h then
-                   let h = sh * w / sw in
-                     x+(sh-h)/2, y, w, h
+                   let h' = sh * w / sw in
+                     x, y+(h-h')/2, w, h'
                  else
-                   let w = sw * h / sh in
-                     x, y+(sw-w)/2, h, w
+                   let w' = sw * h / sh in
+                     x+(w-w')/2, y, w', h
              )
            else
              x, y, w, h
