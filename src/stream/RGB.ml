@@ -187,4 +187,6 @@ let translate f x y =
 
 external mask : t -> t -> unit = "caml_rgb_mask" "noalloc"
 
-external lomo : t -> unit = "caml_rgb_lomo"
+external lomo : t -> unit = "caml_rgb_lomo" "noalloc"
+
+external color_to_alpha : t -> int * int * int -> int -> unit = "caml_rgb_color_to_alpha" "noalloc"

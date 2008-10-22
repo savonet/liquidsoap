@@ -83,7 +83,7 @@ let () =
       "", Lang.source_t, None, None
     ]
     ~category:Lang.VideoProcessing
-    ~descr:"Invert video."
+    ~descr:"Scale opacity of video."
     (fun p ->
        let a = Lang.to_float (Lang.assoc "" 1 p) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
@@ -98,6 +98,26 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
          ((new effect RGB.lomo src):>source))
+
+let () =
+  Lang.add_operator "video.transparent"
+    [
+      "precision", Lang.float_t, Some (Lang.float 0.), Some "Precision in color matching (0. means match precisely the color and 1. means match every color).";
+      "color", Lang.int_t, Some (Lang.int 0), Some "Color which should be transparent.";
+      "", Lang.source_t, None, None
+    ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Set a color to be transparent."
+    (fun p ->
+       let f v = List.assoc v p in
+       let prec, color, src =
+         Lang.to_float (f "precision"),
+         Lang.to_int (f "color"),
+         Lang.to_source (f "")
+       in
+       let prec = int_of_float (prec *. 255.) in
+       let color = RGB.rgb_of_int color in
+         ((new effect (fun buf -> RGB.color_to_alpha buf color prec) src):>source))
 
 let () =
   Lang.add_operator "video.fill"

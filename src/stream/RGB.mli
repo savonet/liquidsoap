@@ -157,3 +157,6 @@ val mask : t -> t -> unit
 
 (** Emulate the "Lomo effect". *)
 val lomo : t -> unit
+
+(** Set a color to be transparent. Last parameter is precision. *)
+val color_to_alpha : t -> int * int * int -> int -> unit

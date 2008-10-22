@@ -1025,3 +1025,22 @@ CAMLprim value caml_rgb_lomo(value _rgb)
 
   return Val_unit;
 }
+
+CAMLprim value caml_rgb_color_to_alpha(value _rgb, value color, value _prec)
+{
+  frame *rgb = Frame_val(_rgb);
+  int r = Int_val(Field(color, 0)),
+      g = Int_val(Field(color, 1)),
+      b = Int_val(Field(color, 2));
+  int prec = Int_val(_prec);
+  int i, j;
+
+  caml_enter_blocking_section();
+  for (j = 0; j < rgb->height; j++)
+    for (i = 0; i < rgb->width; i++)
+      if (abs(Red(rgb, i, j) - r) <= prec && abs(Green(rgb, i, j) - g) <= prec && abs(Blue(rgb, i, j) - b) <= prec)
+        Alpha(rgb, i, j) = 0;
+  caml_leave_blocking_section();
+
+  return Val_unit;
+}
