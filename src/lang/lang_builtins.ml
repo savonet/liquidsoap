@@ -1314,7 +1314,7 @@ struct
 end
 
 let () =
-  add_builtin "interactive_string" ~cat:Interaction
+  add_builtin "interactive.string" ~cat:Interaction
     ~descr:"Read a string from an interactive input."
     ["",Lang.string_t,None,None; "",Lang.string_t,None,None ]
     (Lang.fun_t [] Lang.string_t)
@@ -1336,7 +1336,7 @@ let () =
          Lang.val_fun [] (fun p -> Lang.string !v))
 
 let () =
-  add_builtin "interactive_float" ~cat:Interaction
+  add_builtin "interactive.float" ~cat:Interaction
     ~descr:"Read a float from an interactive input."
     ["",Lang.string_t,None,None; "",Lang.float_t,None,None ]
     (Lang.fun_t [] Lang.float_t)
