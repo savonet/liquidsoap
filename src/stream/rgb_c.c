@@ -1044,3 +1044,27 @@ CAMLprim value caml_rgb_color_to_alpha(value _rgb, value color, value _prec)
 
   return Val_unit;
 }
+
+CAMLprim value caml_rgb_blur_alpha(value _rgb)
+{
+  frame *rgb = Frame_val(_rgb),
+        *old = rgb_copy(rgb);
+  int w = 1;
+  int i, j, k, l;
+  int a;
+
+  caml_enter_blocking_section();
+  for (j = w; j < rgb->height - w; j++)
+    for (i = w; i < rgb->width - w; i++)
+    {
+      a = 0;
+      for (l = -w; l <= w; l++)
+        for (k = -w; k <= w; k++)
+          a += Alpha(old, i+k, j+l);
+      Alpha(rgb, i, j) = a / ((2*w+1)*(2*w+1));
+    }
+  rgb_free(old);
+  caml_leave_blocking_section();
+
+  return Val_unit;
+}

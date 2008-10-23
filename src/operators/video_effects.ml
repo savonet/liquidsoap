@@ -90,6 +90,17 @@ let () =
          ((new effect (fun buf -> RGB.scale_opacity buf a) src):>source))
 
 let () =
+  Lang.add_operator "video.opacity.blur"
+    [
+      "", Lang.source_t, None, None
+    ]
+    ~category:Lang.VideoProcessing
+    ~descr:"Blur opacity of video."
+    (fun p ->
+       let src = Lang.to_source (Lang.assoc "" 1 p) in
+         ((new effect RGB.blur_alpha src):>source))
+
+let () =
   Lang.add_operator "video.lomo"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
