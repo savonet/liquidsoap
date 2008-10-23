@@ -171,7 +171,7 @@ let blit src src_pos dst dst_pos len =
       | RGB src, RGB dst ->
           (* TODO: handle offsets! *)
           for i = 0 to Array.length src - 1 do
-            RGB.blit src.(i) dst.(i)
+            RGB.blit_fast src.(i) dst.(i)
           done
       | _, _ -> assert false
   done

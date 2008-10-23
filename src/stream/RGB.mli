@@ -60,6 +60,10 @@ val set_pixel : t -> int -> int -> color -> unit
   * blanked. *)
 val blit : ?blank:bool -> ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
 
+(** Faster implementation of blit without translation or scaling, when both
+  * images are of the same dimension. *)
+val blit_fast : t -> t -> unit
+
 (** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
 val add : t -> t -> unit
 
