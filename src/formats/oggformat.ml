@@ -53,11 +53,15 @@ let decoder file =
   let fill buf =
     assert (not !closed) ;
 
+    let offset = AFrame.position buf in
+    let video_break = ref false in
+
     (* Video input *)
     (* TODO: video buffer with conversion.. *)
     if Fmt.video_channels () <> 0 &&
        Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
     begin
+     try
       let b = VFrame.get_rgb buf in
       let feed b c i =
         let feed (buf,_) =
@@ -84,13 +88,23 @@ let decoder file =
               Ogg_demuxer.decode_video decoder (feed b c i);
             done;
         done;
-      (* TODO: sort out when and who puts a break: 
-       * this end break is already added by
-       * audio filling.. *)
-      (*VFrame.add_break buf size;*)
+      (* My understanding of this is that 
+       * if the frame was fully filled, then
+       * audio and video can add the final break,
+       * it will not mater. But if video or audio 
+       * filling was incomplete, it means an end of
+       * track (a not final break). *)
+      (* TODO: fix ticks issue #185 *)
+      AFrame.add_break buf (AFrame.size buf);
+      video_break := true;
+     with
+       | e -> log#f 4 "Video decoding finished with error: %s" (Printexc.to_string e)
     end;
 
+    if Fmt.channels () <> 0 &&
+       Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder then
     begin
+     begin
       try
         while Generator.length abg < buffer_length do
           let feed ((buf,sample_freq),meta) = 
@@ -119,10 +133,12 @@ let decoder file =
       with
         | e -> log#f 4 "ogg file decoder exited on exception: %s" 
                           (Printexc.to_string e)
-    end ;
+      end;
+      AFrame.fill_frame abg buf;
+     end
+    else
+      AFrame.fill_frame ~add_break:(not !video_break) abg buf;
 
-    let offset = AFrame.position buf in
-    AFrame.fill_frame abg buf;
     in_bytes := Unix.lseek fd 0 Unix.SEEK_CUR ;
     out_samples := !out_samples + AFrame.position buf - offset ;
     (* Compute an estimated number of remaining ticks. *)

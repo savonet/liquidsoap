@@ -26,7 +26,7 @@ sig
   val length : t -> int (* ticks *)
   val remaining : t -> int (* ticks *)
   val clear : t -> unit
-  val fill_frame : t -> Frame.t -> unit
+  val fill_frame : ?add_break:bool -> t -> Frame.t -> unit
   val add_metadata : t -> int*Frame.metadata -> unit
 end
 

@@ -94,26 +94,32 @@ object (self)
   method output_start =
     assert (fd = None) ;
     let oggs, enc = create_encoder ~quality in
-    let voggs, venc = create_vorbis_encoder () in
       fd <- Some (open_out filename) ;
       os <- Some oggs;
       encoder <- Some enc;
-      vos <- Some voggs;
-      vorbis_enc <- Some venc;
       Encoder.encode_header enc oggs;
       self#send (Ogg.Stream.pageout oggs);
-      let tags = Vorbis.tags () in
-      Vorbis.Encoder.headerout venc voggs tags ;
-      self#send (Ogg.Stream.pageout voggs);
+      if vorbis_quality > 0. then
+       begin
+        let voggs, venc = create_vorbis_encoder () in 
+        let tags = Vorbis.tags () in
+        Vorbis.Encoder.headerout venc voggs tags ;
+        vos <- Some voggs;
+        vorbis_enc <- Some venc;
+        self#send (Ogg.Stream.pageout voggs)
+       end;
       Encoder.encode_comments oggs [];
       Encoder.encode_tables enc oggs;
       self#send (Ogg.Stream.flush oggs)
 
   method output_stop =
     let venc = Utils.get_some vorbis_enc in
-    let voggs = Utils.get_some vos in 
-    Vorbis.Encoder.end_of_stream venc voggs;
-    self#send (Ogg.Stream.flush voggs);
+    if vorbis_quality > 0. then
+     begin
+      let voggs = Utils.get_some vos in 
+      Vorbis.Encoder.end_of_stream venc voggs;
+      self#send (Ogg.Stream.flush voggs)
+     end;
     (* TODO: generic Ogg EOS, apply for theora OS *)
     match fd with
       | None -> assert false
@@ -139,11 +145,12 @@ object (self)
         Encoder.encode_buffer encoder os theora_yuv
       done;
       self#send (Ogg.Stream.pagesout os);
-   let venc = Utils.get_some vorbis_enc in
-   let voggs = Utils.get_some vos in
-   let buf = AFrame.get_float_pcm frame in
-   Vorbis.Encoder.encode_buffer_float venc voggs buf 0 (Array.length buf.(0));
-   self#send (Ogg.Stream.pagesout voggs)
+   if vorbis_quality > 0. then
+     let venc = Utils.get_some vorbis_enc in
+     let voggs = Utils.get_some vos in
+     let buf = AFrame.get_float_pcm frame in
+     Vorbis.Encoder.encode_buffer_float venc voggs buf 0 (Array.length buf.(0));
+     self#send (Ogg.Stream.pagesout voggs)
 
   method output_reset = ()
 end
@@ -159,7 +166,8 @@ let () =
       "vorbis_quality",
       Lang.float_t,
       Some (Lang.float 2.),
-      Some "Quality setting for vorbis encoding." ;
+      Some "Quality setting for vorbis encoding. \
+            Don't encode audio if value is negative or null." ;
 
       "",
       Lang.string_t,
