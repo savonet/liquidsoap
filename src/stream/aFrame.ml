@@ -43,7 +43,7 @@ let to_s16le b =
     assert (Float_pcm.to_s16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
 
-let fill_frame_main ?(add_break=true) f g h gen frame =
+let fill_frame_main f g h gen frame =
   let pos = position frame in
   let len = size frame in
   let offset = len - pos in
@@ -70,25 +70,20 @@ let fill_frame_main ?(add_break=true) f g h gen frame =
   let breaks =
     let new_breaks = List.map (fun x -> x + pos) new_breaks in
     let l = List.filter (fun x -> x <= npos) (sort (old_breaks@new_breaks)) in
-    if add_break then
-      npos::l
-    else
-      l
+    npos::l
   in
   set_breaks frame breaks;
   let new_meta = List.map (fun (x,y) -> (x + pos,y)) new_meta in
   let meta = List.filter (fun x -> fst(x) < npos) (old_meta@new_meta) in
   set_all_metadata frame meta
 
-let fill_frame ?add_break = 
-  fill_frame_main ?add_break
-                  Float_pcm.Generator.fill 
+let fill_frame = 
+  fill_frame_main Float_pcm.Generator.fill 
                   Float_pcm.Generator.peek_metadata
                   Float_pcm.Generator.peek_breaks
 
-let fill_frame_from_raw ?add_break = 
-  fill_frame_main ?add_break
-                  Float_pcm.Generator_from_raw.fill 
+let fill_frame_from_raw = 
+  fill_frame_main Float_pcm.Generator_from_raw.fill 
                   Float_pcm.Generator_from_raw.peek_metadata
                   Float_pcm.Generator_from_raw.peek_breaks
 
