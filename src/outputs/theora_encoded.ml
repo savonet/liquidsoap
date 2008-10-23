@@ -49,7 +49,7 @@ let create_encoder ~quality =
 
 (** Output in a ogg theora file *)
 
-class to_file ~filename ~quality source =
+class to_file ~filename ~quality ~vorbis_quality source =
   let ((y,y_stride), (u, v, uv_stride) as yuv) = 
     RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ()) 
   in
@@ -76,7 +76,7 @@ class to_file ~filename ~quality source =
     let os = Ogg.Stream.create () in
     let channels = Fmt.channels () in
     let freq = Fmt.samples_of_seconds 1. in
-    let quality = 2. in
+    let quality = vorbis_quality in
     os,Vorbis.Encoder.create_vbr channels freq quality
   in 
 object (self)
@@ -154,7 +154,12 @@ let () =
       "quality",
       Lang.int_t,
       Some (Lang.int 100),
-      None ;
+      Some "Quality setting for theora encoding." ;
+
+      "vorbis_quality",
+      Lang.float_t,
+      Some (Lang.float 2.),
+      Some "Quality setting for vorbis encoding." ;
 
       "",
       Lang.string_t,
@@ -168,8 +173,9 @@ let () =
     (fun p ->
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
+       let vorbis_quality = e Lang.to_float "vorbis_quality" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
-         ((new to_file ~filename
+         ((new to_file ~filename ~vorbis_quality 
              ~quality source):>source))
 
