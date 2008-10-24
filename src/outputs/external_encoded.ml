@@ -71,7 +71,10 @@ object (self)
   val read = Buffer.create 10
   val write_m = Mutex.create ()
 
-  method encode (_:external_encoder) b start len =
+  method encode (_:external_encoder) frame start len =
+      let b = AFrame.get_float_pcm frame in
+      let start = Fmt.samples_of_ticks start in
+      let len = Fmt.samples_of_ticks len in
       let slen = 2 * len * Array.length b in
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);

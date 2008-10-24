@@ -200,7 +200,10 @@ object (self)
         self#new_os ~tags encoder; 
         flushed
 
-  method encode e b start len =
+  method encode e frame start len =
+    let b = AFrame.get_float_pcm frame in
+    let start = Fmt.samples_of_ticks start in
+    let len = Fmt.samples_of_ticks len in
     let frame_size = Utils.get_some frame_size in
     let b =
       if stereo then b else begin

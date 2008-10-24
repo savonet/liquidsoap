@@ -43,7 +43,10 @@ object
     need_header <- need_close ;
     ""
 
-  method encode () b start len =
+  method encode () frame start len =
+    let b = AFrame.get_float_pcm frame in
+    let start = Fmt.samples_of_ticks start in
+    let len = Fmt.samples_of_ticks len in
     let s = String.create (2 * len * channels) in
     ignore(Float_pcm.to_s16le b start len s 0) ;
     if need_header then 

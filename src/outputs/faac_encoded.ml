@@ -44,7 +44,10 @@ object (self)
   val mutable faac_buflen = 0
 
   method reset_encoder encoder m = ""
-  method encode e b start len =
+  method encode e frame start len =
+    let b = AFrame.get_float_pcm frame in
+    let start = Fmt.samples_of_ticks start in
+    let len = Fmt.samples_of_ticks len in
     let outbuf = String.create faac_buflen in
     let n = Faac.encode_ni e b start len outbuf 0 in
       String.sub outbuf 0 n ;

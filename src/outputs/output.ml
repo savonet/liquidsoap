@@ -179,7 +179,7 @@ object (self)
   inherit output ~kind ~name source autostart
 
   method virtual reset_encoder : 'a -> (string,string) Hashtbl.t -> string
-  method virtual encode : 'a -> float array array -> int -> int -> string
+  method virtual encode : 'a -> Frame.t -> int -> int -> string
   method virtual send : string -> unit
 
   val mutable encoder : 'a option = None
@@ -196,7 +196,7 @@ object (self)
                   self#send h
         end ;
         let data =
-          self#encode encoder (AFrame.get_float_pcm frame) start (stop-start)
+          self#encode encoder frame start (stop-start)
         in
           self#send data
       in
@@ -209,7 +209,7 @@ object (self)
     in
       output_chunks frame
         (0::(List.sort compare
-               ((List.map fst (AFrame.get_all_metadata frame))
-                @(AFrame.breaks frame))))
+               ((List.map fst (Frame.get_all_metadata frame))
+                @(Frame.breaks frame))))
 
 end

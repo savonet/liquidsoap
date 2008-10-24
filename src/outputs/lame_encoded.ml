@@ -44,7 +44,10 @@ object (self)
 
   val virtual mutable encoder : Lame.encoder option
 
-  method encode e b start len =
+  method encode e frame start len =
+    let b = AFrame.get_float_pcm frame in
+    let start = Fmt.samples_of_ticks start in
+    let len = Fmt.samples_of_ticks len in
     if Fmt.channels () = 1 then
       Lame.encode_buffer_float_part e b.(0) b.(0) start len
     else
