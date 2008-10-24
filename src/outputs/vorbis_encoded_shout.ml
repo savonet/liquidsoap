@@ -115,8 +115,9 @@ object (self)
     super#output_start 
 
   method output_stop =
-    super#output_stop ;
-    ignore(base#end_of_os encoder)
+    let b = base#end_of_os encoder in
+    super#send b;
+    super#output_stop
 end
 
 let () = (* Average BitRate *)
