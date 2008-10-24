@@ -85,8 +85,7 @@ object (self)
   inherit
     [Lame.encoder] Icecast2.output ~format:Shout.Format_mp3 ~protocol
       ~bitrate:(string_of_int bitrate) ~mount ~name ~source p as super
-  inherit [Lame.encoder] base 
-      ~quality ~bitrate ~stereo ~samplerate as base
+  inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder encoder m =
     let get h k l =

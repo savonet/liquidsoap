@@ -39,10 +39,10 @@ let create_encoder ~samplerate ~bitrate ~quality ~stereo =
     Lame.init_params enc ;
     enc
 
-class virtual ['a] base ~quality ~bitrate ~stereo ~samplerate =
+class virtual base ~quality ~bitrate ~stereo ~samplerate =
 object (self)
 
-  val virtual mutable encoder : 'a option
+  val virtual mutable encoder : Lame.encoder option
 
   method encode e b start len =
     if Fmt.channels () = 1 then
@@ -68,7 +68,7 @@ object (self)
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
-  inherit [Lame.encoder] base 
+  inherit base 
          ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder _ m =
