@@ -39,13 +39,20 @@ let create_encoder ~samplerate ~bitrate ~quality ~stereo =
     Lame.init_params enc ;
     enc
 
-class virtual base =
+class virtual ['a] base ~quality ~bitrate ~stereo ~samplerate =
 object (self)
+
+  val virtual mutable encoder : 'a option
+
   method encode e b start len =
     if Fmt.channels () = 1 then
       Lame.encode_buffer_float_part e b.(0) b.(0) start len
     else
       Lame.encode_buffer_float_part e b.(0) b.(1) start len
+
+  method output_start =
+    let enc = create_encoder ~quality ~bitrate ~stereo ~samplerate in
+      encoder <- Some enc ;
 end
 
 (** Output in an MP3 file *)
@@ -61,7 +68,8 @@ object (self)
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
-  inherit base
+  inherit [Lame.encoder] base 
+         ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder _ m =
     to_file#on_reset_encoder ;
@@ -69,8 +77,7 @@ object (self)
     ""
 
   method output_start =
-    let enc = create_encoder ~quality ~bitrate ~stereo ~samplerate in
-      encoder <- Some enc ;
+      base#output_start ;
       to_file#file_output_start
 
   method output_stop =
