@@ -47,9 +47,9 @@ let create_encoder ~quality =
   let enc = Encoder.create info in
     os, enc
 
-(** Output in a ogg theora file *)
+(** Output in a ogg theora *)
 
-class to_file ~filename ~quality ~vorbis_quality source =
+class virtual base ~quality ~vorbis_quality =
   let ((y,y_stride), (u, v, uv_stride) as yuv) = 
     RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ()) 
   in
@@ -80,62 +80,74 @@ class to_file ~filename ~quality ~vorbis_quality source =
     os,Vorbis.Encoder.create_vbr channels freq quality
   in 
 object (self)
-  inherit Output.output
-         ~name:filename ~kind:"output.file.theora" source true
 
-  (* method reset_encoder encoder m = "" *)
-
-  val mutable encoder = None
+  val virtual mutable encoder : ((Vorbis.Encoder.t option)*Theora.Encoder.t) option
   val mutable os = None
-  val mutable fd = None
-  val mutable vorbis_enc = None
   val mutable vos = None
+  val flush = Buffer.create 1024
 
-  method output_start =
-    assert (fd = None) ;
-    let oggs, enc = create_encoder ~quality in
-      fd <- Some (open_out filename) ;
-      os <- Some oggs;
-      encoder <- Some enc;
-      Encoder.encode_header enc oggs;
-      self#send (Ogg.Stream.pageout oggs);
-      if vorbis_quality > 0. then
-       begin
-        let voggs, venc = create_vorbis_encoder () in 
-        let tags = Vorbis.tags () in
-        Vorbis.Encoder.headerout venc voggs tags ;
-        vos <- Some voggs;
-        vorbis_enc <- Some venc;
-        self#send (Ogg.Stream.pageout voggs)
-       end;
-      Encoder.encode_comments oggs [];
-      Encoder.encode_tables enc oggs;
-      self#send (Ogg.Stream.flush oggs)
-
-  method output_stop =
-    let venc = Utils.get_some vorbis_enc in
-    if vorbis_quality > 0. then
+  method new_encoder m =
+    (* Quick and dirty work around until we have theora EOS.. *)
+    if encoder = None then
      begin
-      let voggs = Utils.get_some vos in 
-      Vorbis.Encoder.end_of_stream venc voggs;
-      self#send (Ogg.Stream.flush voggs)
+      let oggs, enc = create_encoder ~quality in
+        os <- Some oggs;
+        Encoder.encode_header enc oggs;
+        assert(Buffer.length flush = 0);
+        Buffer.add_string flush (Ogg.Stream.pageout oggs);
+        let vorbis_enc = 
+          if vorbis_quality > 0. then
+           begin
+            let voggs, venc = create_vorbis_encoder () in 
+            let tags = Vorbis.tags () in
+            Vorbis.Encoder.headerout venc voggs tags ;
+            vos <- Some voggs;
+            Buffer.add_string flush (Ogg.Stream.pageout voggs);
+            Some venc
+          end
+         else
+            None
+        in
+        let add a b c = (a,b)::c in
+        let comments = 
+          Hashtbl.fold add m [] 
+        in
+        Encoder.encode_comments oggs comments;
+        Encoder.encode_tables enc oggs;
+        encoder <- Some (vorbis_enc,enc);
+        Buffer.add_string flush (Ogg.Stream.flush oggs)
+    end;
+
+  method end_of_os = 
+    (* TODO: theora eos ! 
+    begin
+     match encoder with
+       |Some (Some venc,_) -> 
+           let voggs = Utils.get_some vos in 
+           Vorbis.Encoder.end_of_stream venc voggs;
+           Buffer.add_string flush (Ogg.Stream.flush voggs)
+       | _ -> ()
      end;
-    (* TODO: generic Ogg EOS, apply for theora OS *)
-    match fd with
-      | None -> assert false
-      | Some v -> close_out v ; fd <- None
+     let b = Buffer.contents flush in
+     Buffer.reset flush;
+     b *)
+    ""
 
-  method send b =
-    match fd with
-      | None -> assert false
-      | Some fd -> output_string fd b
+  method reset_encoder (_:(Vorbis.Encoder.t option)*Theora.Encoder.t) 
+                        (m:(string,string) Hashtbl.t) =
+    (** TODO: theora EOS ! 
+    let b = self#end_of_os in
+    self#new_encoder m;
+    b*)
+    ""
 
-  method output_send frame =
-    let encoder = Utils.get_some encoder in
+  method encode (vencoder,encoder) frame start stop =
     let os = Utils.get_some os in
     let vid = VFrame.get_rgb frame in
     let vid = vid.(0) in (* TODO: handle multiple chans *)
-      for i = 0 to VFrame.position frame - 1 do
+      for i = Fmt.video_frames_of_ticks start to 
+              Fmt.video_frames_of_ticks stop - 1 
+      do
         convert 
          (Video_converter.frame_of_internal_rgb vid.(i)) 
          (Video_converter.frame_of_internal_yuv 
@@ -144,20 +156,63 @@ object (self)
            yuv); (* TODO: custom video size.. *)
         Encoder.encode_buffer encoder os theora_yuv
       done;
-      self#send (Ogg.Stream.pagesout os);
-   if vorbis_quality > 0. then
-     let venc = Utils.get_some vorbis_enc in
-     let voggs = Utils.get_some vos in
-     let buf = AFrame.get_float_pcm frame in
-     Vorbis.Encoder.encode_buffer_float venc voggs buf 0 (Array.length buf.(0));
-     self#send (Ogg.Stream.pagesout voggs)
+      Buffer.add_string flush (Ogg.Stream.pagesout os);
+    begin
+     match vencoder with
+       | Some venc -> 
+          let voggs = Utils.get_some vos in
+          let buf = AFrame.get_float_pcm frame in
+          let start = Fmt.samples_of_ticks start in
+          let stop = Fmt.samples_of_ticks stop in
+          Vorbis.Encoder.encode_buffer_float venc voggs buf start stop;
+          Buffer.add_string flush (Ogg.Stream.pagesout voggs);
+       | None -> ()
+    end;
+    let s = Buffer.contents flush in
+    Buffer.reset flush;
+    s
+
+  method output_reset = ()
+end
+
+class to_file
+  ~append ~perm ~dir_perm
+  ~reload_delay ~reload_predicate ~reload_on_metadata
+  ~filename ~vorbis_quality ~quality ~autostart source =
+object (self)
+  inherit
+    [(Vorbis.Encoder.t option)*Theora.Encoder.t] Output.encoded
+         ~name:filename ~kind:"output.file" ~autostart source
+  inherit File_output.to_file
+            ~reload_delay ~reload_predicate ~reload_on_metadata
+            ~append ~perm ~dir_perm filename as to_file
+  inherit base 
+         ~quality ~vorbis_quality as base
+
+  method reset_encoder enc m =
+    to_file#on_reset_encoder ;
+    to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
+    base#reset_encoder enc m
+
+  method output_start =
+      base#new_encoder (Hashtbl.create 10) ;
+      to_file#file_output_start
+
+  method output_stop =
+    let f = base#end_of_os in
+    to_file#send f ;
+    to_file#file_output_stop
 
   method output_reset = ()
 end
 
 let () =
   Lang.add_operator "output.file.theora"
-    [
+    ([
+      "start",
+      Lang.bool_t, Some (Lang.bool true),
+      Some "Start output threads on operator initialization." ;
+
       "quality",
       Lang.int_t,
       Some (Lang.int 100),
@@ -169,21 +224,27 @@ let () =
       Some "Quality setting for vorbis encoding. \
             Don't encode audio if value is negative or null." ;
 
-      "",
-      Lang.string_t,
-      None,
-      Some "Filename where to output the Theora stream." ;
-
-      "", Lang.source_t, None, None
-    ]
+     ]
+      @ File_output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
-    ~descr:"Output the source's stream as a Theora file."
+    ~descr:"Output the source's stream as an ogg/theora file."
     (fun p ->
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let vorbis_quality = e Lang.to_float "vorbis_quality" in
+       let autostart = e Lang.to_bool "start" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
-         ((new to_file ~filename ~vorbis_quality 
-             ~quality source):>source))
+       let append = Lang.to_bool (List.assoc "append" p) in
+       let perm = Lang.to_int (List.assoc "perm" p) in
+       let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
+       let reload_predicate = List.assoc "reopen_when" p in
+       let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
+       let reload_on_metadata =
+         Lang.to_bool (List.assoc "reopen_on_metadata" p)
+       in
+         ((new to_file ~filename
+             ~append ~perm ~dir_perm
+             ~reload_delay ~reload_predicate ~reload_on_metadata
+             ~quality ~vorbis_quality ~autostart source):>source))
 
