@@ -44,7 +44,8 @@ object (self)
 
   val virtual mutable encoder : Lame.encoder option
 
-  method encode e frame start len =
+  method encode frame start len =
+    let e = Utils.get_some encoder in
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in
@@ -74,7 +75,7 @@ object (self)
   inherit base 
          ~quality ~bitrate ~stereo ~samplerate as base
 
-  method reset_encoder _ m =
+  method reset_encoder m =
     to_file#on_reset_encoder ;
     to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
     ""

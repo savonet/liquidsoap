@@ -95,7 +95,7 @@ object (self)
       ~bitrate:(string_of_int bitrate) ~raw ~mount ~name ~source p as super
   inherit External_encoded.base ~restart_encoder ~restart_on_crash ~header process as base
 
-  method reset_encoder encoder m =
+  method reset_encoder m =
     let get h k l =
       try
         (k,(Hashtbl.find h k))::l
@@ -150,7 +150,7 @@ object (self)
         end;
       if restart_encoder then
         (* Ogg streams are restarted (if restart is true) *)
-        base#reset_encoder encoder m
+        base#reset_encoder m
       else
         ""
 

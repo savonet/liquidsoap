@@ -48,7 +48,10 @@ object (self)
   val mutable _os = None
   val mutable flush = false
 
-  method new_os ?(tags=None) enc = 
+  val virtual mutable encoder : Vorbis.Encoder.t option
+
+  method new_os ?(tags=None) () = 
+    let enc = Utils.get_some encoder in
     let os = Ogg.Stream.create () in
     let tags = 
       match tags with
@@ -61,7 +64,7 @@ object (self)
     flush <- true ;
     _os <- Some os
 
-  method end_of_os encoder = 
+  method end_of_os =
     match _os with
       | None -> ""
       | Some os ->
@@ -71,15 +74,15 @@ object (self)
          _os <- None ;
          f
 
-  method get_os e = 
+  method get_os = 
     match _os with
       | Some s -> s
-      | None -> self#new_os e ;
+      | None -> self#new_os () ;
                 Utils.get_some _os
 
-  method virtual new_encoder : bool -> Vorbis.Encoder.t
+  method virtual new_encoder : bool -> unit
 
-  method reset_encoder encoder m =
+  method reset_encoder m =
     let get h k =
       try
         Some (Hashtbl.find h k)
@@ -99,8 +102,8 @@ object (self)
                | Not_found -> title)
         | None -> "Unknown"
     in
-        let flushed = self#end_of_os (Some encoder) in
-        let encoder = self#new_encoder stereo in
+        let flushed = self#end_of_os in
+        self#new_encoder stereo;
         self#new_os 
           ~tags:(Some (Vorbis.tags
                          ?title:(getd m "title" def_title)
@@ -110,10 +113,11 @@ object (self)
                          ?album:(get m "album")
                          ?tracknumber:(get m "tracknum")
                          ?comment:(get m "comment")
-                         ())) encoder  ;
+                         ())) ()  ;
         flushed
 
-  method encode e frame start len =
+  method encode frame start len =
+    let e = Utils.get_some encoder in
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in
@@ -134,7 +138,7 @@ object (self)
         (float freq /. samples_per_second)
         b start len
     in
-    let os = self#get_os e in
+    let os = self#get_os in
       let f = 
         if flush then
 	  Ogg.Stream.flush os
@@ -170,20 +174,19 @@ object (self)
         | CBR -> Vorbis.Encoder.create channels freq max nom min
         | VBR -> Vorbis.Encoder.create_vbr channels freq quality
     in
-      encoder <- Some enc ;
-      enc
+      encoder <- Some enc 
 
-  method reset_encoder enc m =
+  method reset_encoder m =
     to_file#on_reset_encoder ;
     to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
-    base#reset_encoder enc m
+    base#reset_encoder m
 
   method output_start = 
-    ignore(self#new_encoder stereo) ;
+    self#new_encoder stereo ;
     to_file#file_output_start 
 
   method output_stop =
-    let f = base#end_of_os encoder in
+    let f = base#end_of_os in
     to_file#send f ;
     to_file#file_output_stop 
 

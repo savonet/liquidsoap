@@ -12,7 +12,7 @@ let create_encoder ~quality =
   let video_y = ((frame_y + 15) lsr 4) lsl 4 in
   let frame_x_offset = ((video_x - frame_x) / 2) land (lnot 1) in
   let frame_y_offset = ((video_y - frame_y) / 2) land (lnot 1) in
-  let video_r = 100000 in
+  let video_r = 0 in
   let info =
     {
       width = video_x;
@@ -102,7 +102,7 @@ object (self)
             let tags = Vorbis.tags () in
             Vorbis.Encoder.headerout venc voggs tags ;
             vos <- Some voggs;
-            Buffer.add_string flush (Ogg.Stream.pageout voggs);
+            Buffer.add_string flush (Ogg.Stream.flush voggs);
             Some venc
           end
          else
@@ -133,15 +133,15 @@ object (self)
      b *)
     ""
 
-  method reset_encoder (_:(Vorbis.Encoder.t option)*Theora.Encoder.t) 
-                        (m:(string,string) Hashtbl.t) =
+  method reset_encoder (m:(string,string) Hashtbl.t) =
     (** TODO: theora EOS ! 
     let b = self#end_of_os in
     self#new_encoder m;
     b*)
     ""
 
-  method encode (vencoder,encoder) frame start stop =
+  method encode frame start stop =
+    let (vencoder,encoder) = Utils.get_some encoder in
     let os = Utils.get_some os in
     let vid = VFrame.get_rgb frame in
     let vid = vid.(0) in (* TODO: handle multiple chans *)
@@ -189,10 +189,10 @@ object (self)
   inherit base 
          ~quality ~vorbis_quality as base
 
-  method reset_encoder enc m =
+  method reset_encoder m =
     to_file#on_reset_encoder ;
     to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
-    base#reset_encoder enc m
+    base#reset_encoder m
 
   method output_start =
       base#new_encoder (Hashtbl.create 10) ;
@@ -206,13 +206,8 @@ object (self)
   method output_reset = ()
 end
 
-let () =
-  Lang.add_operator "output.file.theora"
-    ([
-      "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output threads on operator initialization." ;
-
+let theora_proto = 
+     [
       "quality",
       Lang.int_t,
       Some (Lang.int 100),
@@ -225,7 +220,15 @@ let () =
             Don't encode audio if value is negative or null." ;
 
      ]
-      @ File_output.proto @ ["", Lang.source_t, None, None ])
+
+
+let () =
+  Lang.add_operator "output.file.theora"
+    ([       
+        "start",
+         Lang.bool_t, Some (Lang.bool true),
+         Some "Start output threads on operator initialization." ] @ 
+      theora_proto @ File_output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an ogg/theora file."
     (fun p ->

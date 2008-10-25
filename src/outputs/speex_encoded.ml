@@ -104,6 +104,8 @@ object (self)
   val mutable frame_size = None
   val mutable remaining = remaining_init
 
+  val virtual mutable encoder : Speex.Encoder.t option
+
   method virtual set_encoder : Speex.Encoder.t -> unit
 
   method new_encoder stereo =
@@ -126,10 +128,9 @@ object (self)
         else
           Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY quality;
       frame_size <- Some (Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE);
-      self#set_encoder enc ;
-      enc
+      self#set_encoder enc
 
-  method new_os ?(tags=None) enc = 
+  method new_os ?(tags=None) () = 
     let os = Ogg.Stream.create () in
     let chans = if stereo then 2 else 1 in
     let header = Speex.Header.init ~rate:freq ~nb_channels:chans ~bitrate 
@@ -146,7 +147,7 @@ object (self)
     flush <- true ;
     _os <- Some os
 
-  method end_of_os encoder = 
+  method end_of_os = 
     match _os with
       | None -> ""
       | Some os ->
@@ -156,13 +157,13 @@ object (self)
          _os <- None ;
          f
 
-  method get_os e = 
+  method get_os = 
     match _os with
       | Some s -> s
-      | None -> self#new_os e ;
+      | None -> self#new_os () ;
                 Utils.get_some _os
 
-  method reset_encoder encoder m =
+  method reset_encoder m =
     let rec get l l' =
       match l with
         | k :: r ->
@@ -195,12 +196,13 @@ object (self)
                           "album";"tracknumber";"comment"]
                          l')
     in
-        let flushed = self#end_of_os (Some encoder) in
-        let encoder = self#new_encoder stereo in
-        self#new_os ~tags encoder; 
+        let flushed = self#end_of_os in
+        self#new_encoder stereo;
+        self#new_os ~tags () ; 
         flushed
 
-  method encode e frame start len =
+  method encode frame start len =
+    let e = Utils.get_some encoder in
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in
@@ -225,7 +227,7 @@ object (self)
       else
         b
     in
-    let os = self#get_os e in
+    let os = self#get_os in
       let f = 
         if flush then
         ( flush <- false;
@@ -310,17 +312,17 @@ object (self)
 
   method set_encoder e = encoder <- Some e
 
-  method reset_encoder enc m =
+  method reset_encoder m =
     to_file#on_reset_encoder ;
     to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
-    base#reset_encoder enc m
+    base#reset_encoder m
 
   method output_start = 
     ignore(self#new_encoder stereo) ;
     to_file#file_output_start 
 
   method output_stop =
-    let f = base#end_of_os encoder in
+    let f = base#end_of_os in
     to_file#send f ;
     to_file#file_output_stop 
 

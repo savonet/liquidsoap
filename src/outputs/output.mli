@@ -59,8 +59,8 @@ object
   method output_send : Frame.t -> unit
 
   val mutable encoder : 'a option
-  method virtual encode : 'a -> Frame.t -> int -> int -> string
-  method virtual reset_encoder : 'a -> AFrame.metadata -> string
+  method virtual encode : Frame.t -> int -> int -> string
+  method virtual reset_encoder : AFrame.metadata -> string
   method virtual send : string -> unit
 
   method virtual output_reset : unit

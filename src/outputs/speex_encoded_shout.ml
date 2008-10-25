@@ -82,12 +82,13 @@ object (self)
   method set_encoder e = encoder <- Some e
 
   method output_start =
-    ignore(self#new_encoder stereo) ;
+    self#new_encoder stereo ;
     super#output_start 
 
   method output_stop =
-    super#output_stop ;
-    ignore(base#end_of_os encoder)
+    let b = base#end_of_os in
+    super#send b;
+    super#output_stop
 end
 
 let () = 

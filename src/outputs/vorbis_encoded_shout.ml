@@ -107,15 +107,14 @@ object (self)
                    (max_bitrate) (bitrate) (min_bitrate)(* max nom min *)
         | VBR -> Vorbis.Encoder.create_vbr channels freq quality
     in
-      encoder <- Some enc;
-      enc
+      encoder <- Some enc
 
   method output_start =
-    ignore(self#new_encoder stereo) ;
+    self#new_encoder stereo ;
     super#output_start 
 
   method output_stop =
-    let b = base#end_of_os encoder in
+    let b = base#end_of_os in
     super#send b;
     super#output_stop
 end

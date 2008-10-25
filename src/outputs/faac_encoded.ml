@@ -43,8 +43,12 @@ object (self)
 
   val mutable faac_buflen = 0
 
-  method reset_encoder encoder m = ""
-  method encode e frame start len =
+  val virtual mutable encoder : Faac.t option
+
+  method reset_encoder m = ""
+
+  method encode frame start len =
+    let e = Utils.get_some encoder in
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in

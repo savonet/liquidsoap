@@ -178,25 +178,24 @@ class virtual ['a] encoded ~kind ~name ~autostart source =
 object (self)
   inherit output ~kind ~name source autostart
 
-  method virtual reset_encoder : 'a -> (string,string) Hashtbl.t -> string
-  method virtual encode : 'a -> Frame.t -> int -> int -> string
+  method virtual reset_encoder : (string,string) Hashtbl.t -> string
+  method virtual encode : Frame.t -> int -> int -> string
   method virtual send : string -> unit
 
   val mutable encoder : 'a option = None
 
   method output_send frame =
-    let encoder = Utils.get_some encoder in
     let rec output_chunks frame =
       let f start stop =
         begin
           match AFrame.get_metadata frame start with
             | None -> ()
             | Some m ->
-                let h = self#reset_encoder encoder m in
+                let h = self#reset_encoder m in
                   self#send h
         end ;
         let data =
-          self#encode encoder frame start (stop-start)
+          self#encode frame start (stop-start)
         in
           self#send data
       in

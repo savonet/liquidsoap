@@ -87,7 +87,7 @@ object (self)
       ~bitrate:(string_of_int bitrate) ~mount ~name ~source p as super
   inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
-  method reset_encoder encoder m =
+  method reset_encoder m =
     let get h k l =
       try
         (k,(Hashtbl.find h k))::l

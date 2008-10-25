@@ -37,13 +37,13 @@ object
   val header = Wav.header ~channels ~sample_rate ~sample_size:16 ~big_endian:false ~signed:true ()
   val mutable need_header = false
 
-  method reset_encoder () m =
+  method reset_encoder m =
     to_file#on_reset_encoder ;
     to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
     need_header <- need_close ;
     ""
 
-  method encode () frame start len =
+  method encode frame start len =
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in

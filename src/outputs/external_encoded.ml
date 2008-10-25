@@ -71,7 +71,7 @@ object (self)
   val read = Buffer.create 10
   val write_m = Mutex.create ()
 
-  method encode (_:external_encoder) frame start len =
+  method encode frame start len =
       let b = AFrame.get_float_pcm frame in
       let start = Fmt.samples_of_ticks start in
       let len = Fmt.samples_of_ticks len in
@@ -79,14 +79,14 @@ object (self)
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);
       Mutex.lock write_m;
-      let (_,out_e as enc) = Utils.get_some encoder in
+      let (_,out_e) = Utils.get_some encoder in
       begin
         try
           output_string out_e sbuf;
           Mutex.unlock write_m
         with
           | _ -> Mutex.unlock write_m;
-                 self#my_reset_on_crash enc initial_meta
+                 self#my_reset_on_crash initial_meta
       end;
       Mutex.lock read_m;
       let ret = Buffer.contents read in
@@ -94,8 +94,7 @@ object (self)
       Mutex.unlock read_m;
       ret
 
-  method private my_reset_encoder ?(crash=false) 
-     (_:external_encoder) meta = 
+  method private my_reset_encoder ?(crash=false) meta = 
     Mutex.lock read_m;
     let ret = Buffer.contents read in
     Buffer.reset read;
@@ -107,12 +106,14 @@ object (self)
       end;
     ret
 
-  method my_reset_on_crash enc meta =
-    if restart_on_crash then 
-      let ret = self#my_reset_encoder ~crash:true enc meta in
+  method my_reset_on_crash meta =
+    if restart_on_crash then
+     begin 
+      let ret = self#my_reset_encoder ~crash:true meta in
       Mutex.lock read_m;
       Buffer.add_string read ret;
       Mutex.unlock read_m
+     end
     else
       raise External_failure
 
@@ -137,7 +138,7 @@ object (self)
           try
             input in_e buf 0 10000
           with
-            | _ -> self#my_reset_on_crash enc initial_meta;
+            | _ -> self#my_reset_on_crash initial_meta;
                    0
         in
         if ret > 0 then
