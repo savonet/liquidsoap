@@ -75,18 +75,19 @@ class to_shout ~mode p =
   let source = List.assoc "" p in
 
 object (self)
-  inherit [Speex.Encoder.t] Icecast2.output
+  inherit [Ogg_encoder.t] Icecast2.output
     ~bitrate:ibitrate ~mount ~name ~source p as super
   inherit base freq stereo mode bitrate vbr fpp complexity abr quality as base
-
-  method set_encoder e = encoder <- Some e
+  inherit Ogg_output.base as ogg
 
   method output_start =
-    self#new_encoder stereo ;
+    ogg#output_start;
+    self#new_encoder stereo [] ;
     super#output_start 
 
   method output_stop =
-    let b = base#end_of_os in
+    let b = ogg#end_of_stream in
+    ogg#output_stop;
     super#send b;
     super#output_stop
 end

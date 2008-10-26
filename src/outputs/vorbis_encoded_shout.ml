@@ -92,29 +92,20 @@ class to_shout ~mode p =
   let source = List.assoc "" p in
 
 object (self)
-  inherit [Vorbis.Encoder.t] Icecast2.output
+  inherit [Ogg_encoder.t] Icecast2.output
     ~bitrate:ibitrate ~mount ~name ~source p as super
-  inherit base freq stereo as base
-
-  method new_encoder stereo =
-    let channels = 
-      if not stereo then 1 else Fmt.channels () in
-    let enc =
-      (* TODO: log message when the creation of the encoder fails *)
-      match mode with
-        | ABR
-        | CBR -> Vorbis.Encoder.create channels freq
-                   (max_bitrate) (bitrate) (min_bitrate)(* max nom min *)
-        | VBR -> Vorbis.Encoder.create_vbr channels freq quality
-    in
-      encoder <- Some enc
+  inherit base ~quality ~mode ~bitrate:(bitrate,min_bitrate,max_bitrate)
+               freq stereo as base
+  inherit Ogg_output.base as ogg
 
   method output_start =
-    self#new_encoder stereo ;
+    ogg#output_start;
+    self#new_encoder stereo [] ;
     super#output_start 
 
   method output_stop =
-    let b = base#end_of_os in
+    let b = ogg#end_of_stream in
+    ogg#output_stop;
     super#send b;
     super#output_stop
 end

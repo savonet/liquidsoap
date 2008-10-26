@@ -36,7 +36,7 @@ let vorbis_proto = [
   None;
 ]
 
-class virtual base freq stereo =
+class virtual base ~quality ~mode ~bitrate freq stereo =
   let samples_per_second = float (Fmt.samples_per_second()) in
 object (self)
   val tmp =
@@ -45,42 +45,23 @@ object (self)
     else
       Float_pcm.create_buffer 1 (Fmt.samples_per_frame())
 
-  val mutable _os = None
-  val mutable flush = false
+  val virtual mutable encoder : Ogg_encoder.t option
 
-  val virtual mutable encoder : Vorbis.Encoder.t option
+  val mutable stream_id = None
 
-  method new_os ?(tags=None) () = 
-    let enc = Utils.get_some encoder in
-    let os = Ogg.Stream.create () in
-    let tags = 
-      match tags with
-        | None -> Vorbis.tags ~artist:"The Savonet Team" 
-                              ~title:"Liquidsoap Stream" ()
-        | Some t -> t
+  method new_encoder stereo m =
+    let channels =
+      if not stereo then 1 else Fmt.channels () in
+    let enc =
+      (* TODO: log message when the creation of the encoder fails *)
+      let nom,min,max = bitrate in
+      match mode with
+        | ABR -> Vorbis_format.create_abr channels freq max nom min m
+        | CBR -> Vorbis_format.create_cbr channels freq nom m
+        | VBR -> Vorbis_format.create channels freq quality m
     in
-    Vorbis.Encoder.headerout enc os tags ;
-    (* Must flush headers first.. *)
-    flush <- true ;
-    _os <- Some os
-
-  method end_of_os =
-    match _os with
-      | None -> ""
-      | Some os ->
-         let encoder = Utils.get_some encoder in
-         Vorbis.Encoder.end_of_stream encoder os ;
-         let f = Ogg.Stream.flush os in
-         _os <- None ;
-         f
-
-  method get_os = 
-    match _os with
-      | Some s -> s
-      | None -> self#new_os () ;
-                Utils.get_some _os
-
-  method virtual new_encoder : bool -> unit
+      let ogg_enc = Utils.get_some encoder in
+      stream_id <- Some (Ogg_encoder.register_track ogg_enc enc)
 
   method reset_encoder m =
     let get h k =
@@ -102,28 +83,30 @@ object (self)
                | Not_found -> title)
         | None -> "Unknown"
     in
-        let flushed = self#end_of_os in
-        self#new_encoder stereo;
-        self#new_os 
-          ~tags:(Some (Vorbis.tags
-                         ?title:(getd m "title" def_title)
-                         ?artist:(get m "artist")
-                         ?genre:(get m "genre")
-                         ?date:(get m "date")
-                         ?album:(get m "album")
-                         ?tracknumber:(get m "tracknum")
-                         ?comment:(get m "comment")
-                         ())) ()  ;
+        let enc = Utils.get_some encoder in
+        let id = Utils.get_some stream_id in
+        Ogg_encoder.end_of_track enc id;
+        stream_id <- None;
+        let flushed = Ogg_encoder.flush enc in
+        self#new_encoder stereo 
+          (Vorbis.tags
+            ?title:(getd m "title" def_title)
+            ?artist:(get m "artist")
+            ?genre:(get m "genre")
+            ?date:(get m "date")
+            ?album:(get m "album")
+            ?tracknumber:(get m "tracknum")
+            ?comment:(get m "comment")
+              ());
         flushed
 
   method encode frame start len =
-    let e = Utils.get_some encoder in
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in
     let b =
       if stereo then b else begin
-        for i = start to start+len-1 do
+        for i = start to start+len do
 	  let n = Fmt.channels () in
 	  let f i = 
 	    Array.fold_left (fun x y -> x +. y.(i)) 0. b
@@ -133,20 +116,29 @@ object (self)
         tmp
       end
     in
-    let buf =
-      Float_pcm.resample
-        (float freq /. samples_per_second)
-        b start len
+    let buf,ofs,len =
+      if float freq <> samples_per_second then
+        let b = Float_pcm.resample
+          (float freq /. samples_per_second)
+          b start len
+        in
+        b,0,Array.length b.(0)
+      else
+        b,start,len
     in
-    let os = self#get_os in
-      let f = 
-        if flush then
-	  Ogg.Stream.flush os
-	else
-	  ""
-      in
-      Vorbis.Encoder.encode_buffer_float e os buf 0 (Array.length buf.(0));
-      f ^ (Ogg.Stream.pagesout os)
+    let data =
+    Ogg_encoder.Audio_data  
+     {
+      Ogg_encoder.
+       data   = buf;
+       offset = ofs;
+       length = len
+     }
+    in
+    let enc = Utils.get_some encoder in
+    let id = Utils.get_some stream_id in
+    Ogg_encoder.encode enc id data;
+    Ogg_encoder.get_data enc
 end
 
 (** Output in an Ogg/vorbis file. *)
@@ -156,25 +148,13 @@ class to_file
   ~quality ~mode ~bitrate freq stereo source autostart =
 object (self)
   inherit
-    [Vorbis.Encoder.t] Output.encoded
+    [Ogg_encoder.t] Output.encoded
       ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
-  inherit base freq stereo as base
-
-  method new_encoder stereo =
-    let channels = 
-      if not stereo then 1 else Fmt.channels () in
-    let enc =
-      (* TODO: log message when the creation of the encoder fails *)
-      let nom,min,max = bitrate in
-      match mode with
-        | ABR
-        | CBR -> Vorbis.Encoder.create channels freq max nom min
-        | VBR -> Vorbis.Encoder.create_vbr channels freq quality
-    in
-      encoder <- Some enc 
+  inherit Ogg_output.base as ogg
+  inherit base ~quality ~mode ~bitrate freq stereo as base
 
   method reset_encoder m =
     to_file#on_reset_encoder ;
@@ -182,11 +162,13 @@ object (self)
     base#reset_encoder m
 
   method output_start = 
-    self#new_encoder stereo ;
+    ogg#output_start;
+    self#new_encoder stereo [] ;
     to_file#file_output_start 
 
   method output_stop =
-    let f = base#end_of_os in
+    let f = ogg#end_of_stream in
+    ogg#output_stop;
     to_file#send f ;
     to_file#file_output_stop 
 

@@ -82,3 +82,42 @@ let decoder os =
 
 let () = Ogg_demuxer.ogg_decoders#register "vorbis" (check,decoder)
 
+let create_gen enc m = 
+  let p1,p2,p3 = Vorbis.Encoder.headerout_packetout enc m in
+  let remaining = ref (Some (p2,p3)) in
+  let header_encoder os = 
+    Ogg.Stream.put_packet os p1;
+    Ogg.Stream.flush_page os
+  in
+  let track_encoder ogg_enc data os =
+    begin
+     match !remaining with
+       | Some (p1,p2) -> 
+          Ogg.Stream.put_packet os p1;
+          Ogg_encoder.add_page ogg_enc (Ogg.Stream.flush_page os);
+          Ogg.Stream.put_packet os p2;
+          Ogg_encoder.add_page ogg_enc (Ogg.Stream.flush_page os);
+          remaining := None
+       | None -> ()
+    end;
+    let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
+                    data.Ogg_encoder.length in
+    Vorbis.Encoder.encode_buffer_float enc os b ofs len
+  in
+  let end_of_stream os = 
+    Vorbis.Encoder.end_of_stream enc os
+  in
+  header_encoder,(Ogg_encoder.Audio_encoder track_encoder),
+  end_of_stream
+
+let create_abr channels freq min max avg m = 
+  let enc = Vorbis.Encoder.create channels freq max avg min in
+  create_gen enc m
+
+let create_cbr channels freq brate = 
+  create_abr channels freq brate brate brate
+
+let create channels freq quality m = 
+  let enc = Vorbis.Encoder.create_vbr channels freq quality in
+  create_gen enc m
+

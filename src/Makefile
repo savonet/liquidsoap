@@ -7,11 +7,12 @@ DISTFILES = $(wildcard *.mli) Makefile \
 
 ocaml_progs= liquidsoap
 
-ogg_formats = \
+ogg_utils = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
-	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
-	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml)
+	$(if $(W_OGG),ogg_encoder.ml) \
+	$(if $(W_SPEEX),ogg_formats/speex_format.ml) \
+	$(if $(W_THEORA),ogg_formats/theora_format.ml) \
+	$(if $(W_VORBIS),ogg_formats/vorbis_format.ml)
 
 video_converters = \
 	video_converter.ml \
@@ -85,13 +86,16 @@ operators = \
 analyze = analyze/analyze_rms.ml
 
 outputs = outputs/output.ml outputs/file_output.ml \
+	$(if $(W_OGG),outputs/ogg_output.ml) \
 	$(if $(W_LAME),outputs/lame_encoded.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded.ml)  \
+	$(if $(W_THEORA),outputs/theora_encoded.ml) \
 	$(if $(W_SPEEX), outputs/speex_encoded.ml) \
 	$(if $(W_SHOUT),outputs/icecast2.ml \
 	$(if $(W_VORBIS), outputs/vorbis_encoded_shout.ml) \
-	$(if $(W_LAME), outputs/lame_encoded_shout.ml) ) \
-	$(if $(W_SPEEX), outputs/speex_encoded_shout.ml) \
+	$(if $(W_LAME), outputs/lame_encoded_shout.ml)  \
+	$(if $(W_SPEEX), outputs/speex_encoded_shout.ml)  \
+	$(if $(W_THEORA), outputs/theora_encoded_shout.ml) ) \
 	outputs/external_encoded.ml \
 	$(if $(W_SHOUT),outputs/external_encoded_shout.ml) \
 	outputs/wavfile.ml \
@@ -100,7 +104,6 @@ outputs = outputs/output.ml outputs/file_output.ml \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
 	$(if $(W_RTP),outputs/rtp_output.ml) \
 	$(if $(W_BJACK),outputs/bjack_out.ml) \
-	$(if $(W_THEORA),outputs/theora_encoded.ml) \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml)
 
@@ -135,7 +138,7 @@ liquidsoap_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/harbor.ml $(video_converters) \
-	$(ogg_formats) $(protocols) $(sources) $(operators) $(outputs) $(io) \
+	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(visualization) $(formats) \
 	shebang.ml \
 	lang/lang_builtins.ml \
@@ -205,7 +208,7 @@ libliq_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/harbor.ml $(video_converters) \
-	$(ogg_formats) $(protocols) $(sources) $(operators) $(outputs) $(io) \
+	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(formats) \
 	lang/lang_builtins.ml
 libliq_objects=$(libliq_sources:.ml=.$(o))

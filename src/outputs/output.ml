@@ -188,13 +188,19 @@ object (self)
     let rec output_chunks frame =
       let f start stop =
         begin
-          match AFrame.get_metadata frame start with
+          match Frame.get_metadata frame start with
             | None -> ()
             | Some m ->
                 let h = self#reset_encoder m in
                   self#send h
         end ;
         let data =
+          let stop = 
+            if stop >= Frame.size frame then
+              Frame.size frame - 1
+            else
+              stop
+          in
           self#encode frame start (stop-start)
         in
           self#send data

@@ -86,12 +86,6 @@ class virtual base freq stereo mode bitrate vbr fpp complexity abr quality =
     else
       stereo
   in
-  let remaining_init =
-    if stereo then
-     [|[||];[||]|]
-    else
-     [|[||]|]
-  in
 object (self)
   val tmp =
     if stereo then
@@ -99,69 +93,19 @@ object (self)
     else
       Float_pcm.create_buffer 1 (Fmt.samples_per_frame())
 
-  val mutable _os = None
-  val mutable flush = false
-  val mutable frame_size = None
-  val mutable remaining = remaining_init
+  val virtual mutable encoder : Ogg_encoder.t option
 
-  val virtual mutable encoder : Speex.Encoder.t option
+  val mutable stream_id = None
 
-  method virtual set_encoder : Speex.Encoder.t -> unit
-
-  method new_encoder stereo =
-    let enc =
-      Speex.Encoder.init mode fpp
+  method new_encoder stereo meta =
+    assert(stream_id = None);
+    let enc = 
+      Speex_format.create ~frames_per_packet:fpp ~mode ~vbr ~quality
+                          ~stereo ~bitrate ~rate:freq ~abr ~complexity 
+                          ~meta ()
     in
-      if bitrate > 0 then
-        Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE bitrate;
-      Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity;
-      if abr > 0 then
-        Speex.Encoder.set enc Speex.SPEEX_SET_ABR abr;
-      Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE freq;
-      let ivbr = 
-        if vbr then 1 else 0
-      in
-      Speex.Encoder.set enc Speex.SPEEX_SET_VBR ivbr;
-      if quality > 0 then
-        if vbr then
-          Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY quality
-        else
-          Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY quality;
-      frame_size <- Some (Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE);
-      self#set_encoder enc
-
-  method new_os ?(tags=None) () = 
-    let os = Ogg.Stream.create () in
-    let chans = if stereo then 2 else 1 in
-    let header = Speex.Header.init ~rate:freq ~nb_channels:chans ~bitrate 
-                                   ~mode ~vbr ~frames_per_packet:fpp ()
-    in
-    let tags = 
-      match tags with
-        | None -> ["artist","The Savonet Team";
-                   "title", "Liquidsoap Stream"]
-        | Some t -> t
-    in
-    Speex.Header.encode_header header tags os;
-    (* Must flush headers first.. *)
-    flush <- true ;
-    _os <- Some os
-
-  method end_of_os = 
-    match _os with
-      | None -> ""
-      | Some os ->
-         let encoder = Utils.get_some encoder in
-         Speex.Encoder.eos encoder os ;
-         let f = Ogg.Stream.flush os in
-         _os <- None ;
-         f
-
-  method get_os = 
-    match _os with
-      | Some s -> s
-      | None -> self#new_os () ;
-                Utils.get_some _os
+    let ogg_enc = Utils.get_some encoder in
+    stream_id <- Some (Ogg_encoder.register_track ogg_enc enc)
 
   method reset_encoder m =
     let rec get l l' =
@@ -192,24 +136,25 @@ object (self)
         end
     in
     let l' = ["title",title] in
-    let tags = Some (get ["artist";"genre";"date";
-                          "album";"tracknumber";"comment"]
-                         l')
+    let tags = get ["artist";"genre";"date";
+                    "album";"tracknumber";"comment"]
+                   l'
     in
-        let flushed = self#end_of_os in
-        self#new_encoder stereo;
-        self#new_os ~tags () ; 
-        flushed
+    let enc = Utils.get_some encoder in
+    let id = Utils.get_some stream_id in
+    Ogg_encoder.end_of_track enc id;
+    stream_id <- None;
+    let flushed = Ogg_encoder.flush enc in
+    self#new_encoder stereo tags;
+    flushed 
 
   method encode frame start len =
-    let e = Utils.get_some encoder in
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in
-    let frame_size = Utils.get_some frame_size in
     let b =
       if stereo then b else begin
-        for i = start to start+len-1 do
+        for i = start to start+len do
 	  let n = Fmt.channels () in
 	  let f i = 
 	    Array.fold_left (fun x y -> x +. y.(i)) 0. b
@@ -219,81 +164,30 @@ object (self)
         tmp
       end
     in
-    let buf =
+    let (buf,start,len) =
       if float freq <> samples_per_second then
-        Float_pcm.resample
-          (float freq /. samples_per_second)
-          b start len
+        let b = 
+           Float_pcm.resample
+            (float freq /. samples_per_second)
+            b start len
+        in
+        b,0,Array.length b.(0)
       else
-        b
+        b,start,len
     in
-    let os = self#get_os in
-      let f = 
-        if flush then
-        ( flush <- false;
-	  Ogg.Stream.flush os )
-	else
-	  ""
-      in
-      let buf = 
-        if stereo then
-          [|Array.append remaining.(0) buf.(0);
-            Array.append remaining.(1) buf.(1)|] 
-        else
-          [|Array.append remaining.(0) buf.(0)|]
-      in
-      let len = Array.length buf.(0) in
-      let encoded = ref f in
-      let status = ref 0 in
-      let feed () =
-        let n = !status in
-        if frame_size*n + frame_size < len then
-        ( status := n + 1;
-          (* Speex float API are values in - 32768. <= x <= 32767. ..
-             I don't really trust this, it must be a bug, 
-             so using the int API. *)
-          let f x = 
-            let x = int_of_float x in
-            max (-32768) (min 32767 x)
-          in
-          let f x = Array.map  (fun x -> f (32767.*.x)) x in
-          if stereo then
-            [| f (Array.sub buf.(0) (frame_size*n) frame_size);
-               f (Array.sub buf.(1) (frame_size*n) frame_size) |]
-          else
-            [| f (Array.sub buf.(0) (frame_size*n) frame_size) |] )
-        else
-          raise Internal
-      in
-      try
-        while true  do
-          let (h,v) = 
-            if stereo then
-              Speex.Encoder.encode_page_int_stereo e os feed
-            else
-              let feed () = 
-                let x = feed () in
-                x.(0)
-              in
-              Speex.Encoder.encode_page_int e os feed
-          in
-          encoded := !encoded ^ h ^ v;
-        done;
-        !encoded
-      with 
-        | Internal ->
-            let n = !status in
-            remaining <-
-              if frame_size*n < len then 
-                if stereo then
-                  [|Array.sub buf.(0) (frame_size*n) (len - frame_size*n);
-                    Array.sub buf.(1) (frame_size*n) (len - frame_size*n)|]
-                else
-                  [|Array.sub buf.(0) (frame_size*n) (len - frame_size*n)|]
-              else
-                remaining_init;
-            !encoded
-
+    let data =
+     Ogg_encoder.Audio_data
+      {
+       Ogg_encoder.
+        data   = buf;
+        offset = start;
+        length = len
+      }
+    in
+    let enc = Utils.get_some encoder in
+    let id = Utils.get_some stream_id in
+    Ogg_encoder.encode enc id data;
+    Ogg_encoder.get_data enc
 end
 
 (** Output in an Ogg/speex file. *)
@@ -303,14 +197,13 @@ class to_file
   ~mode ~bitrate ~complexity ~abr freq stereo source autostart =
 object (self)
   inherit
-    [Speex.Encoder.t] Output.encoded
+    [Ogg_encoder.t] Output.encoded
       ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
+  inherit Ogg_output.base as ogg
   inherit base freq stereo mode bitrate vbr fpp complexity abr quality as base
-
-  method set_encoder e = encoder <- Some e
 
   method reset_encoder m =
     to_file#on_reset_encoder ;
@@ -318,11 +211,13 @@ object (self)
     base#reset_encoder m
 
   method output_start = 
-    ignore(self#new_encoder stereo) ;
+    ogg#output_start;
+    self#new_encoder stereo [] ;
     to_file#file_output_start 
 
   method output_stop =
-    let f = base#end_of_os in
+    let f = ogg#end_of_stream in
+    ogg#output_stop;
     to_file#send f ;
     to_file#file_output_stop 
 
