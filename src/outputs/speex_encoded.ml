@@ -105,7 +105,8 @@ object (self)
                           ~meta ()
     in
     let ogg_enc = Utils.get_some encoder in
-    stream_id <- Some (Ogg_encoder.register_track ogg_enc enc)
+    stream_id <- Some (Ogg_encoder.register_track ogg_enc enc);
+    Ogg_encoder.streams_start ogg_enc
 
   method reset_encoder m =
     let rec get l l' =
@@ -154,7 +155,7 @@ object (self)
     let len = Fmt.samples_of_ticks len in
     let b =
       if stereo then b else begin
-        for i = start to start+len do
+        for i = start to start+len-1 do
 	  let n = Fmt.channels () in
 	  let f i = 
 	    Array.fold_left (fun x y -> x +. y.(i)) 0. b

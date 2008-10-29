@@ -27,8 +27,10 @@ object(self)
 
   val virtual mutable encoder : Ogg_encoder.t option
 
+  method virtual id : string
+
   method output_start = 
-    encoder <- Some (Ogg_encoder.create ())
+    encoder <- Some (Ogg_encoder.create self#id)
 
   method end_of_stream = 
     let enc = Utils.get_some encoder in

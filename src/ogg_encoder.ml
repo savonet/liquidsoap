@@ -42,12 +42,14 @@ type ogg_data =
 
 type ('a,'b) track_encoder = 'a -> 'b data -> Ogg.Stream.t -> unit
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
+type stream_start = Ogg.Stream.t -> Ogg.Page.t
 type end_of_stream = Ogg.Stream.t -> unit
 
 type ('a,'b) track = 
   {
     os             : Ogg.Stream.t;
     encoder        : ('a,'b) track_encoder;
+    stream_start   : stream_start;
     end_of_stream  : end_of_stream
   } 
 
@@ -57,6 +59,7 @@ type 'a ogg_track =
 
 type t =
   {
+    id      : string;
     encoded : Buffer.t;
     tracks  : (nativeint,t ogg_track) Hashtbl.t;
     (** When end_of_stream as been
@@ -86,24 +89,46 @@ let os_of_ogg_track x =
     | Audio_track x -> x.os
     | Video_track x -> x.os
 
-let create () = 
+let stream_start_of_ogg_track x =
+  match x with
+    | Audio_track x -> x.stream_start
+    | Video_track x -> x.stream_start
+
+let create id = 
   {
-    encoded   = Buffer.create 1024;
-    tracks = Hashtbl.create 10;
-    eos    = ref false;
-    bos    = ref true;
+    id      = id;
+    encoded = Buffer.create 1024;
+    tracks  = Hashtbl.create 10;
+    eos     = ref false;
+    bos     = ref true;
   }
 
-let register_track encoder (header_enc,track_enc,end_of_stream) =
+(** Get and remove encoded data.. *)
+let get_data encoder =
+  let b = Buffer.contents encoder.encoded in
+  Buffer.reset encoder.encoded;
+  b
+
+(** Peek encoded data without removing it. *)
+let peek_data encoder =
+  Buffer.contents encoder.encoded
+
+(** Add an ogg page. *)
+let add_page encoder (h,v) =
+  Buffer.add_string encoder.encoded h;
+  Buffer.add_string encoder.encoded v
+
+let register_track encoder (header_enc,stream_start,track_enc,end_of_stream) =
   if not !(encoder.bos) && not !(encoder.eos) then
    begin
-    log#f 4 "Invalid new track: ogg stream already started..";
+    log#f 4 "%s: Invalid new track: ogg stream already started.." encoder.id;
     raise Invalid_usage
    end;
   if !(encoder.eos) then
    begin
-    log#f 4 "Starting new sequentialized ogg stream.";
-    encoder.eos := false
+    log#f 4 "%s: Starting new sequentialized ogg stream." encoder.id;
+    encoder.eos := false;
+    encoder.bos := true;
    end;
   let rec gen_id () = 
     let id = Random.nativeint (Nativeint.of_int 0x3FFFFFFF) in 
@@ -125,6 +150,7 @@ let register_track encoder (header_enc,track_enc,end_of_stream) =
            { 
              os = os; 
              encoder = encoder;
+             stream_start = stream_start;
              end_of_stream = end_of_stream
            }
       | Video_encoder encoder -> 
@@ -132,18 +158,29 @@ let register_track encoder (header_enc,track_enc,end_of_stream) =
            { 
              os = os; 
              encoder = encoder;
+             stream_start = stream_start;
              end_of_stream = end_of_stream
            }
   in
   Hashtbl.add encoder.tracks id track;
   id
 
+let streams_start encoder =
+  log#f 4 "%s: Starting all streams" encoder.id;
+  Hashtbl.iter
+   (fun _ -> fun t ->
+     let os = os_of_ogg_track t in
+     let stream_start = stream_start_of_ogg_track t in
+     add_page encoder (stream_start os))
+   encoder.tracks;
+  encoder.bos := false
+
 let encode encoder id data =
  if !(encoder.bos) then
-   encoder.bos := false;
+   streams_start encoder;
  if !(encoder.eos) then
    begin
-    log#f 4 "Cannot encode: ogg stream finished..";
+    log#f 4 "%s: Cannot encode: ogg stream finished.." encoder.id;
     raise Invalid_usage
    end;
  let rec fill src dst = 
@@ -172,21 +209,6 @@ let encode encoder id data =
           | _ -> raise Invalid_data
        end
 
-(** Get and remove encoded data.. *)
-let get_data encoder = 
-  let b = Buffer.contents encoder.encoded in
-  Buffer.reset encoder.encoded;
-  b
-
-(** Peek encoded data without removing it. *)
-let peek_data encoder =
-  Buffer.contents encoder.encoded
-
-(** Add an ogg page. *)
-let add_page encoder (h,v) = 
-  Buffer.add_string encoder.encoded h;
-  Buffer.add_string encoder.encoded v
-
 let flush encoder = 
   let flush_track _ x = 
     let os = os_of_ogg_track x in
@@ -201,7 +223,7 @@ let flush encoder =
 
 let end_of_track encoder id = 
   let track = Hashtbl.find encoder.tracks id in
-  log#f 4 "Setting end of track %nx." id;
+  log#f 4 "%s: Setting end of track %nx." encoder.id id;
   begin
     match track with
         | Video_track x -> 
@@ -214,7 +236,7 @@ let end_of_track encoder id =
   Hashtbl.remove encoder.tracks id;
   if Hashtbl.length encoder.tracks = 0 then
    begin
-    log#f 4 "Every ogg logical tracks have ended: setting end of stream.";
+    log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
     encoder.eos := true
    end
 

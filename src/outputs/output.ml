@@ -195,12 +195,6 @@ object (self)
                   self#send h
         end ;
         let data =
-          let stop = 
-            if stop >= Frame.size frame then
-              Frame.size frame - 1
-            else
-              stop
-          in
           self#encode frame start (stop-start)
         in
           self#send data

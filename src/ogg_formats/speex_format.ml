@@ -126,9 +126,12 @@ let create ~frames_per_packet ~mode ~vbr ~quality
       Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY quality;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
   let p1,p2 = Speex.Header.encode_header_packetout header meta in
-  let ret = ref (Some p2) in
   let header_encoder os = 
     Ogg.Stream.put_packet os p1;
+    Ogg.Stream.flush_page os
+  in
+  let stream_start os = 
+    Ogg.Stream.put_packet os p2;
     Ogg.Stream.flush_page os
   in
   let remaining_init =
@@ -139,14 +142,6 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   in
   let remaining = ref remaining_init in
   let track_encoder ogg_enc data os =
-    begin
-     match !ret with
-       | Some p -> 
-          Ogg.Stream.put_packet os p;
-          Ogg_encoder.add_page ogg_enc (Ogg.Stream.flush_page os);
-          ret := None
-       | None -> ()
-    end;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length in
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
@@ -209,6 +204,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   let end_of_stream os = 
     Speex.Encoder.eos enc os
   in
-  header_encoder,(Ogg_encoder.Audio_encoder track_encoder),
+  header_encoder,stream_start,
+  (Ogg_encoder.Audio_encoder track_encoder),
   end_of_stream
 

@@ -130,9 +130,13 @@ let create_encoder ~quality meta =
     }
   in
   let enc = Theora.Encoder.create info in
-  let remaining = ref true in
   let header_encoder os = 
     Theora.Encoder.encode_header enc os;
+    Ogg.Stream.flush_page os
+  in
+  let stream_start os = 
+    Theora.Encoder.encode_comments os meta;
+    Theora.Encoder.encode_tables enc os;
     Ogg.Stream.flush_page os
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
@@ -157,18 +161,10 @@ let create_encoder ~quality meta =
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
   let track_encoder ogg_enc data os = 
-    if !remaining then
-     begin
-      Theora.Encoder.encode_comments os meta;
-      Ogg_encoder.add_page ogg_enc (Ogg.Stream.flush_page os);
-      Theora.Encoder.encode_tables enc os;
-      Ogg_encoder.add_page ogg_enc (Ogg.Stream.flush_page os);
-      remaining := false;
-     end;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length 
     in
-    for i = ofs to ofs+len do
+    for i = ofs to ofs+len-1 do
       convert
         (Video_converter.frame_of_internal_rgb b.(0).(i)) (* TODO: multiple channels.. *)
         (Video_converter.frame_of_internal_yuv
@@ -181,5 +177,6 @@ let create_encoder ~quality meta =
   let end_of_stream os = 
     assert(false); (* TODO !!*)
   in
-  header_encoder,(Ogg_encoder.Video_encoder track_encoder),
+  header_encoder,stream_start,
+  (Ogg_encoder.Video_encoder track_encoder),
   end_of_stream

@@ -33,7 +33,7 @@ let conf_samplerate =
   Conf.int ~p:(conf#plug "samplerate") ~d:44100
     "Internal samplerate"
 let conf_size =
-  Conf.int ~p:(conf#plug "size") ~d:3675
+  Conf.int ~p:(conf#plug "size") ~d:1764
     "Frame size in samples"
     ~comments:[
       "Tweaking this is tricky but can be useful, since the latency is" ;

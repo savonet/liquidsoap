@@ -31,16 +31,17 @@ object (self)
           let enc = create_vorbis_encoder () in
           vorbis_id <- Some (Ogg_encoder.register_track ogg_enc enc)
          end;
+        Ogg_encoder.streams_start ogg_enc
      end
 
   method reset_encoder (m:(string,string) Hashtbl.t) =
     (** TODO: theora EOS ! *)
     ""
 
-  method encode frame start stop =
+  method encode frame ofs len =
     let vid = VFrame.get_rgb frame in
-    let vofs = Fmt.video_frames_of_ticks start in
-    let vlen = Fmt.video_frames_of_ticks stop - 1 in (* TODO: Fix #185 *)
+    let vofs = Fmt.video_frames_of_ticks ofs in
+    let vlen = Fmt.video_frames_of_ticks len in
     let data = 
      Ogg_encoder.Video_data
       { 
@@ -57,15 +58,15 @@ object (self)
      match vorbis_id with
        | Some id -> 
           let buf = AFrame.get_float_pcm frame in
-          let start = Fmt.samples_of_ticks start in
-          let stop = Fmt.samples_of_ticks stop in
+          let ofs = Fmt.samples_of_ticks ofs in
+          let len = Fmt.samples_of_ticks len in
           let data = 
            Ogg_encoder.Audio_data
             { 
              Ogg_encoder.
               data   = buf;
-              offset = start;
-              length = stop
+              offset = ofs;
+              length = len
             }
           in
           Ogg_encoder.encode enc id data;
