@@ -151,6 +151,7 @@ def output.shoutcast.mp3 = output.icecast.mp3(mount = "/", protocol = "icy") end
 # @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track. Usefull if lame encoder fails to run after long uptime, which seems the case, so default is true.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
@@ -168,7 +169,8 @@ def output.icecast.lame(
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~lame="lame",~bitrate=128,
-  ~restart_on_crash=false,s)
+  ~restart_on_crash=false,~restart_on_new_track=true,
+  s)
   samplerate = get(default=44100,"frame.samplerate")
   samplerate = float_of_int(samplerate) / 1000.
   channels = get(default=2,"frame.channels")
@@ -191,7 +193,8 @@ def output.icecast.lame(
     public=public,sync=sync,dumpfile=dumpfile,
     name=name,mount=mount,protocol=protocol,
     header=false,restart_on_crash=restart_on_crash,
-    restart_encoder=false,s)
+    restart_encoder=restart_on_new_track,
+    s)
 end
 
 # Output to icecast using the flac command line encoder.
@@ -201,8 +204,8 @@ end
 # @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track. If false, the resulting stream will have a single track.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
-# @param ~single_track Use a single logical FLAC stream instead of one per song.
 # @param ~flac The flac binary
 # @param ~quality Encoder quality (0..8)
 # @param ~sync Let shout do the synchronization.
@@ -218,8 +221,8 @@ def output.icecast.flac(
   ~description="OCaml Radio!",~public=true,
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
-  ~flac="flac",~quality=6,~single_track=false,
-  ~restart_on_crash=false,s)
+  ~flac="flac",~quality=6,~restart_on_crash=false,
+  ~restart_on_new_track=true,s)
   # We will use raw format, to 
   # bypass input length value in WAV
   # header (input length is not known)
@@ -242,8 +245,9 @@ def output.icecast.flac(
     genre=genre,url=url,description=description,
     public=public,sync=sync,dumpfile=dumpfile,
     name=name,mount=mount,protocol=protocol,
-    restart_encoder=(not single_track),format="ogg",header=false,
-    icy_metadata=false,restart_on_crash=restart_on_crash,
+    restart_encoder=restart_on_new_track,
+    format="ogg",header=false,icy_metadata=false,
+    restart_on_crash=restart_on_crash,
     s)
 end
 %endif
