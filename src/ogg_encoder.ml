@@ -221,7 +221,12 @@ let flush encoder =
   Buffer.reset encoder.encoded;
   b
 
-let end_of_track encoder id = 
+let end_of_track encoder id =
+  if !(encoder.bos) then
+   begin
+    log#f 4 "%s: Stream finished without calling streams_start !" encoder.id; 
+    streams_start encoder
+   end;
   let track = Hashtbl.find encoder.tracks id in
   log#f 4 "%s: Setting end of track %nx." encoder.id id;
   begin
