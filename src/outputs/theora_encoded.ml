@@ -20,25 +20,44 @@ object (self)
   val mutable theora_id = None
 
   method new_encoder m =
-    (* Quick and dirty work around until we have theora EOS.. *)
-    if theora_id = None then
+    let enc = Theora_format.create_encoder ~quality m in
+    let ogg_enc = Utils.get_some encoder in
+    theora_id <- Some (Ogg_encoder.register_track ogg_enc enc);
+    if vorbis_quality > 0. then
      begin
-        let enc = Theora_format.create_encoder ~quality m in
-        let ogg_enc = Utils.get_some encoder in
-        theora_id <- Some (Ogg_encoder.register_track ogg_enc enc);
-        if vorbis_quality > 0. then
-         begin
-          let enc = create_vorbis_encoder () in
-          vorbis_id <- Some (Ogg_encoder.register_track ogg_enc enc)
-         end;
-        Ogg_encoder.streams_start ogg_enc
-     end
+      let enc = create_vorbis_encoder () in
+      vorbis_id <- Some (Ogg_encoder.register_track ogg_enc enc)
+     end;
+    Ogg_encoder.streams_start ogg_enc
 
-  method reset_encoder (m:(string,string) Hashtbl.t) =
-    (** TODO: theora EOS ! *)
-    ""
+  method reset_encoder m =
+    let enc = Utils.get_some encoder in
+    begin
+      match theora_id with
+        | Some id -> 
+           Ogg_encoder.end_of_track enc id;
+           theora_id <- None
+        | None -> ()
+    end;
+    if vorbis_quality > 0. then
+     begin
+      match vorbis_id with
+        | Some id -> 
+             Ogg_encoder.end_of_track enc id;
+             vorbis_id <- None
+        | None -> ()
+     end;
+    let flushed = Ogg_encoder.flush enc in
+    let f x y l = 
+      (x,y)::l
+    in
+    let tags = Hashtbl.fold f m [] in
+    self#new_encoder tags;
+    flushed
 
   method encode frame ofs len =
+    if theora_id = None then
+      self#new_encoder [];
     let vid = VFrame.get_rgb frame in
     let vofs = Fmt.video_frames_of_ticks ofs in
     let vlen = Fmt.video_frames_of_ticks len in
@@ -99,7 +118,6 @@ object (self)
 
   method output_start =
     ogg#output_start;
-    base#new_encoder [] ;
     to_file#file_output_start
 
   method output_stop =

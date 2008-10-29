@@ -501,6 +501,27 @@ CAMLprim value caml_yuv_create(value w, value h)
   CAMLreturn(ans);
 }
 
+CAMLprim value caml_yuv_blank(value f)
+{
+  CAMLparam1(f);
+  CAMLlocal1(tmp);
+  struct caml_ba_array *ba;
+ 
+  /* Y data */
+  tmp = Field(f,0);
+  ba = Caml_ba_array_val(Field(tmp,0));
+  memset(ba->data,0,ba->dim[0]);
+
+  /* UV data */
+  tmp = Field(f,1);
+  ba = Caml_ba_array_val(Field(tmp,0));
+  memset(ba->data,0,ba->dim[0]);
+  ba = Caml_ba_array_val(Field(tmp,1));
+  memset(ba->data,0,ba->dim[0]);
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value caml_rgb_to_YUV420(value f, value yuv)
 {
   frame *rgb = Frame_val(f);

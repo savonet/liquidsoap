@@ -85,9 +85,13 @@ object (self)
         | None -> "Unknown"
     in
         let enc = Utils.get_some encoder in
-        let id = Utils.get_some stream_id in
-        Ogg_encoder.end_of_track enc id;
-        stream_id <- None;
+        begin
+          match stream_id with
+            | Some id -> 
+               Ogg_encoder.end_of_track enc id;
+               stream_id <- None
+            | None -> ()
+        end;
         let flushed = Ogg_encoder.flush enc in
         self#new_encoder stereo 
           (Vorbis.tags
@@ -137,6 +141,8 @@ object (self)
      }
     in
     let enc = Utils.get_some encoder in
+    if stream_id = None then
+      self#new_encoder stereo [];
     let id = Utils.get_some stream_id in
     Ogg_encoder.encode enc id data;
     Ogg_encoder.get_data enc
@@ -164,7 +170,6 @@ object (self)
 
   method output_start = 
     ogg#output_start;
-    self#new_encoder stereo [] ;
     to_file#file_output_start 
 
   method output_stop =

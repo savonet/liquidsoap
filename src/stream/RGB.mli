@@ -86,6 +86,9 @@ val of_YUV420_create : yuv -> int -> int -> t
 (** Create a YUV frame with [width height] size. *)
 val create_yuv : int -> int -> yuv
 
+(** Blank a YUV frame. *)
+val blank_yuv : yuv -> unit
+
 (** Fill a yuv buffer with a RGB frame. *)
 val to_YUV420 : t -> yuv -> unit
 

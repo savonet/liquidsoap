@@ -64,6 +64,8 @@ let of_YUV420_create frame width height =
 
 external create_yuv : int -> int -> yuv = "caml_yuv_create"
 
+external blank_yuv : yuv -> unit = "caml_yuv_blank"
+
 external to_YUV420 : t -> yuv -> unit = "caml_rgb_to_YUV420" "noalloc"
 
 external get_pixel : t -> int -> int -> color = "caml_rgb_get_pixel"

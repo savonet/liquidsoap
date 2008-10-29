@@ -130,6 +130,7 @@ let create_encoder ~quality meta =
     }
   in
   let enc = Theora.Encoder.create info in
+  let started = ref false in
   let header_encoder os = 
     Theora.Encoder.encode_header enc os;
     Ogg.Stream.flush_page os
@@ -161,6 +162,8 @@ let create_encoder ~quality meta =
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
   let track_encoder ogg_enc data os = 
+    if not !started then
+      started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length 
     in
@@ -174,8 +177,14 @@ let create_encoder ~quality meta =
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in
-  let end_of_stream os = 
-    assert(false); (* TODO !!*)
+  let end_of_stream os =
+    (* Encode at least some data.. *)
+    if not !started then
+     begin
+      RGB.blank_yuv yuv;
+      Theora.Encoder.encode_buffer enc os theora_yuv
+     end;
+    Theora.Encoder.eos enc os
   in
   header_encoder,stream_start,
   (Ogg_encoder.Video_encoder track_encoder),
