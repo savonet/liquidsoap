@@ -61,6 +61,17 @@ class virtual base ~restart_encoder ~restart_on_crash ~header process =
   let (out_p,in_p) = Unix.pipe () in
   let cond_m = Mutex.create () in
   let cond = Condition.create () in
+  let exec_m m f = 
+    Mutex.lock m;
+    try
+      let ret = f () in
+      Mutex.unlock m;
+      ret
+    with
+      | e -> 
+         Mutex.unlock m;
+         raise e
+  in
 object (self)
 
   method virtual log : Dtools.Log.t
@@ -78,27 +89,30 @@ object (self)
       let slen = 2 * len * Array.length b in
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);
-      Mutex.lock write_m;
       let (_,out_e) = Utils.get_some encoder in
-      begin
+      let f () = 
         try
           output_string out_e sbuf;
           Mutex.unlock write_m
         with
-          | _ -> Mutex.unlock write_m;
-                 self#my_reset_on_crash initial_meta
-      end;
-      Mutex.lock read_m;
-      let ret = Buffer.contents read in
-      Buffer.reset read;
-      Mutex.unlock read_m;
+          | _ -> self#my_reset_on_crash initial_meta
+      in
+      exec_m write_m f;
+      let f () = 
+        let ret = Buffer.contents read in
+        Buffer.reset read;
+        ret
+      in
+      let ret = exec_m read_m f in
       ret
 
   method private my_reset_encoder ?(crash=false) meta = 
-    Mutex.lock read_m;
-    let ret = Buffer.contents read in
-    Buffer.reset read;
-    Mutex.unlock read_m;
+    let f () = 
+      let ret = Buffer.contents read in
+      Buffer.reset read;
+      ret
+    in
+    let ret = exec_m read_m f in
     if restart_encoder || crash then 
       begin
         self#my_output_stop;
@@ -110,9 +124,10 @@ object (self)
     if restart_on_crash then
      begin 
       let ret = self#my_reset_encoder ~crash:true meta in
-      Mutex.lock read_m;
-      Buffer.add_string read ret;
-      Mutex.unlock read_m
+      let f () = 
+        Buffer.add_string read ret
+      in
+      exec_m read_m f
      end
     else
       raise External_failure
@@ -124,10 +139,10 @@ object (self)
     let process = 
       Lang.to_string (Lang.apply process ["",Lang.metadata meta]) 
     in
+    (* output_start must be called with encode = None. *)
+    assert(encoder = None);
     let (in_e,out_e as enc) = Unix.open_process process in
-    Mutex.lock read_m; Mutex.lock write_m;
     encoder <- Some enc;
-    Mutex.unlock read_m; Mutex.unlock write_m;
     let sock = Unix.descr_of_in_channel in_e in
     let buf = String.create 10000 in
     let events = [`Read sock; `Read out_p]
@@ -143,27 +158,32 @@ object (self)
         in
         if ret > 0 then
           begin
-            Mutex.lock read_m;
-            Buffer.add_string read (String.sub buf 0 ret);
-            Mutex.unlock read_m
+            let f () = 
+              Buffer.add_string read (String.sub buf 0 ret)
+            in
+            exec_m read_m f
           end;
         ret
       in
       let stop () = 
         self#log#f 4 "reading task exited: closing process.";
-        Mutex.lock read_m; Mutex.lock write_m; 
-        begin
-          try
-            ignore(Unix.read out_p " " 0 1);
-            ignore(Unix.close_process enc);
-          with _ -> ()
-        end;
-        encoder <- None;
-        (* Signal the end of the task *)
-        Mutex.lock cond_m;
-        Condition.signal cond;
-        Mutex.unlock cond_m;
-        Mutex.unlock read_m; Mutex.unlock write_m;
+        let f () = 
+          let g () = 
+            begin
+              try
+                ignore(Unix.read out_p " " 0 1);
+                ignore(Unix.close_process enc);
+              with _ -> ()
+            end;
+            encoder <- None;
+            (* Signal the end of the task *)
+            Mutex.lock cond_m;
+            Condition.signal cond;
+            Mutex.unlock cond_m
+          in
+          exec_m write_m g
+        in
+        exec_m read_m f;
         []
       in
       if List.mem (`Read out_p) l then
@@ -171,8 +191,15 @@ object (self)
           (* Read encoder's output until
            * there's nothing left.. *)
           if List.mem (`Read sock) l then
-            while read () > 0 do () done;
-          stop ()
+           begin
+            ignore(read ());
+            [{ Duppy.Task.
+                 priority = priority ;
+                 events   = events ;
+                 handler  = pull }]
+           end
+          else
+            stop ()
         end
       else
        begin
@@ -199,9 +226,10 @@ object (self)
                      ~big_endian:false ~signed:true ()
         in
         (* Write WAV header *)
-        Mutex.lock write_m;
-        output_string out_e header;
-        Mutex.unlock write_m
+        let f () = 
+          output_string out_e header
+        in
+        exec_m write_m f
       end
 
   method private my_output_stop =
