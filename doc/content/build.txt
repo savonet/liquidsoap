@@ -25,7 +25,7 @@ And also optional dependencies:
 * ocaml-faac for AAC encoding
 * ocaml-faad for AAC stream decoding
 * ocaml-taglib for MP3 audio tag reading
-* ocaml-magic for file type detection. This library is very usefull for reading mp3 files. If not enabled, liquidsoap may accept as mp3 files that do not contains mp3 data, such as jpeg pictures.
+* ocaml-magic for file type detection. This library is very useful for reading mp3 files. If not enabled, liquidsoap may accept as mp3 files that do not contains mp3 data, such as jpeg pictures.
 * ocaml-xmlplaylist for XML-based playlist formats
 * ocaml-soundtouch for soundtouch audio effects
 * ocaml-lastfm and ocaml-xmllight for lastfm protocol support
