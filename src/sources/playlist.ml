@@ -50,7 +50,10 @@ let rev_array_of_list l =
     a
 
 let is_dir f =
-  (Unix.stat f).Unix.st_kind = Unix.S_DIR
+  try
+    (Unix.stat f).Unix.st_kind = Unix.S_DIR
+  with
+    | _ -> false
 
 let rec list_files (log : Log.t) dir =
   let dirs, files =
