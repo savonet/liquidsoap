@@ -24,91 +24,7 @@ open Vorbis_encoded
 
 (** Send Vorbis through a shout connection *)
 
-let no_mount = "Use [name].ogg"
-let no_name = "Use [mount]"
-
-let proto =
-  vorbis_proto @ Icecast2.proto @
-  [ "mount", Lang.string_t, Some (Lang.string no_mount), None ;
-    "name", Lang.string_t, Some (Lang.string no_name), None ;
-    "", Lang.source_t, None, None ]
-
-class to_shout ~mode p =
-
-  let e f v = f (List.assoc v p) in
-  let s v = e Lang.to_string v in
-
-  let name = s  "name" in
-  let mount = s "mount" in
-  let name =
-    if name = no_name then
-      if mount = no_mount then
-        raise (Lang.Invalid_value
-                 ((List.assoc "mount" p),
-                  "Either name or mount must be defined"))
-      else
-        mount
-    else
-      name
-  in
-  let mount =
-    if mount = no_mount then name ^ ".ogg" else mount
-  in
-
-  let stereo = e Lang.to_bool "stereo" in
-
-  let bitrate =
-    match mode with
-      | ABR
-      | CBR -> (e Lang.to_int "bitrate") * 1000
-      | VBR -> 0
-  in
-  let min_bitrate =
-    match mode with
-      | ABR -> (e Lang.to_int "min_bitrate") * 1000
-      | CBR -> bitrate
-      | VBR -> 0
-  in
-  let max_bitrate =
-    match mode with
-      | ABR -> (e Lang.to_int "max_bitrate") * 1000
-      | CBR -> bitrate
-      | VBR -> 0
-  in
-  let quality =
-    match mode with
-      | ABR
-      | CBR -> 0.
-      | VBR -> (e Lang.to_float "quality") *. 0.1
-  in
-  let freq = e Lang.to_int "samplerate" in
-  let ibitrate =
-    match mode with
-      | ABR
-      | CBR -> string_of_int bitrate
-      | VBR -> Printf.sprintf "Quality %.1f" (quality *. 10.)
-  in
-
-  let source = List.assoc "" p in
-
-object (self)
-  inherit [Ogg_encoder.t] Icecast2.output
-    ~bitrate:ibitrate ~mount ~name ~source p as super
-  inherit base ~quality ~mode ~bitrate:(bitrate,min_bitrate,max_bitrate)
-               freq stereo as base
-  inherit Ogg_output.base as ogg
-
-  method output_start =
-    ogg#output_start;
-    self#new_encoder stereo [] ;
-    super#output_start 
-
-  method output_stop =
-    let b = ogg#end_of_stream in
-    ogg#output_stop;
-    super#send b;
-    super#output_stop
-end
+let proto = vorbis_proto @ Ogg_output_shout.proto
 
 let () = (* Average BitRate *)
   Lang.add_operator "output.icecast.vorbis.abr"
@@ -130,7 +46,20 @@ let () = (* Average BitRate *)
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis stream to an "
             ^ "Icecast-compatible server in Average BitRate mode.")
-    (fun p -> ((new to_shout ~mode:ABR p):>Source.source))
+    (fun p -> 
+       let e f v = f (List.assoc v p) in
+       let bitrate = (e Lang.to_int "bitrate") * 1000 in
+       let min_bitrate = (e Lang.to_int "min_bitrate") * 1000 in
+       let max_bitrate = (e Lang.to_int "max_bitrate") * 1000 in
+       let freq = e Lang.to_int "samplerate" in
+       let stereo = e Lang.to_bool "stereo" in
+       let streams =
+         ["vorbis",create ~quality:0. ~mode:ABR
+                          ~bitrate:(bitrate, min_bitrate, max_bitrate)
+                          freq stereo]
+       in
+       let bitrate = Printf.sprintf "%i" bitrate in
+      ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
 
 let () = (* Constant BitRate *)
   Lang.add_operator "output.icecast.vorbis.cbr"
@@ -142,7 +71,18 @@ let () = (* Constant BitRate *)
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis stream to an "
             ^ "Icecast-compatible server in Constant BitRate mode.")
-    (fun p -> ((new to_shout ~mode:CBR p):>Source.source))
+    (fun p -> 
+       let e f v = f (List.assoc v p) in
+       let bitrate = (e Lang.to_int "bitrate") * 1000 in
+       let freq = e Lang.to_int "samplerate" in
+       let stereo = e Lang.to_bool "stereo" in
+       let streams =
+         ["vorbis",create ~quality:0. ~mode:CBR
+                          ~bitrate:(bitrate, bitrate, bitrate)
+                          freq stereo]
+       in
+       let bitrate = Printf.sprintf "%i" bitrate in
+       ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
 
 let () = (* Variable BitRate *)
   Lang.add_operator "output.icecast.vorbis"
@@ -154,6 +94,17 @@ let () = (* Variable BitRate *)
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis stream to an "
             ^ "Icecast-compatible server in Variable BitRate mode.")
-    (fun p -> ((new to_shout ~mode:VBR p):>Source.source))
+    (fun p -> 
+       let e f v = f (List.assoc v p) in
+       let quality = (e Lang.to_float "quality") *. 0.1 in
+       let freq = e Lang.to_int "samplerate" in
+       let stereo = e Lang.to_bool "stereo" in
+       let streams =
+         ["vorbis",create ~quality ~mode:VBR
+                          ~bitrate:(0, 0, 0)
+                          freq stereo]
+       in
+       let bitrate = Printf.sprintf "Quality %.1f" quality in
+       ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
 
 

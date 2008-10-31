@@ -72,13 +72,15 @@ let speex_proto = [
   Some "Set average bitrate. Not used if <= 0.";
 ]
 
-class virtual base freq stereo mode bitrate vbr fpp complexity abr quality =
-  let samples_per_second = float (Fmt.samples_per_second()) in
-  let freq = 
+let create ~freq ~stereo ~mode 
+           ~bitrate ~vbr ~fpp 
+           ~complexity ~abr ~quality () = 
+  let dst_freq = float (Fmt.samples_per_second()) in
+  let src_freq = 
     if freq > 0 then
-      freq
+      float freq
     else
-      int_of_float samples_per_second
+      dst_freq
   in
   let stereo = 
     if Fmt.channels () = 1 then
@@ -86,47 +88,25 @@ class virtual base freq stereo mode bitrate vbr fpp complexity abr quality =
     else
       stereo
   in
-object (self)
-  val tmp =
-    if stereo then
-      [||]
-    else
-      Float_pcm.create_buffer 1 (Fmt.samples_per_frame())
-
-  val virtual mutable encoder : Ogg_encoder.t option
-
-  val mutable stream_id = None
-
-  method new_encoder stereo meta =
-    assert(stream_id = None);
-    let enc = 
-      Speex_format.create ~frames_per_packet:fpp ~mode ~vbr ~quality
-                          ~stereo ~bitrate ~rate:freq ~abr ~complexity 
-                          ~meta ()
-    in
-    let ogg_enc = Utils.get_some encoder in
-    stream_id <- Some (Ogg_encoder.register_track ogg_enc enc);
-    Ogg_encoder.streams_start ogg_enc
-
-  method reset_encoder m =
+  let create_encoder ogg_enc m =
     let rec get l l' =
       match l with
         | k :: r ->
-          begin 
+          begin
             try
-              get r ((k,Hashtbl.find m k) :: l')
+              get r ((k,List.assoc k m) :: l')
             with _ -> get r l'
           end
         | [] -> l'
     in
     let title =
       try
-        Hashtbl.find m "title"
+        List.assoc "title" m
       with
-        | _ -> 
+        | _ ->
         begin
           try
-            let s = Hashtbl.find m "uri" in
+            let s = List.assoc "uri" m in
             let title = Filename.basename s in
                 (try
                    String.sub title 0 (String.rindex title '.')
@@ -137,97 +117,22 @@ object (self)
         end
     in
     let l' = ["title",title] in
-    let tags = get ["artist";"genre";"date";
+    let meta = get ["artist";"genre";"date";
                     "album";"tracknumber";"comment"]
                    l'
     in
-    let enc = Utils.get_some encoder in
-    begin
-      match stream_id with
-        | Some id -> 
-            Ogg_encoder.end_of_track enc id;
-            stream_id <- None;
-        | None -> ()
-    end;
-    let flushed = Ogg_encoder.flush enc in
-    self#new_encoder stereo tags;
-    flushed 
-
-  method encode frame start len =
-    if stream_id = None then
-      self#new_encoder stereo [];
-    let b = AFrame.get_float_pcm frame in
-    let start = Fmt.samples_of_ticks start in
-    let len = Fmt.samples_of_ticks len in
-    let b =
-      if stereo then b else begin
-        for i = start to start+len-1 do
-	  let n = Fmt.channels () in
-	  let f i = 
-	    Array.fold_left (fun x y -> x +. y.(i)) 0. b
-	  in
-          tmp.(0).(i) <- f i /. (float_of_int n)
-        done ;
-        tmp
-      end
+    let enc = 
+      Speex_format.create ~frames_per_packet:fpp ~mode ~vbr ~quality
+                          ~stereo ~bitrate ~rate:freq ~abr ~complexity 
+                          ~meta ()
     in
-    let (buf,start,len) =
-      if float freq <> samples_per_second then
-        let b = 
-           Float_pcm.resample
-            (float freq /. samples_per_second)
-            b start len
-        in
-        b,0,Array.length b.(0)
-      else
-        b,start,len
-    in
-    let data =
-     Ogg_encoder.Audio_data
-      {
-       Ogg_encoder.
-        data   = buf;
-        offset = start;
-        length = len
-      }
-    in
-    let enc = Utils.get_some encoder in
-    let id = Utils.get_some stream_id in
-    Ogg_encoder.encode enc id data;
-    Ogg_encoder.get_data enc
-end
-
-(** Output in an Ogg/speex file. *)
-class to_file
-  filename ~append ~perm ~dir_perm ~vbr ~fpp ~quality
-  ~reload_delay ~reload_predicate ~reload_on_metadata
-  ~mode ~bitrate ~complexity ~abr freq stereo source autostart =
-object (self)
-  inherit
-    [Ogg_encoder.t] Output.encoded
-      ~name:filename ~kind:"output.file" ~autostart source
-  inherit File_output.to_file
-            ~reload_delay ~reload_predicate ~reload_on_metadata
-            ~append ~perm ~dir_perm filename as to_file
-  inherit Ogg_output.base as ogg
-  inherit base freq stereo mode bitrate vbr fpp complexity abr quality as base
-
-  method reset_encoder m =
-    to_file#on_reset_encoder ;
-    to_file#set_metadata (Hashtbl.find (Hashtbl.copy m)) ;
-    base#reset_encoder m
-
-  method output_start = 
-    ogg#output_start;
-    to_file#file_output_start 
-
-  method output_stop =
-    let f = ogg#end_of_stream in
-    ogg#output_stop;
-    to_file#send f ;
-    to_file#file_output_stop 
-
-end
+    Ogg_encoder.register_track ogg_enc enc
+  in
+  let encode =
+    Ogg_output.encode_audio
+      ~stereo ~dst_freq ~src_freq ()
+  in
+  create_encoder,encode 
 
 let () =
   Lang.add_operator "output.file.speex"
@@ -272,10 +177,14 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let streams = 
+        ["speex",create ~freq ~stereo ~mode 
+                        ~bitrate ~vbr ~fpp 
+                        ~complexity ~abr ~quality ()]
+       in
        let source = Lang.assoc "" 2 p in
-         ((new to_file
-             name ~append ~perm ~dir_perm ~quality
+         ((new Ogg_output.to_file 
+             name ~append ~perm ~dir_perm ~streams
              ~reload_delay ~reload_predicate ~reload_on_metadata
-             ~mode ~bitrate ~vbr ~fpp ~complexity ~abr
-             freq stereo source autostart):>source))
+             ~autostart source):>source))
 

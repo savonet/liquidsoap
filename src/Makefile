@@ -92,6 +92,7 @@ outputs = outputs/output.ml outputs/file_output.ml \
 	$(if $(W_THEORA),outputs/theora_encoded.ml) \
 	$(if $(W_SPEEX), outputs/speex_encoded.ml) \
 	$(if $(W_SHOUT),outputs/icecast2.ml \
+ 	$(if $(W_OGG),outputs/ogg_output_shout.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded_shout.ml) \
 	$(if $(W_LAME), outputs/lame_encoded_shout.ml)  \
 	$(if $(W_SPEEX), outputs/speex_encoded_shout.ml)  \
