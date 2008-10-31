@@ -151,7 +151,7 @@ def output.shoutcast.mp3 = output.icecast.mp3(mount = "/", protocol = "icy") end
 # @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
-# @param ~restart_on_new_track Restart encoder upon new track. Usefull if lame encoder fails to run after long uptime, which seems the case, so default is true.
+# @param ~restart_on_new_track Restart encoder upon new track.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
@@ -169,7 +169,7 @@ def output.icecast.lame(
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~lame="lame",~bitrate=128,
-  ~restart_on_crash=false,~restart_on_new_track=true,
+  ~restart_on_crash=false,~restart_on_new_track=false,
   s)
   samplerate = get(default=44100,"frame.samplerate")
   samplerate = float_of_int(samplerate) / 1000.
