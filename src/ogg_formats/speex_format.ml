@@ -97,33 +97,27 @@ exception Internal
 exception Invalid_settings of string
 
 let create ~frames_per_packet ~mode ~vbr ~quality 
-           ~stereo ~bitrate ~rate ~abr ~meta ~complexity () =
-  if Fmt.channels () < 2 && stereo then
-   raise (Invalid_settings "not enought channels");
-  let nb_channels = 
-    if stereo then 2 else 1
-  in
+           ~nb_channels ~bitrate ~rate ~abr ~meta ~complexity () =
   let header =
     Speex.Header.init ~frames_per_packet ~mode
-                      ~vbr ~nb_channels
-                      ~bitrate ~rate ()
+                      ~vbr ~nb_channels ~rate ()
   in
   let enc = Speex.Encoder.init mode frames_per_packet in
-  if bitrate > 0 then
-        Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE bitrate;
-  Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity; 
-  if abr > 0 then
-    Speex.Encoder.set enc Speex.SPEEX_SET_ABR abr;
-  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
-  let ivbr =
-    if vbr then 1 else 0
+  let f x y = 
+    match y with
+      | Some y -> Speex.Encoder.set enc x y
+      | None   -> ()
   in
-  Speex.Encoder.set enc Speex.SPEEX_SET_VBR ivbr;
-  if quality > 0 then
-    if vbr then
-      Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY quality
-    else
-      Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY quality;
+  f Speex.SPEEX_SET_BITRATE bitrate;
+  f Speex.SPEEX_SET_COMPLEXITY complexity; 
+  f Speex.SPEEX_SET_ABR abr;
+  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
+  if vbr then
+    Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
+  if vbr then
+    f Speex.SPEEX_SET_VBR_QUALITY quality
+  else
+    f Speex.SPEEX_SET_QUALITY quality;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
   let p1,p2 = Speex.Header.encode_header_packetout header meta in
   let header_encoder os = 
@@ -135,7 +129,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
     Ogg.Stream.flush_page os
   in
   let remaining_init =
-    if stereo then
+    if nb_channels > 1 then
      [|[||];[||]|]
     else
      [|[||]|]
@@ -146,7 +140,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
                     data.Ogg_encoder.length in
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
     let buf =
-     if stereo then
+     if nb_channels > 1 then
          [|Array.append !remaining.(0) buf.(0);
            Array.append !remaining.(1) buf.(1)|]
      else
@@ -166,7 +160,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
           max (-32768) (min 32767 x)
         in
         let f x = Array.map  (fun x -> f (32767.*.x)) x in
-        if stereo then
+        if nb_channels > 1 then
           [| f (Array.sub buf.(0) (frame_size*n) frame_size);
              f (Array.sub buf.(1) (frame_size*n) frame_size) |]
         else
@@ -177,7 +171,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
     try
       while true do
         let page =
-          if stereo then
+          if nb_channels > 1 then
             Speex.Encoder.encode_page_int_stereo enc os feed
           else
             let feed () =
@@ -193,7 +187,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
           let n = !status in
           remaining := 
             if frame_size*n < len then
-              if stereo then
+              if nb_channels > 1 then
                 [|Array.sub buf.(0) (frame_size*n) (len - frame_size*n);
                   Array.sub buf.(1) (frame_size*n) (len - frame_size*n)|]
               else

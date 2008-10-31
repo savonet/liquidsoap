@@ -37,7 +37,7 @@ let speex_proto = [
 
   "quality",
   Lang.int_t,
-  Some (Lang.int (-1)),
+  Some (Lang.int 7),
   Some "Target quality (0 to 10). Not used if <= 0.";
 
   "mode",
@@ -53,7 +53,7 @@ let speex_proto = [
 
   "vbr",
   Lang.bool_t,
-  Some (Lang.bool true),
+  Some (Lang.bool false),
   Some "Encode in vbr mode.";
 
   "frames_per_packet",
@@ -63,8 +63,8 @@ let speex_proto = [
 
   "complexity",
   Lang.int_t,
-  Some (Lang.int 3),
-  Some "Encoding complexity (0-10).";
+  Some (Lang.int (-1)),
+  Some "Encoding complexity (0-10). Not used if <= 0.";
 
   "abr",
   Lang.int_t,
@@ -72,9 +72,32 @@ let speex_proto = [
   Some "Set average bitrate. Not used if <= 0.";
 ]
 
+exception Invalid_settings of string
+
 let create ~freq ~stereo ~mode 
            ~bitrate ~vbr ~fpp 
-           ~complexity ~abr ~quality () = 
+           ~complexity ~abr ~quality () =
+  if Fmt.channels () < 2 && stereo then
+   raise (Invalid_settings "not enought channels");
+  let nb_channels =
+    if stereo then 2 else 1
+  in
+  let f x = 
+    if x > 0 then
+     Some x
+    else 
+     None
+  in
+  let freq =
+    if freq > 0 then
+      bitrate
+    else
+      Fmt.samples_per_second ()
+  in
+  let bitrate = f bitrate in
+  let abr = f abr in
+  let quality = f quality in
+  let complexity = f complexity in 
   let dst_freq = float (Fmt.samples_per_second()) in
   let src_freq = 
     if freq > 0 then
@@ -123,7 +146,7 @@ let create ~freq ~stereo ~mode
     in
     let enc = 
       Speex_format.create ~frames_per_packet:fpp ~mode ~vbr ~quality
-                          ~stereo ~bitrate ~rate:freq ~abr ~complexity 
+                          ~nb_channels ~bitrate ~rate:freq ~abr ~complexity 
                           ~meta ()
     in
     Ogg_encoder.register_track ogg_enc enc
@@ -151,7 +174,7 @@ let () =
        let bitrate = (e Lang.to_int "bitrate") in
        let bitrate = 
          if bitrate > 0 then
-           bitrate * 1000
+           bitrate * 1024
          else
            bitrate
        in
