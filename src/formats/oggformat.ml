@@ -79,11 +79,17 @@ let decoder file =
       in
       let off = VFrame.position buf in
       let size = VFrame.size buf in
+      begin
+       try
         for c = 0 to Array.length b - 1 do
             for i = off to size - 1 do
               Ogg_demuxer.decode_video decoder (feed b c i);
             done;
         done;
+       with
+         | e -> log#f 5 "Video fill exited on exception: %s"
+                    (Printexc.to_string e)
+      end;
       (* TODO: sort out when and who puts a break: 
        * this end break is already added by
        * audio filling.. *)
@@ -117,8 +123,8 @@ let decoder file =
             | Ogg_demuxer.End_of_stream -> ()
         done;
       with
-        | e -> log#f 4 "ogg file decoder exited on exception: %s" 
-                          (Printexc.to_string e)
+        | e -> log#f 5 "Audio fill exited on exception: %s" 
+                          (Printexc.to_string e) 
     end ;
 
     let offset = AFrame.position buf in
