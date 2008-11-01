@@ -26,8 +26,7 @@ module Generator = Float_pcm.Generator
 
 let log = Dtools.Log.make ["ogg.demuxer"]
 
-let decoder file =
-  let sync,fd = Ogg.Sync.create_from_file file in
+let decoder file sync fd =
   let decoder = Ogg_demuxer.init sync in
   let init_meta = ref true in
   let abg = Generator.create () in
@@ -145,6 +144,19 @@ let decoder file =
     Fmt.ticks_of_samples (int_of_float remaining_samples)
   in
     { Decoder.fill = fill ; Decoder.close = close }
+
+(** Wrapper to be sure that file is closed.. *)
+let decoder file = 
+  let sync,fd = Ogg.Sync.create_from_file file in
+  try
+    decoder file sync fd
+  with
+    | e -> begin
+            try 
+             Unix.close fd
+            with
+              | _ -> ()
+           end; raise e
 
 let () =
   Decoder.formats#register "OGG"
