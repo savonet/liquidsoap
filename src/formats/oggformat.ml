@@ -187,10 +187,19 @@ let get_tags ~format file =
     in
     let m = 
       try
-        Ogg_demuxer.decode_audio decoder feed;
+        if Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder then
+          Ogg_demuxer.decode_audio decoder feed;
         []
       with
         | Metadata m -> m
+    in
+    let m = 
+      try
+        if Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
+          Ogg_demuxer.decode_video decoder feed;
+        m
+      with
+        | Metadata m' -> m@m'
     in 
     close ();
     m
