@@ -62,7 +62,7 @@ let get_extension f =
     let i = 1 + String.rindex f '.' in
     let len = String.length f in
       if i >= len then "" else
-	String.sub f i (len-i)
+        String.sub f i (len-i)
   with
     | Not_found -> ""
 
@@ -132,8 +132,8 @@ let short_string_of_metadata m =
   "Title: "^(
     try
       let t = Hashtbl.find m "title" in
-	if String.length t < 12 then t else
-	  (String.sub t 0 9)^"..."
+        if String.length t < 12 then t else
+          (String.sub t 0 9)^"..."
     with
       | Not_found -> "(undef)"
   )
@@ -377,8 +377,8 @@ let duration file =
          let ans = resolver file in
          raise (Duration ans)
         with 
-	  | Duration e -> raise (Duration e) 
-	  | _ -> () ) ; 
+          | Duration e -> raise (Duration e) 
+          | _ -> () ) ; 
       raise Not_found
   with
     | Duration d -> d
@@ -477,8 +477,11 @@ let is_on_air t = t.on_air <> None
 
 let on_air_requests () =
   Mutex.lock lock ;
-  let l = Hashtbl.fold (fun k v l -> if is_on_air v then k::l else l)
-	    requests [] in
+  let l =
+    Hashtbl.fold
+      (fun k v l -> if is_on_air v then k::l else l)
+      requests []
+  in
     Mutex.unlock lock ;
     l
 
@@ -486,8 +489,11 @@ let is_resolving t = t.status = Resolving
 
 let resolving_requests () =
   Mutex.lock lock ;
-  let l = Hashtbl.fold (fun k v l -> if is_resolving v then k::l else l)
-	    requests [] in
+  let l =
+    Hashtbl.fold
+      (fun k v l -> if is_resolving v then k::l else l)
+      requests []
+  in
     Mutex.unlock lock ;
     l
 
@@ -498,8 +504,8 @@ let _create ~audio ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
   let rid = next () in
     if rid = -1 then
       ( Mutex.unlock lock ;
-	log#f 2 "No available RID!" ;
-	None )
+        log#f 2 "No available RID!" ;
+        None )
     else
       let t = {
         id = rid ;
@@ -572,8 +578,8 @@ let is_static s =
   else
     let proto,arg = parse_uri s in
       match protocols#get proto with
-	| Some handler -> Some handler.static
-	| None -> None
+        | Some handler -> Some handler.static
+        | None -> None
 
 (** Resolving engine. *)
 
@@ -597,12 +603,15 @@ let resolve t timeout =
     let proto,arg = parse_uri i.string in
       match protocols#get proto with
         | Some handler ->
-            add_log t (Printf.sprintf
-                     "Resolving %S (timeout %.fs)..." i.string timeout) ;
+            add_log t
+              (Printf.sprintf
+                 "Resolving %S (timeout %.fs)..."
+                 i.string timeout) ;
             let production = handler.resolve ~log:(add_log t) arg maxtime in
               if production = [] then begin
                 log#f 4
-                  "Failed to resolve %S! For more info, see server command 'trace %d'."
+                  "Failed to resolve %S! \
+                   For more info, see server command 'trace %d'."
                   i.string t.id ;
                 ignore (pop_indicator t)
               end else
@@ -614,10 +623,10 @@ let resolve t timeout =
   let result =
     try
       while not (is_ready t) do
-	let timeleft = maxtime -. (Unix.time ()) in
-	  if timeleft > 0. then
+        let timeleft = maxtime -. (Unix.time ()) in
+          if timeleft > 0. then
             resolve_step ()
-	  else
+          else
             ( add_log t "Global timeout." ; raise ExnTimeout )
       done ;
       Resolved
