@@ -114,7 +114,7 @@ let () =
   Lang.add_operator "video.transparent"
     [
       "precision", Lang.float_t, Some (Lang.float 0.), Some "Precision in color matching (0. means match precisely the color and 1. means match every color).";
-      "color", Lang.int_t, Some (Lang.int 0), Some "Color which should be transparent.";
+      "color", Lang.int_t, Some (Lang.int 0), Some "Color which should be transparent (in 0xRRGGBB format).";
       "", Lang.source_t, None, None
     ]
     ~category:Lang.VideoProcessing
