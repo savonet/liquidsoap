@@ -121,10 +121,6 @@ object(self)
 
   method reset_stream m = 
     let flushed = self#end_of_stream in
-    let reset _ (id,_,_) = 
-      id := None
-    in
-    Hashtbl.iter reset streams;
     self#create_encoders m;
     flushed
 
@@ -145,6 +141,10 @@ object(self)
   method end_of_stream = 
     let enc = Utils.get_some encoder in
     Ogg_encoder.end_of_stream enc;
+    let stop _ (id,_,_) =
+      id := None
+    in
+    Hashtbl.iter stop streams;
     Ogg_encoder.flush enc
 
   (** Ogg encoder must be stoped (and flushed)

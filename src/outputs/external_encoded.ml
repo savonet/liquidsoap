@@ -82,7 +82,7 @@ object (self)
         try
           output_string out_e sbuf;
         with
-          | _ -> self#my_reset_on_crash initial_meta
+          | _ -> self#external_reset_on_crash initial_meta
       end;
       Mutex.lock read_m; 
       let ret = Buffer.contents read in
@@ -90,22 +90,22 @@ object (self)
       Mutex.unlock read_m;
       ret
 
-  method private my_reset_encoder ?(crash=false) meta = 
+  method private external_reset_encoder ?(crash=false) meta = 
     Mutex.lock read_m; 
     let ret = Buffer.contents read in
     Buffer.reset read;
     Mutex.unlock read_m;
     if restart_encoder || crash then 
       begin
-        self#my_output_stop;
-        self#my_output_start meta
+        self#external_output_stop;
+        self#external_output_start meta
       end;
     ret
 
-  method my_reset_on_crash meta =
+  method external_reset_on_crash meta =
     if restart_on_crash then
      begin 
-      let ret = self#my_reset_encoder ~crash:true meta in
+      let ret = self#external_reset_encoder ~crash:true meta in
       Mutex.lock read_m; 
       Buffer.add_string read ret;
       Mutex.unlock read_m
@@ -113,9 +113,9 @@ object (self)
     else
       raise External_failure
 
-  method reset_encoder = self#my_reset_encoder ~crash:false
+  method reset_encoder = self#external_reset_encoder ~crash:false
 
-  method private my_output_start meta =
+  method private external_output_start meta =
     self#log#f 2 "Creating external encoder..";
     let process = 
       Lang.to_string (Lang.apply process ["",Lang.metadata meta]) 
@@ -134,7 +134,7 @@ object (self)
           try
             input in_e buf 0 10000
           with
-            | _ -> self#my_reset_on_crash initial_meta;
+            | _ -> self#external_reset_on_crash initial_meta;
                    0
         in
         if ret > 0 then
@@ -196,24 +196,31 @@ object (self)
         output_string out_e header
       end
 
-  method private my_output_stop =
-      Mutex.lock cond_m;
-      try
-        let (_,out_e) = Utils.get_some encoder in
-        begin
-         try
-          flush out_e
-         with
-           | _ -> ()
-        end;
-        (* Signal the end of reading to task *)
-        ignore(Unix.write in_p " " 0 1);
-        (* Wait for the end of the task *)
-        Condition.wait cond cond_m;
-        Mutex.unlock cond_m;
-      with _ -> 
-        Mutex.unlock cond_m;
-        failwith "couldn't stop the reading task."
+  (* Don't fail if the task has already exited, like in 
+   * case of failure for instance.. *)
+  method private external_output_stop =
+    match encoder with
+      | Some (_,out_e) ->
+         begin
+           Mutex.lock cond_m;
+           try 
+             begin
+              try
+               flush out_e
+              with
+                | _ -> ()
+             end;
+             (* Signal the end of reading to task *)
+             ignore(Unix.write in_p " " 0 1);
+             (* Wait for the end of the task *)
+             Condition.wait cond cond_m;
+             Mutex.unlock cond_m
+           with e -> 
+             Mutex.unlock cond_m;
+             self#log#f 2 "couldn't stop the reading task.";
+             raise e
+         end
+      | None -> ()
 end
 
 class to_file
@@ -231,11 +238,11 @@ object (self)
   inherit base ~restart_encoder ~header ~restart_on_crash process as base
 
   method output_start =
-    base#my_output_start initial_meta;
+    base#external_output_start initial_meta;
     to_file#file_output_start
 
   method output_stop =
-    base#my_output_stop;
+    base#external_output_stop;
     to_file#file_output_stop
 
   method output_reset = self#output_stop; self#output_start 
@@ -283,9 +290,9 @@ object (self)
 
   method send _ = () 
 
-  method output_start = base#my_output_start initial_meta
+  method output_start = base#external_output_start initial_meta
 
-  method output_stop = base#my_output_stop
+  method output_stop = base#external_output_stop
 
   method output_reset = self#output_stop; self#output_start
 end

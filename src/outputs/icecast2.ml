@@ -113,6 +113,8 @@ object (self)
              *      is properly connected. Another downside of the current code
              *      is that the encoder gets restarted every delay seconds,
              *      even when shout doesn't actually get restarted. *)
+            (* Avoid multiple restarts.. *)
+            last_attempt <- Unix.time () ;
             self#output_stop ;
             self#output_start
           end
@@ -142,7 +144,7 @@ object (self)
                    server shutdown? Restarting the output in %.f seconds."
                   restart_delay  ;
                 (* Ask for a restart after last_attempt. *)
-                self#my_output_stop ;
+                self#icecast_output_stop ;
                 last_attempt <- Unix.time ()
             end
 
@@ -150,7 +152,7 @@ object (self)
     * exactly this function, in case output_stop
     * is overriden by a class inheritating from this
     * one. *)
-  method private my_output_stop =
+  method private icecast_output_stop =
     match connection with
       | None -> ()
       | Some c ->
@@ -160,7 +162,7 @@ object (self)
             | Some f -> close_out f
             | None -> ()
 
-  method output_stop = self#my_output_stop
+  method output_stop = self#icecast_output_stop
  
   method output_start =
     assert (connection = None) ;
@@ -232,7 +234,7 @@ object (self)
             self#log#f 3
               "Connection failed, will try again in %.f sec."
               restart_delay ;
-            self#output_stop ;
+            self#icecast_output_stop ;
             last_attempt <- Unix.time ()
 
   method output_reset =

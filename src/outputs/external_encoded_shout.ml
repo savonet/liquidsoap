@@ -149,17 +149,16 @@ object (self)
             | None -> ()
         end;
       if restart_encoder then
-        (* Ogg streams are restarted (if restart is true) *)
         base#reset_encoder m
       else
         ""
 
     method output_start =
-      base#my_output_start External_encoded.initial_meta;
+      base#external_output_start External_encoded.initial_meta;
       super#output_start
 
     method output_stop =
-      base#my_output_stop;
+      base#external_output_stop;
       super#output_stop
 
     method output_reset = self#output_stop; self#output_start
