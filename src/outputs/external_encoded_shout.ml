@@ -155,15 +155,11 @@ object (self)
         ""
 
     method output_start =
-      if encoder <> None then
-        base#my_output_stop; 
       base#my_output_start External_encoded.initial_meta;
       super#output_start
 
     method output_stop =
-      (* We don't stop the encoder yet, 
-       * because of icecast restart mechanism..
-       * It will be done at start.. *)
+      base#my_output_stop;
       super#output_stop
 
     method output_reset = self#output_stop; self#output_start

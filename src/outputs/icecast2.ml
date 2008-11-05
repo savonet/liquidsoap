@@ -142,11 +142,15 @@ object (self)
                    server shutdown? Restarting the output in %.f seconds."
                   restart_delay  ;
                 (* Ask for a restart after last_attempt. *)
-                self#output_stop ;
+                self#my_output_stop ;
                 last_attempt <- Unix.time ()
             end
 
-  method output_stop =
+  (** Private method to be able to call
+    * exactly this function, in case output_stop
+    * is overriden by a class inheritating from this
+    * one. *)
+  method private my_output_stop =
     match connection with
       | None -> ()
       | Some c ->
@@ -156,6 +160,8 @@ object (self)
             | Some f -> close_out f
             | None -> ()
 
+  method output_stop = self#my_output_stop
+ 
   method output_start =
     assert (connection = None) ;
     let conn = new_shout () in
