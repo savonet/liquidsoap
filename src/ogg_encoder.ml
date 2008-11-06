@@ -120,7 +120,7 @@ let register_track encoder (header_enc,stream_start,track_enc,end_of_stream) =
   if !(encoder.state) = Eos then
    begin
     log#f 4 "%s: Starting new sequentialized ogg stream." encoder.id;
-    encoder.state := Eos;
+    encoder.state := Bos;
    end;
   let rec gen_id () = 
     let id = Random.nativeint (Nativeint.of_int 0x3FFFFFFF) in 
