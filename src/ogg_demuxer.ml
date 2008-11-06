@@ -51,9 +51,9 @@ type decoders =
 type stream = Ogg.Stream.t*(bool ref)*decoders
 type t =
 {
-  sync     : Ogg.Sync.t;
-  eos      : bool ref;
-  streams : (nativeint,stream) Hashtbl.t;
+  sync        : Ogg.Sync.t;
+  mutable eos : bool;
+  streams     : (nativeint,stream) Hashtbl.t;
 }
 
 type track = Audio_track | Video_track
@@ -104,7 +104,7 @@ let feed_page decoder page =
         Hashtbl.remove decoder.streams serial;
         eos := true;
         if Hashtbl.length decoder.streams = 0 then
-          decoder.eos := true
+          decoder.eos <- true
       end
     with
       | Not_found ->
@@ -116,7 +116,7 @@ let feed decoder =
   feed_page decoder page 
 
 let parse dec =
-    assert(not !(dec.eos));
+    assert(not dec.eos);
     let rec parse () = 
       try
         (** Get First page *)
@@ -138,11 +138,11 @@ let parse dec =
 
 let init sync = 
   let streams = Hashtbl.create 2 in
-  parse { sync = sync; eos = ref false; streams = streams }
+  parse { sync = sync; eos = false; streams = streams }
 
 let reset dec = 
   Hashtbl.clear dec.streams;
-  dec.eos := false;
+  dec.eos <- false;
   ignore(parse dec)
 
 let frame_meta_of_meta v =

@@ -114,7 +114,7 @@ let decoder file sync fd =
           in
           try
             Ogg_demuxer.decode_audio decoder feed;
-            if !(decoder.Ogg_demuxer.eos) then
+            if decoder.Ogg_demuxer.eos then
               begin
                 Ogg_demuxer.reset decoder
               end
