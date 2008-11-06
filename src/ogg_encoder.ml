@@ -57,25 +57,19 @@ type 'a ogg_track =
   | Audio_track of (('a,audio) track)
   | Video_track of (('a,video) track)
 
+(** You may register new tracks on state Eos or Bos.
+  * You can't register new track on state Streaming. 
+  * You may finalize at any state, provided at least 
+  * single track is registered. However, this is not
+  * recommended. *)
+type ogg_state = Eos | Streaming | Bos
+
 type t =
   {
     id      : string;
     encoded : Buffer.t;
     tracks  : (nativeint,t ogg_track) Hashtbl.t;
-    (** When end_of_stream as been
-      * called on every stream,
-      * flag is set to true.
-      * You may, at this point, register
-      * new tracks in order to start
-      * a new sequentialized stream. *)
-    bos     : bool ref;
-    (** All multiplexed ogg streams
-      * should be declared at once.
-      * Once you submit track data,
-      * this flag is set to false and you
-      * will not be able to register new
-      * tracks *)
-    eos     : bool ref
+    state   : ogg_state ref;
   }
 
 type ogg_data_encoder = 
@@ -99,8 +93,7 @@ let create id =
     id      = id;
     encoded = Buffer.create 1024;
     tracks  = Hashtbl.create 10;
-    eos     = ref false;
-    bos     = ref true;
+    state   = ref Bos;
   }
 
 (** Get and remove encoded data.. *)
@@ -119,16 +112,15 @@ let add_page encoder (h,v) =
   Buffer.add_string encoder.encoded v
 
 let register_track encoder (header_enc,stream_start,track_enc,end_of_stream) =
-  if not !(encoder.bos) && not !(encoder.eos) then
+  if !(encoder.state) = Streaming then
    begin
     log#f 4 "%s: Invalid new track: ogg stream already started.." encoder.id;
     raise Invalid_usage
    end;
-  if !(encoder.eos) then
+  if !(encoder.state) = Eos then
    begin
     log#f 4 "%s: Starting new sequentialized ogg stream." encoder.id;
-    encoder.eos := false;
-    encoder.bos := true;
+    encoder.state := Eos;
    end;
   let rec gen_id () = 
     let id = Random.nativeint (Nativeint.of_int 0x3FFFFFFF) in 
@@ -165,7 +157,10 @@ let register_track encoder (header_enc,stream_start,track_enc,end_of_stream) =
   Hashtbl.add encoder.tracks id track;
   id
 
+(** Start streams, set state to Streaming. *)
 let streams_start encoder =
+  if Hashtbl.length encoder.tracks = 0 then
+    raise Invalid_usage ;
   log#f 4 "%s: Starting all streams" encoder.id;
   Hashtbl.iter
    (fun _ -> fun t ->
@@ -173,12 +168,14 @@ let streams_start encoder =
      let stream_start = stream_start_of_ogg_track t in
      add_page encoder (stream_start os))
    encoder.tracks;
-  encoder.bos := false
+  encoder.state := Streaming
 
+(** Encode data. Implicitely calls [streams_start]
+  * if not called before. *)
 let encode encoder id data =
- if !(encoder.bos) then
+ if !(encoder.state) = Bos then
    streams_start encoder;
- if !(encoder.eos) then
+ if !(encoder.state) = Eos then
    begin
     log#f 4 "%s: Cannot encode: ogg stream finished.." encoder.id;
     raise Invalid_usage
@@ -209,6 +206,7 @@ let encode encoder id data =
           | _ -> raise Invalid_data
        end
 
+(** Flush data from all tracks in the stream. *)
 let flush encoder = 
   let flush_track _ x = 
     let os = os_of_ogg_track x in
@@ -221,8 +219,9 @@ let flush encoder =
   Buffer.reset encoder.encoded;
   b
 
+(** Finish a track, set state to Eos if all tracks have ended. *)
 let end_of_track encoder id =
-  if !(encoder.bos) then
+  if !(encoder.state) = Bos then
    begin
     log#f 4 "%s: Stream finished without calling streams_start !" encoder.id; 
     streams_start encoder
@@ -242,10 +241,10 @@ let end_of_track encoder id =
   if Hashtbl.length encoder.tracks = 0 then
    begin
     log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-    encoder.eos := true
+    encoder.state := Eos
    end
 
-
+(** End all tracks in the stream. *)
 let end_of_stream encoder = 
   Hashtbl.iter 
     (fun x -> fun _ -> end_of_track encoder x)

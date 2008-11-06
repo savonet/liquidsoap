@@ -126,7 +126,10 @@ object(self)
 
   method encode frame ofs len = 
     let enc = Utils.get_some encoder in
-    if !(enc.Ogg_encoder.bos) then
+    (** Ogg encoders may be registered only now,
+      * in order to avoid empty streams with mksafe and
+      * the like. *)
+    if !(enc.Ogg_encoder.state) = Ogg_encoder.Bos then
       self#create_encoders [];
     let encode _ (id,_,f) = 
       let id = Utils.get_some !id in
@@ -151,7 +154,7 @@ object(self)
     * before calling this function. *)
   method output_stop =
     let enc = Utils.get_some encoder in
-    assert(!(enc.Ogg_encoder.eos));
+    assert(!(enc.Ogg_encoder.state) = Ogg_encoder.Eos);
     encoder <- None
 end
 
