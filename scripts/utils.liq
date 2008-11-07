@@ -197,6 +197,12 @@ def output.icecast.lame(
     s)
 end
 
+# Output to shoutcast using the lame encoder.
+# @category Source / Output
+def output.shoutcast.lame = 
+  output.icecast.lame(id = "output.shoutcast.lame", mount = "/", protocol = "icy") 
+end
+
 # Output to icecast using the flac command line encoder.
 # @category Source / Output
 # @param ~id Output's ID
