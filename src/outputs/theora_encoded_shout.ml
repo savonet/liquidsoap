@@ -15,10 +15,11 @@ let () =
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let vorbis_quality = e Lang.to_float "vorbis_quality" in 
+       let skeleton = e Lang.to_bool "skeleton" in
        let streams = 
          Theora_encoded.create_streams 
                 ~quality ~vorbis_quality 
        in
        let bitrate = "Unknown" in
-       ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
+       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
 

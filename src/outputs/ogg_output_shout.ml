@@ -31,7 +31,7 @@ let proto =
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "", Lang.source_t, None, None ]
 
-class to_shout ~streams ~bitrate p =
+class to_shout ~skeleton ~streams ~bitrate p =
 
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
@@ -58,7 +58,7 @@ class to_shout ~streams ~bitrate p =
 object (self)
   inherit [Ogg_encoder.t] Icecast2.output 
     ~bitrate ~mount ~name ~source p as super
-  inherit Ogg_output.base streams as ogg
+  inherit Ogg_output.base ~skeleton streams as ogg
 
   method output_start =
     ogg#output_start;

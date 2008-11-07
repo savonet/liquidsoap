@@ -37,7 +37,7 @@ let theora_proto =
       Some "Quality setting for vorbis encoding. \
             Don't encode audio if value is negative or null." ;
 
-     ]
+     ] @ (Ogg_output.ogg_proto true)
 
 
 let () =
@@ -54,6 +54,7 @@ let () =
        let quality = e Lang.to_int "quality" in
        let vorbis_quality = e Lang.to_float "vorbis_quality" in
        let autostart = e Lang.to_bool "start" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
        let append = Lang.to_bool (List.assoc "append" p) in
@@ -67,7 +68,7 @@ let () =
        let streams = create_streams ~quality ~vorbis_quality in
          ((new Ogg_output.to_file 
              filename ~streams
-             ~append ~perm ~dir_perm
+             ~append ~perm ~dir_perm ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
 

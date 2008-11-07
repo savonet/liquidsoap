@@ -124,6 +124,10 @@ let create ~frames_per_packet ~mode ~vbr ~quality
     Ogg.Stream.put_packet os p1;
     Ogg.Stream.flush_page os
   in
+  let fisbone_data _ = 
+    (** TODO: bind fisbone in ocaml-speex.. *)
+    None
+  in
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
     Ogg.Stream.flush_page os
@@ -198,7 +202,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   let end_of_stream os = 
     Speex.Encoder.eos enc os
   in
-  header_encoder,stream_start,
+  header_encoder,fisbone_data,stream_start,
   (Ogg_encoder.Audio_encoder track_encoder),
   end_of_stream
 

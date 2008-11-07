@@ -53,13 +53,14 @@ let () = (* Average BitRate *)
        let max_bitrate = (e Lang.to_int "max_bitrate") * 1000 in
        let freq = e Lang.to_int "samplerate" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let streams =
          ["vorbis",create ~quality:0. ~mode:ABR
                           ~bitrate:(bitrate, min_bitrate, max_bitrate)
                           freq stereo]
        in
        let bitrate = Printf.sprintf "%i" bitrate in
-      ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
+      ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
 
 let () = (* Constant BitRate *)
   Lang.add_operator "output.icecast.vorbis.cbr"
@@ -76,13 +77,14 @@ let () = (* Constant BitRate *)
        let bitrate = (e Lang.to_int "bitrate") * 1000 in
        let freq = e Lang.to_int "samplerate" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let streams =
          ["vorbis",create ~quality:0. ~mode:CBR
                           ~bitrate:(bitrate, bitrate, bitrate)
                           freq stereo]
        in
        let bitrate = Printf.sprintf "%i" bitrate in
-       ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
+       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
 
 let () = (* Variable BitRate *)
   Lang.add_operator "output.icecast.vorbis"
@@ -99,12 +101,13 @@ let () = (* Variable BitRate *)
        let quality = (e Lang.to_float "quality") *. 0.1 in
        let freq = e Lang.to_int "samplerate" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let streams =
          ["vorbis",create ~quality ~mode:VBR
                           ~bitrate:(0, 0, 0)
                           freq stereo]
        in
        let bitrate = Printf.sprintf "Quality %.1f" quality in
-       ((new Ogg_output_shout.to_shout ~bitrate ~streams p):>Source.source))
+       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
 
 

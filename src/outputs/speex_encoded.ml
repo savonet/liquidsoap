@@ -70,7 +70,7 @@ let speex_proto = [
   Lang.int_t,
   Some (Lang.int (-1)),
   Some "Set average bitrate. Not used if <= 0.";
-]
+] @ (Ogg_output.ogg_proto false)
 
 exception Invalid_settings of string
 
@@ -171,6 +171,7 @@ let () =
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let bitrate = (e Lang.to_int "bitrate") in
        let bitrate = 
          if bitrate > 0 then
@@ -207,7 +208,7 @@ let () =
        in
        let source = Lang.assoc "" 2 p in
          ((new Ogg_output.to_file 
-             name ~append ~perm ~dir_perm ~streams
+             name ~append ~perm ~dir_perm ~streams ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
 

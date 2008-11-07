@@ -135,6 +135,10 @@ let create_encoder ~quality meta =
     Theora.Encoder.encode_header enc os;
     Ogg.Stream.flush_page os
   in
+  let fisbone_data os = 
+    let serialno = Ogg.Stream.serialno os in
+    Some (Theora.Skeleton.fisbone ~serialno ~info ())
+  in
   let stream_start os = 
     Theora.Encoder.encode_comments os meta;
     Theora.Encoder.encode_tables enc os;
@@ -186,6 +190,6 @@ let create_encoder ~quality meta =
      end;
     Theora.Encoder.eos enc os
   in
-  header_encoder,stream_start,
+  header_encoder,fisbone_data,stream_start,
   (Ogg_encoder.Video_encoder track_encoder),
   end_of_stream

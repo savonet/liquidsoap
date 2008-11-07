@@ -27,6 +27,13 @@ type create_encoder = Ogg_encoder.t -> (string*string) list -> Nativeint.t
 type encode = Ogg_encoder.t -> Nativeint.t -> Frame.t -> int -> int -> unit
 type ogg_track = (Nativeint.t option ref)*create_encoder*encode
 
+let ogg_proto skeleton = 
+  [ "skeleton",
+    Lang.bool_t,Some (Lang.bool skeleton),
+    Some "Add an ogg skeleton to the stream. \
+          Recommended for theora only."
+  ]
+
 (** Helper to encode audio *)
 let encode_audio ~stereo ~src_freq ~dst_freq () = 
   let tmp =
@@ -93,7 +100,7 @@ let encode_video () =
   in
   encode
 
-class virtual base streams = 
+class virtual base ~skeleton streams = 
   let streams = 
     let f = 
       Hashtbl.create 2 
@@ -139,7 +146,7 @@ object(self)
     Ogg_encoder.get_data enc
 
   method output_start = 
-    encoder <- Some (Ogg_encoder.create self#id)
+    encoder <- Some (Ogg_encoder.create ~skeleton self#id)
 
   method end_of_stream = 
     let enc = Utils.get_some encoder in
@@ -160,7 +167,7 @@ end
 
 (** Output in an Ogg file. *)
 class to_file
-  filename ~append ~perm ~dir_perm
+  filename ~append ~perm ~dir_perm ~skeleton
   ~reload_delay ~reload_predicate ~reload_on_metadata
   ~autostart ~streams source =
 object (self)
@@ -170,7 +177,7 @@ object (self)
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
-  inherit base streams as ogg
+  inherit base ~skeleton streams as ogg
 
   method reset_encoder m =
     to_file#on_reset_encoder ;

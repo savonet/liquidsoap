@@ -34,7 +34,7 @@ let vorbis_proto = [
   Lang.bool_t,
   Some (Lang.bool true),
   None;
-]
+] @ (Ogg_output.ogg_proto false)
 
 let create ~quality ~mode ~bitrate freq stereo =
   let create_encoder ogg_enc m =
@@ -118,6 +118,7 @@ let () =
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let bitrate = (e Lang.to_int "bitrate") * 1000 in
        let min_bitrate = (e Lang.to_int "min_bitrate") * 1000 in
        let max_bitrate = (e Lang.to_int "max_bitrate") * 1000 in
@@ -138,7 +139,7 @@ let () =
                           freq stereo]
        in
          ((new Ogg_output.to_file
-             name ~append ~perm ~dir_perm ~streams
+             name ~append ~perm ~dir_perm ~streams ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
 
@@ -161,6 +162,7 @@ let () =
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let bitrate = (e Lang.to_int "bitrate") * 1000 in
        let freq = e Lang.to_int "samplerate" in
        let name = Lang.to_string (Lang.assoc "" 1 p) in
@@ -179,7 +181,7 @@ let () =
        in
        let source = Lang.assoc "" 2 p in
          ((new Ogg_output.to_file
-             name ~append ~perm ~dir_perm ~streams
+             name ~append ~perm ~dir_perm ~streams ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
 
@@ -203,6 +205,7 @@ let () =
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
+       let skeleton = e Lang.to_bool "skeleton" in
        let quality = (e Lang.to_float "quality") *. 0.1 in
        let freq = e Lang.to_int "samplerate" in
        let name = Lang.to_string (Lang.assoc "" 1 p) in
@@ -221,7 +224,7 @@ let () =
                           freq stereo]
        in
          ((new Ogg_output.to_file
-             name ~append ~perm ~dir_perm ~streams
+             name ~append ~perm ~dir_perm ~streams ~skeleton 
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
 
