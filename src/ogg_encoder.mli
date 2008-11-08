@@ -51,7 +51,7 @@ type 'a data =
     length : int
   }
 
-(** A track is a data unit of either audio or video. *)
+(** A track data is a data unit of either audio or video. *)
 type track_data = 
   | Audio_data of audio data
   | Video_data of video data
@@ -67,7 +67,7 @@ type header_encoder = Ogg.Stream.t -> Ogg.Page.t
 
 (** Returns an optional fisbone packet, which 
   * will contain the data for this stream to 
-  * put in the ogg skeleton, is enabled in 
+  * put in the ogg skeleton, if enabled in 
   * the encoder. *)
 type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
 
@@ -95,6 +95,8 @@ type stream_encoder =
  (** {2 API} *)
 
  (** Usage: 
+   *
+   * Encoding: 
    * 
    * - [create ~skeleton name] : create a new decoder
    * - [register_track encoder stream_encoder] : register a new track
@@ -110,6 +112,8 @@ type stream_encoder =
    * - [end_of_stream encoder]: ends all tracks at once (if not ended one by one previously)
    * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
    * - And so on.. 
+   *
+   * You get encoded data by calling [get_data], [peek_data] or [flush].
    *
    * See: http://xiph.org/ogg/doc/oggstream.html for more details on the 
    * specifications of an ogg stream. This API reflects exactly what is recomended to do. *)
@@ -145,7 +149,8 @@ val streams_start : t -> unit
   * if not called before. Fails if state is not [Streaming] *)
 val encode : t -> nativeint -> track_data -> unit
 
-(** Finish a track, set state to [Eos] if all tracks have ended. *)
+(** Finish a track, set state to [Eos] if all tracks have ended.
+  * Also flushes track data. *)
 val end_of_track : t -> nativeint -> unit
 
 (** End all tracks in the stream, set state to [Eos]. *)
