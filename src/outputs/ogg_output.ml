@@ -136,7 +136,7 @@ object(self)
     (** Ogg encoders may be registered only now,
       * in order to avoid empty streams with mksafe and
       * the like. *)
-    if enc.Ogg_encoder.state = Ogg_encoder.Bos then
+    if Ogg_encoder.state enc = Ogg_encoder.Bos then
       self#create_encoders [];
     let encode _ (id,_,f) = 
       let id = Utils.get_some !id in
@@ -161,7 +161,7 @@ object(self)
     * before calling this function. *)
   method output_stop =
     let enc = Utils.get_some encoder in
-    assert(enc.Ogg_encoder.state = Ogg_encoder.Eos);
+    assert(Ogg_encoder.state enc = Ogg_encoder.Eos);
     encoder <- None
 end
 

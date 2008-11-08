@@ -87,7 +87,7 @@ let decoder os =
 
 let () = Ogg_demuxer.ogg_decoders#register "theora" (check,decoder)
 
-let create_encoder ~quality meta =
+let create_encoder ~quality ~metadata () =
   let frame_x = Fmt.video_width () in
   let frame_y = Fmt.video_height () in
   (* Theora has a divisible-by-sixteen restriction for the encoded video size. *)
@@ -135,14 +135,14 @@ let create_encoder ~quality meta =
     Theora.Encoder.encode_header enc os;
     Ogg.Stream.flush_page os
   in
-  let fisbone_data os = 
+  let fisbone_packet os = 
     let serialno = Ogg.Stream.serialno os in
     Some (Theora.Skeleton.fisbone ~serialno ~info ())
   in
   let stream_start os = 
-    Theora.Encoder.encode_comments os meta;
+    Theora.Encoder.encode_comments os metadata;
     Theora.Encoder.encode_tables enc os;
-    Ogg.Stream.flush_page os
+    Ogg.Stream.flush os
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
     RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ())
@@ -165,7 +165,7 @@ let create_encoder ~quality meta =
       (Video_converter.RGB Video_converter.Rgba_32)
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
-  let track_encoder ogg_enc data os = 
+  let data_encoder ogg_enc data os = 
     if not !started then
       started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
@@ -190,6 +190,11 @@ let create_encoder ~quality meta =
      end;
     Theora.Encoder.eos enc os
   in
-  header_encoder,fisbone_data,stream_start,
-  (Ogg_encoder.Video_encoder track_encoder),
-  end_of_stream
+  {
+   Ogg_encoder.
+    header_encoder = header_encoder;
+    fisbone_packet = fisbone_packet;
+    stream_start   = stream_start;
+    data_encoder   = (Ogg_encoder.Video_encoder data_encoder);
+    end_of_stream  = end_of_stream
+  }

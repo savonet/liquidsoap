@@ -79,7 +79,7 @@ let create ~freq ~stereo ~mode
            ~complexity ~abr ~quality () =
   if Fmt.channels () < 2 && stereo then
    raise (Invalid_settings "not enought channels");
-  let nb_channels =
+  let channels =
     if stereo then 2 else 1
   in
   let f x = 
@@ -140,14 +140,14 @@ let create ~freq ~stereo ~mode
         end
     in
     let l' = ["title",title] in
-    let meta = get ["artist";"genre";"date";
+    let metadata = get ["artist";"genre";"date";
                     "album";"tracknumber";"comment"]
                    l'
     in
     let enc = 
       Speex_format.create ~frames_per_packet:fpp ~mode ~vbr ~quality
-                          ~nb_channels ~bitrate ~rate:freq ~abr ~complexity 
-                          ~meta ()
+                          ~channels ~bitrate ~samplerate:freq 
+                          ~abr ~complexity ~metadata ()
     in
     Ogg_encoder.register_track ogg_enc enc
   in

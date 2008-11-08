@@ -165,8 +165,10 @@ liquidsoap_doc_sources= \
 	tools/doc.ml tools/wav.ml \
 	$(if $(W_RTP),tools/rtp.ml) \
 	sources/request_source.ml operators/switch.ml \
-	configure.ml fmt.ml \
-	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml
+	configure.ml fmt.ml video_converter.ml \
+	$(if $(W_OGG),ogg_encoder.ml ogg_demuxer.ml) \
+	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml \
+	stream/vFrame.ml stream/RGB.ml
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules

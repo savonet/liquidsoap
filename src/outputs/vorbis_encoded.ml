@@ -36,7 +36,7 @@ let vorbis_proto = [
   None;
 ] @ (Ogg_output.ogg_proto false)
 
-let create ~quality ~mode ~bitrate freq stereo =
+let create ~quality ~mode ~bitrate samplerate stereo =
   let create_encoder ogg_enc m =
     let get h k =
       try
@@ -57,7 +57,7 @@ let create ~quality ~mode ~bitrate freq stereo =
                | Not_found -> title)
         | None -> "Unknown"
     in
-    let m = 
+    let metadata = 
        (Vorbis.tags
             ?title:(getd m "title" def_title)
             ?artist:(get m "artist")
@@ -72,16 +72,21 @@ let create ~quality ~mode ~bitrate freq stereo =
       if not stereo then 1 else Fmt.channels () in
     let enc =
       (* TODO: log message when the creation of the encoder fails *)
-      let nom,min,max = bitrate in
+      let average_rate,min_rate,max_rate = bitrate in
       match mode with
-        | ABR -> Vorbis_format.create_abr channels freq max nom min m
-        | CBR -> Vorbis_format.create_cbr channels freq nom m
-        | VBR -> Vorbis_format.create channels freq quality m
+        | ABR -> Vorbis_format.create_abr ~channels ~samplerate 
+                                          ~max_rate ~average_rate 
+                                          ~min_rate ~metadata ()
+        | CBR -> Vorbis_format.create_cbr ~channels ~samplerate 
+                                          ~bitrate:average_rate 
+                                          ~metadata ()
+        | VBR -> Vorbis_format.create ~channels ~samplerate 
+                                      ~quality ~metadata ()
     in
       Ogg_encoder.register_track ogg_enc enc
   in
   let src_freq = float (Fmt.samples_per_second ()) in
-  let dst_freq = float freq in
+  let dst_freq = float samplerate in
   let encode = 
     Ogg_output.encode_audio 
       ~stereo ~dst_freq ~src_freq () 

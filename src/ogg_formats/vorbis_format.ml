@@ -89,7 +89,7 @@ let create_gen enc freq m =
     Ogg.Stream.put_packet os p1;
     Ogg.Stream.flush_page os
   in
-  let fisbone_data os = 
+  let fisbone_packet os = 
     Some (Vorbis.Skeleton.fisbone
            ~serialno:(Ogg.Stream.serialno os)
            ~samplerate:(Int64.of_int freq) ())
@@ -97,9 +97,9 @@ let create_gen enc freq m =
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
     Ogg.Stream.put_packet os p3;
-    Ogg.Stream.flush_page os
+    Ogg.Stream.flush os
   in
-  let track_encoder ogg_enc data os =
+  let data_encoder ogg_enc data os =
     if not !started then 
       started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
@@ -120,18 +120,31 @@ let create_gen enc freq m =
       end;
     Vorbis.Encoder.end_of_stream enc os
   in
-  header_encoder,fisbone_data,stream_start,
-  (Ogg_encoder.Audio_encoder track_encoder),
-  end_of_stream
+  {
+   Ogg_encoder.
+    header_encoder = header_encoder;
+    fisbone_packet = fisbone_packet;
+    stream_start   = stream_start;
+    data_encoder   = (Ogg_encoder.Audio_encoder data_encoder);
+    end_of_stream  = end_of_stream
+  }
 
-let create_abr channels freq min max avg m = 
-  let enc = Vorbis.Encoder.create channels freq max avg min in
-  create_gen enc freq m
+let create_abr ~channels ~samplerate ~min_rate 
+               ~max_rate ~average_rate ~metadata () = 
+  let enc = 
+    Vorbis.Encoder.create channels samplerate max_rate 
+                          average_rate min_rate 
+  in
+  create_gen enc samplerate metadata
 
-let create_cbr channels freq brate = 
-  create_abr channels freq brate brate brate
+let create_cbr ~channels ~samplerate ~bitrate ~metadata () = 
+  create_abr ~channels ~samplerate ~min_rate:bitrate 
+             ~max_rate:bitrate ~average_rate:bitrate 
+             ~metadata ()
 
-let create channels freq quality m = 
-  let enc = Vorbis.Encoder.create_vbr channels freq quality in
-  create_gen enc freq m
+let create ~channels ~samplerate ~quality ~metadata () = 
+  let enc = 
+    Vorbis.Encoder.create_vbr channels samplerate quality 
+  in
+  create_gen enc samplerate metadata
 

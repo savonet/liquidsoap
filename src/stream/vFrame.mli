@@ -1,3 +1,5 @@
+(** Video frame manipulation *)
+
 type t = Frame.t
 
 (** Is it partially filled ? *)

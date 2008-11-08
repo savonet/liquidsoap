@@ -1,3 +1,5 @@
+(** Video data manipulation *)
+
 (** Raised when reading from a buffer of a file which is not of the expected
   * format *)
 exception Invalid_format of string

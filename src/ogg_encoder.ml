@@ -36,50 +36,60 @@ type 'a data =
     length : int
   }
 
-type ogg_data = 
+type track_data = 
   | Audio_data of audio data
   | Video_data of video data
 
-type ('a,'b) track_encoder = 'a -> 'b data -> Ogg.Stream.t -> unit
+(** Internal type, depends on type t, which is defined later.. *)
+type ('a,'b) internal_track_encoder = 'a -> 'b data -> Ogg.Stream.t -> unit
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
-type fisbone_data = Ogg.Stream.t -> Ogg.Stream.packet option
-type stream_start = Ogg.Stream.t -> Ogg.Page.t
+type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
+type stream_start = Ogg.Stream.t -> string
 type end_of_stream = Ogg.Stream.t -> unit
 
-type ('a,'b) track = 
+type ('a,'b) stream = 
   {
-    os             : Ogg.Stream.t;
-    encoder        : ('a,'b) track_encoder;
-    fisbone_data   : fisbone_data; 
-    stream_start   : stream_start;
-    end_of_stream  : end_of_stream
+    os           : Ogg.Stream.t;
+    encoder      : ('a,'b) internal_track_encoder;
+    fisbone_data : fisbone_packet; 
+    start_page   : stream_start;
+    stream_end   : end_of_stream
   } 
 
-type 'a ogg_track =
-  | Audio_track of (('a,audio) track)
-  | Video_track of (('a,video) track)
+type 'a track =
+  | Audio_track of (('a,audio) stream)
+  | Video_track of (('a,video) stream)
 
 (** You may register new tracks on state Eos or Bos.
   * You can't register new track on state Streaming. 
   * You may finalize at any state, provided at least 
   * single track is registered. However, this is not
   * recommended. *)
-type ogg_state = Eos | Streaming | Bos
+type state = Eos | Streaming | Bos
 
 type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.t option;
     encoded          : Buffer.t;
-    tracks           : (nativeint,t ogg_track) Hashtbl.t;
-    mutable state    : ogg_state ;
+    tracks           : (nativeint,t track) Hashtbl.t;
+    mutable state    : state ;
   }
 
-type ogg_data_encoder = 
-  | Audio_encoder of ((t,audio) track_encoder)
-  | Video_encoder of ((t,video) track_encoder)
+type 'a track_encoder = (t,'a) internal_track_encoder
 
-type ogg_encoder = header_encoder*fisbone_data*ogg_data_encoder*end_of_stream
+type data_encoder = 
+  | Audio_encoder of audio track_encoder
+  | Video_encoder of video track_encoder
+
+type stream_encoder =
+  {
+    header_encoder : header_encoder;
+    fisbone_packet : fisbone_packet;
+    stream_start   : stream_start;
+    data_encoder   : data_encoder;
+    end_of_stream  : end_of_stream
+  }
 
 let os_of_ogg_track x = 
   match x with
@@ -93,8 +103,8 @@ let fisbone_data_of_ogg_track x =
 
 let stream_start_of_ogg_track x =
   match x with
-    | Audio_track x -> x.stream_start
-    | Video_track x -> x.stream_start
+    | Audio_track x -> x.start_page
+    | Video_track x -> x.start_page
 
 (** As per specifications, we need a random injective sequence of
   * nativeint. This might not be assumed here, but chances are very low.. *)
@@ -127,6 +137,9 @@ let create ~skeleton id =
     state    = Bos;
   }
 
+let state encoder = 
+  encoder.state
+
 (** Get and remove encoded data.. *)
 let get_data encoder =
   let b = Buffer.contents encoder.encoded in
@@ -142,8 +155,11 @@ let add_page encoder (h,v) =
   Buffer.add_string encoder.encoded h;
   Buffer.add_string encoder.encoded v
 
-let register_track encoder (header_enc,fisbone_data,stream_start,
-                            track_enc,end_of_stream) =
+(** Add a string. *)
+let add_string encoder s = 
+  Buffer.add_string encoder.encoded s
+
+let register_track encoder track_encoder =
   if encoder.state = Streaming then
    begin
     log#f 4 "%s: Invalid new track: ogg stream already started.." encoder.id;
@@ -160,27 +176,27 @@ let register_track encoder (header_enc,fisbone_data,stream_start,
   let serial = get_serial () in
   let os = Ogg.Stream.create ~serial () in
   (** Encoder headers *) 
-  let (h,v) = header_enc os in
+  let (h,v) = track_encoder.header_encoder os in
   Buffer.add_string encoder.encoded (h^v);
   let track = 
-    match track_enc with
+    match track_encoder.data_encoder with
       | Audio_encoder encoder -> 
          Audio_track 
            { 
              os = os; 
              encoder = encoder;
-             fisbone_data = fisbone_data;
-             stream_start = stream_start;
-             end_of_stream = end_of_stream
+             fisbone_data = track_encoder.fisbone_packet;
+             start_page = track_encoder.stream_start;
+             stream_end = track_encoder.end_of_stream
            }
       | Video_encoder encoder -> 
          Video_track 
            { 
              os = os; 
              encoder = encoder;
-             fisbone_data = fisbone_data;
-             stream_start = stream_start;
-             end_of_stream = end_of_stream
+             fisbone_data = track_encoder.fisbone_packet;
+             start_page = track_encoder.stream_start;
+             stream_end = track_encoder.end_of_stream
            }
   in
   Hashtbl.add encoder.tracks serial track;
@@ -211,7 +227,7 @@ let streams_start encoder =
    (fun _ -> fun t ->
      let os = os_of_ogg_track t in
      let stream_start = stream_start_of_ogg_track t in
-     add_page encoder (stream_start os))
+     add_string encoder (stream_start os))
    encoder.tracks;
   (** Finish skeleton stream now. *)
   begin
@@ -286,10 +302,10 @@ let end_of_track encoder id =
   begin
     match track with
         | Video_track x -> 
-            x.end_of_stream x.os;
+            x.stream_end x.os;
             Buffer.add_string encoder.encoded (Ogg.Stream.flush x.os)
         | Audio_track x -> 
-            x.end_of_stream x.os;
+            x.stream_end x.os;
             Buffer.add_string encoder.encoded (Ogg.Stream.flush x.os)
   end;
   Hashtbl.remove encoder.tracks id;

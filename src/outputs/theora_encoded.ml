@@ -5,8 +5,11 @@ open Theora
 (** Output in a ogg theora *)
 
 let create_streams ~quality ~vorbis_quality =
-  let create_encoder ogg_enc m =
-    let enc = Theora_format.create_encoder ~quality m in
+  let create_encoder ogg_enc metadata =
+    let enc = 
+      Theora_format.create_encoder 
+        ~quality ~metadata () 
+    in
     Ogg_encoder.register_track ogg_enc enc
   in
   let encode =

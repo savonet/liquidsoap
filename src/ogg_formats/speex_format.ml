@@ -97,10 +97,11 @@ exception Internal
 exception Invalid_settings of string
 
 let create ~frames_per_packet ~mode ~vbr ~quality 
-           ~nb_channels ~bitrate ~rate ~abr ~meta ~complexity () =
+           ~channels ~bitrate ~samplerate ~abr ~metadata 
+           ~complexity () =
   let header =
     Speex.Header.init ~frames_per_packet ~mode
-                      ~vbr ~nb_channels ~rate ()
+                      ~vbr ~nb_channels:channels ~rate:samplerate ()
   in
   let enc = Speex.Encoder.init mode frames_per_packet in
   let f x y = 
@@ -111,7 +112,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   f Speex.SPEEX_SET_BITRATE bitrate;
   f Speex.SPEEX_SET_COMPLEXITY complexity; 
   f Speex.SPEEX_SET_ABR abr;
-  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
+  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE samplerate;
   if vbr then
     Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
   if vbr then
@@ -119,32 +120,32 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   else
     f Speex.SPEEX_SET_QUALITY quality;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
-  let p1,p2 = Speex.Header.encode_header_packetout header meta in
+  let p1,p2 = Speex.Header.encode_header_packetout header metadata in
   let header_encoder os = 
     Ogg.Stream.put_packet os p1;
     Ogg.Stream.flush_page os
   in
-  let fisbone_data _ = 
+  let fisbone_packet _ = 
     (** TODO: bind fisbone in ocaml-speex.. *)
     None
   in
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
-    Ogg.Stream.flush_page os
+    Ogg.Stream.flush os
   in
   let remaining_init =
-    if nb_channels > 1 then
+    if channels > 1 then
      [|[||];[||]|]
     else
      [|[||]|]
   in
   let remaining = ref remaining_init in
-  let track_encoder ogg_enc data os =
+  let data_encoder ogg_enc data os =
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length in
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
     let buf =
-     if nb_channels > 1 then
+     if channels > 1 then
          [|Array.append !remaining.(0) buf.(0);
            Array.append !remaining.(1) buf.(1)|]
      else
@@ -164,7 +165,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
           max (-32768) (min 32767 x)
         in
         let f x = Array.map  (fun x -> f (32767.*.x)) x in
-        if nb_channels > 1 then
+        if channels > 1 then
           [| f (Array.sub buf.(0) (frame_size*n) frame_size);
              f (Array.sub buf.(1) (frame_size*n) frame_size) |]
         else
@@ -175,7 +176,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
     try
       while true do
         let page =
-          if nb_channels > 1 then
+          if channels > 1 then
             Speex.Encoder.encode_page_int_stereo enc os feed
           else
             let feed () =
@@ -191,7 +192,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
           let n = !status in
           remaining := 
             if frame_size*n < len then
-              if nb_channels > 1 then
+              if channels > 1 then
                 [|Array.sub buf.(0) (frame_size*n) (len - frame_size*n);
                   Array.sub buf.(1) (frame_size*n) (len - frame_size*n)|]
               else
@@ -202,7 +203,12 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   let end_of_stream os = 
     Speex.Encoder.eos enc os
   in
-  header_encoder,fisbone_data,stream_start,
-  (Ogg_encoder.Audio_encoder track_encoder),
-  end_of_stream
+  {
+   Ogg_encoder.
+    header_encoder = header_encoder;
+    fisbone_packet = fisbone_packet;
+    stream_start   = stream_start;
+    data_encoder   = (Ogg_encoder.Audio_encoder data_encoder);
+    end_of_stream  = end_of_stream
+  }
 

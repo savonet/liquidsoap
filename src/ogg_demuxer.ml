@@ -69,6 +69,9 @@ let ogg_decoders : ((Ogg.Stream.packet -> bool)*
   Plug.plug =
     Plug.create ~doc:"Methods for decoding ogg streams." "ogg formats"
 
+let eos dec = 
+  dec.eos
+
 let test page = 
   let serial = Ogg.Page.serialno page in
   log#f 4 "Found a ogg logical stream, serial: %nx" serial;
