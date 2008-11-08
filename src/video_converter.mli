@@ -22,24 +22,8 @@
 
  (* Video format converters *)
 
-let log = Dtools.Log.make ["video.converter"]
-
-(* TODO: is it the good place for this ? *)
-let video_conf = 
-  Dtools.Conf.void ~p:(Configure.conf#plug "video") "Video settings"
-    ~comments:["Options related to video."] 
-
-let video_converter_conf =
-  Dtools.Conf.void ~p:(video_conf#plug "converter") "Video conversion"
-    ~comments:["Options related to video conversion."]
-
-let prefered_converter_conf = 
-  Dtools.Conf.string ~p:(video_converter_conf#plug "prefered") ~d:"gavl"
-  "Prefered video converter"
-
-let proportional_scale_conf =
-  Dtools.Conf.bool ~p:(video_converter_conf#plug "proportional_scale") ~d:true
-  "Prefered proportional scale."
+(** Plugin to add video-related configuration keys. *)
+val video_converter_conf : Dtools.Conf.ut
 
 (* From Gavl *)
 type rgb_format = 
@@ -63,30 +47,8 @@ type pixel_format =
   | RGB of rgb_format
   | YUV of yuv_format
 
-let string_of_pixel_format x = 
-  match x with
-    | RGB x ->
-        begin 
-          match x with
-            | Rgb_24  -> "RGB24"
-            | Bgr_24  -> "BGR32"
-            | Rgb_32  -> "RGB32"
-            | Bgr_32  -> "BGR32"
-            | Rgba_32 -> "RGBA32"
-        end
-    | YUV x ->
-        begin 
-          match x with
-            | Yuv_422  -> "YUV422"
-            | Yuv_444  -> "YUV444"
-            | Yuv_411  -> "YUV411"
-            | Yuv_410  -> "YUV410"
-            | Yuvj_420 -> "YUVJ420"
-            | Yuvj_422 -> "YUVJ422"
-            | Yuvj_444 -> "YUVJ444"
-        end
-
-type data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+(** Data fields are unsigned 8 bit interger arrays for now. *)
+type data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t 
 
 (** A frame is, for now, either packed RGB
   * or planar YUV, both containing
@@ -116,37 +78,15 @@ type frame =
     height     : int
   }
 
-let frame_of_internal_rgb f = 
-  let frame_data = 
-    { 
-      rgb_format = Rgba_32;
-      data = RGB.to_ba f;
-      stride = 4*(Fmt.video_width ())
-    }
-  in
-  { 
-    frame_data = Rgb frame_data;
-    width =  Fmt.video_width ();
-    height = Fmt.video_height ()
-  }
+(** Creates a frame with the data of an internal frame.
+  * No copy is done. Don't forget to call [unlock_frame]
+  * on the internal frame when processing is done. 
+  * TODO: fix this horrible hack ! *)
+val frame_of_internal_rgb : RGB.t -> frame 
 
-
-let frame_of_internal_yuv w h ((y,y_stride),(u,v,uv_stride)) =
-  let frame_data =
-    {
-      yuv_format = Yuvj_420;
-      y = y;
-      y_stride = y_stride;
-      u = u;
-      v = v;
-      uv_stride = uv_stride
-    }
-  in
-  {
-    frame_data = Yuv frame_data;
-    width =  w;
-    height = h
-  }
+(** Creates a frame from the data of an internal YUV frame. 
+  * Parameters are: with, height, data. *)
+val frame_of_internal_yuv : int -> int -> RGB.yuv -> frame
 
 (** [~proportional src dst] performs the 
   * conversion from frame src to frame dst.
@@ -158,42 +98,13 @@ type converter = proportional:bool -> frame -> frame -> unit
   * a fonction to create a converter. *)
 type converter_plug = (pixel_format list)*(pixel_format list)*(unit->converter)
 
-let video_converters : converter_plug Plug.plug =
-    Plug.create ~doc:"Methods for converting video frames." "video converters"
+(** Plugin to register new converters. *)
+val video_converters : converter_plug Plug.plug
 
-exception Exit of converter
-
-let find_converter src dst = 
-  try
-    begin
-      let prefered = prefered_converter_conf#get in
-      match video_converters#get prefered with
-        | None -> log#f 4 "Couldn't find prefered decoder %s" prefered
-        | Some (sf,df,f) -> 
-            if List.mem src sf && List.mem dst df then
-             begin
-              log#f 4 "Using prefered converter: %s" prefered;
-              raise (Exit (f ()))
-             end
-            else
-              log#f 4 "Default parser %s cannot do %s->%s" prefered
-                       (string_of_pixel_format src)
-                       (string_of_pixel_format dst)
-    end;   
-    List.iter
-      (fun (name,(sf,df,f)) ->
-           log#f 4 "Trying %s converter" name ;
-           if List.mem src sf && List.mem dst df then
-             raise (Exit (f ()))
-           else ())
-      video_converters#get_all;
-    log#f 4 "Couldn't find a converter from \
-                 format %s to format %s" 
-                 (string_of_pixel_format src)
-                 (string_of_pixel_format dst);
-    raise Not_found
-  with
-    | Exit x -> x ~proportional:proportional_scale_conf#get
-
-
+(** [find_converter source destination] tries
+  * to find a converter from source format 
+  * to destination format. Proportional scale
+  * is implicitely set via global configuration key 
+  * for now. Returns a conversion function: frame -> frame -> unit. *)
+val find_converter : pixel_format -> pixel_format -> (frame -> frame -> unit)
 

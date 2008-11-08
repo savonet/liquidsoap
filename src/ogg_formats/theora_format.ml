@@ -172,12 +172,15 @@ let create_encoder ~quality ~metadata () =
                     data.Ogg_encoder.length 
     in
     for i = ofs to ofs+len-1 do
+      let rgb = b.(0).(i) in
+      let frame = Video_converter.frame_of_internal_rgb b.(0).(i) in
       convert
-        (Video_converter.frame_of_internal_rgb b.(0).(i)) (* TODO: multiple channels.. *)
+        frame (* TODO: multiple channels.. *)
         (Video_converter.frame_of_internal_yuv
         (Fmt.video_width ())
         (Fmt.video_height ())
-             yuv); (* TODO: custom video size.. *)
+             yuv); (* TODO: custom video size.. *);
+      RGB.unlock_frame rgb;
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in

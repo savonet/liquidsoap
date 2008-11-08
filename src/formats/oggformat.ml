@@ -67,12 +67,15 @@ let decoder file sync fd =
             int_of_float (buf.Ogg_demuxer.fps +. 0.5) <> Fmt.video_frames_per_second () (* TODO: more precise? + convert fps *)
           then
             assert false;
+          let rgb = b.(c).(i) in
+          let frame = Video_converter.frame_of_internal_rgb rgb in
           convert 
             (Video_converter.frame_of_internal_yuv  
               buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height 
               ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
                 (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride)))
-            (Video_converter.frame_of_internal_rgb b.(c).(i))
+            frame;
+          RGB.unlock_frame rgb
         in
         feed
       in
