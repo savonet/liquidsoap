@@ -81,7 +81,7 @@ let init () =
             with
               | Duration -> if source = User then raise Duration else None
           else
-            None
+            if source <> User then None else raise Duration
         in
         let time = Unix.time () in
         let trackauth =

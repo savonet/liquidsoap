@@ -34,7 +34,7 @@ let () =
       Some "Source for tracks. Should be one of: \"broadcast\", \"user\", \"recommendation\" \
             or \"unknown\". Since liquidsoap is intented for radio broadcasting, this is the default. \
             Sources other than user don't need duration to be set.";
-      "length",Lang.bool_t,Some (Lang.bool true),
+      "length",Lang.bool_t,Some (Lang.bool false),
       Some "Try to submit length information. This operation can be CPU intensive. \
             Value forced to true when used with the \"user\" source type.";
       "",Lang.metadata_t,None,None ]

@@ -39,21 +39,26 @@ let conf_mime_types =
     "Mime-types used for guessing formats"
     ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
 
+let check file = 
+  if conf_mime#get then
+    match Configure.file_mime file with
+      (* libmagic does not always detect mp3 as audio/mpeg
+       * (Repeat after me: mp3 formats sucks, mp3 format.... )
+       * So it might return other types.
+       * We hope other formats like jpeg, gif, etc..
+       * will most likely be correctly detected *)
+      | Some s when List.mem s conf_mime_types#get -> true
+      | None -> true
+      | Some s ->
+         log#f 2 "Mime type for %s is not valid: %s" file s;
+         false
+  else
+   (** Mime check disabled.. *)
+   true
+
 let decoder file =
-  begin
-    if conf_mime#get then
-      match Configure.file_mime file with
-        (* libmagic does not always detect mp3 as audio/mpeg
-         * (Repeat after me: mp3 formats sucks, mp3 format.... )
-         * So it might return other types.
-         * We hope other formats like jpeg, gif, etc.. 
-         * will most likely be correctly detected *)
-        | Some s when List.mem s conf_mime_types#get -> ()
-        | None -> ()
-        | Some s ->
-          log#f 2 "Mime type for %s is not valid: %s" file s;
-          assert false
-  end ;
+  if not (check file) then
+    assert false;
   let fd =
     log#f 4 "open %S" file ;
     Mad.openfile file
@@ -111,6 +116,8 @@ let decoder file =
     { Decoder.fill = fill ; Decoder.close = close }
 
 let duration file =
+  if not (check file) then
+    raise Not_found;
   let ans = Mad.duration file in
   match ans with
     | 0. -> raise Not_found
