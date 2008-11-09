@@ -125,9 +125,9 @@ let create ~frames_per_packet ~mode ~vbr ~quality
     Ogg.Stream.put_packet os p1;
     Ogg.Stream.flush_page os
   in
-  let fisbone_packet _ = 
-    (** TODO: bind fisbone in ocaml-speex.. *)
-    None
+  let fisbone_packet os =
+    let serialno = Ogg.Stream.serialno os in 
+    Some (Speex.Skeleton.fisbone ~header ~serialno ())
   in
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
