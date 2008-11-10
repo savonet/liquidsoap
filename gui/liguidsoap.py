@@ -8,6 +8,8 @@ import gobject
 import threading, socket, sys, os, time, re
 import getopt
 
+import tempfile
+
 from client import LiqClient
 from widgets import View
 
@@ -104,6 +106,7 @@ This is free software, released under the terms of GPL version 2 or higher.
 # liquidsoap runs liquidsoap with a fixed script
 # a few parameteres are available
 def liquidsoap(
+    scriptfile,
     host='localhost',port=1234,mount='emission.ogg',
     backup=''):
   if backup=='':
@@ -111,7 +114,7 @@ def liquidsoap(
   else:
     addbackup=';"backup"'
 
-  os.system("""cat > /tmp/liguidsoap.liq <<__EOL__
+  os.system("""cat > %s <<__EOL__
 set("log.file.path","/tmp/lig.<pid>.log")
 set("log.stdout",true)
 set("server.telnet",true)
@@ -132,10 +135,10 @@ output.icecast.vorbis(
   id="broadcast",
   host="%s",port=%d,mount="%s",start=false,mixer)
 output.file.vorbis(id="backup",start=false,"%s",mixer)
-""" % (host, port, mount, backup))
+""" % (scriptfile, host, port, mount, backup))
   pid = os.fork()
   if pid==0:
-    os.execlp("liquidsoap","liquidsoap","/tmp/liguidsoap.liq")
+    os.execlp("liquidsoap","liquidsoap",scriptfile)
   else:
     print "Running liquidsoap..."
     return pid
@@ -162,10 +165,11 @@ def liguidsoap():
   ehost=eport=erun=dialog=None
   icehost=iceport=icemount=backup=None
 
-  def exit(pid):
+  def exit(pid, scriptfile):
     if pid!=None:
       os.kill(pid,15)
       os.waitpid(pid,0)
+    os.remove(scriptfile)
     gtk.main_quit()
 
   # This startup function can be used to start the GUI directly
@@ -173,12 +177,15 @@ def liguidsoap():
   def start(response=None):
     # Dialog stuff
     liquid_pid=None
+    scriptfile=None
     if response!=None:
       if response!=gtk.RESPONSE_ACCEPT:
         sys.exit()
       if erun.get_active():
         host,port = 'localhost',1234
+        __unused, scriptfile = tempfile.mkstemp('.liq', 'liquidsoap')
         liquid_pid=liquidsoap(
+            scriptfile,
             host=icehost.get_text(),
             port=iceport.get_value(),
             mount=icemount.get_text(),
@@ -195,7 +202,7 @@ def liguidsoap():
     win = gtk.Window()
     win.set_border_width(10)
     win.connect("delete_event", lambda w,e: False)
-    win.connect("destroy", lambda osb: exit(liquid_pid))
+    win.connect("destroy", lambda osb: exit(liquid_pid,scriptfile))
     win.set_title('Liquidsoap on '+host+':'+str(port))
     win.resize(700,300)
     try:
