@@ -22,12 +22,7 @@
 
 open Source
 
-let hashtbl_to_langlist h =
-  let l = Hashtbl.fold (fun k v l -> (k,v)::l) h [] in
-    Lang.list
-      (List.map (fun (a,b) -> Lang.product (Lang.string a) (Lang.string b)) l)
-
-class append ~merge source f =
+class append ~insert_missing ~merge source f =
 object (self)
   inherit operator [source]
 
@@ -39,12 +34,18 @@ object (self)
           let start = Frame.position buf in
             source#get buf ;
             let finished = Frame.is_partial buf in
-              begin match Frame.get_metadata buf start with
+              begin match
+                let m = Frame.get_metadata buf start in
+                  if insert_missing && m = None then
+                    Some (Hashtbl.create 10)
+                  else
+                    m
+              with
                 | Some m when
                   Utils.hashtbl_get m "liq_append" <> Some "false" ->
                     let append =
                       Lang.to_source
-                        (Lang.apply f ["",hashtbl_to_langlist m])
+                        (Lang.apply f ["",Lang.metadata m])
                     in
                       self#register append ;
                       if finished then
@@ -52,12 +53,17 @@ object (self)
                           state <- `Append append ;
                           if merge then self#get_frame buf
                         end else begin
+                          self#log#f 3
+                            "Track ends and append source is not ready: \
+                             won't append." ;
                           self#unregister append ;
                           state <- `Idle
                         end
                       else
                         state <- `Replay (Some append)
                 | _ ->
+                    self#log#f 3 "No metadata at beginning of track: \
+                                  won't append." ;
                     state <- if finished then `Idle else `Replay None
               end
       | `Replay None ->
@@ -69,8 +75,12 @@ object (self)
             if a#is_ready then begin
               state <- `Append a ;
               if merge then self#get_frame buf
-            end else
-              state <- `Idle
+            end else begin
+              self#log#f 3
+                "Track ends and append source is not ready: won't append." ;
+              state <- `Idle ;
+              self#unregister a
+            end
       | `Append a ->
           a#get buf ;
           if Frame.is_partial buf then begin
@@ -131,25 +141,27 @@ let register =
   Lang.add_operator "append"
     [ "merge",Lang.bool_t,Some (Lang.bool false),
       Some "Merge the track with its appended track." ;
-      
+
+      "insert_missing",Lang.bool_t,Some (Lang.bool true),
+      Some "Treat track beginnings without metadata as having empty one." ;
+
       "", Lang.source_t, None, None ;
 
       "",
-      Lang.fun_t
-        [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
-        Lang.source_t,
+      Lang.fun_t [false,"",Lang.metadata_t] Lang.source_t,
       None,
       Some
-        ("Given the metadata, build the source producing the track to append."^
-         " This source is allowed to fail (produce nothing) if no relevant "^
-         "track is to be appended.")
+        "Given the metadata, build the source producing the track to append. \
+         This source is allowed to fail (produce nothing) if no relevant \
+         track is to be appended."
     ]
     ~category:Lang.TrackProcessing
-    ~descr:("Append an extra track to every track."^
-            "Set the metadata 'liq_append' to 'false' to "^
-            "inhibit appending on one track.")
+    ~descr:"Append an extra track to every track. \
+            Set the metadata 'liq_append' to 'false' to \
+            inhibit appending on one track."
     (fun p ->
        let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
+       let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
        let source = Lang.to_source (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-         ((new append ~merge source f):>source))
+         ((new append ~insert_missing ~merge source f):>source))
