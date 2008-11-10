@@ -136,7 +136,7 @@ object(self)
     (** Ogg encoders may be registered only now,
       * in order to avoid empty streams with mksafe and
       * the like. *)
-    if Ogg_encoder.state enc = Ogg_encoder.Bos then
+    if Ogg_encoder.state enc <> Ogg_encoder.Streaming then
       self#create_encoders [];
     let encode _ (id,_,f) = 
       let id = Utils.get_some !id in
