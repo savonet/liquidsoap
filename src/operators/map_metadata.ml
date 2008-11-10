@@ -82,13 +82,14 @@ let register =
       None, Some "A function that returns new metadata." ;
       "update", Lang.bool_t, Some (Lang.bool true),
       Some "Only update metadata. If false, only returned values \
-      will be set as metadata." ;
+            will be set as metadata." ;
       "strip", Lang.bool_t, Some (Lang.bool false),
       Some "Completly remove empty metadata. Operates on both empty values \
-      and empty metadata chunk.";
+            and empty metadata chunk.";
       "insert_missing", Lang.bool_t, Some (Lang.bool true),
       Some "Treat track beginnings without metadata as having empty ones. \
-      The operational order is: create empty if needed, map and strip if enabled." ;
+            The operational order is: create empty if needed, map and strip \
+            if enabled." ;
       "", Lang.source_t, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Rewrite metadata on the fly using a function."

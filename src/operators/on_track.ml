@@ -38,12 +38,7 @@ object
         let m =
           match Frame.get_metadata ab p with
             | None -> Lang.list []
-            | Some m ->
-                Lang.list
-                  (Hashtbl.fold
-                     (fun k v l ->
-                        (Lang.product (Lang.string k) (Lang.string v))::l)
-                     m [])
+            | Some m -> Lang.metadata m
         in
           ignore (Lang.apply f ["",m]) ;
           called <- true
@@ -59,9 +54,12 @@ let () =
         [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
         Lang.unit_t,
       None,
-      Some ("Function called on every beginning of track in the stream, "^
-            "with the corresponding metadata as argument. "^
-            "It should be fast because it is ran in the main thread.") ;
+      Some "Function called on every beginning of track in the stream, \
+            with the corresponding metadata as argument. \
+            If there is no metadata at the beginning of track, the empty \
+            list is passed. \
+            That function should be fast because it is ran in the main \
+            thread." ;
       "", Lang.source_t, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on new tracks."
