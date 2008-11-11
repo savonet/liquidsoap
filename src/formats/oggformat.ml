@@ -26,6 +26,20 @@ module Generator = Float_pcm.Generator
 
 let log = Dtools.Log.make ["ogg.demuxer"]
 
+(* Opaque converter *)
+let converter = ref None
+let converter () =
+  match !converter with
+    | None ->
+      let conv =  
+        Video_converter.find_converter
+          (Video_converter.YUV Video_converter.Yuvj_420)
+          (Video_converter.RGB Video_converter.Rgba_32)
+      in
+      converter := Some conv;
+      conv
+    | Some conv -> conv
+
 let decoder file sync fd =
   let decoder = Ogg_demuxer.init sync in
   let init_meta = ref true in
@@ -42,12 +56,6 @@ let decoder file sync fd =
     try
       Unix.close fd
     with _ -> ()
-  in
-  (* Opaque converter *)
-  let convert = 
-    Video_converter.find_converter 
-      (Video_converter.YUV Video_converter.Yuvj_420)
-      (Video_converter.RGB Video_converter.Rgba_32)
   in
   let fill buf =
     assert (not !closed) ;
@@ -69,6 +77,7 @@ let decoder file sync fd =
             assert false;
           let rgb = b.(c).(i) in
           let frame = Video_converter.frame_of_internal_rgb rgb in
+          let convert = converter () in
           convert 
             (Video_converter.frame_of_internal_yuv  
               buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height 
