@@ -1,6 +1,7 @@
 
 SUBDIRS= operators sources tools formats protocols outputs io plugins stream \
-         visualization lang analyze playlists ogg_formats video_converters
+         visualization lang analyze playlists ogg_formats video_converters \
+         audio_converters
 
 DISTFILES = $(wildcard *.mli) Makefile \
 	$(wildcard *.ml) META.in
@@ -14,9 +15,13 @@ ogg_utils = \
 	$(if $(W_THEORA),ogg_formats/theora_format.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_format.ml)
 
+audio_converters = \
+	audio_converters/native_audio_converter.ml \
+	$(if $(W_SAMPLERATE),audio_converters/libsamplerate_converter.ml)
+
 video_converters = \
 	video_converter.ml \
-	video_converters/native_converter.ml \
+	video_converters/native_video_converter.ml \
 	$(if $(W_GAVL),video_converters/gavl_converter.ml)
 
 formats = \
@@ -131,15 +136,15 @@ visualization = visualization/vumeter.ml \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
 	$(if $(W_GL),visualization/vis_glvolume.ml)
 
-liquidsoap_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
-	stream/vFrame.ml \
+liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
+	stream/aFrame.ml stream/vFrame.ml \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	decoder.ml playlist_parser.ml request.ml source.ml root.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
-	tools/harbor.ml $(video_converters) \
+	tools/harbor.ml $(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(visualization) $(formats) \
 	shebang.ml \
@@ -150,10 +155,12 @@ liquidsoap_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
 
 OCAML_CFLAGS= -thread \
 	-I tools -I lang -I playlists -I stream -I outputs -I formats -I video_converters \
-	-I sources -I operators -I io -I visualization -I analyze -I ogg_formats
+	-I sources -I operators -I io -I visualization -I analyze -I ogg_formats \
+	-I audio_converters
 OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp)
 DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists -I video_converters \
-		  -I outputs -I io -I stream -I visualization -I analyze -I ogg_formats
+		  -I outputs -I io -I stream -I visualization -I analyze -I ogg_formats \
+		  -I audio_converters
 
 liquidsoap_doc_sources= \
 	source.ml root.ml \
@@ -204,14 +211,14 @@ profile:
 	cd lang; ocamlc -c -I .. -I ../tools lang_values.ml
 	$(MAKE)
 
-libliq_sources= $(tools) SVN.ml $(stream) stream/aFrame.ml \
-	shebang.ml playlist_parser.ml \
+libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
+	stream/vFrame.ml stream/aFrame.ml shebang.ml playlist_parser.ml \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	decoder.ml request.ml source.ml root.ml \
 	tools/server.ml tools/server_builtins.ml \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
-	tools/harbor.ml $(video_converters) \
+	tools/harbor.ml $(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(formats) \
 	lang/lang_builtins.ml
