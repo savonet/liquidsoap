@@ -32,6 +32,8 @@ object (self)
 
   val mutable elapsed = 0
 
+  val samplerate_converter = Audio_converter.Samplerate.create (Fmt.channels ())
+
   method remaining =
     let rem = s#remaining in
       if rem = -1 then -1 else
@@ -53,7 +55,8 @@ object (self)
           && (ratio *. float (stop-start) > 1.)
         then
           let data =
-            Float_pcm.resample ratio buf start (stop-start)
+            Audio_converter.Samplerate.resample samplerate_converter 
+              ratio buf start (stop-start)
           in
           let len = Array.length data.(0) in
             Array.iteri

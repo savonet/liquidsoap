@@ -1,0 +1,90 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2008 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
+
+ (** External audio conversion utilities *)
+
+let log = Dtools.Log.make ["audio";"converter"]
+
+(** TODO: is it the right place for this ? *)
+let audio_conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "audio") "Audio settings"
+    ~comments:["Options related to audio."]
+
+let converter_conf =
+  Dtools.Conf.void ~p:(audio_conf#plug "converter") "Conversion settings"
+    ~comments:["Options related to audio conversion."]
+
+module Samplerate=
+struct
+
+  exception Invalid_data
+
+  type converter = float -> float array -> int -> int -> float array
+
+  type converter_plug = unit -> converter
+
+  type t = converter array
+
+  let samplerate_conf =
+    Dtools.Conf.void ~p:(converter_conf#plug "samplerate") "Samplerate conversion settings"
+      ~comments:["Options related to samplerate conversion."]
+
+  let prefered_conf = 
+    Dtools.Conf.string ~p:(samplerate_conf#plug "prefered") "Prefered samplerate converter"
+      ~d:"libsamplerate" ~comments:["Prefered samplerate converter."]
+
+  let converters : converter_plug Plug.plug =
+    Plug.create ~doc:"Methods for converting samplerate." "samplerate converters"
+
+  let create channels = 
+    let prefered = prefered_conf#get in
+    match converters#get prefered with
+      | Some v -> 
+         Array.init channels (fun _ -> v ())
+      | None -> 
+         (* List should never be empty, since at least 
+          * the native converter is available.. *)
+         let (_,v) = List.hd converters#get_all in
+         Array.init channels (fun _ -> v ())
+
+  let resample conv ratio data ofs len = 
+    if Array.length conv <> Array.length data then
+      raise Invalid_data;
+    Array.mapi
+      (fun i -> fun x -> conv.(i) ratio x ofs len)
+      data
+  
+  (** Log which converter is used at start. *) 
+  let () = 
+    ignore(Dtools.Init.at_start
+      (fun () ->  
+         let prefered = prefered_conf#get in
+         match converters#get prefered with
+           | Some v ->
+              log#f 4 "Using prefered samplerate converter: %s" prefered;
+           | None ->
+              log#f 4 "Couldn't find prefered samplerate converter: %s" prefered;
+              let (n,_) = List.hd converters#get_all in
+              log#f 4 "Using %s samplerate converter" n))
+
+end  
+

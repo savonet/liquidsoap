@@ -35,13 +35,7 @@ val from_s16le : float array array -> int -> string -> int -> int -> unit
 val from_s16le_ni : float array array -> int -> string array -> int -> int -> unit
 
 (** Multiply samplerate by the given ratio. *)
-val resample : float -> float array array -> int -> int -> float array array
-
-(** Operations for one channel only. *)
-module Channel :
-sig
-  val resample : float -> float array -> int -> int -> float array
-end
+val native_resample : float -> float array -> int -> int -> float array
 
 module Generator :
   sig

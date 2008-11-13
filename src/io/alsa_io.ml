@@ -167,6 +167,8 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
+  val samplerate_converter = Audio_converter.Samplerate.create (Fmt.channels ())
+
   method stype = Source.Infallible
   method remaining = source#remaining
   method get_frame buf = source#get buf
@@ -182,7 +184,10 @@ object (self)
       if alsa_rate = samples_per_second then
         buf
       else
-        Float_pcm.resample (float alsa_rate /. float samples_per_second) buf 0 (Array.length buf)
+        Audio_converter.Samplerate.resample 
+          samplerate_converter
+          (float alsa_rate /. float samples_per_second) 
+          buf 0 (Array.length buf)
     in
       try
         let r = ref 0 in

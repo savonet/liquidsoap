@@ -42,6 +42,9 @@ let encode_audio ~stereo ~src_freq ~dst_freq () =
     else
       Float_pcm.create_buffer 1 (Fmt.samples_per_frame())
   in
+  let samplerate_converter = 
+    Audio_converter.Samplerate.create (Fmt.channels ())
+  in
   let encode encoder id frame ofs len = 
     let b = AFrame.get_float_pcm frame in
     let ofs = Fmt.samples_of_ticks ofs in
@@ -60,8 +63,8 @@ let encode_audio ~stereo ~src_freq ~dst_freq () =
     in
     let buf,ofs,len =
       if src_freq <> dst_freq then
-        let b = Float_pcm.resample
-          (dst_freq /. src_freq)
+        let b = Audio_converter.Samplerate.resample
+          samplerate_converter (dst_freq /. src_freq)
           b ofs len
         in
         b,0,Array.length b.(0)

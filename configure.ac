@@ -1012,17 +1012,8 @@ fi
 
 AC_SUBST(W_SAMPLERATE)
 if test "a$W_SAMPLERATE" = "ayes" ; then
-  cat >> src/configure.ml << EOCONF
-let resample =
-  if env_has "LIQ_DISABLE_SAMPLERATE" then
-    None
-  else
-    Some (fun ratio buf offs len ->
-            Samplerate.convert Samplerate.Conv_fastest 1 ratio buf offs len)
-EOCONF
   w_SAMPLERATE=yes
 else
-  echo "let resample = None" >> src/configure.ml
   w_SAMPLERATE=no
 fi
 

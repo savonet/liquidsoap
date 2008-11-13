@@ -66,7 +66,7 @@ let to_s16le_ni buf ofs len dst dst_ofs =
 external float_blit : float array -> int -> float array -> int -> int -> unit
      = "caml_float_array_blit"
 
-let resample ratio inbuf offs len =
+let native_resample ratio inbuf offs len =
   if ratio = 1. then
     if offs = 0 && len = Array.length inbuf then
       inbuf (* Array.copy inbuf (* TODO: can we return inbuf itself? *) *)
@@ -85,16 +85,6 @@ let resample ratio inbuf offs len =
       done;
       outbuf
 
-let resample =
-  match Configure.resample with
-    | Some f -> f
-    | None -> resample
-
-module Channel =
-struct
-  let resample = resample
-end
-
 (** Accumulate float PCM and generate float_pcm tracks. *)
 module Generator =
 struct
@@ -102,6 +92,7 @@ struct
     (* Format *)
     out_freq  : int;
     out_chans : int;
+    resample  : float -> float array array -> int -> int -> float array array;
     (* Accumulated input data. *)
     mutable metadata : (int*Frame.metadata) list ;
     mutable breaks   : int list ;
@@ -111,12 +102,15 @@ struct
   }
 
   let create ?(out_freq = Fmt.samples_per_second())
-             ?(out_chans = Fmt.channels()) () = {
+             ?(out_chans = Fmt.channels()) () = 
+  let conv = Audio_converter.Samplerate.create out_chans in
+  {
     out_freq=out_freq;
     out_chans=out_chans;
     metadata=[];
     breaks=[];
     length=0 ;
+    resample=Audio_converter.Samplerate.resample conv;
     offset=0 ;
     buffers=Queue.create () ;
   }
@@ -130,12 +124,6 @@ struct
     abg.metadata <- [];
     abg.breaks <- []
 
-  let resample infreq outfreq a =
-    if infreq = outfreq then a
-    else
-      let ratio = float outfreq /. float infreq in
-        resample ratio a 0 (Array.length a)
-
   let feed abg ?(sample_freq = Fmt.samples_per_second()) buf =
     let buf =
       match Array.length buf with
@@ -147,7 +135,10 @@ struct
         | 0 -> failwith "Generator.feed: no channels"
         | _ -> failwith "Generator.feed: not enough channels"
     in
-    let buf = Array.map (resample sample_freq abg.out_freq) buf in
+    let buf = 
+      abg.resample (float abg.out_freq /. float sample_freq) buf 
+                   0 (Array.length buf.(0))
+    in
       abg.length <- abg.length + (Array.length buf.(0)) ;
       Queue.add buf abg.buffers
 
@@ -360,9 +351,6 @@ let from_s16le_ni dbuf dofs buf ofs len =
   done
 
 (* Sound processing *)
-
-let resample x buf off len =
-  Array.map (fun b -> resample x b off len) buf
 
 let multiply a off len c =
   for i = 0 to Array.length a - 1 do

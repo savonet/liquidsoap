@@ -41,6 +41,8 @@ object (self)
 
   val databuf = Frame.make ()
 
+  val converter = Audio_converter.Samplerate.create (Fmt.channels ())
+
   val mutable dpos = 0
 
   method get_frame buf =
@@ -51,7 +53,8 @@ object (self)
             AFrame.clear databuf;
             source#get databuf;
             let db = AFrame.get_float_pcm databuf in
-              data <- Float_pcm.resample (ratio ()) db 0 (Array.length db.(0));
+              data <- Audio_converter.Samplerate.resample converter
+                         (ratio ()) db 0 (Array.length db.(0));
               dpos <- 0
           );
         for c = 0 to (Fmt.channels()) - 1 do

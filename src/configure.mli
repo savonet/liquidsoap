@@ -32,9 +32,6 @@ val tts_program : string
 val rundir : string
 val logdir : string
 
-(** Function used to change the sampling frequency of an audio buffer. *)
-val resample : (float -> float array -> int -> int -> float array) option
-
 (** Display infered types. *)
 val display_types : bool ref
 

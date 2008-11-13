@@ -59,6 +59,8 @@ object (self)
     (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
   val mutable ring = Ringbuffer.create channels 0
 
+  val samplerate_converter = Audio_converter.Samplerate.create (Fmt.channels ())
+
   val mutable sleep = false
   method output_stop = sleep <- true
 
@@ -132,7 +134,9 @@ object (self)
   method output_send buf =
     let buf = AFrame.get_float_pcm buf in
     let ratio = float alsa_rate /. float samples_per_second in
-    let buf = Float_pcm.resample ratio buf 0 (Array.length buf.(0)) in
+    let buf = Audio_converter.Samplerate.resample samplerate_converter 
+                  ratio buf 0 (Array.length buf.(0)) 
+    in
       if Ringbuffer.write_space ring < Array.length buf.(0) then begin
         if false then self#log#f 3 "Reader is late!" ;
         (* Thread.delay (Mixer.Buffer.length/.2.) *)

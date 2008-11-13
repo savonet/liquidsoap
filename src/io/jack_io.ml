@@ -121,6 +121,17 @@ object
 
   val mutable port = [||]
 
+  val sample_converters =
+    Array.init (Array.length port_names)
+      (fun _ -> Audio_converter.Samplerate.create 1)
+
+  method resample i ratio b ofs len =
+   let conv = sample_converters.(i) in
+   let ret =
+     Audio_converter.Samplerate.resample conv ratio [|b|] ofs len
+   in
+   ret.(0)
+
   method output_get_ready =
     let c = client () in
       port <-
@@ -212,7 +223,7 @@ object (self)
         in
         (* Resample data. *)
         let buf =
-          if coef = 1. then buf else Float_pcm.Channel.resample coef buf 0 n
+          if coef = 1. then buf else self#resample chan coef buf 0 n
         in
         let buflen = Array.length buf in
         let chanlen = Array.length dest.(chan) in
@@ -259,7 +270,7 @@ object (self)
 
       for chan = 0 to Array.length port_names - 1 do
         let buf =
-          Float_pcm.Channel.resample
+          self#resample chan 
             (float (Jack.Client.get_sample_rate (client ())) /. float (Fmt.samples_per_second ()))
             s.(chan)
             0

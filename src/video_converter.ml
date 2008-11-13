@@ -22,7 +22,7 @@
 
  (* Video format converters *)
 
-let log = Dtools.Log.make ["video.converter"]
+let log = Dtools.Log.make ["video";"converter"]
 
 (* TODO: is it the good place for this ? *)
 let video_conf = 
