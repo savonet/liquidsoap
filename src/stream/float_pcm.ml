@@ -68,14 +68,9 @@ external float_blit : float array -> int -> float array -> int -> int -> unit
 
 let native_resample ratio inbuf offs len =
   if ratio = 1. then
-    if offs = 0 && len = Array.length inbuf then
-      inbuf (* Array.copy inbuf (* TODO: can we return inbuf itself? *) *)
-    else
-      (
         let outbuf = Array.make len 0. in
           float_blit inbuf offs outbuf 0 len;
           outbuf
-      )
   else
     let outlen = int_of_float (float len *. ratio) in
     let outbuf = Array.make outlen 0. in

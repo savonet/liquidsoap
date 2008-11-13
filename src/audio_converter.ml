@@ -69,9 +69,13 @@ struct
   let resample conv ratio data ofs len = 
     if Array.length conv <> Array.length data then
       raise Invalid_data;
-    Array.mapi
-      (fun i -> fun x -> conv.(i) ratio x ofs len)
-      data
+    let convert i b = 
+      if ratio = 1. then
+        Array.sub b ofs len
+    else
+        conv.(i) ratio b ofs len
+    in 
+    Array.mapi convert data
   
   (** Log which converter is used at start. *) 
   let () = 
