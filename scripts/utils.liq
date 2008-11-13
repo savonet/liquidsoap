@@ -384,11 +384,19 @@ if test_process("which metaflac") then
       ret = get_process_lines("metaflac --export-tags-to=- \
                    #{quote(file)} 2>/dev/null")
       ret = list.map(string.split(separator="="),ret)
-      # Yea, this is tuff programming !
-      def first_two(l)=
-        (list.hd(l),list.nth(l,1))
+      # Could be made better..
+      def f(l',l)=
+        if list.length(l) >= 2 then
+          list.append([(list.hd(l),list.nth(l,1))],l')
+        else
+          if list.length(l) >= 1 then
+            list.append([(list.hd(l),"")],l')
+          else
+            l'
+          end
+        end
       end
-      list.map(first_two,ret)
+      list.fold(f,[],ret)
     end
   end
   add_metadata_resolver("FLAC",flac_meta)
