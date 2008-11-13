@@ -57,6 +57,11 @@ let decoder file sync fd =
       Unix.close fd
     with _ -> ()
   in
+  if not (Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder) ||
+     not (Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder)
+    then
+    (** No decodable data, raising Not_found.. *)
+      raise Not_found;
   let fill buf =
     assert (not !closed) ;
 
@@ -177,6 +182,10 @@ let () =
 exception Metadata of (string*string) list
 
 let get_tags ~format file =
+  (* Fail if file is not decoded using the OGG 
+   * demuxer. *)
+  if format <> "OGG" then
+    raise Not_found;
   let sync,fd = Ogg.Sync.create_from_file file in
   let close () = 
     try
