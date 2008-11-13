@@ -321,13 +321,16 @@ let local_check t =
               t.decoder <- Some f ;
               mresolvers#iter
                 (fun _ resolver ->
-                   let ans = resolver ~format name in
-                     List.iter
-                       (fun (k,v) ->
-                          (* XXX Policy ? Never/always overwrite ? *)
-                          Hashtbl.replace indicator.metadata
-                            (String.lowercase k) (cleanup v))
-                       ans) ;
+                   try
+                     let ans = resolver ~format name in
+                       List.iter
+                         (fun (k,v) ->
+                            (* XXX Policy ? Never/always overwrite ? *)
+                            Hashtbl.replace indicator.metadata
+                              (String.lowercase k) (cleanup v))
+                         ans;
+                   with
+                     | _ -> ()) ;
               t.status <- Ready
           | None -> pop_indicator t
       done
