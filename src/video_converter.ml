@@ -163,31 +163,38 @@ let video_converters : converter_plug Plug.plug =
 
 exception Exit of converter
 
+(** Only log prefered decoder availability once at start. *)
+let () = 
+  ignore(Dtools.Init.at_start
+    (fun () ->
+      let prefered = prefered_converter_conf#get in
+      match video_converters#get prefered with
+        | None -> log#f 4 "Couldn't find prefered video converter: %s" prefered
+        | _ -> log#f 4 "Using prefered video converter: %s" prefered)) 
+
+
 let find_converter src dst = 
   try
     begin
       let prefered = prefered_converter_conf#get in
       match video_converters#get prefered with
-        | None -> log#f 4 "Couldn't find prefered decoder %s" prefered
+        | None -> ()
         | Some (sf,df,f) -> 
             if List.mem src sf && List.mem dst df then
-             begin
-              log#f 4 "Using prefered converter: %s" prefered;
               raise (Exit (f ()))
-             end
             else
-              log#f 4 "Default parser %s cannot do %s->%s" prefered
+              log#f 4 "Default video converter %s cannot do %s->%s" prefered
                        (string_of_pixel_format src)
                        (string_of_pixel_format dst)
     end;   
     List.iter
       (fun (name,(sf,df,f)) ->
-           log#f 4 "Trying %s converter" name ;
+           log#f 4 "Trying %s video converter" name ;
            if List.mem src sf && List.mem dst df then
              raise (Exit (f ()))
            else ())
       video_converters#get_all;
-    log#f 4 "Couldn't find a converter from \
+    log#f 4 "Couldn't find a video converter from \
                  format %s to format %s" 
                  (string_of_pixel_format src)
                  (string_of_pixel_format dst);
