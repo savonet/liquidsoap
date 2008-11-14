@@ -29,7 +29,7 @@ let formats = [RGB Rgba_32;YUV Yuvj_420]
 
 let create () =
   let f = RGB.create (Fmt.video_width ())
-                         (Fmt.video_height ())
+                     (Fmt.video_height ())
   in
   let buf = ref f in 
   let convert ~proportional src dst =
@@ -129,8 +129,8 @@ let create () =
               end;
             let sf = {
                       RGB. 
-                       width  = dst.width; 
-                       height = dst.height;
+                       width  = src.width; 
+                       height = src.height;
                        stride = rgb_stride src;
                        data   = rgb_data src 
                      }
@@ -144,8 +144,8 @@ let create () =
           else
             let sf = {
                       RGB.
-                       width  = dst.width;
-                       height = dst.height;
+                       width  = src.width;
+                       height = src.height;
                        stride = rgb_stride src;
                        data   = rgb_data src
                      }
