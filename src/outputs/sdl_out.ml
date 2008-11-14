@@ -56,11 +56,16 @@ object (self)
       ~channels:(if (Fmt.channels ()) = 2 then Sdlmixer.STEREO else Sdlmixer.MONO)
       ();
     *)
-    if video_channels > 0 then
-      surface <- Some (Sdlvideo.set_video_mode ~w:video_width ~h:video_height ~bpp:16 [`DOUBLEBUF]);
+    if video_channels > 0 then begin
+      Sdlevent.enable_events Sdlevent.quit_mask ;
+      surface <-
+        Some (Sdlvideo.set_video_mode ~w:video_width ~h:video_height
+                                      ~bpp:16 [`DOUBLEBUF])
+    end ;
     sleep <- false
 
   method output_send buf =
+    if Sdlevent.poll () = Some Sdlevent.QUIT then Tutils.shutdown () ;
     if video_channels > 0 then
       let surface = Utils.get_some surface in
       let rgb = VFrame.get_rgb buf in
