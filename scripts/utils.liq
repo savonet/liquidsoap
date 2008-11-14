@@ -183,7 +183,7 @@ def output.icecast.lame(
   # Metadata update is set by ICY with icecast
   def lame_p(m)
     "#{lame} -b #{bitrate} -r --bitwidth 16 -s #{samplerate} \
-       --signed -m #{mode} -x -t - -"
+       --signed -m #{mode} --nores -x -t - -"
   end
   output.icecast.external(id=id,
     process=lame_p,bitrate=bitrate,start=start,
