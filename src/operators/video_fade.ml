@@ -153,12 +153,32 @@ let proto =
            This value can be set on a per-file basis using the metadata field \
            passed as override." ;
     "transition", Lang.string_t, Some (Lang.string "fade"),
-    Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down|grow|disk).";
+    Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down|grow|disc|random).";
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
           linear, sinusoidal, logarithmic or exponential." ;
     "", Lang.source_t, None, None
   ]
+
+let rec transition_of_string p transition =
+  let ifm n a = int_of_float ((float_of_int n) *. a) in
+    match transition with
+      | "fade" -> RGB.scale_opacity
+      | "slide_left" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (t-.1.)) 0
+      | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (1.-.t)) 0
+      | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (1.-.t))
+      | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (t-.1.))
+      | "grow" -> fun buf t -> RGB.affine buf t t 0 0
+      | "disc" ->
+          let w, h = Fmt.video_width (), Fmt.video_height () in
+          let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
+            fun buf t -> RGB.disk_opacity buf (w/2) (h/2) (ifm r_max t)
+      | "random" ->
+          let trans =
+            [|"fade"; "slide_left"; "slide_right"; "slide_up"; "slide_down"; "grow"; "disc"|]
+          in
+            transition_of_string p trans.(Random.int (Array.length trans))
+      | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind"))
 
 let extract p =
   Lang.to_float (List.assoc "duration" p),
@@ -193,19 +213,7 @@ let extract p =
              f (max 0. (min 1. i))
   ),
   (let transition = Lang.to_string (List.assoc "transition" p) in
-   let ifm n a = int_of_float ((float_of_int n) *. a) in
-     match transition with
-       | "fade" -> RGB.scale_opacity
-       | "slide_left" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (t-.1.)) 0
-       | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (1.-.t)) 0
-       | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (1.-.t))
-       | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (t-.1.))
-       | "grow" -> fun buf t -> RGB.affine buf t t 0 0
-       | "disk" ->
-           let w, h = Fmt.video_width (), Fmt.video_height () in
-           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
-             fun buf t -> RGB.disk_opacity buf (w/2) (h/2) (ifm r_max t)
-       | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind"))
+     transition_of_string p transition
   ),
   Lang.to_source (List.assoc "" p)
 
