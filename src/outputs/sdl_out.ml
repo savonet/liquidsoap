@@ -73,13 +73,17 @@ object (self)
       let bmp = RGB.to_bmp rgb.(0).(frame) in
       let sbmp = Sdlvideo.load_BMP_from_mem bmp in
         Sdlvideo.blit_surface ~src:sbmp ~dst:surface ();
-        (*
-        for x = 0 to video_width - 1 do
+        (*for x = 0 to video_width - 1 do
           for y = 0 to video_height - 1 do
-            Sdlvideo.put_pixel_color surface ~x ~y (RGB.get rgb.(0).(frame) x y)
+            let pixel = 
+              let (x,y,z,_) = 
+                RGB.get_pixel rgb.(0).(frame) x y
+              in
+              (x,y,z)
+            in
+            Sdlvideo.put_pixel_color surface ~x ~y pixel
           done
-        done;
-        *)
+        done;*)
         Sdlvideo.flip surface
     (* Sdlmixer is not binded for raw support.
      * This API is meant for playing sounds,

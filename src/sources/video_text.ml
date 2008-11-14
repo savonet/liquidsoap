@@ -83,7 +83,7 @@ object (self)
     let off = VFrame.position ab in
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
-    let tfw = RGB.get_width tf in
+    let tfw = tf.RGB.width in
       if cur_text <> text () then
         (
           cur_text <- text ();

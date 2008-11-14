@@ -46,10 +46,10 @@ object
   initializer
     (* TODO: handle more formats... *)
     let f = RGB.read_ppm ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha)) fname in
-    let w = if width < 0 then RGB.get_width f else width in
-    let h = if height < 0 then RGB.get_height f else height in
+    let w = if width < 0 then f.RGB.width else width in
+    let h = if height < 0 then f.RGB.height else height in
     let f =
-      if w = RGB.get_width f && h = RGB.get_height f then
+      if w = f.RGB.width && h = f.RGB.height then
         f
       else
         RGB.scale_to f w h

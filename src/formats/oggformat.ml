@@ -89,7 +89,6 @@ let decoder file sync fd =
               ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
                 (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride)))
             frame;
-          RGB.unlock_frame rgb
         in
         feed
       in

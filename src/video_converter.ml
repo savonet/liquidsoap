@@ -120,14 +120,14 @@ let frame_of_internal_rgb f =
   let frame_data = 
     { 
       rgb_format = Rgba_32;
-      data = RGB.to_ba f;
-      stride = 4*(Fmt.video_width ())
+      data = f.RGB.data;
+      stride = f.RGB.stride
     }
   in
   { 
     frame_data = Rgb frame_data;
-    width =  Fmt.video_width ();
-    height = Fmt.video_height ()
+    width =  f.RGB.width;
+    height = f.RGB.height
   }
 
 

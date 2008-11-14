@@ -7,7 +7,15 @@ exception Invalid_format of string
 (** {2 Types} *)
 
 (** An RGBA frame. *)
-type t
+type data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type t =
+  {
+    (** Order matter for C callbacks !! *)
+    data   : data;
+    width  : int;
+    height : int;
+    stride : int
+  }
 
 (** An RGBA color. *)
 type color = int * int * int * int
@@ -20,34 +28,10 @@ val rgb_of_int : int -> int * int * int
 (** {2 Basic manipulation} *)
 
 (** Create a frame of a given width and height (in pixels). *)
-val create : int -> int -> t
-
-(** Returns a big array refering to the frame data  
-  * the frame is then registered as global variable 
-  * in the Gc. You have to unlock the frame using [unlock frame] *)
-val to_ba : t -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-(** Create a native frame,
-  * and place big array data.
-  * Similary to [to_ba], you
-  * need to unlock the bigarray
-  * afterwards. *)
-val of_ba : int -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> t
-
-(** Unlock a frame. All reference to its data may then be freed *)
-val unlock_frame : t -> unit
-
-(** Unlock a big array *)
-val unlock_ba : (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> unit
+val create : ?stride:int -> int -> int -> t
 
 (** Copy a frame. *)
 val copy : t -> t
-
-(** Width of a frame. *)
-val get_width : t -> int
-
-(** Height of a frame. *)
-val get_height : t -> int
 
 (** Get the value of a pixel. *)
 val get_pixel : t -> int -> int -> color
@@ -74,11 +58,8 @@ val add : t -> t -> unit
 (** Read a buffer in RGB format of given width (in pixels). *)
 val of_linear_rgb : string -> int -> t
 
-(** YUV buffers. *)
-type yuv_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
 (** YUV data in [(y,y_stride),(u,v,uv_stride))] format. *)
-type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
+type yuv = (data *int ) * (data * data * int)
 
 val of_YUV420 : yuv -> t -> unit
 

@@ -1,4 +1,12 @@
-type t
+type data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t 
+type t = 
+  { 
+    (** Order matter for C callbacks !! *)
+    data   : data;
+    width  : int;
+    height : int;
+    stride : int
+  }
 
 type color = int * int * int * int
 
@@ -6,23 +14,28 @@ let rgb_of_int n =
   if n > 0xffffff then raise (Invalid_argument "Not a color");
   (n lsr 16) land 0xff, (n lsr 8) land 0xff, n land 0xff
 
-external create : int -> int -> t = "caml_rgb_create"
+let create ?stride width height =
+  let stride = 
+    match stride with
+      | Some v -> v
+      | None -> 4*width
+  in 
+  let data = 
+    Bigarray.Array1.create 
+     Bigarray.int8_unsigned Bigarray.c_layout
+     (stride*height)
+  in
+  { 
+    data   = data;
+    width  = width;
+    height = height;
+    stride = stride
+  }
 
-external to_ba : t -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t  = "caml_rgb_to_ba"
-
-external of_ba : int -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> t = "caml_rgb_of_ba"
-
-external unlock_frame : t -> unit = "caml_rgb_unlock_value" "noalloc"
-
-external unlock_ba : (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t -> unit = "caml_rgb_unlock_value"
-
-external get_width : t -> int = "caml_rgb_get_width" "noalloc"
-
-external get_height : t -> int = "caml_rgb_get_height" "noalloc"
-
-let get_dims f = get_width f, get_height f
-
-external copy : t -> t = "caml_rgb_copy"
+let copy f = 
+  let nf = create ~stride:f.stride f.width f.height in
+  Bigarray.Array1.blit f.data nf.data;
+  nf
 
 external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
 
@@ -51,9 +64,7 @@ let of_linear_rgb data width =
     of_linear_rgb ans data;
     ans
 
-type yuv_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-type yuv = (yuv_data *int ) * (yuv_data * yuv_data * int)
+type yuv = (data *int ) * (data * data * int)
 
 external of_YUV420 : yuv -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
 
@@ -79,19 +90,19 @@ external scale_coef : t -> t -> int * int -> int * int -> unit = "caml_rgb_scale
 external bilinear_scale_coef : t -> t -> float -> float -> unit = "caml_rgb_bilinear_scale" "noalloc"
 
 let scale src dst =
-  let sw, sh = get_dims src in
-  let dw, dh = get_dims dst in
+  let sw, sh = src.width,src.height in
+  let dw, dh = dst.width,dst.height in
     scale_coef dst src (dw, sw) (dh, sh)
 
 let scale_to src w h =
-  let sw, sh = get_dims src in
+  let sw, sh = src.width,src.height in
   let dst = create w h in
     scale_coef dst src (w, sw) (h, sh);
     dst
 
 let proportional_scale ?(bilinear=false) dst src =
-  let sw, sh = get_dims src in
-  let dw, dh = get_dims dst in
+  let sw, sh = src.width,src.height in
+  let dw, dh = dst.width,dst.height in
   let n, d =
     if dh * sw < sh * dw then
       dh, sh

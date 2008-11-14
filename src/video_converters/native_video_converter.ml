@@ -45,9 +45,14 @@ let create () =
     in
     let rgb_data f = 
       match f.frame_data with
-        | Rgb x when x.rgb_format = Rgba_32 && 
-                     x.stride = 4*(Fmt.video_width ())
+        | Rgb x when x.rgb_format = Rgba_32 
             -> x.data
+        | _ -> raise Not_found
+    in
+    let rgb_stride f = 
+      match f.frame_data with
+        | Rgb x when x.rgb_format = Rgba_32
+            -> x.stride
         | _ -> raise Not_found
     in
     let yuv_data f = 
@@ -60,79 +65,92 @@ let create () =
       | true,true,false
       | false,false,_ -> raise Not_found (* TODO *)
       | true,true,true ->
-        let sf = RGB.of_ba src.width src.height (rgb_data src) in
-        let df = RGB.of_ba dst.width dst.height (rgb_data dst) in
-        begin 
-          try
-            if proportional then
-              RGB.proportional_scale df sf
-            else
-              RGB.scale df sf;
-            RGB.unlock_ba (rgb_data src); 
-            RGB.unlock_ba (rgb_data dst)
-          with
-            | e -> RGB.unlock_ba (rgb_data src); RGB.unlock_ba (rgb_data dst); raise e
-        end
+        let sf = {
+                  RGB.
+                   width  = src.width; 
+                   height = src.height;
+                   stride = rgb_stride src;
+                   data   = rgb_data src 
+                 }
+        in
+        let df = {
+                  RGB. 
+                   width  = dst.width;
+                   height = dst.height;
+                   stride = rgb_stride dst;
+                   data   = rgb_data dst 
+                 }
+        in
+        if proportional then
+          RGB.proportional_scale df sf
+        else
+          RGB.scale df sf;
       | false,true,x -> 
           if x then
             begin
-             if RGB.get_width !buf <> src.width ||
-                RGB.get_height !buf <> src.height then
+             if (!buf).RGB.width <> src.width ||
+                (!buf).RGB.height <> src.height then
                begin
                  let frame = RGB.create src.width src.height in
                  buf := frame
                end;
              RGB.of_YUV420 (yuv_data src) !buf;
-             let df = RGB.of_ba dst.width dst.height (rgb_data dst) in
-             try
-               if proportional then
-                 RGB.proportional_scale df !buf
-               else
-                 RGB.scale df !buf;
-               RGB.unlock_ba (rgb_data dst)
-             with
-               | e -> RGB.unlock_ba (rgb_data dst); raise e 
+             let df = {
+                       RGB.
+                        width  = dst.width; 
+                        height = dst.height;
+                        stride = rgb_stride dst; 
+                        data   = rgb_data dst 
+                      }
+             in
+             if proportional then
+               RGB.proportional_scale df !buf
+             else
+               RGB.scale df !buf
             end
           else
-            let df = RGB.of_ba dst.width dst.height (rgb_data dst) in
-            begin
-              try
-                RGB.of_YUV420 (yuv_data src) df;
-                RGB.unlock_ba (rgb_data dst)
-              with
-                | e -> RGB.unlock_ba (rgb_data dst)
-            end
+            let df = {
+                      RGB.
+                       width  = dst.width;
+                       height = dst.height;
+                       stride = rgb_stride dst;
+                       data   = rgb_data dst
+                     }
+            in
+            RGB.of_YUV420 (yuv_data src) df;
       | true,false,x -> 
           if x then
            begin
-            if RGB.get_width !buf <> src.width ||
-               RGB.get_height !buf <> src.height then
+            if (!buf).RGB.width <> src.width ||
+               (!buf).RGB.height <> src.height then
               begin
                 let frame = RGB.create src.width src.height in
                 buf := frame
               end;
-            let sf = RGB.of_ba dst.width dst.height (rgb_data src) in
-            begin
-             try
-               if proportional then
-                 RGB.proportional_scale sf !buf
-               else
-                 RGB.scale sf !buf;
-               RGB.unlock_ba (rgb_data src)
-             with
-               | e -> RGB.unlock_ba (rgb_data src); raise e
-            end;
+            let sf = {
+                      RGB. 
+                       width  = dst.width; 
+                       height = dst.height;
+                       stride = rgb_stride src;
+                       data   = rgb_data src 
+                     }
+            in
+            if proportional then
+              RGB.proportional_scale sf !buf
+            else
+              RGB.scale sf !buf;
             RGB.to_YUV420 !buf (yuv_data dst)
            end
           else
-           begin
-            let sf = RGB.of_ba dst.width dst.height (rgb_data src) in
-            try
-              RGB.to_YUV420 sf (yuv_data dst);
-              RGB.unlock_ba (rgb_data src)
-            with
-              | e -> RGB.unlock_ba (rgb_data src); raise e
-           end
+            let sf = {
+                      RGB.
+                       width  = dst.width;
+                       height = dst.height;
+                       stride = rgb_stride src;
+                       data   = rgb_data src
+                     }
+            in
+            RGB.to_YUV420 sf (yuv_data dst);
   in
   convert
 

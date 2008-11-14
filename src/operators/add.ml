@@ -224,7 +224,7 @@ let () =
          let x, y, w, h =
            if proportional then
              (
-               let sw, sh = RGB.get_width buf, RGB.get_height buf in
+               let sw, sh = buf.RGB.width, buf.RGB.height in
                  if w * sh < sw * h then
                    let h' = sh * w / sw in
                      x, y+(h-h')/2, w, h'

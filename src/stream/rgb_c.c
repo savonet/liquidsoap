@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <math.h>
 
+// MMX invert is broken at the moment..
+#undef HAVE_MMX
+
 #ifdef HAVE_MMX
 #include <mmintrin.h>
 #endif
@@ -24,222 +27,137 @@ typedef struct
 {
   int width;  /* Width in pixels */
   int height; /* Height in pixels */
+  int stride; /* Bytes per line */
   unsigned char *data;
 } frame;
 
-#define Rgb_num_pix(rgb)    rgb->width * rgb->height
+#define Rgb_num_pix(rgb)    (rgb)->width * (rgb)->height
 #define Rgb_colors          3
 #define Rgb_elems_per_pixel 4
 #define Rgb_num_elem(rgb)   Rgb_elems_per_pixel * Rgb_num_pix(rgb)
-#define Rgb_data_size(rgb)  Rgb_num_elem(rgb) * sizeof(unsigned char)
-#define Color(rgb,c,i,j)    rgb->data[Rgb_elems_per_pixel * (j * rgb->width + i) + c]
+#define Rgb_plane_size(rgb) (rgb)->stride * (rgb)->height
+#define Rgb_data_size(rgb)  Rgb_plane_size(rgb) * sizeof(unsigned char)
+#define Color(rgb,c,i,j)    (rgb)->data[j * (rgb)->stride + 4 * i + c]
 #define Red(rgb,i,j)        Color(rgb,0,i,j)
 #define Green(rgb,i,j)      Color(rgb,1,i,j)
 #define Blue(rgb,i,j)       Color(rgb,2,i,j)
 #define Alpha(rgb,i,j)      Color(rgb,3,i,j)
 #define Pixel(rgb,i,j)      {Red(rgb,i,j),Blue(rgb,i,j),Green(rgb,i,j),Alpha(rgb,i,j)}
-#define Is_outside(rgb,i,j) (i<0||j<0||i>=rgb->width||j>=rgb->height)
+#define Is_outside(rgb,i,j) (i<0||j<0||i>=(rgb)->width||j>=(rgb)->height)
 #define Space_clip_color(rgb,c,i,j) (Is_outside(rgb,i,j))?0:Color(rgb,c,i,j)
 
-#define assert_same_dim(src, dst) { assert(dst->width == src->width); assert(dst->height == src->height); }
+#define assert_same_dim(src, dst) { assert((dst)->width == (src)->width); assert((dst)->height == (src)->height); }
 
-#define Frame_val(v) (*((frame**)Data_custom_val(v)))
+static frame *frame_of_value(value v, frame *f)
+{
+  value ba = Field(v,0);
+  f->data = Caml_ba_data_val(ba);
+  f->width = Int_val(Field(v,1));
+  f->height = Int_val(Field(v,2));
+  f->stride = Int_val(Field(v,3));
+
+  return f;
+}
 
 static void rgb_free(frame *f)
-{
+ {
   free(f->data);
-  free(f);
-}
-
-static void finalize_frame(value v)
-{
-  frame *f = Frame_val(v);
-  rgb_free(f);
-}
-
-static void finalize_frame_no_data(value v)
-{
-  frame *f = Frame_val(v);
-  free(f);
-}
-
-static struct custom_operations frame_ops =
-{
-  "liquidsoap_rgb_frame",
-  finalize_frame,
-  custom_compare_default,
-  custom_hash_default,
-  custom_serialize_default,
-  custom_deserialize_default
-};
-
-static struct custom_operations frame_no_data_ops =
-{
-  "liquidsoap_rgb_frame_no_data",
-  finalize_frame_no_data,
-  custom_compare_default,
-  custom_hash_default,
-  custom_serialize_default,
-  custom_deserialize_default
-};
-
-CAMLprim value caml_rgb_create(value width, value height)
-{
-  CAMLparam0();
-  CAMLlocal1(ret);
-  frame *rgb = malloc(sizeof(frame));
-
-  rgb->width = Int_val(width);
-  rgb->height = Int_val(height);
-  rgb->data = malloc(Rgb_data_size(rgb));
-
-  ret = caml_alloc_custom(&frame_ops, sizeof(frame*), 1, 0);
-  Frame_val(ret) = rgb;
-
-  CAMLreturn(ret);
-}
-
-CAMLprim value caml_rgb_to_ba(value f)
-{
-  CAMLparam1(f);
-  frame *rgb = Frame_val(f);
-  caml_register_global_root(&f);
-  intnat len = Rgb_data_size(rgb);
-  CAMLreturn(caml_ba_alloc(CAML_BA_EXTERNAL|CAML_BA_C_LAYOUT|CAML_BA_UINT8,1,rgb->data,&len)); 
-}
-
-CAMLprim value caml_rgb_of_ba(value width, value height, value ba)
-{
-  CAMLparam1(ba);
-  CAMLlocal1(ret);
-  frame *rgb = malloc(sizeof(frame));
-
-  caml_register_global_root(&ba);
-
-  rgb->width = Int_val(width);
-  rgb->height = Int_val(height);
-  rgb->data = Caml_ba_data_val(ba);
-
-  ret = caml_alloc_custom(&frame_no_data_ops, sizeof(frame*), 1, 0);
-  Frame_val(ret) = rgb;
-
-  CAMLreturn(ret);
-}
-
-CAMLprim value caml_rgb_unlock_value(value f)
-{
-  caml_remove_global_root(&f);
-  return Val_unit;
-}
-
-static frame *rgb_copy(frame *src)
-{
-  frame *dst = malloc(sizeof(frame));
-  dst->width = src->width;
-  dst->height = src->height;
-  dst->data = malloc(Rgb_data_size(src));
-  memcpy(dst->data, src->data, Rgb_data_size(src));
-
-  return dst;
-}
-
-CAMLprim value caml_rgb_copy(value _src)
-{
-  CAMLparam1(_src);
-  CAMLlocal1(ans);
-  frame *src = Frame_val(_src);
-  ans = caml_rgb_create(src->width, src->height);
-  frame *dst = Frame_val(ans);
-
-  memcpy(dst->data, src->data, Rgb_data_size(src));
-
-  CAMLreturn(ans);
-}
-
-CAMLprim value caml_rgb_get_width(value rgb)
-{
-  return Val_int(Frame_val(rgb)->width);
-}
-
-CAMLprim value caml_rgb_get_height(value rgb)
-{
-  return Val_int(Frame_val(rgb)->height);
-}
+ }
 
 static inline void rgb_blank(frame *rgb)
 {
   memset(rgb->data, 0, Rgb_data_size(rgb));
 }
 
+static frame *rgb_copy(frame *src, frame *dst)
+{
+  dst->width = src->width;
+  dst->height = src->height;
+  dst->stride = src->stride;
+  dst->data = malloc(Rgb_data_size(src));
+  memcpy(dst->data, src->data, Rgb_data_size(src));
+
+  return dst;
+}
+
 CAMLprim value caml_rgb_blank(value _rgb)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
 
-  rgb_blank(rgb);
+  rgb_blank(frame_of_value(_rgb,&rgb));
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_blit(value _src, value _dst)
 {
-  frame *src = Frame_val(_src),
-        *dst = Frame_val(_dst);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
 
-  assert_same_dim(src, dst);
-  memcpy(dst->data, src->data, Rgb_data_size(src));
+  assert_same_dim(&src, &dst);
+  memcpy(dst.data, src.data, Rgb_data_size(&src));
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_blit_off(value _src, value _dst, value _dx, value _dy, value _blank)
 {
-  frame *src = Frame_val(_src),
-        *dst = Frame_val(_dst);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
   int dx = Int_val(_dx),
       dy = Int_val(_dy);
   int blank = Bool_val(_blank);
   int i, j, c;
   int istart = max(0, dx),
-      iend = min(dst->width, src->width + dx),
+      iend = min(dst.width, src.width + dx),
       jstart = max(0, dy),
-      jend = min(dst->height, src->height + dy);
+      jend = min(dst.height, src.height + dy);
 
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
   /* Blank what's outside src */
   if (blank)
   /*
-    for (j = 0; j < dst->height; j++)
+    for (j = 0; j < dst.height; j++)
     {
-      for (i = 0; i < dst->width; i++)
+      for (i = 0; i < dst.width; i++)
       {
         if (j < jend && j > jstart && i == istart)
         {
-          if (iend == dst->width)
+          if (iend == dst.width)
             break;
           else
             i = iend;
         }
         for (c = 0; c < Rgb_elems_per_pixel; c++)
-          Color(dst, c, i, j) = 0;
+          Color(&dst, c, i, j) = 0;
       }
     }
   */
     /* This one seems to be much faster... */
-    rgb_blank(dst);
+    rgb_blank(&dst);
   /* Copy src to dst for the rest */
   for (j = jstart; j < jend; j++)
     for (i = istart; i < iend; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = Color(src, c, (i-dx), (j-dy));
+        Color(&dst, c, i, j) = Color(&src, c, (i-dx), (j-dy));
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_blit_off_scale(value _src, value _dst, value d, value dim, value _blank)
 {
-  frame *src = Frame_val(_src),
-        *dst = Frame_val(_dst);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
   int dx = Int_val(Field(d, 0)),
       dy = Int_val(Field(d, 1)),
       w = Int_val(Field(dim, 0)),
@@ -247,18 +165,22 @@ CAMLprim value caml_rgb_blit_off_scale(value _src, value _dst, value d, value di
   int blank = Bool_val(_blank);
   int i, j, c;
   int istart = max(0, dx),
-      iend = min(dst->width, w + dx),
+      iend = min(dst.width, w + dx),
       jstart = max(0, dy),
-      jend = min(dst->height, h + dy);
+      jend = min(dst.height, h + dy);
 
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
   if (blank)
-    rgb_blank(dst);
+    rgb_blank(&dst);
   for (j = jstart; j < jend; j++)
     for (i = istart; i < iend; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = Color(src, c, (i-dx)*src->width/w, (j-dy)*src->height/h);
+        Color(&dst, c, i, j) = Color(&src, c, (i-dx)*src.width/w, (j-dy)*src.height/h);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
@@ -266,23 +188,26 @@ CAMLprim value caml_rgb_blit_off_scale(value _src, value _dst, value d, value di
 
 CAMLprim value caml_rgb_fill(value f, value col)
 {
-  frame *rgb = Frame_val(f);
+  frame rgb;
+  frame_of_value(f,&rgb);
   int r = Int_val(Field(col, 0)),
       g = Int_val(Field(col, 1)),
       b = Int_val(Field(col, 2)),
       a = Int_val(Field(col, 3));
   int i,j;
 
+  caml_register_global_root(&f);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
     {
-      Red(rgb,i,j)   = r;
-      Green(rgb,i,j) = g;
-      Blue(rgb,i,j)  = b;
-      Alpha(rgb,i,j) = a;
+      Red(&rgb,i,j)   = r;
+      Green(&rgb,i,j) = g;
+      Blue(&rgb,i,j)  = b;
+      Alpha(&rgb,i,j) = a;
     }
   caml_leave_blocking_section();
+  caml_remove_global_root(&f);
 
   return Val_unit;
 }
@@ -454,7 +379,8 @@ void RGB_to_YUV420(frame *rgb,
 
 CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
 {
-  frame *rgb = Frame_val(dst);
+  frame rgb;
+  frame_of_value(dst, &rgb);
   value y_val = Field(yuv, 0);
   unsigned char *y = Caml_ba_data_val(Field(y_val, 0));
   int y_stride = Int_val(Field(y_val, 1));
@@ -464,13 +390,15 @@ CAMLprim value caml_rgb_of_YUV420(value yuv, value dst)
   int uv_stride = Int_val(Field(uv_val, 2));
 
   caml_register_global_root(&yuv);
+  caml_register_global_root(&dst);
 
   /* TODO: check the size of the data */
   caml_enter_blocking_section();
-  YUV420_to_RGB(y, y_stride, u, v, uv_stride, rgb);
+  YUV420_to_RGB(y, y_stride, u, v, uv_stride, &rgb);
   caml_leave_blocking_section();
 
   caml_remove_global_root(&yuv);
+  caml_remove_global_root(&dst);
 
   return Val_unit;
 }
@@ -524,7 +452,8 @@ CAMLprim value caml_yuv_blank(value f)
 
 CAMLprim value caml_rgb_to_YUV420(value f, value yuv)
 {
-  frame *rgb = Frame_val(f);
+  frame rgb;
+  frame_of_value(f, &rgb);
   value tmp = Field(yuv, 0);
   unsigned char *y = Caml_ba_data_val(Field(tmp,0));
   tmp = Field(yuv,1);
@@ -532,30 +461,33 @@ CAMLprim value caml_rgb_to_YUV420(value f, value yuv)
   unsigned char *v = Caml_ba_data_val(Field(tmp,1));
 
   caml_register_global_root(&yuv);
+  caml_register_global_root(&f);
 
   caml_enter_blocking_section();
-  RGB_to_YUV420(rgb, y, u, v);
+  RGB_to_YUV420(&rgb, y, u, v);
   caml_leave_blocking_section();
 
   caml_remove_global_root(&yuv);
+  caml_remove_global_root(&f);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_of_linear_rgb(value _rgb, value _data)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb, &rgb);
   char *data = String_val(_data);
   int i, j;
 
   /* TODO: blocking section */
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
     {
-      Red(rgb,i,j) = data[3 * (j * rgb->width + i) + 0];
-      Green(rgb,i,j) = data[3 * (j * rgb->width + i) + 1];
-      Blue(rgb,i,j) = data[3 * (j * rgb->width + i) + 2];
-      Alpha(rgb,i,j) = 0xff;
+      Red(&rgb,i,j) = data[3 * j * rgb.width + i + 0];
+      Green(&rgb,i,j) = data[3 * j * rgb.width + i + 1];
+      Blue(&rgb,i,j) = data[3 * j * rgb.width + i + 2];
+      Alpha(&rgb,i,j) = 0xff;
     }
 
   return Val_unit;
@@ -565,9 +497,10 @@ CAMLprim value caml_rgb_get_pixel(value f, value _x, value _y)
 {
   CAMLparam1(f);
   CAMLlocal1(ans);
-  frame *rgb = Frame_val(f);
+  frame rgb;
+  frame_of_value(f, &rgb);
   int x = Int_val(_x), y = Int_val(_y);
-  unsigned char pix[Rgb_elems_per_pixel] = Pixel(rgb,x,y);
+  unsigned char pix[Rgb_elems_per_pixel] = Pixel(&rgb,x,y);
   int i;
 
   ans = caml_alloc_tuple(Rgb_elems_per_pixel);
@@ -579,7 +512,8 @@ CAMLprim value caml_rgb_get_pixel(value f, value _x, value _y)
 
 CAMLprim value caml_rgb_set_pixel(value f, value _x, value _y, value _rgb)
 {
-  frame *rgb = Frame_val(f);
+  frame rgb;
+  frame_of_value(f, &rgb);
   int x = Int_val(_x),
       y = Int_val(_y);
   int r = Int_val(Field(_rgb, 0));
@@ -587,73 +521,84 @@ CAMLprim value caml_rgb_set_pixel(value f, value _x, value _y, value _rgb)
   int b = Int_val(Field(_rgb, 2));
   int a = Int_val(Field(_rgb, 3));
 
-  Red(rgb,x,y) = r;
-  Green(rgb,x,y) = g;
-  Blue(rgb,x,y) = b;
-  Alpha(rgb,x,y) = a;
+  Red(&rgb,x,y) = r;
+  Green(&rgb,x,y) = g;
+  Blue(&rgb,x,y) = b;
+  Alpha(&rgb,x,y) = a;
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_randomize(value f)
 {
-  frame *rgb = Frame_val(f);
+  frame rgb;
+  frame_of_value(f, &rgb);
   int i, j, c;
 
+  caml_register_global_root(&f);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
       for (c = 0; c < Rgb_colors; c++)
-        Color(rgb,c,i,j) = rand();
+        Color(&rgb,c,i,j) = rand();
   caml_leave_blocking_section();
+  caml_remove_global_root(&f);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_scale(value _dst, value _src, value xscale, value yscale)
 {
-  frame *dst = Frame_val(_dst),
-        *src = Frame_val(_src);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
   int i, j, c;
   int xn = Int_val(Field(xscale, 0)),
       xd = Int_val(Field(xscale, 1)),
       yn = Int_val(Field(yscale, 0)),
       yd = Int_val(Field(yscale, 1));
-  int ox = (dst->width - src->width * xn / xd) / 2,
-      oy = (dst->height - src->height * yn / yd) / 2;
+  int ox = (dst.width - src.width * xn / xd) / 2,
+      oy = (dst.height - src.height * yn / yd) / 2;
 
   assert(ox >= 0 && oy >= 0);
 
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
   if (ox != 0 || oy != 0)
-    rgb_blank(dst);
-  for (j = oy; j < dst->height - oy; j++)
-    for (i = ox; i < dst->width - ox; i++)
+    rgb_blank(&dst);
+  for (j = oy; j < dst.height - oy; j++)
+    for (i = ox; i < dst.width - ox; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = Color(src, c, (i - ox) * xd / xn, (j - oy) * yd / yn);
+        Color(&dst, c, i, j) = Color(&src, c, (i - ox) * xd / xn, (j - oy) * yd / yn);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_bilinear_scale(value _dst, value _src, value xscale, value yscale)
 {
-  frame *dst = Frame_val(_dst),
-        *src = Frame_val(_src);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
   int i, j, c, i2, j2;
   float ax = Double_val(xscale),
         ay = Double_val(yscale);
-  int ox = (dst->width - src->width * ax) / 2,
-      oy = (dst->height - src->height * ay) / 2;
+  int ox = (dst.width - src.width * ax) / 2,
+      oy = (dst.height - src.height * ay) / 2;
   float dx, dy;
 
   assert(ox >= 0 && oy >= 0);
 
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
   if (ox != 0 || oy != 0)
-    rgb_blank(dst);
-  for (j = oy; j < dst->height - oy; j++)
-    for (i = ox; i < dst->width - ox; i++)
+    rgb_blank(&dst);
+  for (j = oy; j < dst.height - oy; j++)
+    for (i = ox; i < dst.width - ox; i++)
     {
       dx = (i - ox) / ax;
       i2 = floorl(dx);
@@ -662,14 +607,16 @@ CAMLprim value caml_rgb_bilinear_scale(value _dst, value _src, value xscale, val
       j2 = floorl(dy);
       dy -= j2;
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) =
+        Color(&dst, c, i, j) =
           CLIP((int)
-              ((Space_clip_color(src, c, i2, j2) * (1-dx) * (1-dy)) +
-              (Space_clip_color(src, c, i2+1, j2) * dx * (1-dy)) +
-              (Space_clip_color(src, c, i2, j2+1) * (1-dx) * dy) +
-              (Space_clip_color(src, c, i2+1, j2+1) * dx * dy)));
+              ((Space_clip_color(&src, c, i2, j2) * (1-dx) * (1-dy)) +
+              (Space_clip_color(&src, c, i2+1, j2) * dx * (1-dy)) +
+              (Space_clip_color(&src, c, i2, j2+1) * (1-dx) * dy) +
+              (Space_clip_color(&src, c, i2+1, j2+1) * dx * dy)));
     }
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
@@ -677,47 +624,61 @@ CAMLprim value caml_rgb_bilinear_scale(value _dst, value _src, value xscale, val
 /*
 CAMLprim value caml_rgb_scale(value _dst, value _src)
 {
-  frame *dst = Frame_val(_dst), *src = Frame_val(_src);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
   int i, j, c;
 
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
-  for (j = 0; j < dst->height; j++)
-    for (i = 0; i < dst->width; i++)
+  for (j = 0; j < dst.height; j++)
+    for (i = 0; i < dst.width; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = Color(src, c, i * src->width / dst->width, j * src->height / dst->height);
+        Color(&dst, c, i, j) = Color(&src, c, i * src.width / dst.width, j * src.height / dst.height);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_proportional_scale(value _dst, value _src)
 {
-  frame *dst = Frame_val(_dst), *src = Frame_val(_src);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
   int i, j, c;
   int cn, cd, ox, oy;
 
-  if (dst->height * src->width < src->height * dst->width)
+  if (dst.height * src.width < src.height * dst.width)
   {
-    cn = dst->height;
-    cd = src->height;
-    ox = (dst->width - src->width * cn / cd) / 2;
+    cn = dst.height;
+    cd = src.height;
+    ox = (dst.width - src.width * cn / cd) / 2;
     oy = 0;
   }
   else
   {
-    cn = dst->width;
-    cd = src->width;
+    cn = dst.width;
+    cd = src.width;
     ox = 0;
-    oy = (dst->height - src->height * cn / cd) / 2;
+    oy = (dst.height - src.height * cn / cd) / 2;
   }
 
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
-  rgb_blank(dst);
-  for (j = oy; j < dst->height - oy; j++)
-    for (i = ox; i < dst->width - ox; i++)
+  rgb_blank(&dst);
+  for (j = oy; j < dst.height - oy; j++)
+    for (i = ox; i < dst.width - ox; i++)
       for (c = 0; c < Rgb_elems_per_pixel; c++)
-        Color(dst, c, i, j) = Color(src, c, (i - ox) * cd / cn, (j - oy) * cd / cn);
+        Color(&dst, c, i, j) = Color(&src, c, (i - ox) * cd / cn, (j - oy) * cd / cn);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
@@ -742,12 +703,14 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
 {
   CAMLparam1(_rgb);
   CAMLlocal1(ans);
-  frame *rgb = Frame_val(_rgb);
-  int len = Rgb_num_pix(rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
+  int len = Rgb_num_pix(&rgb);
   char *bmp = malloc(54 + 3 * len);
   int i, j;
   unsigned char a;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
   bmp[0]='B';                       /* Magic number */
   bmp[1]='M';
@@ -756,8 +719,8 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
   bmp_pint16(bmp+8 , 0);            /* Reserved */
   bmp_pint32(bmp+10, 54);           /* Data offset */
   bmp_pint32(bmp+14, 40);           /* Second header size */
-  bmp_pint32(bmp+18, rgb->width);   /* Width */
-  bmp_pint32(bmp+22, rgb->height);  /* Height */
+  bmp_pint32(bmp+18, rgb.width);   /* Width */
+  bmp_pint32(bmp+22, rgb.height);  /* Height */
   bmp_pint16(bmp+26, 1);            /* Nb of color planes */
   bmp_pint16(bmp+28, 24);           /* BPP */
   bmp_pint32(bmp+30, 0);            /* Compression */
@@ -767,15 +730,16 @@ CAMLprim value caml_rgb_to_bmp(value _rgb)
   bmp_pint32(bmp+46, 0);            /* Number of colors */
   bmp_pint32(bmp+50, 0);            /* Number of important colors */
 
-  for(j = 0; j < rgb->height; j++)
-    for(i = 0; i < rgb->width; i++)
+  for(j = 0; j < rgb.height; j++)
+    for(i = 0; i < rgb.width; i++)
     {
-      a = Alpha(rgb, i, j);
-      bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + 0 + 54] = Blue(rgb, i, j) * a / 0xff;
-      bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + 1 + 54] = Green(rgb, i, j) * a / 0xff;
-      bmp[3 * ((rgb->height - j - 1) * rgb->width + i) + 2 + 54] = Red(rgb, i, j) * a / 0xff;
+      a = Alpha(&rgb, i, j);
+      bmp[3 * ((rgb.height - j - 1) * rgb.width + i) + 0 + 54] = Blue(&rgb, i, j) * a / 0xff;
+      bmp[3 * ((rgb.height - j - 1) * rgb.width + i) + 1 + 54] = Green(&rgb, i, j) * a / 0xff;
+      bmp[3 * ((rgb.height - j - 1) * rgb.width + i) + 2 + 54] = Red(&rgb, i, j) * a / 0xff;
     }
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   ans = caml_alloc_string(54 + 3 * len);
   memcpy(String_val(ans), bmp, 54 + 3 * len);
@@ -788,20 +752,22 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
 {
   CAMLparam1(_rgb);
   CAMLlocal2(ans, line);
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
+
   int i, j, c;
   unsigned char a;
 
-  ans = caml_alloc_tuple(rgb->height);
-  for(j=0; j < rgb->height; j++)
+  ans = caml_alloc_tuple(rgb.height);
+  for(j=0; j < rgb.height; j++)
   {
-    line = caml_alloc_tuple(rgb->width);
-    for(i=0; i < rgb->width; i++)
+    line = caml_alloc_tuple(rgb.width);
+    for(i=0; i < rgb.width; i++)
     {
-      a = Alpha(rgb, i, j);
-      c = ((Red(rgb,i,j) * a / 0xff) << 16)
-        + ((Green(rgb,i,j) * a / 0xff) << 8)
-        + (Blue(rgb,i,j) * a / 0xff);
+      a = Alpha(&rgb, i, j);
+      c = ((Red(&rgb,i,j) * a / 0xff) << 16)
+        + ((Green(&rgb,i,j) * a / 0xff) << 8)
+        + (Blue(&rgb,i,j) * a / 0xff);
       Store_field(line, i, Val_int(c));
     }
     Store_field(ans, j, line);
@@ -812,104 +778,120 @@ CAMLprim value caml_rgb_to_color_array(value _rgb)
 
 CAMLprim value caml_rgb_greyscale(value _rgb, value _sepia)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
+
   int sepia = Bool_val(_sepia);
   int i,j;
   unsigned char c;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
     {
-      c = (Red(rgb,i,j)
-        +  Green(rgb,i,j)
-        +  Blue(rgb,i,j)) / 3;
+      c = (Red(&rgb,i,j)
+        +  Green(&rgb,i,j)
+        +  Blue(&rgb,i,j)) / 3;
       if (sepia)
       {
-        Red(rgb,i,j)   = c;
-        Green(rgb,i,j) = c * 201 / 0xff;
-        Blue(rgb,i,j)  = c * 158 / 0xff;
+        Red(&rgb,i,j)   = c;
+        Green(&rgb,i,j) = c * 201 / 0xff;
+        Blue(&rgb,i,j)  = c * 158 / 0xff;
       }
       else
       {
-        Red(rgb,i,j)   = c;
-        Green(rgb,i,j) = c;
-        Blue(rgb,i,j)  = c;
+        Red(&rgb,i,j)   = c;
+        Green(&rgb,i,j) = c;
+        Blue(&rgb,i,j)  = c;
       }
     }
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_add(value _dst, value _src)
 {
-  frame *dst = Frame_val(_dst),
-        *src = Frame_val(_src);
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
   int i, j, c;
   unsigned char sa;
 
-  assert_same_dim(src, dst);
+  assert_same_dim(&src, &dst);
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
   caml_enter_blocking_section();
-  for (j = 0; j < dst->height; j++)
-    for (i = 0; i < dst->width; i++)
+  for (j = 0; j < dst.height; j++)
+    for (i = 0; i < dst.width; i++)
     {
-      sa = Alpha(src,i,j);
+      sa = Alpha(&src,i,j);
       if (sa != 0)
       {
         if (sa == 0xff)
         {
           for (c = 0; c < Rgb_colors; c++)
-            Color(dst, c, i, j) = Color(src, c, i, j);
-          Alpha(dst, i, j) = 0xff;
+            Color(&dst, c, i, j) = Color(&src, c, i, j);
+          Alpha(&dst, i, j) = 0xff;
         }
         else
         {
           for (c = 0; c < Rgb_colors; c++)
-            Color(dst, c, i, j) = CLIP(Color(src, c, i, j) * sa / 0xff + Color(dst, c, i, j) * (0xff - sa) / 0xff);
-          Alpha(dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(dst, i, j));
+            Color(&dst, c, i, j) = CLIP(Color(&src, c, i, j) * sa / 0xff + Color(&dst, c, i, j) * (0xff - sa) / 0xff);
+          Alpha(&dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(&dst, i, j));
         }
       }
     }
   caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_invert(value _rgb)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
 #ifdef HAVE_MMX
   /* See http://www.codeproject.com/KB/recipes/mmxintro.aspx?display=Print
    *     http://msdn.microsoft.com/en-us/library/698bxz2w(VS.80).aspx */
   unsigned char a1, a2;
-  int i;
-  int len = Rgb_data_size(rgb) / 4;
-  __m64 *data = (__m64*)rgb->data;
+  int i,j;
+  __m64 *data = (__m64*)rgb.data;
   __m64 tmp;
   _mm_empty();
   __m64 f = _mm_set_pi8(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff);
-  for (i = 0; i < len; i ++)
-  {
-    tmp = _mm_subs_pu8(f, *data);
-    a1 = rgb->data[8 * i + 3];
-    a2 = rgb->data[8 * i + 7];
-    *data = tmp;
-    rgb->data[8 * i + 3] = a1;
-    rgb->data[8 * i + 7] = a2;
-    data++;
-  }
+  for (j = 0; j < rgb.height; j ++)
+    for (i = 0; i < rgb.width/2; i++)
+    {
+      tmp = _mm_subs_pu8(f, *data);
+      a1 = rgb.data[3];
+      a2 = rgb.data[7];
+      *data = tmp;
+      rgb.data[3] = a1;
+      rgb.data[7] = a2;
+      if (2 * i == rgb.width - 1)
+        data += rgb.stride - 4 * rgb.width + 1;
+      else
+        data += 8;
+    }
   _mm_empty();
 #else
   int i, j, c;
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
       for (c = 0; c < Rgb_colors; c++)
-        Color(rgb, c, i, j) = 0xff - Color(rgb, c, i, j);
+        Color(&rgb, c, i, j) = 0xff - Color(&rgb, c, i, j);
 #endif
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
@@ -917,177 +899,207 @@ CAMLprim value caml_rgb_invert(value _rgb)
 #define SO_PREC 0x10000
 CAMLprim value caml_rgb_scale_opacity(value _rgb, value _x)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
   int x = Double_val(_x) * SO_PREC;
   int i, j;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
-      Alpha(rgb, i, j) = CLIP(Alpha(rgb, i, j) * x / SO_PREC);
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
+      Alpha(&rgb, i, j) = CLIP(Alpha(&rgb, i, j) * x / SO_PREC);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_disk_opacity(value _rgb, value _x, value _y, value _r)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
   int x = Int_val(_x);
   int y = Int_val(_y);
   int radius = Int_val(_r);
   int i, j, r;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
     {
       r = sqrtl((i - x) * (i - x) + (j - y) * (j - y));
       if (r > radius)
-        Alpha(rgb, i, j) = 0;
+        Alpha(&rgb, i, j) = 0;
     }
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
 {
-  frame *rgb = Frame_val(_rgb);
-  frame *old = rgb_copy(rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
+  frame old;
+  rgb_copy(&rgb,&old);
   double a = Double_val(_angle);
-  int ox = rgb->width / 2,
-      oy = rgb->height / 2;
+  int ox = rgb.width / 2,
+      oy = rgb.height / 2;
   int i, j, c,
       i2, j2;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
     {
       i2 = (i - ox) * cos(a) + (j - oy) * sin(a) + ox;
       j2 = -(i - ox) * sin(a) + (j - oy) * cos(a) + oy;
-      if (!Is_outside(old, i2, j2))
+      if (!Is_outside(&old, i2, j2))
         for (c = 0; c < Rgb_elems_per_pixel; c++)
-          Color(rgb, c, i, j) = Color(old, c, i2, j2);
+          Color(&rgb, c, i, j) = Color(&old, c, i2, j2);
       else
-        Alpha(rgb, i, j) = 0;
+        Alpha(&rgb, i, j) = 0;
     }
-  rgb_free(old);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
+  rgb_free(&old);
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_affine(value _rgb, value _ax, value _ay, value _ox, value _oy)
 {
-  frame *rgb = Frame_val(_rgb);
-  frame *old = rgb_copy(rgb);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
+  frame old;
+  rgb_copy(&rgb,&old);
   double ax = Double_val(_ax),
          ay = Double_val(_ay);
   int i, j, i2, j2, c;
   int ox = Int_val(_ox),
       oy = Int_val(_oy);
-  int dx = rgb->width / 2,  /* Center of scaling */
-      dy = rgb->height / 2;
+  int dx = rgb.width / 2,  /* Center of scaling */
+      dy = rgb.height / 2;
   int istart = max(0, (ox - dx) * ax + dx),
-      iend = min(rgb->width, (rgb->width + ox + dx) * ax + dx),
+      iend = min(rgb.width, (rgb.width + ox + dx) * ax + dx),
       jstart = max(0, (oy - dy) * ay + dy),
-      jend = min(rgb->height, (rgb->height + ox + dx) * ax + dx);
+      jend = min(rgb.height, (rgb.height + ox + dx) * ax + dx);
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  rgb_blank(rgb);
+  rgb_blank(&rgb);
   for (j = jstart; j < jend; j++)
     for (i = istart; i < iend; i++)
     {
       i2 = (i - dx) / ax + dx - ox;
       j2 = (j - dy) / ay + dy - oy;
       /* TODO: this test shouldn't be needed */
-      if (!Is_outside(old, i2, j2))
+      if (!Is_outside(&old, i2, j2))
         for (c = 0; c < Rgb_elems_per_pixel; c++)
-          Color(rgb, c, i, j) = Color(old, c, i2, j2);
+          Color(&rgb, c, i, j) = Color(&old, c, i2, j2);
     }
-  rgb_free(old);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
+  rgb_free(&old);
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_mask(value _rgb, value _mask)
 {
-  frame *rgb = Frame_val(_rgb),
-        *mask = Frame_val(_mask);
+  frame rgb;
+  frame_of_value(_rgb,&rgb);
+  frame mask;
+  frame_of_value(_mask,&mask);
   int i, j;
 
-  assert_same_dim(rgb, mask);
+  assert_same_dim(&rgb, &mask);
+  caml_register_global_root(&_rgb);
+  caml_register_global_root(&_mask);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
-      Alpha(rgb, i, j) =
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
+      Alpha(&rgb, i, j) =
         CLIP(sqrt(
-              Red(mask, i, j) * Red(mask, i, j) +
-              Green(mask, i, j) * Green(mask, i, j) +
-              Blue(mask, i, j) * Blue(mask, i, j))) *
-        Alpha(mask, i, j) / 0xff;
+              Red(&mask, i, j) * Red(&mask, i, j) +
+              Green(&mask, i, j) * Green(&mask, i, j) +
+              Blue(&mask, i, j) * Blue(&mask, i, j))) *
+        Alpha(&mask, i, j) / 0xff;
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
+  caml_remove_global_root(&_mask);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_lomo(value _rgb)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb, &rgb);
   int i, j, c;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
       for (c = 0; c < Rgb_colors; c++)
-        Color(rgb, c, i, j) = CLIP((1 - cos(Color(rgb, c, i, j) * 3.1416 / 255)) * 255);
+        Color(&rgb, c, i, j) = CLIP((1 - cos(Color(&rgb, c, i, j) * 3.1416 / 255)) * 255);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_color_to_alpha(value _rgb, value color, value _prec)
 {
-  frame *rgb = Frame_val(_rgb);
+  frame rgb;
+  frame_of_value(_rgb, &rgb);
   int r = Int_val(Field(color, 0)),
       g = Int_val(Field(color, 1)),
       b = Int_val(Field(color, 2));
   int prec = Int_val(_prec);
   int i, j;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = 0; j < rgb->height; j++)
-    for (i = 0; i < rgb->width; i++)
-      if (abs(Red(rgb, i, j) - r) <= prec && abs(Green(rgb, i, j) - g) <= prec && abs(Blue(rgb, i, j) - b) <= prec)
-        Alpha(rgb, i, j) = 0;
+  for (j = 0; j < rgb.height; j++)
+    for (i = 0; i < rgb.width; i++)
+      if (abs(Red(&rgb, i, j) - r) <= prec && abs(Green(&rgb, i, j) - g) <= prec && abs(Blue(&rgb, i, j) - b) <= prec)
+        Alpha(&rgb, i, j) = 0;
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
 
 CAMLprim value caml_rgb_blur_alpha(value _rgb)
 {
-  frame *rgb = Frame_val(_rgb),
-        *old = rgb_copy(rgb);
+  frame rgb;
+  frame_of_value(_rgb, &rgb);
+  frame old;
+  rgb_copy(&rgb,&old);
   int w = 1;
   int i, j, k, l;
   int a;
 
+  caml_register_global_root(&_rgb);
   caml_enter_blocking_section();
-  for (j = w; j < rgb->height - w; j++)
-    for (i = w; i < rgb->width - w; i++)
+  for (j = w; j < rgb.height - w; j++)
+    for (i = w; i < rgb.width - w; i++)
     {
       a = 0;
       for (l = -w; l <= w; l++)
         for (k = -w; k <= w; k++)
-          a += Alpha(old, i+k, j+l);
-      Alpha(rgb, i, j) = a / ((2*w+1)*(2*w+1));
+          a += Alpha(&old, i+k, j+l);
+      Alpha(&rgb, i, j) = a / ((2*w+1)*(2*w+1));
     }
-  rgb_free(old);
+  rgb_free(&old);
   caml_leave_blocking_section();
+  caml_remove_global_root(&_rgb);
 
   return Val_unit;
 }
