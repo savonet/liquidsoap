@@ -970,6 +970,8 @@ CAMLprim value caml_rgb_rotate(value _rgb, value _angle)
       if (!Is_outside(old, i2, j2))
         for (c = 0; c < Rgb_elems_per_pixel; c++)
           Color(rgb, c, i, j) = Color(old, c, i2, j2);
+      else
+        Alpha(rgb, i, j) = 0;
     }
   rgb_free(old);
   caml_leave_blocking_section();
