@@ -37,7 +37,7 @@ typedef struct
 #define Rgb_num_elem(rgb)   Rgb_elems_per_pixel * Rgb_num_pix(rgb)
 #define Rgb_plane_size(rgb) (rgb)->stride * (rgb)->height
 #define Rgb_data_size(rgb)  Rgb_plane_size(rgb) * sizeof(unsigned char)
-#define Color(rgb,c,i,j)    (rgb)->data[j * (rgb)->stride + 4 * i + c]
+define Color(rgb,c,i,j)    (rgb)->data[j * (rgb)->stride + Rgb_elems_per_pixel * (i) + c]
 #define Red(rgb,i,j)        Color(rgb,0,i,j)
 #define Green(rgb,i,j)      Color(rgb,1,i,j)
 #define Blue(rgb,i,j)       Color(rgb,2,i,j)
