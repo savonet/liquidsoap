@@ -216,7 +216,7 @@ CFLAGS="$CFLAGS -fPIC"
 CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
 
 ocamlcflags="-ccopt \"\$(CFLAGS)\""
-ocamllflags="-linkpkg -package unix -package threads -package str"
+ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
 requires="unix threads str"
 if test "$enable_nativecode" \!= "no" ; then
     BYTE=
