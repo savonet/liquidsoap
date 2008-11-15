@@ -32,6 +32,38 @@ let conf_quality =
   Dtools.Conf.int ~p:(conf_gavl#plug "quality") "Conversion quality" ~d:2
     ~comments:["Quality setting for gavl video conversion. Range from 1 to 5"]
 
+let scale_modes = 
+  [ ("auto",Gavl.Video.Auto); ("nearest",Gavl.Video.Nearest); 
+    ("bilinear",Gavl.Video.Bilinear);("quadratic",Gavl.Video.Quadratic); 
+    ("cubic_bspline",Gavl.Video.Cubic_bspline);
+    ("cubic_mitchell",Gavl.Video.Cubic_mitchell);
+    ("cubic_catmull",Gavl.Video.Cubic_catmull);
+    ("scale_sinc_lanczos",Gavl.Video.Scale_sinc_lanczos) ]
+
+let scale_args = 
+  String.concat ", " 
+    (List.map (fun (x,_) -> Printf.sprintf "\"%s\"" x) scale_modes)
+
+exception Internal of Gavl.Video.scale_mode
+
+let scale_mode_of_arg x = 
+  try
+    let f (n,m) = 
+      if x = n then 
+        raise (Internal m)
+    in
+    List.iter f scale_modes;
+    raise ((Lang.Invalid_value
+                    (Lang.string x, 
+                     "gavl scale mode must be one of: " ^ scale_args)))
+  with
+    | Internal m -> m
+
+let conf_scale_mode =
+  Dtools.Conf.string ~p:(conf_gavl#plug "scale_mode") "Scale mode" ~d:"auto"
+    ~comments:("Scale mode. Values must be one of: " :: 
+                (List.map (fun (x,_) -> Printf.sprintf "\"%s\"" x) scale_modes))
+
 let formats = [RGB Rgb_24; RGB Bgr_24; RGB Rgb_32;
                RGB Bgr_32; RGB Rgba_32; YUV Yuv_422;
                YUV Yuv_444; YUV Yuv_411; YUV Yuv_410;
@@ -144,6 +176,7 @@ let create () =
   in
   let conv = Gavl.Video.create_converter yuv rgb in
   Gavl.Video.set_quality conv (conf_quality#get);
+  Gavl.Video.set_scale_mode conv (scale_mode_of_arg conf_scale_mode#get);
   let was_p = ref false in
   let init_c = ref false in
   let reinit_c = ref false in
