@@ -1270,7 +1270,7 @@ struct
     let usage = "set <variable> = <value>" in
       Server.add ~ns ~usage "set" ~descr:"Set a variable's value."
         (fun s ->
-           let pat = "^([a-zA-Z_][a-zA-Z0-9_.]*) *= *([^ ]+)" in
+           let pat = "^([a-zA-Z_][a-zA-Z0-9_.]*) *= *(\"[^\"]*\"|[^ ]+)" in
            try
              let sub = Pcre.exec ~pat s in
              let name = Pcre.get_substring sub 1 in
