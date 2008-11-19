@@ -619,7 +619,7 @@ let () =
     (fun p ->
        let f,l =
          match p with
-           | (_,f)::(_,l)::_ -> f,l
+           | [("",f);("",l)] -> f,l
            | _ -> assert false
        in
        let l = Lang.to_list l in
@@ -993,8 +993,9 @@ let () =
     ~descr:"Register a command. You can then execute this function \
             through the server, either telnet or socket."
     [ "namespace",Lang.string_t,Some (Lang.string ""),None ;
-      "description",Lang.string_t,Some (Lang.string "No documentation available."),
-      None ;
+      "description",Lang.string_t,
+      Some (Lang.string "No documentation available."),
+      Some "A description of your command." ;
       "usage",Lang.string_t,Some (Lang.string ""),None ;
       "",Lang.string_t,None,None ;
       "",Lang.fun_t [false,"",Lang.string_t] Lang.string_t,None,None ]
