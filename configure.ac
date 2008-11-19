@@ -213,7 +213,14 @@ fi
 # Add -fPIC to CFLAGS for compatibility with x86_64
 CFLAGS="$CFLAGS -fPIC"
 # Optimize for local machine
-CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
+AC_ARG_ENABLE([optimize],
+   AC_HELP_STRING(
+      [--enable-optimize],
+      [optimize for local machine (adds "-03 -march=native -mtune=native" to CFLAGS)]))
+
+if test "x$enable_optimize" = "xyes" ; then
+  CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
+fi
 
 ocamlcflags="-ccopt \"\$(CFLAGS)\""
 ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
