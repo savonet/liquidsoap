@@ -48,7 +48,10 @@ object (self)
 
   method render_text text =
     let font = Utils.get_some font in
-    let ts = Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
+    let text = if text="" then " " else text in
+    let ts =
+      Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white
+    in
     let w, h =
       let si = Sdlvideo.surface_info ts in
         si.Sdlvideo.w, si.Sdlvideo.h
@@ -74,7 +77,11 @@ object (self)
         Sdlttf.open_font ttf ttf_size
       with
         | e ->
-            raise (Lang.Invalid_value ((Lang.string ttf), Printf.sprintf "Could not open font: %s" (Printexc.to_string e)));
+            raise (Lang.Invalid_value
+                     ((Lang.string ttf),
+                      Printf.sprintf
+                        "Could not open font: %s"
+                        (Printexc.to_string e)));
     );
     self#render_text cur_text
 
@@ -109,14 +116,24 @@ end
 let () =
   Lang.add_operator "video.text"
     [
-      "font", Lang.string_t, Some (Lang.string "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"), Some "Path to ttf font file.";
+      "font", Lang.string_t,
+      Some (Lang.string "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"),
+      Some "Path to ttf font file.";
+
       "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
-      "color", Lang.int_t, Some (Lang.int 0xffffff), Some "Text color (in 0xRRGGBB format).";
+
+      "color", Lang.int_t, Some (Lang.int 0xffffff),
+      Some "Text color (in 0xRRGGBB format).";
+
       "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
-      "y", Lang.int_t, Some (Lang.int (-5)), Some "y offset (negative means from bottom).";
-      "speed", Lang.int_t, Some (Lang.int 70), Some "Speed in pixels per second.";
-      "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cyle text";
-      "", Lang.string_getter_t 1, Some (Lang.string ""), Some "Text.";
+      "y", Lang.int_t, Some (Lang.int (-5)),
+      Some "y offset (negative means from bottom).";
+
+      "speed", Lang.int_t, Some (Lang.int 70),
+      Some "Speed in pixels per second.";
+
+      "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cycle text.";
+      "", Lang.string_getter_t 1, None, Some "Text to display.";
     ]
     ~category:Lang.Input
     ~descr:"Display a text."
@@ -132,4 +149,5 @@ let () =
          Lang.to_bool (f "cycle"),
          Lang.to_string_getter (f "")
        in
-         ((new text ttf ttf_size color x y (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
+         ((new text ttf ttf_size color x y
+                 (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
