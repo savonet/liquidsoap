@@ -26,9 +26,9 @@ let no_mount = "Use [name].ogg"
 let no_name = "Use [mount]"
 
 let proto =
-  Icecast2.proto @
-  [ "mount", Lang.string_t, Some (Lang.string no_mount), None ;
-    "name", Lang.string_t, Some (Lang.string no_name), None ;
+  (Icecast2.proto ~no_mount ~no_name) @
+  [ "start", Lang.bool_t, Some (Lang.bool true),
+    Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
 
 class to_shout ~skeleton ~streams ~bitrate p =
@@ -54,15 +54,18 @@ class to_shout ~skeleton ~streams ~bitrate p =
   in
 
   let source = List.assoc "" p in
+  let autostart = Lang.to_bool (List.assoc "start" p) in
 
 object (self)
-  inherit [Ogg_encoder.t] Icecast2.output 
-    ~bitrate ~mount ~name ~source p as super
+  inherit
+    [Ogg_encoder.t] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Icecast2.output 
+    ~bitrate ~mount ~name ~source p as icecast
   inherit Ogg_output.base ~skeleton streams as ogg
 
   method output_start =
-    ogg#output_start;
-    super#output_start 
+    ogg#ogg_start;
+    icecast#icecast_start 
 
   method reset_encoder m = 
     let m =
@@ -75,8 +78,12 @@ object (self)
 
   method output_stop =
     let b = ogg#end_of_stream in
-    ogg#output_stop;
-    super#send b;
-    super#output_stop
+    ogg#ogg_stop;
+    icecast#send b;
+    icecast#icecast_stop
+
+  method output_reset = 
+    self#output_stop;
+    self#output_start
 end
 

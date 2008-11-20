@@ -29,15 +29,18 @@ let no_multicast = "no_multicast"
 
 let () = Shout.init ()
 
-let proto =
-  [ "start", Lang.bool_t, Some (Lang.bool true),
-    Some "Start output threads on operator initialization." ;
-    "restart", Lang.bool_t, Some (Lang.bool false),
+let proto ~no_mount ~no_name =
+  [ "restart", Lang.bool_t, Some (Lang.bool false),
     Some "Restart output after a failure. By default, liquidsoap will stop \
           if the output failed." ;
     "restart_delay", Lang.int_t, Some (Lang.int 3),
     Some "Delay, in seconds, before attempting new connection, if restart \
           is enabled." ;
+    "mount", Lang.string_t, Some (Lang.string no_mount), None ;
+    "name", Lang.string_t, Some (Lang.string no_name), None ;
+    "protocol", Lang.string_t, (Some (Lang.string "http")),
+    Some "Protocol of the streaming server: \
+          'http' for Icecast, 'icy' for Shoutcast." ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
     "user", Lang.string_t, Some (Lang.string "source"),
@@ -61,14 +64,13 @@ let proto =
   * extracting by itself.
   * The 'name' and 'mount' params are not extracted that way because the default
   * value for these depends on the format of the stream (ogg/mp3). *)
-class virtual ['a] output
+class virtual output
   ?(format=Shout.Format_vorbis) ?(protocol=Shout.Protocol_http) 
   ?bitrate ~name ~mount ~source ?(raw=false) p =
 
     let e f v = f (List.assoc v p) in
     let s v = e Lang.to_string v in
 
-    let autostart = e Lang.to_bool "start" in
     let restart = e Lang.to_bool "restart" in
     let restart_delay = float_of_int (e Lang.to_int "restart_delay") in
     let host = s "host" in
@@ -88,13 +90,13 @@ class virtual ['a] output
     let sync = e Lang.to_bool "sync" in
 
 object (self)
-  inherit
-    ['a] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
-    as super
 
   val mutable connection = None
   val mutable last_attempt = 0.
   val mutable dump = None
+
+  method virtual output_reset : unit
+  method virtual log : Dtools.Log.t
 
   initializer
     if sync then
@@ -115,8 +117,7 @@ object (self)
              *      even when shout doesn't actually get restarted. *)
             (* Avoid multiple restarts.. *)
             last_attempt <- Unix.time () ;
-            self#output_stop ;
-            self#output_start
+            self#output_reset ;
           end
       | Some c ->
           (* TODO think about some limitation of shout restarting *)
@@ -144,15 +145,11 @@ object (self)
                    server shutdown? Restarting the output in %.f seconds."
                   restart_delay  ;
                 (* Ask for a restart after last_attempt. *)
-                self#icecast_output_stop ;
+                self#icecast_stop ;
                 last_attempt <- Unix.time ()
             end
 
-  (** Private method to be able to call
-    * exactly this function, in case output_stop
-    * is overriden by a class inheritating from this
-    * one. *)
-  method private icecast_output_stop =
+  method icecast_stop =
     match connection with
       | None -> ()
       | Some c ->
@@ -162,9 +159,7 @@ object (self)
             | Some f -> close_out f
             | None -> ()
 
-  method output_stop = self#icecast_output_stop
- 
-  method output_start =
+  method icecast_start =
     assert (connection = None) ;
     let conn = new_shout () in
 
@@ -234,11 +229,7 @@ object (self)
             self#log#f 3
               "Connection failed, will try again in %.f sec."
               restart_delay ;
-            self#icecast_output_stop ;
+            self#icecast_stop ;
             last_attempt <- Unix.time ()
-
-  method output_reset =
-    self#output_stop ;
-    self#output_start
 
 end

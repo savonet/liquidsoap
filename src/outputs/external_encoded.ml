@@ -97,8 +97,8 @@ object (self)
     Mutex.unlock read_m;
     if restart_encoder || crash then 
       begin
-        self#external_output_stop;
-        self#external_output_start meta
+        self#external_stop;
+        self#external_start meta
       end;
     ret
 
@@ -115,7 +115,7 @@ object (self)
 
   method reset_encoder = self#external_reset_encoder ~crash:false
 
-  method private external_output_start meta =
+  method private external_start meta =
     self#log#f 2 "Creating external encoder..";
     let process = 
       Lang.to_string (Lang.apply process ["",Lang.metadata meta]) 
@@ -198,7 +198,7 @@ object (self)
 
   (* Don't fail if the task has already exited, like in 
    * case of failure for instance.. *)
-  method private external_output_stop =
+  method private external_stop =
     match encoder with
       | Some (_,out_e) ->
          begin
@@ -238,12 +238,12 @@ object (self)
   inherit base ~restart_encoder ~header ~restart_on_crash process as base
 
   method output_start =
-    base#external_output_start initial_meta;
-    to_file#file_output_start
+    base#external_start initial_meta;
+    to_file#file_start
 
   method output_stop =
-    base#external_output_stop;
-    to_file#file_output_stop
+    base#external_stop;
+    to_file#file_stop
 
   method output_reset = self#output_stop; self#output_start 
 end
@@ -290,9 +290,9 @@ object (self)
 
   method send _ = () 
 
-  method output_start = base#external_output_start initial_meta
+  method output_start = base#external_start initial_meta
 
-  method output_stop = base#external_output_stop
+  method output_stop = base#external_stop
 
   method output_reset = self#output_stop; self#output_start
 end

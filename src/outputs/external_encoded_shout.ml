@@ -26,17 +26,14 @@ let no_mount = "Use [name]"
 let no_name = "Use [mount]"
 
 let proto =
-  Icecast2.proto @ External_encoded.proto @
-  [ "mount", Lang.string_t, Some (Lang.string no_mount), None ;
-    "name", Lang.string_t, Some (Lang.string no_name), None ;
+  (Icecast2.proto ~no_mount ~no_name) @ External_encoded.proto @
+  [ "start", Lang.bool_t, Some (Lang.bool true),
+    Some "Start output threads on operator initialization." ;
     "bitrate", Lang.int_t, Some (Lang.int 128), None;
     "icy_metadata", Lang.bool_t, Some (Lang.bool true),
     Some "Send new metadata using the ICY protocol.";
     "shout_raw", Lang.bool_t, Some (Lang.bool false), 
     Some "Send to icecast as raw data. No format-specific parsing is done.";
-    "protocol", Lang.string_t, (Some (Lang.string "http")),
-    Some "Protocol of the streaming server: \
-          'http' for Icecast, 'icy' for Shoutcast." ;
     "format", Lang.string_t, Some (Lang.string "mp3"), Some "Shout format. \
                                                   One of \"mp3\" or \"ogg\".";
     "", Lang.source_t, None, None ]
@@ -52,7 +49,7 @@ class to_shout p =
   let icy = e Lang.to_bool "icy_metadata" in
   let process = List.assoc "process" p in
   let bitrate = e Lang.to_int "bitrate" in
-
+  let autostart = e Lang.to_bool "start" in
   let source = List.assoc "" p in
   let mount = s "mount" in
   let name = s "name" in
@@ -91,8 +88,10 @@ class to_shout p =
   in
 object (self)
   inherit
-    [External_encoded.external_encoder] Icecast2.output ~format ~protocol
-      ~bitrate:(string_of_int bitrate) ~raw ~mount ~name ~source p as super
+    [External_encoded.external_encoder] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit
+    Icecast2.output ~format ~protocol
+      ~bitrate:(string_of_int bitrate) ~raw ~mount ~name ~source p as icecast
   inherit External_encoded.base ~restart_encoder ~restart_on_crash ~header process as base
 
   method reset_encoder m =
@@ -154,12 +153,12 @@ object (self)
         ""
 
     method output_start =
-      base#external_output_start External_encoded.initial_meta;
-      super#output_start
+      base#external_start External_encoded.initial_meta;
+      icecast#icecast_start
 
     method output_stop =
-      base#external_output_stop;
-      super#output_stop
+      base#external_stop;
+      icecast#icecast_stop
 
     method output_reset = self#output_stop; self#output_start
 end

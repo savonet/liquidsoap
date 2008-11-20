@@ -35,7 +35,7 @@ object (self)
 
   method set_metadata m = current_metadata <- m
 
-  method file_output_start =
+  method file_start =
     assert (fd = None) ;
     let mode =
       Open_wronly::Open_creat::
@@ -55,7 +55,7 @@ object (self)
       open_date <- Unix.gettimeofday () ;
       fd <- Some chan
 
-  method file_output_stop =
+  method file_stop =
     match fd with
       | None -> assert false
       | Some v -> close_out v ; fd <- None
@@ -75,8 +75,8 @@ object (self)
       if need_close then begin
         need_close <- false ;
         self#log#f 3 "Re-opening output file..." ;
-        self#file_output_stop ;
-        self#file_output_start
+        self#file_stop ;
+        self#file_start
       end else
         if Unix.gettimeofday () > reload_delay +. open_date then
           if Lang.to_bool (Lang.apply reload_predicate []) then begin

@@ -59,11 +59,11 @@ object
 
   method output_start =
       encoder <- Some () ;
-      to_file#file_output_start ;
+      to_file#file_start ;
       to_file#send header
 
   method output_stop =
-    to_file#file_output_stop
+    to_file#file_stop
 
   method output_reset = ()
 end

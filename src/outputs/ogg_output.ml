@@ -148,7 +148,7 @@ object(self)
     Hashtbl.iter encode streams;
     Ogg_encoder.get_data enc
 
-  method output_start = 
+  method ogg_start = 
     encoder <- Some (Ogg_encoder.create ~skeleton self#id)
 
   method end_of_stream = 
@@ -162,9 +162,9 @@ object(self)
 
   (** Ogg encoder must be stoped (and flushed)
     * before calling this function. *)
-  method output_stop =
+  method ogg_stop =
     let enc = Utils.get_some encoder in
-    assert(Ogg_encoder.state enc = Ogg_encoder.Eos);
+    assert(Ogg_encoder.state enc <> Ogg_encoder.Streaming);
     encoder <- None
 end
 
@@ -194,13 +194,13 @@ object (self)
     ogg#reset_stream m
 
   method output_start =
-    ogg#output_start;
-    to_file#file_output_start
+    ogg#ogg_start;
+    to_file#file_start
 
   method output_stop =
     let f = ogg#end_of_stream in
-    ogg#output_stop;
+    ogg#ogg_stop;
     to_file#send f ;
-    to_file#file_output_stop
+    to_file#file_stop
 
 end

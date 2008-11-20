@@ -82,10 +82,10 @@ object (self)
 
   method output_start =
       base#output_start ;
-      to_file#file_output_start
+      to_file#file_start
 
   method output_stop =
-    to_file#file_output_stop
+    to_file#file_stop
 
   method output_reset = ()
 end

@@ -28,18 +28,13 @@ let no_mount = "Use [name]"
 let no_name = "Use [mount]"
 
 let proto =
-  Icecast2.proto @
-  [ "mount", Lang.string_t, Some (Lang.string no_mount), None ;
-    "name", Lang.string_t, Some (Lang.string no_name), None ;
-
-    "samplerate", Lang.int_t, Some (Lang.int 44100), None;
+  (Icecast2.proto ~no_mount ~no_name) @
+  [ "samplerate", Lang.int_t, Some (Lang.int 44100), None;
     "bitrate", Lang.int_t, Some (Lang.int 128), None;
     "quality", Lang.int_t, Some (Lang.int 5), None;
     "stereo", Lang.bool_t, Some (Lang.bool true), None;
-    "protocol", Lang.string_t, (Some (Lang.string "http")),
-    Some "Protocol of the streaming server: \
-          'http' for Icecast, 'icy' for Shoutcast." ;
-
+    "start", Lang.bool_t, Some (Lang.bool true),
+    Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
 
 let no_multicast = "no_multicast"
@@ -54,7 +49,7 @@ class to_shout p =
   let quality = e Lang.to_int "quality" in
 
   let source = List.assoc "" p in
-
+  let autostart = Lang.to_bool (List.assoc "start" p) in
   let mount = s "mount" in
   let name = s "name" in
   let name =
@@ -83,8 +78,10 @@ class to_shout p =
   in
 object (self)
   inherit
-    [Lame.encoder] Icecast2.output ~format:Shout.Format_mp3 ~protocol
-      ~bitrate:(string_of_int bitrate) ~mount ~name ~source p as super
+    [Lame.encoder] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit
+    Icecast2.output ~format:Shout.Format_mp3 ~protocol
+      ~bitrate:(string_of_int bitrate) ~mount ~name ~source p as icecast
   inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder m =
@@ -136,8 +133,14 @@ object (self)
         | None -> ""
 
   method output_start =
-    super#output_start ;
+    icecast#icecast_start ;
     base#output_start 
+
+  method output_stop = icecast#icecast_stop
+
+  method output_reset = 
+    self#output_stop;
+    self#output_start
 
 end
 
