@@ -95,7 +95,7 @@ object (self)
   val mutable last_attempt = 0.
   val mutable dump = None
 
-  method virtual output_reset : unit
+  method virtual reset_encoder : (string,string) Hashtbl.t -> string
   method virtual log : Dtools.Log.t
 
   initializer
@@ -106,18 +106,8 @@ object (self)
     match connection with
       | None ->
           if Unix.time () > restart_delay +. last_attempt then begin
-            (* TODO The base output class ensures that start is called before
-             *      send, and stop after them. This is broken if send calls
-             *      directly these methods, like here. On the other hand,
-             *      we don't seem to have another option here. Calling directly
-             *      #reset_encoder would be catastrophic when inherited by
-             *      lame_encoded.to_shout, which reset method assumes that shout
-             *      is properly connected. Another downside of the current code
-             *      is that the encoder gets restarted every delay seconds,
-             *      even when shout doesn't actually get restarted. *)
-            (* Avoid multiple restarts.. *)
-            last_attempt <- Unix.time () ;
-            self#output_reset ;
+            ignore(self#reset_encoder (Hashtbl.create 0));
+            self#icecast_start
           end
       | Some c ->
           (* TODO think about some limitation of shout restarting *)
