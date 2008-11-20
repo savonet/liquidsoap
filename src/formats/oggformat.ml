@@ -57,7 +57,7 @@ let decoder file sync fd =
       Unix.close fd
     with _ -> ()
   in
-  if not (Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder) ||
+  if not (Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder) &&
      not (Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder)
     then
     (** No decodable data, raising Not_found.. *)
