@@ -77,9 +77,12 @@ object (self)
     ogg#reset_stream m
 
   method output_stop =
-    let b = ogg#end_of_stream in
-    ogg#ogg_stop;
-    icecast#send b;
+    if encoder <> None then
+     begin
+      let b = ogg#end_of_stream in
+      ogg#ogg_stop;
+      icecast#send b
+     end;
     icecast#icecast_stop
 
   method output_reset = 
