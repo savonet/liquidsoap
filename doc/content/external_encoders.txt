@@ -1,0 +1,182 @@
+title: External encoders
+
+h3. Introduction
+
+You can use any external program that accepts wav or raw PCM data to encode audio data and use the resulting compressed 
+stream as an output, either to a file, a pipe, or even icecast.
+
+When using an external encoding process, uncompressed PCM data will be sent to the process through its standard input (@stdin@), and encoded data will be read through its standard output (@stdout@). When using a process that does only file input or output, @/dev/stdin@ and @/dev/stdout@ can be used, though this may generate issues if the encoding process expect to be able to go backward/forward in the file.
+
+h3. Main operators
+
+The main operators are:
+
+* @output.file.external@
+* @output.pipe.external@
+* @output.icecast.external@
+
+The available options are the same as the usual @output.file@ and @output.icecast@ operators,
+with the following additions:
+* @process@: this parameters is a function that takes the current metadata and return the process to start.
+* @header@: if set to @false@ then no WAV header will be added to the data fed to the encoding process, thus the encoding process shall operate on RAW data.
+* @restart_on_crash@: wether to restart the encoding process if it crashed. Usefull when the external process fails to encode properly data after some time. Setting this to @true@ allows you to regulary kill the encoding process. Liquidsoap will then restart the encoder. Listeners will hardly notice it since the stream resumes at the current point. This workaround needs to be used for @lame@, since the encoder seems to produce garbage data after running for some time.
+* @restart_encoder@: restart encoding process on each new track. Usefull in conjonction with the @process@ parameter for audio formats that need a new header, possibly with metadatas, for each new song, like ogg for instance.
+
+Some specific options are available for @output.icecast.external@:
+* @icy_metadata@: send new metadata as ICY update. This is the case for headerless formats, such as MP3 or AAC, and it appear to work also for ogg/vorbis streams.
+* @shout_raw@: ask shout not to do any synchronization. Usefull when sending formats that shout does not recognize, like AAC. Since liquidsoap is real-time, data is sent at real-rate anyway.
+* @format@: shout format. Must be one of "ogg" or "mp3". Use "mp3" for sending other headerless audio data, such as AAC.
+
+An full support for exotic codecs is not yet available in shout. Current shout API does not allow to set the @Content-Type@ parameter to any arbitrary value. A patch has been submited, hopefully, this limitation will be removed soon.
+
+h3. Wrappers
+
+On top of the basic operators, wrappers have been written for using the @lame@ encoder and the @flac@ encoder to output data to an icecast server, or output to local sound card using @aplay@. The code is present, as usual, in @utils.liq@ and is as follows.
+
+h4. output.aplay
+
+%%(output-aplay.liq)
+# Output the stream using aplay.
+# Using this turns "root.sync" to false
+# since aplay will do the synchronisation
+# @category Source / Output
+# @param ~id Output's ID
+# @param ~device Alsa pcm device name
+# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param s Source to play
+def output.aplay(~id="output.aplay",
+                 ~device="default",
+                 ~restart_on_crash=false,
+                 s)
+  def aplay_p(m) = 
+    "aplay -D #{device}"
+  end
+  log(label=id,level=3,"Setting root.sync \
+                         to false")
+  set("root.sync",false)
+  output.pipe.external(
+    id=id,
+    restart_on_crash=restart_on_crash,
+    restart_encoder=false,
+    process=aplay_p,s)
+end
+%%
+
+h4. output.icecast.lame
+
+%%(output-icecast-lame.liq)
+# Output to icecast using the lame command line encoder.
+# @category Source / Output
+# @param ~id Output's ID
+# @param ~start Start output threads on operator initialization.
+# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
+# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
+# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track.
+# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
+# @param ~lame The lame binary
+# @param ~bitrate Encoder bitrate
+# @param ~sync Let shout do the synchronization.
+# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
+# @param s The source to output
+def output.icecast.lame(
+  ~id="output.icecast.lame",~start=true,
+  ~restart=true,~restart_delay=3,
+  ~host="localhost",~port=8000,
+  ~user="source",~password="hackme",
+  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~description="OCaml Radio!",~public=true,
+  ~sync=false,~dumpfile="",~mount="Use [name]",
+  ~name="Use [mount]",~protocol="http",
+  ~lame="lame",~bitrate=128,
+  ~restart_on_crash=false,
+  ~restart_on_new_track=false,
+  s)
+  samplerate = get(default=44100,"frame.samplerate")
+  samplerate = float_of_int(samplerate) / 1000.
+  channels = get(default=2,"frame.channels")
+  mode = 
+    if channels == 2 then
+      "j" # Encoding in joint stereo..
+    else
+      "m"
+    end
+  # Metadata update is set by ICY with icecast
+  def lame_p(m)
+    "#{lame} -b #{bitrate} -r --bitwidth 16 \
+       -s #{samplerate} --signed -m #{mode} \
+       --nores -x -t - -"
+  end
+  output.icecast.external(id=id,
+    process=lame_p,bitrate=bitrate,start=start,
+    restart=restart,restart_delay=restart_delay,
+    host=host,port=port,user=user,password=password,
+    genre=genre,url=url,description=description,
+    public=public,sync=sync,dumpfile=dumpfile,
+    name=name,mount=mount,protocol=protocol,
+    header=false,restart_on_crash=restart_on_crash,
+    restart_encoder=restart_on_new_track,
+    s)
+end
+%%
+
+h4. output.icecast.flac
+
+%%(output-icecast-flac.liq)
+# Output to icecast using the flac command line encoder.
+# @category Source / Output
+# @param ~id Output's ID
+# @param ~start Start output threads on operator initialization.
+# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
+# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
+# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track. If false, the resulting stream will have a single track.
+# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
+# @param ~flac The flac binary
+# @param ~quality Encoder quality (0..8)
+# @param ~sync Let shout do the synchronization.
+# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
+# @param s The source to output
+def output.icecast.flac(
+  ~id="output.icecast.flac",~start=true,
+  ~restart=true,~restart_delay=3,
+  ~host="localhost",~port=8000,
+  ~user="source",~password="hackme",
+  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~description="OCaml Radio!",~public=true,
+  ~sync=false,~dumpfile="",~mount="Use [name]",
+  ~name="Use [mount]",~protocol="http",
+  ~flac="flac",~quality=6,~restart_on_crash=false,
+  ~restart_on_new_track=true,s)
+  # We will use raw format, to 
+  # bypass input length value in WAV
+  # header (input length is not known)
+  channels = get(default=2,"frame.channels")
+  samplerate = get(default=44100,"frame.samplerate")
+  def flac_p(m)=
+    def option(x) = 
+      "-T #{quote(fst(x))}=#{quote(snd(x))}"
+    end
+    m = list.map(option,m)
+    m = string.concat(separator=" ",m) 
+    "#{flac} --force-raw-format --endian=little \
+      --channels=#{channels} --bps=16 \
+      --sample-rate=#{samplerate} \
+      --sign=signed #{m} \
+      -#{quality} --ogg -c -"
+  end
+  output.icecast.external(id=id,
+    process=flac_p,bitrate=(-1),start=start,
+    restart=restart,restart_delay=restart_delay,
+    host=host,port=port,user=user,password=password,
+    genre=genre,url=url,description=description,
+    public=public,sync=sync,dumpfile=dumpfile,
+    name=name,mount=mount,protocol=protocol,
+    restart_encoder=restart_on_new_track,
+    format="ogg",header=false,icy_metadata=false,
+    restart_on_crash=restart_on_crash,
+    s)
+end
+%%
