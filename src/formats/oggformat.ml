@@ -111,6 +111,8 @@ let decoder file sync fd =
       (*VFrame.add_break buf size;*)
     end;
 
+    if Fmt.channels () <> 0 &&
+       Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder then
     begin
       try
         while Generator.length abg < buffer_length do
