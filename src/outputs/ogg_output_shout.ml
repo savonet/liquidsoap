@@ -33,8 +33,7 @@ let proto =
 
 class to_shout ~skeleton ~streams ~bitrate p =
 
-  let e f v = f (List.assoc v p) in
-  let s v = e Lang.to_string v in
+  let s v = Lang.to_string (List.assoc v p) in
 
   let name = s  "name" in
   let mount = s "mount" in

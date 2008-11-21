@@ -194,7 +194,7 @@ let override_doc =
         overrides the 'duration' parameter for current track." 
 
 let () =
-  Lang.add_operator 
+  Lang.add_operator
     "fade.in" (("override", Lang.string_t, Some (Lang.string "liq_fade_in"),
                override_doc) :: proto)
     ~category:Lang.SoundProcessing

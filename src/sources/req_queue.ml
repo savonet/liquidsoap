@@ -129,7 +129,8 @@ object (self)
                        queue." ;
 
     Server.add ~ns "ignore" ~usage:"ignore <rid>"
-      ~descr:"Indicate that request <rid> should not be played (sets the skip metadata to true)."
+      ~descr:"Indicate that request <rid> should not be played \
+              (set the \"skip\" metadata to true)."
       (fun s ->
          ( let id = int_of_string s in
              match Request.from_id id with

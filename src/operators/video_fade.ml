@@ -223,11 +223,13 @@ let override_doc =
 
 let () =
   Lang.add_operator
-    "video.fade.in" (("override", Lang.string_t, Some (Lang.string "liq_video_fade_in"),
-               override_doc) :: proto)
+    "video.fade.in"
+    (("override", Lang.string_t, Some (Lang.string "liq_video_fade_in"),
+      override_doc) :: proto)
     ~category:Lang.SoundProcessing
-    ~descr:("Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used "^
-            "to set the duration for a specific track (float in seconds).")
+    ~descr:"Fade the beginning of tracks. Metadata 'liq_video_fade_in' \
+            can be used to set the duration for a specific track \
+            (float in seconds)."
     (fun p ->
        let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
@@ -239,11 +241,13 @@ let () =
        let d,f,t,s = extract p in
          ((new fade_in ~initial:true d f t s):>source)) ;
   Lang.add_operator
-    "video.fade.out" (("override", Lang.string_t, Some (Lang.string "liq_video_fade_out"),
-               override_doc) :: proto)
+    "video.fade.out"
+    (("override", Lang.string_t, Some (Lang.string "liq_video_fade_out"),
+      override_doc) :: proto)
     ~category:Lang.SoundProcessing
-    ~descr:("Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to "^
-            "set the duration for a specific track (float in seconds).")
+    ~descr:"Fade the end of tracks. Metadata 'liq_video_fade_out' \
+            can be used to set the duration for a specific track \
+            (float in seconds)."
     (fun p ->
        let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
