@@ -167,47 +167,43 @@ object (self)
   val mutable queue_length = 0 (* Frames *)
   val mutable resolving = None
 
-  (** Asynchronous task for waking up the feeding process.. *)
-  val run_m = Mutex.create ()
-  (** Should a new task be created. *)
-  val mutable do_run = true
-  val mutable wake_task = None 
-
   (** State should be `Sleeping on awakening, and is then turned to `Running.
     * Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
     * meaning that the feeding tasks exited. *)
   val mutable state = `Sleeping
   val state_lock = Mutex.create ()
   val state_cond = Condition.create ()
+  val mutable task = None
 
   method private wake_up activation =
+    assert (task = None) ;
     Tutils.mutexify state_lock
       (fun () ->
          assert (state = `Sleeping) ;
          state <- `Running) () ;
-    Mutex.lock run_m ;
-    if do_run then
-     begin
-       let task = 
-          (Duppy.Async.add Tutils.scheduler ~priority
-            (fun () ->  Duppy.Task.add Tutils.scheduler
-                         { Duppy.Task.
-                           priority = priority ;
-                           events   = [`Delay 0.] ;
-                           handler  = (fun _ -> self#feed_queue () ; []) }))
-       in
-       wake_task <- Some task;
-       Duppy.Async.wake_up task;
-       do_run <- false
-     end;
-    Mutex.unlock run_m
+    let t = 
+      Duppy.Async.add Tutils.scheduler ~priority
+        (fun () ->  Duppy.Task.add Tutils.scheduler
+                      { Duppy.Task.
+                        priority = priority ;
+                        events   = [`Delay 0.] ;
+                        handler  = (fun _ -> self#feed_queue () ; []) })
+    in
+      Duppy.Async.wake_up t ;
+      task <- Some t
 
   method private sleep =
+    (* Ask the feeding task to die. *)
     Tutils.mutexify state_lock
       (fun () ->
          assert (state = `Running) ;
          state <- `Tired) () ;
+    (* Make sure the task is awake so it can die and let us know about it. *)
+    Duppy.Async.wake_up (Utils.get_some task) ;
     Tutils.wait state_cond state_lock (fun () -> state = `Sleeping) ;
+    Duppy.Async.stop (Utils.get_some task) ;
+    task <- None ;
+    (* No more feeding task, we can go to sleep. *)
     super#sleep ;
     begin try
       Mutex.lock qlock ;
@@ -215,17 +211,17 @@ object (self)
         let (_,req) = Queue.take retrieved in
           Request.destroy req
       done
-    with e -> Mutex.unlock qlock ; if e <> Queue.Empty then raise e end ;
-    let task = Utils.get_some wake_task in
-      wake_task <- None ;
-      Duppy.Async.stop task
+    with e -> Mutex.unlock qlock ; if e <> Queue.Empty then raise e end
 
   (** This method should be called whenever the feeding task has a new
     * opportunity to feed the queue, in case it is sleeping. *)
   method private notify_new_request =
-    match wake_task with
-      | Some task -> Duppy.Async.wake_up task
-      | None -> ()
+    (* Don't wake up the task while we're trying to shut down,
+     * it could avoid its death and run forever in the wild. *)
+    if Tutils.mutexify state_lock (fun () -> state) () = `Running then
+      match task with
+        | Some task -> Duppy.Async.wake_up task
+        | None -> ()
 
   (** A function that returns delays for tasks, making sure that these tasks
     * don't repeat too fast.
@@ -247,12 +243,7 @@ object (self)
 
   (** The body of the feeding task *)
   method private feed_queue () : unit =
-    let put_on_sleep () =
-      Mutex.lock run_m ;
-      do_run <- true ;
-      Mutex.unlock run_m
-    in
-    (* If the test fails, the task ends.. *)
+    (* If the test fails, the task sleeps. *)
     if
       Tutils.mutexify state_lock
         (fun () ->
@@ -277,8 +268,7 @@ object (self)
                     priority  = priority ;
                     events   = [`Delay (adaptative_delay ())] ;
                     handler  = (fun _ -> self#feed_queue (); []) }
-          | Empty -> put_on_sleep ()
-      else put_on_sleep ()
+          | Empty -> ()
 
   (** Try to feed the queue with a new request.
     * Return false if there was no new request to try,
