@@ -169,7 +169,8 @@ object (self)
 
   (** Asynchronous task for waking up the feeding process.. *)
   val run_m = Mutex.create ()
-  val mutable do_run = false
+  (** Should a new task be created. *)
+  val mutable do_run = true
   val mutable wake_task = None 
 
   (** State should be `Sleeping on awakening, and is then turned to `Running.
@@ -184,20 +185,22 @@ object (self)
       (fun () ->
          assert (state = `Sleeping) ;
          state <- `Running) () ;
-    Mutex.lock run_m; do_run <- true; Mutex.unlock run_m ;
-    wake_task <- 
-      Some 
-        (Duppy.Async.add Tutils.scheduler ~priority
-          (fun () ->  Mutex.lock run_m ;
-                      if do_run then begin
-                        Duppy.Task.add Tutils.scheduler
+    Mutex.lock run_m ;
+    if do_run then
+     begin
+       let task = 
+          (Duppy.Async.add Tutils.scheduler ~priority
+            (fun () ->  Duppy.Task.add Tutils.scheduler
                          { Duppy.Task.
                            priority = priority ;
                            events   = [`Delay 0.] ;
-                           handler  = (fun _ -> self#feed_queue () ; []) } ;
-                        do_run <- false
-                      end ;
-		      Mutex.unlock run_m))
+                           handler  = (fun _ -> self#feed_queue () ; []) }))
+       in
+       wake_task <- Some task;
+       Duppy.Async.wake_up task;
+       do_run <- false
+     end;
+    Mutex.unlock run_m
 
   method private sleep =
     Tutils.mutexify state_lock
