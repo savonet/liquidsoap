@@ -5,7 +5,7 @@ h3. Introduction
 You can use any external program that accepts wav or raw PCM data to encode audio data and use the resulting compressed 
 stream as an output, either to a file, a pipe, or even icecast.
 
-When using an external encoding process, uncompressed PCM data will be sent to the process through its standard input (@stdin@), and encoded data will be read through its standard output (@stdout@). When using a process that does only file input or output, @/dev/stdin@ and @/dev/stdout@ can be used, though this may generate issues if the encoding process expect to be able to go backward/forward in the file.
+When using an external encoding process, uncompressed PCM data will be sent to the process through its standard input (@stdin@), and encoded data will be read through its standard output (@stdout@). When using a process that does only file input or output, @/dev/stdin@ and @/dev/stdout@ can be used, though this may generate issues if the encoding process expects to be able to go backward/forward in the file.
 
 h3. Main operators
 

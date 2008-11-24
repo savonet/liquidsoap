@@ -1,0 +1,149 @@
+title: External decoders.
+
+h3. Introduction.
+
+You can use external programs in liquidsoap to decode audio files. The program must be able to
+output WAV data to its standard output (@stdout@).
+
+h3. Basic operators.
+
+External decoders are registered using the @add_decoder@ operator. It is invoked the following way: @add_decoder(format,decoder)@, where:
+
+* @format@ is the name of the decoded format. It is only informative.
+* @decoder@ is a function that takes as parameter the name of the file to decode and returns the command to start to decode the file.
+
+You may also register new metadata resolver using the @add_metadata_resolver@ operator. It is invoked the following way: @add_metadata_resolver(format,resolver)@, where:
+
+* @format@ is the name of the resolved format. It is only informative.
+* @resolver@ is a function @f@ that returns a list of metadata of the form: @(label, value)@. It is invoked the following way: @f(format=name,file)@, where:
+** @format@ contains the name of the format, as returned by the decoder that accepted to decode the file. @f@ may return immediately if this is not an expected value. 
+** @file@ is the name of the file to decode.
+
+h3. Wrappers.
+
+On top of the basic operators, wrappers have been written for some common decoders. This includes the @flac@ and @faad@ decoders, by default, and @mplayer@, if enabled. All operators are defined in @utils.liq@.
+
+h4. The FLAC decoder.
+
+The flac decoder uses the @flac@ command line. It is enabled if the binary can be found in the current @$PATH@.
+
+Its code is the following:
+
+%%(flac_decoder.liq)
+if test_process("which flac") then
+  def flac_p(file)=
+    "flac -d -c #{quote(file)} 2>/dev/null"
+  end
+  add_decoder("FLAC",flac_p)
+else
+  log(level=3,"flac binary not found: \
+        flac decoder disabled.")
+end
+%%
+
+Additionaly, a metadata resolver is registered when the @metaflac@ command can be found it the @$PATH@:
+
+%%(flac_resolver.liq)
+if test_process("which metaflac") then
+  def flac_meta(~format,file)
+    if format != "FLAC" then
+      []
+    else
+      ret = get_process_lines("metaflac \
+        --export-tags-to=- \
+        #{quote(file)} 2>/dev/null")
+      ret = list.map(
+               string.split(separator="="),ret)
+      # Could be made better..
+      def f(l',l)=
+        if list.length(l) >= 2 then
+          list.append([(list.hd(l),
+                        list.nth(l,1))],l')
+        else
+          if list.length(l) >= 1 then
+            list.append([(list.hd(l),"")],l')
+          else
+            l'
+          end
+        end
+      end
+      list.fold(f,[],ret)
+    end
+  end
+  add_metadata_resolver("FLAC",flac_meta)
+else
+  log(level=3,"metaflac binary not found: \
+        flac metadata resolver disabled.")
+end
+%%
+
+h4. The faad decoder.
+
+The faad decoder uses the @faad@ program, if found in the @$PATH@. It can decode AAC and AAC+ audio files.
+
+Its code is the following:
+
+%%(faad_decoder.liq)
+if test_process("which faad") then
+  def faad_p(file)=
+    "faad -o /dev/stdout #{quote(file)} \
+          2>/dev/null"
+  end
+  add_decoder("FAAD",faad_p)
+  def faad_meta(~format,file)
+    if format != "FAAD" then
+      []
+    else
+      ret = get_process_lines("faad -i \
+                   #{quote(file)} 2>&1")
+      def get_meta(l,s)=
+        ret = string.extract(
+              pattern="^(\w+):\s(.+)$",s)
+        if list.length(ret) > 0 then
+          list.append([(ret["1"],ret["2"])],l)
+        else
+          l
+        end
+      end
+      list.fold(get_meta,[],ret)
+    end
+  end
+  add_metadata_resolver("FAAD",faad_meta)
+else
+  log(level=3,"faad binary not found: \
+       faad decoder disabled.")
+end
+%%
+
+h4. Mplayer decoder.
+
+This decoder makes use of the @mplayer@ program, if it is enabled, and the program can be found in the @$PATH@.
+It allows liquidsoap to decode any file for which mplayer is able to decode an audio track. This will include video files, if some are found in your playlists, for instance.
+
+It is enabled by add the following line in your script:
+
+%%
+enable_mplayer()
+%%
+
+Its code is the following:
+
+%%(mplayer_decoder.liq)
+# Enable mplayer decoder (needs mplayer binary in path)
+# @category Liquidsoap
+def enable_mplayer()=
+  def mplayer_p(file)=
+    "mplayer -really-quiet \
+        -ao pcm:file=/dev/stdout \
+        -vc null -vo null #{quote(file)} \
+        2>/dev/null"
+  end
+  if test_process("which mplayer") then
+    add_decoder("MPLAYER",mplayer_p)
+  else
+    log(label="utils.liq",level=2,
+          "couldn't enable mplayer \
+             decoder: no binary found")
+  end
+end
+%%

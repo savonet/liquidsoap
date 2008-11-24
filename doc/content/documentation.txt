@@ -33,7 +33,8 @@ h4. Documentation
 * "Shoutcast output":shoutcast.html
 * "Smart crossfading":smartcrossfade.html
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
-* "External encoders":external_encoders.html: use an external encoding program.
+* "External encoders":external_encoders.html: use an external audio encoding program.
+* "External decoders":external_decoders.html: use externals programs for decoding audio files.
 
 h4. Reference
 
