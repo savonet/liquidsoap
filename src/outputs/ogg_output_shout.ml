@@ -73,7 +73,10 @@ object (self)
       in
       Hashtbl.fold f m []
     in
-    ogg#reset_stream m
+    if encoder <> None then
+      ogg#reset_stream m
+    else
+      ""
 
   method output_stop =
     if encoder <> None then

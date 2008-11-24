@@ -191,16 +191,22 @@ object (self)
       in
       Hashtbl.fold f m []
     in
-    ogg#reset_stream m
+    if encoder <> None then
+      ogg#reset_stream m
+    else
+      ""
 
   method output_start =
     ogg#ogg_start;
     to_file#file_start
 
   method output_stop =
-    let f = ogg#end_of_stream in
-    ogg#ogg_stop;
-    to_file#send f ;
+    if encoder <> None then
+     begin
+      let f = ogg#end_of_stream in
+      ogg#ogg_stop;
+      to_file#send f 
+     end;
     to_file#file_stop
 
 end
