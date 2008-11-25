@@ -177,6 +177,8 @@ let exec s =
 
 let priority = Tutils.Non_blocking
 
+exception Invalid_data
+
 let handle_client socket =
   let on_error _ =
     log#f 3 "Client left." ;
@@ -191,12 +193,6 @@ let handle_client socket =
   let recursive = false in
   (* Process the command [s] and start a new reading poll *)
   let rec process l =
-    let l,init =
-      match List.rev l with
-        | []
-        | _ :: [] -> assert false (* Should not happen *)
-        | e :: l -> List.rev l,e
-    in
     let exit = ref false in
     let process_elem s =
       let answer =
@@ -211,8 +207,21 @@ let handle_client socket =
         else
           answer^"\nEND\n"
     in
-    let l = List.map process_elem l in
-    let answer = String.concat "\r\n" l in
+    let answer,init = 
+      try
+        let l,init =
+          match List.rev l with
+            | [] -> raise Invalid_data
+            | e :: [] -> raise Invalid_data
+            | e :: l -> List.rev l,e
+        in
+        let l = List.map process_elem l in
+        String.concat "\r\n" l,init
+      with
+        | Invalid_data -> 
+             exit := true; 
+             "ERROR: invalid request\r\n","" (* This will not be printed.. *)
+    in
     let exec () =
       if !exit then
         on_error ()
