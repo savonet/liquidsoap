@@ -55,11 +55,11 @@ let print_doc f =
          | Header (n,_,s) -> (* TODO *)
              fprintf f "\\%s{%s}\n"
                ((function
-                  | 2 -> "chapter"
-                  | 3 -> "section"
-                  | 4 -> "subsection"
-                  | 5 -> "subsubsection"
-                  | 6 -> "paragraph"
+                  | 3 -> "chapter"
+                  | 4 -> "section"
+                  | 5 -> "subsection"
+                  | 6 -> "subsubsection"
+                  | 7 -> "paragraph"
                   | _ -> assert false) n)
                !s
          | Paragraph p -> print_paragraph pprinter f p
