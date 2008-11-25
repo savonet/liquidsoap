@@ -1,0 +1,31 @@
+title: Video in Liquidsoap
+
+h3. Video
+
+h4. Getting started with video
+
+In order to stream video, you should first inform your script that you are going to use video by doing
+%%
+set("frame.video.channels",1)
+%%
+Optionnaly, you can also set the width, the height and the number of frames per seconds of the streamed video with
+%%
+set("frame.video.width",320)
+set("frame.video.height",240)
+set("frame.video.fps",25)
+%%
+And that's almost it! You can use usual operators such as <code>single</code> or <code>playlist</code> to read video files. For now, only file in the ogg/theora format are supported (you can use the "ffmpeg2theora":http://v2v.cc/~j/ffmpeg2theora/ program to convert your videos to this format). For instance, a playlist of ogg videos can be streamed using
+%%
+output.icecast.theora(playlist("my_playlist"))
+%%
+where <code>my_playlist</code> is a list of video files.
+
+If you have SDL support in Liquidsoap, the video part of the stream can be previewed locally using the <code>output.sdl</code> operator. For example, the script
+%%
+output.sdl(single("file.ogv"))
+%%
+will display the video file <code>file.ogv</code>.
+
+h4. Video effects
+
+A lot of video effects are available in Liquidsoap. The corresponding operators are named <code>video.*</code>. In particular, the <code>video.fade.in</code> and <code>video.fade.out</code> should be used to program transitions, similarly to the <code>fade.in</code> and <code>fade.out</code> operators for audio.

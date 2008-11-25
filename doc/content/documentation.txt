@@ -25,16 +25,17 @@ h4. Documentation
 * "Basic concepts":concepts.html: details what are _sources_ and _requests_.
 * "Bubble":bubble.html: a simple example of a database interface as a custom protocol.
 * "Blank detection":blank.html
-* "Queued sources":queues.html
 * "Cookbook":cookbook.html: contains lots of idiomatic examples.
 * "Customize metadata":metadata.html
+* "External decoders":external_decoders.html: use externals programs for decoding audio files.
+* "External encoders":external_encoders.html: use an external audio encoding program.
 * "HTTP input vs. Harbor input":http_vs_harbor.html: relay and host external streams.
 * "Normalization and replay gain":replay_gain.html
+* "Queued sources":queues.html
 * "Shoutcast output":shoutcast.html
 * "Smart crossfading":smartcrossfade.html
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
-* "External encoders":external_encoders.html: use an external audio encoding program.
-* "External decoders":external_decoders.html: use externals programs for decoding audio files.
+* "Video":video.html: stream videos.
 
 h4. Reference
 
