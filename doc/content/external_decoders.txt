@@ -12,7 +12,7 @@ External decoders are registered using the @add_decoder@ operator. It is invoked
 * @format@ is the name of the decoded format. It is only informative.
 * @decoder@ is a function that takes as parameter the name of the file to decode and returns the command to start to decode the file.
 
-You may also register new metadata resolver using the @add_metadata_resolver@ operator. It is invoked the following way: @add_metadata_resolver(format,resolver)@, where:
+You may also register new metadata resolvers using the @add_metadata_resolver@ operator. It is invoked the following way: @add_metadata_resolver(format,resolver)@, where:
 
 * @format@ is the name of the resolved format. It is only informative.
 * @resolver@ is a function @f@ that returns a list of metadata of the form: @(label, value)@. It is invoked the following way: @f(format=name,file)@, where:
@@ -21,7 +21,7 @@ You may also register new metadata resolver using the @add_metadata_resolver@ op
 
 h3. Wrappers.
 
-On top of the basic operators, wrappers have been written for some common decoders. This includes the @flac@ and @faad@ decoders, by default, and @mplayer@, if enabled. All operators are defined in @utils.liq@.
+On top of the basic operators, wrappers have been written for some common decoders. This includes the @flac@ and @faad@ decoders, by default, and @mplayer@, if enabled. All the operators are defined in @utils.liq@.
 
 h4. The FLAC decoder.
 
@@ -41,7 +41,7 @@ else
 end
 %%
 
-Additionaly, a metadata resolver is registered when the @metaflac@ command can be found it the @$PATH@:
+Additionaly, a metadata resolver is registered when the @metaflac@ command can be found in the @$PATH@:
 
 %%(flac_resolver.liq)
 if test_process("which metaflac") then
@@ -120,10 +120,10 @@ h4. Mplayer decoder.
 This decoder makes use of the @mplayer@ program, if it is enabled, and the program can be found in the @$PATH@.
 It allows liquidsoap to decode any file for which mplayer is able to decode an audio track. This will include video files, if some are found in your playlists, for instance.
 
-It is enabled by add the following line in your script:
+It is enabled by adding the following line in your script:
 
 %%
-enable_mplayer()
+enable_mplayer ()
 %%
 
 Its code is the following:
