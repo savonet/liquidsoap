@@ -364,7 +364,11 @@ end
 def test_process(command)
   lines =
     get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
-  "0" == list.hd(lines)
+  if list.length(lines) == 0 then
+    false
+  else
+    "0" == list.hd(lines)
+  end
 end
 
 # Decoders, enabled when the binary is detected
@@ -450,7 +454,13 @@ end
 # @category System
 # @param s Path
 def basename(s)
-  list.hd(get_process_lines("basename " ^ quote(s)))
+  lines = get_process_lines("basename #{quote(s)}")
+  if list.length(lines) > 0 then
+    list.hd(lines)
+  else
+    # Don't know what to do.. output s
+    s
+  end
 end
 
 # Get the directory name of a path.
@@ -458,7 +468,13 @@ end
 # @category System
 # @param s Path
 def dirname(s)
-  list.hd(get_process_lines("dirname " ^ quote(s)))
+  lines = get_process_lines("dirname #{quote(s)}")
+  if list.length(lines) > 0 then
+    list.hd(lines)
+  else
+    # ?
+    s
+  end
 end
 
 # Read some value from standard input (console).
