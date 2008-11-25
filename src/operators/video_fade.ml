@@ -226,7 +226,7 @@ let () =
     "video.fade.in"
     (("override", Lang.string_t, Some (Lang.string "liq_video_fade_in"),
       override_doc) :: proto)
-    ~category:Lang.SoundProcessing
+    ~category:Lang.VideoProcessing
     ~descr:"Fade the beginning of tracks. Metadata 'liq_video_fade_in' \
             can be used to set the duration for a specific track \
             (float in seconds)."
@@ -244,7 +244,7 @@ let () =
     "video.fade.out"
     (("override", Lang.string_t, Some (Lang.string "liq_video_fade_out"),
       override_doc) :: proto)
-    ~category:Lang.SoundProcessing
+    ~category:Lang.VideoProcessing
     ~descr:"Fade the end of tracks. Metadata 'liq_video_fade_out' \
             can be used to set the duration for a specific track \
             (float in seconds)."
