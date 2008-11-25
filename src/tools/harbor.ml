@@ -116,9 +116,22 @@ let http_error_page code status msg =
      <body><p>" ^ msg ^ "</p></body></html>\n" )
 
 let parse_icy_request_line r =
-      (match r with
-         | s when s = conf_harbor_pass#get -> Shout
-         | s -> Invalid(s) ),
+      (try
+        let s = find_source "/" in
+        let user,auth_f = s#login in
+        let user = 
+          match user with
+            | Some v -> v
+            | None -> conf_harbor_user#get
+        in
+        if auth_f user r then
+          Shout
+        else
+          Invalid(r)
+      with
+        | _ -> 
+          log#f 2 "No source registered for ICY mountpoint (\"/\").";
+          failwith "No ICY mountpoint."),
       "/",
       Icy
 
@@ -435,7 +448,13 @@ let handle_client ~icy socket =
                  "The server did not understand your request.") ;
             failwith "cannot handle this, exiting"
     with
-      | Failure s -> log#f 3 "Failed: %s" s
+      | Failure s -> 
+          log#f 3 "Failed: %s" s;
+          try
+            Unix.shutdown socket Unix.SHUTDOWN_ALL ;
+            Unix.close socket
+          with
+            | _ -> ()
     in
       Duppy.Io.read ~priority ~recursive ~on_error
         Tutils.scheduler socket marker process
