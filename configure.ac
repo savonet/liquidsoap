@@ -1630,7 +1630,7 @@ fi
 if test "$SOX" = false ; then
    SOX=${CP}' $2.tmp.wav $2'
 else
-   SOX=${SOX}' $2.tmp.wav -w -c 2 -r 44100 $2'
+   SOX=${SOX}' $2.tmp.wav -t wav -c 2 -r 44100 $2'
 fi
 
 #
