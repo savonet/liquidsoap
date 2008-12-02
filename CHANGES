@@ -1,15 +1,46 @@
-x.x.x ()
+0.9.0 ()
 Bugs fixed:
  - Fixed byte swaping function
- - fixed unix server socket failure
+ - Fixed unix server socket failure (#160)
+ - Fixed mp3 audio glitches when decoding 
+   files with picture id3v2 tags using ocaml-mad (#162)
+ - Fixed liquidsoap crash on weird telnet input (#164)
+ - Fixed say_metadata and queues not considering initial 
+   queue on wake-up. (#196)
 New:
  - Added support for AU, AIFF and NSV mp3 audio
-   using ocaml-natty.
- - Added speex support. // TODO: input works great but output is not satisfying.
-                        //       Speex audio processing still needs to be binded
-                        // (To add if not done at release time..)
+   using ocaml-natty. However, this support is still 
+   not mature enough for production.
+ - Added speex support. 
  - Added "lag" operator, to create a stream delayed by
-   a constant time.
+   a constant time. Should be better used just before 
+   an output.
+ - Added video support:
+  (TODO: add more..)
+  * Support for ogg theora file input
+  * Support for off theora file and icecast output
+  * Added several operators:
+     o blabla
+     o blabla
+  * Added optional support for ocaml-gavl as video
+    converter.
+  * more ?
+ - Added support for external processes as audio encoder:
+   * Added output.icecast.lame to output to icecast using 
+     the lame binary.
+   * Added output.icecast.flac to output to icecast using
+     the flac binary.
+   * Full generic support needs some changes in libshout 
+     and will be available as soon as these changes are applied.
+ - Added support for external processes as audio file decoder:
+   * Added support for flac audio files when the flac binary 
+     is found in the path
+   * Added support for m4a files when the faad binary is found
+     in the path
+   * Added optional support for mplayer, enabled with enable_mplayer
+ - Implemented support for authentication function in harbor for 
+   ICY (shoutcast) clients.
+ - Added optional support for samplerate.
 
 0.3.8.1 (11-08-2008)
  - Fixed metadata propagation during default transition
