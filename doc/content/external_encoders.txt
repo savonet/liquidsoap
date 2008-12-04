@@ -123,6 +123,9 @@ end
 
 h4. output.icecast.flac
 
+This support is not yet working as expected. Current implementation of the external encoding process does not
+support well the @restart_on_track@ option. It is set to false by default.
+
 %%(output-icecast-flac.liq)
 # Output to icecast using the flac command line encoder.
 # @category Source / Output
@@ -149,7 +152,7 @@ def output.icecast.flac(
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~flac="flac",~quality=6,~restart_on_crash=false,
-  ~restart_on_new_track=true,s)
+  ~restart_on_new_track=flac,s)
   # We will use raw format, to 
   # bypass input length value in WAV
   # header (input length is not known)
