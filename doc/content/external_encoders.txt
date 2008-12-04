@@ -152,7 +152,7 @@ def output.icecast.flac(
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~flac="flac",~quality=6,~restart_on_crash=false,
-  ~restart_on_new_track=flac,s)
+  ~restart_on_new_track=false,s)
   # We will use raw format, to 
   # bypass input length value in WAV
   # header (input length is not known)
