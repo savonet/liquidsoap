@@ -67,7 +67,11 @@ object (self)
           hd#leave (self:>source) ;
           head_ready <- false ;
           sources <- List.tl sources ;
-          if merge && self#is_ready then self#get_frame buf
+          if merge && self#is_ready then
+            let pos = Frame.position buf in
+              self#get_frame buf ;
+              Frame.set_breaks buf
+                (Utils.remove_one ((=) pos) (Frame.breaks buf))
         end
     end else begin
       match sources with

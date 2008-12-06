@@ -26,20 +26,15 @@ open Source
 
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
-let tile_pos n =
-  let vert l x y x' y' =
-    if l = 0 then [||] else
-      let dx = (x' - x) / l in
-      let x = ref (x-dx) in
-        Array.init l (fun i -> x := !x + dx; !x, y, dx, (y'-y))
-  in
-  let x' = Fmt.video_width () in
-  let y' = Fmt.video_height () in
-  let horiz m n =
-    Array.append (vert m 0 0 x' (y'/2)) (vert n 0 (y'/2) x' y')
-  in
-    horiz (n/2) (n-n/2)
+let get_again s buf =
+  s#get buf ;
+  AFrame.set_breaks buf
+    (match AFrame.breaks buf with
+       | pos::prev::l -> pos::l
+       | _ -> assert false)
 
+(** The [video_init] (resp. [video_loop]) parameter is used to pre-process
+  * the first layer (resp. next layers) in the sum. *)
 class add ?(renorm=true) (sources: (int*source) list) video_init video_loop =
 object (self)
   inherit operator (List.map snd sources) as super
@@ -65,16 +60,15 @@ object (self)
 
   method is_ready = List.exists (fun (_,s) -> s#is_ready) sources
 
-  (* We fill the buffer as much as possible, removing any break.
+  (* We fill the buffer as much as possible, removing internal breaks.
    * Every ready source is asked for as much data as possible, by asking
-   * it to fill the intermediate [tmp] buffer. Then that
-   * data is added to the main buffer [buf], with some amplitude change.
-   * At the very end, if no source has been able to fill [buf] completely,
-   * a break is set.
+   * it to fill the intermediate [tmp] buffer. Then that data is added
+   * to the main buffer [buf], possibly with some amplitude change.
+   *
    * The first source is asked to write directly on [buf], which avoids
-   * copies when only one source is available, which happens for most of the
-   * frames.
-   * Only the first source's metadatas/breaks are kept.
+   * copies when only one source is available -- a frequent situation.
+   * Only the first available source's metadata is kept.
+   *
    * Normally, all active sources are proposed to fill the buffer as much as
    * wanted, even if they end a track -- this is quite needed. There is an
    * exception when there is only one active source, then the end of tracks
@@ -95,13 +89,11 @@ object (self)
     (* Sum contributions *)
     let offset = AFrame.position buf in
     let voffset = VFrame.position buf in
-    let first = ref true in
-    let nbuf = ref 0 in
-    let end_offset =
+    let _,end_offset =
       List.fold_left
-        (fun end_offset (w,s) ->
+        (fun (rank,end_offset) (w,s) ->
            let buffer =
-             if !first then buf else begin
+             if rank=0 then buf else begin
                AFrame.clear tmp ;
                AFrame.set_breaks tmp [offset] ;
                tmp
@@ -110,51 +102,54 @@ object (self)
            let c = (float w)/.weight in
 
              if List.length sources = 1 then
-               (* if s#is_ready SHOULDN'T BE NEEDED *)
                s#get buffer
-             else
+             else begin
                (* If there is more than one source we fill greedily. *)
+               s#get buffer ;
                while AFrame.is_partial buffer && s#is_ready do
-                 s#get buffer
-               done ;
+                 get_again s buffer
+               done
+             end ;
 
              let already = AFrame.position buffer in
              let valready = VFrame.position buffer in
                if c<>1. && renorm then
                  Float_pcm.multiply
                    (AFrame.get_float_pcm buffer) offset (already-offset) c ;
-               if not !first then
-                 (
-                   Float_pcm.add
-                     (AFrame.get_float_pcm buf) offset
-                     (AFrame.get_float_pcm tmp) offset
-                     (already-offset) ;
-                   incr nbuf;
-                   let vbuf = VFrame.get_rgb buf in
-                   let vtmp = VFrame.get_rgb tmp in
-                     for c = 0 to Array.length vbuf - 1 do
-                       for i = voffset to valready - 1 do
-                         video_loop !nbuf vbuf.(c).(i) vtmp.(c).(i)
-                       done
+               if rank>0 then begin
+                 (* The region grows, make sure it is clean before adding.
+                  * TODO the same should be done for video. *)
+                 if already>end_offset then
+                   AFrame.blankify buf end_offset (already-end_offset) ;
+                 Float_pcm.add
+                   (AFrame.get_float_pcm buf) offset
+                   (AFrame.get_float_pcm tmp) offset
+                   (already-offset) ;
+                 let vbuf = VFrame.get_rgb buf in
+                 let vtmp = VFrame.get_rgb tmp in
+                   for c = 0 to Array.length vbuf - 1 do
+                     for i = voffset to valready - 1 do
+                       video_loop rank vbuf.(c).(i) vtmp.(c).(i)
                      done
-                 )
-               else
-                 (
-                   let vbuf = VFrame.get_rgb buf in
-                     for c = 0 to Array.length vbuf - 1 do
-                       for i = voffset to valready - 1 do
-                         video_init vbuf.(c).(i)
-                       done
+                   done
+               end else begin
+                 let vbuf = VFrame.get_rgb buf in
+                   for c = 0 to Array.length vbuf - 1 do
+                     for i = voffset to valready - 1 do
+                       video_init vbuf.(c).(i)
                      done
-                 );
-               first := false ;
-               max end_offset already)
-        offset sources
+                   done
+               end ;
+               rank+1, max end_offset already)
+        (0,offset)
+        sources
     in
-      (* If the other sources have filled more than the first one we must
-       * add one mark in the Mixer.Buffer. *)
-      if end_offset > AFrame.position buf then
-        AFrame.add_break buf end_offset
+      (* If the other sources have filled more than the first one,
+       * the end of track in buf gets overriden. *)
+      match AFrame.breaks buf with
+        | pos::breaks when pos < end_offset ->
+            AFrame.set_breaks buf (end_offset::breaks)
+        | _ -> ()
 
 end
 
@@ -193,6 +188,20 @@ let () =
              (fun _ buf tmp -> RGB.add buf tmp)
          ):>source))
 
+let tile_pos n =
+  let vert l x y x' y' =
+    if l = 0 then [||] else
+      let dx = (x' - x) / l in
+      let x = ref (x-dx) in
+        Array.init l (fun i -> x := !x + dx; !x, y, dx, (y'-y))
+  in
+  let x' = Fmt.video_width () in
+  let y' = Fmt.video_height () in
+  let horiz m n =
+    Array.append (vert m 0 0 x' (y'/2)) (vert n 0 (y'/2) x' y')
+  in
+    horiz (n/2) (n-n/2)
+
 let () =
   Lang.add_operator "video.tile"
     ~category:Lang.VideoProcessing
@@ -202,7 +211,8 @@ let () =
       "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
-      "proportional", Lang.bool_t, Some (Lang.bool true), Some "Scale preserving the proportions.";
+      "proportional", Lang.bool_t, Some (Lang.bool true),
+      Some "Scale preserving the proportions.";
       "", Lang.list_t Lang.source_t, None, None
     ]
     (fun p ->
@@ -223,15 +233,13 @@ let () =
          let x, y, w, h = tp.(n) in
          let x, y, w, h =
            if proportional then
-             (
-               let sw, sh = buf.RGB.width, buf.RGB.height in
-                 if w * sh < sw * h then
-                   let h' = sh * w / sw in
-                     x, y+(h-h')/2, w, h'
-                 else
-                   let w' = sw * h / sh in
-                     x+(w-w')/2, y, w', h
-             )
+             let sw, sh = buf.RGB.width, buf.RGB.height in
+               if w * sh < sw * h then
+                 let h' = sh * w / sw in
+                   x, y+(h-h')/2, w, h'
+               else
+                 let w' = sw * h / sh in
+                   x+(w-w')/2, y, w', h
            else
              x, y, w, h
          in

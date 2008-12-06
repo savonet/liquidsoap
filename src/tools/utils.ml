@@ -41,19 +41,22 @@ let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None
 
-let filter_exists f l =
+(** Remove the first element satisfying a predicate, raising Not_found
+  * if none is found. *)
+let remove_one f l =
   let rec aux acc = function
-    | [] -> false, List.rev acc
-    | x::l -> if f x then true, List.rev_append acc l else aux (x::acc) l
-  in aux [] l
+    | [] -> raise Not_found
+    | x::l ->
+        if f x then List.rev_append acc l else aux (x::acc) l
+  in
+    aux [] l
 
 let rec may_map f = function
   | h::t ->
-      (
-        match f h with
-          | Some h -> h::(may_map f t)
-          | None -> may_map f t
-      )
+      begin match f h with
+        | Some h -> h::(may_map f t)
+        | None -> may_map f t
+      end
   | [] -> []
 
 let really_read fd buf ofs len =

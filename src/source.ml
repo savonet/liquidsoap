@@ -194,8 +194,8 @@ object (self)
     if not caching then begin
       let b = Frame.breaks buf in
         self#get_frame buf ;
-        if b = Frame.breaks buf then begin
-          self#log#f 2 "#get_frame didn't change the frame!" ;
+        if List.length b + 1 <> List.length (Frame.breaks buf) then begin
+          self#log#f 2 "#get_frame didn't add exactly one break!" ;
           assert false
         end
     end else begin
@@ -207,8 +207,8 @@ object (self)
           let b = Frame.breaks memo in
           let p = Frame.position memo in
             self#get_frame memo ;
-            if b = Frame.breaks memo then begin
-              self#log#f 2 "#get_frame didn't change the frame" ;
+            if List.length b + 1 <> List.length (Frame.breaks memo) then begin
+              self#log#f 2 "#get_frame didn't add exactly one break!" ;
               assert false
             end else
               if p < Frame.position memo then self#get buf else

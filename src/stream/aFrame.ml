@@ -69,8 +69,8 @@ let fill_frame_main f g h gen frame =
   let pos = Fmt.ticks_of_samples pos in
   let breaks =
     let new_breaks = List.map (fun x -> x + pos) new_breaks in
-    let l = List.filter (fun x -> x <= npos) (sort (old_breaks@new_breaks)) in
-    npos::l
+    let l = List.filter (fun x -> x <= npos) (new_breaks@old_breaks) in
+      if List.mem npos l then l else npos::l
   in
   set_breaks frame breaks;
   let new_meta = List.map (fun (x,y) -> (x + pos,y)) new_meta in
