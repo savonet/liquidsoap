@@ -57,6 +57,10 @@ val create : track_t array -> freq:int -> length:int -> t
 (** Create a frame with the default parameters. *)
 val make : unit -> t
 
+(** [copy_to src dst] copies frame [src] to frame [dst]. The data is not
+  * duplicated. *)
+val copy_to : t -> t -> unit
+
 (** Get the kind of contents of the tracks of a frame. *)
 val kind   : t -> track_t array
 
