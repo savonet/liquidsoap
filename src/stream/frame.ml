@@ -76,12 +76,6 @@ let create kind ~freq ~length =
     metadata = [];
   }
 
-let copy_to src dst =
-  (* TODO: copy freq and lenght too? *)
-  dst.tracks <- src.tracks;
-  dst.breaks <- src.breaks;
-  dst.metadata <- src.metadata
-
 (* Create a standard frame. *)
 let make () =
   let audio =

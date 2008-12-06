@@ -89,7 +89,7 @@ object (self)
     Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
     flush (snd pipe_in);
     Printf.printf "Father: wrote frame\n%!";
-    Frame.copy_to (Marshal.from_channel (fst pipe_out) : Frame.t) buf;
+    Frame.get_chunk buf (Marshal.from_channel (fst pipe_out) : Frame.t);
     Printf.printf "Father: got frame back\n%!";
 end
 
