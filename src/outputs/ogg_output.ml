@@ -42,8 +42,14 @@ let encode_audio ~stereo ~src_freq ~dst_freq () =
     else
       Float_pcm.create_buffer 1 (Fmt.samples_per_frame())
   in
-  let samplerate_converter = 
-    Audio_converter.Samplerate.create (Fmt.channels ())
+  let samplerate_converter =
+    let channels = 
+      if not stereo then
+        1
+      else
+        Fmt.channels ()
+    in 
+    Audio_converter.Samplerate.create channels
   in
   let encode encoder id frame ofs len = 
     let b = AFrame.get_float_pcm frame in

@@ -59,7 +59,7 @@ object (self)
     (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
   val mutable ring = Ringbuffer.create channels 0
 
-  val samplerate_converter = Audio_converter.Samplerate.create (Fmt.channels ())
+  val samplerate_converter = Audio_converter.Samplerate.create channels
 
   val mutable sleep = false
   method output_stop = sleep <- true
