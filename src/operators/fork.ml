@@ -35,10 +35,10 @@ object (self)
   method output = self#get_frame memo
 
   method get_frame buf =
-    Printf.printf "Reader: get frame\n%!";
+    self#log#f 5 "Reader: get frame";
     let frame = Marshal.from_channel pipe in
     let frame = (frame : Frame.t) in
-      Printf.printf "Reader: got frame\n%!";
+      self#log#f 5 "Reader: got frame";
       (* Frame.copy_to frame buf *)
       Frame.get_chunk buf frame
 end
@@ -56,7 +56,7 @@ object (self)
       Unix.in_channel_of_descr fd_in, Unix.out_channel_of_descr fd_out
 
   method wake_up activation =
-    Printf.printf "Forking\n%!";
+    self#log#f 5 "Forking";
     if Unix.fork () = 0 then
       let reader = new reader (fst pipe_in) in
       let reader = (reader :> Source.source) in
@@ -64,12 +64,12 @@ object (self)
       let frame = Frame.make () in
         source#get_ready [(self :> Source.source)];
         while true do
-          Printf.printf "Son: getting frame\n%!";
+          self#log#f 5 "Son: getting frame";
           source#get frame;
-          Printf.printf "Son: got frame\n%!";
+          self#log#f 5 "Son: got frame";
           Marshal.to_channel (snd pipe_out) (frame : Frame.t) [];
           flush (snd pipe_out);
-          Printf.printf "Son: sent frame\n%!";
+          self#log#f 5 "Son: sent frame";
           source#after_output;
           Frame.advance frame;
         done
@@ -85,12 +85,12 @@ object (self)
   method abort_track = source#abort_track
 
   method get_frame buf =
-    Printf.printf "Father: send frame\n%!";
+    self#log#f 5 "Father: send frame";
     Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
     flush (snd pipe_in);
-    Printf.printf "Father: wrote frame\n%!";
+    self#log#f 5 "Father: wrote frame";
     Frame.get_chunk buf (Marshal.from_channel (fst pipe_out) : Frame.t);
-    Printf.printf "Father: got frame back\n%!";
+    self#log#f 5 "Father: got frame back";
 end
 
 let () =
