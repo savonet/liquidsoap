@@ -22,7 +22,7 @@
 
 open Source
 
-class reader pipe =
+class reader ?(debug=false) pipe =
 object (self)
   inherit Source.active_source
 
@@ -35,15 +35,15 @@ object (self)
   method output = self#get_frame memo
 
   method get_frame buf =
-    self#log#f 5 "Reader: get frame";
+    if debug then self#log#f 5 "Reader: get frame";
     let frame = Marshal.from_channel pipe in
     let frame = (frame : Frame.t) in
-      self#log#f 5 "Reader: got frame";
+      if debug then self#log#f 5 "Reader: got frame";
       (* Frame.copy_to frame buf *)
       Frame.get_chunk buf frame
 end
 
-class fork f (source : source) =
+class fork ?(debug=false) f (source : source) =
 object (self)
   inherit operator [source] as super
 
@@ -56,20 +56,20 @@ object (self)
       Unix.in_channel_of_descr fd_in, Unix.out_channel_of_descr fd_out
 
   method wake_up activation =
-    self#log#f 5 "Forking";
+    if debug then self#log#f 5 "Forking";
     if Unix.fork () = 0 then
-      let reader = new reader (fst pipe_in) in
+      let reader = new reader ~debug (fst pipe_in) in
       let reader = (reader :> Source.source) in
       let source = Lang.to_source (Lang.apply f ["", Lang.source reader]) in
       let frame = Frame.make () in
         source#get_ready [(self :> Source.source)];
         while true do
-          self#log#f 5 "Son: getting frame";
+          if debug then self#log#f 5 "Son: getting frame";
           source#get frame;
-          self#log#f 5 "Son: got frame";
+          if debug then self#log#f 5 "Son: got frame";
           Marshal.to_channel (snd pipe_out) (frame : Frame.t) [];
           flush (snd pipe_out);
-          self#log#f 5 "Son: sent frame";
+          if debug then self#log#f 5 "Son: sent frame";
           source#after_output;
           Frame.advance frame;
         done
@@ -86,26 +86,28 @@ object (self)
 
   method get_frame buf =
     source#get buf;
-    self#log#f 5 "Father: send frame";
+    if debug then self#log#f 5 "Father: send frame";
     Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
     flush (snd pipe_in);
-    self#log#f 5 "Father: wrote frame";
+    if debug then self#log#f 5 "Father: wrote frame";
     let tmp : Frame.t = Marshal.from_channel (fst pipe_out) in
     Frame.blit tmp 0 buf 0 (Frame.size tmp);
-    self#log#f 5 "Father: got frame back";
+    if debug then self#log#f 5 "Father: got frame back";
 end
 
 let () =
   Lang.add_operator "fork"
     [
-      "", Lang.fun_t [false, "", Lang.source_t] Lang.source_t, None, None;
-      "", Lang.source_t, None, None
+      "debug", Lang.bool_t, Some (Lang.bool false), None;
+      "", Lang.fun_t [false, "", Lang.source_t] Lang.source_t, None, Some "Function to be launched in an external process.";
+      "", Lang.source_t, None, Some "Source of the function."
     ]
     ~descr:"Compute a source in another process (useful for multiple cores, etc). The function should not access any other source!"
     ~category:Lang.TrackProcessing (* TODO: better category *)
     ~flags:[Lang.Experimental; Lang.Hidden]
     (fun p ->
+       let debug = Lang.to_bool (List.assoc "debug" p) in
        let f = Lang.assoc "" 1 p in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new fork f src):>source)
+         ((new fork ~debug f src):>source)
     )
