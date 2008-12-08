@@ -57,24 +57,26 @@ object (self)
 
   method wake_up activation =
     if debug then self#log#f 5 "Forking";
-    if Unix.fork () = 0 then
-      let reader = new reader ~debug (fst pipe_in) in
-      let reader = (reader :> Source.source) in
-      let source = Lang.to_source (Lang.apply f ["", Lang.source reader]) in
-      let frame = Frame.make () in
-        source#get_ready [(self :> Source.source)];
-        while true do
-          if debug then self#log#f 5 "Son: getting frame";
-          source#get frame;
-          if debug then self#log#f 5 "Son: got frame";
-          Marshal.to_channel (snd pipe_out) (frame : Frame.t) [];
-          flush (snd pipe_out);
-          if debug then self#log#f 5 "Son: sent frame";
-          source#after_output;
-          Frame.advance frame;
-        done
-    else
-      super#wake_up activation
+    match Unix.fork () with
+      | 0 ->
+          let reader = new reader ~debug (fst pipe_in) in
+          let reader = (reader :> Source.source) in
+          let source = Lang.to_source (Lang.apply f ["", Lang.source reader]) in
+          let frame = Frame.make () in
+            source#get_ready [(self :> Source.source)];
+            while true do
+              if debug then self#log#f 5 "Son: getting frame";
+              source#get frame;
+              if debug then self#log#f 5 "Son: got frame";
+              Marshal.to_channel (snd pipe_out) (frame : Frame.t) [];
+              flush (snd pipe_out);
+              if debug then self#log#f 5 "Son: sent frame";
+              source#after_output;
+              Frame.advance frame;
+            done
+      | pid ->
+          ignore (Dtools.Init.at_stop (fun () -> Unix.kill pid Sys.sigkill));
+          super#wake_up activation
 
   method stype = source#stype
 
