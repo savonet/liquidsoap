@@ -200,7 +200,7 @@ module Generated = Generated.From_Float_pcm_Generator
 exception Redirection of string
 
 class http ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
-           ~feed_delay ~bind_address ~autostart ~bufferize ~max url =
+           ~feed_delay ~bind_address ~autostart ~bufferize ~max ~debug url =
   let abg_max_len = 
     Fmt.samples_of_seconds (Pervasives.max max bufferize) 
   in
@@ -274,7 +274,8 @@ object (self)
             begin
               (* Feeding has stopped: adding a break here *)
               Generator.add_break abg 0;
-              self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
+              self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e);
+              if debug then raise e
             end
 
   method connect = self#private_connect ~encode:true
@@ -490,6 +491,9 @@ let () =
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." ;
 
+        "debug", Lang.bool_t, Some (Lang.bool false),
+        Some "Run in debugging mode by not catching some exceptions." ;
+
         "feed_delay", Lang.float_t, Some (Lang.float (-1.)),
         Some "Feeding delay to apply when the buffer is full. \
               This setting can lead to disconnections when the \
@@ -517,6 +521,7 @@ let () =
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
          let track_on_meta = Lang.to_bool (List.assoc "new_track_on_metadata" p) in
+         let debug = Lang.to_bool (List.assoc "debug" p) in
          let bind_address =
            match bind_address with
              | "" -> None
@@ -533,5 +538,5 @@ let () =
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          let feed_delay = Lang.to_float (List.assoc "feed_delay" p) in
            ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta ~force_mime
-                      ~feed_delay ~bind_address ~poll_delay ~bufferize ~max url)
+                      ~feed_delay ~bind_address ~poll_delay ~bufferize ~max ~debug url)
               :>Source.source))

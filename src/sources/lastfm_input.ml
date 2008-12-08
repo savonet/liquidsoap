@@ -23,12 +23,14 @@
 open Lastfm
 
 class lastfm ~autostart ~poll_delay ~submit ~track_on_meta 
-             ~feed_delay ~bufferize ~timeout ~bind_address ~max uri =
+             ~feed_delay ~bufferize ~timeout ~bind_address 
+             ~debug ~max uri =
 let playlist_mode = Http_source.First in
 object (self)
   inherit Http_source.http ~playlist_mode ~poll_delay ~timeout 
                            ~autostart ~bind_address ~bufferize 
-                           ~feed_delay ~max ~track_on_meta uri as http
+                           ~feed_delay ~max ~track_on_meta 
+                           ~debug uri as http
 
   val mutable session = None
 
@@ -117,6 +119,8 @@ let () =
            <code>lastfm://user:password@artist/foo</code>." ;
         "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
         Some "Treat new metadata as new track." ;
+        "debug", Lang.bool_t, Some (Lang.bool false),
+        Some "Run in debugging mode by not catching some exceptions." ;
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." ;
         "feed_delay", Lang.float_t, Some (Lang.float (-1.)),
@@ -133,6 +137,7 @@ let () =
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let submit = Lang.to_bool (List.assoc "submit" p) in
          let track_on_meta = Lang.to_bool (List.assoc "new_track_on_metadata" p) in
+         let debug = Lang.to_bool (List.assoc "debug" p) in
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
          let bind_address =
            match bind_address with
@@ -145,4 +150,4 @@ let () =
          let feed_delay =  Lang.to_float (List.assoc "feed_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
            ((new lastfm ~autostart ~submit ~poll_delay ~bufferize ~track_on_meta 
-                        ~feed_delay ~bind_address ~timeout ~max uri):>Source.source))
+                        ~feed_delay ~bind_address ~timeout ~max ~debug uri):>Source.source))

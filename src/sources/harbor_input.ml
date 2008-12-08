@@ -28,7 +28,9 @@ open Http_source
 
 exception NoDecoder
 
-class http_input_server ~dumpfile ~bufferize ~max ~on_connect ~on_disconnect ~login =
+class http_input_server ~dumpfile ~bufferize ~max 
+                        ~on_connect ~on_disconnect 
+                        ~login ~debug =
   let abg_max_len = Fmt.samples_of_seconds max in
 object (self)
   inherit Source.source
@@ -105,8 +107,11 @@ object (self)
       { put = self#put ; read = read ;
         insert_metadata = self#insert_metadata ; close = close }
     in
+     begin
       try decoder sink with
         | e -> self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e) ;
+               if debug then raise e
+     end;
     self#disconnect ;
     try
       Unix.shutdown socket Unix.SHUTDOWN_ALL ;
@@ -191,6 +196,9 @@ let () =
         "dumpfile", Lang.string_t, Some (Lang.string ""),
         Some "Dump stream to file, for debugging purpose. Disabled if empty.";
 
+        "debug", Lang.bool_t, Some (Lang.bool false),
+        Some "Run in debugging mode by not catching some exceptions.";
+
         "", Lang.string_t, None,
         Some "Mountpoint to look for." ]
       (fun p ->
@@ -206,6 +214,7 @@ let () =
          in
          let user = Lang.to_string (List.assoc "user" p) in
          let password = Lang.to_string (List.assoc "password" p) in
+         let debug = Lang.to_bool (List.assoc "debug" p) in
 	 let auth_function = List.assoc "auth" p in
          let login user pass =
            let user_login test_user test_pass = 
@@ -245,5 +254,5 @@ let () =
              | Not_found ->
                  Harbor.add_source mount
                    ((new http_input_server ~bufferize ~max ~login ~dumpfile
-		               ~on_connect ~on_disconnect):>Harbor.source) ;
+		               ~on_connect ~on_disconnect ~debug):>Harbor.source) ;
                  ((Harbor.find_source mount):>Source.source))
