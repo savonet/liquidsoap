@@ -128,6 +128,10 @@ val set_all_metadata : t -> (int*metadata) list -> unit
 
 exception No_chunk
 
+(** [blit src src_pos dst dst_pos len]: copy [len] data from [src], starting
+  * at [src_pos] to [dst], starting at [dst_pos]. *)
+val blit : t -> int -> t -> int -> int -> unit
+
 (** [get_chunk buf inbuf] fills [buf] with data from [inbuf] starting at current
   * position for both buffers. *)
 val get_chunk : t -> t -> unit

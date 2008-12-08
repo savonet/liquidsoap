@@ -85,11 +85,13 @@ object (self)
   method abort_track = source#abort_track
 
   method get_frame buf =
+    source#get buf;
     self#log#f 5 "Father: send frame";
     Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
     flush (snd pipe_in);
     self#log#f 5 "Father: wrote frame";
-    Frame.get_chunk buf (Marshal.from_channel (fst pipe_out) : Frame.t);
+    let tmp : Frame.t = Marshal.from_channel (fst pipe_out) in
+    Frame.blit tmp 0 buf 0 (Frame.size tmp);
     self#log#f 5 "Father: got frame back";
 end
 
