@@ -39,7 +39,6 @@ object (self)
     let frame = Marshal.from_channel pipe in
     let frame = (frame : Frame.t) in
       if debug then self#log#f 5 "Reader: got frame";
-      (* Frame.copy_to frame buf *)
       Frame.get_chunk buf frame
 end
 
