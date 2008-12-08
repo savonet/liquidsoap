@@ -60,9 +60,9 @@ static frame *frame_of_value(value v, frame *f)
 }
 
 static void rgb_free(frame *f)
- {
+{
   free(f->data);
- }
+}
 
 static inline void rgb_blank(frame *rgb)
 {
