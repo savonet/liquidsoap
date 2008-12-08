@@ -43,7 +43,7 @@ object (self)
       Frame.get_chunk buf frame
 end
 
-class fork ?(debug=false) f (source : source) =
+class fork ?(debug=false) ?f (source : source) =
 object (self)
   inherit operator [source] as super
 
@@ -59,9 +59,15 @@ object (self)
     if debug then self#log#f 5 "Forking";
     match Unix.fork () with
       | 0 ->
-          let reader = new reader ~debug (fst pipe_in) in
-          let reader = (reader :> Source.source) in
-          let source = Lang.to_source (Lang.apply f ["", Lang.source reader]) in
+          let source =
+            match f with
+              | Some f ->
+                  let reader = new reader ~debug (fst pipe_in) in
+                  let reader = (reader :> Source.source) in
+                    Lang.to_source (Lang.apply f ["", Lang.source reader])
+              | None ->
+                  source
+          in
           let frame = Frame.make () in
             source#get_ready [(self :> Source.source)];
             while true do
@@ -76,13 +82,16 @@ object (self)
             done
       | pid ->
           ignore (Dtools.Init.at_stop (fun () -> Unix.kill pid Sys.sigkill));
-          let frame = Frame.make () in
-            if debug then self#log#f 5 "Father: send first frame";
-            Frame.add_break frame (Frame.size frame);
-            Marshal.to_channel (snd pipe_in) (frame : Frame.t) [];
-            flush (snd pipe_in);
-            if debug then self#log#f 5 "Father: wrote first frame";
-            super#wake_up activation
+          if f <> None then
+            (
+              let frame = Frame.make () in
+                if debug then self#log#f 5 "Father: send first frame";
+                Frame.add_break frame (Frame.size frame);
+                Marshal.to_channel (snd pipe_in) (frame : Frame.t) [];
+                flush (snd pipe_in);
+                if debug then self#log#f 5 "Father: wrote first frame";
+            );
+          super#wake_up activation
 
   method stype = source#stype
 
@@ -94,10 +103,13 @@ object (self)
 
   method get_frame buf =
     source#get buf;
-    if debug then self#log#f 5 "Father: send frame";
-    Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
-    flush (snd pipe_in);
-    if debug then self#log#f 5 "Father: wrote frame";
+    if f <> None then
+      (
+        if debug then self#log#f 5 "Father: send frame";
+        Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
+        flush (snd pipe_in);
+        if debug then self#log#f 5 "Father: wrote frame"
+      );
     let tmp : Frame.t = Marshal.from_channel (fst pipe_out) in
     Frame.blit tmp 0 buf 0 (Frame.size tmp);
     if debug then self#log#f 5 "Father: got frame back";
@@ -117,5 +129,20 @@ let () =
        let debug = Lang.to_bool (List.assoc "debug" p) in
        let f = Lang.assoc "" 1 p in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new fork ~debug f src):>source)
+         ((new fork ~debug ~f src):>source)
+    )
+
+let () =
+  Lang.add_operator "fork.source"
+    [
+      "debug", Lang.bool_t, Some (Lang.bool false), None;
+      "", Lang.source_t, None, Some "Source to be forked."
+    ]
+    ~descr:"Compute a source in another process (useful for multiple cores, etc). The sources used for computing the source shouldn't be used outside!"
+    ~category:Lang.TrackProcessing (* TODO: better category *)
+    ~flags:[Lang.Experimental; Lang.Hidden]
+    (fun p ->
+       let debug = Lang.to_bool (List.assoc "debug" p) in
+       let src = Lang.to_source (List.assoc "" p) in
+         ((new fork ~debug src):>source)
     )
