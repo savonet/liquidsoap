@@ -36,9 +36,9 @@ object (self)
 
   method get_frame buf =
     if debug then self#log#f 5 "Reader: get frame";
-    let frame = Marshal.from_channel pipe in
-    let frame = (frame : Frame.t) in
+    let frame : Frame.t = Marshal.from_channel pipe in
       if debug then self#log#f 5 "Reader: got frame";
+      (* Frame.blit frame 0 buf 0 (Frame.size frame) *)
       Frame.get_chunk buf frame
 end
 
