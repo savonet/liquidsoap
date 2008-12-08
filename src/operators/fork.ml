@@ -76,7 +76,13 @@ object (self)
             done
       | pid ->
           ignore (Dtools.Init.at_stop (fun () -> Unix.kill pid Sys.sigkill));
-          super#wake_up activation
+          let frame = Frame.make () in
+            if debug then self#log#f 5 "Father: send first frame";
+            Frame.add_break frame (Frame.size frame);
+            Marshal.to_channel (snd pipe_in) (frame : Frame.t) [];
+            flush (snd pipe_in);
+            if debug then self#log#f 5 "Father: wrote first frame";
+            super#wake_up activation
 
   method stype = source#stype
 
@@ -102,7 +108,7 @@ let () =
     [
       "debug", Lang.bool_t, Some (Lang.bool false), None;
       "", Lang.fun_t [false, "", Lang.source_t] Lang.source_t, None, Some "Function to be launched in an external process.";
-      "", Lang.source_t, None, Some "Source of the function."
+      "", Lang.source_t, None, Some "Source given as argument of the function."
     ]
     ~descr:"Compute a source in another process (useful for multiple cores, etc). The function should not access any other source!"
     ~category:Lang.TrackProcessing (* TODO: better category *)
