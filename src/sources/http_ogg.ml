@@ -56,7 +56,8 @@ let decode_ogg sink =
             if Ogg_demuxer.eos decoder then
               Ogg_demuxer.reset decoder
           with
-            | Ogg_demuxer.End_of_stream -> () (* We could handle breaks perhaps.. *)
+            | Ogg_demuxer.End_of_stream
+            | Not_found -> Ogg_demuxer.reset decoder
       done
     with
       | e -> sink.Http_source.close (); raise e

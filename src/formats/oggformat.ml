@@ -60,8 +60,9 @@ let decoder file sync fd =
   if not (Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder) &&
      not (Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder)
     then
-    (** No decodable data, raising Not_found.. *)
-      raise Not_found;
+    (** No decodable data, trying to parse again, 
+      * in case of an empty initial stream.. *)
+    Ogg_demuxer.reset decoder;
   let fill buf =
     assert (not !closed) ;
 
@@ -137,7 +138,8 @@ let decoder file sync fd =
                 Ogg_demuxer.reset decoder
               end
           with
-            | Ogg_demuxer.End_of_stream -> ()
+            | Ogg_demuxer.End_of_stream 
+            | Not_found -> Ogg_demuxer.reset decoder
         done;
       with
         | e -> log#f 5 "Audio fill exited on exception: %s" 
