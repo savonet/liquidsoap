@@ -50,9 +50,7 @@ object (self)
       | None -> ()
 
   method output =
-    while Frame.is_partial memo do
-      source#get memo
-    done;
+    source#get memo;
     let stream = Utils.get_some stream in
     Marshal.to_channel stream memo []
 end
@@ -88,7 +86,7 @@ object (self)
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
     let (nframe : Frame.t) = Marshal.from_channel stream in
-    Frame.blit nframe 0 frame 0 (Frame.size frame);
+    Frame.blit nframe 0 frame 0 (Frame.position nframe);
     Frame.set_all_metadata frame (Frame.get_all_metadata nframe);
     Frame.add_break frame (Frame.position nframe)
 end
