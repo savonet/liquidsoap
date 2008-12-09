@@ -83,12 +83,59 @@ object (self)
       | None -> ()
 
   method get_frame frame =
-    assert (0 = AFrame.position frame) ;
+    assert(Frame.is_partial frame);
     let stream = Utils.get_some stream in
-    let (nframe : Frame.t) = Marshal.from_channel stream in
-    Frame.blit nframe 0 frame 0 (Frame.position nframe);
-    Frame.set_all_metadata frame (Frame.get_all_metadata nframe);
-    Frame.add_break frame (Frame.position nframe)
+    let cur_pos = Frame.position frame in
+    (* Yes, this might lose some data.
+     * However, it is very simple this way,
+     * and avoid either a local buffer or a 
+     * send->receive paradigm with the other end.. *)
+    let rec get () = 
+      let (nframe : Frame.t) = Marshal.from_channel stream in
+      if Frame.position nframe < cur_pos then
+        get ()
+      else
+        nframe
+    in
+    let nframe = get () in
+    let new_pos = Frame.position nframe in
+    let len = new_pos - cur_pos in
+    Frame.blit nframe cur_pos frame cur_pos len;
+    let new_meta = Frame.get_all_metadata nframe in
+    let cur_meta = Frame.get_all_metadata frame in
+    let add_meta (p,m) = 
+      match p with
+        (* Last kept metadata should always be the more recent as possible.. *)
+        | -1 -> 
+             if not (List.mem_assoc (-1) 
+                      (Frame.get_all_metadata frame)) 
+             then
+               Frame.set_metadata frame (-1) m
+        | p when p >= cur_pos -> 
+             Frame.set_metadata frame p m
+        (** The perfectionist's addition:
+          * Add a metadata in the worse case.. *)
+        | p when
+              (* No old metadata *) 
+              cur_meta = [] && 
+              (* No new metada, or kept metadata *)
+              not (List.exists 
+                    (fun (x,_) -> (x >= cur_pos) || (x = -1)) 
+                        new_meta) &&
+              (* No metadata was already added at cur_pos.. *)
+              not (List.mem_assoc cur_pos 
+                    (Frame.get_all_metadata frame)) 
+                        ->
+             (* Add this metadata at cur_pos. Since 
+              * the list starts with the oldest one,
+              * this should always add the latest one,
+              * though I doubt another situation will
+              * ever happen.. *) 
+             Frame.set_metadata frame cur_pos m
+        | _ -> ()
+    in
+    List.iter add_meta new_meta;
+    Frame.add_break frame new_pos
 end
 
 let () =
