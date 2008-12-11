@@ -242,3 +242,57 @@ let get_chunk ab from =
             aux i tl
   in
     aux 0 (List.rev from.breaks)
+
+let fill_from_marshal stream frame =
+    assert(is_partial frame);
+    let cur_pos = position frame in
+    (* Yes, this might lose some data.
+     * However, it is very simple this way,
+     * and avoid either a local buffer or a 
+     * send->receive paradigm with the other end.. *)
+    let rec get () = 
+      let (nframe : t) = Marshal.from_channel stream in
+      if position nframe < cur_pos then
+        get ()
+      else
+        nframe
+    in
+    let nframe = get () in
+    let new_pos = position nframe in
+    let len = new_pos - cur_pos in
+    blit nframe cur_pos frame cur_pos len;
+    let new_meta = get_all_metadata nframe in
+    let cur_meta = get_all_metadata frame in
+    let add_meta (p,m) = 
+      match p with
+        (* Last kept metadata should always be the more recent as possible.. *)
+        | -1 -> 
+             if not (List.mem_assoc (-1) 
+                      (get_all_metadata frame)) 
+             then
+               set_metadata frame (-1) m
+        | p when p >= cur_pos -> 
+             set_metadata frame p m
+        (** The perfectionist's addition:
+          * Add a metadata in the worse case.. *)
+        | p when
+              (* No old metadata *) 
+              cur_meta = [] && 
+              (* No new metada, or kept metadata *)
+              not (List.exists 
+                    (fun (x,_) -> (x >= cur_pos) || (x = -1)) 
+                        new_meta) &&
+              (* No metadata was already added at cur_pos.. *)
+              not (List.mem_assoc cur_pos 
+                    (get_all_metadata frame)) 
+                        ->
+             (* Add this metadata at cur_pos. Since 
+              * the list starts with the oldest one,
+              * this should always add the latest one,
+              * though I doubt another situation will
+              * ever happen.. *) 
+             set_metadata frame cur_pos m
+        | _ -> ()
+    in
+    List.iter add_meta new_meta;
+    add_break frame new_pos

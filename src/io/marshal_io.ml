@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class output ~pipe val_source =
+class output ~pipe ~reopen val_source =
   let source = Lang.to_source val_source in
 object (self)
   inherit Source.active_operator source
@@ -37,9 +37,7 @@ object (self)
   method get_frame buf = source#get buf
   method abort_track = source#abort_track
 
-  method output_get_ready =
-    if stream = None then
-      stream <- Some (open_out pipe)
+  method output_get_ready = ignore(self#get_stream)
 
   method output_reset = ()
 
@@ -49,13 +47,43 @@ object (self)
                   stream <- None
       | None -> ()
 
+  method private get_stream = 
+    match stream with
+      | None ->
+          if not (Sys.file_exists pipe) then
+            Unix.mkfifo pipe 0o640
+          else
+           begin
+            let stats = Unix.stat pipe in
+            if stats.Unix.st_kind <> Unix.S_FIFO then
+             begin
+              self#log#f 1 "Pipe exists and is not a fifo.";
+              raise (Lang.Invalid_value (Lang.string pipe,"pipe must be a fifo"))
+             end
+           end;
+          let p = open_out pipe in
+          stream <- Some p;
+          p
+      | Some v -> v
+
   method output =
     source#get memo;
-    let stream = Utils.get_some stream in
-    Marshal.to_channel stream memo []
+    let pipe = self#get_stream in
+    try
+      Marshal.to_channel pipe memo []
+    with
+      | e ->
+         self#log#f 1 "Could not write to pipe."; 
+         if reopen then 
+          begin
+           self#log#f 1 "Will retry to open the pipe.";
+           stream <- None
+          end
+         else
+           raise e
 end
 
-class input ~pipe () =
+class input ~pipe ~reopen () =
 object (self)
   inherit Source.active_source
 
@@ -70,9 +98,7 @@ object (self)
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  method output_get_ready =
-   if stream = None then
-    stream <- Some (open_in_bin pipe)
+  method output_get_ready = ignore(self#get_stream)
 
   method output_reset = ()
 
@@ -82,65 +108,47 @@ object (self)
                   stream <- None
       | None -> ()
 
+  method private get_stream =
+    match stream with
+      | None ->
+          if not (Sys.file_exists pipe) then
+            Unix.mkfifo pipe 0o640
+          else
+           begin
+            let stats = Unix.stat pipe in
+            if stats.Unix.st_kind <> Unix.S_FIFO then
+             begin
+              self#log#f 1 "Pipe exists and is not a fifo.";
+              raise (Lang.Invalid_value (Lang.string pipe,"pipe must be a fifo"))
+             end
+           end;
+          let p = open_in pipe in
+          stream <- Some p;
+          p
+      | Some v -> v
+
   method get_frame frame =
-    assert(Frame.is_partial frame);
-    let stream = Utils.get_some stream in
-    let cur_pos = Frame.position frame in
-    (* Yes, this might lose some data.
-     * However, it is very simple this way,
-     * and avoid either a local buffer or a 
-     * send->receive paradigm with the other end.. *)
-    let rec get () = 
-      let (nframe : Frame.t) = Marshal.from_channel stream in
-      if Frame.position nframe < cur_pos then
-        get ()
-      else
-        nframe
-    in
-    let nframe = get () in
-    let new_pos = Frame.position nframe in
-    let len = new_pos - cur_pos in
-    Frame.blit nframe cur_pos frame cur_pos len;
-    let new_meta = Frame.get_all_metadata nframe in
-    let cur_meta = Frame.get_all_metadata frame in
-    let add_meta (p,m) = 
-      match p with
-        (* Last kept metadata should always be the more recent as possible.. *)
-        | -1 -> 
-             if not (List.mem_assoc (-1) 
-                      (Frame.get_all_metadata frame)) 
-             then
-               Frame.set_metadata frame (-1) m
-        | p when p >= cur_pos -> 
-             Frame.set_metadata frame p m
-        (** The perfectionist's addition:
-          * Add a metadata in the worse case.. *)
-        | p when
-              (* No old metadata *) 
-              cur_meta = [] && 
-              (* No new metada, or kept metadata *)
-              not (List.exists 
-                    (fun (x,_) -> (x >= cur_pos) || (x = -1)) 
-                        new_meta) &&
-              (* No metadata was already added at cur_pos.. *)
-              not (List.mem_assoc cur_pos 
-                    (Frame.get_all_metadata frame)) 
-                        ->
-             (* Add this metadata at cur_pos. Since 
-              * the list starts with the oldest one,
-              * this should always add the latest one,
-              * though I doubt another situation will
-              * ever happen.. *) 
-             Frame.set_metadata frame cur_pos m
-        | _ -> ()
-    in
-    List.iter add_meta new_meta;
-    Frame.add_break frame new_pos
+    let pipe = self#get_stream in
+    try
+      Frame.fill_from_marshal pipe frame
+    with
+      | e ->
+         self#log#f 1 "Could not read from pipe.";
+         if reopen then
+          begin
+           self#log#f 1 "Will retry to open the pipe.";
+           Frame.add_break frame (Frame.position frame);
+           stream <- None
+          end
+         else
+           raise e
 end
 
 let () =
   Lang.add_operator "output.marshal"
     [
+      "reopen", Lang.bool_t, Some (Lang.bool false),
+      Some "Try to reopen the pipe after a failure.";
       "", Lang.string_t, None, 
       Some "Pipe to send the stream to.";
       "", Lang.source_t, None, None
@@ -150,11 +158,14 @@ let () =
     ~descr:"Output the source's stream to a pipe using marshaling."
     (fun p ->
        let pipe = Lang.to_string (Lang.assoc "" 1 p) in
+       let reopen = Lang.to_bool (List.assoc "reopen" p) in
        let source = Lang.assoc "" 2 p in
-         ((new output ~pipe source):>Source.source)
+         ((new output ~pipe ~reopen source):>Source.source)
     );
   Lang.add_operator "input.marshal"
     [
+      "reopen", Lang.bool_t, Some (Lang.bool false),
+      Some "Try to reopen the pipe after a failure.";
       "", Lang.string_t, None,
       Some "Pipe to get the stream from.";
     ]
@@ -163,5 +174,6 @@ let () =
     ~descr:"Get a stream from a pipe using marshaling."
     (fun p ->
        let pipe = Lang.to_string (List.assoc "" p) in
-       ((new input ~pipe () ):>Source.source)
+       let reopen = Lang.to_bool (List.assoc "reopen" p) in
+       ((new input ~pipe ~reopen () ):>Source.source)
     );

@@ -135,3 +135,6 @@ val blit : t -> int -> t -> int -> int -> unit
 (** [get_chunk buf inbuf] fills [buf] with data from [inbuf] starting at current
   * position for both buffers. *)
 val get_chunk : t -> t -> unit
+
+(** Fill a frame from a out_chan using the Marshal module. *)
+val fill_from_marshal : in_channel -> t -> unit

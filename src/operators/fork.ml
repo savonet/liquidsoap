@@ -36,10 +36,10 @@ object (self)
 
   method get_frame buf =
     if debug then self#log#f 5 "Reader: get frame";
-    let frame : Frame.t = Marshal.from_channel pipe in
-      if debug then self#log#f 5 "Reader: got frame";
-      (* Frame.blit frame 0 buf 0 (Frame.size frame) *)
-      Frame.get_chunk buf frame
+    if Frame.is_partial buf then
+      Frame.fill_from_marshal pipe buf
+    else
+      Frame.add_break buf (Frame.size buf)
 end
 
 class fork ?(debug=false) ?f (source : source) =
@@ -74,7 +74,6 @@ object (self)
               source#get frame;
               if debug then self#log#f 5 "Son: got frame";
               Marshal.to_channel (snd pipe_out) (frame : Frame.t) [];
-              flush (snd pipe_out);
               if debug then self#log#f 5 "Son: sent frame";
               source#after_output;
               Frame.advance frame;
@@ -84,11 +83,13 @@ object (self)
           if f <> None then
             (
               let frame = Frame.make () in
-                if debug then self#log#f 5 "Father: send first frame";
+                AFrame.blankify frame 0 (AFrame.size frame);
+                if debug then self#log#f 5 "Father: send first frames";
                 Frame.add_break frame (Frame.size frame);
                 Marshal.to_channel (snd pipe_in) (frame : Frame.t) [];
-                flush (snd pipe_in);
-                if debug then self#log#f 5 "Father: wrote first frame";
+                Frame.set_breaks frame [];
+                Marshal.to_channel (snd pipe_in) (frame : Frame.t) [];
+                if debug then self#log#f 5 "Father: wrote first frames";
             );
           super#wake_up activation
 
@@ -106,7 +107,6 @@ object (self)
       (
         if debug then self#log#f 5 "Father: send frame";
         Marshal.to_channel (snd pipe_in) (buf : Frame.t) [];
-        flush (snd pipe_in);
         if debug then self#log#f 5 "Father: wrote frame"
       );
     let tmp : Frame.t = Marshal.from_channel (fst pipe_out) in
