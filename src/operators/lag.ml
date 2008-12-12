@@ -52,7 +52,9 @@ object (self)
 
   method get_ready = source#get_ready
 
-  method abort_track = self#log#f 2 "delayed stream: cannot abort in the past!"
+  method abort_track = 
+    self#log#f 2 "Track skip in delayed stream will be delayed !";
+    source#abort_track
 
   method get_frame buf =
     let cur_pos = AFrame.position buf in
