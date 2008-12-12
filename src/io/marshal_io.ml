@@ -20,91 +20,16 @@
 
  *****************************************************************************)
 
-class output ~pipe ~reopen val_source =
-  let source = Lang.to_source val_source in
-object (self)
-  inherit Source.active_operator source
-
-  initializer
-    (* We need the source to be infallible. *)
-    if source#stype <> Source.Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
+class virtual base ~pipe ~flags ~f ~g () = 
+object(self)
 
   val mutable stream = None
 
-  method stype = Source.Infallible
-  method remaining = source#remaining
-  method get_frame buf = source#get buf
-  method abort_track = source#abort_track
+  method virtual log : Dtools.Log.t
 
-  method output_get_ready = ignore(self#get_stream)
-
-  method output_reset = ()
-
-  method output_stop = 
+  method private close_pipe =
     match stream with
-      | Some b -> close_out b;
-                  stream <- None
-      | None -> ()
-
-  method private get_stream = 
-    match stream with
-      | None ->
-          if not (Sys.file_exists pipe) then
-            Unix.mkfifo pipe 0o640
-          else
-           begin
-            let stats = Unix.stat pipe in
-            if stats.Unix.st_kind <> Unix.S_FIFO then
-             begin
-              self#log#f 1 "Pipe exists and is not a fifo.";
-              raise (Lang.Invalid_value (Lang.string pipe,"pipe must be a fifo"))
-             end
-           end;
-          let p = open_out pipe in
-          stream <- Some p;
-          p
-      | Some v -> v
-
-  method output =
-    source#get memo;
-    let pipe = self#get_stream in
-    try
-      Marshal.to_channel pipe memo []
-    with
-      | e ->
-         self#log#f 1 "Could not write to pipe."; 
-         if reopen then 
-          begin
-           self#log#f 1 "Will retry to open the pipe.";
-           stream <- None
-          end
-         else
-           raise e
-end
-
-class input ~pipe ~reopen () =
-object (self)
-  inherit Source.active_source
-
-  initializer
-    (* We are using blocking functions to read. *)
-    (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
-
-  val mutable stream = None
-
-  method stype = Source.Infallible
-  method remaining = -1
-  method abort_track = ()
-  method output = if AFrame.is_partial memo then self#get_frame memo
-
-  method output_get_ready = ignore(self#get_stream)
-
-  method output_reset = ()
-
-  method output_stop =
-    match stream with
-      | Some b -> close_in b;
+      | Some b -> g b;
                   stream <- None
       | None -> ()
 
@@ -122,23 +47,90 @@ object (self)
               raise (Lang.Invalid_value (Lang.string pipe,"pipe must be a fifo"))
              end
            end;
-          let p = open_in pipe in
+          let p = f flags 0o640 pipe in
           stream <- Some p;
           p
       | Some v -> v
+
+end
+
+class output ~pipe ~reopen val_source =
+  let source = Lang.to_source val_source in
+  let f = open_out_gen in
+  let g = close_out in
+  let flags = [Open_wronly;Open_binary] in
+object (self)
+  inherit Source.active_operator source
+  inherit base ~pipe ~f ~g ~flags ()
+
+  initializer
+    (* We need the source to be infallible. *)
+    if source#stype <> Source.Infallible then
+      raise (Lang.Invalid_value (val_source, "That source is fallible"))
+
+  method stype = Source.Infallible
+  method remaining = source#remaining
+  method get_frame buf = source#get buf
+  method abort_track = source#abort_track
+
+  method output_stop = self#close_pipe
+
+  method output_reset = ()
+
+  method output_get_ready = ignore(self#get_stream)
+
+  method output =
+    source#get memo;
+    let pipe = self#get_stream in
+    try
+      Marshal.to_channel pipe memo []
+    with
+      | e ->
+         self#log#f 1 "Could not write to pipe."; 
+         if reopen then 
+          begin
+           self#log#f 1 "Will retry to open the pipe.";
+           self#close_pipe
+          end
+         else
+           raise e
+end
+
+class input ~pipe ~reopen () =
+  let f = open_in_gen in
+  let g = close_in in
+  let flags = [Open_rdonly;Open_binary] in
+object (self)
+  inherit Source.source
+  inherit base ~pipe ~f ~g ~flags ()
+
+  initializer
+    (* We are using blocking functions to read. *)
+    (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
+
+  method stype = Source.Infallible
+  method remaining = -1
+  method abort_track = ()
+
+  method is_ready = true
 
   method get_frame frame =
     let pipe = self#get_stream in
     try
       Frame.fill_from_marshal pipe frame
     with
+  (*  | Sys_blocked_io 
+      | End_of_file -> 
+          AFrame.blankify frame (Frame.position frame) (AFrame.size frame);
+          Frame.add_break frame (Frame.size frame) *) (* Used for asynchronous communications.. *)
       | e ->
          self#log#f 1 "Could not read from pipe.";
          if reopen then
           begin
            self#log#f 1 "Will retry to open the pipe.";
-           Frame.add_break frame (Frame.position frame);
-           stream <- None
+           AFrame.blankify frame (Frame.position frame) (AFrame.size frame);
+           Frame.add_break frame (Frame.size frame);
+           self#close_pipe
           end
          else
            raise e
