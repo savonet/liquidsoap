@@ -493,8 +493,8 @@ let () =
 
 let () =
   add_builtin "string.capitalize" ~cat:String
-    ~descr:"Return a string with the first character set to lower case (capitalize), \
-            or to lower case (uncapitalize)."
+    ~descr:"Return a string with the first character set to upper case \
+            (capitalize), or to lower case (uncapitalize)."
     [ "capitalize", Lang.bool_t, Some (Lang.bool true), 
         Some "Capitalize if true, uncapitalize otherwise";
       "space_sensitive", Lang.bool_t, Some (Lang.bool true),
