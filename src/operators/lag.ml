@@ -113,7 +113,9 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Add a constant delay to a stream, \
-            filling with blank when not available."
+            filling with blank when not available. \
+            This operator should be used just before the \
+            final output."
     (fun p ->
        let f n = Lang.assoc "" n p in
        let duration, src =
