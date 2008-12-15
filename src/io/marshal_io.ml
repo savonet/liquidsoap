@@ -20,9 +20,8 @@
 
  *****************************************************************************)
 
-class virtual base ~pipe ~flags ~f ~g () = 
+class virtual base ~pipe ~flags ~f ~fd ~g () =
 object(self)
-
   val mutable stream = None
 
   method virtual log : Dtools.Log.t
@@ -36,32 +35,43 @@ object(self)
   method private get_stream =
     match stream with
       | None ->
-          if not (Sys.file_exists pipe) then
-            Unix.mkfifo pipe 0o640
-          else
-           begin
-            let stats = Unix.stat pipe in
-            if stats.Unix.st_kind <> Unix.S_FIFO then
-             begin
-              self#log#f 1 "Pipe exists and is not a fifo.";
-              raise (Lang.Invalid_value (Lang.string pipe,"pipe must be a fifo"))
-             end
-           end;
-          let p = f flags 0o640 pipe in
-          stream <- Some p;
-          p
+          let p =
+            try
+              (* Names such as fd123 should be interpreted as the file
+               * descriptor 123. Yes, it is a dirty hack. *)
+              let sub = Pcre.exec ~pat:"^fd(\\d+)$" pipe in
+              let fdn = int_of_string (Pcre.get_substring sub 1) in
+              let fdn = (Obj.magic (fdn : int) : Unix.file_descr) in
+                fd fdn
+            with
+              | Not_found ->
+                  if not (Sys.file_exists pipe) then
+                    Unix.mkfifo pipe 0o640
+                  else
+                    begin
+                      let stats = Unix.stat pipe in
+                        if stats.Unix.st_kind <> Unix.S_FIFO then
+                          begin
+                            self#log#f 1 "Pipe exists and is not a fifo.";
+                            raise (Lang.Invalid_value (Lang.string pipe,"pipe must be a fifo"))
+                          end
+                    end;
+                  f flags 0o640 pipe
+          in
+            stream <- Some p;
+            p
       | Some v -> v
-
 end
 
 class output ~pipe ~reopen val_source =
   let source = Lang.to_source val_source in
   let f = open_out_gen in
+  let fd = Unix.out_channel_of_descr in
   let g = close_out in
   let flags = [Open_wronly;Open_binary] in
 object (self)
   inherit Source.active_operator source
-  inherit base ~pipe ~f ~g ~flags ()
+  inherit base ~pipe ~f ~fd ~g ~flags ()
 
   initializer
     (* We need the source to be infallible. *)
@@ -86,8 +96,8 @@ object (self)
       Marshal.to_channel pipe memo []
     with
       | e ->
-         self#log#f 1 "Could not write to pipe."; 
-         if reopen then 
+         self#log#f 1 "Could not write to pipe.";
+         if reopen then
           begin
            self#log#f 1 "Will retry to open the pipe.";
            self#close_pipe
@@ -98,11 +108,12 @@ end
 
 class input ~pipe ~reopen () =
   let f = open_in_gen in
+  let fd = Unix.in_channel_of_descr in
   let g = close_in in
   let flags = [Open_rdonly;Open_binary] in
 object (self)
   inherit Source.source
-  inherit base ~pipe ~f ~g ~flags ()
+  inherit base ~pipe ~f ~fd ~g ~flags ()
 
   initializer
     (* We are using blocking functions to read. *)
@@ -119,8 +130,8 @@ object (self)
     try
       Frame.fill_from_marshal pipe frame
     with
-  (*  | Sys_blocked_io 
-      | End_of_file -> 
+  (*  | Sys_blocked_io
+      | End_of_file ->
           AFrame.blankify frame (Frame.position frame) (AFrame.size frame);
           Frame.add_break frame (Frame.size frame) *) (* Used for asynchronous communications.. *)
       | e ->
@@ -141,7 +152,7 @@ let () =
     [
       "reopen", Lang.bool_t, Some (Lang.bool false),
       Some "Try to reopen the pipe after a failure.";
-      "", Lang.string_t, None, 
+      "", Lang.string_t, None,
       Some "Pipe to send the stream to.";
       "", Lang.source_t, None, None
     ]
