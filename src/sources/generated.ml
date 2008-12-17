@@ -36,10 +36,10 @@ struct
 (* Reads data from an audio buffer generator. The generator can be feeded
  * in parallel, using [lock] if not in the main thread.
  * Store [bufferize] seconds before declaring itself as ready. *)
-class virtual source ?(metadata=None) 
+class virtual source ?(metadata=None)
                      ~bufferize ~empty_on_abort abg =
   let bufferize = Fmt.ticks_of_seconds bufferize in
-  let () = 
+  let () =
     match metadata with
       | None -> ()
       | Some x -> Generator.add_metadata abg x
@@ -88,11 +88,11 @@ object (self)
         Generator.clear abg;
       Frame.add_break ab (Frame.position ab)
     end else begin
-        Mutex.lock lock ;
-        Generator.fill_frame abg ab ;
-        if Generator.length abg = 0 then
-            buffering <- true;
-        Mutex.unlock lock
+      Mutex.lock lock ;
+      Generator.fill_frame abg ab ;
+      if Generator.length abg = 0 then
+        buffering <- true;
+      Mutex.unlock lock
     end
 
 end

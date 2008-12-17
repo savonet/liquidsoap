@@ -201,8 +201,8 @@ exception Redirection of string
 
 class http ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
            ~feed_delay ~bind_address ~autostart ~bufferize ~max ~debug url =
-  let abg_max_len = 
-    Fmt.samples_of_seconds (Pervasives.max max bufferize) 
+  let abg_max_len =
+    Fmt.samples_of_seconds (Pervasives.max max bufferize)
   in
 object (self)
   inherit Source.source
@@ -249,10 +249,10 @@ object (self)
           begin
             Mutex.unlock lock ;
             Thread.delay feed_delay ;
-            Mutex.lock lock 
+            Mutex.lock lock
           end ;
-         if Generator.length abg >= abg_max_len then
-        Generator.remove abg (Generator.length abg - abg_max_len)
+        if Generator.length abg >= abg_max_len then
+          Generator.remove abg (Generator.length abg - abg_max_len)
       end;
     Generator.feed abg ~sample_freq data ;
     Mutex.unlock lock
@@ -267,10 +267,10 @@ object (self)
     in
       try
        (* Starting decoding: adding a break here *)
-       Generator.add_break abg 0; 
-       dec sink 
+       Generator.add_break abg 0;
+       dec sink
       with
-        | e -> 
+        | e ->
             begin
               (* Feeding has stopped: adding a break here *)
               Generator.add_break abg 0;
@@ -282,7 +282,7 @@ object (self)
 
   (* Called when there's no decoding process, in order to create one. *)
   method private_connect ?(encode=true) url =
-    let url = 
+    let url =
       if encode then
         Http.http_encode url
       else
@@ -311,10 +311,10 @@ object (self)
         in
           try
             let (_, status, status_msg), fields = Http.request socket request in
-            let content_type = 
+            let content_type =
               match force_mime with
                 | Some s -> s
-                | None -> 
+                | None ->
               let content_type =
                 try List.assoc "content-type" fields with Not_found -> "unknown"
               in
@@ -444,7 +444,7 @@ object (self)
     if ns = [] then
       ns <- Server.register [self#id] "input.http" ;
     self#set_id (Server.to_string ns) ;
-    Server.add ~ns "start" ~usage:"start" ~descr:"Start the source, if needed." 
+    Server.add ~ns "start" ~usage:"start" ~descr:"Start the source, if needed."
        (fun _ -> relaying <- true ; "Done") ;
     Server.add ~ns "stop" ~usage:"stop" ~descr:"Stop the source if streaming."
        (fun _ -> relaying <- false ; "Done")
@@ -504,30 +504,33 @@ let () =
         "", Lang.string_t, None,
         Some "URL of an http stream (default port is 80)." ]
       (fun p ->
-           let playlist_mode =
-             let s = List.assoc "playlist_mode" p in
-           match Lang.to_string s with
-             | "random" -> Random
-             | "first" -> First
-             | "randomize" -> Randomize
-             | "normal" -> Normal
-             | _ ->
-          raise
-            (Lang.Invalid_value
-               (s,
-                "valid values are 'random', 'randomize', 'normal' and 'first'"))
+         let playlist_mode =
+           let s = List.assoc "playlist_mode" p in
+             match Lang.to_string s with
+               | "random" -> Random
+               | "first" -> First
+               | "randomize" -> Randomize
+               | "normal" -> Normal
+               | _ ->
+                   raise
+                     (Lang.Invalid_value
+                        (s,
+                         "valid values are 'random', 'randomize', \
+                          'normal' and 'first'"))
          in
          let url = Lang.to_string (List.assoc "" p) in
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
-         let track_on_meta = Lang.to_bool (List.assoc "new_track_on_metadata" p) in
+         let track_on_meta =
+           Lang.to_bool (List.assoc "new_track_on_metadata" p)
+         in
          let debug = Lang.to_bool (List.assoc "debug" p) in
          let bind_address =
            match bind_address with
              | "" -> None
              | s -> Some s
          in
-         let force_mime = 
+         let force_mime =
            match Lang.to_string (List.assoc "force_mime" p) with
              | "" -> None
              | s  -> Some s
@@ -537,6 +540,7 @@ let () =
          let max = Lang.to_float (List.assoc "max" p) in
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          let feed_delay = Lang.to_float (List.assoc "feed_delay" p) in
-           ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta ~force_mime
-                      ~feed_delay ~bind_address ~poll_delay ~bufferize ~max ~debug url)
-              :>Source.source))
+           ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta
+                      ~force_mime ~feed_delay ~bind_address ~poll_delay
+                      ~bufferize ~max ~debug url)
+              :> Source.source))

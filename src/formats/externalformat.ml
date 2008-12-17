@@ -28,9 +28,9 @@ let bytes_to_get = 1024*64
 
 let decoder process file =
   let in_e = Unix.open_process_in (process file) in
-  let w = 
-    try 
-      Wav.read_header in_e "<stdin>" 
+  let w =
+    try
+      Wav.read_header in_e "<stdin>"
     with
       | e -> ignore(Unix.close_process_in in_e); raise e
   in
@@ -93,11 +93,9 @@ let decoder process file =
   in { Decoder.fill = fill ; Decoder.close = close }
 
 
-let register_external_decoder name process = 
+let register_external_decoder name process =
   Decoder.formats#register name
            (fun name -> try Some (decoder process name) with _ -> None)
 
-let register_external_metadata_resolver name process = 
+let register_external_metadata_resolver name process =
   Request.mresolvers#register name process
-
-

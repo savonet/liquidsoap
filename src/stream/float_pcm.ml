@@ -43,7 +43,7 @@ external caml_float_pcm_convert_be_byte : string -> int -> int ->
 
 let resample_s16le
       src src_off len signed samplesize big_endian
-      ratio dst dst_off = 
+      ratio dst dst_off =
   if big_endian then
     caml_float_pcm_convert_be_byte
       src src_off len signed samplesize big_endian
@@ -97,7 +97,7 @@ struct
   }
 
   let create ?(out_freq = Fmt.samples_per_second())
-             ?(out_chans = Fmt.channels()) () = 
+             ?(out_chans = Fmt.channels()) () =
   let conv = Audio_converter.Samplerate.create out_chans in
   {
     out_freq=out_freq;
@@ -130,8 +130,8 @@ struct
         | 0 -> failwith "Generator.feed: no channels"
         | _ -> failwith "Generator.feed: not enough channels"
     in
-    let buf = 
-      abg.resample (float abg.out_freq /. float sample_freq) buf 
+    let buf =
+      abg.resample (float abg.out_freq /. float sample_freq) buf
                    0 (Array.length buf.(0))
     in
       abg.length <- abg.length + (Array.length buf.(0)) ;
@@ -141,7 +141,7 @@ struct
     let pos = Fmt.ticks_of_samples (abg.length + pos) in
     abg.metadata <- (pos,m) :: abg.metadata
 
-  let peek_metadata abg pos = 
+  let peek_metadata abg pos =
     let pos = Fmt.ticks_of_samples pos in
     List.filter (fun x -> fst(x) < pos) abg.metadata
 
@@ -156,8 +156,8 @@ struct
 
   let is_empty abg = abg.length = 0
 
-  let remaining abg = 
-    let breaks = 
+  let remaining abg =
+    let breaks =
       List.sort (fun x -> fun y -> y - x) abg.breaks
     in
     match breaks with
@@ -201,10 +201,10 @@ struct
 
   (** Fill the float array array [buf] starting at [offset]. *)
   let fill abg ?size buf offset =
-    let buffer_size = 
+    let buffer_size =
       match size with
         | Some x -> x
-        | None -> Array.length buf.(0) 
+        | None -> Array.length buf.(0)
     in
     let blit src src_off dst dst_off len =
       for c = 0 to Array.length src - 1 do
@@ -251,7 +251,7 @@ struct
     in
       let out = aux offset in
       (* Now, advance metadata and breaks *)
-      let initial = 
+      let initial =
         if out = Fmt.samples_per_frame () then
           true
         else
@@ -338,7 +338,8 @@ struct
 
 end
 
-external from_s16le : float array array -> int -> string -> int -> int -> unit = "caml_float_pcm_from_s16le"
+external from_s16le : float array array -> int -> string -> int -> int -> unit
+         = "caml_float_pcm_from_s16le"
 
 let from_s16le_ni dbuf dofs buf ofs len =
   for c = 0 to Array.length buf - 1 do

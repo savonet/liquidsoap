@@ -35,7 +35,7 @@ let decoder_mp3 get_next file =
   let closed = ref false in
   let close () =
     assert (not !closed) ;
-    closed := true 
+    closed := true
   in
   let fill =
     fun buf ->
@@ -79,9 +79,9 @@ let decoder_mp3 get_next file =
 let () =
   let decoder name =
     let f = Natty.Nsv.open_f name in
-    let get_next n = 
-      let payload = 
-        snd (Natty.Nsv.get_frame f) 
+    let get_next n =
+      let payload =
+        snd (Natty.Nsv.get_frame f)
       in
       payload.Natty.Nsv.audio,String.length payload.Natty.Nsv.audio
     in

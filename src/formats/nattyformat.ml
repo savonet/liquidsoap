@@ -85,20 +85,20 @@ let decoder_pcm ~get_samples ~pcm w file =
   in { Decoder.fill = fill ; Decoder.close = close }
 
 let () =
-  let decoder name = 
+  let decoder name =
     let f = Natty.Au.open_f name in
-    let pcm = 
+    let pcm =
       match f.Natty.Au.format with
         | Natty.Pcm x -> x
 	| _ -> failwith "unrecognized format"
     in
-    let get_samples x n = 
+    let get_samples x n =
       try
         Natty.Au.get_samples x n
       with
         | Not_found ->
             let x = Natty.Au.get_all_samples x in
-            if x = "" then 
+            if x = "" then
               raise Not_found
             else
               x
@@ -116,13 +116,13 @@ let () =
         | Natty.Pcm x -> x
         | _ -> failwith "unrecognized format"
     in
-    let get_samples x n = 
+    let get_samples x n =
       try
         Natty.Aiff.get_samples x n
       with
         | Not_found ->
             let x = Natty.Aiff.get_all_samples x in
-            if x = "" then 
+            if x = "" then
               raise Not_found
             else
               x
@@ -131,30 +131,3 @@ let () =
   in
   Decoder.formats#register "AIFF"
     (fun name -> try Some (decoder name) with _ -> None)
-
-(* Disabled since already supported natively.. *)
-(*let () =
-  let decoder name =
-    let f = Natty.Wav.open_f name in
-    let pcm =
-      match f.Natty.Wav.format with
-        | Natty.Pcm x -> x
-        | _ -> failwith "unrecognized format"
-    in
-    let get_samples x n = 
-      try
-        Natty.Wav.get_samples x n
-      with
-        | Not_found ->
-            let x = Natty.Wav.get_all_samples x in
-            if x = "" then 
-              raise Not_found
-            else
-              x
-    in
-    decoder_pcm ~get_samples ~pcm f name
-  in
-  Decoder.formats#register "WAV"
-    (fun name -> try Some (decoder name) with _ -> None)*)
-
-

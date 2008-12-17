@@ -31,7 +31,7 @@ let converter = ref None
 let converter () =
   match !converter with
     | None ->
-      let conv =  
+      let conv =
         Video_converter.find_converter
           (Video_converter.YUV Video_converter.Yuvj_420)
           (Video_converter.RGB Video_converter.Rgba_32)
@@ -60,7 +60,7 @@ let decoder file sync fd =
   if not (Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder) &&
      not (Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder)
     then
-    (** No decodable data, trying to parse again, 
+    (** No decodable data, trying to parse again,
       * in case of an empty initial stream.. *)
     Ogg_demuxer.reset decoder;
   let fill buf =
@@ -75,20 +75,22 @@ let decoder file sync fd =
       let feed b c i =
         let feed (buf,_) =
           (* TODO: video conversion *)
-          if
-            buf.Ogg_demuxer.uv_width <> buf.Ogg_demuxer.y_width / 2 ||
-            buf.Ogg_demuxer.uv_height <> buf.Ogg_demuxer.y_height / 2 ||
-            int_of_float (buf.Ogg_demuxer.fps +. 0.5) <> Fmt.video_frames_per_second () (* TODO: more precise? + convert fps *)
-          then
-            assert false;
+          assert
+            (buf.Ogg_demuxer.uv_width = buf.Ogg_demuxer.y_width / 2 &&
+             buf.Ogg_demuxer.uv_height = buf.Ogg_demuxer.y_height / 2 &&
+             (* TODO: more precise? + convert fps *)
+             int_of_float (buf.Ogg_demuxer.fps +. 0.5)
+               = Fmt.video_frames_per_second ()) ;
           let rgb = b.(c).(i) in
           let frame = Video_converter.frame_of_internal_rgb rgb in
           let convert = converter () in
-          convert 
-            (Video_converter.frame_of_internal_yuv  
-              buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height 
+          convert
+            (Video_converter.frame_of_internal_yuv
+              buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height
               ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
-                (buf.Ogg_demuxer.u, buf.Ogg_demuxer.v, buf.Ogg_demuxer.uv_stride)))
+                (buf.Ogg_demuxer.u,
+                 buf.Ogg_demuxer.v,
+                 buf.Ogg_demuxer.uv_stride)))
             frame;
         in
         feed
@@ -106,7 +108,7 @@ let decoder file sync fd =
          | e -> log#f 5 "Video fill exited on exception: %s"
                     (Printexc.to_string e)
       end;
-      (* TODO: sort out when and who puts a break: 
+      (* TODO: sort out when and who puts a break:
        * this end break is already added by
        * audio filling.. *)
       (*VFrame.add_break buf size;*)
@@ -117,11 +119,11 @@ let decoder file sync fd =
     begin
       try
         while Generator.length abg < buffer_length do
-          let feed ((buf,sample_freq),meta) = 
+          let feed ((buf,sample_freq),meta) =
             begin
               match meta with
                 | Some meta ->
-                    (* Initial meta is read by 
+                    (* Initial meta is read by
                      * the resolver.. *)
                     if !init_meta then
                       init_meta := false
@@ -138,12 +140,12 @@ let decoder file sync fd =
                 Ogg_demuxer.reset decoder
               end
           with
-            | Ogg_demuxer.End_of_stream 
+            | Ogg_demuxer.End_of_stream
             | Not_found -> Ogg_demuxer.reset decoder
         done;
       with
-        | e -> log#f 5 "Audio fill exited on exception: %s" 
-                          (Printexc.to_string e) 
+        | e ->
+            log#f 5 "Audio fill exited on exception: %s" (Printexc.to_string e)
     end ;
 
     let offset = AFrame.position buf in
@@ -166,13 +168,13 @@ let decoder file sync fd =
     { Decoder.fill = fill ; Decoder.close = close }
 
 (** Wrapper to be sure that file is closed.. *)
-let decoder file = 
+let decoder file =
   let sync,fd = Ogg.Sync.create_from_file file in
   try
     decoder file sync fd
   with
     | e -> begin
-            try 
+            try
              Unix.close fd
             with
               | _ -> ()
@@ -185,12 +187,11 @@ let () =
 exception Metadata of (string*string) list
 
 let get_tags ~format file =
-  (* Fail if file is not decoded using the OGG 
-   * demuxer. *)
+  (* Fail if file is not decoded using the OGG demuxer. *)
   if format <> "OGG" then
     raise Not_found;
   let sync,fd = Ogg.Sync.create_from_file file in
-  let close () = 
+  let close () =
     try
       Unix.close fd
     with
@@ -209,7 +210,7 @@ let get_tags ~format file =
       in
       raise (Metadata m)
     in
-    let m = 
+    let m =
       try
         if Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder then
           Ogg_demuxer.decode_audio decoder feed;
@@ -217,18 +218,17 @@ let get_tags ~format file =
       with
         | Metadata m -> m
     in
-    let m = 
+    let m =
       try
         if Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
           Ogg_demuxer.decode_video decoder feed;
         m
       with
         | Metadata m' -> m@m'
-    in 
+    in
     close ();
     m
   with
     | _ -> close (); []
 
 let () = Request.mresolvers#register "OGG" get_tags
-

@@ -71,7 +71,8 @@ let decoder file =
             String.blit aacbuf pos aacbuf 0 !aacbufpos;
             Generator.feed abg ~sample_freq buf
           with
-            | Faad.Error n -> Printf.printf "Faad error: %s\n%!" (Faad.get_error_message n)
+            | Faad.Error n ->
+                Printf.printf "Faad error: %s\n%!" (Faad.get_error_message n)
         done
       with _ -> () (* TODO: log the error *)
     end ;

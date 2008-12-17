@@ -65,7 +65,9 @@ let create_track freq length = function
   | Midi_t h ->
       Midi (h, ref (Midi.create_track ()))
   | RGB_t ->
-      RGB (Array.init (Fmt.video_frames_per_frame ()) (fun _ -> RGB.create (Fmt.video_width ()) (Fmt.video_height ())))
+      RGB (Array.init
+             (Fmt.video_frames_per_frame ())
+             (fun _ -> RGB.create (Fmt.video_width ()) (Fmt.video_height ())))
 
 let create kind ~freq ~length =
   {
@@ -185,7 +187,6 @@ let get_chunk ab from =
   assert (is_partial ab);
   let p = position ab in
   let copy_chunk i =
-    if false then log#f 2 "%d-%d/%d" p i (size ab) ;
     add_break ab i ;
     blit from p ab p (i-p) ;
     (* If the last metadata before [p] differ in [from] and [ab],
@@ -196,22 +197,13 @@ let get_chunk ab from =
       let before_p l =
         match
           List.sort
-            (fun (a,_) (b,_) -> compare b a)      (* the greatest *)
+            (fun (a,_) (b,_) -> compare b a)     (* the greatest *)
             (List.filter (fun x -> fst x < p) l) (* that is less than p *)
         with [] -> None | x::_ -> Some (snd x)
       in
         match before_p from.metadata, before_p ab.metadata with
           | Some b, a ->
-              if a <> Some b then begin
-                if false then begin
-                  log#f 2 "XXXX %s" (Hashtbl.find b "title") ;
-                  match a with
-                    |  Some a ->
-                        if false then log#f 2 "YYYY %s" (Hashtbl.find a "title")
-                    | None -> ()
-                end ;
-                set_metadata ab p b
-              end
+              if a <> Some b then set_metadata ab p b
           | None, _ -> ()
     end ;
     (* Copy new metadata blocks for this chunk.
@@ -248,9 +240,9 @@ let fill_from_marshal stream frame =
     let cur_pos = position frame in
     (* Yes, this might lose some data.
      * However, it is very simple this way,
-     * and avoid either a local buffer or a 
+     * and avoid either a local buffer or a
      * send->receive paradigm with the other end.. *)
-    let rec get () = 
+    let rec get () =
       let (nframe : t) = Marshal.from_channel stream in
       if position nframe < cur_pos then
         get ()
@@ -263,34 +255,34 @@ let fill_from_marshal stream frame =
     blit nframe cur_pos frame cur_pos len;
     let new_meta = get_all_metadata nframe in
     let cur_meta = get_all_metadata frame in
-    let add_meta (p,m) = 
+    let add_meta (p,m) =
       match p with
         (* Last kept metadata should always be the more recent as possible.. *)
-        | -1 -> 
-             if not (List.mem_assoc (-1) 
-                      (get_all_metadata frame)) 
+        | -1 ->
+             if not (List.mem_assoc (-1)
+                      (get_all_metadata frame))
              then
                set_metadata frame (-1) m
-        | p when p >= cur_pos -> 
+        | p when p >= cur_pos ->
              set_metadata frame p m
         (** The perfectionist's addition:
-          * Add a metadata in the worse case.. *)
+          * Add a metadata in the worst case.. *)
         | p when
-              (* No old metadata *) 
-              cur_meta = [] && 
-              (* No new metada, or kept metadata *)
-              not (List.exists 
-                    (fun (x,_) -> (x >= cur_pos) || (x = -1)) 
-                        new_meta) &&
+              (* No old metadata *)
+              cur_meta = [] &&
+              (* No new metadata, or kept metadata *)
+              not (List.exists
+                     (fun (x,_) -> (x >= cur_pos) || (x = -1))
+                     new_meta) &&
               (* No metadata was already added at cur_pos.. *)
-              not (List.mem_assoc cur_pos 
-                    (get_all_metadata frame)) 
+              not (List.mem_assoc cur_pos
+                    (get_all_metadata frame))
                         ->
-             (* Add this metadata at cur_pos. Since 
+             (* Add this metadata at cur_pos. Since
               * the list starts with the oldest one,
               * this should always add the latest one,
               * though I doubt another situation will
-              * ever happen.. *) 
+              * ever happen.. *)
              set_metadata frame cur_pos m
         | _ -> ()
     in

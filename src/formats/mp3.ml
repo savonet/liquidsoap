@@ -39,7 +39,7 @@ let conf_mime_types =
     "Mime-types used for guessing formats"
     ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
 
-let check file = 
+let check file =
   if conf_mime#get then
     match Configure.file_mime file with
       (* libmagic does not always detect mp3 as audio/mpeg
