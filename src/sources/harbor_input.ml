@@ -50,10 +50,10 @@ object (self)
 
    (* Insert metadata *)
    method insert_metadata m =
-    self#log#f 3 "New metadata chunk \"%s -- %s\""
-                (try Hashtbl.find m "artist" with _ -> "?")
-                (try Hashtbl.find m "title" with _ -> "?") ;
-    Generator.add_metadata abg (0,m)
+     self#log#f 3 "New metadata chunk \"%s -- %s\""
+       (try Hashtbl.find m "artist" with _ -> "?")
+       (try Hashtbl.find m "title" with _ -> "?") ;
+     Generator.add_metadata abg m
 
    method put sample_freq data =
     if not relaying then failwith "relaying stopped" ;

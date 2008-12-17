@@ -67,13 +67,13 @@ object (self)
             begin
               is_streaming <- true;
               AFrame.add_break buf cur_pos;
-              Generator.remove abg ~initial:false 0;
+              Generator.remove abg 0;
               0
             end
           else
             begin
-              AFrame.fill_frame abg buf;
-              (AFrame.position buf) - cur_pos
+              Generator.fill abg buf ;
+              AFrame.position buf - cur_pos
             end
         end
       else
@@ -93,7 +93,7 @@ object (self)
       if source#is_ready then
         begin
           source#get past;
-          AFrame.feed_frame abg past;
+          Generator.feed_from_frame abg past;
           delta <- delta + (AFrame.position past)
         end
       else
@@ -101,7 +101,7 @@ object (self)
           let len = min (AFrame.size past) (-delta) in
           AFrame.blankify past 0 len;
           AFrame.add_break past len;
-          AFrame.feed_frame abg past;
+          Generator.feed_from_frame abg past;
           delta <- delta + len
         end
     done

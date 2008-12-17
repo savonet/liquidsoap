@@ -131,7 +131,8 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 
 stream = stream/midi.ml fmt.ml stream/rgb_c.c stream/RGB.ml \
 	stream/frame.ml \
-	stream/float_pcm_c.c stream/float_pcm.ml 
+	stream/float_pcm_c.c stream/float_pcm.ml \
+	stream/aFrame.ml stream/vFrame.ml
 
 visualization = visualization/vumeter.ml \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
@@ -140,7 +141,6 @@ visualization = visualization/vumeter.ml \
 	visualization/video_volume.ml
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	stream/aFrame.ml stream/vFrame.ml \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	decoder.ml playlist_parser.ml request.ml source.ml root.ml \
 	tools/server.ml tools/server_builtins.ml \

@@ -92,7 +92,7 @@ let decoder file =
       end ;
 
       let offset = AFrame.position buf in
-        AFrame.fill_frame abg buf ;
+        Generator.fill abg buf ;
         in_bytes := Mad.get_current_position fd ;
         out_samples := !out_samples + AFrame.position buf - offset ;
         (* Compute an estimated number of remaining ticks. *)

@@ -27,7 +27,7 @@ sig
   val remaining : t -> int (* ticks *)
   val clear : t -> unit
   val fill_frame : t -> Frame.t -> unit
-  val add_metadata : t -> int*Frame.metadata -> unit
+  val add_metadata : t -> Frame.metadata -> unit
 end
 
 module Make (Generator:Generator_t) =
@@ -36,14 +36,8 @@ struct
 (* Reads data from an audio buffer generator. The generator can be feeded
  * in parallel, using [lock] if not in the main thread.
  * Store [bufferize] seconds before declaring itself as ready. *)
-class virtual source ?(metadata=None)
-                     ~bufferize ~empty_on_abort abg =
+class virtual source ~bufferize ~empty_on_abort abg =
   let bufferize = Fmt.ticks_of_seconds bufferize in
-  let () =
-    match metadata with
-      | None -> ()
-      | Some x -> Generator.add_metadata abg x
-  in
 object (self)
 
   (** This allows heriting classes to access the generator. *)
@@ -83,15 +77,12 @@ object (self)
     buffering <- false ;
     if should_fail then begin
       should_fail <- false ;
-      (* empty the buffer on skip? *)
-      if empty_on_abort then
-        Generator.clear abg;
+      if empty_on_abort then Generator.clear abg ; (* TODO lock *)
       Frame.add_break ab (Frame.position ab)
     end else begin
       Mutex.lock lock ;
       Generator.fill_frame abg ab ;
-      if Generator.length abg = 0 then
-        buffering <- true;
+      if Generator.length abg = 0 then buffering <- true ;
       Mutex.unlock lock
     end
 
@@ -99,10 +90,10 @@ end
 
 (* Reads data from a fixed audio buffer generator,
  * assuming that it won't be feeded more after instantiation. *)
-class consumer ?(metadata=None) abg =
+class consumer abg =
 object
   inherit Source.source
-  inherit source abg ~metadata ~bufferize:0. ~empty_on_abort:true
+  inherit source abg ~bufferize:0. ~empty_on_abort:true
   method stype = Source.Fallible
 end
 
@@ -115,5 +106,5 @@ module From_Float_pcm_Generator =
          let remaining x = Float_pcm.Generator.remaining x
          let clear = Float_pcm.Generator.clear
          let add_metadata = Float_pcm.Generator.add_metadata
-         let fill_frame = AFrame.fill_frame
+         let fill_frame = Float_pcm.Generator.fill
        end)

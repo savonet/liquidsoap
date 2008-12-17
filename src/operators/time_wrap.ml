@@ -85,7 +85,7 @@ object (self)
       end
     else
       begin
-        AFrame.fill_frame generator ab ;
+        Generator.fill generator ab ;
         incr outputs ;
         assert (not (AFrame.is_partial ab))
      end

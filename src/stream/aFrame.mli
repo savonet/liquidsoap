@@ -56,16 +56,7 @@ val get_s16le_length : t -> int
 
 val to_s16le : t -> string
 
-(** Fill a frame from a (float) generator. 
-  * This fills until next break, if it exists, 
-  * or the whole frame otherwise. *)
-val fill_frame : Float_pcm.Generator.t -> Frame.t -> unit
-
-(** Fill a frame from a (raw) generator. *)
-val fill_frame_from_raw : Float_pcm.Generator_from_raw.t -> Frame.t -> unit
-
-(** Feed a generator with a frame *)
-val feed_frame : Float_pcm.Generator.t -> ?sample_freq:int -> Frame.t -> unit
+(** {2 Sound processing} *)
 
 val blankify : t -> int -> int -> unit
 

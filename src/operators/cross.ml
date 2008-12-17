@@ -124,7 +124,7 @@ object (self)
           (* We started buffering but the track didn't end.
            * Play the beginning of the buffer while filling it more. *)
           self#buffering buffer 0 ;
-          AFrame.fill_frame buffer ab
+          Generator.fill buffer ab
       | `Stopped (s,size) ->
           (* The buffering stopped and we got [s], combination of the buffered
            * end of track and the new track. It will be played without bothering
@@ -149,7 +149,7 @@ object (self)
   method private buffering buffer n =
     AFrame.clear b ;
     source#get b ;
-    AFrame.feed_frame buffer b;
+    Generator.feed_from_frame buffer b;
     if AFrame.is_partial b then
       (* As for Switch's transitions, we avoid stacking compositions
        * because this would lead to huge sources, never simplified.

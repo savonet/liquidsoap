@@ -113,7 +113,7 @@ object (self)
           (* We started buffering but the track didn't end.
            * Play the beginning of the buffer while filling it more. *)
           self#buffering 0 ;
-          AFrame.fill_frame gen_before ab
+          Generator.fill gen_before ab
       | `Limit ->
           (* The track finished.
            * We compute rms_after and launch the transition. *)
@@ -147,7 +147,7 @@ object (self)
     assert (source#is_ready) ;
     source#get b ;
     (* Store them. *)
-    AFrame.feed_frame gen_before b;
+    Generator.feed_from_frame gen_before b;
     (* Analyze them *)
     for i = 0 to AFrame.position b - 1 do
       let squares =
@@ -182,7 +182,7 @@ object (self)
         source#after_output ;
         if !first then after_metadata <- AFrame.get_metadata b 0 ;
         first := false ;
-        AFrame.feed_frame gen_after b;
+        Generator.feed_from_frame gen_after b;
         for i = 0 to AFrame.position b - 1 do
           let squares =
             Array.fold_left

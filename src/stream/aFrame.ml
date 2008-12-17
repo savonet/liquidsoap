@@ -43,68 +43,6 @@ let to_s16le b =
     assert (Float_pcm.to_s16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
 
-let fill_frame_main f g h gen frame =
-  let pos = position frame in
-  let len = size frame in
-  let offset = len - pos in
-  (** First add new metadata and breaks. *)
-  let old_meta = get_all_metadata frame in
-  let new_meta = g gen offset in
-  let sort l =
-    List.sort
-      (fun x -> fun y -> y - x)
-      l
-  in
-  let new_breaks = sort (h gen offset) in
-  let old_breaks = breaks frame in
-  let size =
-    match new_breaks with
-      | a::_  -> Some a
-      | _ -> None
-  in
-  (* Now fill the frame, advancing metadata and breaks *)
-  let npos =
-    Fmt.ticks_of_samples (f gen ?size (get_float_pcm frame) pos)
-  in
-  let pos = Fmt.ticks_of_samples pos in
-  let breaks =
-    let new_breaks = List.map (fun x -> x + pos) new_breaks in
-    let l = List.filter (fun x -> x <= npos) (new_breaks@old_breaks) in
-      if List.mem npos l then l else npos::l
-  in
-  set_breaks frame breaks;
-  let new_meta = List.map (fun (x,y) -> (x + pos,y)) new_meta in
-  let meta = List.filter (fun x -> fst(x) < npos) (old_meta@new_meta) in
-  set_all_metadata frame meta
-
-let fill_frame =
-  fill_frame_main Float_pcm.Generator.fill
-                  Float_pcm.Generator.peek_metadata
-                  Float_pcm.Generator.peek_breaks
-
-let fill_frame_from_raw =
-  fill_frame_main Float_pcm.Generator_from_raw.fill
-                  Float_pcm.Generator_from_raw.peek_metadata
-                  Float_pcm.Generator_from_raw.peek_breaks
-
-let feed_frame abg ?(sample_freq = Fmt.samples_per_second()) frame =
-  let meta =
-    List.filter (fun (x,_) -> x >= 0) (get_all_metadata frame)
-  in
-  List.iter (Float_pcm.Generator.add_metadata abg) meta;
-  let breaks = breaks frame in
-  let max = Fmt.ticks_of_samples (size frame) in
-  List.iter
-    (fun x -> if x < max && x >= 0 then
-      Float_pcm.Generator.add_break abg x)
-    breaks;
-  let data =
-    Array.map
-     (fun x -> Array.sub x 0 (position frame))
-     (get_float_pcm frame)
-  in
-  Float_pcm.Generator.feed abg ~sample_freq data
-
 let blankify b off len =
   Float_pcm.blankify (get_float_pcm b) off len
 

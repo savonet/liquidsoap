@@ -63,6 +63,14 @@ let to_s16le_ni buf ofs len dst dst_ofs =
     done;
     !ans
 
+external from_s16le : float array array -> int -> string -> int -> int -> unit
+         = "caml_float_pcm_from_s16le"
+
+let from_s16le_ni dbuf dofs buf ofs len =
+  for c = 0 to Array.length buf - 1 do
+    from_s16le [|dbuf.(c)|] dofs buf.(c) ofs len
+  done
+
 external float_blit : float array -> int -> float array -> int -> int -> unit
      = "caml_float_array_blit"
 
@@ -80,6 +88,17 @@ let native_resample ratio inbuf offs len =
       done;
       outbuf
 
+let get_float_pcm b =
+  let tracks = Array.to_list (Frame.get_tracks b) in
+  let ans =
+    List.fold_left
+      (fun l t ->
+         match t with
+           | Frame.Float_pcm (_,a) -> a::l
+           | _ -> l
+      ) [] tracks in
+    Array.of_list ans
+
 (** Accumulate float PCM and generate float_pcm tracks. *)
 module Generator =
 struct
@@ -89,28 +108,33 @@ struct
     out_chans : int;
     resample  : float -> float array array -> int -> int -> float array array;
     (* Accumulated input data. *)
-    mutable metadata : (int*Frame.metadata) list ;
-    mutable breaks   : int list ;
-    mutable length   : int ;
-    mutable offset   : int ; (* offset in the first array of buffers *)
+    mutable metadata : (int*Frame.metadata) list ; (* ticks   *)
+    mutable breaks   : int list ;                  (* ticks   *)
+    mutable length   : int ;                       (* samples *)
+    mutable offset   : int ; (* offset in samples the first buffer *)
     mutable buffers  : float array array Queue.t ;
   }
 
   let create ?(out_freq = Fmt.samples_per_second())
              ?(out_chans = Fmt.channels()) () =
-  let conv = Audio_converter.Samplerate.create out_chans in
-  {
-    out_freq=out_freq;
-    out_chans=out_chans;
-    metadata=[];
-    breaks=[];
-    length=0 ;
-    resample=Audio_converter.Samplerate.resample conv;
-    offset=0 ;
-    buffers=Queue.create () ;
-  }
+    let conv = Audio_converter.Samplerate.create out_chans in
+      {
+        out_freq  = out_freq ;
+        out_chans = out_chans ;
+        metadata  = [] ;
+        breaks    = [] ;
+        length    = 0 ;
+        offset    = 0 ;
+        buffers   = Queue.create () ;
+        resample  = Audio_converter.Samplerate.resample conv ;
+      }
 
   let length b = b.length
+
+  let remaining abg =
+    match abg.breaks with
+      | a :: _ -> a
+      | _ -> Fmt.ticks_of_samples abg.length
 
   let clear abg =
     abg.length <- 0;
@@ -119,7 +143,7 @@ struct
     abg.metadata <- [];
     abg.breaks <- []
 
-  let feed abg ?(sample_freq = Fmt.samples_per_second()) buf =
+  let feed abg ?(sample_freq = Fmt.samples_per_second ()) buf =
     let buf =
       match Array.length buf with
         | n when n = Fmt.channels () -> buf
@@ -137,128 +161,122 @@ struct
       abg.length <- abg.length + (Array.length buf.(0)) ;
       Queue.add buf abg.buffers
 
-  let add_metadata abg (pos,m) =
-    let pos = Fmt.ticks_of_samples (abg.length + pos) in
-    abg.metadata <- (pos,m) :: abg.metadata
+  let add_metadata abg m =
+    abg.metadata <- abg.metadata @ [Fmt.ticks_of_samples abg.length, m]
 
-  let peek_metadata abg pos =
-    let pos = Fmt.ticks_of_samples pos in
-    List.filter (fun x -> fst(x) < pos) abg.metadata
+  let add_break abg =
+    abg.breaks <- abg.breaks @ [Fmt.ticks_of_samples abg.length]
 
-  let add_break abg pos =
-    let pos = Fmt.ticks_of_samples (abg.length + pos) in
-    if not (List.mem pos abg.breaks) then
-      abg.breaks <- pos :: abg.breaks
+  (* Take all data from a frame: breaks, metadata and available audio. *)
+  let feed_from_frame abg frame =
+    let size = Frame.size frame in
+    let samples = Fmt.samples_of_ticks (Frame.position frame) in
+      abg.metadata <-
+        abg.metadata @
+          (List.map
+             (fun (p,m) -> Fmt.ticks_of_samples abg.length + p, m)
+             (Frame.get_all_metadata frame)) ;
+      abg.breaks <-
+        abg.breaks @
+          (List.map
+             (fun p -> Fmt.ticks_of_samples abg.length + p)
+             (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
+      feed abg ~sample_freq:(Fmt.samples_per_second ())
+        (Array.map
+           (fun x -> Array.sub x 0 samples)
+           (get_float_pcm frame))
 
-  let peek_breaks abg pos =
-    let pos = Fmt.ticks_of_samples pos in
-    List.filter (fun x -> x < pos) abg.breaks
-
-  let is_empty abg = abg.length = 0
-
-  let remaining abg =
-    let breaks =
-      List.sort (fun x -> fun y -> y - x) abg.breaks
-    in
-    match breaks with
-      | a :: _ -> a
-      | _ -> Fmt.ticks_of_samples abg.length
-
-  (* Advance metadata and breaks *)
-  let advance abg ?(initial=true) pos =
+  (* Advance metadata and breaks by [pos] samples. *)
+  let advance abg pos =
     let pos = Fmt.ticks_of_samples pos in
     let meta = List.map (fun (x,y) -> (x-pos,y)) abg.metadata in
-    abg.metadata <- List.filter (fun x -> fst(x) >= 0) meta;
     let breaks = List.map (fun x -> x-pos) abg.breaks in
-    (* Remove initial break unless told
-     * allow it to advance next time.. *)
-    let min =
-      if not initial then
-        1
-      else
-        0
-    in
-    abg.breaks <- List.filter (fun x -> x >= min) breaks
+      abg.metadata <- List.filter (fun x -> fst x >= 0) meta;
+      abg.breaks <- List.filter (fun x -> x >= 0) breaks
 
-  (** Remove [len] bytes of input. *)
-  let rec remove abg ?(initial=false) len =
+  (** Remove [len] samples of data. *)
+  let rec remove abg len =
     assert (abg.length >= len) ;
     if len>0 then
     let b = Queue.peek abg.buffers in
+      (* Is it enough to advance in the first buffer?
+       * Or do we need to consume it completely and go farther in the queue? *)
       if abg.offset + len < Array.length b.(0) then begin
         abg.length <- abg.length - len ;
-        abg.offset <- abg.offset + len
-      end else begin
-        (* We first remove (String.length b) - abg.offset *)
-        ignore (Queue.take abg.buffers) ;
-        abg.length <- abg.length - (Array.length b.(0)) + abg.offset ;
-        abg.offset <- 0 ;
-        (* And then remove the remainder *)
-        remove abg (len - (Array.length b.(0)) + abg.offset)
-      end;
-  (* Now advance breaks and metadata *)
-  advance abg ~initial len
+        abg.offset <- abg.offset + len ;
+        advance abg len
+      end else
+        let removed = Array.length b.(0) - abg.offset in
+          ignore (Queue.take abg.buffers) ;
+          abg.length <- abg.length - removed ;
+          abg.offset <- 0 ;
+          advance abg removed ;
+          remove abg (len-removed)
 
-  (** Fill the float array array [buf] starting at [offset]. *)
-  let fill abg ?size buf offset =
-    let buffer_size =
-      match size with
-        | Some x -> x
-        | None -> Array.length buf.(0)
-    in
+  (* Fill the frame from the generator's data. *)
+  let fill abg frame =
+    (* Audio only (for now) so the official unit is the sample. *)
+    let buf = get_float_pcm frame in
+    let offset = Fmt.samples_of_ticks (Frame.position frame) in
+    let buffer_size = Array.length buf.(0) in
     let blit src src_off dst dst_off len =
       for c = 0 to Array.length src - 1 do
         float_blit src.(c) src_off dst.(c) dst_off len
       done
     in
+    (* The main loop takes the current offset in the output buffer,
+     * and iterates on input buffer chunks. *)
     let rec aux offset =
-      let needed = buffer_size - offset in
-        if abg.length > 0 && needed > 0
-        then
-          (* Can we fill ? Do we need to fill ? *)
-          begin
-            let block = Queue.peek abg.buffers in
-            let blocklen = Array.length block.(0) - abg.offset in
-            let more =
-              if blocklen <= needed then
-                begin
-                  (* Here we consume the full block *)
-                  blit
-                    block abg.offset
-                    buf offset
-                    blocklen ;
-                  abg.length <- abg.length - blocklen ;
-                  ignore (Queue.take abg.buffers) ;
-                  abg.offset <- 0 ;
-                  blocklen
-                end
-              else
-                begin
-                  (* .. there we don't need the whole block *)
-                  blit
-                    block abg.offset
-                    buf offset
-                    needed ;
-                  abg.length <- abg.length - needed ;
-                  abg.offset <- abg.offset + needed ;
-                  needed
-                end
-            in
-              aux (offset+more)
-          end
-        else
-          offset
-    in
-      let out = aux offset in
-      (* Now, advance metadata and breaks *)
-      let initial =
-        if out = Fmt.samples_per_frame () then
-          true
-        else
-          false
+      (* How much (more) data should be output? *)
+      let needed =
+        min
+          (Fmt.samples_of_ticks (remaining abg))
+          (buffer_size - offset)
       in
-      advance abg ~initial (out - offset);
-      out
+      let offset_ticks = Fmt.ticks_of_samples offset in
+        if needed = 0 then begin
+          Frame.add_break frame offset_ticks ;
+          if Frame.is_partial frame then
+            match abg.breaks with
+              | 0::tl -> abg.breaks <- tl
+              | [] -> () (* end of stream / underrun ... *)
+              | _ -> assert false
+        end else
+          let block = Queue.peek abg.buffers in
+          let blocklen = Array.length block.(0) - abg.offset in
+          let copied = min needed blocklen in
+            blit
+              block abg.offset
+              buf offset
+              copied ;
+            List.iter
+              (fun (p,m) ->
+                 if p < Fmt.ticks_of_samples copied then
+                   Frame.set_metadata frame (p + offset_ticks) m)
+              abg.metadata ;
+            advance abg copied ;
+            (* Update buffer data -- did we consume a full block? *)
+            if blocklen <= needed then begin
+              ignore (Queue.take abg.buffers) ;
+              abg.length <- abg.length - blocklen ;
+              abg.offset <- 0
+            end else begin
+              abg.length <- abg.length - needed ;
+              abg.offset <- abg.offset + needed
+            end ;
+            (* Add more data by recursing on the next block, or finish. *)
+            if blocklen < needed then
+              aux (offset+blocklen)
+            else begin
+              Frame.add_break frame (Fmt.ticks_of_samples (offset+needed)) ;
+              if Frame.is_partial frame then
+                match abg.breaks with
+                  | 0::tl -> abg.breaks <- tl
+                  | [] -> () (* end of stream / underrun ... *)
+                  | _ -> assert false
+            end
+    in
+      aux offset
 
 end
 
@@ -272,8 +290,7 @@ struct
         in_freq :int;
       }
 
-  let create ~channels ~samplesize ~signed ~big_endian ~in_freq
-             ~samples ~out_freq =
+  let create ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq =
     let convert src src_off len ratio =
       let dst =
         (* TODO: convert channel number? *)
@@ -303,15 +320,9 @@ struct
 
   let add_metadata g x = Generator.add_metadata g.generator x
 
-  let peek_metadata g p = Generator.peek_metadata g.generator p
-
-  let add_break g x = Generator.add_break g.generator x
-
-  let peek_breaks g p = Generator.peek_breaks g.generator p
+  let add_break g = Generator.add_break g.generator
 
   let length g = Generator.length g.generator
-
-  let is_empty g = Generator.is_empty g.generator
 
   let remaining g = Generator.remaining g.generator
 
@@ -319,32 +330,6 @@ struct
 
   let fill g = Generator.fill g.generator
 end
-
-(** Optimized structure for converting float pcm to s16le strings,
-  * supporting resampling and conversions of channel numbers. *)
-module To_s16le =
-struct
-  type t = string
-
-  let create ~in_channels ~in_samplerate ~out_channels ~out_samplerate max =
-    assert (in_channels = out_channels) ;
-    assert (in_samplerate = out_samplerate) ;
-    String.create (max * in_channels * 2)
-
-  let get_output_buffer s = s
-
-  let convert s input off len =
-    to_s16le input off len s 0
-
-end
-
-external from_s16le : float array array -> int -> string -> int -> int -> unit
-         = "caml_float_pcm_from_s16le"
-
-let from_s16le_ni dbuf dofs buf ofs len =
-  for c = 0 to Array.length buf - 1 do
-    from_s16le [|dbuf.(c)|] dofs buf.(c) ofs len
-  done
 
 (* Sound processing *)
 

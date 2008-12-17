@@ -123,12 +123,11 @@ let decoder file sync fd =
             begin
               match meta with
                 | Some meta ->
-                    (* Initial meta is read by
-                     * the resolver.. *)
+                    (* Initial meta is read by the resolver.. *)
                     if !init_meta then
                       init_meta := false
                     else
-                      Generator.add_metadata abg (0,meta)
+                      Generator.add_metadata abg meta
                 | _ -> ()
             end;
             Generator.feed abg ~sample_freq buf
@@ -149,7 +148,7 @@ let decoder file sync fd =
     end ;
 
     let offset = AFrame.position buf in
-    AFrame.fill_frame abg buf;
+    Generator.fill abg buf;
     in_bytes := Unix.lseek fd 0 Unix.SEEK_CUR ;
     out_samples := !out_samples + AFrame.position buf - offset ;
     (* Compute an estimated number of remaining ticks. *)

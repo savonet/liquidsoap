@@ -225,18 +225,15 @@ object (self)
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
 
-
   (* Insert metadata *)
   method insert_metadata m =
     self#log#f 3 "New metadata chunk \"%s -- %s\""
                 (try Hashtbl.find m "artist" with _ -> "?")
                 (try Hashtbl.find m "title" with _ -> "?") ;
-    Generator.add_metadata abg (0,m);
-    if track_on_meta then
-      Generator.add_break abg 0;
+    Generator.add_metadata abg m ;
+    if track_on_meta then Generator.add_break abg ;
 
   (* Feed the buffer generator *)
-
   method put sample_freq data =
     if not relaying then failwith "relaying stopped" ;
     Mutex.lock lock ;
@@ -267,13 +264,13 @@ object (self)
     in
       try
        (* Starting decoding: adding a break here *)
-       Generator.add_break abg 0;
+       Generator.add_break abg ;
        dec sink
       with
         | e ->
             begin
               (* Feeding has stopped: adding a break here *)
-              Generator.add_break abg 0;
+              Generator.add_break abg ;
               self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e);
               if debug then raise e
             end
