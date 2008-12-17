@@ -80,7 +80,7 @@ let decoder file =
     (* TODO: better estimation using Vorbis.Decoder.samples! *)
 
     let offset = AFrame.position buf in
-      AFrame.fill_frame abg buf ;
+      Float_pcm.Generator.fill abg buf ;
       in_bytes := Unix.lseek fd 0 Unix.SEEK_CUR ;
       out_samples := !out_samples + AFrame.position buf - offset ;
       (* Compute an estimated number of remaining ticks. *)
