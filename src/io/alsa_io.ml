@@ -70,8 +70,10 @@ object (self)
 
         (
           try
-            handle "access" (Pcm.set_access dev params) Pcm.Access_rw_noninterleaved;
-            handle "format" (Pcm.set_format dev params) Pcm.Format_float
+            handle "access"
+              (Pcm.set_access dev params) Pcm.Access_rw_noninterleaved;
+            handle "format"
+              (Pcm.set_format dev params) Pcm.Format_float
           with
             | _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
@@ -96,7 +98,9 @@ object (self)
                   with
                     | Alsa.Invalid_argument ->
                         self#log#f 2 "Falling back on non-interleaved S16LE";
-                        handle "access" (Pcm.set_access dev params) Pcm.Access_rw_noninterleaved;
+                        handle "access"
+                          (Pcm.set_access dev params)
+                          Pcm.Access_rw_noninterleaved;
                         write <-
                         (fun pcm buf ofs len ->
                            let sbuf =
@@ -120,14 +124,16 @@ object (self)
                         )
                 );
         );
-        handle "channels" (Pcm.set_channels dev params) channels ;
-
-        handle "periods" (Pcm.set_periods dev params Alsa_out.periods#get) Dir_eq ;
+        handle "channels"
+          (Pcm.set_channels dev params) channels ;
+        handle "periods"
+          (Pcm.set_periods dev params Alsa_out.periods#get) Dir_eq ;
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
         let bufsize =
-          handle "buffer size" (Pcm.set_buffer_size_near dev params) samples_per_frame
+          handle "buffer size"
+            (Pcm.set_buffer_size_near dev params) samples_per_frame
         in
           alsa_rate <- rate;
           if rate <> samples_per_second then
@@ -144,7 +150,8 @@ object (self)
             Pcm.set_params dev params
           with
             | Alsa.Invalid_argument as e ->
-                self#log#f 1 "Setting alsa parameters failed (invalid argument)!";
+                self#log#f 1
+                  "Setting alsa parameters failed (invalid argument)!";
                 raise e
           );
           handle "non-blocking" (Pcm.set_nonblock dev) false ;
@@ -184,9 +191,9 @@ object (self)
       if alsa_rate = samples_per_second then
         buf
       else
-        Audio_converter.Samplerate.resample 
+        Audio_converter.Samplerate.resample
           samplerate_converter
-          (float alsa_rate /. float samples_per_second) 
+          (float alsa_rate /. float samples_per_second)
           buf 0 (Array.length buf)
     in
       try
@@ -194,7 +201,8 @@ object (self)
           while !r < Array.length buf.(0) do
             if !r <> 0 then
               self#log#f 4
-                "Partial write (%d instead of %d)! Selecting another buffer size or device can help."
+                "Partial write (%d instead of %d)! \
+                 Selecting another buffer size or device can help."
                 !r (Array.length buf.(0));
             r := !r + (write pcm buf !r (Array.length buf.(0) - !r))
           done
@@ -228,7 +236,8 @@ object (self)
           while !r < samples_per_frame do
             if !r <> 0 then
               self#log#f 4
-                   "Partial read (%d instead of %d)! Selecting another buffer size or device can help."
+                   "Partial read (%d instead of %d)! \
+                    Selecting another buffer size or device can help."
                 !r (Array.length buf.(0));
             r := !r + (read pcm buf !r (samples_per_frame - !r))
           done;
@@ -247,7 +256,10 @@ let () =
   Lang.add_operator "output.alsa"
     [
       "bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize output";
-      "device", Lang.string_t, Some (Lang.string "default"), Some "Alsa device to use";
+
+      "device", Lang.string_t, Some (Lang.string "default"),
+      Some "Alsa device to use";
+
       "", Lang.source_t, None, None
     ]
     ~category:Lang.Output
@@ -266,7 +278,9 @@ let () =
   Lang.add_operator "input.alsa"
     [
       "bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input.";
-      "device", Lang.string_t, Some (Lang.string "default"), Some "Alsa device to use."
+
+      "device", Lang.string_t, Some (Lang.string "default"),
+      Some "Alsa device to use."
     ]
     ~category:Lang.Input
     ~descr:"Stream from an ALSA input device."
