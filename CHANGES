@@ -40,7 +40,9 @@ New:
    * Added optional support for mplayer, enabled with enable_mplayer
  - Implemented support for authentication function in harbor for 
    ICY (shoutcast) clients.
- - Added optional support for samplerate.
+ - Added optional support for the samplerate library.
+Changes:
+ - Warning: interactive_float is now interactive.float.
 
 0.3.8.1 (11-08-2008)
  - Fixed metadata propagation during default transition

@@ -81,10 +81,19 @@ object (self)
             c
 
   method after_output =
+    (* Advance the memo frame. *)
     self#advance ;
+    (* Propagate to all sub-sources, i.e. our children and the transitions
+     * wrapping them:
+     *  - current transition is [selected],
+     *  - old one in [to_finish]. *)
+    List.iter (fun s -> s.source#after_output) cases ;
+    begin match selected with
+      | None -> ()
+      | Some (_,s) -> s#after_output
+    end ;
     List.iter (fun s -> s#after_output) to_finish ;
     to_finish <- [] ;
-    List.iter (fun s -> s.source#after_output) cases ;
     (* Selection may have been triggered by a call to #is_ready, without
      * any call to #get_ready (in particular if #select returned None).
      * It is cleared here in order to get a chance to be re-computed later. *)
