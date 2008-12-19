@@ -272,6 +272,27 @@ let dynliq_option = [[["-m";"--load-module"],
 __BLAH__
 fi
 
+OCAML_VERSION="`$OCAMLC -version`"
+OCAML_MAJOR="`echo $OCAML_VERSION | cut -d'.' -f 1`"
+AC_SUBST(OCAML_MAJOR)
+OCAML_MINOR="`echo $OCAML_VERSION | cut -d'.' -f 2`"
+AC_SUBST(OCAML_MINOR)
+OCAML_REVISION="`echo $OCAML_VERSION | cut -d'.' -f 3`"
+AC_SUBST(OCAML_REVISION)
+AC_MSG_CHECKING([for ocamlc version])
+AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
+
+# Variables for support of TCP_NODELAY:
+if test $OCAML_MAJOR >= 3 && $OCAML_MINOR >= 11; then
+  NEED_NODELAY=yes
+  TCP_NODELAY_VALUE='external set_tcp_nodelay : Unix.file_descr -> bool -> unit = "stub_set_tcp_nodelay"'
+else
+  NEED_NODELAY=no
+  TCP_NODELAY_VALUE='let set_tcp_nodelay fd v = Unix.setsockopt fd Unix.TCP_NODELAY v'
+fi
+AC_SUBST(NEED_TCP_NODELAY)
+AC_SUBST(TCP_NODELAY_VALUE)
+
 AC_SUBST(BYTE)
 
 AC_ARG_ENABLE([graphics],
@@ -1704,6 +1725,7 @@ AC_CONFIG_FILES([scripts/liquidsoap.initd],[chmod a-w scripts/liquidsoap.initd])
 AC_CONFIG_FILES([scripts/liquidsoap.gentoo.initd],
                 [chmod a-w scripts/liquidsoap.gentoo.initd])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
+AC_CONFIG_FILES([src/tools/liq_sockets.ml],[chmod a-w src/tools/liq_sockets.ml])
 AC_OUTPUT
 $MAKE finish-configure
 
@@ -1712,6 +1734,7 @@ cat <<EOMSG
  ----------------------------------------------------------------- Compilation
 
  Compiler       : $OCAMLC
+ Version        : $OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION
  OCAML_CFLAGS   : $ocamlcflags
  OCAML_LFLAGS   : $ocamllflags
  CFLAGS         : $CFLAGS

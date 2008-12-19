@@ -20,6 +20,6 @@
 
  *****************************************************************************)
 
-external set_tcp_nodelay : Unix.file_descr -> bool -> unit = "stub_set_tcp_nodelay"
+@TCP_NODELAY_VALUE@
 
 

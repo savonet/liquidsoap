@@ -125,7 +125,8 @@ io = $(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml tools/ringbuffer.ml \
-	tools/socket_stubs.c tools/liq_sockets.ml \
+	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
+	tools/liq_sockets.ml \
 	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
 	tools/tutils.ml tools/sutils.ml tools/http.ml
 
