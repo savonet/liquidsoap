@@ -1,48 +1,62 @@
 0.9.0 ()
 Bugs fixed:
- - Fixed byte swaping function
- - Fixed unix server socket failure (#160)
+ - Fixed byte swapping function.
+ - Fixed unix server socket failure (#160).
  - Fixed mp3 audio glitches when decoding 
-   files with picture id3v2 tags using ocaml-mad (#162)
- - Fixed liquidsoap crash on weird telnet input (#164)
- - Fixed say_metadata and queues not considering initial 
-   queue on wake-up. (#196)
-New:
- - Added support for AU, AIFF and NSV mp3 audio
-   using ocaml-natty. However, this support is still 
-   not mature enough for production.
- - Added speex support. 
- - Added "lag" operator, to create a stream delayed by
-   a constant time. Should be better used just before 
-   an output.
- - Added video support:
-  (TODO: add more..)
-  * Support for ogg theora file input
-  * Support for off theora file and icecast output
-  * Added several operators:
-     o blabla
-     o blabla
-  * Added optional support for ocaml-gavl as video
-    converter.
-  * more ?
- - Added support for external processes as audio encoder:
-   * Added output.icecast.lame to output to icecast using 
-     the lame binary.
-   * Added output.icecast.flac to output to icecast using
-     the flac binary.
-   * Full generic support needs some changes in libshout 
-     and will be available as soon as these changes are applied.
- - Added support for external processes as audio file decoder:
-   * Added support for flac audio files when the flac binary 
-     is found in the path
-   * Added support for m4a files when the faad binary is found
-     in the path
-   * Added optional support for mplayer, enabled with enable_mplayer
- - Implemented support for authentication function in harbor for 
-   ICY (shoutcast) clients.
- - Added optional support for the samplerate library.
+   files with picture id3v2 tags using ocaml-mad (#162).
+ - Fixed liquidsoap crash on weird telnet input (#164).
+ - Fixed request.queue() not considering initial queue on wake-up (#196).
+ - Fixed source leak in append().
+ - Fixed after_output propagation in the transitions of switches (#208).
+ - Fixed compilation for ocaml 3.11 (#216).
+ - Fixed (again) Vorbis mono output (#211).
+ - Avoid crashing on broken symlinks when parsing directories (#154).
+ - Use random temporary file in liGuidsoap.
+ - Fix bugs in the life cycle (sleep/wake_up) of queued request sources,
+   which made say_metadata unfunctional.
 Changes:
- - Warning: interactive_float is now interactive.float.
+ - Warning: interactive_float() is now interactive.float().
+New:
+ - Rewrote ogg decoding, for files and streams.
+ - Support for ogg skeletons, currently only used for theora.
+ - Cleanup icecast class hierarchy and restart mechanism, especially
+   with respect to the encoder.
+ - Support for breaks and metadata in generators.
+   As a result, input.http() and input.harbor() now fully support them.
+   See new_track_on_metadata parameters there.
+ - Switch operators (fallback,random and switch) can now replay the metadata
+   of a source that has been left in the middle of a track.
+ - New force_mime parameter for input.http().
+ - New insert_missing parameter for append().
+ - Multi-line strings in liq scripts, with a caml-like syntax.
+ - Added speex support for files and HTTP streams.
+ - Added EXPERIMENTAL support for AU, AIFF and NSV mp3 audio files
+   using ocaml-natty.
+ - Support for external processes as audio encoder:
+   * Added output.icecast.lame to output to icecast using the lame binary.
+   * Added output.icecast.flac to output to icecast using the flac binary.
+   * Full generic support awaits some changes in libshout.
+ - Support for external processes as audio file decoder:
+   * Added support for flac audio files using the flac binary.
+   * Added support for m4a files using the faad binary.
+   * Added optional support for mplayer, enabled with enable_mplayer().
+ - Support for external metadata decoders.
+ - Support for generic authentication function in harbor,
+   also available for ICY (shoutcast) clients.
+ - Added optional support for the samplerate library,
+   and dynamic configuration of resampling routine.
+ - Added lag() operator, which delays a stream by a constant time.
+ - Added EXPERIMENTAL video support:
+    * Support for ogg/theora file input.
+    * Support for ogg/theora file and icecast output
+    * Support for SDL output.
+    * Optional support for ocaml-gavl as video converter.
+    * Support for video in _some_ existing operators, including switches,
+      add(), metadata/track manipulations.
+    * Added operators: video.fade.*, video.fill, video.greyscale, video.image,
+      video.invert, video.lomo, video.noise, video.opacity, video.opacity.blur,
+      video.rotate, video.scale, video.sepia, video.text, video.tile,
+      video.transparent, video.volume.
 
 0.3.8.1 (11-08-2008)
  - Fixed metadata propagation during default transition
