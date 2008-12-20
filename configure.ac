@@ -284,11 +284,11 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 # Variables for support of TCP_NODELAY:
 if test $OCAML_MAJOR >= 3 && $OCAML_MINOR >= 11; then
-  NEED_NODELAY=yes
-  TCP_NODELAY_VALUE='external set_tcp_nodelay : Unix.file_descr -> bool -> unit = "stub_set_tcp_nodelay"'
-else
-  NEED_NODELAY=no
+  NEED_TCP_NODELAY=
   TCP_NODELAY_VALUE='let set_tcp_nodelay fd v = Unix.setsockopt fd Unix.TCP_NODELAY v'
+else
+  NEED_TCP_NODELAY=yes
+  TCP_NODELAY_VALUE='external set_tcp_nodelay : Unix.file_descr -> bool -> unit = "stub_set_tcp_nodelay"'
 fi
 AC_SUBST(NEED_TCP_NODELAY)
 AC_SUBST(TCP_NODELAY_VALUE)
