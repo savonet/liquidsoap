@@ -283,7 +283,7 @@ AC_MSG_CHECKING([for ocamlc version])
 AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 # Variables for support of TCP_NODELAY:
-if test $OCAML_MAJOR >= 3 && $OCAML_MINOR >= 11; then
+if test $OCAML_MAJOR -ge 3 -a $OCAML_MINOR -ge 11 ; then
   NEED_TCP_NODELAY=
   TCP_NODELAY_VALUE='let set_tcp_nodelay fd v = Unix.setsockopt fd Unix.TCP_NODELAY v'
 else
