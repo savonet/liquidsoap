@@ -67,7 +67,6 @@ object (self)
             begin
               is_streaming <- true;
               AFrame.add_break buf cur_pos;
-              Generator.remove abg 0;
               0
             end
           else
