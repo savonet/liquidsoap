@@ -112,31 +112,6 @@ let random_state = Random.State.make_self_init ()
 let get_serial () = 
   Random.State.nativeint random_state (Nativeint.of_int 0x3FFFFFFF)
 
-let init_skeleton content = 
-  let serial = get_serial () in
-  let os = Ogg.Stream.create ~serial () in
-  Ogg.Stream.put_packet os (Ogg.Skeleton.fishead ());
-  (* Output first page at beginning of content. *)
-  let (h,v) = Ogg.Stream.get_page os in
-  Buffer.add_string content (h ^ v);
-  os
-
-let create ~skeleton id =
-  let content = Buffer.create 1024 in
-  let skeleton = 
-    if skeleton then
-      Some (init_skeleton content) 
-    else
-      None
-  in
-  {
-    id       = id;
-    skeleton = skeleton;
-    encoded  = content;
-    tracks   = Hashtbl.create 10;
-    state    = Bos;
-  }
-
 let state encoder = 
   encoder.state
 
@@ -159,6 +134,32 @@ let add_page encoder (h,v) =
 let add_string encoder s = 
   Buffer.add_string encoder.encoded s
 
+let init_skeleton content =
+  let serial = get_serial () in
+  let os = Ogg.Stream.create ~serial () in
+  Ogg.Stream.put_packet os (Ogg.Skeleton.fishead ());
+  (* Output first page at beginning of content. *)
+  let (h,v) = Ogg.Stream.get_page os in
+  Buffer.add_string content h;
+  Buffer.add_string content v;
+  os
+
+let create ~skeleton id =
+  let content = Buffer.create 1024 in
+  let skeleton =
+    if skeleton then
+      Some (init_skeleton content)
+    else
+      None
+  in
+  {
+    id       = id;
+    skeleton = skeleton;
+    encoded  = content;
+    tracks   = Hashtbl.create 10;
+    state    = Bos;
+  }
+
 let register_track encoder track_encoder =
   if encoder.state = Streaming then
    begin
@@ -176,8 +177,8 @@ let register_track encoder track_encoder =
   let serial = get_serial () in
   let os = Ogg.Stream.create ~serial () in
   (** Encoder headers *) 
-  let (h,v) = track_encoder.header_encoder os in
-  Buffer.add_string encoder.encoded (h^v);
+  let p = track_encoder.header_encoder os in
+  add_page encoder p;
   let track = 
     match track_encoder.data_encoder with
       | Audio_encoder encoder -> 
@@ -220,7 +221,7 @@ let streams_start encoder =
               | None -> ())
           encoder.tracks;
           let data = Ogg.Stream.flush os in
-          Buffer.add_string encoder.encoded data;
+          add_string encoder data;
       | None -> ()
   end;
   Hashtbl.iter
@@ -234,9 +235,8 @@ let streams_start encoder =
     match encoder.skeleton with
       | Some os -> 
          Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-         let (h,v) = Ogg.Stream.flush_page os in
-         Buffer.add_string encoder.encoded h;
-         Buffer.add_string encoder.encoded v
+         let p = Ogg.Stream.flush_page os in
+         add_page encoder p;
       | None -> ()
   end;
   encoder.state <- Streaming
@@ -253,8 +253,8 @@ let encode encoder id data =
    end;
  let rec fill src dst = 
    try
-     let (h,v) = Ogg.Stream.get_page src in
-     Buffer.add_string dst (h^v);
+     let p = Ogg.Stream.get_page src in
+     add_page dst p;
      fill src dst
    with
      | Ogg.Not_enough_data -> ()
@@ -265,7 +265,7 @@ let encode encoder id data =
         match Hashtbl.find encoder.tracks id with
           | Audio_track t ->
              t.encoder encoder x t.os;
-             fill t.os encoder.encoded
+             fill t.os encoder
           | _ -> raise Invalid_data
        end
     | Video_data x -> 
@@ -273,7 +273,7 @@ let encode encoder id data =
         match Hashtbl.find encoder.tracks id with
           | Video_track t ->
              t.encoder encoder x t.os;
-             fill t.os encoder.encoded
+             fill t.os encoder
           | _ -> raise Invalid_data
        end
 
@@ -282,8 +282,15 @@ let flush encoder =
   let flush_track _ x = 
     let os = os_of_ogg_track x in
     let b = Ogg.Stream.flush os in
-    Buffer.add_string encoder.encoded b
+    add_string encoder b
   in
+  begin
+   match encoder.skeleton with
+     | Some os -> 
+         let b = Ogg.Stream.flush os in
+         add_string encoder b
+     | None -> ()
+  end;
   Hashtbl.iter flush_track encoder.tracks;
   Hashtbl.clear encoder.tracks;
   let b = Buffer.contents encoder.encoded in
@@ -303,21 +310,33 @@ let end_of_track encoder id =
     match track with
         | Video_track x -> 
             x.stream_end x.os;
-            Buffer.add_string encoder.encoded (Ogg.Stream.flush x.os)
+            add_string encoder (Ogg.Stream.flush x.os)
         | Audio_track x -> 
             x.stream_end x.os;
-            Buffer.add_string encoder.encoded (Ogg.Stream.flush x.os)
+            add_string encoder (Ogg.Stream.flush x.os)
   end;
-  Hashtbl.remove encoder.tracks id;
-  if Hashtbl.length encoder.tracks = 0 then
+  Hashtbl.remove encoder.tracks id
+
+(** Set end of stream on the encoder. *)
+let eos encoder =
+  if Hashtbl.length encoder.tracks <> 0 then
+    raise Invalid_usage ;
+  log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
    begin
-    log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-    encoder.state <- Eos
-   end
+    match encoder.skeleton with
+      | Some os ->
+          if not (Ogg.Stream.eos os) then
+            Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
+          let b = Ogg.Stream.flush os in
+          add_string encoder b
+      | None -> ()
+   end;
+  encoder.state <- Eos
 
 (** End all tracks in the stream. *)
-let end_of_stream encoder = 
+let end_of_stream encoder =
   Hashtbl.iter 
     (fun x -> fun _ -> end_of_track encoder x)
-    encoder.tracks
+    encoder.tracks;
+  eos encoder
 

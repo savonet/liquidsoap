@@ -108,8 +108,9 @@ type stream_encoder =
    * - (...)
    * - [end_of_track encoder track_serial] : ends a track. (track end do not need to be simultaneous)
    * - (encode data for other tracks)
-   * - [end_of_track encoder track_serial] (until state is set to Eos)
-   * - [end_of_stream encoder]: ends all tracks at once (if not ended one by one previously)
+   * - [end_of_track encoder track_serial] (until all have been ended)
+   * - [end_of_stream encoder]: ends all tracks at once (if not ended one by one previously) OR:
+   * - [eos encoder]: set state to eos (needs that all tracks have been ended before)
    * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
    * - And so on.. 
    *
@@ -149,9 +150,12 @@ val streams_start : t -> unit
   * if not called before. Fails if state is not [Streaming] *)
 val encode : t -> nativeint -> track_data -> unit
 
-(** Finish a track, set state to [Eos] if all tracks have ended.
-  * Also flushes track data. *)
+(** Finish a track. Also flushes track data. *)
 val end_of_track : t -> nativeint -> unit
+
+(** Set state to [Eos]. Fails if some track have not been
+  * ended with [end_of_track]. *)
+val eos : t -> unit
 
 (** End all tracks in the stream, set state to [Eos]. *)
 val end_of_stream : t -> unit
