@@ -76,12 +76,24 @@ class to_shout p =
                      (v, "valid values are 'http' (icecast) "^
                       "and 'icy' (shoutcast)"))
   in
+  let channels =
+    if not stereo then 1 else Fmt.channels ()
+  in
+  let icecast_info =
+    {
+     Icecast2.
+      quality    = None;
+      bitrate    = Some bitrate;
+      channels   = Some channels;
+      samplerate = Some samplerate
+    }
+  in
 object (self)
   inherit
     [Lame.encoder] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit
     Icecast2.output ~format:Shout.Format_mp3 ~protocol
-      ~bitrate:(string_of_int bitrate) ~mount ~name ~source p as icecast
+      ~icecast_info ~mount ~name ~source p as icecast
   inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder m =

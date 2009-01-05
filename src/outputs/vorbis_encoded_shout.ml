@@ -59,8 +59,19 @@ let () = (* Average BitRate *)
                           ~bitrate:(bitrate, min_bitrate, max_bitrate)
                           freq stereo]
        in
-       let bitrate = Printf.sprintf "%i" bitrate in
-      ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
+       let channels =
+         if not stereo then 1 else Fmt.channels () 
+       in
+       let icecast_info =
+         {
+          Icecast2.
+            quality    = None;
+            bitrate    = Some (bitrate / 1000);
+            channels   = Some channels;
+            samplerate = Some freq
+         }
+       in
+      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
 
 let () = (* Constant BitRate *)
   Lang.add_operator "output.icecast.vorbis.cbr"
@@ -83,8 +94,19 @@ let () = (* Constant BitRate *)
                           ~bitrate:(bitrate, bitrate, bitrate)
                           freq stereo]
        in
-       let bitrate = Printf.sprintf "%i" bitrate in
-       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
+       let channels =
+         if not stereo then 1 else Fmt.channels ()
+       in
+       let icecast_info =
+         {
+          Icecast2.
+            quality    = None;
+            bitrate    = Some (bitrate / 1000);
+            channels   = Some channels;
+            samplerate = Some freq
+         }
+       in
+      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
 
 let () = (* Variable BitRate *)
   Lang.add_operator "output.icecast.vorbis"
@@ -107,7 +129,18 @@ let () = (* Variable BitRate *)
                           ~bitrate:(0, 0, 0)
                           freq stereo]
        in
-       let bitrate = Printf.sprintf "Quality %.1f" quality in
-       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
+       let channels =
+         if not stereo then 1 else Fmt.channels ()
+       in
+       let icecast_info =
+         {
+          Icecast2.
+            bitrate    = None;
+            quality    = Some (string_of_float quality);
+            channels   = Some channels;
+            samplerate = Some freq
+         }
+       in
+      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
 
 

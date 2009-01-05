@@ -31,7 +31,8 @@ let proto =
     Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
 
-class to_shout ~skeleton ~streams ~bitrate p =
+class to_shout ~skeleton ~streams 
+               ~icecast_info p =
 
   let s v = Lang.to_string (List.assoc v p) in
 
@@ -59,7 +60,8 @@ object (self)
   inherit
     [Ogg_encoder.t] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit Icecast2.output 
-    ~bitrate ~mount ~name ~source p as icecast
+    ~mount ~name ~icecast_info 
+    ~source p as icecast
   inherit Ogg_output.base ~skeleton streams as ogg
 
   method output_start =

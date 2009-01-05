@@ -20,6 +20,14 @@ let () =
          Theora_encoded.create_streams 
                 ~quality ~vorbis_quality 
        in
-       let bitrate = "Unknown" in
-       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
+       let icecast_info =
+         {
+          Icecast2.
+            bitrate    = None;
+            quality    = Some (string_of_int quality);
+            channels   = Some (Fmt.channels ());
+            samplerate = Some (Fmt.samples_per_second ())
+         }
+       in
+      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
 

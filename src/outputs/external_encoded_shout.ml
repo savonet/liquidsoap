@@ -29,7 +29,14 @@ let proto =
   (Icecast2.proto ~no_mount ~no_name) @ External_encoded.proto @
   [ "start", Lang.bool_t, Some (Lang.bool true),
     Some "Start output threads on operator initialization." ;
-    "bitrate", Lang.int_t, Some (Lang.int 128), None;
+    "bitrate", Lang.int_t, Some (Lang.int (-1)), 
+    Some "Bitrate information for icecast. Not used if negative.";
+    "quality", Lang.float_t, Some (Lang.float (-1.)),
+    Some "Quality information for icecast. Not used if negative.";
+    "samplerate", Lang.int_t, Some (Lang.int (-1)),
+    Some "Samplerate information for icecast. Not used if negative.";
+    "channels", Lang.int_t, Some (Lang.int (-1)),
+    Some "Channels information for icecast. Not used if negative.";
     "icy_metadata", Lang.bool_t, Some (Lang.bool true),
     Some "Send new metadata using the ICY protocol.";
     "shout_raw", Lang.bool_t, Some (Lang.bool false), 
@@ -48,7 +55,22 @@ class to_shout p =
   let raw = e Lang.to_bool "shout_raw" in
   let icy = e Lang.to_bool "icy_metadata" in
   let process = List.assoc "process" p in
-  let bitrate = e Lang.to_int "bitrate" in
+  let f x =
+    if x > 0 then
+      Some x
+    else
+      None
+  in
+  let bitrate = f (e Lang.to_int "bitrate") in
+  let quality = 
+   let quality = e Lang.to_float "quality" in
+     if quality > 0. then
+       Some (string_of_float quality)
+     else
+       None
+  in
+  let samplerate = f (e Lang.to_int "samplerate") in
+  let channels   = f (e Lang.to_int "channels") in
   let autostart = e Lang.to_bool "start" in
   let source = List.assoc "" p in
   let mount = s "mount" in
@@ -86,12 +108,21 @@ class to_shout p =
                      (v, "valid values are 'http' (icecast) "^
                       "and 'icy' (shoutcast)"))
   in
+  let icecast_info =
+    {
+     Icecast2.
+      quality    = quality;
+      bitrate    = bitrate;
+      channels   = channels;
+      samplerate = samplerate
+    }
+  in
 object (self)
   inherit
     [External_encoded.external_encoder] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit
     Icecast2.output ~format ~protocol
-      ~bitrate:(string_of_int bitrate) ~raw ~mount ~name ~source p as icecast
+      ~icecast_info ~raw ~mount ~name ~source p as icecast
   inherit External_encoded.base ~restart_encoder ~restart_on_crash ~header process as base
 
   method reset_encoder m =

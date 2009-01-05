@@ -156,6 +156,7 @@ def output.shoutcast.mp3 = output.icecast.mp3(mount = "/", protocol = "icy") end
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
 # @param ~sync Let shout do the synchronization.
+# @param ~swap Swap audio samples (depends on local machine's endianess).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
 # @param s The source to output
@@ -168,12 +169,13 @@ def output.icecast.lame(
   ~description="OCaml Radio!",~public=true,
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
-  ~lame="lame",~bitrate=128,
+  ~lame="lame",~bitrate=128,~swap=false,
   ~restart_on_crash=false,~restart_on_new_track=false,
   s)
   samplerate = get(default=44100,"frame.samplerate")
   samplerate = float_of_int(samplerate) / 1000.
   channels = get(default=2,"frame.channels")
+  swap = if swap then "-x" else "" end
   mode = 
     if channels == 2 then
       "j" # Encoding in joint stereo..
@@ -183,7 +185,7 @@ def output.icecast.lame(
   # Metadata update is set by ICY with icecast
   def lame_p(m)
     "#{lame} -b #{bitrate} -r --bitwidth 16 -s #{samplerate} \
-       --signed -m #{mode} --nores -x -t - -"
+       --signed -m #{mode} --nores #{swap} -t - -"
   end
   output.icecast.external(id=id,
     process=lame_p,bitrate=bitrate,start=start,

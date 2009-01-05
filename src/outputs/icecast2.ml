@@ -25,6 +25,14 @@
 open Dtools
 open Shout
 
+type icecast_info = 
+  {
+    quality     : string option;
+    bitrate     : int option;
+    samplerate  : int option;
+    channels    : int option
+  }
+
 let no_multicast = "no_multicast"
 
 let () = Shout.init ()
@@ -66,7 +74,8 @@ let proto ~no_mount ~no_name =
   * value for these depends on the format of the stream (ogg/mp3). *)
 class virtual output
   ?(format=Shout.Format_vorbis) ?(protocol=Shout.Protocol_http) 
-  ?bitrate ~name ~mount ~source ?(raw=false) p =
+  ~name ~mount ~source ~icecast_info
+  ?(raw=false) p =
 
     let e f v = f (List.assoc v p) in
     let s v = e Lang.to_string v in
@@ -177,10 +186,15 @@ object (self)
 
       set_protocol conn protocol ;
       if protocol <> Shout.Protocol_icy then set_mount conn mount ;
-      begin match bitrate with
-        | Some br -> set_audio_info conn "bitrate" br
-        | None -> ()
-      end ;
+      let f x y z = 
+        match x with
+          | Some q -> set_audio_info conn y (z q)
+          | None -> ()
+      in
+      f icecast_info.bitrate "bitrate" string_of_int;
+      f icecast_info.quality "quality" (fun x -> x);
+      f icecast_info.samplerate "samplerate" string_of_int;
+      f icecast_info.channels "channels" string_of_int;
 
       if multicast_ip <> no_multicast then
         set_multicast_ip conn multicast_ip ;

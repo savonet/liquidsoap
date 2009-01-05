@@ -62,8 +62,31 @@ let () =
                         ~bitrate ~vbr ~fpp
                         ~complexity ~abr ~quality ()]
        in
-       let bitrate = "Unknown" in
-       ((new Ogg_output_shout.to_shout ~skeleton ~bitrate ~streams p):>Source.source))
+       let channels =
+         if not stereo then 1 else Fmt.channels ()
+       in
+       let bitrate = 
+         if bitrate > 0 then
+           Some (bitrate / 1000)
+         else
+           None
+       in
+       let quality = 
+         if quality > 0 then
+           Some (string_of_int quality)
+         else
+           None
+       in
+       let icecast_info =
+         {
+          Icecast2.
+            bitrate    = bitrate;
+            quality    = quality;
+            channels   = Some channels;
+            samplerate = Some freq
+         }
+       in
+      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
 
 
 
