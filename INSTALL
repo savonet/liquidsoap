@@ -1,6 +1,6 @@
 
- Liquidsoap 0.3.8.1
- ------------------
+ Liquidsoap 0.9.0
+ ----------------
 
  Dependencies :
    mandatory:     ocaml-dtools>=0.1.3
