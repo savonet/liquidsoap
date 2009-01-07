@@ -29,6 +29,8 @@ val create_buffer : int -> int -> float array array
 val to_s16le    : float array array -> int -> int -> string       -> int -> int
 val to_s16le_ni : float array array -> int -> int -> string array -> int -> int
 
+(** [from_s16_le buf ofs sbuf ofs len] converts and copies [len] samples 
+  * from the S16LE pcm buffer [sbuf] to [buf]. *)
 val from_s16le :
       float array array -> int -> string       -> int -> int -> unit
 val from_s16le_ni :

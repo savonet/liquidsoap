@@ -38,7 +38,9 @@ let conf_size =
     ~comments:[
       "Tweaking this is tricky but can be useful, since the latency is" ;
       "proportional to the frame size. It can also help to get ALSA correctly" ;
-      "synchronized with liquidsoap when used in non-buffered mode."
+      "synchronized with liquidsoap when used in non-buffered mode." ;
+      "With video enabled, frame duration should be a multiple of ";
+      "audio and video frame duration, in order to maintain synchronization."
     ]
 let conf_channels =
   Conf.int ~p:(conf#plug "channels") ~d:2

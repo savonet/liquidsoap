@@ -156,7 +156,7 @@ def output.shoutcast.mp3 = output.icecast.mp3(mount = "/", protocol = "icy") end
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
 # @param ~sync Let shout do the synchronization.
-# @param ~swap Swap audio samples (depends on local machine's endianess).
+# @param ~swap Swap audio samples. Depends on local machine's endianess and lame's version. Test this parameter if you experience garbaged mp3 audio data. On intel 32 and 64 architectures, the parameter should be "true" for lame prior 3.98.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
 # @param s The source to output
