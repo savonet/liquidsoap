@@ -30,19 +30,18 @@ module Generated = Generated.From_Float_pcm_Generator
 class lag (source:source) delay =
   let past_len = Fmt.samples_of_seconds delay in
 object (self)
-  inherit Source.source
+  inherit source
   inherit Generated.source
             (Generator.create ())
             ~empty_on_abort:false ~bufferize:delay as generated
 
-  val mutable is_streaming = false
-  val mutable delta = 0
-
   val past = Frame.make ()
+
+  val mutable is_streaming = false
 
   method stype = Source.Infallible 
 
-  method remaining =  
+  method remaining = 
     if is_streaming then
       generated#remaining
     else
@@ -57,53 +56,44 @@ object (self)
     source#abort_track
 
   method get_frame buf =
-    let cur_pos = AFrame.position buf in
-    let taken = 
-      if Generator.length abg >= past_len then
-        begin
-          if not is_streaming then
-          (* Switching back to streaming:
-           * Adding new track *)
-            begin
-              is_streaming <- true;
-              AFrame.add_break buf cur_pos;
-              0
-            end
-          else
-            begin
-              Generator.fill abg buf ;
-              AFrame.position buf - cur_pos
-            end
-        end
-      else
-        begin
-          let bsize = AFrame.size buf in
-          let remaining = bsize - cur_pos in
-          AFrame.blankify buf cur_pos remaining;
-          AFrame.add_break buf bsize;
-          remaining
-       end
-    in
-    delta <- delta - taken;
-    while delta < 0 do
-      (* past should always be empty here.. *)
-      AFrame.clear past;
+    (* past should always be empty here.. *)
+    AFrame.advance past;
+    if Generator.length abg < past_len then
+     begin 
       (* Get new data *)
       if source#is_ready then
-        begin
-          source#get past;
-          Generator.feed_from_frame abg past;
-          delta <- delta + (AFrame.position past)
-        end
+       begin
+        source#get past;
+        Generator.feed_from_frame abg past;
+       end
       else
-        begin
-          let len = min (AFrame.size past) (-delta) in
-          AFrame.blankify past 0 len;
-          AFrame.add_break past len;
-          Generator.feed_from_frame abg past;
-          delta <- delta + len
-        end
-    done
+       begin
+        let len = AFrame.size past in
+        AFrame.blankify past 0 len;
+        AFrame.add_break past len;
+        Generator.feed_from_frame abg past;
+       end
+     end
+    else
+     if not is_streaming then
+      begin
+       self#log#f 3 "Switching to buffered data.";
+       is_streaming <- true;
+      end;
+    if is_streaming && Generator.length abg > 0 then
+      Generator.fill abg buf
+    else
+     begin
+      if is_streaming then
+       begin
+        self#log#f 3 "Buffer empty: switching to blank.";
+        is_streaming <- false;
+       end;
+      let pos = AFrame.position buf in
+      let len = AFrame.size buf in
+      AFrame.blankify buf pos (len-pos);
+      AFrame.add_break buf len
+     end
 end
 
 let () =
