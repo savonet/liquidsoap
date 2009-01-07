@@ -64,6 +64,16 @@ end
 
 h4. output.icecast.lame
 
+When preparing this wrapper, we noticed an inconsistency when using the "-x" parameter in lame, which forces 
+audio samples swaping. Depending on the endianess of your architecture, this parameter should or should not be set.
+
+On intel architectures, when using lame 3.97, the parameter "-x" should be present, while 
+when using 3.98, it should not be. The parameter is added when the @swap@ parameter of the wrapper 
+is equal to @true@.
+
+If you experience issues with garbaged audio data coming out when encoding with lame, you should 
+try to modify this parameter.
+
 %%(output-icecast-lame.liq)
 # Output to icecast using the lame command line encoder.
 # @category Source / Output
@@ -77,6 +87,7 @@ h4. output.icecast.lame
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
 # @param ~sync Let shout do the synchronization.
+# @param ~swap Swap audio samples. Depends on local machine's endianess and lame's version. Test this parameter if you experience garbaged mp3 audio data. On intel 32 and 64 architectures, the parameter should be "true" for lame prior 3.98.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
 # @param s The source to output
@@ -89,13 +100,13 @@ def output.icecast.lame(
   ~description="OCaml Radio!",~public=true,
   ~sync=false,~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
-  ~lame="lame",~bitrate=128,
-  ~restart_on_crash=false,
-  ~restart_on_new_track=false,
+  ~lame="lame",~bitrate=128,~swap=false,
+  ~restart_on_crash=false,~restart_on_new_track=false,
   s)
   samplerate = get(default=44100,"frame.samplerate")
   samplerate = float_of_int(samplerate) / 1000.
   channels = get(default=2,"frame.channels")
+  swap = if swap then "-x" else "" end
   mode = 
     if channels == 2 then
       "j" # Encoding in joint stereo..
@@ -104,9 +115,8 @@ def output.icecast.lame(
     end
   # Metadata update is set by ICY with icecast
   def lame_p(m)
-    "#{lame} -b #{bitrate} -r --bitwidth 16 \
-       -s #{samplerate} --signed -m #{mode} \
-       --nores -x -t - -"
+    "#{lame} -b #{bitrate} -r --bitwidth 16 -s #{samplerate} \
+       --signed -m #{mode} --nores #{swap} -t - -"
   end
   output.icecast.external(id=id,
     process=lame_p,bitrate=bitrate,start=start,
@@ -118,6 +128,15 @@ def output.icecast.lame(
     header=false,restart_on_crash=restart_on_crash,
     restart_encoder=restart_on_new_track,
     s)
+end
+%%
+
+A wrapper for shoutcast is also defined:
+%%(output-shoutcast-lame.liq)
+# Output to shoutcast using the lame encoder.
+# @category Source / Output
+def output.shoutcast.lame = 
+  output.icecast.lame(id = "output.shoutcast.lame", mount = "/", protocol = "icy") 
 end
 %%
 
