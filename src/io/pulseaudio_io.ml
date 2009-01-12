@@ -62,7 +62,8 @@ object (self)
       stream <- Some (Pulseaudio.Simple.create ~client_name:"liquidsoap" ~stream_name:"liq stream" ~dir:Dir_playback ~sample:ss ());
 
   method output_reset = ()
-
+  method is_active = true
+ 
   method output =
     while Frame.is_partial memo do
       source#get memo
@@ -97,6 +98,7 @@ object (self)
       stream <- Some (Pulseaudio.Simple.create ~client_name:"liquidsoap" ~stream_name:"liq stream" ~dir:Dir_record ~sample:ss ());
 
   method output_reset = ()
+  method is_active = true
 
   method get_frame frame =
     assert (0 = AFrame.position frame) ;

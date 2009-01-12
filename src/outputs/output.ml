@@ -49,6 +49,8 @@ object (self)
   val mutable start_output = autostart  (* Ask for startup *)
   val mutable stop_output = false       (* Ask for termination *)
 
+  method is_active = does_output
+
   (* Operator startup *)
 
   val mutable ns = []

@@ -144,6 +144,7 @@ object (self)
 
   method output_reset = ()
 
+  method is_active = true
 end
 
 let () =

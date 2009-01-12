@@ -277,6 +277,9 @@ object (self)
   (** Do whatever needed when the latency gets too big and is reset. *)
   method virtual output_reset : unit
 
+  (** Is the source active ? *)
+  method virtual is_active : bool
+
   (** Special init phase for outputs. This method is called by Root after the
     * standard get_ready propagation, after the Root clock is started.
     * It allows enhancements of the initial latency. *)

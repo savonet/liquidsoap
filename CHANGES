@@ -15,6 +15,7 @@ Bugs fixed:
  - Fix bugs in the life cycle (sleep/wake_up) of queued request sources,
    which made say_metadata unfunctional.
  - Fixed audio information sent to icecast. (#226)
+ - Fixed global reset starting inactive sources. (#227)
 Changes:
  - Warning: interactive_float() is now interactive.float().
 New:

@@ -38,6 +38,7 @@ object
 
   val mutable start_output : bool
   val mutable stop_output : bool
+  method is_active : bool
 
   method add_metadata : Request.metadata -> unit
   method metadata_queue : Request.metadata Queue.t

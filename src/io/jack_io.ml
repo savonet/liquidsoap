@@ -107,6 +107,7 @@ object
   method remaining = -1
   method abort_track  = ()
   method output_reset = ()
+  method is_active = true
 
   val mutable ring = [||]
   initializer

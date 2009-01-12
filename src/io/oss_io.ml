@@ -53,6 +53,7 @@ object (self)
       assert (set_rate fd samples_per_second = samples_per_second)
 
   method output_reset = ()
+  method is_active = true
 
   method output =
     while Frame.is_partial memo do
@@ -86,6 +87,7 @@ object (self)
       assert (set_rate fd samples_per_second = samples_per_second)
 
   method output_reset = ()
+  method is_active = true
 
   method get_frame frame =
     assert (0 = AFrame.position frame) ;

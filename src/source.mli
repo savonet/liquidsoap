@@ -132,6 +132,11 @@ object
 
   (** Do whatever needed when the latency gets too big and is reset. *)
   method virtual output_reset : unit
+
+  (** Is the source active ? If the returned value is [false], then [output_reset]
+    * should not be called on that source. If [output_reset] does nothing, this
+    * function can return any value. *)
+  method virtual is_active : bool
 end
 
 (* Most usual active source: the active_operator, pulling one source's data

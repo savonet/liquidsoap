@@ -76,6 +76,7 @@ object (self)
       self#handle "start_stream" (fun () -> Portaudio.start_stream (Utils.get_some stream))
 
   method output_reset = ()
+  method is_active = true
 
   method output =
     while Frame.is_partial memo do
@@ -108,6 +109,7 @@ object (self)
     self#handle "start_stream" (fun () -> Portaudio.start_stream (Utils.get_some stream))
 
   method output_reset = ()
+  method is_active = true
 
   method get_frame frame =
     assert (0 = AFrame.position frame) ;

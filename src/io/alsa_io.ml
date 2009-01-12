@@ -160,7 +160,7 @@ object (self)
       | Unknown_error n -> raise (Error (string_of_error n))
 
   method output_reset = ()
-
+  method is_active = true
 end
 
 class output dev val_source =

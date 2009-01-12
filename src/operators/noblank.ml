@@ -149,6 +149,7 @@ object (self)
 
   method output_get_ready = ()
   method output_reset = ()
+  method is_active = true
 end
 
 class eat ~at_beginning ~length ~threshold source =

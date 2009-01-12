@@ -101,7 +101,7 @@ let start () =
         incr acc ;
         if rem < max_latency then begin
           log#f 2 "Too much latency! Resetting active sources.." ;
-          iter (fun s -> s#output_reset) ;
+          iter (fun s -> if s#is_active then s#output_reset) ;
           t0 := time () ;
           ticks := 0L ;
           acc := 0

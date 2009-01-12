@@ -29,6 +29,7 @@ object (self)
         height <- h
 
   method output_reset = ()
+  method is_active = true
 
   val mutable image = RGB.create 0 0
   val mutable count = every

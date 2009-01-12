@@ -86,6 +86,7 @@ object (self)
   method output_stop = self#close_pipe
 
   method output_reset = ()
+  method is_active = true
 
   method output_get_ready = ignore(self#get_stream)
 

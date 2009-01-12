@@ -29,6 +29,7 @@ object (self)
   method remaining = -1
 
   method output_reset = ()
+  method is_active = true
   method output_get_ready = ()
   method abort_track = ()
 

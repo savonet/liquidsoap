@@ -92,6 +92,7 @@ object (self)
 
   method output = ()
   method output_reset = ()
+  method is_active = true
   method output_get_ready =
     (* Do the most to avoid making a ready output.alsa() wait. *)
     Duppy.Task.add Tutils.scheduler 

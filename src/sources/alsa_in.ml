@@ -155,6 +155,7 @@ object (self)
 
   method output_reset = ()
 
+  method is_active = true
 end
 
 (* This source is registered in Alsa_io. *)
