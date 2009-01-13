@@ -34,6 +34,8 @@ h4. Documentation
 * "Queued sources":queues.html
 * "Shoutcast output":shoutcast.html
 * "Smart crossfading":smartcrossfade.html
+* "Multichannel":multichannel.html
+* "Optimizing liquidsoap":optimization.html
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
 * "Video":video.html: stream videos.
 
