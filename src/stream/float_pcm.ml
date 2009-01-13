@@ -20,6 +20,14 @@
 
  *****************************************************************************)
 
+let conf_raw_buffering =
+  Dtools.Conf.bool ~p:(Root.conf#plug "raw_buffering") ~d:false "Buffer raw PCM data"
+    ~comments:[
+      "If enabled, liquidsoap will use raw s16le pcm format when buffering audio data.";
+      "This saves a lot of memory when buffering a lot of data, at the cost of some ";
+      "computational power."
+    ]
+
 let create_buffer chans len =
   Array.init chans (fun _ -> Array.make len 0.)
 
@@ -99,9 +107,45 @@ let get_float_pcm b =
       ) [] tracks in
     Array.of_list ans
 
+module Raw_queue = 
+struct
+
+  type t = (int*string) Queue.t
+
+  let create = Queue.create
+
+  let add buf q =
+    let chans = Array.length buf in 
+    let len = Array.length buf.(0) in
+    let slen = 2 * chans * len in
+    let sbuf = String.create slen in
+    ignore(to_s16le buf 0 len sbuf 0);
+    Queue.add (chans,sbuf) q
+
+  let from_s16le (chans,sbuf) = 
+    let slen = String.length sbuf in
+    let len = slen / (chans * 2) in
+    let buf = Array.make chans (Array.make len 0.) in
+    ignore(from_s16le buf 0 sbuf 0 len);
+    buf
+
+  let peek q = from_s16le (Queue.peek q)
+
+  let take q = from_s16le (Queue.take q)
+
+end
+
 (** Accumulate float PCM and generate float_pcm tracks. *)
 module Generator =
 struct
+
+  type buffer = 
+   {
+     add : float array array -> unit;
+     peek : unit -> float array array;
+     take : unit -> float array array
+   }
+
   type t = {
     (* Format *)
     out_freq  : int;
@@ -112,8 +156,25 @@ struct
     mutable breaks   : int list ;                  (* ticks   *)
     mutable length   : int ;                       (* samples *)
     mutable offset   : int ; (* offset in samples the first buffer *)
-    mutable buffers  : float array array Queue.t ;
+    mutable buffers  : buffer ;
   }
+
+  let create_buffers () = 
+    if conf_raw_buffering#get then
+      let queue = Raw_queue.create () in
+      {
+        add = (fun buf -> Raw_queue.add buf queue);
+        peek = (fun () -> Raw_queue.peek queue);
+        take = (fun () -> Raw_queue.take queue)
+      }
+    else
+      let queue = Queue.create () in
+      {
+        add = (fun buf -> Queue.add buf queue);
+        peek = (fun () -> Queue.peek queue);
+        take = (fun () -> Queue.take queue)
+      }
+
 
   let create ?(out_freq = Fmt.samples_per_second())
              ?(out_chans = Fmt.channels()) () =
@@ -125,7 +186,7 @@ struct
         breaks    = [] ;
         length    = 0 ;
         offset    = 0 ;
-        buffers   = Queue.create () ;
+        buffers   = create_buffers () ;
         resample  = Audio_converter.Samplerate.resample conv ;
       }
 
@@ -139,7 +200,7 @@ struct
   let clear abg =
     abg.length <- 0;
     abg.offset <- 0;
-    abg.buffers <- Queue.create ();
+    abg.buffers <- create_buffers ();
     abg.metadata <- [];
     abg.breaks <- []
 
@@ -159,7 +220,7 @@ struct
                    0 (Array.length buf.(0))
     in
       abg.length <- abg.length + (Array.length buf.(0)) ;
-      Queue.add buf abg.buffers
+      abg.buffers.add buf
 
   let add_metadata abg m =
     abg.metadata <- abg.metadata @ [Fmt.ticks_of_samples abg.length, m]
@@ -198,7 +259,7 @@ struct
   let rec remove abg len =
     assert (abg.length >= len) ;
     if len>0 then
-    let b = Queue.peek abg.buffers in
+    let b = abg.buffers.peek () in
       (* Is it enough to advance in the first buffer?
        * Or do we need to consume it completely and go farther in the queue? *)
       if abg.offset + len < Array.length b.(0) then begin
@@ -207,7 +268,7 @@ struct
         advance abg len
       end else
         let removed = Array.length b.(0) - abg.offset in
-          ignore (Queue.take abg.buffers) ;
+          ignore (abg.buffers.take ()) ;
           abg.length <- abg.length - removed ;
           abg.offset <- 0 ;
           advance abg removed ;
@@ -242,7 +303,7 @@ struct
               | [] -> () (* end of stream / underrun ... *)
               | _ -> assert false
         end else
-          let block = Queue.peek abg.buffers in
+          let block = abg.buffers.peek () in
           let blocklen = Array.length block.(0) - abg.offset in
           let copied = min needed blocklen in
             blit
@@ -257,7 +318,7 @@ struct
             advance abg copied ;
             (* Update buffer data -- did we consume a full block? *)
             if blocklen <= needed then begin
-              ignore (Queue.take abg.buffers) ;
+              ignore (abg.buffers.take ()) ;
               abg.length <- abg.length - blocklen ;
               abg.offset <- 0
             end else begin

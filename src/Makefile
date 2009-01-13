@@ -131,7 +131,8 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/tutils.ml tools/sutils.ml tools/http.ml
 
 stream = stream/midi.ml fmt.ml stream/rgb_c.c stream/RGB.ml \
-	stream/frame.ml \
+	stream/frame.ml decoder.ml playlist_parser.ml \
+	request.ml source.ml root.ml \
 	stream/float_pcm_c.c stream/float_pcm.ml \
 	stream/aFrame.ml stream/vFrame.ml
 
@@ -143,7 +144,6 @@ visualization = visualization/vumeter.ml \
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
-	decoder.ml playlist_parser.ml request.ml source.ml root.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
@@ -216,9 +216,8 @@ profile:
 	$(MAKE)
 
 libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	stream/vFrame.ml stream/aFrame.ml shebang.ml playlist_parser.ml \
+	stream/vFrame.ml stream/aFrame.ml shebang.ml \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
-	decoder.ml request.ml source.ml root.ml \
 	tools/server.ml tools/server_builtins.ml \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
