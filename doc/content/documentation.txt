@@ -44,7 +44,7 @@ h4. Reference
 * "API reference":reference.html: all the builtin functions of liquidsoap.
 * "Script language":language.html: A more detailed presentation.
 
-h4. User configurations
+h4. User scripts
 
 * "Geekradio":geekradio.html
 * "RadioPi":radiopi.html
@@ -52,6 +52,7 @@ h4. User configurations
 * "Kube":kube.html
 * "Frequence3":frequence3.html
 * "Listen to Radio Nova":radio-nova.html
+* "Video with a single static image":video-static.html
 
 h4. Code snippets
 
