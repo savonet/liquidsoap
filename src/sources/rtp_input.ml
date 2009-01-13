@@ -36,6 +36,8 @@ object (self)
 
   val mutable session = None
 
+  method is_active = session <> None
+
   method output_get_ready =
     session <- Some (Rtp.new_session Rtp.Recv address port)
 
