@@ -35,6 +35,10 @@ s = amplify(1.,override="replay_gain",s)
 # Here: other effects, and finally the output...
 %%
 
+You may also take care of not losing the information brought by the metadata. This may be the case for instance if you
+use @smart_crossfade@ before applying normalization. Hence, normalization should be done as soon as possible 
+in the script, if possible just after the initial source.
+
 h5. Computing and retrieving the data: the replay gain protocol
 
 In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool. Here is a little script that does the translation for MP3 and Vorbis files. It works as a protocol resolver, taking a filename and returning an URI.
