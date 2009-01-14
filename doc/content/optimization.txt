@@ -25,7 +25,7 @@ Liquidsoap uses caml's @float@ to represent raw audio data. While this is a grea
 CPU usage, this may consume a lot of memory, in particular when buffering a lot of data.
 
 If you want to optimize memory usage in this kind of situations, the global setting @set("root.raw_buffering",true)@ 
-will force data buffering to be done in PCM S16LE format, which representation in memory is 8 times smaller. 
+will force data buffering to be done in PCM S16LE format, which representation in memory is smaller. 
 
 However, in this case, data will be translated back and forth for each buffering, leading to some computational 
 cost.
