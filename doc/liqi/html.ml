@@ -143,7 +143,7 @@ let print_snippet f title snippet =
       <a href=\"%s\">Download</a>
     </div>
     <div>
-      <div id=\"footer\"> 2003-2008 Savonet team</div>
+      <div id=\"footer\"> 2003-2009 Savonet team</div>
     </div>
   </div>
 </body>

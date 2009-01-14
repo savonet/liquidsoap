@@ -50,5 +50,5 @@ Here is the code:
         "/tmp/$(title).ogv",final)
 %%
 
-_Reproduced from_ "blog.rastageeks.org":http://blog.rastageeks.org/spip.php?article27**
+_Reproduced from_ "blog.rastageeks.org":http://blog.rastageeks.org/spip.php?article27
 
