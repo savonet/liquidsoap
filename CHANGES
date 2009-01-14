@@ -31,6 +31,7 @@ New:
  - New force_mime parameter for input.http().
  - New insert_missing parameter for append().
  - Multi-line strings in liq scripts, with a caml-like syntax.
+ - Added user_agent parameter for input.http and input.lastfm
  - Added speex support for files and HTTP streams.
  - Added EXPERIMENTAL support for AU, AIFF and NSV mp3 audio files
    using ocaml-natty.

@@ -200,7 +200,8 @@ module Generated = Generated.From_Float_pcm_Generator
 exception Redirection of string
 
 class http ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
-           ~feed_delay ~bind_address ~autostart ~bufferize ~max ~debug url =
+           ~feed_delay ~bind_address ~autostart ~bufferize ~max ~debug 
+           ~user_agent url =
   let abg_max_len =
     Fmt.samples_of_seconds (Pervasives.max max bufferize)
   in
@@ -298,8 +299,8 @@ object (self)
     in
     let request =
       Printf.sprintf
-        "%sUser-Agent: liquidsoap/%s (%s; ocaml %s)\r\n%sIcy-MetaData:1\r\n\r\n"
-        req Configure.version Sys.os_type Sys.ocaml_version auth
+        "%sUser-Agent: %s\r\n%sIcy-MetaData:1\r\n\r\n"
+        req user_agent auth
     in
       self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
       try
@@ -498,6 +499,12 @@ let () =
               will wait for the given delay before dropping data when \
               the buffer is full." ;
 
+       "user_agent", Lang.string_t, 
+        Some (Lang.string 
+            (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
+                Configure.version Sys.os_type Sys.ocaml_version)),
+        Some "User agent." ; 
+
         "", Lang.string_t, None,
         Some "URL of an http stream (default port is 80)." ]
       (fun p ->
@@ -518,6 +525,7 @@ let () =
          let url = Lang.to_string (List.assoc "" p) in
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
+         let user_agent = Lang.to_string (List.assoc "user_agent" p) in
          let track_on_meta =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)
          in
@@ -539,5 +547,5 @@ let () =
          let feed_delay = Lang.to_float (List.assoc "feed_delay" p) in
            ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta
                       ~force_mime ~feed_delay ~bind_address ~poll_delay
-                      ~bufferize ~max ~debug url)
+                      ~bufferize ~max ~debug ~user_agent url)
               :> Source.source))
