@@ -284,6 +284,26 @@ struct
               buff.(i + off) <- buffer.{i + t.rpos}
             done
 
+    let read_ba t buff off len =
+      assert (len <= read_space t);
+      if len > 0 then
+        let pre = t.size - t.rpos in
+        let extra = len - pre in
+        let buffer = Utils.get_some t.buffer in
+          if extra > 0 then
+            (
+              for i = 0 to pre - 1 do
+                buff.{i + off} <- buffer.{i + t.rpos}
+              done;
+              for i = 0 to extra - 1 do
+                buff.{i + off + pre} <- buffer.{i}
+              done
+            )
+          else
+            for i = 0 to len - 1 do
+              buff.{i + off} <- buffer.{i + t.rpos}
+            done
+
     let to_array r =
       let len = read_space r in
       let ans = Array.create len 0. in
@@ -293,13 +313,28 @@ struct
     (** Compact the ringbuffer, i.e. put all the data at the beginning. *)
     let compact r =
       if r.size > 0 then
-        (* TODO: better implementation? *)
-        let a = to_array r in
-        let len = Array.length a in
+        (* If data is small enough for arrays then use them, otherwise use a
+         * bigarray. *)
+        let len = read_space r in
         let buffer = Utils.get_some r.buffer in
-          for i = 0 to len - 1 do
-            buffer.{i} <- a.(i)
-          done;
+          if len < Sys.max_array_length / 2 then
+            let a = to_array r in
+              for i = 0 to len - 1 do
+                buffer.{i} <- a.(i)
+              done
+          else
+            (
+              let copy_fname = Filename.temp_file "liquidsoap_buffer" "" in
+              let copy_fd = Unix.openfile copy_fname [Unix.O_RDWR] 0o600 in
+              let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
+                read_ba r copy_ba 0 len;
+                (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
+                for i = 0 to len - 1 do
+                  buffer.{i} <- copy_ba.{i}
+                done;
+                Unix.close copy_fd;
+                Unix.unlink copy_fname
+            );
           r.rpos <- 0;
           r.wpos <- len
 
