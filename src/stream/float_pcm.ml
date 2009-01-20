@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 let conf_raw_buffering =
-  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" "Kind of buffering for audio data (default|raw|disk|disk_manyfiles)."
+  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" "Kind of buffering for audio data (default|raw|disk|disk_manyfiles|disk_noring)."
     ~comments:[
       "If set to raw, liquidsoap will use raw s16le pcm format when buffering audio data.";
       "If set to disk, liquidsoap will store buffered data on disk (disk_manyfiles is the same but is a bit faster at the expense of creating many files).";
@@ -141,7 +141,7 @@ struct
   module B =
   struct
     (* Option type is for handling empty arrays... *)
-    type t = int * (float, Bigarray.float32_elt, Bigarray.c_layout Bigarray.layout) Bigarray.Array2.t option ref
+    type t = int * (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t option ref
 
     let create fd = fd, ref None
 
@@ -197,18 +197,18 @@ struct
     let chans = Array.length buf in
       Queue.add (Array.length buf.(0)) q;
       for i = 0 to chans - 1 do
-        B.append (snd a.(i)) buf.(i)
+        B.append a.(i) buf.(i)
       done
 
   let peek (q, a) =
     let chans = Array.length a in
     let len = Queue.peek q in
-      Array.init chans (fun c -> B.peek (snd a.(c)) len)
+      Array.init chans (fun c -> B.peek a.(c) len)
 
   let take (q, a) =
     let chans = Array.length a in
     let len = Queue.peek q in
-      Array.init chans (fun c -> B.take (snd a.(c)) len)
+      Array.init chans (fun c -> B.take a.(c) len)
 
   let create () =
     let chans = Fmt.channels () in
@@ -219,7 +219,179 @@ struct
            let fname = Filename.temp_file "liquidsoap_buffer" "" in
            let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
              ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
-             fd, B.create fd
+             B.create fd
+        )
+end
+
+module Disk_ringbuffer_queue =
+struct
+  (** Resizable float ringbuffers. *)
+  module B =
+  struct
+    (* Option type is for handling empty arrays... *)
+    type t = {
+      mutable size : int ;
+      fd : Unix.file_descr;
+      mutable buffer : (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t option;
+      mutable rpos : int ;
+      mutable wpos : int
+    }
+
+    let create fd =
+      {
+        size = 0;
+        fd = fd;
+        buffer = None;
+        rpos = 0;
+        wpos = 0;
+      }
+
+    let read_space t =
+      if t.wpos >= t.rpos then (t.wpos - t.rpos)
+      else t.size - (t.rpos - t.wpos)
+
+    let write_space t =
+      if t.wpos >= t.rpos then t.size - (t.wpos - t.rpos) - 1
+      else (t.rpos - t.wpos) - 1
+
+    let read_advance t n =
+      assert (n <= read_space t);
+      if t.rpos + n < t.size then t.rpos <- t.rpos + n
+      else t.rpos <- t.rpos + n - t.size
+
+    let write_advance t n =
+      assert (n <= write_space t);
+      if t.wpos + n < t.size then t.wpos <- t.wpos + n
+      else t.wpos <- t.wpos + n - t.size
+
+    let read t buff off len =
+      assert (len <= read_space t);
+      if len > 0 then
+        let pre = t.size - t.rpos in
+        let extra = len - pre in
+        let buffer = Utils.get_some t.buffer in
+          if extra > 0 then
+            (
+              for i = 0 to pre - 1 do
+                buff.(i + off) <- buffer.{i + t.rpos}
+              done;
+              for i = 0 to extra - 1 do
+                buff.(i + off + pre) <- buffer.{i}
+              done
+            )
+          else
+            for i = 0 to len - 1 do
+              buff.(i + off) <- buffer.{i + t.rpos}
+            done
+
+    let to_array r =
+      let len = read_space r in
+      let ans = Array.create len 0. in
+        read r ans 0 len;
+        ans
+
+    (** Compact the ringbuffer, i.e. put all the data at the beginning. *)
+    let compact r =
+      if r.size > 0 then
+        (* TODO: better implementation? *)
+        let a = to_array r in
+        let len = Array.length a in
+        let buffer = Utils.get_some r.buffer in
+          for i = 0 to len - 1 do
+            buffer.{i} <- a.(i)
+          done;
+          r.rpos <- 0;
+          r.wpos <- len
+
+    (** Adds space {i at the end}. You should use [compact] before. *)
+    let resize r len =
+      if len = 0 then
+        (
+          r.size <- 0;
+          r.buffer <- None;
+          r.rpos <- 0;
+          r.wpos <- 0;
+        )
+      else
+        (
+          r.size <- len;
+          r.buffer <- Some (Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len);
+        )
+
+    let write t buff off len =
+      if len > write_space t then
+        (
+          compact t;
+          (* Heuristics in order to avoid growing too often. *)
+          let grow =
+            max (len - write_space t) (Fmt.samples_of_seconds 0.5)
+          in
+            resize t (t.size + grow)
+        );
+      if len > 0 then
+        let pre = t.size - t.wpos in
+        let extra = len - pre in
+        let buffer = Utils.get_some t.buffer in
+          if extra > 0 then
+            (
+              for i = 0 to pre - 1 do
+                buffer.{i + t.wpos} <- buff.(i + off)
+              done;
+              for i = 0 to extra - 1 do
+                buffer.{i} <- buff.(i + off + pre)
+              done
+            )
+          else
+            for i = 0 to len - 1 do
+              buffer.{i + t.wpos} <- buff.(i + off)
+            done
+
+    let append r buf =
+      let buflen = Array.length buf in
+        write r buf 0 buflen;
+        write_advance r buflen
+
+    let peek r len =
+      (* TODO: optimize this (i.e. use Array.init)? *)
+      let ans = Array.make len 0. in
+        read r ans 0 len;
+        ans
+
+    let take r len =
+      let ans = peek r len in
+        read_advance r len;
+        ans
+  end
+
+  type t = (int Queue.t * (string * B.t) array)
+
+  let add buf (q, a) =
+    let chans = Array.length buf in
+      Queue.add (Array.length buf.(0)) q;
+      for c = 0 to chans - 1 do
+        B.append a.(c) buf.(c)
+      done
+
+  let peek (q, a) =
+    let chans = Array.length a in
+    let len = Queue.peek q in
+      Array.init chans (fun c -> B.peek a.(c) len)
+
+  let take (q, a) =
+    let chans = Array.length a in
+    let len = Queue.peek q in
+      Array.init chans (fun c -> B.take a.(c) len)
+
+  let create () =
+    let chans = Fmt.channels () in
+      Queue.create (),
+      Array.init
+        chans
+        (fun c ->
+           let fname = Filename.temp_file "liquidsoap_buffer" "" in
+           let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
+             ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
+             B.create fd
         )
 end
 
@@ -315,6 +487,13 @@ struct
               take = (fun () -> Raw_queue.take queue)
             }
       | "disk" ->
+          let queue = Disk_ringbuffer_queue.create () in
+            {
+              add = (fun buf -> Disk_ringbuffer_queue.add buf queue);
+              peek = (fun () -> Disk_ringbuffer_queue.peek queue);
+              take = (fun () -> Disk_ringbuffer_queue.take queue)
+            }
+      | "disk_noring" ->
           let queue = Disk_queue.create () in
             {
               add = (fun buf -> Disk_queue.add buf queue);
