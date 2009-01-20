@@ -151,12 +151,6 @@ struct
       else
         ba := Some (Bigarray.Array1.map_file fd Bigarray.float32 Bigarray.c_layout true len)
 
-                (*
-    let make file len =
-      let b = create file in
-        resize b len
-                 *)
-
     let length (fd, ba) =
       match !ba with
         | None -> 0
@@ -187,7 +181,9 @@ struct
         | Some ba ->
             let balen = length b in
             let ans = peek b len in
-              (* TODO: more efficient blitting? *)
+              (* TODO: more efficient blitting? Official way is much less
+               * efficient... *)
+              (* Bigarray.Array1.blit (Bigarray.Array1.sub ba len (balen - len)) (Bigarray.Array1.sub ba 0 (balen - len)); *)
               for i = len to balen - 1 do
                 Bigarray.Array1.set ba (i - len) (Bigarray.Array1.get ba i)
               done;
