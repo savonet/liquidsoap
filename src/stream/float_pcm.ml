@@ -191,24 +191,28 @@ struct
               ans
   end
 
-  type t = ((string * B.t) array)
+  type t = (int Queue.t * (string * B.t) array)
 
-  let add buf q =
+  let add buf (q, a) =
     let chans = Array.length buf in
+      Queue.add (Array.length buf.(0)) q;
       for i = 0 to chans - 1 do
-        B.append (snd q.(i)) buf.(i)
+        B.append (snd a.(i)) buf.(i)
       done
 
-  let peek q =
-    let chans = Array.length q in
-      Array.init chans (fun c -> B.peek (snd q.(c)) (Fmt.samples_per_frame ()))
+  let peek (q, a) =
+    let chans = Array.length a in
+    let len = Queue.peek q in
+      Array.init chans (fun c -> B.peek (snd a.(c)) len)
 
-  let take q =
-    let chans = Array.length q in
-      Array.init chans (fun c -> B.take (snd q.(c)) (Fmt.samples_per_frame ()))
+  let take (q, a) =
+    let chans = Array.length a in
+    let len = Queue.peek q in
+      Array.init chans (fun c -> B.take (snd a.(c)) len)
 
   let create () =
     let chans = Fmt.channels () in
+      Queue.create (),
       Array.init
         chans
         (fun c ->
