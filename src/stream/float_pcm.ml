@@ -218,7 +218,7 @@ struct
         (fun c ->
            let fname = Filename.temp_file "liquidsoap_buffer" "" in
            let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
-             ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
+             Unix.unlink fname;
              B.create fd
         )
 end
@@ -426,7 +426,7 @@ struct
         (fun c ->
            let fname = Filename.temp_file "liquidsoap_buffer" "" in
            let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
-             ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
+             Unix.unlink fname;
              B.create fd
         )
 end
@@ -443,6 +443,7 @@ struct
           let fname = Filename.temp_file "liquidsoap_buffer" "" in
           let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
           let ba = Bigarray.Array2.map_file fd Bigarray.float32 Bigarray.c_layout true chans buflen in
+            Unix.unlink fname;
             for c = 0 to chans - 1 do
               let bufc = buf.(c) in
                 for i = 0 to buflen - 1 do
@@ -471,7 +472,6 @@ struct
     let fname, fd, ba = Queue.take q in
     let buf = from_ba ba in
       Unix.close fd;
-      Unix.unlink fname;
       buf
 
   let create () =
@@ -485,7 +485,7 @@ struct
         | Queue.Empty -> ()
     in
       (* To clean up the files. *)
-      ignore (Dtools.Init.at_stop (fun () -> empty q));
+      (* ignore (Dtools.Init.at_stop (fun () -> empty q)); *)
       q
 end
 
