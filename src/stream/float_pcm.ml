@@ -359,7 +359,8 @@ struct
           compact t;
           (* Heuristics in order to avoid growing too often. *)
           let grow =
-            max (len - write_space t) (Fmt.samples_of_seconds 0.5)
+            let grow_duration = if t.size < Sys.max_array_length / 2 then 0.5 else 10. in
+              max (len - write_space t) (Fmt.samples_of_seconds grow_duration)
           in
             resize t (t.size + grow)
         );
