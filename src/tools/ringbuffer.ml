@@ -59,35 +59,31 @@ let read t buff off len =
   assert (len <= read_space t) ;
   let pre = t.size - t.rpos in
   let extra = len - pre in
-  begin match extra > 0 with
-  | false ->
-      for c = 0 to Array.length t.buffer - 1 do
-        Array.blit t.buffer.(c) t.rpos buff.(c) off len
-      done;
-  | true ->
+    if extra > 0 then
       for c = 0 to Array.length t.buffer - 1 do
         Array.blit t.buffer.(c) t.rpos buff.(c) off pre;
         Array.blit t.buffer.(c) 0 buff.(c) (off + pre) extra
+      done
+    else
+      for c = 0 to Array.length t.buffer - 1 do
+        Array.blit t.buffer.(c) t.rpos buff.(c) off len
       done;
-  end;
-  read_advance t len
+    read_advance t len
 
 let write t buff off len =
   assert (len <= write_space t) ;
   let pre = t.size - t.wpos in
   let extra = len - pre in
-  begin match extra > 0 with
-  | false ->
-      for c = 0 to Array.length t.buffer - 1 do
-        Array.blit buff.(c) off t.buffer.(c) t.wpos len
-      done;
-  | true ->
+    if extra > 0 then
       for c = 0 to Array.length t.buffer - 1 do
         Array.blit buff.(c) off t.buffer.(c) t.wpos pre;
         Array.blit buff.(c) (off + pre) t.buffer.(c) 0 extra
+      done
+    else
+      for c = 0 to Array.length t.buffer - 1 do
+        Array.blit buff.(c) off t.buffer.(c) t.wpos len
       done;
-  end;
-  write_advance t len
+    write_advance t len
 
 let transmit t f =
   if t.wpos = t.rpos then 0 else
