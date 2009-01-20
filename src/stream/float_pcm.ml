@@ -21,11 +21,12 @@
  *****************************************************************************)
 
 let conf_raw_buffering =
-  Dtools.Conf.bool ~p:(Root.conf#plug "raw_buffering") ~d:false "Buffer raw PCM data"
+  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" "Kind of buffering for audio data (default|raw|disk)."
     ~comments:[
-      "If enabled, liquidsoap will use raw s16le pcm format when buffering audio data.";
-      "This saves a lot of memory when buffering a lot of data, at the cost of some ";
-      "computational power."
+      "If set to raw, liquidsoap will use raw s16le pcm format when buffering audio data.";
+      "If set to disk, liquidsoap will store buffered data on disk.";
+      "Both non-default options can save a lot of memory when buffering a lot of data, ";
+      "at the cost of some computational power.";
     ]
 
 let create_buffer chans len =
@@ -135,6 +136,64 @@ struct
 
 end
 
+module Disk_queue =
+struct
+  type t = (string * int * (float, Bigarray.float32_elt, Bigarray.c_layout Bigarray.layout) Bigarray.Array2.t)
+
+  let add buf q =
+    let chans = Array.length buf in
+    let buflen = Array.length buf.(0) in
+      if buflen > 0 then
+        (
+          let fname = Filename.temp_file "liquidsoap_buffer" "" in
+          let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
+          let ba = Bigarray.Array2.map_file fd Bigarray.float32 Bigarray.c_layout true chans buflen in
+            for c = 0 to chans - 1 do
+              let bufc = buf.(c) in
+                for i = 0 to buflen - 1 do
+                  Bigarray.Array2.set ba c i bufc.(i)
+                done
+            done;
+            Queue.add (fname, fd, ba) q
+        )
+
+  let from_ba ba =
+    let chans = Bigarray.Array2.dim1 ba in
+    let buflen = Bigarray.Array2.dim2 ba in
+      Array.init
+        chans
+        (fun c ->
+           Array.init
+             buflen
+             (fun i -> Bigarray.Array2.get ba c i)
+        )
+
+  let peek q =
+    let _, _, ba = Queue.peek q in
+      from_ba ba
+
+  let take q =
+    let fname, fd, ba = Queue.take q in
+    let buf = from_ba ba in
+      Unix.close fd;
+      Unix.unlink fname;
+      buf
+
+  let create () =
+    let q = Queue.create () in
+    let empty q =
+      try
+        while true do
+          ignore (take q)
+        done
+      with
+        | Queue.Empty -> ()
+    in
+      (* To clean up the files. *)
+      ignore (Dtools.Init.at_stop (fun () -> empty q));
+      q
+end
+
 (** Accumulate float PCM and generate float_pcm tracks. *)
 module Generator =
 struct
@@ -159,21 +218,30 @@ struct
     mutable buffers  : buffer ;
   }
 
-  let create_buffers () = 
-    if conf_raw_buffering#get then
-      let queue = Raw_queue.create () in
-      {
-        add = (fun buf -> Raw_queue.add buf queue);
-        peek = (fun () -> Raw_queue.peek queue);
-        take = (fun () -> Raw_queue.take queue)
-      }
-    else
-      let queue = Queue.create () in
-      {
-        add = (fun buf -> Queue.add buf queue);
-        peek = (fun () -> Queue.peek queue);
-        take = (fun () -> Queue.take queue)
-      }
+  let create_buffers () =
+    match conf_raw_buffering#get with
+      | "raw" ->
+          let queue = Raw_queue.create () in
+            {
+              add = (fun buf -> Raw_queue.add buf queue);
+              peek = (fun () -> Raw_queue.peek queue);
+              take = (fun () -> Raw_queue.take queue)
+            }
+      | "disk" ->
+          let queue = Disk_queue.create () in
+            {
+              add = (fun buf -> Disk_queue.add buf queue);
+              peek = (fun () -> Disk_queue.peek queue);
+              take = (fun () -> Disk_queue.take queue)
+            }
+      | _ ->
+          (* TODO: do not silently do this when the value is not "default". *)
+          let queue = Queue.create () in
+            {
+              add = (fun buf -> Queue.add buf queue);
+              peek = (fun () -> Queue.peek queue);
+              take = (fun () -> Queue.take queue)
+            }
 
 
   let create ?(out_freq = Fmt.samples_per_second())
