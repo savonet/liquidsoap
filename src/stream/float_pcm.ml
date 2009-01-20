@@ -228,10 +228,10 @@ struct
   (** Resizable float ringbuffers. *)
   module B =
   struct
-    (* Option type is for handling empty arrays... *)
     type t = {
       mutable size : int ;
       fd : Unix.file_descr;
+      (* Option type is for handling empty arrays... *)
       mutable buffer : (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t option;
       mutable rpos : int ;
       mutable wpos : int
@@ -313,10 +313,10 @@ struct
     (** Compact the ringbuffer, i.e. put all the data at the beginning. *)
     let compact r =
       if r.size > 0 then
-        (* If data is small enough for arrays then use them, otherwise use a
-         * bigarray. *)
         let len = read_space r in
         let buffer = Utils.get_some r.buffer in
+          (* If data is small enough for arrays then use them, otherwise use a
+           * bigarray. *)
           if len < Sys.max_array_length / 2 then
             let a = to_array r in
               for i = 0 to len - 1 do
