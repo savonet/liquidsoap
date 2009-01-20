@@ -21,10 +21,10 @@
  *****************************************************************************)
 
 let conf_raw_buffering =
-  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" "Kind of buffering for audio data (default|raw|disk)."
+  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" "Kind of buffering for audio data (default|raw|disk|disk_manyfiles)."
     ~comments:[
       "If set to raw, liquidsoap will use raw s16le pcm format when buffering audio data.";
-      "If set to disk, liquidsoap will store buffered data on disk.";
+      "If set to disk, liquidsoap will store buffered data on disk (disk_manyfiles is the same but is a bit faster at the expense of creating many files).";
       "Both non-default options can save a lot of memory when buffering a lot of data, ";
       "at the cost of some computational power.";
     ]
@@ -108,7 +108,7 @@ let get_float_pcm b =
       ) [] tracks in
     Array.of_list ans
 
-module Raw_queue = 
+module Raw_queue =
 struct
 
   type t = (int*string) Queue.t
@@ -116,14 +116,14 @@ struct
   let create = Queue.create
 
   let add buf q =
-    let chans = Array.length buf in 
+    let chans = Array.length buf in
     let len = Array.length buf.(0) in
     let slen = 2 * chans * len in
     let sbuf = String.create slen in
     ignore(to_s16le buf 0 len sbuf 0);
     Queue.add (chans,sbuf) q
 
-  let from_s16le (chans,sbuf) = 
+  let from_s16le (chans,sbuf) =
     let slen = String.length sbuf in
     let len = slen / (chans * 2) in
     let buf = Array.make chans (Array.make len 0.) in
@@ -133,10 +133,97 @@ struct
   let peek q = from_s16le (Queue.peek q)
 
   let take q = from_s16le (Queue.take q)
-
 end
 
 module Disk_queue =
+struct
+  (** Resizable float arrays. *)
+  module B =
+  struct
+    (* Option type is for handling empty arrays... *)
+    type t = int * (float, Bigarray.float32_elt, Bigarray.c_layout Bigarray.layout) Bigarray.Array2.t option ref
+
+    let create fd = fd, ref None
+
+    let resize (fd, ba) len =
+      if len = 0 then
+        ba := None
+      else
+        ba := Some (Bigarray.Array1.map_file fd Bigarray.float32 Bigarray.c_layout true len)
+
+                (*
+    let make file len =
+      let b = create file in
+        resize b len
+                 *)
+
+    let length (fd, ba) =
+      match !ba with
+        | None -> 0
+        | Some ba -> Bigarray.Array1.dim ba
+
+    let append ((fd, ba) as b) buf =
+      let buflen = Array.length buf in
+        if buflen <> 0 then
+          let oldlen = length b in
+            resize b (oldlen + buflen);
+            let ba = Utils.get_some !ba in
+              for i = 0 to buflen - 1 do
+                Bigarray.Array1.set ba (oldlen + i) buf.(i)
+              done
+
+    let peek (fd, ba) len =
+      if len = 0 then
+        [||]
+      else
+        let ba = Utils.get_some !ba in
+          Array.init len (fun i -> Bigarray.Array1.get ba i)
+
+    let take ((fd, ba) as b) len =
+      match !ba with
+        | None ->
+            assert (len = 0);
+            [||]
+        | Some ba ->
+            let balen = length b in
+            let ans = peek b len in
+              (* TODO: more efficient blitting? *)
+              for i = len to balen - 1 do
+                Bigarray.Array1.set ba (i - len) (Bigarray.Array1.get ba i)
+              done;
+              resize b (balen - len);
+              ans
+  end
+
+  type t = ((string * B.t) array)
+
+  let add buf q =
+    let chans = Array.length buf in
+      for i = 0 to chans - 1 do
+        B.append (snd q.(i)) buf.(i)
+      done
+
+  let peek q =
+    let chans = Array.length q in
+      Array.init chans (fun c -> B.peek (snd q.(c)) (Fmt.samples_per_frame ()))
+
+  let take q =
+    let chans = Array.length q in
+      Array.init chans (fun c -> B.take (snd q.(c)) (Fmt.samples_per_frame ()))
+
+  let create () =
+    let chans = Fmt.channels () in
+      Array.init
+        chans
+        (fun c ->
+           let fname = Filename.temp_file "liquidsoap_buffer" "" in
+           let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
+             ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
+             fd, B.create fd
+        )
+end
+
+module Disk_manyfiles_queue =
 struct
   type t = (string * int * (float, Bigarray.float32_elt, Bigarray.c_layout Bigarray.layout) Bigarray.Array2.t)
 
@@ -233,6 +320,13 @@ struct
               add = (fun buf -> Disk_queue.add buf queue);
               peek = (fun () -> Disk_queue.peek queue);
               take = (fun () -> Disk_queue.take queue)
+            }
+      | "disk_manyfiles" ->
+          let queue = Disk_manyfiles_queue.create () in
+            {
+              add = (fun buf -> Disk_manyfiles_queue.add buf queue);
+              peek = (fun () -> Disk_manyfiles_queue.peek queue);
+              take = (fun () -> Disk_manyfiles_queue.take queue)
             }
       | _ ->
           (* TODO: do not silently do this when the value is not "default". *)
