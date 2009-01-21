@@ -34,8 +34,7 @@ Other possible values for this operator are:
 
 * @"default"@: standard representation.
 * @"disk"@: will store temporary data in several big files. 
-* @"disk_manyfiles"@: will store temporary data in a lot of small files. This option
- is less CPU-consuming than @"disk"@.
+* @"disk_manyfiles"@: will store temporary data in a lot of small files. This option is less CPU-consuming than @"disk"@.
 
 For data stored on disk, the temporary directory can be set using the @TMPDIR@ environment variable 
 (more details in ocaml's Filename module documentation).
