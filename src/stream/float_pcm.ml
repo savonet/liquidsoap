@@ -355,12 +355,12 @@ struct
           r.size <- 0;
           r.buffer <- None;
           r.rpos <- 0;
-          r.wpos <- 0;
+          r.wpos <- 0
         )
       else
         (
           r.size <- len;
-          r.buffer <- Some (Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len);
+          r.buffer <- Some (Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len)
         )
 
     let write t buff off len =
@@ -371,7 +371,8 @@ struct
             let grow_duration = if t.size < Sys.max_array_length / 2 then 0.5 else 10. in
               max (len - write_space t) (Fmt.samples_of_seconds grow_duration)
           in
-            resize t (t.size + grow)
+            (* We can only write t.size - 1! *)
+            resize t (t.size + grow + 1)
         );
       if len > 0 then
         let pre = t.size - t.wpos in
