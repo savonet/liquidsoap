@@ -22,7 +22,7 @@
 
 let conf_raw_buffering =
   Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" 
-  "Kind of buffering for audio data (default|raw|disk|disk_manyfiles|disk_noring)."
+  "Kind of buffering for audio data (default|raw|disk|disk_manyfiles)."
     ~comments:[
       "If set to raw, liquidsoap will use raw s16le pcm format ";
       "when buffering audio data.";
@@ -137,99 +137,6 @@ struct
   let peek q = from_s16le (Queue.peek q)
 
   let take q = from_s16le (Queue.take q)
-end
-
-module Disk_queue =
-struct
-  (** Resizable float arrays. *)
-  module B =
-  struct
-    (* Option type is for handling empty arrays... *)
-    type t = int * (float, 
-                    Bigarray.float32_elt, 
-                    Bigarray.c_layout) 
-                       Bigarray.Array1.t option ref
-
-    let create fd = fd, ref None
-
-    let resize (fd, ba) len =
-      if len = 0 then
-        ba := None
-      else
-        ba := Some 
-            (Bigarray.Array1.map_file fd Bigarray.float32 
-                                      Bigarray.c_layout true len)
-
-    let length (fd, ba) =
-      match !ba with
-        | None -> 0
-        | Some ba -> Bigarray.Array1.dim ba
-
-    let append ((fd, ba) as b) buf =
-      let buflen = Array.length buf in
-        if buflen <> 0 then
-          let oldlen = length b in
-            resize b (oldlen + buflen);
-            let ba = Utils.get_some !ba in
-              for i = 0 to buflen - 1 do
-                Bigarray.Array1.set ba (oldlen + i) buf.(i)
-              done
-
-    let peek (fd, ba) len =
-      if len = 0 then
-        [||]
-      else
-        let ba = Utils.get_some !ba in
-          Array.init len (fun i -> Bigarray.Array1.get ba i)
-
-    let take ((fd, ba) as b) len =
-      match !ba with
-        | None ->
-            assert (len = 0);
-            [||]
-        | Some ba ->
-            let balen = length b in
-            let ans = peek b len in
-              (* TODO: more efficient blitting? Official way is much less
-               * efficient... *)
-              (* Bigarray.Array1.blit (Bigarray.Array1.sub ba len (balen - len)) (Bigarray.Array1.sub ba 0 (balen - len)); *)
-              for i = len to balen - 1 do
-                Bigarray.Array1.set ba (i - len) (Bigarray.Array1.get ba i)
-              done;
-              resize b (balen - len);
-              ans
-  end
-
-  type t = (int Queue.t * (string * B.t) array)
-
-  let add buf (q, a) =
-    let chans = Array.length buf in
-      Queue.add (Array.length buf.(0)) q;
-      for i = 0 to chans - 1 do
-        B.append a.(i) buf.(i)
-      done
-
-  let peek (q, a) =
-    let chans = Array.length a in
-    let len = Queue.peek q in
-      Array.init chans (fun c -> B.peek a.(c) len)
-
-  let take (q, a) =
-    let chans = Array.length a in
-    let len = Queue.take q in
-      Array.init chans (fun c -> B.take a.(c) len)
-
-  let create () =
-    let chans = Fmt.channels () in
-      Queue.create (),
-      Array.init
-        chans
-        (fun c ->
-           let fname = Filename.temp_file "liquidsoap_buffer" "" in
-           let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
-           ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
-             B.create fd
-        )
 end
 
 module Disk_ringbuffer_queue =
@@ -558,13 +465,6 @@ struct
               add = (fun buf -> Disk_ringbuffer_queue.add buf queue);
               peek = (fun () -> Disk_ringbuffer_queue.peek queue);
               take = (fun () -> Disk_ringbuffer_queue.take queue)
-            }
-      | "disk_noring" ->
-          let queue = Disk_queue.create () in
-            {
-              add = (fun buf -> Disk_queue.add buf queue);
-              peek = (fun () -> Disk_queue.peek queue);
-              take = (fun () -> Disk_queue.take queue)
             }
       | "disk_manyfiles" ->
           let queue = Disk_manyfiles_queue.create () in
