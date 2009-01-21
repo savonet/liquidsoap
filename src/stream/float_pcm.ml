@@ -425,7 +425,7 @@ struct
 
   let take (q, a) =
     let chans = Array.length a in
-    let len = Queue.peek q in
+    let len = Queue.take q in
       Array.init chans (fun c -> B.take a.(c) len)
 
   let create () =
