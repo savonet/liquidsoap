@@ -33,10 +33,10 @@ type t
   * per channel. *)
 val create : int -> int -> t
 
-(** Get the length of available data. *)
+(** Get the length of readable space. *)
 val read_space : t -> int
 
-(** Get the length of available read space. *)
+(** Get the length of writable space. *)
 val write_space : t -> int
 
 (** Advance the read pointer. *)

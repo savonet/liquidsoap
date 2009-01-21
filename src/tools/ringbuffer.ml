@@ -32,8 +32,8 @@ type t = {
 
 let create chans size =
   {
-    (* size + 1 since we can only write size - 1 because we want at least 1
-     * sample between write and read pointers. *)
+    (* size + 1 so we can store full buffers, while keeping
+       rpos and wpos different for implementation matters *)
     size = size + 1 ;
     buffer = Array.init chans (fun _ -> Array.create (size + 1) 0.) ;
     rpos = 0 ;
