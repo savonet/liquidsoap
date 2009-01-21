@@ -21,12 +21,16 @@
  *****************************************************************************)
 
 let conf_raw_buffering =
-  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" "Kind of buffering for audio data (default|raw|disk|disk_manyfiles|disk_noring)."
+  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" 
+  "Kind of buffering for audio data (default|raw|disk|disk_manyfiles|disk_noring)."
     ~comments:[
-      "If set to raw, liquidsoap will use raw s16le pcm format when buffering audio data.";
-      "If set to disk, liquidsoap will store buffered data on disk (disk_manyfiles is the same but is a bit faster at the expense of creating many files).";
-      "Both non-default options can save a lot of memory when buffering a lot of data, ";
-      "at the cost of some computational power.";
+      "If set to raw, liquidsoap will use raw s16le pcm format ";
+      "when buffering audio data.";
+      "If set to disk, liquidsoap will store buffered data on ";
+      "disk (disk_manyfiles is the same but is a bit faster at ";
+      "the expense of creating many files).";
+      "Both non-default options can save a lot of memory when ";
+      "buffering a lot of data, at the cost of some computational power.";
     ]
 
 let create_buffer chans len =
@@ -141,7 +145,10 @@ struct
   module B =
   struct
     (* Option type is for handling empty arrays... *)
-    type t = int * (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t option ref
+    type t = int * (float, 
+                    Bigarray.float32_elt, 
+                    Bigarray.c_layout) 
+                       Bigarray.Array1.t option ref
 
     let create fd = fd, ref None
 
@@ -149,7 +156,9 @@ struct
       if len = 0 then
         ba := None
       else
-        ba := Some (Bigarray.Array1.map_file fd Bigarray.float32 Bigarray.c_layout true len)
+        ba := Some 
+            (Bigarray.Array1.map_file fd Bigarray.float32 
+                                      Bigarray.c_layout true len)
 
     let length (fd, ba) =
       match !ba with
@@ -218,7 +227,7 @@ struct
         (fun c ->
            let fname = Filename.temp_file "liquidsoap_buffer" "" in
            let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
-             Unix.unlink fname;
+           ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
              B.create fd
         )
 end
@@ -426,14 +435,19 @@ struct
         (fun c ->
            let fname = Filename.temp_file "liquidsoap_buffer" "" in
            let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
-             Unix.unlink fname;
+           ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
              B.create fd
         )
 end
 
 module Disk_manyfiles_queue =
 struct
-  type t = (string * int * (float, Bigarray.float32_elt, Bigarray.c_layout Bigarray.layout) Bigarray.Array2.t)
+  type t = 
+     (string * int * 
+       (float, 
+        Bigarray.float32_elt, 
+        Bigarray.c_layout Bigarray.layout) 
+           Bigarray.Array2.t)
 
   let add buf q =
     let chans = Array.length buf in
@@ -443,49 +457,64 @@ struct
           let fname = Filename.temp_file "liquidsoap_buffer" "" in
           let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
           let ba = Bigarray.Array2.map_file fd Bigarray.float32 Bigarray.c_layout true chans buflen in
-            Unix.unlink fname;
             for c = 0 to chans - 1 do
               let bufc = buf.(c) in
                 for i = 0 to buflen - 1 do
                   Bigarray.Array2.set ba c i bufc.(i)
                 done
             done;
-            Queue.add (fname, fd, ba) q
+          Unix.close fd;
+          Queue.add (fname, chans, buflen) q
         )
 
-  let from_ba ba =
-    let chans = Bigarray.Array2.dim1 ba in
-    let buflen = Bigarray.Array2.dim2 ba in
-      Array.init
-        chans
-        (fun c ->
-           Array.init
-             buflen
-             (fun i -> Bigarray.Array2.get ba c i)
-        )
+  let from_file (fname,chans,buflen) =
+    try
+      let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
+      let ba = Bigarray.Array2.map_file fd Bigarray.float32 
+               Bigarray.c_layout true chans buflen 
+      in
+      let ret = 
+        Array.init
+          chans
+          (fun c ->
+             Array.init
+               buflen
+               (fun i -> Bigarray.Array2.get ba c i)
+          )
+      in
+      Unix.close fd;
+      ret
+    with
+      | _ -> 
+         Array.init
+           chans
+           (fun _ -> Array.make buflen 0.)
 
   let peek q =
-    let _, _, ba = Queue.peek q in
-      from_ba ba
+    let x = Queue.peek q in
+      from_file x
 
   let take q =
-    let fname, fd, ba = Queue.take q in
-    let buf = from_ba ba in
-      Unix.close fd;
+    let (fname,_,_) as x = Queue.take q in
+    let buf = from_file x in
+    try
+      Unix.unlink fname;
       buf
+    with
+      | _ -> buf
 
   let create () =
     let q = Queue.create () in
-    let empty q =
-      try
-        while true do
-          ignore (take q)
-        done
-      with
-        | Queue.Empty -> ()
+    let empty () =
+      let f (fname,_,_) = 
+        try
+          Unix.unlink fname
+        with
+          | _ -> ()
+      in
+      Queue.iter f q
     in
-      (* To clean up the files. *)
-      (* ignore (Dtools.Init.at_stop (fun () -> empty q)); *)
+      ignore (Dtools.Init.at_stop empty);
       q
 end
 

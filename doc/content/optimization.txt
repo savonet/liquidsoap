@@ -24,10 +24,19 @@ h4. Memory usage.
 Liquidsoap uses caml's @float@ to represent raw audio data. While this is a great optimization for 
 CPU usage, this may consume a lot of memory, in particular when buffering a lot of data.
 
-If you want to optimize memory usage in this kind of situations, the global setting @set("root.raw_buffering",true)@ 
+If you want to optimize memory usage in this kind of situations, the global setting @set("root.root.buffering_kind","raw")@ 
 will force data buffering to be done in PCM S16LE format, which representation in memory is smaller. 
 
-However, in this case, data will be translated back and forth for each buffering, leading to some computational 
+However, in this case, data will be translated back and forth for each buffering, leading to some computational
 cost.
 
+Other possible values for this operator are:
+
+* @"default"@: standard representation.
+* @"disk"@: will store temporary data in several big files. 
+* @"disk_manyfiles"@: will store temporary data in a lot of small files. This option
+ is less CPU-consuming than @"disk"@.
+
+For data stored on disk, the temporary directory can be set using the @TMPDIR@ environment variable 
+(more details in ocaml's Filename module documentation).
 
