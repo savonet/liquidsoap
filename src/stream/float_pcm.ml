@@ -20,8 +20,11 @@
 
  *****************************************************************************)
 
-let conf_raw_buffering =
-  Dtools.Conf.string ~p:(Root.conf#plug "buffering_kind") ~d:"default" 
+let conf_buffering =
+  Dtools.Conf.void ~p:(Configure.conf#plug "buffering") "Parameters for buffering."
+
+let conf_buffering_kind =
+  Dtools.Conf.string ~p:(conf_buffering#plug "kind") ~d:"default"
   "Kind of buffering for audio data (default|raw|disk|disk_manyfiles)."
     ~comments:[
       "If set to raw, liquidsoap will use raw s16le pcm format ";
@@ -32,6 +35,9 @@ let conf_raw_buffering =
       "Both non-default options can save a lot of memory when ";
       "buffering a lot of data, at the cost of some computational power.";
     ]
+
+let conf_buffering_path =
+  Dtools.Conf.string ~p:(conf_buffering#plug "path") ~d:"/tmp" "Path where data buffered on disk should be put."
 
 let create_buffer chans len =
   Array.init chans (fun _ -> Array.make len 0.)
@@ -139,6 +145,15 @@ struct
   let take q = from_s16le (Queue.take q)
 end
 
+let rec temp_buffer_file () =
+  try
+    let dir = conf_buffering_path#get in
+    let r = string_of_int (Random.int max_int) in
+    let fname = dir ^ "/liquidsoap_buffer" ^ r in
+      fname, Unix.openfile fname [Unix.O_RDWR; Unix.O_EXCL; Unix.O_CREAT] 0o600
+  with
+    | Unix.Unix_error (Unix.EACCES, _, _) -> temp_buffer_file ()
+
 module Disk_ringbuffer_queue =
 struct
   (** Resizable float ringbuffers. *)
@@ -240,8 +255,7 @@ struct
               done
           else
             (
-              let copy_fname = Filename.temp_file "liquidsoap_buffer" "" in
-              let copy_fd = Unix.openfile copy_fname [Unix.O_RDWR] 0o600 in
+              let copy_fname, copy_fd = temp_buffer_file () in
               let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
                 read_ba r copy_ba 0 len;
                 (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
@@ -341,9 +355,8 @@ struct
       Array.init
         chans
         (fun c ->
-           let fname = Filename.temp_file "liquidsoap_buffer" "" in
-           let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
-           ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
+           let fname, fd = temp_buffer_file () in
+             ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
              B.create fd
         )
 end
@@ -362,8 +375,7 @@ struct
     let buflen = Array.length buf.(0) in
       if buflen > 0 then
         (
-          let fname = Filename.temp_file "liquidsoap_buffer" "" in
-          let fd = Unix.openfile fname [Unix.O_RDWR] 0o600 in
+          let fname, fd = temp_buffer_file () in
           let ba = Bigarray.Array2.map_file fd Bigarray.float32 Bigarray.c_layout true chans buflen in
             for c = 0 to chans - 1 do
               let bufc = buf.(c) in
@@ -451,7 +463,7 @@ struct
   }
 
   let create_buffers () =
-    match conf_raw_buffering#get with
+    match conf_buffering_kind#get with
       | "raw" ->
           let queue = Raw_queue.create () in
             {
