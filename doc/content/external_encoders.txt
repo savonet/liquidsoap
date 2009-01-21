@@ -19,12 +19,12 @@ The available options are the same as the usual @output.file@ and @output.icecas
 with the following additions:
 * @process@: this parameter is a function that takes the current metadata and return the process to start.
 * @header@: if set to @false@ then no WAV header will be added to the data fed to the encoding process, thus the encoding process shall operate on RAW data.
-* @restart_on_crash@: wether to restart the encoding process if it crashed. Usefull when the external process fails to encode properly data after some time. Setting this to @true@ allows you to regulary kill the encoding process. Liquidsoap will then restart the encoder. Listeners will hardly notice it since the stream resumes at the current point. This workaround needs to be used for @lame@, since the encoder seems to produce garbage data after running for some time.
-* @restart_encoder@: restart encoding process on each new track. Usefull in conjonction with the @process@ parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
+* @restart_on_crash@: wether to restart the encoding process if it crashed. Useful when the external process fails to encode properly data after some time. Setting this to @true@ allows you to regulary kill the encoding process. Liquidsoap will then restart the encoder. Listeners will hardly notice it since the stream resumes at the current point. This workaround needs to be used for @lame@, since the encoder seems to produce garbage data after running for some time.
+* @restart_encoder@: restart encoding process on each new track. Useful in conjonction with the @process@ parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
 
 Some specific options are available for @output.icecast.external@:
 * @icy_metadata@: send new metadata as ICY update. This is the case for headerless formats, such as MP3 or AAC, and it appears to work also for ogg/vorbis streams.
-* @shout_raw@: ask shout not to do any synchronization. Usefull when sending formats that shout does not recognize, like AAC. Since liquidsoap is real-time, data is sent at real-rate anyway.
+* @shout_raw@: ask shout not to do any synchronization. Useful when sending formats that shout does not recognize, like AAC. Since liquidsoap is real-time, data is sent at real-rate anyway.
 * @format@: shout format. Must be one of "ogg" or "mp3". Use "mp3" for sending other headerless audio data, such as AAC.
 
 A full support for exotic codecs is not yet available in shout. Current shout API does not allow to set the @Content-Type@ parameter to any arbitrary value. A patch has been submited, hopefully, this limitation will be removed soon.
