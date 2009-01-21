@@ -45,7 +45,7 @@ module Generator :
   sig
     type t
 
-    val create : ?out_freq:int -> ?out_chans:int -> unit -> t
+    val create : ?out_freq:int -> ?out_chans:int -> ?length:int -> unit -> t
 
     (** Total number of output samples, ignoring track breaks. *)
     val length : t -> int

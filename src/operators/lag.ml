@@ -32,7 +32,7 @@ class lag (source:source) delay =
 object (self)
   inherit operator [source] as super
 
-  val abg = Generator.create ()
+  val abg = Generator.create ~length:past_len ()
   val past = Frame.make ()
   val mutable is_streaming = false
 

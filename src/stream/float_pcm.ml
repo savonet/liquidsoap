@@ -168,13 +168,21 @@ struct
       mutable wpos : int
     }
 
-    let create fd =
+    let create length fd =
+      (* Map the file, in order to create a buffer of the required length.. *)
+      let buffer = 
+        if length > 0 then
+          Some (Bigarray.Array1.map_file fd Bigarray.float32 
+                   Bigarray.c_layout true length)
+        else
+          None
+     in
       {
-        size = 0;
+        size = length;
         fd = fd;
-        buffer = None;
+        buffer = buffer;
         rpos = 0;
-        wpos = 0;
+        wpos = 0
       }
 
     let read_space t =
@@ -349,7 +357,7 @@ struct
     let len = Queue.take q in
       Array.init chans (fun c -> B.take a.(c) len)
 
-  let create () =
+  let create length =
     let chans = Fmt.channels () in
       Queue.create (),
       Array.init
@@ -357,7 +365,7 @@ struct
         (fun c ->
            let fname, fd = temp_buffer_file () in
              ignore (Dtools.Init.at_stop (fun () -> Unix.unlink fname));
-             B.create fd
+             B.create length fd
         )
 end
 
@@ -446,7 +454,8 @@ struct
    {
      add : float array array -> unit;
      peek : unit -> float array array;
-     take : unit -> float array array
+     take : unit -> float array array;
+     init_length : int
    }
 
   type t = {
@@ -462,28 +471,31 @@ struct
     mutable buffers  : buffer ;
   }
 
-  let create_buffers () =
+  let create_buffers length =
     match conf_buffering_kind#get with
       | "raw" ->
           let queue = Raw_queue.create () in
             {
               add = (fun buf -> Raw_queue.add buf queue);
               peek = (fun () -> Raw_queue.peek queue);
-              take = (fun () -> Raw_queue.take queue)
+              take = (fun () -> Raw_queue.take queue);
+              init_length = length
             }
       | "disk" ->
-          let queue = Disk_ringbuffer_queue.create () in
+          let queue = Disk_ringbuffer_queue.create length in
             {
               add = (fun buf -> Disk_ringbuffer_queue.add buf queue);
               peek = (fun () -> Disk_ringbuffer_queue.peek queue);
-              take = (fun () -> Disk_ringbuffer_queue.take queue)
+              take = (fun () -> Disk_ringbuffer_queue.take queue);
+              init_length = length
             }
       | "disk_manyfiles" ->
           let queue = Disk_manyfiles_queue.create () in
             {
               add = (fun buf -> Disk_manyfiles_queue.add buf queue);
               peek = (fun () -> Disk_manyfiles_queue.peek queue);
-              take = (fun () -> Disk_manyfiles_queue.take queue)
+              take = (fun () -> Disk_manyfiles_queue.take queue);
+              init_length = length
             }
       | _ ->
           (* TODO: do not silently do this when the value is not "default". *)
@@ -491,12 +503,14 @@ struct
             {
               add = (fun buf -> Queue.add buf queue);
               peek = (fun () -> Queue.peek queue);
-              take = (fun () -> Queue.take queue)
+              take = (fun () -> Queue.take queue);
+              init_length = length
             }
 
 
   let create ?(out_freq = Fmt.samples_per_second())
-             ?(out_chans = Fmt.channels()) () =
+             ?(out_chans = Fmt.channels()) 
+             ?(length = 0) () =
     let conv = Audio_converter.Samplerate.create out_chans in
       {
         out_freq  = out_freq ;
@@ -505,7 +519,7 @@ struct
         breaks    = [] ;
         length    = 0 ;
         offset    = 0 ;
-        buffers   = create_buffers () ;
+        buffers   = create_buffers length ;
         resample  = Audio_converter.Samplerate.resample conv ;
       }
 
@@ -519,7 +533,7 @@ struct
   let clear abg =
     abg.length <- 0;
     abg.offset <- 0;
-    abg.buffers <- create_buffers ();
+    abg.buffers <- create_buffers abg.buffers.init_length;
     abg.metadata <- [];
     abg.breaks <- []
 
