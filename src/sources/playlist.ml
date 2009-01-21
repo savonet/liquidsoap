@@ -74,7 +74,9 @@ let rec list_files (log : Log.t) dir =
   in
     files@(List.concat (List.map (fun d -> list_files log d) dirs))
 
-class virtual vplaylist mime reload random playlist_uri timeout =
+class virtual vplaylist ~mime ~reload 
+                       ~random ~timeout 
+                       ~prefix playlist_uri =
 object (self)
 
   method virtual is_valid : string -> bool
@@ -184,6 +186,10 @@ object (self)
                       reason uri ;
                     Request.destroy req ;
                     []
+    in
+    (* Add prefix to all requests. *)
+    let _playlist = 
+      List.map (Printf.sprintf "%s%s" prefix) _playlist
     in
       (* TODO distinguish error and empty if fallible *)
       if _playlist = [] && reload then
@@ -357,11 +363,19 @@ object (self)
 end
 
 (** Standard playlist, with a queue. *)
-class playlist mime reload_meth rand_meth uri length default_duration timeout =
+class playlist ~mime ~reload 
+               ~random ~length 
+               ~default_duration
+               ~timeout ~prefix 
+               uri =
 object
 
-  inherit vplaylist mime reload_meth rand_meth uri timeout as pl
-  inherit Request_source.queued ~length ~default_duration ~timeout () as super
+  inherit vplaylist ~mime ~reload 
+                    ~random ~timeout 
+                    ~prefix uri as pl
+  inherit Request_source.queued 
+            ~length ~default_duration 
+            ~timeout () as super
 
   method reload_playlist_internal a b c =
     pl#reload_playlist_internal a b c ;
@@ -380,10 +394,13 @@ end
 
 (** Safe playlist, without queue and playing only local files,
   * which never fails. *)
-class safe_playlist mime reload_meth rand_meth local_playlist timeout =
+class safe_playlist ~mime ~reload ~random
+                   ~timeout ~prefix local_playlist =
 object (self)
 
-  inherit vplaylist mime reload_meth rand_meth local_playlist timeout as pl
+  inherit vplaylist ~mime ~reload ~random
+                    ~timeout ~prefix 
+                    local_playlist as pl
   inherit Request_source.unqueued as super
 
   method wake_up =
@@ -441,6 +458,14 @@ let () =
       Some "Default MIME type for the playlist. \
             Empty string means automatic detection." ;
 
+      "prefix",
+      Lang.string_t,
+      Some (Lang.string ""),
+      Some "Add a constant prefix to all requests. \
+            Usefull for passing extra information using annotate, \
+            or for resolution through a particular protocol, such \
+            as replaygain." ;
+
       "timeout",
       Lang.float_t,
       Some (Lang.float 20.),
@@ -479,16 +504,21 @@ let () =
       ~descr:"Loop on a playlist of URIs."
       (Request_source.queued_proto@proto)
       (fun params ->
-         let reload,random,timeout,mime,uri =
+         let reload,random,timeout,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
              (random_of (e "mode")),
              (Lang.to_float (e "timeout")),
              (Lang.to_string (e "mime_type")),
-             (Lang.to_string (e ""))
+             (Lang.to_string (e "")),
+             (Lang.to_string (e "prefix"))
          in
-         let l,d,t = Request_source.extract_queued_params params in
-           ((new playlist mime reload random uri l d t):>source)) ;
+         let length,default_duration,timeout = 
+                Request_source.extract_queued_params params 
+         in
+           ((new playlist ~mime ~reload ~prefix 
+                          ~length ~default_duration
+                          ~timeout ~random uri):>source)) ;
 
     Lang.add_operator "playlist.safe"
       ~category:Lang.Input
@@ -500,12 +530,14 @@ let () =
               in order to ensure the liveness of the streamer."
       proto
       (fun params ->
-         let reload,random,timeout,mime,uri =
+          let reload,random,timeout,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
              (random_of (e "mode")),
              (Lang.to_float (e "timeout")),
              (Lang.to_string (e "mime_type")),
-             (Lang.to_string (e ""))
+             (Lang.to_string (e "")),
+             (Lang.to_string (e "prefix"))
          in
-           ((new safe_playlist mime reload random uri timeout):>source))
+           ((new safe_playlist ~mime ~reload ~prefix
+                               ~random ~timeout uri):>source))

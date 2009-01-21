@@ -35,6 +35,9 @@ New:
  - Added speex support for files and HTTP streams.
  - Added EXPERIMENTAL support for AU, AIFF and NSV mp3 audio files
    using ocaml-natty.
+ - Added "prefix" parameter to the playlist operators. Allows to prefix
+   each uri in order to force resolution through a specific protocol, 
+   like replaygain: for instance. (#166)
  - Support for external processes as audio encoder:
    * Added output.icecast.lame to output to icecast using the lame binary.
    * Added output.icecast.flac to output to icecast using the flac binary.
