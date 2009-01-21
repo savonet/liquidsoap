@@ -39,7 +39,7 @@ object (self)
   method stype = Source.Infallible 
 
   method remaining = 
-    if is_streaming then
+    if is_streaming && source#remaining >= 0 then
       Generator.remaining abg + source#remaining
     else
       -1
