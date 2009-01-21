@@ -31,8 +31,11 @@ type t = {
  * wpos stores the current write position *)
 
 let create chans size =
-  { size = size ;
-    buffer = Array.init chans (fun _ -> Array.create size 0.) ;
+  {
+    (* size + 1 since we can only write size - 1 because we want at least 1
+     * sample between write and read pointers. *)
+    size = size + 1 ;
+    buffer = Array.init chans (fun _ -> Array.create (size + 1) 0.) ;
     rpos = 0 ;
     wpos = 0
   }
