@@ -30,26 +30,21 @@ module Generated = Generated.From_Float_pcm_Generator
 class lag (source:source) delay =
   let past_len = Fmt.samples_of_seconds delay in
 object (self)
-  inherit source
-  inherit Generated.source
-            (Generator.create ())
-            ~empty_on_abort:false ~bufferize:delay as generated
+  inherit operator [source] as super
 
+  val abg = Generator.create ()
   val past = Frame.make ()
-
   val mutable is_streaming = false
 
   method stype = Source.Infallible 
 
   method remaining = 
     if is_streaming then
-      generated#remaining
+      Generator.remaining abg + source#remaining
     else
       -1
 
   method is_ready = true
-
-  method get_ready = source#get_ready
 
   method abort_track = 
     self#log#f 2 "Track skip in delayed stream will be delayed !";
@@ -61,34 +56,24 @@ object (self)
     if Generator.length abg < past_len then
      begin 
       (* Get new data *)
-      if source#is_ready then
+      while Frame.is_partial past do
+        source#get past
+      done;
+      Generator.feed_from_frame abg past
+     end;
+   begin
+    if Generator.length abg >= past_len then
+      if not is_streaming then
        begin
-        source#get past;
-        Generator.feed_from_frame abg past;
+        self#log#f 3 "Switching to buffered data.";
+        is_streaming <- true;
        end
-      else
-       begin
-        let len = AFrame.size past in
-        AFrame.blankify past 0 len;
-        AFrame.add_break past len;
-        Generator.feed_from_frame abg past;
-       end
-     end
-    else
-     if not is_streaming then
-      begin
-       self#log#f 3 "Switching to buffered data.";
-       is_streaming <- true;
-      end;
-    if is_streaming && Generator.length abg > 0 then
+   end;
+   assert(Generator.length abg < past_len || is_streaming);
+   if is_streaming then
       Generator.fill abg buf
-    else
+   else
      begin
-      if is_streaming then
-       begin
-        self#log#f 3 "Buffer empty: switching to blank.";
-        is_streaming <- false;
-       end;
       let pos = AFrame.position buf in
       let len = AFrame.size buf in
       AFrame.blankify buf pos (len-pos);
@@ -99,7 +84,7 @@ end
 let () =
   Lang.add_operator "lag"
     [ "", Lang.float_t, None, Some "Delay in seconds.";
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t, None, Some "Original source. Must be infaillible." ]
     ~category:Lang.SoundProcessing
     ~descr:"Add a constant delay to a stream, \
             filling with blank when not available. \
@@ -111,4 +96,6 @@ let () =
          Lang.to_float (f 1),
          Lang.to_source (f 2)
        in
-         (new lag src duration :>source))
+       if src#stype <> Infallible then
+         raise (Lang.Invalid_value (f 2,"That source should be infallible.")) ;
+       (new lag src duration :>source))
