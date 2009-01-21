@@ -347,8 +347,9 @@ struct
           r.rpos <- 0;
           r.wpos <- len
 
-    (** Adds space {i at the end}. You should use [compact] before. *)
+    (** Adds space {i at the end}. *)
     let resize r len =
+      compact r;
       if len = 0 then
         (
           r.size <- 0;
@@ -365,7 +366,6 @@ struct
     let write t buff off len =
       if len > write_space t then
         (
-          compact t;
           (* Heuristics in order to avoid growing too often. *)
           let grow =
             let grow_duration = if t.size < Sys.max_array_length / 2 then 0.5 else 10. in
