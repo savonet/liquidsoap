@@ -203,10 +203,11 @@ struct
       let pre = t.size - t.rpos in
       let extra = len - pre in
       let buffer = t.buffer in
+      let rpos = t.rpos in
         if extra > 0 then
           (
             for i = 0 to pre - 1 do
-              buff.(i + off) <- buffer.{i + t.rpos}
+              buff.(i + off) <- buffer.{i + rpos}
             done;
             for i = 0 to extra - 1 do
               buff.(i + off + pre) <- buffer.{i}
@@ -214,7 +215,7 @@ struct
           )
         else
           for i = 0 to len - 1 do
-            buff.(i + off) <- buffer.{i + t.rpos}
+            buff.(i + off) <- buffer.{i + rpos}
           done
 
     let read_ba t buff off len =
@@ -222,10 +223,11 @@ struct
       let pre = t.size - t.rpos in
       let extra = len - pre in
       let buffer = t.buffer in
+      let rpos = t.rpos in
         if extra > 0 then
           (
             for i = 0 to pre - 1 do
-              buff.{i + off} <- buffer.{i + t.rpos}
+              buff.{i + off} <- buffer.{i + rpos}
             done;
             for i = 0 to extra - 1 do
               buff.{i + off + pre} <- buffer.{i}
@@ -233,7 +235,7 @@ struct
           )
         else
           for i = 0 to len - 1 do
-            buff.{i + off} <- buffer.{i + t.rpos}
+            buff.{i + off} <- buffer.{i + rpos}
           done
 
     let to_array r =
@@ -249,24 +251,26 @@ struct
         (* If data is small enough for arrays then use them, otherwise use a
          * bigarray. *)
         if len < Sys.max_array_length / 2 then
-          let a = to_array r in
-            for i = 0 to len - 1 do
-              buffer.{i} <- a.(i)
-            done
-            else
-              (
-                let copy_fname, copy_fd = temp_buffer_file () in
-                let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
-                  read_ba r copy_ba 0 len;
-                  (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
-                  for i = 0 to len - 1 do
-                    buffer.{i} <- copy_ba.{i}
-                  done;
-                  Unix.close copy_fd;
-                  Unix.unlink copy_fname
-              );
-            r.rpos <- 0;
-            r.wpos <- len
+          (
+            let a = to_array r in
+              for i = 0 to len - 1 do
+                buffer.{i} <- a.(i)
+              done
+          )
+        else
+          (
+            let copy_fname, copy_fd = temp_buffer_file () in
+            let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
+              read_ba r copy_ba 0 len;
+              (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
+              for i = 0 to len - 1 do
+                buffer.{i} <- copy_ba.{i}
+              done;
+              Unix.close copy_fd;
+              Unix.unlink copy_fname
+          );
+        r.rpos <- 0;
+        r.wpos <- len
 
     (** Adds space {i at the end}. *)
     let resize r len =
@@ -289,10 +293,11 @@ struct
       let pre = t.size - t.wpos in
       let extra = len - pre in
       let buffer = t.buffer in
+      let wpos = t.wpos in
         if extra > 0 then
           (
             for i = 0 to pre - 1 do
-              buffer.{i + t.wpos} <- buff.(i + off)
+              buffer.{i + wpos} <- buff.(i + off)
             done;
             for i = 0 to extra - 1 do
               buffer.{i} <- buff.(i + off + pre)
@@ -300,7 +305,7 @@ struct
           )
         else
           for i = 0 to len - 1 do
-            buffer.{i + t.wpos} <- buff.(i + off)
+            buffer.{i + wpos} <- buff.(i + off)
           done
 
     let append r buf =
