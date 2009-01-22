@@ -162,30 +162,23 @@ struct
     type t = {
       mutable size : int ;
       fd : Unix.file_descr;
-      (* Option type is for handling empty arrays... *)
-      mutable buffer : (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t option;
+      mutable buffer : (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t;
       mutable rpos : int ;
       mutable wpos : int
     }
 
     let create length fd =
       (* We can only write r.size - 1! *)
-      let length = if length = 0 then 0 else length + 1 in
+      let length = length + 1 in
       (* Map the file, in order to create a buffer of the required length.. *)
-      let buffer =
-        if length > 0 then
-          Some (Bigarray.Array1.map_file fd Bigarray.float32 
-                   Bigarray.c_layout true length)
-        else
-          None
-     in
-      {
-        size = length;
-        fd = fd;
-        buffer = buffer;
-        rpos = 0;
-        wpos = 0
-      }
+      let buffer = Bigarray.Array1.map_file fd Bigarray.float32 Bigarray.c_layout true length in
+        {
+          size = length;
+          fd = fd;
+          buffer = buffer;
+          rpos = 0;
+          wpos = 0
+        }
 
     let read_space t =
       if t.wpos >= t.rpos then (t.wpos - t.rpos)
@@ -207,43 +200,41 @@ struct
 
     let read t buff off len =
       assert (len <= read_space t);
-      if len > 0 then
-        let pre = t.size - t.rpos in
-        let extra = len - pre in
-        let buffer = Utils.get_some t.buffer in
-          if extra > 0 then
-            (
-              for i = 0 to pre - 1 do
-                buff.(i + off) <- buffer.{i + t.rpos}
-              done;
-              for i = 0 to extra - 1 do
-                buff.(i + off + pre) <- buffer.{i}
-              done
-            )
-          else
-            for i = 0 to len - 1 do
+      let pre = t.size - t.rpos in
+      let extra = len - pre in
+      let buffer = t.buffer in
+        if extra > 0 then
+          (
+            for i = 0 to pre - 1 do
               buff.(i + off) <- buffer.{i + t.rpos}
+            done;
+            for i = 0 to extra - 1 do
+              buff.(i + off + pre) <- buffer.{i}
             done
+          )
+        else
+          for i = 0 to len - 1 do
+            buff.(i + off) <- buffer.{i + t.rpos}
+          done
 
     let read_ba t buff off len =
       assert (len <= read_space t);
-      if len > 0 then
-        let pre = t.size - t.rpos in
-        let extra = len - pre in
-        let buffer = Utils.get_some t.buffer in
-          if extra > 0 then
-            (
-              for i = 0 to pre - 1 do
-                buff.{i + off} <- buffer.{i + t.rpos}
-              done;
-              for i = 0 to extra - 1 do
-                buff.{i + off + pre} <- buffer.{i}
-              done
-            )
-          else
-            for i = 0 to len - 1 do
+      let pre = t.size - t.rpos in
+      let extra = len - pre in
+      let buffer = t.buffer in
+        if extra > 0 then
+          (
+            for i = 0 to pre - 1 do
               buff.{i + off} <- buffer.{i + t.rpos}
+            done;
+            for i = 0 to extra - 1 do
+              buff.{i + off + pre} <- buffer.{i}
             done
+          )
+        else
+          for i = 0 to len - 1 do
+            buff.{i + off} <- buffer.{i + t.rpos}
+          done
 
     let to_array r =
       let len = read_space r in
@@ -253,48 +244,37 @@ struct
 
     (** Compact the ringbuffer, i.e. put all the data at the beginning. *)
     let compact r =
-      if r.size > 0 then
-        let len = read_space r in
-        let buffer = Utils.get_some r.buffer in
-          (* If data is small enough for arrays then use them, otherwise use a
-           * bigarray. *)
-          if len < Sys.max_array_length / 2 then
-            let a = to_array r in
-              for i = 0 to len - 1 do
-                buffer.{i} <- a.(i)
-              done
-          else
-            (
-              let copy_fname, copy_fd = temp_buffer_file () in
-              let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
-                read_ba r copy_ba 0 len;
-                (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
-                for i = 0 to len - 1 do
-                  buffer.{i} <- copy_ba.{i}
-                done;
-                Unix.close copy_fd;
-                Unix.unlink copy_fname
-            );
-          r.rpos <- 0;
-          r.wpos <- len
+      let len = read_space r in
+      let buffer = r.buffer in
+        (* If data is small enough for arrays then use them, otherwise use a
+         * bigarray. *)
+        if len < Sys.max_array_length / 2 then
+          let a = to_array r in
+            for i = 0 to len - 1 do
+              buffer.{i} <- a.(i)
+            done
+            else
+              (
+                let copy_fname, copy_fd = temp_buffer_file () in
+                let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
+                  read_ba r copy_ba 0 len;
+                  (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
+                  for i = 0 to len - 1 do
+                    buffer.{i} <- copy_ba.{i}
+                  done;
+                  Unix.close copy_fd;
+                  Unix.unlink copy_fname
+              );
+            r.rpos <- 0;
+            r.wpos <- len
 
     (** Adds space {i at the end}. *)
     let resize r len =
       (* We can only write r.size - 1! *)
-      let len = if len = 0 then 0 else len + 1 in
+      let len = len + 1 in
         compact r;
-        if len = 0 then
-          (
-            r.size <- 0;
-            r.buffer <- None;
-            r.rpos <- 0;
-            r.wpos <- 0
-          )
-        else
-          (
-            r.size <- len;
-            r.buffer <- Some (Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len)
-          )
+        r.size <- len;
+        r.buffer <- Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len
 
     let write t buff off len =
       if len > write_space t then
@@ -306,23 +286,22 @@ struct
           in
             resize t (t.size + grow)
         );
-      if len > 0 then
-        let pre = t.size - t.wpos in
-        let extra = len - pre in
-        let buffer = Utils.get_some t.buffer in
-          if extra > 0 then
-            (
-              for i = 0 to pre - 1 do
-                buffer.{i + t.wpos} <- buff.(i + off)
-              done;
-              for i = 0 to extra - 1 do
-                buffer.{i} <- buff.(i + off + pre)
-              done
-            )
-          else
-            for i = 0 to len - 1 do
+      let pre = t.size - t.wpos in
+      let extra = len - pre in
+      let buffer = t.buffer in
+        if extra > 0 then
+          (
+            for i = 0 to pre - 1 do
               buffer.{i + t.wpos} <- buff.(i + off)
+            done;
+            for i = 0 to extra - 1 do
+              buffer.{i} <- buff.(i + off + pre)
             done
+          )
+        else
+          for i = 0 to len - 1 do
+            buffer.{i + t.wpos} <- buff.(i + off)
+          done
 
     let append r buf =
       let buflen = Array.length buf in
