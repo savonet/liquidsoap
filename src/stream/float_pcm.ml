@@ -169,8 +169,10 @@ struct
     }
 
     let create length fd =
+      (* We can only write r.size - 1! *)
+      let length = if length = 0 then 0 else length + 1 in
       (* Map the file, in order to create a buffer of the required length.. *)
-      let buffer = 
+      let buffer =
         if length > 0 then
           Some (Bigarray.Array1.map_file fd Bigarray.float32 
                    Bigarray.c_layout true length)
@@ -278,19 +280,21 @@ struct
 
     (** Adds space {i at the end}. *)
     let resize r len =
-      compact r;
-      if len = 0 then
-        (
-          r.size <- 0;
-          r.buffer <- None;
-          r.rpos <- 0;
-          r.wpos <- 0
-        )
-      else
-        (
-          r.size <- len;
-          r.buffer <- Some (Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len)
-        )
+      (* We can only write r.size - 1! *)
+      let len = if len = 0 then 0 else len + 1 in
+        compact r;
+        if len = 0 then
+          (
+            r.size <- 0;
+            r.buffer <- None;
+            r.rpos <- 0;
+            r.wpos <- 0
+          )
+        else
+          (
+            r.size <- len;
+            r.buffer <- Some (Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len)
+          )
 
     let write t buff off len =
       if len > write_space t then
@@ -300,8 +304,7 @@ struct
             let grow_duration = if t.size < Sys.max_array_length / 2 then 0.5 else 10. in
               max (len - write_space t) (Fmt.samples_of_seconds grow_duration)
           in
-            (* We can only write t.size - 1! *)
-            resize t (t.size + grow + 1)
+            resize t (t.size + grow)
         );
       if len > 0 then
         let pre = t.size - t.wpos in
