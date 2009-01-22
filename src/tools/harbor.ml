@@ -413,13 +413,14 @@ let handle_client ~icy socket =
                  | false -> parse_http_request_line
   in
   let process l =
-    let l =
-      match List.rev l with
-        | []
-        | _ :: [] -> assert false (* Should not happen *)
-        | e :: l -> List.rev l
-    in
     try
+      let l =
+       match List.rev l with
+         | []
+         | _ :: [] -> (* Should not happen *)
+             raise (Failure "Invalid input data")
+         | e :: l -> List.rev l
+      in
       let s =
         match l with
           | s :: _ -> s

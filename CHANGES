@@ -4,7 +4,7 @@ Bugs fixed:
  - Fixed unix server socket failure (#160).
  - Fixed mp3 audio glitches when decoding 
    files with picture id3v2 tags using ocaml-mad (#162).
- - Fixed liquidsoap crash on weird telnet input (#164).
+ - Fixed liquidsoap crash on weird telnet and harbor input (#164).
  - Fixed request.queue() not considering initial queue on wake-up (#196).
  - Fixed source leak in append().
  - Fixed after_output propagation in the transitions of switches (#208).
