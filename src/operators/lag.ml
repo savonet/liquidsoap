@@ -32,13 +32,13 @@ class lag (source:source) delay =
 object (self)
   inherit operator [source] as super
 
-  val abg = Generator.create ~length:past_len ()
+  val abg = Generator.create ~length:(past_len + Fmt.samples_per_frame ()) ()
   val past = Frame.make ()
   val mutable is_streaming = false
 
-  method stype = Source.Infallible 
+  method stype = Source.Infallible
 
-  method remaining = 
+  method remaining =
     if is_streaming && source#remaining >= 0 then
       Generator.remaining abg + source#remaining
     else
