@@ -108,3 +108,13 @@ module From_Float_pcm_Generator =
          let add_metadata = Float_pcm.Generator.add_metadata
          let fill_frame = Float_pcm.Generator.fill
        end)
+
+module From_Raw_pcm_Generator =
+  Make(struct
+         type t = Float_pcm.Generator_from_raw.t
+         let length x = Fmt.ticks_of_samples (Float_pcm.Generator_from_raw.length x)
+         let remaining x = Float_pcm.Generator_from_raw.remaining x
+         let clear = Float_pcm.Generator_from_raw.clear
+         let add_metadata = Float_pcm.Generator_from_raw.add_metadata
+         let fill_frame = Float_pcm.Generator_from_raw.fill
+       end)

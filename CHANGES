@@ -42,6 +42,8 @@ New:
    * Added output.icecast.lame to output to icecast using the lame binary.
    * Added output.icecast.flac to output to icecast using the flac binary.
    * Full generic support awaits some changes in libshout.
+ - Support for external processes as audio stream decoder:
+   * Added input.mplayer to stream data coming from mplayer.
  - Support for external processes as audio file decoder:
    * Added support for flac audio files using the flac binary.
    * Added support for m4a files using the faad binary.

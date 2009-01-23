@@ -27,7 +27,8 @@ h4. Documentation
 * "Blank detection":blank.html
 * "Cookbook":cookbook.html: contains lots of idiomatic examples.
 * "Customize metadata":metadata.html
-* "External decoders":external_decoders.html: use externals programs for decoding audio files.
+* "External decoders":external_decoders.html: use an external program for decoding audio files.
+* "External streams":external_streams.html: use an external program for streaming audio data.
 * "External encoders":external_encoders.html: use an external audio encoding program.
 * "HTTP input vs. Harbor input":http_vs_harbor.html: relay and host external streams.
 * "Normalization and replay gain":replay_gain.html

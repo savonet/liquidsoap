@@ -1,11 +1,11 @@
 title: External decoders.
 
-h3. Introduction.
+h3. Introduction
 
 You can use external programs in liquidsoap to decode audio files. The program must be able to
 output WAV data to its standard output (@stdout@).
 
-h3. Basic operators.
+h3. Basic operators
 
 External decoders are registered using the @add_decoder@ operator. It is invoked the following way: @add_decoder(format,decoder)@, where:
 
@@ -19,11 +19,11 @@ You may also register new metadata resolvers using the @add_metadata_resolver@ o
 ** @format@ contains the name of the format, as returned by the decoder that accepted to decode the file. @f@ may return immediately if this is not an expected value. 
 ** @file@ is the name of the file to decode.
 
-h3. Wrappers.
+h3. Wrappers
 
 On top of the basic operators, wrappers have been written for some common decoders. This includes the @flac@ and @faad@ decoders, by default, and @mplayer@, if enabled. All the operators are defined in @utils.liq@.
 
-h4. The FLAC decoder.
+h4. The FLAC decoder
 
 The flac decoder uses the @flac@ command line. It is enabled if the binary can be found in the current @$PATH@.
 
@@ -77,7 +77,7 @@ else
 end
 %%
 
-h4. The faad decoder.
+h4. The faad decoder
 
 The faad decoder uses the @faad@ program, if found in the @$PATH@. It can decode AAC and AAC+ audio files.
 
@@ -115,7 +115,7 @@ else
 end
 %%
 
-h4. Mplayer decoder.
+h4. Mplayer decoder
 
 This decoder makes use of the @mplayer@ program, if it is enabled, and the program can be found in the @$PATH@.
 It allows liquidsoap to decode any file for which mplayer is able to decode an audio track. This will include video files, if some are found in your playlists, for instance.
