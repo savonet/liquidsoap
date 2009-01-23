@@ -8,6 +8,7 @@
 
 #include <opal.h>
 #include <limits.h>
+#include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
 
@@ -135,24 +136,18 @@ CAMLprim value caml_opal_set_protocol_parameters(value h, value username, value 
 }
 
 /* TODO: not a global value */
-value write_cb;
+int write_fd;
 
-int MyWriteMediaData(const char *token, const char *id, const char *format, void *userData, void *data, int size)
+static int MyWriteMediaData(const char *token, const char *id, const char *format, void *userData, void *data, int size)
 {
-  value vdata;
+  int len;
 
-  caml_leave_blocking_section();
+  len = write(write_fd, data, size);
 
-  vdata = caml_alloc_string(size);
-  memcpy(String_val(vdata), data, size);
-  /* Also give the token and the id? */
-  caml_callback2(write_cb, caml_copy_string(format), vdata);
-  caml_enter_blocking_section();
-
-  return size;
+  return len;
 }
 
-CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, value auto_tx_media, value write_callback)
+CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, value auto_tx_media, value w_fd)
 {
   OpalHandle hOPAL = Handle_val(h);
   OpalMessage command;
@@ -165,8 +160,7 @@ CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, va
   command.m_param.m_general.m_mediaWriteData = MyWriteMediaData;
   command.m_param.m_general.m_mediaDataHeader = OpalMediaDataPayloadOnly; /* TODO: param */
 
-  write_cb = write_callback;
-  caml_register_global_root(&write_cb); /* TODO: unregister */
+  write_fd = Int_val(w_fd);
 
   assert(response = MySendCommand(hOPAL, &command));
   FreeMessageFunction(response);

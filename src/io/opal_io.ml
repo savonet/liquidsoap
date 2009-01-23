@@ -1,7 +1,7 @@
 type t
 external init : unit -> t = "caml_opal_init"
 external shutdown : t -> unit = "caml_opal_shutdown"
-external set_general_parameters : t -> string -> string -> (string -> string -> unit) -> unit = "caml_opal_set_general_parameters"
+external set_general_parameters : t -> string -> string -> Unix.file_descr -> unit = "caml_opal_set_general_parameters"
 external set_protocol_parameters : t -> string -> string -> string -> unit = "caml_opal_set_protocol_parameters"
 
 (** {2 Messages} *)
@@ -15,6 +15,8 @@ type message_type =
 external get_message_type : message -> message_type = "caml_opal_get_message_type"
 external answer_call : t -> string -> unit = "caml_opal_answer_call"
 
+let ringbuffer_frames = 10
+
 class input =
 object (self)
   inherit Source.active_source
@@ -26,10 +28,13 @@ object (self)
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo
 
+  val write_pipe = Unix.pipe ()
+  val write_rb = Ringbuffer.create (Fmt.channels ()) (Fmt.samples_per_frame () * ringbuffer_frames)
+
   method output_get_ready =
     (* TODO: init only once *)
     let h = init () in
-    let reader () =
+    let message_handler () =
       while true do
         let m = get_message h in
           (
@@ -43,11 +48,26 @@ object (self)
           free_message m
       done
     in
+    let reader () =
+      let fd = fst write_pipe in
+      let buflen = 512 in
+      let buf = String.create (buflen*4) in
+      let fbuf = Array.init (Fmt.channels ()) (fun _ -> Array.make buflen 0.) in
+        while true do
+          let len = Unix.read fd buf 0 (buflen*4) in
+            Float_pcm.from_s16le fbuf 0 buf 0 (len/4);
+            if Ringbuffer.write_space write_rb <= len/4 then
+              Ringbuffer.write write_rb fbuf 0 (len/4)
+            else
+              (); (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
+        done
+    in
       handle <- Some h;
       ignore (Dtools.Init.at_stop (fun () -> shutdown h));
-      set_general_parameters h "audio" "audio" (fun f d -> Printf.printf "Read %s.\n%!" f);
+      set_general_parameters h "audio" "audio" (snd write_pipe);
       set_protocol_parameters h "liq" "Liquidsoap live" "*";
-      ignore (Thread.create reader ())
+      ignore (Thread.create reader ());
+      ignore (Thread.create message_handler ())
 
   method output_reset = ()
   method is_active = true
@@ -55,12 +75,20 @@ object (self)
   method get_frame frame =
     assert (0 = AFrame.position frame) ;
     let buf = AFrame.get_float_pcm frame in
-    let samples = Array.length buf.(0) in
-    let len = 2 * (Array.length buf) * samples in
-    let s = String.create len in
-      (* TODO: fill s... *)
-      Float_pcm.from_s16le buf 0 s 0 samples;
-      AFrame.add_break frame (AFrame.size frame)
+    let samples = AFrame.size frame in
+      (
+        let available = Ringbuffer.read_space write_rb in
+          if available <> 0 then
+            Printf.printf "Available: %d.\n%!" available;
+      );
+      if Ringbuffer.read_space write_rb >= samples then
+        (
+          Printf.printf "Wrote frame.\n%!";
+          Ringbuffer.read write_rb buf 0 samples
+        )
+      else
+        (); (* Printf.printf "Not enough samples in ringbuffer.\n%!"; *)
+      AFrame.add_break frame samples
 end
 
 let () =
