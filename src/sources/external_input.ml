@@ -58,7 +58,7 @@ object (self)
     in
     let (in_e,in_d) as x = create () in
     let tmpbuf = String.create 1024 in
-    let rec process ((in_e,in_d) as x) _ = 
+    let rec process ((in_e,in_d) as x) l = 
       let get_data () =
         let ret = input in_e tmpbuf 0 1024 in
         if ret = 0 then raise (Finished ("Process exited.",restart));
@@ -99,8 +99,9 @@ object (self)
            [`Delay delay]
         else
          begin
+          if List.mem (`Read in_d) l then
            get_data ();
-           [`Read in_d]
+          [`Read in_d]
          end
       in
       [{ Duppy.Task.
