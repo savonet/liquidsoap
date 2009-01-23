@@ -56,10 +56,10 @@ object (self)
         while true do
           let len = Unix.read fd buf 0 (buflen*4) in
             Float_pcm.from_s16le fbuf 0 buf 0 (len/4);
-            if Ringbuffer.write_space write_rb <= len/4 then
-              Ringbuffer.write write_rb fbuf 0 (len/4)
+            if Ringbuffer.write_space write_rb >= len/4 then
+                Ringbuffer.write write_rb fbuf 0 (len/4)
             else
-              (); (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
+              () (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
         done
     in
       handle <- Some h;
@@ -76,16 +76,13 @@ object (self)
     assert (0 = AFrame.position frame) ;
     let buf = AFrame.get_float_pcm frame in
     let samples = AFrame.size frame in
-      (
+      (*
         let available = Ringbuffer.read_space write_rb in
           if available <> 0 then
             Printf.printf "Available: %d.\n%!" available;
-      );
+       *)
       if Ringbuffer.read_space write_rb >= samples then
-        (
-          Printf.printf "Wrote frame.\n%!";
           Ringbuffer.read write_rb buf 0 samples
-        )
       else
         (); (* Printf.printf "Not enough samples in ringbuffer.\n%!"; *)
       AFrame.add_break frame samples
