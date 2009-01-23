@@ -37,7 +37,8 @@ let conf_buffering_kind =
     ]
 
 let conf_buffering_path =
-  Dtools.Conf.string ~p:(conf_buffering#plug "path") ~d:Filename.temp_dir_name "Path where data buffered on disk should be put."
+  Dtools.Conf.string ~p:(conf_buffering#plug "path") ~d:Filename.temp_dir_name 
+  "Path where data buffered on disk should be put."
 
 let create_buffer chans len =
   Array.init chans (fun _ -> Array.make len 0.)
