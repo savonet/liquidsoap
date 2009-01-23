@@ -131,6 +131,41 @@ fi
 AC_SUBST(W_RTP)
 AC_SUBST(ORTP_INCLUDE)
 
+# opal
+
+AC_ARG_WITH([opal-include],
+   AC_HELP_STRING(
+      [--with-opal-include=path],
+      [look for opal headers in path (defaults to /usr/include/opal)]))
+AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],[don't use opal]))
+
+W_OPAL=""
+w_OPAL=no
+if test "x$enable_opal" != "xno" ; then
+  AC_MSG_CHECKING(for libopal)
+
+  if test -z "$with_opal_include" ; then
+    OPAL_INCLUDE=/usr/include/opal
+  else
+    OPAL_INCLUDE=$with_opal_include
+  fi
+
+  if test \! -f ${OPAL_INCLUDE}/opal.h ; then
+    AC_MSG_RESULT(Header not found: ${OPAL_INCLUDE}/opal.h)
+    W_OPAL=""
+    w_OPAL=no
+  else
+    W_OPAL=yes
+    w_OPAL=yes
+    AC_MSG_RESULT(ok)
+  fi
+else
+  AC_MSG_RESULT(no)
+fi
+
+AC_SUBST(W_OPAL)
+AC_SUBST(OPAL_INCLUDE)
+
 # V4L
 
 AC_ARG_WITH([v4l-include],
@@ -1210,7 +1245,7 @@ let enc_of_name s =
 let conf_tag =
   Dtools.Conf.void ~p:(conf#plug "tag") "Settings related to metadata tags"
 let conf_encoding =
-  (* The [["foo";"bla"]] may be stripped by configure here.. We avoided it by chance because 
+  (* The [["foo";"bla"]] may be stripped by configure here.. We avoided it by chance because
    * the configure script takes conf_tag#plug as the begining of a comment.
    * Don't forget this when modifying this inclusion later... *)
   Dtools.Conf.list ~p:(conf_tag#plug "encodings") ~d:["UTF-8";"ISO-8859-1"]
@@ -1221,11 +1256,11 @@ let custom_encoding = ref None
 let get_encoding () =
   match !custom_encoding with
     | Some e -> e
-    | None -> 
+    | None ->
         let encs = conf_encoding#get in
-	let e = C.automatic "LIQ-TAGS" (List.map enc_of_name encs) C.utf8 in
-        custom_encoding := Some e ;
-	e
+        let e = C.automatic "LIQ-TAGS" (List.map enc_of_name encs) C.utf8 in
+          custom_encoding := Some e ;
+          e
 
 let recode_tag ?encoding s =
   let in_enc =
@@ -1788,6 +1823,7 @@ cat <<EOMSG
    - Old JACK          : $w_JACK
    - RTP               : $w_RTP
    - V4L               : $w_V4L
+   - opal              : $w_OPAL
 
  * Audio manipulation
    - Samplerate        : $w_SAMPLERATE

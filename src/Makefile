@@ -33,7 +33,7 @@ formats = \
 	formats/externalformat.ml \
 	$(if $(W_NSV),formats/nattyformat_mp3.ml) \
 	$(if $(W_NATTY),formats/nattyformat.ml) \
-	$(if $(W_MP3),formats/mp3.ml)  
+	$(if $(W_MP3),formats/mp3.ml)
 #	formats/midiformat.ml
 
 playlists = \
@@ -121,6 +121,7 @@ io = $(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
 	$(if $(W_JACK),io/jack_io.ml) \
 	$(if $(W_V4L),io/v4l_io_c.c) \
 	$(if $(W_V4L),io/v4l_io.ml) \
+	$(if $(W_OPAL),io/opal_io_c.o io/opal_io.ml) \
 	io/marshal_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
@@ -161,7 +162,7 @@ OCAML_CFLAGS= -thread \
 	-I tools -I lang -I playlists -I stream -I outputs -I formats -I video_converters \
 	-I sources -I operators -I io -I visualization -I analyze -I ogg_formats \
 	-I audio_converters
-OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp)
+OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp) $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists -I video_converters \
 		  -I outputs -I io -I stream -I visualization -I analyze -I ogg_formats \
 		  -I audio_converters
@@ -192,6 +193,8 @@ stream/rgb_c.o: stream/rgb_c.c
 	$(MAKE) -C stream rgb_c.o
 io/oss_io_c.o: io/oss_io_c.c
 	$(MAKE) -C io oss_io_c.o
+io/opal_io_c.o: io/opal_io_c.c
+	$(MAKE) -C io opal_io_c.o
 
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
