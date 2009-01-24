@@ -78,10 +78,14 @@ object (self)
     let dev = self#get_device in
     sleep <- false ;
     read <- 0 ; write <- 0 ;
-    let reader = Mutex.create () in
-    ignore (Tutils.create (fun l -> self#writer dev l) reader "jack_capture") ;
+    let m = Mutex.create () in
+    let c = Condition.create () in
+    Mutex.lock m;
+    ignore (Tutils.create 
+         (fun _ -> self#writer dev m c) () "jack_capture") ;
     (* Wait for the first buffer input. *)
-    Mutex.lock reader
+    Condition.wait c m;
+    Mutex.unlock m
 
   method get_block dev = 
         let length = samples_per_frame * channels * bytes_per_sample in
@@ -94,14 +98,16 @@ object (self)
          done;
          !ans
 
-  method writer dev reader_lock =
+  method writer dev m c =
       let fill block =
          buffer.(block mod nb_blocks) <- self#get_block dev 
       in
         (* Fill the first block *)
         fill 0 ;
         write <- 1 ;
-        Mutex.unlock reader_lock ;
+        Mutex.lock m ;
+        Condition.signal c;
+        Mutex.unlock m;
         (* Filling loop *)
         while not sleep do
           if read <> write &&
