@@ -27,8 +27,6 @@ class output ~nb_blocks ~server source =
   let channels = Fmt.channels () in
   let samples_per_frame = Fmt.samples_per_frame () in
   let samples_per_second = Fmt.samples_per_second () in
-  let bufferize = (nb_blocks <> 0) in
-  let nb_blocks = if not bufferize then 1 else nb_blocks in
 object (self)
   inherit Output.output ~name:"output.jack" ~kind:"output.jack" source true
 
@@ -64,12 +62,9 @@ object (self)
 
   method output_start =
     let dev = self#get_device in
-    if bufferize then
-    begin
-      sleep <- false ;
-      read <- 0 ; write <- 0 ;
-      ignore (Tutils.create (fun () -> self#reader dev) () "jack_playback")
-    end
+    sleep <- false ;
+    read <- 0 ; write <- 0 ;
+    ignore (Tutils.create (fun () -> self#reader dev) () "jack_playback")
 
   method write_block dev data = 
     let len = String.length data in
@@ -96,21 +91,13 @@ object (self)
       Bjack.close device
 
   method output_send wav =
-    if bufferize then
-      if read <> write &&
-         write mod nb_blocks = read mod nb_blocks then
-        self#log#f 4 "Reader not ready!"
-      else begin
-        ignore (Float_pcm.to_s16le (AFrame.get_float_pcm wav) 0 (AFrame.size wav)
-                  buffer.(write mod nb_blocks) 0) ;
-        write <- (write + 1) mod (2*nb_blocks)
-      end
+    if read <> write &&
+      write mod nb_blocks = read mod nb_blocks then
+      self#log#f 4 "Reader not ready!"
     else begin
-      let dev = self#get_device in
-      let s = String.create (samples_per_frame * channels * bytes_per_sample) in
       ignore (Float_pcm.to_s16le (AFrame.get_float_pcm wav) 0 (AFrame.size wav)
-                  s 0) ;
-      self#write_block dev s
+                buffer.(write mod nb_blocks) 0) ;
+      write <- (write + 1) mod (2*nb_blocks)
     end
 
   method output_reset = ()

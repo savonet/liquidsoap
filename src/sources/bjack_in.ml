@@ -29,8 +29,6 @@ class jack_in ~nb_blocks ~server =
   let samples_per_frame = Fmt.samples_per_frame () in
   let samples_per_second = Fmt.samples_per_second () in
   let bytes_per_sample = 2 in
-  let bufferize = (nb_blocks <> 0) in
-  let nb_blocks = if not bufferize then 1 else nb_blocks in
   let blank = String.make (samples_per_frame * channels * bytes_per_sample) '0' in
 object (self)
   inherit active_source
@@ -78,15 +76,12 @@ object (self)
 
   method output_get_ready =
     let dev = self#get_device in
-    if bufferize then
-      begin
-        sleep <- false ;
-        read <- 0 ; write <- 0 ;
-        let reader = Mutex.create () in
-        ignore (Tutils.create (fun l -> self#writer dev l) reader "jack_capture") ;
-        (* Wait for the first buffer input. *)
-        Mutex.lock reader
-      end
+    sleep <- false ;
+    read <- 0 ; write <- 0 ;
+    let reader = Mutex.create () in
+    ignore (Tutils.create (fun l -> self#writer dev l) reader "jack_capture") ;
+    (* Wait for the first buffer input. *)
+    Mutex.lock reader
 
   method get_block dev = 
         let length = samples_per_frame * channels * bytes_per_sample in
@@ -120,21 +115,15 @@ object (self)
   method get_frame buf =
     assert (0 = AFrame.position buf) ;
     let buffer =
-      if bufferize then
-      begin
-        (* Check that the writer still has an advance.
-         * Otherwise play blank for waiting.. *)
-        if write = read then begin
-          log#f 4 "No available frame!" ;
-          blank
-        end else
-          let b = buffer.(read mod nb_blocks) in
-            read <- (read + 1) mod (2*nb_blocks) ;
-            b
-      end
-      else 
-        let dev = self#get_device in
-        self#get_block dev
+      (* Check that the writer still has an advance.
+       * Otherwise play blank for waiting.. *)
+      if write = read then begin
+        log#f 4 "No available frame!" ;
+        blank
+      end else
+        let b = buffer.(read mod nb_blocks) in
+          read <- (read + 1) mod (2*nb_blocks) ;
+          b
     in
     let fbuf = AFrame.get_float_pcm buf in
       Float_pcm.from_s16le fbuf 0 buffer 0 samples_per_frame ;
