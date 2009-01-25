@@ -146,7 +146,7 @@ let () =
   Lang.add_operator "input.jack"
     ["buffer_size",
       Lang.int_t, Some (Lang.int 2),
-      Some "Set buffer size, in frames. 0 means unbuffered input.";
+      Some "Set buffer size, in frames. Must be >= 1.";
      "server",
       Lang.string_t, Some (Lang.string ""),
       Some "Jack server to connect to." ]
