@@ -47,6 +47,9 @@ let conf_icy =
 let conf_timeout =
   Conf.float ~p:(conf_harbor#plug "timeout") ~d:30.
         "Timeout for source connections."
+let conf_pass_verbose =
+  Conf.bool ~p:(conf_harbor_pass#plug "verbose") ~d:false
+        "Display passwords, for debugging."
 
 let log = Log.make ["harbor"]
 
@@ -169,7 +172,10 @@ let parse_headers headers =
       | Not_found -> l
   in
   let headers = List.fold_right split_header headers [] in
-  List.iter (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v) headers ;
+  let display_headers = 
+    List.filter (fun (x,_) -> conf_pass_verbose#get || x <> "AUTHORIZATION") headers
+  in
+  List.iter (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v) display_headers ;
   headers
 
 let auth_check ~login c uri headers =
@@ -196,7 +202,8 @@ let auth_check ~login c uri headers =
           Str.split (Str.regexp ":") (Utils.decode64 (List.nth data 1))
         in
         let user,pass = List.nth auth_data 0, List.nth auth_data 1 in
-          log#f 4 "Requested username: %s, password: %s." user pass ;
+          if conf_pass_verbose#get then
+            log#f 4 "Requested username: %s, password: %s." user pass ;
           if not (auth_f user pass) then
             raise Not_authenticated ;
           (* OK *)
