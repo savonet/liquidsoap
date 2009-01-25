@@ -29,7 +29,7 @@ object (self)
   method output = if AFrame.is_partial memo then self#get_frame memo
 
   val write_pipe = Unix.pipe ()
-  val write_rb = Ringbuffer.create (Fmt.channels ()) (Fmt.samples_per_frame () * ringbuffer_frames)
+  val write_rb = Ringbuffer.TS.create (Fmt.channels ()) (Fmt.samples_per_frame () * ringbuffer_frames)
 
   method output_get_ready =
     (* TODO: init only once *)
@@ -56,8 +56,8 @@ object (self)
         while true do
           let len = Unix.read fd buf 0 (buflen*4) in
             Float_pcm.from_s16le fbuf 0 buf 0 (len/4);
-            if Ringbuffer.write_space write_rb >= len/4 then
-                Ringbuffer.write write_rb fbuf 0 (len/4)
+            if Ringbuffer.TS.write_space write_rb >= len/4 then
+                Ringbuffer.TS.write write_rb fbuf 0 (len/4)
             else
               () (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
         done
@@ -77,12 +77,12 @@ object (self)
     let buf = AFrame.get_float_pcm frame in
     let samples = AFrame.size frame in
       (*
-        let available = Ringbuffer.read_space write_rb in
+        let available = Ringbuffer.TS.read_space write_rb in
           if available <> 0 then
             Printf.printf "Available: %d.\n%!" available;
        *)
-      if Ringbuffer.read_space write_rb >= samples then
-          Ringbuffer.read write_rb buf 0 samples
+      if Ringbuffer.TS.read_space write_rb >= samples then
+          Ringbuffer.TS.read write_rb buf 0 samples
       else
         (); (* Printf.printf "Not enough samples in ringbuffer.\n%!"; *)
       AFrame.add_break frame samples

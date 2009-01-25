@@ -62,3 +62,25 @@ val write : t -> float array array -> int -> int -> unit
   * ringbuffer [rb] through [f] and returns the length of the chunk actually
   * read by [f]. *)
 val transmit : t -> (float array array -> int -> int -> int) -> int
+
+(** Thread-safe interface. *)
+module TS :
+sig
+  type t
+
+  val create : int -> int -> t
+
+  val read_space : t -> int
+
+  val write_space : t -> int
+
+  val read_advance : t -> int -> unit
+
+  val write_advance : t -> int -> unit
+
+  val read : t -> float array array -> int -> int -> unit
+
+  val write : t -> float array array -> int -> int -> unit
+
+  val transmit : t -> (float array array -> int -> int -> int) -> int
+end

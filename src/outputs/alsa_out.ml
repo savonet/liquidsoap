@@ -57,7 +57,7 @@ object (self)
   val mutable alsa_rate = 0
   val mutable write =
     (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
-  val mutable ring = Ringbuffer.create channels 0
+  val mutable ring = Ringbuffer.TS.create channels 0
 
   val samplerate_converter = Audio_converter.Samplerate.create channels
 
@@ -100,12 +100,12 @@ object (self)
         self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
              alsa_rate bufsize (Pcm.get_frame_size params) periods#get ;
         Pcm.set_params dev params ;
-	let ringsize = Fmt.samples_of_seconds (conf_buffer_length#get) in
-        ring <- Ringbuffer.create channels ringsize;
-        (* Now feed half of the ringbuffer with blank *)
-        Ringbuffer.write_advance ring (ringsize/2);
-        ignore
-          (Tutils.create (fun () -> self#reader dev bufsize) () "alsa_playback")
+        let ringsize = Fmt.samples_of_seconds (conf_buffer_length#get) in
+          ring <- Ringbuffer.TS.create channels ringsize;
+          (* Now feed half of the ringbuffer with blank *)
+          Ringbuffer.TS.write_advance ring (ringsize/2);
+          ignore
+            (Tutils.create (fun () -> self#reader dev bufsize) () "alsa_playback")
     with
       | Unknown_error n when false -> raise (Error (string_of_error n))
 
@@ -116,7 +116,7 @@ object (self)
       Pcm.prepare dev ;
       while not sleep && not !Root.shutdown do
         try
-          if Ringbuffer.transmit ring (Pcm.writen_float dev) = 0
+          if Ringbuffer.TS.transmit ring (Pcm.writen_float dev) = 0
           then (
             self#log#f 3 "Writer is late!" ;
             Thread.delay (seconds_per_frame/.2.)
@@ -137,11 +137,11 @@ object (self)
     let buf = Audio_converter.Samplerate.resample samplerate_converter 
                   ratio buf 0 (Array.length buf.(0)) 
     in
-      if Ringbuffer.write_space ring < Array.length buf.(0) then begin
+      if Ringbuffer.TS.write_space ring < Array.length buf.(0) then begin
         if false then self#log#f 3 "Reader is late!" ;
         (* Thread.delay (Mixer.Buffer.length/.2.) *)
       end else
-        Ringbuffer.write ring buf 0 (Array.length buf.(0))
+        Ringbuffer.TS.write ring buf 0 (Array.length buf.(0))
 
   method output_reset = ()
 end
