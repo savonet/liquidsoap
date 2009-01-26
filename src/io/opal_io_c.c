@@ -322,6 +322,12 @@ CAMLprim value caml_opal_get_message_type(value msg)
 
   switch (message->m_type)
   {
+    case OpalIndAlerting:
+      CAMLreturn(Val_int(1));
+
+    case OpalIndEstablished:
+      CAMLreturn(Val_int(2));
+
     case OpalIndIncomingCall:
       ans = caml_alloc(7, 0);
       Store_field(ans, 0, caml_copy_string(message->m_param.m_incomingCall.m_callToken));
@@ -333,8 +339,17 @@ CAMLprim value caml_opal_get_message_type(value msg)
       Store_field(ans, 6, caml_copy_string(message->m_param.m_incomingCall.m_calledPartyNumber));
       CAMLreturn(ans);
 
-    case OpalIndAlerting:
-      break;
+    case OpalIndCallCleared:
+      ans = caml_alloc(1, 1);
+      Store_field(ans, 0, caml_copy_string(message->m_param.m_callCleared.m_reason?message->m_param.m_callCleared.m_reason:""));
+      CAMLreturn(ans);
+
+    case OpalIndMediaStream:
+      ans = caml_alloc(3, 2);
+      Store_field(ans, 0, caml_copy_string(message->m_param.m_mediaStream.m_type));
+      Store_field(ans, 1, Val_bool(message->m_param.m_mediaStream.m_state == OpalMediaStateOpen));
+      Store_field(ans, 2, caml_copy_string(message->m_param.m_mediaStream.m_format));
+      CAMLreturn(ans);
 
     default:
       break;

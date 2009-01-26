@@ -34,7 +34,11 @@ struct
 
   type message_type =
     | Type_unknown
+    | Type_ind_alerting
+    | Type_ind_established
     | Type_ind_incoming_call of string * string * string * string * string * string * string (** call token, local address, remote address, remote party number, remote display name, called address, called party number *)
+    | Type_ind_call_cleared of string
+    | Type_ind_media_stream of string * bool * string (** type, state is opened, format *)
 
   external get_message_type : message -> message_type = "caml_opal_get_message_type"
 
@@ -68,6 +72,14 @@ object (self)
               | Opal.Type_ind_incoming_call (t, la, ra, rpn, rdn, ca, cpn) ->
                   Printf.printf "Call from %s (%s to %s).\n%!" rdn ra la;
                   Opal.answer_call h t
+              | Opal.Type_ind_alerting ->
+                  Printf.printf "Ringing.\n%!"
+              | Opal.Type_ind_established ->
+                  Printf.printf "Connection established.\n%!"
+              | Opal.Type_ind_call_cleared s ->
+                  Printf.printf "Call cleared: %s.\n%!" s
+              | Opal.Type_ind_media_stream (t, o, f) ->
+                  Printf.printf "Media stream %s %s using %s.\n%!" t (if o then "opened" else "closed") f
               | _ -> ()
           );
           Opal.free_message m
