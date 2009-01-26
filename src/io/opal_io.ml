@@ -1,19 +1,22 @@
-type t
-external init : unit -> t = "caml_opal_init"
-external shutdown : t -> unit = "caml_opal_shutdown"
-external set_general_parameters : t -> string -> string -> Unix.file_descr -> unit = "caml_opal_set_general_parameters"
-external set_protocol_parameters : t -> string -> string -> string -> unit = "caml_opal_set_protocol_parameters"
+module Opal =
+struct
+  type t
+  external init : unit -> t = "caml_opal_init"
+  external shutdown : t -> unit = "caml_opal_shutdown"
+  external set_general_parameters : t -> string -> string -> Unix.file_descr -> unit = "caml_opal_set_general_parameters"
+  external set_protocol_parameters : t -> string -> string -> string -> unit = "caml_opal_set_protocol_parameters"
 
-(** {2 Messages} *)
-type message
-external get_message : t -> int option -> message = "caml_opal_get_message"
-let get_message ?timeout h = get_message h timeout
-external free_message : message -> unit = "caml_opal_free_message"
-type message_type =
-  | Type_unknown
-  | Type_ind_incoming_call of string * string * string * string * string * string * string (** call token, local address, remote address, remote party number, remote display name, called address, called party number *)
-external get_message_type : message -> message_type = "caml_opal_get_message_type"
-external answer_call : t -> string -> unit = "caml_opal_answer_call"
+  (** {2 Messages} *)
+  type message
+  external get_message : t -> int option -> message = "caml_opal_get_message"
+  let get_message ?timeout h = get_message h timeout
+  external free_message : message -> unit = "caml_opal_free_message"
+  type message_type =
+    | Type_unknown
+    | Type_ind_incoming_call of string * string * string * string * string * string * string (** call token, local address, remote address, remote party number, remote display name, called address, called party number *)
+  external get_message_type : message -> message_type = "caml_opal_get_message_type"
+  external answer_call : t -> string -> unit = "caml_opal_answer_call"
+end
 
 let ringbuffer_frames = 10
 
@@ -34,19 +37,19 @@ object (self)
 
   method output_get_ready =
     (* TODO: init only once *)
-    let h = init () in
+    let h = Opal.init () in
     let message_handler () =
       while true do
-        let m = get_message h in
+        let m = Opal.get_message h in
           (
             Printf.printf "Got message!\n%!";
-            match get_message_type m with
-              | Type_ind_incoming_call (t, la, ra, rpn, rdn, ca, cpn) ->
+            match Opal.get_message_type m with
+              | Opal.Type_ind_incoming_call (t, la, ra, rpn, rdn, ca, cpn) ->
                   Printf.printf "Call from %s (%s to %s).\n%!" rdn ra la;
-                  answer_call h t
+                  Opal.answer_call h t
               | _ -> ()
           );
-          free_message m
+          Opal.free_message m
       done
     in
     let fd = fst write_pipe in
@@ -68,9 +71,9 @@ object (self)
        }]
     in
       handle <- Some h;
-      ignore (Dtools.Init.at_stop (fun () -> shutdown h));
-      set_general_parameters h "audio" "audio" (snd write_pipe);
-      set_protocol_parameters h "liq" "Liquidsoap live" "*";
+      ignore (Dtools.Init.at_stop (fun () -> Opal.shutdown h));
+      Opal.set_general_parameters h "audio" "audio" (snd write_pipe);
+      Opal.set_protocol_parameters h "liq" "Liquidsoap live" "*";
       ignore (Thread.create message_handler ());
       let task = 
         { Duppy.Task.
