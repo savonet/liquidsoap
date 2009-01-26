@@ -20,7 +20,7 @@ struct
   let set_protocol_parameters ~username ~displayname ?(interface="*") h =
     set_protocol_parameters h username displayname interface
 
-  external read_data : t -> string * string * string * string = "caml_opal_read_data" (* token, id, format, data *)
+  external read_data : t -> string * string * string * string = "caml_opal_read_data" (** token, id, format, data *)
 
 
   (** {2 Messages} *)
@@ -67,7 +67,6 @@ object (self)
       while true do
         let m = Opal.get_message h in
           (
-            Printf.printf "Got message!\n%!";
             match Opal.get_message_type m with
               | Opal.Type_ind_incoming_call (t, la, ra, rpn, rdn, ca, cpn) ->
                   Printf.printf "Call from %s (%s to %s).\n%!" rdn ra la;
@@ -80,7 +79,8 @@ object (self)
                   Printf.printf "Call cleared: %s.\n%!" s
               | Opal.Type_ind_media_stream (t, o, f) ->
                   Printf.printf "Media stream %s %s using %s.\n%!" t (if o then "opened" else "closed") f
-              | _ -> ()
+              | _ ->
+                  Printf.printf "Unknown message.\n%!"
           );
           Opal.free_message m
       done
