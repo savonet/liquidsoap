@@ -50,6 +50,9 @@ OpalFreeMessageFunction FreeMessageFunction;
 
 #define Handle_val(v) ((OpalHandle)v)
 
+/* TODO: not a global value */
+int write_fd[2];
+
 CAMLprim value caml_opal_init(value unit)
 {
   OpalHandle hOPAL;
@@ -74,6 +77,8 @@ CAMLprim value caml_opal_init(value unit)
   hOPAL = InitialiseFunction(&version, OPAL_PREFIX_H323 " " OPAL_PREFIX_SIP " " OPAL_PREFIX_IAX2 " " OPAL_PREFIX_LOCAL " TraceLevel=4");
   caml_leave_blocking_section();
   assert(hOPAL);
+  write_fd[0] = -1;
+  write_fd[1] = -1;
 
   return (value)hOPAL;
 }
@@ -135,19 +140,123 @@ CAMLprim value caml_opal_set_protocol_parameters(value h, value username, value 
   return Val_unit;
 }
 
-/* TODO: not a global value */
-int write_fd;
+static void write_int(int fd, int n)
+{
+  assert(write(fd, &n, sizeof(int)) == sizeof(int));
+}
+
+static int read_int(int fd)
+{
+  int n;
+
+  assert(read(fd, &n, sizeof(int)) == sizeof(int));
+
+  return n;
+}
+
+static void write_data(int fd, const char *s, int len)
+{
+  int wc = 0;
+  int n;
+
+  while (wc < len)
+  {
+    n = write(fd, s+wc, len-wc);
+    assert(n > 0);
+    wc += n;
+  }
+}
+
+static void write_string(int fd, const char *s)
+{
+  int len = strlen(s)+1;
+
+  write_int(fd, len);
+  write_data(fd, s, len);
+}
+
+static void read_data(int fd, char *s, int len)
+{
+  int rc = 0;
+  int n;
+
+  while (rc < len)
+  {
+    n = read(fd, s+rc, len-rc);
+    assert(n > 0);
+    rc += n;
+  }
+}
+
+static char* read_string(int fd)
+{
+  int len;
+  char *s;
+
+  len = read_int(fd);
+  s = malloc(len);
+  read_data(fd, s, len);
+  return s;
+}
+
+static void write_packet(int fd, const char *token, const char *id, const char *format, void *data, int size)
+{
+  write_string(fd, token);
+  write_string(fd, id);
+  write_string(fd, format);
+  write_int(fd, size);
+  write_data(fd, data, size);
+}
 
 static int MyWriteMediaData(const char *token, const char *id, const char *format, void *userData, void *data, int size)
 {
-  int len;
+  if (size == 0)
+    return 0;
 
-  len = write(write_fd, data, size);
+  //printf("OPAL: writing %d bytes.\n", size);
 
-  return len;
+  //len = write(write_fd, data, size);
+  write_packet(write_fd[1], token, id, format, data, size);
+
+  return size;
 }
 
-CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, value auto_tx_media, value w_fd)
+CAMLprim value caml_opal_read_data(value h)
+{
+  CAMLparam1(h);
+  CAMLlocal1(ans);
+  int fd = write_fd[0];
+  int data_len;
+  char *token, *id, *format, *data;
+
+  /* TODO: fail if write callback is not used */
+  assert(fd >= 0);
+
+  caml_enter_blocking_section();
+  token = read_string(fd);
+  id = read_string(fd);
+  format = read_string(fd);
+  data_len = read_int(fd);
+  data = malloc(data_len);
+  read_data(fd, data, data_len);
+  caml_leave_blocking_section();
+
+  ans = caml_alloc_tuple(4);
+  Store_field(ans, 0, caml_copy_string(token));
+  Store_field(ans, 1, caml_copy_string(id));
+  Store_field(ans, 2, caml_copy_string(format));
+  Store_field(ans, 3, caml_alloc_string(data_len));
+  memcpy(String_val(Field(ans, 3)), data, data_len);
+
+  free(token);
+  free(id);
+  free(format);
+  free(data);
+
+  CAMLreturn(ans);
+}
+
+CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, value auto_tx_media, value write)
 {
   OpalHandle hOPAL = Handle_val(h);
   OpalMessage command;
@@ -157,10 +266,13 @@ CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, va
   command.m_type = OpalCmdSetGeneralParameters;
   command.m_param.m_general.m_autoRxMedia = String_val(auto_rx_media);
   command.m_param.m_general.m_autoTxMedia = String_val(auto_tx_media);
-  command.m_param.m_general.m_mediaWriteData = MyWriteMediaData;
   command.m_param.m_general.m_mediaDataHeader = OpalMediaDataPayloadOnly; /* TODO: param */
 
-  write_fd = Int_val(w_fd);
+  if (Bool_val(write))
+  {
+    assert(!pipe(write_fd));
+    command.m_param.m_general.m_mediaWriteData = MyWriteMediaData;
+  }
 
   assert(response = MySendCommand(hOPAL, &command));
   FreeMessageFunction(response);
