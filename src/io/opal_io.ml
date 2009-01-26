@@ -18,6 +18,7 @@ external answer_call : t -> string -> unit = "caml_opal_answer_call"
 let ringbuffer_frames = 10
 
 class input =
+  let priority = Tutils.Non_blocking in
 object (self)
   inherit Source.active_source
 
@@ -48,26 +49,37 @@ object (self)
           free_message m
       done
     in
-    let reader () =
-      let fd = fst write_pipe in
-      let buflen = 512 in
-      let buf = String.create (buflen*4) in
-      let fbuf = Array.init (Fmt.channels ()) (fun _ -> Array.make buflen 0.) in
-        while true do
-          let len = Unix.read fd buf 0 (buflen*4) in
-            Float_pcm.from_s16le fbuf 0 buf 0 (len/4);
-            if Ringbuffer.TS.write_space write_rb >= len/4 then
-                Ringbuffer.TS.write write_rb fbuf 0 (len/4)
-            else
-              () (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
-        done
+    let fd = fst write_pipe in
+    let events = [`Read fd] in
+    let buflen = 512 in
+    let buf = String.create (buflen*4) in
+    let fbuf = Array.init (Fmt.channels ()) (fun _ -> Array.make buflen 0.) in
+    let rec reader _ =
+      let len = Unix.read fd buf 0 (buflen*4) in
+       Float_pcm.from_s16le fbuf 0 buf 0 (len/4);
+       if Ringbuffer.TS.write_space write_rb >= len/4 then
+         Ringbuffer.TS.write write_rb fbuf 0 (len/4)
+       else
+         (); (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
+       [{ Duppy.Task.
+           priority = priority;
+           events   = events;
+           handler  = reader
+       }]
     in
       handle <- Some h;
       ignore (Dtools.Init.at_stop (fun () -> shutdown h));
       set_general_parameters h "audio" "audio" (snd write_pipe);
       set_protocol_parameters h "liq" "Liquidsoap live" "*";
-      ignore (Thread.create reader ());
-      ignore (Thread.create message_handler ())
+      ignore (Thread.create message_handler ());
+      let task = 
+        { Duppy.Task.
+           priority = priority;
+           events   = events;
+           handler  = reader
+        }
+      in
+      Duppy.Task.add Tutils.scheduler task
 
   method output_reset = ()
   method is_active = true
