@@ -75,17 +75,21 @@ object (self)
     in
     let rec reader () =
       let buflen = 1024 in
-      let fbuf = Array.make buflen 0. in
+      let fbuf = [|Array.make buflen 0.|] in
+      let conv = Audio_converter.Samplerate.create 1 in
         while true do
           let token, id, fmt, data = Opal.read_data h in
           let len = String.length data / 2 in
             (* Printf.printf "Received %d bytes of %s for stream %s on call %s.\n%!" len fmt id token; *)
+            assert (fmt = "PCM-16-16kHz");
             assert (len <= buflen);
-            Float_pcm.from_s16le [|fbuf|] 0 data 0 len;
-            if Ringbuffer.TS.write_space write_rb >= len then
-              Ringbuffer.TS.write write_rb [|fbuf;fbuf|] 0 len
-            else
-              () (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
+            Float_pcm.from_s16le fbuf 0 data 0 len;
+            let fbuf = Audio_converter.Samplerate.resample conv (44.1 /. 16.) fbuf 0 len in
+            let fbuf = let fbuf = fbuf.(0) in Array.create (Fmt.channels ()) fbuf in
+              if Ringbuffer.TS.write_space write_rb >= len then
+                Ringbuffer.TS.write write_rb fbuf 0 len
+              else
+                () (* Printf.printf "Not enough space in ringbuffer. Dropping.\n%!" *)
         done
     in
       handle <- Some h;
