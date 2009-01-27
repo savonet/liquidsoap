@@ -145,9 +145,10 @@ object (self)
           end;
         ret
       in
-      let stop () =
+      let stop ~read () =
         self#log#f 4 "reading task exited: closing process.";
-        ignore(Unix.read out_p " " 0 1); 
+        if read then
+          ignore(Unix.read out_p " " 0 1); 
         begin
          try
           ignore(Unix.close_process enc);
@@ -170,13 +171,13 @@ object (self)
          else
           begin
             self#log#f 4 "Reading task reached end of data";
-            stop (); []
+            stop ~read:false (); []
           end
         end
       else
         begin
          assert(List.mem (`Read out_p) l);
-         stop (); []
+         stop ~read:true (); []
         end
     in
     Duppy.Task.add Tutils.scheduler
