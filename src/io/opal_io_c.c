@@ -305,13 +305,15 @@ CAMLprim value caml_opal_free_message(value msg)
   return Val_unit;
 }
 
-CAMLprim value caml_opal_get_message(value h, value timeout)
+CAMLprim value caml_opal_get_message(value h, value to)
 {
   OpalHandle hOPAL = Handle_val(h);
   OpalMessage *message;
+  unsigned int timeout;
 
+  timeout = Is_long(to)?UINT_MAX:Int_val(Field(to, 0));
   caml_enter_blocking_section();
-  message = GetMessageFunction(hOPAL, UINT_MAX); /* TODO: use timeout */
+  message = GetMessageFunction(hOPAL, timeout);
   caml_leave_blocking_section();
 
   assert(message);
