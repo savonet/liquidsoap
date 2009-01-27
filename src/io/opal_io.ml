@@ -69,18 +69,18 @@ object (self)
           (
             match Opal.get_message_type m with
               | Opal.Type_ind_incoming_call (t, la, ra, rpn, rdn, ca, cpn) ->
-                  self#log#f 2 "Call from %s (%s to %s)." rdn ra la;
+                  self#log#f 3 "Call from %s (%s to %s)." rdn ra la;
                   Opal.answer_call h t
               | Opal.Type_ind_alerting ->
-                  self#log#f 2 "Ringing."
+                  self#log#f 3 "Ringing."
               | Opal.Type_ind_established ->
-                  self#log#f 2 "Connection established."
+                  self#log#f 3 "Connection established."
               | Opal.Type_ind_call_cleared s ->
-                  self#log#f 2 "Call cleared: %s." s
+                  self#log#f 3 "Call cleared: %s." s
               | Opal.Type_ind_media_stream (t, o, f) ->
-                  self#log#f 2 "Media stream %s %s using %s." t (if o then "opened" else "closed") f
+                  self#log#f 3 "Media stream %s %s using %s." t (if o then "opened" else "closed") f
               | _ ->
-                  self#log#f 2 "Unknown message."
+                  self#log#f 3 "Unknown message."
           );
           Opal.free_message m
       done
@@ -89,19 +89,27 @@ object (self)
       let buflen = 1024 in
       let fbuf = [|Array.make buflen 0.|] in
       let conv = Audio_converter.Samplerate.create 1 in
+      let outfreq = float_of_int (Fmt.samples_per_second ()) in
         while true do
           let token, id, fmt, data = Opal.read_data h in
           let len = String.length data / 2 in
-            (* self#log#f 2 "Received %d bytes of %s for stream %s on call %s." len fmt id token; *)
-            assert (fmt = "PCM-16-16kHz");
+          let infreq =
+            match fmt with
+              | "PCM-16" -> 8000.
+              | "PCM-16-16kHz" -> 16000.
+              | _ ->
+                  self#log#f 2 "Cannot handle %s format." fmt;
+                  assert false
+          in
+            (* self#log#f 5 "Received %d bytes of %s for stream %s on call %s." len fmt id token; *)
             assert (len <= buflen);
             Float_pcm.from_s16le fbuf 0 data 0 len;
-            let fbuf = Audio_converter.Samplerate.resample conv (44.1 /. 16.) fbuf 0 len in
+            let fbuf = Audio_converter.Samplerate.resample conv (outfreq /. infreq) fbuf 0 len in
             let fbuf = let fbuf = fbuf.(0) in Array.create (Fmt.channels ()) fbuf in
               if Ringbuffer.TS.write_space write_rb >= len then
                 Ringbuffer.TS.write write_rb fbuf 0 len
               else
-                () (* self#log#f 2 "Not enough space in ringbuffer. Dropping." *)
+                () (* self#log#f 4 "Not enough space in ringbuffer. Dropping." *)
         done
     in
       handle <- Some h;
@@ -121,12 +129,12 @@ object (self)
       (*
         let available = Ringbuffer.TS.read_space write_rb in
           if available <> 0 then
-            self#log#f 2 "Available: %d." available;
+            self#log#f 6 "Available: %d." available;
        *)
       if Ringbuffer.TS.read_space write_rb >= samples then
           Ringbuffer.TS.read write_rb buf 0 samples
       else
-        (); (* self#log#f 2 "Not enough samples in ringbuffer."; *)
+        (); (* self#log#f 4 "Not enough samples in ringbuffer."; *)
       AFrame.add_break frame samples
 end
 
