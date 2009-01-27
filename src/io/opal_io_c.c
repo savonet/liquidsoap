@@ -105,18 +105,23 @@ static OpalMessage *MySendCommand(OpalHandle hOPAL, OpalMessage *command)
   caml_leave_blocking_section();
 
   if (!response)
-    return NULL;
+  {
+    caml_raise_with_string(*caml_named_value("opal_exn_error"), "No response");
+  }
   if (response->m_type != OpalIndCommandError)
     return response;
 
-  if (response->m_param.m_commandError == NULL || *response->m_param.m_commandError == '\0')
-    printf("OPAL error.\n");
+  if (response->m_param.m_commandError == NULL)
+  {
+    FreeMessageFunction(response);
+    caml_raise_with_string(*caml_named_value("opal_exn_error"), "Unknown error");
+  }
   else
-    printf("OPAL error: %s\n", response->m_param.m_commandError);
-
-  FreeMessageFunction(response);
-
-  return NULL;
+  {
+    value err = caml_copy_string(response->m_param.m_commandError);
+    FreeMessageFunction(response);
+    caml_raise_with_arg(*caml_named_value("opal_exn_error"), err);
+  }
 }
 
 CAMLprim value caml_opal_set_protocol_parameters(value h, value username, value displayname, value interface)
@@ -134,7 +139,7 @@ CAMLprim value caml_opal_set_protocol_parameters(value h, value username, value 
   command.m_param.m_protocol.m_displayName = String_val(displayname);
   command.m_param.m_protocol.m_interfaceAddresses = String_val(interface);
 
-  assert(response = MySendCommand(hOPAL, &command));
+  response = MySendCommand(hOPAL, &command);
   FreeMessageFunction(response);
 
   return Val_unit;
@@ -274,7 +279,7 @@ CAMLprim value caml_opal_set_general_parameters(value h, value auto_rx_media, va
     command.m_param.m_general.m_mediaWriteData = MyWriteMediaData;
   }
 
-  assert(response = MySendCommand(hOPAL, &command));
+  response = MySendCommand(hOPAL, &command);
   FreeMessageFunction(response);
 
   return Val_unit;
@@ -369,7 +374,7 @@ CAMLprim value caml_opal_answer_call(value h, value token)
   memset(&command, 0, sizeof(command));
   command.m_type = OpalCmdAnswerCall;
   command.m_param.m_callToken = t;
-  assert(response = MySendCommand(hOPAL, &command));
+  response = MySendCommand(hOPAL, &command);
   FreeMessageFunction(response);
 
   free(t);

@@ -1,5 +1,10 @@
 module Opal =
 struct
+  exception Error of string
+
+  let () =
+    Callback.register_exception "opal_exn_error" (Error "")
+
   type t
 
   external init : unit -> t = "caml_opal_init"
@@ -45,9 +50,8 @@ struct
   external answer_call : t -> string -> unit = "caml_opal_answer_call"
 end
 
-let ringbuffer_frames = 10
-
 class input =
+  let ringbuffer_length = 10 * Fmt.samples_per_frame () in
 object (self)
   inherit Source.active_source
 
@@ -58,7 +62,7 @@ object (self)
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  val write_rb = Ringbuffer.TS.create (Fmt.channels ()) (Fmt.samples_per_frame () * ringbuffer_frames)
+  val write_rb = Ringbuffer.TS.create (Fmt.channels ()) ringbuffer_length
 
   method output_get_ready =
     (* TODO: init only once *)
