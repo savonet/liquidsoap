@@ -69,6 +69,7 @@ object (self)
 
   val read_m = Mutex.create ()
   val read = Buffer.create 10
+  val create_m = Mutex.create ()
 
   method encode frame start len =
       let b = AFrame.get_float_pcm frame in
@@ -77,7 +78,22 @@ object (self)
       let slen = 2 * len * Array.length b in
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);
-      let (_,out_e) = Utils.get_some encoder in
+      let (_,out_e) = 
+        match encoder with
+          | Some e -> e
+          | None ->
+               Mutex.lock create_m;
+               match encoder with
+                 | Some e -> 
+		    (* Encoder was created elsewhere.. *)
+		    Mutex.unlock create_m;
+		    e
+                 | None -> 
+                     self#log#f 2 "No encoder available, starting process.";
+                     self#external_start initial_meta;
+                     Mutex.unlock create_m;
+                     Utils.get_some encoder
+      in
       begin 
         try
           output_string out_e sbuf;
@@ -97,8 +113,10 @@ object (self)
     Mutex.unlock read_m;
     if restart_encoder || crash then 
       begin
+        Mutex.lock create_m;
         self#external_stop;
-        self#external_start meta
+        self#external_start meta;
+	Mutex.unlock create_m
       end;
     ret
 
@@ -115,6 +133,10 @@ object (self)
 
   method reset_encoder = self#external_reset_encoder ~crash:false
 
+  (* Any call of this function should be protected 
+   * by a mutex. After locking the mutex, it should be
+   * checked that the encoder was not create by another
+   * call. *)
   method private external_start meta =
     self#log#f 2 "Creating external encoder..";
     let process = 
@@ -145,9 +167,9 @@ object (self)
           end;
         ret
       in
-      let stop ~read () =
+      let stop l =
         self#log#f 4 "reading task exited: closing process.";
-        if read then
+        if List.mem (`Read out_p) l then
           ignore(Unix.read out_p " " 0 1); 
         begin
          try
@@ -171,13 +193,13 @@ object (self)
          else
           begin
             self#log#f 4 "Reading task reached end of data";
-            stop ~read:false (); []
+            stop l; []
           end
         end
       else
         begin
          assert(List.mem (`Read out_p) l);
-         stop ~read:true (); []
+         stop l; []
         end
     in
     Duppy.Task.add Tutils.scheduler
