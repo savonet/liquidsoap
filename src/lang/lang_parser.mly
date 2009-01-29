@@ -119,11 +119,12 @@
 %token PP_IFDEF PP_ENDIF PP_ENDL PP_INCLUDE PP_DEF
 %token <string list> PP_COMMENT
 
-%nonassoc COERCION
+%left YIELDS
 %left BIN0
 %left BIN1
 %left BIN2 MINUS NOT
 %left BIN3
+%left unary_minus
 
 %start scheduler
 %type <Lang_values.term> scheduler
@@ -135,6 +136,8 @@ scheduler: exprs EOF { $1 }
 s: | {} | SEQ  {}
 g: | {} | GETS {}
 
+/* A sequence of (concatenable) expressions and bindings,
+ * separated by optional semicolon */
 exprs:
   | cexpr s                  { $1 }
   | cexpr s exprs            { mk (Seq ($1,$3)) }
@@ -143,21 +146,16 @@ exprs:
   | binding s exprs          { let doc,name,def = $1 in
                                  mk (Let (doc,name,def,$3)) }
 
-list:
-  | LBRA inner_list RBRA { $2 }
-inner_list:
-  | expr COMMA inner_list  { $1::$3 }
-  | expr                   { [$1] }
-  |                        { [] }
-
+/* General expressions.
+ * The only difference is the ability to start with an unary MINUS.
+ * But having two rules, one coercion and one for MINUS expr, would
+ * be wrong: we want to parse -3*2 as (-3)*2. */
 expr:
-  | cexpr %prec COERCION             { $1 }
-  | MINUS INT                        { mk (Int (~- $2)) }
-  | MINUS FLOAT                      { mk (Float (~-. $2)) }
-cexpr:
+  | MINUS expr %prec unary_minus     { mk (App (mk ~pos:(1,1) (Var "~-"),
+                                                ["", $2])) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk (Int $1) }
-  | NOT cexpr                        { mk (App (mk ~pos:(1,1) (Var "not"),
+  | NOT expr                         { mk (App (mk ~pos:(1,1) (Var "not"),
                                                 ["", $2])) }
   | BOOL                             { mk (Bool $1) }
   | FLOAT                            { mk (Float  $1) }
@@ -183,25 +181,78 @@ cexpr:
                                          mk (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
-  | cexpr BIN0 cexpr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr BIN1 cexpr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr BIN2 cexpr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN2 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr BIN3 cexpr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN3 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr MINUS cexpr                { mk (App (mk ~pos:(2,2) (Var "-"),
+  | expr MINUS expr                { mk (App (mk ~pos:(2,2) (Var "-"),
                                                 ["",$1;"",$3])) }
   | INTERVAL                       { mk_time_pred (between (fst $1) (snd $1)) }
   | TIME                           { mk_time_pred (during $1) }
 
+/* An expression,
+ * in a restricted form that can be concenated without ambiguity */
+cexpr:
+  | LPAR expr RPAR                   { $2 }
+  | INT                              { mk (Int $1) }
+  | NOT expr                         { mk (App (mk ~pos:(1,1) (Var "not"),
+                                                ["", $2])) }
+  | BOOL                             { mk (Bool $1) }
+  | FLOAT                            { mk (Float  $1) }
+  | STRING                           { mk (String $1) }
+  | list                             { mk (List $1) }
+  | LPAR RPAR                        { mk Unit }
+  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
+  | VAR                              { mk (Var $1) }
+  | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
+  | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),
+                                           ["",$2;"",mk ~pos:(1,1) (Var $1)])) }
+  | BEGIN exprs END                  { $2 }
+  | FUN LPAR arglist RPAR YIELDS expr
+                                     { mk (Fun ($3,$6)) }
+  | LCUR exprs RCUR                  { mk (Fun ([],$2)) }
+  | IF exprs THEN exprs if_elsif END
+                                     { let cond = $2 in
+                                       let then_b =
+                                         mk ~pos:(3,4) (Fun ([],$4))
+                                       in
+                                       let else_b = $5 in
+                                       let op = mk ~pos:(1,1) (Var "if") in
+                                         mk (App (op,["",cond;
+                                                      "else",else_b;
+                                                      "then",then_b])) }
+  | cexpr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+                                                ["",$1;"",$3])) }
+  | cexpr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+                                                ["",$1;"",$3])) }
+  | cexpr BIN2 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+                                                ["",$1;"",$3])) }
+  | cexpr BIN3 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+                                                ["",$1;"",$3])) }
+  | cexpr MINUS expr                { mk (App (mk ~pos:(2,2) (Var "-"),
+                                                ["",$1;"",$3])) }
+  | INTERVAL                       { mk_time_pred (between (fst $1) (snd $1)) }
+  | TIME                           { mk_time_pred (during $1) }
+
+list:
+  | LBRA inner_list RBRA { $2 }
+inner_list:
+  | expr COMMA inner_list  { $1::$3 }
+  | expr                   { [$1] }
+  |                        { [] }
+
 app_list_elem:
   | VAR GETS expr { $1,$3 }
   | expr          { "",$1 }
+/* Note that we can get rid of the COMMA iff we use cexpr instead of expr
+ * for unlabelled parameters. */
 app_list:
-  |                                { [] }
-  | app_list_elem                 { [$1] }
+  |                              { [] }
+  | app_list_elem                { [$1] }
   | app_list_elem COMMA app_list { $1::$3 }
 
 binding:

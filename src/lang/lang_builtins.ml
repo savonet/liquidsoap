@@ -251,6 +251,15 @@ let () =
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
+    add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
+      ["",t,None,None] t
+      (function
+         | ["",{ Lang.value = Lang.Int i }] -> Lang.int (~- i)
+         | ["",{ Lang.value = Lang.Float i }] -> Lang.float (~-. i)
+         | _ -> assert false)
+
+let () =
+  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
     add_builtin "abs" ~cat:Math ~descr:"Absolute value."
       [ "",t,None,None ] t
       (fun p ->
