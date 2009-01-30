@@ -138,7 +138,8 @@ object (self)
               | Some s -> output_string s b
               | None -> () 
           with
-            | Shout.Socket ->
+            | Shout.Socket 
+            | Shout.Send_error ->
                 self#log#f 2
                   "Shout socket error: timeout, network failure, \
                    server shutdown? Restarting the output in %.f seconds."
