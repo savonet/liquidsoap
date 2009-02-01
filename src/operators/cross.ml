@@ -159,11 +159,11 @@ object (self)
         if not s#is_ready then self#log#f 3 "No ready track yet." ;
         if Generator.length buffer > minimum_length then
           Lang.to_source
-            (Lang.apply f ["",Lang.source (new Generated.consumer buffer);
+            (Lang.apply f ["",Lang.source (new Generated.consumer buffer :> Source.source);
                            "",Lang.source s])
         else begin
           self#log#f 4 "Not enough data for crossing." ;
-          ((new Sequence.sequence [new Generated.consumer buffer ; s]):>source)
+          ((new Sequence.sequence [(new Generated.consumer buffer :> Source.source); s]):>source)
         end
       in
         source#leave (self:>source) ;

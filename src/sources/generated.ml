@@ -48,6 +48,8 @@ object (self)
 
   val mutable should_fail = false
 
+  method virtual log : Dtools.Log.t
+
   method abort_track = should_fail <- true
 
   method private length =
@@ -59,7 +61,11 @@ object (self)
   method is_ready =
     let r = self#length in
       if buffering then
+       begin
+        if r < Fmt.samples_per_frame () then
+          self#log#f 5 "Buffer too low: %i" r;
         r > bufferize
+       end
       else
         r > 0
 
