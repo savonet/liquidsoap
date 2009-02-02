@@ -48,7 +48,7 @@ object (self)
 
   val mutable should_fail = false
 
-  method virtual log : Dtools.Log.t
+  method virtual private log : Dtools.Log.t
 
   method abort_track = should_fail <- true
 
@@ -118,7 +118,8 @@ module From_Float_pcm_Generator =
 module From_Raw_pcm_Generator =
   Make(struct
          type t = Float_pcm.Generator_from_raw.t
-         let length x = Fmt.ticks_of_samples (Float_pcm.Generator_from_raw.length x)
+         let length x =
+           Fmt.ticks_of_samples (Float_pcm.Generator_from_raw.length x)
          let remaining x = Float_pcm.Generator_from_raw.remaining x
          let clear = Float_pcm.Generator_from_raw.clear
          let add_metadata = Float_pcm.Generator_from_raw.add_metadata

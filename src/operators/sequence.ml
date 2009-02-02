@@ -31,12 +31,13 @@ object (self)
 
   method stype = (List.hd (List.rev sources))#stype
 
-  method wake_up activation =
+  method private wake_up activation =
     List.iter
       (fun s -> (s:>source)#get_ready ((self:>source)::activation))
       sources
 
-  method sleep = List.iter (fun s -> (s:>source)#leave (self:>source)) sources
+  method private sleep =
+    List.iter (fun s -> (s:>source)#leave (self:>source)) sources
 
   method is_ready = List.exists (fun s -> s#is_ready) sources
 
@@ -59,7 +60,7 @@ object (self)
 
   val mutable head_ready = false
 
-  method get_frame buf =
+  method private get_frame buf =
     if head_ready then begin
       let hd = List.hd sources in
         hd#get buf ;
@@ -97,8 +98,9 @@ let () =
     [ "merge", Lang.bool_t, Some (Lang.bool false), None ;
       "", Lang.list_t Lang.source_t, None, None ]
     ~category:Lang.TrackProcessing
-    ~descr:"Play only one track of every successive source, except for the last one which is played as much as available."
+    ~descr:"Play only one track of every successive source, \
+            except for the last one which is played as much as available."
     (fun p ->
-       ((new sequence
-           ~merge:(Lang.to_bool (List.assoc "merge" p))
-           (Lang.to_source_list (List.assoc "" p))):>source))
+       new sequence
+         ~merge:(Lang.to_bool (List.assoc "merge" p))
+         (Lang.to_source_list (List.assoc "" p)))
