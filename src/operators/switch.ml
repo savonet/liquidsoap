@@ -132,14 +132,14 @@ object (self)
       | Some c ->
           begin match selected with
             | None ->
-                self#log#f 3 "switch to %s" c.source#id ;
+                self#log#f 3 "Switch to %s." c.source#id ;
                 (* The source is already ready, this call is only there for
                  * allowing an uniform treatment of switches, triggering
                  * a #leave call. *)
                 c.source#get_ready activation ;
                 selected <- Some (c,c.source)
             | Some (old_c,old_s) when old_c != c ->
-                self#log#f 3 "switch to %s with%s transition"
+                self#log#f 3 "Switch to %s with%s transition."
                   c.source#id
                   (if forget then " forgetful" else "") ;
                 old_s#leave (self:>source) ;
