@@ -4,7 +4,7 @@
 # @param s the source to turn infaillible
 # @category Source / Input
 def mksafe(s)
-  fallback(track_sensitive=false,[s,blank()])
+  fallback(id="mksafe",track_sensitive=false,[s,blank(id="safe_blank")])
 end
 
 # Backward compatible function for request.create().
