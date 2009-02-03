@@ -30,7 +30,8 @@ class LiqQueue(gtk.VPaned):
                       ['title'      ,'120'],
                       # Right-align URI because the end is more informative
                       # than the beginning
-                      ['uri'        ,'300', {'xalign':1.0}]], self.queue())
+                      ['initial_uri'        ,'300', {'xalign':1.0}]],
+                      self.queue())
     self.list.drag_dest_set(gtk.DEST_DEFAULT_ALL,
                             [('text/uri-list',0,0)],
                             gtk.gdk.ACTION_COPY)
