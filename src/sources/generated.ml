@@ -60,14 +60,20 @@ object (self)
 
   method is_ready =
     let r = self#length in
-      if buffering then
-       begin
-        if r < Fmt.samples_per_frame () then
-          self#log#f 5 "Buffer too low: %i" r;
+      if buffering then begin
+        (* We have some data, but not enough for safely starting to play it. *)
+        if r <= bufferize then
+          self#log#f 4 "Not ready: need more buffering (%i/%i)." r bufferize ;
         r > bufferize
-       end
-      else
+      end else begin
+        (* This only happens if the end of track has not been played yet,
+         * after which the buffering phase will start again. Does not mean
+         * that we're not accumulating data, but it means that we don't know
+         * yet that we'll stop playing it until the buffer is full enough. *)
+        if r = 0 then
+          self#log#f 4 "Not ready for a new track: empty buffer." ;
         r > 0
+      end
 
   method remaining =
     if should_fail then 0 else
@@ -82,13 +88,26 @@ object (self)
   method private get_frame ab =
     buffering <- false ;
     if should_fail then begin
+      self#log#f 4 "Performing skip." ;
       should_fail <- false ;
       if empty_on_abort then Generator.clear abg ; (* TODO lock *)
       Frame.add_break ab (Frame.position ab)
     end else begin
       Mutex.lock lock ;
       Generator.fill_frame abg ab ;
-      if Generator.length abg = 0 then buffering <- true ;
+      (* Currently, we don't enter the buffering phase between tracks
+       * even when there's not enough data in the buffer. This is mostly
+       * historical because there was initially no track in the abg streams.
+       * This may sometimes be better to do it (to avoid a lag breaking
+       * the new track) but not always (a total disconnection should cause
+       * the start of a new track anyway, since the content after it
+       * has nothing to do with the content before the connection). *)
+      if Frame.is_partial ab then
+        self#log#f 4 "End of track." ;
+      if Generator.length abg = 0 then begin
+        self#log#f 4 "Buffer emptied, starting buffering." ;
+        buffering <- true
+      end ;
       Mutex.unlock lock
     end
 
