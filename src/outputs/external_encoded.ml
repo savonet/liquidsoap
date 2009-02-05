@@ -65,7 +65,7 @@ object (self)
 
   method virtual log : Dtools.Log.t
 
-  val virtual mutable encoder : external_encoder option
+  val mutable encoder : external_encoder option = None
 
   val read_m = Mutex.create ()
   val read = Buffer.create 10
@@ -252,9 +252,7 @@ class to_file
   ~filename ~autostart ~process ~restart_encoder
   ~header ~restart_on_crash source =
 object (self)
-  inherit
-    [external_encoder] Output.encoded
-         ~name:filename ~kind:"output.file" ~autostart source
+  inherit Output.encoded ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
@@ -307,8 +305,7 @@ class to_pipe
   ~process ~restart_encoder ~restart_on_crash
   ~header ~autostart source =
 object (self)
-  inherit
-    [external_encoder] Output.encoded ~name:"" ~kind:"output.pipe" ~autostart source
+  inherit Output.encoded ~name:"" ~kind:"output.pipe" ~autostart source
   inherit base ~restart_encoder ~restart_on_crash ~header process as base
 
   method send _ = () 

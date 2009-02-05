@@ -42,7 +42,7 @@ let create_encoder ~samplerate ~bitrate ~quality ~stereo =
 class virtual base ~quality ~bitrate ~stereo ~samplerate =
 object (self)
 
-  val virtual mutable encoder : Lame.encoder option
+  val mutable encoder : Lame.encoder option = None
 
   method encode frame start len =
     let e = Utils.get_some encoder in
@@ -67,13 +67,12 @@ class to_file
   ~filename ~samplerate ~bitrate ~quality ~stereo ~autostart source =
 object (self)
   inherit
-    [Lame.encoder] Output.encoded
-         ~name:filename ~kind:"output.file" ~autostart source
-  inherit File_output.to_file
-            ~reload_delay ~reload_predicate ~reload_on_metadata
-            ~append ~perm ~dir_perm filename as to_file
-  inherit base 
-         ~quality ~bitrate ~stereo ~samplerate as base
+    Output.encoded ~name:filename ~kind:"output.file" ~autostart source
+  inherit
+     File_output.to_file ~reload_delay ~reload_predicate ~reload_on_metadata
+                         ~append ~perm ~dir_perm filename
+     as to_file
+  inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder m =
     to_file#on_reset_encoder ;

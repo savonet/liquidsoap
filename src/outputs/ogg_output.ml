@@ -121,7 +121,7 @@ class virtual base ~skeleton streams =
   in
 object(self)
 
-  val virtual mutable encoder : Ogg_encoder.t option
+  val mutable encoder : Ogg_encoder.t option = None
   val streams : (string,ogg_track) Hashtbl.t = streams 
 
   method virtual id : string
@@ -181,7 +181,7 @@ class to_file
   ~autostart ~streams source =
 object (self)
   inherit
-    [Ogg_encoder.t] Output.encoded
+    Output.encoded
       ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata

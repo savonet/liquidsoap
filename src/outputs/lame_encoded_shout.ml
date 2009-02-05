@@ -73,8 +73,8 @@ class to_shout p =
         | "icy" -> Shout.Protocol_icy
         | _ ->
             raise (Lang.Invalid_value
-                     (v, "valid values are 'http' (icecast) "^
-                      "and 'icy' (shoutcast)"))
+                     (v, "valid values are 'http' (icecast) \
+                          and 'icy' (shoutcast)"))
   in
   let channels =
     if not stereo then 1 else Fmt.channels ()
@@ -89,8 +89,7 @@ class to_shout p =
     }
   in
 object (self)
-  inherit
-    [Lame.encoder] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit
     Icecast2.output ~format:Shout.Format_mp3 ~protocol
       ~icecast_info ~mount ~name ~source p as icecast
@@ -157,9 +156,8 @@ object (self)
 end
 
 let () =
-    Lang.add_operator "output.icecast.mp3" ~category:Lang.Output
-      ~descr:
-  "Output the source's stream to an icecast2 compatible server in MP3 format."
-      proto
-      (fun p -> ((new to_shout p):>Source.source))
-
+  Lang.add_operator "output.icecast.mp3" ~category:Lang.Output
+    ~descr:"Output the source's stream to an icecast2-compatible server \
+            in MP3 format."
+    proto
+    (fun p -> ((new to_shout p):>Source.source))

@@ -49,7 +49,7 @@ object
   method virtual output_stop : unit
 end
 
-class virtual ['a] encoded :
+class virtual encoded :
   kind:string ->
   name:string ->
   autostart:bool ->
@@ -59,7 +59,6 @@ object
 
   method output_send : Frame.t -> unit
 
-  val mutable encoder : 'a option
   method virtual encode : Frame.t -> int -> int -> string
   method virtual reset_encoder : AFrame.metadata -> string
   method virtual send : string -> unit

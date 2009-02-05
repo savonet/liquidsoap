@@ -176,15 +176,13 @@ let () =
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
-class virtual ['a] encoded ~kind ~name ~autostart source =
+class virtual encoded ~kind ~name ~autostart source =
 object (self)
   inherit output ~kind ~name source autostart
 
   method virtual reset_encoder : (string,string) Hashtbl.t -> string
   method virtual encode : Frame.t -> int -> int -> string
   method virtual send : string -> unit
-
-  val mutable encoder : 'a option = None
 
   method output_send frame =
     let rec output_chunks frame =

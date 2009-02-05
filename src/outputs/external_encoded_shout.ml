@@ -29,7 +29,7 @@ let proto =
   (Icecast2.proto ~no_mount ~no_name) @ External_encoded.proto @
   [ "start", Lang.bool_t, Some (Lang.bool true),
     Some "Start output threads on operator initialization." ;
-    "bitrate", Lang.int_t, Some (Lang.int (-1)), 
+    "bitrate", Lang.int_t, Some (Lang.int (-1)),
     Some "Bitrate information for icecast. Not used if negative.";
     "quality", Lang.float_t, Some (Lang.float (-1.)),
     Some "Quality information for icecast. Not used if negative.";
@@ -39,7 +39,7 @@ let proto =
     Some "Channels information for icecast. Not used if negative.";
     "icy_metadata", Lang.bool_t, Some (Lang.bool true),
     Some "Send new metadata using the ICY protocol.";
-    "shout_raw", Lang.bool_t, Some (Lang.bool false), 
+    "shout_raw", Lang.bool_t, Some (Lang.bool false),
     Some "Send to icecast as raw data. No format-specific parsing is done.";
     "format", Lang.string_t, Some (Lang.string "mp3"), Some "Shout format. \
                                                   One of \"mp3\" or \"ogg\".";
@@ -62,7 +62,7 @@ class to_shout p =
       None
   in
   let bitrate = f (e Lang.to_int "bitrate") in
-  let quality = 
+  let quality =
    let quality = e Lang.to_float "quality" in
      if quality > 0. then
        Some (string_of_float quality)
@@ -75,7 +75,7 @@ class to_shout p =
   let source = List.assoc "" p in
   let mount = s "mount" in
   let name = s "name" in
-  let format = 
+  let format =
     match s "format" with
       | "mp3" -> Shout.Format_mp3
       | "ogg" -> Shout.Format_vorbis
@@ -118,12 +118,13 @@ class to_shout p =
     }
   in
 object (self)
-  inherit
-    [External_encoded.external_encoder] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit
     Icecast2.output ~format ~protocol
       ~icecast_info ~raw ~mount ~name ~source p as icecast
-  inherit External_encoded.base ~restart_encoder ~restart_on_crash ~header process as base
+  inherit
+    External_encoded.base ~restart_encoder ~restart_on_crash ~header process
+    as base
 
   method reset_encoder m =
     let get h k l =
@@ -195,9 +196,9 @@ object (self)
 end
 
 let () =
-    Lang.add_operator "output.icecast.external" ~category:Lang.Output
-      ~descr:
-  "Output the source's stream to an icecast2 compatible server using an external encoder."
-      proto
-      (fun p -> ((new to_shout p):>Source.source))
+  Lang.add_operator "output.icecast.external" ~category:Lang.Output
+    ~descr:"Output the source's stream to an Icecast2 compatible server \
+            using an external encoder."
+    proto
+    (fun p -> ((new to_shout p):>Source.source))
 

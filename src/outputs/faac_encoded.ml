@@ -26,24 +26,24 @@ open Source
 open Dtools
 open Faac
 
-let create_encoder ~bandwidth ~bitrate ~quality (*~stereo*) =
+let create_encoder ~bandwidth ~bitrate ~quality =
   let enc, faac_samples, faac_buflen = Faac.create 44100 2 in
     (* Output settings *)
-    Faac.set_configuration enc ~mpeg_version:4 ~quality:quality ~bitrate:bitrate ~bandwidth:bandwidth ();
+    Faac.set_configuration enc
+      ~mpeg_version:4 ~quality:quality ~bitrate:bitrate ~bandwidth:bandwidth ();
     enc, faac_samples, faac_buflen
 
 (** Output in an AAC file *)
 
 class to_file
-  ~filename ~bandwidth ~bitrate ~quality (*~stereo*) ~autostart source =
+  ~filename ~bandwidth ~bitrate ~quality ~autostart source =
 object (self)
   inherit
-    [Faac.t] Output.encoded
-         ~name:filename ~kind:"output.file.aac" ~autostart source
+    Output.encoded ~name:filename ~kind:"output.file.aac" ~autostart source
 
   val mutable faac_buflen = 0
 
-  val virtual mutable encoder : Faac.t option
+  val mutable encoder : Faac.t option = None
 
   method reset_encoder m = ""
 
@@ -60,7 +60,7 @@ object (self)
 
   method output_start =
     assert (fd = None) ;
-    let enc, samples, buflen = create_encoder ~quality ~bitrate (*~stereo*) ~bandwidth in
+    let enc, samples, buflen = create_encoder ~quality ~bitrate ~bandwidth in
       faac_buflen <- buflen ;
       fd <- Some (open_out filename) ;
       encoder <- Some enc
@@ -99,11 +99,6 @@ let () =
       Some (Lang.int 100),
       None ;
 
-(*      "stereo",
-      Lang.bool_t,
-      Some (Lang.bool true),
-      None;*)
-
       "",
       Lang.string_t,
       None,
@@ -116,11 +111,9 @@ let () =
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let autostart = e Lang.to_bool "start" in
-(*       let stereo = e Lang.to_bool "stereo" in*)
        let bandwidth = e Lang.to_int "bandwidth" in
        let bitrate = e Lang.to_int "bitrate" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
          ((new to_file ~filename
-             ~quality ~bitrate ~bandwidth (*~stereo*) ~autostart source):>source))
-
+             ~quality ~bitrate ~bandwidth ~autostart source):>source))

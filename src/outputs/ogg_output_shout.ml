@@ -58,7 +58,7 @@ class to_shout ~skeleton ~streams
 
 object (self)
   inherit
-    [Ogg_encoder.t] Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+    Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit Icecast2.output 
     ~mount ~name ~icecast_info 
     ~source p as icecast

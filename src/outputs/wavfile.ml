@@ -29,7 +29,7 @@ class output
   let channels = Fmt.channels () in
   let sample_rate = Fmt.samples_per_second () in
 object
-  inherit [unit] Output.encoded ~name ~kind:"output.file" ~autostart source
+  inherit Output.encoded ~name ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm name as to_file
@@ -58,9 +58,8 @@ object
       s
 
   method output_start =
-      encoder <- Some () ;
-      to_file#file_start ;
-      to_file#send header
+    to_file#file_start ;
+    to_file#send header
 
   method output_stop =
     to_file#file_stop
