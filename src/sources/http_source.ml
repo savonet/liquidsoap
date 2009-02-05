@@ -57,7 +57,6 @@ let stream_decoders : (sink -> unit) Plug.plug =
 
 (** Utilities for reading icy metadata *)
 
-let log = Dtools.Log.make ["readmeta"]
 let read_metadata () = let old_chunk = ref "" in fun socket ->
   let size =
     let buf = " " in
@@ -93,13 +92,11 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
         parse (String.sub s (close+1) ((String.length s)-close-1))
     with _ -> ()
   in
-    if chunk = "" then begin
-      (* log#f 4 "Empty chunk!" ; *)
+    if chunk = "" then
       None
-    end else if chunk = !old_chunk then begin
-      (* log#f 4 "Redundant chunk (%S)!" chunk ; *)
+    else if chunk = !old_chunk then
       None
-    end else begin
+    else begin
       old_chunk := chunk ;
       parse chunk ;
       Some h
