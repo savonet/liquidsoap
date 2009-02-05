@@ -28,7 +28,8 @@ open Http_source
 
 exception NoDecoder
 
-class http_input_server ~dumpfile ~bufferize ~max
+class http_input_server ~dumpfile ~logfile
+                        ~bufferize ~max
                         ~on_connect ~on_disconnect
                         ~login ~debug =
   let abg_max_len = Fmt.samples_of_seconds max in
@@ -42,7 +43,9 @@ object (self)
   val mutable ns = []
   val mutable decoder = fun _ -> raise NoDecoder
   val mutable stype = None
+
   val mutable dump = None
+  val mutable logf = None
 
   method login : (string option)*(string -> string -> bool) = login
 
@@ -93,13 +96,26 @@ object (self)
     let close () = () in
     let read len =
       let buf = String.make len ' ' in
+      let () =
+        let rec wait n =
+          let l,_,_ = Unix.select [socket] [] [] 1. in
+            if l=[] then begin
+              self#log#f 4 "No network activity for %d second(s)." n ;
+              wait (n+1)
+            end
+        in wait 1
+      in
       let input = Unix.read socket buf 0 len in
       if input<=0 then raise End_of_file ;
       let s = String.sub buf 0 input in
-      begin
-        match dump with
-          | Some b -> output_string b s
-          | None -> ()
+      begin match dump with
+        | Some b -> output_string b s
+        | None -> ()
+      end ;
+      begin match logf with
+        | Some b ->
+            Printf.fprintf b "%f %d\n%!" (Unix.gettimeofday ()) self#length
+        | None -> ()
       end ;
       s
     in
@@ -142,10 +158,13 @@ object (self)
   method relay socket =
     relaying <- true ;
     on_connect () ;
-    begin
-      match dumpfile with
-        | Some f -> dump <- Some (open_out_bin f)
-        | None -> ()
+    begin match dumpfile with
+      | Some f -> dump <- Some (open_out_bin f)
+      | None -> ()
+    end ;
+    begin match logfile with
+      | Some f -> logf <- Some (open_out_bin f)
+      | None -> ()
     end ;
     ignore (Tutils.create
               (fun () -> self#feed socket) ()
@@ -153,10 +172,13 @@ object (self)
 
   method disconnect =
     if relaying then on_disconnect () ;
-    begin
-      match dump with
-        | Some f -> close_out f
-        | None -> ()
+    begin match dump with
+      | Some f -> close_out f ; dump <- None
+      | None -> ()
+    end ;
+    begin match logf with
+      | Some f -> close_out f ; logf <- None
+      | None -> ()
     end ;
     relaying <- false
 
@@ -205,6 +227,10 @@ let () =
 
         "dumpfile", Lang.string_t, Some (Lang.string ""),
         Some "Dump stream to file, for debugging purpose. Disabled if empty.";
+
+        "logfile", Lang.string_t, Some (Lang.string ""),
+        Some "Log buffer status to file, for debugging purpose. \
+              Disabled if empty.";
 
         "debug", Lang.bool_t, Some (Lang.bool false),
         Some "Run in debugging mode by not catching some exceptions.";
@@ -255,6 +281,11 @@ let () =
              | "" -> None
              | s -> Some s
          in
+         let logfile =
+           match Lang.to_string (List.assoc "logfile" p) with
+             | "" -> None
+             | s -> Some s
+         in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
          let on_connect () =
@@ -267,6 +298,8 @@ let () =
            with
              | Not_found ->
                  Harbor.add_source mount
-                   ((new http_input_server ~bufferize ~max ~login ~dumpfile
+                   ((new http_input_server
+                       ~bufferize ~max ~login
+                       ~dumpfile ~logfile
                        ~on_connect ~on_disconnect ~debug):>Harbor.source) ;
                  ((Harbor.find_source mount):>Source.source))
