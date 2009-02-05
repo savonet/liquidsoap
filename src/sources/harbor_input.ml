@@ -28,8 +28,8 @@ open Http_source
 
 exception NoDecoder
 
-class http_input_server ~dumpfile ~bufferize ~max 
-                        ~on_connect ~on_disconnect 
+class http_input_server ~dumpfile ~bufferize ~max
+                        ~on_connect ~on_disconnect
                         ~login ~debug =
   let abg_max_len = Fmt.samples_of_seconds max in
 object (self)
@@ -38,24 +38,24 @@ object (self)
             (Generator.create ())
             ~empty_on_abort:false ~bufferize
 
-   val mutable relaying = false
-   val mutable ns = []
-   val mutable decoder = fun _ -> raise NoDecoder
-   val mutable stype = None
-   val mutable dump = None
+  val mutable relaying = false
+  val mutable ns = []
+  val mutable decoder = fun _ -> raise NoDecoder
+  val mutable stype = None
+  val mutable dump = None
 
-   method login : (string option)*(string -> string -> bool) = login
+  method login : (string option)*(string -> string -> bool) = login
 
-   method stype = Source.Fallible
+  method stype = Source.Fallible
 
-   (* Insert metadata *)
-   method insert_metadata m =
-     self#log#f 3 "New metadata chunk \"%s -- %s\""
-       (try Hashtbl.find m "artist" with _ -> "?")
-       (try Hashtbl.find m "title" with _ -> "?") ;
-     Generator.add_metadata abg m
+  (* Insert metadata *)
+  method insert_metadata m =
+    self#log#f 3 "New metadata chunk \"%s -- %s\""
+      (try Hashtbl.find m "artist" with _ -> "?")
+      (try Hashtbl.find m "title" with _ -> "?") ;
+    Generator.add_metadata abg m
 
-   method put sample_freq data =
+  method put sample_freq data =
     if not relaying then failwith "relaying stopped" ;
     Mutex.lock lock ;
     (* TODO There must be two ways of handling overfull generator:
@@ -72,14 +72,14 @@ object (self)
         Mutex.lock lock ;
         if Generator.length abg >= abg_max_len then
         (* Here, we drop some data after the maximun buffer has been filled.
-         * Delaying the function can lead to deconnection/connection cycles 
+         * Delaying the function can lead to deconnection/connection cycles
          * when the source is not pulled. *)
-          Generator.remove abg (Generator.length abg - abg_max_len) 
+          Generator.remove abg (Generator.length abg - abg_max_len)
       end ;
     Generator.feed abg ~sample_freq data ;
     Mutex.unlock lock
 
-  method register_decoder s = 
+  method register_decoder s =
     match
       Http_source.stream_decoders#get s
     with
@@ -88,16 +88,16 @@ object (self)
 
   method get_type = stype
 
-  method feed socket  = 
+  method feed socket  =
     self#log#f 3 "Decoding..." ;
-    let close () = () in 
-    let read len = 
+    let close () = () in
+    let read len =
       let buf = String.make len ' ' in
       let input = Unix.read socket buf 0 len in
       if input<=0 then raise End_of_file ;
       let s = String.sub buf 0 input in
       begin
-        match dump with 
+        match dump with
           | Some b -> output_string b s
           | None -> ()
       end ;
@@ -119,20 +119,27 @@ object (self)
     with
       | _ -> ()
 
-  method wake_up _ = 
+  method wake_up _ =
     if ns = [] then
       ns <- Server.register [self#id] "input.harbor" ;
     self#set_id (Server.to_string ns) ;
-    let stop _ = 
+    let stop _ =
       if relaying then (self#disconnect ; "Done")
       else "No source client connected"
     in
-    Server.add ~ns "stop" ~descr:"Stop current source client, if connected." stop ;
-    Server.add ~ns "kick" ~descr:"Kick current source client, if connected." stop ;
-    Server.add ~ns "status" ~descr:"Display current status."
-      (fun _ -> if relaying then "source client connected" else "no source client connected")
+    Server.add
+      ~ns "stop" ~descr:"Stop current source client, if connected." stop ;
+    Server.add
+      ~ns "kick" ~descr:"Kick current source client, if connected." stop ;
+    Server.add
+      ~ns "status" ~descr:"Display current status."
+      (fun _ ->
+         if relaying then
+           "source client connected"
+         else
+           "no source client connected")
 
-  method relay socket = 
+  method relay socket =
     relaying <- true ;
     on_connect () ;
     begin
@@ -144,13 +151,13 @@ object (self)
               (fun () -> self#feed socket) ()
               "harbor source feeding")
 
-  method disconnect = 
+  method disconnect =
     if relaying then on_disconnect () ;
     begin
       match dump with
         | Some f -> close_out f
         | None -> ()
-    end ;    
+    end ;
     relaying <- false
 
   method is_taken = relaying
@@ -178,20 +185,23 @@ let () =
 
         "user",Lang.string_t,
         Some (Lang.string ""),
-        Some "Source user. Override default if not empty, except for icy protocol.";
+        Some "Source user. Override default if not empty, \
+              except for icy protocol.";
 
         "password",Lang.string_t,
         Some (Lang.string ""),
-        Some "Source password. Override default if not empty, except for icy protocol";
+        Some "Source password. Override default if not empty, \
+              except for icy protocol";
 
-        "auth",Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] 
+        "auth",Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t]
                                     Lang.bool_t,
-        Some (Lang.val_cst_fun ["","login",None;"","password",None]
-	                   (Lang.bool false)),
+        Some (Lang.val_cst_fun
+                ["","login",None;"","password",None]
+                (Lang.bool false)),
         Some "Authentification function. \
-	      <code>f(login,password)</code> returns <code>true</code> \
-	      if the user should be granted access for this login. \
-	      Override any other method if used.";
+              <code>f(login,password)</code> returns <code>true</code> \
+              if the user should be granted access for this login. \
+              Override any other method if used.";
 
         "dumpfile", Lang.string_t, Some (Lang.string ""),
         Some "Dump stream to file, for debugging purpose. Disabled if empty.";
@@ -209,44 +219,48 @@ let () =
          in
          let trivially_false = function
            | { Lang.value =
-              Lang.Fun (_,_,_,{ Lang_values.term = Lang_values.Bool false }) } -> true
+                 Lang.Fun (_,_,_,
+                           { Lang_values.term = Lang_values.Bool false }) }
+               -> true
            | _ -> false
          in
          let user = Lang.to_string (List.assoc "user" p) in
          let password = Lang.to_string (List.assoc "password" p) in
          let debug = Lang.to_bool (List.assoc "debug" p) in
-	 let auth_function = List.assoc "auth" p in
+         let auth_function = List.assoc "auth" p in
          let login user pass =
-           let user_login test_user test_pass = 
+           let user_login test_user test_pass =
              let user,pass =
                let f g x = match x with "" -> g | _ -> x in
                f Harbor.conf_harbor_user#get user,
                f Harbor.conf_harbor_pass#get password
-             in  
+             in
              test_user = user &&
              test_pass = pass
            in
-	   if not (trivially_false auth_function) then
-             Lang.to_bool 
-               (Lang.apply auth_function 
-                 ["",Lang.string user;
-                  "",Lang.string pass])
-            else user_login user pass
+             if not (trivially_false auth_function) then
+               Lang.to_bool
+                 (Lang.apply auth_function
+                    ["",Lang.string user;
+                     "",Lang.string pass])
+             else
+               user_login user pass
          in
-	 let login = 
+         let login =
            let f x = if x <> "" then Some x else None in
            (f user, login)
-         in	
-         let dumpfile = 
+         in
+         let dumpfile =
            match Lang.to_string (List.assoc "dumpfile" p) with
              | "" -> None
              | s -> Some s
          in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
-	 let on_connect = fun () -> ignore (Lang.apply 
-	                       (List.assoc "on_connect" p) []) in
-	 let on_disconnect = fun () -> ignore (Lang.apply
+         let on_connect () =
+           ignore (Lang.apply (List.assoc "on_connect" p) [])
+         in
+         let on_disconnect = fun () -> ignore (Lang.apply
                                (List.assoc "on_disconnect" p) []) in
            try
              ((Harbor.find_source mount):>Source.source)
@@ -254,5 +268,5 @@ let () =
              | Not_found ->
                  Harbor.add_source mount
                    ((new http_input_server ~bufferize ~max ~login ~dumpfile
-		               ~on_connect ~on_disconnect ~debug):>Harbor.source) ;
+                       ~on_connect ~on_disconnect ~debug):>Harbor.source) ;
                  ((Harbor.find_source mount):>Source.source))
