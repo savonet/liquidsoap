@@ -20,6 +20,17 @@
 #include <mmintrin.h>
 #endif
 
+// For OCaml < 3.10
+#ifndef caml_ba_array
+#define caml_ba_array caml_bigarray
+#define Caml_ba_array_val(v) ((struct caml_ba_array *) Data_custom_val(v))
+#define Caml_ba_data_val(v) (Caml_ba_array_val(v)->data)
+#define caml_ba_alloc alloc_bigarray
+#define CAML_BA_C_LAYOUT BIGARRAY_C_LAYOUT
+#define CAML_BA_UINT8 BIGARRAY_UINT8
+#define CAML_BA_MANAGED BIGARRAY_MANAGED
+#endif
+
 #define max(a,b) (a>b)?a:b
 #define min(a,b) (a<b)?a:b
 
