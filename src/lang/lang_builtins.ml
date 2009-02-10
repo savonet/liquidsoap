@@ -668,7 +668,8 @@ let () =
 
 let () =
   add_builtin "list.hd" ~cat:List
-    ~descr:"Return the head of a list, i.e. its first element."
+    ~descr:"Return the head (first element) of a list, \
+            or \"\" if the list is empty."
     ["",Lang.list_t Lang.string_t,None,None] Lang.string_t
     (fun p ->
        try
