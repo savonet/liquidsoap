@@ -95,6 +95,15 @@ object (self)
   val mutable static_activations  : source list list = []
 
   method private update_caching_mode =
+    let string_of activations =
+      String.concat ", "
+        (List.map
+           (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
+           activations)
+    in
+    self#log#f 4
+      "Activations changed: static=[%s], dynamic=[%s]."
+      (string_of static_activations) (string_of dynamic_activations) ;
     match
       (* Decide whether caching mode is needed, and why *)
       if self#is_output then Some "active source" else
@@ -140,7 +149,7 @@ object (self)
    * forbidden. *)
   method leave ?(dynamic=false) src =
     let rec remove acc = function
-      | [] -> self#log#f 1 "Got ill-balanced activations !" ; assert false
+      | [] -> self#log#f 1 "Got ill-balanced activations!" ; assert false
       | (s::_)::tl when s = src -> List.rev_append acc tl
       | h::tl -> remove (h::acc) tl
     in

@@ -66,8 +66,9 @@ let usleep d =
 let t0 = ref 0.
 let ticks = ref 0L
 let delay () =
-  !t0 +.
-  Fmt.seconds_per_frame () *. (Int64.to_float (Int64.add !ticks 1L)) -. time ()
+  !t0
+  +. Fmt.seconds_per_frame () *. Int64.to_float (Int64.add !ticks 1L)
+  -. time ()
 
 (** Main loop. *)
 
@@ -120,5 +121,5 @@ let start () =
       iter (fun s -> s#after_output)
   done ;
 
-  log#f 2 "Root shutdown" ;
+  log#f 2 "Root shutdown." ;
   iter (fun s -> s#leave (s:>Source.source))
