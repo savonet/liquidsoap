@@ -447,7 +447,8 @@ let () =
        * but if the root died, we must do it. *)
       if not (Tutils.running "root" !root) then
         Root.force_sleep () ;
-      Thread.delay 3. ;
+      log#f 3 "Waiting for threads to terminate..." ;
+      Tutils.join_all () ;
       log#f 3 "Cleaning downloaded files..." ;
       Request.clean ()
     in
