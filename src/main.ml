@@ -457,7 +457,6 @@ let () =
       Tutils.main ()
     in
       ignore (Init.at_stop cleanup) ;
-      ignore (Init.at_stop (fun () -> Duppy.stop Tutils.scheduler)) ;
       if Source.has_outputs () then
         if not !dont_run then begin
           check_directories () ;

@@ -167,7 +167,7 @@ let new_queue ?priorities ~name () =
        | Some priorities ->
            Duppy.queue scheduler ~log ~priorities name
    in
-   ignore (create queue () name)
+   ignore (Thread.create queue ())
 
 (** Create a default queue at startup, that will accept any task. *)
 let () =

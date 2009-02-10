@@ -121,5 +121,5 @@ let start () =
       iter (fun s -> s#after_output)
   done ;
 
-  log#f 2 "Root shutdown." ;
+  log#f 3 "Shutting down sources..." ;
   iter (fun s -> s#leave (s:>Source.source))
