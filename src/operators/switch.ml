@@ -53,7 +53,7 @@ object (self)
 
   inherit operator (List.map (fun x -> x.source) cases) as super
 
-  val mutable selected = None
+  val mutable selected : (child*source) option = None
 
   (** We have to explictly manage our children as they are dynamically created
     * by application of the transition functions. In particular we need a list
@@ -117,7 +117,10 @@ object (self)
          s#leave ~dynamic:true (self:>source) ;
          Lang.iter_sources (fun s -> s#leave ~dynamic:true (self:>source))
            transition)
-      cases
+      cases ;
+    match selected with
+      | None -> ()
+      | Some (_,s) -> s#leave (self:>source)
 
   method is_ready = need_eot || selected <> None || self#cached_select <> None
 

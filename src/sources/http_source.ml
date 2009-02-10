@@ -234,21 +234,25 @@ object (self)
   (* Feed the buffer generator *)
   method put sample_freq data =
     if not relaying then failwith "relaying stopped" ;
+    if poll_should_stop then failwith "source stopped" ;
     Mutex.lock lock ;
     (* Drop data when buffer is full. This is the only way
      * to make it work with switches, when input.http is not
-     * pulled for some time. *)
-    if Generator.length abg >= abg_max_len then
-      begin
-        if feed_delay > 0. then
-          begin
-            Mutex.unlock lock ;
-            Thread.delay feed_delay ;
-            Mutex.lock lock
-          end ;
-        if Generator.length abg >= abg_max_len then
-          Generator.remove abg (Generator.length abg - abg_max_len)
-      end;
+     * pulled for some time.
+     * It can also be necessary if liquidsoap is lower than the stream. *)
+    if Generator.length abg >= abg_max_len then begin
+      (* Give it a chance to empty a bit before dropping. *)
+      if feed_delay > 0. then begin
+        Mutex.unlock lock ;
+        Thread.delay feed_delay ;
+        Mutex.lock lock
+      end ;
+      if Generator.length abg >= abg_max_len then begin
+        (* TODO maybe insert a break in the generator *)
+        self#log#f 3 "Overfull buffer: dropping data." ;
+        Generator.remove abg (Generator.length abg - abg_max_len)
+      end
+    end;
     Generator.feed abg ~sample_freq data ;
     Mutex.unlock lock
 
@@ -266,12 +270,15 @@ object (self)
        dec sink
       with
         | e ->
-            begin
-              (* Feeding has stopped: adding a break here *)
-              Generator.add_break abg ;
-              self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e);
-              if debug then raise e
-            end
+            (* Feeding has stopped: adding a break here. *)
+            Generator.add_break abg ;
+            begin match e with
+              | Failure s ->
+                  self#log#f 2 "Feeding stopped: %s." s
+              | e ->
+                  self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
+            end ;
+            if debug then raise e
 
   method connect = self#private_connect ~encode:true
 
