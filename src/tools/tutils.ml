@@ -112,7 +112,7 @@ let no_problem = Condition.create ()
 
 let log = Log.make ["threads"]
 
-let create f x s =
+let create ~wait f x s =
   mutexify lock (
     fun () ->
       let id =
@@ -120,28 +120,36 @@ let create f x s =
           (fun x ->
              try
                f x ;
-               Mutex.lock lock ;
-               all := Set.remove (s,(Thread.self ())) !all ;
-               log#f 3 "thread %S exited (%d remaining)" s (Set.cardinal !all) ;
-               Mutex.unlock lock
+               if wait then begin
+                 Mutex.lock lock ;
+                 all := Set.remove (s,(Thread.self ())) !all ;
+                 log#f 3
+                   "Thread %S exited (%d remaining)."
+                   s (Set.cardinal !all) ;
+                 Mutex.unlock lock
+               end else
+                 log#f 3 "Thread %S exited." s
              with e ->
                Mutex.lock lock ;
                begin match e with
                  | Failure e ->
-                     log#f 1 "thread %S failed: %s" s e
+                     log#f 1 "Thread %S failed: %s!" s e
                  | e ->
-                     log#f 1 "thread %S aborts with exception %s !"
+                     log#f 1 "Thread %S aborts with exception %s!"
                               s (Printexc.to_string e)
                end ;
-               all := Set.remove (s,(Thread.self ())) !all ;
+               if wait then all := Set.remove (s,(Thread.self ())) !all ;
                uncaught := Some e ;
                Condition.signal no_problem ;
                Mutex.unlock lock ;
                raise e)
           x
       in
-        all := Set.add (s,id) !all ;
-        log#f 3 "Created thread %S (%d total)" s (Set.cardinal !all) ;
+        if wait then begin
+          all := Set.add (s,id) !all ;
+          log#f 3 "Created thread %S (%d total)." s (Set.cardinal !all)
+        end else
+          log#f 3 "Created thread %S." s ;
         id
   ) ()
 
@@ -167,7 +175,9 @@ let new_queue ?priorities ~name () =
        | Some priorities ->
            Duppy.queue scheduler ~log ~priorities name
    in
-   ignore (Thread.create queue ())
+   ignore (create ~wait:false queue () name)
+
+let create f x name = create ~wait:true f x name
 
 (** Create a default queue at startup, that will accept any task. *)
 let () =
@@ -248,17 +258,6 @@ let () =
       start_forwarding ()
     end))
 
-(** Wait for some thread to crash *)
-let run = ref true
-let main () =
-  if !run then
-  (* The mutex required by [Condition.wait] is pretty useless in that case. *)
-  let m = Mutex.create () in
-    Mutex.lock m ;
-    Condition.wait no_problem m ;
-    Mutex.unlock m
-let shutdown () = run := false; Condition.signal no_problem
-
 (** Waits for [f()] to become true on condition [c].
   * The mutex [m] protecting data accessed by [f] is in the same state before
   * and after the call. *)
@@ -266,3 +265,11 @@ let wait c m f =
   let l = Mutex.try_lock m in
     while not (f ()) do Condition.wait c m done ;
     if l then Mutex.unlock m
+
+(** Wait for some thread to crash *)
+let run = ref true
+let main () =
+  (* The mutex required by [Condition.wait] is pretty useless in that case. *)
+  let m = Mutex.create () in
+    wait no_problem m (fun () -> not (!run && !uncaught=None))
+let shutdown () = run := false; Condition.signal no_problem
