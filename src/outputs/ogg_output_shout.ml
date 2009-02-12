@@ -85,7 +85,8 @@ object (self)
      begin
       let b = ogg#end_of_stream in
       ogg#ogg_stop;
-      icecast#send b
+      (* If possible, output the end of stream so that it's well-formed. *)
+      if connection <> None then icecast#send b
      end;
     icecast#icecast_stop
 

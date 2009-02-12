@@ -473,6 +473,7 @@ let start_harbor () =
   let rec incoming ~icy sock _ =
     begin
       try
+        if !Root.shutdown then failwith "shutting down" ;
         let (socket,caller) = accept sock in
         let ip =
           let a = match caller with
@@ -489,9 +490,13 @@ let start_harbor () =
         Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get ;
         handle_client icy socket ;
         log#f 3 "New client: %s" ip
-      with e -> log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
+      with e -> log#f 2 "Failed to accept new client: %s" (Printexc.to_string e)
     end ;
-    [{ Duppy.Task.
+    if !Root.shutdown then begin
+      (try Unix.close sock with _ -> ()) ;
+      []
+    end else
+      [{ Duppy.Task.
          priority = priority ;
          events = [`Read sock] ;
          handler = (incoming ~icy sock) }]

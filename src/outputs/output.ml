@@ -104,7 +104,9 @@ object (self)
       does_output <- true
     end
 
-  method private sleep = source#leave (self:>operator)
+  method private sleep =
+    if does_output then self#output_stop ;
+    source#leave (self:>operator)
 
   (* Metadata stuff: keep track of what was streamed. *)
 
