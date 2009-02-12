@@ -30,8 +30,8 @@ val running : unit -> bool
 (** Set [shutdown] to false to stop the loop *)
 val shutdown : bool ref
 
-(** Forces the shutdown of the scheduler, in case the root's thread died. *)
-val force_sleep : unit -> unit
+(** Puts the root sources to sleep, to do only if the scheduler crashed. *)
+val sleep : unit -> unit
 
 val uptime : unit -> float
 val delay : unit -> float

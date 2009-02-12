@@ -76,7 +76,12 @@ let iter = Source.iter_outputs
 
 let started = ref false
 let running () = !started
-let force_sleep () = if !started then iter (fun s -> s#leave (s:>Source.source))
+
+let sleep () =
+  if !started then begin
+    log#f 3 "Shutting down sources..." ;
+    iter (fun s -> s#leave (s:>Source.source))
+  end
 
 let start () =
 
@@ -121,5 +126,4 @@ let start () =
       iter (fun s -> s#after_output)
   done ;
 
-  log#f 3 "Shutting down sources..." ;
-  iter (fun s -> s#leave (s:>Source.source))
+  sleep ()

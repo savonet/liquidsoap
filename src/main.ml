@@ -443,10 +443,9 @@ let () =
     let cleanup () =
       log#f 3 "Shutdown started!" ;
       Root.shutdown := true ;
-      (* It's the root's job to ask the scheduler to shutdown,
-       * but if the root died, we must do it. *)
-      if not (Tutils.running "root" !root) then
-        Root.force_sleep () ;
+      (* It's the root's job to shutdown sources,
+       * but we might have to replace it if it died. *)
+      if not (Tutils.running "root" !root) then Root.sleep () ;
       log#f 3 "Waiting for threads to terminate..." ;
       Tutils.join_all () ;
       log#f 3 "Cleaning downloaded files..." ;
