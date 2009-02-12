@@ -94,6 +94,7 @@ object (self)
   method feed socket  =
     self#log#f 3 "Decoding..." ;
     let close () = () in
+    let t0 = Unix.gettimeofday () in
     let read len =
       let buf = String.make len ' ' in
       let () =
@@ -114,7 +115,8 @@ object (self)
       end ;
       begin match logf with
         | Some b ->
-            Printf.fprintf b "%f %d\n%!" (Unix.gettimeofday ()) self#length
+            let time = (Unix.gettimeofday () -. t0) /. 60. in
+              Printf.fprintf b "%f %d\n%!" time self#length
         | None -> ()
       end ;
       s
