@@ -197,7 +197,8 @@ module Generated = Generated.From_Float_pcm_Generator
 exception Redirection of string
 
 class http ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
-           ~feed_delay ~bind_address ~autostart ~bufferize ~max ~debug 
+           ~feed_delay ~bind_address ~autostart ~bufferize ~max
+           ~debug ?(logfile=None)
            ~user_agent url =
   let abg_max_len =
     Fmt.samples_of_seconds (Pervasives.max max bufferize)
@@ -218,6 +219,8 @@ object (self)
   val mutable poll_should_stop = false
   val polling_lock = Mutex.create ()
   val polling_cond = Condition.create ()
+
+  val mutable logf = None
 
   val mutable connected = false
   val mutable relaying = autostart
@@ -260,6 +263,17 @@ object (self)
     connected <- true ;
     let close () = Http.disconnect socket in
     let read = read_stream socket chunked metaint self#insert_metadata in
+    let read =
+      match logf with
+        | None -> read
+        | Some f ->
+            let t0 = Unix.gettimeofday () in
+              fun len ->
+                let ret : string = read len in
+                let time = (Unix.gettimeofday () -. t0) /. 60. in
+                  Printf.fprintf f "%f %d\n%!" time self#length ;
+                  ret
+    in
     let sink =
       { put = self#put ; read = read ;
         insert_metadata = self#insert_metadata ; close = close }
@@ -277,6 +291,10 @@ object (self)
                   self#log#f 2 "Feeding stopped: %s." s
               | e ->
                   self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
+            end ;
+            begin match logf with
+              | Some f -> close_out f ; logf <- None
+              | None -> ()
             end ;
             if debug then raise e
 
@@ -410,6 +428,18 @@ object (self)
                           | Some d -> d
                           | None -> failwith "Unknown format!"
                       in
+                        begin match logfile with
+                          | Some f ->
+                              begin try
+                                logf <-
+                                Some (open_out_bin (Utils.home_unrelate f))
+                              with e ->
+                                self#log#f 2
+                                  "Could not open log file: %s"
+                                  (Printexc.to_string e)
+                              end
+                          | None -> ()
+                        end ;
                         self#log#f 3 "Decoding..." ;
                         self#feeding dec socket chunked metaint
           with
@@ -488,13 +518,17 @@ let () =
               discards all entries but the first one." ;
 
         "poll_delay", Lang.float_t, Some (Lang.float 2.),
-        Some "Polling delay." ;
+        Some "Polling delay when trying to connect to the stream." ;
 
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." ;
 
+        "logfile", Lang.string_t, Some (Lang.string ""),
+        Some "Log buffer status to file, for debugging purpose. \
+              Disabled if empty." ;
+
         "debug", Lang.bool_t, Some (Lang.bool false),
-        Some "Run in debugging mode by not catching some exceptions." ;
+        Some "Run in debugging mode, not catching some exceptions." ;
 
         "feed_delay", Lang.float_t, Some (Lang.float (-1.)),
         Some "Feeding delay to apply when the buffer is full. \
@@ -503,11 +537,11 @@ let () =
               will wait for the given delay before dropping data when \
               the buffer is full." ;
 
-       "user_agent", Lang.string_t, 
-        Some (Lang.string 
+        "user_agent", Lang.string_t,
+        Some (Lang.string
             (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
                 Configure.version Sys.os_type Sys.ocaml_version)),
-        Some "User agent." ; 
+        Some "User agent." ;
 
         "", Lang.string_t, None,
         Some "URL of an http stream (default port is 80)." ]
@@ -534,6 +568,11 @@ let () =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)
          in
          let debug = Lang.to_bool (List.assoc "debug" p) in
+         let logfile =
+           match Lang.to_string (List.assoc "logfile" p) with
+             | "" -> None
+             | s -> Some s
+         in
          let bind_address =
            match bind_address with
              | "" -> None
@@ -551,5 +590,5 @@ let () =
          let feed_delay = Lang.to_float (List.assoc "feed_delay" p) in
            ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta
                       ~force_mime ~feed_delay ~bind_address ~poll_delay
-                      ~bufferize ~max ~debug ~user_agent url)
+                      ~bufferize ~max ~debug ~logfile ~user_agent url)
               :> Source.source))
