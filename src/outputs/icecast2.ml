@@ -108,7 +108,7 @@ object (self)
   method virtual log : Dtools.Log.t
 
   initializer
-    if sync || raw then
+    if sync then
       (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
 
   method send b =
