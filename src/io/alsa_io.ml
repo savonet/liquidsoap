@@ -170,6 +170,7 @@ object (self)
   inherit base dev [Pcm.Playback]
 
   initializer
+    self#set_id (Printf.sprintf "alsa_out(%s)" dev) ;
     (* We need the source to be infallible. *)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
