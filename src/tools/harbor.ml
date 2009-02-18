@@ -442,7 +442,7 @@ let handle_client ~icy socket =
           | Get when not icy ->
               handle_get_request socket huri headers
           | Shout when icy ->
-              write_answer ~keep:true socket "OK\r\n\r\n" ;
+              write_answer ~keep:true socket "OK2\r\nicy-caps:11\r\n\r\n" ;
               handle_source_request ~icy:true hprotocol socket huri headers
           | Invalid s ->
               let er = if icy then "ICY " else "" in
