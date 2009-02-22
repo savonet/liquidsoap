@@ -56,7 +56,7 @@ if ($file =~ /\.mp3$/i) {
 
   my $out = `nice -n 20 mp3gain "$file" 2> /dev/null` ;
   $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
-  print "$1 dB\"\n" ;
+  print "$1 dB\n" ;
 
 } elsif ($file =~ /\.ogg$/i) {
 
