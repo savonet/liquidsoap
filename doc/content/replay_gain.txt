@@ -69,10 +69,28 @@ if ($file =~ /\.mp3$/i) {
 }
 %%
 
-Then, there are at least two ways to use it in your liquidsoap script.
+Then, there are at least two ways to use it in your liquidsoap script:
+using a new **metadata** resolver, or a new **protocol**.
+The metadata solution is uniform: without changing anything, _all_ your
+files will be annotated with replaygain information. This can be problematic,
+for example, for jingles,
+or if you have large files that would take a very long time
+to be analyzed by replaygain tools.
+The protocol solution gives you more control on when the replaygain analysis
+is performed, but requires that you change some @uri@ into @replay_gain:uri@.
+We briefly discuss below how to do it conveniently in some typical cases.
 
-The first possibility is to register a new metadata resolver using this script. 
-In order to use it, you simply add, at the begining of your script, the following code:
+Note that our replaygain support for remote files can be problematic.
+As such, it would analyze the file after each download, which
+may be uselessly costly. One should instead make sure that the file has
+been analyzed on the remote machine, so that the local analysis only retrieves
+the precomputed value. In any case, remote files can only be treated through
+the addition of a metadata resolver, and cannot work with the @replay_gain@
+protocol technique (@replaygain:ftp://host/file.ogg@ calls our script
+on the remove URL, which fails).
+
+In order to register a new metadata resolver using this script,
+simply add the following code at the begining of your script:
 
 %%(replaygainmetadata.liq)
 def replaygain_metadata(~format,file)
@@ -86,10 +104,11 @@ end
 add_metadata_resolver("replay_gain",replaygain_metadata)
 %%
 
-Now, when trying to read the metadata of the files,
-this script will be called such that the @replay_gain@ metadata tag will be added.
+Then, when trying to read the metadata of any file,
+this script will be called and the @replay_gain@ metadata tag will be added.
 
-Another possibility is to register a <code>replay_gain</code> protocol in our liquidsoap script:
+In order to register a <code>replay_gain</code> protocol
+in our liquidsoap script, use the following code:
 
 %%(replaygainproto.liq)
 # This would usually be done at the beginning of a script,
@@ -105,10 +124,14 @@ end
 add_protocol("replay_gain",replaygain_protocol)
 %%
 
-In this case, everytime you want to access a file, do it through your new protocol: for example replace <code>/path/to/file.mp3</code> by <code>replay_gain:/path/to/file.mp3</code>. The resolving of the protocol will trigger a call to our script, which will return an annotated request, finally resulting in your file with the extra <code>replay_gain</code> metadata.
+In this case, everytime you need replaygain information about a file,
+access it through your new protocol: for example,
+replace <code>/path/to/file.mp3</code>
+by <code>replay_gain:/path/to/file.mp3</code>.
+The resolving of the protocol will trigger a call to our script,
+which will return an annotated request, finally resulting in your file
+with the extra <code>replay_gain</code> metadata.
 
-The metadata solution is uniform, hence more convenient for adding the @replay_gain@ tag to all resolved files,
-while the protocol resolution allows to tell liquidsoap when it should add the tag. However, the protocol solution 
-will not work properly when dealing with URIs which are not local files, such as, for instance @ftp://host/file.mp3@.
-
-Prepending <code>replay_gain:</code> is easy if you are using a script behind some <code>request.dynamic</code> operator. If you are using the @playlist@ operator, you can use its @prefix@ parameter.
+Prepending <code>replay_gain:</code> is easy if you are using a script
+behind some <code>request.dynamic</code> operator. If you are using the
+@playlist@ operator, you can use its @prefix@ parameter.
