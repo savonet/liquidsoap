@@ -42,7 +42,8 @@ h4. Documentation
 
 h4. Reference
 
-* "API reference":reference.html: all the builtin functions of liquidsoap.
+* "API reference":reference.html: All the builtin functions of liquidsoap.
+* "Settings":settings.html: The list of available settings for liquidsoap.
 * "Script language":language.html: A more detailed presentation.
 
 h4. User scripts

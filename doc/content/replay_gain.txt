@@ -39,9 +39,9 @@ You may also take care of not losing the information brought by the metadata. Th
 use @smart_crossfade@ before applying normalization. Hence, normalization should be done as soon as possible 
 in the script, if possible just after the initial source.
 
-h5. Computing and retrieving the data: the replay gain protocol
+h5. Computing and retrieving the data
 
-In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool. Here is a little script that does the translation for MP3 and Vorbis files. It works as a protocol resolver, taking a filename and returning an URI.
+In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool. Here is a little script that does the translation for MP3 and Vorbis files.
 
 You can run it outside of liquidsoap for testing. It requires the tools <code>mp3gain</code> and <code>vorbisgain</code>, and will affect your files: after the first computation of the replay gain, that information will be stored in the metadata.
 
@@ -56,7 +56,7 @@ if ($file =~ /\.mp3$/i) {
 
   my $out = `nice -n 20 mp3gain "$file" 2> /dev/null` ;
   $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
-  print "annotate:replay_gain=\"$1 dB\":$file\n" ;
+  print "$1 dB\"\n" ;
 
 } elsif ($file =~ /\.ogg$/i) {
 
@@ -64,25 +64,47 @@ if ($file =~ /\.mp3$/i) {
           2>/dev/null >/dev/null") ;
   my $info = `ogginfo "$file"` ;
   $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ || die ;
-  print "annotate:replay_gain=\"$1 dB\":$file\n" ;
-
-} else {
-
-  print "$file\n" ;
+  print "$1 dB\n" ;
 
 }
 %%
 
-Then, we hook this script to the <code>replay_gain</code> protocol in our liquidsoap script:
+Then, there are at least two ways to use it in your liquidsoap script.
+
+The first possibility is to register a new metadata resolver using this script. 
+In order to use it, you simply add, at the begining of your script, the following code:
+
+%%(replaygainmetadata.liq)
+def replaygain_metadata(~format,file)
+  x = get_process_lines("/to/replaygain.pl #{quote(arg)}")
+  if list.hd(x) != "" then
+    ["replay_gain",list.hd(x)]
+  else
+    []
+  end
+end
+add_metadata_resolver("replay_gain",replaygain_metadata)
+%%
+
+Now, when trying to read the metadata of the files,
+this script will be called such that the @replay_gain@ metadata tag will be added.
+
+Another possibility is to register a <code>replay_gain</code> protocol in our liquidsoap script:
 
 %%(replaygainproto.liq)
 # This would usually be done at the beginning of a script,
 # although it does not matter.
-add_protocol("replay_gain",
-  fun (arg,delay) ->
-    get_process_lines("/to/replaygain.pl #{quote(arg)}"))
+def replaygain_protocol(arg,delay)
+  x = get_process_lines("/to/replaygain.pl #{quote(arg)}")
+  list.map(fun (x) -> "annotate:replay_gain=\"#{x}\":#{arg}",x)
+end
+add_protocol("replay_gain",replaygain_protocol)
 %%
 
-That's it. Now everytime you want to access a file, do it through your new protocol: for example replace <code>/path/to/file.mp3</code> by <code>replay_gain:/path/to/file.mp3</code>. The resolving of the protocol will trigger a call to our script, which will return an annotated request, finally resulting in your file with the extra <code>replay_gain</code> metadata.
+In this case, everytime you want to access a file, do it through your new protocol: for example replace <code>/path/to/file.mp3</code> by <code>replay_gain:/path/to/file.mp3</code>. The resolving of the protocol will trigger a call to our script, which will return an annotated request, finally resulting in your file with the extra <code>replay_gain</code> metadata.
 
-Prepending all files with <code>replay_gain</code> is easiest if you are using a script behind some <code>request.dynamic</code> operator. If you are using playlists, then you will have to edit them (preferably using a script or good macros) or change the way you generate them.
+The metadata solution is uniform, hence more convenient for adding the @replay_gain@ tag to all resolved files,
+while the protocol resolution allows to tell liquidsoap when it should add the tag. However, the protocol solution 
+will not work properly when dealing with URIs which are not local files, such as, for instance @ftp://host/file.mp3@.
+
+Prepending <code>replay_gain:</code> is easy if you are using a script behind some <code>request.dynamic</code> operator. If you are using the @playlist@ operator, you can use its @prefix@ parameter.

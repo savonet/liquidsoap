@@ -1,0 +1,6 @@
+title: Liquidsoap language settings
+
+The language settings could not be generated. You probably need perl's XML::DOM module.
+
+Try to install it and rebuild the documentation.
+

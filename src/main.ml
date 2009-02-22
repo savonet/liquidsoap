@@ -192,7 +192,7 @@ struct
         List.map (function s -> aux (p s) (t#path [s])) t#subs
       in
         begin match t#kind, get_string t with
-        | None, None -> Printf.sprintf "## %s\n\n" t#descr
+        | None, None -> Printf.sprintf "### %s\n\n" t#descr
         | Some _, Some p ->
             Printf.sprintf "## %s\n"
             t#descr ^

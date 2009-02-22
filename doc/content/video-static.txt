@@ -27,7 +27,7 @@ Here is the code:
  set("frame.video.channels",1)
  
  # The video source using a static image
- s = video.image(width=240,height=240,x=40,\
+ s = video.image(width=240,height=240,x=40,
          "/tmp/bla.ppm")
  # The audio song.
  audio = single("/tmp/bla.mp3")
@@ -38,7 +38,7 @@ Here is the code:
   [("title","prout")]
  end
  # This is the blank source
- bl = map_metadata(insert_missing=true,\
+ bl = map_metadata(insert_missing=true,
           update=false,end_meta,blank())
  # And the final source: the sequence song 
  # and blank added with the video of the 
@@ -46,7 +46,7 @@ Here is the code:
  final = add([sequence([audio,bl]),s])
  # Output to a theora file, reopen on 
  # new metadata..
- output.file.theora(reopen_on_metadata=true,\
+ output.file.theora(reopen_on_metadata=true,
         "/tmp/$(title).ogv",final)
 %%
 

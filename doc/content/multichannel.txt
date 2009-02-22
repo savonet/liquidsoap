@@ -31,8 +31,8 @@ s = input.jack(id="my input")
 
 # Output this source to icecast 
 # using vorbis
-output.icecast.vorbis(host="my host",\
-  password="my password",mount="4chan.ogg",\
+output.icecast.vorbis(host="my host",
+  password="my password",mount="4chan.ogg",
       s)
 %%
 

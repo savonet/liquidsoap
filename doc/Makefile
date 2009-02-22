@@ -7,7 +7,7 @@ PERL_DOM = $(shell perl -MXML::DOM -e1 > /dev/null 2>&1 && echo yes)
 
 CONTENT=$(wildcard content/*.txt)
 PRE_HTML=$(shell echo $(CONTENT:.txt=.html) | sed -e 's/content\//html\//g') \
-     html/reference.html
+     html/reference.html html/settings.html
 HTML=html/scripts/index.html
 TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
 PDF=$(TEX:.tex=.pdf)
@@ -67,22 +67,33 @@ else
 	@cp no-ref.txt content/reference.txt
 endif
 
+content/settings.txt: settings_to_liqi.pl ../src/liquidsoap
+ifeq ($(PERL_DOM),yes)
+	../src/liquidsoap --conf-descr | \
+	  ./settings_to_liqi.pl > $(@)
+else
+	@echo "-> You don't seem to have perl XML::DOM module installed."
+	@echo "-> Language settings cannot be generated."
+	@cp no-settings.txt content/settings.txt
+endif
+
+
 VERSION="`../src/liquidsoap --version | head -n 1`"
 
 test: html
 	@echo -e "Testing code snippets with \033[1m$(VERSION)\033[0m"
 	@echo ""
-	@find html/scripts | grep '\.liq' \
+	@find html/scripts | grep '\.liq' | sort \
 	  | ./scripts/test_snipets "`pwd`/../src/liquidsoap -p"
 	@echo ""
 	@echo "Testing shell scripts.."
 	@echo "Please remember that it does not test liq syntax used inline.."
 	@echo ""
-	@find html/scripts | grep '\.sh' | ./scripts/test_snipets "sh -n"
+	@find html/scripts | grep '\.sh' | sort | ./scripts/test_snipets "sh -n"
 	@echo ""
 	@echo "Testing perl scripts.."
 	@echo ""
-	@find html/scripts | grep '\.pl' | ./scripts/test_snipets "perl -c"
+	@find html/scripts | grep '\.pl' | sort | ./scripts/test_snipets "perl -c"
 
 doc-install: $(HTML)
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
@@ -91,7 +102,7 @@ doc-install: $(HTML)
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
 
 clean-local:
-	rm -rf html $(TEX) content/reference.txt
+	rm -rf html $(TEX) content/reference.txt content/settings.txt
 
 RCP=rsync -rLtCP --include="*.exe" --exclude="*.swp" --exclude="*.svn" \
 	--delete --stats
