@@ -68,15 +68,8 @@ else
 endif
 
 content/settings.txt: settings_to_liqi.pl ../src/liquidsoap
-ifeq ($(PERL_DOM),yes)
 	../src/liquidsoap --conf-descr | \
 	  ./settings_to_liqi.pl > $(@)
-else
-	@echo "-> You don't seem to have perl XML::DOM module installed."
-	@echo "-> Language settings cannot be generated."
-	@cp no-settings.txt content/settings.txt
-endif
-
 
 VERSION="`../src/liquidsoap --version | head -n 1`"
 
