@@ -96,7 +96,11 @@ Another possibility is to register a <code>replay_gain</code> protocol in our li
 # although it does not matter.
 def replaygain_protocol(arg,delay)
   x = get_process_lines("/to/replaygain.pl #{quote(arg)}")
-  list.map(fun (x) -> "annotate:replay_gain=\"#{x}\":#{arg}",x)
+  if list.hd(x) != "" then
+    "annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"
+  else
+    arg
+  end
 end
 add_protocol("replay_gain",replaygain_protocol)
 %%
