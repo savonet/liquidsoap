@@ -42,8 +42,6 @@ let conf_harbor_pass =
 let conf_icy =
   Conf.bool ~p:(conf_harbor#plug "icy") ~d:false
    "Enable the builtin ICY (shout) stream receiver."
-   ~comments:["Custom password, user or authentification function don't apply";
-              "to ICY mountpoints."]
 let conf_timeout =
   Conf.float ~p:(conf_harbor#plug "timeout") ~d:30.
         "Timeout for source connections."
