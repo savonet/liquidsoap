@@ -38,10 +38,6 @@ object (self)
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
 
-  (* The played source will be [s] at first,
-   * but can become a combination of tracks by [f]. *)
-  val mutable source = s
-
   (* We need to store the end of a track, and compute the power of the signal
    * before the end of track. For doing so we need to remember a sliding window
    * of samples, maintain the sum of squares, and the number of samples in that
@@ -60,7 +56,14 @@ object (self)
   val mutable rmsi_after = 0
   val mutable after_metadata = None
 
+  (* An audio frame for intermediate computations.
+   * It is used to buffer the end and beginnings of tracks. It should be
+   * [clear]ed after the analysis of a beginning,
+   * but only [advance]d during buffering. *)
+  val buf_frame = Frame.make ()
+
   method private reset_analysis =
+    Frame.clear buf_frame ;
     gen_before <- Generator.create () ;
     gen_after  <- Generator.create () ;
     rms_before <- 0. ; rmsi_before <- 0 ; mem_i <- 0 ;
@@ -68,6 +71,25 @@ object (self)
     rms_after <- 0. ; rmsi_after <- 0 ;
     before_metadata <- after_metadata ;
     after_metadata <- None
+
+  (* The played source: [s] at first, then a combination of tracks by [f].
+   * We _need_ exclusive control on that source, since we are going to
+   * pull data from it at a higher rate around track limits.
+   * It is OK if there is sharing underneath our source. It is not OK if
+   * there is an active source underneath it. A source relaying an external
+   * stream, such as input.harbor or input.http, may be able to work
+   * properly (no crash) but is likely to behave in a disappointing way.
+   * We should eventually be able to control all this statically.
+   *
+   * This implies that we must take special care of the life-cycle of our
+   * source, especially its #after_output signal. Since we assume
+   * exclusivity, the safe thing to do is to send that signal after each #get.
+   * It doesnt matter if it's sent several times, e.g. by our #after_output. *)
+  val mutable source = s
+
+  method private source_get ab =
+    source#get ab ;
+    source#after_output
 
   (* Activation record for our chilren sources. *)
   val mutable activation = []
@@ -90,7 +112,6 @@ object (self)
   val mutable status = `Idle
 
   method private get_frame ab =
-    (* TODO check that [s] doesn't cache. *)
     match status with
       | `Idle ->
           (* TODO 0 is often answered just before the beginning of a track
@@ -98,7 +119,7 @@ object (self)
            * Or simply don't bother about that harmless transition. *)
           let rem = if conservative then 0 else source#remaining in
             if rem < 0 || rem > cross_length then
-              source#get ab
+              self#source_get ab
             else begin
               self#log#f 4 "Buffering end of track..." ;
               status <- `Before ;
@@ -133,28 +154,25 @@ object (self)
             self#get_frame ab
           end else
             let position = AFrame.position ab in
-              source#get ab ;
+              self#source_get ab ;
               status <- `After (size-(AFrame.position ab)+position)
-
-  (* An audio frame for intermediate computations. *)
-  val b = Frame.make ()
 
   (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
    * where [d=AFrame.size-1]. *)
   method private buffering n =
     (* Get audio samples *)
-    AFrame.clear b ;
+    AFrame.advance buf_frame ;
     assert (source#is_ready) ;
-    source#get b ;
+    self#source_get buf_frame ;
     (* Store them. *)
-    Generator.feed_from_frame gen_before b;
+    Generator.feed_from_frame gen_before buf_frame ;
     (* Analyze them *)
-    for i = 0 to AFrame.position b - 1 do
+    for i = 0 to AFrame.position buf_frame - 1 do
       let squares =
         Array.fold_left
           (fun squares track -> squares +. track.(i)*.track.(i))
           0.
-          (AFrame.get_float_pcm b)
+          (AFrame.get_float_pcm buf_frame)
       in
         rms_before <- rms_before -. mem_before.(mem_i) +. squares ;
         mem_before.(mem_i) <- squares ;
@@ -162,40 +180,35 @@ object (self)
         rmsi_before <- min rms_width (rmsi_before + 1)
     done ;
     (* Should we buffer more or are we done ? *)
-    if AFrame.is_partial b then
+    if AFrame.is_partial buf_frame then
       status <- `Limit
     else
-      if n>0 then begin
-        (* Call after_output so that the source gets ready for more #get. *)
-        source#after_output ;
-        self#buffering (n - AFrame.position b)
-      end
+      if n>0 then self#buffering (n - AFrame.position buf_frame)
 
   (* Analyze the beginning of a new track. *)
   method private analyze_after =
     let todo = ref rms_width in
     let first = ref true in
       while !todo > 0 do
-        AFrame.clear b ;
+        AFrame.advance buf_frame ;
         assert (source#is_ready) ;
-        source#get b ;
-        source#after_output ;
-        if !first then after_metadata <- AFrame.get_metadata b 0 ;
+        self#source_get buf_frame ;
+        if !first then after_metadata <- AFrame.get_metadata buf_frame 0 ;
         first := false ;
-        Generator.feed_from_frame gen_after b;
-        for i = 0 to AFrame.position b - 1 do
+        Generator.feed_from_frame gen_after buf_frame ;
+        for i = 0 to AFrame.position buf_frame - 1 do
           let squares =
             Array.fold_left
               (fun squares track -> squares +. track.(i)*.track.(i))
               0.
-            (AFrame.get_float_pcm b)
+            (AFrame.get_float_pcm buf_frame)
           in
             rms_after <- rms_after +. squares ;
             rmsi_after <- rmsi_after + 1
         done ;
-        todo := !todo - AFrame.position b ;
+        todo := !todo - AFrame.position buf_frame ;
         (* Not sure how to handle end-of-track at this point... *)
-        if AFrame.is_partial b then todo := 0
+        if AFrame.is_partial buf_frame then todo := 0
       done
 
   val chans = float (Fmt.channels())
@@ -259,10 +272,6 @@ object (self)
   method is_ready = source#is_ready
 
   method abort_track = source#abort_track
-
-  method after_output =
-    self#advance ;
-    source#after_output (* TODO cross doesn't do the same ! *)
 
 end
 

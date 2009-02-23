@@ -46,8 +46,13 @@ object (self)
   method stype = s#stype (* This actually depends on [f]. *)
 
   (* The played source will be [s] at first, but can become a combination of
-   * tracks by [f]. *)
+   * tracks by [f]. See the doc for the corresponding field, as well as
+   * the #source_get in Smartcross. *)
   val mutable source = s
+
+  method private source_get ab =
+    source#get ab ;
+    source#after_output
 
   val mutable activation = []
 
@@ -65,6 +70,9 @@ object (self)
   val default_cross_length = cross_length
   (* Cross-length for the current track in ticks. *)
   val mutable cur_cross_length = None
+
+  (* An audio frame for intermediate computations. *)
+  val buf_frame = Frame.make ()
 
   (* It is tricky to get the cross_length.
    * The metadata meta can come through the transition function,
@@ -93,7 +101,6 @@ object (self)
   val mutable status = `Idle
 
   method private get_frame ab =
-    (* TODO check that [s] doesn't cache. *)
     let p = Frame.position ab in
     match status with
       | `Idle ->
@@ -106,17 +113,18 @@ object (self)
            * Or simply don't bother about that harmless transition. *)
           let rem = if conservative then 0 else source#remaining in
             if rem < 0 || rem > cross_length then begin
-              source#get ab ;
+              self#source_get ab ;
               self#update_cross_length ab p
             end else begin
               self#log#f 4 "Buffering end of track..." ;
               let buffer = Generator.create () in
+                Frame.clear buf_frame ;
                 status <- `Started buffer ;
                 cur_cross_length <- None ;
                 self#buffering buffer cross_length ;
                 begin match status with
-                  | `Stopped _ -> ()
-                  | _ -> self#log#f 4 "More buffering will be needed."
+                  | `Started _ -> self#log#f 4 "More buffering will be needed."
+                  | _ -> ()
                 end ;
                 self#get_frame ab ;
             end
@@ -125,32 +133,27 @@ object (self)
            * Play the beginning of the buffer while filling it more. *)
           self#buffering buffer 0 ;
           Generator.fill buffer ab
-      | `Stopped (s,size) ->
-          (* The buffering stopped and we got [s], combination of the buffered
-           * end of track and the new track. It will be played without bothering
-           * about the possible close end-of-track for [size] bytes. Then it
-           * will replace the normal source, allowing it to be crossed. *)
+      | `After size ->
+          (* After the buffering phase, [source] has become the result
+           * of the transition. We play it without possibly crossing
+           * new tracks until some delay has passed (given by [size]). *)
           if size<=0 then begin
-            source <- s ;
             status <- `Idle ;
             self#get_frame ab
           end else
             let position = Frame.position ab in
-              s#get ab ;
-              status <- `Stopped (s,size-(Frame.position ab)+position) ;
-              (* Try to catch a liq_start_next value.. *)
+              self#source_get ab ;
+              status <- `After (size - Frame.position ab + position) ;
+              (* Try to catch a [liq_start_next] value. *)
               self#update_cross_length ab p
-
-  (* An audio frame for intermediate computations. *)
-  val b = Frame.make ()
 
   (* [bufferize n] stores at most [n+d] frames from [s] in [buffers],
    * where [d=Frame.size-1]. *)
   method private buffering buffer n =
-    AFrame.clear b ;
-    source#get b ;
-    Generator.feed_from_frame buffer b;
-    if AFrame.is_partial b then
+    Frame.advance buf_frame ;
+    self#source_get buf_frame ;
+    Generator.feed_from_frame buffer buf_frame;
+    if Frame.is_partial buf_frame then
       (* As for Switch's transitions, we avoid stacking compositions
        * because this would lead to huge sources, never simplified.
        * We compose the end of a track with the original source [s] instead of
@@ -168,34 +171,21 @@ object (self)
       in
         source#leave (self:>source) ;
         s#get_ready activation ;
-        status <- `Stopped (s, inhibit)
+        source <- s ;
+        status <- `After inhibit
     else
-      if n>0 then self#buffering buffer (n - Frame.position b)
+      if n>0 then self#buffering buffer (n - Frame.position buf_frame)
 
   method remaining =
     match status with
-      | `Idle -> source#remaining
+      | `Idle | `After _ -> source#remaining
       | `Started b ->
           source#remaining +
           Generator.length b * Fmt.ticks_per_sample ()
-      | `Stopped (s,_) -> s#remaining
 
-  method is_ready =
-    match status with
-      | `Idle -> source#is_ready
-      | `Started b -> true
-      | `Stopped (s,_) -> s#is_ready
+  method is_ready = source#is_ready
 
-  method abort_track =
-    match status with
-      | `Stopped (s,_) -> s#abort_track
-      | _ -> source#abort_track
-
-  method after_output =
-    self#advance ;
-    match status with
-      | `Stopped (s,_) -> s#after_output
-      | _ -> source#after_output
+  method abort_track = source#abort_track
 
 end
 
