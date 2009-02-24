@@ -252,7 +252,7 @@ object (self)
       end ;
       if Generator.length abg >= abg_max_len then begin
         (* TODO maybe insert a break in the generator *)
-        self#log#f 3 "Overfull buffer: dropping data." ;
+        self#log#f 6 "Overfull buffer: dropping data." ;
         Generator.remove abg (Generator.length abg - abg_max_len)
       end
     end;

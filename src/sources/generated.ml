@@ -63,7 +63,7 @@ object (self)
       if buffering then begin
         (* We have some data, but not enough for safely starting to play it. *)
         if bufferize > 0 && r <= bufferize then
-          self#log#f 4 "Not ready: need more buffering (%i/%i)." r bufferize ;
+          self#log#f 6 "Not ready: need more buffering (%i/%i)." r bufferize ;
         r > bufferize
       end else begin
         (* This only happens if the end of track has not been played yet,
