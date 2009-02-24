@@ -197,7 +197,7 @@ module Generated = Generated.From_Float_pcm_Generator
 exception Redirection of string
 
 class http ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
-           ~feed_delay ~bind_address ~autostart ~bufferize ~max
+           ~bind_address ~autostart ~bufferize ~max
            ~debug ?(logfile=None)
            ~user_agent url =
   let abg_max_len =
@@ -244,12 +244,6 @@ object (self)
      * pulled for some time.
      * It can also be necessary if liquidsoap is lower than the stream. *)
     if Generator.length abg >= abg_max_len then begin
-      (* Give it a chance to empty a bit before dropping. *)
-      if feed_delay > 0. then begin
-        Mutex.unlock lock ;
-        Thread.delay feed_delay ;
-        Mutex.lock lock
-      end ;
       if Generator.length abg >= abg_max_len then begin
         (* TODO maybe insert a break in the generator *)
         self#log#f 6 "Overfull buffer: dropping data." ;
@@ -530,13 +524,6 @@ let () =
         "debug", Lang.bool_t, Some (Lang.bool false),
         Some "Run in debugging mode, not catching some exceptions." ;
 
-        "feed_delay", Lang.float_t, Some (Lang.float (-1.)),
-        Some "Feeding delay to apply when the buffer is full. \
-              This setting can lead to disconnections when the \
-              source is not pulled. If positive, the feeding thread \
-              will wait for the given delay before dropping data when \
-              the buffer is full." ;
-
         "user_agent", Lang.string_t,
         Some (Lang.string
             (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
@@ -587,8 +574,7 @@ let () =
          let timeout = Lang.to_float (List.assoc "timeout" p) in
          let max = Lang.to_float (List.assoc "max" p) in
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
-         let feed_delay = Lang.to_float (List.assoc "feed_delay" p) in
            ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta
-                      ~force_mime ~feed_delay ~bind_address ~poll_delay
+                      ~force_mime ~bind_address ~poll_delay
                       ~bufferize ~max ~debug ~logfile ~user_agent url)
               :> Source.source))

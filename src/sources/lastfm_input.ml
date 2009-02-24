@@ -23,13 +23,13 @@
 open Lastfm
 
 class lastfm ~autostart ~poll_delay ~submit ~track_on_meta 
-             ~feed_delay ~bufferize ~timeout ~bind_address 
+             ~bufferize ~timeout ~bind_address 
              ~debug ~max ~user_agent uri =
 let playlist_mode = Http_source.First in
 object (self)
   inherit Http_source.http ~playlist_mode ~poll_delay ~timeout 
                            ~autostart ~bind_address ~bufferize 
-                           ~feed_delay ~max ~track_on_meta 
+                           ~max ~track_on_meta 
                            ~debug ~user_agent uri as http
 
   val mutable session = None
@@ -123,12 +123,6 @@ let () =
         Some "Run in debugging mode by not catching some exceptions." ;
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data." ;
-        "feed_delay", Lang.float_t, Some (Lang.float (-1.)),
-        Some "Feeding delay to apply when the buffer is full. \
-              This setting can lead to disconnections when the \
-              source is not pulled. If positive, the feeding thread \
-              will wait for the given delay before dropping data when \
-              the buffer is full." ;
        "user_agent", Lang.string_t,
         Some (Lang.string
             (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
@@ -153,8 +147,7 @@ let () =
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
 	 let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
-         let feed_delay =  Lang.to_float (List.assoc "feed_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
            ((new lastfm ~autostart ~submit ~poll_delay ~bufferize ~track_on_meta 
-                        ~feed_delay ~bind_address ~timeout ~max ~debug 
+                        ~bind_address ~timeout ~max ~debug 
                         ~user_agent uri):>Source.source))
