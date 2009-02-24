@@ -52,13 +52,17 @@ h5. Playlists
 In the first example we'll play a playlist. Let's put a list of audio files in 
 <code>playlist.pls</code>: one filename per line, lines starting with a @#@ are 
 ignored. You can also put remote files' URLs, if your liquidsoap has 
-"support":help.html#plugins for the corresponding protocols. You can also use a directory name instead of a playlist, and liquidsoap will recursively look for audio files in it. Then just run:
+"support":help.html#plugins for the corresponding protocols.
+Then just run:
 
 %%
-liquidsoap 'out(playlist("playlist.m3u"))'
+liquidsoap 'out(playlist("playlist.pls"))'
 %%
 
-(Although full M3U format should be supported by liquidsoap, we advise you to use the much simpler one-file-per-line format.)
+Other playlist formats are supported, such as M3U and, depending on your
+configuration, XSPF.
+Instead of giving the filename of a playlist, you can also use a directory 
+name, and liquidsoap will recursively look for audio files in it.
 
 Depending on your configuration, the output <code>out</code> will use AO, Alsa or OSS, or won't do anything if you do not have support for these libs. In that case, the next example is for you.
 
