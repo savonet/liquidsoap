@@ -57,13 +57,12 @@ object (self)
   val mutable after_metadata = None
 
   (* An audio frame for intermediate computations.
-   * It is used to buffer the end and beginnings of tracks. It should be
-   * [clear]ed after the analysis of a beginning,
-   * but only [advance]d during buffering. *)
+   * It is used to buffer the end and beginnings of tracks.
+   * Its past metadata should mimick that of the main stream in order
+   * to avoid metadata duplication. *)
   val buf_frame = Frame.make ()
 
   method private reset_analysis =
-    Frame.clear buf_frame ;
     gen_before <- Generator.create () ;
     gen_after  <- Generator.create () ;
     rms_before <- 0. ; rmsi_before <- 0 ; mem_i <- 0 ;
@@ -123,6 +122,9 @@ object (self)
             else begin
               self#log#f 4 "Buffering end of track..." ;
               status <- `Before ;
+              Frame.set_all_metadata buf_frame
+                (match Frame.get_past_metadata ab with
+                   | Some x -> [-1,x] | None -> []) ;
               self#buffering cross_length ;
               begin match status with
                 | `Limit -> ()

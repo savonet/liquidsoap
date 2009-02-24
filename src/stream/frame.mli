@@ -121,6 +121,9 @@ val free_all_metadata : t -> unit
 (** Get all the metadata of a frame (and the time they are set). *)
 val get_all_metadata : t -> (int*metadata) list
 
+(** Get the stored past metadata of a frame (rather, stream). *)
+val get_past_metadata : t -> metadata option
+
 (** Set all the metadata of a frame (and the time they are set). *)
 val set_all_metadata : t -> (int*metadata) list -> unit
 

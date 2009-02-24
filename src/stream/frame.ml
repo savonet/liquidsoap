@@ -151,6 +151,8 @@ let free_metadata b t =
 let free_all_metadata b = b.metadata <- []
 let get_all_metadata b = List.filter (fun (x,_) -> x <> -1) b.metadata
 let set_all_metadata b l = b.metadata <- l
+let get_past_metadata b =
+  try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
 
 (** Chunks *)

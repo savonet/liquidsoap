@@ -118,7 +118,9 @@ object (self)
             end else begin
               self#log#f 4 "Buffering end of track..." ;
               let buffer = Generator.create () in
-                Frame.clear buf_frame ;
+                Frame.set_all_metadata buf_frame
+                  (match Frame.get_past_metadata ab with
+                     | Some x -> [-1,x] | None -> []) ;
                 status <- `Started buffer ;
                 cur_cross_length <- None ;
                 self#buffering buffer cross_length ;
