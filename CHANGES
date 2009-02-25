@@ -12,16 +12,21 @@ Bugs fixed:
  - Fixed (again) Vorbis mono output (#211).
  - Avoid crashing on broken symlinks when parsing directories (#154).
  - Use random temporary file in liGuidsoap.
+ - Fixed liGuidsoap to use the (not so) new metadata field initial_uri.
  - Fix bugs in the life cycle (sleep/wake_up) of queued request sources,
    which made say_metadata unfunctional.
  - Remove buggy unbuffered {input,output}.jack. (#231)
  - Fixed audio information sent to icecast. (#226)
  - Fixed global reset starting inactive sources. (#227)
  - Fixed shoutcast source initial answer in harbor. (#254)
- - Fixed multiple metadata spaned in some cases in the crossfades. (#257)
+ - Fixed frame and metadata duplication in cross operators. (#257)
+ - Fixed several sources (outputs, external streams) that were not going
+   to sleep correctly.
 Changes:
  - Warning: interactive_float() is now interactive.float().
 New:
+ - Compatible with OCaml 3.09.
+ - Faster shutdown.
  - Rewrote ogg decoding, for files and streams.
  - Support for ogg skeletons, currently only used for theora.
  - Cleanup icecast class hierarchy and restart mechanism, especially
@@ -34,6 +39,7 @@ New:
  - New force_mime parameter for input.http().
  - New insert_missing parameter for append().
  - Multi-line strings in liq scripts, with a caml-like syntax.
+ - Slight modification of the scripting syntax, handling unary minus.
  - Added user_agent parameter for input.http and input.lastfm
  - Added speex support for files and HTTP streams.
  - Added EXPERIMENTAL support for AU, AIFF and NSV mp3 audio files
