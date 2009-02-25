@@ -17,6 +17,8 @@ Bugs fixed:
  - Remove buffy unbuffered {input,output}.jack. (#231)
  - Fixed audio information sent to icecast. (#226)
  - Fixed global reset starting inactive sources. (#227)
+ - Fixed shoutcast source initial answer in harbor. (#254)
+ - Fixed multiple metadata spaned in some cases in the crossfades. (#257)
 Changes:
  - Warning: interactive_float() is now interactive.float().
 New:
