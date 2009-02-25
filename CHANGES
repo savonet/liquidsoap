@@ -14,7 +14,7 @@ Bugs fixed:
  - Use random temporary file in liGuidsoap.
  - Fix bugs in the life cycle (sleep/wake_up) of queued request sources,
    which made say_metadata unfunctional.
- - Remove buffy unbuffered {input,output}.jack. (#231)
+ - Remove buggy unbuffered {input,output}.jack. (#231)
  - Fixed audio information sent to icecast. (#226)
  - Fixed global reset starting inactive sources. (#227)
  - Fixed shoutcast source initial answer in harbor. (#254)
