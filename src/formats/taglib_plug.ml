@@ -24,10 +24,6 @@ open Taglib
 
 let get_tags ~format fname =
   try
-    (* Disable other formats for now... *)
-    if (format <> "MP3") then
-      raise Not_found ;
-
     let f = open_file ~file_type:Mpeg fname in
     try
       let ans = ref [] in
