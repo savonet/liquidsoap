@@ -76,19 +76,22 @@ let decoder process file =
       out_samples := !out_samples + AFrame.position buf - offset ;
       (* Compute an estimated number of remaining ticks. *)
       let abglen = Generator.length abg in
-        assert (!in_bytes!=0) ;
-        let compression =
-          (float (!out_samples+abglen)) /. (float !in_bytes)
-        in
-        let remaining_samples =
-          (float (file_size - !in_bytes)) *. compression
-          +. (float abglen)
-        in
+        if !in_bytes = 0 then
+          0
+        else
+         begin
+          let compression =
+            (float (!out_samples+abglen)) /. (float !in_bytes)
+          in
+          let remaining_samples =
+            (float (file_size - !in_bytes)) *. compression
+            +. (float abglen)
+          in
           (* I suspect that in_samples in not accurate, since I don't
            * get an exact countdown after than in_size=in_samples, but there
            * is a stall at the beginning after which the countdown starts. *)
           Fmt.ticks_of_samples (int_of_float remaining_samples)
-
+         end
   in { Decoder.fill = fill ; Decoder.close = close }
 
 
