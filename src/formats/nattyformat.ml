@@ -34,10 +34,9 @@ let decoder_pcm ~get_samples ~pcm w file =
   let big_endian = pcm.Natty.endianess <> Natty.Little_endian in
   let signed     = true in
   let out_freq   = float (Fmt.samples_per_second()) in
-  let samples    = (Fmt.samples_per_frame()) in
   let abg =
     Generator.create
-      ~channels ~samplesize ~signed ~big_endian ~in_freq ~samples ~out_freq
+      ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
   in
   let buffer_length = Decoder.buffer_length () in
 
@@ -65,7 +64,7 @@ let decoder_pcm ~get_samples ~pcm w file =
     end ;
 
     let offset = AFrame.position buf in
-      AFrame.fill_frame_from_raw abg buf ;
+      Generator.fill abg buf ;
       out_samples := !out_samples + AFrame.position buf - offset ;
       (* Compute an estimated number of remaining ticks. *)
       let abglen = Generator.length abg in
