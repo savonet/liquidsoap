@@ -73,11 +73,11 @@ let search_valid filename : (string*(unit -> decoder)) option =
   try
     formats#iter ~rev:true 
       (fun format decoder ->
-         log#f 4 "Trying %s decoder for %S" format filename ;
+         log#f 4 "Trying %s decoder for %S..." format filename ;
          match decoder filename with
            | Some d ->
                d.close () ;
-               log#f 3 "Decoder %s chosed for %S" format filename ;
+               log#f 3 "Decoder %s chosen for %S." format filename ;
                raise (Exit (format,decoder))
            | None  -> ()) ;
     log#f 3 "Unable to decode %S!" filename ;
