@@ -120,8 +120,8 @@ ifdef DISTFILES
 endif
 ifdef DISTDIRS
 	cp -rf $(DISTDIRS) $(DDIR)
-	find $(DISTDIRS) -name .svn | while read i; do rm -rf "$$i"; done
 endif
+	find $(DDIR) -name .svn | while read i; do rm -rf "$$i"; done
 
 dist:
 	@a=`cd $(top_srcdir) ; pwd ` ; b=`pwd` ; [ "eq$$a" = "eq$$b" ] \

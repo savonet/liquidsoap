@@ -1,5 +1,5 @@
 
-DISTFILES = $(wildcard *.ml) $(wildcard *.mli) $(wildcard *.c) Makefile 
+DISTFILES = $(wildcard *.ml) $(wildcard *.mli) $(wildcard *.c) $(wildcard *.in)  Makefile 
 
 ocaml_tests = mixer_test $(if $(W_RTP),rtp_send) wav_test tutils_test
 OCAML_CFLAGS= -thread $(if $(W_RTP),-cclib -lortp) -package dtools

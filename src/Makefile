@@ -180,7 +180,7 @@ liquidsoap_doc_sources= \
 	configure.ml fmt.ml video_converter.ml \
 	$(if $(W_OGG),ogg_encoder.ml ogg_demuxer.ml) \
 	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml \
-	stream/vFrame.ml stream/RGB.ml
+	stream/vFrame.ml stream/RGB.ml audio_converter.ml
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules

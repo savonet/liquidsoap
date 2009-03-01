@@ -1,4 +1,4 @@
-0.9.0 ()
+0.9.0 (01-03-2009)
 Bugs fixed:
  - Fixed byte swapping function.
  - Fixed unix server socket failure (#160).

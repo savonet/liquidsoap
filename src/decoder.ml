@@ -77,6 +77,7 @@ let search_valid filename : (string*(unit -> decoder)) option =
          match decoder filename with
            | Some d ->
                d.close () ;
+               log#f 3 "Decoder %s chosed for %S" format filename ;
                raise (Exit (format,decoder))
            | None  -> ()) ;
     log#f 3 "Unable to decode %S!" filename ;
