@@ -5,9 +5,9 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-AC_INIT([liquidsoap],[0.9.0])
-version="0.9.0"
-libs_dir_version="0.9.0"
+AC_INIT([liquidsoap],[0.9.+svn])
+version="0.9.0+svn"
+libs_dir_version="svn"
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
 
