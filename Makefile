@@ -11,9 +11,13 @@ debug:
 	$(MAKE) _OCAML_CFLAGS=-g -C src clean all
 
 distclean: clean
-	rm -rf config.log config.status config.h autom4te.cache src/configure.ml Makefile.defs scripts/liquidsoap.initd scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate scripts/liquidtts gui/liguidsoap
+	rm -rf config.log config.status config.h autom4te.cache \
+	       src/configure.ml Makefile.defs scripts/liquidsoap.initd \
+	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
+	       scripts/liquidtts gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2 
 tild-clean:
 	find . -name '*~' -exec rm \{\} \;
+
 
 # Build liquidsoap as it will be used for building the doc
 doc-local: all

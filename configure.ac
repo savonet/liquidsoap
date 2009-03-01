@@ -5,9 +5,9 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-AC_INIT([liquidsoap],[0.9.+svn])
-version="0.9.0+svn"
-libs_dir_version="svn"
+AC_INIT([liquidsoap],[0.9.0])
+version="0.9.0"
+libs_dir_version="0.9.0"
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
 
@@ -598,10 +598,10 @@ if test -z "$with_vorbis_dir" ; then
    if ! $OCAMLFIND query vorbis > /dev/null 2>&1 ; then
        AC_MSG_RESULT(Not found.)
    else
-       version="`ocamlfind query -format "%v" vorbis`"
+       vorbis_version="`ocamlfind query -format "%v" vorbis`"
        mid="`echo $version | cut -d. -f 2`"
        if test $mid -lt 5; then
-           AC_MSG_RESULT([requires version >= 0.5.0, found $version.])
+           AC_MSG_RESULT([requires version >= 0.5.0, found $vorbis_version.])
        else
          ocamlcflags="$ocamlcflags -package vorbis"
          requires="$requires vorbis"
