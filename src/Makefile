@@ -219,7 +219,7 @@ profile:
 	$(MAKE)
 
 libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	stream/vFrame.ml stream/aFrame.ml shebang.ml \
+	shebang.ml \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	tools/server.ml tools/server_builtins.ml \
 	lang/lang_types.ml lang/lang_values.ml \
