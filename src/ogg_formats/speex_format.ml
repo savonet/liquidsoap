@@ -200,6 +200,13 @@ let create ~frames_per_packet ~mode ~vbr ~quality
             else
               remaining_init
   in
+  let end_of_page p =
+    let granulepos = Ogg.Page.granulepos p in
+    if granulepos < Int64.zero then
+      Int64.minus_one
+    else
+      granulepos
+  in
   let end_of_stream os = 
     Speex.Encoder.eos enc os
   in
@@ -209,6 +216,8 @@ let create ~frames_per_packet ~mode ~vbr ~quality
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
     data_encoder   = (Ogg_encoder.Audio_encoder data_encoder);
+    rate           = Fmt.ticks_per_sample ();
+    end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }
 

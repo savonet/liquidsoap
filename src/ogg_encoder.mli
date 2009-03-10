@@ -65,6 +65,11 @@ type 'a track_encoder = t -> 'a data -> Ogg.Stream.t -> unit
   * to be placed at the very beginning. *)
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
 
+(** Return the end time of a page.
+  * Can be negative if the page contains 
+  * less than one unit of data. *)
+type position = Ogg.Page.t -> Int64.t
+
 (** Returns an optional fisbone packet, which 
   * will contain the data for this stream to 
   * put in the ogg skeleton, if enabled in 
@@ -89,6 +94,16 @@ type stream_encoder =
     fisbone_packet : fisbone_packet;
     stream_start   : stream_start;
     data_encoder   : data_encoder;
+    (* The rate should be the number of units of
+     * time that a data unit represents.
+     * It is used to classify audio and
+     * video pages. Usually, rate for audio
+     * will be 1 and rate for video will be 1794,
+     * which means that, for audio at 44.100Hz and
+     * video at 25 fps per seconds, one video frame
+     * is time equivalent to 1794 audio samples. *)
+    rate           : int;
+    end_of_page    : position;
     end_of_stream  : end_of_stream
   }
 

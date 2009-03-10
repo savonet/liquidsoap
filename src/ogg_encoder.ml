@@ -42,6 +42,7 @@ type track_data =
 
 (** Internal type, depends on type t, which is defined later.. *)
 type ('a,'b) internal_track_encoder = 'a -> 'b data -> Ogg.Stream.t -> unit
+type position = Ogg.Page.t -> Int64.t
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
 type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
 type stream_start = Ogg.Stream.t -> string
@@ -51,6 +52,10 @@ type ('a,'b) stream =
   {
     os           : Ogg.Stream.t;
     encoder      : ('a,'b) internal_track_encoder;
+    end_pos      : position;
+    stream_rate  : int;
+    mutable pos  : Int64.t;
+    remaining    : (Int64.t*Ogg.Page.t) Queue.t;
     fisbone_data : fisbone_packet; 
     start_page   : stream_start;
     stream_end   : end_of_stream
@@ -72,6 +77,8 @@ type t =
     id               : string;
     mutable skeleton : Ogg.Stream.t option;
     encoded          : Buffer.t;
+    mutable position : Int64.t;
+    mutable latest   : nativeint;
     tracks           : (nativeint,t track) Hashtbl.t;
     mutable state    : state ;
   }
@@ -88,6 +95,8 @@ type stream_encoder =
     fisbone_packet : fisbone_packet;
     stream_start   : stream_start;
     data_encoder   : data_encoder;
+    rate           : int;
+    end_of_page    : position;
     end_of_stream  : end_of_stream
   }
 
@@ -156,6 +165,8 @@ let create ~skeleton id =
     id       = id;
     skeleton = skeleton;
     encoded  = content;
+    position = Int64.zero;
+    latest   = Nativeint.minus_one;
     tracks   = Hashtbl.create 10;
     state    = Bos;
   }
@@ -186,6 +197,10 @@ let register_track encoder track_encoder =
            { 
              os = os; 
              encoder = encoder;
+             end_pos = track_encoder.end_of_page;
+             stream_rate = track_encoder.rate;
+             pos = Int64.zero;
+             remaining = Queue.create ();
              fisbone_data = track_encoder.fisbone_packet;
              start_page = track_encoder.stream_start;
              stream_end = track_encoder.end_of_stream
@@ -195,6 +210,10 @@ let register_track encoder track_encoder =
            { 
              os = os; 
              encoder = encoder;
+             end_pos = track_encoder.end_of_page;
+             stream_rate = track_encoder.rate;
+             pos = Int64.zero;
+             remaining = Queue.create ();
              fisbone_data = track_encoder.fisbone_packet;
              start_page = track_encoder.stream_start;
              stream_end = track_encoder.end_of_stream
@@ -242,7 +261,30 @@ let streams_start encoder =
   encoder.state <- Streaming
 
 (** Encode data. Implicitely calls [streams_start]
-  * if not called before. *)
+  * if not called before. 
+  *
+  * The encoding works as follow:
+  *  + The encoder has a global position
+  *  + Each stream has a local position
+  *  + Each time a page ends at a position
+  *    that is ahead of the encoder position,
+  *    then the encoder position is bumped,
+  *    and we note that this stream was the last 
+  *    one to increment.
+  *  + The encoded pages are kept in a queue
+  *  + As soon as the encoder's position is ahead
+  *    of a queued page, then this page can be written
+  *  + The queue also retains pages with negative
+  *    granulepos. These pages contains less than one 
+  *    packet, and should be written only when all 
+  *    the required pages to decode at least one packet 
+  *    are queued.
+  *  + Special attention has been payed that, even though 
+  *    a page has bumped the encoder's position, it should
+  *    not be written immediately. Indeed, another stream
+  *    may have a page increasing this position too, but 
+  *    to a lower value. In this case, we want the other
+  *    page to be written first. *)
 let encode encoder id data =
  if encoder.state = Bos then
    streams_start encoder;
@@ -251,11 +293,72 @@ let encode encoder id data =
     log#f 4 "%s: Cannot encode: ogg stream finished.." encoder.id;
     raise Invalid_usage
    end;
- let rec fill src dst = 
+ let tmp_queue = Queue.create () in
+ (* This functions writes all pages which contains at
+  * least a packet, and end after the current position. *)
+ let flush_queue q = 
+   let test_page (pos,p) = 
+     (* Is the page before the current position ? *)
+     if pos <= encoder.position then
+       (* Does the page contain at least one packet ? *)
+       if pos >= Int64.zero then
+        (* If yes, then we can writte all temporary pages
+         * since they are before the current page. *)
+        begin
+          Queue.iter (fun (_,p) -> add_page encoder p) tmp_queue;
+          Queue.clear tmp_queue;
+          add_page encoder p
+        end
+       else
+         (* If not, schedule it for later. *)
+         Queue.add (pos,p) tmp_queue
+     else
+       (* If not, scheduler it for later. *)
+       Queue.add (pos,p) tmp_queue
+   in
+   Queue.iter test_page q;
+   Queue.clear q;
+   Queue.transfer tmp_queue q;
+ in
+ let rec fill src dst =
+  (* The current stream may bump the current 
+   * encoder's position when it is the only one, 
+   * or it was not the last one to update it. *) 
+  if Hashtbl.length encoder.tracks = 1 ||
+     (Ogg.Stream.serialno src.os) <> encoder.latest then
    try
-     let p = Ogg.Stream.get_page src in
-     add_page dst p;
-     fill src dst
+     let p = Ogg.Stream.get_page src.os in
+     let new_pos = src.end_pos p in
+     let new_pos = Int64.mul (Int64.of_int src.stream_rate) new_pos in
+     (* Is the new position ahead ? *)
+     if new_pos >= encoder.position then
+      begin
+       (* Add the page to the queue, but do not
+        * update the encoder's position yet. 
+        * We don't update it now since we want
+        * to let the possibility for another
+        * stream to add pages for a position 
+        * between the current position and 
+        * this new one. *)
+       Queue.add (new_pos,p) src.remaining;
+       (* Write all pages that are waiting *)
+       flush_queue src.remaining;
+       (* Update positions only now.. *)
+       src.pos <- new_pos;
+       encoder.latest <- Ogg.Stream.serialno src.os;
+       encoder.position <- new_pos
+     end
+     else
+      begin
+       Queue.add (new_pos,p) src.remaining;
+       if new_pos >= Int64.zero then
+         (* If the page contains data, try
+          * to flush remaining pages, in particular
+          * pages which previously ad a negative 
+          * granulepos. *)
+         flush_queue src.remaining;
+       fill src dst
+      end
    with
      | Ogg.Not_enough_data -> ()
   in
@@ -265,7 +368,7 @@ let encode encoder id data =
         match Hashtbl.find encoder.tracks id with
           | Audio_track t ->
              t.encoder encoder x t.os;
-             fill t.os encoder
+             fill t encoder
           | _ -> raise Invalid_data
        end
     | Video_data x -> 
@@ -273,7 +376,7 @@ let encode encoder id data =
         match Hashtbl.find encoder.tracks id with
           | Video_track t ->
              t.encoder encoder x t.os;
-             fill t.os encoder
+             fill t encoder
           | _ -> raise Invalid_data
        end
 
@@ -331,6 +434,7 @@ let eos encoder =
           add_string encoder b
       | None -> ()
    end;
+  encoder.position <- Int64.zero;
   encoder.state <- Eos
 
 (** End all tracks in the stream. *)

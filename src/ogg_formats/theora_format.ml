@@ -182,6 +182,16 @@ let create_encoder ~quality ~metadata () =
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in
+  let end_of_page p = 
+    let granulepos = Ogg.Page.granulepos p in
+    if granulepos < Int64.zero then
+      Int64.minus_one
+    else
+      if granulepos <> Int64.zero then
+       Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
+      else
+       Int64.zero
+  in
   let end_of_stream os =
     (* Encode at least some data.. *)
     if not !started then
@@ -197,5 +207,9 @@ let create_encoder ~quality ~metadata () =
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
     data_encoder   = (Ogg_encoder.Video_encoder data_encoder);
+    (* TODO: theora output with different rate than the global
+     * ones.. *)
+    rate           = Fmt.ticks_of_video_frames 1;
+    end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }
