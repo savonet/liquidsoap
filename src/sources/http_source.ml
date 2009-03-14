@@ -366,6 +366,7 @@ object (self)
                 raise Internal
               end ;
               let play_track (m,uri) =
+                if not poll_should_stop then
                 let metas = Hashtbl.create 2 in
                   List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
                   self#insert_metadata metas;
@@ -391,8 +392,7 @@ object (self)
                 let playlist = parser content in
                   match playlist with
                     | [] -> raise Not_found
-                    | _ -> () ;
-                           playlist_process playlist
+                    | _ -> playlist_process playlist
               in
                 try
                   self#log#f 4
@@ -405,37 +405,38 @@ object (self)
                   | Not_found ->
                       (* Trying playlist auto parsing in case
                        * of content type text/plain *)
-                      if content_type = "text/plain" then
-                        begin
-                          try
-                            test_playlist
-                              (fun x -> snd (Playlist_parser.search_valid x))
-                          with
-                            | Not_found -> ()
-                        end;
-                      self#log#f 4 "Content-type \"%s\"." content_type ;
-                      if chunked then self#log#f 4 "Chunked HTTP/1.1 transfer" ;
-                      let dec =
-                        match
-                          stream_decoders#get content_type
+                      if content_type = "text/plain" then begin
+                        try
+                          test_playlist
+                            (fun x -> snd (Playlist_parser.search_valid x))
                         with
-                          | Some d -> d
-                          | None -> failwith "Unknown format!"
-                      in
-                        begin match logfile with
-                          | Some f ->
-                              begin try
-                                logf <-
-                                Some (open_out_bin (Utils.home_unrelate f))
-                              with e ->
-                                self#log#f 2
-                                  "Could not open log file: %s"
-                                  (Printexc.to_string e)
-                              end
-                          | None -> ()
-                        end ;
-                        self#log#f 3 "Decoding..." ;
-                        self#feeding dec socket chunked metaint
+                          | Not_found -> ()
+                      end else begin
+                        self#log#f 4 "Content-type \"%s\"." content_type ;
+                        if chunked then
+                          self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+                        let dec =
+                          match
+                            stream_decoders#get content_type
+                          with
+                            | Some d -> d
+                            | None -> failwith "Unknown format!"
+                        in
+                          begin match logfile with
+                            | Some f ->
+                                begin try
+                                  logf <-
+                                  Some (open_out_bin (Utils.home_unrelate f))
+                                with e ->
+                                  self#log#f 2
+                                    "Could not open log file: %s"
+                                    (Printexc.to_string e)
+                                end
+                            | None -> ()
+                          end ;
+                          self#log#f 3 "Decoding..." ;
+                          self#feeding dec socket chunked metaint
+                      end
           with
             | e ->
                 Http.disconnect socket;
