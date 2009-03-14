@@ -40,7 +40,8 @@ object (self)
   val buffer = Array.create nb_blocks ""
   initializer
     for i = 0 to nb_blocks - 1 do
-      buffer.(i) <- String.create (samples_per_frame * channels * bytes_per_sample)
+      buffer.(i) <-
+        String.create (samples_per_frame * channels * bytes_per_sample)
     done
   val mutable read = 0
   val mutable write = 0
@@ -67,14 +68,17 @@ object (self)
       (* Wait for things to settle *)
       Thread.delay (5. *. (Fmt.seconds_per_frame ()));
       (* The output loop *)
-      while not sleep do
-        while write = read do
-          Thread.delay ((Fmt.seconds_per_frame ()) /. 2.)
-        done ;
-        play device buffer.(read mod nb_blocks);
-        read <- (read + 1) mod (2*nb_blocks)
-      done ;
-      close device
+      try
+        while true do
+          while write = read do
+            Thread.delay ((Fmt.seconds_per_frame ()) /. 2.) ;
+            if sleep then raise Exit
+          done ;
+          if sleep then raise Exit ;
+          play device buffer.(read mod nb_blocks);
+          read <- (read + 1) mod (2*nb_blocks)
+        done
+      with Exit -> close device
 
   method output_send wav =
     if read <> write &&
