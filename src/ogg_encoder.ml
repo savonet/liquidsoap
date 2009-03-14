@@ -380,26 +380,6 @@ let encode encoder id data =
           | _ -> raise Invalid_data
        end
 
-(** Flush data from all tracks in the stream. *)
-let flush encoder = 
-  let flush_track _ x = 
-    let os = os_of_ogg_track x in
-    let b = Ogg.Stream.flush os in
-    add_string encoder b
-  in
-  begin
-   match encoder.skeleton with
-     | Some os -> 
-         let b = Ogg.Stream.flush os in
-         add_string encoder b
-     | None -> ()
-  end;
-  Hashtbl.iter flush_track encoder.tracks;
-  Hashtbl.clear encoder.tracks;
-  let b = Buffer.contents encoder.encoded in
-  Buffer.reset encoder.encoded;
-  b
-
 (** Finish a track, set state to Eos if all tracks have ended. *)
 let end_of_track encoder id =
   if encoder.state = Bos then
@@ -413,12 +393,29 @@ let end_of_track encoder id =
     match track with
         | Video_track x -> 
             x.stream_end x.os;
+            Queue.iter (fun (_,p) -> add_page encoder p) x.remaining;
             add_string encoder (Ogg.Stream.flush x.os)
         | Audio_track x -> 
             x.stream_end x.os;
+            Queue.iter (fun (_,p) -> add_page encoder p) x.remaining;
             add_string encoder (Ogg.Stream.flush x.os)
   end;
   Hashtbl.remove encoder.tracks id
+
+(** Flush data from all tracks in the stream. *)
+let flush encoder =
+  begin
+   match encoder.skeleton with
+     | Some os ->
+         let b = Ogg.Stream.flush os in
+         add_string encoder b
+     | None -> ()
+  end;
+  Hashtbl.iter (fun id -> fun _ -> end_of_track encoder id) encoder.tracks;
+  Hashtbl.clear encoder.tracks;
+  let b = Buffer.contents encoder.encoded in
+  Buffer.reset encoder.encoded;
+  b
 
 (** Set end of stream on the encoder. *)
 let eos encoder =
