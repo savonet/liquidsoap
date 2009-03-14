@@ -794,6 +794,45 @@ else
 fi
 
 #
+# Schroedinger
+#
+
+AC_ARG_WITH([schroedinger-dir],
+   AC_HELP_STRING(
+      [--with-schroedinger-dir=path],
+      [look for ocaml-schroedinger library in "path" (autodetected by default)]))
+AC_ARG_ENABLE([schroedinger],AC_HELP_STRING([--disable-schroedinger],[don't use ocaml-schroedinger]))
+
+if test "x$enable_schroedinger" != "xno" ; then
+AC_MSG_CHECKING(for ocaml-schroedinger)
+if test -z "$with_schroedinger_dir" ; then
+    if ! $OCAMLFIND query schroedinger > /dev/null 2>&1 ; then
+        AC_MSG_RESULT(not found)
+    else
+        W_SCHROEDINGER=yes
+        AC_MSG_RESULT(ok)
+        ocamlcflags="$ocamlcflags -package schroedinger"
+        requires="$requires schroedinger"
+    fi
+else
+    echo $with_schroedinger_dir | grep ^/ > /dev/null 2>&1 \
+        || with_schroedinger_dir=$PWD/$with_schroedinger_dir
+    ocamlcflags="$ocamlcflags -I $with_schroedinger_dir"
+    ocamllflags="$ocamllflags schroedinger.$cma"
+    requires="$requires schroedinger"
+    W_SCHROEDINGER=yes
+    AC_MSG_RESULT(ok)
+fi
+fi
+
+AC_SUBST(W_SCHROEDINGER)
+if test "a$W_SCHROEDINGER" = "ayes" ; then
+        w_SCHROEDINGER=yes
+else
+        w_SCHROEDINGER=no
+fi
+
+#
 # Gavl
 #
 
@@ -1806,6 +1845,7 @@ cat <<EOMSG
    - AAC               : $w_FAAC
    - SPEEX             : $w_SPEEX
    - Theora            : $w_THEORA
+   - Dirac             : $w_SCHROEDINGER
 
  * Tags
    - Taglib (ID3 tags) : $w_TAGLIB

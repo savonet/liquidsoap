@@ -13,7 +13,8 @@ ogg_utils = \
 	$(if $(W_OGG),ogg_encoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_format.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_format.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_format.ml)
+	$(if $(W_VORBIS),ogg_formats/vorbis_format.ml) \
+	$(if $(W_SCHROEDINGER),ogg_formats/dirac_format.ml)
 
 audio_converters = \
 	audio_converters/native_audio_converter.ml \
@@ -96,6 +97,7 @@ outputs = outputs/output.ml outputs/file_output.ml \
 	$(if $(W_LAME),outputs/lame_encoded.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded.ml)  \
 	$(if $(W_THEORA),outputs/theora_encoded.ml) \
+	$(if $(W_SCHROEDINGER),outputs/dirac_encoded.ml) \
 	$(if $(W_SPEEX), outputs/speex_encoded.ml) \
 	$(if $(W_SHOUT),outputs/icecast2.ml \
  	$(if $(W_OGG),outputs/ogg_output_shout.ml) \
