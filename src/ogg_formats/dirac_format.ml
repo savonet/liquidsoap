@@ -47,7 +47,6 @@ let create_encoder ~quality ~metadata () =
   let fisbone_packet os = 
     None
   in
-  let stream_start os = "" in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
     RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ())
   in
@@ -64,6 +63,7 @@ let create_encoder ~quality ~metadata () =
       (Video_converter.RGB Video_converter.Rgba_32)
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
+  let stream_start os = "" in
   let data_encoder ogg_enc data os = 
     if not !started then
       started := true;
@@ -82,7 +82,7 @@ let create_encoder ~quality ~metadata () =
     done
   in
   let end_of_page p =
-    frames_of_granulepos (Ogg.Page.granulepos p)
+    Encoder.frames_of_granulepos (Ogg.Page.granulepos p) enc
   in 
   let end_of_stream os =
     (* Encode at least some data.. *)
