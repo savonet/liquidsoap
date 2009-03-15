@@ -45,7 +45,8 @@ let create_encoder ~quality ~metadata () =
     Ogg.Stream.flush_page os
   in
   let fisbone_packet os = 
-    None
+    let serialno = Ogg.Stream.serialno os in
+    Some (Skeleton.fisbone ~serialno ~format:video_format ())
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
     RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ())
