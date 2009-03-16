@@ -25,6 +25,8 @@ open Schroedinger
 let create_encoder ~quality ~metadata () =
   let frame_x = Fmt.video_width () in
   let frame_y = Fmt.video_height () in
+  (* TODO: variable fps *)
+  let fps = Fmt.video_frames_of_seconds 1. in
   (* Using Yuv420 *)
   let video_format = get_default_video_format CUSTOM in
   let video_format =
@@ -32,7 +34,7 @@ let create_encoder ~quality ~metadata () =
      video_format with
       width = frame_x;
       height = frame_y;
-      frame_rate_numerator = Fmt.video_frames_of_seconds 1.;
+      frame_rate_numerator = fps;
       frame_rate_denominator = 1;
       aspect_ratio_numerator = 1;
       aspect_ratio_denominator = 1
@@ -91,7 +93,13 @@ let create_encoder ~quality ~metadata () =
     done
   in
   let end_of_page p =
-    Encoder.encoded_of_granulepos (Ogg.Page.granulepos p) enc
+    let granulepos = Ogg.Page.granulepos p in
+    if granulepos = Int64.minus_one then
+      Ogg_encoder.Unknown
+    else
+      Ogg_encoder.Time 
+       (Int64.to_float (Encoder.encoded_of_granulepos (Ogg.Page.granulepos p) enc) /.
+        (float fps))
   in 
   let end_of_stream os =
     (* Encode at least some data.. *)
@@ -108,9 +116,6 @@ let create_encoder ~quality ~metadata () =
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
     data_encoder   = (Ogg_encoder.Video_encoder data_encoder);
-    (* TODO: dirac output with different rate than the global
-     * ones.. *)
-    rate           = Fmt.ticks_of_video_frames 1;
     end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }

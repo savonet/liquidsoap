@@ -67,10 +67,11 @@ type 'a track_encoder = t -> 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> 
   * to be placed at the very beginning. *)
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
 
-(** Return the end time of a page.
-  * Can be negative if the page contains 
-  * less than one unit of data. *)
-type position = Ogg.Page.t -> Int64.t
+(** Return the end time of a page, in milliseconds. *)
+type position = Unknown | Time of float
+
+(** Type for a function returning a page's ending time. *)
+type page_end_time = Ogg.Page.t -> position
 
 (** Returns an optional fisbone packet, which 
   * will contain the data for this stream to 
@@ -96,16 +97,7 @@ type stream_encoder =
     fisbone_packet : fisbone_packet;
     stream_start   : stream_start;
     data_encoder   : data_encoder;
-    (* The rate should be the number of units of
-     * time that a data unit represents.
-     * It is used to classify audio and
-     * video pages. Usually, rate for audio
-     * will be 1 and rate for video will be 1794,
-     * which means that, for audio at 44.100Hz and
-     * video at 25 fps per seconds, one video frame
-     * is time equivalent to 1794 audio samples. *)
-    rate           : int;
-    end_of_page    : position;
+    end_of_page    : page_end_time;
     end_of_stream  : end_of_stream
   }
 
@@ -123,20 +115,20 @@ type stream_encoder =
    * - [encode encoder track_serial track_data] : encode data for one track
    * - ibid
    * - (...)
-   * - [end_of_track encoder track_serial] : ends a track. (track end do not need to be simultaneous)
    * - (encode data for other tracks)
-   * - [end_of_track encoder track_serial] (until all have been ended)
-   * - [end_of_stream encoder]: ends all tracks at once (if not ended one by one previously) OR:
-   * - [eos encoder]: set state to eos (needs that all tracks have been ended before)
+   * - [end_of_track encoder track_serial] : ends a track. (track end do not need to be simultaneous)
+   * - (...)
+   * - [end_of_stream encoder]: set state to eos (needs that all tracks have been ended before)
    * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
    * - And so on.. 
    *
-   * You get encoded data by calling [get_data], [peek_data] or [flush].
+   * You get encoded data by calling [get_data], [peek_data].
    *
    * See: http://xiph.org/ogg/doc/oggstream.html for more details on the 
    * specifications of an ogg stream. This API reflects exactly what is recomended to do. *)
 
-(** Create a new encoder. Add an ogg skeleton if [skeleton] is [true]. *)
+(** Create a new encoder. 
+  * Add an ogg skeleton if [skeleton] is [true]. *) 
 val create : skeleton:bool -> string -> t 
 
 (** Get the state of an encoder. *)
@@ -147,9 +139,6 @@ val get_data : t -> string
 
 (** Peek encoded data without removing it. *)
 val peek_data : t -> string
-
-(** Flush data from all tracks in the stream. *)
-val flush : t -> string
 
 (** Register a new track to the stream.
   * The state needs to be [Bos] or [Eos]. 
@@ -164,14 +153,11 @@ val streams_start : t -> unit
   * if not called before. Fails if state is not [Streaming] *)
 val encode : t -> nativeint -> track_data -> unit
 
-(** Finish a track. Also flushes track data. *)
+(** Finish a track. Raises [Not_found] if
+  * no such track exists. *)
 val end_of_track : t -> nativeint -> unit
 
-(** Set state to [Eos]. Fails if some track have not been
-  * ended with [end_of_track]. *)
-val eos : t -> unit
-
-(** End all tracks in the stream, set state to [Eos]. *)
+(** Ends all tracks, flush remaining encoded data. *)
 val end_of_stream : t -> unit
 
 (** Utils: flush all availables pages from an ogg stream *)

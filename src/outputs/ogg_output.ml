@@ -164,7 +164,7 @@ object(self)
       id := None
     in
     Hashtbl.iter stop streams;
-    Ogg_encoder.flush enc
+    Ogg_encoder.get_data enc
 
   (** Ogg encoder must be stoped (and flushed)
     * before calling this function. *)

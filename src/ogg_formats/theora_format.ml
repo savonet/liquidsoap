@@ -97,6 +97,8 @@ let create_encoder ~quality ~metadata () =
   let frame_x_offset = ((video_x - frame_x) / 2) land (lnot 1) in
   let frame_y_offset = ((video_y - frame_y) / 2) land (lnot 1) in
   let video_r = 800 in
+  (* TODO: variable FPS *)
+  let fps = Fmt.video_frames_of_seconds 1. in
   let info =
     {
      Theora.
@@ -106,7 +108,7 @@ let create_encoder ~quality ~metadata () =
       frame_height = frame_y;
       offset_x = frame_x_offset;
       offset_y = frame_y_offset;
-      fps_numerator = Fmt.video_frames_of_seconds 1.;
+      fps_numerator = fps;
       fps_denominator = 1;
       aspect_numerator = 1;
       aspect_denominator = 1;
@@ -185,12 +187,15 @@ let create_encoder ~quality ~metadata () =
   let end_of_page p = 
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then
-      Int64.minus_one
+      Ogg_encoder.Unknown
     else
       if granulepos <> Int64.zero then
-       Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
+       let index = 
+         Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
+       in
+       Ogg_encoder.Time (Int64.to_float index /. (float fps)) 
       else
-       Int64.zero
+       Ogg_encoder.Time 0.
   in
   let end_of_stream os =
     (* Encode at least some data.. *)
@@ -207,9 +212,6 @@ let create_encoder ~quality ~metadata () =
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
     data_encoder   = (Ogg_encoder.Video_encoder data_encoder);
-    (* TODO: theora output with different rate than the global
-     * ones.. *)
-    rate           = Fmt.ticks_of_video_frames 1;
     end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }
