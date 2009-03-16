@@ -142,7 +142,7 @@ let create_encoder ~quality ~metadata () =
   let stream_start os = 
     Theora.Encoder.encode_comments os metadata;
     Theora.Encoder.encode_tables enc os;
-    Ogg.Stream.flush os
+    Ogg_encoder.flush_pages os
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
     RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ())
@@ -165,7 +165,7 @@ let create_encoder ~quality ~metadata () =
       (Video_converter.RGB Video_converter.Rgba_32)
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
-  let data_encoder ogg_enc data os = 
+  let data_encoder ogg_enc data os _ = 
     if not !started then
       started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,

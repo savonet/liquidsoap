@@ -41,11 +41,11 @@ type track_data =
   | Video_data of video data
 
 (** Internal type, depends on type t, which is defined later.. *)
-type ('a,'b) internal_track_encoder = 'a -> 'b data -> Ogg.Stream.t -> unit
+type ('a,'b) internal_track_encoder = 'a -> 'b data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
 type position = Ogg.Page.t -> Int64.t
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
 type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
-type stream_start = Ogg.Stream.t -> string
+type stream_start = Ogg.Stream.t -> Ogg.Page.t list
 type end_of_stream = Ogg.Stream.t -> unit
 
 type ('a,'b) stream = 
@@ -55,6 +55,7 @@ type ('a,'b) stream =
     end_pos      : position;
     stream_rate  : int;
     mutable pos  : Int64.t;
+    available    : Ogg.Page.t Queue.t;
     remaining    : (Int64.t*Ogg.Page.t) Queue.t;
     fisbone_data : fisbone_packet; 
     start_page   : stream_start;
@@ -139,9 +140,17 @@ let add_page encoder (h,v) =
   Buffer.add_string encoder.encoded h;
   Buffer.add_string encoder.encoded v
 
-(** Add a string. *)
-let add_string encoder s = 
-  Buffer.add_string encoder.encoded s
+let flush_pages os = 
+  let rec f os l = 
+    try
+      f os (Ogg.Stream.flush_page os::l)
+    with
+      | Ogg.Not_enough_data -> l
+  in
+  f os []
+
+let add_flushed_pages encoder os = 
+  List.iter (add_page encoder) (flush_pages os)
 
 let init_skeleton content =
   let serial = get_serial () in
@@ -200,6 +209,7 @@ let register_track encoder track_encoder =
              end_pos = track_encoder.end_of_page;
              stream_rate = track_encoder.rate;
              pos = Int64.zero;
+             available = Queue.create ();
              remaining = Queue.create ();
              fisbone_data = track_encoder.fisbone_packet;
              start_page = track_encoder.stream_start;
@@ -213,6 +223,7 @@ let register_track encoder track_encoder =
              end_pos = track_encoder.end_of_page;
              stream_rate = track_encoder.rate;
              pos = Int64.zero;
+             available = Queue.create ();
              remaining = Queue.create ();
              fisbone_data = track_encoder.fisbone_packet;
              start_page = track_encoder.stream_start;
@@ -239,15 +250,14 @@ let streams_start encoder =
               | Some p -> Ogg.Stream.put_packet os p;
               | None -> ())
           encoder.tracks;
-          let data = Ogg.Stream.flush os in
-          add_string encoder data;
+          add_flushed_pages encoder os
       | None -> ()
   end;
   Hashtbl.iter
    (fun _ -> fun t ->
      let os = os_of_ogg_track t in
      let stream_start = stream_start_of_ogg_track t in
-     add_string encoder (stream_start os))
+     List.iter (add_page encoder) (stream_start os))
    encoder.tracks;
   (** Finish skeleton stream now. *)
   begin
@@ -320,6 +330,10 @@ let encode encoder id data =
    Queue.clear q;
    Queue.transfer tmp_queue q;
  in
+ (* Get the ending position of a page. *)
+ let get_position src p = 
+   Int64.mul (Int64.of_int src.stream_rate) (src.end_pos p)
+ in
  let rec fill src dst =
   (* The current stream may bump the current 
    * encoder's position when it is the only one, 
@@ -327,9 +341,13 @@ let encode encoder id data =
   if Hashtbl.length encoder.tracks = 1 ||
      (Ogg.Stream.serialno src.os) <> encoder.latest then
    try
-     let p = Ogg.Stream.get_page src.os in
-     let new_pos = src.end_pos p in
-     let new_pos = Int64.mul (Int64.of_int src.stream_rate) new_pos in
+     let p = 
+       try
+         Queue.take src.available
+       with
+         | Queue.Empty -> Ogg.Stream.get_page src.os 
+     in
+     let new_pos = get_position src p in
      (* Is the new position ahead ? *)
      if new_pos >= encoder.position then
       begin
@@ -354,7 +372,7 @@ let encode encoder id data =
        if new_pos >= Int64.zero then
          (* If the page contains data, try
           * to flush remaining pages, in particular
-          * pages which previously ad a negative 
+          * pages which previously add a negative 
           * granulepos. *)
          flush_queue src.remaining;
        fill src dst
@@ -362,12 +380,15 @@ let encode encoder id data =
    with
      | Ogg.Not_enough_data -> ()
   in
+  let queue_add src p = 
+    Queue.add p src.available
+  in
   match data with
     | Audio_data x -> 
        begin
         match Hashtbl.find encoder.tracks id with
           | Audio_track t ->
-             t.encoder encoder x t.os;
+             t.encoder encoder x t.os (queue_add t);
              fill t encoder
           | _ -> raise Invalid_data
        end
@@ -375,7 +396,7 @@ let encode encoder id data =
        begin
         match Hashtbl.find encoder.tracks id with
           | Video_track t ->
-             t.encoder encoder x t.os;
+             t.encoder encoder x t.os (queue_add t);
              fill t encoder
           | _ -> raise Invalid_data
        end
@@ -394,11 +415,11 @@ let end_of_track encoder id =
         | Video_track x -> 
             x.stream_end x.os;
             Queue.iter (fun (_,p) -> add_page encoder p) x.remaining;
-            add_string encoder (Ogg.Stream.flush x.os)
+            add_flushed_pages encoder x.os
         | Audio_track x -> 
             x.stream_end x.os;
             Queue.iter (fun (_,p) -> add_page encoder p) x.remaining;
-            add_string encoder (Ogg.Stream.flush x.os)
+            add_flushed_pages encoder x.os
   end;
   Hashtbl.remove encoder.tracks id
 
@@ -406,9 +427,7 @@ let end_of_track encoder id =
 let flush encoder =
   begin
    match encoder.skeleton with
-     | Some os ->
-         let b = Ogg.Stream.flush os in
-         add_string encoder b
+     | Some os -> add_flushed_pages encoder os
      | None -> ()
   end;
   Hashtbl.iter (fun id -> fun _ -> end_of_track encoder id) encoder.tracks;
@@ -427,8 +446,7 @@ let eos encoder =
       | Some os ->
           if not (Ogg.Stream.eos os) then
             Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-          let b = Ogg.Stream.flush os in
-          add_string encoder b
+          add_flushed_pages encoder os
       | None -> ()
    end;
   encoder.position <- Int64.zero;

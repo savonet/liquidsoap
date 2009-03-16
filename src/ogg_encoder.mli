@@ -57,9 +57,11 @@ type track_data =
   | Video_data of video data
 
 (** A track encoder takes an encoder, the track data, 
-  * the ogg logical stream, and fills the stream, and possibly
-  * the encoder itself. *) 
-type 'a track_encoder = t -> 'a data -> Ogg.Stream.t -> unit
+  * the ogg logical stream, and fills the stream.
+  * If the encoding process outputs ogg pages, then 
+  * the encoder should use the last argument to add its pages 
+  * to the stream. *) 
+type 'a track_encoder = t -> 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
 
 (** Returns the first page of the stream,
   * to be placed at the very beginning. *)
@@ -77,7 +79,7 @@ type position = Ogg.Page.t -> Int64.t
 type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
 
 (** Returns the remaining header data, before data encoding starts. *)
-type stream_start = Ogg.Stream.t -> string
+type stream_start = Ogg.Stream.t -> Ogg.Page.t list
 
 (** Ends the track. *)
 type end_of_stream = Ogg.Stream.t -> unit
@@ -149,9 +151,6 @@ val peek_data : t -> string
 (** Flush data from all tracks in the stream. *)
 val flush : t -> string
 
-(** Add an ogg page. *)
-val add_page : t -> Ogg.Page.t -> unit
-
 (** Register a new track to the stream.
   * The state needs to be [Bos] or [Eos]. 
   * Returns the serial number of the registered ogg 
@@ -175,3 +174,5 @@ val eos : t -> unit
 (** End all tracks in the stream, set state to [Eos]. *)
 val end_of_stream : t -> unit
 
+(** Utils: flush all availables pages from an ogg stream *)
+val flush_pages : Ogg.Stream.t -> Ogg.Page.t list

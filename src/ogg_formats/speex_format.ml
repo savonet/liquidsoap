@@ -131,7 +131,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   in
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
-    Ogg.Stream.flush os
+    Ogg_encoder.flush_pages os
   in
   let remaining_init =
     if channels > 1 then
@@ -140,7 +140,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
      [|[||]|]
   in
   let remaining = ref remaining_init in
-  let data_encoder ogg_enc data os =
+  let data_encoder ogg_enc data os add_page =
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length in
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
@@ -185,7 +185,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
             in
             Speex.Encoder.encode_page_int enc os feed
         in
-        Ogg_encoder.add_page ogg_enc page
+        add_page page
       done
     with
       | Internal ->
