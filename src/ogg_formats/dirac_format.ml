@@ -65,9 +65,7 @@ let create_encoder ~quality ~metadata () =
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
   let stream_start os = [] in
-  let data_encoder ogg_enc data os _ = 
-    if not !started then
-      started := true;
+  let data_encoder ogg_enc data os add_page = 
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length 
     in
@@ -79,11 +77,21 @@ let create_encoder ~quality ~metadata () =
         (Fmt.video_width ())
         (Fmt.video_height ())
              yuv); (* TODO: custom video size.. *);
-      Encoder.encode_frame enc dirac_yuv os
+      Encoder.encode_frame enc dirac_yuv os;
+      if not !started then
+       begin
+        started := true;
+        (* Try to add immediately the 
+         * first page. *)
+        try
+          add_page (Ogg.Stream.flush_page os)
+        with
+          | Ogg.Not_enough_data -> ()
+       end;
     done
   in
   let end_of_page p =
-    Encoder.frames_of_granulepos (Ogg.Page.granulepos p) enc
+    Encoder.encoded_of_granulepos (Ogg.Page.granulepos p) enc
   in 
   let end_of_stream os =
     (* Encode at least some data.. *)
