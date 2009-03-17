@@ -308,7 +308,7 @@ let add_available src encoder =
          end
   end;
   (* Then, we proceed only if the track
-   * if the only one left, or there is no 
+   * is the only one left, or there is no 
    * remaining page. *)
   if Hashtbl.length encoder.tracks <= 1 ||
      src.remaining = None then
@@ -371,7 +371,7 @@ let encode encoder id data =
        match Hashtbl.find encoder.tracks id with
          | Audio_track t ->
             t.encoder encoder x t.os (queue_add t);
-            add_available t encoder;
+            add_available t encoder
          | _ -> raise Invalid_data
       end
    | Video_data x -> 
@@ -379,7 +379,7 @@ let encode encoder id data =
        match Hashtbl.find encoder.tracks id with
          | Video_track t ->
             t.encoder encoder x t.os (queue_add t);
-            add_available t encoder;
+            add_available t encoder
          | _ -> raise Invalid_data
       end
 
