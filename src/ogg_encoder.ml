@@ -140,7 +140,11 @@ let flush_pages os =
     try
       f os (Ogg.Stream.flush_page os::l)
     with
-      | Ogg.Not_enough_data -> l
+      | Ogg.Not_enough_data -> 
+         let compare x y = 
+           compare (Ogg.Page.pageno x) (Ogg.Page.pageno y) 
+         in
+         List.sort compare l
   in
   f os []
 
@@ -190,7 +194,7 @@ let register_track encoder track_encoder =
   (** Initiate a new logical stream *)
   let serial = get_serial () in
   let os = Ogg.Stream.create ~serial () in
-  (** Encoder headers *) 
+  (** Encode headers *) 
   let p = track_encoder.header_encoder os in
   add_page encoder p;
   let track = 
@@ -226,7 +230,7 @@ let register_track encoder track_encoder =
 (** Start streams, set state to Streaming. *)
 let streams_start encoder =
   if Hashtbl.length encoder.tracks = 0 then
-    raise Invalid_usage ;
+    log#f 4 "%s: Starting stream with no ogg track.." encoder.id;
   log#f 4 "%s: Starting all streams" encoder.id;
   (** Add skeleton informations first. *)
   begin
@@ -279,7 +283,7 @@ let is_empty x =
   *  + Each time a page ends at a position
   *    that is ahead of the encoder position,
   *    then the encoder position is bumped.
-  *  + The remaining pages is kept
+  *  + The remaining page is kept
   *  + As soon as the encoder's position is ahead
   *    of a remaining page, then this page can be written
   *  + Special attention has been payed that, even though 
@@ -323,13 +327,11 @@ let add_available src encoder =
         | Time pos ->
            if pos > encoder.position then
             begin
-             (* Add the page to the queue, but do not
-              * flush the remaining pages yet. 
-              * We don't flush it now since we want
-              * to let the possibility for another
-              * stream to add pages for a position 
-              * between the current position and 
-              * this new one. *)
+             (* We don't output the page now 
+              * since we want to let the possibility 
+              * for another stream to add pages 
+              * for a position between the current 
+              * position and this new one. *)
              src.remaining <- Some (pos,p);
              encoder.position <- pos
             end
@@ -341,7 +343,7 @@ let add_available src encoder =
         | Unknown ->
             add_page encoder p;
             fill src dst
-     end           
+     end
    with
      | Ogg.Not_enough_data -> ()
   in
@@ -421,17 +423,11 @@ let flush encoder =
 
 (** Set end of stream on the encoder. *)
 let eos encoder =
+  if encoder.state <> Streaming then
+    streams_start encoder;
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
   log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
-   begin
-    match encoder.skeleton with
-      | Some os ->
-          if not (Ogg.Stream.eos os) then
-            Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-          add_flushed_pages encoder os
-      | None -> ()
-   end;
   encoder.position <- 0.;
   encoder.state <- Eos
 

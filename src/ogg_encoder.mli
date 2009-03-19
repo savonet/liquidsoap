@@ -27,16 +27,6 @@
 exception Invalid_data
 exception Invalid_usage
 
-(** Main type for the ogg decoder *)
-type t
-
-(** You may register new tracks on state Eos or Bos.
-  * You can't register new track on state Streaming.
-  * You may finalize at any state, provided at least
-  * single track is registered. However, this is not
-  * recommended. *)
-type state = Eos | Streaming | Bos
-
 (** Audio data type *)
 type audio = float array array
 
@@ -101,6 +91,13 @@ type stream_encoder =
     end_of_stream  : end_of_stream
   }
 
+(** Main type for the ogg decoder *)
+type t
+
+(** You may register new tracks on state Eos or Bos.
+  * You can't register new track on state Streaming. *)
+type state = Eos | Streaming | Bos
+
  (** {2 API} *)
 
  (** Usage: 
@@ -118,7 +115,7 @@ type stream_encoder =
    * - (encode data for other tracks)
    * - [end_of_track encoder track_serial] : ends a track. (track end do not need to be simultaneous)
    * - (...)
-   * - [end_of_stream encoder]: set state to eos (needs that all tracks have been ended before)
+   * - [end_of_stream encoder]: ends all tracks as well as the encoder. Set Eos state on the encoder.
    * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
    * - And so on.. 
    *
@@ -157,8 +154,11 @@ val encode : t -> nativeint -> track_data -> unit
   * no such track exists. *)
 val end_of_track : t -> nativeint -> unit
 
-(** Ends all tracks, flush remaining encoded data. *)
+(** Ends all tracks, flush remaining encoded data. 
+  * Set state to [Eos]. *)
 val end_of_stream : t -> unit
 
-(** Utils: flush all availables pages from an ogg stream *)
+  (** {2 Utils} *)
+
+(** flush all availables pages from an ogg stream *)
 val flush_pages : Ogg.Stream.t -> Ogg.Page.t list
