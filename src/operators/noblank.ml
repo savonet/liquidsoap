@@ -119,6 +119,8 @@ object (self)
 
   val mutable stripping = false
 
+  val mutable ns = []
+
   method stype = Fallible
   method is_ready = not stripping && source#is_ready
   method remaining = if stripping then 0 else source#remaining
@@ -147,7 +149,13 @@ object (self)
   method private output =
     if stripping && AFrame.is_partial memo then self#get_frame memo
 
-  method output_get_ready = ()
+  method output_get_ready = 
+    if ns = [] then
+      ns <- Server.register [self#id] "strip_blank" ;
+    let status _ = string_of_bool stripping in
+    Server.add
+      ~ns "is_stripping" ~descr:"Check if the source is stripping." status 
+
   method output_reset = ()
   method is_active = true
 end
