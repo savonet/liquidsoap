@@ -67,7 +67,7 @@ let create_encoder ~quality ~metadata () =
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
   let stream_start os = [] in
-  let data_encoder ogg_enc data os add_page = 
+  let data_encoder data os add_page = 
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length 
     in

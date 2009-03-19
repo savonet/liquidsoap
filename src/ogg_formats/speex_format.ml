@@ -140,7 +140,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
      [|[||]|]
   in
   let remaining = ref remaining_init in
-  let data_encoder ogg_enc data os add_page =
+  let data_encoder data os add_page =
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length in
     let buf = Array.map (fun x -> Array.sub x ofs len) b in

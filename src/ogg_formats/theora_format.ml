@@ -167,7 +167,7 @@ let create_encoder ~quality ~metadata () =
       (Video_converter.RGB Video_converter.Rgba_32)
       (Video_converter.YUV Video_converter.Yuvj_420)
   in
-  let data_encoder ogg_enc data os _ = 
+  let data_encoder data os _ = 
     if not !started then
       started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,

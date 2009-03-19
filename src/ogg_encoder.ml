@@ -42,18 +42,17 @@ type track_data =
 
 type position = Unknown | Time of float
 
-(** Internal type, depends on type t, which is defined later.. *)
-type ('a,'b) internal_track_encoder = 'a -> 'b data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
+type 'a track_encoder = 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
 type page_end_time = Ogg.Page.t -> position
 type header_encoder = Ogg.Stream.t -> Ogg.Page.t
 type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
 type stream_start = Ogg.Stream.t -> Ogg.Page.t list
 type end_of_stream = Ogg.Stream.t -> unit
 
-type ('a,'b) stream = 
+type 'a stream = 
   {
     os                : Ogg.Stream.t;
-    encoder           : ('a,'b) internal_track_encoder;
+    encoder           : 'a track_encoder;
     end_pos           : page_end_time;
     available         : Ogg.Page.t Queue.t;
     mutable remaining : (float*Ogg.Page.t) option;
@@ -62,9 +61,9 @@ type ('a,'b) stream =
     stream_end        : end_of_stream
   } 
 
-type 'a track =
-  | Audio_track of (('a,audio) stream)
-  | Video_track of (('a,video) stream)
+type track =
+  | Audio_track of (audio stream)
+  | Video_track of (video stream)
 
 (** You may register new tracks on state Eos or Bos.
   * You can't register new track on state Streaming. 
@@ -79,11 +78,9 @@ type t =
     mutable skeleton : Ogg.Stream.t option;
     encoded          : Buffer.t;
     mutable position : float;
-    tracks           : (nativeint,t track) Hashtbl.t;
+    tracks           : (nativeint,track) Hashtbl.t;
     mutable state    : state ;
   }
-
-type 'a track_encoder = (t,'a) internal_track_encoder
 
 type data_encoder = 
   | Audio_encoder of audio track_encoder
@@ -370,7 +367,7 @@ let encode encoder id data =
       begin
        match Hashtbl.find encoder.tracks id with
          | Audio_track t ->
-            t.encoder encoder x t.os (queue_add t);
+            t.encoder x t.os (queue_add t);
             add_available t encoder
          | _ -> raise Invalid_data
       end
@@ -378,7 +375,7 @@ let encode encoder id data =
       begin
        match Hashtbl.find encoder.tracks id with
          | Video_track t ->
-            t.encoder encoder x t.os (queue_add t);
+            t.encoder x t.os (queue_add t);
             add_available t encoder
          | _ -> raise Invalid_data
       end

@@ -56,12 +56,12 @@ type track_data =
   | Audio_data of audio data
   | Video_data of video data
 
-(** A track encoder takes an encoder, the track data, 
+(** A track encoder takes the track data, 
   * the ogg logical stream, and fills the stream.
   * If the encoding process outputs ogg pages, then 
   * the encoder should use the last argument to add its pages 
   * to the stream. *) 
-type 'a track_encoder = t -> 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
+type 'a track_encoder = 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
 
 (** Returns the first page of the stream,
   * to be placed at the very beginning. *)

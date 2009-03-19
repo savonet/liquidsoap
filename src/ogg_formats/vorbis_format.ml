@@ -99,7 +99,7 @@ let create_gen enc freq m =
     Ogg.Stream.put_packet os p3;
     Ogg_encoder.flush_pages os
   in
-  let data_encoder ogg_enc data os _ =
+  let data_encoder data os _ =
     if not !started then 
       started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
