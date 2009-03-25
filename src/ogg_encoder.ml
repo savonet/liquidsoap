@@ -111,6 +111,16 @@ let stream_start_of_ogg_track x =
     | Audio_track x -> x.start_page
     | Video_track x -> x.start_page
 
+let remaining_of_ogg_track x =
+  match x with
+    | Audio_track x -> x.remaining
+    | Video_track x -> x.remaining
+
+let set_remaining_of_ogg_track x v =
+  match x with
+    | Audio_track x -> x.remaining <- v
+    | Video_track x -> x.remaining <- v
+
 (** As per specifications, we need a random injective sequence of
   * nativeint. This might not be assumed here, but chances are very low.. *)
 let random_state = Random.State.make_self_init ()
@@ -277,36 +287,51 @@ let is_empty x =
       | Ogg.Not_enough_data -> true
    end
 
+(** Get the least remaining page of all tracks. *) 
+let least_remaining encoder = 
+  let f _ t x = 
+    match remaining_of_ogg_track t,x with
+      | Some (new_pos,p),Some (_,pos,_) when new_pos <= pos 
+            -> Some (t,new_pos,p)
+      | Some (pos,p),None -> Some (t,pos,p)
+      | _ -> x
+  in
+  Hashtbl.fold f encoder.tracks None  
+
+(** Get the number of remaining page *)
+let remaining_pages encoder = 
+  let f _ t x = 
+    if remaining_of_ogg_track t <> None then
+      x+1
+    else
+      x
+   in
+   Hashtbl.fold f encoder.tracks 0
+
 (** Fill output data with available pages.
   * The algorithm works as follow:
   *  + The encoder has a global position
   *  + Each time a page ends at a position
   *    that is ahead of the encoder position,
-  *    then the encoder position is bumped.
-  *  + The remaining page is kept
+  *    the page is kept as remaining.
+  *  + When there is one remaining page per
+  *    track, we take the least of them and 
+  *    add it. The encoder position is then 
+  *    bumped.
   *  + As soon as the encoder's position is ahead
-  *    of a remaining page, then this page can be written
-  *  + Special attention has been payed that, even though 
-  *    a page has bumped the encoder's position, it should
-  *    not be written immediately. Indeed, another stream
-  *    may have a page increasing this position too, but 
-  *    to a lower value. In this case, we want the other
-  *    page to be written first. *)
+  *    of a page, then this page can be written *)
 let add_available src encoder = 
  let rec fill src dst =
-  (** First we check if there is a page
-    * remaining that we can now output. *)
+  (** First we check if there is a remaining
+    * page that we can now output. *)
+  if remaining_pages encoder = Hashtbl.length encoder.tracks then
   begin
-   match src.remaining with
+   match least_remaining encoder with
      | None -> ()
-     | Some (pos,p) -> 
-        if pos < encoder.position ||
-           Hashtbl.length encoder.tracks <= 1 
-        then
-         begin
+     | Some (track,pos,p) -> 
           add_page encoder p;
-          src.remaining <- None
-         end
+          encoder.position <- pos;
+          set_remaining_of_ogg_track track None
   end;
   (* Then, we proceed only if the track
    * is the only one left, or there is no 
@@ -326,15 +351,12 @@ let add_available src encoder =
         (* Is the new position ahead ? *)
         | Time pos ->
            if pos > encoder.position then
-            begin
              (* We don't output the page now 
               * since we want to let the possibility 
               * for another stream to add pages 
               * for a position between the current 
               * position and this new one. *)
-             src.remaining <- Some (pos,p);
-             encoder.position <- pos
-            end
+             src.remaining <- Some (pos,p)
            else
             begin
              add_page encoder p;
