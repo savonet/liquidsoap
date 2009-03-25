@@ -41,6 +41,11 @@ let create_encoder ~quality ~metadata () =
     }
   in
   let enc = Encoder.create video_format in
+  Encoder.set_settings enc 
+    {  (Encoder.get_settings enc) with 
+          Encoder.rate_control = Encoder.Constant_noise_threshold;
+          Encoder.noise_threshold = (float quality) /. 2.0 
+    };
   let started = ref false in
   let header_encoder os = 
     Encoder.encode_header enc os;
