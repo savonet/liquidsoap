@@ -407,7 +407,8 @@ let encode encoder id data =
 (** Finish a track.
   * Not all data will necessarily be outputed here. It is possible
   * that muxing needs also another track to end.. *)
-let priv_end_of_track encoder id track =
+let end_of_track encoder id =
+  let track = Hashtbl.find encoder.tracks id in
   if encoder.state = Bos then
    begin
     log#f 4 "%s: Stream finished without calling streams_start !" encoder.id; 
@@ -429,9 +430,6 @@ let priv_end_of_track encoder id track =
             end;
            add_available x encoder
 
-let end_of_track encoder id = 
-  priv_end_of_track encoder id (Hashtbl.find encoder.tracks id)
-
 (** Flush data from all tracks in the stream. *)
 let flush encoder =
   begin
@@ -440,7 +438,7 @@ let flush encoder =
      | None -> ()
   end;
   while Hashtbl.length encoder.tracks > 0 do
-    Hashtbl.iter (priv_end_of_track encoder) encoder.tracks
+    Hashtbl.iter (fun id -> fun _ -> end_of_track encoder id) encoder.tracks
   done
 
 (** Set end of stream on the encoder. *)
