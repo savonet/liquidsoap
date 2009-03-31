@@ -24,7 +24,8 @@ let log = Dtools.Log.make ["stream";"ogg"]
 
 exception Exit of (string -> Http_source.sink -> unit)
 
-let mimes = ["application/ogg";"application/x-ogg";"audio/x-ogg"]
+let mimes = ["application/ogg";"application/x-ogg";
+             "audio/x-ogg";"audio/ogg";"video/ogg"]
 let mime_types =
   Dtools.Conf.list ~p:(Http_source.conf_mime_types#plug "ogg")
     ~d:mimes "Mime types associated to Ogg container"

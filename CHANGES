@@ -1,6 +1,8 @@
 x.y.z ()
 Bugs fixed: 
  - Ogg encoder now muxes pages according to their ending time.
+ - Support "ogg/audio" and "ogg/video" mime types for
+   http ogg streams.
 New:
  - Support ogg/dirac (#TODO: close ticket).
  - Get a node's striping status when stripping
