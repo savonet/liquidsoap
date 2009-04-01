@@ -102,7 +102,13 @@ object (self)
           let l,_,_ = Unix.select [socket] [] [] 1. in
             if l=[] then begin
               self#log#f 4 "No network activity for %d second(s)." n ;
-              wait (n+1)
+              if float n >= Harbor.conf_timeout#get then
+               begin
+                self#log#f 4 "network activity timeout! disconnecting source" ;
+                self#disconnect
+               end
+              else
+               wait (n+1)
             end
         in wait 1
       in

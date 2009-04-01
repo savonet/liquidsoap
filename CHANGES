@@ -3,6 +3,8 @@ Bugs fixed:
  - Ogg encoder now muxes pages according to their ending time.
  - Support "ogg/audio" and "ogg/video" mime types for
    http ogg streams.
+ - Disconnect idle harbor sources after timeout has expired. 
+   Thanks to Romeo for reporting and fixing !
 New:
  - Support ogg/dirac (#TODO: close ticket).
  - Get a node's striping status when stripping
