@@ -45,7 +45,7 @@ let proto ~no_mount ~no_name =
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "protocol", Lang.string_t, (Some (Lang.string "http")),
     Some "Protocol of the streaming server: \
-          'http' for Icecast, 'icy' for Crycast." ;
+          'http' for Icecast, 'icy' for shoutcast." ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
     "user", Lang.string_t, Some (Lang.string "source"),
