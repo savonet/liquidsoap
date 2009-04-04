@@ -69,8 +69,8 @@ class to_shout p =
   let protocol =
     let v = List.assoc "protocol" p in
       match Lang.to_string v with
-        | "http" -> Shout.Protocol_http
-        | "icy" -> Shout.Protocol_icy
+        | "http" -> Cry.Http
+        | "icy" -> Cry.Icy
         | _ ->
             raise (Lang.Invalid_value
                      (v, "valid values are 'http' (icecast) \
@@ -91,7 +91,7 @@ class to_shout p =
 object (self)
   inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit
-    Icecast2.output ~format:Shout.Format_mp3 ~protocol
+    Icecast2.output ~format:Cry.mpeg ~protocol
       ~icecast_info ~mount ~name ~source p as icecast
   inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
@@ -137,9 +137,14 @@ object (self)
                         (get m "comment"
                           (getd m "song" song [])))))))) (* for Shoutcast *)
     in
+      let m =
+         let ret = Hashtbl.create 10 in
+         let f (x,y) = Hashtbl.add ret x y in
+         Array.iter f a; ret  
+      in
       match connection with
         | Some c ->
-            (try Shout.set_metadata c a ; "" with _ -> "")
+            (try Cry.update_metadata c m ; "" with _ -> "")
         (* Do nothing if shout connection isn't available *)
         | None -> ""
 

@@ -434,36 +434,36 @@ AC_MSG_RESULT(ok)
 # Shout
 #
 
-AC_ARG_WITH([shout-dir],
+AC_ARG_WITH([cry-dir],
    AC_HELP_STRING(
-      [--with-shout-dir=path],
-      [look for ocaml-shout library in "path" (autodetected by default)]))
+      [--with-cry-dir=path],
+      [look for ocaml-cry library in "path" (autodetected by default)]))
 
-AC_MSG_CHECKING(for ocaml-shout)
-if test -z "$with_shout_dir" ; then
-   if ! $OCAMLFIND query shout > /dev/null 2>&1 ; then
+AC_MSG_CHECKING(for ocaml-cry)
+if test -z "$with_cry_dir" ; then
+   if ! $OCAMLFIND query cry > /dev/null 2>&1 ; then
        AC_MSG_RESULT(Not found.)
    else
-       ocamlcflags="$ocamlcflags -package shout"
-       requires="$requires shout"
-       W_SHOUT=yes
+       ocamlcflags="$ocamlcflags -package cry"
+       requires="$requires cry"
+       W_CRY=yes
        AC_MSG_RESULT(ok)
    fi
 else
-   echo $with_shout_dir | grep ^/ > /dev/null 2>&1 \
-   || with_shout_dir=$PWD/$with_shout_dir
-   ocamlcflags="$ocamlcflags -I $with_shout_dir"
-   ocamllflags="$ocamllflags shout.$cma"
-   requires="$requires shout"
-   W_SHOUT=yes
+   echo $with_cry_dir | grep ^/ > /dev/null 2>&1 \
+   || with_cry_dir=$PWD/$with_cry_dir
+   ocamlcflags="$ocamlcflags -I $with_cry_dir"
+   ocamllflags="$ocamllflags cry.$cma"
+   requires="$requires cry"
+   W_CRY=yes
    AC_MSG_RESULT(ok)
 fi
 
-AC_SUBST(W_SHOUT)
-if test -z "$W_SHOUT" ; then
-    w_SHOUT=no
+AC_SUBST(W_CRY)
+if test -z "$W_CRY" ; then
+    w_CRY=no
 else
-    w_SHOUT=yes
+    w_CRY=yes
 fi
 
 #
@@ -1853,7 +1853,7 @@ cat <<EOMSG
    - charset detection : $w_CAMOMILE
 
  * Input / output
-   - shout             : $w_SHOUT
+   - Icecast/Shoutcast : $w_CRY
    - AO                : $w_AO
    - OSS               : $w_OSS
    - ALSA              : $w_ALSA

@@ -23,7 +23,6 @@
 (** Output to an icecast server. *)
 
 open Dtools
-open Shout
 
 type icecast_info = 
   {
@@ -34,8 +33,6 @@ type icecast_info =
   }
 
 let no_multicast = "no_multicast"
-
-let () = Shout.init ()
 
 let proto ~no_mount ~no_name =
   [ "restart", Lang.bool_t, Some (Lang.bool false),
@@ -48,7 +45,7 @@ let proto ~no_mount ~no_name =
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "protocol", Lang.string_t, (Some (Lang.string "http")),
     Some "Protocol of the streaming server: \
-          'http' for Icecast, 'icy' for Shoutcast." ;
+          'http' for Icecast, 'icy' for Crycast." ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
     "user", Lang.string_t, Some (Lang.string "source"),
@@ -60,9 +57,8 @@ let proto ~no_mount ~no_name =
     "description", Lang.string_t,
     Some (Lang.string "OCaml Radio!"), None ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
-    "multicast_ip", Lang.string_t, Some (Lang.string no_multicast), None ;
-    "sync", Lang.bool_t, Some (Lang.bool false),
-    Some "Let shout do the synchronization.";
+    "headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),
+    Some (Lang.list []), Some "Additional headers." ;
     "dumpfile", Lang.string_t, Some (Lang.string ""), 
     Some "Dump stream to file, for debugging purpose. Disabled if empty."
   ]
@@ -73,9 +69,8 @@ let proto ~no_mount ~no_name =
   * The 'name' and 'mount' params are not extracted that way because the default
   * value for these depends on the format of the stream (ogg/mp3). *)
 class virtual output
-  ?(format=Shout.Format_vorbis) ?(protocol=Shout.Protocol_http) 
-  ~name ~mount ~source ~icecast_info
-  ?(raw=false) p =
+  ?(format=Cry.ogg_audio) ?(protocol=Cry.Http) 
+  ~name ~mount ~source ~icecast_info p =
 
     let e f v = f (List.assoc v p) in
     let s v = e Lang.to_string v in
@@ -95,8 +90,15 @@ class virtual output
     in
     let description = s "description" in
     let public = e Lang.to_bool "public" in
-    let multicast_ip = s "multicast_ip" in
-    let sync = e Lang.to_bool "sync" in
+    let headers = 
+      List.map (fun v -> 
+                  let f (x,y) = 
+                    Lang.to_string x, Lang.to_string y 
+                  in
+                  f (Lang.to_product v))
+               (Lang.to_list (List.assoc "headers" p))
+    in
+                  
 
 object (self)
 
@@ -106,10 +108,6 @@ object (self)
 
   method virtual reset_encoder : (string,string) Hashtbl.t -> string
   method virtual log : Dtools.Log.t
-
-  initializer
-    if sync then
-      (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
 
   method send b =
     match connection with
@@ -121,27 +119,14 @@ object (self)
       | Some c ->
           (* TODO think about some limitation of shout restarting *)
           begin try
-            if sync then Shout.sync c ;
-            if raw then 
-              let blen = String.length b in
-              let rec send offset =
-                if offset < blen then 
-                  let ret = 
-                    Shout.send_raw c (String.sub b offset (blen - offset))
-                  in
-                  send (offset+ret)
-              in
-              send 0
-            else
-              Shout.send c b;
+            Cry.send c b;
             match dump with
               | Some s -> output_string s b
               | None -> () 
           with
-            | Shout.Socket 
-            | Shout.Send_error ->
+            | Cry.Error e ->
                 self#log#f 2
-                  "Shout socket error: timeout, network failure, \
+                  "Cry socket error: timeout, network failure, \
                    server shutdown? Restarting the output in %.f seconds."
                   restart_delay  ;
                 (* Ask for a restart after last_attempt. *)
@@ -153,7 +138,7 @@ object (self)
     match connection with
       | None -> ()
       | Some c ->
-          begin try Shout.close c with _ -> () end ;
+          begin try Cry.close c with _ -> () end ;
           connection <- None ;
           match dump with
             | Some f -> close_out f
@@ -161,7 +146,7 @@ object (self)
 
   method icecast_start =
     assert (connection = None) ;
-    let conn = new_shout () in
+    let conn = Cry.create () in
 
     begin 
       match dumpfile with
@@ -170,58 +155,39 @@ object (self)
     end ;
 
       self#log#f 3 "Connecting mount %s for %s@%s..." mount user host ;
-
-      set_host conn host ;
-      set_port conn port ;
-      set_user conn user ;
-      set_password conn password ;
-
-      set_genre conn genre ;
-      set_url conn url ;
-      set_description conn description ;
-
-      set_name conn name ;
-
-      set_format conn format ;
-      set_public conn public ;
-
-      set_protocol conn protocol ;
-      if protocol <> Shout.Protocol_icy then set_mount conn mount ;
-      let f x y z = 
+     
+      let audio_info = Hashtbl.create 10 in
+      let f x y z =
         match x with
-          | Some q -> set_audio_info conn y (z q)
+          | Some q -> Hashtbl.add audio_info y (z q)
           | None -> ()
       in
       f icecast_info.bitrate "bitrate" string_of_int;
       f icecast_info.quality "quality" (fun x -> x);
       f icecast_info.samplerate "samplerate" string_of_int;
       f icecast_info.channels "channels" string_of_int;
-
-      if multicast_ip <> no_multicast then
-        set_multicast_ip conn multicast_ip ;
-
-      set_agent conn
-        (Printf.sprintf
-          "liquidsoap %s (%s)"
+      let user_agent =
+        Printf.sprintf
+          "liquidsoap %s"
           Configure.version
-          (get_agent conn)) ;
+      in 
+      let source = 
+        Cry.connection ~host ~port ~user ~password
+                       ~genre ~url ~description ~name
+                       ~public ~protocol ~mount  
+                       ~audio_info ~user_agent ~content_type:format ()
+      in
+      List.iter (fun (x,y) -> Hashtbl.add source.Cry.headers x y) headers;
 
       (* Final *)
       try
         begin try
-          open_shout conn
+          Cry.connect conn source
         with
-          | No_connect as e ->
+          | Cry.Error x as e ->
               self#log#f 2
-                "Unable to connect to icecast server %s:%d!"
-                host port ;
-              raise e
-          | Socket as e ->
-              self#log#f 2  "Invalid user or password for icecast login!" ;
-              raise e
-          | No_login as e ->
-              self#log#f 2
-                "Icecast mount point already taken, or wrong password!" ;
+                "Connection failed: %s"
+                (Cry.string_of_error x) ;
               raise e
         end ;
 
@@ -230,7 +196,7 @@ object (self)
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
-        | No_connect | No_login | Socket when restart -> 
+        | Cry.Error _ when restart -> 
             self#log#f 3
               "Connection failed, will try again in %.f sec."
               restart_delay ;

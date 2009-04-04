@@ -43,8 +43,10 @@ let proto =
      Lang.bool_t, Some (Lang.bool false),
      Some "Restart external process when it crashed. If false, \
            liquidsoap exits.";
-     "restart_encoder", Lang.bool_t, Some (Lang.bool false), 
-      Some "Restart encoder on new track." ]
+     "restart_on_new_track", Lang.bool_t, Some (Lang.bool false), 
+      Some "Restart encoder on new track.";
+     "restart_encoder_delay", Lang.int_t, Some (Lang.int (-1)),
+     Some "Restart the encoder after this delay, in seconds."]
 
 let initial_meta =
   ["title","Liquidsoap stream";"artist","The Savonet Team"]
@@ -57,8 +59,8 @@ let m =
   m
 let initial_meta = m
 
-class virtual base ~restart_encoder ~restart_on_crash ~header process =
-  let (out_p,in_p) = Unix.pipe () in
+class virtual base ~restart_on_new_track ~restart_on_crash 
+                   ~header ~restart_encoder_delay process =
   let cond_m = Mutex.create () in
   let cond = Condition.create () in
 object (self)
@@ -69,6 +71,18 @@ object (self)
 
   val read_m = Mutex.create ()
   val read = Buffer.create 10
+  (** This mutex is crutial in order to
+    * manipulate the encoding process well.
+    * It should be locked on every creation operations.
+    * Also, since the creation can be concurrent, it 
+    * is crutial to also lock it _before_ stoping
+    * the processus when restarting/reseting.
+    * A normal restart looks like:
+    *   lock create_m; stop; start; unlock create_m 
+    * That way, we make sure we destroy and create atomically. 
+    *
+    * Hence, this lock is _not_ used in the stop/start 
+    * functions. *)
   val create_m = Mutex.create ()
 
   method encode frame start len =
@@ -78,60 +92,55 @@ object (self)
       let slen = 2 * len * Array.length b in
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);
-      let (_,out_e) = 
-        match encoder with
-          | Some e -> e
-          | None ->
-               Mutex.lock create_m;
-               match encoder with
-                 | Some e -> 
-		    (* Encoder was created elsewhere.. *)
-		    Mutex.unlock create_m;
-		    e
-                 | None -> 
-                     self#log#f 2 "No encoder available, starting process.";
-                     self#external_start initial_meta;
-                     Mutex.unlock create_m;
-                     Utils.get_some encoder
+      let write x = 
+        try
+          output_string x sbuf;
+        with
+          | _ -> self#external_reset_on_crash
       in
       begin 
-        try
-          output_string out_e sbuf;
-        with
-          | _ -> self#external_reset_on_crash initial_meta
-      end;
+       match encoder with
+         | Some (_,x) -> write x
+         | None ->
+            begin
+             (** Wait for any possible creation.. *)
+             Mutex.lock create_m; 
+             match encoder with
+               | Some (_,x) -> Mutex.unlock create_m; write x
+               (* No encoder created: we try to restart.. *)
+               | None -> 
+                   Mutex.unlock create_m;
+                   self#external_reset_encoder initial_meta;
+                   let (_,x) = Utils.get_some encoder in
+                   write x
+            end
+      end; 
       Mutex.lock read_m; 
       let ret = Buffer.contents read in
       Buffer.reset read;
       Mutex.unlock read_m;
       ret
 
-  method private external_reset_encoder ?(crash=false) meta = 
-    Mutex.lock read_m; 
-    let ret = Buffer.contents read in
-    Buffer.reset read;
-    Mutex.unlock read_m;
-    if restart_encoder || crash then 
-      begin
-        Mutex.lock create_m;
-        self#external_stop;
-        self#external_start meta;
-	Mutex.unlock create_m
-      end;
-    ret
+  method private external_reset_encoder meta =
+    Mutex.lock create_m;
+    self#external_stop;
+    self#external_start meta;
+    Mutex.unlock create_m
 
-  method external_reset_on_crash meta =
+  method external_reset_on_crash =
     if restart_on_crash then
-     begin 
-      let ret = self#external_reset_encoder ~crash:true meta in
-      Mutex.lock read_m; 
-      Buffer.add_string read ret;
-      Mutex.unlock read_m
-     end
+      self#external_reset_encoder initial_meta
     else
       raise External_failure
 
-  method reset_encoder = self#external_reset_encoder ~crash:false
+  method reset_encoder meta = 
+    if restart_on_new_track then
+      self#external_reset_encoder meta;
+    Mutex.lock read_m;
+    let ret = Buffer.contents read in
+    Buffer.reset read;
+    Mutex.unlock read_m;
+    ret
 
   (* Any call of this function should be protected 
    * by a mutex. After locking the mutex, it should be
@@ -146,19 +155,24 @@ object (self)
     assert(encoder = None);
     let (in_e,out_e as enc) = Unix.open_process process in
     encoder <- Some enc;
+    if header then
+      begin
+        let header =
+          Wav.header ~channels:(Fmt.channels ())
+                     ~sample_rate:(Fmt.samples_per_second ())
+                     ~sample_size:16
+                     ~big_endian:false ~signed:true ()
+        in
+        (* Write WAV header *)
+        output_string out_e header
+      end;
     let sock = Unix.descr_of_in_channel in_e in
     let buf = String.create 10000 in
-    let events = [`Read sock; `Read out_p]
+    let events = [`Read sock]
     in
     let rec pull l =
       let read () =
-        let ret = 
-          try
-            input in_e buf 0 10000
-          with
-            | _ -> self#external_reset_on_crash initial_meta;
-                   0
-        in
+        let ret = input in_e buf 0 10000 in
         if ret > 0 then
           begin
             Mutex.lock read_m; 
@@ -167,10 +181,8 @@ object (self)
           end;
         ret
       in
-      let stop l =
+      let stop () =
         self#log#f 4 "reading task exited: closing process.";
-        if List.mem (`Read out_p) l then
-          ignore(Unix.read out_p " " 0 1); 
         begin
          try
           ignore(Unix.close_process enc);
@@ -182,42 +194,37 @@ object (self)
         Condition.signal cond;
         Mutex.unlock cond_m
       in
-      if List.mem (`Read sock) l then
-        begin
-         let ret = read () in
-         if ret > 0 then
-           [{ Duppy.Task.
-                priority = priority ;
-                events   = events ;
-                handler  = pull }]
-         else
-          begin
-            self#log#f 4 "Reading task reached end of data";
-            stop l; []
-          end
-        end
-      else
-        begin
-         assert(List.mem (`Read out_p) l);
-         stop l; []
-        end
+      try
+        let ret = read () in
+        if ret > 0 then
+          [{ Duppy.Task.
+               priority = priority ;
+               events   = events ;
+               handler  = pull }]
+        else
+         begin
+           self#log#f 4 "Reading task reached end of data";
+           stop (); []
+         end
+      with _ -> stop (); self#external_reset_on_crash; []
     in
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = priority ;
           events   = events ;
           handler  = pull };
-    if header then
-      begin
-        let header =
-          Wav.header ~channels:(Fmt.channels ()) 
-                     ~sample_rate:(Fmt.samples_per_second ()) 
-                     ~sample_size:16
-                     ~big_endian:false ~signed:true ()
-        in
-        (* Write WAV header *)
-        output_string out_e header
-      end
+    (** Creating restart task. *)
+    if restart_encoder_delay > 0 then
+      let rec f _ =
+        self#log#f 3 "Restarting encoder after delay (%is)" restart_encoder_delay;
+        self#external_reset_encoder initial_meta;
+        []
+      in
+      Duppy.Task.add Tutils.scheduler
+        { Duppy.Task.
+            priority = priority ;
+            events   = [`Delay (float restart_encoder_delay)] ;
+            handler  = f }
 
   (* Don't fail if the task has already exited, like in 
    * case of failure for instance.. *)
@@ -229,12 +236,11 @@ object (self)
            try 
              begin
               try
-               flush out_e
+               flush out_e;
+               Unix.close (Unix.descr_of_out_channel out_e)
               with
                 | _ -> ()
              end;
-             (* Signal the end of reading to task *)
-             ignore(Unix.write in_p " " 0 1);
              (* Wait for the end of the task *)
              Condition.wait cond cond_m;
              Mutex.unlock cond_m
@@ -249,14 +255,16 @@ end
 class to_file
   ~append ~perm ~dir_perm ~reload_delay 
   ~reload_predicate ~reload_on_metadata
-  ~filename ~autostart ~process ~restart_encoder
-  ~header ~restart_on_crash source =
+  ~filename ~autostart ~process ~restart_on_new_track
+  ~header ~restart_on_crash ~restart_encoder_delay source =
 object (self)
   inherit Output.encoded ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
-  inherit base ~restart_encoder ~header ~restart_on_crash process as base
+  inherit base ~restart_on_new_track ~header 
+               ~restart_on_crash ~restart_encoder_delay 
+               process as base
 
   method output_start =
     base#external_start initial_meta;
@@ -292,21 +300,24 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
-       let restart_encoder = Lang.to_bool (List.assoc "restart_encoder" p) in
+       let restart_on_new_track = Lang.to_bool (List.assoc "restart_on_new_track" p) in
        let restart_on_crash = Lang.to_bool (List.assoc "restart_on_crash" p) in
+       let restart_encoder_delay = Lang.to_int (List.assoc "restart_encoder_delay" p) in
        let header = Lang.to_bool (List.assoc "header" p) in
-         ((new to_file ~filename
+         ((new to_file ~filename ~restart_encoder_delay
              ~append ~perm ~dir_perm ~reload_delay 
              ~reload_predicate ~reload_on_metadata
-             ~autostart ~process ~header ~restart_encoder 
+             ~autostart ~process ~header ~restart_on_new_track
              ~restart_on_crash source):>Source.source))
 
 class to_pipe
-  ~process ~restart_encoder ~restart_on_crash
+  ~process ~restart_on_new_track 
+  ~restart_encoder_delay ~restart_on_crash
   ~header ~autostart source =
 object (self)
   inherit Output.encoded ~name:"" ~kind:"output.pipe" ~autostart source
-  inherit base ~restart_encoder ~restart_on_crash ~header process as base
+  inherit base ~restart_on_new_track ~restart_on_crash 
+               ~restart_encoder_delay ~header process as base
 
   method send _ = () 
 
@@ -331,8 +342,9 @@ let () =
        let autostart = e Lang.to_bool "start" in
        let source = Lang.assoc "" 1 p in
        let process = List.assoc "process" p in
-       let restart_encoder = Lang.to_bool (List.assoc "restart_encoder" p) in
+       let restart_on_new_track = Lang.to_bool (List.assoc "restart_on_new_track" p) in
        let restart_on_crash = Lang.to_bool (List.assoc "restart_on_crash" p) in
+       let restart_encoder_delay = Lang.to_int (List.assoc "restart_encoder_delay" p) in
        let header = Lang.to_bool (List.assoc "header" p) in
-         ((new to_pipe ~autostart ~process ~header ~restart_encoder 
-                       ~restart_on_crash source):>Source.source))
+         ((new to_pipe ~autostart ~process ~header ~restart_on_new_track
+                       ~restart_on_crash ~restart_encoder_delay source):>Source.source))

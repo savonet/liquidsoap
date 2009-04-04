@@ -20,19 +20,20 @@ with the following additions:
 * @process@: this parameter is a function that takes the current metadata and return the process to start.
 * @header@: if set to @false@ then no WAV header will be added to the data fed to the encoding process, thus the encoding process shall operate on RAW data.
 * @restart_on_crash@: wether to restart the encoding process if it crashed. Useful when the external process fails to encode properly data after some time.
-* @restart_encoder@: restart encoding process on each new track. Useful in conjonction with the @process@ parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
+* @restart_on_new_track@: restart encoding process on each new track. Useful in conjonction with the @process@ parameter for audio formats that need a new header, possibly with metadatas, for each new track. This is the case for the ogg container.
+* @restart_after_delay@: Restart the encoder after some delay. This can be useful for encoders that cannot operate on infinite streams, or are buggy after some time, like the @lame@ binary. The default for @lame@ and @accplusenc@-based encoders is to restart the encoder every hour.
+
+The restart mechanism strongly relies on the good behaviour of the encoding process. The restart operation will 
+close the standard input of the encoding process. The encoding process is then expected to finish its own operations and
+close its standard output. If it does not close its standard output, the encoding task will not finish. 
+
+If your encoding process has this issue, you should turn the @restart_on_crash@ option to @true@ and kill the encoding
+process yourself.
 
 Some specific options are available for @output.icecast.external@:
 * @icy_metadata@: send new metadata as ICY update. This is the case for headerless formats, such as MP3 or AAC, and it appears to work also for ogg/vorbis streams.
 * @shout_raw@: ask shout not to do any synchronization. Useful when sending formats that shout does not recognize, like AAC. Since liquidsoap is real-time, data is sent at real-rate anyway.
 * @format@: shout format. Must be one of "ogg" or "mp3". Use "mp3" for sending other headerless audio data, such as AAC.
-
-A full support for exotic codecs is not yet available in shout. Current shout API does not allow to set the @Content-Type@ parameter to any arbitrary value. A patch has been submited, hopefully, this limitation will be removed soon.
-
-The @restart_on_crash@ parameter allows you to regulary kill the encoding process. 
-This workaround needs to be used for @lame@, since the encoder seems to produce garbaged data after running for some time. 
-When doing this trick, you should kill the encoding process in a strong way (@kill -9@) in order to avoid any issue when the process is terminating its operations.
-
 
 h3. Wrappers
 
@@ -88,10 +89,10 @@ try to modify this parameter.
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
 # @param ~restart_on_new_track Restart encoder upon new track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
-# @param ~sync Let shout do the synchronization.
 # @param ~swap Swap audio samples. Depends on local machine's endianess and lame's version. Test this parameter if you experience garbaged mp3 audio data. On intel 32 and 64 architectures, the parameter should be "true" for lame prior 3.98.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
@@ -103,11 +104,11 @@ def output.icecast.lame(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
-  ~sync=false,~dumpfile="",~mount="Use [name]",
+  ~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~lame="lame",~bitrate=128,~swap=false,
   ~restart_on_crash=false,~restart_on_new_track=false,
-  s)
+  ~restart_encoder_delay=3600,~headers=[],s)
   samplerate = get(default=44100,"frame.samplerate")
   samplerate = float_of_int(samplerate) / 1000.
   channels = get(default=2,"frame.channels")
@@ -128,27 +129,20 @@ def output.icecast.lame(
     restart=restart,restart_delay=restart_delay,
     host=host,port=port,user=user,password=password,
     genre=genre,url=url,description=description,
-    public=public,sync=sync,dumpfile=dumpfile,
+    public=public,dumpfile=dumpfile,restart_encoder_delay=restart_encoder_delay,
     name=name,mount=mount,protocol=protocol,
     header=false,restart_on_crash=restart_on_crash,
-    restart_encoder=restart_on_new_track,
+    restart_on_new_track=restart_on_new_track,headers=headers,
     s)
 end
 %%
 
-A wrapper for shoutcast is also defined:
-%%(output-shoutcast-lame.liq)
-# Output to shoutcast using the lame encoder.
-# @category Source / Output
-def output.shoutcast.lame = 
-  output.icecast.lame(id = "output.shoutcast.lame", mount = "/", protocol = "icy") 
-end
-%%
+A wrapper for shoutcast, @output.shoutcast.lame@ and, similarly, @output.icecast.aacplusenc@ and @output.shoutcast.aacplusenc@ are also defined on the same line.
 
 h4. output.icecast.flac
 
-This support is not yet working as expected. Current implementation of the external encoding process does not
-support well the @restart_on_track@ option. It is set to false by default.
+Contrary to mpeg-based encoder, this encoder, which uses the ogg container, is restarted every new song. 
+Indeed, the ogg specifications makes this mandatory in order to be able to create a new ogg track with new metadata.
 
 %%(output-icecast-flac.liq)
 # Output to icecast using the flac command line encoder.
@@ -159,10 +153,10 @@ support well the @restart_on_track@ option. It is set to false by default.
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
 # @param ~restart_on_new_track Restart encoder upon new track. If false, the resulting stream will have a single track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~flac The flac binary
 # @param ~quality Encoder quality (0..8)
-# @param ~sync Let shout do the synchronization.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
 # @param s The source to output
@@ -173,10 +167,12 @@ def output.icecast.flac(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
-  ~sync=false,~dumpfile="",~mount="Use [name]",
+  ~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
-  ~flac="flac",~quality=6,~restart_on_crash=false,
-  ~restart_on_new_track=false,s)
+  ~flac="flac",~quality=6,
+  ~restart_on_crash=false,
+  ~restart_on_new_track=true,
+  ~restart_encoder_delay=(-1),s)
   # We will use raw format, to 
   # bypass input length value in WAV
   # header (input length is not known)
@@ -188,10 +184,8 @@ def output.icecast.flac(
     end
     m = list.map(option,m)
     m = string.concat(separator=" ",m) 
-    "#{flac} --force-raw-format --endian=little \
-      --channels=#{channels} --bps=16 \
-      --sample-rate=#{samplerate} \
-      --sign=signed #{m} \
+    "#{flac} --force-raw-format --endian=little --channels=#{channels} \
+      --bps=16 --sample-rate=#{samplerate} --sign=signed #{m} \
       -#{quality} --ogg -c -"
   end
   output.icecast.external(id=id,
@@ -199,11 +193,12 @@ def output.icecast.flac(
     restart=restart,restart_delay=restart_delay,
     host=host,port=port,user=user,password=password,
     genre=genre,url=url,description=description,
-    public=public,sync=sync,dumpfile=dumpfile,
+    public=public,dumpfile=dumpfile,
     name=name,mount=mount,protocol=protocol,
-    restart_encoder=restart_on_new_track,
+    restart_on_new_track=restart_on_new_track,
     format="ogg",header=false,icy_metadata=false,
     restart_on_crash=restart_on_crash,
+    restart_encoder_delay=restart_encoder_delay,
     s)
 end
 %%

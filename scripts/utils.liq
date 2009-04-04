@@ -38,7 +38,7 @@ def output.aplay(~id="output.aplay",~device="default",
   set("root.sync",false)
   output.pipe.external(id=id,
                        restart_on_crash=restart_on_crash,
-                       restart_encoder=false,
+                       restart_on_new_track=false,
                        process=aplay_p,s)
 end
 
@@ -140,7 +140,35 @@ end
 %ifdef output.icecast.mp3
 # Output to shoutcast using the MP3 format.
 # @category Source / Output
-def output.shoutcast.mp3 = output.icecast.mp3(mount = "/", protocol = "icy") end
+# @param ~id Output's ID
+# @param ~start Start output threads on operator initialization.
+# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
+# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
+# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
+# @param ~bitrate Encoder bitrate
+# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param s The source to output
+def output.shoutcast.mp3(
+  ~id="output.shoutcast.mp3",~start=true,
+  ~restart=true,~restart_delay=3,
+  ~host="localhost",~port=8000,
+  ~user="source",~password="hackme",
+  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~description="OCaml Radio!",~public=true,
+  ~dumpfile="",~name="Use [mount]",
+  ~aim="",~icq="",~irc="",
+  ~bitrate=128,s) = 
+  headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
+  output.icecast.mp3(
+    id=id, headers=headers,
+    bitrate=bitrate, start=start,
+    restart=restart, restart_delay=restart_delay,
+    host=host, port=port, user=user, password=password,
+    genre=genre, url=url, description=description,
+    public=public, dumpfile=dumpfile,
+    name=name, mount="/", protocol="icy",
+    s)
+end
 %endif
 
 %ifdef output.icecast.external
@@ -152,10 +180,10 @@ def output.shoutcast.mp3 = output.icecast.mp3(mount = "/", protocol = "icy") end
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
 # @param ~restart_on_new_track Restart encoder upon new track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
-# @param ~sync Let shout do the synchronization.
 # @param ~swap Swap audio samples. Depends on local machine's endianess and lame's version. Test this parameter if you experience garbaged mp3 audio data. On intel 32 and 64 architectures, the parameter should be "true" for lame prior 3.98.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
@@ -167,11 +195,11 @@ def output.icecast.lame(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
-  ~sync=false,~dumpfile="",~mount="Use [name]",
+  ~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~lame="lame",~bitrate=128,~swap=false,
   ~restart_on_crash=false,~restart_on_new_track=false,
-  s)
+  ~restart_encoder_delay=3600,~headers=[],s)
   samplerate = get(default=44100,"frame.samplerate")
   samplerate = float_of_int(samplerate) / 1000.
   channels = get(default=2,"frame.channels")
@@ -192,17 +220,50 @@ def output.icecast.lame(
     restart=restart,restart_delay=restart_delay,
     host=host,port=port,user=user,password=password,
     genre=genre,url=url,description=description,
-    public=public,sync=sync,dumpfile=dumpfile,
+    public=public,dumpfile=dumpfile,restart_encoder_delay=restart_encoder_delay,
     name=name,mount=mount,protocol=protocol,
     header=false,restart_on_crash=restart_on_crash,
-    restart_encoder=restart_on_new_track,
+    restart_on_new_track=restart_on_new_track,headers=headers,
     s)
 end
 
 # Output to shoutcast using the lame encoder.
 # @category Source / Output
-def output.shoutcast.lame = 
-  output.icecast.lame(id = "output.shoutcast.lame", mount = "/", protocol = "icy") 
+# @param ~id Output's ID
+# @param ~start Start output threads on operator initialization.
+# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
+# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
+# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
+# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
+# @param ~lame The lame binary
+# @param ~bitrate Encoder bitrate
+# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param s The source to output
+def output.shoutcast.lame(
+  ~id="output.shoutcast.mp3",~start=true,
+  ~restart=true,~restart_delay=3,
+  ~host="localhost",~port=8000,
+  ~user="source",~password="hackme",
+  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~description="OCaml Radio!",~public=true,
+  ~dumpfile="",~name="Use [mount]",
+  ~lame="lame",~aim="",~icq="",~irc="",
+  ~restart_on_crash=false,~restart_on_new_track=false,
+  ~restart_encoder_delay=3600,~bitrate=128,s) =
+  headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
+  output.icecast.lame(
+    id=id, headers=headers, lame=lame,
+    bitrate=bitrate, start=start,
+    restart=restart, restart_encoder_delay=restart_encoder_delay,
+    host=host, port=port, user=user, password=password,
+    genre=genre, url=url, description=description,
+    public=public, dumpfile=dumpfile,
+    restart_on_crash=restart_on_crash,
+    restart_on_new_track=restart_on_new_track,
+    name=name, mount="/", protocol="icy",
+    s)
 end
 
 # Output to icecast using the flac command line encoder.
@@ -213,10 +274,10 @@ end
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
 # @param ~restart_on_new_track Restart encoder upon new track. If false, the resulting stream will have a single track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~flac The flac binary
 # @param ~quality Encoder quality (0..8)
-# @param ~sync Let shout do the synchronization.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
 # @param s The source to output
@@ -227,10 +288,12 @@ def output.icecast.flac(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
-  ~sync=false,~dumpfile="",~mount="Use [name]",
+  ~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
-  ~flac="flac",~quality=6,~restart_on_crash=false,
-  ~restart_on_new_track=false,s)
+  ~flac="flac",~quality=6,
+  ~restart_on_crash=false,
+  ~restart_on_new_track=true,
+  ~restart_encoder_delay=(-1),s)
   # We will use raw format, to 
   # bypass input length value in WAV
   # header (input length is not known)
@@ -251,11 +314,94 @@ def output.icecast.flac(
     restart=restart,restart_delay=restart_delay,
     host=host,port=port,user=user,password=password,
     genre=genre,url=url,description=description,
-    public=public,sync=sync,dumpfile=dumpfile,
+    public=public,dumpfile=dumpfile,
     name=name,mount=mount,protocol=protocol,
-    restart_encoder=restart_on_new_track,
+    restart_on_new_track=restart_on_new_track,
     format="ogg",header=false,icy_metadata=false,
     restart_on_crash=restart_on_crash,
+    restart_encoder_delay=restart_encoder_delay,
+    s)
+end
+
+# Output to icecast using the aacplusenc command line encoder.
+# @category Source / Output
+# @param ~id Output's ID
+# @param ~start Start output threads on operator initialization.
+# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
+# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
+# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
+# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
+# @param ~aacplusenc The aacplusenc binary
+# @param ~bitrate Encoder bitrate
+# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
+# @param s The source to output
+def output.icecast.aacplusenc(
+  ~id="output.icecast.aacplusenc",~start=true,
+  ~restart=true,~restart_delay=3,
+  ~host="localhost",~port=8000,
+  ~user="source",~password="hackme",
+  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~description="OCaml Radio!",~public=true,
+  ~dumpfile="",~mount="Use [name]",
+  ~name="Use [mount]",~protocol="http",
+  ~aacplusenc="aacplusenc",~bitrate=64,
+  ~restart_on_crash=false,~restart_on_new_track=false,
+  ~restart_encoder_delay=3600,~headers=[],s)
+  # Metadata update is set by ICY with icecast
+  def aacplusenc_p(m)
+    "#{aacplusenc} - - #{bitrate}"
+  end
+  output.icecast.external(id=id,
+    process=aacplusenc_p,bitrate=bitrate,start=start,
+    restart=restart,restart_delay=restart_delay,
+    host=host,port=port,user=user,password=password,
+    genre=genre,url=url,description=description,
+    public=public,dumpfile=dumpfile,
+    name=name,mount=mount,protocol=protocol,
+    header=true,restart_on_crash=restart_on_crash,
+    restart_on_new_track=restart_on_new_track,headers=headers,
+    restart_encoder_delay=restart_encoder_delay,format="audio/aacp",s)
+end
+
+# Output to shoutcast using the aacplusenc encoder.
+# @category Source / Output
+# @param ~id Output's ID
+# @param ~start Start output threads on operator initialization.
+# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
+# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
+# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~restart_on_new_track Restart encoder upon new track.
+# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
+# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
+# @param ~aacplusenc The aacplusenc binary
+# @param ~bitrate Encoder bitrate
+# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param s The source to output
+def output.shoutcast.aacplusenc(
+  ~id="output.shoutcast.aacplusenc",~start=true,
+  ~restart=true,~restart_delay=3,
+  ~host="localhost",~port=8000,
+  ~user="source",~password="hackme",
+  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~description="OCaml Radio!",~public=true,
+  ~dumpfile="",~name="Use [mount]",
+  ~aim="",~icq="",~irc="",~aacplusenc="aacplusenc",
+  ~restart_on_crash=false,~restart_on_new_track=false,
+  ~restart_encoder_delay=3600,~bitrate=64,s) =
+  headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
+  output.icecast.aacplusenc(
+    id=id, headers=headers, aacplusenc=aacplusenc,
+    bitrate=bitrate, start=start,
+    restart=restart, restart_delay=restart_delay,
+    host=host, port=port, user=user, password=password,
+    genre=genre, url=url, description=description,
+    public=public, dumpfile=dumpfile,
+    restart_on_crash=restart_on_crash, restart_encoder_delay=restart_encoder_delay,
+    restart_on_new_track=restart_on_new_track,
+    name=name, mount="/", protocol="icy",
     s)
 end
 %endif

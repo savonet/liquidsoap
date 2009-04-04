@@ -99,14 +99,14 @@ outputs = outputs/output.ml outputs/file_output.ml \
 	$(if $(W_THEORA),outputs/theora_encoded.ml) \
 	$(if $(W_SCHROEDINGER),outputs/dirac_encoded.ml) \
 	$(if $(W_SPEEX), outputs/speex_encoded.ml) \
-	$(if $(W_SHOUT),outputs/icecast2.ml \
+	$(if $(W_CRY),outputs/icecast2.ml \
  	$(if $(W_OGG),outputs/ogg_output_shout.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded_shout.ml) \
 	$(if $(W_LAME), outputs/lame_encoded_shout.ml)  \
 	$(if $(W_SPEEX), outputs/speex_encoded_shout.ml)  \
 	$(if $(W_THEORA), outputs/theora_encoded_shout.ml) ) \
 	outputs/external_encoded.ml \
-	$(if $(W_SHOUT),outputs/external_encoded_shout.ml) \
+	$(if $(W_CRY),outputs/external_encoded_shout.ml) \
 	outputs/wavfile.ml \
 	$(if $(W_AO),outputs/ao_out.ml) \
 	$(if $(W_FAAC),outputs/faac_encoded.ml) \

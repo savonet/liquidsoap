@@ -5,10 +5,23 @@ Bugs fixed:
    http ogg streams.
  - Disconnect idle harbor sources after timeout has expired. 
    Thanks to Roman Savrulin for reporting and fixing !
+ - Changed external encoder's "restart_encoder" to the more relevant
+   "restart_on_new_track". Added optional "restart_after_delay"
+   to restart the encoder after some delay. Also completely rewrite
+   stop mechanism. Stop operation now waits for the encoding process
+   to finish, allowing proper restart_on_new_track like for ogg encoded
+   data.
 New:
  - Support ogg/dirac (#TODO: close ticket).
  - Get a node's striping status when stripping
    blank with strip_blank (#260).
+ - Switched to a custom implementation of the 
+   various shout protocols. Allows much more
+   flaxibility, in particular arbitrary content-type
+   settings. Enabled wrappers for external encoders for
+   AAC+ format using aacplusenc (#220 and #136). Also
+   added custom irc, aim and icq headers to shoutcast
+   wrappers (#192)
 
 0.9.0 (01-03-2009)
 Bugs fixed:
