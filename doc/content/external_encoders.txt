@@ -63,7 +63,7 @@ def output.aplay(~id="output.aplay",
   output.pipe.external(
     id=id,
     restart_on_crash=restart_on_crash,
-    restart_encoder=false,
+    restart_on_new_track=false,
     process=aplay_p,s)
 end
 %%

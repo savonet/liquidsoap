@@ -287,27 +287,33 @@ h5. How to get transitions on a mix?
 If you <code>add()</code> a special source on top of your normal stream, you might notice that the re-normalization is not smooth at all: if the special source suddenly becomes available, the normal one will be re-normalized immediately, which is not very nice to hear, especially if the special source starts with a low noise level. The <code>add()</code> operator does not support transitions but there is a solution for this kind of situation. Use a <code>fallback()</code> in order to get transitions, and simply keep playing the normal source in the transition. Here is the code.
 
 %%(smooth_add.liq)
-def smooth_add(~normal,~special)
-  d = 1.  # delay before mixing after beginning of mix
-  p = 0.2 # portion of normal when mixed
-  fade.final = fade.final(duration=d*.2.)
-  fade.initial = fade.initial(duration=d*.2.)
-  q = 1. -. p
-  c = change_volume
-  fallback(
-    track_sensitive=false,
-    [special,normal],
-    transitions=[
-      fun(normal,special)->
-        add(normalize=false,
-            [c(p,normal),
-             c(q,fade.final(normal)),
-             sequence([blank(duration=d),c(q,special)])]),
-      fun(special,normal)->
-        add(normalize=false,
-            [c(p,normal),
-             c(q,fade.initial(normal))])
-  ])
+# Mixes two streams, with faded transitions between the state when only the
+# normal stream is available and when the special stream gets added on top of
+# it.
+# @category Source / Track Processing
+# @param ~delay   Delay before starting the special source.
+# @param ~p       Portion of amplitude of the normal source in the mix.
+# @param ~normal  The normal source, which could be called the carrier too.
+# @param ~special The special source.
+def smooth_add(~delay=0.5,~p=0.2,~normal,~special)
+  d = delay
+  fade.final = fade.final(duration=d*2.)
+  fade.initial = fade.initial(duration=d*2.)
+  q = 1. - p
+  c = amplify
+  fallback(track_sensitive=false,
+           [special,normal],
+           transitions=[
+             fun(normal,special)->
+               add(normalize=false,
+                   [c(p,normal),
+                    c(q,fade.final(type="sin",normal)),
+                    sequence([blank(duration=d),c(q,special)])]),
+             fun(special,normal)->
+               add(normalize=false,
+                   [c(p,normal),
+                    c(q,fade.initial(type="sin",normal))])
+           ])
 end
 %%
 
