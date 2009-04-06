@@ -69,6 +69,8 @@ object (self)
 
   val mutable encoder : external_encoder option = None
 
+  val mutable is_task = false
+
   val read_m = Mutex.create ()
   val read = Buffer.create 10
   (** This mutex is crutial in order to
@@ -92,28 +94,23 @@ object (self)
       let slen = 2 * len * Array.length b in
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);
-      let write x = 
-        try
-          output_string x sbuf;
-        with
-          | _ -> self#external_reset_on_crash
-      in
-      begin 
+      (** Wait for any possible creation.. *)
+      Mutex.lock create_m; 
+      begin
        match encoder with
-         | Some (_,x) -> write x
+         | Some (_,x) ->
+             begin
+              try
+                output_string x sbuf
+              with
+                | _ ->
+                  Mutex.unlock create_m; 
+                  self#external_reset_on_crash
+             end;
+             Mutex.unlock create_m
          | None ->
-            begin
-             (** Wait for any possible creation.. *)
-             Mutex.lock create_m; 
-             match encoder with
-               | Some (_,x) -> Mutex.unlock create_m; write x
-               (* No encoder created: we try to restart.. *)
-               | None -> 
-                   Mutex.unlock create_m;
-                   self#external_reset_encoder initial_meta;
-                   let (_,x) = Utils.get_some encoder in
-                   write x
-            end
+              Mutex.unlock create_m;
+              raise External_failure
       end; 
       Mutex.lock read_m; 
       let ret = Buffer.contents read in
@@ -123,9 +120,14 @@ object (self)
 
   method private external_reset_encoder meta =
     Mutex.lock create_m;
-    self#external_stop;
-    self#external_start meta;
-    Mutex.unlock create_m
+    try
+      self#external_stop;
+      self#external_start meta;
+      Mutex.unlock create_m
+    with
+      | e ->
+           Mutex.unlock create_m;
+           raise e
 
   method external_reset_on_crash =
     if restart_on_crash then
@@ -147,6 +149,7 @@ object (self)
    * checked that the encoder was not create by another
    * call. *)
   method private external_start meta =
+    assert(not is_task);
     self#log#f 2 "Creating external encoder..";
     let process = 
       Lang.to_string (Lang.apply process ["",Lang.metadata meta]) 
@@ -170,7 +173,7 @@ object (self)
     let buf = String.create 10000 in
     let events = [`Read sock]
     in
-    let rec pull l =
+    let rec pull _ =
       let read () =
         let ret = input in_e buf 0 10000 in
         if ret > 0 then
@@ -182,17 +185,11 @@ object (self)
         ret
       in
       let stop () =
-        self#log#f 4 "reading task exited: closing process.";
-        begin
-         try
-          ignore(Unix.close_process enc);
-         with _ -> ()
-        end;
-        encoder <- None;
         (* Signal the end of the task *)
         Mutex.lock cond_m;
         Condition.signal cond;
-        Mutex.unlock cond_m
+        Mutex.unlock cond_m;
+        is_task <- false
       in
       try
         let ret = read () in
@@ -206,13 +203,17 @@ object (self)
            self#log#f 4 "Reading task reached end of data";
            stop (); []
          end
-      with _ -> stop (); self#external_reset_on_crash; []
+      with _ -> 
+        stop (); 
+        self#external_reset_on_crash; 
+        []
     in
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = priority ;
           events   = events ;
           handler  = pull };
+    is_task <- true;
     (** Creating restart task. *)
     if restart_encoder_delay > 0 then
       let rec f _ =
@@ -230,7 +231,7 @@ object (self)
    * case of failure for instance.. *)
   method private external_stop =
     match encoder with
-      | Some (_,out_e) ->
+      | Some (_,out_e as enc) ->
          begin
            Mutex.lock cond_m;
            try 
@@ -241,13 +242,20 @@ object (self)
               with
                 | _ -> ()
              end;
-             (* Wait for the end of the task *)
-             Condition.wait cond cond_m;
-             Mutex.unlock cond_m
-           with e -> 
+             if is_task then
+               Condition.wait cond cond_m;
              Mutex.unlock cond_m;
-             self#log#f 2 "couldn't stop the reading task.";
-             raise e
+             begin
+              try 
+                ignore(Unix.close_process enc)
+              with
+                | _ -> ()
+             end;
+             encoder <- None
+           with 
+             | e -> 
+                 self#log#f 2 "couldn't stop the reading task.";
+                 raise e
          end
       | None -> ()
 end
@@ -267,14 +275,25 @@ object (self)
                process as base
 
   method output_start =
+    Mutex.lock create_m;
     base#external_start initial_meta;
+    Mutex.unlock create_m;
     to_file#file_start
 
   method output_stop =
+    Mutex.lock create_m;
     base#external_stop;
+    Mutex.unlock create_m;
     to_file#file_stop
 
-  method output_reset = self#output_stop; self#output_start 
+  method output_reset = 
+    Mutex.lock create_m;
+    base#external_stop;
+    to_file#file_stop;
+    base#external_start initial_meta;
+    to_file#file_start;
+    Mutex.unlock create_m
+
 end
 
 let () =
@@ -321,11 +340,21 @@ object (self)
 
   method send _ = () 
 
-  method output_start = base#external_start initial_meta
+  method output_start = 
+    Mutex.lock create_m;
+    base#external_start initial_meta;
+    Mutex.unlock create_m
 
-  method output_stop = base#external_stop
+  method output_stop = 
+    Mutex.lock create_m;
+    base#external_stop;
+    Mutex.unlock create_m
 
-  method output_reset = self#output_stop; self#output_start
+  method output_reset =
+    Mutex.lock create_m;
+    base#external_stop;
+    base#external_start initial_meta;
+    Mutex.unlock create_m
 end
 
 let () =

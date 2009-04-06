@@ -187,14 +187,24 @@ object (self)
         ""
 
     method output_start =
+      Mutex.lock create_m;
       base#external_start External_encoded.initial_meta;
+      Mutex.unlock create_m;
       icecast#icecast_start
 
     method output_stop =
+      Mutex.lock create_m;
       base#external_stop;
+      Mutex.unlock create_m;
       icecast#icecast_stop
 
-    method output_reset = self#output_stop; self#output_start
+    method output_reset = 
+      Mutex.lock create_m;
+      base#external_stop;
+      icecast#icecast_stop;
+      base#external_start External_encoded.initial_meta;
+      icecast#icecast_start;
+      Mutex.unlock create_m
 end
 
 let () =
