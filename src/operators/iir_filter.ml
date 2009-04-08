@@ -388,7 +388,7 @@ object (self)
 
   val mutable v_offs = 0
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -429,15 +429,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, order, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_int (f "order"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Butterworth High_pass order freq 0. 0. debug):>source)
-    ) ;
+         new iir src Butterworth High_pass order freq 0. 0. debug) ;
 
   Lang.add_operator "filter.iir.butterworth.low"
     [
@@ -448,15 +447,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, order, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_int (f "order"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Butterworth Low_pass order freq 0. 0. debug):>source)
-    ) ;
+         new iir src Butterworth Low_pass order freq 0. 0. debug) ;
 
   Lang.add_operator "filter.iir.butterworth.bandpass"
     [
@@ -469,7 +467,7 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq1, freq2, order, debug, src =
          Lang.to_float (f "frequency1"),
@@ -477,8 +475,7 @@ let () =
          Lang.to_int (f "order"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Butterworth Band_pass order freq1 freq2 0. debug):>source)
-    ) ;
+         new iir src Butterworth Band_pass order freq1 freq2 0. debug) ;
 
   Lang.add_operator "filter.iir.butterworth.bandstop"
     [
@@ -491,7 +488,7 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq1, freq2, order, debug, src =
          Lang.to_float (f "frequency1"),
@@ -499,8 +496,7 @@ let () =
          Lang.to_int (f "order"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Butterworth Band_stop order freq1 freq2 0. debug):>source)
-    ) ;
+         new iir src Butterworth Band_stop order freq1 freq2 0. debug) ;
 
   Lang.add_operator "filter.iir.resonator.bandpass"
     [
@@ -512,15 +508,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, q, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Resonator Band_pass 0 freq 0. q debug):>source)
-    ) ;
+         new iir src Resonator Band_pass 0 freq 0. q debug) ;
 
   Lang.add_operator "filter.iir.resonator.bandstop"
     [
@@ -532,15 +527,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, q, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Resonator Band_pass 0 freq 0. q debug):>source)
-    ) ;
+         new iir src Resonator Band_pass 0 freq 0. q debug) ;
 
   Lang.add_operator "filter.iir.resonator.allpass"
     [
@@ -552,40 +546,11 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"IIR filter"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, q, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new iir src Resonator Band_pass 0 freq 0. q debug):>source)
-    ) ;
-
-(*  Lang.add_operator "filter.crossover"
-    [
-      "bands", Lang.list_t Lang.float_t,
-        Some (Lang.list [ Lang.float 880. ; Lang.float 5000. ]),
-        Some "Bands" ;
-      "", Lang.source_t, None, None
-    ]
-    ~category:Lang.SoundProcessing
-    ~descr:"IIR filter"
-    (fun p ->
-       let f v = List.assoc v p in
-       let freqs, src =
-         Lang.to_float_list (f "bands"),
-         Lang.to_source (f "")
-       in
-       let freq_to_filter f1 f2 =
-         if f1 == 0. then
-           Lang.Source ((new iir src Low_pass 4 f1 f2):>source)
-         else if f2 == 0. then
-           Lang.Source ((new iir src High_pass 4 f1 f2):>source)
-         else
-           Lang.Source ((new iir src Band_pass 4 f1 f2):>source)
-       in
-       Lang.List (List.map2 freq_to_filter
-                 (0.::freqs) (List.append freqs [0.]))
-    ) ;
-*)
+         new iir src Resonator Band_pass 0 freq 0. q debug)

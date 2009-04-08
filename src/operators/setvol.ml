@@ -33,7 +33,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       begin match override_field with
@@ -78,9 +78,9 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
-    (fun p ->
+    (fun p _ ->
        let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
        let o = Lang.to_string (Lang.assoc "override" 1 p) in
        let o = if o = "" then None else Some (String.lowercase o) in
-         ((new setvol s o c):>source))
+         new setvol s o c)

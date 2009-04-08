@@ -124,7 +124,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -160,7 +160,7 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Low-pass FIR filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, beta, num, debug, src =
          Lang.to_float (f "frequency"),
@@ -168,6 +168,4 @@ let () =
          Lang.to_int (f "coeffs"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new fir src freq beta num debug):>source)
-    )
-
+         new fir src freq beta num debug)

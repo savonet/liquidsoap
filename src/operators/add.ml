@@ -76,7 +76,7 @@ object (self)
 
   val tmp = Frame.make ()
 
-  method get_frame buf =
+  method private get_frame buf =
 
     (* Compute the list of ready sources, and their total weight *)
     let weight,sources =
@@ -164,7 +164,7 @@ let () =
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "", Lang.list_t Lang.source_t, None, None ]
-    (fun p ->
+    (fun p _ ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
          List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
@@ -181,12 +181,11 @@ let () =
              (Lang.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
-         ((new add
-             ~renorm
-             (List.map2 (fun w s -> (w,s)) weights sources)
-             (fun _ -> ())
-             (fun _ buf tmp -> RGB.add buf tmp)
-         ):>source))
+         new add
+               ~renorm
+               (List.map2 (fun w s -> (w,s)) weights sources)
+               (fun _ -> ())
+               (fun _ buf tmp -> RGB.add buf tmp))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -215,7 +214,7 @@ let () =
       Some "Scale preserving the proportions.";
       "", Lang.list_t Lang.source_t, None, None
     ]
-    (fun p ->
+    (fun p _ ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
          List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
@@ -251,9 +250,8 @@ let () =
              (Lang.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
-         ((new add
-             ~renorm
-             (List.map2 (fun w s -> (w,s)) weights sources)
-             video_init
-             video_loop
-         ):>source))
+         new add
+               ~renorm
+               (List.map2 (fun w s -> (w,s)) weights sources)
+               video_init
+               video_loop)

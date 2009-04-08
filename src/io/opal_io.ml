@@ -148,6 +148,4 @@ let () =
     ]
     ~category:Lang.Input
     ~descr:"Stream from voip calls using opal library."
-    (fun p ->
-       (* let e f v = f (List.assoc v p) in *)
-         ((new input):>Source.source))
+    (fun p _ -> (new input :> Source.source))

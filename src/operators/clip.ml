@@ -33,7 +33,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let b = AFrame.get_float_pcm buf in
@@ -55,11 +55,11 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Clip sound."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let vmin, vmax, src =
          Lang.to_float (f "min"),
          Lang.to_float (f "max"),
          Lang.to_source (f "")
        in
-         ((new echo src vmin vmax):>source))
+         new echo src vmin vmax)

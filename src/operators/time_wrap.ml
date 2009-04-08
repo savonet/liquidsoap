@@ -63,7 +63,7 @@ object (self)
 
   val mutable catching_up = false
 
-  method get_frame ab =
+  method private get_frame ab =
     (* self#log#f 3
       "%d-%d:: Frame: %d/%d || Gen: %d"
       !inputs !outputs (AFrame.position ab) (AFrame.size ab)
@@ -108,7 +108,7 @@ object (self)
   (* This code comes from src/root.ml. In the future it is possible that root
    * becomes an operator (which this one would extend) to avoid the code
    * duplication. *)
-  method animate =
+  method private animate =
     let max_latency = -. Root.conf_max_latency#get in
     t0 := time () ;
     while true do
@@ -157,7 +157,7 @@ let () =
     ~flags:[Lang.Experimental;Lang.Hidden]
     ~descr:"Separates the computation of a sub-source from the main \
             thread, creating an asynchronous interface between them."
-    (fun p ->
+    (fun p _ ->
        let s = List.assoc "" p in
        let src = Lang.to_source s in
          if src#stype <> Infallible then

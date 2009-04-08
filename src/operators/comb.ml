@@ -40,7 +40,7 @@ object (self)
 
   val mutable past_pos = 0
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let b = AFrame.get_float_pcm buf in
@@ -59,15 +59,18 @@ end
 let () =
   Lang.add_operator "comb"
     [ "delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.";
-      "feedback", Lang.float_getter_t 1, Some (Lang.float (-6.)), Some "Feedback coefficient in dB.";
+
+      "feedback", Lang.float_getter_t 1, Some (Lang.float (-6.)),
+      Some "Feedback coefficient in dB.";
+
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Comb filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let duration, feedback, src =
          Lang.to_float (f "delay"),
          Lang.to_float_getter (f "feedback"),
          Lang.to_source (f "")
        in
-         ((new comb src duration (fun () -> Sutils.lin_of_dB (feedback ()))):>source))
+         new comb src duration (fun () -> Sutils.lin_of_dB (feedback ())))

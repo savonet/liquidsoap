@@ -100,7 +100,7 @@ let () =
     ~category:Lang.TrackProcessing
     ~descr:"Play only one track of every successive source, \
             except for the last one which is played as much as available."
-    (fun p ->
+    (fun p _ ->
        new sequence
          ~merge:(Lang.to_bool (List.assoc "merge" p))
          (Lang.to_source_list (List.assoc "" p)))

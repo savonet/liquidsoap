@@ -119,7 +119,7 @@ let () =
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis file "
             ^ "in Average BitRate mode.")
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
@@ -163,7 +163,7 @@ let () =
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis file "
             ^ "in Constant BitRate mode.")
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
@@ -206,7 +206,7 @@ let () =
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis file "
             ^ "in Variable BitRate mode.")
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in

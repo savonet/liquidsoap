@@ -36,7 +36,7 @@ let string_of_category = function
 
 let add_builtin ~cat ~descr ?flags name proto ret_t f =
   Lang.add_builtin ~category:(string_of_category cat)
-    ~descr ?flags name proto ret_t f
+    ~descr ?flags name proto ret_t (fun p _ -> f p)
 
 (** Liquidsoap stuff *)
 
@@ -385,11 +385,11 @@ let () =
        let i = ref (Lang.to_string (List.assoc "" p)) in
        let get  =
          Lang.val_fun []
-         (fun p -> Lang.string !i)
+         (fun p _ -> Lang.string !i)
        in
        let set =
          Lang.val_fun ["","",None]
-         (fun p ->
+         (fun p _ ->
              let v = List.assoc "" p in
              i := Lang.to_string v ;
              Lang.unit)
@@ -1344,7 +1344,7 @@ let () =
                         with _ ->
                           raise (Var.Invalid_value
                                    (s ^ " is not a string")));
-         Lang.val_fun [] (fun p -> Lang.string !v))
+         Lang.val_fun [] (fun p _ -> Lang.string !v))
 
 let () =
   add_builtin "interactive.float" ~cat:Interaction
@@ -1366,7 +1366,7 @@ let () =
                         with _ ->
                           raise (Var.Invalid_value
                                    (s ^ " is not a float")));
-         Lang.val_fun [] (fun p -> Lang.float !v))
+         Lang.val_fun [] (fun p _ -> Lang.float !v))
 
 let () = (* TODO do not print when daemonized *)
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."

@@ -115,17 +115,12 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p ->
-       (* let e f v = f (List.assoc v p) in *)
+    (fun p _ ->
        let source = List.assoc "" p in
-         ((new output source):>Source.source)
-    );
+         ((new output source):>Source.source)) ;
   Lang.add_operator "input.pulseaudio"
     [
     ]
     ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
-    (fun p ->
-       (* let e f v = f (List.assoc v p) in *)
-       ((new input):>Source.source)
-    );
+    (fun p _ -> ((new input):>Source.source))

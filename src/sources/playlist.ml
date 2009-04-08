@@ -503,7 +503,7 @@ let () =
       ~category:Lang.Input
       ~descr:"Loop on a playlist of URIs."
       (Request_source.queued_proto@proto)
-      (fun params ->
+      (fun params _ ->
          let reload,random,timeout,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
@@ -529,7 +529,7 @@ let () =
               and put only a few local files in a default safe_playlist \
               in order to ensure the liveness of the streamer."
       proto
-      (fun params ->
+      (fun params _ ->
           let reload,random,timeout,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),

@@ -95,7 +95,7 @@ object (self)
   initializer
     Array.iter Descriptor.activate inst
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
     let b = AFrame.get_float_pcm buf in
@@ -129,7 +129,7 @@ object (self)
   initializer
     Array.iter Descriptor.activate inst
 
-  method get_frame buf =
+  method private get_frame buf =
     if must_fail then
       (
         AFrame.add_break buf (AFrame.position buf);
@@ -167,7 +167,7 @@ object (self)
   initializer
     Descriptor.activate inst
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
     let b = AFrame.get_float_pcm buf in
@@ -199,7 +199,7 @@ object (self)
   initializer
     Descriptor.activate inst
 
-  method get_frame buf =
+  method private get_frame buf =
     if must_fail then
       (
         AFrame.add_break buf (AFrame.position buf);
@@ -322,7 +322,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
       ~category:Lang.SoundProcessing
       ~flags:[Lang.Hidden]
       ~descr:(Descriptor.name d ^ ".")
-      (fun p ->
+      (fun p _ ->
          let f v = List.assoc v p in
          let source =
            try
@@ -349,34 +349,34 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
            match inputs with
              | Some inputs ->
                  if stereo then
-                   ((new ladspa_stereo
+                   new ladspa_stereo
                        (Utils.get_some source)
                        plugin_name
                        descr_n
                        inputs
                        outputs
-                       params):>source)
+                       params
                  else
-                   ((new ladspa
+                   new ladspa
                        (Utils.get_some source)
                        plugin_name
                        descr_n
                        inputs.(0)
                        outputs.(0)
-                       params):>source)
+                       params
              | None ->
                  if stereo then
-                   ((new ladspa_stereo_nosource
+                   new ladspa_stereo_nosource
                        plugin_name
                        descr_n
                        outputs
-                       params):>source)
+                       params
                  else
-                   ((new ladspa_nosource
+                   new ladspa_nosource
                        plugin_name
                        descr_n
                        outputs.(0)
-                       params):>source)
+                       params
       )
 
 (** Get the input and the output port. Raises [Not_found] if there is not

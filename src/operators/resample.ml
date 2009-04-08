@@ -45,7 +45,7 @@ object (self)
 
   val mutable dpos = 0
 
-  method get_frame buf =
+  method private get_frame buf =
     let b = AFrame.get_float_pcm buf in
       for i = AFrame.position buf to AFrame.size buf - 1 do
         if dpos >= Array.length data.(0) then
@@ -76,9 +76,8 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:"Resample source's sound using a resampling factor"
     ~flags:[Lang.Hidden;Lang.Experimental]
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let ratio = Lang.to_float_getter (f "ratio") in
-         ((new resample src ratio):>source)
-    )
+         new resample src ratio)

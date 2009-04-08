@@ -174,7 +174,7 @@ let () =
     ["",Lang.source_t,None,None]
     ~category:Lang.Output
     ~descr:"Dummy output for debugging purposes."
-    (fun p -> ((new dummy (List.assoc "" p)):>Source.source))
+    (fun p _ -> ((new dummy (List.assoc "" p)):>Source.source))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)

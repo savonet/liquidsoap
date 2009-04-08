@@ -44,7 +44,7 @@ object (self)
   val mutable band = Array.make channels 0.
   val mutable notch = Array.make channels 0.
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let b = AFrame.get_float_pcm buf in
@@ -84,7 +84,7 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, q, wet, mode, src =
          Lang.to_float_getter (f "freq"),
@@ -102,4 +102,4 @@ let () =
                            (mode,
                             "valid values are low|high|band|notch"))
        in
-         ((new filter src freq q wet mode):>source))
+         new filter src freq q wet mode)

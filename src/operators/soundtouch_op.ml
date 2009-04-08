@@ -39,7 +39,7 @@ object (self)
   (* Temporary buffer. *)
   val databuf = Frame.make ()
 
-  method get_frame buf =
+  method private get_frame buf =
     let b = AFrame.get_float_pcm buf in
     let startpos = AFrame.position buf in
     let endpos = AFrame.size buf in
@@ -68,10 +68,10 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:"Change the rate, the tempo or the pitch of the sound."
     ~flags:[Lang.Experimental]
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let rate = Lang.to_float_getter (f "rate") in
        let tempo = Lang.to_float_getter (f "tempo") in
        let pitch = Lang.to_float_getter (f "pitch") in
        let s = Lang.to_source (f "") in
-         ((new soundtouch s rate tempo pitch):>source))
+         new soundtouch s rate tempo pitch)

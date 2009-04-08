@@ -154,7 +154,7 @@ let () =
 
         "", Lang.string_t, None,
         Some "Command to execute." ]
-      (fun p ->
+      (fun p _ ->
          let command = Lang.to_string (List.assoc "" p) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let channels = Lang.to_int (List.assoc "channels" p) in

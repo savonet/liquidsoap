@@ -33,9 +33,9 @@ object(self)
   method abort_track =
     blank_len <- 0
 
-  method virtual on_noise : unit
+  method virtual private on_noise : unit
 
-  method check_blank s p0 = 
+  method private check_blank s p0 = 
     let len = AFrame.position s - p0 in
     let rms = Float_pcm.rms (AFrame.get_float_pcm s) p0 len in
     let noise = ref false in
@@ -67,9 +67,9 @@ object (self)
     base#abort_track
   method remaining = source#remaining
 
-  method on_noise = ()
+  method private on_noise = ()
 
-  method get_frame ab =
+  method private get_frame ab =
     let p0 = AFrame.position ab in
       source#get ab ;
       if AFrame.is_partial ab || p0 > 0 then blank_len <- 0 else begin
@@ -98,9 +98,9 @@ object (self)
     base#abort_track
   method remaining = source#remaining
 
-  method on_noise = ()
+  method private on_noise = ()
 
-  method get_frame ab =
+  method private get_frame ab =
     let p0 = AFrame.position ab in
       source#get ab ;
       if AFrame.is_partial ab || p0 > 0 then blank_len <- 0 else begin
@@ -129,9 +129,9 @@ object (self)
     base#abort_track ;
     stripping <- false
 
-  method on_noise = stripping <- false
+  method private on_noise = stripping <- false
 
-  method get_frame ab =
+  method private get_frame ab =
     let p0 = AFrame.position ab in
     let b0 = AFrame.breaks ab in
       source#get ab ;
@@ -177,11 +177,11 @@ object (self)
     stripping <- false ;
     beginning <- true
 
-  method on_noise = 
+  method private on_noise = 
     stripping <- false ;
     beginning <- false
 
-  method get_frame ab =
+  method private get_frame ab =
     let first = ref true in
     let breaks = ref (AFrame.breaks ab) in
       while !first || stripping do
@@ -232,31 +232,32 @@ let () =
     ~category:Lang.TrackProcessing
     ~descr:"Calls a given handler when detecting a blank."
     (("",Lang.fun_t [] Lang.unit_t, None, None)::proto)
-    (fun p ->
+    (fun p _ ->
        let f = Lang.assoc "" 1 p in
        let p = List.remove_assoc "" p in
        let length,threshold,s = extract p in
-         ((new on_blank ~length ~threshold f s):>source)) ;
+         new on_blank ~length ~threshold f s) ;
   Lang.add_operator "skip_blank"
     ~category:Lang.TrackProcessing
     ~descr:"Skip track when detecting a blank."
     proto
-    (fun p ->
+    (fun p _ ->
        let length,threshold,s = extract p in
-         ((new skip ~length ~threshold s):>source)) ;
+         new skip ~length ~threshold s) ;
   Lang.add_operator "strip_blank"
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank."
     proto
-    (fun p ->
+    (fun p _ ->
        let length,threshold,s = extract p in
          ((new strip ~length ~threshold s):>source));
   Lang.add_operator "eat_blank"
     ~category:Lang.TrackProcessing
-    ~descr:"Eat blanks (i.e. drop the contents of the stream until it is not blank again)."
+    ~descr:"Eat blanks, i.e., drop the contents of the stream until \
+            it is not blank anymore."
     (("at_beginning", Lang.bool_t, Some (Lang.bool false),
       Some "Only eat at the beginning of a track.")::proto)
-    (fun p ->
+    (fun p _ ->
        let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
        let length,threshold,s = extract p in
-         ((new eat ~at_beginning ~length ~threshold s):>source))
+         new eat ~at_beginning ~length ~threshold s)

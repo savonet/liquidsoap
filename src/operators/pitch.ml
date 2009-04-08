@@ -76,7 +76,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     source#get buf;
     let buf = AFrame.get_float_pcm buf in
       Ringbuffer.write ring buf 0 (Array.length buf.(0));
@@ -100,25 +100,31 @@ object (self)
           done;
           let f = samples_per_second /. float !wl_opt in
           let f = if f > freq_max then 0. else f in
-            Printf.printf "Found frequency: %.02f (%s)\n%!" f (string_of_note (note_of_freq f))
+            Printf.printf "Found frequency: %.02f (%s)\n%!"
+              f (string_of_note (note_of_freq f))
 end
 
 let () =
   Lang.add_operator "pitch"
     [
-      "length", Lang.float_t, Some (Lang.float 0.1), Some "Length in seconds of the analysis window";
-      "freq_min", Lang.float_t, Some (Lang.float 40.), Some "Minimal frequency";
-      "freq_max", Lang.float_t, Some (Lang.float 10000.), Some "Maximal frequency";
+      "length", Lang.float_t, Some (Lang.float 0.1),
+      Some "Length in seconds of the analysis window";
+
+      "freq_min", Lang.float_t, Some (Lang.float 40.),
+      Some "Minimal frequency";
+
+      "freq_max", Lang.float_t, Some (Lang.float 10000.),
+      Some "Maximal frequency";
+
       "", Lang.source_t, None, None
     ]
     ~category:Lang.SoundProcessing
-    ~descr:"Compute the pitch of a sound"
+    ~descr:"Compute the pitch of a sound."
     ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let length = Lang.to_float (f "length") in
        let freq_min = Lang.to_float (f "freq_min") in
        let freq_max = Lang.to_float (f "freq_max") in
        let src = Lang.to_source (f "") in
-         ((new pitch 10 length freq_min freq_max src):>source)
-    )
+         new pitch 10 length freq_min freq_max src)

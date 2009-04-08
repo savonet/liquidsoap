@@ -258,7 +258,7 @@ let () =
 
         "", Lang.string_t, None,
         Some "Mountpoint to look for." ]
-      (fun p ->
+      (fun p _ ->
          let mount = Lang.to_string (List.assoc "" p) in
          let mount =
            if mount<>"" && mount.[0]='/' then mount else

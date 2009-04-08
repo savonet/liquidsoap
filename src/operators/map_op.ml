@@ -33,7 +33,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -56,10 +56,7 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:"Map a function on the sound."
     ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p ->
-       let f, src =
-         to_fun_float (Lang.assoc "" 1 p),
-         Lang.to_source (Lang.assoc "" 2 p)
-       in
-         ((new map src f):>source)
-    )
+    (fun p _ ->
+       let f = to_fun_float (Lang.assoc "" 1 p) in
+       let src = Lang.to_source (Lang.assoc "" 2 p) in
+         new map src f)

@@ -33,7 +33,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let buffer = AFrame.get_float_pcm buf in
@@ -55,9 +55,9 @@ let () =
     [ "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
-    (fun p ->
+    (fun p _ ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
-         ((new msstereo s Encode 0.):>source))
+         new msstereo s Encode 0.)
 
 let () =
   Lang.add_operator "stereo.ms.decode"
@@ -66,8 +66,7 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
-    (fun p ->
+    (fun p _ ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
        let w = Lang.to_float (Lang.assoc "width" 1 p) in
-         ((new msstereo s Decode w):>source))
-
+         new msstereo s Decode w)

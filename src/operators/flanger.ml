@@ -22,7 +22,7 @@
 
 open Source
 
-let pi = 3.1416
+let pi = acos (-1.)
 
 class flanger (source:source) delay freq feedback =
   let past_len = Fmt.samples_of_seconds delay in
@@ -42,16 +42,20 @@ object (self)
 
   val mutable omega = 0.
 
-  method get_frame buf =
+  method private get_frame buf =
     let feedback = feedback () in
     let offset = AFrame.position buf in
       source#get buf ;
       let b = AFrame.get_float_pcm buf in
       let position = AFrame.position buf in
-      let d_omega = 2. *. pi *. (freq ()) /. (float (Fmt.samples_per_second ())) in
+      let d_omega =
+        2. *. pi *. (freq ()) /. (float (Fmt.samples_per_second ()))
+      in
         for i = offset to position - 1 do
           let delay =
-            (past_pos + past_len + Fmt.samples_of_seconds (delay *. (1. -. cos omega) /. 2.)) mod past_len
+            (past_pos + past_len +
+             Fmt.samples_of_seconds (delay *. (1. -. cos omega) /. 2.))
+            mod past_len
           in
             for c = 0 to Array.length b - 1 do
               past.(c).(past_pos) <- b.(c).(i);
@@ -75,7 +79,7 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Flanger effect."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let duration, freq, feedback, src =
          Lang.to_float (f "delay"),
@@ -84,4 +88,4 @@ let () =
          Lang.to_source (f "")
        in
        let feedback = fun () -> Sutils.lin_of_dB (feedback ()) in
-         ((new flanger src duration freq feedback):>source))
+         new flanger src duration freq feedback)

@@ -80,7 +80,7 @@ object (self)
              | Error | Stream.Failure | Stream.Error _ ->
                  "Syntax error: use key1=\"val1\",key2=\"val2\",..")
 
-  method get_frame buf =
+  method private get_frame buf =
     let p = Frame.position buf in
       source#get buf ;
       match metadata with
@@ -96,9 +96,9 @@ let register =
     ~category:Lang.SoundProcessing
     ~descr:"Interactively insert metadata using the command \
             <code>ID.insert key1=\"val1\",key2=\"val2\",...</code>."
-    (fun p ->
+    (fun p _ ->
        let source = Lang.to_source (Lang.assoc "" 1 p) in
-         ((new insert_metadata source):>source))
+         new insert_metadata source)
 
 (** Insert metadata at the beginning if none is set.
   * Currently used by the switch classes. *)

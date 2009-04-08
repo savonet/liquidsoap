@@ -46,7 +46,7 @@ object (self)
 
   val mutable cur_text = text ()
 
-  method render_text text =
+  method private render_text text =
     let font = Utils.get_some font in
     let text = if text="" then " " else text in
     let ts =
@@ -85,7 +85,7 @@ object (self)
     );
     self#render_text cur_text
 
-  method get_frame ab =
+  method private get_frame ab =
     let b = VFrame.get_rgb ab in
     let off = VFrame.position ab in
     let size = VFrame.size ab in
@@ -137,7 +137,7 @@ let () =
     ]
     ~category:Lang.Input
     ~descr:"Display a text."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let ttf, ttf_size, color, x, y, speed, cycle, txt =
          Lang.to_string (f "font"),
@@ -149,5 +149,5 @@ let () =
          Lang.to_bool (f "cycle"),
          Lang.to_string_getter (f "")
        in
-         ((new text ttf ttf_size color x y
-                 (speed / Fmt.video_frames_per_second ()) cycle txt):>source))
+       let speed = speed / Fmt.video_frames_per_second () in
+         new text ttf ttf_size color x y speed cycle txt)

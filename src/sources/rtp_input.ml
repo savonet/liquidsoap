@@ -42,7 +42,7 @@ object (self)
     session <- Some (Rtp.new_session Rtp.Recv address port)
 
   val hm = ref 0
-  method get_frame ab =
+  method private get_frame ab =
     assert (AFrame.position ab = 0) ;
     match session with
       | Some session ->
@@ -74,7 +74,7 @@ let () =
       Some "Broadcast port." ]
     ~category:Lang.Input
     ~descr:"Input raw stream (including metadata) using RTP."
-    (fun p ->
+    (fun p _ ->
        let port = Lang.to_int (List.assoc "port" p) in
        let ip = Lang.to_string (List.assoc "ip" p) in
          ((new input ip port):>Source.source))

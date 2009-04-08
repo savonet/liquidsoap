@@ -114,7 +114,7 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.Output
     ~descr:"Output stream to jack."
-    (fun p ->
+    (fun p _ ->
        let source = List.assoc "" p in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in

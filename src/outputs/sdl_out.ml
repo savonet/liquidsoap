@@ -114,7 +114,7 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Display a video using SDL."
-    (fun p ->
+    (fun p _ ->
        let start = Lang.to_bool (List.assoc "start" p) in
        let source = List.assoc "" p in
          ((new output source start):>Source.source))

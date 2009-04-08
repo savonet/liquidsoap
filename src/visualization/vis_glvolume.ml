@@ -87,7 +87,7 @@ let () =
     [ "", Lang.source_t, None, None ]
     ~category:Lang.Visualization
     ~descr:"Graphical visualization of the volume using openGL."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src =
          Lang.to_source (f "")

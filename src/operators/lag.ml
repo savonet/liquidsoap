@@ -50,7 +50,7 @@ object (self)
     self#log#f 2 "Track skip in delayed stream will be delayed !";
     source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     (* past should always be empty here.. *)
     AFrame.advance past;
     if Generator.length abg < past_len then
@@ -90,7 +90,7 @@ let () =
             filling with blank when not available. \
             This operator should be used just before the \
             final output."
-    (fun p ->
+    (fun p _ ->
        let f n = Lang.assoc "" n p in
        let duration, src =
          Lang.to_float (f 1),
@@ -98,4 +98,4 @@ let () =
        in
        if src#stype <> Infallible then
          raise (Lang.Invalid_value (f 2,"That source should be infallible.")) ;
-       (new lag src duration :>source))
+       new lag src duration)

@@ -83,8 +83,9 @@ let () =
 
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
-    ~descr:"Accelerates a stream, possibly only the middle of the tracks. Useful for testing transitions."
-    (fun p ->
+    ~descr:"Accelerates a stream, possibly only the middle of the tracks. \
+            Useful for testing transitions."
+    (fun p _ ->
        let src    = Lang.to_source (Lang.assoc "" 2 p) in
 
        let before = Lang.to_float  (Lang.assoc "before" 1 p) in
@@ -101,4 +102,4 @@ let () =
            1. /. s
        in
 
-         ((new accel ~before ~after ~ratio src):>source))
+         new accel ~before ~after ~ratio src)

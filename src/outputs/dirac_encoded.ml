@@ -52,7 +52,7 @@ let () =
       dirac_proto @ File_output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an ogg/theora file."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let vorbis_quality = e Lang.to_float "vorbis_quality" in

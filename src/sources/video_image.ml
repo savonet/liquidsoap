@@ -45,7 +45,11 @@ object
 
   initializer
     (* TODO: handle more formats... *)
-    let f = RGB.read_ppm ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha)) fname in
+    let f =
+      RGB.read_ppm
+        ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha))
+        fname
+    in
     let w = if width < 0 then f.RGB.width else width in
     let h = if height < 0 then f.RGB.height else height in
     let f =
@@ -58,7 +62,7 @@ object
       if y < 0 then pos_y <- Fmt.video_height () - h + y;
       img <- Some f
 
-  method get_frame ab =
+  method private get_frame ab =
     if must_fail then begin
       VFrame.add_break ab (VFrame.position ab);
       remaining <- nb_frames;
@@ -85,15 +89,27 @@ let () =
     ~category:Lang.Input
     ~descr:"Display a static image."
     [
-      "width", Lang.int_t, Some (Lang.int (-1)), Some "Scale to width (negative means original width).";
-      "height", Lang.int_t, Some (Lang.int (-1)), Some "Scale to width (negative means original height).";
-      "x", Lang.int_t, Some (Lang.int 0), Some "x position (negative means from right).";
-      "y", Lang.int_t, Some (Lang.int 0), Some "y position (negative means from bottom).";
-      "alpha", Lang.int_t, Some (Lang.int (-1)), Some "Color to convert to alpha (in 0xRRGGBB format, negative means no alpha).";
+      "width", Lang.int_t, Some (Lang.int (-1)),
+      Some "Scale to width (negative means original width).";
+
+      "height", Lang.int_t, Some (Lang.int (-1)),
+      Some "Scale to width (negative means original height).";
+
+      "x", Lang.int_t, Some (Lang.int 0),
+      Some "x position (negative means from right).";
+
+      "y", Lang.int_t, Some (Lang.int 0),
+      Some "y position (negative means from bottom).";
+
+      "alpha", Lang.int_t, Some (Lang.int (-1)),
+      Some "Color to convert to alpha \
+            (in 0xRRGGBB format, negative means no alpha).";
+
       "duration", Lang.float_t, Some (Lang.float 0.), None;
+
       "", Lang.string_t, None, Some "Path to image file.";
     ]
-    (fun p ->
+    (fun p _ ->
        let fname, duration, w, h, x, y, alpha =
          let f v = List.assoc v p in
            Lang.to_string (f ""),
@@ -104,4 +120,4 @@ let () =
            Lang.to_int (f "y"),
            Lang.to_int (f "alpha")
        in
-         (new image fname duration w h x y alpha :> source))
+         new image fname duration w h x y alpha)

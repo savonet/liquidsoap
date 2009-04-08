@@ -57,7 +57,7 @@ let () =
             "and time is not.")
     (( "", Lang.string_t, None, Some "URI where to find the file" )::
      queued_proto)
-    (fun p ->
+    (fun p _ ->
        let val_uri = List.assoc "" p in
        let l,d,t = extract_queued_params p in
        let uri = Lang.to_string val_uri in
@@ -101,7 +101,7 @@ let () =
             "which has to be ready and should be persistent. "^
             "WARNING: if used uncarefully, it can crash your application!")
     [ "", Lang.request_t, None, None]
-    (fun p ->
+    (fun p _ ->
        let r = Utils.get_some (Lang.to_request (List.assoc "" p)) in
          ((new unqueued r):>source))
 
@@ -129,7 +129,7 @@ let () =
        Some ("A function generating requests: an initial URI (possibly fake)" ^
              " together with an initial list of alternative indicators."))
      ::queued_proto)
-    (fun p ->
+    (fun p _ ->
        let f = List.assoc "" p in
        let l,d,t = extract_queued_params p in
          ((new dynamic f l d t) :> source))

@@ -113,7 +113,7 @@ struct
     | Fun     of (string * string * value option) list *
                  env * env * term
     | FFI     of (string * string * value option) list *
-                 env * env * (env -> value)
+                 env * env * (env -> T.t -> value)
 
   let rec print_value v = match v.value with
     | Unit     -> "()"
@@ -377,7 +377,7 @@ and apply ?(t=T.dummy) f l =
     match f.V.value with
       | V.Fun (p,pe,e,body) ->
           p,pe,e,
-          (fun env -> eval ~env body),
+          (fun env _ -> eval ~env body),
           (fun p pe e -> mk (V.Fun (p,pe,e,body)))
       | V.FFI (p,pe,e,f) ->
           p,pe,e,
@@ -412,7 +412,7 @@ and apply ?(t=T.dummy) f l =
                 { v with V.t = T.make ~pos:t.T.pos (T.Link v.V.t) })::pe)
           pe p
       in
-      let v = f (List.rev_append pe e) in
+      let v = f (List.rev_append pe e) t in
         (* Similarly here, the result of an FFI call should have some position
          * information. A possible test is to build a fallible source and pass
          * it to an operator that expects an infallible one. *)

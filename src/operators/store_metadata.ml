@@ -32,7 +32,7 @@ object (self)
   val metadata_q = Queue.create ()
 
   val mutable ns = []
-  method wake_up activation =
+  method private wake_up activation =
     if ns = [] then ns <- Server.register [self#id] "store_metadata" ;
     self#set_id (Server.to_string ns) ;
     super#wake_up activation ;
@@ -48,11 +48,11 @@ object (self)
                         s,(i-1))
                    ("",(Queue.length q)) q)))
 
-  method add_metadata m =
+  method private add_metadata m =
     Queue.add m metadata_q ;
     if Queue.length metadata_q > n then ignore (Queue.take metadata_q)
 
-  method get_frame ab =
+  method private get_frame ab =
     let p = Frame.position ab in
       s#get ab ;
       List.iter
@@ -68,7 +68,7 @@ let () =
     ~category:Lang.TrackProcessing
     ~descr:("Keep track of the last N metadata packets in the stream, "^
             "and make the history available via a server command.")
-    (fun p ->
+    (fun p _ ->
        let s = Lang.to_source (List.assoc "" p) in
        let size = Lang.to_int (List.assoc "size" p) in
-         ((new store size s):>Source.source))
+         new store size s)

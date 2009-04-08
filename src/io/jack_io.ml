@@ -308,7 +308,7 @@ let () =
       "synchronize", Lang.bool_t, Some (Lang.bool true),
       Some "Synchronize on jack input." ;
     ]
-    (fun p ->
+    (fun p _ ->
        let ports = Lang.to_list (List.assoc "ports" p) in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
@@ -325,7 +325,7 @@ let () =
       Some "Synchronize on jack output." ;
       "", Lang.source_t, None, None
     ]
-    (fun p ->
+    (fun p _ ->
        let ports = Lang.to_list (List.assoc "ports" p) in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in

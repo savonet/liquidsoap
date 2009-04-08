@@ -33,7 +33,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let b = VFrame.get_rgb buf in
@@ -51,30 +51,30 @@ let () =
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
     ~descr:"Convert video to greyscale."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new effect RGB.greyscale src):>source))
+         new effect RGB.greyscale src)
 
 let () =
   Lang.add_operator "video.sepia"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
     ~descr:"Convert video to sepia."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new effect RGB.sepia src):>source))
+         new effect RGB.sepia src)
 
 let () =
   Lang.add_operator "video.invert"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
     ~descr:"Invert video."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new effect RGB.invert src):>source))
+         new effect RGB.invert src)
 
 let () =
   Lang.add_operator "video.opacity"
@@ -84,10 +84,10 @@ let () =
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Scale opacity of video."
-    (fun p ->
+    (fun p _ ->
        let a = Lang.to_float (Lang.assoc "" 1 p) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new effect (fun buf -> RGB.scale_opacity buf a) src):>source))
+         new effect (fun buf -> RGB.scale_opacity buf a) src)
 
 let () =
   Lang.add_operator "video.opacity.blur"
@@ -96,30 +96,35 @@ let () =
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Blur opacity of video."
-    (fun p ->
+    (fun p _ ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
-         ((new effect RGB.blur_alpha src):>source))
+         new effect RGB.blur_alpha src)
 
 let () =
   Lang.add_operator "video.lomo"
     [ "", Lang.source_t, None, None ]
     ~category:Lang.VideoProcessing
     ~descr:"Emulate the \"Lomo effect\"."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new effect RGB.lomo src):>source))
+         new effect RGB.lomo src)
 
 let () =
   Lang.add_operator "video.transparent"
     [
-      "precision", Lang.float_t, Some (Lang.float 0.), Some "Precision in color matching (0. means match precisely the color and 1. means match every color).";
-      "color", Lang.int_t, Some (Lang.int 0), Some "Color which should be transparent (in 0xRRGGBB format).";
+      "precision", Lang.float_t, Some (Lang.float 0.),
+      Some "Precision in color matching (0. means match precisely the color \
+            and 1. means match every color).";
+
+      "color", Lang.int_t, Some (Lang.int 0),
+      Some "Color which should be transparent (in 0xRRGGBB format).";
+
       "", Lang.source_t, None, None
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Set a color to be transparent."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let prec, color, src =
          Lang.to_float (f "precision"),
@@ -128,29 +133,33 @@ let () =
        in
        let prec = int_of_float (prec *. 255.) in
        let color = RGB.rgb_of_int color in
-         ((new effect (fun buf -> RGB.color_to_alpha buf color prec) src):>source))
+         new effect (fun buf -> RGB.color_to_alpha buf color prec) src)
 
 let () =
   Lang.add_operator "video.fill"
     [
-      "color", Lang.int_t, Some (Lang.int 0), Some "Color to fill the image with.";
+      "color", Lang.int_t, Some (Lang.int 0),
+      Some "Color to fill the image with.";
+
       "", Lang.source_t, None, None
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Fill frame with a color."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let color, src =
          Lang.to_int (f "color"),
          Lang.to_source (f "")
        in
        let r,g,b = RGB.rgb_of_int color in
-         ((new effect (fun buf -> RGB.fill buf (r, g, b, 0xff)) src):>source))
+         new effect (fun buf -> RGB.fill buf (r, g, b, 0xff)) src)
 
 let () =
   Lang.add_operator "video.scale"
     [
-      "coef", Lang.float_t, Some (Lang.float 1.), Some "Scaling coefficient in both directions.";
+      "coef", Lang.float_t, Some (Lang.float 1.),
+      Some "Scaling coefficient in both directions.";
+
       "coef_x", Lang.float_t, Some (Lang.float 1.), Some "x scaling";
       "coef_y", Lang.float_t, Some (Lang.float 1.), Some "y scaling";
       "offset_x", Lang.int_t, Some (Lang.int 1), Some "x offset";
@@ -159,7 +168,7 @@ let () =
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Scale and translate video."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let c, cx, cy, ox, oy =
@@ -169,7 +178,7 @@ let () =
          Lang.to_int (f "offset_x"),
          Lang.to_int (f "offset_y")
        in
-         ((new effect (fun buf -> RGB.affine buf (c*.cx) (c*.cy) ox oy) src):>source))
+         new effect (fun buf -> RGB.affine buf (c*.cx) (c*.cy) ox oy) src)
 
 let () =
   let effect a da buf =
@@ -178,16 +187,20 @@ let () =
   in
   Lang.add_operator "video.rotate"
     [
-      "angle", Lang.float_t, Some (Lang.float 0.), Some "Initial angle in radians.";
-      "speed", Lang.float_t, Some (Lang.float 3.1416), Some "Rotation speed in radians per sec.";
+      "angle", Lang.float_t, Some (Lang.float 0.),
+      Some "Initial angle in radians.";
+
+      "speed", Lang.float_t, Some (Lang.float 3.1416),
+      Some "Rotation speed in radians per sec.";
+
       "", Lang.source_t, None, None
     ]
     ~category:Lang.VideoProcessing
     ~descr:"Rotate video."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let angle = ref (Lang.to_float (f "angle")) in
        let speed = Lang.to_float (f "speed") in
        let da = speed /. float (Fmt.video_frames_per_second ()) in
-         ((new effect (effect angle da) src):>source))
+         new effect (effect angle da) src)

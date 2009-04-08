@@ -118,7 +118,7 @@ let () =
       @ File_output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an MP3 file."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let autostart = e Lang.to_bool "start" in

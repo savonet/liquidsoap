@@ -37,7 +37,7 @@ object (self)
 
   val mutable state = `Idle
 
-  method get_frame ab =
+  method private get_frame ab =
     let p1 = AFrame.position ab in
     let p2 = source#get ab ; AFrame.position ab in
     (** In samples: [length] of the fade, [count] since beginning. *)
@@ -95,7 +95,7 @@ object (self)
     if final then Fmt.ticks_of_samples remaining else source#remaining
   method is_ready = (remaining > 0 || not final) && source#is_ready
 
-  method get_frame ab =
+  method private get_frame ab =
     if final && remaining <= 0 then
       (* This happens in final mode at the end of the remaining time. *)
       Frame.add_break ab (Frame.position ab)
@@ -200,29 +200,29 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:("Fade the beginning of tracks. Metadata 'liq_fade_in' can be used "^
             "to set the duration for a specific track (float in seconds).")
-    (fun p ->
+    (fun p _ ->
        let d,f,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         ((new fade_in ~meta d f s):>source)) ;
+         new fade_in ~meta d f s) ;
   Lang.add_operator "fade.initial" proto
     ~category:Lang.SoundProcessing
     ~descr:"Fade the beginning of a stream."
-    (fun p ->
+    (fun p _ ->
        let d,f,s = extract p in
-         ((new fade_in ~initial:true d f s):>source)) ;
+         new fade_in ~initial:true d f s) ;
   Lang.add_operator 
     "fade.out" (("override", Lang.string_t, Some (Lang.string "liq_fade_out"),
                override_doc) :: proto) 
     ~category:Lang.SoundProcessing
     ~descr:("Fade the end of tracks. Metadata 'liq_fade_out' can be used to "^
             "set the duration for a specific track (float in seconds).")
-    (fun p ->
+    (fun p _ ->
        let d,f,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         ((new fade_out ~meta d f s):>source)) ;
+         new fade_out ~meta d f s) ;
   Lang.add_operator "fade.final" proto
     ~category:Lang.SoundProcessing
     ~descr:"Fade a stream to silence."
-    (fun p ->
+    (fun p _ ->
        let d,f,s = extract p in
-         ((new fade_out ~final:true d f s):>source))
+         new fade_out ~final:true d f s)

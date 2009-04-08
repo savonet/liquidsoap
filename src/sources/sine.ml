@@ -84,7 +84,7 @@ let () =
     ~descr:"Generate a sine wave."
     [ "duration", Lang.float_t, Some (Lang.float 0.), None ;
       "", Lang.float_t, Some (Lang.float 440.), Some "Frequency of the sine." ]
-    (fun p ->
+    (fun p _ ->
        (new sine
           (Lang.to_float (List.assoc "" p))
           (Lang.to_float (List.assoc "duration" p)) :> source))

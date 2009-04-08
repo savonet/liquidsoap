@@ -28,7 +28,7 @@ object (self)
 
   val mutable state = `Idle
 
-  method get_frame buf =
+  method private get_frame buf =
     match state with
       | `Idle ->
           let start = Frame.position buf in
@@ -113,13 +113,13 @@ object (self)
 
   val mutable activation = []
 
-  method wake_up activator =
+  method private wake_up activator =
     assert (state = `Idle) ;
     activation <- (self:>source)::activator ;
     source#get_ready activation ;
     Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
 
-  method sleep =
+  method private sleep =
     source#leave (self:>source) ;
     Lang.iter_sources (fun s -> s#leave ~dynamic:true (self:>source)) f ;
     begin match state with
@@ -128,8 +128,8 @@ object (self)
     end ;
     state <- `Idle
 
-  method register a = a#get_ready activation
-  method unregister a = a#leave (self:>source)
+  method private register a = a#get_ready activation
+  method private unregister a = a#leave (self:>source)
 
 end
 
@@ -159,9 +159,9 @@ let register =
     ~descr:"Append an extra track to every track. \
             Set the metadata 'liq_append' to 'false' to \
             inhibit appending on one track."
-    (fun p ->
+    (fun p _ ->
        let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
        let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
        let source = Lang.to_source (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-         ((new append ~insert_missing ~merge source f):>source))
+         new append ~insert_missing ~merge source f)

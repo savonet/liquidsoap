@@ -57,7 +57,7 @@ object (self)
   val mutable device = None
   method sleep = sleep <- true
 
-  method get_device = 
+  method private get_device = 
     match device with
       | None -> 
           let server_name = 
@@ -87,7 +87,7 @@ object (self)
     Condition.wait c m;
     Mutex.unlock m
 
-  method get_block dev = 
+  method private get_block dev = 
         let length = samples_per_frame * channels * bytes_per_sample in
         let ans = ref (Bjack.read dev length) in
           while String.length !ans < length do
@@ -98,7 +98,7 @@ object (self)
          done;
          !ans
 
-  method writer dev m c =
+  method private writer dev m c =
       let fill block =
          buffer.(block mod nb_blocks) <- self#get_block dev 
       in
@@ -118,7 +118,7 @@ object (self)
             ( fill write ; write <- (write + 1) mod (2*nb_blocks) )
         done
 
-  method get_frame buf =
+  method private get_frame buf =
     assert (0 = AFrame.position buf) ;
     let buffer =
       (* Check that the writer still has an advance.
@@ -152,7 +152,7 @@ let () =
       Some "Jack server to connect to." ]
     ~category:Lang.Input
     ~descr:"Get stream from jack."
-    (fun p ->
+    (fun p _ ->
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in
          ((new jack_in ~nb_blocks ~server):>Source.source))

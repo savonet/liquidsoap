@@ -56,14 +56,14 @@ object (self)
 
   val mutable activation = []
 
-  method wake_up activator =
+  method private wake_up activator =
     activation <- (self:>source)::activator ;
     s#get_ready ~dynamic:true activation ;
     source <- s ;
     source#get_ready activation ;
     Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
 
-  method sleep =
+  method private sleep =
     s#leave ~dynamic:true (self:>source) ;
     Lang.iter_sources (fun s -> s#leave ~dynamic:true (self:>source)) f
 
@@ -81,7 +81,7 @@ object (self)
    * and reset the value when a transition starts.
    * All that would probably be simpler if we had persistent metadatas:
    * remember the latest metadata in the stream, stored in [Frame.t]s. *)
-  method update_cross_length ab pos =
+  method private update_cross_length ab pos =
     match cur_cross_length with
       | Some _ -> ()
       | None ->
@@ -235,7 +235,7 @@ let () =
     ~descr:("Generic cross operator, allowing the composition of "^
             "the N last seconds of a track with the beginning of "^
             "the next track.")
-    (fun p ->
+    (fun p _ ->
        let duration = Lang.to_float (List.assoc "duration" p) in
        let cross_length = Fmt.ticks_of_seconds duration in
        let meta = Lang.to_string (List.assoc "override" p) in
@@ -250,5 +250,5 @@ let () =
 
        let f = Lang.assoc "" 1 p in
        let source = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new cross source ~meta ~cross_length
-             ~inhibit ~conservative ~minimum_length f):>source))
+         new cross source ~meta ~cross_length
+               ~inhibit ~conservative ~minimum_length f)

@@ -35,10 +35,11 @@ object (self)
 
   val mutable n = 0
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      Soundtouch.BPM.put_samples_ni bpm (AFrame.get_float_pcm buf) offset ((AFrame.position buf) - offset);
+      Soundtouch.BPM.put_samples_ni
+        bpm (AFrame.get_float_pcm buf) offset ((AFrame.position buf) - offset);
       n <- n + 1;
       if n >= every then
         (
@@ -57,8 +58,8 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:"Detect the BPM."
     ~flags:[Lang.Experimental]
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let every = Lang.to_int (f "every") in
        let s = Lang.to_source (f "") in
-         ((new bpm s every):>source))
+         new bpm s every)

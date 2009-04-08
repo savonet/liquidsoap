@@ -153,5 +153,6 @@ let () =
     ~descr:("Receive URIs from users, and play them. "^
             "Insertion and deletion possible at any position.")
     Request_source.queued_proto
-    (fun p -> let l,d,t = Request_source.extract_queued_params p in
-                ((new equeue l d t) :> source))
+    (fun p _ ->
+       let l,d,t = Request_source.extract_queued_params p in
+         ((new equeue l d t) :> source))

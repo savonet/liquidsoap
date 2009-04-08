@@ -131,11 +131,13 @@ let () =
         "", Lang.string_t, None,
         Some "URI of a lastfm  stream (e.g. lastfm://user/toots5446/playlist)."
       ]
-      (fun p ->
+      (fun p _ ->
          let uri = Lang.to_string (List.assoc "" p) in
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let submit = Lang.to_bool (List.assoc "submit" p) in
-         let track_on_meta = Lang.to_bool (List.assoc "new_track_on_metadata" p) in
+         let track_on_meta =
+           Lang.to_bool (List.assoc "new_track_on_metadata" p)
+         in
          let debug = Lang.to_bool (List.assoc "debug" p) in
          let bind_address = Lang.to_string (List.assoc "bind_address" p) in
          let bind_address =
@@ -148,6 +150,7 @@ let () =
 	 let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
-           ((new lastfm ~autostart ~submit ~poll_delay ~bufferize ~track_on_meta 
+           ((new lastfm ~autostart ~submit ~poll_delay ~bufferize
+                        ~track_on_meta 
                         ~bind_address ~timeout ~max ~debug 
                         ~user_agent uri):>Source.source))

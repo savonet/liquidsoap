@@ -37,10 +37,10 @@ object (self)
   (* failed means that we're not currently streaming *)
   val mutable failed = true
 
-  method delay_ok = (Unix.time ()) -. last >= delay
+  method private delay_ok = (Unix.time ()) -. last >= delay
   method is_ready = (not failed) || (self#delay_ok && source#is_ready)
 
-  method get_frame buf =
+  method private get_frame buf =
     match failed,self#delay_ok with
       | false, _ ->
           source#get buf ;
@@ -63,8 +63,8 @@ let () =
     ~category:Lang.TrackProcessing
     ~descr:("Prevents the child from being ready again too fast after "^
             "a end of track")
-    (fun p ->
+    (fun p _ ->
        let f n = Lang.assoc "" n p in
        let d = Lang.to_float (f 1) in
        let s = Lang.to_source (f 2) in
-         ((new delay s d):>source))
+         new delay s d)

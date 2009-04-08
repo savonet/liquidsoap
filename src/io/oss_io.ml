@@ -105,12 +105,13 @@ end
 let () =
   Lang.add_operator "output.oss"
     [
-      "device", Lang.string_t, Some (Lang.string "/dev/dsp"), Some "OSS device to use.";
+      "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
+      Some "OSS device to use.";
       "", Lang.source_t, None, None
     ]
     ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
@@ -118,11 +119,12 @@ let () =
     );
   Lang.add_operator "input.oss"
     [
-      "device", Lang.string_t, Some (Lang.string "/dev/dsp"), Some "OSS device to use.";
+      "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
+      Some "OSS device to use.";
     ]
     ~category:Lang.Input
     ~descr:"Stream from an OSS input device."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
          ((new input device):>Source.source)

@@ -55,7 +55,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -120,14 +120,16 @@ object (self)
                 1.
               else
                   if env < knee_max then
-                    (
-                      (* Knee: compress smoothly. *)
-                      let x = (knee +. Sutils.dB_of_lin env -. threshold) /. (2. *. knee) in
-                        Sutils.lin_of_dB (0. -. knee *. ratio *. x *. x)
-                    )
+                    (* Knee: compress smoothly. *)
+                    let x =
+                      (knee +. Sutils.dB_of_lin env -. threshold)
+                      /. (2. *. knee)
+                    in
+                      Sutils.lin_of_dB (0. -. knee *. ratio *. x *. x)
                   else
                     (* Maximal (n:1) compression. *)
-                    Sutils.lin_of_dB ((threshold -. Sutils.dB_of_lin env) *. ratio)
+                    Sutils.lin_of_dB
+                      ((threshold -. Sutils.dB_of_lin env) *. ratio)
             in
               gain <- gain *. ef_a +. gain_t *. ef_ai;
 
@@ -140,7 +142,9 @@ object (self)
                 (* Debug messages. *)
                 count <- count + 1;
                 if debug && count mod 10000 = 0 then
-                  Printf.printf "RMS:%7.02f     Env:%7.02f     Gain: %4.02f\r%!" (Sutils.dB_of_lin amp) (Sutils.dB_of_lin env) gain
+                  Printf.printf
+                    "RMS:%7.02f     Env:%7.02f     Gain: %4.02f\r%!"
+                    (Sutils.dB_of_lin amp) (Sutils.dB_of_lin env) gain
 
         done;
         (* Reset values if it is the end of the track. *)
@@ -159,17 +163,30 @@ end
 
 let proto =
   [
-    "attack", Lang.float_getter_t 1, Some (Lang.float 100.), Some "Attack time (ms).";
-    "release", Lang.float_getter_t 2, Some (Lang.float 400.), Some "Release time (ms).";
-    "threshold", Lang.float_getter_t 3, Some (Lang.float (-10.)), Some "Threshold level (dB).";
-    "knee", Lang.float_getter_t 4, Some (Lang.float 1.), Some "Knee radius (dB).";
-    "rms_window", Lang.float_t, Some (Lang.float 0.1), Some "Window for computing RMS (in sec).";
-    "gain", Lang.float_getter_t 5, Some (Lang.float 0.), Some "Additional gain (dB).";
+    "attack", Lang.float_getter_t 1, Some (Lang.float 100.),
+    Some "Attack time (ms).";
+
+    "release", Lang.float_getter_t 2, Some (Lang.float 400.),
+    Some "Release time (ms).";
+
+    "threshold", Lang.float_getter_t 3, Some (Lang.float (-10.)),
+    Some "Threshold level (dB).";
+
+    "knee", Lang.float_getter_t 4, Some (Lang.float 1.),
+    Some "Knee radius (dB).";
+
+    "rms_window", Lang.float_t, Some (Lang.float 0.1),
+    Some "Window for computing RMS (in sec).";
+
+    "gain", Lang.float_getter_t 5, Some (Lang.float 0.),
+    Some "Additional gain (dB).";
+
     "debug", Lang.bool_t, Some (Lang.bool false), None;
+
     "", Lang.source_t, None, None
     ]
 
-let compress p =
+let compress p _ =
   let f v = List.assoc v p in
   let attack, release, threshold, ratio, knee, rmsw, gain, debug, src =
     Lang.to_float_getter (f "attack"),
@@ -182,25 +199,29 @@ let compress p =
     Lang.to_bool (f "debug"),
     Lang.to_source (f "")
   in
-    ((new compress
-        src
-        (fun () -> attack () /. 1000.)
-        (fun () -> release () /. 1000.)
-        threshold
-        ratio
-        knee
-        rmsw
-        (fun () -> Sutils.lin_of_dB (gain ()))
-        debug):>source)
+    new compress
+          src
+          (fun () -> attack () /. 1000.)
+          (fun () -> release () /. 1000.)
+          threshold
+          ratio
+          knee
+          rmsw
+          (fun () -> Sutils.lin_of_dB (gain ()))
+          debug
 
 let () =
   Lang.add_operator "compress"
-    (("ratio", Lang.float_t, Some (Lang.float 2.), Some "Gain reduction ratio (n:1).")::proto)
+    (("ratio", Lang.float_t, Some (Lang.float 2.),
+      Some "Gain reduction ratio (n:1).")
+     ::proto)
     ~category:Lang.SoundProcessing
     ~descr:"Compress the signal."
     compress;
   Lang.add_operator "limit"
-    (("ratio", Lang.float_t, Some (Lang.float 20.), Some "Gain reduction ratio (n:1).")::proto)
+    (("ratio", Lang.float_t, Some (Lang.float 20.),
+      Some "Gain reduction ratio (n:1).")
+     ::proto)
     ~category:Lang.SoundProcessing
     ~descr:"Limit the signal."
     compress

@@ -101,7 +101,7 @@ object (self)
 
   val mutable activation = []
 
-  method wake_up activator =
+  method private wake_up activator =
     activation <- (self:>source)::activator ;
     List.iter
       (fun { transition = transition ; source = s } ->
@@ -111,7 +111,7 @@ object (self)
            transition)
       cases
 
-  method sleep =
+  method private sleep =
     List.iter
       (fun { transition = transition ; source = s } ->
          s#leave ~dynamic:true (self:>source) ;
@@ -124,7 +124,7 @@ object (self)
 
   method is_ready = need_eot || selected <> None || self#cached_select <> None
 
-  method get_frame ab =
+  method private get_frame ab =
     (* Choose the next child to be played.
      * [forget] tells that the current child has finished its track,
      * in which case a transition does not make sense and would actually start
@@ -263,7 +263,7 @@ let common = [
 ]
 
 let default_transition =
-  Lang.val_fun [ "","x",None ; "","y",None ] (fun e -> List.assoc "y" e)
+  Lang.val_fun [ "","x",None ; "","y",None ] (fun e _ -> List.assoc "y" e)
 
 let extract_common p l =
   let ts =
@@ -346,7 +346,7 @@ let () =
       ~descr:("At the beginning of a track, select the first source "^
               "whose predicate is true.")
       (common@proto)
-      (fun p ->
+      (fun p _ ->
          let children =
            List.map
              (fun p ->
@@ -377,7 +377,7 @@ let () =
                           (List.assoc "single" p,
                            "there should be exactly one flag per children"))
          in
-           ((new lang_switch ~replay_meta ts children):>source))
+           new lang_switch ~replay_meta ts children)
 
 (** Fallback selector: switch to the first ready source. *)
 class fallback ?replay_meta mode children =
@@ -407,7 +407,7 @@ let () =
     Lang.add_operator "fallback" ~category:Lang.TrackProcessing
       ~descr:"At the beginning of each track, select the first ready child."
       (common@proto)
-      (fun p ->
+      (fun p _ ->
          let children = Lang.to_source_list (List.assoc "" p) in
          let replay_meta,ts,tr = extract_common p (List.length children) in
          let children =
@@ -415,7 +415,7 @@ let () =
              (fun t s -> { transition = t ; cur_meta = None ; source = s })
              tr children
          in
-           ((new fallback ~replay_meta ts children):>source))
+           new fallback ~replay_meta ts children)
 
 (** Random switch *)
 exception Found of child
@@ -462,7 +462,7 @@ let () =
          Some "Do not use random but cycle over the uniform distribution." ;
          "", Lang.list_t Lang.source_t, None, None ])
       ~descr:"At the beginning of every track, select a random ready child."
-      (fun p ->
+      (fun p _ ->
          let children = Lang.to_source_list (List.assoc "" p) in
          let replay_meta,ts,tr = extract_common p (List.length children) in
          let weights =
@@ -486,4 +486,4 @@ let () =
                 (fun tr s -> { transition = tr ; source = s ; cur_meta = None })
                 tr children)
          in
-           ((new random ~replay_meta strict ts children):>source)) ;
+           new random ~replay_meta strict ts children)

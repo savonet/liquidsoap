@@ -31,7 +31,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let buffer = AFrame.get_float_pcm buf in
@@ -50,9 +50,8 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"swap two channels"
-    (fun p ->
+    (fun p _ ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
        let chan1 = Lang.to_int (Lang.assoc "chan1" 1 p) in
        let chan2 = Lang.to_int (Lang.assoc "chan2" 1 p) in
-         ((new swap s chan1 chan2):>source))
-
+         new swap s chan1 chan2)

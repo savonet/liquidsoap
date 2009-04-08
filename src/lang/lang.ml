@@ -47,7 +47,8 @@ let string_of_flag = function
   | Experimental -> "experimental"
 
 let builtin_type p t =
-  T.make (T.Arrow (List.map (fun (lbl,kind,opt,_) -> (opt<>None,lbl,kind)) p, t))
+  T.make
+    (T.Arrow (List.map (fun (lbl,kind,opt,_) -> (opt<>None,lbl,kind)) p, t))
     
 let to_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
@@ -76,7 +77,9 @@ let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
 (** Specialized version for operators, that is builtins returning sources. *)
 
 type category =
-  | Input | Output | TrackProcessing | SoundProcessing | VideoProcessing | Visualization
+  | Input | Output
+  | TrackProcessing | SoundProcessing | VideoProcessing
+  | Visualization
 
 let string_of_category x = "Source / " ^ match x with
   | Input -> "Input"
@@ -93,8 +96,8 @@ let add_operator ~category ~descr ?(flags=[]) name proto f =
        Some { t = t ; value = String "" },
        Some "Force the value of the source ID.")::proto
   in
-  let f x =
-    let src : Source.source = f x in
+  let f x t =
+    let src : Source.source = f x t in
     let id =
       match (List.assoc "id" x).value with
         | String s -> s
@@ -277,7 +280,7 @@ let val_cst_fun p c =
       | Bool i -> f (Term.Bool i)
       | Float i -> f (Term.Float i)
       | String i -> f (Term.String i)
-      | _ -> mk (FFI (p,[],[],fun _ -> c))
+      | _ -> mk (FFI (p,[],[],fun _ _ -> c))
 let metadata m =
   list (Hashtbl.fold
           (fun k v l -> (product (string k) (string v))::l)

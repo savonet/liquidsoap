@@ -48,7 +48,7 @@ object (self)
 
   val tmp = Frame.make ()
 
-  method get_frame buf =
+  method private get_frame buf =
     (* Sum contributions *)
     let offset = AFrame.position buf in
       y#get buf;
@@ -63,7 +63,7 @@ let () =
     ~descr:("Compute the difference y-x of two sources y and x.")
     [ "", Lang.source_t, None, Some "y";
       "", Lang.source_t, None, Some "x"; ]
-    (fun p ->
+    (fun p _ ->
        let y = Lang.to_source (Lang.assoc "" 1 p) in
        let x = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new substract y x):>source))
+         new substract y x)

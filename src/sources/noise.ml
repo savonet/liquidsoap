@@ -40,7 +40,7 @@ object
     must_fail <- true;
     remaining <- 0
 
-  method get_frame ab =
+  method private get_frame ab =
     if must_fail then begin
       AFrame.add_break ab (AFrame.position ab);
       remaining <- nb_samples ;
@@ -68,6 +68,6 @@ let () =
     [
       "duration", Lang.float_t, Some (Lang.float 0.), None
     ]
-    (fun p ->
-       (new noise
-          (Lang.to_float (List.assoc "duration" p)) :> source))
+    (fun p _ ->
+       new noise
+         (Lang.to_float (List.assoc "duration" p)))

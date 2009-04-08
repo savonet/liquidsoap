@@ -112,9 +112,15 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao."
-    (fun p ->
+    (fun p _ ->
        let start = Lang.to_bool (List.assoc "start" p) in
        let driver = Lang.to_string (List.assoc "driver" p) in
-       let options = List.map (fun x -> let a,b = Lang.to_product x in Lang.to_string a, Lang.to_string b) ( Lang.to_list (List.assoc "options" p)) in
+       let options =
+         List.map
+           (fun x ->
+              let a,b = Lang.to_product x in
+                Lang.to_string a, Lang.to_string b)
+           (Lang.to_list (List.assoc "options" p))
+       in
        let source = List.assoc "" p in
          ((new output ~driver ~options source start):>Source.source))

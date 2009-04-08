@@ -45,7 +45,7 @@ and in_value =
   | Fun     of (string * string * value option) list *
                env * env * Lang_values.term
   | FFI     of (string * string * value option) list *
-               env * env * (env -> value)
+               env * env * (env -> kind -> value)
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -75,7 +75,7 @@ val add_builtin :
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  proto -> kind -> (env -> value) ->
+  proto -> kind -> (env -> kind -> value) ->
   unit
 
 (** Category of an operator. *)
@@ -96,7 +96,7 @@ val add_operator :
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  proto -> (env -> Source.source) ->
+  proto -> (env -> kind -> Source.source) ->
   unit
 
 (** {2 Manipulation of values} *)
@@ -161,7 +161,8 @@ val list : value list -> value
 val source : Source.source -> value
 val request : Request.raw Request.t option -> value
 val product : value -> value -> value
-val val_fun : (string * string * value option) list -> (env -> value) -> value
+val val_fun :
+      (string * string * value option) list -> (env -> kind -> value) -> value
 
 (** Specialized builder for constant functions.
   * It is slightly less opaque and allows the printing of the closure

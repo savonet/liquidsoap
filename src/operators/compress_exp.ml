@@ -33,7 +33,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -55,11 +55,10 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Exponential compressor."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let mu, src =
          Lang.to_float (f "mu"),
          Lang.to_source (f "")
        in
-         ((new compress src mu):>source)
-    )
+         new compress src mu)

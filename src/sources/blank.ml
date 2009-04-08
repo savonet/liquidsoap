@@ -60,7 +60,7 @@ let () =
     ~descr:"Produce silence."
     [ "duration", Lang.float_t, Some (Lang.float 0.),
       Some "Duration of blank tracks in seconds, default means forever." ]
-    (fun p ->
+    (fun p _ ->
        let d = Lang.to_float (List.assoc "duration" p) in
          ((new blank d):>source))
 

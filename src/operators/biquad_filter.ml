@@ -193,7 +193,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -227,15 +227,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Low shelf biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "slope"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src Low_shelf freq param 0. debug):>source)
-    )
+         new biquad src Low_shelf freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.highshelf"
@@ -248,15 +247,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"High shelf biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "slope"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src High_shelf freq param 0. debug):>source)
-    )
+         new biquad src High_shelf freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.low"
@@ -268,15 +266,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Low pass biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src Low_pass freq param 0. debug):>source)
-    )
+         new biquad src Low_pass freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.high"
@@ -288,15 +285,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"High pass biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src High_pass freq param 0. debug):>source)
-    )
+         new biquad src High_pass freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.bandpass"
@@ -308,15 +304,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Band pass biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src Band_pass freq param 0. debug):>source)
-    )
+         new biquad src Band_pass freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.allpass"
@@ -329,15 +324,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"All pass biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "bandwidth"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src All_pass freq param 0. debug):>source)
-    )
+         new biquad src All_pass freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.notch"
@@ -349,15 +343,14 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Band pass biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, debug, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src Notch freq param 0. debug):>source)
-    )
+         new biquad src Notch freq param 0. debug)
 
 let () =
   Lang.add_operator "filter.iir.eq.peak"
@@ -370,7 +363,7 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Peak EQ biquad filter."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let freq, param, gain, debug, src =
          Lang.to_float (f "frequency"),
@@ -378,6 +371,4 @@ let () =
          Lang.to_float (f "gain"),
          Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         ((new biquad src Peak freq param gain debug):>source)
-    )
-
+         new biquad src Peak freq param gain debug)

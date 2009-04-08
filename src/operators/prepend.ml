@@ -28,7 +28,7 @@ object (self)
 
   val mutable state = `Idle
 
-  method get_frame buf =
+  method private get_frame buf =
     match state with
       | `Idle ->
           (* We're at the beginning of a track.
@@ -111,13 +111,13 @@ object (self)
 
   val mutable activation = []
 
-  method wake_up activator =
+  method private wake_up activator =
     assert (state = `Idle) ;
     activation <- (self:>source)::activator ;
     source#get_ready activation ;
     Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
 
-  method sleep =
+  method private sleep =
     source#leave (self:>source) ;
     Lang.iter_sources (fun s -> s#leave ~dynamic:true (self:>source)) f ;
     begin match state with
@@ -126,8 +126,8 @@ object (self)
     end ;
     state <- `Idle
 
-  method register a = a#get_ready activation
-  method unregister a = a#leave (self:>source)
+  method private register a = a#get_ready activation
+  method private unregister a = a#leave (self:>source)
 
 end
 
@@ -152,8 +152,8 @@ let register =
     ~descr:("Prepend an extra track before every track. "^
             "Set the metadata 'liq_prepend' to 'false' to "^
             "inhibit prepending on one track.")
-    (fun p ->
+    (fun p _ ->
        let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
        let source = Lang.to_source (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-         ((new prepend ~merge source f):>source))
+         new prepend ~merge source f)

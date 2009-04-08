@@ -177,7 +177,7 @@ let () =
       Some (Lang.bool true),
       Some "Should the queue be controllable via telnet?")::
      Request_source.queued_proto)
-    (fun p ->
+    (fun p _ ->
        let l,d,t = Request_source.extract_queued_params p in
        let interactive = Lang.to_bool (Lang.assoc "interactive" 1 p) in
        let requests = Queue.create () in

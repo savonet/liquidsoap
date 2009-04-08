@@ -167,7 +167,7 @@ let () =
       "", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg speex file.")
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in

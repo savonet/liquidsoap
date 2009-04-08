@@ -38,7 +38,7 @@ object (self)
 
   val mutable past_pos = 0
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let b = AFrame.get_float_pcm buf in
@@ -64,7 +64,7 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Add echo."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let duration, feedback, src =
          Lang.to_float (f "delay"),
@@ -78,4 +78,4 @@ let () =
                                       "feedback should be negative"));
          fun () -> Sutils.lin_of_dB (feedback ())
        in
-         ((new echo src duration feedback):>source))
+         new echo src duration feedback)

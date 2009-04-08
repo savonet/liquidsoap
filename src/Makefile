@@ -161,13 +161,14 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	main.ml
 
 OCAML_CFLAGS= -thread \
-	-I tools -I lang -I playlists -I stream -I outputs -I formats -I video_converters \
-	-I sources -I operators -I io -I visualization -I analyze -I ogg_formats \
-	-I audio_converters
-OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp) $(if $(W_OPAL),-cclib -lopal)
-DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists -I video_converters \
-		  -I outputs -I io -I stream -I visualization -I analyze -I ogg_formats \
-		  -I audio_converters
+	-I tools -I lang -I playlists -I stream -I outputs -I formats \
+	-I video_converters -I sources -I operators -I io -I visualization \
+	-I analyze -I ogg_formats -I audio_converters
+OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp) \
+			  $(if $(W_OPAL),-cclib -lopal)
+DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists \
+		  -I video_converters -I outputs -I io -I stream -I visualization \
+		  -I analyze -I ogg_formats -I audio_converters
 
 liquidsoap_doc_sources= \
 	source.ml root.ml \

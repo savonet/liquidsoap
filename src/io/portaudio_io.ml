@@ -127,7 +127,7 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let buflen = e Lang.to_int "buflen" in
        let source = List.assoc "" p in
@@ -135,11 +135,12 @@ let () =
     );
   Lang.add_operator "input.portaudio"
     [
-      "buflen", Lang.int_t, Some (Lang.int 256), Some "Length of a buffer in samples.";
+      "buflen", Lang.int_t, Some (Lang.int 256),
+      Some "Length of a buffer in samples.";
     ]
     ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let buflen = e Lang.to_int "buflen" in
        ((new input buflen):>Source.source)

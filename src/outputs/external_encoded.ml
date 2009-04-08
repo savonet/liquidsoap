@@ -304,8 +304,9 @@ let () =
       @ proto  
       @ File_output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
-    ~descr:"Output the source's stream as a file, using an external encoding process."
-    (fun p ->
+    ~descr:"Output the source's stream as a file, \
+            using an external encoding process."
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
@@ -319,9 +320,13 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
-       let restart_on_new_track = Lang.to_bool (List.assoc "restart_on_new_track" p) in
+       let restart_on_new_track =
+         Lang.to_bool (List.assoc "restart_on_new_track" p)
+       in
        let restart_on_crash = Lang.to_bool (List.assoc "restart_on_crash" p) in
-       let restart_encoder_delay = Lang.to_int (List.assoc "restart_encoder_delay" p) in
+       let restart_encoder_delay =
+         Lang.to_int (List.assoc "restart_encoder_delay" p)
+       in
        let header = Lang.to_bool (List.assoc "header" p) in
          ((new to_file ~filename ~restart_encoder_delay
              ~append ~perm ~dir_perm ~reload_delay 
@@ -366,14 +371,19 @@ let () =
       @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream to an external process."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let autostart = e Lang.to_bool "start" in
        let source = Lang.assoc "" 1 p in
        let process = List.assoc "process" p in
-       let restart_on_new_track = Lang.to_bool (List.assoc "restart_on_new_track" p) in
+       let restart_on_new_track =
+         Lang.to_bool (List.assoc "restart_on_new_track" p)
+       in
        let restart_on_crash = Lang.to_bool (List.assoc "restart_on_crash" p) in
-       let restart_encoder_delay = Lang.to_int (List.assoc "restart_encoder_delay" p) in
+       let restart_encoder_delay =
+         Lang.to_int (List.assoc "restart_encoder_delay" p)
+       in
        let header = Lang.to_bool (List.assoc "header" p) in
          ((new to_pipe ~autostart ~process ~header ~restart_on_new_track
-                       ~restart_on_crash ~restart_encoder_delay source):>Source.source))
+                       ~restart_on_crash ~restart_encoder_delay source)
+          :>Source.source))

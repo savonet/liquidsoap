@@ -73,7 +73,7 @@ let () =
       @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream to a WAV file."
-    (fun p ->
+    (fun p _ ->
        let autostart = Lang.to_bool (List.assoc "start" p) in
        let name = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in

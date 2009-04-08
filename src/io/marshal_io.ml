@@ -160,7 +160,7 @@ let () =
     ~category:Lang.Output
     ~flags:[Lang.Experimental]
     ~descr:"Output the source's stream to a pipe using marshaling."
-    (fun p ->
+    (fun p _ ->
        let pipe = Lang.to_string (Lang.assoc "" 1 p) in
        let reopen = Lang.to_bool (List.assoc "reopen" p) in
        let source = Lang.assoc "" 2 p in
@@ -176,7 +176,7 @@ let () =
     ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Get a stream from a pipe using marshaling."
-    (fun p ->
+    (fun p _ ->
        let pipe = Lang.to_string (List.assoc "" p) in
        let reopen = Lang.to_bool (List.assoc "reopen" p) in
        ((new input ~pipe ~reopen () ):>Source.source)

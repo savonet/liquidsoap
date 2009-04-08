@@ -65,7 +65,7 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.Visualization
     ~descr:"VU meter (display the volume)."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let scroll, src =
          Lang.to_bool (f "scroll"),

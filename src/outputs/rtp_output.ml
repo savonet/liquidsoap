@@ -63,7 +63,7 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Broadcast raw stream (includes metadata) using RTP."
-    (fun p ->
+    (fun p _ ->
        let start = Lang.to_bool (List.assoc "start" p) in
        let port = Lang.to_int (List.assoc "port" p) in
        let ttl = Lang.to_int (List.assoc "ttl" p) in

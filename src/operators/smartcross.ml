@@ -93,7 +93,7 @@ object (self)
   (* Activation record for our chilren sources. *)
   val mutable activation = []
 
-  method wake_up activator =
+  method private wake_up activator =
     activation <- (self:>source)::activator ;
     s#get_ready ~dynamic:true activation ;
     source <- s ;
@@ -102,7 +102,7 @@ object (self)
       (fun s -> s#get_ready ~dynamic:true activation)
       transition
 
-  method sleep =
+  method private sleep =
     s#leave ~dynamic:true (self:>source) ;
     Lang.iter_sources
       (fun s -> s#leave ~dynamic:true (self:>source))
@@ -331,7 +331,7 @@ let () =
             the next track, using a transition function depending on \
             the relative power of the signal before and after \
             the end of track."
-    (fun p ->
+    (fun p _ ->
        let duration = Lang.to_float (List.assoc "duration" p) in
        let cross_length = Fmt.ticks_of_seconds duration in
 
@@ -350,5 +350,5 @@ let () =
        let conservative = Lang.to_bool (List.assoc "conservative" p) in
 
        let source = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new cross source transition ~conservative
-             ~cross_length ~rms_width ~inhibit ~minimum_length):>source))
+         new cross source transition ~conservative
+               ~cross_length ~rms_width ~inhibit ~minimum_length)

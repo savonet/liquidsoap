@@ -34,7 +34,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf = source#get buf
+  method private get_frame buf = source#get buf
 end
 
 let () =
@@ -43,8 +43,7 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:"Identity: does not do anything."
     ~flags:[Lang.Hidden]
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new id src):>source)
-    )
+         new id src)

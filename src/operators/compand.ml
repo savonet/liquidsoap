@@ -33,7 +33,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -42,7 +42,8 @@ object (self)
             for i = offset to AFrame.position buf - 1 do
               (* Cf. http://en.wikipedia.org/wiki/Mu-law *)
               let sign = if b_c.(i) < 0. then -1. else 1. in
-                b_c.(i) <- sign *. log (1. +. mu  *. abs_float b_c.(i)) /. log (1. +. mu)
+                b_c.(i) <-
+                sign *. log (1. +. mu  *. abs_float b_c.(i)) /. log (1. +. mu)
             done
         done
 end
@@ -55,11 +56,10 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Compand the signal"
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let mu, src =
          Lang.to_float (f "mu"),
          Lang.to_source (f "")
        in
-         ((new compand src mu):>source)
-    )
+         new compand src mu)

@@ -33,7 +33,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let buffer = AFrame.get_float_pcm buf in
@@ -58,8 +58,8 @@ let () =
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Pan a stereo sound."
-    (fun p ->
+    (fun p _ ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
        let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
        let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
-         ((new pan s phi phi_0):>source))
+         new pan s phi phi_0)

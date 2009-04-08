@@ -35,7 +35,7 @@ object (self)
 
   method output = self#get_frame memo
 
-  method get_frame buf =
+  method private get_frame buf =
     if debug then self#log#f 5 "Reader: get frame";
     if Frame.is_partial buf then
       Frame.fill_from_marshal pipe buf
@@ -55,7 +55,7 @@ object (self)
     let fd_in, fd_out = Unix.pipe () in
       Unix.in_channel_of_descr fd_in, Unix.out_channel_of_descr fd_out
 
-  method wake_up activation =
+  method private wake_up activation =
     if debug then self#log#f 5 "Forking";
     match Unix.fork () with
       | 0 ->
@@ -102,7 +102,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     source#get buf;
     if f <> None then
       (
@@ -125,12 +125,11 @@ let () =
     ~descr:"Compute a source in another process (useful for multiple cores, etc). The function should not access any other source!"
     ~category:Lang.TrackProcessing (* TODO: better category *)
     ~flags:[Lang.Experimental; Lang.Hidden]
-    (fun p ->
+    (fun p _ ->
        let debug = Lang.to_bool (List.assoc "debug" p) in
        let f = Lang.assoc "" 1 p in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         ((new fork ~debug ~f src):>source)
-    )
+         new fork ~debug ~f src)
 
 let () =
   Lang.add_operator "fork.source"
@@ -138,11 +137,12 @@ let () =
       "debug", Lang.bool_t, Some (Lang.bool false), None;
       "", Lang.source_t, None, Some "Source to be forked."
     ]
-    ~descr:"Compute a source in another process (useful for multiple cores, etc). The sources used for computing the source shouldn't be used outside!"
+    ~descr:"Compute a source in another process \
+            (useful for multiple cores, etc). The sources used for \
+            computing the source shouldn't be used outside!"
     ~category:Lang.TrackProcessing (* TODO: better category *)
     ~flags:[Lang.Experimental; Lang.Hidden]
-    (fun p ->
+    (fun p _ ->
        let debug = Lang.to_bool (List.assoc "debug" p) in
        let src = Lang.to_source (List.assoc "" p) in
-         ((new fork ~debug src):>source)
-    )
+         new fork ~debug src)

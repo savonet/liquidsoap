@@ -68,11 +68,12 @@ end
 let () =
   Lang.add_operator "input.v4l"
     [
-      "device", Lang.string_t, Some (Lang.string "/dev/video0"), Some "V4L device to use.";
+      "device", Lang.string_t, Some (Lang.string "/dev/video0"),
+      Some "V4L device to use.";
     ]
     ~category:Lang.Input
     ~descr:"Stream from a V4L (= video 4 linux) input device, such as a webcam."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
          ((new input device):>Source.source)

@@ -533,7 +533,7 @@ let () =
 
         "", Lang.string_t, None,
         Some "URL of an http stream (default port is 80)." ]
-      (fun p ->
+      (fun p _ ->
          let playlist_mode =
            let s = List.assoc "playlist_mode" p in
              match Lang.to_string s with

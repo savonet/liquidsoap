@@ -39,7 +39,7 @@ object (self)
 
   val tmp = Frame.make ()
 
-  method get_frame buf =
+  method private get_frame buf =
     let p = AFrame.position buf in
     let r = AFrame.size buf - p in
       AFrame.blankify buf p r ;
@@ -69,7 +69,7 @@ object (self)
       if sel.(i) then source.(i)#abort_track
     done
 
-  method status i =
+  method private status i =
     Printf.sprintf
       "ready=%b selected=%b single=%b volume=%d%% remaining=%s"
       source.(i)#is_ready
@@ -81,16 +81,16 @@ object (self)
            Printf.sprintf "%.2f" (Fmt.seconds_of_ticks r))
 
   val mutable ns = []
-  method wake_up activation =
+  method private wake_up activation =
     super#wake_up activation ;
     (* Server commands *)
     if ns = [] then ns <- Server.register [self#id] "mixer" ;
     Server.add ~ns "skip"
+      ~descr:"Skip current track on all enabled sources."
       (fun a ->
          source.(int_of_string a)#abort_track ;
-         "OK") 
-	       ~descr:"Skip current track on all enabled sources.";
-    Server.add ~ns "volume" ~descr:"Set volume for a given source." 
+         "OK") ;
+    Server.add ~ns "volume" ~descr:"Set volume for a given source."
                ~usage:"volume <source nb> <vol%>"
       (fun a ->
          if Str.string_match (Str.regexp "\\([0-9]+\\) \\([0-9]+\\)") a 0 then
@@ -111,8 +111,9 @@ object (self)
              self#status i
          else
            "Usage: select <source nb> <true|false>") ;
-    Server.add ~ns "single" ~descr:"Enable/disable automatic stop at the end of track."
-               ~usage:"single <source nb> <true|false>"
+    Server.add ~ns "single"
+      ~descr:"Enable/disable automatic stop at the end of track."
+      ~usage:"single <source nb> <true|false>"
       (fun a ->
          if Str.string_match
               (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0 then
@@ -134,6 +135,6 @@ let () =
     [ "", Lang.list_t Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Mixing table controllable via the telnet interface."
-    (fun p ->
+    (fun p _ ->
        let sources = Lang.to_source_list (List.assoc "" p) in
-         ((new mixing (Array.of_list sources)):>source))
+         new mixing (Array.of_list sources))

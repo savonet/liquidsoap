@@ -265,7 +265,7 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let bufferize = e Lang.to_bool "bufferize" in
        let device = e Lang.to_string "device" in
@@ -285,7 +285,7 @@ let () =
     ]
     ~category:Lang.Input
     ~descr:"Stream from an ALSA input device."
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let bufferize = e Lang.to_bool "bufferize" in
        let device = e Lang.to_string  "device" in

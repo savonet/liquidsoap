@@ -31,28 +31,34 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
       let buffer = AFrame.get_float_pcm buf in
         for i = offset to AFrame.position buf -1 do
-          let mean = List.fold_left (fun m b -> m +. buffer.(b).(i)) 0. channels in
+          let mean =
+            List.fold_left (fun m b -> m +. buffer.(b).(i)) 0. channels
+          in
           let mean = mean /. float (List.length channels) in
-            List.iter (fun c -> 
-                         buffer.(c).(i) <- mean
-            ) channels
+            List.iter (fun c -> buffer.(c).(i) <- mean) channels
         done
 end
 
 let () =
   Lang.add_operator "mean"
     [
-      "channels", Lang.list_t Lang.int_t, Some (Lang.list [Lang.int 0; Lang.int 1]), Some "List of channels to compute the means." ;
+      "channels", Lang.list_t Lang.int_t,
+      Some (Lang.list [Lang.int 0; Lang.int 1]),
+      Some "List of channels to compute the means." ;
+
       "", Lang.source_t, None, None ;
     ]
     ~category:Lang.SoundProcessing
-    ~descr:"Compute the mean of a list of audio channels and use it for all of them."
-    (fun p ->
+    ~descr:"Compute the mean of a list of audio channels \
+            and use it for all of them."
+    (fun p _ ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
-       let channels = List.map Lang.to_int (Lang.to_list (List.assoc "channels" p)) in
-         ((new mean s channels):>source))
+       let channels =
+         List.map Lang.to_int (Lang.to_list (List.assoc "channels" p))
+       in
+         new mean s channels)

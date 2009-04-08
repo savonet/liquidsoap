@@ -54,7 +54,7 @@ object (self)
 
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
       let b = AFrame.get_float_pcm buf in
@@ -147,7 +147,7 @@ let () =
             If possible, consider using some track-based normalization \
             techniques such as those based on replay gain. See the \
             documentation for more details."
-    (fun p ->
+    (fun p _ ->
        let f v = List.assoc v p in
        let target, window, kup, kdown, threshold, gmin, gmax, debug, src =
          Lang.to_float_getter (f "target"),
@@ -160,14 +160,13 @@ let () =
          Lang.to_bool (f "debug"),
          Lang.to_source (f "")
        in
-         ((new normalize
-             src
-             (fun () -> Sutils.lin_of_dB (target ()))
-             window
-             kup
-             kdown
-             (fun () -> Sutils.lin_of_dB (threshold ()))
-             (fun () -> Sutils.lin_of_dB (gmin ()))
-             (fun () -> Sutils.lin_of_dB (gmax ()))
-             debug):>source)
-    )
+         new normalize
+               src
+               (fun () -> Sutils.lin_of_dB (target ()))
+               window
+               kup
+               kdown
+               (fun () -> Sutils.lin_of_dB (threshold ()))
+               (fun () -> Sutils.lin_of_dB (gmin ()))
+               (fun () -> Sutils.lin_of_dB (gmax ()))
+               debug)

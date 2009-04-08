@@ -31,7 +31,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method rewrite m =
+  method private rewrite m =
     let m' = Lang.apply rewrite_f ["",Lang.metadata m] in
     let replace_val v =
       let (x,y) = Lang.to_product v in
@@ -49,7 +49,7 @@ object (self)
 
   val mutable in_track = false
 
-  method get_frame buf =
+  method private get_frame buf =
     let p = Frame.position buf in
       source#get buf ;
       if insert_missing && not in_track && Frame.position buf > p then begin
@@ -93,10 +93,10 @@ let register =
       "", Lang.source_t, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Rewrite metadata on the fly using a function."
-    (fun p ->
+    (fun p _ ->
        let source = Lang.to_source (Lang.assoc "" 2 p) in
        let f = Lang.assoc "" 1 p in
        let update = Lang.to_bool (List.assoc "update" p) in
        let strip = Lang.to_bool (List.assoc "strip" p) in
        let missing = Lang.to_bool (List.assoc "insert_missing" p) in
-         ((new map_metadata source f missing update strip):>source))
+         new map_metadata source f missing update strip)
