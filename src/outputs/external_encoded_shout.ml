@@ -212,5 +212,5 @@ let () =
     ~descr:"Output the source's stream to an Icecast2 compatible server \
             using an external encoder."
     proto
-    (fun p -> ((new to_shout p):>Source.source))
+    (fun p _ -> ((new to_shout p):>Source.source))
 

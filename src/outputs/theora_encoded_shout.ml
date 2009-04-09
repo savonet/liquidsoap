@@ -11,7 +11,7 @@ let () =
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Theora stream to an \
                Icecast-compatible.")
-    (fun p -> 
+    (fun p _ -> 
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let vorbis_quality = e Lang.to_float "vorbis_quality" in 

@@ -32,7 +32,7 @@ let () =
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Speex stream to an \
              Icecast-compatible server.")
-    (fun p ->
+    (fun p _ ->
        let e f v = f (List.assoc v p) in 
        let mode =
          match e Lang.to_string "mode" with

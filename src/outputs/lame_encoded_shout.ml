@@ -165,4 +165,4 @@ let () =
     ~descr:"Output the source's stream to an icecast2-compatible server \
             in MP3 format."
     proto
-    (fun p -> ((new to_shout p):>Source.source))
+    (fun p _ -> ((new to_shout p):>Source.source))

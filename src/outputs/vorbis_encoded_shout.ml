@@ -46,7 +46,7 @@ let () = (* Average BitRate *)
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis stream to an "
             ^ "Icecast-compatible server in Average BitRate mode.")
-    (fun p -> 
+    (fun p _ -> 
        let e f v = f (List.assoc v p) in
        let bitrate = (e Lang.to_int "bitrate") * 1000 in
        let min_bitrate = (e Lang.to_int "min_bitrate") * 1000 in
@@ -83,7 +83,7 @@ let () = (* Constant BitRate *)
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis stream to an "
             ^ "Icecast-compatible server in Constant BitRate mode.")
-    (fun p -> 
+    (fun p _ -> 
        let e f v = f (List.assoc v p) in
        let bitrate = (e Lang.to_int "bitrate") * 1000 in
        let freq = e Lang.to_int "samplerate" in
@@ -118,7 +118,7 @@ let () = (* Variable BitRate *)
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis stream to an "
             ^ "Icecast-compatible server in Variable BitRate mode.")
-    (fun p -> 
+    (fun p _ -> 
        let e f v = f (List.assoc v p) in
        let quality = (e Lang.to_float "quality") *. 0.1 in
        let freq = e Lang.to_int "samplerate" in
