@@ -157,7 +157,8 @@ def output.shoutcast.mp3(
   ~description="OCaml Radio!",~public=true,
   ~dumpfile="",~name="Use [mount]",
   ~aim="",~icq="",~irc="",
-  ~bitrate=128,s) = 
+  ~bitrate=128,~samplerate=44100,~stereo=true,
+  s) = 
   headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
   output.icecast.mp3(
     id=id, headers=headers,
@@ -167,6 +168,7 @@ def output.shoutcast.mp3(
     genre=genre, url=url, description=description,
     public=public, dumpfile=dumpfile,
     name=name, mount="/", protocol="icy",
+    samplerate=samplerate,stereo=stereo,
     s)
 end
 %endif
