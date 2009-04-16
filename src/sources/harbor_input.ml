@@ -166,9 +166,10 @@ object (self)
   method private sleep =
     if relaying then self#disconnect
 
-  method relay socket =
+  method relay (headers:(string*string) list) socket =
     relaying <- true ;
-    on_connect () ;
+    let headers = List.map (fun (x,y) -> String.lowercase x,y) headers in
+    on_connect headers ;
     begin match dumpfile with
       | Some f ->
           begin try
@@ -218,9 +219,13 @@ let () =
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data.";
 
-        "on_connect", Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Functions to excecute when a source is connected";
+        "on_connect", Lang.fun_t 
+        [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)] Lang.unit_t,
+        Some (Lang.val_cst_fun 
+          ["","headers",None] Lang.unit),
+        Some "Function to execute when a source is connected. \
+              Its receives the list of headers, of the form: \
+              (\"label\",\"value\"). All labels are lowercase.";
 
         "on_disconnect",Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
@@ -309,8 +314,14 @@ let () =
          in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
-         let on_connect () =
-           ignore (Lang.apply (List.assoc "on_connect" p) [])
+         let on_connect l =
+           let l = 
+             List.map 
+              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+              l
+           in
+           let arg = Lang.list l in
+           ignore (Lang.apply (List.assoc "on_connect" p) ["",arg])
          in
          let on_disconnect = fun () -> ignore (Lang.apply
                                (List.assoc "on_disconnect" p) []) in

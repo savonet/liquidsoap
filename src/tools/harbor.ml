@@ -58,7 +58,7 @@ class virtual source =
 object(self)
   inherit Source.source
 
-  method virtual relay : Unix.file_descr -> unit
+  method virtual relay : (string*string) list -> Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string option)*(string -> string -> bool)
   method virtual is_taken : bool
@@ -263,7 +263,7 @@ let handle_source_request ~icy hprotocol c uri headers =
           s#register_decoder stype ;
           log#f 3 "Adding source on mountpoint '%s' with type '%s'." uri stype ;
           if not icy then write_answer ~keep:true c "HTTP/1.0 200 OK\r\n\r\n" ;
-          s#relay c
+          s#relay headers c
   with
     | Mount_taken ->
         log#f 3 "Returned 401: Mount taken" ;
