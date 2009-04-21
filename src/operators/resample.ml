@@ -22,7 +22,12 @@
 
 open Source
 
+exception Added_break
+
 class resample (source:source) ratio =
+  let fst (x,_,_) = x in
+  let snd (_,x,_) = x in
+  let trd (_,_,x) = x in
 object (self)
   inherit operator [source] as super
 
@@ -37,7 +42,8 @@ object (self)
 
   method abort_track = source#abort_track
 
-  val mutable data = Array.make (Fmt.channels()) [||]
+  (* Data is: (pcm data, metadata, breaks) *)
+  val mutable data = (Array.make (Fmt.channels()) [||],[],[])
 
   val databuf = Frame.make ()
 
@@ -47,23 +53,52 @@ object (self)
 
   method private get_frame buf =
     let b = AFrame.get_float_pcm buf in
+     try
       for i = AFrame.position buf to AFrame.size buf - 1 do
-        if dpos >= Array.length data.(0) then
+        let audio = fst data in
+        if dpos >= Array.length audio.(0) then
           (
             AFrame.clear databuf;
             source#get databuf;
+            let ratio = ratio () in
             let db = AFrame.get_float_pcm databuf in
-              data <- Audio_converter.Samplerate.resample converter
-                         (ratio ()) db 0 (Array.length db.(0));
+              let audio =  Audio_converter.Samplerate.resample converter
+                         ratio db 0 (Array.length db.(0))
+              in
+              (* Add metadata and breaks (not end of frame breaks) *)
+              let meta = AFrame.get_all_metadata databuf in
+              let meta = 
+                List.map (fun (x,y) -> int_of_float (float x /. ratio),y) meta 
+              in
+              let breaks = 
+                List.filter (fun x -> x < AFrame.size databuf)
+                            (AFrame.breaks databuf)
+              in
+              let breaks =
+                List.map (fun x -> int_of_float (float x /. ratio)) breaks 
+              in
+              data <- (audio,meta,breaks);
               dpos <- 0
           );
+        let audio = fst data in
+        let metadata = snd data in
+        let breaks = trd data in
         for c = 0 to (Fmt.channels()) - 1 do
-          b.(c).(i) <- data.(c).(dpos)
+          b.(c).(i) <- audio.(c).(dpos)
         done;
-        dpos <- dpos + 1
+        if List.mem_assoc dpos metadata then
+          AFrame.set_metadata buf i (List.assoc dpos metadata);
+        dpos <- dpos + 1;
+        (** Add break. Stop loop in this case. *)
+        if List.mem (dpos-1) breaks then
+         begin
+          AFrame.add_break buf i;
+          raise Added_break
+         end
       done;
-      (* TODO: this operator doesn't seem to handle end of tracks correctly. *)
       AFrame.add_break buf (AFrame.size buf)
+     with
+       | Added_break -> ()
 
 end
 
@@ -75,7 +110,6 @@ let () =
     ]
     ~category:Lang.SoundProcessing
     ~descr:"Resample source's sound using a resampling factor"
-    ~flags:[Lang.Hidden;Lang.Experimental]
     (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
