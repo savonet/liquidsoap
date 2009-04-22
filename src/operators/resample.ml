@@ -58,8 +58,16 @@ object (self)
         let audio = fst data in
         if dpos >= Array.length audio.(0) then
           (
-            AFrame.clear databuf;
-            source#get databuf;
+            AFrame.advance databuf;
+            if source#is_ready then
+              source#get databuf
+            else
+              begin
+                AFrame.add_break buf i;
+                data <- (Array.make (Fmt.channels()) [||],[],[]);
+                dpos <- 0;
+                raise Added_break
+              end;
             let ratio = ratio () in
             let db = AFrame.get_float_pcm databuf in
               let audio =  Audio_converter.Samplerate.resample converter
