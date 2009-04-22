@@ -188,8 +188,8 @@ object (self)
         (* Signal the end of the task *)
         Mutex.lock cond_m;
         Condition.signal cond;
-        Mutex.unlock cond_m;
-        is_task <- false
+        is_task <- false;
+        Mutex.unlock cond_m
       in
       try
         let ret = read () in
