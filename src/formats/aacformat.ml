@@ -33,20 +33,19 @@ let decoder file =
   let buffer_length = Decoder.buffer_length () in
   let aacbuflen = 1024 in
   let aacbuf = String.create aacbuflen in
-  let sample_freq =
-    let aacbuflen = Unix.read fd aacbuf 0 aacbuflen in
-      let sample_freq, (* chans *) _ =
-        Faad.init2 dec aacbuf 0 aacbuflen
-      in
-        ignore (Unix.lseek fd 0 Unix.SEEK_SET);
-        sample_freq
+  let offset, sample_freq, chans =
+    Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
   in
-  let aacbufpos = ref 0 in
+  let aacbufpos = ref aacbuflen in
+  let fill_aacbuf () =
+    String.blit aacbuf !aacbufpos aacbuf 0 (aacbuflen - !aacbufpos);
+    let n = Unix.read fd aacbuf (aacbuflen - !aacbufpos) !aacbufpos in
+    let n = !aacbufpos + n in
+      aacbufpos := 0;
+      n
+  in
+  ignore (Unix.lseek fd offset Unix.SEEK_SET);
 
-  let stats = Unix.stat file in
-  let file_size = stats.Unix.st_size in
-  let in_bytes = ref 0 in
-  let out_samples = ref 0 in
   let closed = ref false in
   let close () =
     assert (not !closed) ;
@@ -62,25 +61,24 @@ let decoder file =
       try
         while Generator.length abg < buffer_length do
           try
-          let aacbuflen =
-            !aacbufpos +
-            Unix.read fd aacbuf 0 (aacbuflen - !aacbufpos)
-          in
-          let pos, buf = Faad.decode dec aacbuf 0 aacbuflen in
-            aacbufpos := aacbuflen - pos;
-            String.blit aacbuf pos aacbuf 0 !aacbufpos;
-            Generator.feed abg ~sample_freq buf
+            let aacbuflen = fill_aacbuf () in
+              if aacbuflen = 0 then raise End_of_file;
+              if aacbuf.[0] <> '\255' then raise End_of_file;
+              let pos, buf = Faad.decode dec aacbuf 0 aacbuflen in
+                aacbufpos := pos;
+                Generator.feed abg ~sample_freq buf
           with
             | Faad.Error n ->
-                Printf.printf "Faad error: %s\n%!" (Faad.get_error_message n)
+                Printf.printf "Faad error: %s\n%!" (Faad.error_message n)
         done
       with _ -> () (* TODO: log the error *)
     end ;
 
-    (* TODO: better estimation using Vorbis.Decoder.samples! *)
-
+    (*
     let offset = AFrame.position buf in
+    *)
       Float_pcm.Generator.fill abg buf ;
+    (*
       in_bytes := Unix.lseek fd 0 Unix.SEEK_CUR ;
       out_samples := !out_samples + AFrame.position buf - offset ;
       (* Compute an estimated number of remaining ticks. *)
@@ -97,11 +95,11 @@ let decoder file =
            * get an exact countdown after than in_size=in_bytes, but there
            * is a stall at the beginning after which the countdown starts. *)
           Fmt.ticks_of_samples (int_of_float remaining_samples)
+     *)
+    0
   in
     { Decoder.fill = fill ; Decoder.close = close }
 
-(*
 let () =
   Decoder.formats#register "AAC"
     (fun name -> try Some (decoder name) with _ -> None)
-*)

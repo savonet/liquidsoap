@@ -63,7 +63,7 @@ let decode_aac sink =
       done
     with
       | Faad.Error n as e ->
-          aac_stream_log#f 2 "Faad error: %s" (Faad.get_error_message n);
+          aac_stream_log#f 2 "Faad error: %s" (Faad.error_message n);
           sink.Http_source.close ();
           Faad.close dec;
           raise e
