@@ -33,9 +33,6 @@ let decoder file =
   let buffer_length = Decoder.buffer_length () in
   let aacbuflen = 1024 in
   let aacbuf = String.create aacbuflen in
-  let offset, sample_freq, chans =
-    Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
-  in
   let aacbufpos = ref aacbuflen in
   let fill_aacbuf () =
     String.blit aacbuf !aacbufpos aacbuf 0 (aacbuflen - !aacbufpos);
@@ -44,6 +41,22 @@ let decoder file =
       aacbufpos := 0;
       n
   in
+
+  (* Dummy decoding in order to test format. *)
+  let () =
+    let offset, _, _ = Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen) in
+    ignore (Unix.lseek fd offset Unix.SEEK_SET);
+    let aacbuflen = fill_aacbuf () in
+      if aacbuflen = 0 then raise End_of_file;
+      if aacbuf.[0] <> '\255' then raise End_of_file;
+      ignore (Faad.decode dec aacbuf 0 aacbuflen);
+      ignore (Unix.lseek fd 0 Unix.SEEK_SET)
+  in
+
+  let offset, sample_freq, chans =
+    Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
+  in
+  aacbufpos := aacbuflen;
   ignore (Unix.lseek fd offset Unix.SEEK_SET);
 
   let closed = ref false in
