@@ -86,7 +86,7 @@ object (self)
       let b = ogg#end_of_stream in
       ogg#ogg_stop;
       (* If possible, output the end of stream so that it's well-formed. *)
-      if connection <> None then icecast#send b
+      if Cry.get_status connection <> Cry.Disconnected then icecast#send b
      end;
     icecast#icecast_stop
 

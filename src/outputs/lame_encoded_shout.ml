@@ -142,11 +142,11 @@ object (self)
          let f (x,y) = Hashtbl.add ret x y in
          Array.iter f a; ret  
       in
-      match connection with
-        | Some c ->
-            (try Cry.update_metadata c m ; "" with _ -> "")
+      match Cry.get_status connection with
+        | Cry.Connected _ ->
+            (try Cry.update_metadata connection m ; "" with _ -> "")
         (* Do nothing if shout connection isn't available *)
-        | None -> ""
+        | Cry.Disconnected -> ""
 
   method output_start =
     icecast#icecast_start ;

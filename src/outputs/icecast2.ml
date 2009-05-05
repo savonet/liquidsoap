@@ -102,24 +102,25 @@ class virtual output
 
 object (self)
 
-  val mutable connection = None
   val mutable last_attempt = 0.
   val mutable dump = None
+
+  val connection = Cry.create ()
 
   method virtual reset_encoder : (string,string) Hashtbl.t -> string
   method virtual log : Dtools.Log.t
 
   method send b =
-    match connection with
-      | None ->
+    match Cry.get_status connection with
+      | Cry.Disconnected ->
           if Unix.time () > restart_delay +. last_attempt then begin
             ignore(self#reset_encoder (Hashtbl.create 0));
             self#icecast_start
           end
-      | Some c ->
+      | Cry.Connected _ ->
           (* TODO think about some limitation of shout restarting *)
           begin try
-            Cry.send c b;
+            Cry.send connection b;
             match dump with
               | Some s -> output_string s b
               | None -> () 
@@ -135,18 +136,16 @@ object (self)
             end
 
   method icecast_stop =
-    match connection with
-      | None -> ()
-      | Some c ->
-          begin try Cry.close c with _ -> () end ;
-          connection <- None ;
+    match Cry.get_status connection with
+      | Cry.Disconnected -> ()
+      | Cry.Connected _ ->
+          Cry.close connection;
           match dump with
             | Some f -> close_out f
             | None -> ()
 
   method icecast_start =
-    assert (connection = None) ;
-    let conn = Cry.create () in
+    assert (Cry.get_status connection = Cry.Disconnected) ;
 
     begin 
       match dumpfile with
@@ -182,7 +181,7 @@ object (self)
       (* Final *)
       try
         begin try
-          Cry.connect conn source
+          Cry.connect connection source
         with
           | Cry.Error x as e ->
               self#log#f 2
@@ -191,8 +190,7 @@ object (self)
               raise e
         end ;
 
-        self#log#f 3 "Connection setup was successful." ;
-        connection <- Some conn
+        self#log#f 3 "Connection setup was successful."
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
