@@ -586,16 +586,43 @@ else
 end
 # Enable mplayer decoder (needs mplayer binary in path)
 # @category Liquidsoap
-def enable_mplayer()=
+def enable_mplayer(~debug=false)=
   def mplayer_p(file)=
-    "mplayer -really-quiet -ao pcm:file=/dev/stdout \
-           -vc null -vo null #{quote(file)} 2>/dev/null"
+    s = "mplayer -really-quiet -ao pcm:file=/dev/stdout \
+           -vc null -vo null #{quote(file)}"
+    if debug then
+      log(label="utils.liq",level=2,"Mplayer external decoder called: \n#{s}")
+      s
+    else
+      "#{s} 2>/dev/null"
+    end
   end
   if test_process("which mplayer") then
     add_decoder("MPLAYER",mplayer_p)
   else
     log(label="utils.liq",level=2,"couldn't enable mplayer \
           decoder: no binary found")
+  end
+end
+
+# Enable gstreamer decoder (needs gst-launch binary in path)
+# @category Liquidsoap
+def enable_gstreamer(~debug=false)=
+  def gstreamer_p(file)=
+    s = "gst-launch filesrc location=#{quote(file)} ! \
+           decodebin ! wavenc ! fdsink fd=1"
+    if debug then
+      log(label="utils.liq",level=2,"Gstreamer external decoder called: \n#{s}")
+      s
+    else
+      "#{s} 2>/dev/null"
+    end
+  end
+  if test_process("which gst-launch") then
+    add_decoder("GSTREAMER",gstreamer_p)
+  else
+    log(label="utils.liq",level=2,"couldn't enable gstreamer \
+          decoder: no gst-launch binary found")
   end
 end
 
