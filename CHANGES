@@ -11,6 +11,10 @@ Bugs fixed:
    stop mechanism. Stop operation now waits for the encoding process
    to finish, allowing proper restart_on_new_track like for ogg encoded
    data.
+ - Factorized buffered I/O code. Also added a blocking API, which avoids
+   "no available frame" and "reader not ready" messages and audio glitches. 
+   It requires that "root.sync" be desactivated for these sources, such that
+   synchronisation is done by the source. (#203)
 New:
  - Support ogg/dirac (#TODO: close ticket).
  - Get a node's striping status when stripping

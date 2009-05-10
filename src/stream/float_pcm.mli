@@ -39,6 +39,9 @@ val from_s16le_ni :
 (** Multiply samplerate by the given ratio. *)
 val native_resample : float -> float array -> int -> int -> float array
 
+(** Blit float array array *)
+val float_blit : float array -> int -> float array -> int -> int -> unit
+
 (** {2 Generators} *)
 
 module Generator :

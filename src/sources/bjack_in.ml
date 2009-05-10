@@ -29,9 +29,13 @@ class jack_in ~nb_blocks ~server =
   let samples_per_frame = Fmt.samples_per_frame () in
   let samples_per_second = Fmt.samples_per_second () in
   let bytes_per_sample = 2 in
-  let blank = String.make (samples_per_frame * channels * bytes_per_sample) '0' in
+  let blank () = 
+    String.make (samples_per_frame * channels * bytes_per_sample) '0' 
+  in
 object (self)
   inherit active_source
+  inherit [string] IoRing.input 
+      ~nb_blocks ~blank () as ioring
 
   method stype = Infallible
   method is_ready = true
@@ -40,26 +44,18 @@ object (self)
 
   val mutable sample_freq = Fmt.samples_per_second ()
 
-  (* See sources/alsa_in.ml, it's the same producer/consumer system. *)
-  val buffer = Array.create nb_blocks ""
-  initializer
-    for i = 0 to nb_blocks - 1 do
-      buffer.(i) <-blank
-    done
-  val mutable read = 0
-  val mutable write = 0
-  (* Read and write are stored modulo 2*nb_blocks,
-   * because we must be able to distinguish the case where the sched is late
-   * from the one where the capture is late.
-   * And we don't need more than modulo 2*nb_blocks. *)
-
-  val mutable sleep = false
   val mutable device = None
-  method sleep = sleep <- true
+
+  method close = 
+    match device with
+      | Some d -> 
+          Bjack.close d ;
+          device <- None
+      | None -> ()
 
   method private get_device = 
     match device with
-      | None -> 
+      | None ->
           let server_name = 
             match server with "" -> None | s -> Some s
           in
@@ -74,21 +70,9 @@ object (self)
           dev
       | Some d -> d
 
-  method output_get_ready =
-    let dev = self#get_device in
-    sleep <- false ;
-    read <- 0 ; write <- 0 ;
-    let m = Mutex.create () in
-    let c = Condition.create () in
-    Mutex.lock m;
-    ignore (Tutils.create 
-         (fun _ -> self#writer dev m c) () "jack_capture") ;
-    (* Wait for the first buffer input. *)
-    Condition.wait c m;
-    Mutex.unlock m
-
-  method private get_block dev = 
-        let length = samples_per_frame * channels * bytes_per_sample in
+  method private pull_block block =
+        let dev = self#get_device in 
+        let length = String.length block in
         let ans = ref (Bjack.read dev length) in
           while String.length !ans < length do
             Thread.delay (Fmt.seconds_per_frame () /. 2.) ;
@@ -96,41 +80,11 @@ object (self)
             let tmp = Bjack.read dev len in
             ans := !ans ^ tmp 
          done;
-         !ans
-
-  method private writer dev m c =
-      let fill block =
-         buffer.(block mod nb_blocks) <- self#get_block dev 
-      in
-        (* Fill the first block *)
-        fill 0 ;
-        write <- 1 ;
-        Mutex.lock m ;
-        Condition.signal c;
-        Mutex.unlock m;
-        (* Filling loop *)
-        while not sleep do
-          if read <> write &&
-             write mod nb_blocks = read mod nb_blocks then begin
-               (* Wait for the reader to read the block we fancy *)
-               Thread.delay (Fmt.seconds_per_frame () /. 2.)
-          end else
-            ( fill write ; write <- (write + 1) mod (2*nb_blocks) )
-        done
+         String.blit !ans 0 block 0 length
 
   method private get_frame buf =
     assert (0 = AFrame.position buf) ;
-    let buffer =
-      (* Check that the writer still has an advance.
-       * Otherwise play blank for waiting.. *)
-      if write = read then begin
-        log#f 4 "No available frame!" ;
-        blank
-      end else
-        let b = buffer.(read mod nb_blocks) in
-          read <- (read + 1) mod (2*nb_blocks) ;
-          b
-    in
+    let buffer = ioring#get_block in
     let fbuf = AFrame.get_float_pcm buf in
       Float_pcm.from_s16le fbuf 0 buffer 0 samples_per_frame ;
       AFrame.add_break buf samples_per_frame

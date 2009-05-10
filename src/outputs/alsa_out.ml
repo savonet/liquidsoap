@@ -20,116 +20,94 @@
 
  *****************************************************************************)
 
-(* See sources/alsa_in.ml for details.
- * Basically, we thread because alsa calls are blocking and can have a bad
- * interaction with the root scheduling. *)
+(* Buffered ALSA output *)
 
 open Alsa
 open Dtools
-
-let log = Log.make ["output";"alsa"]
-
-exception Error of string
-
-let conf =
-  Conf.void ~p:(Configure.conf#plug "alsa")
-    "ALSA configuration"
-let conf_buffer_length =
-  Conf.float ~p:(conf#plug "buffer_length") ~d:4.
-    "Length of the alsa ringbuffer in seconds"
-    ~comments:[
-      "This is only used for buffered ALSA I/O, and affects the latency."
-    ]
-let periods =
-  Conf.int ~p:(conf#plug "periods") ~d:5
-    "Number of periods"
 
 (** ALSA should be quiet *)
 let () = no_stderr_report ()
 
 class output dev start source =
-  let channels = Fmt.channels () in
+  let buffer_length = Fmt.samples_per_frame () in
+  let buffer_chans = Fmt.channels () in
+  let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
+  let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Fmt.samples_per_second () in
-  let seconds_per_frame = Fmt.seconds_per_frame () in
+  let periods = Alsa_settings.periods#get in
 object (self)
   inherit Output.output ~name:"output.alsa" ~kind:"output.alsa" source start
+  inherit [float array array] IoRing.output ~nb_blocks ~blank
+                                 ~blocking:true () as ioring
 
-  val mutable alsa_rate = 0
-  val mutable write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
-  val mutable ring = Ringbuffer.TS.create channels 0
+  val mutable device = None
 
-  val samplerate_converter = Audio_converter.Samplerate.create channels
+  val mutable alsa_rate = samples_per_second
+  val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
+  val mutable alsa_write =                                                                       
+    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len) 
 
-  val mutable sleep = false
-  method output_stop = sleep <- true
+  method get_device =
+    match device with
+      | Some d -> d
+      | None -> 
+          self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+          let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
+          let params = Pcm.get_params dev in
+          let bufsize =
+             (
+               try
+                 Pcm.set_access dev params Pcm.Access_rw_noninterleaved ;
+                 Pcm.set_format dev params Pcm.Format_float
+               with
+                 | _ ->
+                    (* If we can't get floats we fallback on interleaved s16le *)
+                    self#log#f 2 "Falling back on interleaved S16LE";
+                    Pcm.set_access dev params Pcm.Access_rw_interleaved ;
+                    Pcm.set_format dev params Pcm.Format_s16_le ;
+                    alsa_write <-
+                      (fun pcm buf ofs len ->
+                         let sbuf = String.create (2 * len * Array.length buf) in
+                         let _ =  Float_pcm.to_s16le buf ofs len sbuf 0 in
+                         Pcm.writei pcm sbuf 0 len
+                      )     
+             );
+             Pcm.set_channels dev params buffer_chans ;
+             alsa_rate <- Pcm.set_rate_near dev params samples_per_second Dir_eq ;
+             (* Size in frames, must be set after the samplerate.
+              * This setting is critical as a too small bufsize will easily result in
+              * underruns when the thread isn't fast enough.
+              * TODO make it customizable *)
+             Pcm.set_periods dev params periods Dir_eq;
+             Pcm.set_buffer_size_near dev params 65536
+          in
+          self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
+            alsa_rate bufsize (Pcm.get_frame_size params) periods ;
+          Pcm.set_params dev params ;
+          device <- Some dev ;
+          dev
 
-  method output_start =
-    sleep <- false ;
-    self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+  method close = 
+    match device with
+      | Some d ->
+          Pcm.close d ;
+          device <- None
+      | None -> ()
+
+  method push_block data = 
+    let dev = self#get_device in
     try
-      let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
-      let params = Pcm.get_params dev in
-      let bufsize =
-        (
-          try
-            Pcm.set_access dev params Pcm.Access_rw_noninterleaved ;
-            Pcm.set_format dev params Pcm.Format_float
-          with
-            | _ ->
-                (* If we can't get floats we fallback on interleaved s16le *)
-                self#log#f 2 "Falling back on interleaved S16LE";
-                Pcm.set_access dev params Pcm.Access_rw_interleaved ;
-                Pcm.set_format dev params Pcm.Format_s16_le ;
-                write <-
-                (fun pcm buf ofs len ->
-                   let sbuf = String.create (2 * len * Array.length buf) in
-                   let _ =  Float_pcm.to_s16le buf ofs len sbuf 0 in
-                     Pcm.writei pcm sbuf 0 len
-                )
-        );
-        Pcm.set_channels dev params channels ;
-        alsa_rate <- Pcm.set_rate_near dev params samples_per_second Dir_eq ;
-        (* Size in frames, must be set after the samplerate.
-         * This setting is critical as a too small bufsize will easily result in
-         * underruns when the thread isn't fast enough.
-         * TODO make it customizable *)
-        Pcm.set_periods dev params periods#get Dir_eq;
-        Pcm.set_buffer_size_near dev params 65536
+      let len = Array.length data.(0) in
+      let rec f pos = 
+        if pos < len then
+          let ret = alsa_write dev data pos (len - pos) in
+          f (pos+ret) 
       in
-        self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
-             alsa_rate bufsize (Pcm.get_frame_size params) periods#get ;
-        Pcm.set_params dev params ;
-        let ringsize = Fmt.samples_of_seconds (conf_buffer_length#get) in
-          ring <- Ringbuffer.TS.create channels ringsize;
-          (* Now feed half of the ringbuffer with blank *)
-          Ringbuffer.TS.write_advance ring (ringsize/2);
-          ignore
-            (Tutils.create (fun () -> self#reader dev bufsize) () "alsa_playback")
+      f 0
     with
-      | Unknown_error n when false -> raise (Error (string_of_error n))
-
-  method reader dev bufsize =
-    (* TODO: static buffers *)
-    let blank = Array.init channels (fun _ -> Array.create bufsize 0.) in
-    try
-      Pcm.prepare dev ;
-      while not sleep && not !Root.shutdown do
-        try
-          if Ringbuffer.TS.transmit ring (Pcm.writen_float dev) = 0
-          then (
-            self#log#f 3 "Writer is late!" ;
-            Thread.delay (seconds_per_frame/.2.)
-          )
-        with
-          | Buffer_xrun ->
-              log#f 2 "Underrun!" ;
-              Pcm.prepare dev ;
-              ignore (write dev blank 0 bufsize)
-      done ;
-      Pcm.close dev
-    with
-      | Unknown_error n -> raise (Error (string_of_error n))
+      | Buffer_xrun ->
+           self#log#f 2 "Underrun!" ;
+           Pcm.prepare dev
 
   method output_send buf =
     let buf = AFrame.get_float_pcm buf in
@@ -137,11 +115,12 @@ object (self)
     let buf = Audio_converter.Samplerate.resample samplerate_converter 
                   ratio buf 0 (Array.length buf.(0)) 
     in
-      if Ringbuffer.TS.write_space ring < Array.length buf.(0) then begin
-        if false then self#log#f 3 "Reader is late!" ;
-        (* Thread.delay (Mixer.Buffer.length/.2.) *)
-      end else
-        Ringbuffer.TS.write ring buf 0 (Array.length buf.(0))
+    let f data = 
+      for c = 0 to Array.length buf - 1 do
+        Float_pcm.float_blit buf.(c) 0 data.(c) 0 (Array.length buf.(0))
+      done
+    in
+    ioring#put_block f
 
   method output_reset = ()
 end

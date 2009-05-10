@@ -27,25 +27,21 @@ class output ~nb_blocks ~server source =
   let channels = Fmt.channels () in
   let samples_per_frame = Fmt.samples_per_frame () in
   let samples_per_second = Fmt.samples_per_second () in
+  let blank () =
+    String.make (samples_per_frame * channels * bytes_per_sample) '0'
+  in
 object (self)
   inherit Output.output ~name:"output.jack" ~kind:"output.jack" source true
+  inherit [string] IoRing.output ~nb_blocks ~blank 
+                                 ~blocking:true () as ioring
 
-  (* See sources/alsa_in.ml, it's the same producer/consumer system. *)
-  val buffer = Array.create nb_blocks ""
-  initializer
-    for i = 0 to nb_blocks - 1 do
-      buffer.(i) <- String.create (samples_per_frame * channels * bytes_per_sample)
-    done
-  val mutable read = 0
-  val mutable write = 0
-
-  val mutable sleep = false
   val mutable device = None
-  method output_stop = sleep <- true
 
   method get_device = 
     match device with
       | None -> 
+          (* Wait for things to settle *)
+          Thread.delay (5. *. (Fmt.seconds_per_frame ()));
           let server_name =
             match server with "" -> None | s -> Some s
           in
@@ -60,13 +56,8 @@ object (self)
           dev
       | Some d -> d
 
-  method output_start =
+  method push_block data = 
     let dev = self#get_device in
-    sleep <- false ;
-    read <- 0 ; write <- 0 ;
-    ignore (Tutils.create (fun () -> self#reader dev) () "jack_playback")
-
-  method write_block dev data = 
     let len = String.length data in
     let remaining = ref (len - (Bjack.write dev data)) in
     while !remaining > 0 do
@@ -76,29 +67,19 @@ object (self)
       remaining := !remaining - written
     done
 
-  method reader device =
-      (* Wait for things to settle *)
-      Thread.delay (5. *. (Fmt.seconds_per_frame ()));
-      (* The output loop *)
-      while not sleep do
-        while write = read do
-          Thread.delay ((Fmt.seconds_per_frame ()) /. 2.)
-        done ;
-        let data = buffer.(read mod nb_blocks) in
-        self#write_block device data ;
-        read <- (read + 1) mod (2*nb_blocks)
-      done ;
-      Bjack.close device
+  method close = 
+    match device with
+      | Some d -> 
+          Bjack.close d ;
+          device <- None
+      | None -> ()
 
   method output_send wav =
-    if read <> write &&
-      write mod nb_blocks = read mod nb_blocks then
-      self#log#f 4 "Reader not ready!"
-    else begin
+    let push data =
       ignore (Float_pcm.to_s16le (AFrame.get_float_pcm wav) 0 (AFrame.size wav)
-                buffer.(write mod nb_blocks) 0) ;
-      write <- (write + 1) mod (2*nb_blocks)
-    end
+                data 0)
+    in
+    ioring#put_block push
 
   method output_reset = ()
 end
@@ -107,7 +88,7 @@ let () =
   Lang.add_operator "output.jack"
     [ "buffer_size",
       Lang.int_t, Some (Lang.int 2),
-      Some "Set buffer size, in frames. 0 means unbuffered output.";
+      Some "Set buffer size, in frames.";
      "server",
       Lang.string_t, Some (Lang.string ""),
       Some "Jack server to connect to.";

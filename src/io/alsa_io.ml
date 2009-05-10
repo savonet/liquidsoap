@@ -24,9 +24,6 @@ open Alsa
 
 exception Error of string
 
-(** ALSA should be quiet *)
-let () = no_stderr_report ()
-
 let handle lbl f x =
   try f x with
     | Unknown_error e ->
@@ -127,7 +124,7 @@ object (self)
         handle "channels"
           (Pcm.set_channels dev params) channels ;
         handle "periods"
-          (Pcm.set_periods dev params Alsa_out.periods#get) Dir_eq ;
+          (Pcm.set_periods dev params Alsa_settings.periods#get) Dir_eq ;
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
