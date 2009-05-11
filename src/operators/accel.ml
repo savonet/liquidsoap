@@ -83,6 +83,7 @@ let () =
 
       "", Lang.source_t, None, None ]
     ~category:Lang.SoundProcessing
+    ~flags:[Lang.Experimental]
     ~descr:"Accelerates a stream, possibly only the middle of the tracks. \
             Useful for testing transitions."
     (fun p _ ->
