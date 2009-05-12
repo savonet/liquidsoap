@@ -150,7 +150,7 @@ end
 # @param s The source to output
 def output.shoutcast.mp3(
   ~id="output.shoutcast.mp3",~start=true,
-  ~restart=true,~restart_delay=3,
+  ~restart=false,~restart_delay=3,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
@@ -192,7 +192,7 @@ end
 # @param s The source to output
 def output.icecast.lame(
   ~id="output.icecast.lame",~start=true,
-  ~restart=true,~restart_delay=3,
+  ~restart=false,~restart_delay=3,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
@@ -245,7 +245,7 @@ end
 # @param s The source to output
 def output.shoutcast.lame(
   ~id="output.shoutcast.mp3",~start=true,
-  ~restart=true,~restart_delay=3,
+  ~restart=false,~restart_delay=3,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
@@ -285,7 +285,7 @@ end
 # @param s The source to output
 def output.icecast.flac(
   ~id="output.icecast.flac",~start=true,
-  ~restart=true,~restart_delay=3,
+  ~restart=false,~restart_delay=3,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
@@ -342,7 +342,7 @@ end
 # @param s The source to output
 def output.icecast.aacplusenc(
   ~id="output.icecast.aacplusenc",~start=true,
-  ~restart=true,~restart_delay=3,
+  ~restart=false,~restart_delay=3,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
@@ -384,7 +384,7 @@ end
 # @param s The source to output
 def output.shoutcast.aacplusenc(
   ~id="output.shoutcast.aacplusenc",~start=true,
-  ~restart=true,~restart_delay=3,
+  ~restart=false,~restart_delay=3,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
