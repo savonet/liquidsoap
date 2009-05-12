@@ -183,7 +183,6 @@ let handle_client socket =
   let on_error _ =
     log#f 3 "Client left." ;
     try
-      Unix.shutdown socket Unix.SHUTDOWN_ALL ;
       Unix.close socket
     with
       | _ -> ()
@@ -274,7 +273,6 @@ let start_socket () =
     ignore (Dtools.Init.at_stop
               (fun () ->
                  log#f 3 "Closing %s" socket_name ;
-                 Unix.shutdown sock SHUTDOWN_ALL ;
                  Unix.close sock ;
                  Unix.unlink socket_path)) ;
     chmod socket_path rights ;

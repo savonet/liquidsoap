@@ -138,7 +138,6 @@ object (self)
      end;
     self#disconnect ;
     try
-      Unix.shutdown socket Unix.SHUTDOWN_ALL ;
       Unix.close socket
     with
       | _ -> ()
