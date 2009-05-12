@@ -309,7 +309,7 @@ let options =
       "Print log messages on standard output." ;
 
       ["--debug"],
-      Arg.Unit (fun () -> Printexc.record_backtrace true; Log.conf_level#set (max 4 Log.conf_level#get)),
+      Arg.Unit (fun () -> (* Printexc.record_backtrace true; *) Log.conf_level#set (max 4 Log.conf_level#get)),
       "Print debugging log messages." ;
 
       ["-d";"--daemon"],
