@@ -24,68 +24,48 @@
 
 module Generator = Float_pcm.Generator_from_raw
 
+let log = Dtools.Log.make ["format";"wav"]
+
 let bytes_to_get = 1024*64
 
-let decoder file =
-  let w = Wav.fopen file in
-
-  (** Generator's input format *)
-  let channels   = Wav.channels w in
-  let in_freq    = float (Wav.sample_rate w) in
-  let samplesize = Wav.sample_size w in
-  let big_endian = Wav.big_endian w in
-  let signed     = Wav.signed w in
-  let out_freq   = float (Fmt.samples_per_second()) in
-  let abg =
-    Generator.create
-      ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
+let decoder =
+  let openfile file = 
+    let w = Wav.fopen file in
+    (** Generator's input format *)
+    let channels   = Wav.channels w in
+    let in_freq    = float (Wav.sample_rate w) in
+    let samplesize = Wav.sample_size w in
+    let big_endian = Wav.big_endian w in
+    let signed     = Wav.signed w in
+    let out_freq   = float (Fmt.samples_per_second()) in
+    let abg =
+      Generator.create
+        ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
+    in
+    let tmpbuf = String.create bytes_to_get in
+    let position = ref 0 in
+    (w,tmpbuf,position),abg
   in
-  let buffer_length = Decoder.buffer_length () in
-
-  let stats = Unix.stat file in
-  let file_size = stats.Unix.st_size in
-  let in_bytes = ref 0 in
-  let out_samples = ref 0 in
-  let tmpbuf = String.create bytes_to_get in
-  let closed = ref false in
-  let close () =
-    assert (not !closed) ;
-    closed := true ;
+  let close (w,_,_) =
     Wav.close w
   in
-  let fill buf =
-    assert (not !closed) ;
-
-    begin
-      try
-        while Generator.length abg < buffer_length do
-          let l = Wav.sample w tmpbuf 0 bytes_to_get in
-            in_bytes := !in_bytes + l ;
-            Generator.feed abg (String.sub tmpbuf 0 l)
-        done
-      with _ -> () (* End_of_file of bad format raised by feed *)
-    end ;
-
-    let offset = AFrame.position buf in
-      Generator.fill abg buf ;
-      out_samples := !out_samples + AFrame.position buf - offset ;
-      (* Compute an estimated number of remaining ticks. *)
-      let abglen = Generator.length abg in
-        assert (!in_bytes!=0) ;
-        let compression =
-          (float (!out_samples+abglen)) /. (float !in_bytes)
-        in
-        let remaining_samples =
-          (float (file_size - !in_bytes)) *. compression
-          +. (float abglen)
-        in
-          (* I suspect that in_samples in not accurate, since I don't
-           * get an exact countdown after than in_size=in_samples, but there
-           * is a stall at the beginning after which the countdown starts. *)
-          Fmt.ticks_of_samples (int_of_float remaining_samples)
-
-  in { Decoder.fill = fill ; Decoder.close = close }
-
+  let decode (w,tmpbuf,position) abg =
+    let l = Wav.sample w tmpbuf 0 bytes_to_get in
+    position := !position + l ;
+    Generator.feed abg (String.sub tmpbuf 0 l)
+  in
+  let position (_,_,position) = !position in
+  let decoder =
+   {
+    File_decoder.Raw.
+     log = log;
+     openfile = openfile;
+     decode = decode;
+     position = position;
+     close = close
+   }
+  in
+  File_decoder.Raw.decode decoder
 
 let () = Decoder.formats#register "WAV"
            (fun name -> try Some (decoder name) with _ -> None)

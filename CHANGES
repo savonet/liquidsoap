@@ -15,6 +15,7 @@ Bugs fixed:
    "no available frame" and "reader not ready" messages and audio glitches. 
    It requires that "root.sync" be desactivated for these sources, such that
    synchronisation is done by the source. (#203)
+ - Factorized file decoding code.
 New:
  - Support ogg/dirac (#TODO: close ticket).
  - Get a node's striping status when stripping

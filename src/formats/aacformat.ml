@@ -24,159 +24,112 @@
 
 module Generator = Float_pcm.Generator
 
-let buflen = 1024
+let log = Dtools.Log.make ["format";"aac"]
 
-let decoder file =
-  let dec = Faad.create () in
-  let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
-  let abg = Generator.create () in
-  let buffer_length = Decoder.buffer_length () in
-  let aacbuflen = 1024 in
-  let aacbuf = String.create aacbuflen in
-  let aacbufpos = ref aacbuflen in
-  let fill_aacbuf () =
-    String.blit aacbuf !aacbufpos aacbuf 0 (aacbuflen - !aacbufpos);
-    let n = Unix.read fd aacbuf (aacbuflen - !aacbufpos) !aacbufpos in
-    let n = !aacbufpos + n in
+let decoder =
+  let openfile file = 
+    let dec = Faad.create () in
+    let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
+    let abg = Generator.create () in
+    let aacbuflen = 1024 in
+    let aacbuf = String.create aacbuflen in
+    let aacbufpos = ref aacbuflen in
+    let pos = ref 0 in
+    let fill_aacbuf () =
+      String.blit aacbuf !aacbufpos aacbuf 0 (aacbuflen - !aacbufpos);
+      let n = Unix.read fd aacbuf (aacbuflen - !aacbufpos) !aacbufpos in
+      let n = !aacbufpos + n in
       aacbufpos := 0;
+      pos := !pos + n;
       n
-  in
+    in
 
-  (* Dummy decoding in order to test format. *)
-  let () =
-    let offset, _, _ = Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen) in
-    ignore (Unix.lseek fd offset Unix.SEEK_SET);
-    let aacbuflen = fill_aacbuf () in
+    (* Dummy decoding in order to test format. *)
+    let () =
+      let offset, _, _ = Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen) in
+      ignore (Unix.lseek fd offset Unix.SEEK_SET);
+      let aacbuflen = fill_aacbuf () in
       if aacbuflen = 0 then raise End_of_file;
       if aacbuf.[0] <> '\255' then raise End_of_file;
       ignore (Faad.decode dec aacbuf 0 aacbuflen);
       ignore (Unix.lseek fd 0 Unix.SEEK_SET)
-  in
+    in
 
-  let offset, sample_freq, chans =
-    Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
+    let offset, sample_freq, chans =
+      Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
+    in
+    aacbufpos := aacbuflen;
+    ignore (Unix.lseek fd offset Unix.SEEK_SET);
+    (dec,fd,aacbuf,fill_aacbuf,aacbufpos,sample_freq,pos),abg
   in
-  aacbufpos := aacbuflen;
-  ignore (Unix.lseek fd offset Unix.SEEK_SET);
-
-  let closed = ref false in
-  let close () =
-    assert (not !closed) ;
-    closed := true ;
+  let close (dec,fd,_,_,_,_,_) =
     Faad.close dec;
     Unix.close fd
   in
-
-  let fill buf =
-    assert (not !closed) ;
-
-    begin
-      try
-        while Generator.length abg < buffer_length do
-          try
-            let aacbuflen = fill_aacbuf () in
-              if aacbuflen = 0 then raise End_of_file;
-              if aacbuf.[0] <> '\255' then raise End_of_file;
-              let pos, buf = Faad.decode dec aacbuf 0 aacbuflen in
-                aacbufpos := pos;
-                Generator.feed abg ~sample_freq buf
-          with
-            | Faad.Error n ->
-                Printf.printf "Faad error: %s\n%!" (Faad.error_message n)
-        done
-      with _ -> () (* TODO: log the error *)
-    end ;
-
-    (*
-    let offset = AFrame.position buf in
-    *)
-      Float_pcm.Generator.fill abg buf ;
-    (*
-      in_bytes := Unix.lseek fd 0 Unix.SEEK_CUR ;
-      out_samples := !out_samples + AFrame.position buf - offset ;
-      (* Compute an estimated number of remaining ticks. *)
-      let abglen = Generator.length abg in
-        assert (!in_bytes!=0) ;
-        let compression =
-          (float (!out_samples+abglen)) /. (float !in_bytes)
-        in
-        let remaining_samples =
-          (float (file_size - !in_bytes)) *. compression
-          +. (float abglen)
-        in
-          (* I suspect that in_bytes in not accurate, since I don't
-           * get an exact countdown after than in_size=in_bytes, but there
-           * is a stall at the beginning after which the countdown starts. *)
-          Fmt.ticks_of_samples (int_of_float remaining_samples)
-     *)
-    0
+  let decode (dec,_,aacbuf,fill_aacbuf,aacbufpos,sample_freq,pos) abg = 
+   try
+    let aacbuflen = fill_aacbuf () in
+    if aacbuflen = 0 then raise End_of_file;
+    if aacbuf.[0] <> '\255' then raise End_of_file;
+    let pos, buf = Faad.decode dec aacbuf 0 aacbuflen in
+    aacbufpos := pos;
+    Generator.feed abg ~sample_freq buf
+   with
+     | Faad.Error n ->
+                log#f 4 "Faad error: %s\n%!" (Faad.error_message n)
   in
-    { Decoder.fill = fill ; Decoder.close = close }
+  let position (_,_,_,_,_,_,pos) = !pos in
+  let decoder =
+   {
+    File_decoder.Float.
+     log = log;
+     openfile = openfile;
+     decode = decode;
+     position = position;
+     close = close
+   }
+  in
+  File_decoder.Float.decode decoder
 
-let decoder_mp4 file =
-  let dec = Faad.create () in
-  let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
-  let mp4 = Faad.Mp4.openfile_fd fd in
+let log = Dtools.Log.make ["format";"aacmp4"]
 
-  let abg = Generator.create () in
-  let buffer_length = Decoder.buffer_length () in
-
-  let track = Faad.Mp4.find_aac_track mp4 in
-  let sample_freq, chans = Faad.Mp4.init mp4 dec track in
-  let samples = Faad.Mp4.samples mp4 track in
-  let sample = ref 0 in
-
-  let closed = ref false in
-  let close () =
-    assert (not !closed) ;
-    closed := true ;
+let decoder_mp4 =
+  let openfile file = 
+    let dec = Faad.create () in
+    let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
+    let mp4 = Faad.Mp4.openfile_fd fd in
+    let abg = Generator.create () in
+    let track = Faad.Mp4.find_aac_track mp4 in
+    let sample_freq, chans = Faad.Mp4.init mp4 dec track in
+    let samples = Faad.Mp4.samples mp4 track in
+    let sample = ref 0 in
+    (dec,fd,track,mp4,sample,samples,sample_freq),abg
+  in
+  let close (dec,fd,_,_,_,_,_) =
     Faad.close dec;
     Unix.close fd
   in
-
-  let fill buf =
-    assert (not !closed) ;
-
-    begin
-      try
-        while Generator.length abg < buffer_length do
-          try
-            if !sample >= samples then raise End_of_file;
-            Generator.feed abg ~sample_freq (Faad.Mp4.decode mp4 track !sample dec);
-            incr sample
-          with
-            | Faad.Error n ->
-                Printf.printf "Faad error: %s\n%!" (Faad.error_message n)
-        done
-      with _ -> () (* TODO: log the error *)
-    end ;
-
-    (* TODO: duration *)
-    (*
-    let offset = AFrame.position buf in
-    *)
-      Float_pcm.Generator.fill abg buf ;
-    (*
-      in_bytes := Unix.lseek fd 0 Unix.SEEK_CUR ;
-      out_samples := !out_samples + AFrame.position buf - offset ;
-      (* Compute an estimated number of remaining ticks. *)
-      let abglen = Generator.length abg in
-        assert (!in_bytes!=0) ;
-        let compression =
-          (float (!out_samples+abglen)) /. (float !in_bytes)
-        in
-        let remaining_samples =
-          (float (file_size - !in_bytes)) *. compression
-          +. (float abglen)
-        in
-          (* I suspect that in_bytes in not accurate, since I don't
-           * get an exact countdown after than in_size=in_bytes, but there
-           * is a stall at the beginning after which the countdown starts. *)
-          Fmt.ticks_of_samples (int_of_float remaining_samples)
-     *)
-    0
+  let decode (dec,fd,track,mp4,sample,samples,sample_freq) abg = 
+   try
+    if !sample >= samples then raise End_of_file;
+    Generator.feed abg ~sample_freq (Faad.Mp4.decode mp4 track !sample dec);
+    incr sample
+   with
+     | Faad.Error n ->
+         log#f 4 "Faad error: %s\n%!" (Faad.error_message n)
   in
-    { Decoder.fill = fill ; Decoder.close = close }
+  let position (_,fd,_,_,_,_,_) = Unix.lseek fd 0 Unix.SEEK_CUR in
+  let decoder =
+   {
+    File_decoder.Float.
+     log = log;
+     openfile = openfile;
+     decode = decode;
+     position = position;
+     close = close
+   }
+  in
+  File_decoder.Float.decode decoder
 
 let () =
   Decoder.formats#register "AAC"

@@ -24,70 +24,53 @@
 
 module Generator = Float_pcm.Generator_from_raw
 
+let log = Dtools.Log.make ["format";"natty"]
+
 let bytes_to_get = 1024*64
 
-let decoder_pcm ~get_samples ~pcm w file =
-  (** Generator's input format *)
-  let channels   = pcm.Natty.channels in
-  let in_freq    = float (pcm.Natty.sample_rate) in
-  let samplesize = pcm.Natty.bits_per_sample in
-  let big_endian = pcm.Natty.endianess <> Natty.Little_endian in
-  let signed     = true in
-  let out_freq   = float (Fmt.samples_per_second()) in
-  let abg =
-    Generator.create
-      ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
+let decoder_pcm ~get_samples ~pcm w =
+  let openfile name = 
+    let file = w name in
+    let pcm = pcm file in
+    (** Generator's input format *)
+    let channels   = pcm.Natty.channels in
+    let in_freq    = float (pcm.Natty.sample_rate) in
+    let samplesize = pcm.Natty.bits_per_sample in
+    let big_endian = pcm.Natty.endianess <> Natty.Little_endian in
+    let signed     = true in
+    let out_freq   = float (Fmt.samples_per_second()) in
+    let abg =
+      Generator.create
+        ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
+    in
+    let position = ref 0 in
+    (file,position),abg
   in
-  let buffer_length = Decoder.buffer_length () in
-
-  let stats = Unix.stat file in
-  let file_size = stats.Unix.st_size in
-  let in_bytes = ref 0 in
-  let out_samples = ref 0 in
-  let closed = ref false in
-  let close () =
-    assert (not !closed) ;
-    closed := true ;
+  let close _ = () in
+  let decode (file,position) abg =
+    let tmpbuf = get_samples file bytes_to_get in
+    let l = String.length tmpbuf in
+    position := !position + l ;
+    Generator.feed abg tmpbuf
   in
-  let fill buf =
-    assert (not !closed) ;
-
-    begin
-      try
-        while Generator.length abg < buffer_length do
-          let tmpbuf = get_samples w bytes_to_get in
-	  let l = String.length tmpbuf in
-            in_bytes := !in_bytes + l ;
-            Generator.feed abg tmpbuf
-        done
-      with _ -> () (* End_of_file of bad format raised by feed *)
-    end ;
-
-    let offset = AFrame.position buf in
-      Generator.fill abg buf ;
-      out_samples := !out_samples + AFrame.position buf - offset ;
-      (* Compute an estimated number of remaining ticks. *)
-      let abglen = Generator.length abg in
-        assert (!in_bytes!=0) ;
-        let compression =
-          (float (!out_samples+abglen)) /. (float !in_bytes)
-        in
-        let remaining_samples =
-          (float (file_size - !in_bytes)) *. compression
-          +. (float abglen)
-        in
-          (* I suspect that in_samples in not accurate, since I don't
-           * get an exact countdown after than in_size=in_samples, but there
-           * is a stall at the beginning after which the countdown starts. *)
-          Fmt.ticks_of_samples (int_of_float remaining_samples)
-
-  in { Decoder.fill = fill ; Decoder.close = close }
+  let position (_,position) = !position in
+  let decoder =
+   {
+    File_decoder.Raw.
+     log = log;
+     openfile = openfile;
+     decode = decode;
+     position = position;
+     close = close
+   }
+  in
+  File_decoder.Raw.decode decoder
 
 let () =
-  let decoder name =
-    let f = Natty.Au.open_f name in
-    let pcm =
-      match f.Natty.Au.format with
+  let decoder =
+    let f = Natty.Au.open_f in
+    let pcm x =
+      match x.Natty.Au.format with
         | Natty.Pcm x -> x
 	| _ -> failwith "unrecognized format"
     in
@@ -102,16 +85,16 @@ let () =
             else
               x
     in
-    decoder_pcm ~get_samples ~pcm f name
+    decoder_pcm ~get_samples ~pcm f
   in
   Decoder.formats#register "AU"
     (fun name -> try Some (decoder name) with _ -> None)
 
 let () =
-  let decoder name =
-    let f = Natty.Aiff.open_f name in
-    let pcm =
-      match f.Natty.Aiff.format with
+  let decoder =
+    let f = Natty.Aiff.open_f in
+    let pcm x =
+      match x.Natty.Aiff.format with
         | Natty.Pcm x -> x
         | _ -> failwith "unrecognized format"
     in
@@ -126,7 +109,7 @@ let () =
             else
               x
     in
-    decoder_pcm ~get_samples ~pcm f name
+    decoder_pcm ~get_samples ~pcm f
   in
   Decoder.formats#register "AIFF"
     (fun name -> try Some (decoder name) with _ -> None)

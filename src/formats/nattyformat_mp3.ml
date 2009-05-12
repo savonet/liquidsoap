@@ -22,70 +22,49 @@
 
 (** Decode mp3 audio from files parsed by ocaml-natty. *)
 
-let decoder_mp3 get_next file =
-  let fd =
-    Mad.openstream get_next
-  in
-  let abg = Float_pcm.Generator.create () in
-  let buffer_length = Decoder.buffer_length () in
-  let stats = Unix.stat file in
-  let file_size = stats.Unix.st_size in
-  let in_bytes = ref 0 in
-  let out_samples = ref 0 in
-  let closed = ref false in
-  let close () =
-    assert (not !closed) ;
-    closed := true
-  in
-  let fill =
-    fun buf ->
-      assert (not !closed) ;
+let log = Dtools.Log.make ["format";"natty+nsv"]
 
-      begin
-        try
-          while Float_pcm.Generator.length abg < buffer_length do
-            let data = Mad.decode_frame_float fd in
-            let sample_freq,_,_ = Mad.get_output_format fd in
-              Float_pcm.Generator.feed abg ~sample_freq data
-          done
-        with
-          | _ -> ()
-      end ;
-
-      let offset = AFrame.position buf in
-        Float_pcm.Generator.fill abg buf ;
-        in_bytes := 15 ;
-        out_samples := !out_samples + AFrame.position buf - offset ;
-        (* Compute an estimated number of remaining ticks. *)
-        let abglen = Float_pcm.Generator.length abg in
-          if !in_bytes = 0 then
-            0
-          else
-            let compression =
-              (float (!out_samples+abglen)) /. (float !in_bytes)
-            in
-            let remaining_samples =
-              (float (file_size - !in_bytes)) *. compression
-              +. (float abglen)
-            in
-              (* I suspect that in_bytes in not accurate, since I don't
-               * get an exact countdown after that in_size=in_bytes.
-               * Instead, there is a stall at the beginning
-               * after which the countdown starts. *)
-              Fmt.ticks_of_samples (int_of_float remaining_samples)
+let decoder_mp3 get_next position f =
+  let openfile file = 
+    let file = f file in
+    let get_next = get_next file in
+    let fd =
+      Mad.openstream get_next
+    in
+    let abg = Float_pcm.Generator.create () in
+    fd,abg
   in
-    { Decoder.fill = fill ; Decoder.close = close }
+  let close _ = () in
+  let decode fd abg =
+    let data = Mad.decode_frame_float fd in
+    let sample_freq,_,_ = Mad.get_output_format fd in
+    Float_pcm.Generator.feed abg ~sample_freq data
+  in
+  let position _ = !position in
+  let decoder =
+   {
+    File_decoder.Float.
+     log = log;
+     openfile = openfile;
+     decode = decode;
+     position = position;
+     close = close
+   }
+  in
+  File_decoder.Float.decode decoder
 
 let () =
-  let decoder name =
-    let f = Natty.Nsv.open_f name in
-    let get_next n =
+  let decoder =
+    let f = Natty.Nsv.open_f in
+    let position = ref 0 in
+    let get_next x n =
       let payload =
-        snd (Natty.Nsv.get_frame f)
+        snd (Natty.Nsv.get_frame x)
       in
+      position := !position + String.length payload.Natty.Nsv.audio;
       payload.Natty.Nsv.audio,String.length payload.Natty.Nsv.audio
     in
-    decoder_mp3 get_next name
+    decoder_mp3 get_next position f
   in
   Decoder.formats#register "NSV"
     (fun name -> try Some (decoder name) with _ -> None)

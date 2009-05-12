@@ -56,64 +56,23 @@ let check file =
    (** Mime check disabled.. *)
    true
 
-let decoder file =
-  if not (check file) then
-    assert false;
-  let fd =
-    log#f 4 "open %S" file ;
-    Mad.openfile file
-  in
-  let abg = Generator.create () in
-  let buffer_length = Decoder.buffer_length () in
-  let stats = Unix.stat file in
-  let file_size = stats.Unix.st_size in
-  let in_bytes = ref 0 in
-  let out_samples = ref 0 in
-  let closed = ref false in
-  let close () =
-    assert (not !closed) ;
-    closed := true ;
-    log#f 4 "close %S" file ;
-    Mad.close fd
-  in
-  let fill =
-    fun buf ->
-      assert (not !closed) ;
-
-      begin
-        try
-          while Generator.length abg < buffer_length do
-            let data = Mad.decode_frame_float fd in
-            let sample_freq,_,_ = Mad.get_output_format fd in
-              Generator.feed abg ~sample_freq data
-          done
-        with
-          | _ -> ()
-      end ;
-
-      let offset = AFrame.position buf in
-        Generator.fill abg buf ;
-        in_bytes := Mad.get_current_position fd ;
-        out_samples := !out_samples + AFrame.position buf - offset ;
-        (* Compute an estimated number of remaining ticks. *)
-        let abglen = Generator.length abg in
-          if !in_bytes = 0 then
-            0
-          else
-            let compression =
-              (float (!out_samples+abglen)) /. (float !in_bytes)
-            in
-            let remaining_samples =
-              (float (file_size - !in_bytes)) *. compression
-              +. (float abglen)
-            in
-              (* I suspect that in_bytes in not accurate, since I don't
-               * get an exact countdown after that in_size=in_bytes.
-               * Instead, there is a stall at the beginning
-               * after which the countdown starts. *)
-              Fmt.ticks_of_samples (int_of_float remaining_samples)
-  in
-    { Decoder.fill = fill ; Decoder.close = close }
+let decoder = 
+  { 
+   File_decoder.Float.
+    log = log;
+    openfile = 
+      (fun file ->
+        if not (check file) then
+          assert false;
+        Mad.openfile file,Generator.create ());
+    decode = 
+      (fun fd abg -> 
+         let data = Mad.decode_frame_float fd in
+         let sample_freq,_,_ = Mad.get_output_format fd in
+         Generator.feed abg ~sample_freq data);
+    position = Mad.get_current_position;
+    close = Mad.close
+  }
 
 let duration file =
   if not (check file) then
@@ -124,5 +83,8 @@ let duration file =
     | _ -> ans
 
 let () = Decoder.formats#register "MP3"
-           (fun name -> try Some (decoder name) with _ -> None);
+           (fun name -> 
+             try 
+               Some (File_decoder.Float.decode decoder name) 
+             with _ -> None);
          Request.dresolvers#register "MP3" duration
