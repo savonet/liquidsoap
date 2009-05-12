@@ -19,6 +19,8 @@ The constants and their syntax are quite common:
 
 Strings might be surrounded by double or single quotes. In both cases, you can escape the quote you're using: <code>"He said: \"Hello, you\"."</code> is valid but <code>'He said: "Hello, you".'</code> is equivalent and nicer.
 
+Also, you can include variables in a string using the following syntax: <code>"foo #{quote(my_var)} bar"</code>.
+
 h4. Expressions
 
 You can form expressions by using:
