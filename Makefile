@@ -33,6 +33,10 @@ finish-configure:
 	@echo let display_types = ref false >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
+	@echo "(* Enable backtrace printing if possible, does nothing on ocaml<3.11 *)" >> src/configure.ml
+	@echo "let record_backtrace _ = ()" >> src/configure.ml
+	@echo "open Printexc" >> src/configure.ml
+	@echo "let () = record_backtrace true" >> src/configure.ml
 	@echo Creating scripts/liquidsoap.logrotate
 	@cat scripts/liquidsoap.logrotate.in | \
 	  sed -e s:@localstatedir@:$(localstatedir): > scripts/liquidsoap.logrotate
