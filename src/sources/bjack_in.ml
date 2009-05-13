@@ -35,7 +35,7 @@ class jack_in ~nb_blocks ~server =
 object (self)
   inherit active_source
   inherit [string] IoRing.input 
-      ~nb_blocks ~blank () as ioring
+      ~blocking:true ~nb_blocks ~blank () as ioring
 
   method stype = Infallible
   method is_ready = true
