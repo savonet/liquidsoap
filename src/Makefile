@@ -148,7 +148,8 @@ visualization = visualization/vumeter.ml \
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	tools/server.ml tools/server_builtins.ml \
-	$(if $(W_LAST),tools/liqfm.ml) alsa_settings.ml \
+	$(if $(W_LAST),tools/liqfm.ml) \
+	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/harbor.ml tools/ioRing.ml tools/file_decoder.ml \
