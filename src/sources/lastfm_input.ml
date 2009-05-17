@@ -68,13 +68,7 @@ object (self)
         List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
         http#insert_metadata metas;
         if submit then 
-          begin
-            match login with
-             | Some s -> Liqfm.submit (s.user,s.password) true Liqfm.Lastfm [metas]
-             | None -> 
-                 self#log#f 3 
-                   "Lastfm Submission failed: not authenficated"
-          end ;
+          Liqfm.submit (login.user,login.password) true Liqfm.Lastfm [metas] ;
         http#connect uri
     with
       | Lastfm.Radio.Error e ->
