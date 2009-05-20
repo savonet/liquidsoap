@@ -612,10 +612,10 @@ CAMLprim value caml_rgb_bilinear_scale(value _dst, value _src, value xscale, val
     for (i = ox; i < dst.width - ox; i++)
     {
       dx = (i - ox) / ax;
-      i2 = floorl(dx);
+      i2 = floor(dx);
       dx -= i2;
       dy = (j - oy) / ay;
-      j2 = floorl(dy);
+      j2 = floor(dy);
       dy -= j2;
       for (c = 0; c < Rgb_elems_per_pixel; c++)
         Color(&dst, c, i, j) =
@@ -940,7 +940,7 @@ CAMLprim value caml_rgb_disk_opacity(value _rgb, value _x, value _y, value _r)
   for (j = 0; j < rgb.height; j++)
     for (i = 0; i < rgb.width; i++)
     {
-      r = sqrtl((i - x) * (i - x) + (j - y) * (j - y));
+      r = sqrt((double)(i - x) * (i - x) + (j - y) * (j - y));
       if (r > radius)
         Alpha(&rgb, i, j) = 0;
     }
