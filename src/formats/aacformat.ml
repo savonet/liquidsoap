@@ -97,7 +97,7 @@ let decoder =
 let log = Dtools.Log.make ["format";"aacmp4"]
 
 let decoder_mp4 =
-  let openfile file = 
+  let openfile file =
     let dec = Faad.create () in
     let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
     try
@@ -142,3 +142,16 @@ let () =
     (fun name -> try Some (decoder name) with _ -> None);
   Decoder.formats#register "AACMP4"
     (fun name -> try Some (decoder_mp4 name) with _ -> None)
+
+let get_tags ~format file =
+  if format <> "AACMP4" then raise Not_found;
+  let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
+    try
+      let mp4 = Faad.Mp4.openfile_fd fd in
+      let m = Array.to_list (Faad.Mp4.metadata mp4) in
+        Unix.close fd;
+        m
+    with
+      | e -> Unix.close fd; raise e
+
+let () = Request.mresolvers#register "AACMP4" get_tags
