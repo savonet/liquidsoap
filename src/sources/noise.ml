@@ -20,20 +20,23 @@
 
  *****************************************************************************)
 
-(** Generate a saw *)
+(** Generate a white noise *)
 
 open Source
 
 class noise duration =
-  let nb_samples = Fmt.samples_of_seconds duration in
+    let nb_samples = Fmt.samples_of_seconds duration in
+
 object
   inherit source
 
   method stype = Infallible
   method is_ready = true
 
+  (** The [remaining] variable is only used if [nb_samples>0]. *)
   val mutable remaining = nb_samples
-  method remaining = Fmt.ticks_of_samples remaining
+  method remaining =
+    if nb_samples>0 then Fmt.ticks_of_samples remaining else -1
 
   val mutable must_fail = false
   method abort_track =
@@ -43,21 +46,31 @@ object
   method private get_frame ab =
     if must_fail then begin
       AFrame.add_break ab (AFrame.position ab);
-      remaining <- nb_samples ;
+      remaining <- nb_samples;
       must_fail <- false
     end else
       let b = AFrame.get_float_pcm ab in
       let off = AFrame.position ab in
-      let size = AFrame.size ab in
+      let end_off =
+        if nb_samples > 0 then
+          min (AFrame.size ab) (off + remaining)
+        else
+          AFrame.size ab
+      in
+      let write i x =
         for c = 0 to Array.length b - 1 do
-          let buf_c = b.(c) in
-            for i = off to size - 1 do
-              buf_c.(i) <- Random.float 2. -. 1.
-            done ;
-        done ;
-        AFrame.add_break ab (AFrame.size ab) ;
-        remaining <- remaining - (AFrame.size ab) - off ;
-        if remaining <= 0 then must_fail <- true
+          b.(c).(i) <- x
+        done
+      in
+        for i = off to end_off - 1 do
+          write i (Random.float 2. -. 1.);
+        done;
+        AFrame.add_break ab end_off;
+        if end_off < AFrame.size ab then begin
+          remaining <- nb_samples
+        end else begin
+          remaining <- remaining - end_off + off;
+        end
 
 end
 
