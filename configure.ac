@@ -1166,7 +1166,7 @@ fi
 AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],[don't use OSS]))
 
 if test "x$enable_oss" != "xno" ; then
-  AC_CHECK_HEADERS([linux/sound.h],[W_OSS="yes"])
+  AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
 fi
 
 AC_SUBST(W_OSS)

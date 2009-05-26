@@ -5,7 +5,7 @@
 #include <caml/misc.h>
 #include <caml/mlvalues.h>
 
-#include <linux/soundcard.h>
+#include <sys/soundcard.h>
 #include <sys/ioctl.h>
 #include <assert.h>
 
