@@ -59,6 +59,11 @@ _BLAH_
 # This is ugly, I'd like to find a better solution.
 if test "x$prefix" = "xNONE" ; then
   prefix=/usr/local
+else
+  # Add passed prefix to compilation variables.
+  CFLAGS="$CFLAGS -I$prefix/include"
+  LDFLAGS="$LDFLAGS -L$prefix/lib"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include"
 fi
 
 # User/group for installed files and directories
