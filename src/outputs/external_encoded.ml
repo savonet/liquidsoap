@@ -101,13 +101,13 @@ object (self)
          | Some (_,x) ->
              begin
               try
-                output_string x sbuf
+                output_string x sbuf;
+                Mutex.unlock create_m
               with
                 | _ ->
                   Mutex.unlock create_m; 
                   self#external_reset_on_crash
-             end;
-             Mutex.unlock create_m
+             end
          | None ->
               Mutex.unlock create_m;
               raise External_failure
