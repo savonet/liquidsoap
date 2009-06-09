@@ -41,14 +41,6 @@ type random_mode = Random | Randomize | Normal
  *)
 type reload_mode = Never | Every_N_rounds of int | Every_N_seconds of float
 
-let rev_array_of_list l =
-  let n = List.length l in
-  let a = Array.make n "" in
-    ignore (List.fold_left
-              (fun i e ->
-                 a.(i) <- e ; i-1) (n-1) l) ;
-    a
-
 let is_dir f =
   try
     (Unix.stat f).Unix.st_kind = Unix.S_DIR
@@ -72,6 +64,7 @@ let rec list_files (log : Log.t) dir =
          )
       )
   in
+  let files = List.sort compare files in
     files@(List.concat (List.map (fun d -> list_files log d) dirs))
 
 class virtual vplaylist ~mime ~reload 
@@ -199,7 +192,7 @@ object (self)
          * otherwise, the source type must be aware of the failure *)
         Mutex.lock mylock ;
         assert (not (self#stype = Infallible && _playlist = [])) ;
-        playlist := rev_array_of_list _playlist ;
+        playlist := Array.of_list _playlist ;
         playlist_uri <- uri ;
         (* The only case where keeping the old index is safe and makes sense *)
         if not (random = Normal && index_played < Array.length !playlist) then
