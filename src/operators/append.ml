@@ -51,7 +51,11 @@ object (self)
                       if finished then
                         if append#is_ready then begin
                           state <- `Append append ;
-                          if merge then self#get_frame buf
+                          if merge then
+                            let pos = Frame.position buf in
+                              self#get_frame buf ;
+                              Frame.set_breaks buf
+                                (Utils.remove_one ((=) pos) (Frame.breaks buf))
                         end else begin
                           self#log#f 3
                             "Track ends and append source is not ready: \
@@ -74,7 +78,11 @@ object (self)
           if Frame.is_partial buf then
             if a#is_ready then begin
               state <- `Append a ;
-              if merge then self#get_frame buf
+              if merge then
+                let pos = Frame.position buf in
+                  self#get_frame buf ;
+                  Frame.set_breaks buf
+                    (Utils.remove_one ((=) pos) (Frame.breaks buf))
             end else begin
               self#log#f 3
                 "Track ends and append source is not ready: won't append." ;
