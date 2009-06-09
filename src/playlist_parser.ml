@@ -47,7 +47,8 @@ type playlist = ((string * string) list * string) list
 (** A plugin is a boolean and a parsing function *)
 type plugin = { 
   strict : bool; (* true is the format can be detected *)
-  parser: string -> playlist
+  parser: string -> playlist (* The parser is expected to respect the order
+                                of the files in the playlist. *)
 }
 
 (** Parsers are given a string and return a list of metadatas,uri, if possible. *)

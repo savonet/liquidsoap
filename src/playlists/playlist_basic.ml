@@ -46,7 +46,7 @@ let parse_mpegurl string =
       (fun s -> String.length s > 0 && s.[0] <> '#')
       lines
   in
-  List.rev (List.map (fun t -> [],t) urls)
+  List.map (fun t -> [],t) urls
 
 let parse_scpls string =
   test_text string ;
@@ -66,7 +66,7 @@ let parse_scpls string =
       lines
   in
   let urls = List.filter (fun s -> s <> "") urls in
-  List.rev (List.map (fun t -> [],t) urls)
+  List.map (fun t -> [],t) urls
 
 let () =
   Playlist_parser.parsers#register "audio/x-scpls" { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls } ;
