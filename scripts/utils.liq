@@ -847,6 +847,7 @@ def playlist.once(~random=false,~on_done={()},uri)
       log("Couldn't read playlist: request resolution failed.")
       fail ()
     end
+    request.destroy(playlist)
   end
 end
 
