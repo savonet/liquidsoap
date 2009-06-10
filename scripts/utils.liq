@@ -838,16 +838,18 @@ def playlist.once(~random=false,~on_done={()},uri)
     playlist.custom(files)
   else
     playlist = request.create(audio=false,uri)
-    if request.resolve(playlist) then
-      playlist = request.filename(playlist)
-      files = playlist.parse(playlist)
-      files = list.map(snd,files)
-      playlist.custom(files)
-    else
-      log("Couldn't read playlist: request resolution failed.")
-      fail ()
-    end
+    result = 
+      if request.resolve(playlist) then
+        playlist = request.filename(playlist)
+        files = playlist.parse(playlist)
+        files = list.map(snd,files)
+        playlist.custom(files)
+      else
+        log("Couldn't read playlist: request resolution failed.")
+        fail ()
+      end
     request.destroy(playlist)
+    result
   end
 end
 
