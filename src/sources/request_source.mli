@@ -37,7 +37,8 @@ object
 end
 
 class virtual queued :
-  ?length:float -> ?default_duration:float -> ?timeout:float -> unit ->
+  ?length:float -> ?default_duration:float -> ?conservative:bool -> 
+  ?timeout:float -> unit ->
 object
   method copy_queue : Request.audio Request.t list
 
@@ -55,4 +56,4 @@ object
 end
 
 val queued_proto : Lang.proto
-val extract_queued_params : Lang.env -> float*float*float
+val extract_queued_params : Lang.env -> float*float*float*bool

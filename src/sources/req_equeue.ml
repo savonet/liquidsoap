@@ -29,9 +29,10 @@ let move_re = Str.regexp "\\([0-9]+\\) +\\(-?[0-9]+\\)"
 
 (** [telnet_request] is an [external_request] which queue is feed by
   * requests made over the network using the Server interface. *)
-class equeue length default_duration timeout =
+class equeue length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration ~timeout () as super
+  inherit Request_source.queued ~length ~default_duration 
+     ~timeout ~conservative () as super
 
   val queue = Rqueue.create ()
 
@@ -154,5 +155,5 @@ let () =
             "Insertion and deletion possible at any position.")
     Request_source.queued_proto
     (fun p _ ->
-       let l,d,t = Request_source.extract_queued_params p in
-         ((new equeue l d t) :> source))
+       let l,d,t,c = Request_source.extract_queued_params p in
+         ((new equeue l d t c) :> source))

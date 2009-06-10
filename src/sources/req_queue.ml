@@ -34,9 +34,10 @@ let split x =
   * requests are stored. These requests can typically be pushed when some
   * user emits a request. *)
 class queue ?(requests=Queue.create()) ?(interactive=true)
-            length default_duration timeout =
+            length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration ~timeout () as queued
+  inherit Request_source.queued ~length ~default_duration 
+     ~timeout ~conservative () as queued
 
   val reqlock = Mutex.create ()
 
@@ -178,7 +179,7 @@ let () =
       Some "Should the queue be controllable via telnet?")::
      Request_source.queued_proto)
     (fun p _ ->
-       let l,d,t = Request_source.extract_queued_params p in
+       let l,d,t,c = Request_source.extract_queued_params p in
        let interactive = Lang.to_bool (Lang.assoc "interactive" 1 p) in
        let requests = Queue.create () in
          List.iter
@@ -186,4 +187,4 @@ let () =
               | Some r -> Queue.add r requests
               | None -> ())
            (Lang.to_list (List.assoc "queue" p)) ;
-         ((new queue ~requests ~interactive l d t) :> source))
+         ((new queue ~requests ~interactive l d t c) :> source))

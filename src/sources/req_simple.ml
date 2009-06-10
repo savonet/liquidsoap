@@ -40,9 +40,10 @@ object (self)
   method get_next_file = Some r
 end
 
-class queued uri length default_duration timeout =
+class queued uri length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration ~timeout ()
+  inherit Request_source.queued 
+      ~length ~default_duration ~conservative ~timeout ()
   method get_next_request = self#create_request uri
 end
 
@@ -59,7 +60,7 @@ let () =
      queued_proto)
     (fun p _ ->
        let val_uri = List.assoc "" p in
-       let l,d,t = extract_queued_params p in
+       let l,d,t,c = extract_queued_params p in
        let uri = Lang.to_string val_uri in
          try match
            (* Being static is not enough when the single() is being
@@ -76,7 +77,7 @@ let () =
                      (* This is only ran at startup, it's very unlikely
                       * that we ever run out of RID there... *)
                      log#f 2 "No available RID: %S will be queued.." uri ;
-                     ((new queued uri l d t) :> source)
+                     ((new queued uri l d t c) :> source)
                  | Some r ->
                      log#f 3 "%S is static, resolving once for all..." uri ;
                      if Request.Resolved <> Request.resolve r 60. then
@@ -85,7 +86,7 @@ let () =
                end
            | None | Some false ->
                log#f 3 "%S will be queued." uri ;
-               ((new queued uri l d t) :> source)
+               ((new queued uri l d t c) :> source)
          with
            | Invalid_URI ->
                raise (Lang.Invalid_value
@@ -105,9 +106,11 @@ let () =
        let r = Utils.get_some (Lang.to_request (List.assoc "" p)) in
          ((new unqueued r):>source))
 
-class dynamic (f:Lang.value) length default_duration timeout =
+class dynamic (f:Lang.value) length default_duration 
+               timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration ~timeout ()
+  inherit Request_source.queued ~length ~default_duration 
+       ~timeout ~conservative ()
   method get_next_request =
     try
       match Lang.to_request (Lang.apply f []) with
@@ -131,5 +134,5 @@ let () =
      ::queued_proto)
     (fun p _ ->
        let f = List.assoc "" p in
-       let l,d,t = extract_queued_params p in
-         ((new dynamic f l d t) :> source))
+       let l,d,t,c = extract_queued_params p in
+         ((new dynamic f l d t c) :> source))

@@ -359,7 +359,8 @@ end
 class playlist ~mime ~reload 
                ~random ~length 
                ~default_duration
-               ~timeout ~prefix 
+               ~timeout ~prefix
+               ~conservative 
                uri =
 object
 
@@ -368,7 +369,7 @@ object
                     ~prefix uri as pl
   inherit Request_source.queued 
             ~length ~default_duration 
-            ~timeout () as super
+            ~timeout ~conservative () as super
 
   method reload_playlist_internal a b c =
     pl#reload_playlist_internal a b c ;
@@ -506,12 +507,12 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
-         let length,default_duration,timeout = 
+         let length,default_duration,timeout,conservative = 
                 Request_source.extract_queued_params params 
          in
            ((new playlist ~mime ~reload ~prefix 
                           ~length ~default_duration
-                          ~timeout ~random uri):>source)) ;
+                          ~timeout ~random ~conservative uri):>source)) ;
 
     Lang.add_operator "playlist.safe"
       ~category:Lang.Input

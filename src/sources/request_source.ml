@@ -71,7 +71,7 @@ object (self)
     assert (current = None) ;
     match self#get_next_file with
       | None ->
-          self#log#f 5 "Failed to prepare track: no file" ;
+          self#log#f 6 "Failed to prepare track: no file" ;
           false
       | Some req when Request.is_ready req ->
           (* [Request.is_ready] ensures that we can get a filename from
@@ -154,7 +154,9 @@ let priority = Tutils.Maybe_blocking
   * - the source tries to have more than [length] seconds in queue
   * - if the duration of a file is unknown we use [default_duration] seconds
   * - downloading a file is required to take less than [timeout] seconds *)
-class virtual queued ?(length=60.) ?(default_duration=30.) ?(timeout=20.) () =
+class virtual queued 
+  ?(length=10.) ?(default_duration=30.) 
+  ?(conservative=false) ?(timeout=20.) () =
 object (self)
   inherit unqueued as super
 
@@ -164,7 +166,12 @@ object (self)
   val min_queue_length = Fmt.ticks_of_seconds length
   val qlock = Mutex.create ()
   val retrieved = Queue.create ()
-  val mutable queue_length = 0 (* Frames *)
+  val mutable queued_length = 0 (* Frames *)
+  method private queue_length = 
+    if not conservative then
+      queued_length + super#remaining
+     else
+      queued_length
   val mutable resolving = None
 
   val mutable task = None
@@ -233,7 +240,7 @@ object (self)
   (** The body of the feeding task *)
   method private feed_queue reload =
     (fun _ -> 
-      if !reload && queue_length < min_queue_length then
+      if !reload && self#queue_length < min_queue_length then
         match self#prefetch with
           | Finished ->
                [{ Duppy.Task.
@@ -270,9 +277,9 @@ object (self)
                 in
                   Mutex.lock qlock ;
                   Queue.add (len,req) retrieved ;
-                  self#log#f 4 "queue length %d+=%d (rid %d)"
-                    queue_length len (Request.get_id req) ;
-                  queue_length <- queue_length + len ;
+                  self#log#f 4 "Remaining : %d, queued: %d, adding : %d (rid %d)"
+                    self#queue_length queued_length len (Request.get_id req) ;
+                  queued_length <- queued_length + len ;
                   Mutex.unlock qlock ;
                   resolving <- None ;
                   Finished
@@ -289,17 +296,22 @@ object (self)
     let ans =
       try
         let len,f = Queue.take retrieved in
-          self#log#f 4 "queue length %d-=%d" queue_length len ;
-          queue_length <- queue_length - len ;
+          self#log#f 4 "Remaining : %d, queued: %d, taking : %d" 
+              self#queue_length queued_length len ;
+          queued_length <- queued_length - len ;
           Some f
       with
         | Queue.Empty ->
-            self#log#f 5 "Queue is empty !" ;
+            self#log#f 6 "Queue is empty !" ;
             None
     in
       Mutex.unlock qlock ;
-      self#create_task ;
       ans
+
+  method get ab = 
+    super#get ab ;
+    if self#queue_length < min_queue_length then
+      self#create_task
 
   method copy_queue =
     Mutex.lock qlock ;
@@ -320,10 +332,13 @@ object (self)
 end
 
 let queued_proto =
-  [ "length", Lang.float_t, Some (Lang.float 60.),
+  [ "length", Lang.float_t, Some (Lang.float 10.),
     Some "How much audio (in sec.) should be downloaded in advance." ;
     "default_duration", Lang.float_t, Some (Lang.float 30.),
     Some "When unknown, assume this duration (in sec.) for files." ;
+    "conservative", Lang.bool_t, Some (Lang.bool false),
+    Some "If true, estimated remaining time on the current track \
+          is not considered when computing queue length." ;
     "timeout", Lang.float_t, Some (Lang.float 20.),
     Some "Timeout (in sec.) for a single download." ]
 
@@ -331,4 +346,5 @@ let extract_queued_params p =
   let l = Lang.to_float (List.assoc "length" p) in
   let d = Lang.to_float (List.assoc "default_duration" p) in
   let t = Lang.to_float (List.assoc "timeout" p) in
-    l,d,t
+  let c = Lang.to_bool (List.assoc "conservative" p) in
+    l,d,t,c
