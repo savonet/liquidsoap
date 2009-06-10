@@ -36,6 +36,10 @@ let proto =
       Lang.string_t, None, Some "External encoding process. \
                                  Takes initial metadata and return \
                                  the command to start.";
+     "samplerate",
+     Lang.int_t,
+     Some (Lang.int 44100),
+     Some "Output sample rate.";
      "header",
       Lang.bool_t, Some (Lang.bool true), Some "Write wav header at \
                  beginning of encoded input.";
@@ -60,9 +64,13 @@ let m =
 let initial_meta = m
 
 class virtual base ~restart_on_new_track ~restart_on_crash 
-                   ~header ~restart_encoder_delay process =
+                   ~header ~restart_encoder_delay 
+                   ~samplerate process =
   let cond_m = Mutex.create () in
   let cond = Condition.create () in
+  let ratio = 
+    (float samplerate) /. (float (Fmt.samples_per_second ()))
+  in
 object (self)
 
   method virtual log : Dtools.Log.t
@@ -70,6 +78,8 @@ object (self)
   val mutable encoder : external_encoder option = None
 
   val mutable is_task = false
+
+  val converter = Audio_converter.Samplerate.create (Fmt.channels ())
 
   val read_m = Mutex.create ()
   val read = Buffer.create 10
@@ -91,6 +101,17 @@ object (self)
       let b = AFrame.get_float_pcm frame in
       let start = Fmt.samples_of_ticks start in
       let len = Fmt.samples_of_ticks len in
+      (* Resample if needed. *)
+      let b,start,len = 
+        if ratio = 1. then
+          b,start,len
+        else
+          let b = 
+            Audio_converter.Samplerate.resample 
+                   converter ratio b start len
+          in
+          b,0,Array.length b.(0)
+      in
       let slen = 2 * len * Array.length b in
       let sbuf = String.create slen in
       ignore(Float_pcm.to_s16le b start len sbuf 0);
@@ -162,7 +183,7 @@ object (self)
       begin
         let header =
           Wav.header ~channels:(Fmt.channels ())
-                     ~sample_rate:(Fmt.samples_per_second ())
+                     ~sample_rate:samplerate
                      ~sample_size:16
                      ~big_endian:false ~signed:true ()
         in
@@ -264,13 +285,14 @@ class to_file
   ~append ~perm ~dir_perm ~reload_delay 
   ~reload_predicate ~reload_on_metadata
   ~filename ~autostart ~process ~restart_on_new_track
-  ~header ~restart_on_crash ~restart_encoder_delay source =
+  ~header ~restart_on_crash ~restart_encoder_delay 
+  ~samplerate source =
 object (self)
   inherit Output.encoded ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
-  inherit base ~restart_on_new_track ~header 
+  inherit base ~restart_on_new_track ~header ~samplerate
                ~restart_on_crash ~restart_encoder_delay 
                process as base
 
@@ -313,6 +335,7 @@ let () =
        let source = Lang.assoc "" 2 p in
        let append = Lang.to_bool (List.assoc "append" p) in
        let perm = Lang.to_int (List.assoc "perm" p) in
+       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
        let process = List.assoc "process" p in
        let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
        let reload_predicate = List.assoc "reopen_when" p in
@@ -332,16 +355,17 @@ let () =
              ~append ~perm ~dir_perm ~reload_delay 
              ~reload_predicate ~reload_on_metadata
              ~autostart ~process ~header ~restart_on_new_track
-             ~restart_on_crash source):>Source.source))
+             ~restart_on_crash ~samplerate source):>Source.source))
 
 class to_pipe
   ~process ~restart_on_new_track 
   ~restart_encoder_delay ~restart_on_crash
-  ~header ~autostart source =
+  ~header ~autostart ~samplerate source =
 object (self)
   inherit Output.encoded ~name:"" ~kind:"output.pipe" ~autostart source
   inherit base ~restart_on_new_track ~restart_on_crash 
-               ~restart_encoder_delay ~header process as base
+               ~restart_encoder_delay ~header 
+               ~samplerate process as base
 
   method send _ = () 
 
@@ -376,6 +400,7 @@ let () =
        let autostart = e Lang.to_bool "start" in
        let source = Lang.assoc "" 1 p in
        let process = List.assoc "process" p in
+       let samplerate = Lang.to_int (List.assoc "samplerate" p) in
        let restart_on_new_track =
          Lang.to_bool (List.assoc "restart_on_new_track" p)
        in
@@ -385,5 +410,6 @@ let () =
        in
        let header = Lang.to_bool (List.assoc "header" p) in
          ((new to_pipe ~autostart ~process ~header ~restart_on_new_track
-                       ~restart_on_crash ~restart_encoder_delay source)
+                       ~restart_on_crash ~restart_encoder_delay 
+                       ~samplerate source)
           :>Source.source))

@@ -33,8 +33,6 @@ let proto =
     Some "Bitrate information for icecast. Not used if negative.";
     "quality", Lang.float_t, Some (Lang.float (-1.)),
     Some "Quality information for icecast. Not used if negative.";
-    "samplerate", Lang.int_t, Some (Lang.int (-1)),
-    Some "Samplerate information for icecast. Not used if negative.";
     "channels", Lang.int_t, Some (Lang.int (-1)),
     Some "Channels information for icecast. Not used if negative.";
     "icy_metadata", Lang.bool_t, Some (Lang.bool true),
@@ -68,7 +66,7 @@ class to_shout p =
      else
        None
   in
-  let samplerate = f (e Lang.to_int "samplerate") in
+  let samplerate = e Lang.to_int "samplerate" in
   let channels   = f (e Lang.to_int "channels") in
   let autostart = e Lang.to_bool "start" in
   let source = List.assoc "" p in
@@ -110,7 +108,7 @@ class to_shout p =
       quality    = quality;
       bitrate    = bitrate;
       channels   = channels;
-      samplerate = samplerate
+      samplerate = Some samplerate
     }
   in
 object (self)
@@ -120,7 +118,8 @@ object (self)
       ~icecast_info ~mount ~name ~source p as icecast
   inherit
     External_encoded.base ~restart_on_new_track ~restart_on_crash 
-                          ~restart_encoder_delay ~header process
+                          ~restart_encoder_delay ~header 
+                          ~samplerate process
     as base
 
   method reset_encoder m =

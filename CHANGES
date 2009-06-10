@@ -37,6 +37,7 @@ New:
    list of headers given by the connected source (#266).
  - Added built-in support for m4a audio files and metadata.
    Made external support optional through enable_faad.
+ - Added optional resampling for output.external operators (#273).
 
 0.9.0 (01-03-2009)
 Bugs fixed:
