@@ -45,6 +45,7 @@ New:
    defaulted to this new behaviour, and a conservative option has
    been added to switch back to the previous behaviour. 
    fixes #169, references #146
+ - Added on_end operator, to execute a handler when a track ends.
 
 0.9.0 (01-03-2009)
 Bugs fixed:

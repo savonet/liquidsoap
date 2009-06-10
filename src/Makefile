@@ -67,7 +67,7 @@ operators = \
 	operators/insert_metadata.ml operators/fade.ml operators/add.ml \
 	operators/map_metadata.ml operators/on_metadata.ml \
 	operators/store_metadata.ml operators/on_track.ml \
-	operators/switch.ml operators/id.ml \
+	operators/switch.ml operators/id.ml operators/on_end.ml \
 	operators/delay.ml operators/setvol.ml \
 	operators/normalize.ml operators/echo.ml \
 	operators/prepend.ml operators/append.ml operators/accel.ml \
