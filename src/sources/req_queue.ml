@@ -79,7 +79,7 @@ object (self)
         (string_of_int (Queue.length requests)) ;
       Request.set_root_metadata req "queue" "secondary" ;
       Mutex.unlock reqlock ;
-      self#notify_new_request
+      self#create_task
 
   method copy_queue_init q =
     Mutex.lock reqlock ;

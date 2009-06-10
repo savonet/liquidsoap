@@ -372,7 +372,7 @@ object
 
   method reload_playlist_internal a b c =
     pl#reload_playlist_internal a b c ;
-    super#notify_new_request
+    super#create_task
 
   method wake_up activation =
     (* The queued request source should be prepared first,

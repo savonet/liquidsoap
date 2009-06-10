@@ -64,7 +64,7 @@ object (self)
           f req ;
           Request.add_log req "Entering the secondary queue." ;
           Request.set_root_metadata req "queue" "secondary" ;
-          self#notify_new_request ;
+          self#create_task ;
           (string_of_int (Request.get_id req))
       | None -> "Unable to create a request!"
     in

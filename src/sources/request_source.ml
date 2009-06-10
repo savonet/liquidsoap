@@ -167,42 +167,41 @@ object (self)
   val mutable queue_length = 0 (* Frames *)
   val mutable resolving = None
 
-  (** State should be `Sleeping on awakening, and is then turned to `Running.
-    * Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
-    * meaning that the feeding tasks exited. *)
-  val mutable state = `Sleeping
-  val state_lock = Mutex.create ()
-  val state_cond = Condition.create ()
   val mutable task = None
+  val task_m = Mutex.create ()
+
+  method private create_task = 
+    Tutils.mutexify task_m 
+    (fun () -> 
+      begin
+        match task with
+          | Some reload -> reload := false 
+          | None -> ()
+      end ;
+      let reload = ref true in
+      Duppy.Task.add Tutils.scheduler
+        { Duppy.Task.
+            priority = priority ;
+            events   = [`Delay 0.] ;
+            handler  = self#feed_queue reload } ;
+      task <- Some reload) ()
+
+  method private stop_task =
+    Tutils.mutexify task_m
+    (fun () -> 
+      begin
+        match task with
+          | Some reload -> reload := false
+          | None -> ()
+      end;
+      task <- None) ()
 
   method private wake_up activation =
     assert (task = None) ;
-    Tutils.mutexify state_lock
-      (fun () ->
-         assert (state = `Sleeping) ;
-         state <- `Running) () ;
-    let t = 
-      Duppy.Async.add Tutils.scheduler ~priority
-        (fun () ->  Duppy.Task.add Tutils.scheduler
-                      { Duppy.Task.
-                        priority = priority ;
-                        events   = [`Delay 0.] ;
-                        handler  = (fun _ -> self#feed_queue () ; []) })
-    in
-      Duppy.Async.wake_up t ;
-      task <- Some t
+    self#create_task
 
   method private sleep =
-    (* Ask the feeding task to die. *)
-    Tutils.mutexify state_lock
-      (fun () ->
-         assert (state = `Running) ;
-         state <- `Tired) () ;
-    (* Make sure the task is awake so it can die and let us know about it. *)
-    Duppy.Async.wake_up (Utils.get_some task) ;
-    Tutils.wait state_cond state_lock (fun () -> state = `Sleeping) ;
-    Duppy.Async.stop (Utils.get_some task) ;
-    task <- None ;
+    self#stop_task ;
     (* No more feeding task, we can go to sleep. *)
     super#sleep ;
     begin try
@@ -212,16 +211,6 @@ object (self)
           Request.destroy req
       done
     with e -> Mutex.unlock qlock ; if e <> Queue.Empty then raise e end
-
-  (** This method should be called whenever the feeding task has a new
-    * opportunity to feed the queue, in case it is sleeping. *)
-  method private notify_new_request =
-    (* Don't wake up the task while we're trying to shut down,
-     * it could avoid its death and run forever in the wild. *)
-    if Tutils.mutexify state_lock (fun () -> state) () = `Running then
-      match task with
-        | Some task -> Duppy.Async.wake_up task
-        | None -> ()
 
   (** A function that returns delays for tasks, making sure that these tasks
     * don't repeat too fast.
@@ -242,33 +231,23 @@ object (self)
       next
 
   (** The body of the feeding task *)
-  method private feed_queue () : unit =
-    (* If the test fails, the task sleeps. *)
-    if
-      Tutils.mutexify state_lock
-        (fun () ->
-           if state <> `Tired then true else begin
-             state <- `Sleeping ;
-             Condition.signal state_cond ;
-             false
-           end) ()
-    then
-      if queue_length < min_queue_length then
+  method private feed_queue reload =
+    (fun _ -> 
+      if !reload && queue_length < min_queue_length then
         match self#prefetch with
           | Finished ->
-              Duppy.Task.add Tutils.scheduler
-                { Duppy.Task.
-                    priority = priority ;
-                    events   = [`Delay 0.] ;
-                    handler  =  (fun _ -> self#feed_queue (); []) }
+               [{ Duppy.Task.
+                   priority = priority ;
+                   events   = [`Delay 0.] ;
+                   handler  = self#feed_queue reload }]
           | Retry ->
               (* Reschedule the task later *)
-              Duppy.Task.add Tutils.scheduler
-                { Duppy.Task.
-                    priority  = priority ;
-                    events   = [`Delay (adaptative_delay ())] ;
-                    handler  = (fun _ -> self#feed_queue (); []) }
-          | Empty -> ()
+              [{ Duppy.Task.
+                   priority  = priority ;
+                   events   = [`Delay (adaptative_delay ())] ;
+                   handler  = self#feed_queue reload }]
+          | Empty -> []
+      else [])
 
   (** Try to feed the queue with a new request.
     * Return false if there was no new request to try,
@@ -319,7 +298,7 @@ object (self)
             None
     in
       Mutex.unlock qlock ;
-      self#notify_new_request ;
+      self#create_task ;
       ans
 
   method copy_queue =

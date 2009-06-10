@@ -19,6 +19,9 @@ Bugs fixed:
  - fixed OSS compilation for non-linux systems.
  - Fixed reversed order when parsing playlists using
    playlist.parse.
+ - Fixed request task not ending properly for request-driven sources (playlist,
+   request.queue, request.equeue). Fixes a problem reported when reloading
+   an empty playlist multiple times.
 New:
  - Support ogg/dirac (#TODO: close ticket).
  - Get a node's striping status when stripping

@@ -44,9 +44,9 @@ object
   (** You should only define this. *)
   method virtual get_next_request : Request.audio Request.t option
 
-  (** This method should be called whenever the feeding task gets
+  (** This method should be called whenever the source gets
     * a new opportunity to add more data into the queue. *)
-  method private notify_new_request : unit
+  method private create_task : unit
 
   inherit unqueued
 
