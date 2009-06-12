@@ -62,7 +62,7 @@ let () =
     ]
     ~category:Lang.Output
     ~descr:"Display video stream using the Graphics library."
-    (fun p ->
+    (fun p _ ->
        let start = Lang.to_bool (List.assoc "start" p) in
        let source = List.assoc "" p in
          ((new output source start):>Source.source))

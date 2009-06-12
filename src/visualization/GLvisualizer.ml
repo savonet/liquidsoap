@@ -32,6 +32,6 @@ object (self)
       GlMat.mode `modelview;
       Glut.displayFunc ~cb:(fun () -> self#render; Glut.swapBuffers ());
       Glut.idleFunc ~cb:(Some Glut.postRedisplay);
-      ignore (Thread.create Glut.mainLoop ())
+      ignore (Tutils.create Glut.mainLoop () "GL visualization")
     )
 end
