@@ -22,5 +22,8 @@
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
 
+type submission = NowPlaying | Played
+
 (** Performs a sumbission to audioscrobbler *)
-val submit : string*string -> bool -> source -> Frame.metadata list -> unit
+val submit : ?host:(string*int) -> string*string -> bool -> 
+             source -> submission -> Frame.metadata list -> unit

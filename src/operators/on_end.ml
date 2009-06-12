@@ -26,6 +26,8 @@ object (self)
 
   val mutable executed = false
 
+  val mutable latest_metadata = None
+
   method stype = s#stype
   method is_ready = s#is_ready
   method remaining = s#remaining
@@ -33,10 +35,22 @@ object (self)
 
   method private get_frame ab =
     s#get ab ;
+    let compare x y = - (compare x y) in
+    let l = 
+      List.sort compare (Frame.get_all_metadata ab) 
+    in
+    if List.length l > 0 then
+      latest_metadata <- Some (snd (List.hd l));
     let rem = Fmt.seconds_of_ticks s#remaining in
     if rem <= delay && not executed then
     begin
-      ignore(Lang.apply f ["",Lang.float rem]) ;
+      let m = 
+        match latest_metadata with
+          | Some m -> m
+          | None -> Hashtbl.create 0
+      in
+      ignore(Lang.apply f ["",Lang.float rem;
+                           "",Lang.metadata m]) ;
       executed <- true
     end ;
     if Frame.is_partial ab then
@@ -51,10 +65,12 @@ let () =
              equal to this value.") ;
       "",
       Lang.fun_t
-        [(false,"",Lang.float_t)]
+        [(false,"",Lang.float_t);
+          false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
         Lang.unit_t,
       None,
-      Some ("Function to execute. Argument is the remaining time.") ;
+      Some ("Function to execute. First argument is the remaining time, \
+             second is the latest metadata.") ;
       "", Lang.source_t, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler when there is less than a given amount of time \

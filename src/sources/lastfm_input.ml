@@ -24,7 +24,7 @@ open Lastfm
 
 class lastfm ~autostart ~poll_delay ~submit ~track_on_meta 
              ~bufferize ~timeout ~bind_address 
-             ~debug ~max ~user_agent uri =
+             ~debug ~max ~user_agent ~audioscrobbler_host uri =
 let playlist_mode = Http_source.First in
 object (self)
   inherit Http_source.http ~playlist_mode ~poll_delay ~timeout 
@@ -33,6 +33,7 @@ object (self)
                            ~debug ~user_agent uri as http
 
   val mutable session = None
+  val mutable latest_metadata = None
 
   (* Called when there's no decoding process, in order to create one. *)
   method connect url =
@@ -67,8 +68,12 @@ object (self)
       let metas = Hashtbl.create 2 in
         List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
         http#insert_metadata metas;
+        let auth = (login.user,login.password) in
         if submit then 
-          Liqfm.submit (login.user,login.password) true Liqfm.Lastfm [metas] ;
+          Liqfm.submit ~host:audioscrobbler_host 
+               auth true Liqfm.Lastfm 
+               Liqfm.NowPlaying [metas] ;
+        latest_metadata <- Some (auth,metas) ;
         http#connect uri
     with
       | Lastfm.Radio.Error e ->
@@ -89,6 +94,19 @@ object (self)
   method abort_track =
     abort_stream <- true
 
+  method get ab = 
+    http#get ab ;
+    if Frame.is_partial ab then
+     begin
+      match latest_metadata with
+        | Some (auth,metas) -> 
+          if submit then
+            Liqfm.submit ~host:audioscrobbler_host
+                 auth true Liqfm.Lastfm
+                 Liqfm.Played [metas] ;
+          latest_metadata <- None
+        | None -> ()
+     end
 end
 
 let () =
@@ -111,6 +129,12 @@ let () =
         Some "Submit song to Audioscrobbler. \
            Only when the url is not anonymous, e.g. \
            <code>lastfm://user:password@artist/foo</code>." ;
+        "submit_host", Lang.string_t, 
+        Some (Lang.string !(Lastfm.Audioscrobbler.base_host)),
+        Some "Host for audioscrobbling submissions.";
+        "submit_port", Lang.int_t,
+        Some (Lang.int !(Lastfm.Audioscrobbler.base_port)),
+        Some "Port for audioscrobbling submissions.";
         "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
         Some "Treat new metadata as new track." ;
         "debug", Lang.bool_t, Some (Lang.bool false),
@@ -140,11 +164,14 @@ let () =
              | s -> Some s
          in
          let user_agent = Lang.to_string (List.assoc "user_agent" p) in
+         let submit_host = Lang.to_string (List.assoc "host" p) in
+         let submit_port = Lang.to_int (List.assoc "port" p) in
+         let audioscrobbler_host = (submit_host,submit_port) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
 	 let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
            ((new lastfm ~autostart ~submit ~poll_delay ~bufferize
-                        ~track_on_meta 
+                        ~track_on_meta ~audioscrobbler_host
                         ~bind_address ~timeout ~max ~debug 
                         ~user_agent uri):>Source.source))

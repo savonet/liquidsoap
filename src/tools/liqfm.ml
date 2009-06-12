@@ -26,12 +26,14 @@ open Duppy
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
 
-let log = Dtools.Log.make ["liqfm"]
+type submission = NowPlaying | Played
+
+let log = Dtools.Log.make ["audioscrobbler"]
 
 exception Duration
 
 (* The list of waiting submitions *)
-let submissions = ref []
+let submissions = Queue.create ()
 (* A mutex to manage thread concurrency *)
 let submit_m = Mutex.create ()
 (* A reference to the task *)
@@ -44,13 +46,18 @@ let init () =
  (* Define a new task *)
  let rec do_submit () =
    try
-    let songs = ref [] in
     (* This function checks that the submission is valid *)
-    let song (user,password,source,length,m) =
+    let song songs (user,password,host,source,stype,length,m) =
       let login = { user = user ; password = password } in
       let f = fun x -> try Hashtbl.find m x with Not_found -> "" in
       let artist,track = f "artist",f "title" in
-      log#f 4 "Submiting %s -- %s to lastfm" artist track ;
+      let s = 
+        match stype with
+          | Played -> ""
+          | NowPlaying -> " (nowplaying)"
+      in
+      log#f 4 "Submiting %s -- %s%s" 
+         artist track s;
       try
         let duration () =
           try
@@ -105,34 +112,43 @@ let init () =
                      musicbrainzid = None ; trackauth = trackauth }
         in
         check_song song Submit ;
-        songs := (login,song) :: !songs
+        (login,host,stype,song) :: songs
       with
         | Duration ->
             log#f 4 "could not submit track %s -- %s, no duration available"
-              artist track
+              artist track ;
+            songs
         | Error e ->
             log#f 4 "could not submit track %s -- %s, %s"
-              artist track (string_of_error e)
+              artist track (string_of_error e) ;
+            songs
         | e ->
             log#f 4 "could not submit track %s -- %s: unknown error %s"
-              artist track (Printexc.to_string e)
+              artist track (Printexc.to_string e) ;
+            songs
      in
      Mutex.lock submit_m;
-     List.iter song !submissions ;
-     submissions := [];
+     let songs = Queue.fold song [] submissions in
+     Queue.clear submissions ;
      Mutex.unlock submit_m;
      let submit = Hashtbl.create 10 in
-     let filter (c,m) =
+     let filter (c,h,t,m) =
        try
-         let v = Hashtbl.find submit c in
-         Hashtbl.replace submit c (m::v)
+         let v = Hashtbl.find submit (c,h,t) in
+         Hashtbl.replace submit (c,h,t) (m::v)
        with
-         | Not_found -> Hashtbl.add submit c [m]
+         | Not_found -> Hashtbl.add submit (c,h,t) [m]
      in
-     List.iter filter !songs ;
-     let f login songs =
+     List.iter filter songs ;
+     let f (login,host,stype) songs =
        try
-         ignore(Lastfm.Audioscrobbler.do_submit client login songs)
+         match stype with
+           | NowPlaying -> 
+               List.iter (fun song -> 
+                    Lastfm.Audioscrobbler.do_np ?host client login song)
+                    songs
+           | Played ->
+              ignore(Lastfm.Audioscrobbler.do_submit ?host client login songs)
        with
          | Lastfm.Audioscrobbler.Error e ->
              reason (Lastfm.Audioscrobbler.string_of_error e)
@@ -141,7 +157,7 @@ let init () =
      in
      Hashtbl.iter f submit
    with
-     | e -> reason (Printexc.to_string e)
+     | e -> reason (Printexc.to_string e); raise e
    in
    (* Add and wake the task *)
    let t =
@@ -150,10 +166,10 @@ let init () =
    task := Some t;
    Duppy.Async.wake_up t
 
-let submit (user,password) length source metadatas =
+let submit ?host (user,password) length source stype songs =
+ let songs = List.map (fun x -> (user,password,host,source,stype,length,x)) songs in
  Mutex.lock submit_m;
- let metadatas = List.map (fun x -> (user,password,source,length,x)) metadatas in
- submissions := !submissions @ metadatas;
+ List.iter (fun x -> Queue.add x submissions) songs ;
  Mutex.unlock submit_m;
  match !task with
    | None -> init ()

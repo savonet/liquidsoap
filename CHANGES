@@ -46,6 +46,11 @@ New:
    been added to switch back to the previous behaviour. 
    fixes #169, references #146
  - Added on_end operator, to execute a handler when a track ends.
+ - Added optional host and port parameters for audioscrobbling
+   submissions. Allows to use alternate systems, such as libre.fm
+   of jamendo's compatibility API. Added nowplaying submission,
+   and various wrappers, including a full submission process
+   (now playing at beginning, submit some times before the end).
 
 0.9.0 (01-03-2009)
 Bugs fixed:
