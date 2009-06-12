@@ -65,6 +65,9 @@ end
 class virtual encoded :
   kind:string ->
   name:string ->
+  ?infallible:bool ->
+  ?on_start:(unit->unit) ->
+  ?on_stop:(unit->unit) ->
   autostart:bool ->
   Lang.value ->
 object

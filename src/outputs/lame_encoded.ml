@@ -62,12 +62,14 @@ end
 (** Output in an MP3 file *)
 
 class to_file
+  ~infallible ~on_start ~on_stop
   ~append ~perm ~dir_perm
   ~reload_delay ~reload_predicate ~reload_on_metadata
   ~filename ~samplerate ~bitrate ~quality ~stereo ~autostart source =
 object (self)
   inherit
     Output.encoded ~name:filename ~kind:"output.file" ~autostart source
+                   ~infallible ~on_start ~on_stop
   inherit
      File_output.to_file ~reload_delay ~reload_predicate ~reload_on_metadata
                          ~append ~perm ~dir_perm filename
@@ -127,6 +129,15 @@ let () =
        let bitrate = e Lang.to_int "bitrate" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let append = Lang.to_bool (List.assoc "append" p) in
        let perm = Lang.to_int (List.assoc "perm" p) in
        let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
@@ -136,6 +147,7 @@ let () =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
          ((new to_file ~filename
+             ~infallible ~on_start ~on_stop
              ~append ~perm ~dir_perm
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~quality ~bitrate ~samplerate ~stereo ~autostart source):>source))

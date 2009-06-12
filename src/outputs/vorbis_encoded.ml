@@ -214,6 +214,15 @@ let () =
        let quality = (e Lang.to_float "quality") *. 0.1 in
        let freq = e Lang.to_int "samplerate" in
        let name = Lang.to_string (Lang.assoc "" 1 p) in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let append = Lang.to_bool (List.assoc "append" p) in
        let perm = Lang.to_int (List.assoc "perm" p) in
        let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
@@ -230,6 +239,6 @@ let () =
        in
          ((new Ogg_output.to_file
              name ~append ~perm ~dir_perm ~streams ~skeleton 
+             ~infallible ~on_start ~on_stop
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
-

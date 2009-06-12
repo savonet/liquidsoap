@@ -177,11 +177,13 @@ end
 (** Output in an Ogg file. *)
 class to_file
   filename ~append ~perm ~dir_perm ~skeleton
+  ?infallible ?on_start ?on_stop
   ~reload_delay ~reload_predicate ~reload_on_metadata
   ~autostart ~streams source =
 object (self)
   inherit
     Output.encoded
+      ?infallible ?on_start ?on_stop
       ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata

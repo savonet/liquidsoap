@@ -119,13 +119,20 @@ object (self)
 
   method output_get_ready =
     if start_output && self#is_ready then begin
-      start_output <- false ;
-      if not does_output then self#output_start ;
-      does_output <- true
+      start_output <- autostart ;
+      if not does_output then begin
+        self#output_start ;
+        on_start () ;
+        does_output <- true
+      end
     end
 
   method private sleep =
-    if does_output then self#output_stop ;
+    if does_output then begin
+      self#output_stop ;
+      on_stop () ;
+      does_output <- false
+    end ;
     source#leave (self:>operator)
 
   (* Metadata stuff: keep track of what was streamed. *)
@@ -169,9 +176,13 @@ object (self)
 
     if stop_output || Frame.is_partial memo then begin
       stop_output <- false ;
-      if does_output then self#output_stop ;
-      on_stop () ;
-      does_output <- false
+      if does_output then begin
+        if Frame.is_partial memo then
+          self#log#f 3 "Source failed (no more tracks), output stops." ;
+        self#output_stop ;
+        on_stop () ;
+        does_output <- false
+      end
     end
 
   method after_output =
@@ -202,9 +213,14 @@ let () =
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
-class virtual encoded ~kind ~name ~autostart source =
+class virtual encoded
+  ~kind ~name
+  ?(infallible=true) ?on_start ?on_stop
+  ~autostart source =
 object (self)
-  inherit output ~kind ~name source autostart
+  inherit output
+            ~infallible ?on_start ?on_stop
+            ~kind ~name source autostart
 
   method virtual reset_encoder : (string,string) Hashtbl.t -> string
   method virtual encode : Frame.t -> int -> int -> string
@@ -227,7 +243,7 @@ object (self)
       in
         function
           | [] -> assert false
-          | [i] -> assert (i=AFrame.size frame)
+          | [i] -> assert (i=AFrame.size frame || not infallible)
           | start::stop::l ->
               if start < stop then f start stop else assert (start=stop) ;
               output_chunks frame (stop::l)

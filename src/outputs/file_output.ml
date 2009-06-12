@@ -44,8 +44,11 @@ object (self)
     let filename = Utils.strftime filename in
     let filename = Utils.home_unrelate filename in
     (* Avoid / in metas for filename.. *)
-    let current_metadata  = fun s -> Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") 
-         (current_metadata s) in
+    let current_metadata s =
+      Pcre.substitute
+        ~pat:"/" ~subst:(fun _ -> "-") 
+        (current_metadata s)
+    in
     let filename = Utils.interpolate current_metadata filename in
     let chan =
       Utils.mkdir ~perm:dir_perm (Filename.dirname filename) ;
@@ -94,6 +97,23 @@ object (self)
 end
 
 let proto = [
+  "fallible",
+  Lang.bool_t,
+  Some (Lang.bool false),
+  Some
+    "Allow the child source to fail, \
+     in which case the output will be (temporarily) stopped." ;
+
+  "on_start",
+  Lang.fun_t [] Lang.unit_t,
+  Some (Lang.val_cst_fun [] Lang.unit),
+  Some "Callback executed when outputting starts." ;
+
+  "on_stop",
+  Lang.fun_t [] Lang.unit_t,
+  Some (Lang.val_cst_fun [] Lang.unit),
+  Some "Callback executed when outputting stops." ;
+
   "append",
   Lang.bool_t,
   Some (Lang.bool false),
