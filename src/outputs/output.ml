@@ -28,7 +28,9 @@ open Source
   * Takes care of pulling the data out of the source, type checkings,
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
-class virtual output ~kind ?(name="") val_source autostart =
+class virtual output ~kind ?(name="")
+    ?(infallible=true) ?(on_start=fun()->()) ?(on_stop=fun()->())
+    val_source autostart =
   let source = Lang.to_source val_source in
 object (self)
   inherit active_operator source as super
@@ -38,9 +40,17 @@ object (self)
   method virtual output_send : Frame.t -> unit
 
   initializer
-    (* We need the source to be infallible. *)
-    if source#stype <> Infallible then
+    if infallible && source#stype <> Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
+
+  method stype = source#stype
+
+  method is_ready =
+    if infallible then begin
+      assert (source#is_ready) ;
+      true
+    end else
+      source#is_ready
 
   method remaining = source#remaining
   method abort_track = source#abort_track
@@ -48,6 +58,7 @@ object (self)
   val mutable does_output = false       (* Currently outputting *)
   val mutable start_output = autostart  (* Ask for startup *)
   val mutable stop_output = false       (* Ask for termination *)
+  val mutable autostart = autostart     (* Start as soon as possible *)
 
   method is_active = does_output
 
@@ -83,22 +94,31 @@ object (self)
            if r < 0 then "(undef)" else
              let t = Fmt.seconds_of_ticks r in
                Printf.sprintf "%.2f" t) ;
-    Server.add ~ns "start" (fun _ -> start_output <- true ; "") 
-               ~descr:"Start output." ;
-    Server.add ~ns "stop" (fun _ -> stop_output <- true ; "") 
-               ~descr:"Stop output."  ;
-    Server.add ~ns "status" (fun _ -> if does_output then "on" else "off") 
-               ~descr:"Get status.";
+    Server.add ~ns "autostart" ~descr:"Enable/disable autostart."
+      (fun s ->
+         if s = "" then
+           if autostart then "on" else "off"
+         else begin
+           autostart <- (s = "on" || s = "yes" || s = "y") ;
+           "Set to " ^ if autostart then "on" else "off"
+         end) ;
+    Server.add ~ns "start" ~descr:"Start output."
+      (fun _ -> start_output <- true ; "") ;
+    Server.add ~ns "stop" ~descr:"Stop output. Disable autostart."
+      (fun _ -> stop_output <- true ; autostart <- false ; "") ;
+    Server.add ~ns "status" ~descr:"Get status."
+      (fun _ -> if does_output then "on" else "off") ;
 
-    (* Get our source ready *)
+    (* Get our source ready. This can take a while (preparing playlists, etc)
+     * so we do it here instead of in #get_ready. *)
     source#get_ready ((self:>operator)::activation) ;
-    while not source#is_ready do
+    while not self#is_ready do
       self#log#f 3 "Waiting for %S to be ready..." source#id ;
       Thread.delay 1. ;
     done
 
   method output_get_ready =
-    if start_output then begin
+    if start_output && self#is_ready then begin
       start_output <- false ;
       if not does_output then self#output_start ;
       does_output <- true
@@ -126,15 +146,18 @@ object (self)
   method private get_frame buf = source#get buf
 
   method private output =
-    if start_output then begin
-      start_output <- false ;
-      if not does_output then self#output_start ;
-      does_output <- true
+    if start_output && self#is_ready then begin
+      start_output <- autostart ;
+      if not does_output then begin
+        self#output_start ;
+        on_start () ;
+        does_output <- true
+      end
     end ;
 
     if does_output then begin
       (* Complete filling of the frame *)
-      while Frame.is_partial memo do
+      while Frame.is_partial memo && self#is_ready do
         source#get memo
       done ;
       List.iter
@@ -144,9 +167,10 @@ object (self)
       self#output_send memo
     end ;
 
-    if stop_output then begin
+    if stop_output || Frame.is_partial memo then begin
       stop_output <- false ;
       if does_output then self#output_stop ;
+      on_stop () ;
       does_output <- false
     end
 

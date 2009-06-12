@@ -42,6 +42,8 @@ class virtual queued :
 object
   method copy_queue : Request.audio Request.t list
 
+  method stype : Source.source_t
+
   (** You should only define this. *)
   method virtual get_next_request : Request.audio Request.t option
 

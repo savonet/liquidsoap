@@ -160,6 +160,8 @@ class virtual queued
 object (self)
   inherit unqueued as super
 
+  method stype = Fallible
+
   method virtual get_next_request : Request.audio Request.t option
 
   (** Management of the queue of files waiting to be played. *)

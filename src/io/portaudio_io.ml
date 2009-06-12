@@ -64,6 +64,7 @@ object (self)
   val mutable stream = None
 
   method stype = Source.Infallible
+  method is_ready = true
   method remaining = source#remaining
   method get_frame buf = source#get buf
   method abort_track = source#abort_track
@@ -97,6 +98,7 @@ object (self)
   val mutable stream = None
 
   method stype = Source.Infallible
+  method is_ready = true
   method remaining = -1
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo

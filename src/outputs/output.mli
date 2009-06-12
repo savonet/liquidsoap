@@ -25,11 +25,15 @@
 class virtual output :
   kind:string ->
   ?name:string ->
+  ?infallible:bool ->
+  ?on_start:(unit->unit) ->
+  ?on_stop:(unit->unit) ->
   Lang.value ->
   bool ->
 object
   inherit Source.active_source
 
+  method stype : Source.source_t
   method remaining : int
   method output_get_ready : unit
   method output : unit
@@ -38,7 +42,16 @@ object
 
   val mutable start_output : bool
   val mutable stop_output : bool
+
+  (** An infallible (normal) output can always stream.
+    * Both fallible and infallible outputs may not always be outputting
+    * (sending data to the world using [#output_send]).
+    * Outputting can only be done when streaming.
+    * The following two methods give those two aspects of the current status,
+    * [#is_active] tells if the source is outputting and [#is_ready] tells
+    * whether it is streaming or can start streaming. *)
   method is_active : bool
+  method is_ready : bool
 
   method add_metadata : Request.metadata -> unit
   method metadata_queue : Request.metadata Queue.t

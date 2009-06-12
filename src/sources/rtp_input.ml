@@ -24,6 +24,8 @@ class input address port =
 object (self)
   inherit Source.active_source
 
+  method is_ready = true
+
   method output_reset =
     (* TODO close current session ! *)
     self#output_get_ready

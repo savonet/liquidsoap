@@ -52,7 +52,7 @@ object
     * fallible or not, i.e. [get] will never fail.
     * It is defined in the derived classes. *)
 
-  method stype : source_t
+  method virtual stype : source_t
 
   (** {1 Init/shutdown} *)
 
@@ -120,7 +120,6 @@ class virtual active_source :
 object
   inherit source
   val memo : Frame.t
-  method is_ready : bool
 
   (** Special init phase for outputs. This method is called by Root after the
     * standard get_ready propagation, after the Root clock is started.

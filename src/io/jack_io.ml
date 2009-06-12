@@ -104,8 +104,12 @@ object
     if synchronize then
       (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
 
+  method stype = Source.Infallible
+  method is_ready = true
   method remaining = -1
+
   method abort_track  = ()
+
   method output_reset = ()
   method is_active = true
 
@@ -115,7 +119,9 @@ object
     ring <- Array.init
       (Array.length port_names)
       (fun _ ->
-         let r = Ringbuffer.create (ringbuffer_coeff#get * samples_per_frame) in
+         let r =
+           Ringbuffer.create (ringbuffer_coeff#get * samples_per_frame)
+         in
            (try Jack.Ringbuffer.mlock r with _ -> ());
            r
       )
@@ -138,12 +144,14 @@ object
       port <-
       Array.mapi
         (fun i pn ->
-           let p = Jack.Client.register_port
-                     c pn "32 bit float mono audio"
-                     [if mode=`Input then Jack.Port.Input else Jack.Port.Output] 0
+           let p =
+             Jack.Client.register_port
+               c pn "32 bit float mono audio"
+               [if mode=`Input then Jack.Port.Input else Jack.Port.Output] 0
            in
              add_ringbuffer_callback
-               (p, ring.(i), if mode=`Input then Jack.Client.Write else Jack.Client.Read);
+               (p, ring.(i),
+                if mode=`Input then Jack.Client.Write else Jack.Client.Read);
              p
         )
         port_names
@@ -171,6 +179,7 @@ object (self)
         let coef =
           float (Fmt.samples_per_second ()) /.
           float (Jack.Client.get_sample_rate (client ()))
+   
         in
         let buflen =
           if coef = 1. then
@@ -197,7 +206,10 @@ object (self)
         (* Throw data if there's too much... *)
         let dropped = ref 0 in
         let samplerate = Fmt.samples_per_second () in
-        while Ringbuffer.read_space ring.(chan) > (ringbuffer_coeff#get - 2) * buflen do
+        while
+          Ringbuffer.read_space ring.(chan) >
+          (ringbuffer_coeff#get - 2) * buflen
+        do
           let len = Ringbuffer.read_space ring.(chan) - buflen in
           let tmp = Array.make len 0. in
           let n = Ringbuffer.read ring.(chan) tmp 0 len in
@@ -272,7 +284,8 @@ object (self)
       for chan = 0 to Array.length port_names - 1 do
         let buf =
           self#resample chan 
-            (float (Jack.Client.get_sample_rate (client ())) /. float (Fmt.samples_per_second ()))
+            (float (Jack.Client.get_sample_rate (client ())) /.
+             float (Fmt.samples_per_second ()))
             s.(chan)
             0
             (Array.length s.(chan))
@@ -290,9 +303,9 @@ object (self)
 end
 
 let rec get_default_ports name n =
-  if n = 0 then []
-  else
-    (Lang.string (name ^ "_" ^ string_of_int (n-1)))::(get_default_ports name (n-1))
+  if n = 0 then [] else
+    (Lang.string (name ^ "_" ^ string_of_int (n-1))) ::
+    (get_default_ports name (n-1))
 
 let get_default_ports name =
   Lang.list (List.rev (get_default_ports name (Fmt.channels())))

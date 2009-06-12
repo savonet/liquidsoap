@@ -108,6 +108,7 @@ object (self)
 
   val mutable first = true
 
+  method stype = src#stype
   method is_ready = src#is_ready
   method abort_track = src#abort_track
   method remaining = src#remaining

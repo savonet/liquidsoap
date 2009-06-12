@@ -67,7 +67,9 @@ object (self)
   (** Children sources, if any *)
   val mutable sources : source list = []
 
-  method stype = Fallible
+  (** Is the source infallible, i.e. is it always guaranteed that there
+    * will be always be a next track immediately available. *)
+  method virtual stype : source_t
 
   val mutable id = ""
   val mutable definitive_id = false
@@ -181,7 +183,9 @@ object (self)
    * -1 means Infinity, time unit is the frame. *)
   method virtual remaining : int
 
-  (* Is there some data available for the next [get] ? *)
+  (* Is there some data available for the next [get]?
+   * Must always be true while playing a track, i.e. all tracks
+   * must be properly ended. *)
   method virtual is_ready : bool
 
   (* If possible, end the current track.
@@ -275,12 +279,9 @@ object (self)
     sources <- [] ;
     register (self:>active_source)
 
-  method is_ready = true
-  method stype = Infallible
-
   method is_output = true
 
-  (** Start a new output round, triggers computation of a new frame. *)
+  (** Start a new output round, may trigger the computation of a frame. *)
   method virtual output : unit
 
   (** Do whatever needed when the latency gets too big and is reset. *)

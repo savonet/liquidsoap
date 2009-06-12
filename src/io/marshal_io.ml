@@ -79,6 +79,7 @@ object (self)
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
   method stype = Source.Infallible
+  method is_ready = true
   method remaining = source#remaining
   method get_frame buf = source#get buf
   method abort_track = source#abort_track
@@ -131,10 +132,11 @@ object (self)
     try
       Frame.fill_from_marshal pipe frame
     with
+      (* Used for asynchronous communications.. *)
   (*  | Sys_blocked_io
       | End_of_file ->
           AFrame.blankify frame (Frame.position frame) (AFrame.size frame);
-          Frame.add_break frame (Frame.size frame) *) (* Used for asynchronous communications.. *)
+          Frame.add_break frame (Frame.size frame) *)
       | e ->
          self#log#f 1 "Could not read from pipe.";
          if reopen then

@@ -1,4 +1,6 @@
-external caps : Unix.file_descr -> string * int * int * int * int * int * int = "caml_v4l_caps"
+external caps :
+  Unix.file_descr -> string * int * int * int * int * int * int
+  = "caml_v4l_caps"
 external init : Unix.file_descr -> unit = "caml_v4l_init"
 external get_dims : Unix.file_descr -> int * int = "caml_v4l_get_dims"
 external capture : Unix.file_descr -> int -> int -> string = "caml_v4l_capture"
@@ -13,7 +15,10 @@ object (self)
 
   method stype = Source.Infallible
   method remaining = -1
+  method is_ready = true
+
   method abort_track = ()
+
   method output = if AFrame.is_partial memo then self#get_frame memo
 
   val mutable width = 0

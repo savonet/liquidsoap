@@ -26,12 +26,15 @@ class reader ?(debug=false) pipe =
 object (self)
   inherit Source.active_source
 
+  method stype = Infallible
+  method is_ready = true
   method remaining = -1
+
+  method abort_track = ()
 
   method output_reset = ()
   method is_active = true
   method output_get_ready = ()
-  method abort_track = ()
 
   method output = self#get_frame memo
 
