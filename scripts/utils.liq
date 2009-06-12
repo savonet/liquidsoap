@@ -553,7 +553,7 @@ end
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 # @param ~delay Submit song when there is only this delay left, in seconds. 
-# @param ~force If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
+# @param ~force If remaining time is null, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
 def audioscrobbler.submit.full(
      ~user,~password,
      ~host="post.audioscrobbler.com",~port=80,
@@ -585,7 +585,7 @@ end
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 # @param ~delay Submit song when there is only this delay left, in seconds. If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
-# @param ~force If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
+# @param ~force If remaining time is null, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
 def librefm.submit.full(
      ~user,~password,
      ~source="broadcast",~length=false,
@@ -604,7 +604,7 @@ end
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intented for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~length Try to submit length information. This operation can be CPU intensive. Value forced to true when used with the "user" source type.
 # @param ~delay Submit song when there is only this delay left, in seconds. If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
-# @param ~force If remaining time is less than this value, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
+# @param ~force If remaining time is null, the song will be assumed to be skipped or cuted, and not submitted. Set to zero to disable this behaviour.
 def lastfm.submit.full(
      ~user,~password,
      ~source="broadcast",~length=false,
