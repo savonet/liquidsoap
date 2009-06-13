@@ -182,25 +182,23 @@ object (self)
   method private create_task = 
     Tutils.mutexify task_m 
     (fun () -> 
-      begin
-        match task with
-          | Some reload -> reload := false 
-          | None -> ()
-      end ;
-      let reload = ref true in
-      Duppy.Task.add Tutils.scheduler
-        { Duppy.Task.
-            priority = priority ;
-            events   = [`Delay 0.] ;
-            handler  = self#feed_queue reload } ;
-      task <- Some reload) ()
+      match task with
+          | Some t -> () (* Nothing to do: task already exist. *)
+          | None -> 
+              let t = 
+                Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
+              in
+              Duppy.Async.wake_up t ; 
+              task <- Some t) ()
 
   method private stop_task =
     Tutils.mutexify task_m
     (fun () -> 
       begin
         match task with
-          | Some reload -> reload := false
+          | Some t -> 
+              Duppy.Async.stop t ;
+              Duppy.Async.wake_up t  
           | None -> ()
       end;
       task <- None) ()
@@ -221,6 +219,15 @@ object (self)
       done
     with e -> Mutex.unlock qlock ; if e <> Queue.Empty then raise e end
 
+  (** This method should be called whenever the feeding task has a new
+    * opportunity to feed the queue, in case it is sleeping. *)
+  method private notify_new_request =
+    Tutils.mutexify task_m
+    (fun () ->
+      match task with
+        | Some task -> Duppy.Async.wake_up task
+        | None -> self#create_task) ()
+
   (** A function that returns delays for tasks, making sure that these tasks
     * don't repeat too fast.
     * The current scheme is to return 0. as long as there are no more than
@@ -240,23 +247,14 @@ object (self)
       next
 
   (** The body of the feeding task *)
-  method private feed_queue reload =
+  method private feed_queue =
     (fun _ -> 
-      if !reload && self#queue_length < min_queue_length then
+      if self#queue_length < min_queue_length then
         match self#prefetch with
-          | Finished ->
-               [{ Duppy.Task.
-                   priority = priority ;
-                   events   = [`Delay 0.] ;
-                   handler  = self#feed_queue reload }]
-          | Retry ->
-              (* Reschedule the task later *)
-              [{ Duppy.Task.
-                   priority  = priority ;
-                   events   = [`Delay (adaptative_delay ())] ;
-                   handler  = self#feed_queue reload }]
-          | Empty -> []
-      else [])
+          | Finished -> 0.
+          | Retry -> adaptative_delay ()
+          | Empty -> (-1.)
+      else (-1.))
 
   (** Try to feed the queue with a new request.
     * Return false if there was no new request to try,
@@ -313,7 +311,7 @@ object (self)
   method get ab = 
     super#get ab ;
     if self#queue_length < min_queue_length then
-      self#create_task
+      self#notify_new_request
 
   method copy_queue =
     Mutex.lock qlock ;
