@@ -22,8 +22,16 @@
 
 open Pulseaudio
 
-class virtual base =
+class virtual base p =
+  let client = Lang.to_string (List.assoc "client" p) in
+  let device = Lang.to_string (List.assoc "device" p) in
+  let device = 
+    if device = "" then None else Some device 
+  in
 object (self)
+  val client_name = client
+  val dev = device
+
   initializer
     (* We are using blocking functions to read/write. *)
     (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
@@ -31,18 +39,19 @@ object (self)
   method virtual log : Dtools.Log.t
 end
 
-class output val_source =
-  let source = Lang.to_source val_source in
+class output p =
+  let source_val = List.assoc "" p in
+  let source = Lang.to_source source_val in
   let channels = Fmt.channels () in
   let samples_per_second = Fmt.samples_per_second () in
 object (self)
   inherit Source.active_operator source
-  inherit base
+  inherit base p
 
   initializer
     (* We need the source to be infallible. *)
     if source#stype <> Source.Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
+      raise (Lang.Invalid_value (source_val, "That source is fallible"))
 
   val mutable stream = None
 
@@ -62,8 +71,9 @@ object (self)
     in
       stream <-
         Some (Pulseaudio.Simple.create
-                ~client_name:"liquidsoap"
-                ~stream_name:"liq stream"
+                ~client_name
+                ~stream_name:self#id
+                ?dev
                 ~dir:Dir_playback
                 ~sample:ss ());
 
@@ -79,12 +89,12 @@ object (self)
       Simple.write stream buf 0 (Array.length buf.(0))
 end
 
-class input =
+class input p =
   let channels = Fmt.channels () in
   let samples_per_second = Fmt.samples_per_second () in
 object (self)
   inherit Source.active_source
-  inherit base
+  inherit base p
 
   val mutable stream = None
 
@@ -102,7 +112,12 @@ object (self)
         sample_chans = channels;
       }
     in
-      stream <- Some (Pulseaudio.Simple.create ~client_name:"liquidsoap" ~stream_name:"liq stream" ~dir:Dir_record ~sample:ss ());
+      stream <- 
+          Some (Pulseaudio.Simple.create ~client_name
+                                         ~stream_name:self#id 
+                                         ~dir:Dir_record 
+                                         ?dev
+                                         ~sample:ss ());
 
   method output_reset = ()
   method is_active = true
@@ -116,18 +131,21 @@ object (self)
 end
 
 let () =
+  let proto =
+    [ "client", Lang.string_t, 
+      Some (Lang.string "liquidsoap"), None ;
+      "device", Lang.string_t,
+      Some (Lang.string ""), 
+      Some "Device to use. Uses default if set to \"\"."]
+  in
   Lang.add_operator "output.pulseaudio"
-    [
-      "", Lang.source_t, None, None
-    ]
+    (proto @ ["", Lang.source_t, None, None])
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p _ ->
-       let source = List.assoc "" p in
-         ((new output source):>Source.source)) ;
+         ((new output p):>Source.source)) ;
   Lang.add_operator "input.pulseaudio"
-    [
-    ]
+    proto
     ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
-    (fun p _ -> ((new input):>Source.source))
+    (fun p _ -> ((new input p):>Source.source))
