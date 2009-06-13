@@ -146,6 +146,7 @@ end
 # @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~bitrate Encoder bitrate
+# @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param s The source to output
 def output.shoutcast.mp3(
@@ -156,10 +157,12 @@ def output.shoutcast.mp3(
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
   ~dumpfile="",~name="Use [mount]",
-  ~aim="",~icq="",~irc="",
+  ~aim="",~icq="",~irc="",~icy_reset=true,
   ~bitrate=128,~samplerate=44100,~stereo=true,
   s) = 
-  headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
+  icy_reset = if icy_reset then "1" else "0" end
+  headers = [("icy-aim",aim),("icy-irc",irc),
+             ("icy-icq",icq),("icy-reset",icy_reset)]
   output.icecast.mp3(
     id=id, headers=headers,
     bitrate=bitrate, start=start,
@@ -241,6 +244,7 @@ end
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~lame The lame binary
 # @param ~bitrate Encoder bitrate
+# @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param s The source to output
 def output.shoutcast.lame(
@@ -250,11 +254,13 @@ def output.shoutcast.lame(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
-  ~dumpfile="",~name="Use [mount]",
+  ~dumpfile="",~name="Use [mount]",~icy_reset=true,
   ~lame="lame",~aim="",~icq="",~irc="",
   ~restart_on_crash=false,~restart_on_new_track=false,
   ~restart_encoder_delay=3600,~bitrate=128,s) =
-  headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
+  icy_reset = if icy_reset then "1" else "0" end
+  headers = [("icy-aim",aim),("icy-irc",irc),
+             ("icy-icq",icq),("icy-reset",icy_reset)]
   output.icecast.lame(
     id=id, headers=headers, lame=lame,
     bitrate=bitrate, start=start,
@@ -380,6 +386,7 @@ end
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~aacplusenc The aacplusenc binary
 # @param ~bitrate Encoder bitrate
+# @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param s The source to output
 def output.shoutcast.aacplusenc(
@@ -389,11 +396,13 @@ def output.shoutcast.aacplusenc(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
-  ~dumpfile="",~name="Use [mount]",
+  ~dumpfile="",~name="Use [mount]",~icy_reset=true,
   ~aim="",~icq="",~irc="",~aacplusenc="aacplusenc",
   ~restart_on_crash=false,~restart_on_new_track=false,
   ~restart_encoder_delay=3600,~bitrate=64,s) =
-  headers = [("icy-aim",aim),("icy-irc",irc),("icy-icq",icq)]
+  icy_reset = if icy_reset then "1" else "0" end
+  headers = [("icy-aim",aim),("icy-irc",irc),
+             ("icy-icq",icq),("icy-reset",icy_reset)]
   output.icecast.aacplusenc(
     id=id, headers=headers, aacplusenc=aacplusenc,
     bitrate=bitrate, start=start,
