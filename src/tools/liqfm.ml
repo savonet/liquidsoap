@@ -155,7 +155,8 @@ let init () =
          | Lastfm.Radio.Error e ->
              reason (Lastfm.Radio.string_of_error e)
      in
-     Hashtbl.iter f submit
+     Hashtbl.iter f submit ;
+     (-1.)
    with
      | e -> reason (Printexc.to_string e); raise e
    in
