@@ -71,14 +71,14 @@ object (self)
     assert (current = None) ;
     match self#get_next_file with
       | None ->
-          self#log#f 6 "Failed to prepare track: no file" ;
+          self#log#f 5 "Failed to prepare track: no file" ;
           false
       | Some req when Request.is_ready req ->
           (* [Request.is_ready] ensures that we can get a filename from
            * the request, and it can be decoded. *)
           let file = Utils.get_some (Request.get_filename req) in
           let decoder = Utils.get_some (Request.get_decoder req) in
-            self#log#f 3 "Prepared %S -- rid %d" file (Request.get_id req) ;
+            self#log#f 3 "Prepared %S -- RID %d" file (Request.get_id req) ;
             current <-
               Some (req,
                     (fun buf -> (remaining <- decoder.Decoder.fill buf)),
@@ -154,8 +154,8 @@ let priority = Tutils.Maybe_blocking
   * - the source tries to have more than [length] seconds in queue
   * - if the duration of a file is unknown we use [default_duration] seconds
   * - downloading a file is required to take less than [timeout] seconds *)
-class virtual queued 
-  ?(length=10.) ?(default_duration=30.) 
+class virtual queued
+  ?(length=10.) ?(default_duration=30.)
   ?(conservative=false) ?(timeout=20.) () =
 object (self)
   inherit unqueued as super
@@ -168,49 +168,58 @@ object (self)
   val min_queue_length = Fmt.ticks_of_seconds length
   val qlock = Mutex.create ()
   val retrieved = Queue.create ()
-  val mutable queued_length = 0 (* Frames *)
-  method private queue_length = 
-    if not conservative then
-      queued_length + super#remaining
-     else
-      queued_length
+  val mutable queue_length = 0 (* Ticks *)
   val mutable resolving = None
 
+  method private available_length =
+    if conservative then
+      queue_length
+    else
+      let remaining = self#remaining in
+        if remaining < 0 then -1 else
+          queue_length + remaining
+
+  (** State should be `Sleeping on awakening, and is then turned to `Running.
+    * Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
+    * meaning that the feeding task exited. *)
+  val mutable state = `Sleeping
+  val state_lock = Mutex.create ()
+  val state_cond = Condition.create ()
   val mutable task = None
-  val task_m = Mutex.create ()
-
-  method private create_task = 
-    Tutils.mutexify task_m 
-    (fun () -> 
-      match task with
-          | Some t -> () (* Nothing to do: task already exist. *)
-          | None -> 
-              let t = 
-                Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
-              in
-              Duppy.Async.wake_up t ; 
-              task <- Some t) ()
-
-  method private stop_task =
-    Tutils.mutexify task_m
-    (fun () -> 
-      begin
-        match task with
-          | Some t -> 
-              Duppy.Async.stop t ;
-              Duppy.Async.wake_up t  
-          | None -> ()
-      end;
-      task <- None) ()
 
   method private wake_up activation =
     assert (task = None) ;
-    self#create_task
+    Tutils.mutexify state_lock
+      (fun () ->
+         assert (state = `Sleeping) ;
+         state <- `Running) () ;
+    let t =
+      Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
+    in
+      Duppy.Async.wake_up t ;
+      task <- Some t
 
   method private sleep =
-    self#stop_task ;
+    (* We need to be sure that the feeding task stopped filling the queue
+     * before we destroy all requests from that queue.
+     * Async.stop only promises us that on the next round the task will
+     * stop but won't tell us if it's currently resolving a file or not.
+     * So we first put the queue into an harmless state: we put the state
+     * to `Tired and wait for it to acknowledge it by setting it to
+     * `Sleeping. *)
+    Tutils.mutexify state_lock
+      (fun () ->
+         assert (state = `Running) ;
+         state <- `Tired) () ;
+    (* Make sure the task is awake so that it can see our signal. *)
+    Duppy.Async.wake_up (Utils.get_some task) ;
+    self#log#f 4 "Waiting for feeding task to stop..." ;
+    Tutils.wait state_cond state_lock (fun () -> state = `Sleeping) ;
+    Duppy.Async.stop (Utils.get_some task) ;
+    task <- None ;
     (* No more feeding task, we can go to sleep. *)
     super#sleep ;
+    self#log#f 4 "Cleaning up request queue..." ;
     begin try
       Mutex.lock qlock ;
       while true do
@@ -222,11 +231,13 @@ object (self)
   (** This method should be called whenever the feeding task has a new
     * opportunity to feed the queue, in case it is sleeping. *)
   method private notify_new_request =
-    Tutils.mutexify task_m
-    (fun () ->
-      match task with
-        | Some task -> Duppy.Async.wake_up task
-        | None -> self#create_task) ()
+    (* Avoid trying to wake up the task during the shutdown process
+     * where it might have been stopped already, in which case we'd
+     * get an exception. *)
+    Tutils.mutexify state_lock
+      (fun () ->
+         if state = `Running then
+           Duppy.Async.wake_up (Utils.get_some task)) ()
 
   (** A function that returns delays for tasks, making sure that these tasks
     * don't repeat too fast.
@@ -247,18 +258,31 @@ object (self)
       next
 
   (** The body of the feeding task *)
-  method private feed_queue =
-    (fun _ -> 
-      if self#queue_length < min_queue_length then
-        match self#prefetch with
-          | Finished -> 0.
-          | Retry -> adaptative_delay ()
-          | Empty -> (-1.)
-      else (-1.))
+  method private feed_queue () =
+    if
+      (* Is the source running? And does it need prefetching?
+       * If the test fails, the task sleeps. *)
+      Tutils.mutexify state_lock
+        (fun () -> match state with
+           | `Running -> true
+           | `Tired ->
+               state <- `Sleeping ;
+               Condition.signal state_cond ;
+               false
+           | `Sleeping -> assert false) () &&
+      self#available_length < min_queue_length
+    then
+       match self#prefetch with
+         | Finished -> 0.
+         | Retry -> adaptative_delay ()
+         | Empty -> (-1.)
+    else
+      (-1.)
 
-  (** Try to feed the queue with a new request.
-    * Return false if there was no new request to try,
-    * true otherwise, whether the request was fetched successfully or not. *)
+  (** Try to feed the queue with a new request. Return a resolution status:
+    * Empty if there was no new request to try,
+    * Retry if there was a new one but it failed to be resolved,
+    * Finished if all went OK. *)
   method private prefetch =
     match self#get_next_request with
       | None -> Empty
@@ -277,9 +301,10 @@ object (self)
                 in
                   Mutex.lock qlock ;
                   Queue.add (len,req) retrieved ;
-                  self#log#f 4 "Remaining : %d, queued: %d, adding : %d (rid %d)"
-                    self#queue_length queued_length len (Request.get_id req) ;
-                  queued_length <- queued_length + len ;
+                  self#log#f 4
+                    "Remaining: %d, queued: %d, adding: %d (RID %d)"
+                    self#remaining queue_length len (Request.get_id req) ;
+                  queue_length <- queue_length + len ;
                   Mutex.unlock qlock ;
                   resolving <- None ;
                   Finished
@@ -296,21 +321,33 @@ object (self)
     let ans =
       try
         let len,f = Queue.take retrieved in
-          self#log#f 4 "Remaining : %d, queued: %d, taking : %d" 
-              self#queue_length queued_length len ;
-          queued_length <- queued_length - len ;
+          self#log#f 4
+            "Remaining: %d, queued: %d, taking: %d"
+            self#remaining queue_length len ;
+          queue_length <- queue_length - len ;
           Some f
       with
         | Queue.Empty ->
-            self#log#f 6 "Queue is empty !" ;
+            self#log#f 5 "Queue is empty !" ;
             None
     in
       Mutex.unlock qlock ;
+      (* A request has been taken off the queue, there is a chance
+       * that the queue should be refilled: awaken the feeding task.
+       * However, we can wait that this file is played, and this need
+       * will be noticed in #get_frame.
+       * This is critical in non-conservative mode because at this point
+       * remaining is still 0 (we're inside #begin_track) which would
+       * lead to too early prefetching; if we wait that a frame has been
+       * produced, we'll get the first non-infinite remaining time
+       * estimations. *)
       ans
 
-  method get ab = 
-    super#get ab ;
-    if self#queue_length < min_queue_length then
+  method private get_frame ab =
+    super#get_frame ab ;
+    (* At an end of track, we always have unqueued#remaining=0,
+     * so there's nothing special to do. *)
+    if self#available_length < min_queue_length then
       self#notify_new_request
 
   method copy_queue =
