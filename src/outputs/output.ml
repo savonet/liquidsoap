@@ -109,13 +109,14 @@ object (self)
     Server.add ~ns "status" ~descr:"Get status."
       (fun _ -> if does_output then "on" else "off") ;
 
-    (* Get our source ready. This can take a while (preparing playlists, etc)
-     * so we do it here instead of in #get_ready. *)
+    (* Get our source ready.
+     * This can take a while (preparing playlists, etc). *)
     source#get_ready ((self:>operator)::activation) ;
-    while not self#is_ready do
-      self#log#f 3 "Waiting for %S to be ready..." source#id ;
-      Thread.delay 1. ;
-    done
+    if infallible then
+      while not source#is_ready do
+        self#log#f 3 "Waiting for %S to be ready..." source#id ;
+        Thread.delay 1. ;
+      done
 
   method output_get_ready =
     if start_output && self#is_ready then begin
@@ -197,8 +198,8 @@ object (self)
 
 end
 
-class dummy source = object
-  inherit output ~kind:"output.dummy" source true
+class dummy ~infallible source = object
+  inherit output ~kind:"output.dummy" source true ~infallible
   method output_reset  = ()
   method output_start  = ()
   method output_stop   = ()
@@ -206,10 +207,13 @@ class dummy source = object
 end
 let () =
   Lang.add_operator "output.dummy"
-    ["",Lang.source_t,None,None]
+    ["fallible", Lang.bool_t, Some (Lang.bool false), None;
+     "", Lang.source_t, None, None]
     ~category:Lang.Output
     ~descr:"Dummy output for debugging purposes."
-    (fun p _ -> ((new dummy (List.assoc "" p)):>Source.source))
+    (fun p _ ->
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+         ((new dummy ~infallible (List.assoc "" p)):>Source.source))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
