@@ -43,9 +43,11 @@ Bugs fixed:
    an empty playlist multiple times. (#269)
  - Fixed math.h usage in rgb_c.c.
  - Fixed append operator. (#284)
- - fixed OSS compilation for non-linux systems.
+ - Fixed OSS compilation for non-linux systems.
  - Disconnect idle harbor sources after timeout has expired.
    Thanks to Roman Savrulin for reporting and fixing !
+ - Taglib metadata resolver is only used on files decoded
+   by the MP3 decoder.
 New:
  - Get a node's striping status when stripping
    blank with strip_blank (#260).
