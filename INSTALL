@@ -1,11 +1,11 @@
 
- Liquidsoap 0.9.0
+ Liquidsoap 0.9.1
  ----------------
 
  Mandatory dependencies :
 
    ocaml-dtools>=0.1.3
-   ocaml-duppy>=0.2.0
+   ocaml-duppy>=0.3.0
    ocaml-pcre
 
  Optional dependencies :

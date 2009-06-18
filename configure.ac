@@ -5,8 +5,8 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-AC_INIT([liquidsoap],[0.9.0+svn])
-version="0.9.0+svn"
+AC_INIT([liquidsoap],[0.9.1+svn])
+version="0.9.1+svn"
 libs_dir_version="svn"
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
@@ -419,10 +419,19 @@ AC_ARG_WITH([duppy-dir],
       [--with-duppy-dir=path],
       [look for duppy library in "path" (autodetected by default)]))
 
-AC_MSG_CHECKING(for ocaml-duppy)
+AC_MSG_CHECKING(for ocaml-duppy (>= 0.3.0))
 if test -z "$with_duppy_dir" ; then
    if ! $OCAMLFIND query duppy > /dev/null 2>&1; then
        AC_MSG_ERROR(Not found.)
+   fi
+   DUPPY_VERSION="`$OCAMLFIND query -format "%v" duppy`"
+   DUPPY_MAJOR="`echo $DUPPY_VERSION | cut -d'.' -f 1`"
+   DUPPY_MINOR="`echo $DUPPY_VERSION | cut -d'.' -f 2`"
+   if test $DUPPY_MAJOR -gt 0 -o $DUPPY_MINOR -gt 2; then
+     ocamlcflags="$ocamlcflags -package duppy"
+     requires="$requires duppy"
+   else
+     AC_MSG_ERROR([Found $DUPPY_VERSION.])
    fi
    ocamlcflags="$ocamlcflags -package duppy"
    requires="$requires duppy"

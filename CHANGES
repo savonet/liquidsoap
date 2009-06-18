@@ -3,8 +3,6 @@ Bugs fixed:
  - Ogg encoder now muxes pages according to their ending time.
  - Support "ogg/audio" and "ogg/video" mime types for
    http ogg streams.
- - Disconnect idle harbor sources after timeout has expired. 
-   Thanks to Roman Savrulin for reporting and fixing !
  - Changed external encoder's "restart_encoder" to the more relevant
    "restart_on_new_track". Added optional "restart_after_delay"
    to restart the encoder after some delay. Also completely rewrite
@@ -16,16 +14,10 @@ Bugs fixed:
    It requires that "root.sync" be desactivated for these sources, such that
    synchronisation is done by the source. (#203)
  - Factorized file decoding code.
- - fixed OSS compilation for non-linux systems.
  - Fixed reversed order when parsing playlists using
    playlist.parse.
- - Fixed request task not ending properly for request-driven sources (playlist,
-   request.queue, request.equeue). Fixes a problem reported when reloading
-   an empty playlist multiple times.
 New:
  - Support ogg/dirac (#TODO: close ticket).
- - Get a node's striping status when stripping
-   blank with strip_blank (#260).
  - Switched to a custom implementation of the 
    various shout protocols. Allows much more
    flaxibility, in particular arbitrary content-type
@@ -33,24 +25,41 @@ New:
    AAC+ format using aacplusenc (#220 and #136). Also
    added custom irc, aim and icq headers to shoutcast
    wrappers (#192)
- - on_connect function for input.harbor now receives the
-   list of headers given by the connected source (#266).
  - Added built-in support for m4a audio files and metadata.
    Made external support optional through enable_faad.
  - Added optional resampling for output.external operators (#273).
- - Added estimated remaining time in the queue length for request-driven
-   sources (request.{equeue,queue}, playlist). This allows these sources
-   to prepare less files in advance. In particular, primary queue may
-   only contain the file currently played. Default behaviour has been
-   defaulted to this new behaviour, and a conservative option has
-   been added to switch back to the previous behaviour. 
-   fixes #169, references #146
- - Added on_end operator, to execute a handler when a track ends.
+ - Switch to new behaviour in request-based sources. Use 
+   conservative=false to switch to the old behaviour.
  - Added optional host and port parameters for audioscrobbling
    submissions. Allows to use alternate systems, such as libre.fm
    of jamendo's compatibility API. Added nowplaying submission,
    and various wrappers, including a full submission process
    (now playing at beginning, submit some times before the end).
+
+0.9.1 (18-06-2009)
+Bugs fixed:
+ - Fixed request task not ending properly for request-driven sources (playlist,
+   request.queue, request.equeue). Fixes a problem reported when reloading
+   an empty playlist multiple times. (#269)
+ - Fixed math.h usage in rgb_c.c.
+ - Fixed append operator. (#284)
+ - fixed OSS compilation for non-linux systems.
+ - Disconnect idle harbor sources after timeout has expired.
+   Thanks to Roman Savrulin for reporting and fixing !
+New:
+ - Get a node's striping status when stripping
+   blank with strip_blank (#260).
+ - on_connect function for input.harbor now receives the
+   list of headers given by the connected source (#266).
+ - Added on_end operator, to execute a handler when a track ends.
+ - Added estimated remaining time in the queue length for request-driven
+   sources (request.{equeue,queue}, playlist). This allows these sources
+   to prepare less files in advance. In particular, primary queue may
+   only contain the file currently played. Default behaviour has been
+   set to the old behaviour, and a conservative option has
+   been added to switch to the new behaviour. New behavivour
+   will be the default for the next release.
+   fixes #169, references #146
 
 0.9.0 (01-03-2009)
 Bugs fixed:
