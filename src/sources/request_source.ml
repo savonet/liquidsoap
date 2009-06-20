@@ -192,12 +192,13 @@ object (self)
     Tutils.mutexify state_lock
       (fun () ->
          assert (state = `Sleeping) ;
+         let t =
+           Duppy.Async.add Tutils.scheduler 
+               ~priority self#feed_queue
+         in
+         Duppy.Async.wake_up t ;
+         task <- Some t ;
          state <- `Running) () ;
-    let t =
-      Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
-    in
-      Duppy.Async.wake_up t ;
-      task <- Some t
 
   method private sleep =
     (* We need to be sure that the feeding task stopped filling the queue
