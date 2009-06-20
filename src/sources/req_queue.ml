@@ -36,7 +36,7 @@ let split x =
 class queue ?(requests=Queue.create()) ?(interactive=true)
             length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration 
+  inherit Request_source.queued ~length ~default_duration
      ~timeout ~conservative () as queued
 
   val reqlock = Mutex.create ()
@@ -45,25 +45,25 @@ object (self)
     try
       Mutex.lock reqlock ;
       let out = Queue.take requests in
-	ignore
-	  (Queue.fold (fun pos req ->
-			 let large,low = split pos in
-			   Request.set_root_metadata req "2nd_queue_pos"
-			     (string_of_int pos) ;
-			   if large <= 5 && low = 0 then
-			     Request.add_log req
-			       (Printf.sprintf "#%d in secondary queue" pos) ;
-			   (pos+1) ) 1 requests) ;
-	Mutex.unlock reqlock ;
-	if Request.get_root_metadata out "skip" = Some "true" then
-	  ( Request.add_log out "Out of the secondary queue, but skipped." ;
-	    Request.destroy out ;
-	    self#get_next_request )
-	else
-	  ( Request.add_log out "Entering the primary queue." ;
+        ignore
+          (Queue.fold (fun pos req ->
+                         let large,low = split pos in
+                           Request.set_root_metadata req "2nd_queue_pos"
+                             (string_of_int pos) ;
+                           if large <= 5 && low = 0 then
+                             Request.add_log req
+                               (Printf.sprintf "#%d in secondary queue" pos) ;
+                           (pos+1) ) 1 requests) ;
+        Mutex.unlock reqlock ;
+        if Request.get_root_metadata out "skip" = Some "true" then
+          ( Request.add_log out "Out of the secondary queue, but skipped." ;
+            Request.destroy out ;
+            self#get_next_request )
+        else
+          ( Request.add_log out "Entering the primary queue." ;
             Request.set_root_metadata out "2nd_queue_pos" "0" ;
-	    Request.set_root_metadata out "queue" "primary" ;
-	    Some out )
+            Request.set_root_metadata out "queue" "primary" ;
+            Some out )
     with
       | Queue.Empty -> Mutex.unlock reqlock ; None
 
@@ -100,6 +100,7 @@ object (self)
       ns <- Server.register [self#id] "queue" ;
     self#set_id (Server.to_string ns) ;
     Server.add ~ns "push" ~usage:"push <uri>"
+      ~descr:"Push a new request in the queue."
       (fun req ->
          match self#create_request req with
          | Some req ->
@@ -108,8 +109,7 @@ object (self)
                  (string_of_int (Oo.id self)) ;
                self#push_request req ;
                (string_of_int id)
-         | None -> "Unable to create a request!" ) 
-               ~descr:"Push a new request in the queue." ;
+         | None -> "Unable to create a request!")  ;
     let print_queue q =
            String.concat " "
              (List.map
@@ -117,17 +117,15 @@ object (self)
                 (List.rev q))
     in
     Server.add ~ns "queue"
-      (fun _ -> print_queue self#copy_queue)
-               ~descr:"Display current queue content for both primary and \
-                       secondary queue." ;
+      ~descr:"Display current queue content for both primary and \
+              secondary queue."
+      (fun _ -> print_queue self#copy_queue) ;
     Server.add ~ns "primary_queue"
-      (fun _ -> print_queue queued#copy_queue)
-               ~descr:"Display current queue content for the primary \
-                       queue." ;
+      ~descr:"Display current queue content for the primary queue."
+      (fun _ -> print_queue queued#copy_queue) ;
     Server.add ~ns "secondary_queue"
-      (fun _ -> print_queue (self#copy_queue_init []))
-               ~descr:"Display current queue content for the seconary \
-                       queue." ;
+      ~descr:"Display current queue content for the seconary queue."
+      (fun _ -> print_queue (self#copy_queue_init [])) ;
 
     Server.add ~ns "ignore" ~usage:"ignore <rid>"
       ~descr:"Indicate that request <rid> should not be played \

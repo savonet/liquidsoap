@@ -31,7 +31,7 @@ let move_re = Str.regexp "\\([0-9]+\\) +\\(-?[0-9]+\\)"
   * requests made over the network using the Server interface. *)
 class equeue length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration 
+  inherit Request_source.queued ~length ~default_duration
      ~timeout ~conservative () as super
 
   val queue = Rqueue.create ()
@@ -72,39 +72,39 @@ object (self)
       Server.add ~ns "push" ~usage:"push <uri>"
                  ~descr:"Push a new request in the queue."
         (make_n_add (Rqueue.push queue)) ;
-    let print_queue q = 
+    let print_queue q =
            String.concat " "
              (List.map
                 (fun r -> string_of_int (Request.get_id r))
                 (List.rev q))
     in
       Server.add ~ns "queue"
-        (fun _ -> print_queue self#copy_queue)
-                 ~descr:"Display current queue content for \
-		         both primary and secondary queues.";
+        ~descr:"Display current queue content for \
+                both primary and secondary queues."
+        (fun _ -> print_queue self#copy_queue) ;
       Server.add ~ns "primary_queue"
-        (fun _ -> print_queue super#copy_queue)
-                 ~descr:"Display current queue content for \
-                         the primary queue.";
+        ~descr:"Display current queue content for the primary queue."
+        (fun _ -> print_queue super#copy_queue) ;
       Server.add ~ns "secondary_queue"
-        (fun _ -> print_queue (self#copy_queue_init []))
-                 ~descr:"Display current queue content for \
-                         the secondary queue.";
+        ~descr:"Display current queue content for the secondary queue."
+        (fun _ -> print_queue (self#copy_queue_init [])) ;
       (* Since the queue command gives not only the pending queue,
        * it can be useful to have the size of our queue *)
-      Server.add ~ns "pending_length" ~descr:"Return the length of the secondary queue."
+      Server.add ~ns "pending_length"
+        ~descr:"Return the length of the secondary queue."
         (fun _ ->
            string_of_int (Rqueue.length queue)) ;
       Server.add ~ns "insert" ~usage:"insert <pos> <uri>"
+        ~descr:"Insert <uri> at position <pos> in the secondary queue."
         (fun a ->
            if Str.string_match insert_re a 0 then
              let pos = int_of_string (Str.matched_group 1 a) in
              let uri = Str.matched_group 2 a in
                make_n_add (Rqueue.insert queue pos) uri
            else
-             "Usage: insert <pos> <uri>") 
-	        ~descr:"Insert <uri> at position <pos> in the secondary queue." ;
+             "Usage: insert <pos> <uri>") ;
       Server.add ~ns "remove" ~usage:"remove <rid>"
+        ~descr:"Remove request <rid> from the secondary queue."
         (fun a ->
            let id = int_of_string a in
              try
@@ -114,10 +114,9 @@ object (self)
                  Request.destroy req ;
                  "OK"
              with
-             | Rqueue.Not_found -> "No such request in my queue") 
-	        ~descr:"Remove request <rid> from the secondary queue." ;
-      Server.add ~ns "move" ~usage:"move <rid> <pos>" 
-                 ~descr:"Move request <rid> in the secondary queue."
+             | Rqueue.Not_found -> "No such request in my queue") ;
+      Server.add ~ns "move" ~usage:"move <rid> <pos>"
+        ~descr:"Move request <rid> in the secondary queue."
         (fun a ->
            if Str.string_match move_re a 0 then
              let rid = int_of_string (Str.matched_group 1 a) in
