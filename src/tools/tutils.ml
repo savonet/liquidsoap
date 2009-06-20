@@ -217,8 +217,14 @@ let start_forwarding () =
   let in_stdout = reopen Unix.stdout in
   let in_stderr = reopen Unix.stderr in
   (* Without the eta-expansion, the timestamp is computed once for all. *)
-  let log_stdout s = (Log.make ["stdout"])#f 3 "%s" s in
-  let log_stderr s = (Log.make ["stderr"])#f 3 "%s" s in
+  let log_stdout =
+    let log = Log.make ["stdout"] in
+      fun s -> log#f 3 "%s" s
+  in
+  let log_stderr =
+    let log = Log.make ["stderr"] in
+      fun s -> log#f 3 "%s" s
+  in
   let forward fd log =
     let task f =
       { Duppy.Task.
