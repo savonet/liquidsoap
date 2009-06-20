@@ -454,14 +454,12 @@ object
 end
 
 let () =
-    Lang.add_operator "random" ~category:Lang.TrackProcessing
+  let add name strict descr weight_descr =
+    Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       (common @
        [ "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
-         Some "Weights of the children in the choice." ;
-         "strict", Lang.bool_t, Some (Lang.bool false),
-         Some "Do not use random but cycle over the uniform distribution." ;
+         Some weight_descr ;
          "", Lang.list_t Lang.source_t, None, None ])
-      ~descr:"At the beginning of every track, select a random ready child."
       (fun p _ ->
          let children = Lang.to_source_list (List.assoc "" p) in
          let replay_meta,ts,tr = extract_common p (List.length children) in
@@ -472,7 +470,6 @@ let () =
            if weights <> [] then weights else
              Utils.make_list (List.length children) 1
          in
-         let strict = Lang.to_bool (List.assoc "strict" p) in
          let children =
            if List.length weights <> List.length children then
              raise
@@ -487,3 +484,13 @@ let () =
                 tr children)
          in
            new random ~replay_meta strict ts children)
+  in
+    add "random" false
+      "At the beginning of every track, select a random ready child."
+      "Weights of the children (padded with 1), defining for each child \
+       the probability that it is selected." ;
+    add "rotate" true
+      "Rotate between the sources."
+      "Weights of the children (padded with 1), defining for each child \
+       how many tracks are played from it per round, if that many are \
+       actually available."
