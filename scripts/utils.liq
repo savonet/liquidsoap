@@ -102,11 +102,14 @@ output.prefered=output.dummy
 %ifdef output.alsa
   output.prefered=output.alsa
 %endif
+%ifdef output.pulseaudio
+  output.prefered=output.pulseaudio
+%endif
 %ifdef output.ao
   output.prefered=output.ao
 %endif
 # Output to local audio card using the first available driver in this list:
-#   ao, alsa, oss, dummy
+#   ao, pulseaudio, alsa, oss, dummy
 # @category Source / Output
 def output.prefered(~id="",s)
   output.prefered(id=id,s)
