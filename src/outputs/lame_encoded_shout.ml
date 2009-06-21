@@ -28,7 +28,7 @@ let no_mount = "Use [name]"
 let no_name = "Use [mount]"
 
 let proto =
-  (Icecast2.proto ~no_mount ~no_name) @
+  (Icecast2.proto ~no_mount ~no_name ~format:"mp3") @
   [ "samplerate", Lang.int_t, Some (Lang.int 44100), None;
     "bitrate", Lang.int_t, Some (Lang.int 128), None;
     "quality", Lang.int_t, Some (Lang.int 5), None;
@@ -66,16 +66,6 @@ class to_shout p =
   let mount =
     if mount = no_mount then name else mount
   in
-  let protocol =
-    let v = List.assoc "protocol" p in
-      match Lang.to_string v with
-        | "http" -> Cry.Http
-        | "icy" -> Cry.Icy
-        | _ ->
-            raise (Lang.Invalid_value
-                     (v, "valid values are 'http' (icecast) \
-                          and 'icy' (shoutcast)"))
-  in
   let channels =
     if not stereo then 1 else Fmt.channels ()
   in
@@ -90,9 +80,7 @@ class to_shout p =
   in
 object (self)
   inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
-  inherit
-    Icecast2.output ~format:Cry.mpeg ~protocol
-      ~icecast_info ~mount ~name ~source p as icecast
+  inherit Icecast2.output ~icecast_info ~mount ~name ~source p as icecast
   inherit base ~quality ~bitrate ~stereo ~samplerate as base
 
   method reset_encoder m =

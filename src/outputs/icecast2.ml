@@ -34,7 +34,7 @@ type icecast_info =
 
 let no_multicast = "no_multicast"
 
-let proto ~no_mount ~no_name =
+let proto ~no_mount ~no_name ~format =
   [ "restart", Lang.bool_t, Some (Lang.bool false),
     Some "Restart output after a failure. By default, liquidsoap will stop \
           if the output failed." ;
@@ -59,6 +59,9 @@ let proto ~no_mount ~no_name =
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     "headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),
     Some (Lang.list []), Some "Additional headers." ;
+    "format", Lang.string_t, Some (Lang.string format),
+    Some "Content-type (mime) for the format. \
+          \"mp3\" is a short-hand for mpeg audio, \"ogg\" for ogg data.";
     "dumpfile", Lang.string_t, Some (Lang.string ""), 
     Some "Dump stream to file, for debugging purpose. Disabled if empty."
   ]
@@ -69,12 +72,27 @@ let proto ~no_mount ~no_name =
   * The 'name' and 'mount' params are not extracted that way because the default
   * value for these depends on the format of the stream (ogg/mp3). *)
 class virtual output
-  ?(format=Cry.ogg_audio) ?(protocol=Cry.Http) 
   ~name ~mount ~source ~icecast_info p =
 
     let e f v = f (List.assoc v p) in
     let s v = e Lang.to_string v in
 
+    let format =
+     match s "format" with
+       | "mp3" -> Cry.mpeg
+       | "ogg" -> Cry.ogg_application
+       | s -> Cry.content_type_of_string s
+    in
+    let protocol =
+      let v = List.assoc "protocol" p in
+        match Lang.to_string v with
+          | "http" -> Cry.Http
+          | "icy" -> Cry.Icy
+          | _ ->
+              raise (Lang.Invalid_value
+                       (v, "valid values are 'http' (icecast) "^
+                        "and 'icy' (shoutcast)"))
+    in
     let restart = e Lang.to_bool "restart" in
     let restart_delay = float_of_int (e Lang.to_int "restart_delay") in
     let host = s "host" in

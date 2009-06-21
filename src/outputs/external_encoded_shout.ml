@@ -26,7 +26,7 @@ let no_mount = "Use [name]"
 let no_name = "Use [mount]"
 
 let proto =
-  (Icecast2.proto ~no_mount ~no_name) @ External_encoded.proto @
+  (Icecast2.proto ~no_mount ~no_name ~format:"mp3") @ External_encoded.proto @
   [ "start", Lang.bool_t, Some (Lang.bool true),
     Some "Start output threads on operator initialization." ;
     "bitrate", Lang.int_t, Some (Lang.int (-1)),
@@ -37,9 +37,6 @@ let proto =
     Some "Channels information for icecast. Not used if negative.";
     "icy_metadata", Lang.bool_t, Some (Lang.bool true),
     Some "Send new metadata using the ICY protocol.";
-    "format", Lang.string_t, Some (Lang.string "mp3"), 
-    Some "Content-type (mime) for the format. \
-          \"mp3\" is a short-hand for mpeg audio, \"ogg\" for ogg data.";
     "", Lang.source_t, None, None ]
 
 class to_shout p =
@@ -72,12 +69,6 @@ class to_shout p =
   let source = List.assoc "" p in
   let mount = s "mount" in
   let name = s "name" in
-  let format = 
-    match s "format" with
-      | "mp3" -> Cry.mpeg
-      | "ogg" -> Cry.ogg_application
-      | s -> Cry.content_type_of_string s
-  in
   let name =
     if name = no_name then
       if mount = no_mount then
@@ -92,16 +83,6 @@ class to_shout p =
   let mount =
     if mount = no_mount then name else mount
   in
-  let protocol =
-    let v = List.assoc "protocol" p in
-      match Lang.to_string v with
-        | "http" -> Cry.Http
-        | "icy" -> Cry.Icy
-        | _ ->
-            raise (Lang.Invalid_value
-                     (v, "valid values are 'http' (icecast) "^
-                      "and 'icy' (shoutcast)"))
-  in
   let icecast_info =
     {
      Icecast2.
@@ -114,8 +95,7 @@ class to_shout p =
 object (self)
   inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
   inherit
-    Icecast2.output ~format ~protocol
-      ~icecast_info ~mount ~name ~source p as icecast
+    Icecast2.output ~icecast_info ~mount ~name ~source p as icecast
   inherit
     External_encoded.base ~restart_on_new_track ~restart_on_crash 
                           ~restart_encoder_delay ~header 

@@ -26,7 +26,7 @@ let no_mount = "Use [name].ogg"
 let no_name = "Use [mount]"
 
 let proto =
-  (Icecast2.proto ~no_mount ~no_name) @
+  (Icecast2.proto ~no_mount ~no_name ~format:"ogg") @
   [ "start", Lang.bool_t, Some (Lang.bool true),
     Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
@@ -57,9 +57,8 @@ class to_shout ~skeleton ~streams
   let autostart = Lang.to_bool (List.assoc "start" p) in
 
 object (self)
-  inherit
-    Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
-  inherit Icecast2.output 
+  inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Icecast2.output
     ~mount ~name ~icecast_info 
     ~source p as icecast
   inherit Ogg_output.base ~skeleton streams as ogg
