@@ -1,8 +1,7 @@
 open Source
 open Dtools
-open Theora
 
-(** Output in a ogg theora *)
+(** Output in a ogg dirac *)
 
 let create_streams ~quality ~vorbis_quality =
   let create_encoder ogg_enc metadata =
