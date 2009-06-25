@@ -53,7 +53,7 @@ object(self)
 
 end
 
-class on_blank ~length ~threshold handler source =
+class on_blank ~length ~threshold ~on_blank ~on_noise source =
 object (self)
   inherit operator [source]
   inherit base ~length ~threshold as base
@@ -74,12 +74,15 @@ object (self)
       source#get ab ;
       if AFrame.is_partial ab || p0 > 0 then blank_len <- 0 else begin
         self#check_blank ab p0 ;
-        if blank_len <= length then
-          in_blank <- false
-        else
+        if blank_len <= length then begin
+          if in_blank then begin
+            ignore (Lang.apply on_noise []) ;
+            in_blank <- false
+          end
+        end else
           if not in_blank then begin
             in_blank <- true ;
-            ignore (Lang.apply handler [])
+            ignore (Lang.apply on_blank [])
           end
       end
 end
@@ -231,12 +234,18 @@ let () =
   Lang.add_operator "on_blank"
     ~category:Lang.TrackProcessing
     ~descr:"Calls a given handler when detecting a blank."
-    (("",Lang.fun_t [] Lang.unit_t, None, None)::proto)
+    (("", Lang.fun_t [] Lang.unit_t, None,
+      Some "Handler called when blank is detected.")::
+     ("on_noise",Lang.fun_t [] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Handler called when noise is detected.")::
+     proto)
     (fun p _ ->
-       let f = Lang.assoc "" 1 p in
+       let on_blank = Lang.assoc "" 1 p in
+       let on_noise = Lang.assoc "on_noise" 1 p in
        let p = List.remove_assoc "" p in
        let length,threshold,s = extract p in
-         new on_blank ~length ~threshold f s) ;
+         new on_blank ~length ~threshold ~on_blank ~on_noise s) ;
   Lang.add_operator "skip_blank"
     ~category:Lang.TrackProcessing
     ~descr:"Skip track when detecting a blank."
