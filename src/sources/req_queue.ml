@@ -96,6 +96,7 @@ object (self)
   method wake_up activation =
     queued#wake_up activation ;
     if interactive then begin
+    self#set_id ~definitive:false "queue" ;
     if ns = [] then
       ns <- Server.register [self#id] "queue" ;
     self#set_id (Server.to_string ns) ;
@@ -111,10 +112,10 @@ object (self)
                (string_of_int id)
          | None -> "Unable to create a request!")  ;
     let print_queue q =
-           String.concat " "
-             (List.map
-                (fun r -> string_of_int (Request.get_id r))
-                (List.rev q))
+      String.concat " "
+        (List.map
+           (fun r -> string_of_int (Request.get_id r))
+           (List.rev q))
     in
     Server.add ~ns "queue"
       ~descr:"Display current queue content for both primary and \
