@@ -42,32 +42,42 @@ let parse_arg s =
 
 let say s ~log maxtime =
   let local = Filename.temp_file "say" ".wav" in
+  (* Note that if liquidsoap gets killed while resolving this URI,
+   * the empty tempfile remains. It is only cleaned if a temporary
+   * indicator is successfully created from it and added to the request. *)
   let cmd = Configure.tts_program in
   let voice,s = parse_arg s in
-  let pid,ret =
-    dlog#f 3 "Synthetizing %S to %S" s local ;
-    let pid = flush_all () ; fork () in
-      if pid = 0 then (
-        try
-          Sys.set_signal
-            Sys.sigalrm (Sys.Signal_handle (fun _ -> core_exit 2)) ;
-          assert (0 = Unix.alarm (int_of_float (maxtime -. time ()))) ;
-          if voice <> "" then
-            execv cmd [| cmd;s;local;voice |]
-          else
-            execv cmd [| cmd;s;local |]
-        with
-          | _ -> core_exit 1
-      ) else
-        waitpid [] pid
-  in
-    if ret = Unix.WEXITED 0 then (
-      [Request.indicator ~temporary:true local]
-    ) else (
-      log "Speech synthesis failed !" ;
-      ( try Unix.unlink local with _ -> () ) ;
-      []
-    )
+    try
+      let pid,ret =
+        dlog#f 3 "Synthetizing %S to %S" s local ;
+        let pid = flush_all () ; fork () in
+          if pid = 0 then begin
+            try
+              Sys.set_signal
+                Sys.sigalrm (Sys.Signal_handle (fun _ -> core_exit 2)) ;
+              assert (0 = Unix.alarm (int_of_float (maxtime -. time ()))) ;
+              if voice <> "" then
+                execv cmd [| cmd;s;local;voice |]
+              else
+                execv cmd [| cmd;s;local |]
+            with
+              | _ -> core_exit 1
+          end else
+            waitpid [] pid
+      in
+        if ret = Unix.WEXITED 0 then
+          [Request.indicator ~temporary:true local]
+        else
+          failwith "synthesis script returned an error"
+    with
+      | e ->
+          (* This could for example be ENOMEM raised by Unix.fork. *)
+          dlog#f 3
+            "Failed to synthetize speech: %s!"
+            (match e with Failure s -> s | _ -> Printexc.to_string e) ;
+          log "Speech synthesis failed!" ;
+          (try Unix.unlink local with _ -> ()) ;
+          []
 
 let () =
   Request.protocols#register
