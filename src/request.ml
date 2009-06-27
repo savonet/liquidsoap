@@ -435,8 +435,8 @@ let lock = Mutex.create ()
 exception Found of int
 
 let next =
-  let request_max = conf_max_rid#get in
   let current = ref (-1) in fun () ->
+    let request_max = conf_max_rid#get in
     assert (not (Mutex.try_lock lock)) ;
     try
       for i = 1 to request_max do
