@@ -38,13 +38,13 @@ type float_pcm_t = float
 (** Contents of tracks. *)
 type track_t =
   | Float_pcm_t of float_pcm_t (** PCM data *)
-  | Midi_t of Midi.header (** MIDI data *)
+  | Midi_t (** MIDI data *)
   | RGB_t (** YUV video data *)
 
 (** Tracks. *)
 type track =
   | Float_pcm of (float_pcm_t * float_pcm) (** PCM data *)
-  | Midi of (Midi.header * Midi.track ref) (** MIDI data *)
+  | Midi of (int * Midi.event) list ref (** MIDI data *)
   | RGB of RGB.t array (** YUV data as an array of frames *)
 
 (** {2 Basic manipulation} *)

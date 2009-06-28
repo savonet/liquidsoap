@@ -26,12 +26,12 @@ type float_pcm_t = float (* samplerate *)
 
 type track_t =
   | Float_pcm_t of float_pcm_t
-  | Midi_t of Midi.header
+  | Midi_t
   | RGB_t
 
 type track =
   | Float_pcm of (float_pcm_t * float_pcm)
-  | Midi of (Midi.header * Midi.track ref)
+  | Midi of (int * Midi.event) list ref
   | RGB of RGB.t array
 
 type metadata = (string,string) Hashtbl.t
@@ -62,8 +62,8 @@ let create_track freq length = function
           int_of_float (((float length) /. (float freq)) *. f)
       in
         Float_pcm (f, Array.create len 0.)
-  | Midi_t h ->
-      Midi (h, ref (Midi.create_track ()))
+  | Midi_t ->
+      Midi (ref (Midi.create_track ()))
   | RGB_t ->
       RGB (Array.init
              (Fmt.video_frames_per_frame ())
@@ -97,7 +97,7 @@ let make () =
 
 let kind_of_track = function
   | Float_pcm (t, _) -> Float_pcm_t t
-  | Midi (h, _) -> Midi_t h
+  | Midi _ -> Midi_t
   | RGB _ -> RGB_t
 
 let kind b = Array.map kind_of_track b.tracks
@@ -171,7 +171,7 @@ let blit src src_pos dst dst_pos len =
           let r = f /. float src.freq in
           let c x = int_of_float (float x *. r) in
             float_blit a (c src_pos) a' (c dst_pos) (c len)
-      | Midi (_,m), Midi (h,m') -> m' := !m
+      | Midi m, Midi m' -> m' := !m (* TODO: use parameters.... *)
       | RGB src, RGB dst ->
           (* TODO: handle offsets! *)
           for i = 0 to Array.length src - 1 do

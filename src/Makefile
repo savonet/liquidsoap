@@ -1,7 +1,7 @@
 
 SUBDIRS= operators sources tools formats protocols outputs io plugins stream \
          visualization lang analyze playlists ogg_formats video_converters \
-         audio_converters
+         audio_converters synth
 
 DISTFILES = $(wildcard *.mli) Makefile \
 	$(wildcard *.ml) META.in
@@ -137,13 +137,15 @@ stream = stream/midi.ml fmt.ml stream/rgb_c.c stream/RGB.ml \
 	stream/frame.ml decoder.ml playlist_parser.ml \
 	request.ml source.ml root.ml \
 	stream/float_pcm_c.c stream/float_pcm.ml \
-	stream/aFrame.ml stream/vFrame.ml
+	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization = visualization/vumeter.ml \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
 	$(if $(W_GL),visualization/vis_glvolume.ml) \
 	visualization/video_volume.ml
+
+synth = synth/keyboard.ml
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
@@ -155,7 +157,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	tools/harbor.ml tools/ioRing.ml tools/file_decoder.ml \
 	$(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
-	$(analyze) $(playlists) $(visualization) $(formats) \
+	$(analyze) $(playlists) $(visualization) $(synth) $(formats) \
 	shebang.ml \
 	lang/lang_builtins.ml \
 	$(if $(W_MAGIC),lang/lang_magic.ml) \
@@ -165,12 +167,12 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 OCAML_CFLAGS= -thread \
 	-I tools -I lang -I playlists -I stream -I outputs -I formats \
 	-I video_converters -I sources -I operators -I io -I visualization \
-	-I analyze -I ogg_formats -I audio_converters
+	-I analyze -I ogg_formats -I audio_converters -I synth
 OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp) \
 			  $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists \
 		  -I video_converters -I outputs -I io -I stream -I visualization \
-		  -I analyze -I ogg_formats -I audio_converters
+		  -I analyze -I ogg_formats -I audio_converters -I synth
 
 liquidsoap_doc_sources= \
 	source.ml root.ml \
@@ -185,7 +187,8 @@ liquidsoap_doc_sources= \
 	configure.ml fmt.ml video_converter.ml \
 	$(if $(W_OGG),ogg_encoder.ml ogg_demuxer.ml) \
 	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml \
-	stream/vFrame.ml stream/RGB.ml audio_converter.ml
+	stream/vFrame.ml stream/RGB.ml audio_converter.ml \
+	stream/mFrame.ml
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
