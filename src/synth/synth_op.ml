@@ -70,3 +70,13 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
          new synth (new Synth.sine :> Synth.synth) src 0)
+
+let () =
+  Lang.add_operator "synth.square"
+    [ "", Lang.source_t, None, None ]
+    ~category:Lang.SoundSynthesis
+    ~descr:"Square synthesiser."
+    (fun p _ ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         new synth (new Synth.square :> Synth.synth) src 0)

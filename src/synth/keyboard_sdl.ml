@@ -69,12 +69,12 @@ object (self)
               | Some (Sdlevent.KEYDOWN k) ->
                   let c = Sdlkey.char_of_key k.Sdlevent.keysym in
                   let n = note_of_char c in
-                    Printf.printf "Playing note %d.\n%!" n;
+                    (* Printf.printf "Playing note %d.\n%!" n; *)
                     ans := (0,Midi.Note_on (n, velocity))::!ans
               | Some (Sdlevent.KEYUP k) ->
                   let c = Sdlkey.char_of_key k.Sdlevent.keysym in
                   let n = note_of_char c in
-                    Printf.printf "Stopping note %d.\n%!" n;
+                    (* Printf.printf "Stopping note %d.\n%!" n; *)
                     ans := (0,Midi.Note_off (n, velocity))::!ans
               | _ -> ()
           with

@@ -63,26 +63,31 @@ object (self)
       state <- Some !gs
 end
 
-type sine_gs = unit
-type sine_ns =
+type simple_gs = unit
+(* Period is 1. *)
+type simple_ns =
     {
-      sine_phase : float;
-      sine_freq : float;
-      sine_ampl : float;
+      simple_phase : float;
+      simple_freq : float;
+      simple_ampl : float;
     }
 
-class sine =
+class simple f =
 object (self)
-  inherit [sine_gs, sine_ns] base
+  inherit [simple_gs, simple_ns] base
 
   method state_init = ()
 
-  method note_init n v = { sine_phase = (*Random.float (2. *. pi)*) 0.; sine_freq = freq_of_note n; sine_ampl = v }
+  method note_init n v = { simple_phase = (*Random.float 1.*) 0.; simple_freq = freq_of_note n; simple_ampl = v }
 
   method synth_note_mono gs ns freq buf ofs len =
-    let phase i = ns.sine_phase +. float i /. freq *. ns.sine_freq *. 2. *. pi in
+    let phase i = ns.simple_phase +. float i /. freq *. ns.simple_freq in
       for i = ofs to ofs + len - 1 do
-        buf.(i) <- buf.(i) +. ns.sine_ampl *. sin (phase i)
+        buf.(i) <- buf.(i) +. ns.simple_ampl *. f (phase i)
       done;
-      gs, { ns with sine_phase = phase len }
+      gs, { ns with simple_phase = fst (modf (phase len)) }
 end
+
+class sine = object inherit simple (fun x -> sin (x *. 2. *. pi)) end
+
+class square = object inherit simple (fun x -> let x = fst (modf x) in if x < 0.5 then 1. else -1.) end
