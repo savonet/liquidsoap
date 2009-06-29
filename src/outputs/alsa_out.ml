@@ -44,13 +44,13 @@ object (self)
 
   val mutable alsa_rate = samples_per_second
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
-  val mutable alsa_write =                                                                       
+  val mutable alsa_write =
     (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len) 
 
   method get_device =
     match device with
       | Some d -> d
-      | None -> 
+      | None ->
           self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
           let params = Pcm.get_params dev in
@@ -70,7 +70,7 @@ object (self)
                          let sbuf = String.create (2 * len * Array.length buf) in
                          let _ =  Float_pcm.to_s16le buf ofs len sbuf 0 in
                          Pcm.writei pcm sbuf 0 len
-                      )     
+                      )
              );
              Pcm.set_channels dev params buffer_chans ;
              alsa_rate <- Pcm.set_rate_near dev params samples_per_second Dir_eq ;
@@ -87,14 +87,14 @@ object (self)
           device <- Some dev ;
           dev
 
-  method close = 
+  method close =
     match device with
       | Some d ->
           Pcm.close d ;
           device <- None
       | None -> ()
 
-  method push_block data = 
+  method push_block data =
     let dev = self#get_device in
     try
       let len = Array.length data.(0) in
@@ -115,7 +115,7 @@ object (self)
     let buf = Audio_converter.Samplerate.resample samplerate_converter 
                   ratio buf 0 (Array.length buf.(0)) 
     in
-    let f data = 
+    let f data =
       for c = 0 to Array.length buf - 1 do
         Float_pcm.float_blit buf.(c) 0 data.(c) 0 (Array.length buf.(0))
       done
