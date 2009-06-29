@@ -89,8 +89,11 @@ let make () =
   let video =
     Array.init (Fmt.video_channels ()) (fun _ -> RGB_t)
   in
+  let midi =
+    Array.init (Fmt.midi_channels ()) (fun _ -> Midi_t)
+  in
     create
-      (Array.append audio video)
+      (Array.append (Array.append audio video) midi)
       (Fmt.ticks_per_second ())
       (Fmt.ticks_per_frame ())
 

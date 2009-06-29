@@ -26,7 +26,7 @@ type division =
 
 type event =
   | Note_off of int * float
-  | Note_on of int * float (** Note on: note number (A4 = 91), velocity (between 0 and 1). *)
+  | Note_on of int * float (** Note on: note number (A4 = 69), velocity (between 0 and 1). *)
   | Aftertouch of int * float
   | Control_change of int * int
   | Patch of int

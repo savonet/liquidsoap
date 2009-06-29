@@ -20,6 +20,20 @@
 
  *****************************************************************************)
 
+let knotes = [|'a'; '?'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '?'; 'u'; 'i'; '?'; 'o'; '?'; 'p'|]
+
+let array_index a x =
+  let ans = ref None in
+    for i = 0 to Array.length knotes - 1 do
+      if knotes.(i) = x then ans := Some i
+    done;
+    match !ans with
+      | Some i -> i
+      | None -> raise Not_found
+
+let note_of_char c =
+  array_index knotes c + 94
+
 class keyboard =
 object (self)
   inherit Source.active_source
@@ -33,9 +47,9 @@ object (self)
   val mutable ev = []
   val ev_m = Mutex.create ()
 
-  method add_event (e:Midi.event) =
+  method add_event (t:int) (e:Midi.event) =
     Mutex.lock ev_m;
-    ev <- (0,e)::ev;
+    ev <- (t,e)::ev;
     Mutex.unlock ev_m
 
   method get_events =
@@ -48,7 +62,15 @@ object (self)
   method output_get_ready =
     let _ =
       Tutils.create
-        (fun () -> ()
+        (fun () ->
+           while true do
+             let c = input_char stdin in
+               try
+                 Printf.printf "\nPlaying note %d.\n%!" (note_of_char c);
+                 self#add_event 0 (Midi.Note_on (note_of_char c, 0.8))
+               with
+                 | Not_found -> ()
+           done
         ) () "Virtual keyboard"
     in
       ()
@@ -58,7 +80,12 @@ object (self)
 
   method get_frame frame =
     assert (0 = MFrame.position frame);
-    MFrame.add_break frame (MFrame.size frame)
+    let m = MFrame.tracks frame in
+    let t = self#get_events in
+      for c = 0 to Array.length m - 1 do
+        m.(c) := t
+      done;
+      MFrame.add_break frame (MFrame.size frame)
 end
 
 let () =
@@ -66,9 +93,9 @@ let () =
     [
     ]
     ~category:Lang.Input
-    ~flags:[Lang.Experimental]
+    ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard."
     (fun p _ ->
-       let e f v = f (List.assoc v p) in
+       (* let e f v = f (List.assoc v p) in *)
          ((new keyboard):>Source.source)
     )

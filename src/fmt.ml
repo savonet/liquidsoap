@@ -66,6 +66,15 @@ let conf_video_fps =
   Conf.int ~p:(conf_video#plug "fps") ~d:25
     "Video frames per second"
 
+let conf_midi =
+  Conf.void ~p:(conf#plug "midi") "MIDI parameters"
+      ~comments:[
+        "Parameters for MIDI in liquidsoap."
+      ]
+let conf_midi_channels =
+  Conf.int ~p:(conf_midi#plug "channels") ~d:0
+    "MIDI channels"
+
 (* Global time speed. *)
 let samples_per_second () = conf_samplerate#get
 
@@ -102,3 +111,5 @@ let video_width () = conf_video_width#get
 let video_height () = conf_video_height#get
 
 let video_channels () = conf_video_channels#get
+
+let midi_channels () = conf_midi_channels#get

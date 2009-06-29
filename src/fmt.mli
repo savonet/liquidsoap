@@ -72,3 +72,6 @@ val video_frames_of_ticks : int -> int
 
 val video_width : unit -> int
 val video_height : unit -> int
+
+
+val midi_channels : unit -> int
