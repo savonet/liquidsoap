@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let knotes = [|'a'; '?'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '?'; 'u'; 'i'; '?'; 'o'; '?'; 'p'|]
+let knotes = [|'a'; '\233'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '\232'; 'u'; 'i'; '\231'; 'o'; '\224'; 'p'|]
 
 let array_index a x =
   let ans = ref None in
@@ -34,7 +34,7 @@ let array_index a x =
 let note_of_char c =
   array_index knotes c + 72
 
-class keyboard =
+class keyboard velocity =
 object (self)
   inherit Source.active_source
 
@@ -44,42 +44,15 @@ object (self)
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  val mutable ev = []
-  val ev_m = Mutex.create ()
-
-  method add_event (t:int) (e:Midi.event) =
-    Mutex.lock ev_m;
-    ev <- (t,e)::ev;
-    Mutex.unlock ev_m
-
-  method get_events =
-    Mutex.lock ev_m;
-    let e = List.rev ev in
-      ev <- [];
-      Mutex.unlock ev_m;
-      e
+  initializer
+    Sdl.init [`EVENTTHREAD; `VIDEO];
+    Sdlevent.disable_events (Sdlevent.all_events_mask);
+    Sdlevent.enable_events (Sdlevent.make_mask [Sdlevent.KEYDOWN_EVENT; Sdlevent.KEYUP_EVENT; Sdlevent.QUIT_EVENT]);
+    ignore (Sdlvideo.set_video_mode ~w:640 ~h:480 ~bpp:16 [])
 
   val mutable reader = None
 
-  method output_get_ready =
-    if reader = None then
-      reader <-
-      Some
-        (Tutils.create
-           (fun () ->
-              while true do
-                let c =
-                  let c = String.create 1 in
-                    ignore (Unix.read Unix.stdin c 0 1);
-                    c.[0]
-                in
-                  try
-                    Printf.printf "\nPlaying note %d.\n%!" (note_of_char c);
-                    self#add_event 0 (Midi.Note_on (note_of_char c, 0.8))
-                  with
-                    | Not_found -> ()
-              done
-           ) () "Virtual keyboard")
+  method output_get_ready = ()
 
   method output_reset = ()
   method is_active = true
@@ -87,7 +60,29 @@ object (self)
   method get_frame frame =
     assert (0 = MFrame.position frame);
     let m = MFrame.tracks frame in
-    let t = self#get_events in
+    let t =
+      let ans = ref [] in
+        Sdlevent.pump ();
+        while Sdlevent.has_event () do
+          try
+            match Sdlevent.poll () with
+              | Some (Sdlevent.KEYDOWN k) ->
+                  let c = Sdlkey.char_of_key k.Sdlevent.keysym in
+                  let n = note_of_char c in
+                    Printf.printf "Playing note %d.\n%!" n;
+                    ans := (0,Midi.Note_on (n, velocity))::!ans
+              | Some (Sdlevent.KEYUP k) ->
+                  let c = Sdlkey.char_of_key k.Sdlevent.keysym in
+                  let n = note_of_char c in
+                    Printf.printf "Stopping note %d.\n%!" n;
+                    ans := (0,Midi.Note_off (n, velocity))::!ans
+              | _ -> ()
+          with
+            | Not_found
+            | Invalid_argument _ -> ()
+        done;
+        !ans
+    in
       for c = 0 to Array.length m - 1 do
         m.(c) := t
       done;
@@ -95,13 +90,15 @@ object (self)
 end
 
 let () =
-  Lang.add_operator "input.keyboard"
+  Lang.add_operator "input.keyboard.sdl"
     [
+      "velocity", Lang.float_t, Some (Lang.float 0.3), Some "Velocity of notes."
     ]
     ~category:Lang.Input
-    ~flags:[Lang.Hidden; Lang.Experimental]
+    ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."
     (fun p _ ->
-       (* let e f v = f (List.assoc v p) in *)
-         ((new keyboard):>Source.source)
+       let f v = List.assoc v p in
+       let velocity = Lang.to_float (f "velocity") in
+         ((new keyboard velocity):>Source.source)
     )

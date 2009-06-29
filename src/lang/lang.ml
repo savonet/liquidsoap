@@ -79,7 +79,7 @@ let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
 type category =
   | Input | Output
   | TrackProcessing | SoundProcessing | VideoProcessing
-  | Visualization
+  | Visualization | SoundSynthesis
 
 let string_of_category x = "Source / " ^ match x with
   | Input -> "Input"
@@ -87,6 +87,7 @@ let string_of_category x = "Source / " ^ match x with
   | TrackProcessing -> "Track Processing"
   | SoundProcessing -> "Sound Processing"
   | VideoProcessing -> "Video Processing"
+  | SoundSynthesis -> "Sound Synthesis"
   | Visualization -> "Visualization"
 
 let add_operator ~category ~descr ?(flags=[]) name proto f =

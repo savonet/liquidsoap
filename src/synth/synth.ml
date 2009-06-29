@@ -2,8 +2,17 @@ let pi = 3.1416
 
 let freq_of_note n = 440. *. (2. ** ((float n -. 69.) /. 12.))
 
+class type synth =
+object
+  method note_on : int -> float -> unit
+
+  method note_off : int -> float -> unit
+
+  method synth : float -> float array array -> int -> int -> unit
+end
+
 (* Global state and note state. *)
-class virtual ['gs,'ns] synth =
+class virtual ['gs,'ns] base =
 object (self)
   val mutable state = None
 
@@ -21,10 +30,14 @@ object (self)
   method init =
     state <- Some (self#state_init)
 
+  initializer
+    self#init
+
   method note_on n v =
     notes <- (n, ref (self#note_init n v))::notes
 
   method note_off n (v:float) =
+    (* TODO: remove only one note *)
     notes <- List.filter (fun (m, _) -> m <> n) notes
 
   method synth_note_mono (gs:'gs) (ns:'ns) (freq:float) (buf:float array) (ofs:int) (len:int) = gs, ns
@@ -60,16 +73,16 @@ type sine_ns =
 
 class sine =
 object (self)
-  inherit [sine_gs, sine_ns] synth
+  inherit [sine_gs, sine_ns] base
 
   method state_init = ()
 
-  method note_init n v = { sine_phase = 0.; sine_freq = freq_of_note n; sine_ampl = v }
+  method note_init n v = { sine_phase = (*Random.float (2. *. pi)*) 0.; sine_freq = freq_of_note n; sine_ampl = v }
 
   method synth_note_mono gs ns freq buf ofs len =
     let phase i = ns.sine_phase +. float i /. freq *. ns.sine_freq *. 2. *. pi in
       for i = ofs to ofs + len - 1 do
-        buf.(i) <- ns.sine_ampl *. sin (phase i)
+        buf.(i) <- buf.(i) +. ns.sine_ampl *. sin (phase i)
       done;
-      gs, { ns with sine_phase = phase len}
+      gs, { ns with sine_phase = phase len }
 end

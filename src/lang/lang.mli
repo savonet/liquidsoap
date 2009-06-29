@@ -86,6 +86,7 @@ type category =
   | SoundProcessing (** Operations on sound (e.g. compression, etc.). *)
   | VideoProcessing (** Operations on video. *)
   | Visualization (** Visializations of the sound. *)
+  | SoundSynthesis (** Synthesis. *)
 
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
