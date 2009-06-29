@@ -78,7 +78,7 @@ object (self)
 
   method state_init = ()
 
-  method note_init n v = { simple_phase = (*Random.float 1.*) 0.; simple_freq = freq_of_note n; simple_ampl = v }
+  method note_init n v = { simple_phase = 0.; simple_freq = freq_of_note n; simple_ampl = v }
 
   method synth_note_mono gs ns freq buf ofs len =
     let phase i = ns.simple_phase +. float i /. freq *. ns.simple_freq in
