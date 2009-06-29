@@ -20,19 +20,24 @@
 
  *****************************************************************************)
 
-let knotes = [|'a'; '\233'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '\232'; 'u'; 'i'; '\231'; 'o'; '\224'; 'p'|]
+let knotes2 = [|'&'; 'a'; '\233'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '\232'; 'u'; 'i'; '\231'; 'o'; '\224'; 'p'|]
+let knotes1 = [|'q'; 'w'; 's'; 'x'; 'd'; 'c'; 'v'; 'g'; 'b'; 'h'; 'n'; 'j'; ','; ';'; 'l'; ':'; 'm'; '!'|]
 
 let array_index a x =
   let ans = ref None in
-    for i = 0 to Array.length knotes - 1 do
-      if knotes.(i) = x then ans := Some i
+    for i = 0 to Array.length a - 1 do
+      if a.(i) = x then ans := Some i
     done;
     match !ans with
       | Some i -> i
       | None -> raise Not_found
 
 let note_of_char c =
-  array_index knotes c + 72
+  try
+    array_index knotes2 c + 71
+  with
+    | Not_found ->
+        array_index knotes1 c + 59
 
 class keyboard velocity =
 object (self)
