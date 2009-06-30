@@ -40,28 +40,30 @@ object (self)
             source#get peek ;
             if AFrame.is_partial peek then
               AFrame.add_break buf (AFrame.position buf)
-            else begin
-              match AFrame.get_metadata peek peekpos with
-                | Some m when
-                  Utils.hashtbl_get m "liq_prepend" <> Some "false" ->
-                    let prepend =
-                      Lang.to_source
-                        (Lang.apply f ["",Lang.metadata m])
-                    in
-                      self#register prepend ;
-                      if not prepend#is_ready then begin
-                        self#log#f 3
-                          "Candidate to prepending not ready. Abort!" ;
-                        state <- `Buffer peek ;
-                        self#unregister prepend
-                      end else begin
-                        state <- `Prepend (prepend,peek)
-                      end ;
-                      self#get_frame buf
-                | _ ->
+            else
+              let inhibit,lang_m =
+                match AFrame.get_metadata peek peekpos with
+                  | Some m ->
+                      (Utils.hashtbl_get m "liq_prepend" = Some "false"),
+                      Lang.metadata m
+                  | None -> false, Lang.list []
+              in
+                if inhibit then begin
+                    self#log#f 4 "Prepending disabled from metadata (\"liq_prepend\"=\"false\")." ;
                     state <- `Buffer peek ;
                     self#get_frame buf
-            end
+                end else
+                  let prepend = Lang.to_source (Lang.apply f ["",lang_m]) in
+                    self#register prepend ;
+                    if not prepend#is_ready then begin
+                      self#log#f 3
+                        "Candidate to prepending not ready. Abort!" ;
+                      state <- `Buffer peek ;
+                      self#unregister prepend
+                    end else begin
+                      state <- `Prepend (prepend,peek)
+                    end ;
+                    self#get_frame buf
       | `Buffer peek ->
           let p = AFrame.position buf in
           let pcm = AFrame.get_float_pcm buf in
