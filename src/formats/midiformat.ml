@@ -132,7 +132,11 @@ let read_track fd =
         | 9 ->
             let n = get_byte () in
             let v = get_byte () in
-              Some chan, Midi.Note_on (n, float v /. 127.)
+              Some chan,
+              if v = 0 then
+                Midi.Note_off (n, 0.) (* I have seen notes at 0. used as note off...... *)
+              else
+                Midi.Note_on (n, float v /. 127.)
         | 0xa ->
             let n = get_byte () in
             let v = get_byte () in
@@ -263,7 +267,7 @@ let decoder file =
           List.map
             (fun (d,(c,e)) ->
                let d = (d * !tempo / tpq) * Fmt.ticks_per_second () / 1000000 in
-               let d = d * 2 in (* TODO: remove this! *)
+               let d = d * 1 in (* TODO: remove this! *)
                  (
                    match e with
                      | Midi.Tempo t ->
