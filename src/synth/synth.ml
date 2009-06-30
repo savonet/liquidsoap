@@ -4,16 +4,24 @@ let freq_of_note n = 440. *. (2. ** ((float n -. 69.) /. 12.))
 
 class type synth =
 object
+  method set_volume : float -> unit
+
   method note_on : int -> float -> unit
 
   method note_off : int -> float -> unit
 
   method synth : float -> float array array -> int -> int -> unit
+
+  method reset : unit
 end
 
 (* Global state and note state. *)
 class virtual ['gs,'ns] base =
 object (self)
+  val mutable volume = 1.
+
+  method set_volume v = volume <- v
+
   val mutable state = None
 
   method state =
@@ -22,6 +30,8 @@ object (self)
       | None -> assert false
 
   val mutable notes = []
+
+  method reset = notes <- []
 
   method virtual state_init : 'gs
 
@@ -34,6 +44,8 @@ object (self)
     self#init
 
   method note_on n v =
+    (* Limit the number of notes for now. TODO: parameter *)
+    if List.length notes > 8 then notes <- List.rev (List.tl (List.rev notes));
     notes <- (n, ref (self#note_init n v))::notes
 
   method note_off n (v:float) =
@@ -83,7 +95,7 @@ object (self)
   method synth_note_mono gs ns freq buf ofs len =
     let phase i = ns.simple_phase +. float i /. freq *. ns.simple_freq in
       for i = ofs to ofs + len - 1 do
-        buf.(i) <- buf.(i) +. ns.simple_ampl *. f (phase i)
+        buf.(i) <- buf.(i) +. volume *. ns.simple_ampl *. f (phase i)
       done;
       gs, { ns with simple_phase = fst (modf (phase len)) }
 end

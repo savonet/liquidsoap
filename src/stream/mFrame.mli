@@ -5,7 +5,7 @@ type t = Frame.t
 (** Is it partially filled ? *)
 val is_partial : t -> bool
 
-(** Number of video frames. *)
+(** Number of ticks in a MIDI frame. *)
 val size : t -> int
 
 (** Position of the first break. *)

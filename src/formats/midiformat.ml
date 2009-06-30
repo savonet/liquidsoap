@@ -52,12 +52,14 @@ let read_header fd =
   let division =
     if division land 0x8000 = 0 then
       (
+        (* Delta-time ticks per quarter *)
         log#f 5 "Ticks per quarter: %d" division;
         Midi.Ticks_per_quarter division
       )
     else
       let frames = (division lsr 8) land 0x7f in
       let ticks = division land 0xff in
+        log#f 5 "SMPTE: %d * %d" frames ticks;
         Midi.SMPTE (frames, ticks)
   in
     if id <> "MThd" || len <> 6 || (fmt <> 0 && fmt <> 1 && fmt <> 2) then
@@ -65,7 +67,7 @@ let read_header fd =
         log#f 4 "Invalid header (%s, %d, %d)" id len fmt;
         raise Invalid_header;
       );
-    log#f 5 "Tracks: %d" tracks;
+    log#f 5 "Format: %d (%d tracks)" fmt tracks;
     tracks, division
 
 let read_track fd =
@@ -89,6 +91,7 @@ let read_track fd =
       incr pos;
       !ans
   in
+  let status = ref 0 in (* for running status *)
   let read_event () =
     let get_byte () =
       incr pos;
@@ -102,82 +105,129 @@ let read_track fd =
         pos := !pos + len;
         ans
     in
-    let cmd = (data.(!pos) lsr 4) land 0xf in
-    let chan = data.(!pos) land 0xf in
+    let advance len =
+      pos := !pos + len
+    in
+    let command = data.(!pos) in
     incr pos;
-    let event =
+    let command =
+      if command land 0x80 <> 0 then
+        (
+          status := command;
+          command
+        )
+      else
+        (
+          decr pos;
+          !status
+        )
+    in
+    let cmd = (command lsr 4) land 0xf in
+    let chan = command land 0xf in
       match cmd with
         | 8 ->
             let n = get_byte () in
             let v = get_byte () in
-              Midi.Note_off (n, v)
+              Some chan, Midi.Note_off (n, float v /. 127.)
         | 9 ->
             let n = get_byte () in
             let v = get_byte () in
-              log#f 6 "Note on: %d %d" n v;
-              Midi.Note_on (n, v)
-        | 10 ->
+              Some chan, Midi.Note_on (n, float v /. 127.)
+        | 0xa ->
             let n = get_byte () in
             let v = get_byte () in
-              Midi.Aftertouch (n, v)
-        | 11 ->
+              Some chan, Midi.Aftertouch (n, float v /. 127.)
+        | 0xb ->
             let c = get_byte () in
             let v = get_byte () in
-              Midi.Control_change (c, v)
-        | 12 ->
+              Some chan, Midi.Control_change (c, v)
+        | 0xc ->
             let p = get_byte () in
-              Midi.Patch p
-        | 13 ->
+              Some chan, Midi.Patch p
+        | 0xd ->
             let c = get_byte () in
-              Midi.Channel_aftertouch c
-        | 14 ->
+              Some chan, Midi.Channel_aftertouch c
+        | 0xe ->
             let l = get_byte () land 0x7f in
             let h = get_byte () land 0x7f in
-              Midi.Pitch ((h lsl 7) + l)
-        | 15 ->
-            (
-              let cmd = get_byte () in
-                match cmd with
-                  | 0 ->
-                      assert (get_byte () = 2);
-                      let h = get_byte () in
-                      let l = get_byte () in
-                        Midi.Sequence_number ((h lsl 8) + l)
-                  | 1 ->
-                      let len = get_byte () in
-                        Midi.Text (get_text len)
-                  | 2 ->
-                      let len = get_byte () in
-                        Midi.Copyright (get_text len)
-                  | 3 ->
-                      let len = get_byte () in
-                        Midi.Track_name (get_text len)
-                  | 4 ->
-                      let len = get_byte () in
-                        Midi.Instrument_name (get_text len)
-                  | 5 ->
-                      let len = get_byte () in
-                        Midi.Lyric (get_text len)
-                  | 6 ->
-                      let len = get_byte () in
-                        Midi.Marker (get_text len)
-                  | 7 ->
-                      let len = get_byte () in
-                        Midi.Cue (get_text len)
-                  | _ ->
-                      log#f 5 "Unknown command 15,%d" cmd;
-                      raise Not_found
-            )
+              Some chan, Midi.Pitch ((h lsl 7) + l)
         | _ ->
-            (* log#f 5 "Unknown command %d" cmd; *)
-            raise Not_found
-    in
-      chan, event
+            match command with
+              | 0xf0
+              | 0xf7 ->
+                  (* SysEx *)
+                  let len = read_delta () in
+                    advance len;
+                    raise Not_found
+              | 0xff ->
+                  (
+                  let cmd = get_byte () in
+                  let len = read_delta () in
+                    match cmd with
+                      | 0 ->
+                          assert (len = 2);
+                          let h = get_byte () in
+                          let l = get_byte () in
+                            None, Midi.Sequence_number ((h lsl 8) + l)
+                      | 1 ->
+                          None, Midi.Text (get_text len)
+                      | 2 ->
+                          None, Midi.Copyright (get_text len)
+                      | 3 ->
+                          None, Midi.Track_name (get_text len)
+                      | 4 ->
+                          None, Midi.Instrument_name (get_text len)
+                      | 5 ->
+                          None, Midi.Lyric (get_text len)
+                      | 6 ->
+                          None, Midi.Marker (get_text len)
+                      | 7 ->
+                          None, Midi.Cue (get_text len)
+                      | 0x2f (* End of track *) ->
+                          assert (len = 0);
+                          raise Not_found
+                      | 0x51 (* Tempo in microseconds per quarter note *) ->
+                          assert (len = 3);
+                          let t1 = get_byte () in
+                          let t2 = get_byte () in
+                          let t3 = get_byte () in
+                          let t = t1 lsl 16 + t2 lsl 8 + t3 in
+                            ignore t;
+                            None, Midi.Tempo t
+                      | 0x58 (* Time signature *) ->
+                          assert (len = 4);
+                          let n = get_byte () in (* numerator *)
+                          let d = get_byte () in (* denominator *)
+                          let c = get_byte () in (* ticks in a metronome click *)
+                          let b = get_byte () in (* 32nd notes to the quarter note *)
+                            ignore (n, d, c, b);
+                            None, Midi.Time_signature (n, d, c, b)
+                      | 0x59 (* Key signature *) ->
+                          assert (len = 2);
+                          let sf = get_byte () in (* sharps / flats *)
+                          let m = get_byte () in (* minor? *)
+                            ignore (sf, m);
+                            None, Midi.Key_signature (sf, m <> 0)
+                      | 0x54 (* SMPTE Offset *)
+                      | 0x7f (* Sequencer-specific data *) ->
+                          advance len;
+                          raise Not_found
+                      | _ ->
+                          advance len;
+                          log#f 5 "Unknown meta-event %x" cmd;
+                          raise Not_found
+                  )
+              | _ ->
+                  advance 1;
+                  log#f 5 "Unknown command %x (pos: %d)" command !pos;
+                  raise Not_found
   in
   let ans = ref [] in
     while !pos < len do
       try
-        ans := (read_delta (), read_event ())::!ans
+        let d = read_delta () in
+        let e = read_event () in
+        ans := (d, e)::!ans
       with
         | Not_found -> ()
     done;
@@ -185,7 +235,7 @@ let read_track fd =
 
 let decoder file =
   log#f 4 "Decoding %s..." file;
-  let fd = Unix.openfile file [Unix.O_RDONLY] 0 in
+  let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   let closed = ref false in
 
   let close () =
@@ -201,9 +251,63 @@ let decoder file =
   let tracks = close_on_err (Array.init ntracks) (fun _ -> read_track fd) in
     (* We don't need to access the file anymore. *)
     close ();
-    log#f 5 "Read %d events" (List.length tracks.(0));
+    (* Convert delta-times in delta-liquidsoap-ticks. *)
+    for n = 0 to ntracks - 1 do
+      let tpq =
+        match division with
+          | Midi.Ticks_per_quarter tpq -> tpq
+          | _ -> assert false
+      in
+      let tempo = ref 125000 in
+        tracks.(n) <-
+          List.map
+            (fun (d,(c,e)) ->
+               let d = (d * !tempo / tpq) * Fmt.ticks_per_second () / 1000000 in
+               let d = d * 2 in (* TODO: remove this! *)
+                 (
+                   match e with
+                     | Midi.Tempo t ->
+                         tempo := t
+                     | _ -> ()
+                 );
+                 (d,(c,e))
+            ) tracks.(n)
+    done;
+    (* Merge all tracks. *)
+    let track = ref tracks.(0) in (* TODO! *)
+    (* Filling function. *)
     let fill buf =
-      1000 (* TODO *)
+      let m = MFrame.tracks buf in
+      (* TODO: why do we have to do this here??? *)
+      AFrame.blankify buf 0 (AFrame.size buf);
+      m.(0) := [];
+      let buflen = MFrame.size buf in
+      let offset_in_buf = ref 0 in
+        while !track <> [] && !offset_in_buf < buflen do
+          let d,(c,e) = List.hd !track in
+            (* Printf.printf "delta: %d\n%!" d; *)
+            offset_in_buf := !offset_in_buf + d;
+            if !offset_in_buf < buflen then
+              (
+                track := List.tl !track;
+                match c with
+                  | Some c ->
+                      (
+                        match e with
+                          | Midi.Note_on _
+                          | Midi.Note_off _ ->
+                              (* Printf.printf "EVENT (chan %d)!\n%!" c; *)
+                              let c = if c <> 10 then 0 else c in (* TODO: remove this *)
+                              m.(c) := !(m.(c))@[!offset_in_buf, e]
+                          | _ -> () (* TODO *)
+                      )
+                  | None -> () (* TODO *)
+              )
+            else
+              track := (!offset_in_buf - buflen,(c,e))::(List.tl !track)
+        done;
+        MFrame.add_break buf (MFrame.size buf);
+        0
     in
       { Decoder.fill = fill ; Decoder.close = fun () -> () }
 
@@ -212,7 +316,9 @@ let () =
     (fun name -> try Some (decoder name) with _ -> None)
 
 (* TODO *)
+(*
 let metadatas ~format file =
   []
 
 let () = Request.mresolvers#register "MID" metadatas
+*)

@@ -34,8 +34,8 @@ formats = \
 	formats/externalformat.ml \
 	$(if $(W_NSV),formats/nattyformat_mp3.ml) \
 	$(if $(W_NATTY),formats/nattyformat.ml) \
-	$(if $(W_MP3),formats/mp3.ml)
-#	formats/midiformat.ml
+	$(if $(W_MP3),formats/mp3.ml) \
+	formats/midiformat.ml
 
 playlists = \
 	playlists/playlist_basic.ml $(if $(W_XMLPLAYLIST),playlists/playlist_xml.ml)
@@ -143,7 +143,8 @@ visualization = visualization/vumeter.ml \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
 	$(if $(W_GL),visualization/vis_glvolume.ml) \
-	visualization/video_volume.ml
+	visualization/video_volume.ml \
+        visualization/midimeter.ml
 
 synth = synth/synth.ml synth/synth_op.ml \
 	synth/keyboard.ml \

@@ -97,7 +97,7 @@ end
 let () =
   Lang.add_operator "input.keyboard.sdl"
     [
-      "velocity", Lang.float_t, Some (Lang.float 0.3), Some "Velocity of notes."
+      "velocity", Lang.float_t, Some (Lang.float 0.8), Some "Velocity of notes."
     ]
     ~category:Lang.Input
     ~flags:[Lang.Experimental]

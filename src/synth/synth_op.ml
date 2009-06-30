@@ -22,9 +22,12 @@
 
 open Source
 
-class synth (synth:Synth.synth) (source:source) chan =
+class synth (synth:Synth.synth) (source:source) chan volume =
 object (self)
   inherit operator [source] as super
+
+  initializer
+    synth#set_volume volume
 
   method stype = source#stype
 
@@ -61,32 +64,22 @@ object (self)
       process evs offset
 end
 
-let () =
-  Lang.add_operator "synth.sine"
-    [ "", Lang.source_t, None, None ]
+let register obj name descr =
+  Lang.add_operator ("synth." ^ name)
+    [
+      "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
+      "volume", Lang.float_t, Some (Lang.float 0.3), Some "Volume.";
+      "", Lang.source_t, None, None
+    ]
     ~category:Lang.SoundSynthesis
-    ~descr:"Sine synthesiser."
+    ~descr
     (fun p _ ->
        let f v = List.assoc v p in
+       let chan = Lang.to_int (f "channel") in
+       let volume = Lang.to_float (f "volume") in
        let src = Lang.to_source (f "") in
-         new synth (new Synth.sine :> Synth.synth) src 0)
+         new synth (obj ()) src chan volume)
 
-let () =
-  Lang.add_operator "synth.square"
-    [ "", Lang.source_t, None, None ]
-    ~category:Lang.SoundSynthesis
-    ~descr:"Square synthesiser."
-    (fun p _ ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new synth (new Synth.square :> Synth.synth) src 0)
-
-let () =
-  Lang.add_operator "synth.saw"
-    [ "", Lang.source_t, None, None ]
-    ~category:Lang.SoundSynthesis
-    ~descr:"Saw synthesiser."
-    (fun p _ ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new synth (new Synth.saw :> Synth.synth) src 0)
+let () = register (fun () -> (new Synth.sine :> Synth.synth)) "sine" "Sine synthesiser."
+let () = register (fun () -> (new Synth.square :> Synth.synth)) "square" "Square synthesiser."
+let () = register (fun () -> (new Synth.saw :> Synth.synth)) "saw" "Saw synthesiser."
