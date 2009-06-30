@@ -80,3 +80,13 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
          new synth (new Synth.square :> Synth.synth) src 0)
+
+let () =
+  Lang.add_operator "synth.saw"
+    [ "", Lang.source_t, None, None ]
+    ~category:Lang.SoundSynthesis
+    ~descr:"Saw synthesiser."
+    (fun p _ ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         new synth (new Synth.saw :> Synth.synth) src 0)

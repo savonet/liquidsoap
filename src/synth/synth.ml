@@ -91,3 +91,18 @@ end
 class sine = object inherit simple (fun x -> sin (x *. 2. *. pi)) end
 
 class square = object inherit simple (fun x -> let x = fst (modf x) in if x < 0.5 then 1. else -1.) end
+
+class saw =
+object
+  inherit simple
+    (fun x ->
+       let x = fst (modf x) in
+         if x < 0.5 then
+           4. *. x -. 1.
+         else
+           4. *. (1. -. x) -. 1.
+    )
+    as super
+
+  method note_init n v = { (super#note_init n v) with simple_phase = 0.25 }
+end
