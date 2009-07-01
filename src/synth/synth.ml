@@ -117,7 +117,6 @@ object (self)
               else
                 self#adsr adsr (4,0) buf (ofs + r - state_pos) (len - (r - state_pos))
         | 4 ->
-            Printf.printf "state 4\n%!";
             Float_pcm.blankify buf ofs len;
             st
         | _ -> assert false
