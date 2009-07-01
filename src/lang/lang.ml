@@ -78,7 +78,7 @@ let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
 
 type category =
   | Input | Output
-  | TrackProcessing | SoundProcessing | VideoProcessing
+  | TrackProcessing | SoundProcessing | VideoProcessing | MIDIProcessing
   | Visualization | SoundSynthesis
 
 let string_of_category x = "Source / " ^ match x with
@@ -87,6 +87,7 @@ let string_of_category x = "Source / " ^ match x with
   | TrackProcessing -> "Track Processing"
   | SoundProcessing -> "Sound Processing"
   | VideoProcessing -> "Video Processing"
+  | MIDIProcessing -> "MIDI Processing"
   | SoundSynthesis -> "Sound Synthesis"
   | Visualization -> "Visualization"
 

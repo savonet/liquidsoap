@@ -85,6 +85,7 @@ type category =
   | TrackProcessing (** Operations on tracks (e.g. mixing, etc.). *)
   | SoundProcessing (** Operations on sound (e.g. compression, etc.). *)
   | VideoProcessing (** Operations on video. *)
+  | MIDIProcessing (** Operations on MIDI. *)
   | Visualization (** Visializations of the sound. *)
   | SoundSynthesis (** Synthesis. *)
 
