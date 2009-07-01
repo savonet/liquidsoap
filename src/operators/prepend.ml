@@ -88,7 +88,11 @@ object (self)
           if AFrame.is_partial buf then begin
             self#unregister prepend ;
             state <- `Buffer peek ;
-            if merge then self#get_frame buf
+            if merge then
+              let pos = AFrame.position buf in
+                self#get_frame buf ;
+                AFrame.set_breaks buf
+                  (Utils.remove_one ((=) pos) (AFrame.breaks buf))
           end
 
   method stype = source#stype
