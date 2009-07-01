@@ -45,7 +45,7 @@ object (self)
 
   method note_on n v =
     (* Limit the number of notes for now. TODO: parameter *)
-    if List.length notes > 16 then notes <- List.rev (List.tl (List.rev notes));
+    (* if List.length notes > 16 then notes <- List.rev (List.tl (List.rev notes)); *)
     notes <- (n, ref (self#note_init n v))::notes
 
   method note_off n (v:float) =

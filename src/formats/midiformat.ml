@@ -309,6 +309,7 @@ let decoder file =
     in
     (* Filling function. *)
     let track = ref track in
+    let warn_channels = ref true in
     let fill buf =
       let m = MFrame.tracks buf in
       (* TODO: why do we have to do this here??? *)
@@ -318,7 +319,6 @@ let decoder file =
       let offset_in_buf = ref 0 in
         while !track <> [] && !offset_in_buf < buflen do
           let d,(c,e) = List.hd !track in
-            (* Printf.printf "delta: %d\n%!" d; *)
             offset_in_buf := !offset_in_buf + d;
             if !offset_in_buf < buflen then
               (
@@ -329,8 +329,17 @@ let decoder file =
                         match e with
                           | Midi.Note_on _
                           | Midi.Note_off _ ->
-                              (* Printf.printf "EVENT (chan %d)!\n%!" c; *)
-                              m.(c) := !(m.(c))@[!offset_in_buf, e]
+                              (
+                                try
+                                  m.(c) := !(m.(c))@[!offset_in_buf, e]
+                                with
+                                  | Invalid_argument _ ->
+                                      if !warn_channels then
+                                        (
+                                          log#f 3 "Event on channel %d will be ignored, increase frame.midi.channels (this message is displayed only once)." c;
+                                          warn_channels := false
+                                        )
+                              )
                           | _ -> () (* TODO *)
                       )
                   | None -> () (* TODO *)

@@ -33,8 +33,7 @@ object (self)
 
   method remaining = source#remaining
 
-  method is_ready =
-    source#is_ready
+  method is_ready = source#is_ready
 
   method abort_track = source#abort_track
 
@@ -43,6 +42,7 @@ object (self)
     let evs = (MFrame.tracks buf).(chan) in
     let evs = !evs in
     source#get buf;
+    if blankify then AFrame.blankify buf offset (AFrame.size buf - offset);
     let b = AFrame.get_float_pcm buf in
     let position = AFrame.position buf in
     let sps = float (Fmt.samples_per_second ()) in
@@ -68,7 +68,7 @@ let register obj name descr =
   Lang.add_operator ("synth." ^ name)
     [
       "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
-      "volume", Lang.float_t, Some (Lang.float 0.3), Some "Volume.";
+      "volume", Lang.float_t, Some (Lang.float 0.3), Some "Initial volume.";
       "", Lang.source_t, None, None
     ]
     ~category:Lang.SoundSynthesis
@@ -78,8 +78,23 @@ let register obj name descr =
        let chan = Lang.to_int (f "channel") in
        let volume = Lang.to_float (f "volume") in
        let src = Lang.to_source (f "") in
-         new synth (obj ()) src chan volume)
+         new synth (obj ()) src chan volume);
+  Lang.add_operator ("synth.all." ^ name)
+    [
+      "", Lang.source_t, None, None
+    ]
+    ~category:Lang.SoundSynthesis
+    ~descr:(descr ^ " It creates one synthesizer for each channel.")
+    (fun p _ ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+       let synths = Array.init (Fmt.midi_channels ()) (fun c -> 1, new synth (obj ()) src c 1.) in
+       let synths = Array.to_list synths in
+         new Add.add ~renorm:false synths
+           (fun _ -> ())
+           (fun _ buf tmp -> RGB.add buf tmp)
+    )
 
-let () = register (fun () -> (new Synth.sine :> Synth.synth)) "sine" "Sine synthesiser."
-let () = register (fun () -> (new Synth.square :> Synth.synth)) "square" "Square synthesiser."
-let () = register (fun () -> (new Synth.saw :> Synth.synth)) "saw" "Saw synthesiser."
+let () = register (fun () -> (new Synth.sine :> Synth.synth)) "sine" "Sine synthesizer."
+let () = register (fun () -> (new Synth.square :> Synth.synth)) "square" "Square synthesizer."
+let () = register (fun () -> (new Synth.saw :> Synth.synth)) "saw" "Saw synthesizer."

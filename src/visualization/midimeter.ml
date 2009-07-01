@@ -45,7 +45,7 @@ object
                      Printf.sprintf "Note %d off at %.02f" n v
                  | _ -> "???"
              in
-               Printf.printf "%d: %s.\n%!" c s
+               Printf.printf "%02d: %s.\n%!" c s
           ) !(m.(c))
       done
 end
