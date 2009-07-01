@@ -37,6 +37,8 @@ object (self)
 
   method abort_track = source#abort_track
 
+  val tmpbuf = Frame.make ()
+
   method private get_frame buf =
     let offset = AFrame.position buf in
     let evs = (MFrame.tracks buf).(chan) in
@@ -45,11 +47,12 @@ object (self)
     let b = AFrame.get_float_pcm buf in
     let position = AFrame.position buf in
     let sps = float (Fmt.samples_per_second ()) in
+    let tmpbuf = AFrame.get_float_pcm tmpbuf in
     let rec process evs off =
       match evs with
         | (t,e)::tl ->
             let t = Fmt.samples_of_ticks t in
-              synth#synth sps b off (t - off);
+              synth#synth sps b off (t - off) tmpbuf;
               (
                 match e with
                   | Midi.Note_on (n, v) ->
@@ -62,7 +65,7 @@ object (self)
               );
               process tl t
         | [] ->
-            synth#synth sps b off (position - off)
+            synth#synth sps b off (position - off) tmpbuf
     in
       process evs offset
 end
@@ -72,6 +75,10 @@ let register obj name descr =
     [
       "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
       "volume", Lang.float_t, Some (Lang.float 0.3), Some "Initial volume.";
+      "attack", Lang.float_t, Some (Lang.float 0.02), Some "Envelope attack (in seconds).";
+      "decay", Lang.float_t, Some (Lang.float 0.01), Some "Envelope decay (in seconds).";
+      "sustain", Lang.float_t, Some (Lang.float 0.9), Some "Envelope sustain level.";
+      "release", Lang.float_t, Some (Lang.float 0.05), Some "Envelope release (in seconds).";
       "", Lang.source_t, None, None
     ]
     ~category:Lang.SoundSynthesis
@@ -80,10 +87,20 @@ let register obj name descr =
        let f v = List.assoc v p in
        let chan = Lang.to_int (f "channel") in
        let volume = Lang.to_float (f "volume") in
+       let adsr =
+         Lang.to_float (f "attack"),
+         Lang.to_float (f "decay"),
+         Lang.to_float (f "sustain"),
+         Lang.to_float (f "release")
+       in
        let src = Lang.to_source (f "") in
-         new synth (obj ()) src chan volume);
+         new synth (obj adsr) src chan volume);
   Lang.add_operator ("synth.all." ^ name)
     [
+      "attack", Lang.float_t, Some (Lang.float 0.02), Some "Envelope attack (in seconds).";
+      "decay", Lang.float_t, Some (Lang.float 0.01), Some "Envelope decay (in seconds).";
+      "sustain", Lang.float_t, Some (Lang.float 0.9), Some "Envelope sustain level.";
+      "release", Lang.float_t, Some (Lang.float 0.01), Some "Envelope release (in seconds).";
       "", Lang.source_t, None, None
     ]
     ~category:Lang.SoundSynthesis
@@ -91,13 +108,19 @@ let register obj name descr =
     (fun p _ ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-       let synths = Array.init (Fmt.midi_channels ()) (fun c -> 1, new synth (obj ()) src c 1.) in
+       let adsr =
+         Lang.to_float (f "attack"),
+         Lang.to_float (f "decay"),
+         Lang.to_float (f "sustain"),
+         Lang.to_float (f "release")
+       in
+       let synths = Array.init (Fmt.midi_channels ()) (fun c -> 1, new synth (obj adsr) src c 1.) in
        let synths = Array.to_list synths in
          new Add.add ~renorm:false synths
            (fun _ -> ())
            (fun _ buf tmp -> RGB.add buf tmp)
     )
 
-let () = register (fun () -> (new Synth.sine :> Synth.synth)) "sine" "Sine synthesizer."
-let () = register (fun () -> (new Synth.square :> Synth.synth)) "square" "Square synthesizer."
-let () = register (fun () -> (new Synth.saw :> Synth.synth)) "saw" "Saw synthesizer."
+let () = register (fun adsr -> (new Synth.sine ~adsr () :> Synth.synth)) "sine" "Sine synthesizer."
+let () = register (fun adsr -> (new Synth.square ~adsr () :> Synth.synth)) "square" "Square synthesizer."
+let () = register (fun adsr -> (new Synth.saw ~adsr () :> Synth.synth)) "saw" "Saw synthesizer."
