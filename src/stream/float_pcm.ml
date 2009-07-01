@@ -717,30 +717,36 @@ end
 
 let multiply a off len c =
   for i = 0 to Array.length a - 1 do
-    for j = off to off + len - 1 do
-      a.(i).(j) <- c *. a.(i).(j)
-    done
+    let a_i = a.(i) in
+      for j = off to off + len - 1 do
+        a_i.(j) <- c *. a_i.(j)
+      done
   done
 
 let blankify a off len =
   for i = 0 to Array.length a - 1 do
-    for j = off to off + len - 1 do
-      a.(i).(j) <- 0.
-    done
+    let a_i = a.(i) in
+      for j = off to off + len - 1 do
+        a_i.(j) <- 0.
+      done
   done
 
 let add dst dst_off src src_off len =
   for i = 0 to Array.length dst - 1 do
-    for j = 0 to len - 1 do
-      dst.(i).(dst_off+j) <- dst.(i).(dst_off+j) +. src.(i).(src_off+j)
-    done
+    let dst_i = dst.(i) in
+    let src_i = src.(i) in
+      for j = 0 to len - 1 do
+        dst_i.(dst_off+j) <- dst_i.(dst_off+j) +. src_i.(src_off+j)
+      done
   done
 
 let substract y y_off x x_off len =
   for i = 0 to Array.length y - 1 do
-    for j = 0 to len - 1 do
-      y.(i).(y_off+j) <- y.(i).(y_off+j) -. x.(i).(x_off+j)
-    done
+    let x_i = x.(i) in
+    let y_i = y.(i) in
+      for j = 0 to len - 1 do
+        y_i.(y_off+j) <- y_i.(y_off+j) -. x_i.(x_off+j)
+      done
   done
 
 let rms a off len =

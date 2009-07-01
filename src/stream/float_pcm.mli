@@ -120,7 +120,8 @@ module Generator_from_raw :
 
 val blankify : float array array -> int -> int -> unit
 val multiply : float array array -> int -> int -> float -> unit
+
+(** Add two buffers and put the result in the first one. *)
 val add : float array array -> int -> float array array -> int -> int -> unit
-val substract :
-      float array array -> int -> float array array -> int -> int -> unit
+val substract : float array array -> int -> float array array -> int -> int -> unit
 val rms : float array array -> int -> int -> float array
