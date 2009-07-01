@@ -294,14 +294,24 @@ let decoder file =
           | Midi.Ticks_per_quarter tpq -> tpq
           | _ -> assert false
       in
-      let tempo = ref 125000 in
+      let tpq = Int64.of_int tpq in
+      let tempo = ref (Int64.of_int 125000) in
+      let tps = Int64.of_int (Fmt.ticks_per_second ()) in
+      let ten = Int64.of_int 1000000 in
         List.map
           (fun (d,(c,e)) ->
-             let d = (d * !tempo / tpq) * Fmt.ticks_per_second () / 1000000 in
+             (* These computations sometimes overflow on 32 bits. *)
+             let d = Int64.of_int d in
+             let d =
+               let ( * ) = Int64.mul in
+               let ( / ) = Int64.div in
+                 (((d * !tempo) / tpq) * tps) / ten
+             in
+             let d = Int64.to_int d in
                (
                  match e with
                    | Midi.Tempo t ->
-                       tempo := t
+                       tempo := Int64.of_int t
                    | _ -> ()
                );
                (d,(c,e))

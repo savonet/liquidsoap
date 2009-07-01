@@ -1,4 +1,4 @@
-let pi = 3.1416
+let pi = acos (-1.)
 
 let freq_of_note n = 440. *. (2. ** ((float n -. 69.) /. 12.))
 
