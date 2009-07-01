@@ -196,7 +196,6 @@ let read_track fd =
                           let t2 = get_byte () in
                           let t3 = get_byte () in
                           let t = t1 lsl 16 + t2 lsl 8 + t3 in
-                            ignore t;
                             None, Midi.Tempo t
                       | 0x58 (* Time signature *) ->
                           assert (len = 4);
@@ -204,13 +203,11 @@ let read_track fd =
                           let d = get_byte () in (* denominator *)
                           let c = get_byte () in (* ticks in a metronome click *)
                           let b = get_byte () in (* 32nd notes to the quarter note *)
-                            ignore (n, d, c, b);
                             None, Midi.Time_signature (n, d, c, b)
                       | 0x59 (* Key signature *) ->
                           assert (len = 2);
                           let sf = get_byte () in (* sharps / flats *)
                           let m = get_byte () in (* minor? *)
-                            ignore (sf, m);
                             None, Midi.Key_signature (sf, m <> 0)
                       | 0x54 (* SMPTE Offset *)
                       | 0x7f (* Sequencer-specific data *) ->
@@ -255,31 +252,63 @@ let decoder file =
   let tracks = close_on_err (Array.init ntracks) (fun _ -> read_track fd) in
     (* We don't need to access the file anymore. *)
     close ();
+    (* Merge all tracks. *)
+    let track =
+      let find_min () =
+        let ans = ref None in
+          for c = 0 to Array.length tracks - 1 do
+            match tracks.(c) with
+              | [] -> ()
+              | (d,_)::_ ->
+                  match !ans with
+                    | None ->
+                        ans := Some (d, c)
+                    | Some (d',_) ->
+                        if d < d' then ans := Some (d, c)
+          done;
+          match !ans with
+            | Some (d, c) -> d,c
+            | None -> raise Not_found
+      in
+      let ans = ref [] in
+        try
+          while true do
+            let d,c = find_min () in
+              ans := (List.hd tracks.(c)) :: !ans;
+              tracks.(c) <- List.tl tracks.(c);
+              Array.iteri
+                (fun n t ->
+                   if n <> c && t <> [] then
+                     let d',e = List.hd t in
+                       tracks.(n) <- (d'-d,e)::(List.tl t)
+                ) tracks
+          done;
+          assert false
+        with
+          | Not_found -> List.rev !ans
+    in
     (* Convert delta-times in delta-liquidsoap-ticks. *)
-    for n = 0 to ntracks - 1 do
+    let track =
       let tpq =
         match division with
           | Midi.Ticks_per_quarter tpq -> tpq
           | _ -> assert false
       in
       let tempo = ref 125000 in
-        tracks.(n) <-
-          List.map
-            (fun (d,(c,e)) ->
-               let d = (d * !tempo / tpq) * Fmt.ticks_per_second () / 1000000 in
-               let d = d * 1 in (* TODO: remove this! *)
-                 (
-                   match e with
-                     | Midi.Tempo t ->
-                         tempo := t
-                     | _ -> ()
-                 );
-                 (d,(c,e))
-            ) tracks.(n)
-    done;
-    (* Merge all tracks. *)
-    let track = ref tracks.(0) in (* TODO! *)
+        List.map
+          (fun (d,(c,e)) ->
+             let d = (d * !tempo / tpq) * Fmt.ticks_per_second () / 1000000 in
+               (
+                 match e with
+                   | Midi.Tempo t ->
+                       tempo := t
+                   | _ -> ()
+               );
+               (d,(c,e))
+          ) track
+    in
     (* Filling function. *)
+    let track = ref track in
     let fill buf =
       let m = MFrame.tracks buf in
       (* TODO: why do we have to do this here??? *)
@@ -301,7 +330,6 @@ let decoder file =
                           | Midi.Note_on _
                           | Midi.Note_off _ ->
                               (* Printf.printf "EVENT (chan %d)!\n%!" c; *)
-                              let c = if c <> 10 then 0 else c in (* TODO: remove this *)
                               m.(c) := !(m.(c))@[!offset_in_buf, e]
                           | _ -> () (* TODO *)
                       )
@@ -310,7 +338,10 @@ let decoder file =
             else
               track := (!offset_in_buf - buflen,(c,e))::(List.tl !track)
         done;
-        MFrame.add_break buf (MFrame.size buf);
+        if !track = [] then
+          MFrame.add_break buf 0
+        else
+          MFrame.add_break buf (MFrame.size buf);
         0
     in
       { Decoder.fill = fill ; Decoder.close = fun () -> () }
