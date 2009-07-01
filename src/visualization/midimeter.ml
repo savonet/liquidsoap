@@ -43,9 +43,11 @@ object
                      Printf.sprintf "Note %d on at %.02f" n v
                  | Midi.Note_off (n, v) ->
                      Printf.sprintf "Note %d off at %.02f" n v
+                 | Midi.Control_change (c, v) ->
+                     Printf.sprintf "Control %x at %d" c v
                  | _ -> "???"
              in
-               Printf.printf "%02d: %s.\n%!" c s
+               Printf.printf "%d: %s.\n%!" c s
           ) !(m.(c))
       done
 end

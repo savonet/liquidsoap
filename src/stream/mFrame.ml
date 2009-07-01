@@ -12,3 +12,6 @@ let tracks f =
     Array.of_list ans
 
 let set_events f e = ()
+
+let clear f =
+  Array.iter (fun t -> t := []) (tracks f)

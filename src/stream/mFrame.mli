@@ -20,3 +20,6 @@ val set_metadata     : t -> int -> metadata -> unit
 val get_metadata     : t -> int -> metadata option
 
 val tracks : t -> (int * Midi.event) list ref array
+
+(** Clear up all midi data. *)
+val clear : t -> unit

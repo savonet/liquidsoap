@@ -42,7 +42,6 @@ object (self)
     let evs = (MFrame.tracks buf).(chan) in
     let evs = !evs in
     source#get buf;
-    if blankify then AFrame.blankify buf offset (AFrame.size buf - offset);
     let b = AFrame.get_float_pcm buf in
     let position = AFrame.position buf in
     let sps = float (Fmt.samples_per_second ()) in
@@ -53,8 +52,12 @@ object (self)
               synth#synth sps b off (t - off);
               (
                 match e with
-                  | Midi.Note_on (n, v) -> synth#note_on n v
-                  | Midi.Note_off (n, v) -> synth#note_off n v
+                  | Midi.Note_on (n, v) ->
+                      synth#note_on n v
+                  | Midi.Note_off (n, v) ->
+                      synth#note_off n v
+                  | Midi.Control_change (0x7, v) ->
+                      synth#set_volume (float v /. 127.)
                   | _ -> ()
               );
               process tl t

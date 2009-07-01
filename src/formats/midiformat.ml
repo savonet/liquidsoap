@@ -314,7 +314,7 @@ let decoder file =
       let m = MFrame.tracks buf in
       (* TODO: why do we have to do this here??? *)
       AFrame.blankify buf 0 (AFrame.size buf);
-      m.(0) := [];
+      MFrame.clear buf;
       let buflen = MFrame.size buf in
       let offset_in_buf = ref 0 in
         while !track <> [] && !offset_in_buf < buflen do
@@ -326,9 +326,11 @@ let decoder file =
                 match c with
                   | Some c ->
                       (
+                        (* Filter out relevant events. *)
                         match e with
                           | Midi.Note_on _
-                          | Midi.Note_off _ ->
+                          | Midi.Note_off _
+                          | Midi.Control_change _ ->
                               (
                                 try
                                   m.(c) := !(m.(c))@[!offset_in_buf, e]
