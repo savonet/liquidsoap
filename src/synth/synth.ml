@@ -218,6 +218,7 @@ end
 
 (*
 (** Read a GUS pat file. *)
+(* Based on http://freepats.zenvoid.org/tools/pat2raw/pat2raw.c *)
 let read_pat file =
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   let read_bytes n =
@@ -249,29 +250,57 @@ let read_pat file =
       b1 + 0x100 * b2 + 0x10000 * b3 + 0x1000000 * b4
   in
     (* Identification string. *)
-    assert (read_bytes 22 = "GF1PATCH110\000ID#000002\000");
+    let id = read_bytes 22 in
+    assert (id = "GF1PATCH110\000ID#000002\000" || id = "GF1PATCH100\000ID#000002\000");
     (* Copyright info. *)
     advance 60;
     (* Number of instruments. *)
-    assert (read_byte () = 1);
+    let nb_instr = read_byte () in
+    assert (nb_instr = 0 || nb_instr = 1);
+    Printf.printf "%d instruments\n%!" nb_instr;
     (* Volume. *)
     let vol = read_word () in
     advance 40;
+    (* 105 *)
+    (*
     (* Instrument number. *)
     let num_instr = read_word () in
-    (* advance 4; (* TODO: hum hum *) *)
     (* Instrument name. *)
     let name = read_string 16 in
-    (* Instrument size and layers count. *)
-    advance 45;
+    *)
+    advance 18;
+    advance 28;
+    (* 151 *)
+    (* Layers. *)
+    let layers = read_byte () in
+    assert (layers = 0 || layers = 1);
+    advance 46;
+    (* 198 *)
     (* First layer. *)
-    advance 6;
     let num_samples = read_byte () in
-    advance 40;
     for i = 0 to num_samples - 1 do
-      (* Sample name. *)
-      let sample_name = read_string 8 in
-        Printf.printf "sample: %s\n%!" sample_name
+      let name = read_string 7 in
+      let fractions = read_byte () in
+      (* in bytes *)
+      let data_length = read_int () in
+      let loop_start = read_int () in
+      let loop_end = read_int () in
+      let sample_rate = read_word () in
+      let low_freq = read_int () in
+      let high_freq = read_int () in
+      let root_freq = read_int () in
+      let tuning = read_word () in
+      let panning = read_byte () in
+      advance 13;
+      let tremolo_sweep = read_byte () in
+      let tremolo_rate = read_byte () in
+      let vibrato_sweep = read_byte () in
+      let vibrato_rate = read_byte () in
+      let vibrato_depth = read_byte () in
+      let modes = read_byte () in
+      (* Skip the useless scale frequency, scale factor (what's it mean?), and
+       * reserved space. *)
+        Printf.printf "len %d rate %d\n%!" data_length sample_rate;
     done;
     Printf.printf "instr %d vol %d, %s, %d samples\n%!" num_instr vol name num_samples;
     Unix.close fd
