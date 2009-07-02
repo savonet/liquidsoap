@@ -124,3 +124,4 @@ let register obj name descr =
 let () = register (fun adsr -> (new Synth.sine ~adsr () :> Synth.synth)) "sine" "Sine synthesizer."
 let () = register (fun adsr -> (new Synth.square ~adsr () :> Synth.synth)) "square" "Square synthesizer."
 let () = register (fun adsr -> (new Synth.saw ~adsr () :> Synth.synth)) "saw" "Saw synthesizer."
+let () = register (fun adsr -> (new Synth.hammond ~adsr (* [|4.; 6.; 8.; 3.; 6.; 4.; 8.; 7.; 6.|] *) [|0.; 0.; 6.; 5.; 4.; 5.; 4.; 5.; 6.|] :> Synth.synth)) "hammond" "Hammond synthsizer."

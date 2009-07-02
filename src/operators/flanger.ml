@@ -36,7 +36,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  val past = Array.init (Fmt.channels()) (fun _ -> Array.make past_len 0.)
+  val past = Array.init (Fmt.channels ()) (fun _ -> Array.make past_len 0.)
 
   val mutable past_pos = 0
 

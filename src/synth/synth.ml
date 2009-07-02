@@ -203,6 +203,19 @@ object
   method note_init n v = { (super#note_init n v) with simple_phase = 0.25 }
 end
 
+let hammond_coef = [|0.5; 1.5; 1.; 2.; 3.; 4.; 5.; 6.; 8.|]
+
+class hammond ?adsr drawbar =
+object
+  inherit simple ?adsr
+    (fun x ->
+       let y = ref 0. in
+         for i = 0 to 8 do
+           y := !y +. sin (x *. 2. *. pi *. hammond_coef.(i) *. drawbar.(i) /. 10.)
+         done;
+    !y)
+end
+
 (*
 (** Read a GUS pat file. *)
 let read_pat file =
