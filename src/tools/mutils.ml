@@ -20,33 +20,26 @@
 
  *****************************************************************************)
 
-type division =
-  | Ticks_per_quarter of int
-  | SMPTE of int * int
+(** Convert a value into a channel number, checking that it actually exists. *)
+let to_chan v =
+  let n = Lang.to_int v in
+    if n >= Fmt.midi_channels () then
+      raise (Lang.Invalid_value (v, "channel number too big (try increasing lang.midi.channels)"))
+    else
+      n
 
-type event =
-  | Note_off of int * float
-  | Note_on of int * float (** Note on: note number (A4 = 69), velocity (between 0 and 1). *)
-  | Aftertouch of int * float
-  | Control_change of int * int
-  | Patch of int
-  | Channel_aftertouch of int
-  | Pitch of int
-  (* Meta-events *)
-  | Sequence_number of int
-  | Text of string
-  | Copyright of string
-  | Track_name of string
-  | Instrument_name of string
-  | Lyric of string
-  | Marker of string
-  | Cue of string
-  | End_of_track
-  | Tempo of int
-  | Time_signature of int * int * int * int
-  | Key_signature of int * bool
-  | Custom of string
-
-type track = (int * event) list
-
-let create_track () = []
+(** Convert delta-times to ticks. *)
+let ticks_of_delta division tempo delta =
+  match division with
+    | Midi.Ticks_per_quarter tpq ->
+        (* These computations sometimes overflow on 32 bits. *)
+        let tpq = Int64.of_int tpq in
+        let tempo = Int64.of_int tempo in
+        let tps = Int64.of_int (Fmt.ticks_per_second ()) in
+        let ten = Int64.of_int 1000000 in
+        let delta = Int64.of_int delta in
+        let ( * ) = Int64.mul in
+        let ( / ) = Int64.div in
+          Int64.to_int ((((delta * tempo) / tpq) * tps) / ten)
+    | Midi.SMPTE (fps,res) ->
+        (delta * Fmt.ticks_per_second ()) / (fps * res)

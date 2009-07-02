@@ -85,7 +85,7 @@ let register obj name descr =
     ~descr
     (fun p _ ->
        let f v = List.assoc v p in
-       let chan = Lang.to_int (f "channel") in
+       let chan = Mutils.to_chan (f "channel") in
        let volume = Lang.to_float (f "volume") in
        let adsr =
          Lang.to_float (f "attack"),
