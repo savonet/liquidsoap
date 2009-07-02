@@ -49,7 +49,7 @@ let string_of_flag = function
 let builtin_type p t =
   T.make
     (T.Arrow (List.map (fun (lbl,kind,opt,_) -> (opt<>None,lbl,kind)) p, t))
-    
+
 let to_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
   let kind = builtin_type proto return_t in

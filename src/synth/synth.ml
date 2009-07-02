@@ -202,3 +202,68 @@ object
 
   method note_init n v = { (super#note_init n v) with simple_phase = 0.25 }
 end
+
+(*
+(** Read a GUS pat file. *)
+let read_pat file =
+  let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
+  let read_bytes n =
+    let s = String.create n in
+      assert (Unix.read fd s 0 n = n);
+      s
+  in
+  let read_string n =
+    let s = read_bytes n ^ "\000" in
+    let i = String.index s '\000' in
+      String.sub s 0 i
+  in
+  let advance n = ignore (read_bytes n) in
+  let read_byte () = int_of_char (read_bytes 1).[0] in
+  let read_uword () =
+    let b1 = read_byte () in
+    let b2 = read_byte () in
+      b1 + 0x100 * b2
+  in
+  let read_word () =
+    let b = read_uword () in
+      if b > 32767 then b - 65536 else b
+  in
+  let read_int () =
+    let b1 = read_byte () in
+    let b2 = read_byte () in
+    let b3 = read_byte () in
+    let b4 = read_byte () in
+      b1 + 0x100 * b2 + 0x10000 * b3 + 0x1000000 * b4
+  in
+    (* Identification string. *)
+    assert (read_bytes 22 = "GF1PATCH110\000ID#000002\000");
+    (* Copyright info. *)
+    advance 60;
+    (* Number of instruments. *)
+    assert (read_byte () = 1);
+    (* Volume. *)
+    let vol = read_word () in
+    advance 40;
+    (* Instrument number. *)
+    let num_instr = read_word () in
+    (* advance 4; (* TODO: hum hum *) *)
+    (* Instrument name. *)
+    let name = read_string 16 in
+    (* Instrument size and layers count. *)
+    advance 45;
+    (* First layer. *)
+    advance 6;
+    let num_samples = read_byte () in
+    advance 40;
+    for i = 0 to num_samples - 1 do
+      (* Sample name. *)
+      let sample_name = read_string 8 in
+        Printf.printf "sample: %s\n%!" sample_name
+    done;
+    Printf.printf "instr %d vol %d, %s, %d samples\n%!" num_instr vol name num_samples;
+    Unix.close fd
+
+let () =
+  read_pat "/usr/share/midi/freepats/Tone_000/000_Acoustic_Grand_Piano.pat";
+  exit 69
+*)
