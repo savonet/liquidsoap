@@ -160,7 +160,11 @@ object (self)
          if relaying then
            "source client connected"
          else
-           "no source client connected")
+           "no source client connected") ;
+    Server.add ~ns "buffer_length" ~usage:"buffer_length"
+               ~descr:"Get the buffer's length, in seconds."
+       (fun _ -> Printf.sprintf "%.2f"
+             (Fmt.seconds_of_samples self#length))
 
   method private sleep =
     if relaying then self#disconnect

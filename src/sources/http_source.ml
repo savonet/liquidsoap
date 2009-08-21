@@ -474,7 +474,12 @@ object (self)
     Server.add ~ns "start" ~usage:"start" ~descr:"Start the source, if needed."
        (fun _ -> relaying <- true ; "Done") ;
     Server.add ~ns "stop" ~usage:"stop" ~descr:"Stop the source if streaming."
-       (fun _ -> relaying <- false ; "Done")
+       (fun _ -> relaying <- false ; "Done") ;
+    Server.add ~ns "buffer_length" ~usage:"buffer_length" 
+               ~descr:"Get the buffer's length, in seconds."
+       (fun _ -> Printf.sprintf "%.2f" 
+             (Fmt.seconds_of_samples self#length))
+
 
   method sleep = poll_should_stop <- true
 
