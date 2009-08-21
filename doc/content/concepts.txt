@@ -83,7 +83,7 @@ h5. Currently supported protocols
 *  SMB, FTP and HTTP using ufetch (provided by our ocaml-fetch distribution)
 *  HTTP, HTTPS, FTP thanks to wget
 *  SAY for speech synthesis (requires festival): <code>say:I am a robot</code> resolves to the WAV file resulting from the synthesis.
-*  TIME for speech synthesis of the current time: <code>time: It is exactly @, and you're still listening.</code>
+*  TIME for speech synthesis of the current time: <code>time: It is exactly $(time), and you're still listening.</code>
 *  ANNOTATE for manually setting metadata, typically used in <code>annotate:nick="alice",message="for bob":/some/track/uri</code>
 The extra metadata can then be synthesized in the audio stream, or merged into the standard metadata fields, or used on a rich web interface...
 It is also possible to add a new protocol from the script, as it is done with "bubble":bubble.html for getting songs from a database query.
