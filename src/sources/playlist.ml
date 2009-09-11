@@ -203,45 +203,50 @@ object (self)
           (Array.length !playlist)
       end
 
-  (* [reloading] avoids two reloadings being prepared at the same time. *)
-  method reload_playlist ?new_reload ?new_random ?new_playlist_uri () =
-      Duppy.Task.add Tutils.scheduler 
-        { Duppy.Task.
-	    priority = Tutils.Maybe_blocking ;
-            events   = [`Delay 0.] ;
-            handler  = (fun _ ->
-              if Mutex.try_lock reloading then
-                begin
-                  self#reload_playlist_internal
-                    new_reload new_random new_playlist_uri ;
-                  Mutex.unlock reloading 
-                end ;
-              []) }
+  (** Reload the playlist, only if it's not being reloaded already.
+    * If a new playlist is passed, it is reloaded and will be used
+    * in the future; in that case a reloading always takes place,
+    * to ensure that the new URI is not forgotten.
+    * This is a blocking, potentially long computation. *)
+  method reload_playlist_nobg ?new_playlist_uri () =
+    if
+      if new_playlist_uri<>None then begin
+        Mutex.lock reloading ; true
+      end else
+        Mutex.try_lock reloading
+    then begin
+      self#reload_playlist_internal new_playlist_uri ;
+      Mutex.unlock reloading
+    end
 
-  method reload_playlist_nobg ?new_reload ?new_random ?new_playlist_uri () =
-    if Mutex.try_lock reloading then
-      ( self#reload_playlist_internal new_reload new_random new_playlist_uri ;
-        Mutex.unlock reloading )
+  (** Schedule a reloading of the playlist, unless it's already
+    * being reloaded. *)
+  method reload_playlist ?new_playlist_uri () =
+    (* Do not attempt to lock the [reloading] mutex before scheduling
+     * a task: this would create an inter-thread lock/unlock,
+     * forbidden e.g. on BSD. *)
+    Duppy.Task.add Tutils.scheduler 
+      { Duppy.Task.
+          priority = Tutils.Maybe_blocking ;
+          events   = [`Delay 0.] ;
+          handler  = (fun _ ->
+            self#reload_playlist_nobg ?new_playlist_uri () ;
+            []) }
 
-  method reload_playlist_internal new_reload new_random new_playlist_uri =
+  method reload_playlist_internal new_playlist_uri =
 
     assert (not (Mutex.try_lock reloading)) ;
 
     self#load_playlist ?uri:new_playlist_uri true ;
 
     Mutex.lock mylock ;
-    ( match new_random with
-        | None -> ()
-        | Some m -> random <- m ) ;
-    ( match new_reload with
-        | None -> ()
-        | Some m -> reload <- m ) ;
     if Randomize = random then
       self#randomize_playlist ;
-    ( match reload with
-        | Never -> ()
-        | Every_N_rounds n -> round_c <- n
-        | Every_N_seconds n -> reload_t <- Unix.time () ) ;
+    begin match reload with
+      | Never -> ()
+      | Every_N_rounds n -> round_c <- n
+      | Every_N_seconds n -> reload_t <- Unix.time ()
+    end ;
     Mutex.unlock mylock
 
   method reload_update round_done =
@@ -317,11 +322,15 @@ object (self)
     self#reload_playlist_nobg () ;
     if ns = [] then
       ns <- Server.register [self#id] "playlist" ;
+    Server.add ~ns "reload"
+      ~descr:"Reload the playlist, unless already being loaded."
+      (fun s -> self#reload_playlist () ; "OK") ;
+    Server.add ~ns "uri" ~descr:"Set a new playlist URI, and load it."
+      (fun s -> self#reload_playlist ~new_playlist_uri:s () ; "OK") ;
     Server.add ~ns "next" ~descr:"Return up to 10 next URIs to be played."
-      (* The next command returns up to 10 next URIs to be played.
-       * We cannot return request ids cause we create requests at the last
-       * moment. We get requests from Request_source.* classes, from which
-       * we get a status. *)
+      (* We cannot return request IDs because we create requests at the last
+       * moment. For those requests already created by the Request_source
+       * parent class, we also display the status. *)
       (fun s ->
          let n =
            try int_of_string s with _ -> 10
@@ -371,8 +380,8 @@ object
             ~length ~default_duration 
             ~timeout ~conservative () as super
 
-  method reload_playlist_internal a b c =
-    pl#reload_playlist_internal a b c ;
+  method reload_playlist_internal new_uri =
+    pl#reload_playlist_internal new_uri ;
     super#notify_new_request
 
   method wake_up activation =
