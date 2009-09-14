@@ -39,10 +39,11 @@ You may also set some parameters per-source. You can retreive them using the com
 * <code>user</code>, <code>password</code>: set a permanent login and password for this harbor source.
 * <code>auth</code>: Authenticate the user according to a specific function.
 
-Let <code>auth</code> function is a function, that takes a pair @(login,password)@ and returns a boolean representing wether the user should be granted access or not. Typical example can be:
+Let <code>auth</code> function is a function, that takes a pair @(user,password)@ and returns a boolean representing whether the user 
+should be granted access or not. Typical example can be:
 
 %%(harbor_auth.liq)
-def auth(login,password) = 
+def auth(user,password) = 
   # Call an external process to check 
   # the credentials:
   # The script will return the string 
@@ -50,14 +51,28 @@ def auth(login,password) =
   #
   # First call the script
   ret = get_process_lines("/path/to/script \
-         --login=#{login} --password=#{password}")
+         --user=#{user} --password=#{password}")
   # Then get the first line of its output
   ret = list.hd(ret)
   # Finally returns the boolean represented 
-  # by the output
-  float_of_string(ret)
+  # by the output (bool_of_string can also 
+  # be used)
+  if ret == "true" then
+    true
+  else
+    false
+  end
 end
 %%
+
+In the case of the @ICY@ (shoutcast) source protocol, there is no @user@ parameter for the source connection. Hence, the user used will be,
+by order of priority:
+
+* The @user@ parameter passed to the @input.http@ source, if not empty.
+* The @harbor.username@ configuration key.
+
+Hence, when using a custom authentication function, in case of a @ICY@ (shoutcast) connection, the function will receive this value
+for the username.
 
 h4. Usage
 
@@ -76,7 +91,8 @@ set("harbor.password","XXXX")
 
 # Some code...
 
-# This defines a source waiting on mount point /test-harbor
+# This defines a source waiting on mount point 
+# /test-harbor
 live = input.harbor("test-harbor")
 
 # This is the final stream.
@@ -86,5 +102,6 @@ live = input.harbor("test-harbor")
 # stream.
 #
 # You may insert a jingle transition here...
-radio = fallback(track_sensitive=false,[live,files])
+radio = fallback(track_sensitive=false,
+                 [live,files])
 %%

@@ -94,9 +94,9 @@ simply add the following code at the begining of your script:
 
 %%(replaygainmetadata.liq)
 def replaygain_metadata(~format,file)
-  x = get_process_lines("/to/replaygain.pl #{quote(arg)}")
+  x = get_process_lines("/to/replaygain.pl #{quote(file)}")
   if list.hd(x) != "" then
-    ["replay_gain",list.hd(x)]
+    [("replay_gain",list.hd(x))]
   else
     []
   end

@@ -236,13 +236,11 @@ let () =
 
         "user",Lang.string_t,
         Some (Lang.string ""),
-        Some "Source user. Override default if not empty, \
-              except for icy protocol.";
+        Some "Source user. Override default if not empty.";
 
         "password",Lang.string_t,
         Some (Lang.string ""),
-        Some "Source password. Override default if not empty, \
-              except for icy protocol";
+        Some "Source password. Override default if not empty.";
 
         "auth",Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t]
                                     Lang.bool_t,
