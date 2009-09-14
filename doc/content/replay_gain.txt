@@ -54,17 +54,20 @@ my $file = $ARGV[0] || die ;
 
 if ($file =~ /\.mp3$/i) {
 
-  my $out = `nice -n 20 mp3gain "$file" 2> /dev/null` ;
-  $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
-  print "$1 dB\n" ;
+ my $out = `nice -n 20 mp3gain "$file" \
+             2> /dev/null` ;
+ $out =~ /Recommended "Track" dB change: (.*)$/m 
+         || die ;
+ print "$1 dB\n" ;
 
 } elsif ($file =~ /\.ogg$/i) {
 
-  system("nice -n 20 vorbisgain -f \"$file\" \
-          2>/dev/null >/dev/null") ;
-  my $info = `ogginfo "$file"` ;
-  $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ || die ;
-  print "$1 dB\n" ;
+ system("nice -n 20 vorbisgain -f \"$file\" \
+         2>/dev/null >/dev/null") ;
+ my $info = `ogginfo "$file"` ;
+ $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ 
+         || die ;
+ print "$1 dB\n" ;
 
 }
 %%
@@ -94,14 +97,16 @@ simply add the following code at the begining of your script:
 
 %%(replaygainmetadata.liq)
 def replaygain_metadata(~format,file)
-  x = get_process_lines("/to/replaygain.pl #{quote(file)}")
+  x = get_process_lines("/to/replaygain.pl \
+                          #{quote(file)}")
   if list.hd(x) != "" then
     [("replay_gain",list.hd(x))]
   else
     []
   end
 end
-add_metadata_resolver("replay_gain",replaygain_metadata)
+add_metadata_resolver("replay_gain",
+                      replaygain_metadata)
 %%
 
 Then, when trying to read the metadata of any file,
@@ -111,17 +116,20 @@ In order to register a <code>replay_gain</code> protocol
 in our liquidsoap script, use the following code:
 
 %%(replaygainproto.liq)
-# This would usually be done at the beginning of a script,
+# This would usually be done at the 
+# beginning of a script,
 # although it does not matter.
 def replaygain_protocol(arg,delay)
-  x = get_process_lines("/to/replaygain.pl #{quote(arg)}")
-  if list.hd(x) != "" then
-    "annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"
-  else
-    arg
-  end
+ x = get_process_lines("/to/replaygain.pl \
+                        #{quote(arg)}")
+ if list.hd(x) != "" then
+  "annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"
+ else
+  arg
+ end
 end
-add_protocol("replay_gain",replaygain_protocol)
+add_protocol("replay_gain",
+             replaygain_protocol)
 %%
 
 In this case, everytime you need replaygain information about a file,
