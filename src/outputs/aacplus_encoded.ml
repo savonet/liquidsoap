@@ -36,7 +36,7 @@ object (self)
 
   val mutable encoder : (Aacplus.t*string) option = None
 
-  val mutable rem = Array.create (Fmt.channels ()) [||]
+  val mutable rem = String.create 0
 
   val encoded = Buffer.create 1024
 
@@ -45,23 +45,17 @@ object (self)
     let b = AFrame.get_float_pcm frame in
     let start = Fmt.samples_of_ticks start in
     let len = Fmt.samples_of_ticks len in
-    let f s l x = 
-      Array.sub x s l
-    in
-    let block_size = (String.length tmp) / (2 * (Fmt.channels ())) in
-    let b = Array.map (f start len) b in
-    let g i x =
-      Array.append rem.(i) x
-    in
-    rem <- Array.mapi g b;
+    let ret = String.create (len*2*(Fmt.channels ())) in
+    ignore(Float_pcm.to_s16le b start len ret 0);
+    rem <- Printf.sprintf "%s%s" rem ret;
+    let data_length = String.length tmp in
     let rec put () = 
-      let len = Array.length rem.(0) in
-      if len > block_size then
+      let len = String.length rem in
+      if len > data_length then
        begin
-        let b = Array.map (f 0 block_size) rem in
-        rem <- Array.map (f block_size (len-block_size)) rem ;
-        ignore(Float_pcm.to_s16le b 0 block_size tmp 0);
-        Buffer.add_string encoded (Aacplus.encode e tmp) ;
+        let b = String.sub rem 0 data_length in
+        rem <- String.sub rem data_length (len-data_length);
+        Buffer.add_string encoded (Aacplus.encode e b) ;
         put ()
        end
     in
