@@ -769,6 +769,45 @@ else
 fi
 
 #
+# Aacplus
+#
+
+AC_ARG_WITH([aacplus-dir],
+   AC_HELP_STRING(
+      [--with-aacplus-dir=path],
+      [look for ocaml-aacplus library in "path" (autodetected by default)]))
+AC_ARG_ENABLE([aacplus],AC_HELP_STRING([--disable-aacplus],[don't use ocaml-aacplus]))
+
+if test "x$enable_aacplus" != "xno" ; then
+AC_MSG_CHECKING(for ocaml-aacplus)
+if test -z "$with_aacplus_dir" ; then
+    if ! $OCAMLFIND query aacplus > /dev/null 2>&1 ; then
+        AC_MSG_RESULT(not found)
+    else
+        W_AACPLUS=yes
+        AC_MSG_RESULT(ok)
+        ocamlcflags="$ocamlcflags -package aacplus"
+        requires="$requires aacplus"
+    fi
+else
+    echo $with_aacplus_dir | grep ^/ > /dev/null 2>&1 \
+        || with_aacplus_dir=$PWD/$with_aacplus_dir
+    ocamlcflags="$ocamlcflags -I $with_aacplus_dir"
+    ocamllflags="$ocamllflags aacplus.$cma"
+    requires="$requires aacplus"
+    W_AACPLUS=yes
+    AC_MSG_RESULT(ok)
+fi
+fi
+
+AC_SUBST(W_AACPLUS)
+if test "a$W_AACPLUS" = "ayes" ; then
+        w_AACPLUS=yes
+else
+        w_AACPLUS=no
+fi
+
+#
 # Theora
 #
 
@@ -1857,6 +1896,7 @@ cat <<EOMSG
    - Vorbis            : $w_VORBIS
    - MP3               : $w_LAME
    - AAC               : $w_FAAC
+   - AAC+              : $w_AACPLUS
    - SPEEX             : $w_SPEEX
    - Theora            : $w_THEORA
    - Dirac             : $w_SCHROEDINGER

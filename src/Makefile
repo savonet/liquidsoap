@@ -95,6 +95,7 @@ analyze = analyze/analyze_rms.ml
 outputs = outputs/output.ml outputs/file_output.ml \
 	$(if $(W_OGG),outputs/ogg_output.ml) \
 	$(if $(W_LAME),outputs/lame_encoded.ml) \
+	$(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded.ml)  \
 	$(if $(W_THEORA),outputs/theora_encoded.ml) \
 	$(if $(W_SCHROEDINGER),outputs/dirac_encoded.ml) \
@@ -103,6 +104,7 @@ outputs = outputs/output.ml outputs/file_output.ml \
  	$(if $(W_OGG),outputs/ogg_output_shout.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded_shout.ml) \
 	$(if $(W_LAME), outputs/lame_encoded_shout.ml)  \
+	$(if $(W_AACPLUS),outputs/aacplus_encoded_shout.ml) \
 	$(if $(W_SPEEX), outputs/speex_encoded_shout.ml)  \
 	$(if $(W_THEORA), outputs/theora_encoded_shout.ml) ) \
 	outputs/external_encoded.ml \
