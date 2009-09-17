@@ -72,8 +72,10 @@ class to_shout p =
       samplerate = Some samplerate
     }
   in
+  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in 
 object (self)
-  inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Output.encoded ~autostart ~name:mount ~infallible
+                         ~kind:"output.icecast" source
   inherit Icecast2.output ~icecast_info ~mount ~name ~source p as icecast
   inherit base ~bitrate ~samplerate as base
 
