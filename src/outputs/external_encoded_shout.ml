@@ -66,6 +66,8 @@ class to_shout p =
   let samplerate = e Lang.to_int "samplerate" in
   let channels   = f (e Lang.to_int "channels") in
   let autostart = e Lang.to_bool "start" in
+  let infallible = not (e Lang.to_bool "fallible") in
+
   let source = List.assoc "" p in
   let mount = s "mount" in
   let name = s "name" in
@@ -93,7 +95,8 @@ class to_shout p =
     }
   in
 object (self)
-  inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Output.encoded ~autostart ~infallible
+            ~name:mount ~kind:"output.icecast" source
   inherit
     Icecast2.output ~icecast_info ~mount ~name ~source p as icecast
   inherit

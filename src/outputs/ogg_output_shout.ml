@@ -55,9 +55,11 @@ class to_shout ~skeleton ~streams
 
   let source = List.assoc "" p in
   let autostart = Lang.to_bool (List.assoc "start" p) in
+  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
 
 object (self)
-  inherit Output.encoded ~autostart ~name:mount ~kind:"output.icecast" source
+  inherit Output.encoded ~autostart ~infallible
+            ~name:mount ~kind:"output.icecast" source
   inherit Icecast2.output
     ~mount ~name ~icecast_info 
     ~source p as icecast
