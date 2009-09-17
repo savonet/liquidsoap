@@ -5,20 +5,20 @@ open Theora_encoded
 let proto = theora_proto @ Ogg_output_shout.proto
 
 
-let () = 
+let () =
   Lang.add_operator "output.icecast.theora"
     proto
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Theora stream to an \
                Icecast-compatible.")
-    (fun p _ -> 
+    (fun p _ ->
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
-       let vorbis_quality = e Lang.to_float "vorbis_quality" in 
+       let vorbis_quality = e Lang.to_float "vorbis_quality" in
        let skeleton = e Lang.to_bool "skeleton" in
-       let streams = 
-         Theora_encoded.create_streams 
-                ~quality ~vorbis_quality 
+       let streams =
+         Theora_encoded.create_streams
+                ~quality ~vorbis_quality
        in
        let icecast_info =
          {
@@ -29,5 +29,5 @@ let () =
             samplerate = Some (Fmt.samples_per_second ())
          }
        in
-      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
-
+         ((new Ogg_output_shout.to_shout
+                 ~skeleton ~icecast_info ~streams p):>Source.source))

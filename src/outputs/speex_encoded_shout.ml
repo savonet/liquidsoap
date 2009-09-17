@@ -26,14 +26,14 @@ open Speex_encoded
 
 let proto = Speex_encoded.speex_proto @ Ogg_output_shout.proto
 
-let () = 
+let () =
   Lang.add_operator "output.icecast.speex"
-    proto 
+    proto
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Speex stream to an \
              Icecast-compatible server.")
     (fun p _ ->
-       let e f v = f (List.assoc v p) in 
+       let e f v = f (List.assoc v p) in
        let mode =
          match e Lang.to_string "mode" with
            | "narrowband" -> Speex.Narrowband
@@ -57,7 +57,7 @@ let () =
        let complexity = e Lang.to_int "complexity" in
        let quality = e Lang.to_int "quality" in
        let streams =
-        ["speex",Speex_encoded.create 
+        ["speex",Speex_encoded.create
                         ~freq ~stereo ~mode
                         ~bitrate ~vbr ~fpp
                         ~complexity ~abr ~quality ()]
@@ -65,13 +65,13 @@ let () =
        let channels =
          if not stereo then 1 else Fmt.channels ()
        in
-       let bitrate = 
+       let bitrate =
          if bitrate > 0 then
            Some (bitrate / 1000)
          else
            None
        in
-       let quality = 
+       let quality =
          if quality > 0 then
            Some (string_of_int quality)
          else
@@ -86,7 +86,5 @@ let () =
             samplerate = Some freq
          }
        in
-      ((new Ogg_output_shout.to_shout ~skeleton ~icecast_info ~streams p):>Source.source))
-
-
-
+      ((new Ogg_output_shout.to_shout
+          ~skeleton ~icecast_info ~streams p):>Source.source))

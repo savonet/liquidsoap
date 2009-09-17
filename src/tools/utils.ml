@@ -138,7 +138,8 @@ let which =
 
 (** Uninterruptible select *)
 let rec select x y z t =
-  try Unix.select x y z t with Unix.Unix_error (Unix.EINTR,_,_) -> select x y z t
+  try Unix.select x y z t with
+    | Unix.Unix_error (Unix.EINTR,_,_) -> select x y z t
 
 (** Very partial strftime clone *)
 let strftime str : string =
