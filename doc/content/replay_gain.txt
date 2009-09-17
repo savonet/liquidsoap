@@ -89,8 +89,9 @@ may be uselessly costly. One should instead make sure that the file has
 been analyzed on the remote machine, so that the local analysis only retrieves
 the precomputed value. In any case, remote files can only be treated through
 the addition of a metadata resolver, and cannot work with the @replay_gain@
-protocol technique (@replaygain:ftp://host/file.ogg@ calls our script
-on the remove URL, which fails).
+protocol technique (@replaygain:ftp://host/file.ogg@ will call
+the script using the @ftp://host/file.ogg@ as the URI parameter, and
+it will fail).
 
 In order to register a new metadata resolver using this script,
 simply add the following code at the begining of your script:
