@@ -36,7 +36,7 @@ object (self)
 
   val mutable encoder : (Aacplus.t*string) option = None
 
-  val mutable rem = String.create 0
+  val rem = Buffer.create 1024
 
   val encoded = Buffer.create 1024
 
@@ -47,19 +47,27 @@ object (self)
     let len = Fmt.samples_of_ticks len in
     let ret = String.create (len*2*(Fmt.channels ())) in
     ignore(Float_pcm.to_s16le b start len ret 0);
-    rem <- Printf.sprintf "%s%s" rem ret;
+    Buffer.add_string rem ret ;
     let data_length = String.length tmp in
-    let rec put () = 
-      let len = String.length rem in
+    let rec put data = 
+      let len = String.length data in
       if len > data_length then
        begin
-        let b = String.sub rem 0 data_length in
-        rem <- String.sub rem data_length (len-data_length);
+        let b = String.sub data 0 data_length in
+        let data =  
+          String.sub data data_length (len-data_length)
+        in
         Buffer.add_string encoded (Aacplus.encode e b) ;
-        put ()
+        put data
+       end
+      else
+       begin
+        Buffer.reset rem;
+        Buffer.add_string rem data 
        end
     in
-    put () ;
+    if Buffer.length rem > data_length then
+      put (Buffer.contents rem) ;
     let ret = Buffer.contents encoded in
     Buffer.reset encoded ;
     ret
