@@ -58,7 +58,7 @@ object (self)
   inherit operator [source]
   inherit base ~length ~threshold as base
 
-  val mutable in_blank = false
+  val mutable in_blank = true
 
   method stype = source#stype
   method is_ready = source#is_ready
