@@ -104,7 +104,7 @@ This is free software, released under the terms of GPL version 2 or higher.
 # configuration dialog and automatic liquidsoap launch.
 
 # liquidsoap runs liquidsoap with a fixed script
-# a few parameteres are available
+# a few parameters are available
 def liquidsoap(
     scriptfile,
     host='localhost',port=1234,mount='emission.ogg',
