@@ -96,16 +96,23 @@ object (self)
                Printf.sprintf "%.2f" t) ;
     Server.add ~ns "autostart" ~descr:"Enable/disable autostart."
       (fun s ->
-         if s = "" then
-           if autostart then "on" else "off"
-         else begin
-           autostart <- (s = "on" || s = "yes" || s = "y") ;
-           "Set to " ^ if autostart then "on" else "off"
-         end) ;
+         if s <> "" then begin
+           let update = s = "on" || s = "yes" || s = "y" in
+             (* Update start_output when:
+              *  - autostart becomes true (we now wait to start asap)
+              *  - autostart becomes false too (stop ongoing waiting)
+              * But not when it is unchanged. For example, this prevents
+              * cancelling a manually-ordered start. *)
+             if update <> autostart then begin
+               start_output <- update ;
+               autostart <- update
+             end
+         end ;
+         if autostart then "on" else "off") ;
     Server.add ~ns "start" ~descr:"Start output."
-      (fun _ -> start_output <- true ; "") ;
+      (fun _ -> start_output <- true ; "OK") ;
     Server.add ~ns "stop" ~descr:"Stop output. Disable autostart."
-      (fun _ -> stop_output <- true ; autostart <- false ; "") ;
+      (fun _ -> stop_output <- true ; autostart <- false ; "OK") ;
     Server.add ~ns "status" ~descr:"Get status."
       (fun _ -> if does_output then "on" else "off") ;
 
@@ -198,22 +205,35 @@ object (self)
 
 end
 
-class dummy ~infallible source = object
-  inherit output ~kind:"output.dummy" source true ~infallible
+class dummy ~infallible ~on_start ~on_stop ~autostart source = object
+  inherit output ~kind:"output.dummy" source autostart
+                 ~infallible ~on_start ~on_stop
   method output_reset  = ()
   method output_start  = ()
   method output_stop   = ()
   method output_send _ = ()
 end
+
 let () =
   Lang.add_operator "output.dummy"
     ["fallible", Lang.bool_t, Some (Lang.bool false), None;
+     "autostart", Lang.bool_t, Some (Lang.bool true), None;
+     "on_start", Lang.fun_t [] Lang.unit_t,
+     Some (Lang.val_cst_fun [] Lang.unit), None ;
+     "on_stop", Lang.fun_t [] Lang.unit_t,
+     Some (Lang.val_cst_fun [] Lang.unit), None ;
      "", Lang.source_t, None, None]
     ~category:Lang.Output
     ~descr:"Dummy output for debugging purposes."
     (fun p _ ->
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-         ((new dummy ~infallible (List.assoc "" p)):>Source.source))
+       let autostart = Lang.to_bool (List.assoc "autostart" p) in
+       let on_start = List.assoc "on_start" p in
+       let on_stop = List.assoc "on_stop" p in
+       let on_start () = ignore (Lang.apply on_start []) in
+       let on_stop () = ignore (Lang.apply on_stop []) in
+         ((new dummy ~on_start ~on_stop ~infallible ~autostart
+             (List.assoc "" p)):>Source.source))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
