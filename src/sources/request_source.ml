@@ -371,7 +371,7 @@ end
 
 let queued_proto =
   [ "length", Lang.float_t, Some (Lang.float 10.),
-    Some "How much audio (in sec.) should be downloaded in advance." ;
+    Some "How much audio (in sec.) should be queued in advance." ;
     "default_duration", Lang.float_t, Some (Lang.float 30.),
     Some "When unknown, assume this duration (in sec.) for files." ;
     "conservative", Lang.bool_t, Some (Lang.bool false),
