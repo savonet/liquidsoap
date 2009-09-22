@@ -157,13 +157,15 @@ object (self)
             end
 
   method icecast_stop =
-    match Cry.get_status connection with
+    self#log#f 3 "Closing connection..." ;
+    begin match Cry.get_status connection with
       | Cry.Disconnected -> ()
       | Cry.Connected _ ->
-          Cry.close connection;
-          match dump with
-            | Some f -> close_out f
-            | None -> ()
+          Cry.close connection
+    end ;
+    match dump with
+      | Some f -> close_out f
+      | None -> ()
 
   method icecast_start =
     assert (Cry.get_status connection = Cry.Disconnected) ;
