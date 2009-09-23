@@ -32,8 +32,6 @@ formats = \
 	$(if $(W_FAAD),formats/aacformat.ml) \
 	formats/wavformat.ml \
 	formats/externalformat.ml \
-	$(if $(W_NSV),formats/nattyformat_mp3.ml) \
-	$(if $(W_NATTY),formats/nattyformat.ml) \
 	$(if $(W_MP3),formats/mp3.ml) \
 	formats/midiformat.ml
 

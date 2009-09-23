@@ -925,59 +925,6 @@ else
 fi
 
 #
-# Ocaml-natty
-#
-
-AC_ARG_WITH([natty-dir],
-   AC_HELP_STRING(
-      [--with-natty-dir=path],
-      [look for ocaml-natty library in "path" (disabled by default)]))
-AC_ARG_ENABLE([natty],AC_HELP_STRING([--enable-natty],[use ocaml-natty]))
-
-if test "x$enable_natty" = "xyes" ; then
-AC_MSG_CHECKING(for ocaml-natty)
-if test -z "$with_natty_dir" ; then
-    if ! $OCAMLFIND query natty > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_NATTY=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package bitstring -package natty"
-        requires="$requires bitstring natty"
-    fi
-else
-    echo $with_natty_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_natty_dir=$PWD/$with_natty_dir
-    ocamlcflags="$ocamlcflags -I $with_natty_dir -package bitstring"
-    ocamllflags="$ocamllflags natty.$cma"
-    requires="$requires bitstring natty"
-    W_NATTY=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_NATTY)
-
-if test -z "$W_NATTY" ; then
-    w_NATTY="no (needs ocaml-natty)"
-    if test -z "$W_MP3" ; then
-      w_NSV="no (needs ocaml-natty and ocaml-mad)"
-    else
-      w_NSV="no (needs ocaml-natty)"
-    fi
-else
-    if test -z "$W_MP3" ; then
-      w_NSV="no (needs ocaml-mad)"
-    else
-      w_NSV=yes
-      W_NSV=yes
-    fi
-    w_NATTY=yes
-fi
-
-AC_SUBST(W_NSV)
-
-#
 # Jack
 #
 
@@ -1885,9 +1832,6 @@ cat <<EOMSG
    - Vorbis            : $w_VORBIS
    - MP3               : $w_MP3
    - AAC               : $w_FAAD
-   - AU                : $w_NATTY
-   - AIFF/AIFC         : $w_NATTY
-   - NSV (mp3 audio)   : $w_NSV
    - text-to-speech    : $w_TTS
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LAST

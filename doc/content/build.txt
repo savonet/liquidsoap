@@ -58,7 +58,6 @@ And also optional dependencies:
 * ocaml-shout
 * ocaml-mad for mp3 decoding
 * ocaml-lame for mp3 encoding
-* ocaml-natty for various format decoding (AU, AIFF and NSV mp3 audio if ocaml-mad is present)
 * ocaml-faac for AAC encoding
 * ocaml-faad for AAC stream decoding
 * ocaml-taglib for MP3 audio tag reading

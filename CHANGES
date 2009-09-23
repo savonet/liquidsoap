@@ -35,6 +35,9 @@ New:
    of jamendo's compatibility API. Added nowplaying submission,
    and various wrappers, including a full submission process
    (now playing at beginning, submit some times before the end).
+Removed:
+ - Removed decoders using ocaml-natty. Slow, superseeded by the 
+   mplayer decoder and unmaintained.
 
 0.9.1 (18-06-2009)
 Bugs fixed:

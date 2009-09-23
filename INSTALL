@@ -37,8 +37,6 @@
    ocaml-jack>=0.1.0        for old Jack support (DEPRECATED)
    libortp>=1.0.0           for RTP stream I/O (EXPERIMENTAL)
    libopal                  for receiving VOIP calls (EXPERIMENTAL)
-   ocaml-natty>=0.1.0       for AU, AIFF (and NSV MP3 audio if ocaml-mad
-                            is present) (EXPERIMENTAL)
    Other optional dependencies can be found in the download
    section of the project. All of them should be included in
    the -full tarball
