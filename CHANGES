@@ -1,8 +1,7 @@
 x.y.z ()
-Bugs fixed: 
+Bugs fixed:
  - Ogg encoder now muxes pages according to their ending time.
- - Support "ogg/audio" and "ogg/video" mime types for
-   http ogg streams.
+ - Support "ogg/audio" and "ogg/video" mime types for HTTP ogg streams.
  - Changed external encoder's "restart_encoder" to the more relevant
    "restart_on_new_track". Added optional "restart_after_delay"
    to restart the encoder after some delay. Also completely rewrite
@@ -10,34 +9,48 @@ Bugs fixed:
    to finish, allowing proper restart_on_new_track like for ogg encoded
    data.
  - Factorized buffered I/O code. Also added a blocking API, which avoids
-   "no available frame" and "reader not ready" messages and audio glitches. 
-   It requires that "root.sync" be desactivated for these sources, such that
+   "no available frame" and "reader not ready" messages and audio glitches.
+   It requires that "root.sync" be deactivated for these sources, such that
    synchronisation is done by the source. (#203)
  - Factorized file decoding code.
- - Fixed reversed order when parsing playlists using
-   playlist.parse.
+ - Fixed reversed order when parsing playlists using playlist.parse().
+ - Avoid bad crashes when ressources lack, e.g. no more memory.
+ - Tighten and enforce the inter-source protocol.
+ - All outputs: fix the autostart server command. With the former code,
+   a modification of the autostart parameter was only taken into account
+   one start/stop cycle later.
+ - on_blank(): fix a bug that prevented the first call to on_noise.
 New:
+ - The operator rotate() replaces random(strict=true), and random()
+   does not have a strict parameter anymore.
+ - on_blank(): provide an on_noise handler.
+ - playlist*(): add server commands for reloading the playlist and changing
+   its URI.
+ - Fallible outputs: all outputs now have a fallible mode, in which
+   they accept fallible sources, and automatically start/stop when the child
+   fails to stream.
  - Support ogg/dirac (#TODO: close ticket).
- - Switched to a custom implementation of the 
-   various shout protocols. Allows much more
-   flaxibility, in particular arbitrary content-type
-   settings. Enabled wrappers for external encoders for
-   AAC+ format using aacplusenc (#220 and #136). Also
-   added custom irc, aim and icq headers to shoutcast
-   wrappers (#192)
+ - output.*.aacplus(): native outputs encoding in AAC+ using ocaml-aacplus.
+ - Switched to a custom implementation of the various shout protocols.
+   It notably allows arbitrary content-type settings which enables
+   AAC+ streaming. Enabled wrappers for external encoders for AAC+ format
+   aacplusenc (#220 and #136). Also added custom IRC, AIM and ICQ headers
+   to shoutcast wrappers (#192).
  - Added built-in support for m4a audio files and metadata.
    Made external support optional through enable_faad.
  - Added optional resampling for output.external operators (#273).
- - Switch to new behaviour in request-based sources. Use 
-   conservative=false to switch to the old behaviour.
+ - Switch to new behaviour in request-based sources. Use conservative=true
+   to get to the old behaviour.
  - Added optional host and port parameters for audioscrobbling
    submissions. Allows to use alternate systems, such as libre.fm
    of jamendo's compatibility API. Added nowplaying submission,
    and various wrappers, including a full submission process
    (now playing at beginning, submit some times before the end).
+Experimental:
+ - MIDI: file decoding, synthesis, virtual keyboard.
 Removed:
- - Removed decoders using ocaml-natty. Slow, superseeded by the 
-   mplayer decoder and unmaintained.
+ - Removed decoders using ocaml-natty. Slow, unmaintained and superseded
+   by the mplayer decoder.
 
 0.9.1 (18-06-2009)
 Bugs fixed:
