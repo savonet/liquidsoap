@@ -490,8 +490,8 @@ AC_ARG_WITH([xmlplaylist-dir],
       [look for xmlplaylist library in "path" (autodetected by default)]))
 
 AC_MSG_CHECKING(for ocaml-xmlplaylist)
-if ! $OCAMLFIND query xml-light > /dev/null 2>&1; then
-  AC_MSG_RESULT(needs xml-light.)
+if ! $OCAMLFIND query xmlm > /dev/null 2>&1; then
+  AC_MSG_RESULT(needs xmlm.)
 else
   if test -z "$with_xmlplaylist_dir" ; then
      if ! $OCAMLFIND query xmlplaylist > /dev/null 2>&1; then
