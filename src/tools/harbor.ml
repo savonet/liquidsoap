@@ -384,7 +384,16 @@ let handle_get_request c uri headers =
   in
   log#f 3 "GET request on %s." base_uri ;
   let args = Http.args_split (Http.url_decode args) in
-  Hashtbl.iter (fun h v -> log#f 4 "GET Arg: %s, value: %s." h v) args ;
+  (* Filter out password *)
+  let log_args = 
+    if conf_pass_verbose#get then
+      args
+    else
+      let log_args = Hashtbl.copy args in
+      Hashtbl.remove log_args "pass" ;
+      log_args
+  in 
+  Hashtbl.iter (fun h v -> log#f 4 "GET Arg: %s, value: %s." h v) log_args ;
   try
      match base_uri with
        | "/" -> write_answer c default
