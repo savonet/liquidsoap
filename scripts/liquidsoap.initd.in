@@ -1,4 +1,15 @@
 #!/bin/sh
+### BEGIN INIT INFO
+# Provides:          liquidsoap
+# Required-Start:    $remote_fs $network $time
+# Required-Stop:     $remote_fs $network $time
+# Should-Start:
+# Should-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Starts the liquidsoap daemon
+# Description:
+### END INIT INFO
 
 user=@install_user@
 group=@install_group@
@@ -7,6 +18,12 @@ exec_prefix=@exec_prefix@
 confdir=@sysconfdir@/liquidsoap
 liquidsoap=@bindir@/liquidsoap
 rundir=@localstatedir@/run/liquidsoap
+
+# Test if $rundir exists
+if [ ! -d $rundir ]; then
+  mkdir -p $rundir;
+  chown $user:$group $rundir
+fi
 
 case "$1" in
   stop)
@@ -34,13 +51,13 @@ case "$1" in
     echo "OK"
     ;;
 
-  restart)
+  restart|force-reload)
     $0 stop
     $0 start
     ;;
 
   *)
-    echo "Usage: $0 {start|stop|restart}"
+    echo "Usage: $0 {start|stop|restart|force-reload}"
     exit 1
     ;;
 esac
