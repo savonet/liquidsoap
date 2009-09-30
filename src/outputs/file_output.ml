@@ -122,13 +122,16 @@ let proto = [
   "perm",
   Lang.int_t,
   Some (Lang.int 0o666),
-  Some "Permission of the file if it has to be created, up to umask." ;
+  Some "Permission of the file if it has to be created, up to umask. \
+        Value displayed here is in decimal base, usual values, i.e. 666, \
+        are in octal base. For instance: 6.8^2 + 6.8 + 6 = 438" ;
 
   "dir_perm",
   Lang.int_t,
   Some (Lang.int 0o777),
-  Some ("Permission of the directories if some have to be created, "^
-        "up to umask.") ;
+  Some "Permission of the directories if some have to be created, \
+       up to umask. Value displayed here is in decimal base, usual \
+       values, i.e. 777, are in octal base. For instance: 7.8^2 + 7.8 + 7 = 511" ;
 
   "reopen_delay", Lang.float_t, Some (Lang.float 120.),
   Some "Prevent re-opening of the file within that delay, in seconds." ;
