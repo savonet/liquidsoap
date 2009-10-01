@@ -113,20 +113,14 @@ Without the <code>track_sensitive=false</code> the fallback would wait the end o
 
 h4. Unix interface, dynamic requests
 
-<code>request.dynamic</code> is a source which takes a custom function for creating its new requests. This function can be used to call an external program. The source expects a <code>()->request</code> function. To create the request, the function will have to use the <code>request</code> function which has type <code>(string,?indicators:[string])</code>. The first string is the initial URI of the request, which is resolved to get an audio file. The second argument can be used to directly specify the first row of URIs (see the "concepts page":concepts.html), in which case the initial URI is just here for naming, and the resolving process will try your list of indicators one by one until a valid audio file is obtained.
+Liquidsoap can create a source that uses files provided by the result of the execution of any arbitrary function of your own.
+This is explained in the documentation for "request-based sources":request_sources.html.
 
-The simplest example takes the output of an external script as an URI to create a new request:
-
-%%(scripted_dynamic_request.liq)
-request.dynamic(
-  { request(get_process_output("my_script my_params")) })
-%%
-
-More complex, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
+For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
 %%(playlist_dynamic_request.liq)
 request.dynamic(
-  { request("bar:foo",
+  { request.create("bar:foo",
       indicators=
         get_process_lines("cat "^quote("playlist.pls"))) })
 %%

@@ -32,7 +32,7 @@ h4. Documentation
 * "External encoders":external_encoders.html: use an external audio encoding program.
 * "HTTP input vs. Harbor input":http_vs_harbor.html: relay and host external streams.
 * "Normalization and replay gain":replay_gain.html
-* "Queued sources":queues.html
+* "Requests-based sources":request_sources.html
 * "Shoutcast output":shoutcast.html
 * "Smart crossfading":smartcrossfade.html
 * "Multichannel":multichannel.html
