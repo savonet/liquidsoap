@@ -41,13 +41,16 @@ let conf_harbor_pass =
     "Default password for source connection."
 let conf_icy =
   Conf.bool ~p:(conf_harbor#plug "icy") ~d:false
-   "Enable the builtin ICY (shout) stream receiver."
+    "Enable the builtin ICY (shout) stream receiver."
 let conf_timeout =
   Conf.float ~p:(conf_harbor#plug "timeout") ~d:30.
-        "Timeout for source connections."
+    "Timeout for source connections."
 let conf_pass_verbose =
   Conf.bool ~p:(conf_harbor_pass#plug "verbose") ~d:false
-        "Display passwords, for debugging."
+    "Display passwords, for debugging."
+let conf_revdns =
+  Conf.bool ~p:(conf_harbor#plug "reverse_dns") ~d:true
+    "Perform reverse DNS lookup to get the client's hostname from its IP."
 
 let log = Log.make ["harbor"]
 
@@ -483,14 +486,16 @@ let start_harbor () =
         if !Root.shutdown then failwith "shutting down" ;
         let (socket,caller) = accept sock in
         let ip =
-          let a = match caller with
-                    | ADDR_INET (a,_) -> a
-                    | _ -> assert false
+          let a =
+            match caller with
+              | ADDR_INET (a,_) -> a
+              | _ -> assert false
           in
-          try
-            (gethostbyaddr a).h_name
-          with
-            | Not_found -> string_of_inet_addr a
+            try
+              if not conf_revdns#get then raise Not_found ;
+              (gethostbyaddr a).h_name
+            with
+              | Not_found -> string_of_inet_addr a
         in
         (* Add timeout *)
         Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get ;
