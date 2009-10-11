@@ -23,13 +23,15 @@
 (** Output in a WAV file. *)
 
 class output
-  ~append ~perm ~dir_perm
+  ~append ~perm ~dir_perm ~infallible ~on_stop ~on_start
   ~reload_delay ~reload_predicate ~reload_on_metadata
   name source autostart =
   let channels = Fmt.channels () in
   let sample_rate = Fmt.samples_per_second () in
 object
-  inherit Output.encoded ~name ~kind:"output.file" ~autostart source
+  inherit Output.encoded 
+            ~infallible ~on_stop ~on_start
+            ~name ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm name as to_file
@@ -70,7 +72,7 @@ end
 let () =
   Lang.add_operator "output.file.wav"
     ((( "start", Lang.bool_t, Some (Lang.bool true), None) :: File_output.proto)
-      @ ["", Lang.source_t, None, None ])
+      @ Output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream to a WAV file."
     (fun p _ ->
@@ -85,6 +87,16 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
          ((new output ~append ~perm ~dir_perm
+             ~infallible ~on_stop ~on_start
              ~reload_delay ~reload_predicate ~reload_on_metadata 
              name source autostart):>Source.source))

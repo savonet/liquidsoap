@@ -26,7 +26,7 @@ let no_mount = "Use [name].ogg"
 let no_name = "Use [mount]"
 
 let proto =
-  (Icecast2.proto ~no_mount ~no_name ~format:"ogg") @
+  (Icecast2.proto ~no_mount ~no_name ~format:"ogg") @ Output.proto @
   [ "start", Lang.bool_t, Some (Lang.bool true),
     Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
@@ -53,12 +53,22 @@ class to_shout ~skeleton ~streams
     if mount = no_mount then name ^ ".ogg" else mount
   in
 
+  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let on_start =
+    let f = List.assoc "on_start" p in
+      fun () -> ignore (Lang.apply f [])
+  in
+  let on_stop =
+    let f = List.assoc "on_stop" p in
+      fun () -> ignore (Lang.apply f [])
+  in
+
   let source = List.assoc "" p in
   let autostart = Lang.to_bool (List.assoc "start" p) in
-  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
 
 object (self)
-  inherit Output.encoded ~autostart ~infallible
+  inherit Output.encoded ~autostart 
+            ~infallible ~on_start ~on_stop
             ~name:mount ~kind:"output.icecast" source
   inherit Icecast2.output
     ~mount ~name ~icecast_info 

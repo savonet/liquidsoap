@@ -22,9 +22,13 @@
 
 (** Output as a RTP stream. *)
 
-class output source ~ip ~port ~ttl autostart =
+class output source
+    ~infallible ~on_stop ~on_start 
+    ~ip ~port ~ttl autostart =
 object (self)
-  inherit Output.output ~kind:"rtp" source autostart
+  inherit Output.output 
+            ~infallible ~on_start ~on_stop
+            ~kind:"rtp" source autostart
 
   method output_reset = self#output_stop ; self#output_start
 
@@ -43,6 +47,7 @@ end
 
 let () =
   Lang.add_operator "output.rtp"
+   ( Output.proto @
     [ "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output threads on operator initialization." ;
@@ -60,7 +65,7 @@ let () =
       Some "Time to live: how far should the packets go?" ;
 
       "", Lang.source_t, None, None
-    ]
+    ])
     ~category:Lang.Output
     ~descr:"Broadcast raw stream (includes metadata) using RTP."
     (fun p _ ->
@@ -68,5 +73,16 @@ let () =
        let port = Lang.to_int (List.assoc "port" p) in
        let ttl = Lang.to_int (List.assoc "ttl" p) in
        let ip = Lang.to_string (List.assoc "ip" p) in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = List.assoc "" p in
-         ((new output source ~ip ~port ~ttl start):>Source.source))
+         ((new output source 
+                  ~infallible ~on_start ~on_stop 
+                  ~ip ~port ~ttl start):>Source.source))

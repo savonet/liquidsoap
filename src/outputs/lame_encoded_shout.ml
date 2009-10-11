@@ -28,7 +28,7 @@ let no_mount = "Use [name]"
 let no_name = "Use [mount]"
 
 let proto =
-  (Icecast2.proto ~no_mount ~no_name ~format:"mp3") @
+  (Icecast2.proto ~no_mount ~no_name ~format:"mp3") @ Output.proto @
   [ "samplerate", Lang.int_t, Some (Lang.int 44100), None;
     "bitrate", Lang.int_t, Some (Lang.int 128), None;
     "quality", Lang.int_t, Some (Lang.int 5), None;
@@ -50,7 +50,16 @@ class to_shout p =
 
   let source = List.assoc "" p in
   let autostart = Lang.to_bool (List.assoc "start" p) in
-  let infallible = not (e Lang.to_bool "stereo") in
+
+  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let on_start =
+    let f = List.assoc "on_start" p in
+      fun () -> ignore (Lang.apply f [])
+  in
+  let on_stop =
+    let f = List.assoc "on_stop" p in
+      fun () -> ignore (Lang.apply f [])
+  in
 
   let mount = s "mount" in
   let name = s "name" in
@@ -81,7 +90,8 @@ class to_shout p =
     }
   in
 object (self)
-  inherit Output.encoded ~autostart ~infallible
+  inherit Output.encoded ~autostart 
+            ~infallible ~on_start ~on_stop
             ~name:mount ~kind:"output.icecast" source
   inherit Icecast2.output ~icecast_info ~mount ~name ~source p as icecast
   inherit base ~quality ~bitrate ~stereo ~samplerate as base

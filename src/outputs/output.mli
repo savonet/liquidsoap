@@ -22,12 +22,15 @@
 
 (** Abstract classes for easy creation of output nodes. *)
 
+(** Parameters needed to instanciate an output. *)
+val proto : (string * Lang.kind * Lang.value option * string option) list
+
 class virtual output :
   kind:string ->
   ?name:string ->
-  ?infallible:bool ->
-  ?on_start:(unit->unit) ->
-  ?on_stop:(unit->unit) ->
+  infallible:bool ->
+  on_start:(unit->unit) ->
+  on_stop:(unit->unit) ->
   Lang.value ->
   bool ->
 object
@@ -65,9 +68,9 @@ end
 class virtual encoded :
   kind:string ->
   name:string ->
-  ?infallible:bool ->
-  ?on_start:(unit->unit) ->
-  ?on_stop:(unit->unit) ->
+  infallible:bool ->
+  on_start:(unit->unit) ->
+  on_stop:(unit->unit) ->
   autostart:bool ->
   Lang.value ->
 object

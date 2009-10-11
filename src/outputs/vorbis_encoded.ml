@@ -95,7 +95,8 @@ let create ~quality ~mode ~bitrate samplerate stereo =
 
 let () =
   Lang.add_operator "output.file.vorbis.abr" (* Average BitRate *)
-    (vorbis_proto @ File_output.proto @ [
+    (vorbis_proto @ File_output.proto @ Output.proto @
+     [
       "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output on operator initialization." ;
@@ -137,13 +138,22 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = Lang.assoc "" 2 p in
        let streams = 
          ["vorbis",create ~quality:0. ~mode:ABR 
                           ~bitrate:(bitrate, min_bitrate, max_bitrate) 
                           freq stereo]
        in
-         ((new Ogg_output.to_file
+         ((new Ogg_output.to_file ~infallible ~on_stop ~on_start
              name ~append ~perm ~dir_perm ~streams ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
@@ -158,7 +168,7 @@ let () =
       "bitrate",
       Lang.int_t,
       Some (Lang.int 128),
-      Some "Bitrate (in kbps)."] @ File_output.proto @
+      Some "Bitrate (in kbps)."] @ File_output.proto @ Output.proto @
       ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis file "
@@ -184,8 +194,17 @@ let () =
                           ~bitrate:(bitrate, bitrate, bitrate)
                           freq stereo]
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = Lang.assoc "" 2 p in
-         ((new Ogg_output.to_file
+         ((new Ogg_output.to_file ~infallible ~on_stop ~on_start
              name ~append ~perm ~dir_perm ~streams ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))
@@ -202,7 +221,8 @@ let () =
       Some (Lang.float 2.),
       Some ("Desired quality level, currently from -1. to 10. (low to high).")] 
 
-      @ File_output.proto @ ["", Lang.source_t, None, None ])
+      @ File_output.proto @ Output.proto @
+     ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg Vorbis file "
             ^ "in Variable BitRate mode.")

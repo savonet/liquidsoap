@@ -24,12 +24,33 @@
 
 open Source
 
+let proto = 
+ [
+  "fallible",
+  Lang.bool_t,
+  Some (Lang.bool false),
+  Some
+    "Allow the child source to fail, \
+     in which case the output will be (temporarily) stopped." ;
+
+  "on_start",
+  Lang.fun_t [] Lang.unit_t,
+  Some (Lang.val_cst_fun [] Lang.unit),
+  Some "Callback executed when outputting starts." ;
+
+  "on_stop",
+  Lang.fun_t [] Lang.unit_t,
+  Some (Lang.val_cst_fun [] Lang.unit),
+  Some "Callback executed when outputting stops." 
+ ]
+
 (** Given abstract start stop and send methods, creates an output.
   * Takes care of pulling the data out of the source, type checkings,
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
 class virtual output ~kind ?(name="")
-    ?(infallible=true) ?(on_start=fun()->()) ?(on_stop=fun()->())
+    ~infallible 
+    ~(on_start:unit->unit) ~(on_stop:unit->unit)
     val_source autostart =
   let source = Lang.to_source val_source in
 object (self)
@@ -239,11 +260,11 @@ let () =
   * method for outputs based on encoders. *)
 class virtual encoded
   ~kind ~name
-  ?(infallible=true) ?on_start ?on_stop
+  ~infallible ~on_start ~on_stop
   ~autostart source =
 object (self)
   inherit output
-            ~infallible ?on_start ?on_stop
+            ~infallible ~on_start ~on_stop
             ~kind ~name source autostart
 
   method virtual reset_encoder : (string,string) Hashtbl.t -> string

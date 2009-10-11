@@ -28,8 +28,12 @@ end
 # @param ~id Output's ID
 # @param ~device Alsa pcm device name
 # @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s Source to play
 def output.aplay(~id="output.aplay",~device="default",
+                 ~fallible=false,~on_start={()},~on_stop={()},
                  ~restart_on_crash=false,s)
   def aplay_p(m) = 
     "aplay -D #{device}"
@@ -37,6 +41,7 @@ def output.aplay(~id="output.aplay",~device="default",
   log(label=id,level=3,"Setting root.sync to false")
   set("root.sync",false)
   output.pipe.external(id=id,
+                       fallible=fallible,on_start=on_start,on_stop=on_stop,
                        restart_on_crash=restart_on_crash,
                        restart_on_new_track=false,
                        process=aplay_p,s)
@@ -151,6 +156,9 @@ end
 # @param ~bitrate Encoder bitrate
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.shoutcast.mp3(
   ~id="output.shoutcast.mp3",~start=true,
@@ -162,6 +170,7 @@ def output.shoutcast.mp3(
   ~dumpfile="",~name="Use [mount]",
   ~aim="",~icq="",~irc="",~icy_reset=true,
   ~bitrate=128,~samplerate=44100,~stereo=true,
+  ~fallible=false,~on_start={()},~on_stop={()},
   s) = 
   icy_reset = if icy_reset then "1" else "0" end
   headers = [("icy-aim",aim),("icy-irc",irc),
@@ -175,6 +184,7 @@ def output.shoutcast.mp3(
     public=public, dumpfile=dumpfile,
     name=name, mount="/", protocol="icy",
     samplerate=samplerate,stereo=stereo,
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)
 end
 %endif
@@ -190,6 +200,9 @@ end
 # @param ~bitrate Encoder bitrate
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.shoutcast.aacplus(
   ~id="output.shoutcast.aacplus",~start=true,
@@ -201,6 +214,7 @@ def output.shoutcast.aacplus(
   ~dumpfile="",~name="Use [mount]",
   ~aim="",~icq="",~irc="",~icy_reset=true,
   ~bitrate=64,~samplerate=44100,
+  ~fallible=false,~on_start={()},~on_stop={()},
   ~format="audio/aacp",s) =
   icy_reset = if icy_reset then "1" else "0" end
   headers = [("icy-aim",aim),("icy-irc",irc),
@@ -214,6 +228,7 @@ def output.shoutcast.aacplus(
     public=public, dumpfile=dumpfile,
     name=name, mount="/", protocol="icy",
     samplerate=samplerate,format=format,
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)
 end
 %endif
@@ -234,6 +249,9 @@ end
 # @param ~swap Swap audio samples. Depends on local machine's endianess and lame's version. Test this parameter if you experience garbaged mp3 audio data. On intel 32 and 64 architectures, the parameter should be "true" for lame version >= 3.98.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.icecast.lame(
   ~id="output.icecast.lame",~start=true,
@@ -245,6 +263,7 @@ def output.icecast.lame(
   ~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~lame="lame",~bitrate=128,~swap=false,
+  ~fallible=false,~on_start={()},~on_stop={()},
   ~restart_on_crash=false,~restart_on_new_track=false,
   ~restart_encoder_delay=3600,~headers=[],s)
   samplerate = get(default=44100,"frame.samplerate")
@@ -271,6 +290,7 @@ def output.icecast.lame(
     name=name,mount=mount,protocol=protocol,
     header=false,restart_on_crash=restart_on_crash,
     restart_on_new_track=restart_on_new_track,headers=headers,
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)
 end
 
@@ -288,6 +308,9 @@ end
 # @param ~bitrate Encoder bitrate
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.shoutcast.lame(
   ~id="output.shoutcast.mp3",~start=true,
@@ -298,6 +321,7 @@ def output.shoutcast.lame(
   ~description="OCaml Radio!",~public=true,
   ~dumpfile="",~name="Use [mount]",~icy_reset=true,
   ~lame="lame",~aim="",~icq="",~irc="",
+  ~fallible=false,~on_start={()},~on_stop={()},
   ~restart_on_crash=false,~restart_on_new_track=false,
   ~restart_encoder_delay=3600,~bitrate=128,s) =
   icy_reset = if icy_reset then "1" else "0" end
@@ -313,6 +337,7 @@ def output.shoutcast.lame(
     restart_on_crash=restart_on_crash,
     restart_on_new_track=restart_on_new_track,
     name=name, mount="/", protocol="icy",
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)
 end
 
@@ -330,6 +355,9 @@ end
 # @param ~quality Encoder quality (0..8)
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.icecast.flac(
   ~id="output.icecast.flac",~start=true,
@@ -343,7 +371,9 @@ def output.icecast.flac(
   ~flac="flac",~quality=6,
   ~restart_on_crash=false,
   ~restart_on_new_track=true,
-  ~restart_encoder_delay=(-1),s)
+  ~restart_encoder_delay=(-1),
+  ~fallible=false,~on_start={()},~on_stop={()},
+  s)
   # We will use raw format, to 
   # bypass input length value in WAV
   # header (input length is not known)
@@ -366,6 +396,7 @@ def output.icecast.flac(
     genre=genre,url=url,description=description,
     public=public,dumpfile=dumpfile,
     name=name,mount=mount,protocol=protocol,
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     restart_on_new_track=restart_on_new_track,
     format="ogg",header=false,icy_metadata=false,
     restart_on_crash=restart_on_crash,
@@ -387,6 +418,9 @@ end
 # @param ~bitrate Encoder bitrate
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.icecast.aacplusenc(
   ~id="output.icecast.aacplusenc",~start=true,
@@ -398,6 +432,7 @@ def output.icecast.aacplusenc(
   ~dumpfile="",~mount="Use [name]",
   ~name="Use [mount]",~protocol="http",
   ~aacplusenc="aacplusenc",~bitrate=64,
+  ~fallible=false,~on_start={()},~on_stop={()},
   ~restart_on_crash=false,~restart_on_new_track=false,
   ~restart_encoder_delay=3600,~headers=[],s)
   # Metadata update is set by ICY with icecast
@@ -411,6 +446,7 @@ def output.icecast.aacplusenc(
     genre=genre,url=url,description=description,
     public=public,dumpfile=dumpfile,
     name=name,mount=mount,protocol=protocol,
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     header=true,restart_on_crash=restart_on_crash,
     restart_on_new_track=restart_on_new_track,headers=headers,
     restart_encoder_delay=restart_encoder_delay,format="audio/aacp",s)
@@ -430,6 +466,9 @@ end
 # @param ~bitrate Encoder bitrate
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
 # @param s The source to output
 def output.shoutcast.aacplusenc(
   ~id="output.shoutcast.aacplusenc",~start=true,
@@ -438,6 +477,7 @@ def output.shoutcast.aacplusenc(
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
   ~description="OCaml Radio!",~public=true,
+  ~fallible=false,~on_start={()},~on_stop={()},
   ~dumpfile="",~name="Use [mount]",~icy_reset=true,
   ~aim="",~icq="",~irc="",~aacplusenc="aacplusenc",
   ~restart_on_crash=false,~restart_on_new_track=false,
@@ -452,6 +492,7 @@ def output.shoutcast.aacplusenc(
     host=host, port=port, user=user, password=password,
     genre=genre, url=url, description=description,
     public=public, dumpfile=dumpfile,
+    fallible=fallible,on_start=on_start,on_stop=on_stop,
     restart_on_crash=restart_on_crash, restart_encoder_delay=restart_encoder_delay,
     restart_on_new_track=restart_on_new_track,
     name=name, mount="/", protocol="icy",

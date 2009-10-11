@@ -23,7 +23,8 @@
 
 open Ao
 
-class output ~nb_blocks ~driver 
+class output ~nb_blocks ~driver
+             ~infallible ~on_start ~on_stop 
              ~options source start =
   let channels = Fmt.channels () in
   let samples_per_frame = Fmt.samples_per_frame () in
@@ -33,7 +34,9 @@ class output ~nb_blocks ~driver
     String.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
-  inherit Output.output ~name:"ao" ~kind:"output.ao" source start
+  inherit Output.output 
+              ~infallible ~on_start ~on_stop
+              ~name:"ao" ~kind:"output.ao" source start
   inherit [string] IoRing.output ~nb_blocks ~blank 
                                  ~blocking:true () as ioring
 
@@ -82,6 +85,7 @@ end
 
 let () =
   Lang.add_operator "output.ao"
+   ( Output.proto @
     [ "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output on operator initialization." ;
@@ -100,7 +104,7 @@ let () =
       Some "List of parameters, depends on driver.";
 
       "", Lang.source_t, None, None
-    ]
+    ])
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao."
     (fun p _ ->
@@ -114,6 +118,16 @@ let () =
                 Lang.to_string a, Lang.to_string b)
            (Lang.to_list (List.assoc "options" p))
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = List.assoc "" p in
          ((new output ~nb_blocks ~driver 
+                      ~infallible ~on_start ~on_stop
                       ~options source start):>Source.source))

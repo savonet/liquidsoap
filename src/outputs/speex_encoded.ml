@@ -159,7 +159,8 @@ let create ~freq ~stereo ~mode
 
 let () =
   Lang.add_operator "output.file.speex"
-    (speex_proto @ File_output.proto @ [
+    (speex_proto @ File_output.proto @ Output.proto @
+     [
       "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output on operator initialization." ;
@@ -206,8 +207,18 @@ let () =
                         ~bitrate ~vbr ~fpp 
                         ~complexity ~abr ~quality ()]
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = Lang.assoc "" 2 p in
          ((new Ogg_output.to_file 
+             ~infallible ~on_stop ~on_start
              name ~append ~perm ~dir_perm ~streams ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata
              ~autostart source):>source))

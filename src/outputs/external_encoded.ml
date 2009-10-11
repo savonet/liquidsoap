@@ -286,9 +286,12 @@ class to_file
   ~reload_predicate ~reload_on_metadata
   ~filename ~autostart ~process ~restart_on_new_track
   ~header ~restart_on_crash ~restart_encoder_delay 
+  ~infallible ~on_stop ~on_start
   ~samplerate source =
 object (self)
-  inherit Output.encoded ~name:filename ~kind:"output.file" ~autostart source
+  inherit Output.encoded 
+            ~infallible ~on_stop ~on_start
+            ~name:filename ~kind:"output.file" ~autostart source
   inherit File_output.to_file
             ~reload_delay ~reload_predicate ~reload_on_metadata
             ~append ~perm ~dir_perm filename as to_file
@@ -323,7 +326,7 @@ let () =
     ([ "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output threads on operator initialization." ] 
-      @ proto  
+      @ proto @ Output.proto
       @ File_output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as a file, \
@@ -350,8 +353,18 @@ let () =
        let restart_encoder_delay =
          Lang.to_int (List.assoc "restart_encoder_delay" p)
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let header = Lang.to_bool (List.assoc "header" p) in
          ((new to_file ~filename ~restart_encoder_delay
+             ~infallible ~on_start ~on_stop
              ~append ~perm ~dir_perm ~reload_delay 
              ~reload_predicate ~reload_on_metadata
              ~autostart ~process ~header ~restart_on_new_track
@@ -360,9 +373,12 @@ let () =
 class to_pipe
   ~process ~restart_on_new_track 
   ~restart_encoder_delay ~restart_on_crash
+  ~infallible ~on_stop ~on_start
   ~header ~autostart ~samplerate source =
 object (self)
-  inherit Output.encoded ~name:"" ~kind:"output.pipe" ~autostart source
+  inherit Output.encoded 
+               ~infallible ~on_stop ~on_start
+               ~name:"" ~kind:"output.pipe" ~autostart source
   inherit base ~restart_on_new_track ~restart_on_crash 
                ~restart_encoder_delay ~header 
                ~samplerate process as base
@@ -391,7 +407,7 @@ let () =
     ([ "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output threads on operator initialization." ]
-      @ proto
+      @ proto @ Output.proto
       @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream to an external process."
@@ -408,8 +424,18 @@ let () =
        let restart_encoder_delay =
          Lang.to_int (List.assoc "restart_encoder_delay" p)
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let header = Lang.to_bool (List.assoc "header" p) in
          ((new to_pipe ~autostart ~process ~header ~restart_on_new_track
                        ~restart_on_crash ~restart_encoder_delay 
+                       ~infallible ~on_start ~on_stop
                        ~samplerate source)
           :>Source.source))

@@ -35,8 +35,14 @@ class output dev start source =
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Fmt.samples_per_second () in
   let periods = Alsa_settings.periods#get in
+  (* Force these parameters for now. *)
+  let infallible = true in
+  let on_stop () = () in
+  let on_start () = () in
 object (self)
-  inherit Output.output ~name:"output.alsa" ~kind:"output.alsa" source start
+  inherit Output.output
+              ~infallible ~on_stop ~on_start
+              ~name:"output.alsa" ~kind:"output.alsa" source start
   inherit [float array array] IoRing.output ~nb_blocks ~blank
                                  ~blocking:true () as ioring
 

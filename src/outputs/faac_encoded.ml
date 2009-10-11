@@ -22,6 +22,8 @@
 
 (** Outputs using the FAAC encoder for AAC. *)
 
+(* TODO: merge with main file output class. *)
+
 open Source
 open Dtools
 open Faac
@@ -36,10 +38,13 @@ let create_encoder ~bandwidth ~bitrate ~quality =
 (** Output in an AAC file *)
 
 class to_file
+  ~infallible ~on_stop ~on_start
   ~filename ~bandwidth ~bitrate ~quality ~autostart source =
 object (self)
   inherit
-    Output.encoded ~name:filename ~kind:"output.file.aac" ~autostart source
+    Output.encoded 
+       ~infallible ~on_stop ~on_start
+       ~name:filename ~kind:"output.file.aac" ~autostart source
 
   val mutable faac_buflen = 0
 
@@ -80,6 +85,7 @@ end
 
 let () =
   Lang.add_operator "output.file.aac"
+   ( Output.proto @
     [ "start",
       Lang.bool_t, Some (Lang.bool true),
       Some "Start output threads on operator initialization." ;
@@ -104,7 +110,7 @@ let () =
       None,
       Some "Filename where to output the AAC stream." ;
 
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an AAC file."
     (fun p _ ->
@@ -114,6 +120,15 @@ let () =
        let bandwidth = e Lang.to_int "bandwidth" in
        let bitrate = e Lang.to_int "bitrate" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = Lang.assoc "" 2 p in
-         ((new to_file ~filename
+         ((new to_file ~filename ~infallible ~on_stop ~on_start
              ~quality ~bitrate ~bandwidth ~autostart source):>source))

@@ -48,7 +48,8 @@ let () =
         "start",
          Lang.bool_t, Some (Lang.bool true),
          Some "Start output threads on operator initialization." ] @ 
-      dirac_proto @ File_output.proto @ ["", Lang.source_t, None, None ])
+      dirac_proto @ File_output.proto @ Output.proto @
+     ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an ogg/theora file."
     (fun p _ ->
@@ -67,8 +68,18 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let streams = create_streams ~quality ~vorbis_quality in
          ((new Ogg_output.to_file 
+             ~infallible ~on_stop ~on_start
              filename ~streams
              ~append ~perm ~dir_perm ~skeleton
              ~reload_delay ~reload_predicate ~reload_on_metadata

@@ -23,7 +23,9 @@
 
 let bytes_per_sample = 2
 
-class output ~nb_blocks ~server source =
+class output
+       ~infallible ~on_stop ~on_start 
+       ~nb_blocks ~server source =
   let channels = Fmt.channels () in
   let samples_per_frame = Fmt.samples_per_frame () in
   let samples_per_second = Fmt.samples_per_second () in
@@ -31,7 +33,9 @@ class output ~nb_blocks ~server source =
     String.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
-  inherit Output.output ~name:"output.jack" ~kind:"output.jack" source true
+  inherit Output.output 
+              ~infallible ~on_stop ~on_start
+              ~name:"output.jack" ~kind:"output.jack" source true
   inherit [string] IoRing.output ~nb_blocks ~blank 
                                  ~blocking:true () as ioring
 
@@ -86,17 +90,29 @@ end
 
 let () =
   Lang.add_operator "output.jack"
+   ( Output.proto @
     [ "buffer_size",
       Lang.int_t, Some (Lang.int 2),
       Some "Set buffer size, in frames.";
      "server",
       Lang.string_t, Some (Lang.string ""),
       Some "Jack server to connect to.";
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output stream to jack."
     (fun p _ ->
        let source = List.assoc "" p in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in
-         ((new output ~nb_blocks ~server source):>Source.source))
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+         ((new output 
+                  ~infallible ~on_start ~on_stop
+                  ~nb_blocks ~server source):>Source.source))

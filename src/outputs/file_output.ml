@@ -97,23 +97,6 @@ object (self)
 end
 
 let proto = [
-  "fallible",
-  Lang.bool_t,
-  Some (Lang.bool false),
-  Some
-    "Allow the child source to fail, \
-     in which case the output will be (temporarily) stopped." ;
-
-  "on_start",
-  Lang.fun_t [] Lang.unit_t,
-  Some (Lang.val_cst_fun [] Lang.unit),
-  Some "Callback executed when outputting starts." ;
-
-  "on_stop",
-  Lang.fun_t [] Lang.unit_t,
-  Some (Lang.val_cst_fun [] Lang.unit),
-  Some "Callback executed when outputting stops." ;
-
   "append",
   Lang.bool_t,
   Some (Lang.bool false),

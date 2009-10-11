@@ -35,10 +35,7 @@ type icecast_info =
 let no_multicast = "no_multicast"
 
 let proto ~no_mount ~no_name ~format =
-  [ "fallible", Lang.bool_t, Some (Lang.bool false),
-    Some "Allow the source to be fallible, in which case the output \
-          will be (temporarily) stopped and disconnected." ;
-    "restart", Lang.bool_t, Some (Lang.bool false),
+  [ "restart", Lang.bool_t, Some (Lang.bool false),
     Some "Restart output after a failure. By default, liquidsoap will stop \
           if the output failed." ;
     "restart_delay", Lang.int_t, Some (Lang.int 3),
