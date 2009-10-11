@@ -171,6 +171,10 @@ let () =
 	 let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
+         if bufferize > max then
+           raise (Lang.Invalid_value
+                    (List.assoc "max" p,
+                     "Maximun buffering inferior to pre-buffered data"));
            ((new lastfm ~autostart ~submit ~poll_delay ~bufferize
                         ~track_on_meta ~audioscrobbler_host
                         ~bind_address ~timeout ~max ~debug 

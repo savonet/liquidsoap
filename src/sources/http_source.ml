@@ -579,6 +579,10 @@ let () =
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let timeout = Lang.to_float (List.assoc "timeout" p) in
          let max = Lang.to_float (List.assoc "max" p) in
+         if bufferize > max then
+           raise (Lang.Invalid_value
+                    (List.assoc "max" p,
+                     "Maximun buffering inferior to pre-buffered data"));
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
            ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta
                       ~force_mime ~bind_address ~poll_delay
