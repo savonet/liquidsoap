@@ -155,7 +155,7 @@ let decoder file sync fd =
     assert (!in_bytes!=0) ;
     let abglen = Generator.length abg in
     let compression =
-      (float (!out_samples + abglen)) /. (float !in_bytes)
+      (float !out_samples) /. (float !in_bytes)
     in
     let remaining_samples =
       (float (file_size - !in_bytes)) *. compression
