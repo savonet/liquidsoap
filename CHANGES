@@ -20,6 +20,9 @@ Bugs fixed:
    a modification of the autostart parameter was only taken into account
    one start/stop cycle later.
  - on_blank(): fix a bug that prevented the first call to on_noise.
+ - Fixed estimated remaining samples on ogg files, fixes issues with
+   operators relying on this value, in particular crossfade() and
+   request-based sources when operating in non-conservative mode.
 New:
  - The operator rotate() replaces random(strict=true), and random()
    does not have a strict parameter anymore.
@@ -29,7 +32,7 @@ New:
  - Fallible outputs: all outputs now have a fallible mode, in which
    they accept fallible sources, and automatically start/stop when the child
    fails to stream.
- - Support ogg/dirac (#TODO: close ticket).
+ - EXPERIMENTAL ogg/dirac encoding support.
  - output.*.aacplus(): native outputs encoding in AAC+ using ocaml-aacplus.
  - Switched to a custom implementation of the various shout protocols.
    It notably allows arbitrary content-type settings which enables
