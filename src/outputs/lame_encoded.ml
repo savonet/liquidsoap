@@ -117,7 +117,8 @@ let () =
       Some (Lang.bool true),
       None]
 
-      @ File_output.proto @ ["", Lang.source_t, None, None ])
+      @ File_output.proto @ Output.proto @
+     ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an MP3 file."
     (fun p _ ->
