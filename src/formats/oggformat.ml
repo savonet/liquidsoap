@@ -159,6 +159,7 @@ let decoder file sync fd =
     in
     let remaining_samples =
       (float (file_size - !in_bytes)) *. compression
+      +. (float abglen)
     in
     (* I suspect that in_bytes in not accurate, since I don't
      * get an exact countdown after than in_size=in_bytes, but there
