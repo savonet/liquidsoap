@@ -531,27 +531,31 @@ AC_ARG_WITH([lastfm-dir],
       [look for lastfm library in "path" (autodetected by default)]))
 
 AC_MSG_CHECKING(for ocaml-lastfm)
-if test -z "$with_lastfm_dir" ; then
-   if ! $OCAMLFIND query lastfm > /dev/null 2>&1; then
-       AC_MSG_RESULT(Not found.)
-   else
-       ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " lastfm` -package lastfm"
-       requires="$requires `ocamlfind query -r -separator " " -format "%p" lastfm`"
-       W_LAST=yes
-       AC_MSG_RESULT(ok)
-   fi
+if test -z "$W_XMLPLAYLIST" ; then
+  AC_MSG_RESULT(needs xml-playlist.)
 else
-   if test -z "W_XMLPLAYLIST" ; then
-     AC_MSG_ERROR(ocaml-xmlplaylist needed for ocaml-lastfm)
-   fi
-   echo $with_lastfm_dir | grep ^/ > /dev/null 2>&1 \
-   || with_lastfm_dir=$PWD/$with_lastfm_dir
-   packages=`cat $with_lastfm_dir/META | grep 'requires' | cut -d '=' -f 2 | tr -d '"' | sed -e 's#xmlplaylist##g'`
-   ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_lastfm_dir"
-   ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` lastfm.$cma"
-   requires="$requires $packages"
-   W_LAST=yes
-   AC_MSG_RESULT(ok)
+  if test -z "$with_lastfm_dir" ; then
+     if ! $OCAMLFIND query lastfm > /dev/null 2>&1; then
+         AC_MSG_RESULT(Not found.)
+     else
+         ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " lastfm` -package lastfm"
+         requires="$requires `ocamlfind query -r -separator " " -format "%p" lastfm`"
+         W_LAST=yes
+         AC_MSG_RESULT(ok)
+     fi
+  else
+     if test -z "W_XMLPLAYLIST" ; then
+       AC_MSG_ERROR(ocaml-xmlplaylist needed for ocaml-lastfm)
+     fi
+     echo $with_lastfm_dir | grep ^/ > /dev/null 2>&1 \
+     || with_lastfm_dir=$PWD/$with_lastfm_dir
+     packages=`cat $with_lastfm_dir/META | grep 'requires' | cut -d '=' -f 2 | tr -d '"' | sed -e 's#xmlplaylist##g'`
+     ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_lastfm_dir"
+     ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` lastfm.$cma"
+     requires="$requires $packages"
+     W_LAST=yes
+     AC_MSG_RESULT(ok)
+  fi
 fi
 
 AC_SUBST(W_LAST)
