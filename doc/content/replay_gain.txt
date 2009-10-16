@@ -124,9 +124,9 @@ def replaygain_protocol(arg,delay)
  x = get_process_lines("/to/replaygain.pl \
                         #{quote(arg)}")
  if list.hd(x) != "" then
-  "annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"
+  ["annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"]
  else
-  arg
+  [arg]
  end
 end
 add_protocol("replay_gain",
