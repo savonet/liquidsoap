@@ -176,7 +176,12 @@ object (self)
       queue_length
     else
       let remaining = self#remaining in
-        if remaining < 0 then -1 else
+        if remaining < 0 then 
+        (* There is a track available,
+         * but we don't know its duration 
+         * at this point. Hence, using default_duration. *)
+         queue_length + (int_of_float default_duration)
+        else
           queue_length + remaining
 
   (** State should be `Sleeping on awakening, and is then turned to `Running.
