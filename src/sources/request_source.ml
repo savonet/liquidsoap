@@ -177,10 +177,10 @@ object (self)
     else
       let remaining = self#remaining in
         if remaining < 0 then 
-        (* There is a track available,
-         * but we don't know its duration 
-         * at this point. Hence, using default_duration. *)
-         queue_length + (int_of_float default_duration)
+          (* There is a track available,
+           * but we don't know its duration 
+           * at this point. Hence, using default_duration. *)
+          queue_length + (Fmt.ticks_of_seconds default_duration)
         else
           queue_length + remaining
 
@@ -306,7 +306,7 @@ object (self)
                     | None -> default_duration
                 in
                 let len =
-                  int_of_float (len *. float (Fmt.ticks_per_second()))
+                  Fmt.ticks_of_seconds len
                 in
                   Mutex.lock qlock ;
                   Queue.add (len,req) retrieved ;
