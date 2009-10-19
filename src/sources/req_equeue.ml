@@ -143,7 +143,7 @@ object (self)
       while true do
         Request.destroy (Rqueue.pop queue)
       done
-    with Queue.Empty -> ()
+    with Rqueue.Not_found -> ()
 
 end
 

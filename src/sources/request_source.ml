@@ -233,7 +233,7 @@ object (self)
           Request.destroy req
       done
     with e -> Mutex.unlock qlock ; 
-              if e <> Queue.Empty || e <> Rqueue.Not_found then 
+              if e <> Queue.Empty then 
               raise e 
     end
 
