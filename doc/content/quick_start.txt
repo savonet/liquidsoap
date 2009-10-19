@@ -34,14 +34,47 @@ In a Liquidsoap script, you build source objects. Liquidsoap provides many funct
 
 h5. That source is fallible!
 
-There may always be errors with your streaming setup. If your source consists of a playlist, this playlist might not be able to find the files it contains because you put them at a wrong place. Liquidsoap also offers you a way to broadcast files from remote places. This remote connection might be broken at the time Liquidsoap expects it to be available. 
-In Liquidsoap, we say that a source is infallible if it will be always available. Otherwise, it is fallible. A playlist is fallible because it does not check its files in advance, and because files can be remote. A user request queue is an other example of fallible source. If <code>file.ogg</code> is a valid local file, then <code>single("file.ogg")</code> will be an infallible source. You can also build infallible playlists by using the <code>playlist.safe</code> function; it will then check all files at startup, and won't accept remote files.
+A couple of things can go wrong in your streaming system.
+In Liquidsoap,
+we say that a source is _infallible_ if it will be always available.
+Otherwise, it is _fallible_, something can go wrong.
+By default, an output requires that its input source is infallible,
+otherwise it complains that "That source is fallible!"
 
-Liquidsoap checks that the child of an output is infallible, so that you can trust your output. The function <code>mksafe</code> takes a source and returns an infallible source, by streaming silence when the input stream becomes unavailable. The default speaker output <code>out</code> actually uses <code>mksafe</code> in its definition. For other outputs, we ask the user to explicitly write the fallback method, if one is needed. You can use <code>mksafe</code> (especially if you trust that your theoretically fallible source will never fail in practice), but there are other methods for dealing with failures, e.g. playing a default file: 
+For example, a normal <code>playlist</code> will be fallible.
+Firstly, because it could contain only invalid files, or at least spend too
+much time on invalid files for preparing a valid one on time.
+Moreover, a playlist could contain remote files, which may not
+be accessible quickly at all times.
+A queue of user requests is an other example of fallible source.
+
+If <code>file.ogg</code> is a valid local file,
+then <code>single("file.ogg")</code> will be an infallible source.
+You can also build infallible playlists by using the
+<code>playlist.safe</code> operator, which checks all files at startup,
+and won't accept remote files -- but don't use it with too large playlists.
+
+When an output complains about its source, you have to turn it into
+an infallible one. Depending on the situation, many solutions are available.
+The function <code>mksafe</code> takes a source and returns an infallible
+source, streaming silence when the input stream becomes unavailable.
+The default speaker output <code>out</code> actually uses <code>mksafe</code>
+in its definition.
+In a radio-like stream, silence is not the prefered solution, and you
+will probably prefer to <code>fallback</code> on an infallible
+"security" source:
 
 %%
-fallback([put_your_source_here, single("failure.ogg")])
+fallback([your_infallible_source_here, single("failure.ogg")])
 %%
+
+Finally, if you do not care about failures, you can pass the parameter
+<code>fallible=true</code> to most outputs. In that case, the output
+will accept a fallible source, and stop whenever the source fails,
+to restart when it is ready to emit a stream again.
+This is usually done if you are not emitting a radio-like stream,
+but for example capturing or relaying another stream,
+or encoding files.
 
 h4. One-line expressions
 

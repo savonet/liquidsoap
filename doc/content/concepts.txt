@@ -36,10 +36,31 @@ It is possible to have the route changed inside a track, for example using the <
 
 h5. Fallibility
 
+By default, liquidsoap outputs are meant to emit a stream without
+discontinuing. Since this stream is provided by the source passed to the
+output operator, it is the source responsibility to never fail.
+Liquidsoap has a mechanism to verify this, which helps you think of
+all possible failures, and prevent them.
+Elementary sources are either _fallible_ or _infallible_, and this
+_liveness type_ is propagated through operators to finally
+compute the type of any source.
+For example,
+a <code>fallback</code> or <code>random</code> source is infallible
+if an only if at least one of its children is infallible,
+and a <code>switch</code> is infallible if and only if it has one infallible
+child guarded by the trivial predice <code>{ true }</code>.
 
-Outputs expect their input source to never fail, so that the stream never ends. Liquidsoap has a mechanism to verify this, and helps you think of all possible failures, and prevent them. Elementary sources are either _fallible_ or _infallible_, and this liveness type is propagated through operators to finally compute the type of any source. A <code>fallback</code> or <code>random</code> source is infallible if and only if at least one of their children is infallible. A <code>switch</code> is infallible if and only if it has one infallible child guarded by the trivial predicate <code>{ true }</code>. And so on.
+On startup, each output checks the liveness type of its input source,
+and issues an error if it is fallible. The typical fix for such problems
+is to add one fallback to play a default file or a checked playlist
+(<code>playlist.safe</code>) if the normal source fails.
+One can also use the <code>mksafe</code> operator that will insert silence
+during failures.
 
-On startup, outputs will check the liveness type of their input sources, and you'll get an error if one of these is fallible. The common answer to such errors is op add one fallback to play a default file or a checked playlist (<code>playlist.safe</code>) if the normal source fails. Often, the error is excessive, it simply means that your (unchecked) playlists could all be corrupted, which is unlikely. But sometimes, it also helps one to avoid the case where a playlist fails because it spent too much time trying to download remote files.
+If you do not care about failures, you can pass the parameter 
+<code>fallible=true</code> to most outputs. In that case, the output
+will accept a fallible source, and stop whenever the source fails,
+to restart when it is ready to emit a stream again.
 
 h5. Caching mode
 

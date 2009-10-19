@@ -42,7 +42,7 @@ playlist(mode="normal", "/my/pl.m3u")
 playlist(reload=600,"http://my/playlist.txt")
 %%
 
-When building your stream, you'll need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe <code>single</code> or <code>playlist.safe</code>. Roughly, a single is safe when it is given a valid local audio file. A <code>playlist.safe</code> behaves just like a playlist but will check that all files in the playlist are valid local audio files. This is quite an heavy check, you don't want to have large safe playlists.
+When building your stream, you'll often need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe <code>single</code> or <code>playlist.safe</code>. Roughly, a single is safe when it is given a valid local audio file. A <code>playlist.safe</code> behaves just like a playlist but will check that all files in the playlist are valid local audio files. This is quite an heavy check, you don't want to have large safe playlists.
 
 h4. Transcoding
 
@@ -65,6 +65,27 @@ output.icecast.mp3(
   mount="/your-stream-128.mp3", bitrate=128,
   host="streaming.example.com", port=8000, password="xxx",
   input)
+%%
+
+h4. Re-encoding a file
+
+As a simple example using a fallible output, we shall consider
+re-encoding a file.
+First, we shall disable synchronization (<code>root.sync</code> setting)
+so that liquidsoap runs as fast as possible,
+instead of decoding the music at a normal rate.
+We start by building a source that plays our file only once.
+That source is obviously fallible.
+We pass it to a file output, which has to be in fallible mode.
+Finally, we use the <code>on_stop</code> handler to shutdown
+liquidsoap when streaming is finished.
+
+%%(reencoding.liq)
+set("root.sync",false)
+input = "/some/file.mp3" # any format supported by liquidsoap
+output = "/tmp/output.ogg"
+source = once(single(input))
+output.file.vorbis(output,fallible=true,on_stop=shutdown,source)
 %%
 
 h4. Scheduling
