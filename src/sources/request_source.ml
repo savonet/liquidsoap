@@ -232,7 +232,10 @@ object (self)
         let (_,req) = Queue.take retrieved in
           Request.destroy req
       done
-    with e -> Mutex.unlock qlock ; if e <> Queue.Empty then raise e end
+    with e -> Mutex.unlock qlock ; 
+              if e <> Queue.Empty || e <> Rqueue.Not_found then 
+              raise e 
+    end
 
   (** This method should be called whenever the feeding task has a new
     * opportunity to feed the queue, in case it is sleeping. *)
