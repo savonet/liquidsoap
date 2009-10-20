@@ -39,6 +39,8 @@ New:
    AAC+ streaming. Enabled wrappers for external encoders for AAC+ format
    aacplusenc (#220 and #136). Also added custom IRC, AIM and ICQ headers
    to shoutcast wrappers (#192).
+ - Harbor now supports Shoutcast/ICY headers properly. This allows in 
+   particular the use of any supported data format for the source client.
  - Added built-in support for m4a audio files and metadata.
    Made external support optional through enable_faad.
  - Added optional resampling for output.external operators (#273).

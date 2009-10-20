@@ -51,6 +51,10 @@ let conf_pass_verbose =
 let conf_revdns =
   Conf.bool ~p:(conf_harbor#plug "reverse_dns") ~d:true
     "Perform reverse DNS lookup to get the client's hostname from its IP."
+let conf_icy_metadata = 
+  Conf.list ~p:(conf_icy#plug "metadata_formats") 
+  ~d:["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"]
+  "Content-type (mime) of formats which allow shout metadata update."
 
 let log = Log.make ["harbor"]
 
@@ -100,7 +104,7 @@ type request_type =
   | Source
   | Get
   | Shout
-  | Invalid of string (* Used for icy when wrong password *)
+  | Invalid of string (* Used for icy *)
   | Unhandled
 
 type protocol =
@@ -131,11 +135,9 @@ let parse_icy_request_line r =
         if auth_f user r then
           Shout
         else
-          Invalid(r)
+          Invalid("invalid password")
       with
-        | _ -> 
-          log#f 2 "No source registered for ICY mountpoint (\"/\").";
-          failwith "No ICY mountpoint."),
+        | _ -> Invalid("no / mountpoint")),
       "/",
       Icy
 
@@ -357,12 +359,15 @@ let handle_get_request c uri headers =
                       | Not_found -> raise e
               end ;
               let ans () =
-                log#f 3 "Returned 401 for '%s': Source is not mp3." uri ;
+                log#f 3 "Returned 401 for '%s': Source format does not support \
+                         ICY metadata update" uri ;
                 write_answer c
                   (http_error_page 401 "Unknown request"
                     "Source is not mp3")
               in
-              if s#get_type <> Some "audio/mpeg" then
+              if not (List.mem (Utils.get_some s#get_type) 
+                               conf_icy_metadata#get) 
+              then
                 raise (Answer ans) ;
               let ans =
                 Printf.sprintf
@@ -431,34 +436,53 @@ let handle_client ~icy socket =
   in
   let process l =
     try
-      let l =
-       match List.rev l with
-         | []
-         | _ :: [] -> (* Should not happen *)
-             raise (Failure "Invalid input data")
-         | e :: l -> List.rev l
-      in
-      let s =
+      let grab l = 
+        let l =
+         match List.rev l with
+           | []
+           | _ :: [] -> (* Should not happen *)
+               raise (Failure "Invalid input data")
+           | e :: l -> List.rev l
+        in
         match l with
           | s :: _ -> s
-          | _ -> failwith "could not parse client handshake."
+          | _ -> failwith "could not parse source data."
       in
+      let s = grab l in
       let lines = Str.split (Str.regexp "\n") s in
       let (hmethod, huri, hprotocol) = parse (List.nth lines 0) in
-      let headers = parse_headers (List.tl lines) in
         match hmethod with
           | Source when not icy ->
+              let headers = parse_headers (List.tl lines) in
               handle_source_request ~icy hprotocol socket huri headers
           | Get when not icy ->
+              let headers = parse_headers (List.tl lines) in
               handle_get_request socket huri headers
           | Shout when icy ->
               write_answer ~keep:true socket "OK2\r\nicy-caps:11\r\n\r\n" ;
-              handle_source_request ~icy:true hprotocol socket huri headers
+              (* Now parsing headers *)
+              let marker = Duppy.Io.Split "[\r]?\n[\r]?\n" in
+              let process l = 
+                try
+                 let s = grab l in
+                 let lines = Str.split (Str.regexp "\n") s in
+                 let headers = parse_headers (List.tl lines) in
+                 handle_source_request ~icy:true hprotocol socket huri headers
+                with
+                  | Failure s ->
+                      log#f 3 "Failed: %s" s;
+                      try
+                       Unix.shutdown socket Unix.SHUTDOWN_ALL ;
+                       Unix.close socket
+                      with
+                        | _ -> ()
+              in
+              Duppy.Io.read ~priority ~recursive ~on_error
+                            Tutils.scheduler socket marker process
           | Invalid s ->
               let er = if icy then "ICY " else "" in
-              log#f 3 "Invalid %srequest" er ;
               write_answer socket (Printf.sprintf "%s\r\n" s) ;
-              failwith (Printf.sprintf "Invalid %srequest" er)
+              failwith (Printf.sprintf "Invalid %srequest: %s" er s)
           | _ ->
             log#f 3 "Returned 501." ;
             write_answer socket
