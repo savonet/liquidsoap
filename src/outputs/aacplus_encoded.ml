@@ -25,9 +25,8 @@
 open Source
 open Dtools
 
-let () = Aacplus.init ()
-
 let create_encoder ~samplerate ~bitrate =
+  Aacplus.init ();
   let bitrate = bitrate*1000 in
   Aacplus.create ~channels:(Fmt.channels ()) ~samplerate ~bitrate ()
 
