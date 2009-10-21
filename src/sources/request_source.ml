@@ -51,10 +51,10 @@ object (self)
             begin match Request.get_filename request with
               | None ->
                   self#log#f 1
-                    "Finished with a non-existent file ?! \
+                    "Finished with a non-existent file?! \
                      Something may have been moved or destroyed \
-                     during decoding. It is VERY dangerous, avoid it !"
-              | Some f -> self#log#f 3 "Finished with %S" f
+                     during decoding. It is VERY dangerous, avoid it!"
+              | Some f -> self#log#f 3 "Finished with %S." f
             end ;
             close () ;
             Request.destroy request
@@ -71,14 +71,14 @@ object (self)
     assert (current = None) ;
     match self#get_next_file with
       | None ->
-          self#log#f 5 "Failed to prepare track: no file" ;
+          self#log#f 5 "Failed to prepare track: no file." ;
           false
       | Some req when Request.is_ready req ->
           (* [Request.is_ready] ensures that we can get a filename from
            * the request, and it can be decoded. *)
           let file = Utils.get_some (Request.get_filename req) in
           let decoder = Utils.get_some (Request.get_decoder req) in
-            self#log#f 3 "Prepared %S -- RID %d" file (Request.get_id req) ;
+            self#log#f 3 "Prepared %S (RID %d)." file (Request.get_id req) ;
             current <-
               Some (req,
                     (fun buf -> (remaining <- decoder.Decoder.fill buf)),
@@ -88,7 +88,7 @@ object (self)
             true
       | Some req ->
           (* We got an unresolved request.. this shoudn't actually happen *)
-          self#log#f 1 "Failed to prepare track: unresolved request" ;
+          self#log#f 1 "Failed to prepare track: unresolved request." ;
           Request.destroy req ;
           false
 
@@ -112,20 +112,17 @@ object (self)
       let rec try_get () =
         match current with
           | None ->
-              if self#begin_track then try_get ()
+              if self#begin_track then try_get () else assert false
           | Some (req,get_frame,_) ->
               if send_metadata then begin
                 Request.on_air req ;
                 let m = Request.get_all_metadata req in
-                Frame.set_metadata buf
-                  (Frame.position buf) m;
+                Frame.set_metadata buf (Frame.position buf) m;
                 send_metadata <- false
               end ;
               get_frame buf
       in
-        Mutex.lock plock ;
-        try_get () ;
-        Mutex.unlock plock ;
+        Tutils.mutexify plock try_get () ;
         if Frame.is_partial buf then self#end_track
     end
 
@@ -176,9 +173,9 @@ object (self)
       queue_length
     else
       let remaining = self#remaining in
-        if remaining < 0 then 
+        if remaining < 0 then
           (* There is a track available,
-           * but we don't know its duration 
+           * but we don't know its duration
            * at this point. Hence, using default_duration. *)
           queue_length + (Fmt.ticks_of_seconds default_duration)
         else
@@ -198,8 +195,7 @@ object (self)
       (fun () ->
          assert (state = `Sleeping) ;
          let t =
-           Duppy.Async.add Tutils.scheduler 
-               ~priority self#feed_queue
+           Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
          in
          Duppy.Async.wake_up t ;
          task <- Some t ;
@@ -232,9 +228,9 @@ object (self)
         let (_,req) = Queue.take retrieved in
           Request.destroy req
       done
-    with e -> Mutex.unlock qlock ; 
-              if e <> Queue.Empty then 
-              raise e 
+    with e -> Mutex.unlock qlock ;
+              if e <> Queue.Empty then
+              raise e
     end
 
   (** This method should be called whenever the feeding task has a new
@@ -278,7 +274,8 @@ object (self)
                state <- `Sleeping ;
                Condition.signal state_cond ;
                false
-           | `Sleeping -> assert false) () &&
+           | `Sleeping ->
+               assert false (*NOT*)) () &&
       self#available_length < min_queue_length
     then
        match self#prefetch with
@@ -337,7 +334,7 @@ object (self)
           Some f
       with
         | Queue.Empty ->
-            self#log#f 5 "Queue is empty !" ;
+            self#log#f 5 "Queue is empty!" ;
             None
     in
       Mutex.unlock qlock ;
