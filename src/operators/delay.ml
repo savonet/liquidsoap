@@ -34,22 +34,19 @@ object (self)
   method abort_track = source#abort_track
 
   val mutable last = 0.
-  (* failed means that we're not currently streaming *)
-  val mutable failed = true
+  val mutable in_track = false
 
   method private delay_ok = (Unix.time ()) -. last >= delay
-  method is_ready = (not failed) || (self#delay_ok && source#is_ready)
+  method is_ready = in_track || (self#delay_ok && source#is_ready)
 
   method private get_frame buf =
-    match failed,self#delay_ok with
-      | false, _ ->
-          source#get buf ;
-          if Frame.is_partial buf then
-            ( failed <- true ; last <- Unix.time () )
-      | true, true ->
-          failed <- false ;
-          source#get buf
-      | true, false -> ()
+    source#get buf ;
+    in_track <- true ;
+    (* The current track ends. *)
+    if Frame.is_partial buf then begin
+      in_track <- false ;
+      last <- Unix.time ()
+    end
 
 end
 
