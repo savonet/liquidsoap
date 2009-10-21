@@ -1224,9 +1224,7 @@ EOCONF
 else
     w_MAGIC=yes
     cat >> src/configure.ml <<EOCONF
-(* The (*#*) is here to fake a comment line for configure.
- * If not, then the [[]] may be stripped... *)
-let magic_cookie = Magic.create (*#*) ~flags:[Magic.Mime] [] 
+let magic_cookie = Magic.create ~flags:[[Magic.Mime]] [[]]
 let file_mime s = Some (Magic.file magic_cookie s)
 let data_mime ?len s = Some (Magic.buffer magic_cookie ?len s)
 EOCONF
