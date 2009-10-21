@@ -275,7 +275,24 @@ object (self)
                Condition.signal state_cond ;
                false
            | `Sleeping ->
-               assert false (*NOT*)) () &&
+               (* Because many calls to wake_up result in waking up
+                * many times, it is possible that we wake up twice
+                * after #sleep initiates sleeping by setting `Tired.
+                * The second time we see `Sleeping, and we should not
+                * do anything.
+                * At some point the task will be stopped and it will
+                * disappear.
+                * What we need is:
+                *  - That the task disappears once the source sleeps,
+                *    and we pretty much get it (modulo small delay).
+                *  - That the request queue can be emptied for good,
+                *    and be not re-fed at the same time. This is the
+                *    case because state = Sleeping in all rounds of
+                *    the task when the queue can be cleaned. (It is
+                *    possible to start a round before Async.stop and
+                *    execute its content while the queue is being
+                *    emptied, but Sleeping saves us). *)
+               false) () &&
       self#available_length < min_queue_length
     then
        match self#prefetch with
