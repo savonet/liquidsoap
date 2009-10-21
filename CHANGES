@@ -41,6 +41,7 @@ New:
    to shoutcast wrappers (#192).
  - Harbor now supports Shoutcast/ICY headers properly. This allows in 
    particular the use of any supported data format for the source client.
+ - Harbor sources now also consider "song" field when updating metadata.
  - Added built-in support for m4a audio files and metadata.
    Made external support optional through enable_faad.
  - Added optional resampling for output.external operators (#273).

@@ -53,6 +53,11 @@ object (self)
 
   (* Insert metadata *)
   method insert_metadata m =
+    (* Metadata may contain only the "song" value
+     * or "artist" and "title". Here, we use "song"
+     * as the "title" field if "title" is not provided. *)
+    if not (Hashtbl.mem m "title") then
+      (try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
     self#log#f 3 "New metadata chunk \"%s -- %s\""
       (try Hashtbl.find m "artist" with _ -> "?")
       (try Hashtbl.find m "title" with _ -> "?") ;
