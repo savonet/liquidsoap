@@ -134,7 +134,11 @@ let connect ~bind_address ~timeout host port =
           Unix.close socket;
           raise Socket
 
-let disconnect socket = Unix.close socket
+let disconnect socket = 
+  try
+   Unix.close socket
+  with
+    | _ -> ()
 
 let read socket buflen =
   match buflen with

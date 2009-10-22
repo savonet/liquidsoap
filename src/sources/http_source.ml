@@ -290,6 +290,7 @@ object (self)
               | Some f -> close_out f ; logf <- None
               | None -> ()
             end ;
+            Http.disconnect socket ;
             if debug then raise e
 
   method connect = self#private_connect ~encode:true

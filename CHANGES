@@ -23,6 +23,7 @@ Bugs fixed:
  - Fixed estimated remaining samples on ogg files, fixes issues with
    operators relying on this value, in particular crossfade() and
    request-based sources when operating in non-conservative mode.
+ - Fixed socket descriptor leak in input.http. (#318)
 New:
  - The operator rotate() replaces random(strict=true), and random()
    does not have a strict parameter anymore.
