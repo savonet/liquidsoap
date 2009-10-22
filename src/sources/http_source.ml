@@ -458,7 +458,6 @@ object (self)
       poll_should_stop <- false ;
       Condition.signal polling_cond
     end else begin
-      (* TODO Use Duppy instead of a separate thread ? *)
       Thread.delay poll_delay ;
       self#poll
     end
