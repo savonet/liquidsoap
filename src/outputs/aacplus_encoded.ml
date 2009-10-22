@@ -126,7 +126,7 @@ let () =
       Some (Lang.int 64),
       None 
     ]
-      @ File_output.proto @ ["", Lang.source_t, None, None ])
+      @ File_output.proto @ Output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an AAC+ file."
     (fun p _ ->
