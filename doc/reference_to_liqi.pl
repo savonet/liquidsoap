@@ -50,7 +50,7 @@ sub protect_html {
 
 sub split_type {
   my $type = shift;
-  $type =~ /\((.*)\)->(.*)/;
+  $type =~ /\((.*)\)->(.*)/ || return $type;
   my ($pars,$return) = ($1,$2);
   my @params = split(", ",$pars);
   my $maxline = 50;
