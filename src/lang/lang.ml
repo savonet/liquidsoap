@@ -74,6 +74,16 @@ let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
     Term.builtins#register ~doc:(to_doc category flags descr proto return_t)
       name value
 
+let add_builtin_base ~category ~descr ?(flags=[]) name value t =
+  let doc = new Doc.item ~sort:false descr in
+  let value = { t = t ; value = value } in
+    doc#add_subsection "category" (Doc.trivial category) ;
+    doc#add_subsection "type" (Doc.trivial (T.print t)) ;
+    List.iter
+      (fun f -> doc#add_subsection "flag" (Doc.trivial (string_of_flag f)))
+      flags;
+    Term.builtins#register ~doc name value
+
 (** Specialized version for operators, that is builtins returning sources. *)
 
 type category =

@@ -38,6 +38,25 @@ let add_builtin ~cat ~descr ?flags name proto ret_t f =
   Lang.add_builtin ~category:(string_of_category cat)
     ~descr ?flags name proto ret_t (fun p _ -> f p)
 
+let () =
+  Lang.add_builtin_base
+    ~category:(string_of_category Liq)
+    ~descr:"Liquidsoap version string."
+    "liquidsoap.version"
+    (Lang.String Configure.version)
+    Lang.string_t ;
+  List.iter
+    (fun (name,kind,str) ->
+       Lang.add_builtin_base
+         ~category:(string_of_category Liq)
+         ~descr:(Printf.sprintf "Liquidsoap's %s directory." kind)
+         ("configure."^name)
+         (Lang.String str)
+         Lang.string_t)
+    [ ("libdir", "library", Configure.libs_dir) ;
+      ("rundir", "PID file", Configure.rundir) ;
+      ("logdir", "logging", Configure.logdir) ]
+
 (** Liquidsoap stuff *)
 
 let log = Dtools.Log.make ["lang"]

@@ -69,7 +69,7 @@ type doc_flag =
   | Deprecated (** The plugin should not be used. *)
   | Experimental (** The plugin should not considered as stable. *)
 
-(** Add an builtin to the language. *)
+(** Add an builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:string ->
   descr:string ->
@@ -77,6 +77,13 @@ val add_builtin :
   string ->
   proto -> kind -> (env -> kind -> value) ->
   unit
+
+(** Add an builtin to the language, more rudimentary version. *)
+val add_builtin_base :
+  category:string ->
+  descr:string ->
+  ?flags:doc_flag list ->
+  string -> in_value -> kind -> unit
 
 (** Category of an operator. *)
 type category =
