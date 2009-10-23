@@ -41,41 +41,20 @@ in the script, if possible just after the initial source.
 
 h5. Computing and retrieving the data
 
-In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool. Here is a little script that does the translation for MP3 and Vorbis files.
+In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool.
 
-You can run it outside of liquidsoap for testing. It requires the tools <code>mp3gain</code> and <code>vorbisgain</code>, and will affect your files: after the first computation of the replay gain, that information will be stored in the metadata.
+Liquidsoap provides a script for extracting the replay gain value from @mp3@, @ogg/vorbis@ and @flac@ files. It requires the tools 
+@mp3gain@ (resp. @vorbisgain@ and @ogginfo@, resp. @metaflac@) for @mp3@ (resp. @ogg/vorbis@, resp. @flac@) files processing, and will affect your files: 
+after the first computation of the replay gain, that information will be stored in the metadata.
 
-%%(replaygain.pl)
-#!/usr/bin/perl -w
-
-use strict ;
-
-my $file = $ARGV[0] || die ;
-
-if ($file =~ /\.mp3$/i) {
-
- my $out = `nice -n 20 mp3gain "$file" \
-             2> /dev/null` ;
- $out =~ /Recommended "Track" dB change: (.*)$/m 
-         || die ;
- print "$1 dB\n" ;
-
-} elsif ($file =~ /\.ogg$/i) {
-
- system("nice -n 20 vorbisgain -f \"$file\" \
-         2>/dev/null >/dev/null") ;
- my $info = `ogginfo "$file"` ;
- $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ 
-         || die ;
- print "$1 dB\n" ;
-
-}
-%%
+Optionally, this script can also use the @file@ binary in order to detect the content of an audio file not only using its extension, which is necessary
+with, for instance, protocols that download files across the network, such as @ftp@.
 
 Then, there are at least two ways to use it in your liquidsoap script:
-using a new **metadata** resolver, or a new **protocol**.
+using the replay gain metadata resolver, or the @replay_gain@ protocol.
+
 The metadata solution is uniform: without changing anything, _all_ your
-files will be annotated with replaygain information. This can be problematic,
+files will have a new @replay_gain@ metadata when the computation suceeded. However, this can be problematic,
 for example, for jingles,
 or if you have large files that would take a very long time
 to be analyzed by replaygain tools.
@@ -93,46 +72,14 @@ protocol technique (@replaygain:ftp://host/file.ogg@ will call
 the script using the @ftp://host/file.ogg@ as the URI parameter, and
 it will fail).
 
-In order to register a new metadata resolver using this script,
-simply add the following code at the begining of your script:
+The replay gain metadata resolver is not enabled by default. You can do it 
+by adding the following code in your script:
 
-%%(replaygainmetadata.liq)
-def replaygain_metadata(~format,file)
-  x = get_process_lines("/to/replaygain.pl \
-                          #{quote(file)}")
-  if list.hd(x) != "" then
-    [("replay_gain",list.hd(x))]
-  else
-    []
-  end
-end
-add_metadata_resolver("replay_gain",
-                      replaygain_metadata)
+%%
+enable_replaygain_metadata ()
 %%
 
-Then, when trying to read the metadata of any file,
-this script will be called and the @replay_gain@ metadata tag will be added.
-
-In order to register a <code>replay_gain</code> protocol
-in our liquidsoap script, use the following code:
-
-%%(replaygainproto.liq)
-# This would usually be done at the 
-# beginning of a script,
-# although it does not matter.
-def replaygain_protocol(arg,delay)
- x = get_process_lines("/to/replaygain.pl \
-                        #{quote(arg)}")
- if list.hd(x) != "" then
-  ["annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"]
- else
-  [arg]
- end
-end
-add_protocol("replay_gain",
-             replaygain_protocol)
-%%
-
+The @replay_gain@ protocol is enabled by default.
 In this case, everytime you need replaygain information about a file,
 access it through your new protocol: for example,
 replace <code>/path/to/file.mp3</code>
