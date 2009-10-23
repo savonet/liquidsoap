@@ -24,6 +24,8 @@ Bugs fixed:
    operators relying on this value, in particular crossfade() and
    request-based sources when operating in non-conservative mode.
  - Fixed socket descriptor leak in input.http. (#318)
+ - Fixed deadlock at init when an exception was raised at wake_up
+   phase. (#319)
 New:
  - The operator rotate() replaces random(strict=true), and random()
    does not have a strict parameter anymore.
