@@ -1,0 +1,76 @@
+#!/usr/bin/perl -w
+
+use strict ;
+
+my $file = $ARGV[0] || die ;
+
+sub test_mime {
+  my $file = shift ;
+  if (`which file`) {
+    return `file -b --mime-type "$file"`;
+  }
+}
+
+if (($file =~ /\.mp3$/i) || (test_mime($file) =~ /audio\/mpeg/))  {
+
+  if (`which mp3gain`) {
+
+    my $out = `nice -n 20 mp3gain "$file" \
+                 2> /dev/null` ;
+    $out =~ /Recommended "Track" dB change: (.*)$/m 
+            || die ;
+    print "$1 dB\n" ;
+
+  } else {
+
+    print STDERR "Cannot find mp3gain binary !\n";
+
+  }
+
+} elsif (($file =~ /\.ogg$/i) || (test_mime($file) =~ /application\/ogg/)) {
+
+  if ((`which vorbisgain`) && (`which ogginfo`)) {
+
+    system("nice -n 20 vorbisgain -f \"$file\" \
+            2>/dev/null >/dev/null") ;
+    my $info = `ogginfo "$file"` ;
+    $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ 
+               || die ;
+    print "$1 dB\n" ;
+
+  } else { 
+
+    print STDERR "Cannot find vorbisgain or ogginfo !\n";
+  
+  }
+
+} elsif (($file =~ /\.flac$/i) || (test_mime($file) =~ /audio\/x-flac/)) {
+
+  if (`which metaflac`) {
+
+    my $info = `metaflac --show-tag=REPLAYGAIN_TRACK_GAIN "$file"` ;
+    $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/;
+    if ($1 eq "") {
+
+      system("nice -n 20 metaflac --add-replay-gain \"$file\" \
+              2>/dev/null >/dev/null") ;
+      $info = `metaflac --show-tag=REPLAYGAIN_TRACK_GAIN "$file"` ;
+      $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ || die "Error in $file" ;
+      print "$1 dB\n" ;
+
+    } else {
+
+        print "$1 dB\n" ;
+    }
+
+  } else {
+
+    print STDERR "Cannot find metaflac !\n";
+
+  }
+
+} else {
+
+  print STDERR "File format not supported..\n";
+
+}

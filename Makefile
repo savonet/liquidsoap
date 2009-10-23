@@ -65,6 +65,7 @@ endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap
+	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap
 	$(INSTALL_DATA) scripts/utils.liq $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq \
