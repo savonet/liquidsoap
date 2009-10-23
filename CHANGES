@@ -55,6 +55,10 @@ New:
    of jamendo's compatibility API. Added nowplaying submission,
    and various wrappers, including a full submission process
    (now playing at beginning, submit some times before the end).
+ - Added new static variables: configure.{version,libdir,pidfile,logdir}
+ - Added built-in support for replay_gain, through the replay_gain protocol
+   (enabled by default) and the replay gain metadata resolver (enabled
+   using enable_replaygain_metadata ()). (#103 & #317)
 Experimental:
  - MIDI: file decoding, synthesis, virtual keyboard.
 Removed:
