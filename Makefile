@@ -26,7 +26,7 @@ doc-local: all
 
 finish-configure:
 	@echo Creating src/configure.ml
-	@echo let tts_program = \"$(libdir)/liquidsoap/liquidtts\" >> src/configure.ml
+	@echo let tts_program = \"$(libdir)/liquidsoap/$(libs_dir_version)/liquidtts\" >> src/configure.ml
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
@@ -64,8 +64,8 @@ ifneq ($(DEBIAN),yes)
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap
-	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap
+	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DATA) scripts/utils.liq $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq \
