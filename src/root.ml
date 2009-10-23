@@ -72,15 +72,13 @@ let delay () =
 
 (** Main loop. *)
 
-let iter = Source.iter_outputs
-
 let started = ref false
 let running () = !started
 
 let sleep () =
   if !started then begin
     log#f 3 "Shutting down sources..." ;
-    iter (fun s -> s#leave (s:>Source.source))
+    Source.iter_outputs (fun s -> s#leave (s:>Source.source))
   end
 
 let start () =
@@ -91,9 +89,31 @@ let start () =
   let last_latency_log = ref (time ()) in
 
   log#f 3 "Waking up active nodes..." ;
-  iter (fun s -> s#get_ready [(s:>Source.source)]) ;
-  iter (fun s -> s#output_get_ready) ;
+  (* Wake up outputs:
+   * Once this is done, the [started] flag is set, that tells Main to
+   * clean up those sources before shutting down if we crash.
+   * But we have to handle the case of a crash during the waking_up phase,
+   * by releasing cleanly the sources that have been woken up successfully. *)
+  ignore
+    (Source.fold_outputs
+       (fun awoken s ->
+          try
+            s#get_ready [(s:>Source.source)] ;
+            s::awoken
+          with
+            | e ->
+                log#f 2 "Error during the awakening phase, rolling back..." ;
+                List.iter
+                  (fun (s:active_source) ->
+                     try s#leave (s:>Source.source) with
+                       | e ->
+                           log#f 2 "Leaving source %s failed: %s!"
+                             s#id (Printexc.to_string e))
+                  awoken ;
+                raise e)
+       []) ;
   started := true ;
+  Source.iter_outputs (fun s -> s#output_get_ready) ;
 
   log#f 3 "Broadcast starts up!" ;
   t0 := time () ;
@@ -107,7 +127,7 @@ let start () =
         incr acc ;
         if rem < max_latency then begin
           log#f 2 "Too much latency! Resetting active sources.." ;
-          iter (fun s -> if s#is_active then s#output_reset) ;
+          Source.iter_outputs (fun s -> if s#is_active then s#output_reset) ;
           t0 := time () ;
           ticks := 0L ;
           acc := 0
@@ -122,8 +142,8 @@ let start () =
         end
       end ;
       ticks := Int64.add !ticks 1L ;
-      iter (fun s -> s#output) ;
-      iter (fun s -> s#after_output)
+      Source.iter_outputs (fun s -> s#output) ;
+      Source.iter_outputs (fun s -> s#after_output)
   done ;
 
   sleep ()

@@ -269,6 +269,7 @@ end
 let entries = ref []
 let register s = entries := s::!entries
 let iter_outputs f = List.iter f !entries
+let fold_outputs f x = List.fold_left f x !entries
 let has_outputs () = !entries <> []
 
 (* Entry-points sources, which need to actively perform some task. *)

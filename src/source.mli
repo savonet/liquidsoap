@@ -146,4 +146,5 @@ object
 end
 
 val iter_outputs : (active_source -> unit) -> unit
+val fold_outputs : ('a -> active_source -> 'a) -> 'a -> 'a
 val has_outputs : unit -> bool
