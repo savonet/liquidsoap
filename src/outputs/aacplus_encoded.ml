@@ -112,30 +112,25 @@ end
 
 let () =
   Lang.add_operator "output.file.aacplus"
-    ([ "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output threads on operator initialization." ;
+    ([ "samplerate",
+       Lang.int_t,
+       Some (Lang.int 44100),
+       None ;
 
-      "samplerate",
-      Lang.int_t,
-      Some (Lang.int 44100),
-      None ;
-
-      "bitrate",
-      Lang.int_t,
-      Some (Lang.int 64),
-      None 
-    ]
-      @ File_output.proto @ Output.proto @ ["", Lang.source_t, None, None ])
+       "bitrate",
+       Lang.int_t,
+       Some (Lang.int 64),
+       None 
+    ] @ File_output.proto @ Output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an AAC+ file."
     (fun p _ ->
        let e f v = f (List.assoc v p) in
-       let autostart = e Lang.to_bool "start" in
        let samplerate = e Lang.to_int "samplerate" in
        let bitrate = e Lang.to_int "bitrate" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
+       let autostart = e Lang.to_bool "start" in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

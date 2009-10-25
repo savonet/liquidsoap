@@ -71,12 +71,10 @@ end
 
 let () =
   Lang.add_operator "output.file.wav"
-    ((( "start", Lang.bool_t, Some (Lang.bool true), None) :: File_output.proto)
-      @ Output.proto @ ["", Lang.source_t, None, None ])
+    (File_output.proto @ Output.proto @ ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream to a WAV file."
     (fun p _ ->
-       let autostart = Lang.to_bool (List.assoc "start" p) in
        let name = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
        let append = Lang.to_bool (List.assoc "append" p) in
@@ -87,6 +85,7 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let autostart = Lang.to_bool (List.assoc "start" p) in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

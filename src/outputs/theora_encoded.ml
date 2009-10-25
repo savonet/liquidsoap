@@ -45,11 +45,7 @@ let theora_proto =
 
 let () =
   Lang.add_operator "output.file.theora"
-    ([       
-        "start",
-         Lang.bool_t, Some (Lang.bool true),
-         Some "Start output threads on operator initialization." ] @ 
-      theora_proto @ File_output.proto @ Output.proto @
+    (theora_proto @ File_output.proto @ Output.proto @
      ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as an ogg/theora file."
@@ -57,7 +53,6 @@ let () =
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
        let vorbis_quality = e Lang.to_float "vorbis_quality" in
-       let autostart = e Lang.to_bool "start" in
        let skeleton = e Lang.to_bool "skeleton" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
@@ -69,6 +64,7 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let autostart = e Lang.to_bool "start" in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

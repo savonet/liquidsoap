@@ -86,11 +86,7 @@ end
 let () =
   Lang.add_operator "output.ao"
    ( Output.proto @
-    [ "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output on operator initialization." ;
-
-      "driver",
+    [ "driver",
       Lang.string_t, Some (Lang.string ""),
       Some "libao driver to use." ;
 
@@ -108,7 +104,6 @@ let () =
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao."
     (fun p _ ->
-       let start = Lang.to_bool (List.assoc "start" p) in
        let driver = Lang.to_string (List.assoc "driver" p) in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let options =
@@ -119,6 +114,7 @@ let () =
            (Lang.to_list (List.assoc "options" p))
        in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let start = Lang.to_bool (List.assoc "start" p) in
        let on_start =
          let f = List.assoc "on_start" p in
            fun () -> ignore (Lang.apply f [])

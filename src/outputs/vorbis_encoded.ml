@@ -97,10 +97,6 @@ let () =
   Lang.add_operator "output.file.vorbis.abr" (* Average BitRate *)
     (vorbis_proto @ File_output.proto @ Output.proto @
      [
-      "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output on operator initialization." ;
-
       "bitrate",
       Lang.int_t,
       Some (Lang.int 128),
@@ -122,7 +118,6 @@ let () =
             ^ "in Average BitRate mode.")
     (fun p _ ->
        let e f v = f (List.assoc v p) in
-       let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
        let skeleton = e Lang.to_bool "skeleton" in
        let bitrate = (e Lang.to_int "bitrate") * 1000 in
@@ -138,6 +133,7 @@ let () =
        let reload_on_metadata =
          Lang.to_bool (List.assoc "reopen_on_metadata" p)
        in
+       let autostart = e Lang.to_bool "start" in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

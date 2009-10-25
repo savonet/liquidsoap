@@ -41,7 +41,16 @@ let proto =
   "on_stop",
   Lang.fun_t [] Lang.unit_t,
   Some (Lang.val_cst_fun [] Lang.unit),
-  Some "Callback executed when outputting stops." 
+  Some "Callback executed when outputting stops."  ;
+
+  "start",
+  Lang.bool_t,
+  Some (Lang.bool true),
+  Some "Automatically start outputting whenever possible. \
+        If true, an infallible (normal) output will start outputting \
+        as soon as it is created, \
+        and a fallible output will (re)start as soon as its \
+        source becomes available for streaming."
  ]
 
 (** Given abstract start stop and send methods, creates an output.

@@ -160,17 +160,11 @@ let create ~freq ~stereo ~mode
 let () =
   Lang.add_operator "output.file.speex"
     (speex_proto @ File_output.proto @ Output.proto @
-     [
-      "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output on operator initialization." ;
-
-      "", Lang.source_t, None, None ])
+     [ "", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:("Output the source stream as an Ogg speex file.")
     (fun p _ ->
        let e f v = f (List.assoc v p) in
-       let autostart = e Lang.to_bool "start" in
        let stereo = e Lang.to_bool "stereo" in
        let skeleton = e Lang.to_bool "skeleton" in
        let bitrate = (e Lang.to_int "bitrate") in
@@ -207,6 +201,7 @@ let () =
                         ~bitrate ~vbr ~fpp 
                         ~complexity ~abr ~quality ()]
        in
+       let autostart = e Lang.to_bool "start" in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

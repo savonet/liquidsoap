@@ -31,8 +31,6 @@ let proto =
   (Icecast2.proto ~no_mount ~no_name ~format:"audio/aacp") @ Output.proto @
   [ "samplerate", Lang.int_t, Some (Lang.int 44100), None;
     "bitrate", Lang.int_t, Some (Lang.int 64), None;
-    "start", Lang.bool_t, Some (Lang.bool true),
-    Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
 
 let no_multicast = "no_multicast"
@@ -45,7 +43,6 @@ class to_shout p =
   let bitrate = e Lang.to_int "bitrate" in
 
   let source = List.assoc "" p in
-  let autostart = Lang.to_bool (List.assoc "start" p) in
   let mount = s "mount" in
   let name = s "name" in
   let name =
@@ -72,6 +69,8 @@ class to_shout p =
       samplerate = Some samplerate
     }
   in
+
+  let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in

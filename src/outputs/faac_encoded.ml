@@ -86,11 +86,7 @@ end
 let () =
   Lang.add_operator "output.file.aac"
    ( Output.proto @
-    [ "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output threads on operator initialization." ;
-
-      "bandwidth",
+    [ "bandwidth",
       Lang.int_t,
       Some (Lang.int 16000),
       None ;
@@ -116,11 +112,11 @@ let () =
     (fun p _ ->
        let e f v = f (List.assoc v p) in
        let quality = e Lang.to_int "quality" in
-       let autostart = e Lang.to_bool "start" in
        let bandwidth = e Lang.to_int "bandwidth" in
        let bitrate = e Lang.to_int "bitrate" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let autostart = e Lang.to_bool "start" in
        let on_start =
          let f = List.assoc "on_start" p in
            fun () -> ignore (Lang.apply f [])

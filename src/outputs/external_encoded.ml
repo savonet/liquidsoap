@@ -83,12 +83,12 @@ object (self)
 
   val read_m = Mutex.create ()
   val read = Buffer.create 10
-  (** This mutex is crutial in order to
+  (** This mutex is crucial in order to
     * manipulate the encoding process well.
     * It should be locked on every creation operations.
     * Also, since the creation can be concurrent, it 
-    * is crutial to also lock it _before_ stoping
-    * the processus when restarting/reseting.
+    * is crutial to also lock it _before_ stopping
+    * the processus when restarting/resetting.
     * A normal restart looks like:
     *   lock create_m; stop; start; unlock create_m 
     * That way, we make sure we destroy and create atomically. 
@@ -323,17 +323,13 @@ end
 
 let () =
   Lang.add_operator "output.file.external"
-    ([ "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output threads on operator initialization." ] 
-      @ proto @ Output.proto
-      @ File_output.proto @ ["", Lang.source_t, None, None ])
+    (proto @ Output.proto @ File_output.proto @
+     ["", Lang.source_t, None, None ])
     ~category:Lang.Output
     ~descr:"Output the source's stream as a file, \
             using an external encoding process."
     (fun p _ ->
        let e f v = f (List.assoc v p) in
-       let autostart = e Lang.to_bool "start" in
        let filename = Lang.to_string (Lang.assoc "" 1 p) in
        let source = Lang.assoc "" 2 p in
        let append = Lang.to_bool (List.assoc "append" p) in
@@ -353,6 +349,7 @@ let () =
        let restart_encoder_delay =
          Lang.to_int (List.assoc "restart_encoder_delay" p)
        in
+       let autostart = e Lang.to_bool "start" in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

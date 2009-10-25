@@ -28,9 +28,7 @@ let no_name = "Use [mount]"
 let proto =
   (Icecast2.proto ~no_mount ~no_name ~format:"mp3") @ 
   External_encoded.proto @ Output.proto @
-  [ "start", Lang.bool_t, Some (Lang.bool true),
-    Some "Start output threads on operator initialization." ;
-    "bitrate", Lang.int_t, Some (Lang.int (-1)),
+  [ "bitrate", Lang.int_t, Some (Lang.int (-1)),
     Some "Bitrate information for icecast. Not used if negative.";
     "quality", Lang.float_t, Some (Lang.float (-1.)),
     Some "Quality information for icecast. Not used if negative.";
@@ -66,8 +64,8 @@ class to_shout p =
   in
   let samplerate = e Lang.to_int "samplerate" in
   let channels   = f (e Lang.to_int "channels") in
-  let autostart = e Lang.to_bool "start" in
 
+  let autostart = e Lang.to_bool "start" in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in

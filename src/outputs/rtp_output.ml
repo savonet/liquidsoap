@@ -48,11 +48,7 @@ end
 let () =
   Lang.add_operator "output.rtp"
    ( Output.proto @
-    [ "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output threads on operator initialization." ;
-
-      "ip",
+    [ "ip",
       Lang.string_t, Some (Lang.string "224.0.1.20"),
       Some "Broadcast address." ;
 
@@ -69,10 +65,10 @@ let () =
     ~category:Lang.Output
     ~descr:"Broadcast raw stream (includes metadata) using RTP."
     (fun p _ ->
-       let start = Lang.to_bool (List.assoc "start" p) in
        let port = Lang.to_int (List.assoc "port" p) in
        let ttl = Lang.to_int (List.assoc "ttl" p) in
        let ip = Lang.to_string (List.assoc "ip" p) in
+       let start = Lang.to_bool (List.assoc "start" p) in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in

@@ -33,8 +33,6 @@ let proto =
     "bitrate", Lang.int_t, Some (Lang.int 128), None;
     "quality", Lang.int_t, Some (Lang.int 5), None;
     "stereo", Lang.bool_t, Some (Lang.bool true), None;
-    "start", Lang.bool_t, Some (Lang.bool true),
-    Some "Start output threads on operator initialization." ;
     "", Lang.source_t, None, None ]
 
 let no_multicast = "no_multicast"
@@ -49,8 +47,8 @@ class to_shout p =
   let quality = e Lang.to_int "quality" in
 
   let source = List.assoc "" p in
-  let autostart = Lang.to_bool (List.assoc "start" p) in
 
+  let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in
