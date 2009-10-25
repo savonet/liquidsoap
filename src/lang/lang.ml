@@ -408,6 +408,9 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
                (Utils.get_some v.t.T.pos))
             msg ;
           exit 1
+      | Failure s ->
+          Printf.printf "ERROR: %s!\n" s ;
+          exit 1
       | e -> print_error "Unknown error" ; raise e
 
 let from_file ?parse_only ~ns filename =

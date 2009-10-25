@@ -22,42 +22,67 @@
 
  (** Producer/consumer source utils. *)
 
-class virtual ['a] base ~nb_blocks ~blank 
-                        ~blocking () = 
-  let () = 
-    if nb_blocks < 2 then
-      raise (Lang.Invalid_value
-                 (Lang.int nb_blocks,
-                  "Buffered I/O requires a buffer length >= 2."))  
+class virtual ['a] base ~nb_blocks ~blank ~blocking () =
+  let () =
+    if nb_blocks < 1 then
+      failwith "Buffered I/O requires a non-zero buffer length." ;
+    if blocking then
+      (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
   in
 object (self)
 
   val buffer = Array.init nb_blocks (fun _ -> blank ())
   val mutable read = 0
   val mutable write = 0
-  (* Read and write are stored modulo 2*nb_blocks,
-   * because we must be able to distinguish the case where the sched is late
-   * from the one where the capture is late.
-   * And we don't need more than modulo 2*nb_blocks. *)
 
-  initializer
-    if blocking then
-      (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
+  (* First, consider read and write as positions on an infinite string:
+   * We always have read<=write.
+   * We can always write.
+   * We can read when read<write.
+   *
+   * Now, let's force that write-read<=N.
+   * We can write when read-write<N.
+   * We can read when read<write.
+   *
+   * Now, this restriction allows us to work with a ringbuffer of N cells,
+   * and read (resp. write) in cell number read (resp. write) modulo N.
+   * If we only keep read and write modulo N, we cannot distinguish
+   *  - read=write (i.e., the reader has to wait for the writer)
+   *  - read+N=write (i.e., the writer has to wait for the reader)
+   * But it is enough to maintain read and write modulo 2N.
+   * Indeed, if read<=write and write-read<=N, then:
+   *  - read = write iff read mod 2N = write mod 2N
+   *  - write-read=N iff (read mod 2N <> read mod 2N and
+   *                      read mod N = write mod N) *)
 
+  (* Accesses to read/write must be protected by wait_m. *)
   val wait_m = Mutex.create ()
   val wait_c = Condition.create ()
 
-  val mutable sleep = false
-  method sourcering_stop = 
-    sleep <- true ;
-    Condition.broadcast wait_c
+  (* State of the I/O process:
+   *   `Idle when stopped;
+   *   `Running (thread ID) when running;
+   *   `Tired while shutting down. *)
+  val mutable state = `Idle
+  method sourcering_stop =
+    match state with
+      | `Running id ->
+          Mutex.lock wait_m ;
+          state <- `Tired ;
+          Mutex.unlock wait_m ;
+          (* One signal is enough since there is only one half of
+           * the process waiting for us, the other half cannot be
+           * called concurrently with this method. *)
+          Condition.signal wait_c ;
+          Thread.join id ;
+          state <- `Idle
+      | `Tired | `Idle -> assert false
+
 end
 
-class virtual ['a] input ~nb_blocks ~blank 
-                         ?(blocking=false) () =
+class virtual ['a] input ~nb_blocks ~blank ?(blocking=false) () =
 object (self)
-  inherit ['a] base ~nb_blocks ~blank 
-                    ~blocking ()
+  inherit ['a] base ~nb_blocks ~blank ~blocking ()
 
   method virtual pull_block : 'a -> unit
 
@@ -68,58 +93,72 @@ object (self)
   method sleep = self#sourcering_stop
 
   method output_get_ready =
-    sleep <- false ;
+    assert (state = `Idle) ;
     read <- 0 ; write <- 0 ;
-    ignore (Tutils.create
-         (fun _ -> self#writer) () self#id) ;
+    state <- `Running (Tutils.create (fun _ -> self#writer) () self#id)
 
   method private writer =
-      let fill () =
-         self#pull_block buffer.(write mod nb_blocks);
-         write <- (write + 1) mod (2*nb_blocks)
-      in
-      try
-        (* Filling loop *)
-        while not sleep do
-          if read <> write &&
-             write mod nb_blocks = read mod nb_blocks then begin
-               (* Wait for the reader to read the block we fancy *)
-               Mutex.lock wait_m ;
-               if not sleep && read <> write &&
-                 write mod nb_blocks = read mod nb_blocks then
-                   Condition.wait wait_c wait_m ;
-               Mutex.unlock wait_m ;
-          end ;
-          if not sleep then
-            fill () ;
-          Condition.signal wait_c
-        done ;
-        self#close
-      with
-        | e -> 
-           self#close ; 
-           self#sourcering_stop ;
-           raise e
+    try
+      while true do
 
-  method private get_block = 
-    (* Check that the writer still has an advance.
-     * Otherwise play blank for waiting.. *)
-    if write = read then
-      begin
+        (* Wait for the reader to read the block we fancy, or for shutdown. *)
         Mutex.lock wait_m ;
-        if not sleep && write = read then
-          Condition.wait wait_c wait_m;
-        Mutex.unlock wait_m 
-      end ;
+        if state <> `Tired &&
+           read <> write && write mod nb_blocks = read mod nb_blocks
+        then
+          Condition.wait wait_c wait_m ;
+        Mutex.unlock wait_m ;
+
+        (* Exit or... *)
+        if state = `Tired then raise Exit ;
+
+        (* ...write a block. *)
+        self#pull_block buffer.(write mod nb_blocks) ;
+        Mutex.lock wait_m ;
+        write <- (write + 1) mod (2*nb_blocks) ;
+        Mutex.unlock wait_m ;
+        Condition.signal wait_c
+
+      done
+    with
+      | Exit ->
+          self#close
+      | e ->
+          (* We crashed. Let's attempt to leave things in a decent state.
+           * Note that the exception should only come from #pull_lock,
+           * which is performed outside of critical section, so there's
+           * not need to unlock. *)
+          self#close ;
+          (* It is possible that the reader is waiting for us,
+           * hence blocking the streaming thread, and consequently
+           * the possibility of going to sleep peacefully.
+           * Let's resume it, even though he'll get an arbitrary block. *)
+          Mutex.lock wait_m ;
+          write <- (write + 1) mod (2*nb_blocks) ;
+          Mutex.unlock wait_m ;
+          Condition.signal wait_c ;
+          raise e
+
+  (* This is meant to be called from #get_frame,
+   * so it makes sense to require that #sleep hasn't been called
+   * and won't be called before #get_block returns. *)
+  method private get_block =
+    assert (match state with `Running _ -> true | _ -> false) ;
+    (* Check that the writer still has an advance. *)
+    Mutex.lock wait_m ;
+    if write = read then
+      Condition.wait wait_c wait_m ;
     let b = buffer.(read mod nb_blocks) in
-    read <- (read + 1) mod (2*nb_blocks) ;
-    Condition.signal wait_c ;
-    b
+      read <- (read + 1) mod (2*nb_blocks) ;
+      Mutex.unlock wait_m ;
+      Condition.signal wait_c ;
+      b
+
 end
 
-class virtual ['a] output ~nb_blocks ~blank 
-                          ?(blocking=false) () =
+class virtual ['a] output ~nb_blocks ~blank ?(blocking=false) () =
 object (self)
+
   inherit ['a] base ~nb_blocks ~blank ~blocking ()
 
   method virtual id : string
@@ -131,46 +170,63 @@ object (self)
   method output_stop = self#sourcering_stop
 
   method output_start =
-    sleep <- false ;
+    assert (state = `Idle) ;
     read <- 0 ; write <- 0 ;
-    ignore (Tutils.create (fun () -> self#reader) () self#id)
+    state <- `Running (Tutils.create (fun () -> self#reader) () self#id)
 
   method reader =
     try
-      (* The output loop *)
-      while not sleep do
-        if read = write then
-        begin
-          Mutex.lock wait_m ;
-          if not sleep && read = write then
-             Condition.wait wait_c wait_m ;
-           Mutex.unlock wait_m 
-        end ;
-        if not sleep then
-        begin
-          self#push_block buffer.(read mod nb_blocks);
-          read <- (read + 1) mod (2*nb_blocks)
-        end ;
-        Condition.signal wait_c
-      done ;
-      self#close
-    with
-      | e -> 
-         self#close; 
-         self#sourcering_stop ;
-         raise e
+      while true do
 
-  method put_block (f:'a -> unit) =
-    if read <> write &&
-       write mod nb_blocks = read mod nb_blocks then
-       begin
-         Mutex.lock wait_m ;
-         if not sleep && read <> write &&
-           write mod nb_blocks = read mod nb_blocks then
-             Condition.wait wait_c wait_m ;
-         Mutex.unlock wait_m
-       end ;
+        (* Wait for the writer to emit the block we fancy, or for shutdown. *)
+        Mutex.lock wait_m ;
+        if state <> `Tired && read = write then
+          Condition.wait wait_c wait_m ;
+        Mutex.unlock wait_m ;
+
+        (* Exit or... *)
+        if state = `Tired then raise Exit ;
+
+        (* ...read a block. *)
+        self#push_block buffer.(read mod nb_blocks);
+        Mutex.lock wait_m ;
+        read <- (read + 1) mod (2*nb_blocks) ;
+        Mutex.unlock wait_m ;
+        Condition.signal wait_c
+
+      done
+    with
+      | Exit ->
+          self#close
+      | e ->
+          (* We crashed. Let's attempt to leave things in a decent state.
+           * Note that the exception should only come from #pull_lock,
+           * which is performed outside of critical section, so there's
+           * not need to unlock. *)
+          self#close ;
+          (* It is possible that the reader is waiting for us,
+           * hence blocking the streaming thread, and consequently
+           * the possibility of going to sleep peacefully.
+           * Let's resume it, even though he'll get an arbitrary block. *)
+          Mutex.lock wait_m ;
+          read <- (read + 1) mod (2*nb_blocks) ;
+          Mutex.unlock wait_m ;
+          Condition.signal wait_c ;
+          raise e
+
+  (* This is meant to be called from #output_send,
+   * so it makes sense to require that #sleep hasn't been called
+   * and won't be called before #put_block returns. *)
+  method put_block (f : 'a -> unit) =
+    assert (match state with `Running _ -> true | _ -> false) ;
+    Mutex.lock wait_m ;
+    if read <> write && write mod nb_blocks = read mod nb_blocks then
+      Condition.wait wait_c wait_m ;
+    Mutex.unlock wait_m ;
     f buffer.(write mod nb_blocks) ;
+    Mutex.lock wait_m ;
     write <- (write + 1) mod (2*nb_blocks) ;
+    Mutex.unlock wait_m ;
     Condition.signal wait_c
+
 end

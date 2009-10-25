@@ -29,7 +29,7 @@ let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "alsa")
     "ALSA configuration"
 let conf_buffer_length =
-  Dtools.Conf.int ~p:(conf#plug "buffer_length") ~d:2
+  Dtools.Conf.int ~p:(conf#plug "buffer_length") ~d:1
     "Buffer size, in frames."
     ~comments:[
       "This is only used for buffered ALSA I/O, and affects the latency."
