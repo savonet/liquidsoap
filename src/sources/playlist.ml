@@ -441,9 +441,9 @@ let () =
       Lang.string_t,
       (Some (Lang.string "randomize")),
       Some "Play the files in the playlist either in the order (\"normal\" \
-            mode), or shuffle the playlist and play it in this order \
-            (\"randomize\" mode), or pick a random file in the playlist \
-            each time (\"random\" mode)." ;
+            mode), or shuffle the playlist each time it is loaded, \
+            and play it in this order for a whole round (\"randomize\" mode), \
+            or pick a random file in the playlist each time (\"random\" mode)." ;
       "reload",
       Lang.int_t,
       Some (Lang.int 0),
