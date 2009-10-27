@@ -146,7 +146,14 @@ let decoder file sync fd =
               end
           with
             | Ogg_demuxer.End_of_stream
-            | Not_found -> Ogg_demuxer.reset decoder
+            | Not_found -> 
+               (* Ogg tracks can be sequentialized.
+                * Trying to decode a new track. *)
+               try
+                Ogg_demuxer.reset decoder
+               with
+                 (* Not enough data: no new track. *)
+                 | Ogg.Not_enough_data -> ()
         done;
       with
         | e ->
