@@ -142,7 +142,13 @@ object (self)
     Server.add ~ns "start" ~descr:"Start output."
       (fun _ -> start_output <- true ; "OK") ;
     Server.add ~ns "stop" ~descr:"Stop output. Disable autostart."
-      (fun _ -> stop_output <- true ; autostart <- false ; "OK") ;
+      (fun _ ->
+         if autostart then begin
+           autostart <- false ;
+           start_output <- false
+         end ;
+         stop_output <- true ;
+         "OK") ;
     Server.add ~ns "status" ~descr:"Get status."
       (fun _ -> if does_output then "on" else "off") ;
 
