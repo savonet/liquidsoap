@@ -27,8 +27,6 @@
   * Skip on sudden drop of intensity near end-of-tracks.
   * More subtyping, subsets of int/floats.
   * Use Sndfile for raw input.
-  * Fix (or deprecate) RTP input/output.
-  * Avoid float -> int -> float conversion for RTP.
   * Add jack support and, perhaps fix the two above using jack !
   * Transitions with non-zero "before" parameter don't work correctly,
     as the before-trigger also occurs during the transition itself, resulting

@@ -54,7 +54,6 @@ sources = sources/generated.ml \
 	$(if $(W_MP3),sources/http_mp3.ml) \
 	$(if $(W_FAAD),sources/http_aac.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
-	$(if $(W_RTP),sources/rtp_input.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	sources/video_noise.ml \
@@ -111,7 +110,6 @@ outputs = outputs/output.ml outputs/file_output.ml \
 	$(if $(W_AO),outputs/ao_out.ml) \
 	$(if $(W_FAAC),outputs/faac_encoded.ml) \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
-	$(if $(W_RTP),outputs/rtp_output.ml) \
 	$(if $(W_BJACK),outputs/bjack_out.ml) \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml)
@@ -151,7 +149,6 @@ synth = synth/synth.ml synth/synth_op.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	$(if $(W_ALSA), alsa_settings.ml) \
@@ -171,8 +168,7 @@ OCAML_CFLAGS= -thread \
 	-I tools -I lang -I playlists -I stream -I outputs -I formats \
 	-I video_converters -I sources -I operators -I io -I visualization \
 	-I analyze -I ogg_formats -I audio_converters -I synth
-OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_RTP),-cclib -lortp) \
-			  $(if $(W_OPAL),-cclib -lopal)
+OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists \
 		  -I video_converters -I outputs -I io -I stream -I visualization \
 		  -I analyze -I ogg_formats -I audio_converters -I synth
@@ -185,7 +181,6 @@ liquidsoap_doc_sources= \
 	tools/tutils.ml tools/sutils.ml tools/mutils.ml \
 	tools/ringbuffer.ml \
 	tools/doc.ml tools/wav.ml \
-	$(if $(W_RTP),tools/rtp.ml) \
 	sources/request_source.ml operators/switch.ml \
 	configure.ml fmt.ml video_converter.ml \
 	$(if $(W_OGG),ogg_encoder.ml ogg_demuxer.ml) \
@@ -196,8 +191,6 @@ liquidsoap_doc_sources= \
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
 
-tools/rtp_c.o: tools/rtp_c.c
-	$(MAKE) -C tools rtp_c.o
 stream/float_pcm_c.o: stream/float_pcm_c.c
 	$(MAKE) -C stream float_pcm_c.o
 stream/rgb_c.o: stream/rgb_c.c
@@ -231,7 +224,6 @@ profile:
 
 libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	shebang.ml alsa_settings.ml \
-	$(if $(W_RTP),tools/rtp_c.o tools/rtp.ml) \
 	tools/server.ml tools/server_builtins.ml \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \

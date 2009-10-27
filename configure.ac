@@ -96,46 +96,6 @@ AC_C_BIGENDIAN(
   AC_DEFINE([LIQ_BIG_ENDIAN], [1], [Define if this target is
   big endian]),[])
 
-# oRTP
-
-AC_ARG_WITH([ortp-include],
-   AC_HELP_STRING(
-      [--with-ortp-include=path],
-      [look for ortp headers in path (defaults to /usr/include/ortp)]))
-AC_ARG_ENABLE([rtp],AC_HELP_STRING([--disable-rtp],[don't use RTP]))
-
-W_RTP=""
-w_RTP=no
-if test "x$enable_rtp" != "xno" ; then
-AC_MSG_CHECKING(for glib-2.0 required by libortp)
-if pkg-config --exists glib-2.0 ; then
-  AC_MSG_RESULT(ok)
-
-  AC_MSG_CHECKING(for libortp)
-
-  if test -z "$with_ortp_include" ; then
-    ORTP_INCLUDE=/usr/include/ortp
-  else
-    ORTP_INCLUDE=$with_ortp_include
-  fi
-
-  if test \! -f ${ORTP_INCLUDE}/ortp.h ; then
-    AC_MSG_RESULT(Header not found: ${ORTP_INCLUDE}/ortp.h)
-    W_RTP=""
-    w_RTP=no
-  else
-    W_RTP=yes
-    w_RTP=yes
-    AC_MSG_RESULT(ok)
-  fi
-else
-  AC_MSG_RESULT(no)
-fi
-fi
-
-AC_SUBST(W_RTP)
-AC_SUBST(ORTP_INCLUDE)
-
 # opal
 
 AC_ARG_WITH([opal-include],
@@ -1861,7 +1821,6 @@ cat <<EOMSG
    - Pulseaudio        : $w_PULSEAUDIO
    - JACK              : $w_BJACK
    - Old JACK          : $w_JACK
-   - RTP               : $w_RTP
    - V4L               : $w_V4L
    - opal              : $w_OPAL
 

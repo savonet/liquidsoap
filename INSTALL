@@ -35,7 +35,6 @@
    ocaml-ladspa>=0.1.1      for LADSPA plugins
    camomile                 for charset recoding in metadata
    ocaml-jack>=0.1.0        for old Jack support (DEPRECATED)
-   libortp>=1.0.0           for RTP stream I/O (EXPERIMENTAL)
    libopal                  for receiving VOIP calls (EXPERIMENTAL)
    Other optional dependencies can be found in the download
    section of the project. All of them should be included in

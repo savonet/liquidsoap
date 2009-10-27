@@ -72,7 +72,6 @@ And also optional dependencies:
 * ocaml-bjack for Jack output/input
 * ocaml-ladspa for LADSPA plugins
 * "ocaml-xmllight":http://tech.motion-twin.com/xmllight.html
-* "libortp":http://www.linphone.org/ for experimental RTP input/output
 
 Runtime dependencies include:
 * "wget":http://www.gnu.org/software/wget/ for downloading remote files (http, https, ftp)
