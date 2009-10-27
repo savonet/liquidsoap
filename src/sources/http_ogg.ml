@@ -55,10 +55,17 @@ let decode_ogg sink =
           try
             Ogg_demuxer.decode_audio decoder feed;
             if Ogg_demuxer.eos decoder then
-              Ogg_demuxer.reset decoder
+              raise Ogg_demuxer.End_of_stream
           with
             | Ogg_demuxer.End_of_stream
-            | Not_found -> Ogg_demuxer.reset decoder
+            | Not_found -> 
+                (* Ogg streams can be sequentialized.
+                 * We don't know if there could be a new
+                 * one, so trying to reset the decoder. *)
+                try
+                  Ogg_demuxer.reset decoder
+                with
+                  | Ogg.Not_enough_data -> raise Ogg_demuxer.End_of_stream
       done
     with
       | e -> sink.Http_source.close (); raise e
