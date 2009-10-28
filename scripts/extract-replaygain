@@ -46,7 +46,7 @@ if (($file =~ /\.mp3$/i) || (test_mime($file) =~ /audio\/mpeg/))  {
 
     my $info = `metaflac --show-tag=REPLAYGAIN_TRACK_GAIN "$file"` ;
     $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/;
-    if ($1) {
+    if (defined($1)) {
 
         print "$1 dB\n" ;
 
