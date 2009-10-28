@@ -58,7 +58,8 @@ liqi/liqi: all-subdirs
 
 content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
 ifeq ($(PERL_DOM),yes)
-	../src/liquidsoap ../scripts/utils.liq --list-plugins-xml | \
+	../src/liquidsoap \
+	  --no-pervasives ../scripts/utils.liq --list-plugins-xml | \
 	  ./reference_to_liqi.pl > $(@)
 else
 	@echo "-> You don't seem to have perl XML::DOM module installed."
