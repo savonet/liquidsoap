@@ -29,7 +29,8 @@ output.file.ogg("/tmp/hop.ogg",stream)
 %%
 
 
-If you don't get the difference between these two operators, maybe you need to learn more about the basic concepts of Liquidsoap, especially the "notion of source":concepts.html.
+If you don't get the difference between these two operators, you should
+learn more about liquidsoap's notion of "source":sources.html.
 
 Finally, if you need to do some custom action when there's too much blank, we have <code>on_blank</code>:
 

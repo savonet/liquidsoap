@@ -3,7 +3,12 @@ title: Liquidsoap scripting language
 h3. Liquidsoap's scripting language
 
 
-Liquidsoap's scripting language is a simple functional language, with labels and optional parameters. It is statically typed, but infers types -- you don't have to write any types. To fit its particular purpose, it has first-class sources and requests (see "liquidsoap's concepts":concepts.html) and a syntax extension for simply specifying time intervals.
+Liquidsoap's scripting language is a simple functional language,
+with labels and optional parameters.
+It is statically typed, but infers types -- you don't have to write any types.
+It allows the direct handling of liquidsoap notions such
+as "sources":sources.html and "requests":requests.html,
+and also provides a convenient syntax for specifying time intervals.
 
 h4. Constants
 

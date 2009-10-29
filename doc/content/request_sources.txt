@@ -1,43 +1,67 @@
 title: Sources using requests
 
+Playing files is the most common way to build an audio stream.
+In liquidsoap, files are accessed through "requests":requests.html,
+which combine the retrieval of a possibly remote file, and its
+decoding.
+
+Liquidsoap provides several operators for playing requests:
+@single@, @playlist@ and @playlist.safe@,
+@request.dynamic@, @request.queue@ and @request.equeue@.
+In a few cases (<code>single</code> with a local file,
+or <code>playlist.safe</code>) a request operator will know
+that it can always get a ready request instantaneously.
+It will then be "infallible":sources.html.
+Otherwise, it will have a queue of requests ready
+to be played (local files with a valid content), and will
+feed this queue in the background.
+This process is described here.
+
 h3. Common parameters
 
-For creating sources using localy decoded files, liquidsoap uses requests (see "Liquidsoap concepts":concepts.html).
-Such sources are: @single@, @playlist@, @request.dynamic@, @request.queue@, @request.equeue@.
+Queued request sources maintain an _estimated remaining time_,
+and trigger a new request resolution when this remaining time
+goes below their @length@ parameter.
 
-These sources will constantly try find new requests to play. For this purpose, they maintain an estimated
-remaining time and trigger a new request resolution when this remaining time goes below their @length@ parameter.
+The estimation is based on the duration of files prepared in the queue,
+and the estimated remaining time in the currently playing file.
+Precise file durations being expensive to compute, they are not
+forced: if a duration is provided in the metadata it shall be used,
+otherwise the @default_length@ is assumed.
 
-Up to liquidsoap 0.9.1 included, this estimated remaining time was computed using the duration of the songs actually
-in the queue. Also, since a reliable mp3 file duration requires to decode the whole file, mp3 files where assumed to 
-be of a length given by the @default_length@ parameter.
+For example, with the default 10 seconds of wanted queue length,
+the operator will only prepare a new file 10 seconds before
+the end of the current one.
 
-With this behaviour, each request-based source would queue several songs before playing the first one, which is convenient 
-when the process of resolving and queueing a song is slow, but not when one wants to have only one song being queued at a time.
-
-After liquidsoap 0.9.1, the estimated remaining time takes also into account an estimation of the remanining time on 
-the song currently being played. Also, the default @length@ parameter has been lowered to 10 seconds. With this setting, new
-request resolution will begin only when there are 10 estimated remaining seconds in the current song.
-
-However, the new behaviour may cause troubles when the resolution takes more than 10 second to proceed. This could be for 
-instance the case when the new requests is a distant song downloaded using ftp.
-
-The behaviour of these sources can be changed using the @conservative@ parameter. When set to @true@, the estimated remaining
-time is not taken into account, and vice-versa. This parameter has been available since liquidsoap 0.9.1 and is set to @false@
-by default in liquidsoap 0.9.1 and @true@ afterwards.
+Up to liquidsoap 0.9.1, the estimated remaining time
+in the current track was not taken into account.
+With this behavior, each request-based source would keep at least
+one song in queue, which was sometimes inconvenient.
+This behavior can be restored by passing @conservative=true@,
+which is useful in some cases:
+it helps to ensure that a song will be ready in case of skip;
+generally, it prepares things more in advance, which is good when
+resolution is long (_e.g._, heavily loaded server, remote files).
 
 h3. Request.dynamic
 
-@request.dynamic@ is a source which takes a custom function for creating its new requests. This function can be used to call an 
-external program. The source expects a function of the type @()->request@ function. 
+This source takes a custom function for creating its new requests.
+This function, of type @()->request@,
+can for example call an external program.
 
 To create the request, the function will have 
-to use the @request.create@ function which has type @(string,?indicators:[string])@. The first string is the initial URI of the request, 
-which is resolved to get an audio file. The second argument can be used to directly specify the first row of URIs (see the "concepts page":concepts.html), 
-in which case the initial URI is just here for naming, and the resolving process will try your list of indicators one by one until a valid audio 
-file is obtained.
+to use the @request.create@ function which has type
+@(string,?indicators:[string])@.
+The first string is the initial URI of the request, 
+which is resolved to get an audio file.
+The second argument can be used to directly specify the first row of URIs
+(see the page about "requests":requests.html for more details),
+in which case the initial URI is just here for naming,
+and the resolving process will try your list of indicators one by one
+until a valid audio file is obtained.
 
-An example that takes the output of an external script as an URI to create a new request can be:
+An example that takes the output of an external script as an URI
+to create a new request can be:
 
 %%(scripted_dynamic_request.liq)
 def my_request_function() = 
@@ -53,27 +77,26 @@ end
 s = request.dynamic(my_request_function)
 %%
 
-h3. Queued sources
+h3. Queues
 
-Liquidsoap has a built-in notion of a source being a queue of request. 
+Liquidsoap features two sources which provide request queues that
+can be directly manipulated by the user, via the server interface:
+@request.queue@ and @request.equeue@.
+The former is a queued source where you can only push new requests,
+while the later can be edited.
 
-There are several operators for creating such sources: @request.queue@ and @request.equeue@. 
-The former is a queued source where you can only push new requests, while the later can be edited.
+Both operators actually deal with two queues: _primary_ and _secondary_ queues.
+The secondary queue is user-controlled.
+The primary queue is the one that all queued request sources have,
+its behavior is the same as described above, and it cannot be changed
+in any way by the user.
+Requests added to the secondary queue sit there until
+the feeding process gets them and attempts to prepare them
+and put them in the primary queue.
+You can set how many requests will be in that primary queue
+by tweaking the common parameters of all queued request sources.
 
-More precisely, both operators deal with two queues: @primary@ and @secondary@ queue. The primary 
-queue is a queue for requests that are meant for being played. In particular, it is not editable 
-when using @request.equeue@. The primary queue is filled with the requests from the secondaty queue 
-until it has enough data prepared. Requests in the secondary queue are not resolved, so they may be 
-dropped if resolving failed when pusing them into the primary queue.
-
-You can set how many requests will be in that primary queue by tweaking the minimal length of audio 
-data that you request, using the @length@ parameter. For instance, a value of @1.@ will most likely 
-be filled with the first resolved request.
-
-Also, you can use the @default_duration@ when no duration is available from the file. This is the 
-case with mp3, as the format doesn't allow a quick length checkout on a file.
-
-Duration can be also set per-request, using the "duration" metadata. 
-
-You can interact with those sources using the "command server":advanced.html.
-
+The two sources are controlled via the "command server":advanced.html.
+They both feature commands for looking up the queues,
+queuing new requests, and the @equeue@ operator also allows
+removal and exchange of requests in the secondary queue.

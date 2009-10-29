@@ -5,7 +5,7 @@ h3. Streaming to Shoutcast
 
 Although LiquidSoap is primarily aimed at streaming to Icecast servers (that provide much more features than Shoutcast), it is also able to stream to Shoutcast, thanks to <code>libshout</code>.
 
-h4. <code>output.shoutcast.mp3</code>
+h4. output.shoutcast.mp3
 
 You can use the function <code>output.shoutcast.mp3</code> to feed
 your server with audio data:

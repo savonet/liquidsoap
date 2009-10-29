@@ -232,4 +232,5 @@ If you know enough liquidsoap for your use, you'll only need to refer to the
 At some point,
 you might read more about Liquidsoap's "scripting language":language.html.
 For a better understanding  of liquidsoap,
-it is also good to look at the basic "concepts of the system":concepts.html.
+it is also useful to read a bit about the notions of
+"sources":sources.html and "requests":requests.html.
