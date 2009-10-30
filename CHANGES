@@ -10,11 +10,11 @@ Bugs fixed:
    data.
  - Factorized buffered I/O code. Also added a blocking API, which avoids
    "no available frame" and "reader not ready" messages and audio glitches.
-   It requires that "root.sync" be deactivated for these sources, such that
+   It enforces that "root.sync" be deactivated for these sources, such that
    synchronisation is done by the source. (#203)
  - Factorized file decoding code.
  - Fixed reversed order when parsing playlists using playlist.parse().
- - Avoid bad crashes when ressources lack, e.g. no more memory.
+ - Avoid bad crashes when resources lack, e.g. no more memory.
  - Tighten and enforce the inter-source protocol.
  - All outputs: fix the autostart server command. With the former code,
    a modification of the autostart parameter was only taken into account
@@ -26,6 +26,11 @@ Bugs fixed:
  - Fixed socket descriptor leak in input.http. (#318)
  - Fixed deadlock at init when an exception was raised at wake_up
    phase. (#319)
+ - Fix delay() which could sometimes incorrectly declare itself ready,
+   and thus try to get some data from its unavailable input source.
+ - Bug in queue duration estimation led to infinite feeding of the queue,
+   until all request IDs are taken.
+ - Several fixes enforcing clean (non-deadlocking) sleep/shutdown.
 New:
  - The operator rotate() replaces random(strict=true), and random()
    does not have a strict parameter anymore.
@@ -55,13 +60,17 @@ New:
    of jamendo's compatibility API. Added nowplaying submission,
    and various wrappers, including a full submission process
    (now playing at beginning, submit some times before the end).
- - Added new static variables: configure.{version,libdir,pidfile,logdir}
+ - New variables in the script language: liquidsoap.version and
+   configure.{libdir,pidfile,logdir}.
  - Added built-in support for replay_gain, through the replay_gain protocol
-   (enabled by default) and the replay gain metadata resolver (enabled
-   using enable_replaygain_metadata ()). (#103 & #317)
+   (enabled by default) and the replay gain metadata resolver (to be enabled
+   using enable_replaygain_metadata()). (#103 & #317)
+ - Reverse DNS operations can be disabled using settings keys
+   "server.telnet.reverse_dns" and "harbor.reverse_dns".
 Experimental:
  - MIDI: file decoding, synthesis, virtual keyboard.
 Removed:
+ - RTP input and output.
  - Removed decoders using ocaml-natty. Slow, unmaintained and superseded
    by the mplayer decoder.
 
