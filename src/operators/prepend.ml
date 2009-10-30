@@ -49,9 +49,10 @@ object (self)
                   | None -> false, Lang.list []
               in
                 if inhibit then begin
-                    self#log#f 4 "Prepending disabled from metadata (\"liq_prepend\"=\"false\")." ;
-                    state <- `Buffer peek ;
-                    self#get_frame buf
+                  self#log#f 4 "Prepending disabled from metadata \
+                                (\"liq_prepend\"=\"false\")." ;
+                  state <- `Buffer peek ;
+                  self#get_frame buf
                 end else
                   let prepend = Lang.to_source (Lang.apply f ["",lang_m]) in
                     self#register prepend ;
@@ -141,7 +142,7 @@ let register =
   Lang.add_operator "prepend"
     [ "merge",Lang.bool_t,Some (Lang.bool false),
       Some "Merge the track with its appended track." ;
-      
+
       "", Lang.source_t, None, None ;
 
       "",
@@ -150,9 +151,10 @@ let register =
         Lang.source_t,
       None,
       Some
-        ("Given the metadata, build the source producing the track to prepend."^
-         " This source is allowed to fail (produce nothing) if no relevant "^
-         "track is to be appended. However, success must be immediate.")
+        "Given the metadata, build the source producing the track to prepend. \
+         This source is allowed to fail (produce nothing) if no relevant \
+         track is to be appended. However, success must be immediate or it \
+         will not be taken into account."
     ]
     ~category:Lang.TrackProcessing
     ~descr:("Prepend an extra track before every track. "^
