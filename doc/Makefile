@@ -2,6 +2,7 @@
 
 SUBDIRS = content liqi
 DISTFILES = liquidsoap.1 Makefile reference_to_liqi.pl settings_to_liqi.pl no-ref.txt
+DISTDIRS = orig scripts
 PERL_DOM = $(shell perl -MXML::DOM -e1 > /dev/null 2>&1 && echo yes)
 
 CONTENT=$(wildcard content/*.txt)

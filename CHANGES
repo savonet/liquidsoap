@@ -1,4 +1,13 @@
-x.y.z ()
+0.9.2 (29-10-2009)
+==================
+This release is a SNAPSHOT of upcoming features. It also contains several
+important bugfixes. As a snapshot, it contains experimental or unpolished
+features, and also breaks compatibility with previous versions.
+You should in particular notice the two "New" items below:
+ - random(strict=true) is now called rotate();
+ - request sources (playlists, request.*) have a new queuing behavior,
+   check the doc (request-sources.html) or revert to conservative=true.
+==================
 Bugs fixed:
  - Ogg encoder now muxes pages according to their ending time.
  - Support "ogg/audio" and "ogg/video" mime types for HTTP ogg streams.
@@ -34,6 +43,8 @@ Bugs fixed:
 New:
  - The operator rotate() replaces random(strict=true), and random()
    does not have a strict parameter anymore.
+ - Switch to new behaviour in request-based sources.
+   Use conservative=true to get to the old behaviour.
  - on_blank(): provide an on_noise handler.
  - playlist*(): add server commands for reloading the playlist and changing
    its URI.
@@ -53,8 +64,6 @@ New:
  - Added built-in support for m4a audio files and metadata.
    Made external support optional through enable_faad.
  - Added optional resampling for output.external operators (#273).
- - Switch to new behaviour in request-based sources. Use conservative=true
-   to get to the old behaviour.
  - Added optional host and port parameters for audioscrobbling
    submissions. Allows to use alternate systems, such as libre.fm
    of jamendo's compatibility API. Added nowplaying submission,
