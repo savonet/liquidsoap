@@ -40,15 +40,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 AUTHORS
 =======
 
-* Designer and main developer:
-    David     Baelde     <david.baelde@ens-lyon.org>
 * Developers:
-    Florent   Bouchez    <florent.bouchez@ens-lyon.org>
-    Julien    Cristau    <julien.cristau@ens-lyon.org>
+    David     Baelde     <david.baelde@ens-lyon.org>
+    Romain    Beauxis    <toots@rastageeks.org>
     Samuel    Mimram     <samuel.mimram@ens-lyon.org>
     Vincent   Tabard     <vincent@radiopytagor.com>
-    Romain    Beauxis    <toots@rastageeks.org>
 * Contributors:
+    Florent   Bouchez    <florent.bouchez@ens-lyon.org>
+    Julien    Cristau    <julien.cristau@ens-lyon.org>
     Stéphane  Gimenez    <stephane.gimenez@ens-lyon.org>
     Clément   Renard     <clement.renard@ens-lyon.org>
     Sattisvar Tandabany  <sattisvar.tandabany@ens-lyon.org>
