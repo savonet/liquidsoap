@@ -190,24 +190,23 @@ let parse_url url =
     else
       host,80,mount,auth
 
-module Generator = Float_pcm.Generator
-module Generated = Generated.From_Float_pcm_Generator
+module Generated = Generated.From_Generator
 
 (* Used to handle redirections. *)
 exception Redirection of string
 
-class http ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
-           ~bind_address ~autostart ~bufferize ~max
-           ~debug ?(logfile=None)
-           ~user_agent url =
+class http ~kind
+        ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
+        ~bind_address ~autostart ~bufferize ~max
+        ~debug ?(logfile=None)
+        ~user_agent url =
   let abg_max_len =
-    Fmt.samples_of_seconds (Pervasives.max max bufferize)
+    Frame.audio_of_seconds (Pervasives.max max bufferize)
   in
 object (self)
-  inherit Source.source
-  inherit Generated.source
-            (Generator.create ())
-            ~empty_on_abort:false ~bufferize
+  inherit Source.source kind
+  inherit
+    Generated.source (Generator.create ()) ~empty_on_abort:false ~bufferize
 
   method stype = Source.Fallible
 
@@ -234,23 +233,25 @@ object (self)
     Generator.add_metadata abg m ;
     if track_on_meta then Generator.add_break abg ;
 
-  (* Feed the buffer generator *)
-  method put sample_freq data =
+  (* Feed the buffer generator
+   * TODO this is too restrictive, data could be of any [kind] *)
+  method private put sample_freq data =
     if not relaying then failwith "relaying stopped" ;
     if poll_should_stop then failwith "source stopped" ;
     Mutex.lock lock ;
     (* Drop data when buffer is full. This is the only way
      * to make it work with switches, when input.http is not
      * pulled for some time.
-     * It can also be necessary if liquidsoap is lower than the stream. *)
+     * It can also be necessary if liquidsoap is slower than the stream. *)
     if Generator.length abg >= abg_max_len then begin
-      if Generator.length abg >= abg_max_len then begin
-        (* TODO maybe insert a break in the generator *)
-        self#log#f 6 "Overfull buffer: dropping data." ;
-        Generator.remove abg (Generator.length abg - abg_max_len)
-      end
+      (* TODO Inserting a break in the generator could be a good idea,
+       * for notifying about the gap/drop.
+       * It would require to stop the current #put, since multiple
+       * breaks are not allowed. *)
+      self#log#f 5 "Overfull buffer: dropping data." ;
+      Generator.remove abg (Generator.length abg - abg_max_len)
     end;
-    Generator.feed abg ~sample_freq data ;
+    Generator.feed_from_pcm abg ~sample_freq data ;
     Mutex.unlock lock
 
   method feeding ?(newstream=true) dec socket chunked metaint =
@@ -477,8 +478,7 @@ object (self)
        (fun _ -> relaying <- false ; "Done") ;
     Server.add ~ns "buffer_length" ~usage:"buffer_length" 
                ~descr:"Get the buffer's length, in seconds."
-       (fun _ -> Printf.sprintf "%.2f" 
-             (Fmt.seconds_of_samples self#length))
+       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
 
 
   method sleep = poll_should_stop <- true
@@ -486,105 +486,106 @@ object (self)
 end
 
 let () =
-    Lang.add_operator "input.http"
-      ~category:Lang.Input
-      ~descr:"Forwards the given http stream. The relay can be \
-              paused/resumed using the start/stop telnet commands."
-      [ "autostart", Lang.bool_t, Some (Lang.bool true),
-        Some "Initially start relaying or not." ;
+  Lang.add_operator "input.http"
+    ~category:Lang.Input
+    ~descr:"Forwards the given http stream. The relay can be \
+            paused/resumed using the start/stop telnet commands."
+    [ "autostart", Lang.bool_t, Some (Lang.bool true),
+      Some "Initially start relaying or not." ;
 
-        "bind_address", Lang.string_t, Some (Lang.string ""),
-        Some "Address to bind on the local machine. \
-              This option can be useful if \
-              your machine is bound to multiple IPs. \
-              Empty means no bind address." ;
+      "bind_address", Lang.string_t, Some (Lang.string ""),
+      Some "Address to bind on the local machine. \
+            This option can be useful if \
+            your machine is bound to multiple IPs. \
+            Empty means no bind address." ;
 
-        "buffer", Lang.float_t, Some (Lang.float 2.),
-        Some "Duration of the pre-buffered data." ;
+      "buffer", Lang.float_t, Some (Lang.float 2.),
+      Some "Duration of the pre-buffered data." ;
 
-        "timeout", Lang.float_t, Some (Lang.float 10.),
-        Some "Timeout for http connection." ;
+      "timeout", Lang.float_t, Some (Lang.float 10.),
+      Some "Timeout for http connection." ;
 
-        "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
-        Some "Treat new metadata as new track." ;
+      "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
+      Some "Treat new metadata as new track." ;
 
-        "force_mime", Lang.string_t, Some (Lang.string ""),
-        Some "Force mime data type. Not used if empty." ;
+      "force_mime", Lang.string_t, Some (Lang.string ""),
+      Some "Force mime data type. Not used if empty." ;
 
-        "playlist_mode", Lang.string_t, Some (Lang.string "normal"),
-        Some "Valid modes are \"normal\", \"random\", \"randomize\" \
-              and \"first\". The first ones have the same meaning as for \
-              the mode parameter of the playlist operator. The last one \
-              discards all entries but the first one." ;
+      "playlist_mode", Lang.string_t, Some (Lang.string "normal"),
+      Some "Valid modes are \"normal\", \"random\", \"randomize\" \
+            and \"first\". The first ones have the same meaning as for \
+            the mode parameter of the playlist operator. The last one \
+            discards all entries but the first one." ;
 
-        "poll_delay", Lang.float_t, Some (Lang.float 2.),
-        Some "Polling delay when trying to connect to the stream." ;
+      "poll_delay", Lang.float_t, Some (Lang.float 2.),
+      Some "Polling delay when trying to connect to the stream." ;
 
-        "max", Lang.float_t, Some (Lang.float 10.),
-        Some "Maximum duration of the buffered data." ;
+      "max", Lang.float_t, Some (Lang.float 10.),
+      Some "Maximum duration of the buffered data." ;
 
-        "logfile", Lang.string_t, Some (Lang.string ""),
-        Some "Log buffer status to file, for debugging purpose. \
-              Disabled if empty." ;
+      "logfile", Lang.string_t, Some (Lang.string ""),
+      Some "Log buffer status to file, for debugging purpose. \
+            Disabled if empty." ;
 
-        "debug", Lang.bool_t, Some (Lang.bool false),
-        Some "Run in debugging mode, not catching some exceptions." ;
+      "debug", Lang.bool_t, Some (Lang.bool false),
+      Some "Run in debugging mode, not catching some exceptions." ;
 
-        "user_agent", Lang.string_t,
-        Some (Lang.string
-            (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
-                Configure.version Sys.os_type Sys.ocaml_version)),
-        Some "User agent." ;
+      "user_agent", Lang.string_t,
+      Some (Lang.string
+          (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
+              Configure.version Sys.os_type Sys.ocaml_version)),
+      Some "User agent." ;
 
-        "", Lang.string_t, None,
-        Some "URL of an http stream (default port is 80)." ]
-      (fun p _ ->
-         let playlist_mode =
-           let s = List.assoc "playlist_mode" p in
-             match Lang.to_string s with
-               | "random" -> Random
-               | "first" -> First
-               | "randomize" -> Randomize
-               | "normal" -> Normal
-               | _ ->
-                   raise
-                     (Lang.Invalid_value
-                        (s,
-                         "valid values are 'random', 'randomize', \
-                          'normal' and 'first'"))
-         in
-         let url = Lang.to_string (List.assoc "" p) in
-         let autostart = Lang.to_bool (List.assoc "autostart" p) in
-         let bind_address = Lang.to_string (List.assoc "bind_address" p) in
-         let user_agent = Lang.to_string (List.assoc "user_agent" p) in
-         let track_on_meta =
-           Lang.to_bool (List.assoc "new_track_on_metadata" p)
-         in
-         let debug = Lang.to_bool (List.assoc "debug" p) in
-         let logfile =
-           match Lang.to_string (List.assoc "logfile" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let bind_address =
-           match bind_address with
-             | "" -> None
-             | s -> Some s
-         in
-         let force_mime =
-           match Lang.to_string (List.assoc "force_mime" p) with
-             | "" -> None
-             | s  -> Some s
-         in
-         let bufferize = Lang.to_float (List.assoc "buffer" p) in
-         let timeout = Lang.to_float (List.assoc "timeout" p) in
-         let max = Lang.to_float (List.assoc "max" p) in
-         if bufferize > max then
-           raise (Lang.Invalid_value
-                    (List.assoc "max" p,
-                     "Maximun buffering inferior to pre-buffered data"));
-         let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
-           ((new http ~playlist_mode ~timeout ~autostart ~track_on_meta
-                      ~force_mime ~bind_address ~poll_delay
-                      ~bufferize ~max ~debug ~logfile ~user_agent url)
-              :> Source.source))
+      "", Lang.string_t, None,
+      Some "URL of an http stream (default port is 80)." ]
+    ~kind:Lang.audio_stereo
+    (fun p kind ->
+       let playlist_mode =
+         let s = List.assoc "playlist_mode" p in
+           match Lang.to_string s with
+             | "random" -> Random
+             | "first" -> First
+             | "randomize" -> Randomize
+             | "normal" -> Normal
+             | _ ->
+                 raise
+                   (Lang.Invalid_value
+                      (s,
+                       "valid values are 'random', 'randomize', \
+                        'normal' and 'first'"))
+       in
+       let url = Lang.to_string (List.assoc "" p) in
+       let autostart = Lang.to_bool (List.assoc "autostart" p) in
+       let bind_address = Lang.to_string (List.assoc "bind_address" p) in
+       let user_agent = Lang.to_string (List.assoc "user_agent" p) in
+       let track_on_meta =
+         Lang.to_bool (List.assoc "new_track_on_metadata" p)
+       in
+       let debug = Lang.to_bool (List.assoc "debug" p) in
+       let logfile =
+         match Lang.to_string (List.assoc "logfile" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let bind_address =
+         match bind_address with
+           | "" -> None
+           | s -> Some s
+       in
+       let force_mime =
+         match Lang.to_string (List.assoc "force_mime" p) with
+           | "" -> None
+           | s  -> Some s
+       in
+       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+       let timeout = Lang.to_float (List.assoc "timeout" p) in
+       let max = Lang.to_float (List.assoc "max" p) in
+       if bufferize > max then
+         raise (Lang.Invalid_value
+                  (List.assoc "max" p,
+                   "Maximun buffering inferior to pre-buffered data"));
+       let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
+         ((new http ~kind ~playlist_mode ~timeout ~autostart ~track_on_meta
+                    ~force_mime ~bind_address ~poll_delay
+                    ~bufferize ~max ~debug ~logfile ~user_agent url)
+            :> Source.source))

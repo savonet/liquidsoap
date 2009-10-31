@@ -26,7 +26,7 @@ sig
   val length : t -> int (* ticks *)
   val remaining : t -> int (* ticks *)
   val clear : t -> unit
-  val fill_frame : t -> Frame.t -> unit
+  val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
 end
 
@@ -77,13 +77,11 @@ object (self)
 
   method remaining =
     if should_fail then 0 else
-      begin
-        let r = self#length in
+      let r = self#length in
         Mutex.lock lock ;
         let l = Generator.remaining abg in
         Mutex.unlock lock ;
         if buffering && r <= bufferize then 0 else l
-      end
 
   method private get_frame ab =
     buffering <- false ;
@@ -94,7 +92,7 @@ object (self)
       Frame.add_break ab (Frame.position ab)
     end else begin
       Mutex.lock lock ;
-      Generator.fill_frame abg ab ;
+      Generator.fill abg ab ;
       (* Currently, we don't enter the buffering phase between tracks
        * even when there's not enough data in the buffer. This is mostly
        * historical because there was initially no track in the abg streams.
@@ -113,34 +111,15 @@ object (self)
 
 end
 
-(* Reads data from a fixed audio buffer generator,
- * assuming that it won't be feeded more after instantiation. *)
-class consumer abg =
+(* Reads data from a fixed audio buffer generator, of a certain kind.
+ * The generator shouldn't be fed anymore. *)
+class consumer ~kind abg =
 object
-  inherit Source.source
+  inherit Source.source kind
   inherit source abg ~bufferize:0. ~empty_on_abort:true
   method stype = Source.Fallible
 end
 
 end
 
-module From_Float_pcm_Generator =
-  Make(struct
-         type t = Float_pcm.Generator.t
-         let length x = Fmt.ticks_of_samples (Float_pcm.Generator.length x)
-         let remaining x = Float_pcm.Generator.remaining x
-         let clear = Float_pcm.Generator.clear
-         let add_metadata = Float_pcm.Generator.add_metadata
-         let fill_frame = Float_pcm.Generator.fill
-       end)
-
-module From_Raw_pcm_Generator =
-  Make(struct
-         type t = Float_pcm.Generator_from_raw.t
-         let length x =
-           Fmt.ticks_of_samples (Float_pcm.Generator_from_raw.length x)
-         let remaining x = Float_pcm.Generator_from_raw.remaining x
-         let clear = Float_pcm.Generator_from_raw.clear
-         let add_metadata = Float_pcm.Generator_from_raw.add_metadata
-         let fill_frame = Float_pcm.Generator_from_raw.fill
-       end)
+module From_Generator = Make(Generator)
