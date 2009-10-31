@@ -179,7 +179,7 @@ object (self)
           (* There is a track available,
            * but we don't know its duration
            * at this point. Hence, using default_duration. *)
-          queue_length + (Fmt.ticks_of_seconds default_duration)
+          queue_length + (Frame.master_of_seconds default_duration)
         else
           queue_length + remaining
 

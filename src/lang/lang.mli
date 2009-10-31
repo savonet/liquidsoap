@@ -85,7 +85,7 @@ val add_builtin_base :
   category:string ->
   descr:string ->
   ?flags:doc_flag list ->
-  string -> in_value -> kind -> unit
+  string -> in_value -> t -> unit
 
 (** Category of an operator. *)
 type category =

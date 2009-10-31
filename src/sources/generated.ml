@@ -37,7 +37,7 @@ struct
  * in parallel, using [lock] if not in the main thread.
  * Store [bufferize] seconds before declaring itself as ready. *)
 class virtual source ~bufferize ~empty_on_abort abg =
-  let bufferize = Fmt.ticks_of_seconds bufferize in
+  let bufferize = Frame.master_of_seconds bufferize in
 object (self)
 
   (** This allows heriting classes to access the generator. *)

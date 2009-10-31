@@ -129,5 +129,4 @@ let () =
        let source = List.assoc "" p in
          ((new output ~kind ~nb_blocks ~driver
                       ~infallible ~on_start ~on_stop
-                      ~infallible ~on_start ~on_stop
                       ~options source start):>Source.source))
