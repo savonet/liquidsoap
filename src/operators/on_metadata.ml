@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class on_metadata f s =
+class on_metadata ~kind f s =
 object (self)
-  inherit Source.operator [s]
+  inherit Source.operator kind [s]
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -43,6 +43,7 @@ object (self)
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "on_metadata"
     [ "",
       Lang.fun_t
@@ -51,10 +52,11 @@ let () =
       None,
       Some ("Function called on every metadata packet in the stream."^
             " It should be fast because it is ran in the main thread.") ;
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on metadata packets."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let f = Lang.assoc "" 1 p in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_metadata f s)
+         new on_metadata ~kind f s)

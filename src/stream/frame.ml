@@ -20,111 +20,298 @@
 
  *****************************************************************************)
 
-type float_pcm = float array
+(** Configuration entries *)
 
-type float_pcm_t = float (* samplerate *)
+module Conf = Dtools.Conf
 
-type track_t =
-  | Float_pcm_t of float_pcm_t
-  | Midi_t
-  | RGB_t
+let conf =
+  Conf.void ~p:(Configure.conf#plug "frame") "Frame format"
+    ~comments:[
+      "Settings for the data representation in frames, which are the" ;
+      "elementary packets of which streams are made."
+    ]
 
-type track =
-  | Float_pcm of (float_pcm_t * float_pcm)
-  | Midi of (int * Midi.event) list ref
-  | RGB of RGB.t array
+let conf_duration =
+  Conf.float ~p:(conf#plug "size") ~d:0.05
+    "Frame duration in seconds"
+    ~comments:[
+      "Tweaking this is tricky but needed when dealing with latency." ;
+      "It can also help to get ALSA correctly synchronized with liquidsoap" ;
+      "when used in non-buffered mode."
+    ]
 
+(* Audio *)
+let conf_audio =
+  Conf.void ~p:(conf#plug "audio") "Audio (PCM) format"
+let conf_audio_samplerate =
+  Conf.int ~p:(conf_audio#plug "samplerate") ~d:44100 "Samplerate"
+let conf_audio_channels =
+  Conf.int ~p:(conf_audio#plug "channels") ~d:2 "Default number of channels"
+
+(* Video *)
+let conf_video =
+  Conf.void ~p:(conf#plug "video") "Video format"
+let conf_video_samplerate =
+  Conf.int ~p:(conf_video#plug "samplerate") ~d:25 "Samplerate"
+let conf_video_channels =
+  Conf.int ~p:(conf_video#plug "channels") ~d:0 "Default number of channels"
+let conf_video_width = 
+  Conf.int ~p:(conf_video#plug "width") ~d:320 "Image width"
+let conf_video_height =
+  Conf.int ~p:(conf_video#plug "height") ~d:240 "Image height"
+
+(* MIDI *)
+let conf_midi =
+  Conf.void ~p:(conf#plug "midi") "MIDI parameters"
+let conf_midi_channels =
+  Conf.int ~p:(conf_midi#plug "channels") ~d:0 "Default number of channels"
+
+(** Format parameters *)
+
+(* The user can set some parameters in the initial configuration script.
+ * Once we start working with them, changing them again is dangerous.
+ * Since Dtools doesn't allow that, below is a trick to read the settings
+ * only once. Later changes will never be taken into account.
+ * TODO is it OK to use lazy or should we cook something thread-safe? *)
+
+let delayed = Lazy.lazy_from_fun
+let (!!) = Lazy.force
+
+(** The channel numbers are only defaults, used when channel numbers
+  * cannot be infered / are not forced from the context.
+  * I'm currently unsure how much they are really useful. *)
+
+let audio_channels = delayed (fun () -> conf_audio_channels#get)
+let video_channels = delayed (fun () -> conf_video_channels#get)
+let midi_channels = delayed (fun () -> conf_midi_channels#get)
+
+let video_width = delayed (fun () -> conf_video_width#get)
+let video_height = delayed (fun () -> conf_video_height#get)
+
+let audio_rate = delayed (fun () -> conf_audio_samplerate#get)
+let video_rate = delayed (fun () -> conf_video_samplerate#get)
+
+let rec gcd a b =
+  match compare a b with
+    | 0 (* a=b *) -> a
+    | 1 (* a>b *) -> gcd (a-b) b
+    | _ (* a<b *) -> gcd a (b-a)
+let lcm a b = (a*b) / gcd a b
+let upper_multiple k m =
+  if m mod k = 0 then m else (k+1)*(m/k)
+
+(** The master clock is the slowest possible that can convert to both
+  * the audio and video clocks. *)
+let master_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
+
+(** The frame size (in master ticks) should allow for an integer
+  * number of samples of all types (audio, video).
+  * With audio@44100Hz and video@25Hz, ticks=samples and one video
+  * sample takes 1764 ticks: we need frames of size N*1764. *)
+let size =
+  delayed (fun () ->
+             let audio = !!audio_rate in
+             let video = !!video_rate in
+             let master = !!master_rate in
+               upper_multiple
+                 (lcm (master/audio) (master/video))
+                 (max 1 (int_of_float (conf_duration#get *. float master))))
+let duration = delayed (fun () -> float !!size /. float !!master_rate)
+
+let audio_of_master m = m * !!audio_rate / !!master_rate
+let video_of_master m = m * !!video_rate / !!master_rate
+
+let master_of_audio a = a * !!master_rate / !!audio_rate
+let master_of_video v = v * !!master_rate / !!video_rate
+
+let master_of_seconds d = int_of_float (d *. float !!master_rate)
+let audio_of_seconds d = int_of_float (d *. float !!audio_rate)
+let video_of_seconds d = int_of_float (d *. float !!video_rate)
+
+let seconds_of_master d = float d /. float !!master_rate
+let seconds_of_audio d = float d /. float !!audio_rate
+let seconds_of_video d = float d /. float !!video_rate
+
+(** Data types *)
+
+type ('a,'b,'c) fields = {
+  audio : 'a ;
+  video : 'b ;
+  midi  : 'c
+}
+
+type multiplicity = Variable | Zero | Succ of multiplicity
+
+(** High-level, abstract and imprecise stream content type.
+  * This controls a changing content type.
+  * Currently there is no fine-grained control of the audio and
+  * video sample rates and sizes, they are global. *)
+type content_kind = (multiplicity,multiplicity,multiplicity) fields
+
+(** Precise description of the channel types for the current track. *)
+type content_type = (int,int,int) fields
+
+type content = (audio_t array, video_t array, midi_t array) fields
+and audio_t = float array
+and video_t = RGB.t array
+and midi_t  = (int*Midi.event) list ref
+
+(** Compatibilities between content kinds, types and values.
+  * [sub a b] if [a] is more permissive than [b]. *)
+
+let rec mul_sub_mul = function
+  | Variable, _ -> true
+  | Zero, Zero -> true
+  | Succ a, Succ b -> mul_sub_mul (a,b)
+  | _ -> false
+
+let rec mul_sub_int = function
+  | Variable, _ -> true
+  | Succ m, n when n>0 -> mul_sub_int (m,(n-1))
+  | Zero, 0 -> true
+  | _ -> false
+
+let mul_sub_mul a b = mul_sub_mul (a,b)
+let mul_sub_int a b = mul_sub_int (a,b)
+
+let kind_sub_kind a b =
+  mul_sub_mul a.audio b.audio &&
+  mul_sub_mul a.video b.video &&
+  mul_sub_mul a.midi b.midi
+
+let type_has_kind t k =
+  mul_sub_int k.audio t.audio &&
+  mul_sub_int k.video t.video &&
+  mul_sub_int k.midi t.midi
+
+let content_has_type c t =
+  Array.length c.audio = t.audio &&
+  Array.length c.video = t.video &&
+  Array.length c.midi = t.midi
+
+let type_of_content c =
+  { audio = Array.length c.audio ;
+    video = Array.length c.video ;
+    midi = Array.length c.midi }
+
+let type_of_kind k =
+  let rec aux def = function
+    | Variable -> max 0 def
+    | Zero -> 0
+    | Succ m -> 1 + (aux (def-1) m)
+  in
+    {
+      audio = aux !!audio_channels k.audio ;
+      video = aux !!video_channels k.video ;
+      midi = aux !!midi_channels k.video
+    }
+
+let rec mul_of_int x = if x<=0 then Zero else Succ (mul_of_int (x-1))
+
+let string_of_mul m =
+  let rec aux acc = function
+    | Succ m -> aux (acc+1) m
+    | Zero -> string_of_int acc
+    | Variable -> string_of_int acc ^ "+"
+  in
+    aux 0 m
+
+let string_of_content_kind k =
+  Printf.sprintf
+    "{audio=%s;video=%s;midi=%s}"
+    (string_of_mul k.audio)
+    (string_of_mul k.video)
+    (string_of_mul k.midi)
+
+(* Frames *)
+
+(** A metadata is just a mutable hash table.
+  * It might be a good idea to straighten that up in the future. *)
 type metadata = (string,string) Hashtbl.t
 
 type t =
-    {
-      freq : int; (* ticks per second *)
-      length : int; (* length in ticks *)
-      mutable tracks : track array;
-      (* End of track markers.
-       * A break at the end of the buffer is not an end of track.
-       * So maybe we should rather call that an end-of-fill marker,
-       * and notice that end-of-fills in the middle of a buffer are
-       * end-of-tracks.
-       * If needed, the end-of-track needs to be put at the beginning of
-       * the next frame. *)
-      mutable breaks : int list;
-      (* Metadata can be put anywhere in the stream. *)
-      mutable metadata : (int * metadata) list
-    }
-
-let create_track freq length = function
-  | Float_pcm_t f ->
-      let len =
-        if int_of_float f = freq then
-          length
-        else
-          int_of_float (((float length) /. (float freq)) *. f)
-      in
-        Float_pcm (f, Array.create len 0.)
-  | Midi_t ->
-      Midi (ref (Midi.create_track ()))
-  | RGB_t ->
-      RGB (Array.init
-             (Fmt.video_frames_per_frame ())
-             (fun _ -> RGB.create (Fmt.video_width ()) (Fmt.video_height ())))
-
-let create kind ~freq ~length =
   {
-    freq = freq;
-    length = length;
-    tracks = Array.map (create_track freq length) kind;
-    breaks = [];
-    metadata = [];
+    (* End of track markers.
+     * A break at the end of the buffer is not an end of track.
+     * So maybe we should rather call that an end-of-fill marker,
+     * and notice that end-of-fills in the middle of a buffer are
+     * end-of-tracks.
+     * If needed, the end-of-track needs to be put at the beginning of
+     * the next frame. *)
+    mutable breaks : int list ;
+
+    (* Metadata can be put anywhere in the stream. *)
+    mutable metadata : (int * metadata) list ;
+
+    (* The actual content can represent several tracks in one content
+     * chunk, for efficiency, but may also be split in several chunks
+     * of different content_type. Each chunk has an end position, after
+     * which data should be considered as undefined.
+     * Chunks can be seen as layers: they all have the same (full) size,
+     * and data goes from one to the other. For example: [5,A;2,B;3,C] is
+     * A = 0 1 2 3 4 . . . . .
+     * B = . . . . . 5 6 . . .
+     * C = . . . . . . . 7 8 9 where "." is an undefined sample.
+     * This representation is slightly costly in memory (but several
+     * chunks shouldn't happen too often) but is very convenient to
+     * handle; notably, there's no need to pass offsets around. *)
+    mutable contents : (int*content) list ;
+
+    content_kind : content_kind (* only used for checking/debugging *)
   }
 
-(* Create a standard frame. *)
-let make () =
-  let audio =
-    Array.init (Fmt.channels ())
-      (fun _ ->
-         Float_pcm_t (float (Fmt.samples_per_second()))
-      )
-  in
-  let video =
-    Array.init (Fmt.video_channels ()) (fun _ -> RGB_t)
-  in
-  let midi =
-    Array.init (Fmt.midi_channels ()) (fun _ -> Midi_t)
-  in
-    create
-      (Array.append (Array.append audio video) midi)
-      (Fmt.ticks_per_second ())
-      (Fmt.ticks_per_frame ())
+(** Create a content chunk. All chunks have the same size. *)
+let create_content content_type =
+  {
+    audio =
+      Array.init content_type.audio
+        (fun i ->
+           Array.create (audio_of_master !!size) 0.) ;
+    video =
+      Array.init content_type.video
+        (fun i ->
+           Array.init (video_of_master !!size)
+             (fun _ -> RGB.create !!video_width !!video_height)) ;
+    midi =
+      Array.init content_type.midi (fun _ -> ref (Midi.create_track ()))
+  }
 
 
-let kind_of_track = function
-  | Float_pcm (t, _) -> Float_pcm_t t
-  | Midi _ -> Midi_t
-  | RGB _ -> RGB_t
+let create kind =
+  {
+    breaks = [] ;
+    metadata = [] ;
+    content_kind = kind ;
+    contents = [!!size, create_content (type_of_kind kind)]
+  }
 
-let kind b = Array.map kind_of_track b.tracks
-
-let get_tracks b = b.tracks
-
-let add_track b t =
-  b.tracks <- Array.append [|t|] b.tracks
-
-let duration b = (float b.length) /. (float b.freq)
-
-let size b = b.length
+(** Content independent *)
 
 let position b =
   match b.breaks with
     | [] -> 0
     | a::_ -> a
 
-let is_partial b = position b < size b
-let clear b = b.breaks <- []; b.metadata <- []
+let is_partial b = position b < !!size
+
+let breaks b = b.breaks
+let set_breaks b breaks = b.breaks <- breaks
+let add_break b br = b.breaks <- br::b.breaks
+
+let rec last = function
+  | [] -> assert false
+  | [x] -> x
+  | _::l -> last l
+
+(* When clearing a buffer, only the last content chunk is kept. *)
+let clear b =
+  b.contents <- [last b.contents] ;
+  b.breaks <- [] ; b.metadata <- []
 
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
   b.breaks <- [] ;
+  b.contents <- [last b.contents] ;
   let max a (p,m) =
     match a with Some (pa,ma) when pa > p -> a | _ -> Some (p,m)
   in
@@ -136,10 +323,6 @@ let advance b =
       match last None b.metadata with
         | None -> []
         | Some (_,e) -> [-1,e]
-
-let breaks b = b.breaks
-let set_breaks b breaks = b.breaks <- breaks
-let add_break b br = b.breaks <- br::b.breaks
 
 (** Metadata stuff *)
 
@@ -158,38 +341,93 @@ let get_past_metadata b =
   try Some (List.assoc (-1) b.metadata) with Not_found -> None
 
 
-(** Chunks *)
-exception No_chunk
+(** Operations on the contents *)
+
+(* When accessing content only for reading, or for chaning samples
+ * in place, one does not choose the content type.
+ * When accessing for writing, one chooses it, which possibly triggers a
+ * layout change. *)
+
+(** Get the current content of a frame at a given position.
+  * Independently of breaks, this content may only be valid until some
+  * end position (that is returned together with the content) in case
+  * the frame content type is not fixed.
+  * Calling this function requires the caller to handle all possible
+  * content types allowed by the frame kind, and never affects
+  * the contents layout. *)
+let content frame pos =
+  let rec aux = function
+    | [] -> assert false
+    | (end_pos,content)::l ->
+        if end_pos<pos then aux l else end_pos,content
+  in
+    aux frame.contents
+
+(** Get the content for a given position and type in a frame.
+  * Calling this function may trigger a change of the contents layout,
+  * if the current content type at the given position is not the required
+  * one. Hence, the caller of this function should always assume the
+  * invalidation of all data after the given position. *)
+let content_of_type frame pos content_type =
+  let rec aux acc = function
+    | [] -> assert false
+    | (end_pos,content)::l ->
+        if end_pos<pos then aux ((end_pos,content)::acc) l else
+          if content_has_type content content_type then content else begin
+            assert (type_has_kind content_type frame.content_kind) ;
+            let acc = (pos,content)::acc in
+            let content = create_content content_type in
+              frame.contents <- List.rev ((!!size, content)::acc) ;
+              content
+          end
+  in
+    aux [] frame.contents
 
 external float_blit : float array -> int -> float array -> int -> int -> unit
      = "caml_float_array_blit"
 
+let iter2 a b f =
+  assert (Array.length a = Array.length b) ;
+  for i = 0 to Array.length a - 1 do
+    f a.(i) b.(i)
+  done
+
+let blit_content src src_pos dst dst_pos len =
+  iter2 src.audio dst.audio
+    (fun a a' ->
+       let (!) = audio_of_master in
+         float_blit a !src_pos a' !dst_pos !len) ;
+  iter2 src.video dst.video
+    (fun v v' ->
+       let (!) = video_of_master in
+         for i = 0 to !len-1 do
+           RGB.blit_fast v.(!src_pos+i) v'.(!dst_pos+i)
+         done) ;
+  iter2 src.midi dst.midi (fun m m' -> m' := !m)
+
+(** Copy data from [src] to [dst].
+  * This triggers changes of contents layout if needed. *)
 let blit src src_pos dst dst_pos len =
   (* Assuming that the tracks have the same track layout,
    * copy a chunk of data from [src] to [dst]. *)
-  for j = 0 to Array.length src.tracks - 1 do
-    match src.tracks.(j), dst.tracks.(j) with
-      | Float_pcm (f, a), Float_pcm (f', a') ->
-          assert (f = f' && src.freq = dst.freq) ;
-          let r = f /. float src.freq in
-          let c x = int_of_float (float x *. r) in
-            float_blit a (c src_pos) a' (c dst_pos) (c len)
-      | Midi m, Midi m' -> m' := !m (* TODO: use parameters.... *)
-      | RGB src, RGB dst ->
-          (* TODO: handle offsets! *)
-          for i = 0 to Array.length src - 1 do
-            RGB.blit_fast src.(i) dst.(i)
-          done
-      | _, _ -> assert false
-  done
+  let end_pos,src = content src src_pos in
+  (* We want the data in one chunk. *)
+  assert (src_pos + len <= end_pos) ;
+  (* Get a compatible chunk in [dst]. *)
+  let dst = content_of_type dst dst_pos (type_of_content src) in
+    blit_content src src_pos dst dst_pos len
 
 let log = Dtools.Log.make ["frame"]
 
-(* Get the (end of) next chunk from [from].
- * A chunk is a region of a frame between two breaks.
- * Metadata relevant to the copied chunk is copied as well. *)
+exception No_chunk
+
+(** Get the (end of) next chunk from [from].
+  * A chunk is a region of a frame between two breaks.
+  * Metadata relevant to the copied chunk is copied as well,
+  * and content layout is changed if needed. *)
 let get_chunk ab from =
   assert (is_partial ab);
+  assert (kind_sub_kind ab.content_kind from.content_kind);
   let p = position ab in
   let copy_chunk i =
     add_break ab i ;
@@ -218,7 +456,7 @@ let get_chunk ab from =
       (fun (mp,m) ->
          if p<=mp && mp<i then
            set_metadata ab mp m)
-      from.metadata ;
+      from.metadata
   in
   let rec aux foffset f =
     (* We always have p >= foffset *)
@@ -226,7 +464,7 @@ let get_chunk ab from =
       | [] -> raise No_chunk
       | i::tl ->
           (* Breaks are between ticks, they do range from 0 to size. *)
-          assert (0<=i && i<=(size ab));
+          assert (0 <= i && i <= !!size);
           if i = 0 && ab.breaks = [] then
             (* The only empty track that we copy,
              * trying to copy empty tracks in the middle could be useful
@@ -239,57 +477,3 @@ let get_chunk ab from =
             aux i tl
   in
     aux 0 (List.rev from.breaks)
-
-let fill_from_marshal stream frame =
-    assert(is_partial frame);
-    let cur_pos = position frame in
-    (* Yes, this might lose some data.
-     * However, it is very simple this way,
-     * and avoid either a local buffer or a
-     * send->receive paradigm with the other end.. *)
-    let rec get () =
-      let (nframe : t) = Marshal.from_channel stream in
-      if position nframe < cur_pos then
-        get ()
-      else
-        nframe
-    in
-    let nframe = get () in
-    let new_pos = position nframe in
-    let len = new_pos - cur_pos in
-    blit nframe cur_pos frame cur_pos len;
-    let new_meta = get_all_metadata nframe in
-    let cur_meta = get_all_metadata frame in
-    let add_meta (p,m) =
-      match p with
-        (* Last kept metadata should always be the more recent as possible.. *)
-        | -1 ->
-             if not (List.mem_assoc (-1)
-                      (get_all_metadata frame))
-             then
-               set_metadata frame (-1) m
-        | p when p >= cur_pos ->
-             set_metadata frame p m
-        (** The perfectionist's addition:
-          * Add a metadata in the worst case.. *)
-        | p when
-              (* No old metadata *)
-              cur_meta = [] &&
-              (* No new metadata, or kept metadata *)
-              not (List.exists
-                     (fun (x,_) -> (x >= cur_pos) || (x = -1))
-                     new_meta) &&
-              (* No metadata was already added at cur_pos.. *)
-              not (List.mem_assoc cur_pos
-                    (get_all_metadata frame))
-                        ->
-             (* Add this metadata at cur_pos. Since
-              * the list starts with the oldest one,
-              * this should always add the latest one,
-              * though I doubt another situation will
-              * ever happen.. *)
-             set_metadata frame cur_pos m
-        | _ -> ()
-    in
-    List.iter add_meta new_meta;
-    add_break frame new_pos

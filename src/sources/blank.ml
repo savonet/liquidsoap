@@ -22,51 +22,67 @@
 
 open Source
 
-class blank duration =
-  let nb_samples =
-    if duration = 0. then -1 else Fmt.samples_of_seconds duration
+class blank ~kind duration =
+  let ticks =
+    if duration = 0. then -1 else Frame.master_of_seconds duration
   in
-object
-  inherit source
+  (* The kind should not allow a variable number of channels,
+   * so it can directly be seen as a type. *)
+  let content_type = Frame.type_of_kind kind in
+object (self)
+  inherit source ~name:"blank" kind
   method stype = Infallible
   method is_ready = true
 
-  (** Remaining number of samples, -1 for infinity. *)
-  val mutable remaining = nb_samples
-  method remaining = Fmt.ticks_of_samples remaining
+  (** Remaining time, -1 for infinity. *)
+  val mutable remaining = ticks
+  method remaining = remaining
 
   method abort_track = remaining <- 0
 
   method get_frame ab =
-    let position = AFrame.position ab in
-    let size =
+    let position = Frame.position ab in
+    let length =
       if remaining < 0 then
-        AFrame.size ab
+        Lazy.force Frame.size - position
       else
-        min (position + remaining) (AFrame.size ab)
+        min remaining (Lazy.force Frame.size - position)
     in
-      Float_pcm.blankify (AFrame.get_float_pcm ab) position (size-position) ;
-      AFrame.add_break ab size ;
+    let content = Frame.content_of_type ab position content_type in
+    let video_pos = Frame.video_of_master position in
+      (* Audio *)
+      Float_pcm.blankify content.Frame.audio
+        (Frame.audio_of_master position)
+        (Frame.audio_of_master length) ;
+      (* Video *)
+      Array.iter
+        (fun a ->
+           for i = 0 to Frame.video_of_master length - 1 do
+             RGB.blank a.(video_pos+i)
+           done)
+        content.Frame.video ;
+      Frame.add_break ab (position+length) ;
       if remaining = 0 then
-        remaining <- nb_samples
+        remaining <- ticks
       else if remaining > 0 then
-        remaining <- remaining - size + position
+        remaining <- remaining - length
 end
 
 let () =
   Lang.add_operator
     "blank"
     ~category:Lang.Input
-    ~descr:"Produce silence."
+    ~descr:"Produce silence and blank images."
+    ~kind:Lang.audio_any
     [ "duration", Lang.float_t, Some (Lang.float 0.),
       Some "Duration of blank tracks in seconds, default means forever." ]
-    (fun p _ ->
+    (fun p kind ->
        let d = Lang.to_float (List.assoc "duration" p) in
-         ((new blank d):>source))
+         ((new blank ~kind d):>source))
 
-class empty =
-object
-  inherit source
+class empty ~kind =
+object (self)
+  inherit source ~name:"empty" kind
   method stype = Fallible
   method is_ready = false
   method remaining = 0
@@ -74,4 +90,17 @@ object
   method get_frame ab = assert false
 end
 
-let empty = ((new empty):>source)
+let empty kind = ((new empty kind):>source)
+
+let () =
+  let audio = Lang.univ_t 1 in
+  let video = Lang.univ_t 2 in
+  let midi  = Lang.univ_t 3 in
+  Lang.add_operator
+    "empty"
+    ~category:Lang.Input
+    ~descr:"A source that does not produce anything. \
+            No silence, no track at all."
+    ~kind:(Lang.Unconstrained (Lang.frame_kind_t ~audio ~video ~midi))
+    []
+    (fun _ kind -> ((new empty ~kind):>source))

@@ -1,5 +1,6 @@
-(** This module is a wrapper around Frame,
-  * which turns all units to frames instead of ticks. *)
+(** Specialization of Frame for content kinds restricted to audio,
+  * with a fixed number of channels.
+  * All units are in audio samples instead of master clock ticks. *)
 
 (** {2 Types} *)
 
@@ -8,13 +9,13 @@ type t = Frame.t
 (** {2 Basic manipulation} *)
 
 (** Duration in seconds. *)
-val duration : t -> float
+val duration : unit -> float
 
 (** {2 Breaks}
   * Breaks are track limits.
   * Everything below is in samples. *)
 
-val size       : t -> int
+val size       : unit -> int
 val position   : t -> int
 val breaks     : t -> int list
 val add_break  : t -> int -> unit
@@ -49,10 +50,8 @@ val get_chunk : t -> t -> unit
 
 (** {2 Helpers} *)
 
-(** Direct access to a track, assuming that it's PCM float. *)
-val get_float_pcm : t -> float array array
-
-val get_s16le_length : t -> int
+(** Get the PCM data, for access after a given offset. *)
+val get_float_pcm : t -> int -> float array array
 
 val to_s16le : t -> string
 

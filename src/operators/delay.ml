@@ -25,9 +25,9 @@
 
 open Source
 
-class delay (source:source) delay =
+class delay ~kind (source:source) delay =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = Fallible
   method remaining = source#remaining
@@ -51,17 +51,19 @@ object (self)
 end
 
 let () = 
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "delay"
     [ "", Lang.float_t, None,
-      (Some ("The source won't be ready less than this amount of seconds "^
-             "after any end of track")) ;
-      "", Lang.source_t, None, None
+      Some "The source won't be ready less than this amount of seconds \
+            after any end of track" ;
+      "", Lang.source_t kind, None, None
     ]
     ~category:Lang.TrackProcessing
-    ~descr:("Prevents the child from being ready again too fast after "^
-            "a end of track")
-    (fun p _ ->
+    ~descr:"Prevents the child from being ready again too fast after \
+            a end of track"
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let f n = Lang.assoc "" n p in
        let d = Lang.to_float (f 1) in
        let s = Lang.to_source (f 2) in
-         new delay s d)
+         new delay ~kind s d)

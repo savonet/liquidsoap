@@ -92,6 +92,100 @@
     let args = List.map (fun x -> "", mk (Int x)) [a;b;c] in
       mk (App (mk (Var "time_in_mod"), args))
 
+  let mk_wav params =
+    let defaults = { Encoder.WAV.stereo = true } in
+    let wav =
+      List.fold_left
+        (fun f ->
+          function
+            | ("stereo",{ term = Bool b }) ->
+                { Encoder.WAV.stereo = b }
+            | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+                { Encoder.WAV.stereo = true }
+            | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+                { Encoder.WAV.stereo = false }
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      mk (Encoder (Encoder.WAV wav))
+
+  let mk_mp3 params =
+    let defaults =
+      { Encoder.MP3.
+          stereo = true ;
+          samplerate = 44100 ;
+          bitrate = 128 ;
+          quality = 5 }
+    in
+    let mp3 =
+      List.fold_left
+        (fun f ->
+          function
+            | ("stereo",{ term = Bool b }) ->
+                { f with Encoder.MP3.stereo = b }
+            | ("samplerate",{ term = Int i }) ->
+                { f with Encoder.MP3.samplerate = i }
+            | ("bitrate",{ term = Int i }) ->
+                { f with Encoder.MP3.bitrate = i }
+            | ("quality",{ term = Int q }) ->
+                { f with Encoder.MP3.quality = q }
+
+            | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+                { f with Encoder.MP3.stereo = false }
+            | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+                { f with Encoder.MP3.stereo = true }
+
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      mk (Encoder (Encoder.MP3 mp3))
+
+  let mk_vorbis params =
+    let defaults =
+      { Encoder.Vorbis.
+          mode = Encoder.Vorbis.VBR ;
+          stereo = true ;
+          samplerate = 44100 ;
+          quality = 2. ;
+          skeleton = false }
+    in
+    let vorbis =
+      List.fold_left
+        (fun f ->
+          function
+            | ("stereo",{ term = Bool b }) ->
+                { f with Encoder.Vorbis.stereo = b }
+            | ("skeleton",{ term = Bool b }) ->
+                { f with Encoder.Vorbis.skeleton = b }
+            | ("samplerate",{ term = Int i }) ->
+                { f with Encoder.Vorbis.samplerate = i }
+            | ("quality",{ term = Float q }) ->
+                { f with Encoder.Vorbis.quality = q }
+            | ("quality",{ term = Int i }) ->
+                { f with Encoder.Vorbis.quality = float_of_int i }
+
+            | ("",{ term = Var "skeleton" }) ->
+                { f with Encoder.Vorbis.skeleton = true }
+            | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+                { f with Encoder.Vorbis.stereo = false }
+            | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+                { f with Encoder.Vorbis.stereo = true }
+
+            | ("mode",{ term = Var s })
+            | ("",{ term = Var s }) when String.lowercase s = "vbr" ->
+                { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR }
+            | ("mode",{ term = Var s })
+            | ("",{ term = Var s }) when String.lowercase s = "cbr" ->
+                { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR }
+            | ("mode",{ term = Var s })
+            | ("",{ term = Var s }) when String.lowercase s = "abr" ->
+                { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR }
+
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      mk (Encoder (Encoder.Ogg [Encoder.Ogg.Vorbis vorbis]))
+
 %}
 
 %token <string> VAR
@@ -103,6 +197,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
+%token VORBIS WAV MP3
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -161,6 +256,9 @@ expr:
   | FLOAT                            { mk (Float  $1) }
   | STRING                           { mk (String $1) }
   | list                             { mk (List $1) }
+  | VORBIS app_opt                   { mk_vorbis $2 }
+  | MP3 app_opt                      { mk_mp3 $2 }
+  | WAV app_opt                      { mk_wav $2 }
   | LPAR RPAR                        { mk Unit }
   | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
   | VAR                              { mk (Var $1) }
@@ -205,6 +303,9 @@ cexpr:
   | FLOAT                            { mk (Float  $1) }
   | STRING                           { mk (String $1) }
   | list                             { mk (List $1) }
+  | VORBIS app_opt                   { mk_vorbis $2 }
+  | MP3 app_opt                      { mk_mp3 $2 }
+  | WAV app_opt                      { mk_wav $2 }
   | LPAR RPAR                        { mk Unit }
   | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
   | VAR                              { mk (Var $1) }
@@ -298,3 +399,7 @@ if_elsif:
                                                        "then",then_b])))) }
   | ELSE exprs                      { mk ~pos:(1,2) (Fun([],$2)) }
   |                                 { mk (Fun ([],mk Unit)) }
+
+app_opt:
+  | { [] }
+  | LPAR app_list RPAR { $2 }

@@ -37,6 +37,12 @@ let conf_buffer_length =
     ]
     "Duration of the decoding buffer, in seconds"
 
+(* WARNING I removed buffer_length (unit -> int) because it was
+ *   returning samples. In the future we still need a similar function
+ *   but it will be in ticks. For now, let us force ourselves to think
+ *   of it by migrating all [buffer_length ()] to [conf_buffer_length#get]
+ *   and doing the proper conversions. *)
+
 let log = Log.make ["decoder"]
 
 (** A decoder is a filling function and a closing function,
@@ -47,14 +53,9 @@ type decoder = {
 }
 
 (** Plugins are given filenames and return a decoder, if possible. *)
-let formats : (string -> decoder option) Plug.plug =
+let formats : (string -> Frame.content_kind -> decoder option) Plug.plug =
   Plug.create
     ~doc:"Method to read audio files." ~insensitive:true "audio file formats"
-
-(** How much data (in standard samples) should we decode in advance ?
-  * This value affects the accuracy of the remaining time estimations. *)
-let buffer_length () =
-  int_of_float ((conf_buffer_length#get) *. float (Fmt.samples_per_second ()))
 
 let dummy =
   { fill = (fun b ->
@@ -62,30 +63,30 @@ let dummy =
       0) ;
     close = (fun _ -> ()) }
 
-exception Exit of (string * (string -> decoder option))
+exception Exit of (string * (string -> Frame.content_kind -> decoder option))
 (** Get a valid decoder creator for [filename].
   * The validity is not based on file extension but only on success of the
   * decoder instantiation.
   * Being based on file extension is weak, and troublesome when accessing a
   * remote file -- that would force us to create a local temporary file with the
   * same extension. *)
-let search_valid filename : (string*(unit -> decoder)) option =
+let search_valid filename kind : (string*(unit -> decoder)) option =
   try
     formats#iter ~rev:true 
       (fun format decoder ->
          log#f 4 "Trying %s decoder for %S..." format filename ;
-         match decoder filename with
+         match decoder filename kind with
            | Some d ->
                d.close () ;
                log#f 3 "Decoder %s chosen for %S." format filename ;
-               raise (Exit (format,decoder))
+               raise (Exit (format, decoder))
            | None  -> ()) ;
     log#f 3 "Unable to decode %S!" filename ;
     None
   with
     | Exit (format,d) ->
         Some (format,fun () ->
-                match d filename with
+                match d filename kind with
                   | None ->
                       log#f 2 "Decoder %s betrayed us on %S!" format filename ;
                       dummy

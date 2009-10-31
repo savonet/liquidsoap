@@ -22,9 +22,9 @@
 
 open Source
 
-class id (source:source) =
+class id ~kind (source:source) =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
@@ -38,12 +38,14 @@ object (self)
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "id"
-    ["", Lang.source_t, None, None]
+    ["", Lang.source_t kind, None, None]
     ~category:Lang.SoundProcessing
     ~descr:"Identity: does not do anything."
     ~flags:[Lang.Hidden]
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new id src)
+         new id ~kind src)

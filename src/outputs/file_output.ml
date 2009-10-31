@@ -20,23 +20,27 @@
 
  *****************************************************************************)
 
-class virtual to_file
+class file_output
   ~reload_delay ~reload_predicate ~reload_on_metadata
-  ~append ~perm ~dir_perm filename =
+  ~append ~perm ~dir_perm filename
+  ~infallible ~on_start ~on_stop ~autostart
+  ~encoder_factory ~kind source =
 object (self)
 
-  method virtual log : Dtools.Log.t
-  method virtual output_start : unit
-  method virtual output_stop  : unit
+  inherit
+    Output.encoded
+      ~infallible ~on_start ~on_stop ~autostart
+      ~output_kind:"to_file" ~name:filename
+      ~content_kind:kind source
 
   val mutable fd = None
+  val mutable encoder = None
   val mutable open_date = 0.
   val mutable current_metadata = fun _ -> raise Not_found
 
-  method set_metadata m = current_metadata <- m
-
-  method file_start =
-    assert (fd = None) ;
+  method output_start =
+    assert (fd = None && encoder = None) ;
+    encoder <- Some (encoder_factory ()) ;
     let mode =
       Open_wronly::Open_creat::
       (if append then [Open_append] else [Open_trunc])
@@ -58,81 +62,142 @@ object (self)
       open_date <- Unix.gettimeofday () ;
       fd <- Some chan
 
-  method file_stop =
-    match fd with
-      | None -> assert false
-      | Some v -> close_out v ; fd <- None
+  method output_stop =
+    let flush = (Utils.get_some encoder).Encoder.stop () in
+      self#send flush ;
+      close_out (Utils.get_some fd) ;
+      fd <- None ;
+      encoder <- None
 
   method output_reset = ()
 
   val mutable need_close = false
   val mutable closing = false
 
-  (** TODO
-    * This actually relies on vorbis. After a reset_metadata we know that we can
-    * split the file, which is not the case otherwise. But for other encoders
-    * a split might be impossible. *)
+  method encode frame ofs len =
+    let enc = Utils.get_some encoder in
+      enc.Encoder.encode frame ofs len
+
   method send b =
     output_string (Utils.get_some fd) b ;
     if not closing then
       if need_close then begin
         need_close <- false ;
         self#log#f 3 "Re-opening output file..." ;
-        self#file_stop ;
-        self#file_start
+        self#output_stop ;
+        self#output_start
       end else
         if Unix.gettimeofday () > reload_delay +. open_date then
           if Lang.to_bool (Lang.apply reload_predicate []) then begin
             self#log#f 3 "Re-opening output file..." ;
-            (* output_stop can trigger #send, take care to avoid loops *)
+            (* #output_stop can trigger #send,
+             * the [closing] flag avoids loops *)
             closing <- true ;
             self#output_stop ;
             self#output_start ;
             closing <- false
           end
 
-  method private on_reset_encoder =
-    if reload_on_metadata then need_close <- true
+  method reset_encoder m =
+    (** NOTE: reload_on_metadata relies on vorbis.
+      * After a new metadata we know that we can split the file (and we
+      * can do it only after a metadata change.
+      * But for other encoders a split might be impossible anyways. *)
+    if reload_on_metadata then need_close <- true ;
+    current_metadata <- (Hashtbl.find (Hashtbl.copy m)) ;
+    (Utils.get_some encoder).Encoder.reset m
 
 end
 
-let proto = [
-  "append",
-  Lang.bool_t,
-  Some (Lang.bool false),
-  Some "Do not truncate but append in the file if it exists." ;
+let () =
+  let kind = Lang.univ_t 1 in
+  Lang.add_operator "output.file"
+    (Output.proto @ [
+       "append",
+       Lang.bool_t,
+       Some (Lang.bool false),
+       Some "Do not truncate but append in the file if it exists." ;
+  
+       "perm",
+       Lang.int_t,
+       Some (Lang.int 0o666),
+       Some "Permission of the file if it has to be created, up to umask. \
+             You can and should write this number in octal notation: 0oXXX. \
+             The default value is however displayed in decimal \
+             (0o666 = 6*8^2 + 6*8 + 6 = 438)." ;
+  
+       "dir_perm",
+       Lang.int_t,
+       Some (Lang.int 0o777),
+       Some "Permission of the directories if some have to be created, \
+             up to umask. Although you can enter values in octal notation \
+             (0oXXX) they will be displayed in decimal (for instance, \
+             0o777 = 7*8^2 + 7*8 + 7 = 511)." ;
+  
+       "reopen_delay", Lang.float_t, Some (Lang.float 120.),
+       Some "Prevent re-opening of the file within that delay, in seconds." ;
+  
+       "reopen_on_metadata", Lang.bool_t, Some (Lang.bool false),
+       Some "Re-open on every new metadata information." ;
+  
+       "reopen_when", Lang.fun_t [] Lang.bool_t,
+       Some (Lang.val_cst_fun [] (Lang.bool false)),
+       Some "When should the output file be re-opened." ;
 
-  "perm",
-  Lang.int_t,
-  Some (Lang.int 0o666),
-  Some "Permission of the file if it has to be created, up to umask. \
-        You can and should write this number in octal notation: 0oXXX. \
-        The default value is however displayed in decimal \
-        (0o666 = 6*8^2 + 6*8 + 6 = 438)." ;
+       "",
+       Lang.format_t kind,
+       None,
+       Some "Encoding format." ;
 
-  "dir_perm",
-  Lang.int_t,
-  Some (Lang.int 0o777),
-  Some "Permission of the directories if some have to be created, \
-        up to umask. Although you can enter values in octal notation \
-        (0oXXX) they will be displayed in decimal (for instance, \
-        0o777 = 7*8^2 + 7*8 + 7 = 511)." ;
+       "",
+       Lang.string_t,
+       None,
+       Some "Filename where to output the stream. \
+             Some strftime conversion specifiers are available: \
+             <code>%SMHdmY</code>. You can also use <code>$(..)</code> \
+             interpolation notation for metadata." ;
 
-  "reopen_delay", Lang.float_t, Some (Lang.float 120.),
-  Some "Prevent re-opening of the file within that delay, in seconds." ;
-
-  "reopen_on_metadata", Lang.bool_t, Some (Lang.bool false),
-  Some "Re-open on every new metadata information." ;
-
-  "reopen_when", Lang.fun_t [] Lang.bool_t,
-  Some (Lang.val_cst_fun [] (Lang.bool false)),
-  Some "When should the output file be re-opened." ;
-
-  "",
-  Lang.string_t,
-  None,
-  Some "Filename where to output the stream. \
-        Some strftime conversion specifiers are available: \
-        <code>%SMHdmY</code>. You can also use <code>$(..)</code> \
-        interpolation notation for metadata." ;
-]
+       "", Lang.source_t kind, None, None ])
+    ~kind:(Lang.Unconstrained kind)
+    ~category:Lang.Output
+    ~descr:"Output the source stream in a file."
+    (fun p _ ->
+       let e f v = f (List.assoc v p) in
+       (* Output settings *)
+       let autostart = e Lang.to_bool "start" in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       (* File settings *)
+       let append = Lang.to_bool (List.assoc "append" p) in
+       let perm = Lang.to_int (List.assoc "perm" p) in
+       let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
+       let reload_predicate = List.assoc "reopen_when" p in
+       let reload_delay = Lang.to_float (List.assoc "reopen_delay" p) in
+       let reload_on_metadata =
+         Lang.to_bool (List.assoc "reopen_on_metadata" p)
+       in
+       (* Main stuff *)
+       let format_val = Lang.assoc "" 1 p in
+       let format = Lang.to_format format_val in
+       let encoder_factory =
+         try
+           Encoder.get_factory format
+         with
+           | Not_found ->
+               raise (Lang.Invalid_value (format_val,"Unsupported format"))
+       in
+       let filename = Lang.to_string (Lang.assoc "" 2 p) in
+       let source = Lang.assoc "" 3 p in
+       let kind = Encoder.kind_of_format format in
+         ((new file_output
+             filename ~append ~perm ~dir_perm
+             ~infallible ~on_start ~on_stop
+             ~reload_delay ~reload_predicate ~reload_on_metadata
+             ~autostart ~encoder_factory ~kind source):>Source.source))

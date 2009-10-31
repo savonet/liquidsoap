@@ -88,8 +88,8 @@ let decoder os =
 let () = Ogg_demuxer.ogg_decoders#register "theora" (check,decoder)
 
 let create_encoder ~quality ~metadata () =
-  let frame_x = Fmt.video_width () in
-  let frame_y = Fmt.video_height () in
+  let frame_x = Lazy.force Frame.video_width in
+  let frame_y = Lazy.force Frame.video_height in
   (* Theora has a divisible-by-sixteen restriction for the encoded video size. *)
   (* Scale the frame size up to the nearest /16 and calculate offsets. *)
   let video_x = ((frame_x + 15) lsr 4) lsl 4 in

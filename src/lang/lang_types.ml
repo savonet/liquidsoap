@@ -70,9 +70,11 @@ let print_pos ?(prefix="At ") (start,stop) =
 
 (** Ground types *)
 
-type ground = Unit | Bool | Int | String | Float | Source | Request
+type mul = Frame.multiplicity
+type ground =
+  | Unit | Bool | Int | String | Float | Source | Request
 
-let print_ground = function
+let rec print_ground = function
   | Unit    -> "unit"
   | String  -> "string"
   | Bool    -> "bool"
@@ -95,6 +97,8 @@ let print_constr = function
 
 (** Types *)
 
+type variance = Covariant | Contravariant | Invariant
+
 (** Every type gets a level annotation.
   * This is useful in order to know what can or cannot be generalized:
   * you need to compare the level of an abstraction and those of a ref or
@@ -102,10 +106,13 @@ let print_constr = function
 type t = { pos : pos option ;
            mutable level : int ;
            mutable descr : descr }
+and constructed = { name : string ; params : (variance*t) list }
 and descr =
+  | Constr  of constructed
   | Ground  of ground
   | List    of t
   | Product of t * t
+  | Zero | Succ of t | Variable
   | Arrow     of (bool*string*t) list * t
   | EVar      of int*constraints (* existential variable *)
   | UVar      of int*constraints (* universal variable, implicitely bound *)
@@ -164,6 +171,10 @@ let print t =
     * The [par] params tells whether (..)->.. should be surrounded by
     * parenthesis or not. *)
   let rec print ~par vars t = match t.descr with
+    | Constr c ->
+        let l,vars = print_list vars [] c.params in
+          Printf.sprintf "%s(%s)" c.name (String.concat "," l),
+          vars
     | Ground g -> print_ground g, vars
     | Product (a,b) ->
         let a,vars = print ~par:true vars a in
@@ -174,6 +185,10 @@ let print t =
         let t,vars = print ~par:false vars t in
           Printf.sprintf "[%s]" t,
           vars
+    | Zero -> "z", vars | Variable -> "*", vars
+    | Succ t ->
+        let t,vars = print ~par:false vars t in
+          Printf.sprintf "s(%s)" t, vars
     | EVar (i,c) as d ->
         (evar_name i),
         (if c<>[] then DS.add d vars else vars)
@@ -208,6 +223,11 @@ let print t =
             t,
           vars
     | Link x -> assert (x!=t) ; print ~par vars x
+  and print_list vars acc = function
+    | [] -> List.rev acc, vars
+    | (_,x)::l ->
+        let x,vars = print ~par:false vars x in
+          print_list vars (x::acc) l
   in
   let repr,constraints = print ~par:false DS.empty t in
     if DS.is_empty constraints then repr else
@@ -278,8 +298,11 @@ let rec occur_check a b =
   let b = deref b in
     if a == b then raise (Occur_check (a,b)) ;
     match b.descr with
+      | Constr c -> List.iter (fun (_,x) -> occur_check a x) c.params
       | Product (t1,t2) -> occur_check a t1 ; occur_check a t2
       | List t -> occur_check a t
+      | Succ t -> occur_check a t
+      | Zero | Variable -> ()
       | Arrow (p,t) ->
           List.iter
             (fun (o,l,t) -> occur_check a t)
@@ -429,8 +452,13 @@ let rec (<:) a b =
 
   if debug then Printf.eprintf "%s <: %s\n" (print a) (print b) ;
   match (deref a).descr, (deref b).descr with
+    | Constr c1, Constr c2 when c1.name=c2.name ->
+        List.iter2 (fun (_,x) (_,y) -> x<:y) c1.params c2.params
     | List t1, List t2 -> t1 <: t2
     | Product (a,b), Product (aa,bb) -> a <: aa ; b <: bb
+    | Zero, Zero -> ()
+    | Succ t1, Succ t2 -> t1 <: t2
+    | Succ t1, Variable -> t1 <: b
     | Arrow (p,t), Arrow (p',t') ->
         (* Takes [l] and [l12] and returns [l1,l2] where:
          * [l2] is the list of parameters from [l12] unmatched in [l];
@@ -513,9 +541,14 @@ let instantiate ~level t =
                     v
             end
         | EVar _ -> t (* Copying EVars would break sharing. *)
+        | Constr c ->
+            let params = List.map (fun (v,t) -> v, aux t) c.params in
+              cp (Constr { c with params = params })
         | Ground _ -> cp t.descr
         | List t -> cp (List (aux t))
         | Product (a,b) -> cp (Product (aux a, aux b))
+        | Zero | Variable -> cp t.descr
+        | Succ t -> cp (Succ (aux t))
         | Arrow (p,t) ->
             cp (Arrow (List.map (fun (o,l,t) -> (o,l,aux t)) p, aux t))
         | Link _ -> assert false
@@ -537,19 +570,22 @@ let generalize ~level t =
   let rec aux t =
     let t = deref t in
       match t.descr with
-       | Ground _ -> ()
-       | UVar _ -> () (* this EVar has already been generalized *)
-       | EVar (i,constraints) ->
-           if t.level >= level then
-             (* Using bind would yield un-necessary, and even failed checks. *)
-             t.descr <- Link { t with descr = UVar (c(),constraints) }
-       | List t -> aux t
-       | Product (a,b) -> aux a ; aux b
-       | Arrow (p,t) -> List.iter (fun (_,_,t) -> aux t) p ; aux t
-       | Link _ -> assert false
+        | Constr c ->
+            (* TODO this is a wrong stub *)
+            List.iter (fun (_,t) -> aux t) c.params
+        | Ground _ -> ()
+        | Zero | Variable -> ()
+        | Succ t -> aux t
+        | UVar _ -> () (* this EVar has already been generalized *)
+        | EVar (i,constraints) ->
+            if t.level >= level then
+              (* Using bind would yield un-necessary, and even failed checks. *)
+              t.descr <- Link { t with descr = UVar (c(),constraints) }
+        | List t -> aux t
+        | Product (a,b) -> aux a ; aux b
+        | Arrow (p,t) -> List.iter (fun (_,_,t) -> aux t) p ; aux t
+        | Link _ -> assert false
   in
     aux t
-
-(** Specialization for external uses. *)
 
 let fresh_evar = fresh_evar ~constraints:[]

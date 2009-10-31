@@ -33,11 +33,12 @@ let split x =
 (** On the top of [queued] we add another queue, in which the unresolved
   * requests are stored. These requests can typically be pushed when some
   * user emits a request. *)
-class queue ?(requests=Queue.create()) ?(interactive=true)
-            length default_duration timeout conservative =
+class queue ~kind
+  ?(requests=Queue.create()) ?(interactive=true)
+  length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration
-     ~timeout ~conservative () as queued
+  inherit Request_source.queued ~kind
+            ~length ~default_duration ~timeout ~conservative () as queued
 
   val reqlock = Mutex.create ()
 
@@ -177,7 +178,8 @@ let () =
       Some (Lang.bool true),
       Some "Should the queue be controllable via telnet?")::
      Request_source.queued_proto)
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    (fun p kind ->
        let l,d,t,c = Request_source.extract_queued_params p in
        let interactive = Lang.to_bool (Lang.assoc "interactive" 1 p) in
        let requests = Queue.create () in
@@ -186,4 +188,4 @@ let () =
               | Some r -> Queue.add r requests
               | None -> ())
            (Lang.to_list (List.assoc "queue" p)) ;
-         ((new queue ~requests ~interactive l d t c) :> source))
+         ((new queue ~kind ~requests ~interactive l d t c) :> source))

@@ -23,12 +23,12 @@
 (** Values and types of the liquidsoap language. *)
 
 (** The type of a value. *)
-type kind = Lang_types.t
+type t = Lang_types.t
 
 (** {2 Values} *)
 
 (** A typed value. *)
-type value = { mutable t : kind ; value : in_value }
+type value = { mutable t : t ; value : in_value }
 and env = (string * value) list
 and in_value =
   | Unit
@@ -40,12 +40,14 @@ and in_value =
   | Request of Request.raw Request.t option
                (* Request.raw is arbitrary: this information is violated
                 * in the script language until it has enough expressivity. *)
+  | Encoder of Encoder.format
   | List    of value list
   | Product of value * value
+  | Ref     of value
   | Fun     of (string * string * value option) list *
                env * env * Lang_values.term
   | FFI     of (string * string * value option) list *
-               env * env * (env -> kind -> value)
+               env * env * (env -> t -> value)
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -61,7 +63,7 @@ val apply : value -> (string * value) list -> value
 (** {3 Helpers for source builtins} *)
 
 type proto =
-  (string * kind * value option * string option) list
+  (string * t * value option * string option) list
 
 (** Some flags that can be attached to operators. *)
 type doc_flag =
@@ -75,7 +77,7 @@ val add_builtin :
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  proto -> kind -> (env -> kind -> value) ->
+  proto -> t -> (env -> t -> value) ->
   unit
 
 (** Add an builtin to the language, more rudimentary version. *)
@@ -99,13 +101,28 @@ type category =
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
 
+type lang_kind_format =
+  | Fixed of int | Variable of int | Any_fixed of int
+type lang_kind_formats =
+  | Unconstrained of t
+  | Constrained of
+      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+
+val audio_any : lang_kind_formats
+val audio_mono : lang_kind_formats
+val audio_stereo : lang_kind_formats
+
+val kind_type_of_kind_format : fresh:int -> lang_kind_formats -> t
+
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
   category:category ->
   descr:string ->
   ?flags:doc_flag list ->
   string ->
-  proto -> (env -> kind -> Source.source) ->
+  proto ->
+  kind:lang_kind_formats ->
+  (env -> Frame.content_kind -> Source.source) ->
   unit
 
 (** {2 Manipulation of values} *)
@@ -116,6 +133,7 @@ val to_string_getter : value -> unit -> string
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_source : value -> Source.source
+val to_format : value -> Encoder.format
 (** Expands a value representing a request
   * Value here *must* be an audio request. 
   * Assert false if not.. *)
@@ -133,33 +151,35 @@ val to_source_list : value -> Source.source list
   * This is useful for retreiving arguments of a function. *)
 val assoc : 'a -> int -> ('a * 'b) list -> 'b
 
-val int_t      : kind
-val unit_t     : kind
-val float_t    : kind
-val bool_t     : kind
-val string_t   : kind
-val source_t   : kind
-val request_t  : kind
-val list_t     : kind -> kind
-val product_t  : kind -> kind -> kind
+val int_t      : t
+val unit_t     : t
+val float_t    : t
+val bool_t     : t
+val string_t   : t
+val request_t  : t
+val list_t     : t -> t
+val product_t  : t -> t -> t
+val source_t   : t -> t
+val format_t   : t -> t
+val frame_kind_t : audio:t -> video:t -> midi:t -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].
   * The elements of [r] are of the form [(b,l,t)] where [b] indicates if
   * the argument is optional, [l] is the label of the argument ([""] means no
   * label) and [t] is the type of the argument. *)
-val fun_t      : (bool * string * kind) list -> kind -> kind
-val univ_t     : ?constraints:Lang_types.constraints -> int -> kind
+val fun_t      : (bool * string * t) list -> t -> t
+val univ_t     : ?constraints:Lang_types.constraints -> int -> t
 
 (** A shortcut for lists of pairs of strings. *)
-val metadata_t : kind
+val metadata_t : t
 
 (** A string getter. The argument is the number of the universal type parameter
   * (should be >= 1). *)
-val string_getter_t : int -> kind
+val string_getter_t : int -> t
 (** A float getter. The argument is the number of the universal type parameter
   * (should be >= 1). *)
-val float_getter_t : int -> kind
+val float_getter_t : int -> t
 
 val unit : value
 val int : int -> value
@@ -171,7 +191,7 @@ val source : Source.source -> value
 val request : Request.raw Request.t option -> value
 val product : value -> value -> value
 val val_fun :
-      (string * string * value option) list -> (env -> kind -> value) -> value
+      (string * string * value option) list -> (env -> t -> value) -> value
 
 (** Specialized builder for constant functions.
   * It is slightly less opaque and allows the printing of the closure

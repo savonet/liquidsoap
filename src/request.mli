@@ -39,6 +39,7 @@ val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
 (** For audio requests,
   * resolving includes testing that the file can actually be decoded. *)
 val create :
+  kind:Frame.content_kind ->
   ?metadata:((string*string) list) -> 
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->

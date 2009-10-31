@@ -57,13 +57,13 @@ let proto =
   * Takes care of pulling the data out of the source, type checkings,
   * maintains a queue of last ten metadata and setups standard Server commands,
   * including start/stop. *)
-class virtual output ~kind ?(name="")
+class virtual output ~content_kind ~output_kind ?(name="")
     ~infallible 
     ~(on_start:unit->unit) ~(on_stop:unit->unit)
     val_source autostart =
   let source = Lang.to_source val_source in
 object (self)
-  inherit active_operator source as super
+  inherit active_operator content_kind source as super
 
   method virtual output_start : unit
   method virtual output_stop : unit
@@ -103,8 +103,11 @@ object (self)
      * and finally set the ID to be the same. *)
     if name <> "" then self#set_id ~definitive:false name ;
     if ns = [] then
-      ns <- Server.register [self#id] kind ;
+      ns <- Server.register [self#id] output_kind ;
     self#set_id (Server.to_string ns) ;
+    self#log#f 4
+      "Content kind is %s."
+      (Frame.string_of_content_kind content_kind) ;
     Server.add ~ns "skip" (fun _ -> self#skip ; "Done") 
                ~descr:"Skip current song.";
     Server.add ~ns "metadata" ~descr:"Print current metadata."
@@ -122,7 +125,7 @@ object (self)
       (fun _ ->
          let r = source#remaining in
            if r < 0 then "(undef)" else
-             let t = Fmt.seconds_of_ticks r in
+             let t = Frame.seconds_of_master r in
                Printf.sprintf "%.2f" t) ;
     Server.add ~ns "autostart" ~descr:"Enable/disable autostart."
       (fun s ->
@@ -241,9 +244,14 @@ object (self)
 
 end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart source = object
-  inherit output ~kind:"output.dummy" source autostart
-                 ~infallible ~on_start ~on_stop
+class dummy ~infallible ~on_start ~on_stop ~autostart ~kind source =
+object
+  inherit
+    output source autostart
+      ~name:"dummy" ~output_kind:"output.dummy"
+      ~infallible ~on_start ~on_stop
+      ~content_kind:kind
+
   method output_reset  = ()
   method output_start  = ()
   method output_stop   = ()
@@ -251,36 +259,32 @@ class dummy ~infallible ~on_start ~on_stop ~autostart source = object
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "output.dummy"
-    ["fallible", Lang.bool_t, Some (Lang.bool false), None;
-     "autostart", Lang.bool_t, Some (Lang.bool true), None;
-     "on_start", Lang.fun_t [] Lang.unit_t,
-     Some (Lang.val_cst_fun [] Lang.unit), None ;
-     "on_stop", Lang.fun_t [] Lang.unit_t,
-     Some (Lang.val_cst_fun [] Lang.unit), None ;
-     "", Lang.source_t, None, None]
+    (proto @ ["", Lang.source_t kind, None, None])
     ~category:Lang.Output
     ~descr:"Dummy output for debugging purposes."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-       let autostart = Lang.to_bool (List.assoc "autostart" p) in
+       let autostart = Lang.to_bool (List.assoc "start" p) in
        let on_start = List.assoc "on_start" p in
        let on_stop = List.assoc "on_stop" p in
        let on_start () = ignore (Lang.apply on_start []) in
        let on_stop () = ignore (Lang.apply on_stop []) in
-         ((new dummy ~on_start ~on_stop ~infallible ~autostart
+         ((new dummy ~kind ~on_start ~on_stop ~infallible ~autostart
              (List.assoc "" p)):>Source.source))
 
 (** More concrete abstract-class, which takes care of the #output_send
   * method for outputs based on encoders. *)
 class virtual encoded
-  ~kind ~name
+  ~content_kind ~output_kind ~name
   ~infallible ~on_start ~on_stop
   ~autostart source =
 object (self)
   inherit output
             ~infallible ~on_start ~on_stop
-            ~kind ~name source autostart
+            ~content_kind ~output_kind ~name source autostart
 
   method virtual reset_encoder : (string,string) Hashtbl.t -> string
   method virtual encode : Frame.t -> int -> int -> string
@@ -303,7 +307,7 @@ object (self)
       in
         function
           | [] -> assert false
-          | [i] -> assert (i=AFrame.size frame || not infallible)
+          | [i] -> assert (i=Lazy.force Frame.size || not infallible)
           | start::stop::l ->
               if start < stop then f start stop else assert (start=stop) ;
               output_chunks frame (stop::l)

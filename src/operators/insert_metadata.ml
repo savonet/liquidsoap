@@ -24,9 +24,9 @@ open Source
 open Genlex
 exception Error
 
-class insert_metadata source =
+class insert_metadata ~kind source =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -92,19 +92,21 @@ object (self)
 end
 
 let register =
-  Lang.add_operator "insert_metadata" [ "", Lang.source_t, None, None ]
+  let kind = Lang.univ_t 1 in
+  Lang.add_operator "insert_metadata" [ "", Lang.source_t kind, None, None ]
     ~category:Lang.SoundProcessing
     ~descr:"Interactively insert metadata using the command \
             <code>ID.insert key1=\"val1\",key2=\"val2\",...</code>."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let source = Lang.to_source (Lang.assoc "" 1 p) in
-         new insert_metadata source)
+         new insert_metadata ~kind source)
 
 (** Insert metadata at the beginning if none is set.
   * Currently used by the switch classes. *)
-class replay meta src =
+class replay ~kind meta src =
 object (self)
-  inherit operator [src]
+  inherit operator kind [src]
 
   val mutable first = true
 

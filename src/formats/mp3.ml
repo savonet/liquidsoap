@@ -24,7 +24,7 @@
 
 open Dtools
 
-module Generator = Float_pcm.Generator
+module Generator = Generator
 
 let log = Log.make ["format";"mp3"]
 
@@ -56,20 +56,21 @@ let check file =
    (** Mime check disabled.. *)
    true
 
-let decoder = 
-  { 
+let decoder =
+  {
    File_decoder.Float.
     log = log;
-    openfile = 
+    openfile =
       (fun file ->
         if not (check file) then
           assert false;
-        Mad.openfile file,Generator.create ());
-    decode = 
-      (fun fd abg -> 
+        Mad.openfile file,
+        Generator.create ());
+    decode =
+      (fun fd abg ->
          let data = Mad.decode_frame_float fd in
          let sample_freq,_,_ = Mad.get_output_format fd in
-         Generator.feed abg ~sample_freq data);
+         Generator.feed_from_pcm abg ~sample_freq data);
     position = Mad.get_current_position;
     close = Mad.close
   }
@@ -83,8 +84,16 @@ let duration file =
     | _ -> ans
 
 let () = Decoder.formats#register "MP3"
-           (fun name -> 
-             try 
-               Some (File_decoder.Float.decode decoder name) 
-             with _ -> None);
+           (fun name kind ->
+              let mad_type =
+                { Frame.audio = Mad.wav_output_channels ;
+                  Frame.video = 0 ;
+                  Frame.midi = 0 }
+              in
+                if Frame.type_has_kind mad_type kind then
+                  try
+                    Some (File_decoder.Float.decode decoder name)
+                  with _ -> None
+                else
+                  None);
          Request.dresolvers#register "MP3" duration

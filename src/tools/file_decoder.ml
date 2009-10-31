@@ -52,7 +52,9 @@ struct
            decoder.log#f 5 "Could not decode file." ;
            raise e
     in
-    let buffer_length = Decoder.buffer_length () in
+    let buffer_length =
+      Frame.audio_of_seconds Decoder.conf_buffer_length#get
+    in
     let stats = Unix.stat file in
     let file_size = stats.Unix.st_size in
     let out_samples = ref 0 in
@@ -96,12 +98,9 @@ struct
                  * get an exact countdown after that in_size=in_bytes.
                  * Instead, there is a stall at the beginning
                  * after which the countdown starts. *)
-                Fmt.ticks_of_samples (int_of_float remaining_samples)
+                Frame.master_of_audio (int_of_float remaining_samples)
     in
       { Decoder.fill = fill ; Decoder.close = close }
 end
 
-module Float = Decoder(Float_pcm.Generator)
-
-module Raw = Decoder(Float_pcm.Generator_from_raw)
-
+module Float = Decoder(Generator)

@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Float_pcm.Generator
-
 let check = Vorbis.Decoder.check_packet
 
 let buflen = 1024
@@ -100,25 +98,25 @@ let create_gen enc freq m =
     Ogg_encoder.flush_pages os
   in
   let data_encoder data os _ =
-    if not !started then 
+    if not !started then
       started := true;
     let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
                     data.Ogg_encoder.length in
     Vorbis.Encoder.encode_buffer_float enc os b ofs len
   in
-  let empty_data () = 
-    Array.make 
-       (Fmt.channels ())
-       (Array.make 1 0.) 
+  let empty_data () =
+    Array.make
+       (Lazy.force Frame.audio_channels)
+       (Array.make 1 0.)
   in
-  let end_of_page p = 
+  let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then
       Ogg_encoder.Unknown
     else
       Ogg_encoder.Time (Int64.to_float granulepos /. (float freq))
   in
-  let end_of_stream os = 
+  let end_of_stream os =
     (* Assert that at least some data was encoded.. *)
     if not !started then
       begin

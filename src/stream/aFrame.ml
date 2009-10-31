@@ -1,13 +1,33 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2009 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
 
 include Frame
 
-(* For now AFrame assumes that the audio frames all have the same format,
- * given by Fmt. *)
+(* Samples of ticks, and vice versa. *)
+let sot = Frame.audio_of_master
+let tos = Frame.master_of_audio
 
-let sot = Fmt.samples_of_ticks
-let tos = Fmt.ticks_of_samples
-
-let size t = sot (size t)
+let duration () = Lazy.force duration
+let size () = sot (Lazy.force size)
 let position t = sot (position t)
 let breaks t = List.map sot (breaks t)
 let add_break t i = add_break t (tos i)
@@ -20,37 +40,27 @@ let get_all_metadata t =
 let set_all_metadata t l =
   set_all_metadata t (List.map (fun (x,y) -> tos x, y) l)
 
-(** Helper *)
-let get_float_pcm b =
-  let tracks = Array.to_list (Frame.get_tracks b) in
-  let ans =
-    List.fold_left
-      (fun l t ->
-         match t with
-           | Float_pcm (_,a) -> a::l
-           | _ -> l
-      ) [] tracks in
-    Array.of_list ans
-
-let get_s16le_length b =
-  let pcm = get_float_pcm b in
-    2 * Array.length pcm * (Array.length pcm.(0))
+let get_float_pcm b pos =
+  let content = content_of_type b (tos pos) (type_of_kind b.content_kind) in
+    content.audio
 
 let to_s16le b =
-  let fpcm = get_float_pcm b in
-  let slen = get_s16le_length b in
+  let fpcm = get_float_pcm b 0 in
+  let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
   let s = String.create slen in
     assert (Float_pcm.to_s16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
 
 let blankify b off len =
-  Float_pcm.blankify (get_float_pcm b) off len
+  Float_pcm.blankify (get_float_pcm b off) off len
 
-let multiply b = Float_pcm.multiply (get_float_pcm b)
+let multiply b off len c = Float_pcm.multiply (get_float_pcm b off) off len c
 
-let add b1 off1 b2 = Float_pcm.add (get_float_pcm b1) off1 (get_float_pcm b2)
+let add b1 off1 b2 off2 len =
+  Float_pcm.add (get_float_pcm b1 off1) off1 (get_float_pcm b2 off2) off2 len
 
 let substract b1 off1 b2 off2 len =
-  Float_pcm.substract (get_float_pcm b1) off1 (get_float_pcm b2) off2 len
+  Float_pcm.substract
+    (get_float_pcm b1 off1) off1 (get_float_pcm b2 off2) off2 len
 
-let rms b = Float_pcm.rms (get_float_pcm b)
+let rms b off len = Float_pcm.rms (get_float_pcm b off) off len

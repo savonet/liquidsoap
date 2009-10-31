@@ -25,10 +25,11 @@ open Source
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.
   * If the initial flag is set, only the first/current track is faded in. *)
-class fade_in ?(meta="liq_fade_in") ?(initial=false) duration fader source =
+class fade_in ~kind
+  ?(meta="liq_fade_in") ?(initial=false) duration fader source =
 object (self)
 
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -52,13 +53,13 @@ object (self)
                       | Some d -> (try float_of_string d with _ -> duration)
                       | None -> duration
             in
-            let length = Fmt.samples_of_seconds duration in
+            let length = Frame.audio_of_seconds duration in
               fader length,
               length,
               0
         | `Play (fade,length,count) -> fade,length,count
     in
-    let pcm = AFrame.get_float_pcm ab in
+    let pcm = AFrame.get_float_pcm ab p1 in
       if count < length then
         for i=0 to min (p2-p1-1) (length-count-1) do
           let m = fade (count+i) in
@@ -76,23 +77,25 @@ end
 (** Fade-out after every frame.
   * If the final flag is set, the fade-out happens as of instantiation
   * and the source becomes unavailable once it's finished. *)
-class fade_out ?(meta="liq_fade_out") ?(final=false) duration fader source =
+class fade_out ~kind
+  ?(meta="liq_fade_out") ?(final=false) duration fader source =
 object (self)
 
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track
 
   (* Fade-out length (in samples) for the current track.
-   * The value is set at the beginning of every track, depending on metadata. *)
+   * The value is set at the beginning of every track,
+   * depending on metadata. *)
   val mutable cur_length = None
 
   (* Remaining frames, used only in final mode, untouched otherwise. *)
-  val mutable remaining = Fmt.samples_of_seconds duration
+  val mutable remaining = Frame.audio_of_seconds duration
 
   method remaining =
-    if final then Fmt.ticks_of_samples remaining else source#remaining
+    if final then Frame.master_of_audio remaining else source#remaining
   method is_ready = (remaining > 0 || not final) && source#is_ready
 
   method private get_frame ab =
@@ -100,7 +103,7 @@ object (self)
       (* This happens in final mode at the end of the remaining time. *)
       Frame.add_break ab (Frame.position ab)
     else
-      let n = Fmt.samples_of_ticks source#remaining in
+      let n = Frame.audio_of_master source#remaining in
       let offset1 = AFrame.position ab in
       let offset2 = source#get ab ; AFrame.position ab in
       (** In samples: [length] of the fade. *)
@@ -117,7 +120,7 @@ object (self)
                         | None -> duration
                         | Some d -> (try float_of_string d with _ -> duration)
               in
-              let l = Fmt.samples_of_seconds duration in
+              let l = Frame.audio_of_seconds duration in
               let f = fader l in
                 cur_length <- Some (f,l) ;
                 f,l
@@ -128,7 +131,7 @@ object (self)
             if n>=0 && n<length then Some n else None
         with
           | Some n ->
-              let buffer = AFrame.get_float_pcm ab in
+              let buffer = AFrame.get_float_pcm ab offset1 in
                 for i=0 to offset2-offset1-1 do
                   let m = fade (n-i) in
                     for c=0 to Array.length buffer - 1 do
@@ -145,7 +148,9 @@ end
 
 (** Lang interface *)
 
-let proto =
+let proto,kind =
+  (* TODO check about sharing for the kind variables *)
+  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   [ "duration", Lang.float_t, Some (Lang.float 3.), 
      Some "Duration of the fading. \
            This value can be set on a per-file basis using the metadata field \
@@ -153,7 +158,8 @@ let proto =
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
           linear, sinusoidal, logarithmic or exponential." ;
-    "", Lang.source_t, None, None ]
+    "", Lang.source_t kind, None, None ],
+  kind
 
 let extract p =
   Lang.to_float (List.assoc "duration" p),
@@ -198,31 +204,37 @@ let () =
     "fade.in" (("override", Lang.string_t, Some (Lang.string "liq_fade_in"),
                override_doc) :: proto)
     ~category:Lang.SoundProcessing
-    ~descr:("Fade the beginning of tracks. Metadata 'liq_fade_in' can be used "^
-            "to set the duration for a specific track (float in seconds).")
-    (fun p _ ->
+    ~descr:"Fade the beginning of tracks. \
+            A special override metadata field can be used \
+            to set the duration for a specific track (float in seconds)."
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let d,f,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_in ~meta d f s) ;
+         new fade_in ~kind ~meta d f s) ;
   Lang.add_operator "fade.initial" proto
     ~category:Lang.SoundProcessing
     ~descr:"Fade the beginning of a stream."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let d,f,s = extract p in
-         new fade_in ~initial:true d f s) ;
+         new fade_in ~kind ~initial:true d f s) ;
   Lang.add_operator 
     "fade.out" (("override", Lang.string_t, Some (Lang.string "liq_fade_out"),
                override_doc) :: proto) 
     ~category:Lang.SoundProcessing
-    ~descr:("Fade the end of tracks. Metadata 'liq_fade_out' can be used to "^
-            "set the duration for a specific track (float in seconds).")
-    (fun p _ ->
+    ~descr:"Fade the end of tracks. A special override metadata field \
+            can be used to set the duration for a specific track \
+            (float in seconds)."
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let d,f,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_out ~meta d f s) ;
+         new fade_out ~kind ~meta d f s) ;
   Lang.add_operator "fade.final" proto
     ~category:Lang.SoundProcessing
     ~descr:"Fade a stream to silence."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let d,f,s = extract p in
-         new fade_out ~final:true d f s)
+         new fade_out ~kind ~final:true d f s)

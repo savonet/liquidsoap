@@ -26,11 +26,11 @@ open Dtools
 
 exception Invalid_URI
 
-class unqueued r =
+class unqueued ~kind r =
   (** We assume that [r] is ready. *)
   let filename = Utils.get_some (Request.get_filename r) in
 object (self)
-  inherit Request_source.unqueued
+  inherit Request_source.unqueued ~kind
 
   method wake_up _ =
     if String.length filename < 15 then
@@ -40,9 +40,9 @@ object (self)
   method get_next_file = Some r
 end
 
-class queued uri length default_duration timeout conservative =
+class queued ~kind uri length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued 
+  inherit Request_source.queued ~kind
       ~length ~default_duration ~conservative ~timeout ()
   method get_next_request = self#create_request uri
 end
@@ -52,13 +52,14 @@ let log = Log.make ["single"]
 let () =
   Lang.add_operator "single"
     ~category:Lang.Input
-    ~descr:("Loop on a request. It never fails if the request "^
-            "is static, meaning that it can be fetched once. "^
-            "Typically, http, ftp, say requests are static, "^
-            "and time is not.")
+    ~descr:"Loop on a request. It never fails if the request \
+            is static, meaning that it can be fetched once. \
+            Typically, http, ftp, say requests are static, \
+            and time is not."
     (( "", Lang.string_t, None, Some "URI where to find the file" )::
      queued_proto)
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    (fun p kind ->
        let val_uri = List.assoc "" p in
        let l,d,t,c = extract_queued_params p in
        let uri = Lang.to_string val_uri in
@@ -72,21 +73,21 @@ let () =
            if Root.running () then None else Request.is_static uri
          with
            | Some true ->
-               begin match Request.create ~persistent:true uri with
+               begin match Request.create ~kind ~persistent:true uri with
                  | None ->
                      (* This is only ran at startup, it's very unlikely
                       * that we ever run out of RID there... *)
                      log#f 2 "No available RID: %S will be queued.." uri ;
-                     ((new queued uri l d t c) :> source)
+                     ((new queued ~kind uri l d t c) :> source)
                  | Some r ->
                      log#f 3 "%S is static, resolving once for all..." uri ;
                      if Request.Resolved <> Request.resolve r 60. then
                        raise Invalid_URI ;
-                     ((new unqueued r) :> source)
+                     ((new unqueued ~kind r) :> source)
                end
            | None | Some false ->
                log#f 3 "%S will be queued." uri ;
-               ((new queued uri l d t c) :> source)
+               ((new queued uri ~kind l d t c) :> source)
          with
            | Invalid_URI ->
                raise (Lang.Invalid_value
@@ -98,19 +99,21 @@ let () =
 let () =
   Lang.add_operator "unsafe.single.infallible" ~category:Lang.Input
     ~flags:[Lang.Hidden]
-    ~descr:("Loops on a request, "^
-            "which has to be ready and should be persistent. "^
-            "WARNING: if used uncarefully, it can crash your application!")
-    [ "", Lang.request_t, None, None]
-    (fun p _ ->
+    ~descr:"Loops on a request, \
+            which has to be ready and should be persistent. \
+            WARNING: if used uncarefully, it can crash your application!"
+    [ "", Lang.request_t, None, None ]
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    (fun p kind ->
        let r = Utils.get_some (Lang.to_request (List.assoc "" p)) in
-         ((new unqueued r):>source))
+         ((new unqueued ~kind r):>source))
 
-class dynamic (f:Lang.value) length default_duration 
-               timeout conservative =
+class dynamic ~kind
+  (f:Lang.value) length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~length ~default_duration 
-       ~timeout ~conservative ()
+  inherit
+    Request_source.queued ~kind
+      ~length ~default_duration ~timeout ~conservative ()
   method get_next_request =
     try
       match Lang.to_request (Lang.apply f []) with
@@ -132,7 +135,8 @@ let () =
        Some ("A function generating requests: an initial URI (possibly fake)" ^
              " together with an initial list of alternative indicators."))
      ::queued_proto)
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    (fun p kind ->
        let f = List.assoc "" p in
        let l,d,t,c = extract_queued_params p in
-         ((new dynamic f l d t c) :> source))
+         ((new dynamic ~kind f l d t c) :> source))

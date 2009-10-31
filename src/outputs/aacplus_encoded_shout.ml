@@ -80,6 +80,7 @@ class to_shout p =
     let f = List.assoc "on_stop" p in
       fun () -> ignore (Lang.apply f [])
   in
+
 object (self)
   inherit Output.encoded ~autostart ~name:mount 
                          ~infallible ~on_start ~on_stop

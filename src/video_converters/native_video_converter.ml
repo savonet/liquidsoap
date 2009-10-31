@@ -28,8 +28,8 @@ type conveter = RGB.t ref
 let formats = [RGB Rgba_32;YUV Yuvj_420]
 
 let create () =
-  let f = RGB.create (Fmt.video_width ())
-                     (Fmt.video_height ())
+  let f =
+    RGB.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height)
   in
   let buf = ref f in 
   let convert ~proportional src dst =

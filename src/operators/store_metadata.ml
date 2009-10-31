@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class store n s =
+class store ~kind n s =
 object (self)
-  inherit Source.operator [s] as super
+  inherit Source.operator kind [s] as super
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -62,13 +62,15 @@ object (self)
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "store_metadata"
     [ "size", Lang.int_t, Some (Lang.int 10), Some "Size of the history" ;
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
-    ~descr:("Keep track of the last N metadata packets in the stream, "^
-            "and make the history available via a server command.")
-    (fun p _ ->
+    ~descr:"Keep track of the last N metadata packets in the stream, \
+             and make the history available via a server command."
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let s = Lang.to_source (List.assoc "" p) in
        let size = Lang.to_int (List.assoc "size" p) in
-         new store size s)
+         new store ~kind size s)

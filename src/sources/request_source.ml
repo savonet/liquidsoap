@@ -27,9 +27,9 @@ open Dtools
   * as a request which is ready, i.e. has been resolved.
   * On the top of it we define [queued], which manages a queue of files, feed
   * by resolving in an other thread requests given by [get_next_request]. *)
-class virtual unqueued =
+class virtual unqueued ~kind =
 object (self)
-  inherit source
+  inherit source kind
 
   (** [get_next_file] is supposed to return "quickly".
     * This means that no resolving should be done here. *)
@@ -78,6 +78,8 @@ object (self)
            * the request, and it can be decoded. *)
           let file = Utils.get_some (Request.get_filename req) in
           let decoder = Utils.get_some (Request.get_decoder req) in
+            self#log#f 2 "FIXME arbitrary decoder, but kind fixed to %s"
+              (Frame.string_of_content_kind kind) ;
             self#log#f 3 "Prepared %S (RID %d)." file (Request.get_id req) ;
             current <-
               Some (req,
@@ -151,18 +153,18 @@ let priority = Tutils.Maybe_blocking
   * - the source tries to have more than [length] seconds in queue
   * - if the duration of a file is unknown we use [default_duration] seconds
   * - downloading a file is required to take less than [timeout] seconds *)
-class virtual queued
+class virtual queued ~kind
   ?(length=10.) ?(default_duration=30.)
   ?(conservative=false) ?(timeout=20.) () =
 object (self)
-  inherit unqueued as super
+  inherit unqueued ~kind as super
 
   method stype = Fallible
 
   method virtual get_next_request : Request.audio Request.t option
 
   (** Management of the queue of files waiting to be played. *)
-  val min_queue_length = Fmt.ticks_of_seconds length
+  val min_queue_length = Frame.master_of_seconds length
   val qlock = Mutex.create ()
   val retrieved = Queue.create ()
   val mutable queue_length = 0 (* Ticks *)
@@ -319,9 +321,7 @@ object (self)
                         (try float_of_string f with _ -> default_duration)
                     | None -> default_duration
                 in
-                let len =
-                  Fmt.ticks_of_seconds len
-                in
+                let len = Frame.master_of_seconds len in
                   Mutex.lock qlock ;
                   Queue.add (len,req) retrieved ;
                   self#log#f 4

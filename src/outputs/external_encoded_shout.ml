@@ -66,6 +66,7 @@ class to_shout p =
   let channels   = f (e Lang.to_int "channels") in
 
   let autostart = e Lang.to_bool "start" in
+
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in

@@ -24,11 +24,11 @@
 
 open Source
 
-class sine freq duration =
-    let nb_samples = Fmt.samples_of_seconds duration in
-    let period = int_of_float (float (Fmt.samples_per_second()) /. freq) in
-object
-  inherit source
+class sine ~kind freq duration =
+    let nb_samples = Frame.audio_of_seconds duration in
+    let period = int_of_float (float (Lazy.force Frame.audio_rate) /. freq) in
+object (self)
+  inherit source ~name:"sine" kind
 
   method stype = Infallible
   method is_ready = true
@@ -36,7 +36,7 @@ object
   (** The [remaining] variable is only used if [nb_samples>0]. *)
   val mutable remaining = nb_samples
   method remaining =
-    if nb_samples>0 then Fmt.ticks_of_samples remaining else -1
+    if nb_samples>0 then Frame.master_of_audio remaining else -1
 
   val mutable must_fail = false
   method abort_track =
@@ -51,13 +51,14 @@ object
       remaining <- nb_samples;
       must_fail <- false
     end else
-      let b = AFrame.get_float_pcm ab in
       let off = AFrame.position ab in
+      let b = AFrame.get_float_pcm ab off in
+      let size = AFrame.size () in
       let end_off =
         if nb_samples > 0 then
-          min (AFrame.size ab) (off + remaining)
+          min size (off + remaining)
         else
-          AFrame.size ab
+          size
       in
       let write i x =
         for c = 0 to Array.length b - 1 do
@@ -70,7 +71,7 @@ object
           if pos >= period then pos <- pos - period;
         done;
         AFrame.add_break ab end_off;
-        if end_off < AFrame.size ab then begin
+        if end_off < size then begin
           remaining <- nb_samples
         end else begin
           remaining <- remaining - end_off + off;
@@ -82,9 +83,10 @@ let () =
   Lang.add_operator "sine"
     ~category:Lang.Input
     ~descr:"Generate a sine wave."
+    ~kind:Lang.audio_any
     [ "duration", Lang.float_t, Some (Lang.float 0.), None ;
       "", Lang.float_t, Some (Lang.float 440.), Some "Frequency of the sine." ]
-    (fun p _ ->
-       (new sine
+    (fun p kind ->
+       (new sine ~kind
           (Lang.to_float (List.assoc "" p))
           (Lang.to_float (List.assoc "duration" p)) :> source))

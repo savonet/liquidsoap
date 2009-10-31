@@ -24,11 +24,63 @@ module Term = Lang_values
 include Term.V
 module T = Lang_types
 
-type kind = T.t
+type t = T.t
+
+(** Some shortcuts *)
+
+let ground_t x = T.make (T.Ground x)
+
+let int_t     = ground_t T.Int
+let unit_t    = ground_t T.Unit
+let float_t   = ground_t T.Float
+let bool_t    = ground_t T.Bool
+let string_t  = ground_t T.String
+let request_t = ground_t T.Request
+let list_t t  = T.make (T.List t)
+let product_t a b = T.make (T.Product (a,b))
+let fun_t p b = T.make (T.Arrow (p,b))
+let univ_t ?(constraints=[]) i = T.make (T.UVar (i,constraints))
+let metadata_t = list_t (product_t string_t string_t)
+let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
+let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
+
+let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
+let source_t t = Term.source_t t
+let format_t t = Term.format_t t
+
+let mk v = { t = T.dummy ; value = v }
+let unit = mk Unit
+let int i = mk (Int i)
+let bool i = mk (Bool i)
+let float i = mk (Float i)
+let string i = mk (String i)
+let list l = mk (List l)
+let source s = mk (Source s)
+
+(** Warning: this is unsafe, not necessarily really audio. *)
+let request r = mk (Request r)
+let product a b = mk (Product (a,b))
+let val_fun p f = mk (FFI (p,[],[],f))
+let val_cst_fun p c =
+  let f tm = mk (Fun (p,[],[],{ Term.t = c.t ; Term.term = tm })) in
+    match c.value with
+      | Unit -> f Term.Unit
+      | Int i -> f (Term.Int i)
+      | Bool i -> f (Term.Bool i)
+      | Float i -> f (Term.Float i)
+      | String i -> f (Term.String i)
+      | _ -> mk (FFI (p,[],[],fun _ _ -> c))
+let metadata m =
+  list (Hashtbl.fold
+          (fun k v l -> (product (string k) (string v))::l)
+          m [])
+
+(** Runtime error, should eventually disappear. *)
+exception Invalid_value of value*string
 
 (** Helpers for defining builtin functions. *)
 
-type proto = (string*kind*value option*string option) list
+type proto = (string*t*value option*string option) list
 
 let doc_of_prototype_item t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
@@ -48,13 +100,13 @@ let string_of_flag = function
 
 let builtin_type p t =
   T.make
-    (T.Arrow (List.map (fun (lbl,kind,opt,_) -> (opt<>None,lbl,kind)) p, t))
+    (T.Arrow (List.map (fun (lbl,t,opt,_) -> (opt<>None,lbl,t)) p, t))
 
 let to_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
-  let kind = builtin_type proto return_t in
+  let t = builtin_type proto return_t in
     item#add_subsection "category" (Doc.trivial category) ;
-    item#add_subsection "type" (Doc.trivial (T.print kind)) ;
+    item#add_subsection "type" (Doc.trivial (T.print t)) ;
     List.iter
       (fun f -> item#add_subsection "flag" (Doc.trivial (string_of_flag f)))
       flags;
@@ -101,7 +153,84 @@ let string_of_category x = "Source / " ^ match x with
   | SoundSynthesis -> "Sound Synthesis"
   | Visualization -> "Visualization"
 
-let add_operator ~category ~descr ?(flags=[]) name proto f =
+(** A operator is a builtin function that builds a source.
+  * It is registered using the wrapper [add_operator].
+  * Creating the associated function type (and function) requires some work:
+  *  - Specify which content_kind the source will carry:
+  *    a given fixed number of channels, any fixed, a variable number?
+  *  - The content_kind can also be linked to a type variable,
+  *    e.g. the parameter of a format type.
+  * From this high-level description a type is created. Often it will
+  * carry a type constraint.
+  * Once the type has been infered, the function might be executed,
+  * and at this point the type might still not be known completely
+  * so we have to force its value withing the acceptable range. *)
+
+(** Description of how many of a channel type does an operator want.
+  * For [Any_fixed] and [Variable], the parameter indicates the minimum. *)
+type lang_kind_format =
+  | Fixed of int | Variable of int | Any_fixed of int
+type lang_kind_formats =
+  | Unconstrained of t
+  | Constrained of
+      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+
+let audio_any =
+  Constrained
+    { Frame.audio = Any_fixed 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
+let audio_mono =
+  Constrained
+    { Frame.audio = Fixed 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
+let audio_stereo =
+  Constrained
+    { Frame.audio = Fixed 2 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
+
+let kind_type_of_kind_format ~fresh fmt =
+  match fmt with
+    | Unconstrained t -> t
+    | Constrained fields ->
+        let aux = function
+          | Fixed i ->
+              let rec aux i =
+                T.make (if i = 0 then T.Zero else T.Succ (aux (i-1)))
+              in
+                aux i
+          | Any_fixed i ->
+              let zero = univ_t ~constraints:[(* TODO T.Fixed *)] fresh in
+              let rec aux i =
+                if i = 0 then zero else T.make (T.Succ (aux (i-1)))
+              in
+                aux i
+          | Variable i ->
+              let rec aux i =
+                T.make (if i = 0 then T.Variable else T.Succ (aux (i-1)))
+              in
+                aux i
+        in
+        let audio = aux fields.Frame.audio in
+        let video = aux fields.Frame.video in
+        let midi  = aux fields.Frame.midi in
+          frame_kind_t ~audio ~video ~midi
+
+(** Given an Lang type that has been infered, convert it to a kind.
+  * This might require to force some Any_fixed variables. *)
+let rec channels_of_type default t =
+  match (T.deref t).T.descr with
+    | T.Succ t -> Frame.Succ (channels_of_type (default-1) t)
+    | T.Zero -> Frame.Zero
+    | T.Variable -> Frame.Variable
+    | T.EVar _ ->
+        (* TODO
+        T.bind t (Lang_values.type_of_int ~pos:None ~level:(-1) default) ; *)
+        Frame.mul_of_int default
+    | _ -> assert false
+let frame_kind_of_kind_type t =
+  let audio,video,midi = Term.of_frame_kind_t t in
+    { Frame.audio = channels_of_type (Lazy.force Frame.audio_channels) audio ;
+      Frame.video = channels_of_type (Lazy.force Frame.video_channels) video ;
+      Frame.midi  = channels_of_type (Lazy.force Frame.midi_channels) midi }
+
+let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
   let proto =
     let t = T.make (T.Ground T.String) in
       ("id", t,
@@ -109,6 +238,8 @@ let add_operator ~category ~descr ?(flags=[]) name proto f =
        Some "Force the value of the source ID.")::proto
   in
   let f x t =
+    let t = Term.of_source_t t in
+    let t = frame_kind_of_kind_type t in
     let src : Source.source = f x t in
     let id =
       match (List.assoc "id" x).value with
@@ -119,7 +250,9 @@ let add_operator ~category ~descr ?(flags=[]) name proto f =
       { t = T.make (T.Ground T.Source) ;
         value = Source src }
   in
-  let return_t = T.make (T.Ground T.Source) in
+  let fresh = (* TODO *) 1 in
+  let kind_type = kind_type_of_kind_format ~fresh kind in
+  let return_t = Term.source_t kind_type in
   let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f
 
@@ -127,8 +260,10 @@ let iter_sources f v =
   let rec iter_term env v = match v.Term.term with
     | Term.Source s -> f s
     | Term.Unit | Term.Bool _
-    | Term.Int _ | Term.Float _ | Term.String _ | Term.Request _ -> ()
+    | Term.Int _ | Term.Float _ | Term.String _
+    | Term.Request _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
+    | Term.Ref a -> iter_term env a
     | Term.Let (_,_,a,b) | Term.Product (a,b) | Term.Seq (a,b) ->
         iter_term env a ; iter_term env b
     | Term.Var v ->
@@ -146,8 +281,9 @@ let iter_sources f v =
                      | None -> ()) proto
   and iter_value v = match v.value with
     | Source s -> f s
-    | Unit | Bool _ | Int _ | Float _ | String _ | Request _ -> ()
+    | Unit | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
     | List l -> List.iter iter_value l
+    | Ref a -> iter_value a
     | Product (a,b) ->
         iter_value a ; iter_value b
     | Fun (proto,pe,env,body) ->
@@ -203,6 +339,10 @@ let to_source t = match t.value with
   | Source s -> s
   | _ -> assert false
 
+let to_format t = match t.value with
+  | Encoder f -> f
+  | _ -> assert false
+
 let to_request t = match t.value with
   | Request (Some r) -> Some (Request.to_audio r)
   | Request None -> None
@@ -251,55 +391,6 @@ let rec assoc label n = function
            assoc label (n-1) tl
        else
          assoc label n tl
-
-(** Some shortcuts *)
-
-let ground_t x = T.make (T.Ground x)
-
-let int_t     = ground_t T.Int
-let unit_t    = ground_t T.Unit
-let float_t   = ground_t T.Float
-let bool_t    = ground_t T.Bool
-let string_t  = ground_t T.String
-let source_t  = ground_t T.Source
-let request_t = ground_t T.Request
-let list_t t  = T.make (T.List t)
-let product_t a b = T.make (T.Product (a,b))
-let fun_t p b = T.make (T.Arrow (p,b))
-let univ_t ?(constraints=[]) i = T.make (T.UVar (i,constraints))
-let metadata_t = list_t (product_t string_t string_t)
-let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
-let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
-
-let mk v = { t = T.dummy ; value = v }
-let unit = mk Unit
-let int i = mk (Int i)
-let bool i = mk (Bool i)
-let float i = mk (Float i)
-let string i = mk (String i)
-let list l = mk (List l)
-let source s = mk (Source s)
-
-(** Warning: this is unsafe, not necessarily really audio. *)
-let request r = mk (Request r)
-let product a b = mk (Product (a,b))
-let val_fun p f = mk (FFI (p,[],[],f))
-let val_cst_fun p c =
-  let f tm = mk (Fun (p,[],[],{ Term.t = c.t ; Term.term = tm })) in
-    match c.value with
-      | Unit -> f Term.Unit
-      | Int i -> f (Term.Int i)
-      | Bool i -> f (Term.Bool i)
-      | Float i -> f (Term.Float i)
-      | String i -> f (Term.String i)
-      | _ -> mk (FFI (p,[],[],fun _ _ -> c))
-let metadata m =
-  list (Hashtbl.fold
-          (fun k v l -> (product (string k) (string v))::l)
-          m [])
-
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of value*string
 
 (** {1 Parsing} *)
 

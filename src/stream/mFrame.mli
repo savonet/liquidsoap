@@ -19,7 +19,8 @@ type metadata = (string,string) Hashtbl.t
 val set_metadata     : t -> int -> metadata -> unit
 val get_metadata     : t -> int -> metadata option
 
-val tracks : t -> (int * Midi.event) list ref array
+(** Get the MIDI tracks at a given position. *)
+val tracks : t -> int -> (int * Midi.event) list ref array
 
 (** Clear up all midi data. *)
 val clear : t -> unit

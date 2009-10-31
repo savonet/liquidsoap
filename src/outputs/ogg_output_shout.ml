@@ -51,8 +51,8 @@ class to_shout ~skeleton ~streams
     if mount = no_mount then name ^ ".ogg" else mount
   in
 
-  let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let autostart = Lang.to_bool (List.assoc "start" p) in
   let on_start =
     let f = List.assoc "on_start" p in
       fun () -> ignore (Lang.apply f [])

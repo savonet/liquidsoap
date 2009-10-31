@@ -156,14 +156,15 @@ let () =
       Tutils.shutdown () ;
       Lang.unit)
 
-let () =
+(* let () =
   let process_t =
     Lang.fun_t
       [false,"",Lang.string_t] Lang.string_t
   in
-    add_builtin "add_decoder" ~cat:Liq ~descr:"Register an external file decoder. \
-                                           The encoder should output in WAV format \
-                                           to his standard output (stdout)."
+    add_builtin "add_decoder" ~cat:Liq
+      ~descr:"Register an external file decoder. \
+              The encoder should output in WAV format \
+              to his standard output (stdout)."
       ["",Lang.string_t,None,Some "Format/decoder's name." ;
        "",process_t,None,Some "Process to start. The function \
                            takes the filename as argument and \
@@ -211,7 +212,7 @@ let () =
            ret
          in
          Externalformat.register_external_metadata_resolver format resolver;
-         Lang.unit)
+         Lang.unit) *)
 
 let () =
   let protocol_t =
@@ -1105,14 +1106,17 @@ let () =
 
 let () =
   add_builtin "source.skip" ~cat:Liq ~descr:"Skip to the next track."
-    [ "",Lang.source_t,None,None ] Lang.unit_t
+    [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.unit_t
     (fun p -> (Lang.to_source (List.assoc "" p))#abort_track ; Lang.unit)
 
 let () =
   add_builtin "source.id" ~cat:Liq ~descr:"Get one source's identifier."
-    [ "",Lang.source_t,None,None ] Lang.string_t
+    [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
 
+(* TODO Think about this...
+ *   It seems that request_t will have to be parametrized by
+ *   the type of its content.
 let () =
   add_builtin "request.create" ~cat:Liq
     ~descr:"Create a request. Creation may fail if there is no available RID, \
@@ -1150,7 +1154,7 @@ let () =
            else
               match Request.create ~persistent ~indicators initial with
                 | Some r -> Some (Request.to_raw r)
-                | None -> None))
+                | None -> None)) *)
 
 let () =
   add_builtin "request.resolve" ~cat:Liq
@@ -1275,7 +1279,7 @@ struct
   type variable =
       {
         name : string;
-        kind : Lang.kind;
+        t : Lang.t;
         get : unit -> string;
         set : string -> unit;
         validate : string -> unit;
@@ -1293,7 +1297,7 @@ struct
            String.concat "\n"
              (List.map
                 (fun (_,v) ->
-                   Printf.sprintf "%s : %s" v.name (Lang_types.print v.kind))
+                   Printf.sprintf "%s : %s" v.name (Lang_types.print v.t))
                 (List.sort (fun (m,_) (n,_) -> compare m n) !variables)))
 
   let () =
@@ -1334,7 +1338,7 @@ struct
     let var =
       {
         name = name;
-        kind = t;
+        t = t;
         get = get;
         set = set;
         validate = validate;

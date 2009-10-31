@@ -47,11 +47,11 @@ type child = {
   * anticipation parameter specified as a number of ticks. *)
 type track_mode = Sensitive of int | Insensitive
 
-class virtual
-  switch ?(mode=Sensitive 0) ?(replay_meta=true) (cases : child list) =
+class virtual switch ~kind
+  ?(mode=Sensitive 0) ?(replay_meta=true) (cases : child list) =
 object (self)
 
-  inherit operator (List.map (fun x -> x.source) cases) as super
+  inherit operator kind (List.map (fun x -> x.source) cases) as super
 
   val mutable selected : (child*source) option = None
 
@@ -148,7 +148,7 @@ object (self)
                 old_s#leave (self:>source) ;
                 to_finish <- old_s::to_finish ;
                 let old_source =
-                  if forget then Blank.empty else old_c.source
+                  if forget then Blank.empty kind else old_c.source
                 in
                 let new_source =
                   (* Force insertion of old metadata if relevant.
@@ -160,7 +160,7 @@ object (self)
                    * transition in between. *)
                   match c.cur_meta with
                     | Some m when replay_meta ->
-                        new Insert_metadata.replay m c.source
+                        new Insert_metadata.replay ~kind m c.source
                     | _ -> c.source
                 in
                 let s =
@@ -241,7 +241,7 @@ end
 
 (** Common tools for Lang bindings of switch operators *)
 
-let common = [
+let common kind = [
   "track_sensitive", Lang.bool_t, Some (Lang.bool true),
   Some "Re-select only on end of tracks." ;
 
@@ -255,8 +255,10 @@ let common = [
 
   "transitions",
   Lang.list_t
-    (Lang.fun_t [ false,"",Lang.source_t ;
-                  false,"",Lang.source_t ] Lang.source_t),
+    (Lang.fun_t
+       [false,"",Lang.source_t kind;
+        false,"",Lang.source_t kind]
+       (Lang.source_t kind)),
   Some (Lang.list []),
   Some "Transition functions, \
         padded with <code>fun (x,y) -> y</code> functions."
@@ -269,7 +271,7 @@ let extract_common p l =
   let ts =
     let before = Lang.to_float (List.assoc "before" p) in
       if Lang.to_bool (List.assoc "track_sensitive" p) then
-        Sensitive (Fmt.ticks_of_seconds before)
+        Sensitive (Frame.master_of_seconds before)
       else
         Insensitive
   in
@@ -297,11 +299,11 @@ let trivially_true = function
 
 let third (_,_,s) = s
 
-class
-  lang_switch mode ?replay_meta (children : (Lang.value * bool * child) list) =
+class lang_switch ~kind
+  mode ?replay_meta (children : (Lang.value * bool * child) list) =
 object (self)
 
-  inherit switch ~mode ?replay_meta (List.map third children)
+  inherit switch ~kind ~mode ?replay_meta (List.map third children)
 
   method private select =
     let selected s =
@@ -333,20 +335,22 @@ object (self)
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto = 
     [ "single", Lang.list_t Lang.bool_t, Some (Lang.list []),
       Some "Forbid the selection of a branch for two tracks in a row. \
             The empty list stands for <code>[false,...,false]</code>." ;
-      "", Lang.list_t (Lang.product_t pred_t Lang.source_t), None,
+      "", Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)), None,
       Some "Sources with the predicate telling when they can be played." ]
   in
     Lang.add_operator "switch"
       ~category:Lang.TrackProcessing
-      ~descr:("At the beginning of a track, select the first source "^
-              "whose predicate is true.")
-      (common@proto)
-      (fun p _ ->
+      ~descr:"At the beginning of a track, select the first source
+              whose predicate is true."
+      (common kind @ proto)
+      ~kind:(Lang.Unconstrained kind)
+      (fun p kind ->
          let children =
            List.map
              (fun p ->
@@ -377,13 +381,13 @@ let () =
                           (List.assoc "single" p,
                            "there should be exactly one flag per children"))
          in
-           new lang_switch ~replay_meta ts children)
+           new lang_switch ~kind ~replay_meta ts children)
 
 (** Fallback selector: switch to the first ready source. *)
-class fallback ?replay_meta mode children =
+class fallback ~kind ?replay_meta mode children =
 object
 
-  inherit switch ~mode ?replay_meta children
+  inherit switch ~kind ~mode ?replay_meta children
 
   method private select =
     try Some (List.find (fun s -> s.source#is_ready) children) with
@@ -398,16 +402,18 @@ object
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   let proto =
     [ "",
-      Lang.list_t Lang.source_t,
+      Lang.list_t (Lang.source_t kind),
       None,
       Some "Select the first ready source in this list." ]
   in
     Lang.add_operator "fallback" ~category:Lang.TrackProcessing
       ~descr:"At the beginning of each track, select the first ready child."
-      (common@proto)
-      (fun p _ ->
+      (common kind @ proto)
+      ~kind:(Lang.Unconstrained kind)
+      (fun p kind ->
          let children = Lang.to_source_list (List.assoc "" p) in
          let replay_meta,ts,tr = extract_common p (List.length children) in
          let children =
@@ -415,13 +421,13 @@ let () =
              (fun t s -> { transition = t ; cur_meta = None ; source = s })
              tr children
          in
-           new fallback ~replay_meta ts children)
+           new fallback ~kind ~replay_meta ts children)
 
 (** Random switch *)
 exception Found of child
-class random ?replay_meta strict mode children =
+class random ~kind ?replay_meta strict mode children =
 object
-  inherit switch ?replay_meta ~mode (List.map snd children)
+  inherit switch ~kind ?replay_meta ~mode (List.map snd children)
 
   val mutable pos = -1
 
@@ -455,12 +461,14 @@ end
 
 let () =
   let add name strict descr weight_descr =
+    let kind = Lang.univ_t 1 in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
-      (common @
+      (common  kind @
        [ "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
          Some weight_descr ;
-         "", Lang.list_t Lang.source_t, None, None ])
-      (fun p _ ->
+         "", Lang.list_t (Lang.source_t kind), None, None ])
+      ~kind:(Lang.Unconstrained kind)
+      (fun p kind ->
          let children = Lang.to_source_list (List.assoc "" p) in
          let replay_meta,ts,tr = extract_common p (List.length children) in
          let weights =
@@ -483,7 +491,7 @@ let () =
                 (fun tr s -> { transition = tr ; source = s ; cur_meta = None })
                 tr children)
          in
-           new random ~replay_meta strict ts children)
+           new random ~kind ~replay_meta strict ts children)
   in
     add "random" false
       "At the beginning of every track, select a random ready child."

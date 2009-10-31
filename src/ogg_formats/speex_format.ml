@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Generator = Float_pcm.Generator
-
 let check p =
   try
     let _ = Speex.Header.header_of_packet p in

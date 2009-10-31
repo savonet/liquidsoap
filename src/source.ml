@@ -54,7 +54,7 @@ type source_t = Fallible | Infallible
  * TODO This has not been implemented, since all calls to #get, #get_ready and
  * #leave are done in the same Root thread. *)
 
-class virtual source =
+class virtual source ?(name="src") content_kind =
 object (self)
 
   val mutable log = source_log
@@ -74,7 +74,7 @@ object (self)
   val mutable id = ""
   val mutable definitive_id = false
   initializer
-    id <- "src_" ^ (string_of_int (Oo.id self))
+    id <- name ^ "_" ^ (string_of_int (Oo.id self))
   method id = id
   method set_id ?(definitive=true) s =
     (* ID musn't contain "." *)
@@ -167,6 +167,9 @@ object (self)
 
   (** Two methods called for initialization and shutdown of the source *)
   method private wake_up activation =
+    self#log#f 4
+      "Content kind is %s."
+      (Frame.string_of_content_kind content_kind) ;
     let activation = (self:>source)::activation in
       List.iter
         (fun s ->
@@ -194,7 +197,7 @@ object (self)
   method virtual abort_track : unit
 
   (* In caching mode, remember what has been given during the current tick *)
-  val memo = Frame.make ()
+  val memo = Frame.create content_kind
 
   (* [#get buf] completes the frame with the next data in the stream.
    * Depending whether caching is enabled or not, it calls [#get_frame] directly
@@ -254,14 +257,14 @@ object (self)
     * in the metadatas of the request. *)
   method private create_request ?(metadata=[]) =
     let metadata = ("source",self#id)::metadata in
-      Request.create ~metadata
+      Request.create ~metadata ~kind:content_kind
 
 end
 
 (* Just an easy shortcut for defining the children sources *)
-class virtual operator (l:source list) =
+class virtual operator content_kind (l:source list) =
 object
-  inherit source
+  inherit source content_kind
   initializer sources <- l
 end
 
@@ -273,9 +276,9 @@ let fold_outputs f x = List.fold_left f x !entries
 let has_outputs () = !entries <> []
 
 (* Entry-points sources, which need to actively perform some task. *)
-class virtual active_source =
+class virtual active_source content_kind =
 object (self)
-  inherit source
+  inherit source content_kind
   initializer
     sources <- [] ;
     register (self:>active_source)
@@ -299,8 +302,8 @@ end
 
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
-class virtual active_operator (l:source) =
+class virtual active_operator content_kind (l:source) =
 object (self)
-  inherit active_source
+  inherit active_source content_kind
   initializer sources <- [l]
 end

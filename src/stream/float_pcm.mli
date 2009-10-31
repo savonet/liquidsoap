@@ -23,26 +23,36 @@
 (** Create a buffer with a given number of channels and a given length. *)
 val create_buffer : int -> int -> float array array
 
+type pcm = float array array
+
 (** {2 Conversions}
   * Lengths are in samples. *)
 
-val to_s16le    : float array array -> int -> int -> string       -> int -> int
-val to_s16le_ni : float array array -> int -> int -> string array -> int -> int
+val to_s16le    : pcm -> int -> int -> string       -> int -> int
+val to_s16le_ni : pcm -> int -> int -> string array -> int -> int
 
-(** [from_s16_le buf ofs sbuf ofs len] converts and copies [len] samples 
+(** [from_s16le buf ofs sbuf ofs len] converts and copies [len] samples 
   * from the S16LE pcm buffer [sbuf] to [buf]. *)
-val from_s16le :
-      float array array -> int -> string       -> int -> int -> unit
-val from_s16le_ni :
-      float array array -> int -> string array -> int -> int -> unit
+val from_s16le : pcm -> int -> string -> int -> int -> unit
+val from_s16le_ni : pcm -> int -> string array -> int -> int -> unit
 
 (** Multiply samplerate by the given ratio. *)
 val native_resample : float -> float array -> int -> int -> float array
 
-(** Blit float array array *)
+(** Blit pcm *)
 val float_blit : float array -> int -> float array -> int -> int -> unit
 
-(** {2 Generators} *)
+(** {2 Sound processing} *)
+
+val blankify : pcm -> int -> int -> unit
+val multiply : pcm -> int -> int -> float -> unit
+
+(** Add two buffers and put the result in the first one. *)
+val add : pcm -> int -> pcm -> int -> int -> unit
+val substract : pcm -> int -> pcm -> int -> int -> unit
+val rms : pcm -> int -> int -> float array
+
+(* (** {2 Generators} *)
 
 module Generator :
   sig
@@ -114,14 +124,4 @@ module Generator_from_raw :
 
     (** Fill a frame with data from the current track. *)
     val fill : t -> Frame.t -> unit
-  end
-
-(** {2 Sound processing} *)
-
-val blankify : float array array -> int -> int -> unit
-val multiply : float array array -> int -> int -> float -> unit
-
-(** Add two buffers and put the result in the first one. *)
-val add : float array array -> int -> float array array -> int -> int -> unit
-val substract : float array array -> int -> float array array -> int -> int -> unit
-val rms : float array array -> int -> int -> float array
+  end *)

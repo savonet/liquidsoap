@@ -31,6 +31,51 @@ let debug =
 
 module T = Lang_types
 
+let ref_t ~pos ~level t =
+  T.make ~pos ~level
+    (T.Constr { T.name = "ref" ; T.params = [T.Invariant,t] })
+
+(** A frame kind type is a purely abstract type representing a frame kind.
+  * The parameters [audio,video,midi] are intended to be multiplicity types,
+  * i.e. types of the form Succ*(Zero|Variable). *)
+let frame_kind_t ?pos ?level audio video midi =
+  T.make ?pos ?level
+    (T.Constr { T.name = "stream_kind" ;
+                T.params = [T.Covariant,audio;
+                            T.Covariant,video;
+                            T.Covariant,midi ] })
+let of_frame_kind_t t = match (T.deref t).T.descr with
+  | T.Constr { T.name = "stream_kind" ; T.params = [_,audio;_,video;_,midi] } ->
+      audio,video,midi
+  | _ -> assert false
+
+(** Type of audio formats that can encode frame of a given kind. *)
+let format_t ?pos ?level k =
+  T.make ?pos ?level
+    (T.Constr { T.name = "format" ; T.params = [T.Covariant,k] })
+
+(** Type of sources carrying frames of a given kind. *)
+let source_t ?pos ?level k =
+  T.make ?pos ?level
+    (T.Constr { T.name = "source" ; T.params = [T.Invariant,k] })
+let of_source_t t = match (T.deref t).T.descr with
+  | T.Constr { T.name = "source" ; T.params = [_,t] } -> t
+  | _ -> assert false
+
+let rec type_of_mul ~pos ~level m =
+  T.make ~pos ~level
+    (match m with
+       | Frame.Variable -> assert false
+       | Frame.Zero -> T.Zero
+       | Frame.Succ m -> T.Succ (type_of_mul ~pos ~level m))
+
+let type_of_format ~pos ~level f =
+  let kind = Encoder.kind_of_format f in
+  let audio = type_of_mul ~pos ~level kind.Frame.audio in
+  let video = type_of_mul ~pos ~level kind.Frame.video in
+  let midi  = type_of_mul ~pos ~level kind.Frame.midi in
+    format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
+
 (** {1 Terms}
   * The way we implement this mini-language is not very efficient.
   * It should not matter, since very little computation is done here.
@@ -52,8 +97,10 @@ and  in_term =
   | Float   of float
   | Source  of Source.source
   | Request of Request.raw Request.t option (* cf. mli *)
+  | Encoder of Encoder.format
   | List    of term list
   | Product of term * term
+  | Ref     of term 
   | Let     of (Doc.item*(string*string)list) * string * term * term
   | Var     of string
   | Seq     of term * term
@@ -62,11 +109,14 @@ and  in_term =
                (* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
                 * [Fun ((l1,x1,None)..(li,xi,Some defi)..),body] *)
 
-let is_ground x = match x.term with
-  | Unit | Bool _ | Int _ | Float _ | String _ | Source _ | Request _ -> true
+(* Only used for printing very simple functions. *)
+let rec is_ground x = match x.term with
+  | Unit | Bool _ | Int _ | Float _ | String _
+  | Source _ | Request _ | Encoder _ -> true
+  | Ref x -> is_ground x
   | _ -> false
 
-(** Print terms, (almost) assuming they are in normal forms. *)
+(** Print terms, (almost) assuming they are in normal form. *)
 let rec print_term v = match v.term with
   | Unit     -> "()"
   | Bool i   -> string_of_bool i
@@ -75,10 +125,13 @@ let rec print_term v = match v.term with
   | String s -> Printf.sprintf "%S" s
   | Source s -> "<source>"
   | Request s -> "<request>"
+  | Encoder e -> Encoder.string_of_format e
   | List l ->
       "[ "^(String.concat ", " (List.map print_term l))^" ]"
   | Product (a,b) ->
       Printf.sprintf "(%s,%s)" (print_term a) (print_term b)
+  | Ref a ->
+      Printf.sprintf "ref (%s)" (print_term a)
   | Fun ([],v) when is_ground v -> "{"^(print_term v)^"}"
   | Fun _ -> "<fun>"
   | Var s -> s
@@ -104,8 +157,10 @@ struct
     | Float   of float
     | Source  of Source.source
     | Request of Request.raw Request.t option (* cf. terms *)
+    | Encoder of Encoder.format
     | List    of value list
     | Product of value * value
+    | Ref     of value
     (** In the next two constructors the first environment contains the
       * parameters already passed to the closure. It cannot be integrated in
       * the second one immediately as further applications will insert new
@@ -123,8 +178,11 @@ struct
     | String s -> Printf.sprintf "%S" s
     | Source s -> "<source>"
     | Request s -> "<request>"
+    | Encoder e -> Encoder.string_of_format e
     | List l ->
         "[ "^(String.concat ", " (List.map print_value l))^" ]"
+    | Ref a ->
+        Printf.sprintf "ref (%s)" (print_value a)
     | Product (a,b) ->
         Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
     | Fun (_,_,_,x) when is_ground x -> "{"^print_term x^"}"
@@ -140,6 +198,11 @@ let builtins : V.value Plug.plug
 
 let (<:) = T.(<:)
 let (>:) = T.(>:)
+
+(* TODO gross! *)
+let value_restriction t = match t.term with
+  | Fun _ -> true
+  | _ -> false
 
 exception Unbound of T.pos option * string
 
@@ -163,7 +226,8 @@ let rec check ?(print_toplevel=false) ~level ~env e =
     * is the actual parsing position of the value.
     * When we synthesize a type against which the type of the value is unified,
     * we have to set the position information in order not to loose it. *)
-  let mk t = T.make ~level ~pos:e.t.T.pos t in
+  let pos = e.t.T.pos in
+  let mk t = T.make ~level ~pos t in
   let mkg t = mk (T.Ground t) in
   match e.term with
   | Unit      -> e.t >: mkg T.Unit
@@ -173,6 +237,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Float   _ -> e.t >: mkg T.Float
   | Source  _ -> e.t >: mkg T.Source
   | Request _ -> e.t >: mkg T.Request
+  | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
   | List l ->
       List.iter (check ~level ~env) l ;
       let pos =
@@ -190,6 +255,9 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Product (a,b) ->
       check ~level ~env a ; check ~level ~env b ;
       e.t >: mk (T.Product (a.t,b.t))
+  | Ref a ->
+      check ~level ~env a ;
+      e.t >: ref_t ~pos ~level a.t
   | Seq (a,b) ->
       check ~env ~level a ;
       begin match (T.deref a.t).T.descr with
@@ -292,13 +360,14 @@ let rec check ?(print_toplevel=false) ~level ~env e =
             var (T.deref e.t).T.level (T.print orig) (T.print e.t)
   | Let (_,name,def,body) ->
       check ~level:level ~env def ;
-      if debug then begin
-        let t0 = T.print def.t in
+      if value_restriction def then
+        if debug then begin
+          let t0 = T.print def.t in
+            T.generalize ~level def.t ;
+            Printf.eprintf "Generalize %s[%d] : %s becomes %s\n"
+              name level t0 (T.print def.t)
+        end else
           T.generalize ~level def.t ;
-          Printf.eprintf "Generalize %s[%d] : %s becomes %s\n"
-            name level t0 (T.print def.t)
-      end else
-        T.generalize ~level def.t ;
       if print_toplevel then
         Printf.printf "%s \t:: %s\n" name (T.print def.t) ;
       check ~print_toplevel ~level ~env:((name,def.t)::env) body ;
@@ -352,8 +421,10 @@ let rec eval ~env tm =
       | Float   x -> mk (V.Float x)
       | Source  x -> mk (V.Source x)
       | Request x -> mk (V.Request x)
+      | Encoder x -> mk (V.Encoder x)
       | List l -> mk (V.List (List.map (eval ~env) l))
       | Product (a,b) -> mk (V.Product (eval ~env a, eval ~env b))
+      | Ref v -> mk (V.Ref (eval ~env v))
       | Let (_,x,v,b) -> eval ~env:((x,eval ~env v)::env) b
       | Fun (p,body) ->
           let p =

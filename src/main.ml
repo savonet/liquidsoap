@@ -102,7 +102,12 @@ let eval src =
 
 let process_request s =
   secondary_task := true ;
-  let req = Utils.get_some (Request.create s) in
+  let kind =
+    { Frame.audio = Frame.Variable ;
+      Frame.video = Frame.Variable ;
+      Frame.midi = Frame.Variable }
+  in
+  let req = Utils.get_some (Request.create ~kind s) in
     match Request.resolve req 20. with
       | Request.Failed ->
           Printf.printf "Request resolution failed.\n" ;
@@ -266,15 +271,15 @@ let format_doc s =
 
 let options =
   List.fold_left
-    ( fun l (la,b,c) ->
+    (fun l (la,b,c) ->
         let ta = List.hd (List.rev la) in
-        let expand = List.map
-                       (fun a -> (a,b,(if a = ta then
-                                         "\n" ^ format_doc c
-                                       else
-                                         "")))
-                       la in
-          l@expand ) []
+        let expand =
+          List.map
+            (fun a -> (a,b,
+                       if a = ta then "\n" ^ format_doc c else ""))
+            la
+        in
+          l@expand) []
     (let opts = [
       ["-"],
       Arg.Unit (fun () -> eval `StdIn),
@@ -435,7 +440,7 @@ let check_directories () =
     if Log.conf_file#get then
       check_dir Log.conf_file_path "Log" ;
     if Init.conf_daemon#get && Init.conf_daemon_pidfile#get then
-      check_dir Init.conf_daemon_pidfile_path "Pid"
+      check_dir Init.conf_daemon_pidfile_path "PID"
 
 (* Now that outputs have been defined, we can start the main loop. *)
 let () =

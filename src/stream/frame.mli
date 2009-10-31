@@ -20,126 +20,118 @@
 
  *****************************************************************************)
 
-(** This modules contains fonctions related to frames which are small blocks
-  * containing data (audio, video, etc.). They can contain multiple kind of data
-  * each kind being located in a track. *)
+(** Frames are the units in which streams are split into. *)
 
-(** {2 Types} *)
+type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c; }
 
-(** Frame. *)
-type t
+type multiplicity = Variable | Zero | Succ of multiplicity
+type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
-(** PCM data. *)
-type float_pcm = float array
+type content_type = (int, int, int) fields
 
-(** For now, we only specify the sampling frequency for PCM data. *)
-type float_pcm_t = float
+type content = (audio_t array, video_t array, midi_t array) fields
+and audio_t = float array
+and video_t = RGB.t array
+and midi_t = (int * Midi.event) list ref
 
-(** Contents of tracks. *)
-type track_t =
-  | Float_pcm_t of float_pcm_t (** PCM data *)
-  | Midi_t (** MIDI data *)
-  | RGB_t (** YUV video data *)
+val blit_content : content -> int -> content -> int -> int -> unit
 
-(** Tracks. *)
-type track =
-  | Float_pcm of (float_pcm_t * float_pcm) (** PCM data *)
-  | Midi of (int * Midi.event) list ref (** MIDI data *)
-  | RGB of RGB.t array (** YUV data as an array of frames *)
+type metadata = (string, string) Hashtbl.t
+type t = {
+  mutable breaks : int list;
+  mutable metadata : (int * metadata) list;
+  mutable contents : (int * content) list;
+  content_kind : content_kind;
+}
 
-(** {2 Basic manipulation} *)
+(** {2 Content-independent frame operations}
+  * All units are in ticks (master clock). *)
 
-(** [create type freq length] creates a new frame whose tracks are of type
-  * [type], where [freq] is the number of ticks in a second and [length] is its
-  * length in ticks. *)
-val create : track_t array -> freq:int -> length:int -> t
+val create : content_kind -> t
 
-(** Create a frame with the default parameters. *)
-val make : unit -> t
-
-(** Get the kind of contents of the tracks of a frame. *)
-val kind   : t -> track_t array
-
-(** Get the tracks contained in a frame. *)
-val get_tracks : t -> track array
-
-(** Add a track to a frame. *)
-val add_track : t -> track -> unit
-
-(** Duration in seconds. *)
-val duration : t -> float
-
-(** {2 Breaks} *)
-
-(** Breaks are track limits. All the durations are given in ticks. *)
-
-(** Length of a frame in ticks. *)
-val size       : t -> int
-
-(** Get the current position in a frame. *)
-val position   : t -> int
-
-(** Breaks of a frame. *)
-val breaks     : t -> int list
-
-(** Add a break to a frame. *)
-val add_break  : t -> int -> unit
-
-(** Set all the breaks of a frame. *)
-val set_breaks : t -> int list -> unit
-
-(** Is a frame partially filled? *)
+val position : t -> int
 val is_partial : t -> bool
 
-(** Reset breaks and metadata. *)
 val clear : t -> unit
-
-(** Reset breaks and metadata, but leaves the last metadata at position -1. *)
 val advance : t -> unit
 
-(** {2 Metadatas handling} *)
+(** {3 Breaks} *)
 
-(** Raised when there is no metadata in the frame. *)
+val breaks : t -> int list
+val set_breaks : t -> int list -> unit
+val add_break : t -> int -> unit
+
+(** {3 Metadata} *)
+
 exception No_metadata
-
-(** Metadata is represented by a table associating strings to strings,
-  * located at some instant (and not for some interval). *)
-type metadata = (string,string) Hashtbl.t
-
-(** Remove the metadata at a given time (in ticks). *)
-val free_metadata    : t -> int -> unit
-
-(** Set the metdata at a given time (in ticks). *)
-val set_metadata     : t -> int -> metadata -> unit
-
-(** Get the metadata at a given time (in ticks). *)
-val get_metadata     : t -> int -> metadata option
-
-(** Remove all metadata from a frame. *)
+val set_metadata : t -> int -> metadata -> unit
+val get_metadata : t -> int -> metadata option
+val free_metadata : t -> int -> unit
 val free_all_metadata : t -> unit
-
-(** Get all the metadata of a frame (and the time they are set). *)
-val get_all_metadata : t -> (int*metadata) list
-
-(** Get the stored past metadata of a frame (rather, stream). *)
+val get_all_metadata : t -> (int * metadata) list
+val set_all_metadata : t -> (int * metadata) list -> unit
 val get_past_metadata : t -> metadata option
 
-(** Set all the metadata of a frame (and the time they are set). *)
-val set_all_metadata : t -> (int*metadata) list -> unit
+(** {2 Content operations} *)
 
-(** {2 Chunks} *)
+val content : t -> int -> int * content
+val content_of_type : t -> int -> content_type -> content
 
 exception No_chunk
-
-(** [get_chunk buf inbuf] fills [buf] with data from [inbuf] starting at current
-  * position for both buffers. *)
 val get_chunk : t -> t -> unit
 
-(** Fill a frame from a out_chan using the Marshal module. *)
-val fill_from_marshal : in_channel -> t -> unit
+(** {2 Compatibilities between content values, types and kinds} *)
 
-(** {2 Other} *)
+val mul_sub_mul : multiplicity -> multiplicity -> bool
+val mul_sub_int : multiplicity -> int -> bool
+val kind_sub_kind :
+  (multiplicity, multiplicity, multiplicity) fields ->
+  (multiplicity, multiplicity, multiplicity) fields -> bool
+val type_has_kind :
+  (int, int, int) fields ->
+  (multiplicity, multiplicity, multiplicity) fields -> bool
+val content_has_type :
+  ('a array, 'b array, 'c array) fields -> (int, int, int) fields -> bool
+val type_of_content :
+  ('a array, 'b array, 'c array) fields -> (int, int, int) fields
+val type_of_kind :
+  (multiplicity, multiplicity, 'a) fields -> (int, int, int) fields
 
-(** [blit src src_pos dst dst_pos len]: copy [len] data from [src], starting
-  * at [src_pos] to [dst], starting at [dst_pos]. *)
-val blit : t -> int -> t -> int -> int -> unit
+val mul_of_int : int -> multiplicity
+
+val string_of_content_kind : content_kind -> string
+
+(** {2 Format settings} *)
+
+(** The channel numbers are only defaults, used when channel numbers
+  * cannot be infered / are not forced from the context.
+  * I'm currently unsure how much they are really useful. *)
+
+val audio_channels : int Lazy.t
+val video_channels : int Lazy.t
+val midi_channels : int Lazy.t
+
+val video_width : int Lazy.t
+val video_height : int Lazy.t
+
+val audio_rate : int Lazy.t
+val video_rate : int Lazy.t
+val master_rate : int Lazy.t
+
+val size : int Lazy.t
+val duration : float Lazy.t
+
+(** {2 Time and frequency conversions} *)
+
+val audio_of_master : int -> int
+val video_of_master : int -> int
+val master_of_audio : int -> int
+val master_of_video : int -> int
+
+val master_of_seconds : float -> int
+val audio_of_seconds : float -> int
+val video_of_seconds : float -> int
+
+val seconds_of_master : int -> float
+val seconds_of_audio : int -> float
+val seconds_of_video : int -> float

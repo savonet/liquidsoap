@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class on_track f s =
+class on_track ~kind f s =
 object
-  inherit Source.operator [s]
+  inherit Source.operator kind [s]
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -48,6 +48,7 @@ object
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "on_track"
     [ "",
       Lang.fun_t
@@ -60,10 +61,11 @@ let () =
             list is passed. \
             That function should be fast because it is ran in the main \
             thread." ;
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on new tracks."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let f = Lang.assoc "" 1 p in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_track f s)
+         new on_track ~kind f s)

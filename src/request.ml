@@ -193,10 +193,15 @@ type audio = [ `Audio ]
 type raw   = [ `Raw ]
 type flags = [ audio | raw ]
 
+(* In the "old" liquidsoap, there was only audio, and a distinction between
+ * audio and non-audio requests. Now, streams can transport various kinds
+ * of information, so "audio" requests are just requests expected to be
+ * used for streaming, but not necessarily just audio. *)
+
 type _t = {
   id : int ;
   initial_uri : string ;
-  audio : bool ;
+  kind : Frame.content_kind option ;
   persistent : bool ;
 
   (* The status of a request gives partial information of what's being done
@@ -219,7 +224,7 @@ type _t = {
 type +'a t = _t constraint 'a = [<flags]
 
 let to_raw   x = x
-let to_audio x = assert x.audio ; x
+let to_audio x = assert (x.kind <> None) ; x
 
 let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   string = home_unrelate s ;
@@ -312,11 +317,11 @@ let mresolvers =
   Plug.create ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
 let local_check t =
-  if t.audio then try
+  let check_decodable kind = try
     while t.decoder = None && Sys.file_exists (peek_indicator t).string do
       let indicator = peek_indicator t in
       let name = indicator.string in
-        match Decoder.search_valid name with
+        match Decoder.search_valid name kind with
           | Some (format,f) ->
               t.decoder <- Some f ;
               mresolvers#iter
@@ -336,6 +341,10 @@ let local_check t =
       done
   with
     | No_indicator -> ()
+  in
+    match t.kind with
+      | Some kind -> check_decodable kind
+      | None -> ()
 
 let push_indicators t l =
   if l <> [] then
@@ -353,7 +362,7 @@ let push_indicators t l =
 let is_ready t =
   t.indicators <> [] &&
   Sys.file_exists (peek_indicator t).string &&
-  ( t.decoder <> None || not t.audio )
+  ( t.decoder <> None || t.kind = None )
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -502,7 +511,7 @@ let resolving_requests () =
 
 (** Creation *)
 
-let _create ~audio ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
+let _create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
   Mutex.lock lock ;
   let rid = next () in
     if rid = -1 then
@@ -513,7 +522,7 @@ let _create ~audio ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
       let t = {
         id = rid ;
         initial_uri = u ;
-        audio = audio ;
+        kind = kind ;
         persistent = persistent ;
 
         on_air = None ;
@@ -534,8 +543,8 @@ let _create ~audio ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
           (if indicators=[] then [indicator u] else indicators) ;
         Some t
 
-let create = _create ~audio:true
-let create_raw = _create ~audio:false
+let create ~kind = _create ~kind:(Some kind)
+let create_raw = _create ~kind:None
 
 let on_air t =
   t.on_air <- Some (Unix.time ()) ;

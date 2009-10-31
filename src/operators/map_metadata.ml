@@ -22,9 +22,9 @@
 
 open Source
 
-class map_metadata source rewrite_f insert_missing update strip =
+class map_metadata ~kind source rewrite_f insert_missing update strip =
 object (self)
-  inherit operator [source]
+  inherit operator kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -74,6 +74,7 @@ object (self)
 end
 
 let register =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "map_metadata"
     [ "", Lang.fun_t
             [false,"",
@@ -90,13 +91,14 @@ let register =
       Some "Treat track beginnings without metadata as having empty ones. \
             The operational order is: create empty if needed, map and strip \
             if enabled." ;
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Rewrite metadata on the fly using a function."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let source = Lang.to_source (Lang.assoc "" 2 p) in
        let f = Lang.assoc "" 1 p in
        let update = Lang.to_bool (List.assoc "update" p) in
        let strip = Lang.to_bool (List.assoc "strip" p) in
        let missing = Lang.to_bool (List.assoc "insert_missing" p) in
-         new map_metadata source f missing update strip)
+         new map_metadata ~kind source f missing update strip)

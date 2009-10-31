@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class on_end ~delay f s =
+class on_end ~kind ~delay f s =
 object (self)
-  inherit Source.operator [s]
+  inherit Source.operator kind [s]
 
   val mutable executed = false
 
@@ -41,7 +41,7 @@ object (self)
     in
     if List.length l > 0 then
       latest_metadata <- Some (snd (List.hd l));
-    let rem = Fmt.seconds_of_ticks s#remaining in
+    let rem = Frame.seconds_of_master s#remaining in
     if rem <= delay && not executed then
     begin
       let m = 
@@ -58,25 +58,27 @@ object (self)
 end
 
 let () =
+  let kind = Lang.univ_t 1 in
   Lang.add_operator "on_end"
     [ "delay", Lang.float_t,
       Some (Lang.float 5.),
-      Some ("Execute handler when remaining time is less or \
-             equal to this value.") ;
+      Some "Execute handler when remaining time is less or \
+            equal to this value." ;
       "",
       Lang.fun_t
         [(false,"",Lang.float_t);
           false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
         Lang.unit_t,
       None,
-      Some ("Function to execute. First argument is the remaining time, \
-             second is the latest metadata.") ;
-      "", Lang.source_t, None, None ]
+      Some "Function to execute. First argument is the remaining time, \
+            second is the latest metadata." ;
+      "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
-    ~descr:"Call a given handler when there is less than a given amount of time \
-            remaining before then end of track."
-    (fun p _ ->
+    ~descr:"Call a given handler when there is less than \
+            a given amount of time remaining before then end of track."
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let delay = Lang.to_float (List.assoc "delay" p) in 
        let f = Lang.assoc "" 1 p in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_end ~delay f s)
+         new on_end ~kind ~delay f s)

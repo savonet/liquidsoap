@@ -22,11 +22,12 @@
 
 (** Abstract classes for easy creation of output nodes. *)
 
-(** Parameters needed to instanciate an output. *)
-val proto : (string * Lang.kind * Lang.value option * string option) list
+(** Parameters needed to instantiate an output. *)
+val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
-  kind:string ->
+  content_kind:Frame.content_kind ->
+  output_kind:string ->
   ?name:string ->
   infallible:bool ->
   on_start:(unit->unit) ->
@@ -66,7 +67,8 @@ object
 end
 
 class virtual encoded :
-  kind:string ->
+  content_kind:Frame.content_kind ->
+  output_kind:string ->
   name:string ->
   infallible:bool ->
   on_start:(unit->unit) ->
@@ -79,7 +81,7 @@ object
   method output_send : Frame.t -> unit
 
   method virtual encode : Frame.t -> int -> int -> string
-  method virtual reset_encoder : AFrame.metadata -> string
+  method virtual reset_encoder : Frame.metadata -> string
   method virtual send : string -> unit
 
   method virtual output_reset : unit

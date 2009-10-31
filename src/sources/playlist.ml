@@ -67,9 +67,7 @@ let rec list_files (log : Log.t) dir =
   let files = List.sort compare files in
     files@(List.concat (List.map (fun d -> list_files log d) dirs))
 
-class virtual vplaylist ~mime ~reload 
-                       ~random ~timeout 
-                       ~prefix playlist_uri =
+class virtual vplaylist ~mime ~reload ~random ~timeout ~prefix playlist_uri =
 object (self)
 
   method virtual is_valid : string -> bool
@@ -181,7 +179,7 @@ object (self)
                     []
     in
     (* Add prefix to all requests. *)
-    let _playlist = 
+    let _playlist =
       List.map (Printf.sprintf "%s%s" prefix) _playlist
     in
       (* TODO distinguish error and empty if fallible *)
@@ -225,7 +223,7 @@ object (self)
     (* Do not attempt to lock the [reloading] mutex before scheduling
      * a task: this would create an inter-thread lock/unlock,
      * forbidden e.g. on BSD. *)
-    Duppy.Task.add Tutils.scheduler 
+    Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Maybe_blocking ;
           events   = [`Delay 0.] ;
@@ -365,20 +363,15 @@ object (self)
 end
 
 (** Standard playlist, with a queue. *)
-class playlist ~mime ~reload 
-               ~random ~length 
-               ~default_duration
-               ~timeout ~prefix
-               ~conservative 
-               uri =
+class playlist ~kind
+  ~mime ~reload ~random
+  ~length ~default_duration ~timeout ~prefix ~conservative
+  uri =
 object
 
-  inherit vplaylist ~mime ~reload 
-                    ~random ~timeout 
-                    ~prefix uri as pl
-  inherit Request_source.queued 
-            ~length ~default_duration 
-            ~timeout ~conservative () as super
+  inherit vplaylist ~mime ~reload ~random ~timeout ~prefix uri as pl
+  inherit Request_source.queued ~kind
+            ~length ~default_duration ~timeout ~conservative () as super
 
   method reload_playlist_internal new_uri =
     pl#reload_playlist_internal new_uri ;
@@ -397,14 +390,12 @@ end
 
 (** Safe playlist, without queue and playing only local files,
   * which never fails. *)
-class safe_playlist ~mime ~reload ~random
-                   ~timeout ~prefix local_playlist =
+class safe_playlist ~kind
+  ~mime ~reload ~random ~timeout ~prefix local_playlist =
 object (self)
 
-  inherit vplaylist ~mime ~reload ~random
-                    ~timeout ~prefix 
-                    local_playlist as pl
-  inherit Request_source.unqueued as super
+  inherit vplaylist ~mime ~reload ~random ~timeout ~prefix local_playlist as pl
+  inherit Request_source.unqueued ~kind as super
 
   method wake_up =
     pl#playlist_wake_up ;
@@ -414,7 +405,7 @@ object (self)
     * thus, we can assume that the source is infallible. *)
   method is_valid uri =
     Sys.file_exists uri &&
-    match Request.create uri with
+    match Request.create ~kind uri with
       | None -> assert false
       | Some r ->
           let check = Request.resolve r 0. = Request.Resolved in
@@ -506,7 +497,8 @@ let () =
       ~category:Lang.Input
       ~descr:"Loop on a playlist of URIs."
       (Request_source.queued_proto@proto)
-      (fun params _ ->
+      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      (fun params kind ->
          let reload,random,timeout,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
@@ -516,12 +508,12 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
-         let length,default_duration,timeout,conservative = 
-                Request_source.extract_queued_params params 
+         let length,default_duration,timeout,conservative =
+                Request_source.extract_queued_params params
          in
-           ((new playlist ~mime ~reload ~prefix 
-                          ~length ~default_duration
-                          ~timeout ~random ~conservative uri):>source)) ;
+           ((new playlist ~kind ~mime ~reload ~random
+                          ~length ~default_duration ~prefix ~timeout
+                          ~conservative uri):>source)) ;
 
     Lang.add_operator "playlist.safe"
       ~category:Lang.Input
@@ -532,7 +524,8 @@ let () =
               and put only a few local files in a default safe_playlist \
               in order to ensure the liveness of the streamer."
       proto
-      (fun params _ ->
+      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      (fun params kind ->
           let reload,random,timeout,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
@@ -542,5 +535,5 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
-           ((new safe_playlist ~mime ~reload ~prefix
+           ((new safe_playlist ~kind ~mime ~reload ~prefix
                                ~random ~timeout uri):>source))

@@ -22,8 +22,6 @@
 
 (** Decode and read metadatas of ogg files. *)
 
-module Generator = Float_pcm.Generator
-
 let log = Dtools.Log.make ["ogg.demuxer"]
 
 (* Opaque converter *)
@@ -44,7 +42,7 @@ let decoder file sync fd =
   let decoder = Ogg_demuxer.init sync in
   let init_meta = ref true in
   let abg = Generator.create () in
-  let buffer_length = Decoder.buffer_length () in
+  let buffer_length = Decoder.conf_buffer () in
   let stats = Unix.stat file in
   let file_size = stats.Unix.st_size in
   let in_bytes = ref 0 in
@@ -68,7 +66,7 @@ let decoder file sync fd =
 
     (* Video input *)
     (* TODO: video buffer with conversion.. *)
-    if Fmt.video_channels () <> 0 &&
+    if Lazy.force Frame.video_channels <> 0 &&
        Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
     begin
       let b = VFrame.get_rgb buf in
@@ -80,7 +78,7 @@ let decoder file sync fd =
              buf.Ogg_demuxer.uv_height = buf.Ogg_demuxer.y_height / 2 &&
              (* TODO: more precise? + convert fps *)
              int_of_float (buf.Ogg_demuxer.fps +. 0.5)
-               = Fmt.video_frames_per_second ()) ;
+               = Lazy.force Frame.video_rate) ;
           let rgb = b.(c).(i) in
           let frame = Video_converter.frame_of_internal_rgb rgb in
           let convert = converter () in
@@ -114,7 +112,7 @@ let decoder file sync fd =
       (*VFrame.add_break buf size;*)
     end;
 
-    if Fmt.channels () <> 0 &&
+    if Lazy.force Frame.audio_channels <> 0 &&
        Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder then
     begin
       try

@@ -37,7 +37,7 @@
 type source_t = Fallible | Infallible
 
 (** The [source] use is to send music frames through the [get] method. *)
-class virtual source :
+class virtual source : ?name:string -> Frame.content_kind ->
 object
 
   (** {1 Naming} *)
@@ -110,13 +110,13 @@ object
 end
 
 (* This is for defining a source which has children *)
-class virtual operator : source list ->
+class virtual operator : Frame.content_kind -> source list ->
 object
   inherit source
 end
 
 (* Entry-points sources, which need to actively perform some task. *)
-class virtual active_source :
+class virtual active_source : Frame.content_kind ->
 object
   inherit source
   val memo : Frame.t
@@ -140,7 +140,7 @@ end
 
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
-class virtual active_operator : source ->
+class virtual active_operator : Frame.content_kind -> source ->
 object
   inherit active_source
 end

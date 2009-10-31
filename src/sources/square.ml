@@ -24,17 +24,17 @@
 
 open Source
 
-class square freq duration =
-  let nb_samples = Fmt.samples_of_seconds duration in
-  let period = int_of_float (float (Fmt.samples_per_second()) /. freq) in
+class square ~kind freq duration =
+  let nb_samples = Frame.audio_of_seconds duration in
+  let period = int_of_float (float (Lazy.force Frame.audio_rate) /. freq) in
 object
-  inherit source
+  inherit source kind
 
   method stype = Infallible
   method is_ready = true
 
   val mutable remaining = nb_samples
-  method remaining = Fmt.ticks_of_samples remaining
+  method remaining = Frame.master_of_audio remaining
 
   val mutable must_fail = false
   method abort_track =
@@ -49,9 +49,9 @@ object
       remaining <- nb_samples ;
       must_fail <- false
     end else
-      let b = AFrame.get_float_pcm ab in
       let off = AFrame.position ab in
-      let size = AFrame.size ab in
+      let b = AFrame.get_float_pcm ab off in
+      let size = AFrame.size () in
       let write i x =
         for c = 0 to Array.length b - 1 do
           b.(c).(i) <- x
@@ -62,8 +62,8 @@ object
           pos <- pos + 1 ;
           if pos >= period then pos <- pos - period;
         done ;
-        AFrame.add_break ab (AFrame.size ab) ;
-        remaining <- remaining - (AFrame.size ab) - off ;
+        AFrame.add_break ab size ;
+        remaining <- remaining - size - off ;
         if remaining <= 0 then must_fail <- true
 
 end
@@ -72,11 +72,12 @@ let () =
   Lang.add_operator "square"
     ~category:Lang.Input
     ~descr:"Generate a square wave."
+    ~kind:Lang.audio_any
     [
       "duration", Lang.float_t, Some (Lang.float 0.), None;
       "", Lang.float_t, Some (Lang.float 440.), Some "Frequency of the square."
     ]
-    (fun p _ ->
-       (new square
+    (fun p kind ->
+       (new square ~kind
           (Lang.to_float (List.assoc "" p))
           (Lang.to_float (List.assoc "duration" p)) :> source))

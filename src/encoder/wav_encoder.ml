@@ -20,28 +20,40 @@
 
  *****************************************************************************)
 
-(** Convert a value into a channel number, checking that it actually exists. *)
-let to_chan v =
-  let n = Lang.to_int v in
-    if n >= Lazy.force Frame.midi_channels then
-      raise
-        (Lang.Invalid_value
-           (v, "channel number too big (try increasing frame.midi.channels)"))
-    else
-      n
+(** WAV encoder *)
 
-(** Convert delta-times to ticks. *)
-let ticks_of_delta division tempo delta =
-  match division with
-    | Midi.Ticks_per_quarter tpq ->
-        (* These computations sometimes overflow on 32 bits. *)
-        let tpq = Int64.of_int tpq in
-        let tempo = Int64.of_int tempo in
-        let tps = Int64.of_int (Lazy.force Frame.size) in
-        let ten = Int64.of_int 1000000 in
-        let delta = Int64.of_int delta in
-        let ( * ) = Int64.mul in
-        let ( / ) = Int64.div in
-          Int64.to_int ((((delta * tempo) / tpq) * tps) / ten)
-    | Midi.SMPTE (fps,res) ->
-        (delta * Lazy.force Frame.size) / (fps * res)
+open Encoder
+open Encoder.WAV
+
+let encoder wav =
+  let channels = if wav.stereo then 2 else 1 in
+  let sample_rate = Lazy.force Frame.audio_rate in
+  let header =
+    Wav.header
+      ~channels ~sample_rate
+      ~sample_size:16 ~big_endian:false ~signed:true ()
+  in
+  let need_header = ref true in
+  let encode frame start len =
+    let start = Frame.audio_of_master start in
+    let b = AFrame.get_float_pcm frame start in
+    let len = Frame.audio_of_master len in
+    let s = String.create (2 * len * channels) in
+    ignore (Float_pcm.to_s16le b start len s 0) ;
+    if !need_header then begin
+      need_header := false ;
+      header ^ s
+    end else
+      s
+  in
+    { 
+      reset = (fun m -> "") ;
+      encode = encode ;
+      stop = (fun () -> "")
+    }
+
+let () =
+  Encoder.plug#register "WAV"
+    (function
+       | Encoder.WAV w -> Some (fun () -> encoder w)
+       | _ -> None)

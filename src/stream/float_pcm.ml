@@ -20,25 +20,7 @@
 
  *****************************************************************************)
 
-let conf_buffering =
-  Dtools.Conf.void ~p:(Configure.conf#plug "buffering") "Parameters for buffering."
-
-let conf_buffering_kind =
-  Dtools.Conf.string ~p:(conf_buffering#plug "kind") ~d:"default"
-  "Kind of buffering for audio data (default|raw|disk|disk_manyfiles)."
-    ~comments:[
-      "If set to raw, liquidsoap will use raw s16le pcm format ";
-      "when buffering audio data.";
-      "If set to disk, liquidsoap will store buffered data on ";
-      "disk (disk_manyfiles is the same but is a bit faster at ";
-      "the expense of creating many files).";
-      "Both non-default options can save a lot of memory when ";
-      "buffering a lot of data, at the cost of some computational power.";
-    ]
-
-let conf_buffering_path =
-  Dtools.Conf.string ~p:(conf_buffering#plug "path") ~d:Filename.temp_dir_name 
-  "Path where data buffered on disk should be put."
+type pcm = float array array
 
 let create_buffer chans len =
   Array.init chans (fun _ -> Array.make len 0.)
@@ -108,16 +90,79 @@ let native_resample ratio inbuf offs len =
       done;
       outbuf
 
+(* Sound processing *)
+
+let multiply a off len c =
+  for i = 0 to Array.length a - 1 do
+    let a_i = a.(i) in
+      for j = off to off + len - 1 do
+        a_i.(j) <- c *. a_i.(j)
+      done
+  done
+
+let blankify a off len =
+  for i = 0 to Array.length a - 1 do
+    let a_i = a.(i) in
+      for j = off to off + len - 1 do
+        a_i.(j) <- 0.
+      done
+  done
+
+let add dst dst_off src src_off len =
+  for i = 0 to Array.length dst - 1 do
+    let dst_i = dst.(i) in
+    let src_i = src.(i) in
+      for j = 0 to len - 1 do
+        dst_i.(dst_off+j) <- dst_i.(dst_off+j) +. src_i.(src_off+j)
+      done
+  done
+
+let substract y y_off x x_off len =
+  for i = 0 to Array.length y - 1 do
+    let x_i = x.(i) in
+    let y_i = y.(i) in
+      for j = 0 to len - 1 do
+        y_i.(y_off+j) <- y_i.(y_off+j) -. x_i.(x_off+j)
+      done
+  done
+
+let rms a off len =
+  let ans = Array.create (Array.length a) 0. in
+    for c = 0 to Array.length a - 1 do
+      let a_c = a.(c) in
+        for i = off to off + len - 1 do
+          ans.(c) <- ans.(c) +. a_c.(i) *. a_c.(i)
+        done;
+      ans.(c) <- sqrt (ans.(c) /. (float len))
+    done;
+    ans
+
+(*
+
+let conf_buffering =
+  Dtools.Conf.void ~p:(Configure.conf#plug "buffering")
+    "Parameters for buffering."
+
+let conf_buffering_kind =
+  Dtools.Conf.string ~p:(conf_buffering#plug "kind") ~d:"default"
+  "Kind of buffering for audio data (default|raw|disk|disk_manyfiles)."
+    ~comments:[
+      "If set to raw, liquidsoap will use raw s16le pcm format ";
+      "when buffering audio data.";
+      "If set to disk, liquidsoap will store buffered data on ";
+      "disk (disk_manyfiles is the same but is a bit faster at ";
+      "the expense of creating many files).";
+      "Both non-default options can save a lot of memory when ";
+      "buffering a lot of data, at the cost of some computational power.";
+    ]
+
+let conf_buffering_path =
+  Dtools.Conf.string ~p:(conf_buffering#plug "path") ~d:Filename.temp_dir_name 
+  "Path where data buffered on disk should be put."
+
 let get_float_pcm b =
-  let tracks = Array.to_list (Frame.get_tracks b) in
-  let ans =
-    List.fold_left
-      (fun l t ->
-         match t with
-           | Frame.Float_pcm (_,a) -> a::l
-           | _ -> l
-      ) [] tracks in
-    Array.of_list ans
+  let end_pos,content = Frame.content b 0 in
+    content.Frame.audio
 
 module Raw_queue =
 struct
@@ -287,7 +332,7 @@ struct
           (* Heuristics in order to avoid growing too often. *)
           let grow =
             let grow_duration = if t.size < Sys.max_array_length / 2 then 0.5 else 10. in
-              max (len - write_space t) (Fmt.samples_of_seconds grow_duration)
+              max (len - write_space t) (Frame.samples_of_seconds grow_duration)
           in
             resize t (t.size + grow)
         );
@@ -711,51 +756,4 @@ struct
   let remove g = Generator.remove g.generator
 
   let fill g = Generator.fill g.generator
-end
-
-(* Sound processing *)
-
-let multiply a off len c =
-  for i = 0 to Array.length a - 1 do
-    let a_i = a.(i) in
-      for j = off to off + len - 1 do
-        a_i.(j) <- c *. a_i.(j)
-      done
-  done
-
-let blankify a off len =
-  for i = 0 to Array.length a - 1 do
-    let a_i = a.(i) in
-      for j = off to off + len - 1 do
-        a_i.(j) <- 0.
-      done
-  done
-
-let add dst dst_off src src_off len =
-  for i = 0 to Array.length dst - 1 do
-    let dst_i = dst.(i) in
-    let src_i = src.(i) in
-      for j = 0 to len - 1 do
-        dst_i.(dst_off+j) <- dst_i.(dst_off+j) +. src_i.(src_off+j)
-      done
-  done
-
-let substract y y_off x x_off len =
-  for i = 0 to Array.length y - 1 do
-    let x_i = x.(i) in
-    let y_i = y.(i) in
-      for j = 0 to len - 1 do
-        y_i.(y_off+j) <- y_i.(y_off+j) -. x_i.(x_off+j)
-      done
-  done
-
-let rms a off len =
-  let ans = Array.create (Array.length a) 0. in
-    for c = 0 to Array.length a - 1 do
-      let a_c = a.(c) in
-        for i = off to off + len - 1 do
-          ans.(c) <- ans.(c) +. a_c.(i) *. a_c.(i)
-        done;
-      ans.(c) <- sqrt (ans.(c) /. (float len))
-    done;
-    ans
+end *)

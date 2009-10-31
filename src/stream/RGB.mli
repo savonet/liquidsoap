@@ -7,10 +7,11 @@ exception Invalid_format of string
 (** {2 Types} *)
 
 (** An RGBA frame. *)
-type data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type data =
+       (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 type t =
   {
-    (** Order matter for C callbacks !! *)
+    (** Order matters for C callbacks !! *)
     data   : data;
     width  : int;
     height : int;
@@ -44,7 +45,8 @@ val set_pixel : t -> int -> int -> color -> unit
   * Frames don't have to be of the same size. The [blank] parameter should
   * be set to [false] if what's outside [src] in [dst] does not need to be
   * blanked. *)
-val blit : ?blank:bool -> ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
+val blit :
+      ?blank:bool -> ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
 
 (** Faster implementation of blit without translation or scaling, when both
   * images are of the same dimension. *)
@@ -81,7 +83,8 @@ val to_bmp : t -> string
 (** Save frame in a bitmap file. *)
 val save_bmp : t -> string -> unit
 
-(** Read a PPM in a string. [alpha] is an optional color meaning transparency. *)
+(** Read a PPM in a string.
+  * [alpha] is an optional color meaning transparency. *)
 val of_ppm : ?alpha:(int * int * int) -> string -> t
 
 (** Same as [of_ppm] but reads PPM from a file. *)

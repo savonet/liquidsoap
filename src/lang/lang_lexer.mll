@@ -127,6 +127,10 @@ rule token = parse
   | "elsif"  { ELSIF }
   | "->"     { YIELDS }
 
+  | "%vorbis" { VORBIS }
+  | "%wav" { WAV }
+  | "%mp3" { MP3 }
+
   | '[' { LBRA }
   | ']' { RBRA }
   | '(' { LPAR }

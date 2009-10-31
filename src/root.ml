@@ -67,7 +67,7 @@ let t0 = ref 0.
 let ticks = ref 0L
 let delay () =
   !t0
-  +. Fmt.seconds_per_frame () *. Int64.to_float (Int64.add !ticks 1L)
+  +. (Lazy.force Frame.duration) *. Int64.to_float (Int64.add !ticks 1L)
   -. time ()
 
 (** Main loop. *)
