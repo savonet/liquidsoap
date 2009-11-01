@@ -46,7 +46,7 @@ object (self)
     match device with
       | Some d -> d
       | None ->
-          (* Wait for things to settle *)
+          (* Wait for things to settle... TODO I don't need that! *)
           Thread.delay (5. *. Lazy.force Frame.duration);
           let driver =
             if driver = "" then
@@ -55,10 +55,13 @@ object (self)
               find_driver driver
            in
            let dev =
+             self#log#f 3
+               "Opening %s (%d channels)..."
+               (driver_name driver) channels ;
              open_live ~driver ~options
                        ~rate:samples_per_second
                        ~bits:(bytes_per_sample * 8)
-                       ~channels:channels ()
+                       ~channels ()
            in
            device <- Some dev ;
            dev
@@ -76,7 +79,7 @@ object (self)
 
   method output_send wav =
     let push data =
-      let pcm = AFrame.get_float_pcm wav 0 in
+      let pcm = AFrame.content wav 0 in
         ignore (Float_pcm.to_s16le pcm 0 (AFrame.size ()) data 0)
     in
     ioring#put_block push
@@ -90,16 +93,16 @@ let () =
    ( Output.proto @
     [ "driver",
       Lang.string_t, Some (Lang.string ""),
-      Some "libao driver to use." ;
+      Some "Driver to be used, \"\" for AO's default." ;
 
       "buffer_size",
       Lang.int_t, Some (Lang.int 2),
-      Some "Set buffer size, in frames.";
+      Some "Set buffer size, in frames." ;
 
       "options",
       Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),
       Some (Lang.list []),
-      Some "List of parameters, depends on driver.";
+      Some "List of parameters, depends on the driver." ;
 
       "", Lang.source_t kind, None, None
     ])

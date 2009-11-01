@@ -23,8 +23,27 @@
 include Frame
 
 (* Samples of ticks, and vice versa. *)
-let sot = Frame.audio_of_master
-let tos = Frame.master_of_audio
+let sot = audio_of_master
+let tos = master_of_audio
+
+let content b pos =
+  let stop,content = content b (tos pos) in
+    assert (stop = Lazy.force size) ;
+    assert (Array.length content.video = 0) ;
+    assert (Array.length content.midi = 0) ;
+    content.audio
+
+let content_of_type ~channels b pos =
+  let ctype = { audio = channels ; video = 0 ; midi = 0 } in
+  let content = content_of_type b (tos pos) ctype in
+    content.audio
+
+let to_s16le b =
+  let fpcm = content b 0 in
+  let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
+  let s = String.create slen in
+    assert (Float_pcm.to_s16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
+    s
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
@@ -40,27 +59,16 @@ let get_all_metadata t =
 let set_all_metadata t l =
   set_all_metadata t (List.map (fun (x,y) -> tos x, y) l)
 
-let get_float_pcm b pos =
-  let content = content_of_type b (tos pos) (type_of_kind b.content_kind) in
-    content.audio
-
-let to_s16le b =
-  let fpcm = get_float_pcm b 0 in
-  let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
-  let s = String.create slen in
-    assert (Float_pcm.to_s16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
-    s
-
 let blankify b off len =
-  Float_pcm.blankify (get_float_pcm b off) off len
+  Float_pcm.blankify (content b off) off len
 
-let multiply b off len c = Float_pcm.multiply (get_float_pcm b off) off len c
+let multiply b off len c = Float_pcm.multiply (content b off) off len c
 
 let add b1 off1 b2 off2 len =
-  Float_pcm.add (get_float_pcm b1 off1) off1 (get_float_pcm b2 off2) off2 len
+  Float_pcm.add (content b1 off1) off1 (content b2 off2) off2 len
 
 let substract b1 off1 b2 off2 len =
   Float_pcm.substract
-    (get_float_pcm b1 off1) off1 (get_float_pcm b2 off2) off2 len
+    (content b1 off1) off1 (content b2 off2) off2 len
 
-let rms b off len = Float_pcm.rms (get_float_pcm b off) off len
+let rms b off len = Float_pcm.rms (content b off) off len

@@ -40,8 +40,7 @@ type metadata = (string, string) Hashtbl.t
 type t = {
   mutable breaks : int list;
   mutable metadata : (int * metadata) list;
-  mutable contents : (int * content) list;
-  content_kind : content_kind;
+  mutable contents : (int * content) list
 }
 
 (** {2 Content-independent frame operations}

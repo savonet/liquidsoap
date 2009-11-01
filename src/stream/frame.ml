@@ -248,16 +248,14 @@ type t =
      * of different content_type. Each chunk has an end position, after
      * which data should be considered as undefined.
      * Chunks can be seen as layers: they all have the same (full) size,
-     * and data goes from one to the other. For example: [5,A;2,B;3,C] is
+     * and data goes from one to the other. For example: [5,A;7,B;10,C] is
      * A = 0 1 2 3 4 . . . . .
      * B = . . . . . 5 6 . . .
      * C = . . . . . . . 7 8 9 where "." is an undefined sample.
      * This representation is slightly costly in memory (but several
      * chunks shouldn't happen too often) but is very convenient to
      * handle; notably, there's no need to pass offsets around. *)
-    mutable contents : (int*content) list ;
-
-    content_kind : content_kind (* only used for checking/debugging *)
+    mutable contents : (int*content) list
   }
 
 (** Create a content chunk. All chunks have the same size. *)
@@ -281,7 +279,6 @@ let create kind =
   {
     breaks = [] ;
     metadata = [] ;
-    content_kind = kind ;
     contents = [!!size, create_content (type_of_kind kind)]
   }
 
@@ -303,7 +300,8 @@ let rec last = function
   | [x] -> x
   | _::l -> last l
 
-(* When clearing a buffer, only the last content chunk is kept. *)
+(* When clearing a buffer, only the last content chunk is kept
+ * since it is the most likely to be re-used. *)
 let clear b =
   b.contents <- [last b.contents] ;
   b.breaks <- [] ; b.metadata <- []
@@ -312,6 +310,7 @@ let clear b =
 let advance b =
   b.breaks <- [] ;
   b.contents <- [last b.contents] ;
+  assert (fst (List.hd b.contents) = !!size) ;
   let max a (p,m) =
     match a with Some (pa,ma) when pa > p -> a | _ -> Some (p,m)
   in
@@ -359,7 +358,7 @@ let content frame pos =
   let rec aux = function
     | [] -> assert false
     | (end_pos,content)::l ->
-        if end_pos<pos then aux l else end_pos,content
+        if end_pos<=pos then aux l else end_pos,content
   in
     aux frame.contents
 
@@ -372,19 +371,21 @@ let content_of_type frame pos content_type =
   let rec aux acc = function
     | [] -> assert false
     | (end_pos,content)::l ->
-        if end_pos<pos then aux ((end_pos,content)::acc) l else
-          if content_has_type content content_type then content else begin
-            assert (type_has_kind content_type frame.content_kind) ;
-            let acc = (pos,content)::acc in
+        if end_pos<=pos then aux ((end_pos,content)::acc) l else
+          if content_has_type content content_type then begin
+            if l=[] then assert (end_pos = !!size) else
+              frame.contents <- List.rev ((!!size,content)::acc) ;
+            content
+          end else begin
+            let acc =
+              if pos=0 then acc else (pos,content)::acc
+            in
             let content = create_content content_type in
               frame.contents <- List.rev ((!!size, content)::acc) ;
               content
           end
   in
     aux [] frame.contents
-
-external float_blit : float array -> int -> float array -> int -> int -> unit
-     = "caml_float_array_blit"
 
 let iter2 a b f =
   assert (Array.length a = Array.length b) ;
@@ -396,14 +397,14 @@ let blit_content src src_pos dst dst_pos len =
   iter2 src.audio dst.audio
     (fun a a' ->
        let (!) = audio_of_master in
-         float_blit a !src_pos a' !dst_pos !len) ;
+         Float_pcm.blit a !src_pos a' !dst_pos !len) ;
   iter2 src.video dst.video
     (fun v v' ->
        let (!) = video_of_master in
          for i = 0 to !len-1 do
            RGB.blit_fast v.(!src_pos+i) v'.(!dst_pos+i)
          done) ;
-  iter2 src.midi dst.midi (fun m m' -> m' := !m)
+  iter2 src.midi dst.midi (fun m m' -> Midi.blit m' src_pos m dst_pos len)
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
@@ -426,8 +427,7 @@ exception No_chunk
   * Metadata relevant to the copied chunk is copied as well,
   * and content layout is changed if needed. *)
 let get_chunk ab from =
-  assert (is_partial ab);
-  assert (kind_sub_kind ab.content_kind from.content_kind);
+  assert (is_partial ab) ;
   let p = position ab in
   let copy_chunk i =
     add_break ab i ;

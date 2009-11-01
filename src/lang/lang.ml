@@ -139,13 +139,14 @@ let add_builtin_base ~category ~descr ?(flags=[]) name value t =
 (** Specialized version for operators, that is builtins returning sources. *)
 
 type category =
-  | Input | Output
+  | Input | Output | Conversions
   | TrackProcessing | SoundProcessing | VideoProcessing | MIDIProcessing
   | Visualization | SoundSynthesis
 
 let string_of_category x = "Source / " ^ match x with
   | Input -> "Input"
   | Output -> "Output"
+  | Conversions -> "Conversions"
   | TrackProcessing -> "Track Processing"
   | SoundProcessing -> "Sound Processing"
   | VideoProcessing -> "Video Processing"
@@ -185,6 +186,10 @@ let audio_stereo =
   Constrained
     { Frame.audio = Fixed 2 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
 
+let zero_t = T.make T.Zero
+let succ_t t = T.make (T.Succ t)
+let variable_t = T.make T.Variable
+
 let kind_type_of_kind_format ~fresh fmt =
   match fmt with
     | Unconstrained t -> t
@@ -192,18 +197,18 @@ let kind_type_of_kind_format ~fresh fmt =
         let aux = function
           | Fixed i ->
               let rec aux i =
-                T.make (if i = 0 then T.Zero else T.Succ (aux (i-1)))
+                if i = 0 then zero_t else succ_t (aux (i-1))
               in
                 aux i
           | Any_fixed i ->
               let zero = univ_t ~constraints:[(* TODO T.Fixed *)] fresh in
               let rec aux i =
-                if i = 0 then zero else T.make (T.Succ (aux (i-1)))
+                if i = 0 then zero else succ_t (aux (i-1))
               in
                 aux i
           | Variable i ->
               let rec aux i =
-                T.make (if i = 0 then T.Variable else T.Succ (aux (i-1)))
+                if i = 0 then variable_t else succ_t (aux (i-1))
               in
                 aux i
         in

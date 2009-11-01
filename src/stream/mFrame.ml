@@ -24,11 +24,15 @@ include Frame
 
 let size _ = Lazy.force Frame.size
 
-let tracks b pos =
-  let content = content_of_type b pos (type_of_kind b.content_kind) in
+let content b pos =
+  let stop,content = content b pos in
+    assert (stop = size ()) ;
+    assert (Array.length content.audio = 0) ;
+    assert (Array.length content.video = 0) ;
     content.midi
 
 let set_events f e = ()
 
+(* TODO this is ugly *)
 let clear f =
-  Array.iter (fun t -> t := []) (tracks f 0 (* TODO *))
+  Array.iter (fun t -> t := []) (content f 0)

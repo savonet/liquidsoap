@@ -40,7 +40,7 @@ val from_s16le_ni : pcm -> int -> string array -> int -> int -> unit
 val native_resample : float -> float array -> int -> int -> float array
 
 (** Blit pcm *)
-val float_blit : float array -> int -> float array -> int -> int -> unit
+val blit : float array -> int -> float array -> int -> int -> unit
 
 (** {2 Sound processing} *)
 

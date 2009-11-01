@@ -1,7 +1,7 @@
 
-SUBDIRS= operators sources tools formats protocols outputs io plugins stream \
-         visualization lang analyze playlists ogg_formats video_converters \
-         audio_converters synth encoder
+SUBDIRS= tools formats playlists encoder protocols plugins stream lang \
+		 ogg_formats video_converters audio_converters \
+		 operators sources conversions outputs io visualization analyze synth
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
@@ -64,7 +64,7 @@ operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
 	operators/on_metadata.ml operators/store_metadata.ml \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
-	operators/switch.ml operators/id.ml operators/fade.ml # operators/add.ml \
+	operators/switch.ml operators/fade.ml # operators/add.ml \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
 	operators/prepend.ml operators/append.ml operators/accel.ml \
 	operators/noblank.ml operators/compand.ml \
@@ -85,6 +85,9 @@ operators = \
 	operators/video_effects.ml operators/video_fade.ml \
 	operators/fork.ml operators/midi_routing.ml
 #	operators/pipe.ml
+
+conversions = \
+	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml
 
 analyze =
 # analyze/analyze_rms.ml
@@ -127,9 +130,8 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/tutils.ml tools/sutils.ml tools/http.ml
 
 stream = stream/midi.ml stream/rgb_c.c stream/RGB.ml \
-	stream/frame.ml stream/generator.ml decoder.ml playlist_parser.ml \
-	request.ml source.ml root.ml \
 	stream/float_pcm_c.c stream/float_pcm.ml \
+	stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization =
@@ -146,15 +148,16 @@ synth =
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	encoder/encoder.ml \
+	decoder.ml request.ml source.ml root.ml \
+	playlist_parser.ml encoder/encoder.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/ioRing.ml tools/file_decoder.ml tools/mutils.ml \
-	$(video_converters) $(audio_converters) \
-	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
+	$(video_converters) $(audio_converters) $(ogg_utils) $(protocols) \
+	$(sources) $(operators) $(conversions) $(outputs) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(formats) \
 	shebang.ml \
 	lang/lang_builtins.ml \
@@ -163,14 +166,9 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	main.ml
 # tools/harbor.ml 
 
-OCAML_CFLAGS= -thread \
-	-I tools -I lang -I playlists -I stream -I outputs -I formats \
-	-I video_converters -I sources -I operators -I io -I visualization \
-	-I analyze -I ogg_formats -I audio_converters -I synth -I encoder
-OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
-DEP_OPTS= -I sources -I operators -I tools -I lang -I formats -I playlists \
-		  -I video_converters -I outputs -I io -I stream -I visualization \
-		  -I analyze -I ogg_formats -I audio_converters -I synth -I encoder
+OCAML_CFLAGS= -g -custom -thread $(patsubst %,-I %,$(SUBDIRS))
+OCAML_LFLAGS= -g -custom $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
+DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS)) 
 
 liquidsoap_doc_sources= \
 	source.ml root.ml \

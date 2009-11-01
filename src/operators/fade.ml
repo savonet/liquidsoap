@@ -59,7 +59,7 @@ object (self)
               0
         | `Play (fade,length,count) -> fade,length,count
     in
-    let pcm = AFrame.get_float_pcm ab p1 in
+    let pcm = AFrame.content ab p1 in
       if count < length then
         for i=0 to min (p2-p1-1) (length-count-1) do
           let m = fade (count+i) in
@@ -131,7 +131,7 @@ object (self)
             if n>=0 && n<length then Some n else None
         with
           | Some n ->
-              let buffer = AFrame.get_float_pcm ab offset1 in
+              let buffer = AFrame.content ab offset1 in
                 for i=0 to offset2-offset1-1 do
                   let m = fade (n-i) in
                     for c=0 to Array.length buffer - 1 do

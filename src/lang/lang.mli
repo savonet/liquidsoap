@@ -91,6 +91,7 @@ val add_builtin_base :
 type category =
   | Input (** Input. *)
   | Output (** Output. *)
+  | Conversions     (** Conversions of stream type *)
   | TrackProcessing (** Operations on tracks (e.g. mixing, etc.). *)
   | SoundProcessing (** Operations on sound (e.g. compression, etc.). *)
   | VideoProcessing (** Operations on video. *)
@@ -161,6 +162,10 @@ val list_t     : t -> t
 val product_t  : t -> t -> t
 val source_t   : t -> t
 val format_t   : t -> t
+
+val zero_t     : t
+val variable_t : t
+val succ_t     : t -> t
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters

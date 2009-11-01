@@ -142,11 +142,11 @@ object (self)
            * We compute rms_after and launch the transition. *)
           if source#is_ready then self#analyze_after ;
           self#create_transition ;
-	  (* Check if the new source is ready *)
-          if source#is_ready then 
-	    self#get_frame ab
-	  else
-            Frame.add_break ab (Frame.position ab)	    
+          (* Check if the new source is ready *)
+          if source#is_ready then
+            self#get_frame ab
+          else
+            Frame.add_break ab (Frame.position ab)
       | `After size ->
           (* The work is done, we are now playing the transition.
            * We have to keep playing it without checking for a new track limit

@@ -36,7 +36,7 @@ let encoder wav =
   let need_header = ref true in
   let encode frame start len =
     let start = Frame.audio_of_master start in
-    let b = AFrame.get_float_pcm frame start in
+    let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
     let s = String.create (2 * len * channels) in
     ignore (Float_pcm.to_s16le b start len s 0) ;

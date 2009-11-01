@@ -73,13 +73,13 @@ let from_s16le_ni dbuf dofs buf ofs len =
     from_s16le [|dbuf.(c)|] dofs buf.(c) ofs len
   done
 
-external float_blit : float array -> int -> float array -> int -> int -> unit
+external blit : float array -> int -> float array -> int -> int -> unit
      = "caml_float_array_blit"
 
 let native_resample ratio inbuf offs len =
   if ratio = 1. then
         let outbuf = Array.make len 0. in
-          float_blit inbuf offs outbuf 0 len;
+          blit inbuf offs outbuf 0 len;
           outbuf
   else
     let outlen = int_of_float (float len *. ratio) in
@@ -306,9 +306,14 @@ struct
         else
           (
             let copy_fname, copy_fd = temp_buffer_file () in
-            let copy_ba = Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len in
+            let copy_ba =
+              Bigarray.Array1.map_file
+                r.fd Bigarray.float32 Bigarray.c_layout
+                true len
+            in
               read_ba r copy_ba 0 len;
-              (* Bigarray.Array1.blit copy_ba (Bigarray.Array1.sub buffer 0 len); *)
+              (* Bigarray.Array1.blit copy_ba
+               *   (Bigarray.Array1.sub buffer 0 len); *)
               for i = 0 to len - 1 do
                 buffer.{i} <- copy_ba.{i}
               done;
@@ -324,14 +329,19 @@ struct
       let len = len + 1 in
         compact r;
         r.size <- len;
-        r.buffer <- Bigarray.Array1.map_file r.fd Bigarray.float32 Bigarray.c_layout true len
+        r.buffer <-
+          Bigarray.Array1.map_file
+            r.fd Bigarray.float32 Bigarray.c_layout
+            true len
 
     let write t buff off len =
       if len > write_space t then
         (
           (* Heuristics in order to avoid growing too often. *)
           let grow =
-            let grow_duration = if t.size < Sys.max_array_length / 2 then 0.5 else 10. in
+            let grow_duration =
+              if t.size < Sys.max_array_length / 2 then 0.5 else 10.
+            in
               max (len - write_space t) (Frame.samples_of_seconds grow_duration)
           in
             resize t (t.size + grow)
@@ -648,7 +658,7 @@ struct
     let buffer_size = Array.length buf.(0) in
     let blit src src_off dst dst_off len =
       for c = 0 to Array.length src - 1 do
-        float_blit src.(c) src_off dst.(c) dst_off len
+        blit src.(c) src_off dst.(c) dst_off len
       done
     in
     (* The main loop takes the current offset in the output buffer,

@@ -27,6 +27,7 @@ open Source
 class saw ~kind freq duration =
   let nb_samples = Frame.audio_of_seconds duration in
   let period = int_of_float (float (Lazy.force Frame.audio_rate) /. freq) in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object
   inherit source kind
 
@@ -50,7 +51,7 @@ object
       must_fail <- false
     end else
       let off = AFrame.position ab in
-      let b = AFrame.get_float_pcm ab off in
+      let b = AFrame.content_of_type ~channels ab off in
       let size = AFrame.size () in
       let write i x =
         for c = 0 to Array.length b - 1 do

@@ -50,9 +50,16 @@ val get_chunk : t -> t -> unit
 
 (** {2 Helpers} *)
 
-(** Get the PCM data, for access after a given offset. *)
-val get_float_pcm : t -> int -> float array array
+(** Get audio contents for access after a given offset.
+  * This requires that the frame currently has a purely audio layer
+  * at this position, until the end of the frame. *)
+val content : t -> int -> float array array
 
+(** Get audio contents for writing after a given offset.
+  * If necessary this creates an audio layer starting there. *)
+val content_of_type : channels:int -> t -> int -> float array array
+
+(** Same as [content] with [offset=0], converted to s16le. *)
 val to_s16le : t -> string
 
 (** {2 Sound processing} *)

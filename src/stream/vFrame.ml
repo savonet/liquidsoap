@@ -32,6 +32,9 @@ let add_break t i = add_break t (tov i)
 let set_metadata t i m = set_metadata t (tov i) m
 let get_metadata t i = get_metadata t (tov i)
 
-let get_rgb b pos =
-  let content = content_of_type b (tov pos) (type_of_kind b.content_kind) in
+let content b pos =
+  let stop,content = content b (tov pos) in
+    assert (stop = size ()) ;
+    assert (Array.length content.Frame.audio = 0) ;
+    assert (Array.length content.Frame.midi = 0) ;
     content.video

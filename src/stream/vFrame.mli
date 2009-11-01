@@ -19,5 +19,6 @@ type metadata = (string,string) Hashtbl.t
 val set_metadata     : t -> int -> metadata -> unit
 val get_metadata     : t -> int -> metadata option
 
-(** Get the video channels at a given position. *)
-val get_rgb : t -> int -> RGB.t array array
+(** Get the video channels at a given position.
+  * Requires that the frame contains only video data starting at this point. *)
+val content : t -> int -> RGB.t array array
