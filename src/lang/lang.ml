@@ -194,27 +194,27 @@ let kind_type_of_kind_format ~fresh fmt =
   match fmt with
     | Unconstrained t -> t
     | Constrained fields ->
-        let aux = function
+        let aux fresh = function
           | Fixed i ->
               let rec aux i =
                 if i = 0 then zero_t else succ_t (aux (i-1))
               in
-                aux i
+                fresh, aux i
           | Any_fixed i ->
               let zero = univ_t ~constraints:[(* TODO T.Fixed *)] fresh in
               let rec aux i =
                 if i = 0 then zero else succ_t (aux (i-1))
               in
-                aux i
+                fresh+1, aux i
           | Variable i ->
               let rec aux i =
                 if i = 0 then variable_t else succ_t (aux (i-1))
               in
-                aux i
+                fresh, aux i
         in
-        let audio = aux fields.Frame.audio in
-        let video = aux fields.Frame.video in
-        let midi  = aux fields.Frame.midi in
+        let fresh,audio = aux fresh fields.Frame.audio in
+        let fresh,video = aux fresh fields.Frame.video in
+        let _,midi  = aux fresh fields.Frame.midi in
           frame_kind_t ~audio ~video ~midi
 
 (** Given an Lang type that has been infered, convert it to a kind.
