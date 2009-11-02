@@ -193,6 +193,8 @@ let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
 let variable_t = T.make T.Variable
 
+let rec type_of_int n = if n=0 then zero_t else succ_t (type_of_int (n-1))
+
 let kind_type_of_kind_format ~fresh fmt =
   match fmt with
     | Unconstrained t -> t
@@ -204,7 +206,7 @@ let kind_type_of_kind_format ~fresh fmt =
               in
                 fresh, aux i
           | Any_fixed i ->
-              let zero = univ_t ~constraints:[(* TODO T.Fixed *)] fresh in
+              let zero = univ_t ~constraints:[T.Fixed] fresh in
               let rec aux i =
                 if i = 0 then zero else succ_t (aux (i-1))
               in
@@ -228,8 +230,7 @@ let rec channels_of_type default t =
     | T.Zero -> Frame.Zero
     | T.Variable -> Frame.Variable
     | T.EVar _ ->
-        (* TODO
-        T.bind t (Lang_values.type_of_int ~pos:None ~level:(-1) default) ; *)
+        T.bind t (type_of_int default) ;
         Frame.mul_of_int default
     | _ -> assert false
 let frame_kind_of_kind_type t =

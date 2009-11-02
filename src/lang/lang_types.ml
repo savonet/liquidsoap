@@ -85,7 +85,7 @@ let rec print_ground = function
 
 (** Type constraints *)
 
-type constr = Num | Ord | Getter of ground | Dtools
+type constr = Num | Ord | Getter of ground | Dtools | Fixed
 type constraints = constr list
 let print_constr = function
   | Num -> "a number type"
@@ -94,6 +94,7 @@ let print_constr = function
       let t = print_ground t in
         Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "bool, int, float, string or [string]"
+  | Fixed -> "a fixed arity type"
 
 (** Types *)
 
@@ -386,7 +387,16 @@ let rec bind a0 b =
                            if List.mem Num c then () else
                              b.descr <- EVar (j,Num::c)
                        | _ -> raise (Unsatisfied_constraint (Num,b))
-                     end)
+                     end
+                 | Fixed ->
+                     let rec check b = match b.descr with
+                       | Zero -> ()
+                       | Succ b -> check b
+                       | EVar (j,c) ->
+                           if List.mem Fixed c then () else
+                             b.descr <- EVar (j,Num::c)
+                       | _ -> raise (Unsatisfied_constraint (Fixed,b))
+                     in check b)
               constraints
         | _ -> assert false (* only EVars are bindable *)
       end ;
@@ -457,6 +467,7 @@ let rec (<:) a b =
     | List t1, List t2 -> t1 <: t2
     | Product (a,b), Product (aa,bb) -> a <: aa ; b <: bb
     | Zero, Zero -> ()
+    | Zero, Variable -> ()
     | Succ t1, Succ t2 -> t1 <: t2
     | Succ t1, Variable -> t1 <: b
     | Arrow (p,t), Arrow (p',t') ->
@@ -499,6 +510,7 @@ let rec (<:) a b =
     (* The two EVar cases are abusive because of subtyping. We should add a
      * subtyping constraint instead of unifying. Nevermind...
      * It's a pain for arrow types, and forgetting about it doesn't hurt. *)
+    | EVar (_,c), Variable when List.mem Fixed c -> ()
     | EVar _, _ ->
         begin try bind a b with
           | Occur_check _ | Unsatisfied_constraint _ ->
