@@ -127,7 +127,7 @@ let rec print_term v = match v.term with
   | Request s -> "<request>"
   | Encoder e -> Encoder.string_of_format e
   | List l ->
-      "[ "^(String.concat ", " (List.map print_term l))^" ]"
+      "["^(String.concat ", " (List.map print_term l))^"]"
   | Product (a,b) ->
       Printf.sprintf "(%s,%s)" (print_term a) (print_term b)
   | Ref a ->
@@ -180,7 +180,7 @@ struct
     | Request s -> "<request>"
     | Encoder e -> Encoder.string_of_format e
     | List l ->
-        "[ "^(String.concat ", " (List.map print_value l))^" ]"
+        "["^(String.concat ", " (List.map print_value l))^"]"
     | Ref a ->
         Printf.sprintf "ref (%s)" (print_value a)
     | Product (a,b) ->
