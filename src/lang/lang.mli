@@ -112,6 +112,7 @@ type lang_kind_formats =
 val audio_any : lang_kind_formats
 val audio_mono : lang_kind_formats
 val audio_stereo : lang_kind_formats
+val audio_variable : lang_kind_formats
 
 val kind_type_of_kind_format : fresh:int -> lang_kind_formats -> t
 

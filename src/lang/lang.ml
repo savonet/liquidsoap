@@ -176,6 +176,9 @@ type lang_kind_formats =
   | Constrained of
       (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
 
+let audio_variable =
+  Constrained
+    { Frame.audio = Variable 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
 let audio_any =
   Constrained
     { Frame.audio = Any_fixed 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
