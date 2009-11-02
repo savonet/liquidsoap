@@ -28,16 +28,19 @@ let max a b = if b = -1 || a = -1 then -1 else max a b
 
 let get_again s buf =
   s#get buf ;
-  AFrame.set_breaks buf
-    (match AFrame.breaks buf with
+  Frame.set_breaks buf
+    (match Frame.breaks buf with
        | pos::prev::l -> pos::l
        | _ -> assert false)
 
-(** The [video_init] (resp. [video_loop]) parameter is used to pre-process
-  * the first layer (resp. next layers) in the sum. *)
-class add ?(renorm=true) (sources: (int*source) list) video_init video_loop =
+(** Add/mix several sources together.
+  * If [renorm], renormalize the PCM channels.
+  * The [video_init] (resp. [video_loop]) parameter is used to pre-process
+  * the first layer (resp. next layers) in the sum; this generalization
+  * is used to add either as an overlay or as a tiling. *)
+class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
 object (self)
-  inherit operator (List.map snd sources) as super
+  inherit operator kind (List.map snd sources) as super
 
   (* We want the sources at the beginning of the list to
    * have their metadatas copied to the output stream, so direction
@@ -74,7 +77,7 @@ object (self)
    * exception when there is only one active source, then the end of tracks
    * are not hidden anymore, which is happy for transitions, for example. *)
 
-  val tmp = Frame.make ()
+  val tmp = Frame.create kind
 
   method private get_frame buf =
 
@@ -86,16 +89,29 @@ object (self)
     in
     let weight = float weight in
 
+    (* Our sources are not allowed to have variable stream kinds.
+     * This is necessary, because then we might not be able to sum them
+     * if they vary in different ways.
+     * The frame [buf] might be partially filled with completely different
+     * content, but after the beginning of where we work there should always
+     * be one type of data, hence the following helper. *)
+    let fixed_content frame pos =
+      let end_pos,c = Frame.content frame pos in
+        assert (end_pos = Lazy.force Frame.size) ;
+        c
+    in
+
     (* Sum contributions *)
-    let offset = AFrame.position buf in
-    let voffset = VFrame.position buf in
+    let offset = Frame.position buf in
     let _,end_offset =
       List.fold_left
         (fun (rank,end_offset) (w,s) ->
            let buffer =
+             (* The first source writes directly to [buf],
+              * the others write to [tmp] and we'll sum that. *)
              if rank=0 then buf else begin
-               AFrame.clear tmp ;
-               AFrame.set_breaks tmp [offset] ;
+               Frame.clear tmp ;
+               Frame.set_breaks tmp [offset] ;
                tmp
              end
            in
@@ -106,36 +122,44 @@ object (self)
              else begin
                (* If there is more than one source we fill greedily. *)
                s#get buffer ;
-               while AFrame.is_partial buffer && s#is_ready do
+               while Frame.is_partial buffer && s#is_ready do
                  get_again s buffer
                done
              end ;
 
-             let already = AFrame.position buffer in
-             let valready = VFrame.position buffer in
+             let already = Frame.position buffer in
                if c<>1. && renorm then
                  Float_pcm.multiply
-                   (AFrame.get_float_pcm buffer) offset (already-offset) c ;
+                   (fixed_content buffer offset).Frame.audio
+                   (Frame.audio_of_master offset)
+                   (Frame.audio_of_master (already-offset))
+                   c ;
                if rank>0 then begin
                  (* The region grows, make sure it is clean before adding.
                   * TODO the same should be done for video. *)
                  if already>end_offset then
-                   AFrame.blankify buf end_offset (already-end_offset) ;
+                   Float_pcm.blankify
+                     (fixed_content buf already).Frame.audio
+                     (Frame.audio_of_master end_offset)
+                     (Frame.audio_of_master (already-end_offset)) ;
+                 (* Add to the main buffer. *)
                  Float_pcm.add
-                   (AFrame.get_float_pcm buf) offset
-                   (AFrame.get_float_pcm tmp) offset
+                   (fixed_content buf offset).Frame.audio offset
+                   (fixed_content tmp offset).Frame.audio offset
                    (already-offset) ;
-                 let vbuf = VFrame.get_rgb buf in
-                 let vtmp = VFrame.get_rgb tmp in
+                 let vbuf = (fixed_content buf offset).Frame.video in
+                 let vtmp = (fixed_content tmp offset).Frame.video in
+                 let (!) = Frame.video_of_master in
                    for c = 0 to Array.length vbuf - 1 do
-                     for i = voffset to valready - 1 do
+                     for i = !offset to !already - 1 do
                        video_loop rank vbuf.(c).(i) vtmp.(c).(i)
                      done
                    done
                end else begin
-                 let vbuf = VFrame.get_rgb buf in
+                 let vbuf = (fixed_content buf offset).Frame.video in
+                 let (!) = Frame.video_of_master in
                    for c = 0 to Array.length vbuf - 1 do
-                     for i = voffset to valready - 1 do
+                     for i = !offset to !already - 1 do
                        video_init vbuf.(c).(i)
                      done
                    done
@@ -146,14 +170,22 @@ object (self)
     in
       (* If the other sources have filled more than the first one,
        * the end of track in buf gets overriden. *)
-      match AFrame.breaks buf with
+      match Frame.breaks buf with
         | pos::breaks when pos < end_offset ->
-            AFrame.set_breaks buf (end_offset::breaks)
+            Frame.set_breaks buf (end_offset::breaks)
         | _ -> ()
 
 end
 
 let () =
+  let kind =
+    Lang.Constrained
+      { Frame.
+        audio = Lang.Any_fixed 0 ;
+        video = Lang.Any_fixed 0 ;
+        midi  = Lang.Any_fixed 0 }
+  in
+  let kind_t = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "add"
     ~category:Lang.SoundProcessing
     ~descr:"Mix sources, with optional normalization. \
@@ -163,8 +195,9 @@ let () =
       "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
-      "", Lang.list_t Lang.source_t, None, None ]
-    (fun p _ ->
+      "", Lang.list_t (Lang.source_t kind_t), None, None ]
+    ~kind
+    (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
          List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
@@ -181,8 +214,7 @@ let () =
              (Lang.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
-         new add
-               ~renorm
+         new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                (fun _ -> ())
                (fun _ buf tmp -> RGB.add buf tmp))
@@ -194,14 +226,22 @@ let tile_pos n =
       let x = ref (x-dx) in
         Array.init l (fun i -> x := !x + dx; !x, y, dx, (y'-y))
   in
-  let x' = Fmt.video_width () in
-  let y' = Fmt.video_height () in
+  let x' = Lazy.force Frame.video_width in
+  let y' = Lazy.force Frame.video_height in
   let horiz m n =
     Array.append (vert m 0 0 x' (y'/2)) (vert n 0 (y'/2) x' y')
   in
     horiz (n/2) (n-n/2)
 
 let () =
+  let kind =
+    Lang.Constrained
+      { Frame.
+        audio = Lang.Any_fixed 0 ;
+        video = Lang.Any_fixed 1 ;
+        midi  = Lang.Any_fixed 0 }
+  in
+  let kind_t = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "video.tile"
     ~category:Lang.VideoProcessing
     ~descr:"Tile sources (same as add but produces tiles of videos)."
@@ -212,9 +252,10 @@ let () =
             The empty list stands for the homogeneous distribution." ;
       "proportional", Lang.bool_t, Some (Lang.bool true),
       Some "Scale preserving the proportions.";
-      "", Lang.list_t Lang.source_t, None, None
+      "", Lang.list_t (Lang.source_t kind_t), None, None
     ]
-    (fun p _ ->
+    ~kind
+    (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
        let weights =
          List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
@@ -250,8 +291,7 @@ let () =
              (Lang.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
-         new add
-               ~renorm
+         new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                video_init
                video_loop)

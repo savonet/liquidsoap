@@ -355,6 +355,11 @@ let get_past_metadata b =
   * content types allowed by the frame kind, and never affects
   * the contents layout. *)
 let content frame pos =
+  (* The next line allows to homonegenously treat cases where no portion
+   * of the buffer actually has to be processed: if one wants to read
+   * past the end of the buffer, we can return anything really, but
+   * choose to return the last layer. *)
+  let pos = min pos (!!size-1) in
   let rec aux = function
     | [] -> assert false
     | (end_pos,content)::l ->
