@@ -166,8 +166,8 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	main.ml
 # tools/harbor.ml 
 
-OCAML_CFLAGS= -g -custom -thread $(patsubst %,-I %,$(SUBDIRS))
-OCAML_LFLAGS= -g -custom $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
+OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
+OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS)) 
 
 liquidsoap_doc_sources= \
