@@ -138,8 +138,8 @@ let gavl_frame_of x =
 let create () =
   (* Instanciate with a default 
    * conversion type *)
-  let w = Fmt.video_width () in
-  let h = Fmt.video_height () in
+  let w = Lazy.force Frame.video_width in
+  let h = Lazy.force Frame.video_height in
   let yuv =
     {
     Gavl.Video.
