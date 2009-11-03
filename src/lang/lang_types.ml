@@ -344,8 +344,7 @@ let rec bind a0 b =
                      (** In check, [b] is assumed to be dereferenced *)
                      let rec check b =
                        match b.descr with
-                         | Ground g ->
-                             raise (Unsatisfied_constraint (Ord,b))
+                         | Ground g -> ()
                          | EVar (j,c) ->
                              if List.mem Ord c then () else
                                b.descr <- EVar (j,Ord::c)
