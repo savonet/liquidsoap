@@ -223,6 +223,8 @@ type +'a t = _t constraint 'a = [<flags]
 let to_raw   x = x
 let to_audio x = assert (x.kind <> None) ; x
 
+let kind x = Utils.get_some x.kind
+
 let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   string = home_unrelate s ;
   temporary = temporary = Some true ;
@@ -415,6 +417,11 @@ let update_metadata t =
     begin match t.on_air with
       | Some d ->
           replace "on_air" (pretty_date (Unix.localtime d))
+      | None -> ()
+    end ;
+    begin match t.kind with
+      | Some k ->
+          replace "kind" (Frame.string_of_content_kind k)
       | None -> ()
     end ;
     replace "status"

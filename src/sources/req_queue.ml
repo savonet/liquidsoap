@@ -169,16 +169,17 @@ object (self)
 end
 
 let () =
+  let k = Lang.univ_t 1 in
   Lang.add_operator "request.queue"
     ~category:Lang.Input
     ~descr:"Receive URIs from users, and play them."
-    (("queue",Lang.list_t Lang.request_t,
+    (("queue",Lang.list_t (Lang.request_t k),
       Some (Lang.list []), Some "Initial queue of requests.")::
      ("interactive",Lang.bool_t,
       Some (Lang.bool true),
       Some "Should the queue be controllable via telnet?")::
      Request_source.queued_proto)
-    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let l,d,t,c = Request_source.extract_queued_params p in
        let interactive = Lang.to_bool (Lang.assoc "interactive" 1 p) in

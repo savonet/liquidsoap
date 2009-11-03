@@ -35,7 +35,6 @@ let unit_t    = ground_t T.Unit
 let float_t   = ground_t T.Float
 let bool_t    = ground_t T.Bool
 let string_t  = ground_t T.String
-let request_t = ground_t T.Request
 let list_t t  = T.make (T.List t)
 let product_t a b = T.make (T.Product (a,b))
 let fun_t p b = T.make (T.Arrow (p,b))
@@ -45,8 +44,15 @@ let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
 let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
 
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
+let of_frame_kind_t t = Term.of_frame_kind_t t
+
 let source_t t = Term.source_t t
+let of_source_t t = Term.of_source_t t
+
 let format_t t = Term.format_t t
+
+let request_t t = Term.request_t t
+let of_request_t t = Term.request_t t
 
 let mk v = { t = T.dummy ; value = v }
 let unit = mk Unit
@@ -189,11 +195,10 @@ let audio_stereo =
   Constrained
     { Frame.audio = Fixed 2 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
 
-let zero_t = T.make T.Zero
-let succ_t t = T.make (T.Succ t)
-let variable_t = T.make T.Variable
-
-let rec type_of_int n = if n=0 then zero_t else succ_t (type_of_int (n-1))
+let zero_t = Term.zero_t
+let succ_t t = Term.succ_t t
+let variable_t = Term.variable_t
+let type_of_int n = Term.type_of_int n
 
 let kind_type_of_kind_format ~fresh fmt =
   match fmt with
@@ -224,20 +229,22 @@ let kind_type_of_kind_format ~fresh fmt =
 
 (** Given an Lang type that has been infered, convert it to a kind.
   * This might require to force some Any_fixed variables. *)
-let rec channels_of_type default t =
+let rec mul_of_type default t =
   match (T.deref t).T.descr with
-    | T.Succ t -> Frame.Succ (channels_of_type (default-1) t)
+    | T.Succ t -> Frame.Succ (mul_of_type (default-1) t)
     | T.Zero -> Frame.Zero
     | T.Variable -> Frame.Variable
     | T.EVar _ ->
         T.bind t (type_of_int default) ;
         Frame.mul_of_int default
     | _ -> assert false
+
 let frame_kind_of_kind_type t =
-  let audio,video,midi = Term.of_frame_kind_t t in
-    { Frame.audio = channels_of_type (Lazy.force Frame.audio_channels) audio ;
-      Frame.video = channels_of_type (Lazy.force Frame.video_channels) video ;
-      Frame.midi  = channels_of_type (Lazy.force Frame.midi_channels) midi }
+  let k = Term.of_frame_kind_t t in
+    { Frame.
+        audio = mul_of_type (Lazy.force Frame.audio_channels) k.Frame.audio ;
+        video = mul_of_type (Lazy.force Frame.video_channels) k.Frame.video ;
+        midi  = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi }
 
 let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
   let proto =
@@ -248,15 +255,15 @@ let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
   in
   let f x t =
     let t = Term.of_source_t t in
-    let t = frame_kind_of_kind_type t in
-    let src : Source.source = f x t in
+    let k = frame_kind_of_kind_type t in
+    let src : Source.source = f x k in
     let id =
       match (List.assoc "id" x).value with
         | String s -> s
         | _ -> assert false
     in
       if id <> "" then src#set_id id ;
-      { t = T.make (T.Ground T.Source) ;
+      { t = t ;
         value = Source src }
   in
   let fresh = (* TODO *) 1 in

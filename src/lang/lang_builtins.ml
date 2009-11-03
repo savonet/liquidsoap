@@ -1114,24 +1114,20 @@ let () =
     [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
 
-(* TODO Think about this...
- *   It seems that request_t will have to be parametrized by
- *   the type of its content.
 let () =
-  add_builtin "request.create" ~cat:Liq
-    ~descr:"Create a request. Creation may fail if there is no available RID, \
+  add_builtin "request.create.raw" ~cat:Liq
+    ~descr:"Create a raw request, i.e. for files that should not be decoded \
+            for streaming. Creation may fail if there is no available RID, \
             which cannot be detected currently: in that case one will obtain \
             a request that will fail to be resolved."
     ["indicators",Lang.list_t Lang.string_t,Some (Lang.list []),None;
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
-     "audio",Lang.bool_t,Some (Lang.bool true),
-     Some "If set, resolving includes checking that the resulting file \
-           can be decoded as audio." ;
      "",Lang.string_t,None,None]
-    Lang.request_t
+    (Lang.request_t (Lang.frame_kind_t Lang.zero_t Lang.zero_t Lang.zero_t))
+    (* At the Lang level, we use the frame kind (0,0,0) for raw requests,
+     * it might be a good idea to do the same at the Request level. *)
     (fun p ->
        let indicators = List.assoc "indicators" p in
-       let audio = Lang.to_bool (List.assoc "audio" p) in
        let persistent = Lang.to_bool (List.assoc "persistent" p) in
        let initial = Lang.to_string (List.assoc "" p) in
        let l = String.length initial in
@@ -1148,19 +1144,52 @@ let () =
        let indicators =
          List.map Request.indicator indicators
        in
+         Lang.request (Request.create_raw ~persistent ~indicators initial))
+
+let () =
+  Lang.add_builtin "request.create" ~category:(string_of_category Liq)
+    ~descr:"Create a request. Creation may fail if there is no available RID, \
+            which cannot be detected currently: in that case one will obtain \
+            a request that will fail to be resolved."
+    ["indicators",Lang.list_t Lang.string_t,Some (Lang.list []),None;
+     "persistent",Lang.bool_t,Some (Lang.bool false),None;
+     "",Lang.string_t,None,None]
+    (Lang.request_t (Lang.univ_t 1))
+    (fun p t ->
+       let indicators = List.assoc "indicators" p in
+       let persistent = Lang.to_bool (List.assoc "persistent" p) in
+       let initial = Lang.to_string (List.assoc "" p) in
+       let l = String.length initial in
+       let initial =
+         (* Remove trailing newline *)
+         if l > 0 && initial.[l - 1] = '\n' then
+           String.sub initial 0 (l - 1)
+         else
+           initial
+       in
+       let indicators =
+         List.map Lang.to_string (Lang.to_list indicators)
+       in
+       let indicators =
+         List.map Request.indicator indicators
+       in
+       let kind =
+         let k_t = Lang.of_request_t t in
+           (* If we merge create.raw, then we should use another conversion
+            * to kinds, that takes 0 as a default multiplicity on all
+            * channel types. *)
+           Lang.frame_kind_of_kind_type k_t
+       in
          Lang.request
-           (if not audio then
-              Request.create_raw ~persistent ~indicators initial
-           else
-              match Request.create ~persistent ~indicators initial with
-                | Some r -> Some (Request.to_raw r)
-                | None -> None)) *)
+           (match Request.create ~kind ~persistent ~indicators initial with
+              | Some r -> Some (Request.to_raw r)
+              | None -> None))
 
 let () =
   add_builtin "request.resolve" ~cat:Liq
     ["timeout",Lang.float_t,Some (Lang.float 30.),
      Some "Limit in seconds to the duration of the resolving." ;
-     "",Lang.request_t,None,None]
+     "",Lang.request_t (Lang.univ_t 1),None,None]
     Lang.bool_t
     ~descr:"Resolve a request, i.e. attempt to get a valid local file. \
             The operation can take some time. Return true if the resolving \
@@ -1177,7 +1206,7 @@ let () =
     ~descr:"Check if a request is ready, i.e. is associated to a valid \
             local file. Unless the initial URI was such a file, a request \
             has to be resolved before being ready."
-    ["", Lang.request_t,None,None] Lang.bool_t
+    ["", Lang.request_t (Lang.univ_t 1),None,None] Lang.bool_t
     (fun p ->
        match Lang.to_request_raw (List.assoc "" p) with
          | Some e -> Lang.bool (Request.is_ready e)
@@ -1187,7 +1216,7 @@ let () =
   add_builtin "request.filename" ~cat:Liq
     ~descr:"Return a valid local filename if the request is ready, \
             and the empty string otherwise."
-    [ "",Lang.request_t,None,None ] Lang.string_t
+    [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p ->
        match Lang.to_request_raw (List.assoc "" p) with
          | None -> Lang.string ""
@@ -1202,7 +1231,7 @@ let () =
             to destroying, unless forced."
     ["force",Lang.bool_t,Some (Lang.bool false),
      Some "Destroy the request even if it is persistent." ;
-     "",Lang.request_t,None,None ]
+     "",Lang.request_t (Lang.univ_t 1),None,None ]
     Lang.unit_t
     (fun p ->
        let force = Lang.to_bool (List.assoc "force" p) in

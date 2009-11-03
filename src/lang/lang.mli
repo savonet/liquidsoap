@@ -158,16 +158,25 @@ val unit_t     : t
 val float_t    : t
 val bool_t     : t
 val string_t   : t
-val request_t  : t
 val list_t     : t -> t
 val product_t  : t -> t -> t
-val source_t   : t -> t
-val format_t   : t -> t
 
 val zero_t     : t
 val variable_t : t
 val succ_t     : t -> t
+
+val request_t    : t -> t
+val of_request_t : t -> t
+
+val source_t    : t -> t
+val of_source_t : t -> t
+
+val format_t : t -> t
+
 val frame_kind_t : audio:t -> video:t -> midi:t -> t
+val of_frame_kind_t : t -> (t,t,t) Frame.fields
+
+val frame_kind_of_kind_type : t -> Frame.content_kind
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].

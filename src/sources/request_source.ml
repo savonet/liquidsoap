@@ -31,8 +31,9 @@ class virtual unqueued ~kind =
 object (self)
   inherit source kind
 
-  (** [get_next_file] is supposed to return "quickly".
-    * This means that no resolving should be done here. *)
+  (** [get_next_file] returns a ready audio request.
+    * It is supposed to return "quickly", which means that no resolving
+    * can be done here. *)
   method virtual get_next_file : Request.audio Request.t option
 
   val mutable remaining = 0
@@ -74,12 +75,11 @@ object (self)
           self#log#f 5 "Failed to prepare track: no file." ;
           false
       | Some req when Request.is_ready req ->
+          assert (Frame.kind_sub_kind (Request.kind req) kind) ;
           (* [Request.is_ready] ensures that we can get a filename from
            * the request, and it can be decoded. *)
           let file = Utils.get_some (Request.get_filename req) in
           let decoder = Utils.get_some (Request.get_decoder req) in
-            self#log#f 2 "FIXME arbitrary decoder, but kind fixed to %s"
-              (Frame.string_of_content_kind kind) ;
             self#log#f 3 "Prepared %S (RID %d)." file (Request.get_id req) ;
             current <-
               Some (req,
@@ -90,7 +90,8 @@ object (self)
             true
       | Some req ->
           (* We got an unresolved request.. this shoudn't actually happen *)
-          self#log#f 1 "Failed to prepare track: unresolved request." ;
+          self#log#f 1
+            "Failed to prepare track: request not ready." ;
           Request.destroy req ;
           false
 

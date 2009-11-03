@@ -54,6 +54,8 @@ val create_raw :
 val to_raw : 'a t -> raw t
 val to_audio : 'a t -> audio t
 
+val kind : audio t -> Frame.content_kind
+
 (** Destroying of a requests causes its file to be deleted if it's a temporary
   * one, for example a downloaded file. If the metadata ["persistent"] is
   * set to ["true"], destroying doesn't happen, unless [force] is set too.

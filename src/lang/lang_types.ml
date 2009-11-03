@@ -71,8 +71,7 @@ let print_pos ?(prefix="At ") (start,stop) =
 (** Ground types *)
 
 type mul = Frame.multiplicity
-type ground =
-  | Unit | Bool | Int | String | Float | Source | Request
+type ground = Unit | Bool | Int | String | Float
 
 let rec print_ground = function
   | Unit    -> "unit"
@@ -80,8 +79,6 @@ let rec print_ground = function
   | Bool    -> "bool"
   | Int     -> "int"
   | Float   -> "float"
-  | Source  -> "source"
-  | Request -> "request"
 
 (** Type constraints *)
 
@@ -348,8 +345,7 @@ let rec bind a0 b =
                      let rec check b =
                        match b.descr with
                          | Ground g ->
-                             if g=Source || g=Request then
-                               raise (Unsatisfied_constraint (Ord,b))
+                             raise (Unsatisfied_constraint (Ord,b))
                          | EVar (j,c) ->
                              if List.mem Ord c then () else
                                b.descr <- EVar (j,Ord::c)

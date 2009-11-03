@@ -27,13 +27,22 @@ let debug =
   with
     | Not_found -> false
 
-(** {1 Kinds} *)
+(** {1 Kinds}
+  *
+  * In a sense this could move to Lang_types, but I like to keep that
+  * part free of some specificities of liquidsoap, as much as possible. *)
 
 module T = Lang_types
 
 let ref_t ~pos ~level t =
   T.make ~pos ~level
     (T.Constr { T.name = "ref" ; T.params = [T.Invariant,t] })
+
+let zero_t = T.make T.Zero
+let succ_t t = T.make (T.Succ t)
+let variable_t = T.make T.Variable
+
+let rec type_of_int n = if n=0 then zero_t else succ_t (type_of_int (n-1))
 
 (** A frame kind type is a purely abstract type representing a frame kind.
   * The parameters [audio,video,midi] are intended to be multiplicity types,
@@ -45,8 +54,14 @@ let frame_kind_t ?pos ?level audio video midi =
                             T.Covariant,video;
                             T.Covariant,midi ] })
 let of_frame_kind_t t = match (T.deref t).T.descr with
-  | T.Constr { T.name = "stream_kind" ; T.params = [_,audio;_,video;_,midi] } ->
-      audio,video,midi
+  | T.Constr { T.name="stream_kind" ; T.params=[_,audio;_,video;_,midi] } ->
+      { Frame. audio=audio; video=video; midi=midi }
+  | T.EVar (j,c) ->
+      let audio = type_of_int (Lazy.force Frame.audio_channels) in
+      let video = type_of_int (Lazy.force Frame.video_channels) in
+      let midi = type_of_int (Lazy.force Frame.midi_channels) in
+        T.bind t (frame_kind_t audio video midi) ;
+        { Frame. audio=audio; video=video; midi=midi }
   | _ -> assert false
 
 (** Type of audio formats that can encode frame of a given kind. *)
@@ -60,6 +75,13 @@ let source_t ?pos ?level k =
     (T.Constr { T.name = "source" ; T.params = [T.Invariant,k] })
 let of_source_t t = match (T.deref t).T.descr with
   | T.Constr { T.name = "source" ; T.params = [_,t] } -> t
+  | _ -> assert false
+
+let request_t ?pos ?level k =
+  T.make ?pos ?level
+    (T.Constr { T.name = "request" ; T.params = [T.Invariant,k] })
+let of_request_t t = match (T.deref t).T.descr with
+  | T.Constr { T.name = "request" ; T.params = [_,t] } -> t
   | _ -> assert false
 
 let rec type_of_mul ~pos ~level m =
@@ -235,8 +257,8 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Int     _ -> e.t >: mkg T.Int
   | String  _ -> e.t >: mkg T.String
   | Float   _ -> e.t >: mkg T.Float
-  | Source  _ -> e.t >: mkg T.Source
-  | Request _ -> e.t >: mkg T.Request
+  | Source  _ | Request _ ->
+      assert false (* abstract values don't occur in the source *)
   | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
   | List l ->
       List.iter (check ~level ~env) l ;
@@ -262,7 +284,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       check ~env ~level a ;
       begin match (T.deref a.t).T.descr with
         (* Maybe it's not an active source, but at least it's a source. *)
-        | T.Ground T.Unit | T.Ground T.Source -> ()
+        | T.Ground T.Unit | T.Constr {T.name="source"} -> ()
         | _ ->
             Printf.printf "%s: %s\n%!"
               (T.print_pos (Utils.get_some a.t.T.pos))

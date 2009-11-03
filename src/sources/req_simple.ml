@@ -97,13 +97,14 @@ let () =
                             uri))))
 
 let () =
+  let k = Lang.univ_t 1 in
   Lang.add_operator "unsafe.single.infallible" ~category:Lang.Input
     ~flags:[Lang.Hidden]
     ~descr:"Loops on a request, \
             which has to be ready and should be persistent. \
             WARNING: if used uncarefully, it can crash your application!"
-    [ "", Lang.request_t, None, None ]
-    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    [ "", Lang.request_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let r = Utils.get_some (Lang.to_request (List.assoc "" p)) in
          ((new unqueued ~kind r):>source))
@@ -129,13 +130,12 @@ object (self)
 end
 
 let () =
+  let k = Lang.univ_t 1 in
   Lang.add_operator "request.dynamic" ~category:Lang.Input
     ~descr:"Play request dynamically created by a given function."
-    (( "", Lang.fun_t [] Lang.request_t, None,
-       Some ("A function generating requests: an initial URI (possibly fake)" ^
-             " together with an initial list of alternative indicators."))
+    (( "", Lang.fun_t [] (Lang.request_t k), None, None)
      ::queued_proto)
-    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        let f = List.assoc "" p in
        let l,d,t,c = extract_queued_params p in

@@ -26,7 +26,7 @@ val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
 
-type ground = Unit | Bool | Int | String | Float | Source | Request
+type ground = Unit | Bool | Int | String | Float
 val print_ground : ground -> string
 
 type constr = Num | Ord | Getter of ground | Dtools | Fixed
