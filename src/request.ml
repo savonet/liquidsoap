@@ -36,11 +36,8 @@ let log = Log.make ["request"]
 
 (** File utilities. *)
 
-let remove_file_proto =
-  (* TODO Use PCRE *)
-  let re = Str.regexp "^file://" in
-    fun s ->
-      Str.replace_first re "" s
+let remove_file_proto s =
+  Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s
 
 let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 
