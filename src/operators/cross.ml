@@ -22,8 +22,7 @@
 
 open Source
 
-module Generator = Float_pcm.Generator
-module Generated = Generated.From_Float_pcm_Generator
+module Generated = Generated.From_Generator
 
 (* Do not care about fading at first, not even about adding the last frames of a
  * track to the beginning of the next one: a generic function will be used for
@@ -38,10 +37,10 @@ module Generated = Generated.From_Float_pcm_Generator
  * This operator is data-dependent only because it uses Generator, which is
  * specialized for audio frames. Otherwise it should be generic. That's why I
  * stick to the Frame module here, and ticks units. *)
-class cross s ?(meta="liq_start_next") ~cross_length
+class cross s ~kind ?(meta="liq_start_next") ~cross_length
               ~conservative ~inhibit ~minimum_length f =
 object (self)
-  inherit operator [s] as super
+  inherit operator kind [s] as super
 
   method stype = s#stype (* This actually depends on [f]. *)
 
@@ -72,7 +71,7 @@ object (self)
   val mutable cur_cross_length = None
 
   (* An audio frame for intermediate computations. *)
-  val buf_frame = Frame.make ()
+  val buf_frame = Frame.create kind
 
   (* It is tricky to get the cross_length.
    * The metadata meta can come through the transition function,
@@ -94,7 +93,7 @@ object (self)
                        try
                          let l = float_of_string v in
                            cur_cross_length <-
-                             Some (Fmt.ticks_of_seconds l)
+                             Some (Frame.master_of_seconds l)
                        with _ -> ())
             (Frame.get_all_metadata ab)
 
@@ -164,11 +163,12 @@ object (self)
         if not s#is_ready then self#log#f 3 "No ready track yet." ;
         if Generator.length buffer > minimum_length then
           Lang.to_source
-            (Lang.apply f ["",Lang.source (new Generated.consumer buffer);
+            (Lang.apply f ["",Lang.source (new Generated.consumer ~kind buffer);
                            "",Lang.source s])
         else begin
           self#log#f 4 "Not enough data for crossing." ;
-          ((new Sequence.sequence [(new Generated.consumer buffer); s]))
+          ((new Sequence.sequence ~kind
+                  [(new Generated.consumer ~kind buffer); s]))
         end
       in
         source#leave (self:>source) ;
@@ -182,8 +182,8 @@ object (self)
     match status with
       | `Idle | `After _ -> source#remaining
       | `Started b ->
-          source#remaining +
-          Generator.length b * Fmt.ticks_per_sample ()
+          let rem = source#remaining in
+            if rem<0 then rem else rem + Generator.length b
 
   method is_ready = source#is_ready
 
@@ -192,6 +192,7 @@ object (self)
 end
 
 let () =
+  let k = Lang.univ_t 1 in
   Lang.add_operator "cross"
     [ "duration", Lang.float_t, Some (Lang.float 5.),
       Some
@@ -224,31 +225,33 @@ let () =
             manual or caused by skip_blank()." ;
 
       "",
-      Lang.fun_t [false,"",Lang.source_t;false,"",Lang.source_t] Lang.source_t,
+      Lang.fun_t [false,"",Lang.source_t k;
+                  false,"",Lang.source_t k] (Lang.source_t k),
       None,
       Some "Composition of an end of track and the next track." ;
 
-      "",Lang.source_t,None,None
+      "",Lang.source_t k,None,None
 
     ]
     ~category:Lang.SoundProcessing
-    ~descr:("Generic cross operator, allowing the composition of "^
-            "the N last seconds of a track with the beginning of "^
-            "the next track.")
-    (fun p _ ->
+    ~descr:"Generic cross operator, allowing the composition of \
+            the N last seconds of a track with the beginning of \
+            the next track."
+    ~kind:(Lang.Unconstrained k)
+    (fun p kind ->
        let duration = Lang.to_float (List.assoc "duration" p) in
-       let cross_length = Fmt.ticks_of_seconds duration in
+       let cross_length = Frame.master_of_seconds duration in
        let meta = Lang.to_string (List.assoc "override" p) in
        let minimum = Lang.to_float (List.assoc "minimum" p) in
-       let minimum_length = Fmt.ticks_of_seconds minimum in
+       let minimum_length = Frame.master_of_seconds minimum in
 
        let inhibit = Lang.to_float (List.assoc "inhibit" p) in
        let inhibit = if inhibit < 0. then duration +. 1. else inhibit in
-       let inhibit = Fmt.ticks_of_seconds inhibit in
+       let inhibit = Frame.master_of_seconds inhibit in
 
        let conservative = Lang.to_bool (List.assoc "conservative" p) in
 
        let f = Lang.assoc "" 1 p in
        let source = Lang.to_source (Lang.assoc "" 2 p) in
-         new cross source ~meta ~cross_length
+         new cross source ~kind ~meta ~cross_length
                ~inhibit ~conservative ~minimum_length f)

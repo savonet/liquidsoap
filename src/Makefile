@@ -64,11 +64,12 @@ operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
 	operators/on_metadata.ml operators/store_metadata.ml \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
-	operators/switch.ml operators/fade.ml operators/add.ml
-	# operators/setvol.ml operators/normalize.ml operators/echo.ml \
+	operators/switch.ml operators/fade.ml operators/add.ml \
+	operators/sequence.ml operators/cross.ml
+	# operators/smartcross.ml \
+	operators/setvol.ml operators/normalize.ml operators/echo.ml \
 	operators/prepend.ml operators/append.ml operators/accel.ml \
 	operators/noblank.ml operators/compand.ml \
-	operators/sequence.ml operators/cross.ml operators/smartcross.ml \
 	operators/mixing_table.ml operators/filter.ml \
 	operators/mean.ml operators/swap.ml \
 	operators/pan.ml operators/ms_stereo.ml \

@@ -22,9 +22,9 @@
 
 open Source
 
-class sequence ?(merge=false) sources =
+class sequence ~kind ?(merge=false) sources =
 object (self)
-  inherit operator sources as super
+  inherit operator kind sources as super
 
   val mutable sources = sources
   initializer assert (sources <> [])
@@ -94,13 +94,15 @@ object (self)
 end
 
 let () = 
+  let k = Lang.univ_t 1 in
   Lang.add_operator "sequence"
     [ "merge", Lang.bool_t, Some (Lang.bool false), None ;
-      "", Lang.list_t Lang.source_t, None, None ]
+      "", Lang.list_t (Lang.source_t k), None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Play only one track of every successive source, \
             except for the last one which is played as much as available."
-    (fun p _ ->
-       new sequence
+    ~kind:(Lang.Unconstrained k)
+    (fun p kind ->
+       new sequence ~kind
          ~merge:(Lang.to_bool (List.assoc "merge" p))
          (Lang.to_source_list (List.assoc "" p)))
