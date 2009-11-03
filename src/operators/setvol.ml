@@ -22,9 +22,9 @@
 
 open Source
 
-class setvol (source:source) override_field coeff =
+class setvol ~kind (source:source) override_field coeff =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   val mutable override = None
 
@@ -56,8 +56,10 @@ object (self)
       end ;
       let k = match override with Some o -> o | None -> coeff () in
         if k <> 1. then
-          Float_pcm.multiply (AFrame.get_float_pcm buf)
-            offset ((AFrame.position buf)-offset) k ;
+          Float_pcm.multiply
+            (AFrame.content buf offset) offset
+            ((AFrame.position buf)-offset)
+            k ;
         if AFrame.is_partial buf && override <> None then begin
           self#log#f 3 "End of the current overriding." ;
           override <- None
@@ -66,6 +68,7 @@ object (self)
 end
 
 let () = 
+  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.audio_any in
   Lang.add_operator "amplify"
     [ "", Lang.float_getter_t 1,  None, Some "Multiplicative factor." ;
       "override", Lang.string_t, Some (Lang.string "liq_amplify"),
@@ -75,12 +78,13 @@ let () =
             (e.g. '0.7') which are taken as normal/linear multiplicative \
             factors; values can be passed in decibels with the suffix 'dB' \
             (e.g. '-8.2 dB', but the spaces do not matter)." ;
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Multiply the amplitude of the signal."
-    (fun p _ ->
+    (fun p kind ->
        let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
        let o = Lang.to_string (Lang.assoc "override" 1 p) in
        let o = if o = "" then None else Some (String.lowercase o) in
-         new setvol s o c)
+         new setvol ~kind s o c)

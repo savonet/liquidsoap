@@ -27,90 +27,61 @@ let pi = 3.14159265358979323846
 type filter_type = All_pass | Band_pass | High_pass | Low_pass
                    | Notch | Peak | High_shelf | Low_shelf
 
-class biquad (source:source) filter_type freq fparam db_gain debug =
+class biquad ~kind (source:source) filter_type freq fparam db_gain =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let rate = float_of_int (Frame.audio_of_seconds 1.) in
 object (self)
-  inherit operator [source] as super
-  
+  inherit operator kind [source] as super
+
   (* Coefficients *)
   val mutable coeffs = Array.make 5 0.
-  
+
   (* I/O shift registries *)
-  val mutable xv = Array.make_matrix (Fmt.channels ()) 3 0.
-  val mutable yv = Array.make_matrix (Fmt.channels ()) 3 0.
-  
+  val mutable xv = Array.make_matrix channels 3 0.
+  val mutable yv = Array.make_matrix channels 3 0.
+
   initializer
-    if debug then
-      (
-        Printf.printf "================== BEG INIT FILTER %s ==================\n" self#id
-      ) ;
+    self#log#f 4 "Initializing..." ;
     let a =
-      (match filter_type with
+      match filter_type with
         (* Peak / Shelf *)
         | Peak
         | Low_shelf
         | High_shelf ->
-          (
-            if debug then
-              (
-                Printf.printf "A = 10 ^ (db_gain / 40) = %+.013f\n" (10. ** (db_gain /. 40.))
-              ) ;
+            self#log#f 4
+              "A = 10 ^ (db_gain / 40) = %+.013f"
+              (10. ** (db_gain /. 40.)) ;
             10. ** (db_gain /. 40.)
-          )
         (* Others *)
-        | _ -> 0.)
+        | _ -> 0.
     in
-    let w0 = 2. *. pi *. freq /. float_of_int (Fmt.samples_per_second ()) in
-    if debug then
-      (
-        Printf.printf "ω0 = 2π f0 / Fs = %+.013f.\n" w0
-      ) ;
+    let w0 = 2. *. pi *. freq /. rate in
+    self#log#f 4 "ω0 = 2π f0 / Fs = %+.013f." w0 ;
     let alpha =
-      (match filter_type with
-        (* Bandwidth *)
-(*        | Notch  ----> Now we use Q for them 3 too
-        | Peak
-        | Band_pass *)
+      match filter_type with
         | All_pass ->
-          (
-            if debug then
-              (
-                Printf.printf "BW = %+.013f\n" fparam ;
-                Printf.printf "α = sin(w0)*sinh(ln(2)/2 * BW * (w0/sin(w0)))\n"
-              ) ;
+            self#log#f 4 "BW = %+.013f" fparam ;
+            self#log#f 4 "α = sin(w0)*sinh(ln(2)/2 * BW * (w0/sin(w0)))" ;
             (sin w0) *. sinh (fparam *. (w0 /. sin w0) *. ((log 2.) /. 2.))
-          )
         (* Shelving *)
         | Low_shelf
         | High_shelf ->
-          (
-            if debug then
-              (
-                Printf.printf "S = %+.013f\n" fparam ;
-                Printf.printf "α = sin(w0)/2 * √ ((A + 1/A) * (1/S - 1) + 2)\n"
-              ) ;
+            self#log#f 4 "S = %+.013f" fparam ;
+            self#log#f 4 "α = sin(w0)/2 * √ ((A + 1/A) * (1/S - 1) + 2)" ;
             ((sin w0) /. 2.)
-              *. sqrt ((a +. 1. /. a) *. ((1. /. fparam) -. 1.) +. 2.)
-          )
+             *. sqrt ((a +. 1. /. a) *. ((1. /. fparam) -. 1.) +. 2.)
         (* Q *)
         | _ ->
-          (
-            if debug then
-              (
-                Printf.printf "Q = %+.013f\n" fparam ;
-                Printf.printf "α = sin(w0) / 2Q\n";
-              ) ;
-            (sin w0) /. (2. *. fparam))
-          )
+            self#log#f 4 "Q = %+.013f" fparam ;
+            self#log#f 4 "α = sin(w0) / 2Q";
+            (sin w0) /. (2. *. fparam)
     in
-      if debug then
-        (
-          Printf.printf "α = %+.013f\n" alpha
-        ) ;
+      self#log#f 4 "α = %+.013f" alpha ;
       let c0 = cos w0 in
         coeffs <-
           (match filter_type with
             | Low_pass ->
-              if debug then (Printf.printf "This is a low-pass filter.\n") ;
+              self#log#f 4 "This is a low-pass filter." ;
               let a0 = 1. +. alpha in
                 [| (1. -. c0) /. (2. *. a0) ;    (* b0/a0 *)
                    (1. -. c0) /. a0 ;            (* b1/a0 *)
@@ -118,7 +89,7 @@ object (self)
                    (-. 2. *. c0) /. a0 ;         (* a1/a0 *)
                    (1. -. alpha) /. a0 |]        (* a2/a0 *)
             | High_pass ->
-              if debug then (Printf.printf "This is a high-pass filter.\n") ;
+              self#log#f 4 "This is a high-pass filter." ;
               let a0 = 1. +. alpha in
                 [| (1. +. c0) /. (2. *. a0) ;    (* b0/a0 *)
                    -. (1. +. c0) /. a0 ;         (* b1/a0 *)
@@ -126,7 +97,7 @@ object (self)
                    (-. 2. *. c0) /. a0 ;         (* a1/a0 *)
                    (1. -. alpha) /. a0 |]        (* a2/a0 *)
             | Band_pass ->
-              if debug then (Printf.printf "This is a band-pass filter.\n") ;
+              self#log#f 4 "This is a band-pass filter." ;
               let a0 = 1. +. alpha in
                 [| alpha /. a0 ;                 (* b0/a0 *)
                    0. ;                          (* b1/a0 *)
@@ -134,7 +105,7 @@ object (self)
                    (-. 2. *. c0) /. a0 ;         (* a1/a0 *)
                    (1. -. alpha) /. a0 |]        (* a2/a0 *)
             | Notch ->
-              if debug then (Printf.printf "This is a notch filter.\n") ;
+              self#log#f 4 "This is a notch filter." ;
               let a0 = 1. +. alpha in
                 [| 1. /. a0 ;                    (* b0/a0 *)
                    (-. 2. *. c0) /. a0 ;         (* b1/a0 *)
@@ -142,7 +113,7 @@ object (self)
                    (-. 2. *. c0) /. a0 ;         (* a1/a0 *)
                    (1. -. alpha) /. a0 |]        (* a2/a0 *)
             | All_pass ->
-              if debug then (Printf.printf "This is an all-pass filter.\n") ;
+              self#log#f 4 "This is an all-pass filter." ;
               let a0 = 1. +. alpha in
                 [| (1. -. alpha) /. a0 ;         (* b0/a0 *)
                    (-. 2. *. c0) /. a0 ;         (* b1/a0 *)
@@ -150,7 +121,7 @@ object (self)
                    (-. 2. *. c0) /. a0 ;         (* a1/a0 *)
                    (1. -. alpha) /. a0 |]        (* a2/a0 *)
             | Peak ->
-              if debug then (Printf.printf "This is a peak filter.\n") ;
+              self#log#f 4 "This is a peak filter." ;
               let a0 = 1. +. (alpha /. a) in
                 [| (1. +. (alpha *. a)) /. a0 ;  (* b0/a0 *)
                    (-. 2. *. c0) /. a0 ;         (* b1/a0 *)
@@ -158,29 +129,44 @@ object (self)
                    (-. 2. *. c0) /. a0 ;         (* a1/a0 *)
                    (1. -. (alpha /. a)) /. a0 |] (* a2/a0 *)
             | Low_shelf ->
-              if debug then (Printf.printf "This is a low-shelf filter.\n") ;
+              self#log#f 4 "This is a low-shelf filter." ;
               let s = 2. *. (sqrt a) *. alpha in
               let a0 = (a +. 1.) +. (a -. 1.) *. c0 +. s in
-                [| (a *. ((a +. 1.) -. (a -. 1.) *. c0 +. s)) /. a0 ;     (* b0/a0 *)
-                   (2. *. a *. ((a -. 1.) -. (a +. 1.) *. c0)) /. a0 ;    (* b1/a0 *)
-                   (a *. ((a +. 1.) -. (a -. 1.) *. c0 -. s)) /. a0 ;     (* b2/a0 *)
-                   (-. 2. *. ((a -. 1.) +. (a +. 1.) *. c0)) /. a0 ;      (* a1/a0 *)
-                   ((a +. 1.) +. (a -. 1.) *. c0 -. s) /. a0 |]           (* a2/a0 *)
+                [| (a *. ((a +. 1.) -. (a -. 1.) *. c0 +. s)) /. a0 ;
+                        (* b0/a0 *)
+                   (2. *. a *. ((a -. 1.) -. (a +. 1.) *. c0)) /. a0 ;
+                        (* b1/a0 *)
+                   (a *. ((a +. 1.) -. (a -. 1.) *. c0 -. s)) /. a0 ;
+                        (* b2/a0 *)
+                   (-. 2. *. ((a -. 1.) +. (a +. 1.) *. c0)) /. a0 ;
+                        (* a1/a0 *)
+                   ((a +. 1.) +. (a -. 1.) *. c0 -. s) /. a0
+                        (* a2/a0 *)
+                |]
             | High_shelf ->
-              if debug then (Printf.printf "This is an high-shelf filter.\n") ;
+              self#log#f 4 "This is an high-shelf filter." ;
               let s = 2. *. (sqrt a) *. alpha in
               let a0 = (a +. 1.) -. (a -. 1.) *. c0 +. s in
-                [| (a *. ((a +. 1.) +. (a -. 1.) *. c0 +. s)) /. a0 ;     (* b0/a0 *)
-                   (-. 2. *. a *. ((a -. 1.) +. (a +. 1.) *. c0)) /. a0 ; (* b1/a0 *)
-                   (a *. ((a +. 1.) +. (a -. 1.) *. c0 -. s)) /. a0 ;     (* b2/a0 *)
-                   (2. *. ((a -. 1.) -. (a +. 1.) *. c0)) /. a0 ;         (* a1/a0 *)
-                   ((a +. 1.) -. (a -. 1.) *. c0 -. s) /. a0 |]           (* a2/a0 *)) ;
-        if debug then
-          (
-            Printf.printf "Coefficients:\n%s\n" (String.concat "\n" (Array.to_list ((Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) coeffs)))) ;
-            Printf.printf "================== END INIT FILTER %s ==================\n" self#id
-          )
-  
+                [| (a *. ((a +. 1.) +. (a -. 1.) *. c0 +. s)) /. a0 ;
+                       (* b0/a0 *)
+                   (-. 2. *. a *. ((a -. 1.) +. (a +. 1.) *. c0)) /. a0 ;
+                       (* b1/a0 *)
+                   (a *. ((a +. 1.) +. (a -. 1.) *. c0 -. s)) /. a0 ;
+                       (* b2/a0 *)
+                   (2. *. ((a -. 1.) -. (a +. 1.) *. c0)) /. a0 ;
+                       (* a1/a0 *)
+                   ((a +. 1.) -. (a -. 1.) *. c0 -. s) /. a0
+                       (* a2/a0 *)
+                |]) ;
+        self#log#f 4 "Coefficients:" ;
+        self#log#f 4 "%s"
+          (String.concat "\n"
+             (Array.to_list
+                (Array.mapi
+                   (fun i a -> Printf.sprintf "%d: %+.013f." i a)
+                   coeffs))) ;
+        self#log#f 4 "Initialization done."
+
   (* Digital filter based on "Cookbook formulae for audio EQ biquad filter
      coefficients" by Robert Bristow-Johnson <rbj@audioimagination.com>.
      URL: http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt *)
@@ -196,9 +182,9 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let shift a = for i = 0 to Array.length a - 2 do a.(i) <- a.(i+1) done in
-        for c = 0 to (Fmt.channels ()) - 1 do
+        for c = 0 to channels - 1 do
           for i = offset to AFrame.position buf - 1 do
             shift xv.(c) ;
             xv.(c).(2) <- b.(c).(i) ;
@@ -217,158 +203,158 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.lowshelf"
     [
       "frequency", Lang.float_t, None, Some ("Corner frequency") ;
       "slope", Lang.float_t, Some (Lang.float 1.),
         Some "Shelf slope (dB/octave)" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Low shelf biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "slope"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src Low_shelf freq param 0. debug)
+         new biquad ~kind src Low_shelf freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.highshelf"
     [
       "frequency", Lang.float_t, None, Some ("Center frequency") ;
       "slope", Lang.float_t, Some (Lang.float 1.),
         Some "Shelf slope (in dB/octave)" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"High shelf biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "slope"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src High_shelf freq param 0. debug)
+         new biquad ~kind src High_shelf freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.low"
     [
       "frequency", Lang.float_t, None, Some ("Corner frequency") ;
       "q", Lang.float_t, Some (Lang.float 1.), Some "Q" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Low pass biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src Low_pass freq param 0. debug)
+         new biquad ~kind src Low_pass freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.high"
     [
       "frequency", Lang.float_t, None, Some ("Corner frequency") ;
       "q", Lang.float_t, Some (Lang.float 1.), Some "Q" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"High pass biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src High_pass freq param 0. debug)
+         new biquad ~kind src High_pass freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.bandpass"
     [
       "frequency", Lang.float_t, None, Some ("Center frequency") ;
       "q", Lang.float_t, Some (Lang.float 1.), Some "Q" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Band pass biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src Band_pass freq param 0. debug)
+         new biquad ~kind src Band_pass freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.allpass"
     [
       "frequency", Lang.float_t, None, Some ("Center frequency") ;
       "bandwidth", Lang.float_t, Some (Lang.float (1./.3.)),
         Some "Bandwidth (in octaves)" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"All pass biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "bandwidth"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src All_pass freq param 0. debug)
+         new biquad ~kind src All_pass freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.notch"
     [
       "frequency", Lang.float_t, None, Some ("Center frequency") ;
       "q", Lang.float_t, Some (Lang.float 1.), Some "Q" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Band pass biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, debug, src =
+       let freq, param, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src Notch freq param 0. debug)
+         new biquad ~kind src Notch freq param 0.)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.iir.eq.peak"
     [
       "frequency", Lang.float_t, None, Some ("Center frequency") ;
       "q", Lang.float_t, Some (Lang.float 1.), Some "Q" ;
       "gain", Lang.float_t, Some (Lang.float 1.), Some "Gain (in dB)" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Peak EQ biquad filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, param, gain, debug, src =
+       let freq, param, gain, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "q"),
          Lang.to_float (f "gain"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new biquad src Peak freq param gain debug)
+         new biquad ~kind src Peak freq param gain)

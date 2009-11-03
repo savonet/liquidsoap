@@ -22,9 +22,9 @@
 
 open Source
 
-class append ~insert_missing ~merge source f =
+class append ~kind ~insert_missing ~merge source f =
 object (self)
-  inherit operator [source]
+  inherit operator kind [source]
 
   val mutable state = `Idle
 
@@ -141,11 +141,8 @@ object (self)
 
 end
 
-(*
- "say:$(if $(artist),\"It was $(artist)$(if $(title),\\\", $(title)\\\").\")"
- *)
-
 let register =
+  let k = Lang.univ_t 1 in
   Lang.add_operator "append"
     [ "merge",Lang.bool_t,Some (Lang.bool false),
       Some "Merge the track with its appended track." ;
@@ -153,23 +150,24 @@ let register =
       "insert_missing",Lang.bool_t,Some (Lang.bool true),
       Some "Treat track beginnings without metadata as having empty one." ;
 
-      "", Lang.source_t, None, None ;
+      "", Lang.source_t k, None, None ;
 
       "",
-      Lang.fun_t [false,"",Lang.metadata_t] Lang.source_t,
+      Lang.fun_t [false,"",Lang.metadata_t] (Lang.source_t k),
       None,
       Some
         "Given the metadata, build the source producing the track to append. \
          This source is allowed to fail (produce nothing) if no relevant \
          track is to be appended."
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.TrackProcessing
     ~descr:"Append an extra track to every track. \
             Set the metadata 'liq_append' to 'false' to \
             inhibit appending on one track."
-    (fun p _ ->
+    (fun p kind ->
        let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
        let insert_missing = Lang.to_bool (Lang.assoc "insert_missing" 1 p) in
        let source = Lang.to_source (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-         new append ~insert_missing ~merge source f)
+         new append ~kind ~insert_missing ~merge source f)

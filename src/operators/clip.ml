@@ -22,21 +22,19 @@
 
 open Source
 
-class echo (source:source) vmin vmax =
+class echo ~kind (source:source) vmin vmax =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
-
   method remaining = source#remaining
-
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let position = AFrame.position buf in
         for c = 0 to Array.length b - 1 do
           let bc = b.(c) in
@@ -47,19 +45,21 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "clip"
     [ "min", Lang.float_t, Some (Lang.float (-0.999)),
       Some "Minimal acceptable value.";
       "max", Lang.float_t, Some (Lang.float 0.999),
       Some "Maximal acceptable value.";
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Clip sound."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let vmin, vmax, src =
          Lang.to_float (f "min"),
          Lang.to_float (f "max"),
          Lang.to_source (f "")
        in
-         new echo src vmin vmax)
+         new echo ~kind src vmin vmax)

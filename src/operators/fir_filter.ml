@@ -25,32 +25,33 @@ open Complex
 
 let pi = 3.14159265358979323846
 
-class fir (source:source) freq beta numcoeffs debug =
+class fir ~kind (source:source) freq beta numcoeffs =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
   
   (* Needed to compute RC *)
-  val f1 = (1. -. beta) *. (freq /. (float_of_int (Fmt.samples_per_second ())))
-  val f2 = (1. +. beta) *. (freq /. (float_of_int (Fmt.samples_per_second ())))
-  val tau = 0.5 /. (freq /. (float_of_int (Fmt.samples_per_second ())))
+  val f1 = (1. -. beta) *. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
+  val f2 = (1. +. beta) *. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
+  val tau = 0.5 /. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
   
   (* Misc *)
   val mutable nzeros = numcoeffs - 1
   val mutable gain = 0.
-  val mutable xv = Array.make_matrix (Fmt.channels ()) (numcoeffs) 0.
+  val mutable xv = Array.make_matrix channels (numcoeffs) 0.
   
   (* Coefficients *)
   val mutable xcoeffs = Array.make numcoeffs 0.
   val mutable circle = [||]
-(*  val mutable vec = *)
   val mutable temp = Array.make 2048 {re = 0. ; im = 0.}
   
   initializer
-    if debug then
-      (
-        Printf.printf "================== BEG INIT FILTER %s ==================\n" self#id ;
-        Printf.printf "Alpha: %+.013f.\nBeta: %+.013f.\nF1: %+.013f.\nF2: %+.013f.\nTau: %+.013f.\n# zeros: %d.\n" (freq /. (float_of_int (Fmt.samples_per_second ()))) beta f1 f2 tau nzeros
-      ) ;
+    self#log#f 4
+      "Init: alpha=%+.013f beta=%+.013f \
+             F1=%+.013f F2=%+.013f \
+             tau=%+.013f zeros=%d."
+      (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
+      beta f1 f2 tau nzeros ;
     (* Init circle *)
     let circle =
       let rec mkcircle n =
@@ -105,14 +106,15 @@ object (self)
         xcoeffs <- Array.mapi
                      (fun i x -> vec.((2048 - h + i) mod 2048).re /. 2048.)
                      xcoeffs;
-        if debug then
-          Printf.printf "Xcoeffs:\n%s\n" (String.concat "\n" (Array.to_list ((Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) xcoeffs)))) ;
+        self#log#f 4 "Xcoeffs: %s"
+          (String.concat "\n"
+             (Array.to_list
+                (Array.mapi
+                   (fun i a -> Printf.sprintf "%d: %+.013f." i a)
+                   xcoeffs))) ;
         gain <- Array.fold_left (+.) 0. xcoeffs ;
-        if debug then
-          (
-            Printf.printf "Gain: %+.013f.\n" gain ;
-            Printf.printf "================== END INIT FILTER %s ==================\n" self#id
-          )
+        self#log#f 4 "Gain: %+.013f." gain ;
+        self#log#f 4 "Init done."
   
   (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
 
@@ -127,7 +129,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let shift a = for i = 0 to Array.length a - 2 do a.(i) <- a.(i+1) done in
       let fold_left2 = fun f init a1 a2 ->
         let l = min (Array.length a1) (Array.length a2) in
@@ -148,6 +150,7 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "filter.fir"
     [
       "frequency", Lang.float_t, None,
@@ -155,17 +158,16 @@ let () =
             (frequency at which the response is 0.5, that is -6 dB)." ;
       "beta", Lang.float_t, None, Some "Beta should range between 0 and 1." ;
       "coeffs", Lang.int_t, Some (Lang.int 255), Some "Number of coefficients" ;
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Debug output" ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Low-pass FIR filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let freq, beta, num, debug, src =
+       let freq, beta, num, src =
          Lang.to_float (f "frequency"),
          Lang.to_float (f "beta"),
          Lang.to_int (f "coeffs"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "") in
-         new fir src freq beta num debug)
+         new fir ~kind src freq beta num)

@@ -52,14 +52,14 @@ let string_of_note = function
   | 11 -> "G#/Ab"
   | _ -> assert false
 
-class pitch every length freq_min freq_max (source:source) =
+class pitch ~kind every length freq_min freq_max (source:source) =
   (** Compute a wave length from a frequency. *)
-  let samples_per_second = float (Fmt.samples_per_second ()) in
-  let channels = Fmt.channels () in
+  let samples_per_second = float (Frame.audio_of_seconds 1.) in
   let wl f = int_of_float (samples_per_second /. f) in
-  let length = Fmt.samples_of_seconds length in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let length = Frame.audio_of_seconds length in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   val ring = Ringbuffer.create channels (2 * length)
 
@@ -77,8 +77,9 @@ object (self)
   method abort_track = source#abort_track
 
   method private get_frame buf =
+    let pos = AFrame.position buf in
     source#get buf;
-    let buf = AFrame.get_float_pcm buf in
+    let buf = AFrame.content buf pos in
       Ringbuffer.write ring buf 0 (Array.length buf.(0));
       if Ringbuffer.read_space ring > length then
         Ringbuffer.read_advance ring (Ringbuffer.read_space ring - length);
@@ -100,11 +101,12 @@ object (self)
           done;
           let f = samples_per_second /. float !wl_opt in
           let f = if f > freq_max then 0. else f in
-            Printf.printf "Found frequency: %.02f (%s)\n%!"
+            self#log#f 3 "Found frequency: %.02f (%s)\n%!"
               f (string_of_note (note_of_freq f))
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "pitch"
     [
       "length", Lang.float_t, Some (Lang.float 0.1),
@@ -116,15 +118,16 @@ let () =
       "freq_max", Lang.float_t, Some (Lang.float 10000.),
       Some "Maximal frequency";
 
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Compute the pitch of a sound."
     ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let length = Lang.to_float (f "length") in
        let freq_min = Lang.to_float (f "freq_min") in
        let freq_max = Lang.to_float (f "freq_max") in
        let src = Lang.to_source (f "") in
-         new pitch 10 length freq_min freq_max src)
+         new pitch ~kind 10 length freq_min freq_max src)

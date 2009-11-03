@@ -22,21 +22,20 @@
 
 open Source
 
-class compress (source:source) mu =
+class compress ~kind (source:source) mu =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
   method remaining = source#remaining
-
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
         for c = 0 to Array.length b - 1 do
           let b_c = b.(c) in
             for i = offset to AFrame.position buf - 1 do
@@ -47,18 +46,20 @@ object (self)
 end
 
 let () =
+  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "compress.exponential"
+    ~category:Lang.SoundProcessing
+    ~descr:"Exponential compressor."
     [
       "mu", Lang.float_t, Some (Lang.float 2.),
       Some "Exponential compression factor, typically greater than 1." ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t kind, None, None
     ]
-    ~category:Lang.SoundProcessing
-    ~descr:"Exponential compressor."
-    (fun p _ ->
+    ~kind:(Lang.Unconstrained kind)
+    (fun p kind ->
        let f v = List.assoc v p in
        let mu, src =
          Lang.to_float (f "mu"),
          Lang.to_source (f "")
        in
-         new compress src mu)
+         new compress ~kind src mu)

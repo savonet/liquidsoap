@@ -22,7 +22,7 @@
 
 open Source
 
-class normalize (source:source)
+class normalize ~kind (source:source)
            rmst  (** RMS target. *)
            window  (** Number of samples for computing rms. *)
            kup   (** Spring coefficient when the sound is going louder. *)
@@ -30,11 +30,10 @@ class normalize (source:source)
            threshold
            gmin
            gmax
-           debug (** Show RMS and amplification coeffs. *)
            =
-let rmsi = Fmt.samples_of_seconds window in
+let rmsi = Frame.audio_of_seconds window in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   (** Current squares of RMS. *)
   val rms = [|0.; 0.|]
@@ -57,7 +56,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in
@@ -75,20 +74,19 @@ object (self)
           rmsc <- rmsc + 1;
           if rmsc >= rmsi then
             (
-              if debug then
-                (
-                  let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
-                  let rmsr = sqrt (rms.(1) /. (float_of_int rmsi)) in
-                    Printf.printf
-                      "%6.02f  *  %4.02f  ->  %6.02f    |    \
-                       %6.02f  *  %4.02f  ->  %6.02f\n%!"
-                      (Sutils.dB_of_lin rmsl)
-                      v.(0)
-                      (Sutils.dB_of_lin (rmsl *. v.(0)))
-                      (Sutils.dB_of_lin rmsr)
-                      v.(1)
-                      (Sutils.dB_of_lin (rmsr *. v.(1)))
-                );
+              begin
+                let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
+                let rmsr = sqrt (rms.(1) /. (float_of_int rmsi)) in
+                  self#log#f 4
+                    "%6.02f  *  %4.02f  ->  %6.02f    |    \
+                    %6.02f  *  %4.02f  ->  %6.02f"
+                    (Sutils.dB_of_lin rmsl)
+                    v.(0)
+                    (Sutils.dB_of_lin (rmsl *. v.(0)))
+                    (Sutils.dB_of_lin rmsr)
+                    v.(1)
+                    (Sutils.dB_of_lin (rmsr *. v.(1)))
+              end ;
               (* TODO: do all the computations in dB? *)
               for c = 0 to 1 do
                 let r = sqrt (rms.(c) /. (float_of_int rmsi)) in
@@ -105,18 +103,19 @@ object (self)
             )
         done;
         (* Reset values if it is the end of the track. *)
-        if AFrame.is_partial buf then
-          (
-            for c = 0 to 1 do
-              vold.(c) <- 1.;
-              v.(c) <- 1.;
-              rms.(c) <- 0.
-            done;
-            rmsc <- 0
-          )
+        if AFrame.is_partial buf then begin
+          for c = 0 to 1 do
+            vold.(c) <- 1.;
+            v.(c) <- 1.;
+            rms.(c) <- 0.
+          done;
+          rmsc <- 0
+        end
+
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.audio_any in
   Lang.add_operator "normalize"
     [
       "target", Lang.float_getter_t 1, Some (Lang.float (-13.)),
@@ -136,9 +135,9 @@ let () =
       Some "Minimal gain value (dB).";
       "gain_max", Lang.float_getter_t 6, Some (Lang.float 6.),
       Some "Maximal gain value (dB).";
-      "debug", Lang.bool_t, Some (Lang.bool false), Some "Show coefficients.";
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Normalize the signal. Dynamic normalization of the signal \
             is sometimes the only option, and can make a listening experience \
@@ -147,9 +146,9 @@ let () =
             If possible, consider using some track-based normalization \
             techniques such as those based on replay gain. See the \
             documentation for more details."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
-       let target, window, kup, kdown, threshold, gmin, gmax, debug, src =
+       let target, window, kup, kdown, threshold, gmin, gmax, src =
          Lang.to_float_getter (f "target"),
          Lang.to_float (f "window"),
          Lang.to_float_getter (f "k_up"),
@@ -157,16 +156,13 @@ let () =
          Lang.to_float_getter (f "threshold"),
          Lang.to_float_getter (f "gain_min"),
          Lang.to_float_getter (f "gain_max"),
-         Lang.to_bool (f "debug"),
          Lang.to_source (f "")
        in
-         new normalize
-               src
+         new normalize ~kind src
                (fun () -> Sutils.lin_of_dB (target ()))
                window
                kup
                kdown
                (fun () -> Sutils.lin_of_dB (threshold ()))
                (fun () -> Sutils.lin_of_dB (gmin ()))
-               (fun () -> Sutils.lin_of_dB (gmax ()))
-               debug)
+               (fun () -> Sutils.lin_of_dB (gmax ())))

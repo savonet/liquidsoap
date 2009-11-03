@@ -22,26 +22,25 @@
 
 open Source
 
-class echo (source:source) delay feedback =
-  let past_len = Fmt.samples_of_seconds delay in
+class echo ~kind (source:source) delay feedback =
+  let past_len = Frame.audio_of_seconds delay in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
-
   method remaining = source#remaining
-
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  val past = Array.init (Fmt.channels()) (fun _ -> Array.make past_len 0.)
+  val past = Array.init channels (fun _ -> Array.make past_len 0.)
 
   val mutable past_pos = 0
 
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let feedback = feedback () in
         for i = offset to position - 1 do
@@ -54,6 +53,7 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.audio_any in
   Lang.add_operator "echo"
     [ "delay", Lang.float_t, Some (Lang.float 0.5), Some "Delay in seconds.";
 
@@ -61,10 +61,11 @@ let () =
       Lang.float_getter_t 1,
       Some (Lang.float (-6.)), Some "Feedback coefficient in dB (negative).";
 
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Add echo."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let duration, feedback, src =
          Lang.to_float (f "delay"),
@@ -78,4 +79,4 @@ let () =
                                       "feedback should be negative"));
          fun () -> Sutils.lin_of_dB (feedback ())
        in
-         new echo src duration feedback)
+         new echo ~kind src duration feedback)

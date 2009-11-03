@@ -26,9 +26,9 @@
 
 open Source
 
-class substract (y:source) (x:source) =
+class substract ~kind (y:source) (x:source) =
 object (self)
-  inherit operator [y; x] as super
+  inherit operator kind [y; x] as super
 
   method stype =
     if x#stype = Infallible && y#stype = Infallible then
@@ -37,7 +37,11 @@ object (self)
       Fallible
 
   method remaining =
-    min x#remaining y#remaining
+    let x = x#remaining in
+    let y = y#remaining in
+      if x<0 then y else
+        if y<0 then x else
+          min x y
 
   method abort_track =
     x#abort_track;
@@ -46,7 +50,7 @@ object (self)
   method is_ready =
     x#is_ready && y#is_ready
 
-  val tmp = Frame.make ()
+  val tmp = Frame.create kind
 
   method private get_frame buf =
     (* Sum contributions *)
@@ -58,12 +62,16 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "substract"
     ~category:Lang.SoundProcessing
-    ~descr:("Compute the difference y-x of two sources y and x.")
-    [ "", Lang.source_t, None, Some "y";
-      "", Lang.source_t, None, Some "x"; ]
-    (fun p _ ->
+    ~descr:"Compute the difference y-x of two sources y and x. \
+            The metadata and breaks from x are lost."
+    ~flags:[Lang.Hidden] (* TODO handle end of tracks, cf. add() *)
+    [ "", Lang.source_t k, None, Some "y";
+      "", Lang.source_t k, None, Some "x"; ]
+    ~kind:(Lang.Unconstrained k)
+    (fun p kind ->
        let y = Lang.to_source (Lang.assoc "" 1 p) in
        let x = Lang.to_source (Lang.assoc "" 2 p) in
-         new substract y x)
+         new substract ~kind y x)

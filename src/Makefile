@@ -65,27 +65,28 @@ operators = \
 	operators/on_metadata.ml operators/store_metadata.ml \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
 	operators/switch.ml operators/fade.ml operators/add.ml \
-	operators/sequence.ml operators/cross.ml
-	# operators/smartcross.ml \
-	operators/setvol.ml operators/normalize.ml operators/echo.ml \
-	operators/prepend.ml operators/append.ml operators/accel.ml \
-	operators/noblank.ml operators/compand.ml \
-	operators/mixing_table.ml operators/filter.ml \
-	operators/mean.ml operators/swap.ml \
-	operators/pan.ml operators/ms_stereo.ml \
+	operators/sequence.ml operators/cross.ml \
 	operators/compress_exp.ml operators/pitch.ml \
 	operators/fir_filter.ml operators/iir_filter.ml \
 	operators/biquad_filter.ml operators/substract.ml \
-	operators/map_op.ml operators/resample.ml \
-	operators/flanger.ml operators/comb.ml \
-	operators/compress.ml operators/clip.ml \
+	operators/map_op.ml operators/flanger.ml operators/comb.ml \
+	operators/compress.ml operators/clip.ml operators/filter.ml \
+	operators/setvol.ml operators/normalize.ml operators/echo.ml \
+	operators/append.ml
+	# operators/prepend.ml
+	# operators/smartcross.ml \
+	operators/noblank.ml operators/compand.ml \
+	operators/mixing_table.ml \
+	operators/mean.ml operators/swap.ml \
+	operators/pan.ml operators/ms_stereo.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/time_wrap.ml operators/lag.ml \
 	operators/video_effects.ml operators/video_fade.ml \
 	operators/fork.ml operators/midi_routing.ml
-#	operators/pipe.ml
+
+# MAJOR CHANGES for operators/resample.ml operators/pipe.ml operators/accel.ml
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml

@@ -24,10 +24,11 @@ open Source
 
 let pi = acos (-1.)
 
-class flanger (source:source) delay freq feedback phase =
-  let past_len = Fmt.samples_of_seconds delay in
+class flanger ~kind (source:source) delay freq feedback phase =
+  let past_len = Frame.audio_of_seconds delay in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
@@ -36,7 +37,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  val past = Array.init (Fmt.channels ()) (fun _ -> Array.make past_len 0.)
+  val past = Array.init channels (fun _ -> Array.make past_len 0.)
 
   val mutable past_pos = 0
 
@@ -46,16 +47,17 @@ object (self)
     let feedback = feedback () in
     let offset = AFrame.position buf in
       source#get buf ;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let d_omega =
-        2. *. pi *. (freq ()) /. (float (Fmt.samples_per_second ()))
+        2. *. pi *. (freq ()) /. (float (Frame.audio_of_seconds 1.))
       in
         for i = offset to position - 1 do
           for c = 0 to Array.length b - 1 do
             let delay =
               (past_pos + past_len +
-               Fmt.samples_of_seconds (delay *. (1. -. cos (omega +. float c *. phase ())) /. 2.))
+               Frame.audio_of_seconds
+                 (delay *. (1. -. cos (omega +. float c *. phase ())) /. 2.))
               mod past_len
             in
               past.(c).(past_pos) <- b.(c).(i);
@@ -69,21 +71,24 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
   Lang.add_operator "flanger"
     [
       "delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.";
       "freq",
-      Lang.float_getter_t 1,
-      Some (Lang.float 0.5), Some "Frequency in Hz.";
+         Lang.float_getter_t 1,
+         Some (Lang.float 0.5), Some "Frequency in Hz.";
       "feedback",
-      Lang.float_getter_t 2,
-      Some (Lang.float (0.)), Some "Feedback coefficient in dB.";
-      "phase", Lang.float_getter_t 3, Some (Lang.float 1.), Some "Phasse difference between channels in radians.";
-      "", Lang.source_t, None, None
+         Lang.float_getter_t 2,
+         Some (Lang.float (0.)), Some "Feedback coefficient in dB.";
+      "phase", Lang.float_getter_t 3, Some (Lang.float 1.),
+         Some "Phasse difference between channels in radians.";
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Flanger effect."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let duration, freq, feedback, phase, src =
          Lang.to_float (f "delay"),
@@ -93,4 +98,4 @@ let () =
          Lang.to_source (f "")
        in
        let feedback = fun () -> Sutils.lin_of_dB (feedback ()) in
-         new flanger src duration freq feedback phase)
+         new flanger ~kind src duration freq feedback phase)

@@ -24,11 +24,13 @@ open Source
 
 (** See http://www.musicdsp.org/archive.php?classid=4#169 *)
 
-class compress (source:source) attack release threshold ratio knee rmsw gn debug =
+class compress ~kind (source:source)
+        attack release threshold ratio knee rmsw gn =
   (** Number of samples for computing rms. *)
-  let rmsn = Fmt.samples_of_seconds rmsw in
+  let rmsn = Frame.audio_of_seconds rmsw in
+  let rate = float (Lazy.force Frame.audio_rate) in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   (** [rmsn] last squares. *)
   val rmsv = Array.make rmsn 0.
@@ -58,7 +60,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let chans = Array.length b in
       let gn = gn () in
       let attack = attack () in
@@ -74,14 +76,14 @@ object (self)
         if attack = 0. then
           0.
         else
-          exp (-1. /. (float (Fmt.samples_per_second ()) *. attack));
+          exp (-1. /. (rate *. attack));
       in
       let ef_a = g_attack *. 0.25 in
       let g_release =
         if release = 0. then
           0.
         else
-          exp (-1. /. (float (Fmt.samples_per_second ()) *. release));
+          exp (-1. /. (rate *. release));
       in
       let ef_ai = 1. -. ef_a in
       (* Knees. *)
@@ -141,8 +143,8 @@ object (self)
 
                 (* Debug messages. *)
                 count <- count + 1;
-                if debug && count mod 10000 = 0 then
-                  Printf.printf
+                if count mod 10000 = 0 then
+                  self#log#f 4
                     "RMS:%7.02f     Env:%7.02f     Gain: %4.02f\r%!"
                     (Sutils.dB_of_lin amp) (Sutils.dB_of_lin env) gain
 
@@ -160,6 +162,9 @@ object (self)
             amp <- 0.
           )
 end
+
+(* The five first variables ('a,'b...) are used for getters. *)
+let k = Lang.kind_type_of_kind_format ~fresh:6 Lang.audio_any
 
 let proto =
   [
@@ -181,14 +186,12 @@ let proto =
     "gain", Lang.float_getter_t 5, Some (Lang.float 0.),
     Some "Additional gain (dB).";
 
-    "debug", Lang.bool_t, Some (Lang.bool false), None;
-
-    "", Lang.source_t, None, None
+    "", Lang.source_t k, None, None
     ]
 
-let compress p _ =
+let compress p kind =
   let f v = List.assoc v p in
-  let attack, release, threshold, ratio, knee, rmsw, gain, debug, src =
+  let attack, release, threshold, ratio, knee, rmsw, gain, src =
     Lang.to_float_getter (f "attack"),
     Lang.to_float_getter (f "release"),
     Lang.to_float_getter (f "threshold"),
@@ -196,10 +199,9 @@ let compress p _ =
     Lang.to_float_getter (f "knee"),
     Lang.to_float (f "rms_window"),
     Lang.to_float_getter (f "gain"),
-    Lang.to_bool (f "debug"),
     Lang.to_source (f "")
   in
-    new compress
+    new compress ~kind
           src
           (fun () -> attack () /. 1000.)
           (fun () -> release () /. 1000.)
@@ -208,13 +210,13 @@ let compress p _ =
           knee
           rmsw
           (fun () -> Sutils.lin_of_dB (gain ()))
-          debug
 
 let () =
   Lang.add_operator "compress"
     (("ratio", Lang.float_t, Some (Lang.float 2.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Compress the signal."
     compress;
@@ -222,6 +224,7 @@ let () =
     (("ratio", Lang.float_t, Some (Lang.float 20.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Limit the signal."
     compress

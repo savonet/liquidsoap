@@ -22,21 +22,19 @@
 
 open Source
 
-class map source f =
+class map ~kind source f =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
-
   method remaining = source#remaining
-
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
         for i = offset to AFrame.position buf - 1 do
           for c = 0 to Array.length b - 1 do
             b.(c).(i) <- f b.(c).(i)
@@ -48,15 +46,17 @@ let to_fun_float f x =
   Lang.to_float (Lang.apply f ["", Lang.float x])
 
 let () =
-  Lang.add_operator "map"
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  Lang.add_operator "audio.map"
     [
       "", Lang.fun_t [false,"",Lang.float_t] Lang.float_t, None, None;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
+    ~descr:"Map a function to all audio samples. This is SLOW!"
     ~category:Lang.SoundProcessing
-    ~descr:"Map a function on the sound."
-    ~flags:[Lang.Hidden; Lang.Experimental]
-    (fun p _ ->
+    ~flags:[Lang.Hidden] (* It works well but is probably useless. *)
+    (fun p kind ->
        let f = to_fun_float (Lang.assoc "" 1 p) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new map src f)
+         new map ~kind src f)

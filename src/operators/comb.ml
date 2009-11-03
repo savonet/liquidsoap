@@ -24,10 +24,11 @@ open Source
 
 (* See http://en.wikipedia.org/wiki/Comb_filter *)
 
-class comb (source:source) delay feedback =
-  let past_len = Fmt.samples_of_seconds delay in
+class comb ~kind (source:source) delay feedback =
+  let past_len = Frame.audio_of_seconds delay in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
@@ -36,14 +37,14 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  val past = Array.init (Fmt.channels()) (fun _ -> Array.make past_len 0.)
+  val past = Array.init channels (fun _ -> Array.make past_len 0.)
 
   val mutable past_pos = 0
 
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
       let position = AFrame.position buf in
       let feedback = feedback () in
         for i = offset to position - 1 do
@@ -57,20 +58,23 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.audio_any in
   Lang.add_operator "comb"
     [ "delay", Lang.float_t, Some (Lang.float 0.001), Some "Delay in seconds.";
 
       "feedback", Lang.float_getter_t 1, Some (Lang.float (-6.)),
       Some "Feedback coefficient in dB.";
 
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Comb filter."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let duration, feedback, src =
          Lang.to_float (f "delay"),
          Lang.to_float_getter (f "feedback"),
          Lang.to_source (f "")
        in
-         new comb src duration (fun () -> Sutils.lin_of_dB (feedback ())))
+         new comb ~kind src duration
+               (fun () -> Sutils.lin_of_dB (feedback ())))
