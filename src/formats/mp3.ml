@@ -65,23 +65,32 @@ let decoder =
       (fun file ->
         if not (check file) then
           assert false;
-        let fd = Mad.openfile file in
-        let sample_freq,_,_ = Mad.get_output_format fd in
-        (fd, float sample_freq),
+        Mad.openfile file,
         Generator.create ());
+    get_type =
+      (fun fd ->
+         (* Decode some data *)
+         ignore(Mad.decode_frame_float fd);
+         (* Get number of channels *)
+         let _,channels,_ = Mad.get_output_format fd in
+         { Frame.
+            audio = channels ;
+            video = 0 ;
+            midi  = 0 });
     decode =
-      (fun (fd,audio_src_rate) abg ->
+      (fun fd abg ->
          let data = Mad.decode_frame_float fd in
+         let sample_freq,_,_ = Mad.get_output_format fd in
          let content,length =
-           converter ~audio_src_rate
+           converter ~audio_src_rate:(float sample_freq)
                   { Frame.
                       audio = data;
                       video = [||];
-                      midi = [||] }
+                      midi  = [||] }
          in
          Generator.feed abg content 0 length);
-    position = (fun (fd,_) -> Mad.get_current_position fd);
-    close = (fun (fd,_) -> Mad.close fd)
+    position = Mad.get_current_position;
+    close = Mad.close
   }
 
 let duration file =
@@ -92,17 +101,5 @@ let duration file =
     | 0. -> raise Not_found
     | _ -> ans
 
-let () = Decoder.formats#register "MP3"
-           (fun name kind ->
-              let mad_type =
-                { Frame.audio = Mad.wav_output_channels ;
-                  Frame.video = 0 ;
-                  Frame.midi = 0 }
-              in
-                if Frame.type_has_kind mad_type kind then
-                  try
-                    Some (File_decoder.Float.decode decoder name)
-                  with _ -> None
-                else
-                  None);
+let () = Decoder.formats#register "MP3" (File_decoder.Float.decode decoder);
          Request.dresolvers#register "MP3" duration

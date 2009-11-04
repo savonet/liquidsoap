@@ -37,6 +37,7 @@ struct
     {
       log      : Dtools.Log.t;
       openfile : string -> 'a*Generator.t;
+      get_type : 'a -> Frame.content_type;
       decode   : 'a -> Generator.t -> unit; 
       position : 'a -> int;
       close    : 'a -> unit
@@ -101,6 +102,26 @@ struct
                 Frame.master_of_audio (int_of_float remaining_samples)
     in
       { Decoder.fill = fill ; Decoder.close = close }
+
+   (** Top-level wrapper to also check content_type *)
+   let decode decoder name kind = 
+     try
+       let data_type = 
+         let (data,_) = decoder.openfile name in
+         let data_type = 
+          try
+            decoder.get_type data
+          with
+           | e -> decoder.close data; raise e
+         in
+         decoder.close data; 
+         data_type
+       in
+       if Frame.type_has_kind data_type kind then
+         Some (decode decoder name)
+       else
+         None
+      with _ -> None
 end
 
 module Float = Decoder(Generator)

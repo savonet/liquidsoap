@@ -24,6 +24,8 @@
 
 let log = Dtools.Log.make ["format";"ogg"]
 
+exception Channels of int
+
 let decoder =
   let converter = Rutils.create () in
   {
@@ -39,6 +41,22 @@ let decoder =
            | e -> (try Unix.close fd with _ -> ()); raise e
         end,
         Generator.create ());
+    get_type = 
+      (fun (decoder,_) ->
+        let feed ((buf,_),_) =
+          raise (Channels (Array.length buf))
+        in
+        let audio =
+          try
+            Ogg_demuxer.decode_audio decoder feed;
+            raise Not_found
+          with
+            | Channels x -> x
+        in
+        { Frame.
+            audio = audio ;
+            video = 0 ;
+            midi  = 0 });
     decode =
       (* TODO: also decode video *)
       (fun (decoder,_) abg ->
@@ -63,47 +81,7 @@ let decoder =
                with _ -> ()) 
   }
 
-exception Channels of int
-
-(** Returns the type of an ogg file. *)
-(* TODO: add video *)
-let get_type file =
-  let sync,fd = Ogg.Sync.create_from_file file in
-  let close () =
-    try
-      Unix.close fd
-    with _ -> ()
-  in
-  try
-    let decoder = Ogg_demuxer.init sync in
-    (* Feed may be called several times *)
-    let feed ((buf,_),_) =
-      raise (Channels (Array.length buf))
-    in
-    let audio =
-      try
-        Ogg_demuxer.decode_audio decoder feed;
-        raise Not_found
-      with
-        | Channels x -> x
-    in
-    close ();
-    { Frame.
-        audio = audio ;
-        video = 0 ;
-        midi  = 0 }
-   with
-     | e -> close (); raise e
-
-let () = Decoder.formats#register "OGG"
-           (fun name kind ->
-              let ogg_type = get_type name in
-                if Frame.type_has_kind ogg_type kind then
-                  try
-                    Some (File_decoder.Float.decode decoder name)
-                  with _ -> None
-                else
-                  None)
+let () = Decoder.formats#register "OGG" (File_decoder.Float.decode decoder)
 
 exception Metadata of (string*string) list
 
