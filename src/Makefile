@@ -29,9 +29,9 @@ video_converters = \
 formats = \
 	$(if $(W_MP3),formats/mp3.ml) \
 	$(if $(W_OGG),formats/oggformat.ml) \
-	# $(if $(W_VORBIS),formats/vorbisduration.ml) \
+	$(if $(W_VORBIS),formats/vorbisduration.ml) \
 	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
-	$(if $(W_FAAD),formats/aacformat.ml) \
+	# $(if $(W_FAAD),formats/aacformat.ml) \
 	formats/wavformat.ml \
 	formats/externalformat.ml \
 	formats/midiformat.ml
