@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-(* Speex decoder does not need to be exposed.. *)
-
 (* Speex encoder *)
 
 exception Internal

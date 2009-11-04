@@ -24,8 +24,6 @@
 
 let log = Dtools.Log.make ["ogg.demuxer"]
 
-module Generator = Float_pcm.Generator
-
 type metadata = string*((string*string) list)
 type 'a decoder = ('a*(metadata option) -> unit) -> unit
 type audio = (float array array)*int

@@ -7,13 +7,14 @@ DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
 ocaml_progs= liquidsoap
 
-ogg_utils =
-# \
+ogg_utils = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
-	$(if $(W_OGG),ogg_encoder.ml) \
-	$(if $(W_SPEEX),ogg_formats/speex_format.ml) \
+	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
+	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) 
+	# $(if $(W_OGG),ogg_encoder.ml) \
+	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
+	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_format.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_format.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_format.ml)
 
 audio_converters = \
@@ -27,8 +28,8 @@ video_converters = \
 
 formats = \
 	$(if $(W_MP3),formats/mp3.ml) \
-	# $(if $(W_OGG),formats/oggformat.ml) \
-	$(if $(W_VORBIS),formats/vorbisduration.ml) \
+	$(if $(W_OGG),formats/oggformat.ml) \
+	# $(if $(W_VORBIS),formats/vorbisduration.ml) \
 	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
 	$(if $(W_FAAD),formats/aacformat.ml) \
 	formats/wavformat.ml \
