@@ -57,6 +57,7 @@ let check file =
    true
 
 let decoder =
+  let converter = Rutils.create () in
   {
    File_decoder.Float.
     log = log;
@@ -64,15 +65,23 @@ let decoder =
       (fun file ->
         if not (check file) then
           assert false;
-        Mad.openfile file,
+        let fd = Mad.openfile file in
+        let sample_freq,_,_ = Mad.get_output_format fd in
+        (fd, float sample_freq),
         Generator.create ());
     decode =
-      (fun fd abg ->
+      (fun (fd,audio_src_rate) abg ->
          let data = Mad.decode_frame_float fd in
-         let sample_freq,_,_ = Mad.get_output_format fd in
-         Generator.feed_from_pcm abg ~sample_freq data);
-    position = Mad.get_current_position;
-    close = Mad.close
+         let content,length =
+           converter ~audio_src_rate
+                  { Frame.
+                      audio = data;
+                      video = [||];
+                      midi = [||] }
+         in
+         Generator.feed abg content 0 length);
+    position = (fun (fd,_) -> Mad.get_current_position fd);
+    close = (fun (fd,_) -> Mad.close fd)
   }
 
 let duration file =

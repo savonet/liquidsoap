@@ -20,16 +20,8 @@
 
  *****************************************************************************)
 
-type t
+ (** Resampling module for any Frame.content *)
 
-val create : unit -> t
-val clear : t -> unit
-val length : t -> int
-val remaining : t -> int
-val add_metadata : t -> Frame.metadata -> unit
-val add_break : t -> unit
-val advance : t -> int -> unit
-val remove : t -> int -> unit
-val feed : t -> Frame.content -> int -> int -> unit
-val feed_from_frame : t -> Frame.t -> unit
-val fill : t -> Frame.t -> unit
+ (** TODO: video ! :-) *)
+
+  val create : unit -> ?audio_src_rate:float -> ?video_src_rate:float -> Frame.content -> Frame.content*int

@@ -121,26 +121,6 @@ let feed_from_frame abg frame =
     in
       feed_all 0 size frame.Frame.contents
 
-let feed_from_pcm ~sample_freq abg buf =
-  (* assert (Frame.type_has_kind
-            { Frame.audio = Array.length buf ;
-              Frame.video = 0 ; Frame.midi = 0 }
-            abg.kind) ; *)
-  let conv = Audio_converter.Samplerate.create (Array.length buf) in
-  let resample  = Audio_converter.Samplerate.resample conv in
-  let buf =
-    resample
-      (float (Lazy.force Frame.audio_rate) /. float sample_freq)
-      buf 0 (Array.length buf.(0))
-  in
-  let content =
-    {
-      Frame.audio = buf ;
-      Frame.video = [||] ; Frame.midi = [||]
-    }
-  in
-    feed abg content 0 (Frame.master_of_audio (Array.length buf.(0)))
-
 (* Fill a frame from the generator's data. *)
 let fill abg frame =
   let offset = Frame.position frame in

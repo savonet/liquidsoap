@@ -25,6 +25,7 @@
 let log = Dtools.Log.make ["format";"ogg"]
 
 let decoder =
+  let converter = Rutils.create () in
   {
    File_decoder.Float.
     log = log;
@@ -42,7 +43,15 @@ let decoder =
       (* TODO: also decode video *)
       (fun (decoder,_) abg ->
           let feed ((buf,sample_freq),_) =
-            Generator.feed_from_pcm abg ~sample_freq buf 
+            let audio_src_rate = float sample_freq in
+            let content,length =
+              converter ~audio_src_rate
+                    { Frame.
+                        audio = buf;
+                        video = [||];
+                        midi = [||] }
+            in
+            Generator.feed abg content 0 length
           in
           Ogg_demuxer.decode_audio decoder feed; 
           if Ogg_demuxer.eos decoder then

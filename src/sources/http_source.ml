@@ -221,6 +221,9 @@ object (self)
 
   val mutable logf = None
 
+  (* Frame content converter *)
+  val converter = Rutils.create ()
+
   val mutable connected = false
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
@@ -251,8 +254,16 @@ object (self)
       self#log#f 5 "Overfull buffer: dropping data." ;
       Generator.remove abg (Generator.length abg - abg_max_len)
     end;
-    Generator.feed_from_pcm abg ~sample_freq data ;
-    Mutex.unlock lock
+   let audio_src_rate = float sample_freq in
+   let content,length = 
+     converter ~audio_src_rate
+                  { Frame.
+                      audio = data;
+                      video = [||];
+                      midi = [||] }
+   in
+   Generator.feed abg content 0 length;
+   Mutex.unlock lock
 
   method feeding ?(newstream=true) dec socket chunked metaint =
     connected <- true ;

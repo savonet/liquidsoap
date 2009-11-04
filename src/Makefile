@@ -151,7 +151,7 @@ synth =
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	decoder.ml request.ml source.ml root.ml \
+	decoder.ml request.ml source.ml root.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
