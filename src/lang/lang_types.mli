@@ -45,10 +45,6 @@ and descr =
   | EVar of int * constraints
   | UVar of int * constraints
   | Link of t
-and ty_range =
-    String_r of string
-  | Int_r of int * int
-  | Float_r of float * float
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
 val print : t -> string

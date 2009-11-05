@@ -115,10 +115,6 @@ and descr =
   | EVar      of int*constraints (* existential variable *)
   | UVar      of int*constraints (* universal variable, implicitely bound *)
   | Link      of t
-and ty_range =
-  | String_r of string
-  | Int_r    of int*int
-  | Float_r  of float*float
 
 let make ?(pos=None) ?(level=(-1)) d =
   { pos = pos ; level = level ; descr = d }

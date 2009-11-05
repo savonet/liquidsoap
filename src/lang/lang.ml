@@ -52,7 +52,7 @@ let of_source_t t = Term.of_source_t t
 let format_t t = Term.format_t t
 
 let request_t t = Term.request_t t
-let of_request_t t = Term.request_t t
+let of_request_t t = Term.of_request_t t
 
 let mk v = { t = T.dummy ; value = v }
 let unit = mk Unit
