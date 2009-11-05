@@ -9,12 +9,13 @@ ocaml_progs= liquidsoap
 
 ogg_utils = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
+	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) 
 	# $(if $(W_OGG),ogg_encoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
-	$(if $(W_THEORA),ogg_formats/theora_format.ml) \
+	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_format.ml)
 
 audio_converters = \
