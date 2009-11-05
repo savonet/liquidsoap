@@ -59,14 +59,13 @@ let check file =
 let decoder =
   let converter = Rutils.create () in
   {
-   File_decoder.Float.
+   File_decoder.
     log = log;
     openfile =
       (fun file ->
         if not (check file) then
           assert false;
-        Mad.openfile file,
-        Generator.create ());
+        Mad.openfile file);
     get_type =
       (fun fd ->
          (* Decode some data *)
@@ -101,5 +100,5 @@ let duration file =
     | 0. -> raise Not_found
     | _ -> ans
 
-let () = Decoder.formats#register "MP3" (File_decoder.Float.decode decoder);
+let () = Decoder.formats#register "MP3" (File_decoder.decode decoder);
          Request.dresolvers#register "MP3" duration

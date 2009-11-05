@@ -22,50 +22,63 @@
 
 (** Decode WAV files. *)
 
-module Generator = Float_pcm.Generator_from_raw
-
-let log = Dtools.Log.make ["format";"wav"]
-
 let bytes_to_get = 1024*64
 
-let decoder =
-  let openfile file = 
-    let w = Wav.fopen file in
-    (** Generator's input format *)
-    let channels   = Wav.channels w in
-    let in_freq    = float (Wav.sample_rate w) in
-    let samplesize = Wav.sample_size w in
-    let big_endian = Wav.big_endian w in
-    let signed     = Wav.signed w in
-    let out_freq   = float (Fmt.samples_per_second()) in
-    let abg =
-      Generator.create
-        ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
-    in
-    let tmpbuf = String.create bytes_to_get in
-    let position = ref 0 in
-    (w,tmpbuf,position),abg
-  in
-  let close (w,_,_) =
-    Wav.close w
-  in
-  let decode (w,tmpbuf,position) abg =
-    let l = Wav.sample w tmpbuf 0 bytes_to_get in
-    position := !position + l ;
-    Generator.feed abg (String.sub tmpbuf 0 l)
-  in
-  let position (_,_,position) = !position in
-  let decoder =
-   {
-    File_decoder.Raw.
-     log = log;
-     openfile = openfile;
-     decode = decode;
-     position = position;
-     close = close
-   }
-  in
-  File_decoder.Raw.decode decoder
+type 'a wav_decoder = 
+  {
+    log     : Dtools.Log.t;
+    create  : string -> 'a * Wav.t;
+    close   : 'a -> unit
+  }
 
-let () = Decoder.formats#register "WAV"
-           (fun name -> try Some (decoder name) with _ -> None)
+(** Generic wav decoder *)
+let decoder wav_decoder =
+  { File_decoder.
+      log = wav_decoder.log;
+      openfile = 
+        (fun file ->
+           let dec,w = wav_decoder.create file in
+           (** Get input format *)
+           let channels       = Wav.channels w in
+           let audio_src_rate = float (Wav.sample_rate w) in
+           let samplesize     = Wav.sample_size w in
+           let big_endian     = Wav.big_endian w in
+           let signed         = Wav.signed w in
+           (* Create converter *)
+           let converter =
+             Rutils.create_from_s16le
+               ~channels ~samplesize ~signed ~big_endian ()
+           in
+           let tmpbuf = String.create bytes_to_get in
+           let position = ref 0 in
+           (dec,w,tmpbuf,position,converter,channels,audio_src_rate));
+    get_type = 
+      (fun (_,_,_,_,_,channels,_) -> 
+         { Frame.
+             audio = channels;
+             video = 0;
+             midi  = 0});       
+    close = 
+      (fun (dec,w,_,_,_,_,_) -> 
+                Wav.close w;
+                wav_decoder.close dec);
+    decode = 
+      (fun (_,w,tmpbuf,position,converter,_,audio_src_rate) abg ->
+         let l = Wav.sample w tmpbuf 0 bytes_to_get in
+         position := !position + l ;
+         let content,length = converter ~audio_src_rate (String.sub tmpbuf 0 l) in
+         Generator.feed abg content 0 length);
+    position = (fun (_,_,_,position,_,_,_) -> !position)
+  }
+
+(** Wav file decoder *)
+let wav_file_decoder = 
+  let wav_decoder = 
+    { log     = Dtools.Log.make ["format";"wav"] ; 
+      create  = (fun file -> (),Wav.fopen file) ;
+      close   = (fun () -> ()) }
+  in
+  decoder wav_decoder
+
+let () = Decoder.formats#register "WAV" (File_decoder.decode wav_file_decoder)
+

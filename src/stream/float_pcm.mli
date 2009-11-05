@@ -39,6 +39,12 @@ val from_s16le_ni : pcm -> int -> string array -> int -> int -> unit
 (** Multiply samplerate by the given ratio. *)
 val native_resample : float -> float array -> int -> int -> float array
 
+(** [resample_s16le src src_off len signed samplesize big_endian
+      ratio dst dst_off]: esample from s16le *)
+val resample_s16le : string -> int -> int ->
+                     bool -> int -> bool -> float -> float array array -> int -> int
+
+
 (** Blit pcm *)
 val blit : float array -> int -> float array -> int -> int -> unit
 

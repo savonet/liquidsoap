@@ -22,13 +22,10 @@
 
 (** Generic file decoder. *)
 
-module Float : 
-sig
-
   type 'a file_decoder = 
     {
       log      : Dtools.Log.t;
-      openfile : string -> 'a*Generator.t;
+      openfile : string -> 'a;
       get_type : 'a -> Frame.content_type;
       decode   : 'a -> Generator.t -> unit; 
       position : 'a -> int;
@@ -38,5 +35,3 @@ sig
    val decode : 'a file_decoder -> 
                 string -> 
                 Frame.content_kind -> Decoder.decoder option
-end
-

@@ -22,21 +22,10 @@
 
 (** Generic file decoder. *)
 
-module type Generator_t =
-sig
-  type t
-  val length : t -> int
-  val clear : t -> unit
-  val fill : t -> Frame.t -> unit
-end
-
-module Decoder(Generator:Generator_t) = 
-struct
-
   type 'a file_decoder = 
     {
       log      : Dtools.Log.t;
-      openfile : string -> 'a*Generator.t;
+      openfile : string -> 'a;
       get_type : 'a -> Frame.content_type;
       decode   : 'a -> Generator.t -> unit; 
       position : 'a -> int;
@@ -44,7 +33,7 @@ struct
     }
 
   let decode decoder file = 
-    let fd,abg =
+    let fd =
       decoder.log#f 5 "open %S" file ;
       try
         decoder.openfile file
@@ -53,6 +42,7 @@ struct
            decoder.log#f 5 "Could not decode file." ;
            raise e
     in
+    let abg = Generator.create () in
     let buffer_length =
       Frame.audio_of_seconds Decoder.conf_buffer_length#get
     in
@@ -107,7 +97,7 @@ struct
    let decode decoder name kind = 
      try
        let data_type = 
-         let (data,_) = decoder.openfile name in
+         let data = decoder.openfile name in
          let data_type = 
           try
             decoder.get_type data
@@ -122,6 +112,3 @@ struct
        else
          None
       with _ -> None
-end
-
-module Float = Decoder(Generator)

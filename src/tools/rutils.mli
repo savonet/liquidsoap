@@ -25,3 +25,14 @@
  (** TODO: video ! :-) *)
 
   val create : unit -> ?audio_src_rate:float -> ?video_src_rate:float -> Frame.content -> Frame.content*int
+
+  (** samplesize is in bits (usually 16) *)
+  val create_from_s16le :            
+           channels:int ->
+           samplesize:int ->
+           signed:bool ->
+           big_endian:bool ->
+           unit ->
+           audio_src_rate:float ->
+           string ->
+           Frame.content * int

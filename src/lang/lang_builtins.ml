@@ -156,7 +156,7 @@ let () =
       Tutils.shutdown () ;
       Lang.unit)
 
-(* let () =
+let () =
   let process_t =
     Lang.fun_t
       [false,"",Lang.string_t] Lang.string_t
@@ -212,7 +212,7 @@ let () =
            ret
          in
          Externalformat.register_external_metadata_resolver format resolver;
-         Lang.unit) *)
+         Lang.unit)
 
 let () =
   let protocol_t =

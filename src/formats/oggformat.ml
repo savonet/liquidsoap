@@ -29,7 +29,7 @@ exception Channels of int
 let decoder =
   let converter = Rutils.create () in
   {
-   File_decoder.Float.
+   File_decoder.
     log = log;
     openfile =
       (fun file ->
@@ -39,8 +39,7 @@ let decoder =
           Ogg_demuxer.init sync,fd
          with
            | e -> (try Unix.close fd with _ -> ()); raise e
-        end,
-        Generator.create ());
+        end);
     get_type = 
       (fun (decoder,_) ->
         let feed ((buf,_),_) =
@@ -81,7 +80,7 @@ let decoder =
                with _ -> ()) 
   }
 
-let () = Decoder.formats#register "OGG" (File_decoder.Float.decode decoder)
+let () = Decoder.formats#register "OGG" (File_decoder.decode decoder)
 
 exception Metadata of (string*string) list
 

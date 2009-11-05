@@ -67,3 +67,30 @@
          video = content.Frame.video ;
          midi = content.Frame.midi 
       },length)
+
+  let create_from_s16le ~channels ~samplesize ~signed ~big_endian () = 
+    let audio_dst_rate =
+      float (Lazy.force Frame.audio_rate)
+    in
+    (fun ~audio_src_rate src ->
+      let sample_bytes = samplesize / 8 in
+      let len = (String.length src) / (sample_bytes*channels) in
+      let dst =
+        (* TODO: convert channel number? *)
+        Array.init channels (fun _ -> Array.make len 0.)
+      in
+      let ratio = audio_dst_rate /. audio_src_rate in
+        ignore
+          (
+            Float_pcm.resample_s16le
+              src 0 len signed samplesize big_endian
+              ratio dst 0
+          );
+      { Frame.
+         audio = dst ;
+         video = [||] ;
+         midi  = [||]
+      },len)
+
+
+  
