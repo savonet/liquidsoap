@@ -22,3 +22,8 @@ val get_metadata     : t -> int -> metadata option
 (** Get the video channels at a given position.
   * Requires that the frame contains only video data starting at this point. *)
 val content : t -> int -> RGB.t array array
+
+(** Get video channels starting at a given position,
+  * creating them if needed.
+  * This is the function to call for writing pure video in a frame. *)
+val content_of_type : channels:int -> t -> int -> RGB.t array array

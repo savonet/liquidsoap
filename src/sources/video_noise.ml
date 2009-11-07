@@ -20,46 +20,24 @@
 
  *****************************************************************************)
 
-(** Generate a saw *)
-
-open Source
-
-  (*
-let random_string n =
-  let s = String.create n in
-    for i = 0 to n - 1 do
-      s.[i] <- char_of_int (Random.int 256)
-    done;
-    s
-   *)
-
-let noise_frame () =
-  let frame = RGB.create (Fmt.video_width ()) (Fmt.video_height ()) in
-    (*
-    for i = 0 to Fmt.video_width () - 1 do
-      for j = 0 to Fmt.video_height () - 1 do
-        RGB.set frame i j (Random.int 256, Random.int 256, Random.int 256)
-      done
-    done;
-     *)
-    RGB.randomize frame;
-    frame
-
-class noise duration =
-  let nb_frames = Fmt.video_frames_of_seconds duration in
+class noise ~kind duration =
+  let nb_frames =
+    if duration <= 0. then None else Some (Frame.video_of_seconds duration)
+  in
 object
-  inherit source
+  inherit Source.source kind
 
-  method stype = Infallible
+  method stype = Source.Infallible
   method is_ready = true
 
   val mutable remaining = nb_frames
-  method remaining = Fmt.ticks_of_video_frames remaining
+  method remaining =
+    match remaining with
+      | None -> -1
+      | Some remaining -> Frame.master_of_video remaining
 
   val mutable must_fail = false
-  method abort_track =
-    must_fail <- true;
-    remaining <- 0
+  method abort_track = must_fail <- true
 
   method private get_frame ab =
     if must_fail then begin
@@ -67,18 +45,34 @@ object
       remaining <- nb_frames;
       must_fail <- false
     end else
-      let b = VFrame.get_rgb ab in
       let off = VFrame.position ab in
-      let size = VFrame.size ab in
+      let b = VFrame.content_of_type ~channels:1 ab off in
+      let size =
+        match remaining with
+          | None -> VFrame.size ab - off
+          | Some r ->
+              let size = min (VFrame.size ab - off) r in
+                remaining <- Some (r - size) ;
+                size
+      in
         for c = 0 to Array.length b - 1 do
           let buf_c = b.(c) in
-            for i = off to size - 1 do
-              buf_c.(i) <- noise_frame ()
+            for i = 0 to size - 1 do
+              (* TODO directly randomize the stream? *)
+              let frame =
+                RGB.create
+                  (Lazy.force Frame.video_width)
+                  (Lazy.force Frame.video_height)
+              in
+                RGB.randomize frame;
+                buf_c.(off+i) <- frame
             done;
         done;
-        AFrame.add_break ab (AFrame.size ab) ;
-        remaining <- remaining - (AFrame.size ab) - off ;
-        if remaining <= 0 then must_fail <- true
+        VFrame.add_break ab (off+size) ;
+        if VFrame.is_partial ab then begin
+          assert (remaining = Some 0) ;
+          remaining <- nb_frames
+        end
 
 end
 
@@ -86,8 +80,9 @@ let () =
   Lang.add_operator "video.noise"
     ~category:Lang.Input
     ~descr:"Generate white noise."
-    [
-      "duration", Lang.float_t, Some (Lang.float 0.), None
-    ]
-    (fun p _ ->
-       new noise (Lang.to_float (List.assoc "duration" p)))
+    [ "duration", Lang.float_t, Some (Lang.float 0.),
+      Some "Duration of noise tracks. \
+            Zero means no tracks, just a continuous stream." ]
+    ~kind:Lang.video_only
+    (fun p kind ->
+       new noise ~kind (Lang.to_float (List.assoc "duration" p)))

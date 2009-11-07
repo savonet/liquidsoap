@@ -195,6 +195,10 @@ let audio_stereo =
   Constrained
     { Frame.audio = Fixed 2 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
 
+let video_only =
+  Constrained
+    { Frame.audio = Fixed 0 ; Frame.video = Fixed 1 ; Frame.midi = Fixed 0 }
+
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
 let variable_t = Term.variable_t

@@ -34,7 +34,12 @@ let get_metadata t i = get_metadata t (tov i)
 
 let content b pos =
   let stop,content = content b (tov pos) in
-    assert (stop = size ()) ;
+    assert (stop = Lazy.force Frame.size) ;
     assert (Array.length content.Frame.audio = 0) ;
     assert (Array.length content.Frame.midi = 0) ;
+    content.video
+
+let content_of_type ~channels b pos =
+  let ctype = { audio = 0 ; video = channels ; midi = 0 } in
+  let content = content_of_type b (tov pos) ctype in
     content.video

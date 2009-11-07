@@ -73,7 +73,7 @@ let () =
     "blank"
     ~category:Lang.Input
     ~descr:"Produce silence and blank images."
-    ~kind:Lang.audio_any
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
     [ "duration", Lang.float_t, Some (Lang.float 0.),
       Some "Duration of blank tracks in seconds, default means forever." ]
     (fun p kind ->
