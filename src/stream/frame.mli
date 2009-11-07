@@ -94,11 +94,12 @@ val content_has_type :
 val type_of_content :
   ('a array, 'b array, 'c array) fields -> (int, int, int) fields
 val type_of_kind :
-  (multiplicity, multiplicity, 'a) fields -> (int, int, int) fields
+  (multiplicity, multiplicity, multiplicity) fields -> (int, int, int) fields
 
 val mul_of_int : int -> multiplicity
 
 val string_of_content_kind : content_kind -> string
+val string_of_content_type : content_type -> string
 
 (** {2 Format settings} *)
 

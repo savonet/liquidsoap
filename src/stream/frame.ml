@@ -32,7 +32,7 @@ let conf =
     ]
 
 let conf_duration =
-  Conf.float ~p:(conf#plug "size") ~d:0.05
+  Conf.float ~p:(conf#plug "duration") ~d:0.04
     "Frame duration in seconds"
     ~comments:[
       "Tweaking this is tricky but needed when dealing with latency." ;
@@ -71,8 +71,7 @@ let conf_midi_channels =
 (* The user can set some parameters in the initial configuration script.
  * Once we start working with them, changing them again is dangerous.
  * Since Dtools doesn't allow that, below is a trick to read the settings
- * only once. Later changes will never be taken into account.
- * TODO is it OK to use lazy or should we cook something thread-safe? *)
+ * only once. Later changes will never be taken into account. *)
 
 let delayed = Lazy.lazy_from_fun
 let (!!) = Lazy.force
@@ -91,32 +90,23 @@ let video_height = delayed (fun () -> conf_video_height#get)
 let audio_rate = delayed (fun () -> conf_audio_samplerate#get)
 let video_rate = delayed (fun () -> conf_video_samplerate#get)
 
+(** Greatest common divisor. *)
 let rec gcd a b =
   match compare a b with
     | 0 (* a=b *) -> a
     | 1 (* a>b *) -> gcd (a-b) b
     | _ (* a<b *) -> gcd a (b-a)
+
+(** Least common multiplier. *)
 let lcm a b = (a*b) / gcd a b
+
+(** [upper_multiple k m] is the least multiple of [k] that is [>=m]. *)
 let upper_multiple k m =
-  if m mod k = 0 then m else (k+1)*(m/k)
+  if m mod k = 0 then m else (1+m/k)*k
 
 (** The master clock is the slowest possible that can convert to both
   * the audio and video clocks. *)
 let master_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
-
-(** The frame size (in master ticks) should allow for an integer
-  * number of samples of all types (audio, video).
-  * With audio@44100Hz and video@25Hz, ticks=samples and one video
-  * sample takes 1764 ticks: we need frames of size N*1764. *)
-let size =
-  delayed (fun () ->
-             let audio = !!audio_rate in
-             let video = !!video_rate in
-             let master = !!master_rate in
-               upper_multiple
-                 (lcm (master/audio) (master/video))
-                 (max 1 (int_of_float (conf_duration#get *. float master))))
-let duration = delayed (fun () -> float !!size /. float !!master_rate)
 
 let audio_of_master m = m * !!audio_rate / !!master_rate
 let video_of_master m = m * !!video_rate / !!master_rate
@@ -131,6 +121,20 @@ let video_of_seconds d = int_of_float (d *. float !!video_rate)
 let seconds_of_master d = float d /. float !!master_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
+
+(** The frame size (in master ticks) should allow for an integer
+  * number of samples of all types (audio, video).
+  * With audio@44100Hz and video@25Hz, ticks=samples and one video
+  * sample takes 1764 ticks: we need frames of size N*1764. *)
+let size =
+  delayed (fun () ->
+             let audio = !!audio_rate in
+             let video = !!video_rate in
+             let master = !!master_rate in
+               upper_multiple
+                 (lcm (master/audio) (master/video))
+                 (max 1 (master_of_seconds conf_duration#get)))
+let duration = delayed (fun () -> float !!size /. float !!master_rate)
 
 (** Data types *)
 
@@ -203,7 +207,7 @@ let type_of_kind k =
     {
       audio = aux !!audio_channels k.audio ;
       video = aux !!video_channels k.video ;
-      midi = aux !!midi_channels k.video
+      midi = aux !!midi_channels k.midi
     }
 
 let rec mul_of_int x = if x<=0 then Zero else Succ (mul_of_int (x-1))
@@ -222,6 +226,9 @@ let string_of_content_kind k =
     (string_of_mul k.audio)
     (string_of_mul k.video)
     (string_of_mul k.midi)
+
+let string_of_content_type k =
+  Printf.sprintf "{audio=%d;video=%d;midi=%d}" k.audio k.video k.midi
 
 (* Frames *)
 
