@@ -24,9 +24,9 @@ open Source
 
 let pi = 3.14159265358979323846
 
-class pan (source:source) phi phi_0 =
+class pan ~kind (source:source) phi phi_0 =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -36,7 +36,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
-      let buffer = AFrame.get_float_pcm buf in
+      let buffer = AFrame.content_of_type buf ~channels:2 offset in
       (* Degrees to radians + half field. *)
       let phi_0 = (phi_0 ()) *. pi /. 360. in
        (* Map -1 / 1 to radians. *)
@@ -50,16 +50,18 @@ object (self)
 end
 
 let () =
-  Lang.add_operator "stereo.pan"
-    [ "pan", Lang.float_getter_t 1,  Some (Lang.float 0.),
-      Some "Pan ranges between -1 and 1." ;
-      "field", Lang.float_getter_t 2,  Some (Lang.float 90.),
-      Some "Field width in degrees (between 0 and 90)." ;
-      "", Lang.source_t, None, None ]
-    ~category:Lang.SoundProcessing
-    ~descr:"Pan a stereo sound."
-    (fun p _ ->
-       let s = Lang.to_source (Lang.assoc "" 1 p) in
-       let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
-       let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
-         new pan s phi phi_0)
+  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.audio_any in
+    Lang.add_operator "stereo.pan"
+      [ "pan", Lang.float_getter_t 1,  Some (Lang.float 0.),
+        Some "Pan ranges between -1 and 1." ;
+        "field", Lang.float_getter_t 2,  Some (Lang.float 90.),
+        Some "Field width in degrees (between 0 and 90)." ;
+        "", Lang.source_t k, None, None ]
+      ~kind:(Lang.Unconstrained k)
+      ~category:Lang.SoundProcessing
+      ~descr:"Pan a stereo sound."
+      (fun p kind ->
+         let s = Lang.to_source (Lang.assoc "" 1 p) in
+         let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
+         let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
+           new pan ~kind s phi phi_0)
