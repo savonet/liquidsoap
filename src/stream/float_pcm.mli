@@ -42,7 +42,7 @@ val native_resample : float -> float array -> int -> int -> float array
 (** [resample_s16le src src_off len signed samplesize big_endian
       ratio dst dst_off]: esample from s16le *)
 val resample_s16le : string -> int -> int ->
-                     bool -> int -> bool -> float -> float array array -> int -> int
+              bool -> int -> bool -> float -> float array array -> int -> int
 
 
 (** Blit pcm *)
@@ -57,77 +57,3 @@ val multiply : pcm -> int -> int -> float -> unit
 val add : pcm -> int -> pcm -> int -> int -> unit
 val substract : pcm -> int -> pcm -> int -> int -> unit
 val rms : pcm -> int -> int -> float array
-
-(* (** {2 Generators} *)
-
-module Generator :
-  sig
-    type t
-
-    val create : ?out_freq:int -> ?out_chans:int -> ?length:int -> unit -> t
-
-    (** Total number of output samples, ignoring track breaks. *)
-    val length : t -> int
-
-    (** Remaining ticks before end of track. *)
-    val remaining : t -> int
-
-    (** Totally empty the generator. *)
-    val clear : t -> unit
-
-    (** Remove [n] output samples from the generator. *)
-    val remove : t -> int -> unit
-
-    (** Add data to the generator. The arrays are not copied,
-      * and thus should never be modified afterwards. *)
-    val feed : t -> ?sample_freq:int -> float array array -> unit
-
-    (** Add data to the generator from a frame, including breaks and metadata.
-      * Data is copied, the frame can thus be re-used freely afterwards. *)
-    val feed_from_frame : t -> Frame.t -> unit
-
-    (** Add metadata at the end of the current data. *)
-    val add_metadata : t -> Frame.metadata -> unit
-
-    (** Add break at the end of the current data. *)
-    val add_break : t -> unit
-
-    (** Fill a frame with data from the current track. *)
-    val fill : t -> Frame.t -> unit
-  end
-
-module Generator_from_raw :
-  sig
-    type t
-
-    (** Create a generator which takes raw PCM as input and outputs float PCM,
-      * for the given input/output parameters. *)
-    val create :
-      channels:int ->
-      samplesize:int -> signed:bool -> big_endian:bool -> in_freq:float ->
-      out_freq:float -> t
-
-    (** Totally empty the generator. *)
-    val clear : t -> unit
-
-    (** Add raw data to the generator. *)
-    val feed : t -> string -> unit
-
-    (** Add metadata at the end of the current data. *)
-    val add_metadata : t -> Frame.metadata -> unit
-
-    (** Add break at the end of the current data. *)
-    val add_break : t -> unit
-
-    (** Total number of output samples, ignoring track breaks. *)
-    val length : t -> int
-
-    (** Remaining ticks before end of track. *)
-    val remaining : t -> int
-
-    (** Remove [n] output samples from the generator. *)
-    val remove : t -> int -> unit
-
-    (** Fill a frame with data from the current track. *)
-    val fill : t -> Frame.t -> unit
-  end *)
