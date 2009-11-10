@@ -120,12 +120,11 @@ object (self)
       match Lang.to_request (Lang.apply f []) with
         | None -> None
         | Some req ->
-              Request.set_root_metadata req "source" self#id ;
-              Some req
+            Request.set_root_metadata req "source" self#id ;
+            Some req
     with
       | e ->
-          log#f 2 "Couldn't get an audio request! \
-            Make sure you did not override audio=false in request.create()." ;
+          log#f 2 "Failed to obtain a media request!" ;
           raise e
 end
 
