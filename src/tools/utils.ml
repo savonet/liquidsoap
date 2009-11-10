@@ -82,6 +82,11 @@ let randomize a =
         permute i (i + Random.int (l-i))
       done
 
+let array_iter2 a b f =
+  assert (Array.length a = Array.length b) ;
+  for i = 0 to Array.length a - 1 do
+    f a.(i) b.(i)
+  done
 
 (* Here we take care not to introduce new redexes when substituting *)
 

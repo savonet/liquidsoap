@@ -399,24 +399,19 @@ let content_of_type frame pos content_type =
   in
     aux [] frame.contents
 
-let iter2 a b f =
-  assert (Array.length a = Array.length b) ;
-  for i = 0 to Array.length a - 1 do
-    f a.(i) b.(i)
-  done
-
 let blit_content src src_pos dst dst_pos len =
-  iter2 src.audio dst.audio
+  Utils.array_iter2 src.audio dst.audio
     (fun a a' ->
        let (!) = audio_of_master in
          Float_pcm.blit a !src_pos a' !dst_pos !len) ;
-  iter2 src.video dst.video
+  Utils.array_iter2 src.video dst.video
     (fun v v' ->
        let (!) = video_of_master in
          for i = 0 to !len-1 do
            RGB.blit_fast v.(!src_pos+i) v'.(!dst_pos+i)
          done) ;
-  iter2 src.midi dst.midi (fun m m' -> Midi.blit m' src_pos m dst_pos len)
+  Utils.array_iter2 src.midi dst.midi
+    (fun m m' -> Midi.blit m' src_pos m dst_pos len)
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
