@@ -20,159 +20,286 @@
 
  *****************************************************************************)
 
-(** A generator is used to accumulate and replay a stream.
-  * It consumes and produces frames. *)
+(** The base module doesn't even know what it is buffering. *)
+module Generator =
+struct
 
-type chunk = Frame.content * int * int
-type buffer = chunk Queue.t
+type 'a chunk = 'a * int * int
+type 'a buffer = 'a chunk Queue.t
 
 (** All positions and lengths are in ticks. *)
-type t = {
-  mutable metadata : (int*Frame.metadata) list ;
-  mutable breaks   : int list ;
-  mutable length   : int ;
-  mutable offset   : int ;
-  mutable buffers  : buffer ;
+type 'a t = {
+  mutable length  : int ;
+  mutable offset  : int ;
+  mutable buffers : 'a buffer
 }
 
 let create () =
   {
-    metadata  = [] ;
-    breaks    = [] ;
     length    = 0 ;
     offset    = 0 ;
     buffers   = Queue.create ()
   }
 
-let clear abg =
-  abg.metadata <- [] ;
-  abg.breaks <- [] ;
-  abg.length <- 0 ;
-  abg.offset <- 0 ;
-  abg.buffers <- Queue.create ()
+let clear g =
+  g.length <- 0 ;
+  g.offset <- 0 ;
+  g.buffers <- Queue.create ()
 
 let length b = b.length
 
-let remaining abg =
-  match abg.breaks with
-    | a :: _ -> a
-    | _ -> abg.length
-
-let add_metadata abg m =
-  abg.metadata <- abg.metadata @ [abg.length, m]
-
-let add_break abg =
-  abg.breaks <- abg.breaks @ [abg.length]
-
-(* Advance metadata and breaks by [pos] ticks. *)
-let advance abg pos =
-  let meta = List.map (fun (x,y) -> (x-pos,y)) abg.metadata in
-  let breaks = List.map (fun x -> x-pos) abg.breaks in
-    abg.metadata <- List.filter (fun x -> fst x >= 0) meta;
-    abg.breaks <- List.filter (fun x -> x >= 0) breaks
-
 (** Remove [len] ticks of data. *)
-let rec remove abg len =
-  assert (abg.length >= len) ;
+let rec remove g len =
+  assert (g.length >= len) ;
   if len>0 then
-  let b,_,b_len = Queue.peek abg.buffers in
+  let b,_,b_len = Queue.peek g.buffers in
     (* Is it enough to advance in the first buffer?
      * Or do we need to consume it completely and go farther in the queue? *)
-    if abg.offset + len < b_len then begin
-      abg.length <- abg.length - len ;
-      abg.offset <- abg.offset + len ;
-      advance abg len
+    if g.offset + len < b_len then begin
+      g.length <- g.length - len ;
+      g.offset <- g.offset + len ;
     end else
-      let removed = b_len - abg.offset in
-        ignore (Queue.take abg.buffers) ;
-        abg.length <- abg.length - removed ;
-        abg.offset <- 0 ;
-        advance abg removed ;
-        remove abg (len-removed)
+      let removed = b_len - g.offset in
+        ignore (Queue.take g.buffers) ;
+        g.length <- g.length - removed ;
+        g.offset <- 0 ;
+        remove g (len-removed)
 
-(** Feed a content chunk into a generator. This won't be used directly. *)
-let feed abg content ofs len =
-  (* assert (Frame.type_has_kind (Frame.type_of_content content) abg.kind) ; *)
-  abg.length <- abg.length + len ;
-  Queue.add (content,ofs,len) abg.buffers
+(** Feed a content chunk into a generator. *)
+let put g content ofs len =
+  g.length <- g.length + len ;
+  Queue.add (content,ofs,len) g.buffers
 
-(** Take all data from a frame: breaks, metadata and available content. *)
-let feed_from_frame abg frame =
-  (* assert (Frame.kind_sub_kind frame.kind abg.kind) ; *)
-  let size = Lazy.force Frame.size in
-    abg.metadata <-
-      abg.metadata @
-        (List.map
-           (fun (p,m) -> abg.length + p, m)
-           (Frame.get_all_metadata frame)) ;
-    abg.breaks <-
-      abg.breaks @
-        (List.map
-           (fun p -> abg.length + p)
-           (* TODO Why this filter? *)
-           (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
-    (* Feed all content layers into the generator. *)
-    let rec feed_all ofs len = function
-      | (clen,content)::contents ->
-          feed abg content ofs (min clen len) ;
-          if clen<len then
-            feed_all (ofs+clen) (len-clen) contents
-      | [] -> assert false
-    in
-      feed_all 0 size frame.Frame.contents
-
-(* Fill a frame from the generator's data. *)
-let fill abg frame =
-  let offset = Frame.position frame in
-  let buffer_size = Lazy.force Frame.size in
+(** Get [size] amount of data from [g].
+  * Returns a list where each element will typically be passed to a blit:
+  * its elements are of the form [b,o,o',l] where [o] is the offset of data
+  * in the block [b], [o'] is the position at which it should be written
+  * (the first position [o'] will always be [0]), and [l] is the length
+  * of data to be taken from that block. *)
+let get g size =
   (* The main loop takes the current offset in the output buffer,
    * and iterates on input buffer chunks. *)
-  let rec aux offset =
+  let rec aux chunks offset =
     (* How much (more) data should be output? *)
-    let needed = min (remaining abg) (buffer_size - offset) in
-      if needed = 0 then begin
-        Frame.add_break frame offset ;
-        if Frame.is_partial frame then
-          match abg.breaks with
-            | 0::tl -> abg.breaks <- tl
-            | [] -> () (* end of stream / underrun ... *)
-            | _ -> assert false
-      end else
-        let block,block_ofs,block_len = Queue.peek abg.buffers in
-        let block_len = block_len - abg.offset in
-        let copied = min needed block_len in
-        let dst =
-          Frame.content_of_type frame offset (Frame.type_of_content block)
-        in
-          Frame.blit_content
-            block (block_ofs+abg.offset)
-            dst offset
-            copied ;
-          List.iter
-            (fun (p,m) ->
-               if p < copied then
-                 Frame.set_metadata frame (p + offset) m)
-            abg.metadata ;
-          advance abg copied ;
-          (* Update buffer data -- did we consume a full block? *)
-          if block_len <= needed then begin
-            ignore (Queue.take abg.buffers) ;
-            abg.length <- abg.length - block_len ;
-            abg.offset <- 0
-          end else begin
-            abg.length <- abg.length - needed ;
-            abg.offset <- abg.offset + needed
-          end ;
-          (* Add more data by recursing on the next block, or finish. *)
-          if block_len < needed then
-            aux (offset+block_len)
-          else begin
-            Frame.add_break frame (offset+needed) ;
-            if Frame.is_partial frame then
-              match abg.breaks with
-                | 0::tl -> abg.breaks <- tl
-                | [] -> () (* end of stream / underrun ... *)
-                | _ -> assert false
-          end
+    let needed = size - offset in
+      assert (needed>0) ;
+      let block,block_ofs,block_len = Queue.peek g.buffers in
+      let block_len = block_len - g.offset in
+      let copied = min needed block_len in
+      let chunks = (block, block_ofs + g.offset, offset, copied)::chunks in
+        (* Update buffer data -- did we consume a full block? *)
+        if block_len <= needed then begin
+          ignore (Queue.take g.buffers) ;
+          g.length <- g.length - block_len ;
+          g.offset <- 0
+        end else begin
+          g.length <- g.length - needed ;
+          g.offset <- g.offset + needed
+        end ;
+        (* Add more data by recursing on the next block, or finish. *)
+        if block_len < needed then
+          aux chunks (offset+block_len)
+        else
+          List.rev chunks
   in
-    aux offset
+    if size = 0 then [] else aux [] 0
+
+end
+
+(** Generate a stream, including metadata and breaks.
+  * The API is based on feeding from frames, and filling frames. *)
+module From_frames =
+struct
+
+  type t = {
+    mutable metadata : (int*Frame.metadata) list ;
+    mutable breaks   : int list ;
+    generator        : Frame.content Generator.t
+  }
+
+  let create () = {
+    metadata = [] ;
+    breaks = [] ;
+    generator = Generator.create ()
+  }
+
+  let clear fg =
+    fg.metadata <- [] ; fg.breaks <- [] ;
+    Generator.clear fg.generator
+
+  (** Total length. *)
+  let length fg = Generator.length fg.generator
+
+  (** Duration of data (in ticks) before the next break,
+    * or total [length] otherwise. *)
+  let remaining fg =
+    match fg.breaks with
+      | a :: _ -> a
+      | _ -> length fg
+
+  let add_metadata fg m =
+    fg.metadata <- fg.metadata @ [length fg, m]
+
+  let add_break fg =
+    fg.breaks <- fg.breaks @ [length fg]
+
+  (* Advance metadata and breaks by [len] ticks. *)
+  let advance fg len =
+    let meta = List.map (fun (x,y) -> (x-len,y)) fg.metadata in
+    let breaks = List.map (fun x -> x-len) fg.breaks in
+      fg.metadata <- List.filter (fun x -> fst x >= 0) meta;
+      fg.breaks <- List.filter (fun x -> x >= 0) breaks
+
+  let remove fg len =
+    Generator.remove fg.generator len ;
+    advance fg len
+
+  let feed fg content ofs len =
+    Generator.put fg.generator content ofs len
+
+  (** Take all data from a frame: breaks, metadata and available content. *)
+  let feed_from_frame fg frame =
+    let size = Lazy.force Frame.size in
+      fg.metadata <-
+        fg.metadata @
+          (List.map
+             (fun (p,m) -> length fg + p, m)
+             (Frame.get_all_metadata frame)) ;
+      fg.breaks <-
+        fg.breaks @
+          (List.map
+             (fun p -> length fg + p)
+             (* Filter out the last break, which only marks the end
+              * of frame, not a track limit (doesn't mean is_partial). *)
+             (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
+      (* Feed all content layers into the generator. *)
+      let rec feed_all ofs = function
+        | (cstop,content)::contents ->
+            Generator.put fg.generator content ofs cstop ;
+            if cstop < size then
+              feed_all cstop contents
+        | [] -> assert false
+      in
+        feed_all 0 frame.Frame.contents
+
+  (* Fill a frame from the generator's data. *)
+  let fill fg frame =
+    let offset = Frame.position frame in
+    let buffer_size = Lazy.force Frame.size in
+    let needed = min buffer_size (remaining fg) in
+    let blocks = Generator.get fg.generator needed in
+      List.iter
+        (fun (block,o,o',size) ->
+           let ctype = Frame.type_of_content block in
+           let dst = Frame.content_of_type frame (offset+o') ctype in
+             Frame.blit_content
+               block o
+               dst (offset+o')
+               size)
+        blocks ;
+      List.iter
+        (fun (p,m) ->
+           if p < needed then
+             Frame.set_metadata frame (offset+p) m)
+        fg.metadata ;
+      advance fg needed ;
+      (* Mark the end of this filling.
+       * If the frame is partial it must be because of a break in the
+       * generator, or because the generator is emptying.
+       * Conversely, each break in the generator must cause a partial frame,
+       * so don't remove any if it isn't partial. *)
+      Frame.add_break frame (offset+needed) ;
+      if Frame.is_partial frame then
+        match fg.breaks with
+          | 0::tl -> fg.breaks <- tl
+          | [] -> () (* end of stream / underrun ... *)
+          | _ -> assert false
+
+end
+
+module From_audio_video =
+struct
+
+  type mode = Audio | Video | Both
+  type t = {
+    mutable mode : mode ;
+    audio : Frame.audio_t array Generator.t ;
+    video : Frame.video_t array Generator.t
+  }
+
+  let create m = {
+    mode = m ;
+    audio = Generator.create () ;
+    video = Generator.create ()
+  }
+
+  let set_mode t m = t.mode <- m
+
+  let length t = min (Generator.length t.audio) (Generator.length t.video)
+
+  let put_audio t content o l =
+    let o = Frame.master_of_audio o in
+    let l = Frame.master_of_audio l in
+      Generator.put t.audio content o l ;
+      match t.mode with
+        | Audio ->
+            Generator.put t.video [||] 0 l
+        | Both -> ()
+        | Video -> assert false
+
+  let put_video t content o l =
+    let o = Frame.master_of_video o in
+    let l = Frame.master_of_video l in
+      Generator.put t.video content o l ;
+      match t.mode with
+        | Video ->
+            Generator.put t.audio [||] 0 l
+        | Both -> ()
+        | Audio -> assert false
+
+  let fill t frame =
+    let position = Frame.position frame in
+    let size = Lazy.force Frame.size in
+    let l = min (size-position) (length t) in
+    let audio = Generator.get t.audio l in
+    let video = Generator.get t.video l in
+    (* We got equal durations of audio and video, but segmented differently.
+     * We walk through them and blit them into the frame, possibly creating
+     * several content layers of different types as the numbers of channels
+     * vary. *)
+    let rec blit audio video fpos =
+      match audio, video with
+        | [],[] ->
+            Frame.add_break frame fpos
+        | (ablk,apos,apos',al)::audio,
+          (vblk,vpos,vpos',vl)::video ->
+            assert (apos'=fpos && vpos'=fpos) ;
+            let ctype =
+              { Frame.
+                audio = Array.length ablk ;
+                video = Array.length vblk ;
+                midi  = 0 }
+            in
+            let dst = Frame.content_of_type frame fpos ctype in
+            let l = min al vl in
+              Utils.array_iter2 ablk dst.Frame.audio
+                (fun a a' ->
+                   let (!) = Frame.audio_of_master in
+                     Float_pcm.blit a !apos a' !fpos !l) ;
+              Utils.array_iter2 vblk dst.Frame.video
+                (fun v v' ->
+                   let (!) = Frame.video_of_master in
+                     for i = 0 to !l-1 do
+                       RGB.blit_fast v.(!vpos+i) v'.(!vpos')
+                     done) ;
+              if al=vl then
+                blit audio video (fpos+l)
+              else if al>vl then
+                blit ((ablk,apos+vl,apos'+vl,al-vl)::audio) video (fpos+l)
+              else
+                blit audio ((vblk,vpos+al,vpos'+al,vl-al)::video) (fpos+l)
+        | _,_ -> assert false
+    in
+      blit audio video (Frame.position frame)
+
+end

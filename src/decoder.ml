@@ -24,25 +24,6 @@
 
 open Dtools
 
-let conf = Conf.void ~p:(Configure.conf#plug "decoding") "Decoding settings"
-let conf_buffer_length =
-  Conf.float ~p:(conf#plug "buffer_length") ~d:10.
-    ~comments:[
-      "The decoding buffer contains some amount of data decoded in advance.";
-      "High values give better remaining time estimation, but cost more.";
-      "A value of D guarantees that the remaining time is computed exactly";
-      "starting D seconds before the end of track. Hence it is usually good";
-      "to set this to the higher duration used in cross(), fade.out() and";
-      "similar operators."
-    ]
-    "Duration of the decoding buffer, in seconds"
-
-(* WARNING I removed buffer_length (unit -> int) because it was
- *   returning samples. In the future we still need a similar function
- *   but it will be in ticks. For now, let us force ourselves to think
- *   of it by migrating all [buffer_length ()] to [conf_buffer_length#get]
- *   and doing the proper conversions. *)
-
 let log = Log.make ["decoder"]
 
 (** A decoder is a filling function and a closing function,

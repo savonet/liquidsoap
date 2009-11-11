@@ -24,10 +24,11 @@
 
 let log = Dtools.Log.make ["format";"ogg"]
 
+module Generator = Generator.From_frames
+
 exception Channels of int
 
 let decoder =
-  let converter = Rutils.create () in
   {
    File_decoder.
     log = log;
@@ -36,12 +37,14 @@ let decoder =
         let sync,fd = Ogg.Sync.create_from_file file in
         begin
          try
-          Ogg_demuxer.init sync,fd
+           Ogg_demuxer.init sync,
+           fd,
+           Rutils.create ()
          with
            | e -> (try Unix.close fd with _ -> ()); raise e
         end);
-    get_type = 
-      (fun (decoder,_) ->
+    get_kind = 
+      (fun (decoder,_,_) ->
         let feed ((buf,_),_) =
           raise (Channels (Array.length buf))
         in
@@ -53,12 +56,12 @@ let decoder =
             | Channels x -> x
         in
         { Frame.
-            audio = audio ;
-            video = 0 ;
-            midi  = 0 });
+            audio = Frame.mul_of_int audio ;
+            video = Frame.mul_of_int 0 ;
+            midi  = Frame.mul_of_int 0 });
     decode =
       (* TODO: also decode video *)
-      (fun (decoder,_) abg ->
+      (fun (decoder,_,converter) abg ->
           let feed ((buf,sample_freq),_) =
             let audio_src_rate = float sample_freq in
             let content,length =
@@ -73,8 +76,8 @@ let decoder =
           Ogg_demuxer.decode_audio decoder feed; 
           if Ogg_demuxer.eos decoder then
             raise Ogg_demuxer.End_of_stream);
-    position = (fun (_,fd) -> Unix.lseek fd 0 Unix.SEEK_CUR);
-    close = (fun (_,fd) -> 
+    position = (fun (_,fd,_) -> Unix.lseek fd 0 Unix.SEEK_CUR);
+    close = (fun (_,fd,_) -> 
                try                                                                                
                  Unix.close fd                                                                    
                with _ -> ()) 

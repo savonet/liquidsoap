@@ -22,6 +22,7 @@
 
 open Source
 
+module Generator = Generator.From_frames
 module Generated = Generated.From_Generator
 
 (* Do not care about fading at first, not even about adding the last frames of a

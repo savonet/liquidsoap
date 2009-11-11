@@ -20,17 +20,9 @@
 
  *****************************************************************************)
 
-(** Typical file decoder interface *)
+type decoder = { fill : Frame.t -> int; close : unit -> unit; }
 
-type 'a file_decoder = {
-  log      : Dtools.Log.t;
-  openfile : string -> 'a;
-  get_kind : 'a -> Frame.content_kind;
-  decode   : 'a -> Generator.From_frames.t -> unit; 
-  position : 'a -> int;
-  close    : 'a -> unit
-}
+val formats : (string -> Frame.content_kind -> decoder option) Plug.plug
 
-val decode : 'a file_decoder -> 
-             string -> 
-             Frame.content_kind -> Decoder.decoder option
+val search_valid :
+  string -> Frame.content_kind -> (string * (unit -> decoder)) option

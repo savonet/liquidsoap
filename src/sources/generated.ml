@@ -122,4 +122,6 @@ end
 
 end
 
-module From_Generator = Make(Generator)
+(* TODO it is likely that this functor is only ever used for the
+ *   following instantiation.. the abstraction seems silly. *)
+module From_Generator = Make(Generator.From_frames)

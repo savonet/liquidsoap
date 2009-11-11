@@ -22,6 +22,8 @@
 
 (** Decode WAV files. *)
 
+module Generator = Generator.From_frames
+
 let bytes_to_get = 1024*64
 
 type 'a wav_decoder = 
@@ -34,8 +36,8 @@ type 'a wav_decoder =
 (** Generic wav decoder *)
 let decoder wav_decoder =
   { File_decoder.
-      log = wav_decoder.log;
-      openfile = 
+    log = wav_decoder.log;
+    openfile = 
         (fun file ->
            let dec,w = wav_decoder.create file in
            (** Get input format *)
@@ -52,12 +54,12 @@ let decoder wav_decoder =
            let tmpbuf = String.create bytes_to_get in
            let position = ref 0 in
            (dec,w,tmpbuf,position,converter,channels,audio_src_rate));
-    get_type = 
+    get_kind = 
       (fun (_,_,_,_,_,channels,_) -> 
          { Frame.
-             audio = channels;
-             video = 0;
-             midi  = 0});       
+             audio = Frame.mul_of_int channels;
+             video = Frame.mul_of_int 0;
+             midi  = Frame.mul_of_int 0});       
     close = 
       (fun (dec,w,_,_,_,_,_) -> 
                 Wav.close w;
@@ -66,7 +68,9 @@ let decoder wav_decoder =
       (fun (_,w,tmpbuf,position,converter,_,audio_src_rate) abg ->
          let l = Wav.sample w tmpbuf 0 bytes_to_get in
          position := !position + l ;
-         let content,length = converter ~audio_src_rate (String.sub tmpbuf 0 l) in
+         let content,length =
+           converter ~audio_src_rate (String.sub tmpbuf 0 l)
+         in
          Generator.feed abg content 0 length);
     position = (fun (_,_,_,position,_,_,_) -> !position)
   }

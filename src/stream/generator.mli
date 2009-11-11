@@ -20,16 +20,44 @@
 
  *****************************************************************************)
 
-type t
+module Generator :
+sig
+  type 'a t
+  val create : unit -> 'a t
+  val clear : 'a t -> unit
+  val length : 'a t -> int
+  val remove : 'a t -> int -> unit
+  val put : 'a t -> 'a -> int -> int -> unit
+  val get : 'a t -> int -> ('a * int * int * int) list
+end
 
-val create : unit -> t
-val clear : t -> unit
-val length : t -> int
-val remaining : t -> int
-val add_metadata : t -> Frame.metadata -> unit
-val add_break : t -> unit
-val advance : t -> int -> unit
-val remove : t -> int -> unit
-val feed : t -> Frame.content -> int -> int -> unit
-val feed_from_frame : t -> Frame.t -> unit
-val fill : t -> Frame.t -> unit
+(** Generator that consumes frames (or frame content)
+  * and produces frames. *)
+module From_frames :
+sig
+  type t
+  val create : unit -> t
+  val clear : t -> unit
+  val length : t -> int
+  val remaining : t -> int
+  val add_metadata : t -> Frame.metadata -> unit
+  val add_break : t -> unit
+  val remove : t -> int -> unit
+  val feed : t -> Frame.content -> int -> int -> unit
+  val feed_from_frame : t -> Frame.t -> unit
+  val fill : t -> Frame.t -> unit
+end
+
+(** Generator that consumes audio and video asynchronously,
+  * and produces frames. *)
+module From_audio_video :
+sig
+  type t
+  type mode = Audio | Video | Both
+  val create : mode -> t
+  val set_mode : t -> mode -> unit
+  val length : t -> int
+  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val fill : t -> Frame.t -> unit
+end

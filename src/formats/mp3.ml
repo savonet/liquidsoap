@@ -24,7 +24,7 @@
 
 open Dtools
 
-module Generator = Generator
+module Generator = Generator.From_frames
 
 let log = Log.make ["format";"mp3"]
 
@@ -57,7 +57,6 @@ let check file =
    true
 
 let decoder =
-  let converter = Rutils.create () in
   {
    File_decoder.
     log = log;
@@ -65,19 +64,20 @@ let decoder =
       (fun file ->
         if not (check file) then
           assert false;
-        Mad.openfile file);
-    get_type =
-      (fun fd ->
+        Mad.openfile file,
+        Rutils.create ());
+    get_kind =
+      (fun (fd,_) ->
          (* Decode some data *)
          ignore(Mad.decode_frame_float fd);
          (* Get number of channels *)
          let _,channels,_ = Mad.get_output_format fd in
          { Frame.
-            audio = channels ;
-            video = 0 ;
-            midi  = 0 });
+            audio = Frame.mul_of_int channels ;
+            video = Frame.mul_of_int 0 ;
+            midi  = Frame.mul_of_int 0 });
     decode =
-      (fun fd abg ->
+      (fun (fd,converter) abg ->
          let data = Mad.decode_frame_float fd in
          let sample_freq,_,_ = Mad.get_output_format fd in
          let content,length =
@@ -88,8 +88,8 @@ let decoder =
                       midi  = [||] }
          in
          Generator.feed abg content 0 length);
-    position = Mad.get_current_position;
-    close = Mad.close
+    position = (fun (fd,_) -> Mad.get_current_position fd);
+    close = (fun (fd,_) -> Mad.close fd)
   }
 
 let duration file =

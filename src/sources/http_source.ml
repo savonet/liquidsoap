@@ -190,6 +190,7 @@ let parse_url url =
     else
       host,80,mount,auth
 
+module Generator = Generator.From_frames
 module Generated = Generated.From_Generator
 
 (* Used to handle redirections. *)

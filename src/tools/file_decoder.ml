@@ -22,11 +22,13 @@
 
 (** Generic file decoder. *)
 
+module Generator = Generator.From_frames (* TODO change to audio_video *)
+
 type 'a file_decoder =
   {
     log      : Dtools.Log.t;
     openfile : string -> 'a;
-    get_type : 'a -> Frame.content_type;
+    get_kind : 'a -> Frame.content_kind;
     decode   : 'a -> Generator.t -> unit;
     position : 'a -> int;
     close    : 'a -> unit
@@ -42,73 +44,69 @@ let decode decoder file =
          decoder.log#f 5 "Could not decode file." ;
          raise e
   in
-  let abg = Generator.create () in
-  let buffer_length =
-    Frame.audio_of_seconds Decoder.conf_buffer_length#get
-  in
-  let stats = Unix.stat file in
-  let file_size = stats.Unix.st_size in
-  let out_samples = ref 0 in
+  let gen = Generator.create () in
+  let buffer_length = Lazy.force Frame.size in
+  let file_size = (Unix.stat file).Unix.st_size in
+  let out_ticks = ref 0 in
   let closed = ref false in
+
   let close () =
     assert (not !closed) ;
     closed := true ;
     decoder.log#f 5 "close %S" file ;
     decoder.close fd
   in
- let fill =
-    fun buf ->
-      assert (not !closed) ;
 
-      begin
-        try
-          while Generator.length abg < buffer_length do
-            decoder.decode fd abg
-          done
-        with
-          | _ -> ()
-      end ;
+  let fill frame =
+    assert (not !closed) ;
 
-      let offset = AFrame.position buf in
-        Generator.fill abg buf ;
-        let in_bytes = decoder.position fd in
-        out_samples := !out_samples + AFrame.position buf - offset ;
+    begin
+      try
+        while Generator.length gen < buffer_length do
+          decoder.decode fd gen
+        done
+      with
+        | _ -> ()
+    end ;
+
+    let offset = Frame.position frame in
+      Generator.fill gen frame ;
+      let in_bytes = decoder.position fd in
+      let gen_len = Generator.length gen in
+        out_ticks := !out_ticks + Frame.position frame - offset ;
         (* Compute an estimated number of remaining ticks. *)
-        let abglen = Generator.length abg in
-          if in_bytes = 0 then
-            0
-          else
-            let compression =
-              (float (!out_samples+abglen)) /. (float in_bytes)
-            in
-            let remaining_samples =
-              (float (file_size - in_bytes)) *. compression
-              +. (float abglen)
-            in
-              (* I suspect that in_bytes in not accurate, since I don't
-               * get an exact countdown after that in_size=in_bytes.
-               * Instead, there is a stall at the beginning
-               * after which the countdown starts. *)
-              Frame.master_of_audio (int_of_float remaining_samples)
+        if in_bytes = 0 then -1 else
+          let compression =
+            (float (!out_ticks+gen_len)) /. (float in_bytes)
+          in
+          let remaining_samples =
+            (float gen_len) +.
+            (float (file_size - in_bytes)) *. compression
+          in
+            (* I suspect that in_bytes in not accurate, since I don't
+             * get an exact countdown after that in_size=in_bytes.
+             * Instead, there is a stall at the beginning
+             * after which the countdown starts. TODO really? *)
+            int_of_float remaining_samples
   in
     { Decoder.fill = fill ; Decoder.close = close }
 
- (** Top-level wrapper to also check content_type *)
- let decode decoder name kind =
-   try
-     let data_type =
-       let data = decoder.openfile name in
-       let data_type =
+(** Top-level wrapper to also check content_type *)
+let decode decoder name kind =
+  try
+    let content_kind =
+      let data = decoder.openfile name in
+      let content_kind =
         try
-          decoder.get_type data
+          decoder.get_kind data
         with
-         | e -> decoder.close data; raise e
-       in
-       decoder.close data;
-       data_type
-     in
-     if Frame.type_has_kind data_type kind then
-       Some (decode decoder name)
-     else
-       None
-    with _ -> None
+          | e -> decoder.close data; raise e
+      in
+        decoder.close data;
+        content_kind
+    in
+      if Frame.kind_sub_kind kind content_kind then
+        Some (decode decoder name)
+      else
+        None
+  with _ -> None
