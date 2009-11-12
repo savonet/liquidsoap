@@ -273,7 +273,7 @@ struct
             Frame.add_break frame fpos
         | (ablk,apos,apos',al)::audio,
           (vblk,vpos,vpos',vl)::video ->
-            assert (apos'=fpos && vpos'=fpos) ;
+            assert (apos'=vpos') ;
             let ctype =
               { Frame.
                 audio = Array.length ablk ;
@@ -290,7 +290,7 @@ struct
                 (fun v v' ->
                    let (!) = Frame.video_of_master in
                      for i = 0 to !l-1 do
-                       RGB.blit_fast v.(!vpos+i) v'.(!vpos')
+                       RGB.blit_fast v.(!vpos+i) v'.(!fpos+i)
                      done) ;
               if al=vl then
                 blit audio video (fpos+l)

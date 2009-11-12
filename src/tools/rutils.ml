@@ -88,7 +88,7 @@
               src 0 len signed samplesize big_endian
               ratio dst 0
           );
-      dst,len)
+      dst,Frame.master_of_audio len)
 
 
   
