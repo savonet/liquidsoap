@@ -20,18 +20,21 @@
 
  *****************************************************************************)
 
- (** Resampling module for any Frame.content *)
+ (** Resampling module *)
+ 
+ (** TODO: video *)
 
- (** TODO: video ! :-) *)
+ type audio_converter =
+            ?audio_src_rate:float ->
+            Frame.audio_t array -> Frame.audio_t array*int
 
- let create () = 
+ let create_audio () = 
     let audio_converters = Hashtbl.create 2 in 
     let audio_dst_rate = 
       float (Lazy.force Frame.audio_rate)
     in
-    (fun ?audio_src_rate ?video_src_rate content ->
+    (fun ?audio_src_rate audio_buf ->
       let process_audio audio_src_rate =  
-        let audio_buf = content.Frame.audio in
         (** Create new converters if needed, 
           * remove unused converters *)
         let new_audio_chans = Array.length audio_buf in
@@ -56,17 +59,16 @@
         let ret = Array.mapi resample_chan audio_buf in
         ret,Frame.master_of_audio (Array.length ret.(0))
       in
-      let rate = 
+      let audio_rate = 
         match audio_src_rate with
           | Some rate -> rate
           | None -> audio_dst_rate
       in
-      let audio,length = process_audio rate in
-      { Frame.
-         audio = audio ;
-         video = content.Frame.video ;
-         midi = content.Frame.midi 
-      },length)
+      process_audio audio_rate)
+
+  type s16le_converter = 
+          audio_src_rate:float ->
+          string -> Frame.audio_t array * int
 
   let create_from_s16le ~channels ~samplesize ~signed ~big_endian () = 
     let audio_dst_rate =
@@ -86,11 +88,7 @@
               src 0 len signed samplesize big_endian
               ratio dst 0
           );
-      { Frame.
-         audio = dst ;
-         video = [||] ;
-         midi  = [||]
-      },len)
+      dst,len)
 
 
   

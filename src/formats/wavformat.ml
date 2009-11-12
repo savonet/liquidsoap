@@ -22,7 +22,7 @@
 
 (** Decode WAV files. *)
 
-module Generator = Generator.From_frames
+module Generator = Generator.From_audio_video
 
 let bytes_to_get = 1024*64
 
@@ -31,6 +31,17 @@ type 'a wav_decoder =
     log     : Dtools.Log.t;
     create  : string -> 'a * Wav.t;
     close   : 'a -> unit
+  }
+
+type 'a handle = 
+  {
+    decoder          : 'a ;
+    w                : Wav.t ;
+    tmpbuf           : String.t ;
+    mutable position : int ;
+    converter        : Rutils.s16le_converter ;
+    channels         : int ;
+    audio_src_rate   : float
   }
 
 (** Generic wav decoder *)
@@ -52,27 +63,32 @@ let decoder wav_decoder =
                ~channels ~samplesize ~signed ~big_endian ()
            in
            let tmpbuf = String.create bytes_to_get in
-           let position = ref 0 in
-           (dec,w,tmpbuf,position,converter,channels,audio_src_rate));
+           let position = 0 in
+           {
+             decoder = dec ; w = w ; tmpbuf = tmpbuf;
+             converter = converter ; channels = channels ;
+             audio_src_rate = audio_src_rate; position = position
+           });
     get_kind = 
-      (fun (_,_,_,_,_,channels,_) -> 
+      (fun handle -> 
          { Frame.
-             audio = Frame.mul_of_int channels;
+             audio = Frame.mul_of_int handle.channels;
              video = Frame.mul_of_int 0;
              midi  = Frame.mul_of_int 0});       
     close = 
-      (fun (dec,w,_,_,_,_,_) -> 
-                Wav.close w;
-                wav_decoder.close dec);
+      (fun handle -> 
+                Wav.close handle.w;
+                wav_decoder.close handle.decoder);
     decode = 
-      (fun (_,w,tmpbuf,position,converter,_,audio_src_rate) abg ->
-         let l = Wav.sample w tmpbuf 0 bytes_to_get in
-         position := !position + l ;
+      (fun handle buffer ->
+         let l = Wav.sample handle.w handle.tmpbuf 0 bytes_to_get in
+         handle.position <- handle.position + l ;
+         let audio_src_rate = handle.audio_src_rate in
          let content,length =
-           converter ~audio_src_rate (String.sub tmpbuf 0 l)
+           handle.converter ~audio_src_rate (String.sub handle.tmpbuf 0 l)
          in
-         Generator.feed abg content 0 length);
-    position = (fun (_,_,_,position,_,_,_) -> !position)
+         Generator.put_audio buffer content 0 length);
+    position = (fun handler -> handler.position)
   }
 
 (** Wav file decoder *)

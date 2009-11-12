@@ -22,7 +22,7 @@
 
 (** Generic file decoder. *)
 
-module Generator = Generator.From_frames (* TODO change to audio_video *)
+module Generator = Generator.From_audio_video
 
 type 'a file_decoder =
   {
@@ -34,7 +34,7 @@ type 'a file_decoder =
     close    : 'a -> unit
   }
 
-let decode decoder file =
+let decode decoder mode file =
   let fd =
     decoder.log#f 5 "open %S" file ;
     try
@@ -44,7 +44,7 @@ let decode decoder file =
          decoder.log#f 5 "Could not decode file." ;
          raise e
   in
-  let gen = Generator.create () in
+  let gen = Generator.create mode in
   let buffer_length = Lazy.force Frame.size in
   let file_size = (Unix.stat file).Unix.st_size in
   let out_ticks = ref 0 in
@@ -106,7 +106,16 @@ let decode decoder name kind =
         content_kind
     in
       if Frame.kind_sub_kind kind content_kind then
-        Some (decode decoder name)
+        let mode = 
+          match content_kind.Frame.audio, 
+                content_kind.Frame.video 
+          with
+            | Frame.Zero, Frame.Succ _   -> Generator.Video
+            | Frame.Succ _, Frame.Zero   -> Generator.Audio
+            | Frame.Succ _, Frame.Succ _ -> Generator.Both
+            | _,_                        -> assert false
+        in
+        Some (decode decoder mode name)
       else
         None
   with _ -> None

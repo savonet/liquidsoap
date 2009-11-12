@@ -24,7 +24,7 @@
 
 let log = Dtools.Log.make ["format";"ogg"]
 
-module Generator = Generator.From_frames
+module Generator = Generator.From_audio_video
 
 exception Channels of int
 
@@ -39,7 +39,7 @@ let decoder =
          try
            Ogg_demuxer.init sync,
            fd,
-           Rutils.create ()
+           Rutils.create_audio ()
          with
            | e -> (try Unix.close fd with _ -> ()); raise e
         end);
@@ -65,13 +65,9 @@ let decoder =
           let feed ((buf,sample_freq),_) =
             let audio_src_rate = float sample_freq in
             let content,length =
-              converter ~audio_src_rate
-                    { Frame.
-                        audio = buf;
-                        video = [||];
-                        midi = [||] }
+              converter ~audio_src_rate buf
             in
-            Generator.feed abg content 0 length
+            Generator.put_audio abg content 0 length
           in
           Ogg_demuxer.decode_audio decoder feed; 
           if Ogg_demuxer.eos decoder then

@@ -26,7 +26,7 @@ type 'a file_decoder = {
   log      : Dtools.Log.t;
   openfile : string -> 'a;
   get_kind : 'a -> Frame.content_kind;
-  decode   : 'a -> Generator.From_frames.t -> unit; 
+  decode   : 'a -> Generator.From_audio_video.t -> unit; 
   position : 'a -> int;
   close    : 'a -> unit
 }

@@ -223,7 +223,8 @@ object (self)
   val mutable logf = None
 
   (* Frame content converter *)
-  val converter = Rutils.create ()
+  (* TODO: VIDEO !*)
+  val converter = Rutils.create_audio ()
 
   val mutable connected = false
   val mutable relaying = autostart
@@ -257,11 +258,13 @@ object (self)
     end;
    let audio_src_rate = float sample_freq in
    let content,length = 
-     converter ~audio_src_rate
-                  { Frame.
-                      audio = data;
-                      video = [||];
-                      midi = [||] }
+     converter ~audio_src_rate data
+   in
+   let content = 
+          { Frame.
+               audio = data;
+               video = [||];
+               midi = [||] }
    in
    Generator.feed abg content 0 length;
    Mutex.unlock lock
