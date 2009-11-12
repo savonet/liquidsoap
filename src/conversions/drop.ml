@@ -89,7 +89,7 @@ object
         let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
         let dst = Frame.content_of_type frame start new_type in
           for i = 0 to Array.length src.Frame.video - 1 do
-            let (!) = Frame.audio_of_master in
+            let (!) = Frame.video_of_master in
               for j = 0 to !stop-1 do
                 RGB.blit_fast
                   src.Frame.video.(i).(!start+j)
