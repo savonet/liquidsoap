@@ -55,9 +55,22 @@ sig
   type t
   type mode = Audio | Video | Both
   val create : mode -> t
+
+  val mode : t -> mode
   val set_mode : t -> mode -> unit
+
+  val audio_length : t -> int
+  val video_length : t -> int
   val length : t -> int
+  val remaining : t -> int
+
+  val add_metadata : t -> Frame.metadata -> unit
+  val add_break : t -> unit
+
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
   val put_video : t -> Frame.video_t array -> int -> int -> unit
   val fill : t -> Frame.t -> unit
+
+  val remove : t -> int -> unit
+  val clear : t -> unit
 end

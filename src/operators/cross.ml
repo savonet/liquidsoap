@@ -23,21 +23,20 @@
 open Source
 
 module Generator = Generator.From_frames
-module Generated = Generated.From_Generator
+module Generated = Generated.Make(Generator)
 
-(* Do not care about fading at first, not even about adding the last frames of a
- * track to the beginning of the next one: a generic function will be used for
- * combination -- a transition function like in Switch.
+(* Common effects like cross-fading can be split into two parts: crossing,
+ * and fading. Here we implement crossing, not caring about fading:
+ * a arbitrary transition function is passed, taking care of the combination.
+ *
  * A buffer is needed to store the end of a track before combining it with the
  * next track. We could always have a full buffer, but this would involve
  * copying all the time. Instead, we try to fill the buffer only when getting
  * close to the end of track. The problem then is to cope with tracks which are
  * longer than expected, i.e. which end doesn't really fit in the buffer.
  *
- * All three parameters are durations in ticks.
- * This operator is data-dependent only because it uses Generator, which is
- * specialized for audio frames. Otherwise it should be generic. That's why I
- * stick to the Frame module here, and ticks units. *)
+ * This operator works with any type of stream.
+ * All three parameters are durations in ticks. *)
 class cross s ~kind ?(meta="liq_start_next") ~cross_length
               ~conservative ~inhibit ~minimum_length f =
 object (self)

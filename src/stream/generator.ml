@@ -224,19 +224,51 @@ struct
   type t = {
     mutable mode : mode ;
     audio : Frame.audio_t array Generator.t ;
-    video : Frame.video_t array Generator.t
+    video : Frame.video_t array Generator.t ;
+    mutable metadata : (int*Frame.metadata) list ;
+    mutable breaks   : int list
   }
 
   let create m = {
     mode = m ;
     audio = Generator.create () ;
-    video = Generator.create ()
+    video = Generator.create () ;
+    metadata = [] ;
+    breaks = []
   }
+
+  let mode t = t.mode
 
   let set_mode t m = t.mode <- m
 
+  (** Audio length, in ticks. *)
+  let audio_length t = Generator.length t.audio
+
+  (** Video length, in ticks. *)
+  let video_length t = Generator.length t.video
+
+  (** Total length. *)
   let length t = min (Generator.length t.audio) (Generator.length t.video)
 
+  (** Duration of data (in ticks) before the next break,
+    * or total [length] otherwise. *)
+  let remaining t =
+    match t.breaks with
+      | a :: _ -> a
+      | _ -> length t
+
+  let add_metadata t m =
+    t.metadata <- t.metadata @ [length t, m]
+
+  let add_break t =
+    t.breaks <- t.breaks @ [length t]
+
+  let clear t =
+    t.metadata <- [] ; t.breaks <- [] ;
+    Generator.clear t.audio ;
+    Generator.clear t.video
+
+  (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
@@ -247,6 +279,7 @@ struct
         | Both -> ()
         | Video -> assert false
 
+  (** Add some video content. Offset and length are given in video samples. *)
   let put_video t content o l =
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
@@ -257,23 +290,36 @@ struct
         | Both -> ()
         | Audio -> assert false
 
+  (* Advance metadata and breaks by [len] ticks. *)
+  let advance t len =
+    let meta = List.map (fun (x,y) -> (x-len,y)) t.metadata in
+    let breaks = List.map (fun x -> x-len) t.breaks in
+      t.metadata <- List.filter (fun x -> fst x >= 0) meta;
+      t.breaks <- List.filter (fun x -> x >= 0) breaks
+
+  let remove t len =
+    Generator.remove t.audio len ;
+    Generator.remove t.video len ;
+    advance t len
+
   let fill t frame =
-    let position = Frame.position frame in
+    let fpos = Frame.position frame in
     let size = Lazy.force Frame.size in
-    let l = min (size-position) (length t) in
+    let l = min (size-fpos) (remaining t) in
     let audio = Generator.get t.audio l in
     let video = Generator.get t.video l in
     (* We got equal durations of audio and video, but segmented differently.
      * We walk through them and blit them into the frame, possibly creating
      * several content layers of different types as the numbers of channels
      * vary. *)
-    let rec blit audio video fpos =
+    let rec blit audio video =
       match audio, video with
         | [],[] ->
-            Frame.add_break frame fpos
+            Frame.add_break frame (fpos+l)
         | (ablk,apos,apos',al)::audio,
           (vblk,vpos,vpos',vl)::video ->
             assert (apos'=vpos') ;
+            let fpos = fpos+apos' in
             let ctype =
               { Frame.
                 audio = Array.length ablk ;
@@ -293,13 +339,28 @@ struct
                        RGB.blit_fast v.(!vpos+i) v'.(!fpos+i)
                      done) ;
               if al=vl then
-                blit audio video (fpos+l)
+                blit audio video
               else if al>vl then
-                blit ((ablk,apos+vl,apos'+vl,al-vl)::audio) video (fpos+l)
+                blit ((ablk,apos+vl,apos'+vl,al-vl)::audio) video
               else
-                blit audio ((vblk,vpos+al,vpos'+al,vl-al)::video) (fpos+l)
+                blit audio ((vblk,vpos+al,vpos'+al,vl-al)::video)
         | _,_ -> assert false
     in
-      blit audio video (Frame.position frame)
+      blit audio video ;
+      List.iter
+        (fun (p,m) ->
+           if p<l then
+             Frame.set_metadata frame (fpos+p) m)
+        t.metadata ;
+      advance t l ;
+      (* If the frame is partial it must be because of a break in the
+       * generator, or because the generator is emptying.
+       * Conversely, each break in the generator must cause a partial frame,
+       * so don't remove any if it isn't partial. *)
+      if Frame.is_partial frame then
+        match t.breaks with
+          | 0::tl -> t.breaks <- tl
+          | [] -> () (* end of stream / underrun ... *)
+          | _ -> assert false
 
 end

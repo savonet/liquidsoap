@@ -36,12 +36,12 @@ struct
 (* Reads data from an audio buffer generator. The generator can be feeded
  * in parallel, using [lock] if not in the main thread.
  * Store [bufferize] seconds before declaring itself as ready. *)
-class virtual source ~bufferize ~empty_on_abort abg =
+class virtual source ~bufferize ~empty_on_abort gen =
   let bufferize = Frame.master_of_seconds bufferize in
 object (self)
 
   (** This allows heriting classes to access the generator. *)
-  val abg = abg
+  val generator = gen
 
   val mutable buffering = true
   val lock = Mutex.create ()
@@ -54,7 +54,7 @@ object (self)
 
   method private length =
     Mutex.lock lock ;
-    let r = Generator.length abg in
+    let r = Generator.length generator in
       Mutex.unlock lock ;
       r
 
@@ -79,7 +79,7 @@ object (self)
     if should_fail then 0 else
       let r = self#length in
         Mutex.lock lock ;
-        let l = Generator.remaining abg in
+        let l = Generator.remaining generator in
         Mutex.unlock lock ;
         if buffering && r <= bufferize then 0 else l
 
@@ -88,21 +88,21 @@ object (self)
     if should_fail then begin
       self#log#f 4 "Performing skip." ;
       should_fail <- false ;
-      if empty_on_abort then Generator.clear abg ; (* TODO lock *)
+      if empty_on_abort then Generator.clear generator ; (* TODO lock *)
       Frame.add_break ab (Frame.position ab)
     end else begin
       Mutex.lock lock ;
-      Generator.fill abg ab ;
+      Generator.fill generator ab ;
       (* Currently, we don't enter the buffering phase between tracks
        * even when there's not enough data in the buffer. This is mostly
-       * historical because there was initially no track in the abg streams.
+       * historical because there was initially no breaks in generators.
        * This may sometimes be better to do it (to avoid a lag breaking
        * the new track) but not always (a total disconnection should cause
        * the start of a new track anyway, since the content after it
        * has nothing to do with the content before the connection). *)
       if Frame.is_partial ab then
         self#log#f 4 "End of track." ;
-      if Generator.length abg = 0 then begin
+      if Generator.length generator = 0 then begin
         self#log#f 4 "Buffer emptied, starting buffering." ;
         buffering <- true
       end ;
@@ -113,15 +113,11 @@ end
 
 (* Reads data from a fixed audio buffer generator, of a certain kind.
  * The generator shouldn't be fed anymore. *)
-class consumer ~kind abg =
+class consumer ~kind generator =
 object
   inherit Source.source kind
-  inherit source abg ~bufferize:0. ~empty_on_abort:true
+  inherit source generator ~bufferize:0. ~empty_on_abort:true
   method stype = Source.Fallible
 end
 
 end
-
-(* TODO it is likely that this functor is only ever used for the
- *   following instantiation.. the abstraction seems silly. *)
-module From_Generator = Make(Generator.From_frames)

@@ -190,8 +190,8 @@ let parse_url url =
     else
       host,80,mount,auth
 
-module Generator = Generator.From_frames
-module Generated = Generated.From_Generator
+module Generator = Generator.From_audio_video
+module Generated = Generated.Make(Generator)
 
 (* Used to handle redirections. *)
 exception Redirection of string
@@ -201,13 +201,15 @@ class http ~kind
         ~bind_address ~autostart ~bufferize ~max
         ~debug ?(logfile=None)
         ~user_agent url =
-  let abg_max_len =
+  let max_len =
     Frame.audio_of_seconds (Pervasives.max max bufferize)
   in
 object (self)
   inherit Source.source kind
   inherit
-    Generated.source (Generator.create ()) ~empty_on_abort:false ~bufferize
+    Generated.source
+      (Generator.create Generator.Audio)
+      ~empty_on_abort:false ~bufferize
 
   method stype = Source.Fallible
 
@@ -235,8 +237,8 @@ object (self)
     self#log#f 3 "New metadata chunk \"%s -- %s\""
                 (try Hashtbl.find m "artist" with _ -> "?")
                 (try Hashtbl.find m "title" with _ -> "?") ;
-    Generator.add_metadata abg m ;
-    if track_on_meta then Generator.add_break abg ;
+    Generator.add_metadata generator m ;
+    if track_on_meta then Generator.add_break generator ;
 
   (* Feed the buffer generator
    * TODO this is too restrictive, data could be of any [kind] *)
@@ -248,26 +250,20 @@ object (self)
      * to make it work with switches, when input.http is not
      * pulled for some time.
      * It can also be necessary if liquidsoap is slower than the stream. *)
-    if Generator.length abg >= abg_max_len then begin
+    if Generator.length generator >= max_len then begin
       (* TODO Inserting a break in the generator could be a good idea,
        * for notifying about the gap/drop.
        * It would require to stop the current #put, since multiple
        * breaks are not allowed. *)
       self#log#f 5 "Overfull buffer: dropping data." ;
-      Generator.remove abg (Generator.length abg - abg_max_len)
+      Generator.remove generator (Generator.length generator - max_len)
     end;
    let audio_src_rate = float sample_freq in
-   let content,length = 
+   let content,length =
      converter ~audio_src_rate data
    in
-   let content = 
-          { Frame.
-               audio = data;
-               video = [||];
-               midi = [||] }
-   in
-   Generator.feed abg content 0 length;
-   Mutex.unlock lock
+     Generator.put_audio generator content 0 (Frame.master_of_audio length) ;
+     Mutex.unlock lock
 
   method feeding ?(newstream=true) dec socket chunked metaint =
     connected <- true ;
@@ -290,12 +286,12 @@ object (self)
     in
       try
        (* Starting decoding: adding a break here *)
-       Generator.add_break abg ;
+       Generator.add_break generator ;
        dec sink
       with
         | e ->
             (* Feeding has stopped: adding a break here. *)
-            Generator.add_break abg ;
+            Generator.add_break generator ;
             begin match e with
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s." s
@@ -491,7 +487,7 @@ object (self)
        (fun _ -> relaying <- true ; "Done") ;
     Server.add ~ns "stop" ~usage:"stop" ~descr:"Stop the source if streaming."
        (fun _ -> relaying <- false ; "Done") ;
-    Server.add ~ns "buffer_length" ~usage:"buffer_length" 
+    Server.add ~ns "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
 
