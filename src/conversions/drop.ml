@@ -66,8 +66,61 @@ let () =
   in
   Lang.add_operator "drop_video"
     ~category:Lang.Conversions
-    ~descr:"Convert any kind of audio source into a stereo source."
+    ~descr:"Drop all video channels of a stream."
     ~kind:(Lang.Unconstrained output)
     [ "", Lang.source_t input, None, None ]
     (fun p kind ->
        new drop_video ~kind (Lang.to_source (List.assoc "" p)))
+
+class drop_audio ~kind source =
+object
+  inherit Source.operator kind [source]
+
+  method stype = source#stype
+  method is_ready = source#is_ready
+  method abort_track = source#abort_track
+  method remaining = source#remaining
+
+  method private get_frame frame =
+    let start = Frame.position frame in
+    let stop  = source#get frame ; Frame.position frame in
+    let _,src = Frame.content frame start in
+      if Array.length src.Frame.audio > 0 then
+        let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
+        let dst = Frame.content_of_type frame start new_type in
+          for i = 0 to Array.length src.Frame.video - 1 do
+            let (!) = Frame.audio_of_master in
+              for j = 0 to !stop-1 do
+                RGB.blit_fast
+                  src.Frame.video.(i).(!start+j)
+                  dst.Frame.video.(i).(!start+j)
+              done
+          done ;
+          for i = 0 to Array.length src.Frame.midi - 1 do
+            Midi.blit
+              src.Frame.midi.(i) start
+              dst.Frame.midi.(i) start
+              stop
+          done
+end
+
+let () =
+  let input =
+    Lang.frame_kind_t
+      ~audio:(Lang.univ_t 1)
+      ~video:(Lang.univ_t 2)
+      ~midi:(Lang.univ_t 3)
+  in
+  let output =
+    Lang.frame_kind_t
+      ~audio:Lang.zero_t
+      ~video:(Lang.univ_t 2)
+      ~midi:(Lang.univ_t 3)
+  in
+  Lang.add_operator "drop_audio"
+    ~category:Lang.Conversions
+    ~descr:"Drop all audio channels of a stream."
+    ~kind:(Lang.Unconstrained output)
+    [ "", Lang.source_t input, None, None ]
+    (fun p kind ->
+       new drop_audio ~kind (Lang.to_source (List.assoc "" p)))
