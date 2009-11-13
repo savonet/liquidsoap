@@ -80,7 +80,7 @@ let decoder =
         in
         let audio =
           try
-            Ogg_demuxer.decode_audio decoder feed;
+            Ogg_demuxer.decode_audio_rec decoder feed;
             raise Not_found
           with
             | Channels x -> x
@@ -91,11 +91,11 @@ let decoder =
         in                                                                                  
         let video =                                                                         
           try                                                                               
-            Ogg_demuxer.decode_video decoder feed;                                          
+            Ogg_demuxer.decode_video_rec decoder feed;                                          
             raise Not_found                                                                 
           with                                                                              
             | Channels x -> x                                                               
-            | Not_found  -> 0                                                               
+            | Not_found  -> 0  
         in    
         { Frame.
             audio = Frame.mul_of_int audio ;
@@ -112,28 +112,35 @@ let decoder =
             in
             Generator.put_audio buffer content 0 length
           in
-          begin
+          let got_audio = 
            try
-            Ogg_demuxer.decode_audio decoder feed
-           with Not_found -> ()
-          end ;
+            Ogg_demuxer.decode_audio decoder feed ;
+            true
+           with 
+             | Not_found 
+             | Ogg.Not_enough_data -> false
+          in
           let feed (buf,_) =               
             (* TODO: rate conversion !                                               
             let src_rate = buf.Ogg_demuxer.fps in *)
             assert( 
               int_of_float (buf.Ogg_demuxer.fps +. 0.5)
                = Frame.video_of_seconds 1.) ;
-            let length = Frame.master_of_video 1 in
             let frame = video_convert buf in
-            Generator.put_video buffer [|[|frame|]|] 0 length
+            (* Length is in samples *)
+            Generator.put_video buffer [|[|frame|]|] 0 1
           in
           (* Try to decode video. *)
-          begin
+          let got_video = 
             try
-              Ogg_demuxer.decode_video decoder feed
+              Ogg_demuxer.decode_video decoder feed ;
+              true
             with
-              | Not_found -> ()
-          end );
+              | Not_found 
+              | Ogg.Not_enough_data -> false
+          in
+          if not got_audio && not got_video then 
+            Ogg_demuxer.feed decoder );
     position = (fun (_,fd,_) -> Unix.lseek fd 0 Unix.SEEK_CUR);
     close = (fun (_,fd,_) -> 
                try                                                                                
@@ -172,7 +179,7 @@ let get_tags ~format file =
     let m =
       try
         if Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder then
-          Ogg_demuxer.decode_audio decoder feed;
+          Ogg_demuxer.decode_audio_rec decoder feed;
         []
       with
         | Metadata m -> m
@@ -180,7 +187,7 @@ let get_tags ~format file =
     let m =
       try
         if Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
-          Ogg_demuxer.decode_video decoder feed;
+          Ogg_demuxer.decode_video_rec decoder feed;
         m
       with
         | Metadata m' -> m@m'

@@ -67,7 +67,11 @@ sig
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : t -> unit
 
+  (* [put_audio buffer data offset length]: offset and length
+   * are in samples ! *)
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  (* [put_video buffer data offset length]: offset and length
+   * are in samples ! *)
   val put_video : t -> Frame.video_t array -> int -> int -> unit
   val fill : t -> Frame.t -> unit
 

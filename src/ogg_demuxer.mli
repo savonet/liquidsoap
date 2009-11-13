@@ -67,10 +67,53 @@ val reset : t -> unit
 (** [true] if the decoder has a track of that type. *)
 val has_track : track -> t -> bool 
 
+(** Feed new pages into the decoder 
+  *
+  * Raises [End_of_stream] is the stream has ended.
+  * In this case, you can try [reset] to see if there is a 
+  * new sequentialized stream. 
+  *
+  * Raises [Ogg.Not_enough_data] if no data could be read
+  * from the source. This can happen with incomplete streams. *)
+val feed : t -> unit
+
 (** Decode audio data, if possible. 
-  * Decoded data is passed to the second argument. *)
+  * Decoded data is passed to the second argument. 
+  *
+  * Raises [Ogg.Not_enough_data] if more data could be added 
+  * you should call [feed] in this case. 
+  *
+  * Raises [End_of_stream] is the stream has ended.
+  * In this case, you can try [reset] to see if there is a
+  * new sequentialized stream. *)
 val decode_audio : t -> (audio * Frame.metadata option -> unit) -> unit
 
+(** Decode audio data, if possible.
+  * Decoded data is passed to the second argument.
+  * This function implicitely calls [feed] if not enough data 
+  * are available.
+  * 
+  * Raises [End_of_stream] is the stream has ended.
+  * In this case, you can try [reset] to see if there is a
+  * new sequentialized stream. *)
+val decode_audio_rec : t -> (audio * Frame.metadata option -> unit) -> unit
+
 (** Decode video data, if possible. 
-  * Decoded data is passed to the second argument. *)
+  * Decoded data is passed to the second argument. 
+  * Raises [Ogg.Not_enough_data] if more data could be added
+  * you should call [feed] in this case.
+  *
+  * Raises [End_of_stream] is the stream has ended.
+  * In this case, you can try [reset] to see if there is a
+  * new sequentialized stream. *)
 val decode_video : t -> (video * Frame.metadata option -> unit) -> unit 
+
+(** Decode video data, if possible.
+  * Decoded data is passed to the second argument. 
+  * This function implicitely calls [feed] if not enough data
+  * are available. 
+  * 
+  * Raises [End_of_stream] is the stream has ended.
+  * In this case, you can try [reset] to see if there is a
+  * new sequentialized stream. *)
+val decode_video_rec : t -> (video * Frame.metadata option -> unit) -> unit

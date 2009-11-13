@@ -112,7 +112,9 @@ let feed_page decoder page =
           log#f 5 "Couldn't find a decoder for page in stream %nx" serial;
           raise Invalid_stream
 
-let feed decoder = 
+let feed decoder =
+  if decoder.eos then
+    raise End_of_stream ; 
   let page = Ogg.Sync.read decoder.sync in
   feed_page decoder page 
 
@@ -181,36 +183,43 @@ let has_track dtype dec =
 
 let decode_audio dec f = 
   let (eos,d) = get_track Audio_track dec in
-  let rec ret () =
-    try
-      let f (x,y) = 
-        f (x,frame_meta_of_meta y)
-      in
-      match d with
-        | Audio d -> d f 
-        | _ -> assert false
-    with
-      | Ogg.Not_enough_data ->
-          if !eos then
-            raise End_of_stream;
-          feed dec; ret ()
-  in
-  ret ()
- 
+  try
+    let f (x,y) = 
+      f (x,frame_meta_of_meta y)
+    in
+    match d with
+      | Audio d -> d f 
+      | _ -> assert false
+  with
+    | Ogg.Not_enough_data ->
+        if !eos then
+          raise End_of_stream ;
+        raise Ogg.Not_enough_data
+
 let decode_video dec f =
   let (eos,d) = get_track Video_track dec in
-  let rec ret () =
+  try
+    let f (x,y) =
+      f (x,frame_meta_of_meta y)
+    in
+    match d with
+      | Video d -> d f
+      | _ -> assert false
+  with
+    | Ogg.Not_enough_data ->
+        if !eos then
+          raise End_of_stream ;
+        raise Ogg.Not_enough_data
+
+let decode_rec g dec f =
+  let rec exec () =
     try
-      let f (x,y) =
-        f (x,frame_meta_of_meta y)
-      in
-      match d with
-        | Video d -> d f
-        | _ -> assert false
+      g dec f
     with
       | Ogg.Not_enough_data ->
-          if !eos then
-            raise End_of_stream;
-          feed dec; ret ()
+          feed dec; exec ()
   in
-  ret ()
+  exec ()
+
+let decode_audio_rec = decode_rec decode_audio
+let decode_video_rec = decode_rec decode_video

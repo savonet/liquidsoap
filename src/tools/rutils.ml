@@ -57,7 +57,7 @@
           ret.(0)
         in
         let ret = Array.mapi resample_chan audio_buf in
-        ret,Frame.master_of_audio (Array.length ret.(0))
+        ret,Array.length ret.(0)
       in
       let audio_rate = 
         match audio_src_rate with
