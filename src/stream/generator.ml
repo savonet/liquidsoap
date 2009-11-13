@@ -332,6 +332,12 @@ struct
             Frame.add_break frame (fpos+l)
         | (ablk,apos,apos',al)::audio,
           (vblk,vpos,vpos',vl)::video ->
+            (* Audio and video destination positions are the same,
+             * however they need be aligned.
+             * At the beginning they are aligned (and zero), but then
+             * we might advance from a few audio samples, which might
+             * not correspond to an integer number of video samples,
+             * after which vpos' is not the position of a video frame. *)
             assert (apos'=vpos') ;
             let fpos = fpos+apos' in
             let ctype =
@@ -342,16 +348,24 @@ struct
             in
             let dst = Frame.content_of_type frame fpos ctype in
             let l = min al vl in
-              Utils.array_iter2 ablk dst.Frame.audio
-                (fun a a' ->
-                   let (!) = Frame.audio_of_master in
-                     Float_pcm.blit a !apos a' !fpos !l) ;
               Utils.array_iter2 vblk dst.Frame.video
                 (fun v v' ->
                    let (!) = Frame.video_of_master in
-                     for i = 0 to !l-1 do
+                   (* How many samples should we output:
+                    * the number of samples expected in total after this
+                    * blit round, minus those that have been outputted before.
+                    * When everything is aligned, this is the same as [!l]. *)
+                   let l = !(vpos'+l) - !vpos' in
+                     for i = 0 to l-1 do
                        RGB.blit_fast v.(!vpos+i) v'.(!fpos+i)
                      done) ;
+              Utils.array_iter2 ablk dst.Frame.audio
+                (fun a a' ->
+                   let (!) = Frame.audio_of_master in
+                   (* Same as above, even if in practice everything
+                    * will always be aligned on the audio side. *)
+                   let l = !(apos'+l) - !apos' in
+                     Float_pcm.blit a !apos a' !fpos l) ;
               if al=vl then
                 blit audio video
               else if al>vl then
