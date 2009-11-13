@@ -237,10 +237,6 @@ struct
     breaks = []
   }
 
-  let mode t = t.mode
-
-  let set_mode t m = t.mode <- m
-
   (** Audio length, in ticks. *)
   let audio_length t = Generator.length t.audio
 
@@ -257,10 +253,15 @@ struct
       | a :: _ -> a
       | _ -> length t
 
+  (** Add metadata at the minimum position of audio and video.
+    * You probably want to call this when there is as much
+    * audio as video. *)
   let add_metadata t m =
     t.metadata <- t.metadata @ [length t, m]
 
+  (** Add a track limit. Audio and video length should be equal. *)
   let add_break t =
+    assert (audio_length t = video_length t) ;
     t.breaks <- t.breaks @ [length t]
 
   let clear t =
@@ -268,8 +269,20 @@ struct
     Generator.clear t.audio ;
     Generator.clear t.video
 
+  (** Current mode:
+    * in Audio mode (resp. Video), only audio (resp. Audio) can be fed,
+    * otherwise both have to be fed. *)
+  let mode t = t.mode
+
+  (** Change the generator mode.
+    * Only allowed when there is as much audio as video.  *)
+  let set_mode t m =
+    assert (audio_length t = video_length t) ;
+    t.mode <- m
+
   (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =
+    assert (content = [||] || Array.length content.(0) <= o+l) ;
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
       Generator.put t.audio content o l ;
@@ -281,6 +294,7 @@ struct
 
   (** Add some video content. Offset and length are given in video samples. *)
   let put_video t content o l =
+    assert (content = [||] || Array.length content.(0) <= o+l) ;
     let o = Frame.master_of_video o in
     let l = Frame.master_of_video l in
       Generator.put t.video content o l ;
