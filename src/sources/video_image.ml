@@ -22,16 +22,16 @@
 
 open Source
 
-class image fname duration width height x y alpha =
-  let nb_frames = Fmt.video_frames_of_seconds duration in
+class image kind fname duration width height x y alpha =
+  let nb_frames = Frame.video_of_seconds duration in
 object
-  inherit source
+  inherit Source.source kind
 
   method stype = Infallible
   method is_ready = true
 
   val mutable remaining = nb_frames
-  method remaining = Fmt.ticks_of_video_frames remaining
+  method remaining = Frame.master_of_video remaining
 
   val mutable must_fail = false
   method abort_track =
@@ -58,8 +58,8 @@ object
       else
         RGB.scale_to f w h
     in
-      if x < 0 then pos_x <- Fmt.video_width () - w + x;
-      if y < 0 then pos_y <- Fmt.video_height () - h + y;
+      if x < 0 then pos_x <- (Lazy.force Frame.video_width) - w + x;
+      if y < 0 then pos_y <- (Lazy.force Frame.video_height) - h + y;
       img <- Some f
 
   method private get_frame ab =
@@ -68,8 +68,8 @@ object
       remaining <- nb_frames;
       must_fail <- false
     end else
-      let b = VFrame.get_rgb ab in
       let off = VFrame.position ab in
+      let b = VFrame.content_of_type ~channels:1 ab off in
       let size = VFrame.size ab in
       let img = Utils.get_some img in
         for c = 0 to Array.length b - 1 do
@@ -78,8 +78,7 @@ object
               RGB.blit img buf_c.(i) ~x:pos_x ~y:pos_y
             done;
         done;
-        AFrame.add_break ab (AFrame.size ab) ;
-        remaining <- remaining - (AFrame.size ab) - off ;
+        VFrame.add_break ab (off+size) ;
         if remaining <= 0 then must_fail <- true
 
 end
@@ -109,7 +108,8 @@ let () =
 
       "", Lang.string_t, None, Some "Path to image file.";
     ]
-    (fun p _ ->
+    ~kind:Lang.video_only
+    (fun p kind ->
        let fname, duration, w, h, x, y, alpha =
          let f v = List.assoc v p in
            Lang.to_string (f ""),
@@ -120,4 +120,4 @@ let () =
            Lang.to_int (f "y"),
            Lang.to_int (f "alpha")
        in
-         new image fname duration w h x y alpha)
+         new image kind fname duration w h x y alpha)
