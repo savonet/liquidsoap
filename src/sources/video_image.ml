@@ -22,30 +22,38 @@
 
 open Source
 
+(** The content kind should allow for pure video,
+  * we handle any number of channels. *)
 class image kind fname duration width height x y alpha =
-  let nb_frames = Frame.video_of_seconds duration in
+  let channels = (Frame.type_of_kind kind).Frame.video in
+  let nb_frames =
+    if duration = 0. then None else Some (Frame.video_of_seconds duration)
+  in
 object
-  inherit Source.source kind
+  inherit source kind as super
 
   method stype = Infallible
   method is_ready = true
 
-  val mutable remaining = nb_frames
-  method remaining = Frame.master_of_video remaining
-
   val mutable must_fail = false
-  method abort_track =
-    must_fail <- true;
-    remaining <- 0
+  method abort_track = must_fail <- true
+
+  val mutable remaining = nb_frames
+  method remaining =
+    if must_fail then 0 else
+      match remaining with
+        | None -> -1
+        | Some remaining -> Frame.master_of_video remaining
 
   val mutable img = None
 
   val mutable pos_x = x
   val mutable pos_y = y
 
-  initializer
-    (* TODO: handle more formats... *)
+  method private wake_up activation =
+    super#wake_up activation ;
     let f =
+      (* TODO Handle more formats. *)
       RGB.read_ppm
         ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha))
         fname
@@ -62,6 +70,10 @@ object
       if y < 0 then pos_y <- (Lazy.force Frame.video_height) - h + y;
       img <- Some f
 
+  method private sleep =
+    super#sleep ;
+    img <- None
+
   method private get_frame ab =
     if must_fail then begin
       VFrame.add_break ab (VFrame.position ab);
@@ -69,8 +81,15 @@ object
       must_fail <- false
     end else
       let off = VFrame.position ab in
-      let b = VFrame.content_of_type ~channels:1 ab off in
-      let size = VFrame.size ab in
+      let size =
+        match remaining with
+          | None -> VFrame.size ab - off
+          | Some r ->
+              let size = min (VFrame.size ab - off) r in
+                remaining <- Some (r - size) ;
+                size
+      in
+      let b = VFrame.content_of_type ~channels ab off in
       let img = Utils.get_some img in
         for c = 0 to Array.length b - 1 do
           let buf_c = b.(c) in
@@ -79,7 +98,10 @@ object
             done;
         done;
         VFrame.add_break ab (off+size) ;
-        if remaining <= 0 then must_fail <- true
+        if VFrame.is_partial ab then begin
+          assert (remaining = Some 0) ;
+          remaining <- nb_frames
+        end
 
 end
 
