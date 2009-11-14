@@ -49,7 +49,21 @@ let () =
 let () =
   let stream_kind = Lang.audio_mono in
   let kind_type = Lang.kind_type_of_kind_format ~fresh:1 stream_kind in
-  Lang.add_operator "id_mono"
+  Lang.add_operator "id.mono"
+    ["", Lang.source_t kind_type, None, None]
+    ~category:Lang.SoundProcessing
+    ~descr:"Does not do anything, \
+            but forces the stream type of the input source."
+    ~kind:stream_kind
+    (fun p kind ->
+       let f v = List.assoc v p in
+       let src = Lang.to_source (f "") in
+         new id ~kind src)
+
+let () =
+  let stream_kind = Lang.video_only in
+  let kind_type = Lang.kind_type_of_kind_format ~fresh:1 stream_kind in
+  Lang.add_operator "id.video_only"
     ["", Lang.source_t kind_type, None, None]
     ~category:Lang.SoundProcessing
     ~descr:"Does not do anything, \
