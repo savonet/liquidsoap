@@ -53,3 +53,5 @@ let create_track () = []
 
 (** Blit from one midi channel to another, units in ticks. *)
 let blit m _ m' _ _ = m := !m' (* TODO! *)
+
+let copy a = ref !a (* TODO! *)

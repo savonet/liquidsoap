@@ -1,6 +1,29 @@
-type data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t 
-type t = 
-  { 
+(*****************************************************************************
+
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2009 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
+
+type data =
+  (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type t =
+  {
     (** Order matter for C callbacks !! *)
     data   : data;
     width  : int;
@@ -15,33 +38,37 @@ let rgb_of_int n =
   (n lsr 16) land 0xff, (n lsr 8) land 0xff, n land 0xff
 
 let create ?stride width height =
-  let stride = 
+  let stride =
     match stride with
       | Some v -> v
       | None -> 4*width
-  in 
-  let data = 
-    Bigarray.Array1.create 
+  in
+  let data =
+    Bigarray.Array1.create
      Bigarray.int8_unsigned Bigarray.c_layout
      (stride*height)
   in
-  { 
+  {
     data   = data;
     width  = width;
     height = height;
     stride = stride
   }
 
-let copy f = 
+let copy f =
   let nf = create ~stride:f.stride f.width f.height in
   Bigarray.Array1.blit f.data nf.data;
   nf
 
+let copy_channel a = Array.map copy a
+
 external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
 
-external blit_off : t -> t -> int -> int -> bool -> unit = "caml_rgb_blit_off" "noalloc"
+external blit_off : t -> t -> int -> int -> bool -> unit
+  = "caml_rgb_blit_off" "noalloc"
 
-external blit_off_scale : t -> t -> int * int -> int * int -> bool -> unit = "caml_rgb_blit_off_scale" "noalloc"
+external blit_off_scale : t -> t -> int * int -> int * int -> bool -> unit
+  = "caml_rgb_blit_off_scale" "noalloc"
 
 let blit_fast src dst =
   blit src dst
@@ -56,7 +83,8 @@ external fill : t -> color -> unit = "caml_rgb_fill" "noalloc"
 
 external blank : t -> unit = "caml_rgb_blank" "noalloc"
 
-external of_linear_rgb : t -> string -> unit = "caml_rgb_of_linear_rgb" "noalloc"
+external of_linear_rgb : t -> string -> unit
+  = "caml_rgb_of_linear_rgb" "noalloc"
 
 let of_linear_rgb data width =
   let height = (String.length data / 3) / width in
@@ -81,13 +109,16 @@ external to_YUV420 : t -> yuv -> unit = "caml_rgb_to_YUV420" "noalloc"
 
 external get_pixel : t -> int -> int -> color = "caml_rgb_get_pixel"
 
-external set_pixel : t -> int -> int -> color -> unit = "caml_rgb_set_pixel" "noalloc"
+external set_pixel : t -> int -> int -> color -> unit
+  = "caml_rgb_set_pixel" "noalloc"
 
 external randomize : t -> unit = "caml_rgb_randomize" "noalloc"
 
-external scale_coef : t -> t -> int * int -> int * int -> unit = "caml_rgb_scale" "noalloc"
+external scale_coef : t -> t -> int * int -> int * int -> unit
+  = "caml_rgb_scale" "noalloc"
 
-external bilinear_scale_coef : t -> t -> float -> float -> unit = "caml_rgb_bilinear_scale" "noalloc"
+external bilinear_scale_coef : t -> t -> float -> float -> unit
+  = "caml_rgb_bilinear_scale" "noalloc"
 
 let scale src dst =
   let sw, sh = src.width,src.height in
@@ -129,7 +160,8 @@ let save_bmp f fname =
 
 exception Invalid_format of string
 
-let ppm_header = Str.regexp "P6\n\\(#.*\n\\)?\\([0-9]+\\) \\([0-9]+\\)\n\\([0-9]+\\)\n"
+let ppm_header =
+  Str.regexp "P6\n\\(#.*\n\\)?\\([0-9]+\\) \\([0-9]+\\)\n\\([0-9]+\\)\n"
 
 let of_ppm ?alpha data =
   (
@@ -145,9 +177,11 @@ let of_ppm ?alpha data =
   let o = Str.match_end () in
   let datalen = String.length data - o in
     if d <> 255 then
-      raise (Invalid_format (Printf.sprintf "Files of color depth %d are not handled." d));
+      raise (Invalid_format (Printf.sprintf "Files of color depth %d \
+                                             are not handled." d));
     if datalen < 3*w*h then
-      raise (Invalid_format (Printf.sprintf "Got %d bytes of data instead of expected %d." datalen (3*w*h)));
+      raise (Invalid_format (Printf.sprintf "Got %d bytes of data instead of \
+                                             expected %d." datalen (3*w*h)));
     let ans = create w h in
       for j = 0 to h - 1 do
         for i = 0 to w - 1 do
@@ -158,7 +192,8 @@ let of_ppm ?alpha data =
           in
           let a =
             match alpha with
-              | Some (ra, ga, ba) -> if r = ra && g = ga && b = ba then 0x00 else 0xff
+              | Some (ra, ga, ba) ->
+                  if r = ra && g = ga && b = ba then 0x00 else 0xff
               | None -> 0xff
           in
             set_pixel ans i j (r, g, b, a);
@@ -190,9 +225,11 @@ external rotate : t -> float -> unit = "caml_rgb_rotate" "noalloc"
 
 external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity" "noalloc"
 
-external disk_opacity : t -> int -> int -> int -> unit = "caml_rgb_disk_opacity" "noalloc"
+external disk_opacity : t -> int -> int -> int -> unit
+  = "caml_rgb_disk_opacity" "noalloc"
 
-external affine : t -> float -> float -> int -> int -> unit = "caml_rgb_affine" "noalloc"
+external affine : t -> float -> float -> int -> int -> unit
+  = "caml_rgb_affine" "noalloc"
 
 (* TODO: faster implementation? *)
 let translate f x y =
@@ -202,6 +239,7 @@ external mask : t -> t -> unit = "caml_rgb_mask" "noalloc"
 
 external lomo : t -> unit = "caml_rgb_lomo" "noalloc"
 
-external color_to_alpha : t -> int * int * int -> int -> unit = "caml_rgb_color_to_alpha" "noalloc"
+external color_to_alpha : t -> int * int * int -> int -> unit
+  = "caml_rgb_color_to_alpha" "noalloc"
 
 external blur_alpha : t -> unit = "caml_rgb_blur_alpha"

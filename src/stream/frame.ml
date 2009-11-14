@@ -484,3 +484,8 @@ let get_chunk ab from =
             aux i tl
   in
     aux 0 (List.rev from.breaks)
+
+let copy content =
+  { audio = Array.map Float_pcm.copy content.audio ;
+    video = Array.map RGB.copy_channel content.video ;
+    midi = Array.map Midi.copy content.midi }

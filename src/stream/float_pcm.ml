@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -136,3 +136,5 @@ let rms a off len =
       ans.(c) <- sqrt (ans.(c) /. (float len))
     done;
     ans
+
+let copy (a:float array) = Array.copy a

@@ -48,6 +48,8 @@ val resample_s16le : string -> int -> int ->
 (** Blit pcm *)
 val blit : float array -> int -> float array -> int -> int -> unit
 
+val copy : float array -> float array
+
 (** {2 Sound processing} *)
 
 val blankify : pcm -> int -> int -> unit

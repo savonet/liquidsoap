@@ -36,6 +36,8 @@ and midi_t = (int * Midi.event) list ref
 
 val blit_content : content -> int -> content -> int -> int -> unit
 
+val copy : content -> content
+
 type metadata = (string, string) Hashtbl.t
 type t = {
   mutable breaks : int list;

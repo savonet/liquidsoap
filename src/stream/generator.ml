@@ -65,7 +65,8 @@ let rec remove g len =
         g.offset <- 0 ;
         remove g (len-removed)
 
-(** Feed a content chunk into a generator. *)
+(** Feed an item into a generator.
+  * The item is put as such, not copied. *)
 let put g content ofs len =
   g.length <- g.length + len ;
   Queue.add (content,ofs,len) g.buffers
@@ -175,7 +176,7 @@ struct
       (* Feed all content layers into the generator. *)
       let rec feed_all ofs = function
         | (cstop,content)::contents ->
-            Generator.put fg.generator content ofs cstop ;
+            Generator.put fg.generator (Frame.copy content) ofs cstop ;
             if cstop < size then
               feed_all cstop contents
         | [] -> assert false

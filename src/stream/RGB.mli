@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -55,6 +55,8 @@ val create : ?stride:int -> int -> int -> t
 
 (** Copy a frame. *)
 val copy : t -> t
+
+val copy_channel : t array -> t array
 
 (** Get the value of a pixel. *)
 val get_pixel : t -> int -> int -> color
