@@ -106,10 +106,10 @@ encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml
 	$(if $(W_FAAC),outputs/faac_encoded.ml)
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
-	outputs/file_output.ml $(encoders) \
+	outputs/file_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
+	$(encoders)
 	# outputs/external_encoded.ml \
-	# $(if $(W_CRY),outputs/icecast2.ml \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
 	$(if $(W_BJACK),outputs/bjack_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml)
