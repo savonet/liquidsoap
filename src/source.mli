@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -110,13 +110,13 @@ object
 end
 
 (* This is for defining a source which has children *)
-class virtual operator : Frame.content_kind -> source list ->
+class virtual operator : ?name:string -> Frame.content_kind -> source list ->
 object
   inherit source
 end
 
 (* Entry-points sources, which need to actively perform some task. *)
-class virtual active_source : Frame.content_kind ->
+class virtual active_source : ?name:string -> Frame.content_kind ->
 object
   inherit source
   val memo : Frame.t
@@ -140,7 +140,7 @@ end
 
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
-class virtual active_operator : Frame.content_kind -> source ->
+class virtual active_operator : ?name:string -> Frame.content_kind -> source ->
 object
   inherit active_source
 end

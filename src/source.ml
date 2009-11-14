@@ -262,9 +262,9 @@ object (self)
 end
 
 (* Just an easy shortcut for defining the children sources *)
-class virtual operator content_kind (l:source list) =
+class virtual operator ?name content_kind (l:source list) =
 object
-  inherit source content_kind
+  inherit source ?name content_kind
   initializer sources <- l
 end
 
@@ -276,9 +276,9 @@ let fold_outputs f x = List.fold_left f x !entries
 let has_outputs () = !entries <> []
 
 (* Entry-points sources, which need to actively perform some task. *)
-class virtual active_source content_kind =
+class virtual active_source ?name content_kind =
 object (self)
-  inherit source content_kind
+  inherit source ?name content_kind
   initializer
     sources <- [] ;
     register (self:>active_source)
@@ -302,8 +302,8 @@ end
 
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
-class virtual active_operator content_kind (l:source) =
+class virtual active_operator ?name content_kind (l:source) =
 object (self)
-  inherit active_source content_kind
+  inherit active_source ?name content_kind
   initializer sources <- [l]
 end
