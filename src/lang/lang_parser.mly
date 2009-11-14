@@ -184,7 +184,22 @@
             | _ -> raise Parsing.Parse_error)
         defaults params
     in
-      mk (Encoder (Encoder.Ogg [Encoder.Ogg.Vorbis vorbis]))
+      Encoder.Ogg.Vorbis vorbis
+
+  let mk_theora params =
+    let defaults = { Encoder.Theora.quality = 100 } in
+    let theora =
+      List.fold_left
+        (fun f ->
+          function
+            | ("quality",{ term = Int i }) ->
+                { (* f with *) Encoder.Theora.quality = i }
+            | ("",{ term = Int i }) ->
+                { (* f with *) Encoder.Theora.quality = i }
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      Encoder.Ogg.Theora theora
 
 %}
 
@@ -197,7 +212,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token VORBIS WAV MP3
+%token OGG VORBIS THEORA WAV MP3
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -256,9 +271,10 @@ expr:
   | FLOAT                            { mk (Float  $1) }
   | STRING                           { mk (String $1) }
   | list                             { mk (List $1) }
-  | VORBIS app_opt                   { mk_vorbis $2 }
   | MP3 app_opt                      { mk_mp3 $2 }
   | WAV app_opt                      { mk_wav $2 }
+  | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
+  | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
   | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
   | VAR                              { mk (Var $1) }
@@ -303,9 +319,10 @@ cexpr:
   | FLOAT                            { mk (Float  $1) }
   | STRING                           { mk (String $1) }
   | list                             { mk (List $1) }
-  | VORBIS app_opt                   { mk_vorbis $2 }
   | MP3 app_opt                      { mk_mp3 $2 }
   | WAV app_opt                      { mk_wav $2 }
+  | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
+  | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
   | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
   | VAR                              { mk (Var $1) }
@@ -403,3 +420,10 @@ if_elsif:
 app_opt:
   | { [] }
   | LPAR app_list RPAR { $2 }
+
+ogg_items:
+  | ogg_item { [$1] }
+  | ogg_item COMMA ogg_items { $1::$3 }
+ogg_item:
+  | VORBIS app_opt { mk_vorbis $2 }
+  | THEORA app_opt { mk_theora $2 }

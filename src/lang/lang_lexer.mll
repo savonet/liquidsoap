@@ -127,7 +127,9 @@ rule token = parse
   | "elsif"  { ELSIF }
   | "->"     { YIELDS }
 
+  | "%ogg"    { OGG }
   | "%vorbis" { VORBIS }
+  | "%theora" { THEORA }
   | "%wav" { WAV }
   | "%mp3" { MP3 }
 
