@@ -115,7 +115,7 @@ end
  * The generator shouldn't be fed anymore. *)
 class consumer ~kind generator =
 object
-  inherit Source.source kind
+  inherit Source.source ~name:"buffer" kind
   inherit source generator ~bufferize:0. ~empty_on_abort:true
   method stype = Source.Fallible
 end

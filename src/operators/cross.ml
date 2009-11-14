@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@ module Generated = Generated.Make(Generator)
 class cross s ~kind ?(meta="liq_start_next") ~cross_length
               ~conservative ~inhibit ~minimum_length f =
 object (self)
-  inherit operator kind [s] as super
+  inherit operator ~name:"cross" kind [s] as super
 
   method stype = s#stype (* This actually depends on [f]. *)
 
@@ -148,8 +148,9 @@ object (self)
               (* Try to catch a [liq_start_next] value. *)
               self#update_cross_length ab p
 
-  (* [bufferize n] stores at most [n+d] frames from [s] in [buffers],
-   * where [d=Frame.size-1]. *)
+  (* Try to store [n] ticks of data from [s] in [buffer],
+   * setup the crossing when the end of track is reached,
+   * otherwise remain in `Started (buffering) mode. *)
   method private buffering buffer n =
     Frame.advance buf_frame ;
     self#source_get buf_frame ;
@@ -161,15 +162,15 @@ object (self)
        * the composed [source]. *)
       let s =
         if not s#is_ready then self#log#f 3 "No ready track yet." ;
-        if Generator.length buffer > minimum_length then
-          Lang.to_source
-            (Lang.apply f ["",Lang.source (new Generated.consumer ~kind buffer);
-                           "",Lang.source s])
-        else begin
-          self#log#f 4 "Not enough data for crossing." ;
-          ((new Sequence.sequence ~kind
-                  [(new Generated.consumer ~kind buffer); s]))
-        end
+        let end_of_track = new Generated.consumer ~kind buffer in
+          if Generator.length buffer > minimum_length then
+            Lang.to_source
+              (Lang.apply f ["",Lang.source end_of_track;
+                             "",Lang.source s])
+          else begin
+            self#log#f 4 "Not enough data for crossing." ;
+            new Sequence.sequence ~kind [end_of_track; s]
+          end
       in
         source#leave (self:>source) ;
         s#get_ready activation ;

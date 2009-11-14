@@ -24,8 +24,6 @@
 
 class noise ~kind duration =
   let ctype = Frame.type_of_kind kind in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
   let () = assert (ctype.Frame.midi = 0) in
 object
 

@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ open Source
 
 class sequence ~kind ?(merge=false) sources =
 object (self)
-  inherit operator kind sources as super
+  inherit operator ~name:"sequence" kind sources as super
 
   val mutable sources = sources
   initializer assert (sources <> [])
