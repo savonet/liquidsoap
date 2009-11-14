@@ -549,9 +549,11 @@ CAMLprim value caml_rgb_randomize(value f)
   caml_register_global_root(&f);
   caml_enter_blocking_section();
   for (j = 0; j < rgb.height; j++)
-    for (i = 0; i < rgb.width; i++)
+    for (i = 0; i < rgb.width; i++) {
+	  Alpha(&rgb,i,j) = 0xff;
       for (c = 0; c < Rgb_colors; c++)
         Color(&rgb,c,i,j) = rand();
+	}
   caml_leave_blocking_section();
   caml_remove_global_root(&f);
 

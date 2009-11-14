@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -25,58 +25,28 @@
 open Source
 
 class sine ~kind freq duration =
-  let nb_samples = Frame.audio_of_seconds duration in
   let period = int_of_float (float (Lazy.force Frame.audio_rate) /. freq) in
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit source ~name:"sine" kind
 
-  method stype = Infallible
-  method is_ready = true
-
-  (** The [remaining] variable is only used if [nb_samples>0]. *)
-  val mutable remaining = nb_samples
-  method remaining =
-    if nb_samples>0 then Frame.master_of_audio remaining else -1
-
-  val mutable must_fail = false
-  method abort_track =
-    must_fail <- true;
-    remaining <- 0
+  inherit Synthesized.source ~name:"sine" kind duration
 
   val mutable pos = 0
 
-  method get_frame ab =
-    if must_fail then begin
-      AFrame.add_break ab (AFrame.position ab);
-      remaining <- nb_samples;
-      must_fail <- false
-    end else
-      let off = AFrame.position ab in
-      let b = AFrame.content_of_type ~channels ab off in
-      let size = AFrame.size () in
-      let end_off =
-        if nb_samples > 0 then
-          min size (off + remaining)
-        else
-          size
-      in
-      let write i x =
-        for c = 0 to Array.length b - 1 do
-          b.(c).(i) <- x
-        done
-      in
-        for i = off to end_off - 1 do
-          write i (sin (float pos /. float period *. 2. *. 3.1416));
-          pos <- pos + 1;
-          if pos >= period then pos <- pos - period;
-        done;
-        AFrame.add_break ab end_off;
-        if end_off < size then begin
-          remaining <- nb_samples
-        end else begin
-          remaining <- remaining - end_off + off;
-        end
+  method private synthesize frame off len =
+    let off = Frame.audio_of_master off in
+    let len = Frame.audio_of_master len in
+    let b = AFrame.content_of_type ~channels frame off in
+    let write i x =
+      for c = 0 to Array.length b - 1 do
+        b.(c).(i) <- x
+      done
+    in
+      for i = off to off+len-1 do
+        write i (sin (float pos /. float period *. 2. *. 3.1416));
+        pos <- pos + 1;
+        if pos >= period then pos <- pos - period;
+      done
 
 end
 

@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -22,65 +22,50 @@
 
 (** Generate a white noise *)
 
-open Source
-
-class noise duration =
-    let nb_samples = Fmt.samples_of_seconds duration in
-
+class noise ~kind duration =
+  let ctype = Frame.type_of_kind kind in
+  let width = Lazy.force Frame.video_width in
+  let height = Lazy.force Frame.video_height in
+  let () = assert (ctype.Frame.midi = 0) in
 object
-  inherit source
 
-  method stype = Infallible
-  method is_ready = true
+  inherit Synthesized.source ~name:"noise" kind duration
 
-  (** The [remaining] variable is only used if [nb_samples>0]. *)
-  val mutable remaining = nb_samples
-  method remaining =
-    if nb_samples>0 then Fmt.ticks_of_samples remaining else -1
-
-  val mutable must_fail = false
-  method abort_track =
-    must_fail <- true;
-    remaining <- 0
-
-  method private get_frame ab =
-    if must_fail then begin
-      AFrame.add_break ab (AFrame.position ab);
-      remaining <- nb_samples;
-      must_fail <- false
-    end else
-      let b = AFrame.get_float_pcm ab in
-      let off = AFrame.position ab in
-      let end_off =
-        if nb_samples > 0 then
-          min (AFrame.size ab) (off + remaining)
-        else
-          AFrame.size ab
-      in
+  method private synthesize frame off len =
+    let content = Frame.content_of_type frame off ctype in
+    begin
+      let off = Frame.audio_of_master off in
+      let len = Frame.audio_of_master len in
+      let b = content.Frame.audio in
       let write i x =
         for c = 0 to Array.length b - 1 do
           b.(c).(i) <- x
         done
       in
-        for i = off to end_off - 1 do
-          write i (Random.float 2. -. 1.);
-        done;
-        AFrame.add_break ab end_off;
-        if end_off < AFrame.size ab then begin
-          remaining <- nb_samples
-        end else begin
-          remaining <- remaining - end_off + off;
-        end
+        for i = off to off+len-1 do
+          write i (Random.float 2. -. 1.)
+        done
+    end ;
+    begin
+      let off = Frame.video_of_master off in
+      let len = Frame.video_of_master len in
+      let b = content.Frame.video in
+        for c = 0 to Array.length b - 1 do
+          let buf_c = b.(c) in
+          for i = 0 to len - 1 do
+            RGB.randomize buf_c.(off+i)
+          done
+      done
+    end
 
 end
 
 let () =
-  Lang.add_operator "noise"
-    ~category:Lang.Input
-    ~descr:"Generate white noise."
-    [
-      "duration", Lang.float_t, Some (Lang.float 0.), None
-    ]
-    (fun p _ ->
-       new noise
-         (Lang.to_float (List.assoc "duration" p)))
+  let k = Lang.frame_kind_t (Lang.univ_t 1) (Lang.univ_t 2) Lang.zero_t in
+    Lang.add_operator "noise"
+      ~category:Lang.Input
+      ~descr:"Generate white noise."
+      [ "duration", Lang.float_t, Some (Lang.float 0.), None ]
+      ~kind:(Lang.Unconstrained k)
+      (fun p kind ->
+         new noise ~kind (Lang.to_float (List.assoc "duration" p)))

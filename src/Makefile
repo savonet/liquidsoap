@@ -45,7 +45,9 @@ protocols = \
 	protocols/mpd.ml protocols/extproto.ml \
 	$(if $(W_LAST),protocols/lastfm_req.ml)
 
-sources = sources/blank.ml sources/sine.ml sources/square.ml sources/saw.ml \
+sources = \
+	sources/synthesized.ml sources/noise.ml sources/blank.ml \
+	sources/sine.ml sources/square.ml sources/saw.ml \
 	sources/request_source.ml \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
@@ -54,7 +56,7 @@ sources = sources/blank.ml sources/sine.ml sources/square.ml sources/saw.ml \
 	sources/video_image.ml \
 	# sources/external_input.ml \
 	$(if $(W_OGG),sources/http_ogg.ml) \
-	sources/noise.ml sources/harbor_input.ml \
+	sources/harbor_input.ml \
 	$(if $(W_MP3),sources/http_mp3.ml) \
 	$(if $(W_FAAD),sources/http_aac.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
@@ -184,10 +186,9 @@ liquidsoap_doc_sources= \
 	tools/doc.ml tools/wav.ml \
 	sources/request_source.ml operators/switch.ml \
 	configure.ml video_converter.ml \
-	$(if $(W_OGG),ogg_encoder.ml ogg_demuxer.ml) \
 	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml \
 	stream/vFrame.ml stream/RGB.ml audio_converter.ml \
-	stream/mFrame.ml
+	stream/mFrame.ml stream/generator.ml
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
