@@ -47,13 +47,11 @@ protocols = \
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
-	sources/sine.ml sources/square.ml sources/saw.ml \
+	sources/sine.ml sources/square.ml sources/saw.ml sources/video_image.ml \
 	sources/request_source.ml \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
-	sources/video_noise.ml \
-	sources/video_image.ml \
 	# sources/external_input.ml \
 	$(if $(W_OGG),sources/http_ogg.ml) \
 	sources/harbor_input.ml \
