@@ -67,16 +67,15 @@ operators = \
 	operators/on_metadata.ml operators/store_metadata.ml \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
 	operators/switch.ml operators/fade.ml operators/add.ml \
-	operators/sequence.ml operators/cross.ml \
+	operators/sequence.ml operators/cross.ml operators/smartcross.ml \
 	operators/compress_exp.ml operators/pitch.ml \
 	operators/fir_filter.ml operators/iir_filter.ml \
 	operators/biquad_filter.ml operators/substract.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
 	operators/compress.ml operators/clip.ml operators/filter.ml \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
-	operators/append.ml operators/pan.ml
-	# operators/prepend.ml
-	# operators/smartcross.ml \
+	operators/append.ml operators/pan.ml \
+	# operators/prepend.ml \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml \
 	operators/mean.ml operators/swap.ml \

@@ -22,18 +22,21 @@
 
 open Source
 
-module Generator = Float_pcm.Generator
-module Generated = Generated.From_Float_pcm_Generator
+module Generator = Generator.From_frames
+module Generated = Generated.Make(Generator)
 
 (** [rms_width], [inhibit] and [minimum_length] are all in samples.
-  * [cross_length] is in ticks (like #remaining estimations). *)
-class cross s ~cross_length ~rms_width ~inhibit ~minimum_length
-              ~conservative transition =
+  * [cross_length] is in ticks (like #remaining estimations).
+  * We are assuming a fixed audio kind -- at least for now. *)
+class cross ~kind s
+            ~cross_length ~rms_width ~inhibit ~minimum_length
+            ~conservative transition =
+  let channels = float (Frame.type_of_kind kind).Frame.audio in
 object (self)
   (* We declare that [s] is our source but we'll actually
    * have to overrid some of the children maintainance operations
    * since we forge our child. *)
-  inherit operator [s] as super
+  inherit operator kind [s] as super
 
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
@@ -60,7 +63,7 @@ object (self)
    * It is used to buffer the end and beginnings of tracks.
    * Its past metadata should mimick that of the main stream in order
    * to avoid metadata duplication. *)
-  val buf_frame = Frame.make ()
+  val buf_frame = Frame.create kind
 
   method private reset_analysis =
     gen_before <- Generator.create () ;
@@ -110,7 +113,7 @@ object (self)
 
   val mutable status = `Idle
 
-  method private get_frame ab =
+  method private get_frame frame =
     match status with
       | `Idle ->
           (* TODO 0 is often answered just before the beginning of a track
@@ -118,25 +121,25 @@ object (self)
            * Or simply don't bother about that harmless transition. *)
           let rem = if conservative then 0 else source#remaining in
             if rem < 0 || rem > cross_length then
-              self#source_get ab
+              self#source_get frame
             else begin
               self#log#f 4 "Buffering end of track..." ;
               status <- `Before ;
               Frame.set_all_metadata buf_frame
-                (match Frame.get_past_metadata ab with
+                (match Frame.get_past_metadata frame with
                    | Some x -> [-1,x] | None -> []) ;
               self#buffering cross_length ;
               begin match status with
                 | `Limit -> ()
                 | _ -> self#log#f 4 "More buffering will be needed."
               end ;
-              self#get_frame ab
+              self#get_frame frame
             end
       | `Before ->
           (* We started buffering but the track didn't end.
            * Play the beginning of the buffer while filling it more. *)
           self#buffering 0 ;
-          Generator.fill gen_before ab
+          Generator.fill gen_before frame
       | `Limit ->
           (* The track finished.
            * We compute rms_after and launch the transition. *)
@@ -144,20 +147,20 @@ object (self)
           self#create_transition ;
           (* Check if the new source is ready *)
           if source#is_ready then
-            self#get_frame ab
+            self#get_frame frame
           else
-            Frame.add_break ab (Frame.position ab)
+            Frame.add_break frame (Frame.position frame)
       | `After size ->
           (* The work is done, we are now playing the transition.
            * We have to keep playing it without checking for a new track limit
            * for [size] samples. *)
           if size<=0 then begin
             status <- `Idle ;
-            self#get_frame ab
+            self#get_frame frame
           end else
-            let position = AFrame.position ab in
-              self#source_get ab ;
-              status <- `After (size-(AFrame.position ab)+position)
+            let position = AFrame.position frame in
+              self#source_get frame ;
+              status <- `After (size-(AFrame.position frame)+position)
 
   (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
    * where [d=AFrame.size-1]. *)
@@ -169,12 +172,13 @@ object (self)
     (* Store them. *)
     Generator.feed_from_frame gen_before buf_frame ;
     (* Analyze them *)
+    let pcm = AFrame.content buf_frame 0 in
     for i = 0 to AFrame.position buf_frame - 1 do
       let squares =
         Array.fold_left
           (fun squares track -> squares +. track.(i)*.track.(i))
           0.
-          (AFrame.get_float_pcm buf_frame)
+          pcm
       in
         rms_before <- rms_before -. mem_before.(mem_i) +. squares ;
         mem_before.(mem_i) <- squares ;
@@ -198,12 +202,13 @@ object (self)
         if !first then after_metadata <- AFrame.get_metadata buf_frame 0 ;
         first := false ;
         Generator.feed_from_frame gen_after buf_frame ;
+        let pcm = AFrame.content buf_frame 0 in
         for i = 0 to AFrame.position buf_frame - 1 do
           let squares =
             Array.fold_left
               (fun squares track -> squares +. track.(i)*.track.(i))
               0.
-            (AFrame.get_float_pcm buf_frame)
+              pcm
           in
             rms_after <- rms_after +. squares ;
             rmsi_after <- rmsi_after + 1
@@ -213,23 +218,20 @@ object (self)
         if AFrame.is_partial buf_frame then todo := 0
       done
 
-  val chans = float (Fmt.channels())
-
   (* Sum up analysis and build the transition *)
   method private create_transition =
-    let chans = float (Fmt.channels()) in
     let db_after  =
-      Sutils.dB_of_lin (sqrt (rms_after  /. float rmsi_after /. chans))
+      Sutils.dB_of_lin (sqrt (rms_after  /. float rmsi_after /. channels))
     in
     let db_before =
-      Sutils.dB_of_lin (sqrt (rms_before /. float rmsi_before /. chans))
+      Sutils.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
     in
-    let before = ((new Generated.consumer gen_before):>source) in
+    let before = ((new Generated.consumer ~kind gen_before):>source) in
     let after  =
       let beginning =
-        ((new Generated.consumer gen_after):>source)
+        ((new Generated.consumer ~kind gen_after):>source)
       in
-        ((new Sequence.sequence ~merge:true [beginning;s]):>source)
+        ((new Sequence.sequence ~kind ~merge:true [beginning;s]):>source)
     in
     let metadata =
       function None -> Lang.list [] | Some m -> Lang.metadata m
@@ -248,13 +250,13 @@ object (self)
     let compound =
       self#log#f 3 "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
            db_before db_after
-           (Fmt.seconds_of_samples (Generator.length gen_before))
-           (Fmt.seconds_of_samples (Generator.length gen_after)) ;
-      if Generator.length gen_before > minimum_length then
+           (Frame.seconds_of_master (Generator.length gen_before))
+           (Frame.seconds_of_master (Generator.length gen_after)) ;
+      if Generator.length gen_before > Frame.master_of_audio minimum_length then
         f before after
       else begin
         self#log#f 3 "Not enough data for crossing." ;
-        ((new Sequence.sequence [before;after]):>source)
+        ((new Sequence.sequence ~kind [before;after]):>source)
       end
     in
       source#leave (self:>source) ;
@@ -268,8 +270,10 @@ object (self)
       | `Idle | `After _ -> source#remaining
       | `Limit -> 0
       | `Before ->
-          source#remaining +
-          Generator.length gen_before * Fmt.ticks_per_sample ()
+          let rem = source#remaining in
+            if rem<0 then -1 else
+              source#remaining +
+              Generator.length gen_before
 
   method is_ready = source#is_ready
 
@@ -277,13 +281,8 @@ object (self)
 
 end
 
-let transition_t =
-  Lang.fun_t [false,"",Lang.source_t;false,"",Lang.source_t] Lang.source_t
-
-let condition_t =
-  Lang.fun_t [false,"",Lang.int_t;false,"",Lang.int_t] Lang.bool_t
-
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "smart_cross"
     [ "duration", Lang.float_t, Some (Lang.float 5.),
       Some "Duration in seconds of the crossed end of track." ;
@@ -313,42 +312,43 @@ let () =
 
       "",
       Lang.fun_t
-        [false,"",Lang.float_t;false,"",Lang.float_t;
-         false,"",Lang.metadata_t;false,"",Lang.metadata_t;
-         false,"",Lang.source_t;false,"",Lang.source_t]
-        Lang.source_t,
+        [false,"",Lang.float_t; false,"",Lang.float_t;
+         false,"",Lang.metadata_t; false,"",Lang.metadata_t;
+         false,"",Lang.source_t k; false,"",Lang.source_t k]
+        (Lang.source_t k),
       None,
       Some "Transition function, composing from the end of a track \
             and the next track. It also takes the power of the signal before \
             and after the transition, and the metadata." ;
 
-      "",Lang.source_t,None,None
+      "", Lang.source_t k, None, None
 
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Cross operator, allowing the composition of \
             the N last seconds of a track with the beginning of \
             the next track, using a transition function depending on \
             the relative power of the signal before and after \
             the end of track."
-    (fun p _ ->
+    (fun p kind ->
        let duration = Lang.to_float (List.assoc "duration" p) in
-       let cross_length = Fmt.ticks_of_seconds duration in
+       let cross_length = Frame.master_of_seconds duration in
 
        let minimum = Lang.to_float (List.assoc "minimum" p) in
-       let minimum_length = Fmt.samples_of_seconds minimum in
+       let minimum_length = Frame.audio_of_seconds minimum in
 
        let inhibit = Lang.to_float (List.assoc "inhibit" p) in
        let inhibit = if inhibit < 0. then duration +. 1. else inhibit in
-       let inhibit = Fmt.samples_of_seconds inhibit in
+       let inhibit = Frame.audio_of_seconds inhibit in
 
        let rms_width = Lang.to_float (List.assoc "width" p) in
-       let rms_width = Fmt.samples_of_seconds rms_width in
+       let rms_width = Frame.audio_of_seconds rms_width in
 
        let transition = Lang.assoc "" 1 p in
 
        let conservative = Lang.to_bool (List.assoc "conservative" p) in
 
        let source = Lang.to_source (Lang.assoc "" 2 p) in
-         new cross source transition ~conservative
+         new cross ~kind source transition ~conservative
                ~cross_length ~rms_width ~inhibit ~minimum_length)
