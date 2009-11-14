@@ -20,31 +20,38 @@
 
  *****************************************************************************)
 
-(** WAV encoder *)
+(** MP3 encoder *)
 
 open Encoder
-open Encoder.WAV
+open Encoder.MP3
 
-let encoder wav =
-  let channels = if wav.stereo then 2 else 1 in
-  let sample_rate = Lazy.force Frame.audio_rate in
-  let header =
-    Wav.header
-      ~channels ~sample_rate
-      ~sample_size:16 ~big_endian:false ~signed:true ()
-  in
-  let need_header = ref true in
+let create_encoder ~samplerate ~bitrate ~quality ~stereo =
+  let enc = Lame.create_encoder () in
+    (* Input settings *)
+    Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
+    Lame.set_num_channels enc (if stereo then 2 else 1) ;
+    (* Output settings *)
+    Lame.set_mode enc (if stereo then Lame.Stereo else Lame.Mono) ;
+    Lame.set_quality enc quality ;
+    Lame.set_out_samplerate enc samplerate ;
+    Lame.set_brate enc bitrate ;
+    Lame.init_params enc ;
+    enc
+
+let encoder mp3 =
+  let channels = if mp3.stereo then 2 else 1 in
+  let e = create_encoder ~samplerate:mp3.samplerate ~bitrate:mp3.bitrate ~quality:mp3.quality ~stereo:mp3.stereo in
+
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
     let s = String.create (2 * len * channels) in
     ignore (Float_pcm.to_s16le b start len s 0) ;
-    if !need_header then begin
-      need_header := false ;
-      header ^ s
-    end else
-      s
+    if channels = 1 then
+      Lame.encode_buffer_float_part e b.(0) b.(0) start len
+    else
+      Lame.encode_buffer_float_part e b.(0) b.(1) start len
   in
     {
       reset = (fun m -> "") ;
@@ -53,7 +60,7 @@ let encoder wav =
     }
 
 let () =
-  Encoder.plug#register "WAV"
+  Encoder.plug#register "MP3"
     (function
-       | Encoder.WAV w -> Some (fun () -> encoder w)
+       | Encoder.MP3 m -> Some (fun () -> encoder m)
        | _ -> None)

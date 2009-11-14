@@ -95,7 +95,7 @@ conversions = \
 analyze =
 # analyze/analyze_rms.ml
 
-encoders = encoder/wav_encoder.ml
+encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml
 	# $(if $(W_OGG),outputs/ogg_output.ml) \
 	$(if $(W_LAME),outputs/lame_encoded.ml) \
 	$(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
