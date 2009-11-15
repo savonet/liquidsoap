@@ -50,7 +50,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.audio_stereo in
     Lang.add_operator "stereo.pan"
       [ "pan", Lang.float_getter_t 1,  Some (Lang.float 0.),
         Some "Pan ranges between -1 and 1." ;
