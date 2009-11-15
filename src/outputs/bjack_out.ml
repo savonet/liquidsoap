@@ -89,8 +89,7 @@ object (self)
 end
 
 let () =
-  (* TODO: generalize type? *)
-  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_stereo in
+  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
   Lang.add_operator "output.jack"
    ( Output.proto @
     [ "buffer_size",
