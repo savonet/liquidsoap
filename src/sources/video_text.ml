@@ -22,9 +22,12 @@
 
 open Source
 
-class text ttf ttf_size color dx dy speed cycle text =
+class text ~kind ttf ttf_size color dx dy speed cycle text =
+let channels = (Frame.type_of_kind kind).Frame.video in
+let video_height = Lazy.force Frame.video_height in
+let video_width = Lazy.force Frame.video_width in
 object (self)
-  inherit source
+  inherit source kind as super
 
   method stype = Infallible
   method is_ready = true
@@ -59,7 +62,7 @@ object (self)
     let tf = RGB.create w h in
     let tr, tg, tb = RGB.rgb_of_int color in
       if dy < 0 then
-        pos_y <- Fmt.video_height () + dy - h;
+        pos_y <- video_height + dy - h;
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
@@ -86,8 +89,8 @@ object (self)
     self#render_text cur_text
 
   method private get_frame ab =
-    let b = VFrame.get_rgb ab in
     let off = VFrame.position ab in
+    let b = VFrame.content_of_type ~channels ab off in
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
     let tfw = tf.RGB.width in
@@ -95,7 +98,7 @@ object (self)
         (
           cur_text <- text ();
           self#render_text cur_text;
-          if pos_x = -tfw then pos_x <- Fmt.video_width ()
+          if pos_x = -tfw then pos_x <- video_width
         );
       for c = 0 to Array.length b - 1 do
         let buf_c = b.(c) in
@@ -105,12 +108,12 @@ object (self)
             pos_x <- pos_x - speed;
             if pos_x < -tfw then
               if cycle then
-                pos_x <- Fmt.video_width ()
+                pos_x <- video_width
               else
                 pos_x <- -tfw (* avoid overflows *)
           done;
       done;
-      AFrame.add_break ab (AFrame.size ab)
+      VFrame.add_break ab (VFrame.size ab)
 end
 
 let () =
@@ -125,7 +128,7 @@ let () =
       "color", Lang.int_t, Some (Lang.int 0xffffff),
       Some "Text color (in 0xRRGGBB format).";
 
-      "x", Lang.int_t, Some (Lang.int (Fmt.video_width ())), Some "x offset.";
+      "x", Lang.int_t, Some (Lang.int (Lazy.force Frame.video_width)), Some "x offset.";
       "y", Lang.int_t, Some (Lang.int (-5)),
       Some "y offset (negative means from bottom).";
 
@@ -135,9 +138,10 @@ let () =
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cycle text.";
       "", Lang.string_getter_t 1, None, Some "Text to display.";
     ]
+    ~kind:Lang.video_only
     ~category:Lang.Input
     ~descr:"Display a text."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let ttf, ttf_size, color, x, y, speed, cycle, txt =
          Lang.to_string (f "font"),
@@ -149,5 +153,5 @@ let () =
          Lang.to_bool (f "cycle"),
          Lang.to_string_getter (f "")
        in
-       let speed = speed / Fmt.video_frames_per_second () in
-         new text ttf ttf_size color x y speed cycle txt)
+       let speed = speed / (Lazy.force Frame.video_rate) in
+         new text ~kind ttf ttf_size color x y speed cycle txt)

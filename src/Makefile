@@ -52,6 +52,7 @@ sources = \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
+	$(if $(W_SDL),sources/video_text.ml)
 	# sources/external_input.ml \
 	$(if $(W_OGG),sources/http_ogg.ml) \
 	sources/harbor_input.ml \
@@ -60,7 +61,6 @@ sources = \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
-	$(if $(W_SDL),sources/video_text.ml)
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
