@@ -28,7 +28,7 @@ type t = Float | Int | Bool
 
 let log = Log.make ["LADSPA extension"]
 
-let ladspa_enable = 
+let ladspa_enable =
   try
     let venv = Unix.getenv "LIQ_LADSPA" in
       venv = "1" || venv = "true"
@@ -48,9 +48,9 @@ let port_t d p =
   else if Descriptor.port_is_integer d p then Int
   else Float
 
-class virtual base source =
+class virtual base ~kind source =
 object
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
@@ -61,9 +61,9 @@ object
   method abort_track = source#abort_track
 end
 
-class virtual base_nosource =
+class virtual base_nosource ~kind =
 object
-  inherit source
+  inherit source kind
 
   method stype = Infallible
 
@@ -78,19 +78,19 @@ object
 end
 
 (* A plugin is created for each channel. *)
-class ladspa (source:source) plugin descr input output params =
+class ladspa ~kind (source:source) plugin descr input output params =
 object (self)
-  inherit base source
+  inherit base ~kind source
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-      Array.init (Fmt.channels ())
+      Array.init ((Frame.type_of_kind kind).Frame.audio)
         (fun _ ->
            Descriptor.instantiate
              d
-             (Fmt.samples_per_second ())
-             (Fmt.samples_per_frame ()))
+             (Frame.audio_of_seconds 1.)
+             (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -98,7 +98,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
-    let b = AFrame.get_float_pcm buf in
+    let b = AFrame.content buf offset in
     let position = AFrame.position buf in
     let len = position - offset in
       for c = 0 to Array.length b - 1 do
@@ -112,19 +112,19 @@ object (self)
       done
 end
 
-class ladspa_nosource plugin descr output params =
+class ladspa_nosource ~kind plugin descr output params =
 object (self)
-  inherit base_nosource
+  inherit base_nosource ~kind
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-      Array.init (Fmt.channels ())
+      Array.init ((Frame.type_of_kind kind).Frame.audio)
         (fun _ ->
            Descriptor.instantiate
              d
-             (Fmt.samples_per_second ())
-             (Fmt.samples_per_frame ()))
+             (Frame.audio_of_seconds 1.)
+             (Lazy.force Frame.audio_rate))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -137,8 +137,8 @@ object (self)
       )
     else
       let offset = AFrame.position buf in
-      let b = AFrame.get_float_pcm buf in
-      let position = AFrame.size buf in
+      let b = AFrame.content buf offset in
+      let position = AFrame.size () in
       let len = position - offset in
         for c = 0 to Array.length b - 1 do
           Descriptor.set_samples inst.(c) len;
@@ -152,17 +152,17 @@ object (self)
 end
 
 (* The plugin handles stereo streams. *)
-class ladspa_stereo (source:source) plugin descr inputs outputs params =
+class ladspa_stereo ~kind (source:source) plugin descr inputs outputs params =
 object (self)
-  inherit base source
+  inherit base ~kind source
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
       Descriptor.instantiate
         d
-        (Fmt.samples_per_second ())
-        (Fmt.samples_per_frame ())
+        (Frame.audio_of_seconds 1.)
+        (Lazy.force Frame.audio_rate)
 
   initializer
     Descriptor.activate inst
@@ -170,7 +170,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
-    let b = AFrame.get_float_pcm buf in
+    let b = AFrame.content buf offset in
     let position = AFrame.position buf in
     let len = position - offset in
       List.iter
@@ -184,17 +184,17 @@ object (self)
       Descriptor.run inst
 end
 
-class ladspa_stereo_nosource plugin descr outputs params =
+class ladspa_stereo_nosource ~kind plugin descr outputs params =
 object (self)
-  inherit base_nosource
+  inherit base_nosource ~kind
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
       Descriptor.instantiate
         d
-        (Fmt.samples_per_second ())
-        (Fmt.samples_per_frame ())
+        (Frame.audio_of_seconds 1.)
+        (Lazy.force Frame.audio_rate)
 
   initializer
     Descriptor.activate inst
@@ -207,8 +207,8 @@ object (self)
       )
     else
       let offset = AFrame.position buf in
-      let b = AFrame.get_float_pcm buf in
-      let position = AFrame.size buf in
+      let b = AFrame.content buf offset in
+      let position = AFrame.size () in
       let len = position - offset in
         List.iter
           (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
@@ -257,7 +257,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
              ),
              (match
                 Descriptor.port_get_default d
-                  ~samplerate:(Fmt.samples_per_second ()) p
+                  ~samplerate:(Frame.audio_of_seconds 1.) p
               with
                 | Some f ->
                     Some
@@ -270,11 +270,11 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
              let bounds =
                let min =
                  Descriptor.port_get_min d
-                   ~samplerate:(Fmt.samples_per_second ()) p
+                   ~samplerate:(Frame.audio_of_seconds 1.) p
                in
                let max =
                  Descriptor.port_get_max d
-                   ~samplerate:(Fmt.samples_per_second ()) p
+                   ~samplerate:(Frame.audio_of_seconds 1.) p
                in
                  if (min, max) = (None, None) then ""
                  else
@@ -315,14 +315,16 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
         )
         control_ports
   in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (if stereo then Lang.audio_stereo else Lang.audio_any) in
   let liq_params =
-    liq_params@(if inputs = None then [] else ["", Lang.source_t, None, None])
+    liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
   in
     Lang.add_operator ("ladspa." ^ norm_string (Descriptor.label d)) liq_params
+      ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundProcessing
       ~flags:[Lang.Hidden]
       ~descr:(Descriptor.name d ^ ".")
-      (fun p _ ->
+      (fun p kind ->
          let f v = List.assoc v p in
          let source =
            try
@@ -349,7 +351,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
            match inputs with
              | Some inputs ->
                  if stereo then
-                   new ladspa_stereo
+                   new ladspa_stereo ~kind
                        (Utils.get_some source)
                        plugin_name
                        descr_n
@@ -357,7 +359,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
                        outputs
                        params
                  else
-                   new ladspa
+                   new ladspa ~kind
                        (Utils.get_some source)
                        plugin_name
                        descr_n
@@ -366,13 +368,13 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
                        params
              | None ->
                  if stereo then
-                   new ladspa_stereo_nosource
+                   new ladspa_stereo_nosource ~kind
                        plugin_name
                        descr_n
                        outputs
                        params
                  else
-                   new ladspa_nosource
+                   new ladspa_nosource ~kind
                        plugin_name
                        descr_n
                        outputs.(0)
@@ -447,9 +449,9 @@ let register_plugin pname =
              | Not_found ->
                  (
                    try
-                     if Fmt.channels () = 2 then
-                       let i, o = get_stereo_io d in
-                         register_descr ~stereo:true pname n d i o
+                     (* TODO: handle other number of channels *)
+                     let i, o = get_stereo_io d in
+                       register_descr ~stereo:true pname n d i o
                    with
                      | Not_found -> ()
                  )
@@ -462,7 +464,7 @@ let register_plugin pname =
 let register_plugins () =
   let plugins =
     let ans = ref [] in
-    let add plugins_dir = 
+    let add plugins_dir =
       try
         let dir = Unix.opendir plugins_dir in
           try
@@ -473,7 +475,7 @@ let register_plugins () =
             done
           with
             | End_of_file -> Unix.closedir dir
-      with 
+      with
         | Unix.Unix_error (e,_,_) ->
             log#f 4 "Error while loading directory %s: %s" 
               plugins_dir (Unix.error_message e)
@@ -483,6 +485,6 @@ let register_plugins () =
   in
     List.iter register_plugin plugins
 
-let () = 
+let () =
   if ladspa_enable then
     register_plugins ()
