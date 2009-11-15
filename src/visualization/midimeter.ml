@@ -22,9 +22,9 @@
 
 open Source
 
-class midimeter source =
+class midimeter ~kind source =
 object
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -32,8 +32,9 @@ object
   method abort_track = source#abort_track
 
   method get_frame buf =
+    let offset = MFrame.position buf in
     source#get buf;
-    let m = MFrame.tracks buf in
+    let m = MFrame.content buf offset in
       for c = 0 to Array.length m - 1 do
         List.iter
           (fun (t, e) ->
@@ -53,12 +54,14 @@ object
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "midimeter"
-    [ "", Lang.source_t, None, None ]
+    [ "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Visualization
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Display midi events."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         ((new midimeter src):>Source.source))
+         ((new midimeter ~kind src):>Source.source))

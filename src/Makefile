@@ -137,13 +137,12 @@ stream = stream/midi.ml stream/rgb_c.c stream/RGB.ml \
 	stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
-visualization =
-# visualization/vumeter.ml \
-	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
+visualization = visualization/vumeter.ml \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
 	$(if $(W_GL),visualization/vis_glvolume.ml) \
-	visualization/video_volume.ml \
         visualization/midimeter.ml
+#	visualization/video_volume.ml \
+#	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
 
 synth =
 # synth/synth.ml synth/synth_op.ml \

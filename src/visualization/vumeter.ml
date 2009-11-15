@@ -37,9 +37,9 @@ let vol n v =
     for i = 0 to barwidth - barlen - 1 do ans := !ans ^ "." done;
     Printf.sprintf "% 5.1f %s" v !ans
 
-class vumeter source scroll =
+class vumeter ~kind source scroll =
 object
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -60,15 +60,17 @@ object
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "vumeter"
     [ "scroll", Lang.bool_t, Some (Lang.bool false), Some "Scroll.";
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Visualization
     ~descr:"VU meter (display the volume)."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let scroll, src =
          Lang.to_bool (f "scroll"),
          Lang.to_source (f "")
        in
-         ((new vumeter src scroll):>Source.source))
+         ((new vumeter ~kind src scroll):>Source.source))

@@ -22,20 +22,20 @@
 
 open Source
 
-class visu source =
-  let channels = Fmt.channels () in
+class visu ~kind source =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val width = Fmt.video_width ()
-  val height = Fmt.video_height ()
+  val width = Lazy.force Frame.video_width
+  val height = Lazy.force Frame.video_height
 
-  val vol = Array.init channels (fun _ -> Array.make (Fmt.video_width ()) 0.)
+  val vol = Array.init channels (fun _ -> Array.make (Lazy.force Frame.video_width) 0.)
 
   method add_vol v =
     for c = 0 to channels - 1 do
@@ -78,13 +78,15 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "video.volume"
-    [ "", Lang.source_t, None, None ]
+    [ "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Visualization
     ~descr:"Graphical visualization of the sound."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let src =
          Lang.to_source (f "")
        in
-         ((new visu src):>Source.source))
+         ((new visu ~kind src):>Source.source))
