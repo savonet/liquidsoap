@@ -97,7 +97,6 @@ analyze =
 
 encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml
 	# $(if $(W_OGG),outputs/ogg_output.ml) \
-	$(if $(W_LAME),outputs/lame_encoded.ml) \
 	$(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
 	$(if $(W_VORBIS), outputs/vorbis_encoded.ml)  \
 	$(if $(W_THEORA),outputs/theora_encoded.ml) \
@@ -108,11 +107,11 @@ encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	outputs/file_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
+	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
 	$(encoders)
 	# outputs/external_encoded.ml \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
 	$(if $(W_BJACK),outputs/bjack_out.ml) \
-	$(if $(W_GRAPHICS),outputs/graphics_out.ml)
 
 io =
 # $(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \

@@ -20,49 +20,52 @@
  *****************************************************************************)
 
 
-class output source start =
-  let video_channels = Fmt.video_channels () in
-  let video_width = Fmt.video_width () in
-  let video_height = Fmt.video_height () in
+class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
+  let video_width    = Lazy.force Frame.video_width in
+  let video_height   = Lazy.force Frame.video_height in
 object (self)
-  inherit Output.output ~name:"graphics" ~kind:"output.graphics" source start
+  inherit Output.output ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start ~on_stop ~content_kind:kind source autostart
 
   val mutable sleep = false
   method output_stop =
     sleep <- true
 
   method output_start =
-    if video_channels > 0 then
-      (
-        Graphics.open_graph "";
-        Graphics.set_window_title "Liquidsoap";
-        Graphics.resize_window video_width video_height
-      );
+    Graphics.open_graph "";
+    Graphics.set_window_title "Liquidsoap";
+    Graphics.resize_window video_width video_height;
     sleep <- false
 
   method output_send buf =
-    if video_channels > 0 then
-      let rgb = VFrame.get_rgb buf in
-        for frame = 0 to 0 (* Array.length rgb.(0) - 1 *) do
-          let img = RGB.to_int_image rgb.(0).(frame) in
-          let img = Graphics.make_image img in
-            Graphics.draw_image img 0 0
-        done
+    let rgb = (VFrame.content buf 0).(0) in
+      for frame = 0 to 0 do
+        let img = RGB.to_int_image rgb.(frame) in
+        let img = Graphics.make_image img in
+          Graphics.draw_image img 0 0
+      done
 
   method output_reset = ()
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only in
   Lang.add_operator "output.graphics"
-    [ "start",
-      Lang.bool_t, Some (Lang.bool true),
-      Some "Start output on operator initialization." ;
-
-      "", Lang.source_t, None, None
-    ]
+    (Output.proto @ [
+      "", Lang.source_t k, None, None
+    ])
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Display video stream using the Graphics library."
-    (fun p _ ->
-       let start = Lang.to_bool (List.assoc "start" p) in
+    (fun p kind ->
+       let autostart = Lang.to_bool (List.assoc "start" p) in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply f [])
+       in
        let source = List.assoc "" p in
-         ((new output source start):>Source.source))
+         ((new output ~kind ~infallible ~autostart ~on_start ~on_stop source):>Source.source))
