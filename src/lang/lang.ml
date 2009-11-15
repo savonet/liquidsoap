@@ -174,13 +174,20 @@ let string_of_category x = "Source / " ^ match x with
   * so we have to force its value withing the acceptable range. *)
 
 (** Description of how many of a channel type does an operator want.
-  * For [Any_fixed] and [Variable], the parameter indicates the minimum. *)
+  * [Fixed n] means exactly [n] channels.
+  * [Any_fixed n] means any fixed numbers of channels that is [>=n].
+  * [Variable n] means any (possibly variable) number of channels that
+  *   is [>=n]. *)
 type lang_kind_format =
   | Fixed of int | Variable of int | Any_fixed of int
 type lang_kind_formats =
   | Unconstrained of t
   | Constrained of
       (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+
+let any_fixed =
+  Constrained
+    { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
 
 let audio_variable =
   Constrained

@@ -109,6 +109,8 @@ type lang_kind_formats =
   | Constrained of
       (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
 
+val any_fixed : lang_kind_formats
+
 val audio_any : lang_kind_formats
 val audio_mono : lang_kind_formats
 val audio_stereo : lang_kind_formats

@@ -82,7 +82,6 @@ operators = \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	# operators/prepend.ml \
-	operators/mean.ml \
 	operators/mixing_table.ml \
 	operators/time_wrap.ml operators/lag.ml \
 	operators/fork.ml operators/midi_routing.ml
@@ -90,7 +89,8 @@ operators = \
 # MAJOR CHANGES for operators/resample.ml operators/pipe.ml operators/accel.ml
 
 conversions = \
-	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml
+	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
+	conversions/mean.ml
 
 analyze = analyze/analyze_rms.ml
 
