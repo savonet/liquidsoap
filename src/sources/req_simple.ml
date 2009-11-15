@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -93,7 +93,7 @@ let () =
                raise (Lang.Invalid_value
                         (val_uri,
                          (Printf.sprintf
-                            "Could not get a valid audio file from %S"
+                            "Could not get a valid media file from %S"
                             uri))))
 
 let () =

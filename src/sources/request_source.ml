@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2009 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -202,7 +202,7 @@ object (self)
          in
          Duppy.Async.wake_up t ;
          task <- Some t ;
-         state <- `Running) () ;
+         state <- `Running) ()
 
   method private sleep =
     (* We need to be sure that the feeding task stopped filling the queue
