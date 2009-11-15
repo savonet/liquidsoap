@@ -25,7 +25,7 @@ open Source
 (** In this file [length]s are in samples, [threshold] are RMS (in [0.;1.]). *)
 
 
-class virtual base ~length ~threshold = 
+class virtual base ~length ~threshold =
 object(self)
 
   val mutable blank_len = 0
@@ -35,9 +35,9 @@ object(self)
 
   method virtual private on_noise : unit
 
-  method private check_blank s p0 = 
+  method private check_blank s p0 =
     let len = AFrame.position s - p0 in
-    let rms = Float_pcm.rms (AFrame.get_float_pcm s) p0 len in
+    let rms = AFrame.rms s p0 len in
     let noise = ref false in
       Array.iter (fun r -> if r > threshold then noise := true) rms;
       if !noise then
@@ -53,17 +53,17 @@ object(self)
 
 end
 
-class on_blank ~length ~threshold ~on_blank ~on_noise source =
+class on_blank ~kind ~length ~threshold ~on_blank ~on_noise source =
 object (self)
-  inherit operator [source]
+  inherit operator kind [source]
   inherit base ~length ~threshold as base
 
   val mutable in_blank = true
 
   method stype = source#stype
   method is_ready = source#is_ready
-  method abort_track = 
-    source#abort_track ; 
+  method abort_track =
+    source#abort_track ;
     base#abort_track
   method remaining = source#remaining
 
@@ -89,15 +89,15 @@ end
 
 let log = Dtools.Log.make ["noblank"]
 
-class skip ~length ~threshold source =
+class skip ~kind ~length ~threshold source =
 object (self)
-  inherit operator [source]
+  inherit operator kind [source]
   inherit base ~length ~threshold as base
 
   method stype = source#stype
   method is_ready = source#is_ready
-  method abort_track = 
-    source#abort_track ; 
+  method abort_track =
+    source#abort_track ;
     base#abort_track
   method remaining = source#remaining
 
@@ -115,9 +115,9 @@ object (self)
       end
 end
 
-class strip ~length ~threshold source =
+class strip ~kind ~length ~threshold source =
 object (self)
-  inherit active_operator source
+  inherit active_operator kind source
   inherit base ~length ~threshold as base
 
   val mutable stripping = false
@@ -152,7 +152,7 @@ object (self)
   method private output =
     if stripping && AFrame.is_partial memo then self#get_frame memo
 
-  method output_get_ready = 
+  method output_get_ready =
     if ns = [] then
       ns <- Server.register [self#id] "strip_blank" ;
     let status _ = string_of_bool stripping in
@@ -163,9 +163,9 @@ object (self)
   method is_active = true
 end
 
-class eat ~at_beginning ~length ~threshold source =
+class eat ~kind ~at_beginning ~length ~threshold source =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
   inherit base ~length ~threshold as base
 
   val mutable stripping = false
@@ -180,7 +180,7 @@ object (self)
     stripping <- false ;
     beginning <- true
 
-  method private on_noise = 
+  method private on_noise =
     stripping <- false ;
     beginning <- false
 
@@ -207,19 +207,20 @@ object (self)
       done
 end
 
+let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any
 let proto =
   [ "threshold", Lang.float_t, Some (Lang.float (-40.)),
     Some "Power in decibels under which the stream is considered silent." ;
     "length", Lang.float_t, Some (Lang.float 20.),
     Some "Maximum silence length allowed, in seconds." ;
-    "", Lang.source_t, None, None ]
+    "", Lang.source_t kind, None, None ]
 
 let extract p =
   let f v = List.assoc v p in
   let s = Lang.to_source (f "") in
   let length =
     let l = Lang.to_float  (f "length") in
-      Fmt.samples_of_seconds l
+      Frame.audio_of_seconds l
   in
   let threshold =
     let v = f "threshold" in
@@ -232,6 +233,7 @@ let extract p =
 
 let () =
   Lang.add_operator "on_blank"
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Calls a given handler when detecting a blank."
     (("", Lang.fun_t [] Lang.unit_t, None,
@@ -240,33 +242,36 @@ let () =
       Some (Lang.val_cst_fun [] Lang.unit),
       Some "Handler called when noise is detected.")::
      proto)
-    (fun p _ ->
+    (fun p kind ->
        let on_blank = Lang.assoc "" 1 p in
        let on_noise = Lang.assoc "on_noise" 1 p in
        let p = List.remove_assoc "" p in
        let length,threshold,s = extract p in
-         new on_blank ~length ~threshold ~on_blank ~on_noise s) ;
+         new on_blank ~kind ~length ~threshold ~on_blank ~on_noise s) ;
   Lang.add_operator "skip_blank"
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Skip track when detecting a blank."
     proto
-    (fun p _ ->
+    (fun p kind ->
        let length,threshold,s = extract p in
-         new skip ~length ~threshold s) ;
+         new skip ~kind ~length ~threshold s) ;
   Lang.add_operator "strip_blank"
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank."
     proto
-    (fun p _ ->
+    (fun p kind ->
        let length,threshold,s = extract p in
-         ((new strip ~length ~threshold s):>source));
+         ((new strip ~kind ~length ~threshold s):>source));
   Lang.add_operator "eat_blank"
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Eat blanks, i.e., drop the contents of the stream until \
             it is not blank anymore."
     (("at_beginning", Lang.bool_t, Some (Lang.bool false),
       Some "Only eat at the beginning of a track.")::proto)
-    (fun p _ ->
+    (fun p kind ->
        let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
        let length,threshold,s = extract p in
-         new eat ~at_beginning ~length ~threshold s)
+         new eat ~kind ~at_beginning ~length ~threshold s)
