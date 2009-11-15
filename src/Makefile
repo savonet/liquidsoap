@@ -92,8 +92,7 @@ operators = \
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml
 
-analyze =
-# analyze/analyze_rms.ml
+analyze = analyze/analyze_rms.ml
 
 encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml
 	# $(if $(W_OGG),outputs/ogg_output.ml) \

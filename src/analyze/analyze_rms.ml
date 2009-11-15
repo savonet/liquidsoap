@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-class rms ~window_length ~update source =
+class rms ~kind ~window_length ~update source =
 object (self)
-  inherit Source.operator [source]
+  inherit Source.operator kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -34,9 +34,9 @@ object (self)
   val mutable rms = 0.
 
   method get_frame ab =
-    let buf = AFrame.get_float_pcm ab in
     let p0 = AFrame.position ab in
     let p1 = source#get ab ; AFrame.position ab in
+    let buf = AFrame.content ab p0 in
       for i = p0 to p1-1 do
         let m =
           Array.fold_left
