@@ -22,9 +22,9 @@
 
 open Source
 
-class swap (source:source) chan1 chan2 =
+class swap ~kind (source:source) =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -34,24 +34,21 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
-      let buffer = AFrame.get_float_pcm buf in
+      let buffer = AFrame.content buf offset in
         for i = offset to AFrame.position buf -1 do
-           let tmp = buffer.(chan1).(i) in
-              buffer.(chan1).(i) <- buffer.(chan2).(i);
-              buffer.(chan2).(i) <- tmp
+           let tmp = buffer.(1).(i) in
+              buffer.(1).(i) <- buffer.(2).(i);
+              buffer.(2).(i) <- tmp
         done
-
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_stereo in
   Lang.add_operator "swap"
-    [ "chan1", Lang.int_t,  Some (Lang.int 0), Some "Channel one" ;
-      "chan2", Lang.int_t,  Some (Lang.int 1), Some "Channel two" ;
-      "", Lang.source_t, None, None ]
+    [ "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
-    ~descr:"swap two channels"
-    (fun p _ ->
+    ~descr:"Swap two channels of a stereo source."
+    (fun p kind ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
-       let chan1 = Lang.to_int (Lang.assoc "chan1" 1 p) in
-       let chan2 = Lang.to_int (Lang.assoc "chan2" 1 p) in
-         new swap s chan1 chan2)
+         new swap ~kind s)

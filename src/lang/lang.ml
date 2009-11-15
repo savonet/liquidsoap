@@ -160,7 +160,7 @@ let string_of_category x = "Source / " ^ match x with
   | SoundSynthesis -> "Sound Synthesis"
   | Visualization -> "Visualization"
 
-(** A operator is a builtin function that builds a source.
+(** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
   * Creating the associated function type (and function) requires some work:
   *  - Specify which content_kind the source will carry:
