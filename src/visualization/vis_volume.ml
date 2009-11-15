@@ -26,10 +26,10 @@ open Source
 
 let backpoints = 200
 
-class vumeter source =
-  let channels = Fmt.channels () in
+class vumeter ~kind source =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -85,13 +85,15 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "visu.volume"
-    [ "", Lang.source_t, None, None ]
+    [ "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Visualization
     ~descr:"Graphical visualization of the volume."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let src =
          Lang.to_source (f "")
        in
-         ((new vumeter src):>Source.source))
+         ((new vumeter ~kind src):>Source.source))
