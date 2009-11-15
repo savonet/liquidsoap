@@ -310,7 +310,7 @@ let decoder file =
     let fill buf =
       let m = MFrame.content buf 0 in
       MFrame.clear buf;
-      let buflen = MFrame.size buf in
+      let buflen = MFrame.size () in
       let offset_in_buf = ref 0 in
         while !track <> [] && !offset_in_buf < buflen do
           let d,(c,e) = List.hd !track in
@@ -347,7 +347,7 @@ let decoder file =
         if !track = [] then
           MFrame.add_break buf 0
         else
-          MFrame.add_break buf (MFrame.size buf);
+          MFrame.add_break buf (MFrame.size ());
         0
     in
       { Decoder.fill = fill ; Decoder.close = fun () -> () }

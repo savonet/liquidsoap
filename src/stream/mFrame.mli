@@ -6,7 +6,7 @@ type t = Frame.t
 val is_partial : t -> bool
 
 (** Number of ticks in a MIDI frame. *)
-val size : t -> int
+val size : unit -> int
 
 (** Position of the first break. *)
 val position : t -> int

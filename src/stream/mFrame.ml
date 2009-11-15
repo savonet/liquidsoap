@@ -22,7 +22,7 @@
 
 include Frame
 
-let size _ = Lazy.force Frame.size
+let size () = Lazy.force Frame.size
 
 let position t = position t
 

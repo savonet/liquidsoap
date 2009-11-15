@@ -116,6 +116,7 @@ val audio_variable : lang_kind_formats
 
 val video_only : lang_kind_formats
 
+val midi_one : lang_kind_formats
 val midi_any : lang_kind_formats
 
 val kind_type_of_kind_format : fresh:int -> lang_kind_formats -> t

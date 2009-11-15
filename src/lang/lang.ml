@@ -202,6 +202,9 @@ let video_only =
 let midi_any =
   Constrained
     { Frame.audio = Fixed 0 ; Frame.video = Any_fixed 0 ; Frame.midi = Fixed 0 }
+let midi_one =
+  Constrained
+    { Frame.audio = Fixed 0 ; Frame.video = Fixed 1 ; Frame.midi = Fixed 0 }
 
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t

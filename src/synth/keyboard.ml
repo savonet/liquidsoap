@@ -34,9 +34,9 @@ let array_index a x =
 let note_of_char c =
   array_index knotes c + 72
 
-class keyboard =
+class keyboard ~kind =
 object (self)
-  inherit Source.active_source
+  inherit Source.active_source ~name:"input.keyboard" kind
 
   method stype = Source.Infallible
   method is_ready = true
@@ -86,22 +86,23 @@ object (self)
 
   method get_frame frame =
     assert (0 = MFrame.position frame);
-    let m = MFrame.tracks frame in
+    let m = MFrame.content frame 0 in
     let t = self#get_events in
       for c = 0 to Array.length m - 1 do
         m.(c) := t
       done;
-      MFrame.add_break frame (MFrame.size frame)
+      MFrame.add_break frame (MFrame.size ())
 end
 
 let () =
   Lang.add_operator "input.keyboard"
     [
     ]
+    ~kind:Lang.midi_one
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard."
-    (fun p _ ->
+    (fun p kind ->
        (* let e f v = f (List.assoc v p) in *)
-         ((new keyboard):>Source.source)
+         ((new keyboard ~kind):>Source.source)
     )
