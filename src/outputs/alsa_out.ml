@@ -28,12 +28,12 @@ open Dtools
 (** ALSA should be quiet *)
 let () = no_stderr_report ()
 
-class output dev start source =
-  let buffer_length = Fmt.samples_per_frame () in
-  let buffer_chans = Fmt.channels () in
+class output ~kind dev start source =
+  let buffer_length = AFrame.size () in
+  let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
-  let samples_per_second = Fmt.samples_per_second () in
+  let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
   (* Force these parameters for now. *)
   let infallible = true in
@@ -41,8 +41,8 @@ class output dev start source =
   let on_start () = () in
 object (self)
   inherit Output.output
-              ~infallible ~on_stop ~on_start
-              ~name:"output.alsa" ~kind:"output.alsa" source start
+              ~infallible ~on_stop ~on_start ~content_kind:kind
+              ~name:"output.alsa" ~output_kind:"output.alsa" source start
   inherit [float array array] IoRing.output ~nb_blocks ~blank
                                  ~blocking:true () as ioring
 
@@ -104,10 +104,10 @@ object (self)
     let dev = self#get_device in
     try
       let len = Array.length data.(0) in
-      let rec f pos = 
+      let rec f pos =
         if pos < len then
           let ret = alsa_write dev data pos (len - pos) in
-          f (pos+ret) 
+          f (pos+ret)
       in
       f 0
     with
@@ -116,14 +116,14 @@ object (self)
            Pcm.prepare dev
 
   method output_send buf =
-    let buf = AFrame.get_float_pcm buf in
+    let buf = AFrame.content buf 0 in
     let ratio = float alsa_rate /. float samples_per_second in
-    let buf = Audio_converter.Samplerate.resample samplerate_converter 
-                  ratio buf 0 (Array.length buf.(0)) 
+    let buf = Audio_converter.Samplerate.resample samplerate_converter
+                  ratio buf 0 (Array.length buf.(0))
     in
     let f data =
       for c = 0 to Array.length buf - 1 do
-        Float_pcm.float_blit buf.(c) 0 data.(c) 0 (Array.length buf.(0))
+        Float_pcm.blit buf.(c) 0 data.(c) 0 (Array.length buf.(0))
       done
     in
     ioring#put_block f
