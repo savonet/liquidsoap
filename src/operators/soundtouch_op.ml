@@ -22,11 +22,11 @@
 
 open Source
 
-class soundtouch (source:source) rate tempo pitch =
+class soundtouch ~kind (source:source) rate tempo pitch =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
-  val st = Soundtouch.make (Fmt.channels()) (Fmt.samples_per_second())
+  val st = Soundtouch.make (Lazy.force Frame.audio_channels) (Lazy.force Frame.audio_rate)
 
   initializer
     self#log#f 3 "Using soundtouch %s." (Soundtouch.get_version_string st)
@@ -37,12 +37,12 @@ object (self)
   method abort_track = source#abort_track
 
   (* Temporary buffer. *)
-  val databuf = Frame.make ()
+  val databuf = Frame.create kind
 
   method private get_frame buf =
-    let b = AFrame.get_float_pcm buf in
     let startpos = AFrame.position buf in
-    let endpos = AFrame.size buf in
+    let b = AFrame.content buf startpos in
+    let endpos = AFrame.size () in
       Soundtouch.set_rate st (rate ());
       Soundtouch.set_tempo st (tempo ());
       Soundtouch.set_pitch st (pitch ());
@@ -50,28 +50,30 @@ object (self)
       while Soundtouch.get_available_samples st < endpos - startpos do
         AFrame.clear databuf;
         source#get databuf;
-        let db = AFrame.get_float_pcm databuf in
+        let db = AFrame.content databuf startpos in
           Soundtouch.put_samples_ni st db 0 (Array.length db.(0))
       done;
       ignore (Soundtouch.get_samples_ni st b startpos (endpos - startpos));
-      AFrame.add_break buf (AFrame.size buf)
+      AFrame.add_break buf (AFrame.size ())
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
   Lang.add_operator "soundtouch"
     [
       "rate", Lang.float_getter_t 1, Some (Lang.float 1.0), None;
       "tempo", Lang.float_getter_t 2, Some (Lang.float 1.0), None;
       "pitch", Lang.float_getter_t 3, Some (Lang.float 1.0), None;
-      "", Lang.source_t, None, None;
+      "", Lang.source_t k, None, None;
     ]
     ~category:Lang.SoundProcessing
+    ~kind:(Lang.Unconstrained k)
     ~descr:"Change the rate, the tempo or the pitch of the sound."
     ~flags:[Lang.Experimental]
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let rate = Lang.to_float_getter (f "rate") in
        let tempo = Lang.to_float_getter (f "tempo") in
        let pitch = Lang.to_float_getter (f "pitch") in
        let s = Lang.to_source (f "") in
-         new soundtouch s rate tempo pitch)
+         new soundtouch ~kind s rate tempo pitch)
