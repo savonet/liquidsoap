@@ -52,12 +52,12 @@ sources = \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
+	$(if $(W_MP3),sources/http_mp3.ml) \
+	$(if $(W_OGG),sources/http_ogg.ml) \
+	$(if $(W_FAAD),sources/http_aac.ml) \
 	$(if $(W_SDL),sources/video_text.ml)
 	# sources/external_input.ml \
-	$(if $(W_OGG),sources/http_ogg.ml) \
 	sources/harbor_input.ml \
-	$(if $(W_MP3),sources/http_mp3.ml) \
-	$(if $(W_FAAD),sources/http_aac.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
