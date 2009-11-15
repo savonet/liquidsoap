@@ -34,8 +34,8 @@ formats = \
 	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
 	formats/wavformat.ml \
 	formats/externalformat.ml \
-	# $(if $(W_FAAD),formats/aacformat.ml) \
 	formats/midiformat.ml
+	# $(if $(W_FAAD),formats/aacformat.ml) \
 
 playlists = \
 	playlists/playlist_basic.ml $(if $(W_XMLPLAYLIST),playlists/playlist_xml.ml)

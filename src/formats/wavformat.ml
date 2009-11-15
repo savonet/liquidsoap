@@ -26,14 +26,14 @@ module Generator = Generator.From_audio_video
 
 let bytes_to_get = 1024*64
 
-type 'a wav_decoder = 
+type 'a wav_decoder =
   {
     log     : Dtools.Log.t;
     create  : string -> 'a * Wav.t;
     close   : 'a -> unit
   }
 
-type 'a handle = 
+type 'a handle =
   {
     decoder          : 'a ;
     w                : Wav.t ;
@@ -48,7 +48,7 @@ type 'a handle =
 let decoder wav_decoder =
   { File_decoder.
     log = wav_decoder.log;
-    openfile = 
+    openfile =
         (fun file ->
            let dec,w = wav_decoder.create file in
            (** Get input format *)
@@ -69,17 +69,17 @@ let decoder wav_decoder =
              converter = converter ; channels = channels ;
              audio_src_rate = audio_src_rate; position = position
            });
-    get_kind = 
-      (fun handle -> 
+    get_kind =
+      (fun handle ->
          { Frame.
              audio = Frame.mul_of_int handle.channels;
              video = Frame.mul_of_int 0;
-             midi  = Frame.mul_of_int 0});       
-    close = 
-      (fun handle -> 
+             midi  = Frame.mul_of_int 0});
+    close =
+      (fun handle ->
                 Wav.close handle.w;
                 wav_decoder.close handle.decoder);
-    decode = 
+    decode =
       (fun handle buffer ->
          let l = Wav.sample handle.w handle.tmpbuf 0 bytes_to_get in
          handle.position <- handle.position + l ;
@@ -92,9 +92,9 @@ let decoder wav_decoder =
   }
 
 (** Wav file decoder *)
-let wav_file_decoder = 
-  let wav_decoder = 
-    { log     = Dtools.Log.make ["format";"wav"] ; 
+let wav_file_decoder =
+  let wav_decoder =
+    { log     = Dtools.Log.make ["format";"wav"] ;
       create  = (fun file -> (),Wav.fopen file) ;
       close   = (fun () -> ()) }
   in

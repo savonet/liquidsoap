@@ -24,7 +24,6 @@ include Frame
 
 let size _ = Lazy.force Frame.size
 
-(* TODO: do we want to convert the unit? *)
 let position t = position t
 
 let content b pos =

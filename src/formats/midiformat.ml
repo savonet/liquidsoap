@@ -43,6 +43,7 @@ let read_nat n fd =
 let read_long = read_nat 4
 let read_short = read_nat 2
 
+(** Read midi header. *)
 let read_header fd =
   let id = read_id fd in
   let len = read_long fd in
@@ -70,6 +71,7 @@ let read_header fd =
     log#f 5 "Format: %d (%d tracks)" fmt tracks;
     tracks, division
 
+(** Read a midi track. *)
 let read_track fd =
   let id = read_id fd in
   let len = read_long fd in
@@ -306,9 +308,7 @@ let decoder file =
     let track = ref track in
     let warn_channels = ref true in
     let fill buf =
-      let m = MFrame.tracks buf in
-      (* TODO: why do we have to do this here??? *)
-      AFrame.blankify buf 0 (AFrame.size buf);
+      let m = MFrame.content buf 0 in
       MFrame.clear buf;
       let buflen = MFrame.size buf in
       let offset_in_buf = ref 0 in
@@ -354,7 +354,7 @@ let decoder file =
 
 let () =
   Decoder.formats#register "MID"
-    (fun name -> try Some (decoder name) with _ -> None)
+    (fun name kind -> try Some (decoder name) with _ -> None)
 
 (* TODO *)
 (*
