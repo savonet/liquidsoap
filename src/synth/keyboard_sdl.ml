@@ -39,9 +39,9 @@ let note_of_char c =
     | Not_found ->
         array_index knotes1 c + 59
 
-class keyboard velocity =
+class keyboard ~kind velocity =
 object (self)
-  inherit Source.active_source
+  inherit Source.active_source ~name:"input.keyboard.sdl" kind
 
   method stype = Source.Infallible
   method is_ready = true
@@ -64,7 +64,7 @@ object (self)
 
   method get_frame frame =
     assert (0 = MFrame.position frame);
-    let m = MFrame.tracks frame in
+    let m = MFrame.content frame 0 in
     let t =
       let ans = ref [] in
         Sdlevent.pump ();
@@ -91,7 +91,7 @@ object (self)
       for c = 0 to Array.length m - 1 do
         m.(c) := t
       done;
-      MFrame.add_break frame (MFrame.size frame)
+      MFrame.add_break frame (MFrame.size ())
 end
 
 let () =
@@ -99,11 +99,12 @@ let () =
     [
       "velocity", Lang.float_t, Some (Lang.float 0.8), Some "Velocity of notes."
     ]
+    ~kind:Lang.midi_one
     ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let velocity = Lang.to_float (f "velocity") in
-         ((new keyboard velocity):>Source.source)
+         ((new keyboard ~kind velocity):>Source.source)
     )
