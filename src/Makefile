@@ -143,8 +143,8 @@ visualization = visualization/vumeter.ml \
         visualization/midimeter.ml
 #	visualization/video_volume.ml \
 
-synth =
-# synth/synth.ml synth/synth_op.ml \
+synth = synth/synth.ml
+# synth/synth_op.ml \
 	synth/keyboard.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml)
 

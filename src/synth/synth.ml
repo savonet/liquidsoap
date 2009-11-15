@@ -57,7 +57,7 @@ object (self)
   method synth_note gs ns freq buf ofs len =
     let s = self#synth_note_mono gs ns freq buf.(0) ofs len in
       for c = 1 to Array.length buf - 1 do
-        Float_pcm.float_blit buf.(0) ofs buf.(c) ofs len
+        Float_pcm.blit buf.(0) ofs buf.(c) ofs len
       done;
       s
 
@@ -129,7 +129,7 @@ let adsr_init () = 0, 0
 
 (** Convert adsr in seconds to samples. *)
 let samples_of_adsr (a,d,s,r) =
-  Fmt.samples_of_seconds a, Fmt.samples_of_seconds d, s, Fmt.samples_of_seconds r
+  Frame.audio_of_seconds a, Frame.audio_of_seconds d, s, Frame.audio_of_seconds r
 
 type simple_gs = unit
 (* Period is 1. *)
