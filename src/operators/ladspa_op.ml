@@ -89,8 +89,8 @@ object (self)
         (fun _ ->
            Descriptor.instantiate
              d
-             (Frame.audio_of_seconds 1.)
-             (Lazy.force Frame.audio_rate))
+             (Lazy.force Frame.audio_rate)
+             (AFrame.size ()))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -123,8 +123,8 @@ object (self)
         (fun _ ->
            Descriptor.instantiate
              d
-             (Frame.audio_of_seconds 1.)
-             (Lazy.force Frame.audio_rate))
+             (Lazy.force Frame.audio_rate)
+             (AFrame.size ()))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -161,8 +161,8 @@ object (self)
     let d = Descriptor.descriptor p descr in
       Descriptor.instantiate
         d
-        (Frame.audio_of_seconds 1.)
         (Lazy.force Frame.audio_rate)
+        (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -193,8 +193,8 @@ object (self)
     let d = Descriptor.descriptor p descr in
       Descriptor.instantiate
         d
-        (Frame.audio_of_seconds 1.)
         (Lazy.force Frame.audio_rate)
+        (AFrame.size ())
 
   initializer
     Descriptor.activate inst
