@@ -108,9 +108,9 @@ outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
+	$(if $(W_BJACK),outputs/bjack_out.ml) \
 	$(encoders)
 	# outputs/external_encoded.ml \
-	$(if $(W_BJACK),outputs/bjack_out.ml) \
 
 io =
 # $(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
