@@ -31,7 +31,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val bpm = Soundtouch.BPM.make (Lazy.force Frame.audio_channels) (Lazy.force Frame.audio_rate)
+  val bpm = Soundtouch.BPM.make ((Frame.type_of_kind kind).Frame.audio) (Lazy.force Frame.audio_rate)
 
   val mutable n = 0
 

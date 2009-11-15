@@ -26,7 +26,7 @@ class soundtouch ~kind (source:source) rate tempo pitch =
 object (self)
   inherit operator kind [source] as super
 
-  val st = Soundtouch.make (Lazy.force Frame.audio_channels) (Lazy.force Frame.audio_rate)
+  val st = Soundtouch.make ((Frame.type_of_kind kind).Frame.audio) (Lazy.force Frame.audio_rate)
 
   initializer
     self#log#f 3 "Using soundtouch %s." (Soundtouch.get_version_string st)
