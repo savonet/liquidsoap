@@ -33,6 +33,11 @@ let content b pos =
     assert (Array.length content.video = 0) ;
     content.midi
 
+let content_of_type ~channels b pos =
+  let ctype = { Frame. audio = 0 ; video = 0 ; midi = channels } in
+  let content = Frame.content_of_type b pos ctype in
+    content.Frame.midi
+
 let set_events f e = ()
 
 (* TODO this is ugly *)
