@@ -549,6 +549,7 @@ let () =
 
       "", Lang.string_t, None,
       Some "URL of an http stream (default port is 80)." ]
+    (* TODO: generalize this! *)
     ~kind:Lang.audio_stereo
     (fun p kind ->
        let playlist_mode =
