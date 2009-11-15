@@ -24,9 +24,9 @@ open Source
 
 type mode = Encode | Decode
 
-class msstereo (source:source) mode width =
+class msstereo ~kind (source:source) mode width =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -36,7 +36,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf ;
-      let buffer = AFrame.get_float_pcm buf in
+      let buffer = AFrame.content buf offset in
         for i = offset to AFrame.position buf -1 do
           match mode with
             | Encode ->
@@ -51,22 +51,23 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_stereo in
   Lang.add_operator "stereo.ms.encode"
-    [ "", Lang.source_t, None, None ]
+    [ "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Encode left+right stereo to mid+side stereo (M/S)."
-    (fun p _ ->
+    (fun p kind ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
-         new msstereo s Encode 0.)
-
-let () =
+         new msstereo ~kind s Encode 0.);
   Lang.add_operator "stereo.ms.decode"
     [ "width", Lang.float_t,  Some (Lang.float 1.),
       Some "Width of the stereo field." ;
-      "", Lang.source_t, None, None ]
+      "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Decode mid+side stereo (M/S) to left+right stereo."
-    (fun p _ ->
+    (fun p kind ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
        let w = Lang.to_float (Lang.assoc "width" 1 p) in
-         new msstereo s Decode w)
+         new msstereo ~kind s Decode w)
