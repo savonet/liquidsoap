@@ -25,10 +25,10 @@ open Source
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.
   * If the initial flag is set, only the first/current track is faded in. *)
-class fade_in ?(meta="liq_video_fade_in") ?(initial=false) duration fader fadefun source =
+class fade_in ~kind ?(meta="liq_video_fade_in") ?(initial=false) duration fader fadefun source =
 object (self)
 
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -52,19 +52,17 @@ object (self)
                       | Some d -> (try float_of_string d with _ -> duration)
                       | None -> duration
             in
-            let length = Fmt.video_frames_of_seconds duration in
+            let length = Frame.video_of_seconds duration in
               fader length,
               length,
               0
         | `Play (fade,length,count) -> fade,length,count
     in
-    let rgb = VFrame.get_rgb ab in
+    let rgb = (VFrame.content ab p1).(0) in
       if count < length then
         for i=0 to min (p2-p1-1) (length-count-1) do
           let m = fade (count+i) in
-            for c = 0 to Array.length rgb - 1 do
-              fadefun rgb.(c).(p1+i) m
-            done
+            fadefun rgb.(p1+i) m
         done ;
       state <- (if not initial && VFrame.is_partial ab then
                   `Idle
@@ -76,10 +74,10 @@ end
 (** Fade-out after every frame.
   * If the final flag is set, the fade-out happens as of instantiation
   * and the source becomes unavailable once it's finished. *)
-class fade_out ?(meta="liq_video_fade_out") ?(final=false) duration fader fadefun source =
+class fade_out ~kind ?(meta="liq_video_fade_out") ?(final=false) duration fader fadefun source =
 object (self)
 
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track
@@ -89,10 +87,10 @@ object (self)
   val mutable cur_length = None
 
   (* Remaining frames, used only in final mode, untouched otherwise. *)
-  val mutable remaining = Fmt.video_frames_of_seconds duration
+  val mutable remaining = Frame.video_of_seconds duration
 
   method remaining =
-    if final then Fmt.ticks_of_video_frames remaining else source#remaining
+    if final then Frame.master_of_video remaining else source#remaining
   method is_ready = (remaining > 0 || not final) && source#is_ready
 
   method private get_frame ab =
@@ -100,7 +98,7 @@ object (self)
       (* This happens in final mode at the end of the remaining time. *)
       Frame.add_break ab (Frame.position ab)
     else
-      let n = Fmt.video_frames_of_ticks source#remaining in
+      let n = Frame.video_of_master source#remaining in
       let offset1 = VFrame.position ab in
       let offset2 = source#get ab ; VFrame.position ab in
       (** In video frames: [length] of the fade. *)
@@ -117,7 +115,7 @@ object (self)
                         | None -> duration
                         | Some d -> (try float_of_string d with _ -> duration)
               in
-              let l = Fmt.video_frames_of_seconds duration in
+              let l = Frame.video_of_seconds duration in
               let f = fader l in
                 cur_length <- Some (f,l) ;
                 f,l
@@ -128,12 +126,10 @@ object (self)
             if n>=0 && n<length then Some n else None
         with
           | Some n ->
-              let buffer = VFrame.get_rgb ab in
+              let rgb = (VFrame.content ab offset1).(0) in
                 for i=0 to offset2-offset1-1 do
                   let m = fade (n-i) in
-                    for c=0 to Array.length buffer - 1 do
-                      fadefun buffer.(c).(offset1+i) m
-                    done
+                    fadefun rgb.(offset1+i) m
                 done
           | None -> ()
         end ;
@@ -145,6 +141,7 @@ end
 
 (** Lang interface *)
 
+let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only
 (* TODO: share more with fade.ml *)
 let proto =
   [
@@ -157,20 +154,20 @@ let proto =
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
           linear, sinusoidal, logarithmic or exponential." ;
-    "", Lang.source_t, None, None
+    "", Lang.source_t kind, None, None
   ]
 
 let rec transition_of_string p transition =
   let ifm n a = int_of_float ((float_of_int n) *. a) in
     match transition with
       | "fade" -> RGB.scale_opacity
-      | "slide_left" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (t-.1.)) 0
-      | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Fmt.video_width ()) (1.-.t)) 0
-      | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (1.-.t))
-      | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Fmt.video_height ()) (t-.1.))
+      | "slide_left" -> fun buf t -> RGB.translate buf (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
+      | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
+      | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Lazy.force Frame.video_height) (1.-.t))
+      | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Lazy.force Frame.video_height) (t-.1.))
       | "grow" -> fun buf t -> RGB.affine buf t t 0 0
       | "disc" ->
-          let w, h = Fmt.video_width (), Fmt.video_height () in
+          let w, h = Lazy.force Frame.video_width, Lazy.force Frame.video_height in
           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
             fun buf t -> RGB.disk_opacity buf (w/2) (h/2) (ifm r_max t)
       | "random" ->
@@ -219,42 +216,46 @@ let extract p =
 
 let override_doc =
   Some "Metadata field which, if present and containing a float, \
-        overrides the 'duration' parameter for current track." 
+        overrides the 'duration' parameter for current track."
 
 let () =
   Lang.add_operator
     "video.fade.in"
     (("override", Lang.string_t, Some (Lang.string "liq_video_fade_in"),
       override_doc) :: proto)
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.VideoProcessing
     ~descr:"Fade the beginning of tracks. Metadata 'liq_video_fade_in' \
             can be used to set the duration for a specific track \
             (float in seconds)."
-    (fun p _ ->
+    (fun p kind ->
        let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_in ~meta d f t s) ;
+         new fade_in ~kind ~meta d f t s) ;
   Lang.add_operator "video.fade.initial" proto
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.VideoProcessing
     ~descr:"Fade the beginning of a stream."
-    (fun p _ ->
+    (fun p kind ->
        let d,f,t,s = extract p in
-         new fade_in ~initial:true d f t s) ;
+         new fade_in ~kind ~initial:true d f t s) ;
   Lang.add_operator
     "video.fade.out"
     (("override", Lang.string_t, Some (Lang.string "liq_video_fade_out"),
       override_doc) :: proto)
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.VideoProcessing
     ~descr:"Fade the end of tracks. Metadata 'liq_video_fade_out' \
             can be used to set the duration for a specific track \
             (float in seconds)."
-    (fun p _ ->
+    (fun p kind ->
        let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_out ~meta d f t s) ;
+         new fade_out ~kind ~meta d f t s) ;
   Lang.add_operator "video.fade.final" proto
+    ~kind:(Lang.Unconstrained kind)
     ~category:Lang.VideoProcessing
     ~descr:"Fade a stream to black."
-    (fun p _ ->
+    (fun p kind ->
        let d,f,t,s = extract p in
-         new fade_out ~final:true d f t s)
+         new fade_out ~kind ~final:true d f t s)
