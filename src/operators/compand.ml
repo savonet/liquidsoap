@@ -22,9 +22,9 @@
 
 open Source
 
-class compand (source:source) mu =
+class compand ~kind (source:source) mu =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
@@ -36,7 +36,7 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
       source#get buf;
-      let b = AFrame.get_float_pcm buf in
+      let b = AFrame.content buf offset in
         for c = 0 to Array.length b - 1 do
           let b_c = b.(c) in
             for i = offset to AFrame.position buf - 1 do
@@ -49,17 +49,19 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "compand"
     [
       "mu", Lang.float_t, Some (Lang.float 1.), None;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Compand the signal"
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let mu, src =
          Lang.to_float (f "mu"),
          Lang.to_source (f "")
        in
-         new compand src mu)
+         new compand ~kind src mu)

@@ -80,8 +80,7 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml operators/video_fade.ml \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
-	operators/noblank.ml \
-# operators/compand.ml \
+	operators/noblank.ml operators/compand.ml \
 	# operators/prepend.ml \
 	operators/mean.ml \
 	operators/mixing_table.ml \
