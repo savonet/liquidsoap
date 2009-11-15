@@ -22,16 +22,16 @@
 
 open Source
 
-class bpm (source:source) every =
+class bpm ~kind (source:source) every =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val bpm = Soundtouch.BPM.make (Fmt.channels()) (Fmt.samples_per_second())
+  val bpm = Soundtouch.BPM.make (Lazy.force Frame.audio_channels) (Lazy.force Frame.audio_rate)
 
   val mutable n = 0
 
@@ -39,7 +39,7 @@ object (self)
     let offset = AFrame.position buf in
       source#get buf;
       Soundtouch.BPM.put_samples_ni
-        bpm (AFrame.get_float_pcm buf) offset ((AFrame.position buf) - offset);
+        bpm (AFrame.content buf offset) offset ((AFrame.position buf) - offset);
       n <- n + 1;
       if n >= every then
         (
@@ -50,16 +50,18 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "bpm"
     [
       "every", Lang.int_t, Some (Lang.int 500), None;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Detect the BPM."
     ~flags:[Lang.Experimental]
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let every = Lang.to_int (f "every") in
        let s = Lang.to_source (f "") in
-         new bpm s every)
+         new bpm ~kind s every)

@@ -76,6 +76,7 @@ operators = \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
 	operators/append.ml operators/pan.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
+	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml \
 	operators/video_fade.ml \
 	# operators/prepend.ml \
@@ -83,7 +84,6 @@ operators = \
 	operators/mixing_table.ml \
 	operators/mean.ml operators/swap.ml \
 	operators/ms_stereo.ml \
-	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/time_wrap.ml operators/lag.ml \
 	operators/fork.ml operators/midi_routing.ml
