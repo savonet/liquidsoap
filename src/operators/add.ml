@@ -178,7 +178,8 @@ object (self)
 end
 
 let () =
-  let kind = Lang.any_fixed in
+  (* TODO: add on midi chans also. *)
+  let kind = Lang.Constrained {Frame. audio=Lang.Any_fixed 0; video=Lang.Any_fixed 0; midi=Lang.Fixed 0} in
   let kind_t = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "add"
     ~category:Lang.SoundProcessing

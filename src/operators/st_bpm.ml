@@ -44,7 +44,7 @@ object (self)
       if n >= every then
         (
           n <- 0;
-          Printf.printf "BPM: %.02f\n%!" (Soundtouch.BPM.get_bpm bpm)
+          self#log#f 1 "BPM: %.02f\n%!" (Soundtouch.BPM.get_bpm bpm)
         )
 
 end
