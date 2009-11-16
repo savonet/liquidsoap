@@ -10,7 +10,7 @@ object
 
   method note_off : int -> float -> unit
 
-  method synth : float -> float array array -> int -> int -> float array array -> unit
+  method synth : float -> float array array -> int -> int -> unit
 
   method reset : unit
 end
@@ -52,23 +52,13 @@ object (self)
     (* TODO: remove only one note *)
     notes <- List.filter (fun (m, _) -> m <> n) notes
 
-  method synth_note_mono (gs:'gs) (ns:'ns) (freq:float) (buf:float array) (ofs:int) (len:int) = gs
+  method virtual synth_note : 'gs -> 'ns -> float -> float array array -> int -> int -> 'gs
 
-  method synth_note gs ns freq buf ofs len =
-    let s = self#synth_note_mono gs ns freq buf.(0) ofs len in
-      for c = 1 to Array.length buf - 1 do
-        Float_pcm.blit buf.(0) ofs buf.(c) ofs len
-      done;
-      s
-
-  (* tmpbuf is used to generate notes separately. It should be of length at
-   * least len. *)
-  method synth freq buf ofs len tmpbuf =
+  method synth (freq:float) (buf:float array array) (ofs:int) (len:int) =
     let gs = ref self#state in
       List.iter
         (fun (_, ns) ->
-           let gs' = self#synth_note self#state ns freq tmpbuf 0 len in
-             Float_pcm.add buf ofs tmpbuf 0 len;
+           let gs' = self#synth_note self#state ns freq buf 0 len in
              gs := gs'
         ) notes;
       state <- Some !gs
@@ -166,22 +156,25 @@ object (self)
     else
       List.iter (fun (nn, ns) -> if nn = n then ns.simple_adsr <- (3,0)) notes
 
-  method synth_note_mono gs ns freq buf ofs len =
+  method synth_note gs ns freq buf ofs len =
     let phase i = ns.simple_phase +. float i /. freq *. ns.simple_freq in
-      for i = ofs to ofs + len - 1 do
-        buf.(i) <- volume *. ns.simple_ampl *. f (phase i)
+      for c = 0 to Array.length buf - 1 do
+        let buf_c = buf.(c) in
+          for i = ofs to ofs + len - 1 do
+            buf_c.(i) <- buf_c.(i) +. volume *. ns.simple_ampl *. f (phase i)
+          done
       done;
       ns.simple_phase <- fst (modf (phase len));
       match adsr with
         | Some adsr ->
-            ns.simple_adsr <- self#adsr adsr ns.simple_adsr [|buf|] ofs len;
+            ns.simple_adsr <- self#adsr adsr ns.simple_adsr buf ofs len;
             gs
         | None -> gs
 
-  method synth freq buf ofs len tmpbuf =
+  method synth freq buf ofs len =
     if adsr <> None then
       notes <- List.filter (fun (_, ns) -> fst ns.simple_adsr < 4) notes;
-    super#synth freq buf ofs len tmpbuf
+    super#synth freq buf ofs len
 end
 
 class sine ?adsr () = object inherit simple ?adsr (fun x -> sin (x *. 2. *. pi)) end

@@ -22,9 +22,9 @@
 
 open Source
 
-class synth (synth:Synth.synth) (source:source) chan volume =
+class synth ~kind (synth:Synth.synth) (source:source) chan volume =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   initializer
     synth#set_volume volume
@@ -37,22 +37,19 @@ object (self)
 
   method abort_track = source#abort_track
 
-  val tmpbuf = Frame.make ()
-
   method private get_frame buf =
     let offset = AFrame.position buf in
-    let evs = (MFrame.tracks buf).(chan) in
+    let evs = (MFrame.content buf (MFrame.position buf)).(chan) in
     let evs = !evs in
     source#get buf;
-    let b = AFrame.get_float_pcm buf in
+    let b = AFrame.content buf offset in
     let position = AFrame.position buf in
-    let sps = float (Fmt.samples_per_second ()) in
-    let tmpbuf = AFrame.get_float_pcm tmpbuf in
+    let sps = float (Lazy.force Frame.audio_rate) in
     let rec process evs off =
       match evs with
         | (t,e)::tl ->
-            let t = Fmt.samples_of_ticks t in
-              synth#synth sps b off (t - off) tmpbuf;
+            let t = Frame.audio_of_master t in
+              synth#synth sps b off (t - off);
               (
                 match e with
                   | Midi.Note_on (n, v) ->
@@ -65,12 +62,14 @@ object (self)
               );
               process tl t
         | [] ->
-            synth#synth sps b off (position - off) tmpbuf
+            synth#synth sps b off (position - off)
     in
       process evs offset
 end
 
 let register obj name descr =
+  let k = Lang.kind_type_of_kind_format ~fresh:4 (Lang.Constrained { Frame. audio = Lang.Any_fixed 1 ; video = Lang.Any_fixed 0 ; midi = Lang.Any_fixed 1 })
+ in
   Lang.add_operator ("synth." ^ name)
     [
       "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
@@ -79,11 +78,12 @@ let register obj name descr =
       "decay", Lang.float_t, Some (Lang.float 0.01), Some "Envelope decay (in seconds).";
       "sustain", Lang.float_t, Some (Lang.float 0.9), Some "Envelope sustain level.";
       "release", Lang.float_t, Some (Lang.float 0.05), Some "Envelope release (in seconds).";
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundSynthesis
     ~descr
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let chan = Mutils.to_chan (f "channel") in
        let volume = Lang.to_float (f "volume") in
@@ -94,18 +94,19 @@ let register obj name descr =
          Lang.to_float (f "release")
        in
        let src = Lang.to_source (f "") in
-         new synth (obj adsr) src chan volume);
+         new synth ~kind (obj adsr) src chan volume);
   Lang.add_operator ("synth.all." ^ name)
     [
       "attack", Lang.float_t, Some (Lang.float 0.02), Some "Envelope attack (in seconds).";
       "decay", Lang.float_t, Some (Lang.float 0.01), Some "Envelope decay (in seconds).";
       "sustain", Lang.float_t, Some (Lang.float 0.9), Some "Envelope sustain level.";
       "release", Lang.float_t, Some (Lang.float 0.01), Some "Envelope release (in seconds).";
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundSynthesis
     ~descr:(descr ^ " It creates one synthesizer for each channel.")
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let adsr =
@@ -114,9 +115,9 @@ let register obj name descr =
          Lang.to_float (f "sustain"),
          Lang.to_float (f "release")
        in
-       let synths = Array.init (Fmt.midi_channels ()) (fun c -> 1, new synth (obj adsr) src c 1.) in
+       let synths = Array.init ((Frame.type_of_kind kind).Frame.midi) (fun c -> 1, new synth ~kind (obj adsr) src c 1.) in
        let synths = Array.to_list synths in
-         new Add.add ~renorm:false synths
+         new Add.add ~kind ~renorm:false synths
            (fun _ -> ())
            (fun _ buf tmp -> RGB.add buf tmp)
     )
