@@ -31,19 +31,20 @@ class normalize ~kind (source:source)
            gmin
            gmax
            =
+let channels = (Frame.type_of_kind kind).Frame.audio in
 let rmsi = Frame.audio_of_seconds window in
 object (self)
   inherit operator kind [source] as super
 
   (** Current squares of RMS. *)
-  val rms = [|0.; 0.|]
+  val rms = Array.make channels 0.
   (** Current number of samples used to compute [rmsl] and [rmsr]. *)
   val mutable rmsc = 0
 
   (** Volume coefficients. *)
-  val v = [|1.; 1.|]
+  val v = Array.make channels 1.
   (** Previous volume coefficients. *)
-  val vold = [|1.; 1.|]
+  val vold = Array.make channels 1.
 
   method stype = source#stype
 
@@ -64,7 +65,7 @@ object (self)
       let gmin = gmin () in
       let gmax = gmax () in
         for i = offset to AFrame.position buf - 1 do
-          for c = 0 to 1 do
+          for c = 0 to channels - 1 do
             rms.(c) <- rms.(c) +. b.(c).(i) *. b.(c).(i);
             b.(c).(i) <-
               b.(c).(i) *.
@@ -74,6 +75,8 @@ object (self)
           rmsc <- rmsc + 1;
           if rmsc >= rmsi then
             (
+              (* TODO: adapt this to channels chans. *)
+              (*
               begin
                 let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
                 let rmsr = sqrt (rms.(1) /. (float_of_int rmsi)) in
@@ -87,8 +90,9 @@ object (self)
                     v.(1)
                     (Sutils.dB_of_lin (rmsr *. v.(1)))
               end ;
+              *)
               (* TODO: do all the computations in dB? *)
-              for c = 0 to 1 do
+              for c = 0 to channels - 1 do
                 let r = sqrt (rms.(c) /. (float_of_int rmsi)) in
                   if r > threshold then
                     if r *. v.(c) > rmst then
@@ -104,7 +108,7 @@ object (self)
         done;
         (* Reset values if it is the end of the track. *)
         if AFrame.is_partial buf then begin
-          for c = 0 to 1 do
+          for c = 0 to channels - 1 do
             vold.(c) <- 1.;
             v.(c) <- 1.;
             rms.(c) <- 0.
@@ -115,8 +119,7 @@ object (self)
 end
 
 let () =
-  (* TODO: generalize to any_fixed! *)
-  let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.audio_stereo in
+  let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.any_fixed in
   Lang.add_operator "normalize"
     [
       "target", Lang.float_getter_t 1, Some (Lang.float (-13.)),
