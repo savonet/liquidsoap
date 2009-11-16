@@ -385,7 +385,7 @@ let rec bind a0 b =
                        | Succ b -> check (deref b)
                        | EVar (j,c) ->
                            if List.mem Fixed c then () else
-                             b.descr <- EVar (j,Num::c)
+                             b.descr <- EVar (j,Fixed::c)
                        | _ -> raise (Unsatisfied_constraint (Fixed,b))
                      in check b)
               constraints
