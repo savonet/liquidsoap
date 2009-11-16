@@ -207,7 +207,7 @@ let print t =
           vars
     | Zero -> print_unary ~par vars t
     | Variable -> "*", vars
-    | Succ t ->
+    | Succ _ ->
         (*
         let t,vars = print ~par:false vars t in
           Printf.sprintf "s(%s)" t, vars
