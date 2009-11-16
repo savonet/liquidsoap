@@ -110,6 +110,7 @@ type lang_kind_formats =
       (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
 
 val any_fixed : lang_kind_formats
+val any_fixed_with : ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
 
 val audio_any : lang_kind_formats
 val audio_mono : lang_kind_formats
@@ -117,9 +118,6 @@ val audio_stereo : lang_kind_formats
 val audio_variable : lang_kind_formats
 
 val video_only : lang_kind_formats
-
-val midi_one : lang_kind_formats
-val midi_any : lang_kind_formats
 
 val kind_type_of_kind_format : fresh:int -> lang_kind_formats -> t
 

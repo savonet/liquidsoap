@@ -99,7 +99,7 @@ let () =
     [
       "velocity", Lang.float_t, Some (Lang.float 0.8), Some "Velocity of notes."
     ]
-    ~kind:Lang.midi_one
+    ~kind:(Lang.Constrained { Frame. audio = Lang.Any_fixed 0 ; video = Lang.Fixed 0 ; midi = Lang.Any_fixed 1 })
     ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."

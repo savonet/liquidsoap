@@ -105,7 +105,7 @@ end
 let () =
   Lang.add_operator "input.keyboard"
     []
-    ~kind:Lang.midi_one
+    ~kind:(Lang.Constrained { Frame. audio = Lang.Any_fixed 0 ; video = Lang.Fixed 0 ; midi = Lang.Any_fixed 1 })
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard."

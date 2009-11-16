@@ -189,6 +189,10 @@ let any_fixed =
   Constrained
     { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
 
+let any_fixed_with ?(audio=0) ?(video=0) ?(midi=0) () =
+  Constrained
+    { Frame.audio = Any_fixed audio ; Frame.video = Any_fixed video ; Frame.midi = Any_fixed midi }
+
 let audio_variable =
   Constrained
     { Frame.audio = Variable 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
@@ -203,13 +207,6 @@ let audio_stereo =
     { Frame.audio = Fixed 2 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
 
 let video_only =
-  Constrained
-    { Frame.audio = Fixed 0 ; Frame.video = Fixed 1 ; Frame.midi = Fixed 0 }
-
-let midi_any =
-  Constrained
-    { Frame.audio = Fixed 0 ; Frame.video = Any_fixed 0 ; Frame.midi = Fixed 0 }
-let midi_one =
   Constrained
     { Frame.audio = Fixed 0 ; Frame.video = Fixed 1 ; Frame.midi = Fixed 0 }
 
