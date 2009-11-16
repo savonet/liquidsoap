@@ -22,13 +22,7 @@
 
 (** Convert a value into a channel number, checking that it actually exists. *)
 let to_chan v =
-  let n = Lang.to_int v in
-    if n >= Lazy.force Frame.midi_channels then
-      raise
-        (Lang.Invalid_value
-           (v, "channel number too big (try increasing frame.midi.channels)"))
-    else
-      n
+  Lang.to_int v
 
 (** Convert delta-times to ticks. *)
 let ticks_of_delta division tempo delta =
