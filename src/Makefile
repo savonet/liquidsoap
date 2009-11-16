@@ -57,10 +57,10 @@ sources = \
 	$(if $(W_FAAD),sources/http_aac.ml) \
 	$(if $(W_SDL),sources/video_text.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
+	$(if $(W_BJACK),sources/bjack_in.ml) \
+	$(if $(W_LAST),sources/lastfm_input.ml) \
 	# sources/external_input.ml \
 	sources/harbor_input.ml \
-	$(if $(W_LAST),sources/lastfm_input.ml) \
-	$(if $(W_BJACK),sources/bjack_in.ml) \
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \

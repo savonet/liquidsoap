@@ -24,16 +24,17 @@ open Source
 
 let log = Dtools.Log.make ["input";"jack"]
 
-class jack_in ~nb_blocks ~server =
-  let channels = Fmt.channels () in
-  let samples_per_frame = Fmt.samples_per_frame () in
-  let samples_per_second = Fmt.samples_per_second () in
+class jack_in ~kind ~nb_blocks ~server =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_frame = AFrame.size () in
+  let samples_per_second = Lazy.force Frame.audio_rate in
+  let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
   let blank () = 
     String.make (samples_per_frame * channels * bytes_per_sample) '0' 
   in
 object (self)
-  inherit active_source
+  inherit active_source kind
   inherit [string] IoRing.input 
       ~blocking:true ~nb_blocks ~blank () as ioring
 
@@ -42,7 +43,7 @@ object (self)
   method abort_track = ()
   method remaining = -1
 
-  val mutable sample_freq = Fmt.samples_per_second ()
+  val mutable sample_freq = samples_per_second
 
   val mutable device = None
 
@@ -75,7 +76,7 @@ object (self)
         let length = String.length block in
         let ans = ref (Bjack.read dev length) in
           while String.length !ans < length do
-            Thread.delay (Fmt.seconds_per_frame () /. 2.) ;
+            Thread.delay (seconds_per_frame /. 2.) ;
             let len = length - (String.length !ans) in
             let tmp = Bjack.read dev len in
             ans := !ans ^ tmp 
@@ -85,7 +86,7 @@ object (self)
   method private get_frame buf =
     assert (0 = AFrame.position buf) ;
     let buffer = ioring#get_block in
-    let fbuf = AFrame.get_float_pcm buf in
+    let fbuf = AFrame.content_of_type ~channels buf 0 in
       Float_pcm.from_s16le fbuf 0 buffer 0 samples_per_frame ;
       AFrame.add_break buf samples_per_frame
 
@@ -97,6 +98,7 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.jack"
     ["buffer_size",
       Lang.int_t, Some (Lang.int 2),
@@ -104,10 +106,11 @@ let () =
      "server",
       Lang.string_t, Some (Lang.string ""),
       Some "Jack server to connect to." ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Get stream from jack."
-    (fun p _ ->
+    (fun p kind ->
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in
-         ((new jack_in ~nb_blocks ~server):>Source.source))
+         ((new jack_in ~kind ~nb_blocks ~server):>Source.source))
 

@@ -22,12 +22,12 @@
 
 open Lastfm
 
-class lastfm ~autostart ~poll_delay ~submit ~track_on_meta 
+class lastfm ~kind ~autostart ~poll_delay ~submit ~track_on_meta 
              ~bufferize ~timeout ~bind_address 
              ~debug ~max ~user_agent ~audioscrobbler_host uri =
 let playlist_mode = Http_source.First in
 object (self)
-  inherit Http_source.http ~playlist_mode ~poll_delay ~timeout 
+  inherit Http_source.http ~kind ~playlist_mode ~poll_delay ~timeout 
                            ~autostart ~bind_address ~bufferize 
                            ~max ~track_on_meta 
                            ~debug ~user_agent uri as http
@@ -110,7 +110,9 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
     Lang.add_operator "input.lastfm"
+      ~kind:(Lang.Unconstrained k)
       ~category:Lang.Input
       ~descr:("Forwards the given lastfm stream. The relay can be "^
               "paused/resumed using the start/stop telnet commands.")
@@ -149,7 +151,7 @@ let () =
         "", Lang.string_t, None,
         Some "URI of a lastfm  stream (e.g. lastfm://user/toots5446/playlist)."
       ]
-      (fun p _ ->
+      (fun p kind ->
          let uri = Lang.to_string (List.assoc "" p) in
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
          let submit = Lang.to_bool (List.assoc "submit" p) in
@@ -175,7 +177,7 @@ let () =
            raise (Lang.Invalid_value
                     (List.assoc "max" p,
                      "Maximun buffering inferior to pre-buffered data"));
-           ((new lastfm ~autostart ~submit ~poll_delay ~bufferize
+           ((new lastfm ~kind ~autostart ~submit ~poll_delay ~bufferize
                         ~track_on_meta ~audioscrobbler_host
                         ~bind_address ~timeout ~max ~debug 
                         ~user_agent uri):>Source.source))
