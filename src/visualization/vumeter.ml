@@ -53,7 +53,7 @@ object
     let channels = Array.length rms in
     let vol = Array.map (vol channels) rms in
     let vol = Array.fold_left (fun ans s -> ans ^ "  " ^ s) "" vol in
-    let vol = if channels = 0 then vol else String.sub vol 2 (String.length vol - 2) in
+    let vol = if channels = 0 then "vumeter: no audio channel!" else String.sub vol 2 (String.length vol - 2) in
       if scroll then
         Printf.printf "%s\n%!" vol
       else
