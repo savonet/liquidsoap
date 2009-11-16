@@ -53,7 +53,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.any_fixed in
   Lang.add_operator "echo"
     [ "delay", Lang.float_t, Some (Lang.float 0.5), Some "Delay in seconds.";
 

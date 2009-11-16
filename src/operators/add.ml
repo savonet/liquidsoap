@@ -178,13 +178,7 @@ object (self)
 end
 
 let () =
-  let kind =
-    Lang.Constrained
-      { Frame.
-        audio = Lang.Any_fixed 0 ;
-        video = Lang.Any_fixed 0 ;
-        midi  = Lang.Any_fixed 0 }
-  in
+  let kind = Lang.any_fixed in
   let kind_t = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "add"
     ~category:Lang.SoundProcessing
@@ -234,13 +228,7 @@ let tile_pos n =
     horiz (n/2) (n-n/2)
 
 let () =
-  let kind =
-    Lang.Constrained
-      { Frame.
-        audio = Lang.Any_fixed 0 ;
-        video = Lang.Any_fixed 1 ;
-        midi  = Lang.Any_fixed 0 }
-  in
+  let kind = Lang.any_fixed_with ~video:1 () in
   let kind_t = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "video.tile"
     ~category:Lang.VideoProcessing

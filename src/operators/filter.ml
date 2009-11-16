@@ -71,7 +71,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.any_fixed in
   Lang.add_operator "filter"
     [ "freq", Lang.float_getter_t 1, None, None ;
       "q", Lang.float_getter_t 2, Some (Lang.float 1.), None ;

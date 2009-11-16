@@ -150,7 +150,7 @@ end
 
 let proto,kind =
   (* TODO check about sharing for the kind variables *)
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   [ "duration", Lang.float_t, Some (Lang.float 3.), 
      Some "Duration of the fading. \
            This value can be set on a per-file basis using the metadata field \

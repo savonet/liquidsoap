@@ -43,7 +43,7 @@ object (self)
       done
 end
 
-let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.video_only
+let kind = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
 
 let () =
   Lang.add_operator "video.greyscale"

@@ -164,7 +164,7 @@ object (self)
 end
 
 (* The five first variables ('a,'b...) are used for getters. *)
-let k = Lang.kind_type_of_kind_format ~fresh:6 Lang.audio_any
+let k = Lang.kind_type_of_kind_format ~fresh:6 Lang.any_fixed
 
 let proto =
   [

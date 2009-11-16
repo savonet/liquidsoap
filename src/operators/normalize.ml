@@ -115,7 +115,8 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.audio_any in
+  (* TODO: generalize to any_fixed! *)
+  let k = Lang.kind_type_of_kind_format ~fresh:7 Lang.audio_stereo in
   Lang.add_operator "normalize"
     [
       "target", Lang.float_getter_t 1, Some (Lang.float (-13.)),

@@ -315,7 +315,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
         )
         control_ports
   in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (if stereo then Lang.audio_stereo else Lang.audio_any) in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (if stereo then Lang.audio_stereo else Lang.any_fixed) in
   let liq_params =
     liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
   in

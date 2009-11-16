@@ -150,7 +150,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "filter.fir"
     [
       "frequency", Lang.float_t, None,

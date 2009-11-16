@@ -46,7 +46,7 @@ let to_fun_float f x =
   Lang.to_float (Lang.apply f ["", Lang.float x])
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "audio.map"
     [
       "", Lang.fun_t [false,"",Lang.float_t] Lang.float_t, None, None;
