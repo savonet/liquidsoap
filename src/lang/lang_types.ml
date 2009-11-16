@@ -205,14 +205,9 @@ let print t =
         let t,vars = print ~par:false vars t in
           Printf.sprintf "[%s]" t,
           vars
-    | Zero -> print_unary ~par vars t
     | Variable -> "*", vars
-    | Succ _ ->
-        (*
-        let t,vars = print ~par:false vars t in
-          Printf.sprintf "s(%s)" t, vars
-        *)
-        print_unary ~par vars t
+    | Zero -> print_unary ~par vars t
+    | Succ _ -> print_unary ~par vars t
     | EVar (i,c) as d ->
         (evar_name i),
         (if c<>[] then DS.add d vars else vars)
