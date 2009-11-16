@@ -29,8 +29,6 @@ let position t = position t
 let content b pos =
   let stop,content = content b pos in
     assert (stop = size ()) ;
-    (* assert (Array.length content.audio = 0) ; *)
-    (* assert (Array.length content.video = 0) ; *)
     content.midi
 
 let content_of_type ~channels b pos =
