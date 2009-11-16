@@ -39,13 +39,13 @@ object (self)
   method virtual log : Dtools.Log.t
 end
 
-class output p =
+class output ~kind p =
   let source_val = List.assoc "" p in
   let source = Lang.to_source source_val in
-  let channels = Fmt.channels () in
-  let samples_per_second = Fmt.samples_per_second () in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_operator source
+  inherit Source.active_operator kind source
   inherit base p
 
   initializer
@@ -85,15 +85,15 @@ object (self)
       source#get memo
     done;
     let stream = Utils.get_some stream in
-    let buf = AFrame.get_float_pcm memo in
+    let buf = AFrame.content memo 0 in
       Simple.write stream buf 0 (Array.length buf.(0))
 end
 
-class input p =
-  let channels = Fmt.channels () in
-  let samples_per_second = Fmt.samples_per_second () in
+class input ~kind p =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source
+  inherit Source.active_source kind
   inherit base p
 
   val mutable stream = None
@@ -125,12 +125,13 @@ object (self)
   method get_frame frame =
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
-    let buf = AFrame.get_float_pcm frame in
+    let buf = AFrame.content_of_type ~channels frame 0 in
       Simple.read stream buf 0 (Array.length buf.(0));
-      AFrame.add_break frame (AFrame.size frame)
+      AFrame.add_break frame (AFrame.size ())
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
   let proto =
     [ "client", Lang.string_t, 
       Some (Lang.string "liquidsoap"), None ;
@@ -139,13 +140,15 @@ let () =
       Some "Device to use. Uses default if set to \"\"."]
   in
   Lang.add_operator "output.pulseaudio"
-    (proto @ ["", Lang.source_t, None, None])
+    (proto @ ["", Lang.source_t k, None, None])
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
-    (fun p _ ->
-         ((new output p):>Source.source)) ;
+    (fun p kind ->
+         ((new output ~kind p):>Source.source)) ;
   Lang.add_operator "input.pulseaudio"
     proto
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
-    (fun p _ -> ((new input p):>Source.source))
+    (fun p kind -> ((new input ~kind p):>Source.source))
