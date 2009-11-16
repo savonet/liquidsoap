@@ -185,9 +185,16 @@ let print t =
       )
   and print ~par vars t = match t.descr with
     | Constr c ->
-        let l,vars = print_list vars [] c.params in
-          Printf.sprintf "%s(%s)" c.name (String.concat "," l),
-          vars
+        if c.name = "stream_kind" then
+          let fields = ["audio"; "video"; "midi"] in
+          let vfields,vars = print_list vars [] c.params in
+          let fields = List.map2 (fun f v -> Printf.sprintf "%s=%s" f v) fields vfields in
+            String.concat "," fields,
+            vars
+        else
+          let l,vars = print_list vars [] c.params in
+            Printf.sprintf "%s(%s)" c.name (String.concat "," l),
+            vars
     | Ground g -> print_ground g, vars
     | Product (a,b) ->
         let a,vars = print ~par:true vars a in
