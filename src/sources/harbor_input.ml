@@ -28,15 +28,16 @@ open Http_source
 
 exception NoDecoder
 
-class http_input_server ~dumpfile ~logfile
+class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max
                         ~on_connect ~on_disconnect
                         ~login ~debug =
-  let abg_max_len = Fmt.samples_of_seconds max in
+  let abg_max_len = Frame.audio_of_seconds max in
 object (self)
-  inherit Source.source
+  inherit Source.source kind
+  (* TODO: we want video also in the genrator *)
   inherit Generated.source
-            (Generator.create ())
+            (Generator.create Generator.Audio)
             ~empty_on_abort:false ~bufferize
 
   val mutable relaying = false
@@ -61,7 +62,7 @@ object (self)
     self#log#f 3 "New metadata chunk \"%s -- %s\""
       (try Hashtbl.find m "artist" with _ -> "?")
       (try Hashtbl.find m "title" with _ -> "?") ;
-    Generator.add_metadata abg m
+    Generator.add_metadata generator m
 
   method put sample_freq data =
     if not relaying then failwith "relaying stopped" ;
@@ -73,18 +74,19 @@ object (self)
      * Doing 2 instead of 1 leads to ugly sound.
      * Here, we drop data since we want to remain
      * connected to the client. *)
-    if Generator.length abg >= abg_max_len then
+    if Generator.length generator >= abg_max_len then
       begin
         Mutex.unlock lock ;
         Thread.delay (max /. 3.) ;
         Mutex.lock lock ;
-        if Generator.length abg >= abg_max_len then
+        if Generator.length generator >= abg_max_len then
         (* Here, we drop some data after the maximun buffer has been filled.
          * Delaying the function can lead to deconnection/connection cycles
          * when the source is not pulled. *)
-          Generator.remove abg (Generator.length abg - abg_max_len)
+          Generator.remove generator (Generator.length generator - abg_max_len)
       end ;
-    Generator.feed abg ~sample_freq data ;
+    (* TODO: convert sample rate *)
+    Generator.put_audio generator data 0 (Array.length data.(0));
     Mutex.unlock lock
 
   method register_decoder s =
@@ -169,7 +171,7 @@ object (self)
     Server.add ~ns "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f"
-             (Fmt.seconds_of_samples self#length))
+             (Frame.seconds_of_audio self#length))
 
   method private sleep =
     if relaying then self#disconnect
@@ -217,7 +219,10 @@ object (self)
 end
 
 let () =
+  (* TODO: handle video too! *)
+  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
     Lang.add_operator "input.harbor"
+      ~kind:(Lang.Unconstrained kind)
       ~category:Lang.Input
       ~descr:("Retrieves the given http stream from the harbor.")
       [
@@ -269,7 +274,7 @@ let () =
 
         "", Lang.string_t, None,
         Some "Mountpoint to look for." ]
-      (fun p _ ->
+      (fun p kind ->
          let mount = Lang.to_string (List.assoc "" p) in
          let mount =
            if mount<>"" && mount.[0]='/' then mount else
@@ -340,7 +345,7 @@ let () =
            with
              | Not_found ->
                  Harbor.add_source mount
-                   ((new http_input_server
+                   ((new http_input_server ~kind
                        ~bufferize ~max ~login
                        ~dumpfile ~logfile
                        ~on_connect ~on_disconnect ~debug):>Harbor.source) ;

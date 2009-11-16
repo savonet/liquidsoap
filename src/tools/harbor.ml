@@ -61,9 +61,9 @@ let log = Log.make ["harbor"]
 exception Internal
 
 (* Define what we need as a source *)
-class virtual source =
+class virtual source ~kind =
 object(self)
-  inherit Source.source
+  inherit Source.source kind
 
   method virtual relay : (string*string) list -> Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
