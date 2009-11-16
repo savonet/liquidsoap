@@ -68,8 +68,7 @@ object (self)
 end
 
 let register obj name descr =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.Constrained { Frame. audio = Lang.Any_fixed 1 ; video = Lang.Any_fixed 0 ; midi = Lang.Any_fixed 1 })
- in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:1 ()) in
   Lang.add_operator ("synth." ^ name)
     [
       "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
