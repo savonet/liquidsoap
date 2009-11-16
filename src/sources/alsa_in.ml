@@ -29,14 +29,14 @@
 open Alsa
 open Source
 
-class mic device =
-  let buffer_length = Fmt.samples_per_frame () in
-  let buffer_chans = Fmt.channels () in
+class mic ~kind device =
+  let buffer_length = AFrame.size () in
+  let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
 object (self)
-  inherit active_source
+  inherit active_source kind
   inherit [float array array] IoRing.input
       ~nb_blocks ~blank () as ioring
 
@@ -46,7 +46,7 @@ object (self)
   method remaining = -1
 
   (* val mutable alsa_fmt = *)
-  val mutable sample_freq = Fmt.samples_per_second ()
+  val mutable sample_freq = Lazy.force Frame.audio_rate
 
   val mutable read_fun =
     (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
@@ -110,7 +110,7 @@ object (self)
   method get_frame buf =
     assert (0 = AFrame.position buf) ;
     let buffer = ioring#get_block in
-    let fbuf = AFrame.get_float_pcm buf in
+    let fbuf = AFrame.content_of_type ~channels:buffer_chans buf 0 in
       for c = 0 to Array.length fbuf - 1 do
         Array.blit buffer.(c) 0 fbuf.(c) 0 buffer_length
       done;

@@ -55,10 +55,10 @@ sources = \
 	$(if $(W_MP3),sources/http_mp3.ml) \
 	$(if $(W_OGG),sources/http_ogg.ml) \
 	$(if $(W_FAAD),sources/http_aac.ml) \
-	$(if $(W_SDL),sources/video_text.ml)
+	$(if $(W_SDL),sources/video_text.ml) \
+	$(if $(W_ALSA),sources/alsa_in.ml) \
 	# sources/external_input.ml \
 	sources/harbor_input.ml \
-	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 
@@ -111,9 +111,9 @@ outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	$(encoders)
 	# outputs/external_encoded.ml \
 
-io =
+io = \
+        $(if $(W_ALSA),io/alsa_io.ml) \
 # $(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
-	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_JACK),io/jack_io.ml) \

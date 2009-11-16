@@ -33,13 +33,11 @@ let handle lbl f x =
         failwith (Printf.sprintf "Error while setting %s: %s"
                     lbl (Printexc.to_string e))
 
-class virtual base dev mode =
+class virtual base ~kind dev mode =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_frame = AFrame.size () in
 object (self)
-
-  val channels = Fmt.channels ()
-  val samples_per_second = Fmt.samples_per_second ()
-  val samples_per_frame = Fmt.samples_per_frame ()
-
   initializer
     (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
 
@@ -102,7 +100,7 @@ object (self)
                         (fun pcm buf ofs len ->
                            let sbuf =
                              Array.init
-                               (Fmt.channels ())
+                               channels
                                (fun _ -> String.create (2 * len))
                            in
                            let _ =  Float_pcm.to_s16le_ni buf ofs len sbuf 0 in
@@ -112,7 +110,7 @@ object (self)
                         (fun pcm buf ofs len ->
                            let sbuf =
                              Array.init
-                               (Fmt.channels ())
+                               channels
                                (fun _ -> String.create (2 * len))
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
@@ -160,11 +158,13 @@ object (self)
   method is_active = true
 end
 
-class output dev val_source =
+class output ~kind dev val_source =
   let source = Lang.to_source val_source in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_operator source
-  inherit base dev [Pcm.Playback]
+  inherit Source.active_operator kind source
+  inherit base ~kind dev [Pcm.Playback]
 
   initializer
     self#set_id (Printf.sprintf "alsa_out(%s)" dev) ;
@@ -172,7 +172,7 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
-  val samplerate_converter = Audio_converter.Samplerate.create (Fmt.channels ())
+  val samplerate_converter = Audio_converter.Samplerate.create channels
 
   method stype = Source.Infallible
   method is_ready = true
@@ -185,7 +185,7 @@ object (self)
       source#get memo
     done ;
     let pcm = Utils.get_some pcm in
-    let buf = AFrame.get_float_pcm memo in
+    let buf = AFrame.content memo 0 in
     let buf =
       if alsa_rate = samples_per_second then
         buf
@@ -215,10 +215,12 @@ object (self)
 
 end
 
-class input dev =
+class input ~kind dev =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_frame = AFrame.size () in
 object (self)
-  inherit Source.active_source
-  inherit base dev [Pcm.Capture]
+  inherit Source.active_source kind
+  inherit base ~kind dev [Pcm.Capture]
 
   method stype = Source.Infallible
   method is_ready = true
@@ -230,7 +232,7 @@ object (self)
   method get_frame frame =
     assert (0 = AFrame.position frame) ;
     let pcm = Utils.get_some pcm in
-    let buf = AFrame.get_float_pcm frame in
+    let buf = AFrame.content_of_type ~channels frame 0 in
       try
         let r = ref 0 in
           while !r < samples_per_frame do
@@ -241,7 +243,7 @@ object (self)
                 !r (Array.length buf.(0));
             r := !r + (read pcm buf !r (samples_per_frame - !r))
           done;
-          AFrame.add_break frame (AFrame.size frame)
+          AFrame.add_break frame (AFrame.size ())
       with
         | Buffer_xrun ->
             self#log#f 2
@@ -253,6 +255,7 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.alsa"
     [
       "bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize output";
@@ -260,20 +263,21 @@ let () =
       "device", Lang.string_t, Some (Lang.string "default"),
       Some "Alsa device to use";
 
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
-    (fun p _ ->
+    (fun p kind ->
        let e f v = f (List.assoc v p) in
        let bufferize = e Lang.to_bool "bufferize" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
          if bufferize then
            (* TODO: add a parameter for autostart? *)
-           ((new Alsa_out.output device true source):>Source.source)
+           ((new Alsa_out.output ~kind device true source):>Source.source)
          else
-           ((new output device source):>Source.source)
+           ((new output ~kind device source):>Source.source)
     ) ;
   Lang.add_operator "input.alsa"
     [
@@ -282,14 +286,15 @@ let () =
       "device", Lang.string_t, Some (Lang.string "default"),
       Some "Alsa device to use."
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from an ALSA input device."
-    (fun p _ ->
+    (fun p kind ->
        let e f v = f (List.assoc v p) in
        let bufferize = e Lang.to_bool "bufferize" in
        let device = e Lang.to_string  "device" in
          if bufferize then
-           ((new Alsa_in.mic device):>Source.source)
+           ((new Alsa_in.mic ~kind device):>Source.source)
          else
-           ((new input device):>Source.source)
+           ((new input ~kind device):>Source.source)
     ) ;
