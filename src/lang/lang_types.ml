@@ -164,7 +164,26 @@ let print t =
     * Attaches the list of variables that occur in the type.
     * The [par] params tells whether (..)->.. should be surrounded by
     * parenthesis or not. *)
-  let rec print ~par vars t = match t.descr with
+  let rec aux_unary ~par vars t = match t.descr with
+    | Succ t ->
+        let n,leaf,vars = aux_unary ~par vars t in
+          n+1,leaf,vars
+    | Zero -> 0,None,vars
+    | _ -> 0,Some t,vars
+  and print_unary ~par vars d =
+    let n,l,vars = aux_unary ~par vars d in
+      (
+        match l with
+          | None ->
+              string_of_int n, vars
+          | Some l ->
+              let s,vars = print ~par vars l in
+                if n = 0 then
+                  s, vars
+                else
+                  Printf.sprintf "%s+%d" s n, vars
+      )
+  and print ~par vars t = match t.descr with
     | Constr c ->
         let l,vars = print_list vars [] c.params in
           Printf.sprintf "%s(%s)" c.name (String.concat "," l),
@@ -179,10 +198,14 @@ let print t =
         let t,vars = print ~par:false vars t in
           Printf.sprintf "[%s]" t,
           vars
-    | Zero -> "z", vars | Variable -> "*", vars
+    | Zero -> print_unary ~par vars t
+    | Variable -> "*", vars
     | Succ t ->
+        (*
         let t,vars = print ~par:false vars t in
           Printf.sprintf "s(%s)" t, vars
+        *)
+        print_unary ~par vars t
     | EVar (i,c) as d ->
         (evar_name i),
         (if c<>[] then DS.add d vars else vars)
