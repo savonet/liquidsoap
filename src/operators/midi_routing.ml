@@ -22,9 +22,9 @@
 
 open Source
 
-class virtual base (source:source) =
+class virtual base ~kind (source:source) =
 object (self)
-  inherit operator [source] as super
+  inherit operator kind [source] as super
 
   method stype = source#stype
 
@@ -35,13 +35,14 @@ object (self)
   method abort_track = source#abort_track
 end
 
-class merge (source:source) out =
+class merge ~kind (source:source) out =
 object (self)
-  inherit base (source)
+  inherit base ~kind (source)
 
   method private get_frame buf =
+    let offset = MFrame.position buf in
     source#get buf;
-    let m = MFrame.tracks buf in
+    let m = MFrame.content buf offset in
       for c = 0 to Array.length m - 1 do
         m.(out) := !(m.(c)) @ !(m.(out));
         if c <> out then m.(c) := []
@@ -49,40 +50,45 @@ object (self)
       m.(out) := List.sort (fun (t1, _) (t2, _) -> t1 - t2) !(m.(out))
 end
 
-class remove (source:source) t =
+class remove ~kind (source:source) t =
 object (self)
-  inherit base (source)
+  inherit base ~kind (source)
 
   method private get_frame buf =
+    let offset = MFrame.position buf in
     source#get buf;
-    let m = MFrame.tracks buf in
+    let m = MFrame.content buf offset in
       List.iter (fun c -> m.(c) := []) t
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ()) in
   Lang.add_operator "midi.merge_all"
     [
       "track_out", Lang.int_t, Some (Lang.int 0), Some "Destination track.";
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.MIDIProcessing
     ~descr:"Merge all MIDI tracks in one."
-    (fun p _ ->
+    (fun p kind ->
        let f v = List.assoc v p in
        let out = Mutils.to_chan (f "track_out") in
        let src = Lang.to_source (f "") in
-         new merge src out)
+         new merge ~kind src out)
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ()) in
   Lang.add_operator "midi.remove"
     [
       "", Lang.list_t Lang.int_t, None, Some "Tracks to remove.";
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.MIDIProcessing
     ~descr:"Remove MIDI tracks."
-    (fun p _ ->
+    (fun p kind ->
        (* let f v = List.assoc v p in *)
        let t = List.map Mutils.to_chan (Lang.to_list (Lang.assoc "" 1 p)) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new remove src t)
+         new remove ~kind src t)
