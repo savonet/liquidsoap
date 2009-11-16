@@ -29,8 +29,6 @@ let tos = master_of_audio
 let content b pos =
   let stop,content = content b (tos pos) in
     assert (stop = Lazy.force size) ;
-    assert (Array.length content.video = 0) ;
-    assert (Array.length content.midi = 0) ;
     content.audio
 
 let content_of_type ~channels b pos =

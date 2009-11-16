@@ -88,7 +88,12 @@ object (self)
 end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let kind =
+    Lang.Constrained { Frame.audio = Lang.Any_fixed 1 ;
+                             video = Lang.Any_fixed 0 ;
+                             midi  = Lang.Any_fixed 0 }
+  in
+  let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "output.ao"
    ( Output.proto @
     [ "driver",
@@ -108,7 +113,7 @@ let () =
     ])
     ~category:Lang.Output
     ~descr:"Output stream to local sound card using libao."
-    ~kind:(Lang.Unconstrained kind) (* TODO check/rename *)
+    ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
        let driver = Lang.to_string (List.assoc "driver" p) in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
