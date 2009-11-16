@@ -64,7 +64,8 @@ object (self)
 
   method get_frame frame =
     assert (0 = MFrame.position frame);
-    let m = MFrame.content_of_type ~channels:1 frame 0 in
+    let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
+    let m = m.Frame.midi in
     let t =
       let ans = ref [] in
         Sdlevent.pump ();
