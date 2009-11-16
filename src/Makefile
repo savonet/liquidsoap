@@ -59,7 +59,7 @@ sources = \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
-	sources/harbor_input.ml \
+	tools/harbor.ml sources/harbor_input.ml \
 	# sources/external_input.ml \
 
 operators = \
@@ -155,7 +155,6 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/ioRing.ml tools/file_decoder.ml tools/mutils.ml \
-	tools/harbor.ml \
 	$(video_converters) $(audio_converters) $(ogg_utils) $(protocols) \
 	$(sources) $(operators) $(conversions) $(outputs) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(formats) \
