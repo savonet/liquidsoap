@@ -116,11 +116,11 @@ io = \
 	$(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
-#	$(if $(W_JACK),io/jack_io.ml) \
+	$(if $(W_JACK),io/jack_io.ml) \
 	$(if $(W_V4L),io/v4l_io_c.c) \
 	$(if $(W_V4L),io/v4l_io.ml) \
 	$(if $(W_OPAL),io/opal_io_c.o io/opal_io.ml) \
-	io/marshal_io.ml
+#	io/marshal_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml tools/ringbuffer.ml \
@@ -138,8 +138,8 @@ visualization = visualization/vumeter.ml \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
 	$(if $(W_GL),visualization/vis_glvolume.ml) \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
-        visualization/midimeter.ml
-#	visualization/video_volume.ml \
+        visualization/midimeter.ml \
+	visualization/video_volume.ml \
 
 synth = synth/synth.ml synth/keyboard.ml \
 	synth/synth_op.ml \

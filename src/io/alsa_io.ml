@@ -279,6 +279,7 @@ let () =
          else
            ((new output ~kind device source):>Source.source)
     ) ;
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.alsa"
     [
       "bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input.";

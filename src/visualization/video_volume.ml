@@ -59,14 +59,12 @@ object (self)
              ) v
         ) vol
     in
+    let offset = VFrame.position buf in
     let pts = Array.concat (Array.to_list pts) in
-    let buf = VFrame.get_rgb buf in
+    let buf = VFrame.content_of_type ~channels:1 buf offset in
+    let buf = buf.(0) in
       for f = 0 to Array.length buf - 1 do
-        for c = 0 to Array.length buf.(f) - 1 do
-          let buf_c = buf.(f).(c) in
-            RGB.blank buf_c;
-            Array.iter (fun (i,j) -> RGB.set_pixel buf_c i j (0xff, 0xff, 0xff, 0xff)) pts
-        done
+        Array.iter (fun (i,j) -> RGB.set_pixel buf.(f) i j (0xff, 0xff, 0xff, 0xff)) pts
       done
 
   method get_frame buf =
@@ -81,7 +79,7 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "video.volume"
     [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
+    ~kind:(Lang.Constrained {Frame. audio = Lang.Any_fixed 1; video = Lang.Fixed 1; midi = Lang.Fixed 0})
     ~category:Lang.Visualization
     ~descr:"Graphical visualization of the sound."
     (fun p kind ->

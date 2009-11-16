@@ -63,14 +63,14 @@ object(self)
       | Some v -> v
 end
 
-class output ~pipe ~reopen val_source =
+class output ~kind ~pipe ~reopen val_source =
   let source = Lang.to_source val_source in
   let f = open_out_gen in
   let fd = Unix.out_channel_of_descr in
   let g = close_out in
   let flags = [Open_wronly;Open_binary] in
 object (self)
-  inherit Source.active_operator source
+  inherit Source.active_operator kind source
   inherit base ~pipe ~f ~fd ~g ~flags ()
 
   initializer
@@ -108,13 +108,13 @@ object (self)
            raise e
 end
 
-class input ~pipe ~reopen () =
+class input ~kind ~pipe ~reopen () =
   let f = open_in_gen in
   let fd = Unix.in_channel_of_descr in
   let g = close_in in
   let flags = [Open_rdonly;Open_binary] in
 object (self)
-  inherit Source.source
+  inherit Source.source kind
   inherit base ~pipe ~f ~fd ~g ~flags ()
 
   initializer

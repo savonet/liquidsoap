@@ -94,10 +94,10 @@ let ringbuffer_coeff = Dtools.Conf.int ~p:(conf#plug "ringbuffer_coeff") ~d:8
       "Should be supperior or equal to 4."
     ]
 
-class virtual base port_names mode synchronize =
+class virtual base ~kind port_names mode synchronize =
 object
-  val channels = Fmt.channels ()
-  val samples_per_frame = Fmt.samples_per_frame ()
+  val channels = (Frame.type_of_kind kind).Frame.audio
+  val samples_per_frame = AFrame.size ()
 
   initializer
     need_jack := true;
@@ -157,10 +157,11 @@ object
         port_names
 end
 
-class input port_names synchronize =
+class input ~kind port_names synchronize =
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source
-  inherit base port_names `Input synchronize
+  inherit Source.active_source kind
+  inherit base ~kind port_names `Input synchronize
 
   method output = if AFrame.is_partial memo then self#get_frame memo
 
@@ -171,13 +172,13 @@ object (self)
     (* [ab] should be [memo], a fresh buffer to fill. *)
     assert (0 = AFrame.position ab) ;
     AFrame.add_break ab samples_per_frame ;
-    let dest = AFrame.get_float_pcm ab in
+    let dest = AFrame.content_of_type ~channels ab 0 in
       (* TODO: proper error *)
       assert (Array.length port_names <= Array.length dest);
 
       for chan = 0 to Array.length port_names - 1 do
         let coef =
-          float (Fmt.samples_per_second ()) /.
+          float samples_per_second /.
           float (Jack.Client.get_sample_rate (client ()))
    
         in
@@ -205,7 +206,7 @@ object (self)
 
         (* Throw data if there's too much... *)
         let dropped = ref 0 in
-        let samplerate = Fmt.samples_per_second () in
+        let samplerate = samples_per_second in
         while
           Ringbuffer.read_space ring.(chan) >
           (ringbuffer_coeff#get - 2) * buflen
@@ -257,16 +258,17 @@ object (self)
       done
 end
 
-class output port_names val_source synchronize =
+class output ~kind port_names val_source synchronize =
   let source = Lang.to_source val_source in
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
   initializer
     (* We need the source to be infallible. *)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
-  inherit Source.active_operator source
-  inherit base port_names `Output synchronize
+  inherit Source.active_operator kind source
+  inherit base ~kind port_names `Output synchronize
 
   method get_frame ab = source#get ab
 
@@ -276,7 +278,7 @@ object (self)
     while AFrame.is_partial memo do
       source#get memo
     done ;
-    let s = AFrame.get_float_pcm memo in
+    let s = AFrame.content memo 0 in
       (* TODO: proper error *)
       assert (Array.length port_names <= Array.length s);
       activate () ;
@@ -285,7 +287,7 @@ object (self)
         let buf =
           self#resample chan 
             (float (Jack.Client.get_sample_rate (client ())) /.
-             float (Fmt.samples_per_second ()))
+             float samples_per_second)
             s.(chan)
             0
             (Array.length s.(chan))
@@ -308,10 +310,12 @@ let rec get_default_ports name n =
     (get_default_ports name (n-1))
 
 let get_default_ports name =
-  Lang.list (List.rev (get_default_ports name (Fmt.channels())))
+  Lang.list (List.rev (get_default_ports name (Lazy.force Frame.audio_channels)))
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.jack.legacy"
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[Lang.Deprecated]
     ~descr:"Deprecated jack input."
@@ -321,13 +325,15 @@ let () =
       "synchronize", Lang.bool_t, Some (Lang.bool true),
       Some "Synchronize on jack input." ;
     ]
-    (fun p _ ->
+    (fun p kind ->
        let ports = Lang.to_list (List.assoc "ports" p) in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
        let sync = Lang.to_bool (List.assoc "synchronize" p) in
-         ((new input ports sync):>Source.source)) ;
+         ((new input ~kind ports sync):>Source.source)) ;
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.jack.legacy"
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~flags:[Lang.Deprecated]
     ~descr:"Deprecated jack output."
@@ -336,14 +342,14 @@ let () =
       Some "Port names." ;
       "synchronize", Lang.bool_t, Some (Lang.bool true),
       Some "Synchronize on jack output." ;
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
-    (fun p _ ->
+    (fun p kind ->
        let ports = Lang.to_list (List.assoc "ports" p) in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
        let sync = Lang.to_bool (List.assoc "synchronize" p) in
-         ((new output
+         ((new output ~kind
              ports
              (List.assoc "" p)
              sync):>Source.source))

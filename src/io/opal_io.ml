@@ -64,10 +64,11 @@ struct
   external answer_call : t -> string -> unit = "caml_opal_answer_call"
 end
 
-class input =
-  let ringbuffer_length = 10 * Fmt.samples_per_frame () in
+class input ~kind =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let ringbuffer_length = 10 * (AFrame.size ()) in
 object (self)
-  inherit Source.active_source
+  inherit Source.active_source kind
 
   val mutable handle = None
 
@@ -79,7 +80,7 @@ object (self)
 
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  val write_rb = Ringbuffer.TS.create (Fmt.channels ()) ringbuffer_length
+  val write_rb = Ringbuffer.TS.create channels ringbuffer_length
 
   method output_get_ready =
     (* TODO: init only once *)
@@ -111,7 +112,7 @@ object (self)
       let buflen = 1024 in
       let fbuf = [|Array.make buflen 0.|] in
       let conv = Audio_converter.Samplerate.create 1 in
-      let outfreq = float_of_int (Fmt.samples_per_second ()) in
+      let outfreq = float_of_int (Lazy.force Frame.audio_rate) in
         while true do
           let token, id, fmt, data = Opal.read_data h in
           let len = String.length data / 2 in
@@ -120,7 +121,7 @@ object (self)
               | "PCM-16" -> 8000.
               | "PCM-16-16kHz" -> 16000.
               | _ ->
-                  self#log#f 2 "Cannot handle %s format." fmt;
+                 self#log#f 2 "Cannot handle %s format." fmt;
                   assert false
           in
             (* self#log#f 5
@@ -133,7 +134,7 @@ object (self)
                 conv (outfreq /. infreq) fbuf 0 len
             in
             let fbuf =
-              let fbuf = fbuf.(0) in Array.create (Fmt.channels ()) fbuf
+              let fbuf = fbuf.(0) in Array.create channels fbuf
             in
               if Ringbuffer.TS.write_space write_rb >= len then
                 Ringbuffer.TS.write write_rb fbuf 0 len
@@ -156,8 +157,8 @@ object (self)
 
   method get_frame frame =
     assert (0 = AFrame.position frame) ;
-    let buf = AFrame.get_float_pcm frame in
-    let samples = AFrame.size frame in
+    let buf = AFrame.content_of_type ~channels frame 0 in
+    let samples = AFrame.size () in
       (*
         let available = Ringbuffer.TS.read_space write_rb in
           if available <> 0 then
@@ -171,9 +172,11 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.voip"
     [
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from voip calls using opal library."
-    (fun p _ -> (new input :> Source.source))
+    (fun p kind -> (new input ~kind :> Source.source))

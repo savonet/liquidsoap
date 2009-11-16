@@ -7,9 +7,9 @@ external capture : Unix.file_descr -> int -> int -> string = "caml_v4l_capture"
 
 let every = 5
 
-class input dev =
+class input ~kind dev =
 object (self)
-  inherit Source.active_source
+  inherit Source.active_source kind
 
   val mutable fd = None
 
@@ -42,7 +42,8 @@ object (self)
   method get_frame frame =
     assert (0 = AFrame.position frame);
     let fd = Utils.get_some fd in
-    let buf = VFrame.get_rgb frame in
+    let buf = VFrame.content_of_type ~channels:1 frame 0 in
+    let buf = buf.(0) in
     let img =
       (*
       let buflen = width * height * 3 in
@@ -62,24 +63,28 @@ object (self)
         )
     in
       image <- img;
-      for c = 0 to Array.length buf - 1 do
-        for i = 0 to VFrame.size frame - 1 do
-          RGB.proportional_scale buf.(c).(i) img
-        done;
+      for i = 0 to VFrame.size frame - 1 do
+        RGB.proportional_scale buf.(i) img
       done;
-      AFrame.add_break frame (AFrame.size frame)
+      AFrame.add_break frame (AFrame.size ())
 end
 
 let () =
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1
+      (Lang.Constrained
+         { Frame. audio = Lang.Any_fixed 0 ; video = Lang.Fixed 1 ; midi = Lang.Fixed 0 })
+  in
   Lang.add_operator "input.v4l"
     [
       "device", Lang.string_t, Some (Lang.string "/dev/video0"),
       Some "V4L device to use.";
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from a V4L (= video 4 linux) input device, such as a webcam."
-    (fun p _ ->
+    (fun p kind ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
-         ((new input device):>Source.source)
+         ((new input ~kind device):>Source.source)
     )

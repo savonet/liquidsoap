@@ -121,6 +121,7 @@ let () =
        let source = List.assoc "" p in
          ((new output ~kind device source):>Source.source)
     );
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.oss"
     [
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
