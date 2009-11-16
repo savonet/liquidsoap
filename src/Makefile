@@ -80,9 +80,9 @@ operators = \
 	operators/video_effects.ml operators/video_fade.ml \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
+	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml
-	# operators/prepend.ml \
-	operators/mixing_table.ml \
+	# \
 	operators/time_wrap.ml operators/lag.ml \
 	operators/fork.ml
 

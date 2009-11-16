@@ -22,10 +22,10 @@
 
 open Source
 
-class mixing source =
+class mixing ~kind source =
   let n = Array.length source in
 object (self)
-  inherit operator (Array.to_list source) as super
+  inherit operator kind (Array.to_list source) as super
 
   initializer assert (n>0)
 
@@ -37,11 +37,11 @@ object (self)
   method is_ready = true
   method remaining = -1
 
-  val tmp = Frame.make ()
+  val tmp = Frame.create kind
 
   method private get_frame buf =
     let p = AFrame.position buf in
-    let r = AFrame.size buf - p in
+    let r = AFrame.size () - p in
       AFrame.blankify buf p r ;
       for i = 0 to n-1 do
         if sel.(i) && source.(i)#is_ready then begin
@@ -62,7 +62,7 @@ object (self)
           AFrame.add buf p tmp p r
         end
       done ;
-      AFrame.add_break buf (AFrame.size buf)
+      AFrame.add_break buf (AFrame.size ())
 
   method abort_track =
     for i = 0 to n-1 do
@@ -78,7 +78,7 @@ object (self)
       (int_of_float (vol.(i)*.100.))
       (let r = source.(i)#remaining in
          if r = -1 then "(undef)" else
-           Printf.sprintf "%.2f" (Fmt.seconds_of_ticks r))
+           Printf.sprintf "%.2f" (Frame.seconds_of_master r))
 
   val mutable ns = []
   method private wake_up activation =
@@ -131,10 +131,12 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "mix"
-    [ "", Lang.list_t Lang.source_t, None, None ]
+    [ "", Lang.list_t (Lang.source_t k), None, None ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Mixing table controllable via the telnet interface."
-    (fun p _ ->
+    (fun p kind ->
        let sources = Lang.to_source_list (List.assoc "" p) in
-         new mixing (Array.of_list sources))
+         new mixing ~kind (Array.of_list sources))

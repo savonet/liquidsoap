@@ -22,9 +22,9 @@
 
 open Source
 
-class prepend ~merge source f =
+class prepend ~kind ~merge source f =
 object (self)
-  inherit operator [source]
+  inherit operator kind [source]
 
   val mutable state = `Idle
 
@@ -34,8 +34,8 @@ object (self)
           (* We're at the beginning of a track.
            * Let's peek one sample of data and read its metadata. *)
           (* TODO how does that play with caching ? *)
-          let peek = Frame.make () in
-          let peekpos = AFrame.size peek - 1 in
+          let peek = Frame.create kind in
+          let peekpos = AFrame.size () - 1 in
             AFrame.add_break peek peekpos ;
             source#get peek ;
             if AFrame.is_partial peek then
@@ -67,9 +67,9 @@ object (self)
                     self#get_frame buf
       | `Buffer peek ->
           let p = AFrame.position buf in
-          let pcm = AFrame.get_float_pcm buf in
-          let peek_pcm = AFrame.get_float_pcm peek in
-          let peekpos = AFrame.size peek - 1 in
+          let pcm = AFrame.content buf p in
+          let peek_pcm = AFrame.content peek p in
+          let peekpos = AFrame.size () - 1 in
             for i=0 to Array.length pcm - 1 do
               pcm.(i).(p) <- peek_pcm.(i).(peekpos)
             done ;
@@ -139,16 +139,17 @@ object (self)
 end
 
 let register =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "prepend"
     [ "merge",Lang.bool_t,Some (Lang.bool false),
       Some "Merge the track with its appended track." ;
 
-      "", Lang.source_t, None, None ;
+      "", Lang.source_t k, None, None ;
 
       "",
       Lang.fun_t
         [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
-        Lang.source_t,
+        (Lang.source_t k),
       None,
       Some
         "Given the metadata, build the source producing the track to prepend. \
@@ -156,12 +157,13 @@ let register =
          track is to be appended. However, success must be immediate or it \
          will not be taken into account."
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.TrackProcessing
     ~descr:("Prepend an extra track before every track. "^
             "Set the metadata 'liq_prepend' to 'false' to "^
             "inhibit prepending on one track.")
-    (fun p _ ->
+    (fun p kind ->
        let merge = Lang.to_bool (Lang.assoc "merge" 1 p) in
        let source = Lang.to_source (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-         new prepend ~merge source f)
+         new prepend ~kind ~merge source f)
