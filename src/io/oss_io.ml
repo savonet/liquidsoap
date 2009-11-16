@@ -26,12 +26,12 @@ external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 
-class output dev val_source =
+class output ~kind dev val_source =
   let source = Lang.to_source val_source in
-  let channels = Fmt.channels () in
-  let samples_per_second = Fmt.samples_per_second () in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_operator source
+  inherit Source.active_operator kind source
 
   initializer
     (* We need the source to be infallible. *)
@@ -61,17 +61,17 @@ object (self)
       source#get memo
     done;
     let fd = Utils.get_some fd in
-    let buf = AFrame.get_float_pcm memo in
+    let buf = AFrame.content memo 0 in
     let s = String.create (2 * (Array.length buf) * (Array.length buf.(0))) in
     let r = Float_pcm.to_s16le buf 0 (Array.length buf.(0)) s 0 in
       assert (Unix.write fd s 0 r = r)
 end
 
-class input dev =
-  let channels = Fmt.channels () in
-  let samples_per_second = Fmt.samples_per_second () in
+class input ~kind dev =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source
+  inherit Source.active_source kind
 
   val mutable fd = None
 
@@ -94,40 +94,43 @@ object (self)
   method get_frame frame =
     assert (0 = AFrame.position frame) ;
     let fd = Utils.get_some fd in
-    let buf = AFrame.get_float_pcm frame in
+    let buf = AFrame.content_of_type ~channels frame 0 in
     let len = 2 * (Array.length buf) * (Array.length buf.(0)) in
     let s = String.create len in
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;
       Float_pcm.from_s16le buf 0 s 0 (Array.length buf.(0));
-      AFrame.add_break frame (AFrame.size frame)
+      AFrame.add_break frame (AFrame.size ())
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
   Lang.add_operator "output.oss"
     [
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
       Some "OSS device to use.";
-      "", Lang.source_t, None, None
+      "", Lang.source_t k, None, None
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
-    (fun p _ ->
+    (fun p kind ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
-         ((new output device source):>Source.source)
+         ((new output ~kind device source):>Source.source)
     );
   Lang.add_operator "input.oss"
     [
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
       Some "OSS device to use.";
     ]
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from an OSS input device."
-    (fun p _ ->
+    (fun p kind ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
-         ((new input device):>Source.source)
+         ((new input ~kind device):>Source.source)
     )
