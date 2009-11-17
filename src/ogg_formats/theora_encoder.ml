@@ -20,9 +20,7 @@
 
  *****************************************************************************)
 
-let create_encoder ~quality ~metadata () =
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
+let create_encoder ~width ~height ~quality ~metadata () =
   (* Theora has a divisible-by-sixteen restriction for the encoded video size. *)
   (* Scale the frame size up to the nearest /16 and calculate offsets. *)
   let video_x = ((width + 15) lsr 4) lsl 4 in
@@ -107,11 +105,11 @@ let create_encoder ~quality ~metadata () =
                     data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
-      let frame = Video_converter.frame_of_internal_rgb b.(0).(i) in
+      let frame = Video_converter.frame_of_internal_rgb b.(i) in
       convert
         frame
         (Video_converter.frame_of_internal_yuv
-         width height yuv); (* TODO: custom video size.. *)
+         width height yuv);
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in
@@ -151,11 +149,14 @@ let create_theora =
   function 
     | Encoder.Ogg.Theora theora -> 
        let quality = theora.Encoder.Theora.quality in
+       let width   = theora.Encoder.Theora.width in
+       let height  = theora.Encoder.Theora.height in
        let reset ogg_enc metadata =
          let f l v cur = (l,v) :: cur in
          let metadata = Hashtbl.fold f metadata [] in 
          let enc =
            create_encoder
+              ~width   ~height
               ~quality ~metadata ()
          in
          Ogg_muxer.register_track ogg_enc enc

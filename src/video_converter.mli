@@ -78,10 +78,7 @@ type frame =
     height     : int
   }
 
-(** Creates a frame with the data of an internal frame.
-  * No copy is done. Don't forget to call [unlock_frame]
-  * on the internal frame when processing is done. 
-  * TODO: fix this horrible hack ! *)
+(** Creates a frame with the data of an internal frame. *)
 val frame_of_internal_rgb : RGB.t -> frame 
 
 (** Creates a frame from the data of an internal YUV frame. 

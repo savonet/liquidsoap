@@ -75,7 +75,7 @@ let encode_video encoder id content start len =
    Ogg_muxer.Video_data
     {
      Ogg_muxer.
-      data    = data;
+      data    = data.(0);
       offset  = start;
       length  = len
     }
