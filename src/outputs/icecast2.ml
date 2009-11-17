@@ -102,13 +102,28 @@ class output ~kind p =
         | Encoder.Ogg o ->
             let info =
               match o with
-                | [Encoder.Ogg.Vorbis v] ->
-                    { quality =
-                        Some (string_of_float v.Encoder.Vorbis.quality) ;
+                | [Encoder.Ogg.Vorbis
+                     {Encoder.Vorbis.channels=n;
+                                     mode=Encoder.Vorbis.VBR q;
+                                     samplerate=s}]
+                  ->
+                    { quality = Some (string_of_float q) ;
                       bitrate = None ;
-                      samplerate = Some v.Encoder.Vorbis.samplerate ;
-                      channels =
-                        Some (if v.Encoder.Vorbis.stereo then 2 else 1) }
+                      samplerate = Some s ;
+                      channels = Some n }
+                | [Encoder.Ogg.Vorbis
+                     {Encoder.Vorbis.channels=n;
+                                     mode=Encoder.Vorbis.ABR (_,b,_);
+                                     samplerate=s}]
+                | [Encoder.Ogg.Vorbis
+                     {Encoder.Vorbis.channels=n;
+                                     mode=Encoder.Vorbis.CBR b;
+                                     samplerate=s}]
+                  ->
+                    { quality = None ;
+                      bitrate = Some b ;
+                      samplerate = Some s ;
+                      channels = Some n }
                 | _ ->
                     { quality = None ; bitrate = None ;
                       samplerate = None ; channels = None }

@@ -140,46 +140,69 @@
     in
       mk (Encoder (Encoder.MP3 mp3))
 
-  let mk_vorbis params =
+  let mk_vorbis_cbr params =
     let defaults =
       { Encoder.Vorbis.
-          mode = Encoder.Vorbis.VBR ;
-          stereo = true ;
+          mode = Encoder.Vorbis.ABR (128,128,128) ;
+          channels = 2 ;
           samplerate = 44100 ;
-          quality = 2. ;
           skeleton = false }
     in
     let vorbis =
       List.fold_left
         (fun f ->
           function
-            | ("stereo",{ term = Bool b }) ->
-                { f with Encoder.Vorbis.stereo = b }
+            | ("skeleton",{ term = Bool b }) ->
+                { f with Encoder.Vorbis.skeleton = b }
+            | ("samplerate",{ term = Int i }) ->
+                { f with Encoder.Vorbis.samplerate = i }
+            | ("bitrate",{ term = Int i }) ->
+                { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR i }
+            | ("channels",{ term = Int i }) ->
+                { f with Encoder.Vorbis.channels = i }
+
+            | ("",{ term = Var "skeleton" }) ->
+                { f with Encoder.Vorbis.skeleton = true }
+            | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+                { f with Encoder.Vorbis.channels = 2 }
+            | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+                { f with Encoder.Vorbis.channels = 1 }
+
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      Encoder.Ogg.Vorbis vorbis
+
+  let mk_vorbis params =
+    let defaults =
+      { Encoder.Vorbis.
+          mode = Encoder.Vorbis.VBR 2. ;
+          channels = 2 ;
+          samplerate = 44100 ;
+          skeleton = false }
+    in
+    let vorbis =
+      List.fold_left
+        (fun f ->
+          function
             | ("skeleton",{ term = Bool b }) ->
                 { f with Encoder.Vorbis.skeleton = b }
             | ("samplerate",{ term = Int i }) ->
                 { f with Encoder.Vorbis.samplerate = i }
             | ("quality",{ term = Float q }) ->
-                { f with Encoder.Vorbis.quality = q }
+                { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
             | ("quality",{ term = Int i }) ->
-                { f with Encoder.Vorbis.quality = float_of_int i }
+                let q = float i in
+                { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
+            | ("channels",{ term = Int i }) ->
+                { f with Encoder.Vorbis.channels = i }
 
             | ("",{ term = Var "skeleton" }) ->
                 { f with Encoder.Vorbis.skeleton = true }
             | ("",{ term = Var s }) when String.lowercase s = "mono" ->
-                { f with Encoder.Vorbis.stereo = false }
+                { f with Encoder.Vorbis.channels = 2 }
             | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
-                { f with Encoder.Vorbis.stereo = true }
-
-            | ("mode",{ term = Var s })
-            | ("",{ term = Var s }) when String.lowercase s = "vbr" ->
-                { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR }
-            | ("mode",{ term = Var s })
-            | ("",{ term = Var s }) when String.lowercase s = "cbr" ->
-                { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR }
-            | ("mode",{ term = Var s })
-            | ("",{ term = Var s }) when String.lowercase s = "abr" ->
-                { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR }
+                { f with Encoder.Vorbis.channels = 1 }
 
             | _ -> raise Parsing.Parse_error)
         defaults params
@@ -212,7 +235,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS THEORA WAV MP3
+%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA WAV MP3
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -426,4 +449,5 @@ ogg_items:
   | ogg_item COMMA ogg_items { $1::$3 }
 ogg_item:
   | VORBIS app_opt { mk_vorbis $2 }
+  | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
   | THEORA app_opt { mk_theora $2 }

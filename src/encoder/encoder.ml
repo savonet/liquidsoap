@@ -35,26 +35,34 @@ end
 module Vorbis =
 struct
 
-  type mode = ABR | CBR | VBR
+  type quality = float
+  type bitrate = int
+  type mode =
+    | VBR of quality                 (* Variable bitrate. *)
+    | CBR of bitrate                 (* Constant bitrate. *)
+    | ABR of bitrate*bitrate*bitrate (* Average: min,avg,max. *)
 
   type t = {
-    stereo     : bool ;
+    channels   : int ;
     mode       : mode ;
     skeleton   : bool ;
-    quality    : float ;
     samplerate : int ;
   }
 
   let string_of_mode = function
-    | ABR -> "ABR" | CBR -> "CBR" | VBR -> "VBR"
+    | ABR (min,avg,max) ->
+        Printf.sprintf "ABR(%d,%d,%d)" min avg max
+    | CBR bitrate ->
+        Printf.sprintf "CBR(%d)" bitrate
+    | VBR q ->
+        Printf.sprintf "quality=%.2f" q
 
   let to_string v =
-    Printf.sprintf "Vorbis(%s,%s,%s,quality=%.2f,samplerate=%d)"
-      (string_of_stereo v.stereo)
+    Printf.sprintf "Vorbis(%s,%d channels,samplerate=%d,%s)"
       (string_of_mode v.mode)
-      (if v.skeleton then "skeleton" else "no skeleton")
-      v.quality
+      v.channels
       v.samplerate
+      (if v.skeleton then "skeleton" else "no skeleton")
 
 end
 
@@ -120,10 +128,8 @@ let kind_of_format = function
   | Ogg l ->
       List.fold_left
         (fun k -> function
-           | Ogg.Vorbis { Vorbis.stereo = true } ->
-               { k with Frame.audio = k.Frame.audio+2 }
-           | Ogg.Vorbis { Vorbis.stereo = false } ->
-               { k with Frame.audio = k.Frame.audio+1 }
+           | Ogg.Vorbis { Vorbis.channels = n } ->
+               { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
                { k with Frame.video = k.Frame.video+1 })
         { Frame.audio = 0 ; Frame.video = 0 ; Frame.midi = 0 }

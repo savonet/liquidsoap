@@ -129,6 +129,8 @@ rule token = parse
 
   | "%ogg"    { OGG }
   | "%vorbis" { VORBIS }
+  | "%vorbis.cbr" { VORBIS_CBR }
+  | "%vorbis.abr" { VORBIS_ABR }
   | "%theora" { THEORA }
   | "%wav" { WAV }
   | "%mp3" { MP3 }
