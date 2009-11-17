@@ -7,15 +7,18 @@ DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
 ocaml_progs= liquidsoap
 
-ogg_utils = \
+ogg_demuxer = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) 
-	# $(if $(W_OGG),ogg_encoder.ml) \
+	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml)
+
+ogg_muxer = \
+	$(if $(W_OGG),ogg_muxer.ml) \
+	$(if $(W_OGG), encoder/ogg_encoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
-	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
+	#$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_format.ml)
 
 audio_converters = \
@@ -55,7 +58,6 @@ sources = \
 	$(if $(W_MP3),sources/http_mp3.ml) \
 	$(if $(W_OGG),sources/http_ogg.ml) \
 	$(if $(W_FAAD),sources/http_aac.ml) \
-	$(if $(W_SDL),sources/video_text.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
@@ -94,11 +96,8 @@ conversions = \
 
 analyze = analyze/analyze_rms.ml
 
-encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml
-	# $(if $(W_OGG),outputs/ogg_output.ml) \
-	$(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
-	$(if $(W_VORBIS), outputs/vorbis_encoded.ml)  \
-	$(if $(W_THEORA),outputs/theora_encoded.ml) \
+encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml \
+	# $(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
 	$(if $(W_SCHROEDINGER),outputs/dirac_encoded.ml) \
 	$(if $(W_SPEEX), outputs/speex_encoded.ml) \
 	$(if $(W_FAAC),outputs/faac_encoded.ml)
@@ -109,7 +108,6 @@ outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
 	$(if $(W_BJACK),outputs/bjack_out.ml) \
-	$(encoders)
 	# outputs/external_encoded.ml \
 
 io = \
@@ -155,8 +153,9 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/ioRing.ml tools/file_decoder.ml tools/mutils.ml \
-	$(video_converters) $(audio_converters) $(ogg_utils) $(protocols) \
-	$(sources) $(operators) $(conversions) $(outputs) $(io) \
+	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
+	$(sources) $(operators) $(conversions) $(outputs) \
+	$(encoders) $(ogg_muxer) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(formats) \
 	shebang.ml \
 	lang/lang_builtins.ml \

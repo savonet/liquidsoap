@@ -21,24 +21,24 @@
  *****************************************************************************)
 
 let create_encoder ~quality ~metadata () =
-  let frame_x = Lazy.force Frame.video_width in
-  let frame_y = Lazy.force Frame.video_height in
+  let width = Lazy.force Frame.video_width in
+  let height = Lazy.force Frame.video_height in
   (* Theora has a divisible-by-sixteen restriction for the encoded video size. *)
   (* Scale the frame size up to the nearest /16 and calculate offsets. *)
-  let video_x = ((frame_x + 15) lsr 4) lsl 4 in
-  let video_y = ((frame_y + 15) lsr 4) lsl 4 in
-  let frame_x_offset = ((video_x - frame_x) / 2) land (lnot 1) in
-  let frame_y_offset = ((video_y - frame_y) / 2) land (lnot 1) in
+  let video_x = ((width + 15) lsr 4) lsl 4 in
+  let video_y = ((height + 15) lsr 4) lsl 4 in
+  let frame_x_offset = ((video_x - width) / 2) land (lnot 1) in
+  let frame_y_offset = ((video_y - height) / 2) land (lnot 1) in
   let video_r = 800 in
   (* TODO: variable FPS *)
-  let fps = Fmt.video_frames_of_seconds 1. in
+  let fps = Frame.video_of_seconds 1. in
   let info =
     {
      Theora.
       width = video_x;
       height = video_y;
-      frame_width = frame_x;
-      frame_height = frame_y;
+      frame_width = width;
+      frame_height = height;
       offset_x = frame_x_offset;
       offset_y = frame_y_offset;
       fps_numerator = fps;
@@ -77,18 +77,18 @@ let create_encoder ~quality ~metadata () =
   let stream_start os = 
     Theora.Encoder.encode_comments os metadata;
     Theora.Encoder.encode_tables enc os;
-    Ogg_encoder.flush_pages os
+    Ogg_muxer.flush_pages os
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
-    RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ())
+    RGB.create_yuv width height
   in
   let theora_yuv =
   {
-    Theora.y_width = Fmt.video_width ();
-    Theora.y_height = Fmt.video_height ();
+    Theora.y_width = width ;
+    Theora.y_height = height ;
     Theora.y_stride = y_stride;
-    Theora.uv_width = Fmt.video_width () / 2;
-    Theora.uv_height = Fmt.video_height () / 2;
+    Theora.uv_width = width / 2;
+    Theora.uv_height = height / 2;
     Theora.uv_stride = uv_stride;
     Theora.y = y;
     Theora.u = u;
@@ -103,32 +103,30 @@ let create_encoder ~quality ~metadata () =
   let data_encoder data os _ = 
     if not !started then
       started := true;
-    let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
-                    data.Ogg_encoder.length 
+    let b,ofs,len = data.Ogg_muxer.data,data.Ogg_muxer.offset,
+                    data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
       let frame = Video_converter.frame_of_internal_rgb b.(0).(i) in
       convert
-        frame (* TODO: multiple channels.. *)
+        frame
         (Video_converter.frame_of_internal_yuv
-        (Fmt.video_width ())
-        (Fmt.video_height ())
-             yuv); (* TODO: custom video size.. *);
+         width height yuv); (* TODO: custom video size.. *)
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in
   let end_of_page p = 
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then
-      Ogg_encoder.Unknown
+      Ogg_muxer.Unknown
     else
       if granulepos <> Int64.zero then
        let index = 
          Int64.succ (Theora.Encoder.frames_of_granulepos enc granulepos)
        in
-       Ogg_encoder.Time (Int64.to_float index /. (float fps)) 
+       Ogg_muxer.Time (Int64.to_float index /. (float fps)) 
       else
-       Ogg_encoder.Time 0.
+       Ogg_muxer.Time 0.
   in
   let end_of_stream os =
     (* Encode at least some data.. *)
@@ -140,11 +138,34 @@ let create_encoder ~quality ~metadata () =
     Theora.Encoder.eos enc os
   in
   {
-   Ogg_encoder.
+   Ogg_muxer.
     header_encoder = header_encoder;
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
-    data_encoder   = (Ogg_encoder.Video_encoder data_encoder);
+    data_encoder   = (Ogg_muxer.Video_encoder data_encoder);
     end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }
+
+let create_theora = 
+  function 
+    | Encoder.Ogg.Theora theora -> 
+       let quality = theora.Encoder.Theora.quality in
+       let reset ogg_enc metadata =
+         let f l v cur = (l,v) :: cur in
+         let metadata = Hashtbl.fold f metadata [] in 
+         let enc =
+           create_encoder
+              ~quality ~metadata ()
+         in
+         Ogg_muxer.register_track ogg_enc enc
+       in
+       { 
+        Ogg_encoder.
+           encode = Ogg_encoder.encode_video ;
+           reset  = reset  ;
+           id     = None
+       }
+    | _ -> assert false
+
+let () = Hashtbl.add Ogg_encoder.encoders "theora" create_theora

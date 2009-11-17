@@ -255,7 +255,7 @@ object (self)
   method output_start =
 
     assert (encoder = None) ;
-    encoder <- Some (encoder_factory ()) ;
+    encoder <- Some (encoder_factory self#id) ;
 
     begin match dumpfile with
       | Some f -> dump <- Some (open_out_bin f)

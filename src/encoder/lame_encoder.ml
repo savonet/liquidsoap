@@ -62,5 +62,5 @@ let encoder mp3 =
 let () =
   Encoder.plug#register "MP3"
     (function
-       | Encoder.MP3 m -> Some (fun () -> encoder m)
+       | Encoder.MP3 m -> Some (fun _ -> encoder m)
        | _ -> None)

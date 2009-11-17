@@ -22,6 +22,8 @@
 
  (** Ogg Stream Encoder *)
 
+val log : Dtools.Log.t
+
  (** {2 Types} *)
 
 exception Invalid_data
@@ -91,7 +93,7 @@ type stream_encoder =
     end_of_stream  : end_of_stream
   }
 
-(** Main type for the ogg decoder *)
+(** Main type for the ogg encoder *)
 type t
 
 (** You may register new tracks on state Eos or Bos.
@@ -104,7 +106,7 @@ type state = Eos | Streaming | Bos
    *
    * Encoding: 
    * 
-   * - [create ~skeleton name] : create a new decoder
+   * - [create ~skeleton name] : create a new encoder
    * - [register_track encoder stream_encoder] : register a new track
    * - ibid
    * - (...)

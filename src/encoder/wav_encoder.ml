@@ -55,5 +55,5 @@ let encoder wav =
 let () =
   Encoder.plug#register "WAV"
     (function
-       | Encoder.WAV w -> Some (fun () -> encoder w)
+       | Encoder.WAV w -> Some (fun _ -> encoder w)
        | _ -> None)

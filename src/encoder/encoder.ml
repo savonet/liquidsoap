@@ -154,7 +154,7 @@ type encoder = {
   stop : unit -> string
 }
 
-type factory = unit -> encoder
+type factory = string -> encoder
 
 (** A plugin might or might not accept a given format.
   * If it accepts it, it gives a function creating suitable encoders. *)
@@ -166,7 +166,7 @@ let plug : plugin Plug.plug =
     ~insensitive:true
     "stream encoding formats"
 
-exception Found of (unit -> encoder)
+exception Found of (string -> encoder)
 
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =

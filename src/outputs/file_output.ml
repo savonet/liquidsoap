@@ -40,7 +40,7 @@ object (self)
 
   method output_start =
     assert (fd = None && encoder = None) ;
-    encoder <- Some (encoder_factory ()) ;
+    encoder <- Some (encoder_factory self#id) ;
     let mode =
       Open_wronly::Open_creat::
       (if append then [Open_append] else [Open_trunc])
