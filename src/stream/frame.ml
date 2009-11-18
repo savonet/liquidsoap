@@ -108,11 +108,15 @@ let upper_multiple k m =
   * the audio and video clocks. *)
 let master_rate = delayed (fun () -> lcm !!audio_rate !!video_rate)
 
-let audio_of_master m = m * !!audio_rate / !!master_rate
-let video_of_master m = m * !!video_rate / !!master_rate
+(** Precompute those ratios to avoid too large integers below. *)
+let m_o_a = delayed (fun () -> !!master_rate / !!audio_rate)
+let m_o_v = delayed (fun () -> !!master_rate / !!video_rate)
 
-let master_of_audio a = a * !!master_rate / !!audio_rate
-let master_of_video v = v * !!master_rate / !!video_rate
+let master_of_audio a = a * !!m_o_a
+let master_of_video v = v * !!m_o_v
+
+let audio_of_master m = m / !!m_o_a
+let video_of_master m = m / !!m_o_v
 
 let master_of_seconds d = int_of_float (d *. float !!master_rate)
 let audio_of_seconds d = int_of_float (d *. float !!audio_rate)
