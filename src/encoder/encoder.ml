@@ -89,9 +89,7 @@ module Theora =
 struct
 
   type t = {
-    quality : int ;
-    width   : int ;
-    height  : int
+    quality : int
   }
 
   let to_string {quality=q} = Printf.sprintf "Theora(quality=%d)" q

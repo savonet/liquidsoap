@@ -149,8 +149,8 @@ let create_theora =
   function 
     | Encoder.Ogg.Theora theora -> 
        let quality = theora.Encoder.Theora.quality in
-       let width   = theora.Encoder.Theora.width in
-       let height  = theora.Encoder.Theora.height in
+       let width   = Lazy.force Frame.video_width in
+       let height  = Lazy.force Frame.video_height in
        let reset ogg_enc metadata =
          let f l v cur = (l,v) :: cur in
          let metadata = Hashtbl.fold f metadata [] in 

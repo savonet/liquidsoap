@@ -211,21 +211,14 @@
 
   let mk_theora params =
     let defaults = 
-      { Encoder.Theora.quality = 100 ;
-        Encoder.Theora.width   = Lazy.force Frame.video_width ; 
-        Encoder.Theora.height  = Lazy.force Frame.video_height 
-      } 
+      { Encoder.Theora.quality = 100 } 
     in
     let theora =
       List.fold_left
         (fun f ->
           function
             | ("quality",{ term = Int i }) ->
-                { f with Encoder.Theora.quality = i }
-            | ("width",{ term = Int i }) ->
-                { f with Encoder.Theora.width = i }
-            | ("height",{ term = Int i }) ->
-                { f with Encoder.Theora.height = i }
+                { (*f with*) Encoder.Theora.quality = i }
             | _ -> raise Parsing.Parse_error)
         defaults params
     in
