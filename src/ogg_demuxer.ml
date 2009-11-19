@@ -72,7 +72,7 @@ let eos dec =
 
 let test page = 
   let serial = Ogg.Page.serialno page in
-  log#f 4 "Found a ogg logical stream, serial: %nx" serial;
+  log#f 5 "Found a ogg logical stream, serial: %nx" serial;
   let os = Ogg.Stream.create ~serial () in
   Ogg.Stream.put_page os page ;
   (* Get first packet *)
@@ -80,12 +80,12 @@ let test page =
   try
     List.iter
       (fun (format,(check,decode)) ->
-           log#f 4 "Trying ogg/%s format" format ;
+           log#f 5 "Trying ogg/%s format" format ;
            if check packet then
              raise (Exit (serial,os,decode os))
            else ())
       ogg_decoders#get_all;
-    log#f 4 "Couldn't find a decoder for ogg logical \
+    log#f 5 "Couldn't find a decoder for ogg logical \
                  stream with serial %nx" serial;
     raise (Exit (serial,os,Unknown))
   with
@@ -98,10 +98,10 @@ let feed_page decoder page =
     if dec <> Unknown then
         Ogg.Stream.put_page os page
     else
-      log#f 7 "No decoder for page of stream %nx" serial;
+      log#f 5 "No decoder for page of stream %nx" serial;
     if Ogg.Page.eos page then
       begin
-        log#f 4 "Reached last page of logical stream %nx" serial;
+        log#f 5 "Reached last page of logical stream %nx" serial;
         Hashtbl.remove decoder.streams serial;
         eos := true;
         if Hashtbl.length decoder.streams = 0 then

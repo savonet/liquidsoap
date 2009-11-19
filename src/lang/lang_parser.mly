@@ -211,14 +211,47 @@
 
   let mk_theora params =
     let defaults = 
-      { Encoder.Theora.quality = 100 } 
+      { 
+        Encoder.Theora.
+         bitrate_control    = Encoder.Theora.Quality 40 ;
+         width              = Frame.video_width ;
+         height             = Frame.video_height ;
+         picture_width      = Frame.video_width ;
+         picture_height     = Frame.video_height ;
+         picture_x          = 0 ;
+         picture_y          = 0 ;
+         aspect_numerator   = 1 ;
+         aspect_denominator = 1 ;
+      } 
     in
     let theora =
       List.fold_left
         (fun f ->
           function
             | ("quality",{ term = Int i }) ->
-                { (*f with*) Encoder.Theora.quality = i }
+                { f with Encoder.Theora.bitrate_control = Encoder.Theora.Quality i }
+            | ("bitrate",{ term = Int i }) ->
+                { f with Encoder.Theora.bitrate_control = Encoder.Theora.Bitrate i }
+            | ("width",{ term = Int i }) ->
+                { f with Encoder.Theora.
+                      width = Lazy.lazy_from_val i;
+                      picture_width = Lazy.lazy_from_val i }
+            | ("height",{ term = Int i }) ->
+                { f with Encoder.Theora.
+                      height = Lazy.lazy_from_val i;
+                      picture_height = Lazy.lazy_from_val i }
+            | ("picture_width",{ term = Int i }) ->
+                { f with Encoder.Theora.picture_width = Lazy.lazy_from_val i }
+            | ("picture_height",{ term = Int i }) ->
+                { f with Encoder.Theora.picture_height = Lazy.lazy_from_val i }
+            | ("picture_x",{ term = Int i }) ->
+                { f with Encoder.Theora.picture_x = i }
+            | ("picture_y",{ term = Int i }) ->
+                { f with Encoder.Theora.picture_y = i }
+            | ("aspect_numerator",{ term = Int i }) ->
+                { f with Encoder.Theora.aspect_numerator = i }
+            | ("aspect_denominator",{ term = Int i }) ->
+                { f with Encoder.Theora.aspect_denominator = i }
             | _ -> raise Parsing.Parse_error)
         defaults params
     in

@@ -23,64 +23,58 @@
 let check = Theora.Decoder.check
 
 let decoder os =
-  let decoder = ref None in
-  let meta    = ref None in
-  let packet1 = ref None in
-  let packet2 = ref None in
-  let packet3 = ref None in
+  let decoder = Theora.Decoder.create () in
+  let data    = ref None in
+  let latest_yuv = ref None in
   let fill feed =
-    (* Decoder is created upon first decoding..*)
-    let decoder,fps =
-      match !decoder with
-        | None ->
-           let packet1 =
-             match !packet1 with
-               | None ->
-                  let p = Ogg.Stream.get_packet os in
-                  packet1 := Some p; p
-               | Some p -> p
-           in
-           let packet2 =
-             match !packet2 with
-               | None ->
-                  let p = Ogg.Stream.get_packet os in
-                  packet2 := Some p; p
-               | Some p -> p
-           in
-           let packet3 =
-             match !packet3 with
-               | None ->
-                   let p = Ogg.Stream.get_packet os in
-                   packet3 := Some p; p
-               | Some p -> p
-           in
-           let (d,info,vendor,m) = Theora.Decoder.create packet1 packet2 packet3 in
-           let fps = (float (info.Theora.fps_numerator)) /.
-                     (float (info.Theora.fps_denominator))
-           in
-           meta := Some (vendor,m);
-           decoder := Some (d,fps);
-           d,fps
-        | Some d -> d
+     let m,fps = 
+       match !data with 
+         | Some fps -> None,fps
+         | None -> 
+            begin
+             let packet = Ogg.Stream.get_packet os in
+             try
+              let (info,vendor,m) = 
+                Theora.Decoder.headerin decoder packet 
+              in
+              let fps = (float (info.Theora.fps_numerator)) /.
+                        (float (info.Theora.fps_denominator))
+              in
+              data := Some fps ;
+              Some (vendor,m),fps
+             with
+               | Theora.Not_enough_data -> raise Ogg.Not_enough_data
+           end;
     in
-    let ret = Theora.Decoder.get_yuv decoder os in
+    let ret = 
+     try
+      let yuv = Theora.Decoder.get_yuv decoder os in
+      latest_yuv := Some yuv ;
+      yuv
+     with
+       | Theora.Duplicate_frame -> 
+          begin
+            match !latest_yuv with
+              | Some yuv -> yuv
+              | None     -> raise Theora.Internal_error
+          end
+    in
     let ret =
     {
       Ogg_demuxer.
         y_width   = ret.Theora.y_width;
         y_height  = ret.Theora.y_height;
         y_stride  = ret.Theora.y_stride;
-        uv_width  = ret.Theora.uv_width;
-        uv_height = ret.Theora.uv_height;
-        uv_stride = ret.Theora.uv_stride;
+        (** TODO: make sure this is actually correct.. *)
+        uv_width  = ret.Theora.u_width;
+        uv_height = ret.Theora.u_height;
+        uv_stride = ret.Theora.u_stride;
         fps       = fps;
         y = ret.Theora.y;
         u = ret.Theora.u;
         v = ret.Theora.v
     }
     in
-    let m = ! meta in
-    meta := None;
     feed (ret,m)
   in
   Ogg_demuxer.Video fill

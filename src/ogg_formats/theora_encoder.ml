@@ -20,49 +20,46 @@
 
  *****************************************************************************)
 
-let create_encoder ~width ~height ~quality ~metadata () =
-  (* Theora has a divisible-by-sixteen restriction for the encoded video size. *)
-  (* Scale the frame size up to the nearest /16 and calculate offsets. *)
-  let video_x = ((width + 15) lsr 4) lsl 4 in
-  let video_y = ((height + 15) lsr 4) lsl 4 in
-  let frame_x_offset = ((video_x - width) / 2) land (lnot 1) in
-  let frame_y_offset = ((video_y - height) / 2) land (lnot 1) in
-  let video_r = 800 in
-  (* TODO: variable FPS *)
+let create_encoder ~theora ~metadata () =
+   let quality,bitrate =
+     match theora.Encoder.Theora.bitrate_control with
+       | Encoder.Theora.Bitrate x -> 0,x
+       | Encoder.Theora.Quality x -> x,0
+  in
+  let width              = Lazy.force theora.Encoder.Theora.width in
+  let height             = Lazy.force theora.Encoder.Theora.height in
+  let picture_width      = Lazy.force theora.Encoder.Theora.picture_width in
+  let picture_height     = Lazy.force theora.Encoder.Theora.picture_height in
+  let picture_x          = theora.Encoder.Theora.picture_x in
+  let picture_y          = theora.Encoder.Theora.picture_y in
+  let aspect_numerator   = theora.Encoder.Theora.aspect_numerator in
+  let aspect_denominator = theora.Encoder.Theora.aspect_denominator in
   let fps = Frame.video_of_seconds 1. in
+  let version_major,version_minor,version_subminor = Theora.version_number in
   let info =
     {
      Theora.
-      width = video_x;
-      height = video_y;
       frame_width = width;
       frame_height = height;
-      offset_x = frame_x_offset;
-      offset_y = frame_y_offset;
+      picture_width = picture_width;
+      picture_height = picture_height;
+      picture_x = picture_x;
+      picture_y = picture_y;
       fps_numerator = fps;
       fps_denominator = 1;
-      aspect_numerator = 1;
-      aspect_denominator = 1;
+      aspect_numerator = aspect_numerator;
+      aspect_denominator = aspect_denominator;
       colorspace = Theora.CS_unspecified;
-      target_bitrate = video_r;
+      keyframe_granule_shift = Theora.default_granule_shift;
+      target_bitrate = bitrate;
       quality = quality;
-      quick_p = true;
-      version_major = 0;
-      version_minor = 0;
-      version_subminor = 0;
-      dropframes_p = false;
-      keyframe_auto_p = true;
-      keyframe_frequency = 64;
-      keyframe_frequency_force = 64;
-      keyframe_data_target_bitrate = (video_r * 3 / 2);
-      keyframe_auto_threshold = 80;
-      keyframe_mindistance = 8;
-      noise_sensitivity = 1;
-      sharpness = 1; (* ??? *)
-      pixelformat = Theora.PF_420
+      version_major = version_major;
+      version_minor = version_minor;
+      version_subminor = version_subminor;
+      pixel_fmt = Theora.PF_420
     }
   in
-  let enc = Theora.Encoder.create info in
+  let enc = Theora.Encoder.create info metadata in
   let started = ref false in
   let header_encoder os = 
     Theora.Encoder.encode_header enc os;
@@ -73,8 +70,6 @@ let create_encoder ~width ~height ~quality ~metadata () =
     Some (Theora.Skeleton.fisbone ~serialno ~info ())
   in
   let stream_start os = 
-    Theora.Encoder.encode_comments os metadata;
-    Theora.Encoder.encode_tables enc os;
     Ogg_muxer.flush_pages os
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
@@ -85,9 +80,12 @@ let create_encoder ~width ~height ~quality ~metadata () =
     Theora.y_width = width ;
     Theora.y_height = height ;
     Theora.y_stride = y_stride;
-    Theora.uv_width = width / 2;
-    Theora.uv_height = height / 2;
-    Theora.uv_stride = uv_stride;
+    Theora.u_width = width / 2;
+    Theora.u_height = height / 2;
+    Theora.u_stride = uv_stride;
+    Theora.v_width = width / 2;
+    Theora.v_height = height / 2;
+    Theora.v_stride = uv_stride;
     Theora.y = y;
     Theora.u = u;
     Theora.v = v;
@@ -148,16 +146,11 @@ let create_encoder ~width ~height ~quality ~metadata () =
 let create_theora = 
   function 
     | Encoder.Ogg.Theora theora -> 
-       let quality = theora.Encoder.Theora.quality in
-       let width   = Lazy.force Frame.video_width in
-       let height  = Lazy.force Frame.video_height in
        let reset ogg_enc metadata =
          let f l v cur = (l,v) :: cur in
          let metadata = Hashtbl.fold f metadata [] in 
          let enc =
-           create_encoder
-              ~width   ~height
-              ~quality ~metadata ()
+           create_encoder ~theora ~metadata ()
          in
          Ogg_muxer.register_track ogg_enc enc
        in
