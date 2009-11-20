@@ -247,6 +247,38 @@
     in
       Encoder.Ogg.Theora theora
 
+  let mk_dirac params =
+    let defaults =
+      {
+        Encoder.Dirac.
+         quality            = 50. ;
+         width              = Frame.video_width ;
+         height             = Frame.video_height ;
+         aspect_numerator   = 1 ;
+         aspect_denominator = 1 ;
+      }
+    in
+    let dirac =
+      List.fold_left
+        (fun f ->
+          function
+            | ("quality",{ term = Float i }) ->
+                { f with Encoder.Dirac.quality = i }
+            | ("width",{ term = Int i }) ->
+                { f with Encoder.Dirac.
+                      width = Lazy.lazy_from_val i }
+            | ("height",{ term = Int i }) ->
+                { f with Encoder.Dirac.
+                      height = Lazy.lazy_from_val i }
+            | ("aspect_numerator",{ term = Int i }) ->
+                { f with Encoder.Dirac.aspect_numerator = i }
+            | ("aspect_denominator",{ term = Int i }) ->
+                { f with Encoder.Dirac.aspect_denominator = i }
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      Encoder.Ogg.Dirac dirac
+
   let mk_speex params =
     let defaults =
       { Encoder.Speex.
@@ -308,7 +340,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX WAV MP3
+%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX WAV MP3
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -524,4 +556,5 @@ ogg_item:
   | VORBIS app_opt { mk_vorbis $2 }
   | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
   | THEORA app_opt { mk_theora $2 }
+  | DIRAC app_opt  { mk_dirac $2 }
   | SPEEX app_opt { mk_speex $2 }

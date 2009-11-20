@@ -115,6 +115,19 @@ let encoder ogg name =
                     "%s: Could not find any theora encoder." name ;
                   raise Not_found
            end
+        | Encoder.Ogg.Dirac x ->
+           begin
+            try
+              let create_dirac =
+                Hashtbl.find encoders "dirac"
+              in
+              create_dirac (Encoder.Ogg.Dirac x) :: cur
+            with
+              | Not_found ->
+                  Ogg_muxer.log#f 3
+                    "%s: Could not find any dirac encoder." name ;
+                  raise Not_found
+           end
         | Encoder.Ogg.Speex x ->
            begin
             try

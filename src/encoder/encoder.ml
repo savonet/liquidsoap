@@ -164,7 +164,7 @@ struct
 
   type t = {
     (** TODO: framerate ! *)
-    quality            : int ;
+    quality            : float ;
     width              : int Lazy.t ;
     height             : int Lazy.t ;
     aspect_numerator   : int ;
@@ -173,7 +173,7 @@ struct
 
   let to_string dr =
     let f = Lazy.force in
-    Printf.sprintf "Dirac(quality=%d,width=%d,height=%d,aspect_numerator=%d,aspect_denominator=%d)"
+    Printf.sprintf "Dirac(quality=%02f,width=%d,height=%d,aspect_numerator=%d,aspect_denominator=%d)"
     dr.quality (f dr.width) (f dr.height)
     dr.aspect_numerator dr.aspect_denominator
 
@@ -216,6 +216,8 @@ let kind_of_format = function
            | Ogg.Vorbis { Vorbis.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
+               { k with Frame.video = k.Frame.video+1 }
+           | Ogg.Dirac _ ->
                { k with Frame.video = k.Frame.video+1 }
            | Ogg.Speex { Speex.stereo = stereo } ->
                let n = if stereo then 2 else 1 in

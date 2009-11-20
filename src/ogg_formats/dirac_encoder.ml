@@ -20,50 +20,59 @@
 
  *****************************************************************************)
 
-open Schroedinger
-
-let create_encoder ~quality ~metadata () =
-  let frame_x = Fmt.video_width () in
-  let frame_y = Fmt.video_height () in
+let create_encoder ~metadata dirac =
+  let width = Lazy.force dirac.Encoder.Dirac.width in
+  let height = Lazy.force dirac.Encoder.Dirac.height in
+  let aspect_numerator = dirac.Encoder.Dirac.aspect_numerator in
+  let aspect_denominator = dirac.Encoder.Dirac.aspect_denominator in
+  let quality = dirac.Encoder.Dirac.quality in
   (* TODO: variable fps *)
-  let fps = Fmt.video_frames_of_seconds 1. in
+  let fps = Frame.video_of_seconds 1. in
   (* Using Yuv420 *)
-  let video_format = get_default_video_format CUSTOM in
+  let video_format = 
+    Schroedinger.get_default_video_format Schroedinger.CUSTOM 
+  in
   let video_format =
     {
      video_format with
-      width = frame_x;
-      height = frame_y;
-      frame_rate_numerator = fps;
-      frame_rate_denominator = 1;
-      aspect_ratio_numerator = 1;
-      aspect_ratio_denominator = 1
+      Schroedinger.
+       width = width;
+       height = height;
+       frame_rate_numerator = fps;
+       frame_rate_denominator = 1;
+       aspect_ratio_numerator = aspect_numerator;
+       aspect_ratio_denominator = aspect_denominator;
+       chroma_format = Schroedinger.Chroma_420
     }
   in
-  let enc = Encoder.create video_format in
-  Encoder.set_settings enc 
-    {  (Encoder.get_settings enc) with 
-          Encoder.rate_control = Encoder.Constant_noise_threshold;
-          Encoder.noise_threshold = (float quality) /. 2.0 
+  let enc = Schroedinger.Encoder.create video_format in
+  Schroedinger.Encoder.set_settings enc 
+    {  (Schroedinger.Encoder.get_settings enc) with 
+          Schroedinger.Encoder.
+           rate_control = Schroedinger.Encoder.Constant_noise_threshold;
+           noise_threshold = quality;
+           mv_precision = 1;
+           enable_noarith = true
     };
   let started = ref false in
   let header_encoder os = 
-    Encoder.encode_header enc os;
+    Schroedinger.Encoder.encode_header enc os;
     Ogg.Stream.flush_page os
   in
   let fisbone_packet os = 
     let serialno = Ogg.Stream.serialno os in
-    Some (Skeleton.fisbone ~serialno ~format:video_format ())
+    Some (Schroedinger.Skeleton.fisbone ~serialno ~format:video_format ())
   in
   let ((y,y_stride), (u, v, uv_stride) as yuv) =
-    RGB.create_yuv (Fmt.video_width ()) (Fmt.video_height ())
+    RGB.create_yuv width height
   in
   let dirac_yuv =
   {
+   Schroedinger.
     planes = [|(y,y_stride);(u,uv_stride);(v,uv_stride)|];
-    frame_width = Fmt.video_width ();
-    frame_height = Fmt.video_height ();
-    format = Yuv_420_p
+    frame_width = width;
+    frame_height = height;
+    format = Schroedinger.Yuv_420_p
   }
   in
   let convert =
@@ -73,18 +82,16 @@ let create_encoder ~quality ~metadata () =
   in
   let stream_start os = [] in
   let data_encoder data os add_page = 
-    let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
-                    data.Ogg_encoder.length 
+    let b,ofs,len = data.Ogg_muxer.data,data.Ogg_muxer.offset,
+                    data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
-      let frame = Video_converter.frame_of_internal_rgb b.(0).(i) in
+      let frame = Video_converter.frame_of_internal_rgb b.(i) in
       convert
-        frame (* TODO: multiple channels.. *)
+        frame 
         (Video_converter.frame_of_internal_yuv
-        (Fmt.video_width ())
-        (Fmt.video_height ())
-             yuv); (* TODO: custom video size.. *);
-      Encoder.encode_frame enc dirac_yuv os;
+         width height yuv); 
+      Schroedinger.Encoder.encode_frame enc dirac_yuv os;
       if not !started then
        begin
         started := true;
@@ -100,27 +107,50 @@ let create_encoder ~quality ~metadata () =
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos = Int64.minus_one then
-      Ogg_encoder.Unknown
+      Ogg_muxer.Unknown
     else
-      Ogg_encoder.Time 
-       (Int64.to_float (Encoder.encoded_of_granulepos (Ogg.Page.granulepos p) enc) /.
-        (float fps))
+      Ogg_muxer.Time 
+       (Int64.to_float 
+        (Schroedinger.Encoder.encoded_of_granulepos 
+           (Ogg.Page.granulepos p) enc) /.
+           (float fps))
   in 
   let end_of_stream os =
     (* Encode at least some data.. *)
     if not !started then
      begin
       RGB.blank_yuv yuv;
-      Encoder.encode_frame enc dirac_yuv os
+      Schroedinger.Encoder.encode_frame enc dirac_yuv os
      end;
-    Encoder.eos enc os
+    Schroedinger.Encoder.eos enc os
   in
   {
-   Ogg_encoder.
+   Ogg_muxer.
     header_encoder = header_encoder;
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
-    data_encoder   = (Ogg_encoder.Video_encoder data_encoder);
+    data_encoder   = (Ogg_muxer.Video_encoder data_encoder);
     end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }
+
+let create_dirac =
+  function
+    | Encoder.Ogg.Dirac dirac ->
+       let reset ogg_enc metadata =
+         let f l v cur = (l,v) :: cur in
+         let metadata = Hashtbl.fold f metadata [] in
+         let enc =
+           create_encoder ~metadata dirac
+         in
+         Ogg_muxer.register_track ogg_enc enc
+       in
+       {
+        Ogg_encoder.
+           encode = Ogg_encoder.encode_video ;
+           reset  = reset  ;
+           id     = None
+       }
+    | _ -> assert false
+
+let () = Hashtbl.add Ogg_encoder.encoders "dirac" create_dirac

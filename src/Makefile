@@ -19,7 +19,7 @@ ogg_muxer = \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
-	#$(if $(W_SCHROEDINGER),ogg_formats/dirac_format.ml)
+	$(if $(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
 	audio_converters/native_audio_converter.ml \
