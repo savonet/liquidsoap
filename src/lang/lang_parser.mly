@@ -146,23 +146,18 @@
           mode = Encoder.Vorbis.ABR (128,128,128) ;
           channels = 2 ;
           samplerate = 44100 ;
-          skeleton = false }
+      }
     in
     let vorbis =
       List.fold_left
         (fun f ->
           function
-            | ("skeleton",{ term = Bool b }) ->
-                { f with Encoder.Vorbis.skeleton = b }
             | ("samplerate",{ term = Int i }) ->
                 { f with Encoder.Vorbis.samplerate = i }
             | ("bitrate",{ term = Int i }) ->
                 { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR i }
             | ("channels",{ term = Int i }) ->
                 { f with Encoder.Vorbis.channels = i }
-
-            | ("",{ term = Var "skeleton" }) ->
-                { f with Encoder.Vorbis.skeleton = true }
             | ("",{ term = Var s }) when String.lowercase s = "mono" ->
                 { f with Encoder.Vorbis.channels = 2 }
             | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -179,14 +174,12 @@
           mode = Encoder.Vorbis.VBR 2. ;
           channels = 2 ;
           samplerate = 44100 ;
-          skeleton = false }
+      }
     in
     let vorbis =
       List.fold_left
         (fun f ->
           function
-            | ("skeleton",{ term = Bool b }) ->
-                { f with Encoder.Vorbis.skeleton = b }
             | ("samplerate",{ term = Int i }) ->
                 { f with Encoder.Vorbis.samplerate = i }
             | ("quality",{ term = Float q }) ->
@@ -196,9 +189,6 @@
                 { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
             | ("channels",{ term = Int i }) ->
                 { f with Encoder.Vorbis.channels = i }
-
-            | ("",{ term = Var "skeleton" }) ->
-                { f with Encoder.Vorbis.skeleton = true }
             | ("",{ term = Var s }) when String.lowercase s = "mono" ->
                 { f with Encoder.Vorbis.channels = 2 }
             | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -257,6 +247,56 @@
     in
       Encoder.Ogg.Theora theora
 
+  let mk_speex params =
+    let defaults =
+      { Encoder.Speex.
+          stereo = false ;
+          samplerate = 44100 ;
+          bitrate_control = Encoder.Speex.Quality 7;
+          mode = Encoder.Speex.Narrowband ;
+          frames_per_packet = 1 ;
+          complexity = None
+      }
+    in
+    let speex =
+      List.fold_left
+        (fun f ->
+          function
+            | ("stereo",{ term = Bool b }) ->
+                { f with Encoder.Speex.stereo = b }
+            | ("samplerate",{ term = Int i }) ->
+                { f with Encoder.Speex.samplerate = i }
+            | ("abr",{ term = Int i }) ->
+                { f with Encoder.Speex.
+                          bitrate_control = 
+                            Encoder.Speex.Abr i }
+            | ("quality",{ term = Int q }) ->
+                { f with Encoder.Speex.
+                          bitrate_control = 
+                           Encoder.Speex.Quality q }
+            | ("vbr",{ term = Int q }) ->
+                { f with Encoder.Speex.
+                          bitrate_control =
+                           Encoder.Speex.Vbr q }
+            | ("mode",{ term = Var s }) when String.lowercase s = "wideband" ->
+                { f with Encoder.Speex.mode = Encoder.Speex.Wideband }
+            | ("mode",{ term = Var s }) when String.lowercase s = "narrowband" ->
+                { f with Encoder.Speex.mode = Encoder.Speex.Narrowband }
+            | ("mode",{ term = Var s }) when String.lowercase s = "ultra-wideband" ->
+                { f with Encoder.Speex.mode = Encoder.Speex.Ultra_wideband }
+            | ("frames_per_packet",{ term = Int i }) ->
+                { f with Encoder.Speex.frames_per_packet = i }
+            | ("complexity",{ term = Int i }) ->
+                { f with Encoder.Speex.complexity = Some i }
+            | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+                { f with Encoder.Speex.stereo = false }
+            | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+                { f with Encoder.Speex.stereo = true }
+
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      Encoder.Ogg.Speex speex
 %}
 
 %token <string> VAR
@@ -268,7 +308,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA WAV MP3
+%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX WAV MP3
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -484,3 +524,4 @@ ogg_item:
   | VORBIS app_opt { mk_vorbis $2 }
   | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
   | THEORA app_opt { mk_theora $2 }
+  | SPEEX app_opt { mk_speex $2 }

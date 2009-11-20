@@ -23,29 +23,44 @@
 exception Internal
 exception Invalid_settings of string
 
-let create ~frames_per_packet ~mode ~vbr ~quality 
-           ~channels ~bitrate ~samplerate ~abr ~metadata 
-           ~complexity () =
+let create speex ~metadata () =
+  let frames_per_packet = speex.Encoder.Speex.frames_per_packet in
+  let mode = 
+    match speex.Encoder.Speex.mode with
+      | Encoder.Speex.Narrowband -> Speex.Narrowband
+      | Encoder.Speex.Wideband   -> Speex.Wideband
+      | Encoder.Speex.Ultra_wideband -> Speex.Ultra_wideband
+  in
+  let vbr,quality = 
+    match speex.Encoder.Speex.bitrate_control with
+      | Encoder.Speex.Vbr x -> true,x
+      | _     -> false,0
+  in
+  let channels = if speex.Encoder.Speex.stereo then 2 else 1 in
+  let rate = speex.Encoder.Speex.samplerate in
   let header =
     Speex.Header.init ~frames_per_packet ~mode
-                      ~vbr ~nb_channels:channels ~rate:samplerate ()
+                      ~vbr ~nb_channels:channels ~rate ()
   in
   let enc = Speex.Encoder.init mode frames_per_packet in
-  let f x y = 
-    match y with
-      | Some y -> Speex.Encoder.set enc x y
-      | None   -> ()
-  in
-  f Speex.SPEEX_SET_BITRATE bitrate;
-  f Speex.SPEEX_SET_COMPLEXITY complexity; 
-  f Speex.SPEEX_SET_ABR abr;
-  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE samplerate;
-  if vbr then
-    Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
-  if vbr then
-    f Speex.SPEEX_SET_VBR_QUALITY quality
-  else
-    f Speex.SPEEX_SET_QUALITY quality;
+  begin
+    match speex.Encoder.Speex.bitrate_control with
+      | Encoder.Speex.Vbr x -> 
+          Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
+          Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY x
+      | Encoder.Speex.Abr x ->
+          Speex.Encoder.set enc Speex.SPEEX_SET_ABR 1;
+          Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE x
+      | Encoder.Speex.Quality x ->
+          Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY x
+  end ;
+  begin
+    match speex.Encoder.Speex.complexity with
+      | Some complexity ->
+          Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity
+      | _ -> ()
+  end ;
+  Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
   let p1,p2 = Speex.Header.encode_header_packetout header metadata in
   let header_encoder os = 
@@ -58,7 +73,7 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   in
   let stream_start os = 
     Ogg.Stream.put_packet os p2;
-    Ogg_encoder.flush_pages os
+    Ogg_muxer.flush_pages os
   in
   let remaining_init =
     if channels > 1 then
@@ -68,8 +83,8 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   in
   let remaining = ref remaining_init in
   let data_encoder data os add_page =
-    let b,ofs,len = data.Ogg_encoder.data,data.Ogg_encoder.offset,
-                    data.Ogg_encoder.length in
+    let b,ofs,len = data.Ogg_muxer.data,data.Ogg_muxer.offset,
+                    data.Ogg_muxer.length in
     let buf = Array.map (fun x -> Array.sub x ofs len) b in
     let buf =
      if channels > 1 then
@@ -130,20 +145,76 @@ let create ~frames_per_packet ~mode ~vbr ~quality
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then
-      Ogg_encoder.Unknown
+      Ogg_muxer.Unknown
     else
-      Ogg_encoder.Time (Int64.to_float granulepos /. (float samplerate))
+      Ogg_muxer.Time (Int64.to_float granulepos /. (float rate))
   in
   let end_of_stream os = 
     Speex.Encoder.eos enc os
   in
   {
-   Ogg_encoder.
+   Ogg_muxer.
     header_encoder = header_encoder;
     fisbone_packet = fisbone_packet;
     stream_start   = stream_start;
-    data_encoder   = (Ogg_encoder.Audio_encoder data_encoder);
+    data_encoder   = (Ogg_muxer.Audio_encoder data_encoder);
     end_of_page    = end_of_page;
     end_of_stream  = end_of_stream
   }
 
+let create_speex =
+  function 
+   | Encoder.Ogg.Speex speex -> 
+      let reset ogg_enc m =
+        let rec get l l' =
+          match l with
+            | k :: r ->
+              begin
+                try
+                  get r ((k,Hashtbl.find m k) :: l')
+                with _ -> get r l'
+              end
+            | [] -> l'
+        in
+        let title =
+          try
+            Hashtbl.find m "title"
+          with
+            | _ ->
+             begin
+              try
+                let s = Hashtbl.find m "uri" in
+                let title = Filename.basename s in
+                  (try
+                    String.sub title 0 (String.rindex title '.')
+                   with
+                     | Not_found -> title)
+              with
+                | _ -> "Unknown"
+             end
+        in
+        let l' = ["title",title] in
+        let metadata = get ["artist";"genre";"date";
+                        "album";"tracknumber";"comment"]
+                       l'
+        in
+        let enc =
+          create speex ~metadata ()
+        in
+        Ogg_muxer.register_track ogg_enc enc
+      in
+      let channels = if speex.Encoder.Speex.stereo then 2 else 1 in
+      let src_freq = float (Frame.audio_of_seconds 1.) in
+      let dst_freq = float speex.Encoder.Speex.samplerate in
+      let encode = 
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () 
+      in
+      {
+       Ogg_encoder.
+         reset  = reset ;
+         encode = encode ;
+         id     = None
+      }
+   | _ -> assert false    
+
+let () = Hashtbl.add Ogg_encoder.encoders "speex" create_speex

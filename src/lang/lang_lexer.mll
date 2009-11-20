@@ -132,6 +132,7 @@ rule token = parse
   | "%vorbis.cbr" { VORBIS_CBR }
   | "%vorbis.abr" { VORBIS_ABR }
   | "%theora" { THEORA }
+  | "%speex"  { SPEEX }
   | "%wav" { WAV }
   | "%mp3" { MP3 }
 

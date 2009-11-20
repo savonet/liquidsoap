@@ -115,6 +115,19 @@ let encoder ogg name =
                     "%s: Could not find any theora encoder." name ;
                   raise Not_found
            end
+        | Encoder.Ogg.Speex x ->
+           begin
+            try
+              let create_speex =
+                Hashtbl.find encoders "speex"
+              in
+              create_speex (Encoder.Ogg.Speex x) :: cur
+            with
+              | Not_found ->
+                  Ogg_muxer.log#f 3
+                    "%s: Could not find any speex encoder." name ;
+                  raise Not_found
+           end
     in
     let tracks = 
       List.fold_left create_track [] ogg 

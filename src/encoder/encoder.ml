@@ -45,7 +45,6 @@ struct
   type t = {
     channels   : int ;
     mode       : mode ;
-    skeleton   : bool ;
     samplerate : int ;
   }
 
@@ -58,12 +57,10 @@ struct
         Printf.sprintf "quality=%.2f" q
 
   let to_string v =
-    Printf.sprintf "Vorbis(%s,%d channels,samplerate=%d,%s)"
+    Printf.sprintf "Vorbis(%s,%d channels,samplerate=%d)"
       (string_of_mode v.mode)
       v.channels
       v.samplerate
-      (if v.skeleton then "skeleton" else "no skeleton")
-
 end
 
 module MP3 =
@@ -82,6 +79,49 @@ struct
       m.quality
       m.samplerate
       m.bitrate
+
+end
+
+module Speex =
+struct
+
+  type bitrate_control = Quality of int | Vbr of int | Abr of int
+  type mode            = Narrowband | Wideband | Ultra_wideband
+
+  type t = {
+    bitrate_control   : bitrate_control ;
+    samplerate        : int ;
+    stereo            : bool ;
+    mode              : mode ;
+    frames_per_packet : int ;
+    complexity        : int option
+  }
+
+  let string_of_br_ctl x = 
+    match x with
+      | Vbr x -> Printf.sprintf "vbr,quality=%d" x
+      | Abr x -> Printf.sprintf "abr,bitrate=%d" x
+      | Quality x -> Printf.sprintf "quality=%d" x
+
+  let string_of_mode x = 
+    match x with
+      | Narrowband -> "narrowband"
+      | Wideband   -> "widebande"
+      | Ultra_wideband -> "ultra-wideband"
+
+  let string_of_complexity x = 
+    match x with
+      | None -> ""
+      | Some x -> Printf.sprintf ",complexity=%d" x
+
+  let to_string m =
+    Printf.sprintf "Speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s)"
+      (string_of_stereo m.stereo)
+      (string_of_br_ctl m.bitrate_control)
+      m.samplerate
+      (string_of_mode m.mode)
+      m.frames_per_packet
+      (string_of_complexity m.complexity)
 
 end
 
@@ -122,7 +162,7 @@ end
 module Ogg =
 struct
 
-  type item = Vorbis of Vorbis.t | Theora of Theora.t
+  type item = Speex of Speex.t | Vorbis of Vorbis.t | Theora of Theora.t
   type t = item list
 
   let to_string l =
@@ -131,7 +171,8 @@ struct
          (List.map
             (function
                | Vorbis v -> Vorbis.to_string v
-               | Theora t -> Theora.to_string t)
+               | Theora t -> Theora.to_string t
+               | Speex  s -> Speex.to_string s)
             l))
 
 end
@@ -154,7 +195,10 @@ let kind_of_format = function
            | Ogg.Vorbis { Vorbis.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
-               { k with Frame.video = k.Frame.video+1 })
+               { k with Frame.video = k.Frame.video+1 }
+           | Ogg.Speex { Speex.stereo = stereo } ->
+               let n = if stereo then 2 else 1 in
+               { k with Frame.audio = k.Frame.audio+n })
         { Frame.audio = 0 ; Frame.video = 0 ; Frame.midi = 0 }
         l
 
