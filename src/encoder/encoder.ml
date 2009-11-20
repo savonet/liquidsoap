@@ -159,10 +159,30 @@ struct
 
 end
 
+module Dirac =
+struct
+
+  type t = {
+    (** TODO: framerate ! *)
+    quality            : int ;
+    width              : int Lazy.t ;
+    height             : int Lazy.t ;
+    aspect_numerator   : int ;
+    aspect_denominator : int
+  }
+
+  let to_string dr =
+    let f = Lazy.force in
+    Printf.sprintf "Dirac(quality=%d,width=%d,height=%d,aspect_numerator=%d,aspect_denominator=%d)"
+    dr.quality (f dr.width) (f dr.height)
+    dr.aspect_numerator dr.aspect_denominator
+
+end
+
 module Ogg =
 struct
 
-  type item = Speex of Speex.t | Vorbis of Vorbis.t | Theora of Theora.t
+  type item = Speex of Speex.t | Vorbis of Vorbis.t | Theora of Theora.t | Dirac of Dirac.t
   type t = item list
 
   let to_string l =
@@ -172,7 +192,8 @@ struct
             (function
                | Vorbis v -> Vorbis.to_string v
                | Theora t -> Theora.to_string t
-               | Speex  s -> Speex.to_string s)
+               | Speex  s -> Speex.to_string s
+               | Dirac  d -> Dirac.to_string d)
             l))
 
 end
