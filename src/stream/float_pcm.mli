@@ -31,7 +31,7 @@ type pcm = float array array
 val to_s16le    : pcm -> int -> int -> string       -> int -> int
 val to_s16le_ni : pcm -> int -> int -> string array -> int -> int
 
-(** [from_s16le buf ofs sbuf ofs len] converts and copies [len] samples 
+(** [from_s16le buf ofs sbuf ofs len] converts and copies [len] samples
   * from the S16LE pcm buffer [sbuf] to [buf]. *)
 val from_s16le : pcm -> int -> string -> int -> int -> unit
 val from_s16le_ni : pcm -> int -> string array -> int -> int -> unit
@@ -42,7 +42,7 @@ val native_resample : float -> float array -> int -> int -> float array
 (** [resample_s16le src src_off len signed samplesize big_endian
       ratio dst dst_off]: resample from s16le *)
 val resample_s16le : string -> int -> int ->
-              bool -> int -> bool -> float -> float array array -> int -> int
+              bool -> int -> bool -> float -> pcm -> int -> int
 
 
 (** Blit pcm *)

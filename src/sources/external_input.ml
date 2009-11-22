@@ -20,30 +20,25 @@
 
  *****************************************************************************)
 
-module Generator = Float_pcm.Generator_from_raw
-module Generated = Generated.From_Raw_pcm_Generator
+module Generator = Generator.From_audio_video
+module Generated = Generated.From_audio_video
 
 (* {1 External Input handling} *)
 
 exception Finished of string*bool
 
-class external_input ~restart ~bufferize ~channels 
-                     ~restart_on_error ~max 
+class external_input ~kind ~restart ~bufferize ~channels
+                     ~restart_on_error ~max
                      ~samplerate command =
-  let abg_max_len = Fmt.samples_of_seconds max in
-  let samplesize = 16 in
-  let big_endian = false in
-  let signed = true in
-  let in_freq = float samplerate in
-  let out_freq = float (Fmt.samples_per_second()) in
-  let channels = channels in
-  let abg =
-    Generator.create
-      ~channels ~samplesize ~signed ~big_endian ~in_freq ~out_freq
-  in
+  let abg_max_len = Frame.audio_of_seconds max in
+  (* let in_freq = float samplerate in
+  let out_freq = float (Lazy.force Frame.audio_rate) in *)
+  let abg = Generator.create Generator.Audio in
   let priority = Tutils.Non_blocking in
+  (* TODO: use channels! *)
+  let channels = 2 in
 object (self)
-  inherit Source.source
+  inherit Source.source kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
   val mutable should_stop = false
@@ -52,19 +47,23 @@ object (self)
 
   method wake_up _ =
     self#log#f 2 "Starting process.";
-    let create () = 
+    let create () =
       let in_e = Unix.open_process_in command in
       in_e,Unix.descr_of_in_channel in_e
     in
     let (in_e,in_d) as x = create () in
     let tmpbuf = String.create 1024 in
-    let rec process ((in_e,in_d) as x) l = 
+    let rec process ((in_e,in_d) as x) l =
       let get_data () =
         let ret = input in_e tmpbuf 0 1024 in
-        if ret = 0 then raise (Finished ("Process exited.",restart));
-        Generator.feed abg (String.sub tmpbuf 0 ret)
+        let ret = ret / (2*channels) in
+        let buf = Array.init channels (fun _ -> Array.create ret 0.) in
+          if ret = 0 then raise (Finished ("Process exited.",restart));
+          (* TODO: convert samplerate! *)
+          Float_pcm.from_s16le buf 0 tmpbuf 0 ret;
+          Generator.put_audio abg buf 0 ret
       in
-      let do_restart s restart f = 
+      let do_restart s restart f =
         self#log#f 2 "%s" s;
         begin
          try
@@ -95,7 +94,7 @@ object (self)
           raise (Finished ("Source stoped: closing process.",false));
         let len = Generator.length abg - abg_max_len in
         if len >= 0 then
-           let delay = Fmt.seconds_of_samples len in
+           let delay = Frame.seconds_of_audio len in
            [`Delay delay]
         else
          begin
@@ -111,8 +110,8 @@ object (self)
       }]
      with
        | Finished (s,b) -> do_restart s b (fun () -> ())
-       | e ->  
-          do_restart 
+       | e ->
+          do_restart
             (Printf.sprintf "Process exited with error: %s" 
                 (Printexc.to_string e)) restart_on_error
                 (fun () -> raise e)
@@ -124,7 +123,7 @@ object (self)
         handler  = process x
      }
     in
-    Duppy.Task.add Tutils.scheduler task 
+    Duppy.Task.add Tutils.scheduler task
 
   method sleep = should_stop <- true
 end
@@ -132,6 +131,7 @@ end
 let () =
     Lang.add_operator "input.external"
       ~category:Lang.Input
+      ~kind:Lang.audio_stereo (* TODO: generalize this? *)
       ~descr:("Stream data from an external application.")
       [
         "buffer", Lang.float_t, Some (Lang.float 2.),
@@ -154,16 +154,16 @@ let () =
 
         "", Lang.string_t, None,
         Some "Command to execute." ]
-      (fun p _ ->
+      (fun p kind ->
          let command = Lang.to_string (List.assoc "" p) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let channels = Lang.to_int (List.assoc "channels" p) in
          let samplerate = Lang.to_int (List.assoc "samplerate" p) in
          let restart = Lang.to_bool (List.assoc "restart" p) in
-         let restart_on_error = 
-           Lang.to_bool (List.assoc "restart_on_error" p) 
+         let restart_on_error =
+           Lang.to_bool (List.assoc "restart_on_error" p)
          in
          let max = Lang.to_float (List.assoc "max" p) in
-          ((new external_input ~restart ~bufferize ~channels
-                               ~restart_on_error ~max 
+          ((new external_input ~kind ~restart ~bufferize ~channels
+                               ~restart_on_error ~max
                                ~samplerate command):>Source.source))

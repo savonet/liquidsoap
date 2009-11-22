@@ -121,3 +121,13 @@ object
 end
 
 end
+
+module From_audio_video =
+  Make(struct
+         type t = Generator.From_audio_video.t
+         let length x = Generator.From_audio_video.length x
+         let remaining x = Generator.From_audio_video.remaining x
+         let clear = Generator.From_audio_video.clear
+         let add_metadata = Generator.From_audio_video.add_metadata
+         let fill = Generator.From_audio_video.fill
+       end)
