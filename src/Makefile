@@ -98,8 +98,6 @@ analyze = analyze/analyze_rms.ml
 
 encoders = encoder/wav_encoder.ml encoder/lame_encoder.ml \
 	# $(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
-	$(if $(W_SCHROEDINGER),outputs/dirac_encoded.ml) \
-	$(if $(W_SPEEX), outputs/speex_encoded.ml) \
 	$(if $(W_FAAC),outputs/faac_encoded.ml)
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
