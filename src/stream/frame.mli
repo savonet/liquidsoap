@@ -85,6 +85,7 @@ val get_chunk : t -> t -> unit
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
 val mul_sub_int : multiplicity -> int -> bool
+val mul_eq_int  : multiplicity -> int -> bool
 val kind_sub_kind :
   (multiplicity, multiplicity, multiplicity) fields ->
   (multiplicity, multiplicity, multiplicity) fields -> bool

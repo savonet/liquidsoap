@@ -179,8 +179,14 @@ let rec mul_sub_int = function
   | Zero, 0 -> true
   | _ -> false
 
+let rec mul_eq_int = function
+  | Succ m, n when n>0 -> mul_eq_int (m,(n-1))
+  | Zero, 0 -> true
+  | _ -> false
+
 let mul_sub_mul a b = mul_sub_mul (a,b)
 let mul_sub_int a b = mul_sub_int (a,b)
+let mul_eq_int a b = mul_eq_int (a,b)
 
 let kind_sub_kind a b =
   mul_sub_mul a.audio b.audio &&

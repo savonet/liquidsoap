@@ -31,12 +31,14 @@ class external_input ~kind ~restart ~bufferize ~channels
                      ~restart_on_error ~max
                      ~samplerate command =
   let abg_max_len = Frame.audio_of_seconds max in
-  (* let in_freq = float samplerate in
-  let out_freq = float (Lazy.force Frame.audio_rate) in *)
+  let in_freq = float samplerate in
+  let converter = 
+    Rutils.create_from_s16le ~channels ~samplesize:16 
+                             ~signed:true ~big_endian:false
+                             () ~audio_src_rate:in_freq
+  in
   let abg = Generator.create Generator.Audio in
   let priority = Tutils.Non_blocking in
-  (* TODO: use channels! *)
-  let channels = 2 in
 object (self)
   inherit Source.source kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
@@ -56,12 +58,9 @@ object (self)
     let rec process ((in_e,in_d) as x) l =
       let get_data () =
         let ret = input in_e tmpbuf 0 1024 in
-        let ret = ret / (2*channels) in
-        let buf = Array.init channels (fun _ -> Array.create ret 0.) in
           if ret = 0 then raise (Finished ("Process exited.",restart));
-          (* TODO: convert samplerate! *)
-          Float_pcm.from_s16le buf 0 tmpbuf 0 ret;
-          Generator.put_audio abg buf 0 ret
+          let data,len = converter (String.sub tmpbuf 0 ret) in 
+          Generator.put_audio abg data 0 len
       in
       let do_restart s restart f =
         self#log#f 2 "%s" s;
@@ -131,8 +130,7 @@ end
 let () =
     Lang.add_operator "input.external"
       ~category:Lang.Input
-      ~kind:Lang.audio_stereo (* TODO: generalize this? *)
-      ~descr:("Stream data from an external application.")
+      ~descr:"Stream data from an external application."
       [
         "buffer", Lang.float_t, Some (Lang.float 2.),
          Some "Duration of the pre-buffered data." ;
@@ -154,10 +152,16 @@ let () =
 
         "", Lang.string_t, None,
         Some "Command to execute." ]
+      ~kind:Lang.audio_any
       (fun p kind ->
          let command = Lang.to_string (List.assoc "" p) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let channels = Lang.to_int (List.assoc "channels" p) in
+         if not (Frame.mul_eq_int kind.Frame.audio channels) then
+           raise (Lang.Invalid_value 
+                   (List.assoc "channels" p,
+                    "Incompatible number of channels, \
+                     please use a conversion operator.")) ;
          let samplerate = Lang.to_int (List.assoc "samplerate" p) in
          let restart = Lang.to_bool (List.assoc "restart" p) in
          let restart_on_error =
