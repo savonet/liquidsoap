@@ -251,7 +251,7 @@
     let defaults =
       {
         Encoder.Dirac.
-         quality            = 50. ;
+         quality            = 35. ;
          width              = Frame.video_width ;
          height             = Frame.video_height ;
          aspect_numerator   = 1 ;

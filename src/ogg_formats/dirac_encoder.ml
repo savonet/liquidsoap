@@ -38,6 +38,12 @@ let create_encoder ~metadata dirac =
       Schroedinger.
        width = width;
        height = height;
+       clean_width = width;
+       clean_height = height;
+       left_offset = 0;
+       top_offset = 0;
+       colour_matrix = Schroedinger.HDTV;
+       signal_range = Schroedinger.RANGE_8BIT_VIDEO;
        frame_rate_numerator = fps;
        frame_rate_denominator = 1;
        aspect_ratio_numerator = aspect_numerator;
