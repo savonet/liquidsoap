@@ -28,29 +28,27 @@ module Generator = Generator.From_audio_video
 
 exception Channels of int
 
-let converter = ref None
-let converter () =
-  match !converter with
-    | None ->
-      let conv =
-        Video_converter.find_converter
-          (Video_converter.YUV Video_converter.Yuvj_420)
-          (Video_converter.RGB Video_converter.Rgba_32)
-      in
-      converter := Some conv;
-      conv
-    | Some conv -> conv
+let converter format =
+  let format = 
+    match format with
+      | Ogg_demuxer.Yuvj_422 -> Video_converter.Yuvj_422
+      | Ogg_demuxer.Yuvj_420 -> Video_converter.Yuvj_420
+      | Ogg_demuxer.Yuvj_444 -> Video_converter.Yuvj_444
+  in 
+  Video_converter.find_converter
+     (Video_converter.YUV format)
+     (Video_converter.RGB Video_converter.Rgba_32)
 
 (** Convert a frame *)
 let video_convert buf = 
-  let converter = converter () in
+  let converter = converter buf.Ogg_demuxer.format in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rgb = RGB.create width height in
   let frame = Video_converter.frame_of_internal_rgb rgb in
   converter
     (Video_converter.frame_of_internal_yuv
-       buf.Ogg_demuxer.y_width buf.Ogg_demuxer.y_height
+       buf.Ogg_demuxer.width buf.Ogg_demuxer.height
       ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
           (buf.Ogg_demuxer.u,
            buf.Ogg_demuxer.v,

@@ -28,14 +28,21 @@ type metadata = string*((string*string) list)
 type 'a decoder = ('a*(metadata option) -> unit) -> unit
 type audio = (float array array)*int
 type video_data = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+(** Only supported for now: plannar YUV formats. *)
+type video_format =
+   | Yuvj_420   (* Planar YCbCr 4:2:0. Each component is an uint8_t,
+                 * luma and chroma values are full range (0x00 .. 0xff) *)
+   | Yuvj_422   (* Planar YCbCr 4:2:2. Each component is an uint8_t,
+                 * luma and chroma values are full range (0x00 .. 0xff) *)
+   | Yuvj_444   (* Planar YCbCr 4:4:4. Each component is an uint8_t,
+                 * luma and chroma values are full range (0x00 .. 0xff) *)
 type video =
  {
+    format    : video_format;
     fps       : float; (** Video frames per second *)
-    y_width   : int; (** Width of the Y' luminance plane *)
-    y_height  : int; (** Height of the luminance plane *)
+    width   : int; (** Width of the Y' luminance plane *)
+    height  : int; (** Height of the luminance plane *)
     y_stride  : int; (** Length, in bytes, per line *)
-    uv_width  : int; (** Width of the Cb and Cr chroma planes *)
-    uv_height : int; (** Height of the chroma planes *)
     uv_stride : int; (** Length, in bytes, per line *)
     y : video_data; (** luminance data *)
     u : video_data; (** Cb data *)

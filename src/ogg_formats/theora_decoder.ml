@@ -27,9 +27,9 @@ let decoder os =
   let data    = ref None in
   let latest_yuv = ref None in
   let fill feed =
-     let m,fps = 
+     let m,fps,format = 
        match !data with 
-         | Some fps -> None,fps
+         | Some (fps,format) -> None,fps,format
          | None -> 
             begin
              let packet = Ogg.Stream.get_packet os in
@@ -40,8 +40,15 @@ let decoder os =
               let fps = (float (info.Theora.fps_numerator)) /.
                         (float (info.Theora.fps_denominator))
               in
-              data := Some fps ;
-              Some (vendor,m),fps
+              let format =
+                match info.Theora.pixel_fmt with
+                  | Theora.PF_420 -> Ogg_demuxer.Yuvj_420
+                  | Theora.PF_reserved -> assert false
+                  | Theora.PF_422 -> Ogg_demuxer.Yuvj_422
+                  | Theora.PF_444 -> Ogg_demuxer.Yuvj_444
+              in
+              data := Some (fps,format) ;
+              Some (vendor,m),fps,format
              with
                | Theora.Not_enough_data -> raise Ogg.Not_enough_data
            end;
@@ -62,14 +69,12 @@ let decoder os =
     let ret =
     {
       Ogg_demuxer.
-        y_width   = ret.Theora.y_width;
-        y_height  = ret.Theora.y_height;
+        width   = ret.Theora.y_width;
+        height  = ret.Theora.y_height;
         y_stride  = ret.Theora.y_stride;
-        (** TODO: make sure this is actually correct.. *)
-        uv_width  = ret.Theora.u_width;
-        uv_height = ret.Theora.u_height;
         uv_stride = ret.Theora.u_stride;
         fps       = fps;
+        format    = format;
         y = ret.Theora.y;
         u = ret.Theora.u;
         v = ret.Theora.v
