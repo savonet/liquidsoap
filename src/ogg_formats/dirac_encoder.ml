@@ -57,8 +57,6 @@ let create_encoder ~metadata dirac =
           Schroedinger.Encoder.
            rate_control = Schroedinger.Encoder.Constant_noise_threshold;
            noise_threshold = quality;
-           mv_precision = 1;
-           enable_noarith = true
     };
   let started = ref false in
   let header_encoder os = 
