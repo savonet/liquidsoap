@@ -27,18 +27,21 @@ let debug =
   with
     | Not_found -> false
 
-(* The type information is supposed to be attached to the AST from the parsing,
+(* Type information comes attached to the AST from the parsing,
  * with appropriate sharing of the type variables. Then the type inference
  * performs in-place unification.
  *
  * In order to report precise type error messages, we put very dense
  * parsing location information in the type. Every layer of it can have
- * a location.
+ * a location. Destructive unification introduces links in such a way
+ * that the old location is still accessible.
+ *
  * The level annotation represents the number of abstractions which surround
- * the type in the AST -- abstractions are lambda but also let-in. It is used
- * to safely generalize types.
- * We attach constraints to type variables. 
- *)
+ * the type in the AST -- function arguments and let-in definitions.
+ * It is used to safely generalize types.
+ *
+ * Finally, constraints can be attached to existential (unknown, '_a)
+ * and universal ('a) type variables. *)
 
 (** Positions *)
 
@@ -112,8 +115,7 @@ and descr =
   | Product of t * t
   | Zero | Succ of t | Variable
   | Arrow     of (bool*string*t) list * t
-  | EVar      of int*constraints (* existential variable *)
-  | UVar      of int*constraints (* universal variable, implicitely bound *)
+  | EVar      of int*constraints (* existential/meta variable *)
   | Link      of t
 
 let make ?(pos=None) ?(level=(-1)) d =
@@ -125,13 +127,14 @@ let dummy = make ~pos:None (EVar (-1,[]))
 module DS = Set.Make(struct type t = descr let compare = compare end)
 
 (** Dereferencing gives you the meaning of a term,
-  * taking instantiations into account;
-  * one should never work on a non-dereferenced type. *)
+  * going through links created by instantiations.
+  * One should (almost) never work on a non-dereferenced type. *)
 let rec deref t = match t.descr with
   | Link x -> deref x
   | _ -> t
 
-(** Given a strictly positive integer, generate a name in [a-z]+. *)
+(** Given a strictly positive integer, generate a name in [a-z]+:
+  * a, b, ... z, aa, ab, ... az, ba, ... *)
 let name =
   let base = 26 in
   let c i = char_of_int (int_of_char 'a' + i - 1) in
@@ -144,51 +147,62 @@ let name =
   in
     n ""
 
-let print t =
-  let unknowns = Hashtbl.create 10 in
+(** Convert a type to a string.
+  * Unless in debug mode, variable identifiers are not shown,
+  * and variable names are generated.
+  * Names are only meaningful over one printing, as they are re-used. *)
+let print ?(generalized=[]) t =
+  let uvar_name i =
+    let rec index n = function
+      | v::tl ->
+          if v=i then
+            Printf.sprintf "'%s" (name n)
+          else
+            index (n+1) tl
+      | [] -> assert false
+    in
+      index 1 (List.rev generalized)
+  in
+  let generalized i = List.exists (fun (j,_) -> j=i) generalized in
+  let evars = Hashtbl.create 10 in
+  (* let uvars = Hashtbl.create 10 in *)
   let counter = let c = ref 0 in fun () -> incr c ; !c in
   let evar_name i =
     if debug then Printf.sprintf "?%d" i else
       let s =
         try
-          Hashtbl.find unknowns i
+          Hashtbl.find evars i
         with Not_found ->
           let name = String.uppercase (name (counter ())) in
-            Hashtbl.add unknowns i name ;
+            Hashtbl.add evars i name ;
             name
       in
         Printf.sprintf "?%s" s
   in
-  let uvar_name i = Printf.sprintf "'%s" (name i) in
+  (* let uvar_name i =
+    if debug then Printf.sprintf "'%d" i else
+      let s =
+        try
+          Hashtbl.find uvars i
+        with Not_found ->
+          let name = name (counter ()) in
+            Hashtbl.add uvars i name ;
+            name
+      in
+        Printf.sprintf "'%s" s
+  in *)
   (** Compute the string representation of a type, dereferencing it on-the-fly.
     * Attaches the list of variables that occur in the type.
     * The [par] params tells whether (..)->.. should be surrounded by
     * parenthesis or not. *)
-  let rec aux_unary ~par vars t = match t.descr with
-    | Succ t ->
-        let n,leaf,vars = aux_unary ~par vars t in
-          n+1,leaf,vars
-    | Zero -> 0,None,vars
-    | _ -> 0,Some t,vars
-  and print_unary ~par vars d =
-    let n,l,vars = aux_unary ~par vars d in
-      (
-        match l with
-          | None ->
-              string_of_int n, vars
-          | Some l ->
-              let s,vars = print ~par vars l in
-                if n = 0 then
-                  s, vars
-                else
-                  Printf.sprintf "%s+%d" s n, vars
-      )
-  and print ~par vars t = match t.descr with
+  let rec print ~par vars t = match t.descr with
     | Constr c ->
         if c.name = "stream_kind" then
           let fields = ["audio"; "video"; "midi"] in
           let vfields,vars = print_list vars [] c.params in
-          let fields = List.map2 (fun f v -> Printf.sprintf "%s=%s" f v) fields vfields in
+          let fields =
+            List.map2 (fun f v -> Printf.sprintf "%s=%s" f v) fields vfields
+          in
             String.concat "," fields,
             vars
         else
@@ -206,14 +220,22 @@ let print t =
           Printf.sprintf "[%s]" t,
           vars
     | Variable -> "*", vars
-    | Zero -> print_unary ~par vars t
-    | Succ _ -> print_unary ~par vars t
+    | Zero | Succ _ ->
+        let rec aux n t = match (deref t).descr with
+          | Succ t -> aux (n+1) t
+          | Zero -> string_of_int n, vars
+          | _ ->
+              let s,vars = print ~par vars t in
+                Printf.sprintf "%s+%d" s n, vars
+        in
+          aux 0 t
     | EVar (i,c) as d ->
-        (evar_name i),
-        (if c<>[] then DS.add d vars else vars)
-    | UVar (i,c) as d ->
-        (uvar_name i),
-        (if c<>[] then DS.add d vars else vars)
+        if generalized i then
+          (uvar_name (i,c)),
+          (if c<>[] then DS.add d vars else vars)
+        else
+          (evar_name i),
+          (if c<>[] then DS.add d vars else vars)
     | Arrow (p,t) ->
         let params,vars =
            List.fold_left
@@ -251,20 +273,24 @@ let print t =
   let repr,constraints = print ~par:false DS.empty t in
     if DS.is_empty constraints then repr else
       match (deref t).descr, DS.elements constraints with
-        | UVar _, [UVar(i,c)] ->
-            Printf.sprintf "anything that is %s"
-              (String.concat " and " (List.map print_constr c))
-        | EVar _, [EVar(i,c)] when not debug ->
-            Printf.sprintf "something that is %s"
-              (String.concat " and " (List.map print_constr c))
+        | EVar _, [EVar(i,c)] ->
+            if generalized i then
+              Printf.sprintf "anything that is %s"
+                (String.concat " and " (List.map print_constr c))
+            else
+              Printf.sprintf "something that is %s"
+                (String.concat " and " (List.map print_constr c))
         | _, constraints ->
             let constraints =
               List.map
                 (fun x ->
                    let i,c =
                      match x with
-                       | EVar (i,c) -> evar_name i, c
-                       | UVar (i,c) -> uvar_name i, c
+                       | EVar (i,c) ->
+                           if generalized i then
+                             uvar_name (i,c), c
+                           else
+                             evar_name i, c
                        | _ -> assert false
                    in
                    let c = String.concat " and " (List.map print_constr c) in
@@ -330,8 +356,8 @@ let rec occur_check a b =
       | EVar _ ->
           assert (a.level <> -1 && b.level <> -1) ;
           b.level <- min b.level a.level
-      | UVar _ -> assert false
-      | Link _ | Ground _ -> ()
+      | Ground _ -> ()
+      | Link _ -> assert false
 
 (* Perform [a := b] where [a] is an EVar, check that [type(a)<:type(b)]. *)
 let rec bind a0 b =
@@ -486,6 +512,7 @@ let rec (<:) a b =
     | Zero, Variable -> ()
     | Succ t1, Succ t2 -> t1 <: t2
     | Succ t1, Variable -> t1 <: b
+    | Variable, Variable -> ()
     | Arrow (p,t), Arrow (p',t') ->
         (* Takes [l] and [l12] and returns [l1,l2] where:
          * [l2] is the list of parameters from [l12] unmatched in [l];
@@ -535,7 +562,6 @@ let rec (<:) a b =
         begin try bind b a with
           | Occur_check _ | Unsatisfied_constraint _ ->
               raise (Error [Item (a,b)]) end
-    | UVar _,_ | _,UVar _ -> assert false (* no type schemes here *)
     | Link _,_ | _,Link _ -> assert false (* thanks to deref *)
     | Ground x,Ground y ->
         (* The remaining cases are the base types, thanks to deref. *)
@@ -545,30 +571,59 @@ let rec (<:) a b =
 let (>:) a b =
   try b <: a with Error l -> raise (Error (Flip::l))
 
-(** {1 Handling of type schemata} *)
+(** {1 Type generalization and instantiation}
+  *
+  * We don't have type schemes per se, but we compute generalizable variables
+  * and keep track of them in the AST.
+  * This is simple and useful because in any case we need to distinguish
+  * two 'a variables bound at different places. Indeed, we might instantiate
+  * one in a term where the second is bound, and we don't want to
+  * merge the two when going under the binder.
+  *
+  * When generalizing we need to know what can be generalized in the outermost
+  * type but also in the inner types of the term forming a let-definition.
+  * Indeed those variables will have to be instantiated by fresh ones for
+  * every instance.
+  *
+  * If the value restriction applies, then we have some (fun (...) -> ...)
+  * and any type variable of higher level can be generalized, whether it's
+  * in the outermost type or not. *)
 
-module M = Map.Make(struct type t = int let compare = compare end)
+let filter_vars f t =
+  let rec aux l t = let t = deref t in match t.descr with
+    | Ground _ | Zero | Variable -> l
+    | Succ t | List t -> aux l t
+    | Product (a,b) -> aux (aux l a) b
+    | Constr c ->
+        List.fold_left (fun l (_,t) -> aux l t) l c.params
+    | Arrow (p,t) ->
+        aux (List.fold_left (fun l (_,_,t) -> aux l t) l p) t
+    | EVar (i,constraints) ->
+        if f t then (i,constraints)::l else l
+    | Link _ -> assert false
+  in
+    aux [] t
 
-(** Return an instantiated copy, where sharing is preserved.
-  * The position of the copy will be [pos], the internal positions will be at
-  * [dummy_pos], the fresh EVars have level [level].
-  * Whenever we use a value, its type schema has to be instantiated. *)
-let instantiate ~level t =
-  let evars = ref M.empty in
+(** Return a list of generalizable variables in a type.
+  * This is performed after type inference on the left-hand side
+  * of a let-in, with [level] being the level of that let-in.
+  * Uses the simple method of ML, to be associated with a value restriction. *)
+let generalizable ~level t =
+  filter_vars (fun t -> t.level >= level) t
+
+(** Copy a term, substituting some EVars as indicated by a list
+  * of associations. Other EVars are not copied, so sharing is
+  * preserved. *)
+let copy_with subst t =
   let rec aux t =
-    let t = deref t in
-    let cp x = { t with pos = None ; descr = x } in
+    let cp x = { t with descr = x } in
       match t.descr with
-        | UVar (i,c) ->
+        | EVar (i,c) ->
             begin try
-              M.find i !evars
+              snd (List.find (fun ((j,_),_) -> i=j) subst)
             with
-              | Not_found ->
-                  let v = fresh_evar ~constraints:c ~level ~pos:None in
-                    evars := M.add i v !evars ;
-                    v
+              | Not_found -> t
             end
-        | EVar _ -> t (* Copying EVars would break sharing. *)
         | Constr c ->
             let params = List.map (fun (v,t) -> v, aux t) c.params in
               cp (Constr { c with params = params })
@@ -579,41 +634,32 @@ let instantiate ~level t =
         | Succ t -> cp (Succ (aux t))
         | Arrow (p,t) ->
             cp (Arrow (List.map (fun (o,l,t) -> (o,l,aux t)) p, aux t))
-        | Link _ -> assert false
-  in
-  let t' = aux t in
-    (* If no UVar has been found, keep the old t, without erased positions.
-     * Otherwise add the outer position information, which is the only one
-     * that makes sense after an effective instantiation. In that case,
-     * the superficial copying cannot break sharing. *)
-    if M.is_empty !evars then t else { level = 0 ; pos = t.pos ;
-                                       descr =
-                                         Link { t' with pos = (deref t).pos } }
-
-(** In-place generalization.
-  * This should be done after the inference of the type of the left hand-side
-  * of a let-in, with [level] being the level of that let-in. *)
-let generalize ~level t =
-  let c = let r = ref 0 in fun () -> incr r ; !r in
-  let rec aux t =
-    let t = deref t in
-      match t.descr with
-        | Constr c ->
-            (* TODO this is a wrong stub *)
-            List.iter (fun (_,t) -> aux t) c.params
-        | Ground _ -> ()
-        | Zero | Variable -> ()
-        | Succ t -> aux t
-        | UVar _ -> () (* this EVar has already been generalized *)
-        | EVar (i,constraints) ->
-            if t.level >= level then
-              (* Using bind would yield un-necessary, and even failed checks. *)
-              t.descr <- Link { t with descr = UVar (c(),constraints) }
-        | List t -> aux t
-        | Product (a,b) -> aux a ; aux b
-        | Arrow (p,t) -> List.iter (fun (_,_,t) -> aux t) p ; aux t
-        | Link _ -> assert false
+        | Link t ->
+            (* Keep links to preserve rich position information,
+             * and to make it possible to check if the application left
+             * the type unchanged. *)
+            cp (Link (aux t))
   in
     aux t
 
+module M = Map.Make(struct type t = int let compare = compare end)
+
+(** Instantiate a type scheme, given as a type together with a list
+  * of generalized variables.
+  * Fresh variables are created with the given (current) level,
+  * and attached to the appropriate constraints.
+  * This erases position information, since they usually become
+  * irrelevant. *)
+let instantiate ~level ~generalized =
+  let subst =
+    List.map
+      (fun (i,c) -> (i,c), fresh_evar ~level ~constraints:c ~pos:None)
+      generalized
+  in
+    fun t -> copy_with subst t
+
+(** Simplified version of existential variable generation,
+  * without constraints. This is used when parsing to annotate
+  * the AST. *)
+let fresh = fresh_evar
 let fresh_evar = fresh_evar ~constraints:[]

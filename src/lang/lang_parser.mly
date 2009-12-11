@@ -380,9 +380,13 @@ exprs:
   | cexpr s                  { $1 }
   | cexpr s exprs            { mk (Seq ($1,$3)) }
   | binding s                { let doc,name,def = $1 in
-                                 mk (Let (doc,name,def,mk Unit)) }
+                                 mk (Let { doc=doc ; var=name ;
+                                           gen = ref [] ; def=def ;
+                                           body = mk Unit }) }
   | binding s exprs          { let doc,name,def = $1 in
-                                 mk (Let (doc,name,def,$3)) }
+                                 mk (Let { doc=doc ; var=name ;
+                                           gen = ref [] ; def=def ;
+                                           body = $3 }) }
 
 /* General expressions.
  * The only difference is the ability to start with an unary MINUS.

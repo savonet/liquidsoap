@@ -38,8 +38,28 @@ let string_t  = ground_t T.String
 let list_t t  = T.make (T.List t)
 let product_t a b = T.make (T.Product (a,b))
 let fun_t p b = T.make (T.Arrow (p,b))
-let univ_t ?(constraints=[]) i = T.make (T.UVar (i,constraints))
 let metadata_t = list_t (product_t string_t string_t)
+
+(** In order to keep the old way of declaring the type of builtins,
+  * we have to do a little work. Keeping the same style avoids rewriting
+  * everything, and it's also a fairly reasonable style.
+  *
+  * The problem now is that there is no such thing as an universal
+  * variable. Instead all variables of a builtin type
+  * are implicitly quantified universally.
+  *
+  * We cannot create new variables for each call to univ_t,
+  * because that would break the required sharing. So we memoize
+  * the results of earlier calls. Sharing the same varible for 'a
+  * (or e.g. 'b where 'b is a num type) is OK. *)
+
+let uv = Hashtbl.create 20
+let univ_t ?(constraints=[]) i =
+  try Hashtbl.find uv (constraints,i) with
+    | Not_found ->
+        let v = T.fresh ~level:0 ~constraints ~pos:None in
+          Hashtbl.add uv (constraints,i) v ;
+          v
 let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
 let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
 
@@ -66,7 +86,9 @@ let source s = mk (Source s)
 (** Warning: this is unsafe, not necessarily really audio. *)
 let request r = mk (Request r)
 let product a b = mk (Product (a,b))
-let val_fun p f = mk (FFI (p,[],[],f))
+let val_fun p f =
+  let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
+    mk (FFI (p,[],[],f))
 let val_cst_fun p c =
   let f tm = mk (Fun (p,[],[],{ Term.t = c.t ; Term.term = tm })) in
     match c.value with
@@ -88,10 +110,10 @@ exception Invalid_value of value*string
 
 type proto = (string*t*value option*string option) list
 
-let doc_of_prototype_item t d doc =
+let doc_of_prototype_item ~generalized t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let item = new Doc.item doc in
-    item#add_subsection "type" (Doc.trivial (T.print t)) ;
+    item#add_subsection "type" (Doc.trivial (T.print ~generalized t)) ;
     item#add_subsection "default"
       (match d with
          | None -> Doc.trivial "None"
@@ -111,8 +133,9 @@ let builtin_type p t =
 let to_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
   let t = builtin_type proto return_t in
+  let generalized = T.filter_vars (fun _ -> true) t in
     item#add_subsection "category" (Doc.trivial category) ;
-    item#add_subsection "type" (Doc.trivial (T.print t)) ;
+    item#add_subsection "type" (Doc.trivial (T.print ~generalized t)) ;
     List.iter
       (fun f -> item#add_subsection "flag" (Doc.trivial (string_of_flag f)))
       flags;
@@ -120,27 +143,34 @@ let to_doc category flags main_doc proto return_t =
       (fun (l,t,d,doc) ->
          item#add_subsection
            (if l = "" then "(unlabeled)" else l)
-           (doc_of_prototype_item t d doc)) proto ;
+           (doc_of_prototype_item ~generalized t d doc)) proto ;
     item
 
-let builtin_value p ret_t f =
-  { t = builtin_type p ret_t ;
-    value = FFI (List.map (fun (lbl,_,opt,_) -> lbl,lbl,opt) p, [], [], f) }
-
 let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
-  let value = builtin_value proto return_t f in
-    Term.builtins#register ~doc:(to_doc category flags descr proto return_t)
-      name value
+  let t = builtin_type proto return_t in
+  let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
+  let value =
+    { t = t ;
+      value = FFI (List.map (fun (lbl,_,opt,_) -> lbl,lbl,opt) proto,
+                   [], [],
+                   f) }
+  in
+  let generalized = T.filter_vars (fun _ -> true) t in
+    Term.builtins#register
+      ~doc:(to_doc category flags descr proto return_t)
+      name
+      (generalized,value)
 
 let add_builtin_base ~category ~descr ?(flags=[]) name value t =
   let doc = new Doc.item ~sort:false descr in
   let value = { t = t ; value = value } in
+  let generalized = T.filter_vars (fun _ -> true) t in
     doc#add_subsection "category" (Doc.trivial category) ;
-    doc#add_subsection "type" (Doc.trivial (T.print t)) ;
+    doc#add_subsection "type" (Doc.trivial (T.print ~generalized t)) ;
     List.iter
       (fun f -> doc#add_subsection "flag" (Doc.trivial (string_of_flag f)))
       flags;
-    Term.builtins#register ~doc name value
+    Term.builtins#register ~doc name (generalized,value)
 
 (** Specialized version for operators, that is builtins returning sources. *)
 
@@ -269,12 +299,12 @@ let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
        Some { t = t ; value = String "" },
        Some "Force the value of the source ID.")::proto
   in
-  let f x t =
-    let t = Term.of_source_t t in
-    let k = frame_kind_of_kind_type t in
-    let src : Source.source = f x k in
+  let f env t =
+    let kind_t = Term.of_source_t t in
+    let k = frame_kind_of_kind_type kind_t in
+    let src : Source.source = f env k in
     let id =
-      match (List.assoc "id" x).value with
+      match (List.assoc "id" env).value with
         | String s -> s
         | _ -> assert false
     in
@@ -290,19 +320,17 @@ let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
 
 let iter_sources f v =
   let rec iter_term env v = match v.Term.term with
-    | Term.Source s -> f s
-    | Term.Unit | Term.Bool _
-    | Term.Int _ | Term.Float _ | Term.String _
-    | Term.Request _ | Term.Encoder _ -> ()
+    | Term.Unit | Term.Bool _ | Term.String _
+    | Term.Int _ | Term.Float _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
     | Term.Ref a -> iter_term env a
-    | Term.Let (_,_,a,b) | Term.Product (a,b) | Term.Seq (a,b) ->
+    | Term.Let {Term.def=a;body=b} | Term.Product (a,b) | Term.Seq (a,b) ->
         iter_term env a ; iter_term env b
     | Term.Var v ->
         (* If it's locally bound it won't be in [env]. *)
         (* TODO since inner-bound variables don't mask outer ones in [env],
          *   we are actually checking values that may be out of reach. *)
-        begin try iter_value (List.assoc v env) with Not_found -> () end
+        begin try iter_value (snd (List.assoc v env)) with Not_found -> () end
     | Term.App (a,l) ->
         iter_term env a ;
         List.iter (fun (_,v) -> iter_term env v) l
@@ -315,20 +343,23 @@ let iter_sources f v =
     | Source s -> f s
     | Unit | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
     | List l -> List.iter iter_value l
-    | Ref a -> iter_value a
+    | Ref a -> iter_value !a
     | Product (a,b) ->
         iter_value a ; iter_value b
     | Fun (proto,pe,env,body) ->
-        iter_term env body ; (* TODO this doesn't sound right/precise *)
-        List.iter (fun (_,v) -> iter_value v) pe ;
+        (* The following is necessarily imprecise: we might see
+         * sources that will be unused in the execution of the function. *)
+        iter_term env body ;
+        List.iter (fun (_,(_,v)) -> iter_value v) pe ;
         List.iter
           (function
              | _,_,Some v -> iter_value v
              | _ -> ())
           proto
     | FFI (proto,pe,env,_) ->
-        List.iter (fun (_,v) -> iter_value v) env ;
-        List.iter (fun (_,v) -> iter_value v) pe ; (* TODO imprecise *)
+        (* Same imprecisions as above. *)
+        List.iter (fun (_,(_,v)) -> iter_value v) env ;
+        List.iter (fun (_,(_,v)) -> iter_value v) pe ;
         List.iter
           (function
              | _,_,Some v -> iter_value v

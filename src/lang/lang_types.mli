@@ -43,11 +43,10 @@ and descr =
   | Zero | Succ of t | Variable
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
-  | UVar of int * constraints
   | Link of t
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
-val print : t -> string
+val print : ?generalized:((int*constraints) list) -> t -> string
 
 exception Occur_check of t*t
 val occur_check : t -> t -> unit
@@ -55,12 +54,14 @@ val occur_check : t -> t -> unit
 exception Unsatisfied_constraint of constr*t
 val bind : t -> t -> unit
 val deref : t -> t
-val instantiate : level:int -> t -> t
-val generalize : level:int -> t -> unit
+val filter_vars : (t -> bool) -> t -> (int*constraints) list
+val instantiate : level:int -> generalized:((int*constraints) list) -> t -> t
+val generalizable : level:int -> t -> (int*constraints) list
 
 type trace_item = Item of t*t | Flip
 exception Error of trace_item list
 val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 
+val fresh : constraints:constraints -> level:int -> pos:pos option -> t
 val fresh_evar : level:int -> pos:pos option -> t

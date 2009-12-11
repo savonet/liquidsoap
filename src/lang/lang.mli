@@ -29,7 +29,7 @@ type t = Lang_types.t
 
 (** A typed value. *)
 type value = { mutable t : t ; value : in_value }
-and env = (string * value) list
+and full_env = (string * ((int*Lang_types.constraints) list * value)) list
 and in_value =
   | Unit
   | Bool    of bool
@@ -43,11 +43,13 @@ and in_value =
   | Encoder of Encoder.format
   | List    of value list
   | Product of value * value
-  | Ref     of value
+  | Ref     of value ref
   | Fun     of (string * string * value option) list *
-               env * env * Lang_values.term
+               full_env * full_env * Lang_values.term
   | FFI     of (string * string * value option) list *
-               env * env * (env -> t -> value)
+               full_env * full_env * (full_env -> t -> value)
+
+type env = (string*value) list
 
 (** Get a string representation of a value. *)
 val print_value : value -> string
@@ -58,7 +60,7 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 (** {2 Computation} *)
 
 (** Multiapply a value to arguments. *)
-val apply : value -> (string * value) list -> value
+val apply : value -> env -> value
 
 (** {3 Helpers for source builtins} *)
 

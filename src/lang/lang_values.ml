@@ -75,7 +75,8 @@ let source_t ?pos ?level k =
     (T.Constr { T.name = "source" ; T.params = [T.Invariant,k] })
 let of_source_t t = match (T.deref t).T.descr with
   | T.Constr { T.name = "source" ; T.params = [_,t] } -> t
-  | _ -> assert false
+  | _ -> Printf.eprintf "Not a source_t: %s\n" (T.print (T.deref t)) ;
+         assert false
 
 let request_t ?pos ?level k =
   T.make ?pos ?level
@@ -111,19 +112,24 @@ let type_of_format ~pos ~level f =
   * but I don't want to bother with stripping down to another datatype. *)
 
 type term = { mutable t : T.t ; term : in_term }
+and let_t = {
+  doc : Doc.item * (string*string) list ;
+  var : string ;
+  gen : (int*T.constraints) list ref ;
+  def : term ;
+  body : term
+}
 and  in_term =
   | Unit
   | Bool    of bool
   | Int     of int
   | String  of string
   | Float   of float
-  | Source  of Source.source
-  | Request of Request.raw Request.t option (* cf. mli *)
   | Encoder of Encoder.format
   | List    of term list
   | Product of term * term
-  | Ref     of term 
-  | Let     of (Doc.item*(string*string)list) * string * term * term
+  | Ref     of term
+  | Let     of let_t
   | Var     of string
   | Seq     of term * term
   | App     of term * (string * term) list
@@ -134,7 +140,7 @@ and  in_term =
 (* Only used for printing very simple functions. *)
 let rec is_ground x = match x.term with
   | Unit | Bool _ | Int _ | Float _ | String _
-  | Source _ | Request _ | Encoder _ -> true
+  | Encoder _ -> true
   | Ref x -> is_ground x
   | _ -> false
 
@@ -145,8 +151,6 @@ let rec print_term v = match v.term with
   | Int i    -> string_of_int i
   | Float f  -> string_of_float f
   | String s -> Printf.sprintf "%S" s
-  | Source s -> "<source>"
-  | Request s -> "<request>"
   | Encoder e -> Encoder.string_of_format e
   | List l ->
       "["^(String.concat ", " (List.map print_term l))^"]"
@@ -166,11 +170,75 @@ let rec print_term v = match v.term with
         (print_term hd)^"("^(String.concat "," tl)^")"
   | Let _ | Seq _ -> assert false
 
+(** Maps a function on all types occurring in a term.
+  * Ignores variable generalizations. *)
+let rec map_types f tm = match tm.term with
+  | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
+      { tm with t = f tm.t }
+  | Ref r ->
+      { t = f tm.t ;
+        term = Ref (map_types f r) }
+  | Product (a,b) ->
+      { t = f tm.t ;
+        term = Product (map_types f a, map_types f b) }
+  | Seq (a,b) ->
+      { t = f tm.t ;
+        term = Seq (map_types f a, map_types f b) }
+  | List l ->
+      { t = f tm.t ;
+        term = List (List.map (map_types f) l) }
+  | App (hd,l) ->
+      { t = f tm.t ;
+        term = App (map_types f hd,
+                    List.map (fun (lbl,v) -> lbl, map_types f v) l) }
+  | Fun (p,v) ->
+      let aux = function
+        | (lbl,var,t,None) -> lbl, var, f t, None
+        | (lbl,var,t,Some tm) -> lbl, var, f t, Some (map_types f tm)
+      in
+        { t = f tm.t ;
+          term = Fun (List.map aux p, map_types f v) }
+  | Let l ->
+      { t = f tm.t ;
+        term = Let { l with def = map_types f l.def ;
+                            body = map_types f l.body } }
+
+(** Folds [f] over almost all types occurring in a term,
+  * skipping as much as possible while still
+  * guaranteeing that [f] will see all variables. *)
+let rec fold_types f gen x tm = match tm.term with
+  | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
+      f gen x tm.t
+  | List l ->
+      List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
+  (* In the next three cases, don't care about tm.t, nothing "new" in it. *)
+  | Ref r ->
+      fold_types f gen x r
+  | Product (a,b) | Seq (a,b) ->
+      fold_types f gen (fold_types f gen x a) b
+  | App (tm,l) ->
+      let x = fold_types f gen x tm in
+        List.fold_left (fun x (_,tm) -> fold_types f gen x tm) x l
+  | Fun (p,v) ->
+      fold_types f gen
+        (List.fold_left
+           (fun x -> function
+              | (_,_,t,Some tm) ->
+                  fold_types f gen (f gen x t) tm
+              | (_,_,t,None) ->
+                  f gen x t)
+           x
+           p)
+        v
+  | Let {gen={contents=gen'};def=def;body=body} ->
+      let x = fold_types f (gen'@gen) x def in
+        fold_types f gen x body
+
 (** Values are normal forms of terms. *)
 module V =
 struct
   type value = { mutable t : T.t ; value : in_value }
-  and env = (string*value) list
+  and full_env = (string * ((int*T.constraints)list*value)) list
   and in_value =
     | Unit
     | Bool    of bool
@@ -182,15 +250,17 @@ struct
     | Encoder of Encoder.format
     | List    of value list
     | Product of value * value
-    | Ref     of value
+    | Ref     of value ref
     (** In the next two constructors the first environment contains the
       * parameters already passed to the closure. It cannot be integrated in
       * the second one immediately as further applications will insert new
       * bindings between the first and second environments (cf. apply). *)
     | Fun     of (string * string * value option) list *
-                 env * env * term
+                 full_env * full_env * term
     | FFI     of (string * string * value option) list *
-                 env * env * (env -> T.t -> value)
+                 full_env * full_env * (full_env -> T.t -> value)
+
+  type env = (string*value) list
 
   let rec print_value v = match v.value with
     | Unit     -> "()"
@@ -204,16 +274,67 @@ struct
     | List l ->
         "["^(String.concat ", " (List.map print_value l))^"]"
     | Ref a ->
-        Printf.sprintf "ref (%s)" (print_value a)
+        Printf.sprintf "ref (%s)" (print_value !a)
     | Product (a,b) ->
         Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
     | Fun (_,_,_,x) when is_ground x -> "{"^print_term x^"}"
     | Fun _ | FFI _ -> "<fun>"
+
+  let map_env f env = List.map (fun (s,(g,v)) -> s, (g, f v)) env
+
+  let tm_map_types = map_types
+
+  (** Map a function on all types occurring in a value. *)
+  let rec map_types f v = match v.value with
+    | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
+        { v with t = v.t }
+    | Product (a,b) ->
+        { t = f v.t ;
+          value = Product (map_types f a, map_types f b) }
+    | List l ->
+        { t = f v.t ;
+          value = List (List.map (map_types f) l) }
+    | Fun (p,applied,env,tm) ->
+        let aux = function
+          | lbl, var, None -> lbl, var, None
+          | lbl, var, Some v -> lbl, var, Some (map_types f v)
+        in
+          { t = f v.t ;
+            value = 
+              Fun (List.map aux p,
+                   map_env (map_types f) applied,
+                   map_env (map_types f) env,
+                   tm_map_types f tm) }
+    | FFI (p,applied,env,ffi) ->
+        let aux = function
+          | lbl, var, None -> lbl, var, None
+          | lbl, var, Some v -> lbl, var, Some (map_types f v)
+        in
+          { t = f v.t ;
+            value = FFI (List.map aux p,
+                         map_env (map_types f) applied,
+                         map_env (map_types f) env,
+                         ffi) }
+    (* In the case on instantiate (currently the only use of map_types)
+     * no type instantiation should occur in the following cases (f should
+     * be the identity): one cannot change the type of such objects once
+     * they are created. *)
+    | Source s ->
+        assert (f v.t = v.t) ;
+        v
+    | Request s ->
+        assert (f v.t = v.t) ;
+        v
+    | Ref r ->
+        assert (f v.t = v.t) ;
+        r := map_types f !r ;
+        v
+
 end
 
 (** {1 Built-in values and toplevel definitions} *)
 
-let builtins : V.value Plug.plug
+let builtins : (((int*T.constraints) list) * V.value) Plug.plug
   = Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
 (* {1 Type checking/inference} *)
@@ -221,9 +342,10 @@ let builtins : V.value Plug.plug
 let (<:) = T.(<:)
 let (>:) = T.(>:)
 
-(* TODO gross! *)
-let value_restriction t = match t.term with
+let rec value_restriction t = match t.term with
   | Fun _ -> true
+  | List l -> List.for_all value_restriction l
+  | Product (a,b) -> value_restriction a && value_restriction b
   | _ -> false
 
 exception Unbound of T.pos option * string
@@ -235,7 +357,8 @@ exception Unbound of T.pos option * string
   * more helpful. *)
 exception No_label of term * string * bool * term
 
-(* [level] should be the sum of the lengths of [env] and [builtins],
+(* Type-check an expression.
+ * [level] should be the sum of the lengths of [env] and [builtins],
  * that is the size of the typing context, that is the number of surrounding
  * abstractions. *)
 let rec check ?(print_toplevel=false) ~level ~env e =
@@ -246,7 +369,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   e.t.T.level <- level ;
   (** The toplevel position of the (un-dereferenced) type
     * is the actual parsing position of the value.
-    * When we synthesize a type against which the type of the value is unified,
+    * When we synthesize a type against which the type of the term is unified,
     * we have to set the position information in order not to loose it. *)
   let pos = e.t.T.pos in
   let mk t = T.make ~level ~pos t in
@@ -257,8 +380,6 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Int     _ -> e.t >: mkg T.Int
   | String  _ -> e.t >: mkg T.String
   | Float   _ -> e.t >: mkg T.Float
-  | Source  _ | Request _ ->
-      assert false (* abstract values don't occur in the source *)
   | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
   | List l ->
       List.iter (check ~level ~env) l ;
@@ -347,18 +468,18 @@ let rec check ?(print_toplevel=false) ~level ~env e =
           (fun (p,env,level) -> function
              | lbl,var,kind,None   ->
                  if debug then
-                   Printf.eprintf "Assigning level %d to %s (%s)\n"
+                   Printf.eprintf "Assigning level %d to %s (%s).\n"
                      level var (T.print kind) ;
                  kind.T.level <- level ;
-                 (false,lbl,kind)::p, (var,kind)::env, level+1
+                 (false,lbl,kind)::p, (var,([],kind))::env, level+1
              | lbl,var,kind,Some v ->
                  if debug then
-                   Printf.eprintf "Assigning level %d to %s (%s)\n"
+                   Printf.eprintf "Assigning level %d to %s (%s).\n"
                      level var (T.print kind) ;
                  kind.T.level <- level ;
                  base_check v ;
                  v.t <: kind ;
-                 (true,lbl,kind)::p, (var,kind)::env, level+1)
+                 (true,lbl,kind)::p, (var,([],kind))::env, level+1)
           ([],env,level)
           proto
       in
@@ -366,34 +487,46 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         check ~level ~env body ;
         e.t >: mk (T.Arrow (proto_t,body.t))
   | Var var ->
-      let orig =
+      let generalized,orig =
         try
           List.assoc var env
         with
           | Not_found ->
               begin match builtins#get var with
-                | Some v -> v.V.t
+                | Some (g,v) -> g,v.V.t
                 | None -> raise (Unbound (e.t.T.pos,var))
               end
       in
-        e.t >: T.instantiate ~level orig ;
+        e.t >: T.instantiate ~level ~generalized orig ;
         if debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n"
             var (T.deref e.t).T.level (T.print orig) (T.print e.t)
-  | Let (_,name,def,body) ->
+  | Let {gen=gen; var=name; def=def; body=body} ->
       check ~level:level ~env def ;
-      if value_restriction def then
-        if debug then begin
-          let t0 = T.print def.t in
-            T.generalize ~level def.t ;
-            Printf.eprintf "Generalize %s[%d] : %s becomes %s\n"
-              name level t0 (T.print def.t)
-        end else
-          T.generalize ~level def.t ;
-      if print_toplevel then
-        Printf.printf "%s \t:: %s\n" name (T.print def.t) ;
-      check ~print_toplevel ~level ~env:((name,def.t)::env) body ;
-      e.t >: body.t
+      let generalized =
+        if value_restriction def then
+          let f gen x t =
+            let x' =
+              T.filter_vars
+                (function
+                   | { T. descr = T.EVar (i,c) ; level = l } ->
+                       not (List.mem_assoc i x) &&
+                       not (List.mem_assoc i gen) && l >= level
+                   | _ -> assert false)
+                t
+            in
+              x'@x
+          in
+            fold_types f [] [] def
+        else
+          []
+      in
+      let env = (name,(generalized,def.t))::env in
+        gen := generalized ;
+        if print_toplevel then
+          Printf.printf "%s \t: %s\n%!" name (T.print ~generalized def.t) ;
+        check ~print_toplevel ~level:(level+1) ~env body ;
+        e.t >: body.t
 
 (** For internal use. I want to give an ID to sources built by FFI application
   * based on the name under which the FFI is registered.
@@ -402,7 +535,7 @@ exception F of string
 let get_name f =
   try
     builtins#iter
-      (fun name v -> match v.V.value with
+      (fun name (_,v) -> match v.V.value with
          | V.FFI (_,_,_,ff) when f == ff -> raise (F name)
          | _ -> ()) ;
     "<ff>"
@@ -433,6 +566,31 @@ let remove_first filter =
            aux (hd::acc) tl
   in aux []
 
+(** Evaluation has to be typed, because some FFI's have a behavior
+  * that depends on their return type (for example, source and request
+  * creations). This is annoying but we really need a type inference kind
+  * of mechanism to obtain the information that such functions need,
+  * so this seems like the right thing to do.
+  *
+  * So, when we evaluate a variable of type T, we have to lookup
+  * a let-definition, whose type has T as an instance, instantiate it
+  * and unify it with T. But this is not enough: we need the types
+  * inside the definition to get instantiated properly too.
+  * This also requires to duplicate the definition before
+  * instantiation, to avoid sharing the instantiation with
+  * the definition itself and its future/past instantiations. *)
+
+let instantiate ~generalized def =
+  (* Levels don't matter since we're never going to generalize. *)
+  if generalized=[] then def else
+    V.map_types (T.instantiate ~generalized ~level:0) def
+
+let lookup env var ty =
+  let generalized,def = List.assoc var env in
+  let def = instantiate ~generalized def in
+    def.V.t <: ty ;
+    def
+
 let rec eval ~env tm =
   let mk v = { V.t = tm.t ; V.value = v } in
     match tm.term with
@@ -441,13 +599,16 @@ let rec eval ~env tm =
       | Int     x -> mk (V.Int x)
       | String  x -> mk (V.String x)
       | Float   x -> mk (V.Float x)
-      | Source  x -> mk (V.Source x)
-      | Request x -> mk (V.Request x)
       | Encoder x -> mk (V.Encoder x)
       | List l -> mk (V.List (List.map (eval ~env) l))
       | Product (a,b) -> mk (V.Product (eval ~env a, eval ~env b))
-      | Ref v -> mk (V.Ref (eval ~env v))
-      | Let (_,x,v,b) -> eval ~env:((x,eval ~env v)::env) b
+      | Ref v -> mk (V.Ref (ref (eval ~env v)))
+      | Let {gen={contents=generalized};var=x;def=v;body=b} ->
+          (* It should be the case that generalizable variables don't
+           * get instantiated in any way when evaluating the definition.
+           * But we don't double-check it. *)
+          let v = eval ~env v in
+          eval ~env:((x,(generalized,v))::env) b
       | Fun (p,body) ->
           let p =
             List.map
@@ -457,7 +618,8 @@ let rec eval ~env tm =
               p
           in
             mk (V.Fun (p,[],env,body))
-      | Var var -> List.assoc var env
+      | Var var ->
+          lookup env var tm.t
       | Seq (a,b) ->
           check_unit_like (eval ~env a) ;
           eval ~env b
@@ -466,6 +628,9 @@ let rec eval ~env tm =
 
 and apply ?(t=T.dummy) f l =
   let mk v = { V.t = t ; V.value = v } in
+  (* Extract the components of the function, whether it's explicit
+   * or foreign, together with a rewrapping function for creating
+   * a closure in case of partial application. *)
   let p,pe,e,f,rewrap =
     match f.V.value with
       | V.Fun (p,pe,e,body) ->
@@ -484,12 +649,14 @@ and apply ?(t=T.dummy) f l =
          let (_,var,_),p =
            remove_first (fun (l,_,_) -> l=lbl) p
          in
-           (var,v)::pe, p)
+           (var,([],v))::pe, p)
       (pe,p) l
   in
-    (* Is it a total application ? *)
-    if List.exists (fun (_,_,x) -> x=None) p then rewrap p pe e else
-      (* XXX Contrary to the previous implementation of eval,
+    if List.exists (fun (_,_,x) -> x=None) p then
+      (* Partial application. *)
+      rewrap p pe e
+    else
+      (* XXX Contrary to older implementation of eval,
        * we do not assign location-based IDs to sources
        * (e.g. add@L13C4). *)
       let pe =
@@ -502,16 +669,21 @@ and apply ?(t=T.dummy) f l =
                * the printing of the error should succeed at getting a position
                * information. *)
               let v = Utils.get_some v in
+                [],
                 { v with V.t = T.make ~pos:t.T.pos (T.Link v.V.t) })::pe)
           pe p
       in
       let v = f (List.rev_append pe e) t in
         (* Similarly here, the result of an FFI call should have some position
-         * information. A possible test is to build a fallible source and pass
-         * it to an operator that expects an infallible one. *)
+         * information. For example, if we build a fallible source and pass
+         * it to an operator that expects an infallible one, an error
+         * is issued about that FFI-made value and a position is needed. *)
         { v with V.t = T.make ~pos:t.T.pos (T.Link v.V.t) }
 
-let toplevel_add (doc,params) x v =
+(** Add toplevel definitions to [builtins] so they can be looked
+  * during the evaluation of the next scripts.
+  * Also try to generate a structured documentation from the source code. *)
+let toplevel_add (doc,params) x ~generalized v =
   let ptypes =
     match (T.deref v.V.t).T.descr with
       | T.Arrow (p,_) -> p
@@ -540,7 +712,7 @@ let toplevel_add (doc,params) x v =
              | Not_found -> `Unknown, pvalues
          in
          let item = Doc.trivial (if descr="" then "(no doc)" else descr) in
-           item#add_subsection "type" (Doc.trivial (T.print t)) ;
+           item#add_subsection "type" (Doc.trivial (T.print ~generalized t)) ;
            item#add_subsection "default"
              (Doc.trivial (match default with
                              | `Unknown -> "???"
@@ -557,14 +729,16 @@ let toplevel_add (doc,params) x v =
       (fun (s,_) ->
          Printf.eprintf "WARNING: Unused @param %S for %s!\n" s x)
       params ;
-    doc#add_subsection "type" (Doc.trivial (T.print v.V.t)) ;
-    builtins#register ~doc x v
+    doc#add_subsection "type" (Doc.trivial (T.print ~generalized v.V.t)) ;
+    builtins#register ~doc x (generalized,v)
 
 let rec eval_toplevel t =
   match t.term with
-    | Let (comment,name,def,body) ->
+    | Let {doc=comment;
+           gen={contents=generalized};
+           var=name;def=def;body=body} ->
         let def = eval ~env:builtins#get_all def in
-          toplevel_add comment name def ;
+          toplevel_add comment name ~generalized def ;
           eval_toplevel body
     | Seq (a,b) ->
         check_unit_like
