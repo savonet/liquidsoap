@@ -27,9 +27,9 @@ open Dtools
   * as a request which is ready, i.e. has been resolved.
   * On the top of it we define [queued], which manages a queue of files, feed
   * by resolving in an other thread requests given by [get_next_request]. *)
-class virtual unqueued ~kind =
+class virtual unqueued ~kind ~name =
 object (self)
-  inherit source kind
+  inherit source kind ~name
 
   (** [get_next_file] returns a ready audio request.
     * It is supposed to return "quickly", which means that no resolving
@@ -154,11 +154,11 @@ let priority = Tutils.Maybe_blocking
   * - the source tries to have more than [length] seconds in queue
   * - if the duration of a file is unknown we use [default_duration] seconds
   * - downloading a file is required to take less than [timeout] seconds *)
-class virtual queued ~kind
+class virtual queued ~kind ~name
   ?(length=10.) ?(default_duration=30.)
   ?(conservative=false) ?(timeout=20.) () =
 object (self)
-  inherit unqueued ~kind as super
+  inherit unqueued ~kind ~name as super
 
   method stype = Fallible
 

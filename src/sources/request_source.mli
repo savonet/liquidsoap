@@ -22,7 +22,7 @@
 
 (** General classes for streaming files. *)
 
-class virtual unqueued : kind:Frame.content_kind ->
+class virtual unqueued : kind:Frame.content_kind -> name:string ->
 object
   (** [get_next_file] is the only thing you've got to define,
     * it's supposed to return "quickly" as it is run in the Root thread. *)
@@ -36,7 +36,7 @@ object
   method remaining : int
 end
 
-class virtual queued : kind:Frame.content_kind ->
+class virtual queued : kind:Frame.content_kind -> name:string ->
   ?length:float -> ?default_duration:float -> ?conservative:bool -> 
   ?timeout:float -> unit ->
 object

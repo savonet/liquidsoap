@@ -37,7 +37,7 @@ class queue ~kind
   ?(requests=Queue.create()) ?(interactive=true)
   length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~kind
+  inherit Request_source.queued ~kind ~name:"request.queue"
             ~length ~default_duration ~timeout ~conservative () as queued
 
   val reqlock = Mutex.create ()

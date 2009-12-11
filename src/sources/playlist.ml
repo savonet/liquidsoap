@@ -370,7 +370,7 @@ class playlist ~kind
 object
 
   inherit vplaylist ~mime ~reload ~random ~timeout ~prefix uri as pl
-  inherit Request_source.queued ~kind
+  inherit Request_source.queued ~kind ~name:"playlist"
             ~length ~default_duration ~timeout ~conservative () as super
 
   method reload_playlist_internal new_uri =
@@ -395,7 +395,7 @@ class safe_playlist ~kind
 object (self)
 
   inherit vplaylist ~mime ~reload ~random ~timeout ~prefix local_playlist as pl
-  inherit Request_source.unqueued ~kind as super
+  inherit Request_source.unqueued ~kind ~name:"playlist.safe" as super
 
   method wake_up =
     pl#playlist_wake_up ;

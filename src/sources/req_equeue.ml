@@ -31,7 +31,7 @@ let move_re = Str.regexp "\\([0-9]+\\) +\\(-?[0-9]+\\)"
   * requests made over the network using the Server interface. *)
 class equeue ~kind length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~kind
+  inherit Request_source.queued ~kind ~name:"request.equeue"
             ~length ~default_duration ~timeout ~conservative () as super
 
   val queue = Rqueue.create ()

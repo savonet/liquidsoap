@@ -30,11 +30,11 @@ class unqueued ~kind r =
   (** We assume that [r] is ready. *)
   let filename = Utils.get_some (Request.get_filename r) in
 object (self)
-  inherit Request_source.unqueued ~kind
+  inherit Request_source.unqueued ~name:"single" ~kind as super
 
-  method wake_up _ =
-    if String.length filename < 15 then
-      self#set_id filename
+  method wake_up x =
+    if String.length filename < 15 then self#set_id filename ;
+    super#wake_up x
 
   method stype = Infallible
   method get_next_file = Some r
@@ -42,8 +42,13 @@ end
 
 class queued ~kind uri length default_duration timeout conservative =
 object (self)
-  inherit Request_source.queued ~kind
-      ~length ~default_duration ~conservative ~timeout ()
+  inherit Request_source.queued ~name:"single" ~kind
+      ~length ~default_duration ~conservative ~timeout () as super
+
+  method wake_up x =
+    if String.length uri < 15 then self#set_id uri ;
+    super#wake_up x
+
   method get_next_request = self#create_request uri
 end
 
@@ -113,7 +118,7 @@ class dynamic ~kind
   (f:Lang.value) length default_duration timeout conservative =
 object (self)
   inherit
-    Request_source.queued ~kind
+    Request_source.queued ~kind ~name:"request.dynamic"
       ~length ~default_duration ~timeout ~conservative ()
   method get_next_request =
     try
