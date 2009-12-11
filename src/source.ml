@@ -122,11 +122,11 @@ object (self)
     with
       | None -> if caching then begin
           caching <- false ;
-          self#log#f 4 "Disabling caching mode"
+          self#log#f 4 "Disabling caching mode."
         end
       | Some msg -> if not caching then begin
           caching <- true ;
-          self#log#f 4 "Enabling caching mode (%s)" msg
+          self#log#f 4 "Enabling caching mode: %s." msg
         end
 
   (* Ask for initialization.
@@ -136,7 +136,7 @@ object (self)
   method get_ready ?(dynamic=false) activation =
     if log == source_log then self#create_log ;
     if static_activations = [] && dynamic_activations = [] then begin
-      source_log#f 4 "%s gets up" id ;
+      source_log#f 4 "Source %s gets up." id ;
       self#wake_up activation
     end ;
     if dynamic then
@@ -160,7 +160,7 @@ object (self)
       else
         static_activations <- remove [] static_activations ;
       if static_activations = [] && dynamic_activations = [] then begin
-        source_log#f 4 "%s gets down" id ;
+        source_log#f 4 "Source %s gets down." id ;
         self#sleep
       end ;
       self#update_caching_mode
