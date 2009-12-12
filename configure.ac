@@ -255,6 +255,7 @@ else
     cma=cma
     cmo=cmo
     cmi=cmi
+    ocamlcflags="$ocamlcflags -custom"
     if test "x$enable_debugging" = "xyes" ; then
         CFLAGS="$CFLAGS -g"
         ocamlcflags="$ocamlcflags -g"
@@ -300,12 +301,9 @@ AC_ARG_ENABLE([graphics],
       [--enable-graphics],
       [enable plugins which need the Graphics library]))
 
-if test "x$enable_graphics" = "xyes"; then
+if test "x$enable_graphics" != "xno"; then
     AC_MSG_CHECKING(for Graphics)
-    cat >> configure_graphics.ml <<__BLAH__
-open Graphics
-__BLAH__
-    if ocamlfind ocamlc -package graphics configure_graphics.ml -o configure_graphics > /dev/null 2>&1 ; then
+    if $OCAMLFIND query graphics > /dev/null 2>&1; then
         W_GRAPHICS=yes
         AC_MSG_RESULT(ok)
         ocamlcflags="$ocamlcflags -package graphics"
@@ -314,10 +312,6 @@ __BLAH__
         W_GRAPHICS=
         AC_MSG_RESULT(not found)
     fi
-    rm -f configure_graphics
-    rm -f configure_graphics.ml
-    rm -f configure_graphics.cmi
-    rm -f configure_graphics.cmo
 fi
 
 if test "x$W_GRAPHICS" = "xyes"; then
@@ -1603,35 +1597,18 @@ fi
 # camlimages
 #
 
-AC_ARG_WITH([camlimages-dir],
-   AC_HELP_STRING(
-      [--with-camlimages-dir=path],
-      [look for camlimages library in "path" (autodetected by default)]))
 AC_ARG_ENABLE([camlimages],AC_HELP_STRING([--disable-camlimages],[don't use camlimages]))
 
-if test "x$enable_camlimages" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-camlimages)
-if test -z "$with_camlimages_dir" ; then
+if test "x$enable_camlimages" = "xyes" ; then
+    AC_MSG_CHECKING(for ocaml-camlimages)
     if ! $OCAMLFIND query camlimages > /dev/null 2>&1 ; then
         AC_MSG_RESULT(not found)
     else
         W_CAMLIMAGES=yes
         AC_MSG_RESULT(ok)
-        # This does not work for now because ci_gif cannot be linked with ocamlSDL
-#        ocamlcflags="$ocamlcflags -package camlimages"
-        ocamlcflags="$ocamlcflags -I +camlimages"
-        ocamllflags="$ocamllflags ci_core.$cma ci_bmp.$cma ci_jpeg.$cma ci_png.$cma ci_ppm.$cma ci_ps.$cma ci_tiff.$cma ci_xpm.$cma"
+        ocamlcflags="$ocamlcflags -package camlimages"
         requires="$requires camlimages"
     fi
-else
-    echo $with_camlimages_dir | grep ^/ > /dev/null 2>&1 \
-        || with_camlimages_dir=$PWD/$with_camlimages_dir
-    ocamlcflags="$ocamlcflags -I $with_camlimages_dir"
-    ocamllflags="$ocamllflags ci_core.$cma ci_bmp.$cma ci_jpeg.$cma ci_png.$cma ci_ppm.$cma ci_ps.$cma ci_tiff.$cma ci_xpm.$cma"
-    requires="$requires camlimages"
-    W_CAMLIMAGES=yes
-    AC_MSG_RESULT(ok)
-fi
 fi
 
 AC_SUBST(W_CAMLIMAGES)
