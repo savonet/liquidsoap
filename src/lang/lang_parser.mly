@@ -224,9 +224,11 @@
         (fun f ->
           function
             | ("quality",{ term = Int i }) ->
-                { f with Encoder.Theora.bitrate_control = Encoder.Theora.Quality i }
+                { f with
+                    Encoder.Theora.bitrate_control = Encoder.Theora.Quality i }
             | ("bitrate",{ term = Int i }) ->
-                { f with Encoder.Theora.bitrate_control = Encoder.Theora.Bitrate i }
+                { f with
+                    Encoder.Theora.bitrate_control = Encoder.Theora.Bitrate i }
             | ("width",{ term = Int i }) ->
                 { f with Encoder.Theora.
                       width = Lazy.lazy_from_val i;
@@ -315,11 +317,14 @@
                 { f with Encoder.Speex.
                           bitrate_control =
                            Encoder.Speex.Vbr q }
-            | ("mode",{ term = Var s }) when String.lowercase s = "wideband" ->
+            | ("mode",{ term = Var s })
+              when String.lowercase s = "wideband" ->
                 { f with Encoder.Speex.mode = Encoder.Speex.Wideband }
-            | ("mode",{ term = Var s }) when String.lowercase s = "narrowband" ->
+            | ("mode",{ term = Var s })
+              when String.lowercase s = "narrowband" ->
                 { f with Encoder.Speex.mode = Encoder.Speex.Narrowband }
-            | ("mode",{ term = Var s }) when String.lowercase s = "ultra-wideband" ->
+            | ("mode",{ term = Var s })
+              when String.lowercase s = "ultra-wideband" ->
                 { f with Encoder.Speex.mode = Encoder.Speex.Ultra_wideband }
             | ("frames_per_packet",{ term = Int i }) ->
                 { f with Encoder.Speex.frames_per_packet = i }
