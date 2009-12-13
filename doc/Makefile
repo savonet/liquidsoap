@@ -75,19 +75,19 @@ content/settings.txt: settings_to_liqi.pl ../src/liquidsoap
 VERSION="`../src/liquidsoap --version | head -n 1`"
 
 test: html
-	@echo -e "Testing code snippets with \033[1m$(VERSION)\033[0m"
+	@echo "Testing code snippets with \033[1m$(VERSION)\033[0m"
 	@echo ""
 	@find html/scripts | grep '\.liq' | sort \
-	  | ./scripts/test_snipets "`pwd`/../src/liquidsoap -p"
+	  | ./scripts/test_snippets "`pwd`/../src/liquidsoap -p"
 	@echo ""
 	@echo "Testing shell scripts.."
 	@echo "Please remember that it does not test liq syntax used inline.."
 	@echo ""
-	@find html/scripts | grep '\.sh' | sort | ./scripts/test_snipets "sh -n"
+	@find html/scripts | grep '\.sh' | sort | ./scripts/test_snippets "sh -n"
 	@echo ""
 	@echo "Testing perl scripts.."
 	@echo ""
-	@find html/scripts | grep '\.pl' | sort | ./scripts/test_snipets "perl -c"
+	@find html/scripts | grep '\.pl' | sort | ./scripts/test_snippets "perl -c"
 
 doc-install: $(HTML)
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
