@@ -1,0 +1,115 @@
+title: Encoding formats
+
+Since after version 0.9.2, liquidsoap has decoding formats. These are
+special values describing how to encode raw data.
+Practically, this means that instead of writing
+@output.icecast.vorbis(quality=1.,samplerate=44100,...)@
+you shall now write
+@output.icecast(%vorbis(quality=1,samplerate=44100),etc)@.
+The same goes for @output.file@ and for other formats.
+
+h3. List of formats and their syntax
+
+All parameters are optional, and the parenthesis are not needed
+when no parameter is passed. In the following default values
+are shown.
+As a special case, the keywords @mono@ and @stereo@ can be used to indicate
+the number of channels (whether is is passed as an integer or a boolean).
+
+h4. MP3
+
+%%
+%mp3(stereo=true, samplerate=44100, bitrate=128, quality=5)
+%%
+
+h4. WAV
+
+%%
+%wav(stereo=true)
+%%
+
+h4. Ogg
+
+The following formats can be put together in an Ogg container.
+The syntax for doing so is @%ogg(x,y,z)@ but it is also
+possible to just write @%vorbis(...)@, for example, instead
+of @%ogg(%vorbis(...))@.
+
+h5. Vorbis
+
+%%
+# Variable bitrate
+%vorbis(samplerate=44100, channels=2, quality=2)
+# Constant bitrate
+%vorbis.cbr(samplerate=44100, channels=2, bitrate=128)
+%%
+
+h5. Theora
+
+%%
+%theora(quality=40,width=w,height=h,
+        picture_width=w,picture_height=h,
+        picture_x=0, picture_y=0,
+        aspect_numerator=1, aspect_denominator=1)
+%%
+
+You can also pass @bitrate=x@ explicitly instead of a quality.
+The default dimensions are liquidsoap's default,
+from the settings @frame.video.height/width@.
+
+h5. Dirac
+
+%%
+%dirac(quality=35,width=w,height=h,
+       picture_x=0, picture_y=0,
+       aspect_numerator=1, aspect_denominator=1)
+%%
+
+h5. Speex
+
+%%
+%speex(stereo=false, samplerate=44100, quality=7,
+       mode=[wideband|narrowband|ultra-wideband],
+       frames_per_packet=1,
+       complexity=none)
+%%
+
+You can also control quality using @abr=x@ or @vbr=y@.
+
+h4. External encoders
+
+Not yet implemented (as of December 13, 2009).
+
+h3. Formats determine the stream content
+
+In most liquidsoap scripts, the encoding format determines what
+kind of data is streamed.
+
+The type of an encoding format depends on its parameter.
+For example, @%mp3@ has type @format(audio=2,video=0,midi=0)@
+but @%mp3(mono)@ has type @format(audio=1,video=0,midi=0)@.
+
+The type of an output like @output.icecast@
+or @output.file@ is something like
+@(...,format('a),...,source('a))->source('a)@.
+This means that your source will have to have the same type as your format.
+
+For example if you write
+@output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))@
+then the playlist source will have to stream stereo audio.
+Thus it will reject mono and video files.
+
+h3. Technical details
+
+You can store an atomic format in a variable, it is a value like another:
+@fmt = %mp3@. However, an atomic format is an atomic constant despite its
+appearance. You cannot use a variable for one of its parameters: for
+example @x = 44100@ and @%vorbis(samplerate=x)@ is not allowed,
+you must write @%vorbis(samplerate=44100)@.
+
+In programming languages like ML, the typing of @printf@ is a bit special.
+Alone, @printf@ has an esoteric type. Together with its parameter, it
+takes a meaningful type, for example @printf "An integer: %d\n"@ has type
+@int -> unit@. So, the format string @"An integer: %d\n"@ is not a string
+at all, it has a more complex type, and cannot be manipulated as a string.
+Our encoding formats have a similar role, hence the symbol @%@.
