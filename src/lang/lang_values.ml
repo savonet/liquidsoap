@@ -111,15 +111,17 @@ let type_of_format ~pos ~level f =
   * We actually don't need the types anymore after the static checking,
   * but I don't want to bother with stripping down to another datatype. *)
 
+module Vars = Set.Make(String)
+
 type term = { mutable t : T.t ; term : in_term }
 and let_t = {
   doc : Doc.item * (string*string) list ;
   var : string ;
-  gen : (int*T.constraints) list ref ;
+  mutable gen : (int*T.constraints) list ;
   def : term ;
   body : term
 }
-and  in_term =
+and in_term =
   | Unit
   | Bool    of bool
   | Int     of int
@@ -133,9 +135,15 @@ and  in_term =
   | Var     of string
   | Seq     of term * term
   | App     of term * (string * term) list
-  | Fun     of (string*string*T.t*term option) list * term
+  | Fun     of Vars.t *
+               (string*string*T.t*term option) list *
+               term
                (* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
-                * [Fun ((l1,x1,None)..(li,xi,Some defi)..),body] *)
+                * [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]
+                * The first component [V] is the list containing all
+                * variables occurring in the function. It is used to
+                * restrict the environment captured when a closure is
+                * formed. *)
 
 (* Only used for printing very simple functions. *)
 let rec is_ground x = match x.term with
@@ -158,7 +166,7 @@ let rec print_term v = match v.term with
       Printf.sprintf "(%s,%s)" (print_term a) (print_term b)
   | Ref a ->
       Printf.sprintf "ref (%s)" (print_term a)
-  | Fun ([],v) when is_ground v -> "{"^(print_term v)^"}"
+  | Fun (_,[],v) when is_ground v -> "{"^(print_term v)^"}"
   | Fun _ -> "<fun>"
   | Var s -> s
   | App (hd,tl) ->
@@ -170,38 +178,66 @@ let rec print_term v = match v.term with
         (print_term hd)^"("^(String.concat "," tl)^")"
   | Let _ | Seq _ -> assert false
 
+let rec free_vars tm = match tm.term with
+  | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
+      Vars.empty
+  | Var x -> Vars.singleton x
+  | Ref r -> free_vars r
+  | Product (a,b) | Seq (a,b) ->
+      Vars.union (free_vars a) (free_vars b)
+  | List l ->
+      List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
+  | App (hd,l) ->
+      List.fold_left
+        (fun v (_,t) -> Vars.union v (free_vars t))
+        (free_vars hd)
+        l
+  | Fun (fv,_,_) ->
+      fv
+  | Let l ->
+      Vars.union
+        (free_vars l.def)
+        (Vars.remove l.var (free_vars l.body))
+
+let free_vars ?bound body =
+  match bound with
+    | None -> free_vars body
+    | Some s ->
+        List.fold_left (fun v x -> Vars.remove x v) (free_vars body) s
+
 (** Maps a function on all types occurring in a term.
   * Ignores variable generalizations. *)
-let rec map_types f tm = match tm.term with
+let rec map_types f (gen:'a list) tm = match tm.term with
   | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
-      { tm with t = f tm.t }
+      { tm with t = f gen tm.t }
   | Ref r ->
-      { t = f tm.t ;
-        term = Ref (map_types f r) }
+      { t = f gen tm.t ;
+        term = Ref (map_types f gen r) }
   | Product (a,b) ->
-      { t = f tm.t ;
-        term = Product (map_types f a, map_types f b) }
+      { t = f gen tm.t ;
+        term = Product (map_types f gen a, map_types f gen b) }
   | Seq (a,b) ->
-      { t = f tm.t ;
-        term = Seq (map_types f a, map_types f b) }
+      { t = f gen tm.t ;
+        term = Seq (map_types f gen a, map_types f gen b) }
   | List l ->
-      { t = f tm.t ;
-        term = List (List.map (map_types f) l) }
+      { t = f gen tm.t ;
+        term = List (List.map (map_types f gen) l) }
   | App (hd,l) ->
-      { t = f tm.t ;
-        term = App (map_types f hd,
-                    List.map (fun (lbl,v) -> lbl, map_types f v) l) }
-  | Fun (p,v) ->
+      { t = f gen tm.t ;
+        term = App (map_types f gen hd,
+                    List.map (fun (lbl,v) -> lbl, map_types f gen v) l) }
+  | Fun (fv,p,v) ->
       let aux = function
-        | (lbl,var,t,None) -> lbl, var, f t, None
-        | (lbl,var,t,Some tm) -> lbl, var, f t, Some (map_types f tm)
+        | (lbl,var,t,None) -> lbl, var, f gen t, None
+        | (lbl,var,t,Some tm) -> lbl, var, f gen t, Some (map_types f gen tm)
       in
-        { t = f tm.t ;
-          term = Fun (List.map aux p, map_types f v) }
+        { t = f gen tm.t ;
+          term = Fun (fv, List.map aux p, map_types f gen v) }
   | Let l ->
-      { t = f tm.t ;
-        term = Let { l with def = map_types f l.def ;
-                            body = map_types f l.body } }
+      let gen' = l.gen@gen in
+        { t = f gen tm.t ;
+          term = Let { l with def = map_types f gen' l.def ;
+                              body = map_types f gen l.body } }
 
 (** Folds [f] over almost all types occurring in a term,
   * skipping as much as possible while still
@@ -219,7 +255,7 @@ let rec fold_types f gen x tm = match tm.term with
   | App (tm,l) ->
       let x = fold_types f gen x tm in
         List.fold_left (fun x (_,tm) -> fold_types f gen x tm) x l
-  | Fun (p,v) ->
+  | Fun (_,p,v) ->
       fold_types f gen
         (List.fold_left
            (fun x -> function
@@ -230,7 +266,7 @@ let rec fold_types f gen x tm = match tm.term with
            x
            p)
         v
-  | Let {gen={contents=gen'};def=def;body=body} ->
+  | Let {gen=gen';def=def;body=body} ->
       let x = fold_types f (gen'@gen) x def in
         fold_types f gen x body
 
@@ -251,14 +287,15 @@ struct
     | List    of value list
     | Product of value * value
     | Ref     of value ref
-    (** In the next two constructors the first environment contains the
-      * parameters already passed to the closure. It cannot be integrated in
-      * the second one immediately as further applications will insert new
-      * bindings between the first and second environments (cf. apply). *)
+    (** The first environment contains the parameters already passed
+      * to the function. Next parameters will be inserted between that
+      * and the second env which is part of the closure. *)
     | Fun     of (string * string * value option) list *
                  full_env * full_env * term
+    (** For a foreign function only the arguments are visible,
+      * the closure doesn't capture anything in the environment. *)
     | FFI     of (string * string * value option) list *
-                 full_env * full_env * (full_env -> T.t -> value)
+                 full_env * (full_env -> T.t -> value)
 
   type env = (string*value) list
 
@@ -285,49 +322,48 @@ struct
   let tm_map_types = map_types
 
   (** Map a function on all types occurring in a value. *)
-  let rec map_types f v = match v.value with
+  let rec map_types f gen v = match v.value with
     | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
-        { v with t = v.t }
+        { v with t = f gen v.t }
     | Product (a,b) ->
-        { t = f v.t ;
-          value = Product (map_types f a, map_types f b) }
+        { t = f gen v.t ;
+          value = Product (map_types f gen a, map_types f gen b) }
     | List l ->
-        { t = f v.t ;
-          value = List (List.map (map_types f) l) }
+        { t = f gen v.t ;
+          value = List (List.map (map_types f gen) l) }
     | Fun (p,applied,env,tm) ->
         let aux = function
           | lbl, var, None -> lbl, var, None
-          | lbl, var, Some v -> lbl, var, Some (map_types f v)
+          | lbl, var, Some v -> lbl, var, Some (map_types f gen v)
         in
-          { t = f v.t ;
+          { t = f gen v.t ;
             value = 
               Fun (List.map aux p,
-                   map_env (map_types f) applied,
-                   map_env (map_types f) env,
-                   tm_map_types f tm) }
-    | FFI (p,applied,env,ffi) ->
+                   map_env (map_types f gen) applied,
+                   map_env (map_types f gen) env,
+                   tm_map_types f gen tm) }
+    | FFI (p,applied,ffi) ->
         let aux = function
           | lbl, var, None -> lbl, var, None
-          | lbl, var, Some v -> lbl, var, Some (map_types f v)
+          | lbl, var, Some v -> lbl, var, Some (map_types f gen v)
         in
-          { t = f v.t ;
+          { t = f gen v.t ;
             value = FFI (List.map aux p,
-                         map_env (map_types f) applied,
-                         map_env (map_types f) env,
+                         map_env (map_types f gen) applied,
                          ffi) }
     (* In the case on instantiate (currently the only use of map_types)
      * no type instantiation should occur in the following cases (f should
      * be the identity): one cannot change the type of such objects once
      * they are created. *)
     | Source s ->
-        assert (f v.t = v.t) ;
+        assert (f gen v.t = v.t) ;
         v
     | Request s ->
-        assert (f v.t = v.t) ;
+        assert (f gen v.t = v.t) ;
         v
     | Ref r ->
-        assert (f v.t = v.t) ;
-        r := map_types f !r ;
+        assert (f gen v.t = v.t) ;
+        r := map_types f gen !r ;
         v
 
 end
@@ -343,6 +379,7 @@ let (<:) = T.(<:)
 let (>:) = T.(>:)
 
 let rec value_restriction t = match t.term with
+  | Var _ -> true
   | Fun _ -> true
   | List l -> List.for_all value_restriction l
   | Product (a,b) -> value_restriction a && value_restriction b
@@ -461,7 +498,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         with
           | T.Error (x::T.Flip::tl) -> raise (T.Error (x::tl))
         end
-  | Fun (proto,body) ->
+  | Fun (_,proto,body) ->
       let base_check = check ~level ~env in
       let proto_t,env,level =
         List.fold_left
@@ -501,7 +538,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         if debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n"
             var (T.deref e.t).T.level (T.print orig) (T.print e.t)
-  | Let {gen=gen; var=name; def=def; body=body} ->
+  | Let ({gen=gen; var=name; def=def; body=body} as l) ->
       check ~level:level ~env def ;
       let generalized =
         if value_restriction def then
@@ -522,7 +559,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
           []
       in
       let env = (name,(generalized,def.t))::env in
-        gen := generalized ;
+        l.gen <- generalized ;
         if print_toplevel then
           Printf.printf "%s \t: %s\n%!" name (T.print ~generalized def.t) ;
         check ~print_toplevel ~level:(level+1) ~env body ;
@@ -536,7 +573,7 @@ let get_name f =
   try
     builtins#iter
       (fun name (_,v) -> match v.V.value with
-         | V.FFI (_,_,_,ff) when f == ff -> raise (F name)
+         | V.FFI (_,_,ff) when f == ff -> raise (F name)
          | _ -> ()) ;
     "<ff>"
   with
@@ -581,9 +618,21 @@ let remove_first filter =
   * the definition itself and its future/past instantiations. *)
 
 let instantiate ~generalized def =
-  (* Levels don't matter since we're never going to generalize. *)
+  let subst =
+    (* Levels don't matter since we're never going to generalize. *)
+    List.map
+      (fun (i,c) -> (i,c), T.fresh ~level:0 ~constraints:c ~pos:None)
+      generalized
+  in
   if generalized=[] then def else
-    V.map_types (T.instantiate ~generalized ~level:0) def
+    V.map_types
+      (fun bound t ->
+         let subst =
+           List.filter (fun (x,_) -> not (List.mem x bound)) subst
+         in
+           T.copy_with subst t)
+      []
+      def
 
 let lookup env var ty =
   let generalized,def = List.assoc var env in
@@ -603,13 +652,17 @@ let rec eval ~env tm =
       | List l -> mk (V.List (List.map (eval ~env) l))
       | Product (a,b) -> mk (V.Product (eval ~env a, eval ~env b))
       | Ref v -> mk (V.Ref (ref (eval ~env v)))
-      | Let {gen={contents=generalized};var=x;def=v;body=b} ->
+      | Let {gen=generalized;var=x;def=v;body=b} ->
           (* It should be the case that generalizable variables don't
            * get instantiated in any way when evaluating the definition.
            * But we don't double-check it. *)
           let v = eval ~env v in
           eval ~env:((x,(generalized,v))::env) b
-      | Fun (p,body) ->
+      | Fun (fv,p,body) ->
+          (* Unlike OCaml we always evaluate default values,
+           * and we do that early.
+           * I think the only reason is homogeneity with FFI,
+           * which are declared with values as defaults. *)
           let p =
             List.map
               (function
@@ -617,6 +670,7 @@ let rec eval ~env tm =
                  | (lbl,var,_,None) -> lbl,var,None)
               p
           in
+          let env = List.filter (fun (x,_) -> Vars.mem x fv) env in
             mk (V.Fun (p,[],env,body))
       | Var var ->
           lookup env var tm.t
@@ -631,16 +685,16 @@ and apply ?(t=T.dummy) f l =
   (* Extract the components of the function, whether it's explicit
    * or foreign, together with a rewrapping function for creating
    * a closure in case of partial application. *)
-  let p,pe,e,f,rewrap =
+  let p,pe,f,rewrap =
     match f.V.value with
       | V.Fun (p,pe,e,body) ->
-          p,pe,e,
-          (fun env _ -> eval ~env body),
-          (fun p pe e -> mk (V.Fun (p,pe,e,body)))
-      | V.FFI (p,pe,e,f) ->
-          p,pe,e,
-          f,
-          (fun p pe e -> mk (V.FFI (p,pe,e,f)))
+          p,pe,
+          (fun pe _ -> eval ~env:(List.rev_append pe e) body),
+          (fun p pe -> mk (V.Fun (p,pe,e,body)))
+      | V.FFI (p,pe,f) ->
+          p,pe,
+          (fun pe t -> f (List.rev pe) t),
+          (fun p pe -> mk (V.FFI (p,pe,f)))
       | _ -> assert false
   in
   let pe,p =
@@ -654,7 +708,7 @@ and apply ?(t=T.dummy) f l =
   in
     if List.exists (fun (_,_,x) -> x=None) p then
       (* Partial application. *)
-      rewrap p pe e
+      rewrap p pe
     else
       (* XXX Contrary to older implementation of eval,
        * we do not assign location-based IDs to sources
@@ -673,7 +727,7 @@ and apply ?(t=T.dummy) f l =
                 { v with V.t = T.make ~pos:t.T.pos (T.Link v.V.t) })::pe)
           pe p
       in
-      let v = f (List.rev_append pe e) t in
+      let v = f pe t in
         (* Similarly here, the result of an FFI call should have some position
          * information. For example, if we build a fallible source and pass
          * it to an operator that expects an infallible one, an error
@@ -735,9 +789,10 @@ let toplevel_add (doc,params) x ~generalized v =
 let rec eval_toplevel t =
   match t.term with
     | Let {doc=comment;
-           gen={contents=generalized};
+           gen=generalized;
            var=name;def=def;body=body} ->
-        let def = eval ~env:builtins#get_all def in
+        let env = builtins#get_all in
+        let def = eval ~env def in
           toplevel_add comment name ~generalized def ;
           eval_toplevel body
     | Seq (a,b) ->

@@ -43,7 +43,12 @@
           (T.print kind) ;
       { t = kind ; term = e }
 
-      (** Time intervals *)
+  let mk_fun ?pos args body =
+    let bound = List.map (fun (_,x,_,_) -> x) args in
+    let fv = Lang_values.free_vars ~bound body in
+      mk ?pos (Fun (fv,args,body))
+
+  (** Time intervals *)
 
   let time_units = [| 7*24*60*60 ; 24*60*60 ; 60*60 ; 60 ; 1 |]
 
@@ -381,11 +386,11 @@ exprs:
   | cexpr s exprs            { mk (Seq ($1,$3)) }
   | binding s                { let doc,name,def = $1 in
                                  mk (Let { doc=doc ; var=name ;
-                                           gen = ref [] ; def=def ;
+                                           gen = [] ; def=def ;
                                            body = mk Unit }) }
   | binding s exprs          { let doc,name,def = $1 in
                                  mk (Let { doc=doc ; var=name ;
-                                           gen = ref [] ; def=def ;
+                                           gen = [] ; def=def ;
                                            body = $3 }) }
 
 /* General expressions.
@@ -415,12 +420,12 @@ expr:
                                            ["",$2;"",mk ~pos:(1,1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr
-                                     { mk (Fun ($3,$6)) }
-  | LCUR exprs RCUR                  { mk (Fun ([],$2)) }
+                                     { mk_fun $3 $6 }
+  | LCUR exprs RCUR                  { mk_fun [] $2 }
   | IF exprs THEN exprs if_elsif END
                                      { let cond = $2 in
                                        let then_b =
-                                         mk ~pos:(3,4) (Fun ([],$4))
+                                         mk_fun ~pos:(3,4) [] $4
                                        in
                                        let else_b = $5 in
                                        let op = mk ~pos:(1,1) (Var "if") in
@@ -463,12 +468,12 @@ cexpr:
                                            ["",$2;"",mk ~pos:(1,1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr
-                                     { mk (Fun ($3,$6)) }
-  | LCUR exprs RCUR                  { mk (Fun ([],$2)) }
+                                     { mk_fun $3 $6 }
+  | LCUR exprs RCUR                  { mk_fun [] $2 }
   | IF exprs THEN exprs if_elsif END
                                      { let cond = $2 in
                                        let then_b =
-                                         mk ~pos:(3,4) (Fun ([],$4))
+                                         mk_fun ~pos:(3,4) [] $4
                                        in
                                        let else_b = $5 in
                                        let op = mk ~pos:(1,1) (Var "if") in
@@ -516,7 +521,7 @@ binding:
     }
   | DEF VARLPAR arglist RPAR g exprs END {
       let arglist = $3 in
-      let body = mk (Fun (arglist,$6)) in
+      let body = mk_fun arglist $6 in
         $1,$2,body
     }
 
@@ -538,16 +543,16 @@ opt:
 if_elsif:
   | ELSIF exprs THEN exprs if_elsif { let cond = $2 in
                                       let then_b =
-                                        mk ~pos:(3,4) (Fun ([],$4))
+                                        mk_fun ~pos:(3,4) [] $4
                                       in
                                       let else_b = $5 in
                                       let op = mk ~pos:(1,1) (Var "if") in
-                                        mk (Fun ([],
-                                          mk (App (op,["",cond;
-                                                       "else",else_b;
-                                                       "then",then_b])))) }
-  | ELSE exprs                      { mk ~pos:(1,2) (Fun([],$2)) }
-  |                                 { mk (Fun ([],mk Unit)) }
+                                        mk_fun []
+                                          (mk (App (op,["",cond;
+                                                        "else",else_b;
+                                                        "then",then_b]))) }
+  | ELSE exprs                      { mk_fun ~pos:(1,2) [] $2 }
+  |                                 { mk_fun [] (mk Unit) }
 
 app_opt:
   | { [] }

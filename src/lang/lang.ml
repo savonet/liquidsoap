@@ -23,6 +23,7 @@
 module Term = Lang_values
 include Term.V
 module T = Lang_types
+module Vars = Term.Vars
 
 type t = T.t
 
@@ -88,7 +89,7 @@ let request r = mk (Request r)
 let product a b = mk (Product (a,b))
 let val_fun p f =
   let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
-    mk (FFI (p,[],[],f))
+    mk (FFI (p,[],f))
 let val_cst_fun p c =
   let f tm = mk (Fun (p,[],[],{ Term.t = c.t ; Term.term = tm })) in
     match c.value with
@@ -97,7 +98,7 @@ let val_cst_fun p c =
       | Bool i -> f (Term.Bool i)
       | Float i -> f (Term.Float i)
       | String i -> f (Term.String i)
-      | _ -> mk (FFI (p,[],[],fun _ _ -> c))
+      | _ -> mk (FFI (p,[],fun _ _ -> c))
 let metadata m =
   list (Hashtbl.fold
           (fun k v l -> (product (string k) (string v))::l)
@@ -152,7 +153,7 @@ let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
   let value =
     { t = t ;
       value = FFI (List.map (fun (lbl,_,opt,_) -> lbl,lbl,opt) proto,
-                   [], [],
+                   [],
                    f) }
   in
   let generalized = T.filter_vars (fun _ -> true) t in
@@ -334,7 +335,7 @@ let iter_sources f v =
     | Term.App (a,l) ->
         iter_term env a ;
         List.iter (fun (_,v) -> iter_term env v) l
-    | Term.Fun (proto,body) ->
+    | Term.Fun (_,proto,body) ->
         iter_term env body ;
         List.iter (fun (_,_,_,v) -> match v with
                      | Some v -> iter_term env v
@@ -356,9 +357,7 @@ let iter_sources f v =
              | _,_,Some v -> iter_value v
              | _ -> ())
           proto
-    | FFI (proto,pe,env,_) ->
-        (* Same imprecisions as above. *)
-        List.iter (fun (_,(_,v)) -> iter_value v) env ;
+    | FFI (proto,pe,_) ->
         List.iter (fun (_,(_,v)) -> iter_value v) pe ;
         List.iter
           (function
