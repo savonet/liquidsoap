@@ -40,7 +40,8 @@ let decoder os =
                       packet := Some p;
                       p
             in
-            let packet1,packet2 = get_packet packet1, get_packet packet2 in
+            let packet1 = get_packet packet1 in
+            let packet2 = get_packet packet2 in
             let dec = Schroedinger.Decoder.create packet1 packet2 in
             let video_format = Schroedinger.Decoder.get_video_format dec in
             let fps = (float video_format.Schroedinger.frame_rate_numerator) /.

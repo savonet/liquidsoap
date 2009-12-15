@@ -89,7 +89,9 @@ let test page =
       (fun (format,(check,decode)) ->
            log#f 5 "Trying ogg/%s format" format ;
            if check packet then
-             raise (Exit (serial,os,decode os))
+             (log#f 5 "ogg/%s format detected for stream %nx" 
+                format serial ;
+              raise (Exit (serial,os,decode os)))
            else ())
       ogg_decoders#get_all;
     log#f 5 "Couldn't find a decoder for ogg logical \
@@ -103,9 +105,7 @@ let feed_page decoder page =
   try
     let (os,eos,dec) = Hashtbl.find decoder.streams serial in
     if dec <> Unknown then
-        Ogg.Stream.put_page os page
-    else
-      log#f 5 "No decoder for page of stream %nx" serial;
+      Ogg.Stream.put_page os page ;
     if Ogg.Page.eos page then
       begin
         log#f 5 "Reached last page of logical stream %nx" serial;
