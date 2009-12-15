@@ -303,7 +303,9 @@ AC_ARG_ENABLE([graphics],
 
 if test "x$enable_graphics" != "xno"; then
     AC_MSG_CHECKING(for Graphics)
-    if $OCAMLFIND query graphics > /dev/null 2>&1; then
+    # ocamlfind query graphics is not enough, but linking seems okay
+    if $OCAMLFIND ocamlc -linkpkg -package graphics -o /dev/null \
+       > /dev/null 2>&1; then
         W_GRAPHICS=yes
         AC_MSG_RESULT(ok)
         ocamlcflags="$ocamlcflags -package graphics"
