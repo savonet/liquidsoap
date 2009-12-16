@@ -75,7 +75,10 @@ struct
          Hashtbl.iter
            (fun i entry ->
               match entry.value with
-                | Some t -> f i t
+                | Some t ->
+                    Mutex.unlock m ;
+                    f i t ;
+                    Mutex.lock m
                 | None -> ())
            h)
       f
