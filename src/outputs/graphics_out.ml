@@ -24,7 +24,8 @@ class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
   let video_width    = Lazy.force Frame.video_width in
   let video_height   = Lazy.force Frame.video_height in
 object (self)
-  inherit Output.output ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start ~on_stop ~content_kind:kind source autostart
+  inherit Output.output ~name:"graphics" ~output_kind:"output.graphics"
+            ~infallible ~on_start ~on_stop ~content_kind:kind source autostart
 
   val mutable sleep = false
   method output_stop =
@@ -61,11 +62,12 @@ let () =
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let source = List.assoc "" p in
-         ((new output ~kind ~infallible ~autostart ~on_start ~on_stop source):>Source.source))
+         ((new output ~kind ~infallible ~autostart ~on_start ~on_stop source)
+            :>Source.source))
