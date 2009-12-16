@@ -290,7 +290,7 @@ struct
     | String  of string
     | Float   of float
     | Source  of Source.source
-    | Request of Request.t option
+    | Request of Request.t
     | Encoder of Encoder.format
     | List    of value list
     | Product of value * value

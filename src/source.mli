@@ -106,7 +106,7 @@ object
     ?metadata:((string*string) list) ->
     ?persistent:bool ->
     ?indicators:(Request.indicator list) -> string ->
-    Request.t option
+    Request.t
 
   method private log : Dtools.Log.t
 

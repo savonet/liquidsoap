@@ -79,7 +79,7 @@ object (self)
     ?metadata:((string*string) list) ->
     ?persistent:bool ->
     ?indicators:(Request.indicator list) -> string ->
-    Request.t option
+    Request.t
   method virtual log : Dtools.Log.t
 
   (** How to get the playlist. *)
@@ -152,31 +152,29 @@ object (self)
                   "Could not parse playlist: %s" (Printexc.to_string e) ;
                 []
       in
+      let req =
         self#log#f 3 "Loading playlist..." ;
-        match Request.create_raw uri with
-          | None ->
-              self#log#f 2 "Could not resolve playlist URI %S!" uri ;
+        Request.create_raw uri
+      in
+        match Request.resolve req timeout with
+          | Request.Resolved ->
+              let l =
+                read_playlist (Utils.get_some (Request.get_filename req))
+              in
+              Request.destroy req ;
+              l
+          | e ->
+              let reason =
+                match e with
+                  | Request.Timeout -> "Timeout"
+                  | Request.Failed -> "Failed"
+                  | Request.Resolved -> assert false
+              in
+              self#log#f 2
+                "%s when resolving playlist URI %S!"
+                reason uri ;
+              Request.destroy req ;
               []
-          | Some req ->
-              match Request.resolve req timeout with
-                | Request.Resolved ->
-                    let l =
-                      read_playlist (Utils.get_some (Request.get_filename req))
-                    in
-                    Request.destroy req ;
-                    l
-                | e ->
-                    let reason =
-                      match e with
-                        | Request.Timeout -> "Timeout"
-                        | Request.Failed -> "Failed"
-                        | Request.Resolved -> assert false
-                    in
-                    self#log#f 2
-                      "%s when resolving playlist URI %S!"
-                      reason uri ;
-                    Request.destroy req ;
-                    []
     in
     (* Add prefix to all requests. *)
     let _playlist =
@@ -262,11 +260,11 @@ object (self)
 
   method get_next_request : Request.t option =
     Mutex.lock mylock ;
-    if !playlist = [||] then
-      ( self#reload_update true ;
-        Mutex.unlock mylock ;
-        None )
-    else
+    if !playlist = [||] then begin
+      self#reload_update true ;
+      Mutex.unlock mylock ;
+      None
+    end else
       let uri =
         match random with
           | Randomize ->
@@ -295,7 +293,7 @@ object (self)
                 !playlist.(index_played)
       in
         Mutex.unlock mylock ;
-        self#create_request uri
+        Some (self#create_request uri)
 
   val mutable ns = []
   method playlist_wake_up =
@@ -405,13 +403,10 @@ object (self)
     * thus, we can assume that the source is infallible. *)
   method is_valid uri =
     Sys.file_exists uri &&
-    match Request.create ~kind uri with
-      | None -> assert false (* TODO can happen if we lack RID or if file
-        is  deleted *)
-      | Some r ->
-          let check = Request.resolve r 0. = Request.Resolved in
-            Request.destroy r ;
-            check
+    let r = Request.create ~kind uri in
+    let check = Request.resolve r 0. = Request.Resolved in
+      Request.destroy r ;
+      check
 
   method stype = Infallible
 

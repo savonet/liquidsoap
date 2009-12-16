@@ -37,7 +37,7 @@ and in_value =
   | String  of string
   | Float   of float
   | Source  of Source.source
-  | Request of Request.t option
+  | Request of Request.t
   | Encoder of Encoder.format
   | List    of value list
   | Product of value * value
@@ -142,7 +142,7 @@ val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_source : value -> Source.source
 val to_format : value -> Encoder.format
-val to_request : value -> Request.t option
+val to_request : value -> Request.t
 val to_int : value -> int
 val to_list : value -> value list
 val to_product : value -> value * value
@@ -209,7 +209,7 @@ val float : float -> value
 val string : string -> value
 val list : t:t -> value list -> value
 val source : Source.source -> value
-val request : Request.t option -> value
+val request : Request.t -> value
 val product : value -> value -> value
 
 (** Build a function from an OCaml function.

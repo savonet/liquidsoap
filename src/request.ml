@@ -28,9 +28,9 @@ open Dtools
 
 let conf =
   Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
-let conf_max_rid =
-  Conf.int ~p:(conf#plug "max_id") ~d:Configure.requests_max_id
-    "maximum number of requests"
+let grace_time =
+  Conf.float ~p:(conf#plug "grace_time") ~d:600.
+    "Time after which a destroyed request cannot be accessed anymore."
 
 let log = Log.make ["request"]
 
@@ -427,116 +427,63 @@ let get_metadata t k = update_metadata t ; get_metadata t k
 let get_all_metadata t = update_metadata t ; get_all_metadata t
 let get_root_metadata t = update_metadata t ; get_root_metadata t
 
-(** Request global management.
-  Access to the global table is thread-safe, unlike access to a request.
-  In some cases (trace) there could be a problem : TODO ? *)
+(** Global management *)
 
-let requests = Hashtbl.create Configure.requests_table_size
-(* Maximum number of alive requests *)
-
-let lock = Mutex.create ()
-
-exception Found of int
-
-let next =
-  let current = ref (-1) in fun () ->
-    let request_max = conf_max_rid#get in
-    assert (not (Mutex.try_lock lock)) ;
-    try
-      for i = 1 to request_max do
-        current := (!current+1) mod request_max ;
-        begin try
-          let t = Hashtbl.find requests !current in
-            if t.status = Destroyed then
-              raise (Found !current)
-        with
-          | Not_found -> raise (Found !current)
-        end
-      done ;
-      (-1)
-    with
-      | Found r -> r
-
-(** Query request state and get requests by state *)
+module Pool =
+  Pool.Make(struct type req = t type t = req end)
 
 let get_id t = t.id
 
-let from_id id =
-  Mutex.lock lock ;
-  try
-    let r = Hashtbl.find requests id in
-      Mutex.unlock lock ;
-      Some r
-  with
-    | Not_found -> Mutex.unlock lock ; None
+let from_id id = Pool.find id
+
+let all_requests () =
+  Pool.fold (fun k v l -> k::l) []
 
 let alive_requests () =
-  Mutex.lock lock ;
-  let l =
-    Hashtbl.fold
-      (fun k v l -> if v.status <> Destroyed then k::l else l)
-      requests []
-  in
-    Mutex.unlock lock ;
-    l
+  Pool.fold
+    (fun k v l -> if v.status <> Destroyed then k::l else l)
+    []
 
 let is_on_air t = t.on_air <> None
 
 let on_air_requests () =
-  Mutex.lock lock ;
-  let l =
-    Hashtbl.fold
-      (fun k v l -> if is_on_air v then k::l else l)
-      requests []
-  in
-    Mutex.unlock lock ;
-    l
+  Pool.fold
+    (fun k v l -> if is_on_air v then k::l else l)
+    []
 
 let is_resolving t = t.status = Resolving
 
 let resolving_requests () =
-  Mutex.lock lock ;
-  let l =
-    Hashtbl.fold
-      (fun k v l -> if is_resolving v then k::l else l)
-      requests []
-  in
-    Mutex.unlock lock ;
-    l
+  Pool.fold
+    (fun k v l -> if is_resolving v then k::l else l)
+    []
 
 (** Creation *)
 
 let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
-  Mutex.lock lock ;
-  let rid = next () in
-    if rid = -1 then
-      ( Mutex.unlock lock ;
-        log#f 2 "No available RID!" ;
-        None )
-    else
-      let t = {
-        id = rid ;
-        initial_uri = u ;
-        kind = kind ;
-        persistent = persistent ;
+  let rid,register = Pool.add () in
+  let t = {
+    id = rid ;
+    initial_uri = u ;
+    kind = kind ;
+    persistent = persistent ;
 
-        on_air = None ;
-        resolving = None ;
-        status = Idle ;
+    on_air = None ;
+    resolving = None ;
+    status = Idle ;
 
-        decoder = None ;
-        log = Queue.create () ;
-        root_metadata = Hashtbl.create 10 ;
-        indicators = [] }
-      in
-        Hashtbl.replace requests t.id t ;
-        Mutex.unlock lock ;
-        List.iter
-          (fun (k,v) -> Hashtbl.replace t.root_metadata k v)
-          metadata ;
-        push_indicators t
-          (if indicators=[] then [indicator u] else indicators) ;
-        Some t
+    decoder = None ;
+    log = Queue.create () ;
+    root_metadata = Hashtbl.create 10 ;
+    indicators = [] }
+  in
+    register t ;
+    List.iter
+      (fun (k,v) -> Hashtbl.replace t.root_metadata k v)
+      metadata ;
+    push_indicators t
+      (if indicators=[] then [indicator u] else indicators) ;
+    t
 
 let create_raw = create ~kind:raw_kind
 
@@ -557,12 +504,12 @@ let destroy ?force t =
     while t.indicators <> [] do pop_indicator t done ;
     t.status <- Destroyed ;
     add_log t "Request finished." ;
+    Pool.kill t.id grace_time#get
   end
 
 let clean () =
-  Hashtbl.iter
+  Pool.iter
     (fun k r -> if r.status <> Destroyed then destroy ~force:true r)
-    requests
 
 let get_decoder r =
   match r.decoder with None -> None | Some d -> Some (d ())

@@ -104,14 +104,12 @@ object (self)
     Server.add ~ns "push" ~usage:"push <uri>"
       ~descr:"Push a new request in the queue."
       (fun req ->
-         match self#create_request req with
-         | Some req ->
-             let id = Request.get_id req in
-               Request.set_root_metadata req "source_id"
-                 (string_of_int (Oo.id self)) ;
-               self#push_request req ;
-               (string_of_int id)
-         | None -> "Unable to create a request!")  ;
+         let req = self#create_request req in
+         let id = Request.get_id req in
+           Request.set_root_metadata req "source_id"
+             (string_of_int (Oo.id self)) ;
+           self#push_request req ;
+           string_of_int id) ;
     let print_queue q =
       String.concat " "
         (List.map
@@ -186,8 +184,6 @@ let () =
        let interactive = Lang.to_bool (Lang.assoc "interactive" 1 p) in
        let requests = Queue.create () in
          List.iter
-           (fun r -> match Lang.to_request r with
-              | Some r -> Queue.add r requests
-              | None -> ())
+           (fun r -> Queue.add (Lang.to_request r) requests)
            (Lang.to_list (List.assoc "queue" p)) ;
          ((new queue ~kind ~requests ~interactive l d t c) :> source))

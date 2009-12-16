@@ -49,7 +49,7 @@ object (self)
     if String.length uri < 15 then self#set_id uri ;
     super#wake_up x
 
-  method get_next_request = self#create_request uri
+  method get_next_request = Some (self#create_request uri)
 end
 
 let log = Log.make ["single"]
@@ -78,18 +78,11 @@ let () =
            if Root.running () then None else Request.is_static uri
          with
            | Some true ->
-               begin match Request.create ~kind ~persistent:true uri with
-                 | None ->
-                     (* This is only ran at startup, it's very unlikely
-                      * that we ever run out of RID there... *)
-                     log#f 2 "No available RID: %S will be queued.." uri ;
-                     ((new queued ~kind uri l d t c) :> source)
-                 | Some r ->
-                     log#f 3 "%S is static, resolving once for all..." uri ;
-                     if Request.Resolved <> Request.resolve r 60. then
-                       raise Invalid_URI ;
-                     ((new unqueued ~kind r) :> source)
-               end
+               let r = Request.create ~kind ~persistent:true uri in
+                 log#f 3 "%S is static, resolving once for all..." uri ;
+                 if Request.Resolved <> Request.resolve r 60. then
+                   raise Invalid_URI ;
+                 ((new unqueued ~kind r) :> source)
            | None | Some false ->
                log#f 3 "%S will be queued." uri ;
                ((new queued uri ~kind l d t c) :> source)
@@ -111,7 +104,7 @@ let () =
     [ "", Lang.request_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
-       let r = Utils.get_some (Lang.to_request (List.assoc "" p)) in
+       let r = Lang.to_request (List.assoc "" p) in
          ((new unqueued ~kind r):>source))
 
 class dynamic ~kind
@@ -120,14 +113,13 @@ object (self)
   inherit
     Request_source.queued ~kind ~name:"request.dynamic"
       ~length ~default_duration ~timeout ~conservative ()
+
   method get_next_request =
     try
       let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
-      match Lang.to_request (Lang.apply ~t f []) with
-        | None -> None
-        | Some req ->
-            Request.set_root_metadata req "source" self#id ;
-            Some req
+      let req = Lang.to_request (Lang.apply ~t f []) in
+        Request.set_root_metadata req "source" self#id ;
+        Some req
     with
       | e ->
           log#f 2 "Failed to obtain a media request!" ;

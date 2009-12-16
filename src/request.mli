@@ -44,12 +44,12 @@ val create :
   ?metadata:((string*string) list) -> 
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->
-  t option
+  t
 val create_raw :
   ?metadata:((string*string) list) -> 
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->
-  t option
+  t
 
 val kind : t -> Frame.content_kind
 
@@ -76,6 +76,7 @@ val from_id : int -> t option
 (** Get the list of requests that are currently
   * alive/on air/being resolved. *)
 
+val all_requests : unit -> int list
 val alive_requests : unit -> int list
 val on_air_requests : unit -> int list
 val resolving_requests : unit -> int list

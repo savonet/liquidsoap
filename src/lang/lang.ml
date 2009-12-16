@@ -208,9 +208,7 @@ let source s =
   mk (source_t (kind_type_of_frame_kind s#kind)) (Source s)
 
 let request r =
-  (* TODO get rid of that option, by removing the limit of RID *)
-  let r = Utils.get_some r in
-  mk (request_t (kind_type_of_frame_kind (Request.kind r))) (Request (Some r))
+  mk (request_t (kind_type_of_frame_kind (Request.kind r))) (Request r)
 
 let val_fun p ~ret_t f =
   let f env t = f (List.map (fun (x,(g,v)) -> assert (g=[]) ; x,v) env) t in

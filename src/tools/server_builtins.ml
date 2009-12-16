@@ -24,25 +24,37 @@ let () =
   let add = Server.add ~ns:[] in
     add "version" ~descr:"Display liquidsoap version."
         (fun _ -> "Liquidsoap "^Configure.version^SVN.rev) ;
-    add "alive" (fun args ->
-                   String.concat " "
-                     (List.map
-                        string_of_int
-                        (Request.alive_requests ()))) 
-        ~descr:"Get the identifiers of requests that are still in use." ;
-    add "on_air" (fun args ->
-                    String.concat " "
-                      (List.map
-                         string_of_int
-                         (Request.on_air_requests ()))) 
-        ~descr:"Get the identifiers of requests that are on air." ;
-    add "resolving" (fun args ->
-                       String.concat " "
-                         (List.map
-                            string_of_int
-                            (Request.resolving_requests ()))) 
-        ~descr:"Get the identifiers of requests that are being prepared." ;
-    add "trace" ~usage:"trace <rid>"
+    add "request.all"
+      ~descr:"Get the identifiers of all requests, in use or not. \
+              Destroyed requests will remain there only for some limited time."
+      (fun args ->
+         String.concat " "
+           (List.map
+              string_of_int
+              (Request.alive_requests ()))) ;
+    add "request.alive"
+      ~descr:"Get the identifiers of requests that are still in use."
+      (fun args ->
+         String.concat " "
+           (List.map
+              string_of_int
+              (Request.alive_requests ()))) ;
+    add "request.on_air"
+      ~descr:"Get the identifiers of requests that are on air."
+      (fun args ->
+         String.concat " "
+           (List.map
+              string_of_int
+              (Request.on_air_requests ()))) ;
+    add "request.resolving"
+      ~descr:"Get the identifiers of requests that are being prepared."
+      (fun args ->
+         String.concat " "
+           (List.map
+              string_of_int
+              (Request.resolving_requests ()))) ;
+    add "request.trace" ~usage:"trace <rid>"
+      ~descr:"Print the log associated to a request."
       (fun args ->
          let id = int_of_string args in
            begin
@@ -51,9 +63,9 @@ let () =
                  let log = Request.get_log r in
                    Request.string_of_log log
              | None -> "No such request."
-           end) 
-        ~descr:"Print the log associated to a request." ;
-    add "metadata" ~usage:"metadata <rid>"
+           end) ;
+    add "request.metadata" ~usage:"metadata <rid>"
+      ~descr:"Display the metadata associated to a request."
       (fun args ->
          let id = int_of_string args in
            begin
@@ -62,8 +74,7 @@ let () =
                  let m = Request.get_all_metadata r in
                    Request.string_of_metadata m
              | None -> "No such request."
-           end) 
-        ~descr:"Display the metadata associated to a request." ;
+           end) ;
     add "uptime" ~descr:"Print the uptime for this instance."
       (fun _ ->
          let date = int_of_float (Root.uptime ()) in

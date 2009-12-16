@@ -60,24 +60,22 @@ object (self)
     if ns = [] then
       ns <- Server.register [self#id] "editable" ;
     let make_n_add f req =
-      match self#create_request req with
-      | Some req ->
-          f req ;
-          Request.add_log req "Entering the secondary queue." ;
-          Request.set_root_metadata req "queue" "secondary" ;
-          self#notify_new_request ;
-          (string_of_int (Request.get_id req))
-      | None -> "Unable to create a request!"
+      let req = self#create_request req in
+        f req ;
+        Request.add_log req "Entering the secondary queue." ;
+        Request.set_root_metadata req "queue" "secondary" ;
+        self#notify_new_request ;
+        string_of_int (Request.get_id req)
+    in
+    let print_queue q =
+      String.concat " "
+        (List.map
+           (fun r -> string_of_int (Request.get_id r))
+           (List.rev q))
     in
       Server.add ~ns "push" ~usage:"push <uri>"
                  ~descr:"Push a new request in the queue."
         (make_n_add (Rqueue.push queue)) ;
-    let print_queue q =
-           String.concat " "
-             (List.map
-                (fun r -> string_of_int (Request.get_id r))
-                (List.rev q))
-    in
       Server.add ~ns "queue"
         ~descr:"Display current queue content for \
                 both primary and secondary queues."

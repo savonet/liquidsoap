@@ -619,18 +619,19 @@ let () =
          Lang.unit)
 
 let () =
-  add_builtin "list.map" ~cat:List
+  Lang.add_builtin "list.map"
+    ~category:(string_of_category List)
     ~descr:"Map a function on every element of a list."
     [ "",Lang.fun_t [false, "", Lang.univ_t 1] (Lang.univ_t 2),None,None ;
       "", (Lang.list_t (Lang.univ_t 1)), None, None ]
     (Lang.list_t (Lang.univ_t 2))
-    (fun p ->
+    (fun p t ->
        let f,l =
          match p with
            | [("",f);("",l)] -> f,l
            | _ -> assert false
        in
-       let t = Lang.of_list_t l.Lang.t in
+       let t = Lang.of_list_t t in
        let l = Lang.to_list l in
        let l = List.map (fun c -> (Lang.apply ~t f ["",c])) l in
          Lang.list ~t l)
@@ -853,18 +854,19 @@ let () =
        execute p) 
 
 let () =
-  add_builtin "if"
-    ~cat:Control ~descr:"The basic conditional." ~flags:[Lang.Hidden]
+  Lang.add_builtin "if"
+    ~category:(string_of_category Control)
+    ~descr:"The basic conditional."
+    ~flags:[Lang.Hidden]
     [ "",Lang.bool_t,None,None ;
       "then", Lang.fun_t [] (Lang.univ_t 1), None,None ;
       "else", Lang.fun_t [] (Lang.univ_t 1), None,None ]
     (Lang.univ_t 1)
-    (fun p ->
+    (fun p t ->
        let c = List.assoc "" p in
        let fy = List.assoc "then" p in
        let fn = List.assoc "else" p in
        let c = Lang.to_bool c in
-       let t = Lang_types.fresh_evar ~level:0 ~pos:None in
          Lang.apply ~t (if c then fy else fn) [])
 
 let () =
@@ -1174,9 +1176,6 @@ let () =
        in
        let kind =
          let k_t = Lang.of_request_t t in
-           (* If we merge create.raw, then we should use another conversion
-            * to kinds, that takes 0 as a default multiplicity on all
-            * channel types. *)
            Lang.frame_kind_of_kind_type k_t
        in
          Lang.request
@@ -1193,10 +1192,8 @@ let () =
             was successful, false otherwise (timeout or invalid URI)."
     (fun p ->
        let timeout = Lang.to_float (List.assoc "timeout" p) in
-          match Lang.to_request (List.assoc "" p) with
-            | Some r ->
-                Lang.bool (Request.Resolved = Request.resolve r timeout)
-            | _ -> Lang.bool false)
+       let r = Lang.to_request (List.assoc "" p) in
+         Lang.bool (Request.Resolved = Request.resolve r timeout))
 
 let () =
   add_builtin "request.ready" ~cat:Liq
@@ -1205,9 +1202,8 @@ let () =
             has to be resolved before being ready."
     ["", Lang.request_t (Lang.univ_t 1),None,None] Lang.bool_t
     (fun p ->
-       match Lang.to_request (List.assoc "" p) with
-         | Some e -> Lang.bool (Request.is_ready e)
-         | _ -> Lang.bool false)
+       let e = Lang.to_request (List.assoc "" p) in
+         Lang.bool (Request.is_ready e))
 
 let () =
   add_builtin "request.filename" ~cat:Liq
@@ -1215,11 +1211,11 @@ let () =
             and the empty string otherwise."
     [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p ->
-       match Lang.to_request (List.assoc "" p) with
-         | None -> Lang.string ""
-         | Some r ->
-             Lang.string (match Request.get_filename r with
-                            | Some f -> f | None -> ""))
+       let r = Lang.to_request (List.assoc "" p) in
+         Lang.string
+           (match Request.get_filename r with
+              | Some f -> f
+              | None -> ""))
 
 let () =
   add_builtin "request.destroy" ~cat:Liq
@@ -1232,10 +1228,8 @@ let () =
     Lang.unit_t
     (fun p ->
        let force = Lang.to_bool (List.assoc "force" p) in
-         begin match Lang.to_request (List.assoc "" p) with
-            | Some e -> Request.destroy ~force e
-            | None -> ()
-         end ;
+       let e = Lang.to_request (List.assoc "" p) in
+         Request.destroy ~force e ;
          Lang.unit)
 
 let () =

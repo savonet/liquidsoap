@@ -107,7 +107,7 @@ let process_request s =
       Frame.video = Frame.Variable ;
       Frame.midi = Frame.Variable }
   in
-  let req = Utils.get_some (Request.create ~kind s) in
+  let req = Request.create ~kind s in
     match Request.resolve req 20. with
       | Request.Failed ->
           Printf.printf "Request resolution failed.\n" ;

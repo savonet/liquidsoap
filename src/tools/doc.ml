@@ -111,7 +111,7 @@ let print_lang (i:item) : unit =
       Printf.printf "Parameters:\n" ;
       List.iter
         (fun (lbl,i) ->
-           Printf.printf "* %s :: %s (default %s)\n"
+           Printf.printf "* %s : %s (default %s)\n"
              lbl
              (i#get_subsection "type")#get_doc
              (i#get_subsection "default")#get_doc ;
