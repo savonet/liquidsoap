@@ -109,11 +109,11 @@ let () =
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
          ((new output ~kind
                   ~infallible ~on_start ~on_stop

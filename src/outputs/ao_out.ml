@@ -105,8 +105,8 @@ let () =
       Some "Set buffer size, in frames." ;
 
       "options",
-      Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),
-      Some (Lang.list []),
+      Lang.metadata_t,
+      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) []),
       Some "List of parameters, depends on the driver." ;
 
       "", Lang.source_t kind, None, None
@@ -128,11 +128,11 @@ let () =
        let start = Lang.to_bool (List.assoc "start" p) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let source = List.assoc "" p in
          ((new output ~kind ~nb_blocks ~driver
