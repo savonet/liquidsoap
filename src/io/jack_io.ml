@@ -310,7 +310,8 @@ let rec get_default_ports name n =
     (get_default_ports name (n-1))
 
 let get_default_ports name =
-  Lang.list (List.rev (get_default_ports name (Lazy.force Frame.audio_channels)))
+  Lang.list Lang.string_t
+    (List.rev (get_default_ports name (Lazy.force Frame.audio_channels)))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
