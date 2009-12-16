@@ -88,7 +88,8 @@ object (self)
         self#output_start
       end else
         if Unix.gettimeofday () > reload_delay +. open_date then
-          if Lang.to_bool (Lang.apply reload_predicate []) then begin
+          if Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []) then
+          begin
             self#log#f 3 "Re-opening output file..." ;
             (* #output_stop can trigger #send,
              * the [closing] flag avoids loops *)
@@ -168,11 +169,11 @@ let () =
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let on_start =
          let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let on_stop =
          let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply f [])
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        (* File settings *)
        let append = Lang.to_bool (List.assoc "append" p) in

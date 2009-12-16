@@ -49,7 +49,7 @@ object (self)
           | Some m -> m
           | None -> Hashtbl.create 0
       in
-      ignore(Lang.apply f ["",Lang.float rem;
+      ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.float rem;
                            "",Lang.metadata m]) ;
       executed <- true
     end ;

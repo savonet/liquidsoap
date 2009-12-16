@@ -174,7 +174,8 @@ let () =
     ~category:Lang.Input
     ~descr:"Receive URIs from users, and play them."
     (("queue",Lang.list_t (Lang.request_t k),
-      Some (Lang.list []), Some "Initial queue of requests.")::
+      Some (Lang.list ~t:(Lang.request_t k) []),
+      Some "Initial queue of requests.")::
      ("interactive",Lang.bool_t,
       Some (Lang.bool true),
       Some "Should the queue be controllable via telnet?")::

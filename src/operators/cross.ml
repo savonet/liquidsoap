@@ -164,9 +164,10 @@ object (self)
         if not s#is_ready then self#log#f 3 "No ready track yet." ;
         let end_of_track = new Generated.consumer ~kind buffer in
           if Generator.length buffer > minimum_length then
+            let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
             Lang.to_source
-              (Lang.apply f ["",Lang.source end_of_track;
-                             "",Lang.source s])
+              (Lang.apply ~t f ["",Lang.source end_of_track;
+                                "",Lang.source s])
           else begin
             self#log#f 4 "Not enough data for crossing." ;
             new Sequence.sequence ~kind [end_of_track; s]

@@ -186,19 +186,19 @@ type indicator = {
 
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
-type audio = [ `Audio ]
-type raw   = [ `Raw ]
-type flags = [ audio | raw ]
+(** Each request has a kind, telling how it might be used.
+  * Non-trivial kinds are for "media requests", audio or video files.
+  * For other, "raw requests", we use the following empty kind. *)
+let raw_kind =
+  { Frame.
+      audio = Frame.Zero ;
+      video = Frame.Zero ;
+      midi  = Frame.Zero }
 
-(* In the "old" liquidsoap, there was only audio, and a distinction between
- * audio and non-audio requests. Now, streams can transport various kinds
- * of information, so "audio" requests are just requests expected to be
- * used for streaming, but not necessarily just audio. *)
-
-type _t = {
+type t = {
   id : int ;
   initial_uri : string ;
-  kind : Frame.content_kind option ;
+  kind : Frame.content_kind ;
   persistent : bool ;
 
   (* The status of a request gives partial information of what's being done
@@ -218,12 +218,8 @@ type _t = {
   mutable indicators : indicator list list ;
   mutable decoder : (unit -> Decoder.decoder) option ;
 }
-type +'a t = _t constraint 'a = [<flags]
 
-let to_raw   x = x
-let to_audio x = assert (x.kind <> None) ; x
-
-let kind x = Utils.get_some x.kind
+let kind x = x.kind
 
 let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   string = home_unrelate s ;
@@ -341,9 +337,7 @@ let local_check t =
   with
     | No_indicator -> ()
   in
-    match t.kind with
-      | Some kind -> check_decodable kind
-      | None -> ()
+    if t.kind <> raw_kind then check_decodable t.kind
 
 let push_indicators t l =
   if l <> [] then
@@ -361,7 +355,7 @@ let push_indicators t l =
 let is_ready t =
   t.indicators <> [] &&
   Sys.file_exists (peek_indicator t).string &&
-  ( t.decoder <> None || t.kind = None )
+  ( t.decoder <> None || t.kind = raw_kind )
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -419,11 +413,8 @@ let update_metadata t =
           replace "on_air" (pretty_date (Unix.localtime d))
       | None -> ()
     end ;
-    begin match t.kind with
-      | Some k ->
-          replace "kind" (Frame.string_of_content_kind k)
-      | None -> ()
-    end ;
+    if t.kind <> raw_kind then
+      replace "kind" (Frame.string_of_content_kind t.kind) ;
     replace "status"
       (match t.status with
          | Idle -> "idle"
@@ -515,7 +506,7 @@ let resolving_requests () =
 
 (** Creation *)
 
-let _create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
+let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
   Mutex.lock lock ;
   let rid = next () in
     if rid = -1 then
@@ -547,8 +538,7 @@ let _create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
           (if indicators=[] then [indicator u] else indicators) ;
         Some t
 
-let create ~kind = _create ~kind:(Some kind)
-let create_raw = _create ~kind:None
+let create_raw = create ~kind:raw_kind
 
 let on_air t =
   t.on_air <- Some (Unix.time ()) ;

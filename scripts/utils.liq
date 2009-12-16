@@ -362,9 +362,7 @@ end
 # @param ~on_done Function to execute when the playlist is finished
 # @param uri Playlist URI
 def playlist.once(~random=false,~on_done={()},uri)
-  x = string.ref("0")
-  get = fst(x)
-  set = snd(x)
+  x = ref 0
   def playlist.custom(files)
     length = list.length(files)
     if length == 0 then
@@ -372,24 +370,22 @@ def playlist.once(~random=false,~on_done={()},uri)
       fail ()
     else
       files =
-        # randomize if told to
         if random then
-          list.sort(fun (x,y) -> int_of_float(random.float()),
-                    files)
+          list.sort(fun (x,y) -> int_of_float(random.float()), files)
         else
           files
         end
       def next () =
-        state = int_of_string(get())
+        state = !x
         file =
-         if state < length then
-            set(string_of(state + 1))
-            list.nth(files,state)
-          else
-            # Playlist finished
-            on_done ()
-            ""
-          end
+        if state < length then
+          x := state + 1
+          list.nth(files,state)
+        else
+          # Playlist finished
+          on_done ()
+          ""
+        end
         request.create(file)
       end
       request.dynamic(next)

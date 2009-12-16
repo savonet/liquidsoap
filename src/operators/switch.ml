@@ -164,8 +164,10 @@ object (self)
                     | _ -> c.source
                 in
                 let s =
+                  let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
                   Lang.to_source
-                    (Lang.apply c.transition
+                    (Lang.apply ~t
+                       c.transition
                        [ "",Lang.source old_source ;
                          "",Lang.source new_source ])
                 in
@@ -253,21 +255,26 @@ let common kind = [
   Some "EXPERIMENTAL: for track_sensitive switches, \
         trigger transitions before the end of track." ;
 
+  let transition_t =
+    Lang.fun_t
+      [false,"",Lang.source_t kind;
+       false,"",Lang.source_t kind]
+      (Lang.source_t kind)
+  in
   "transitions",
-  Lang.list_t
-    (Lang.fun_t
-       [false,"",Lang.source_t kind;
-        false,"",Lang.source_t kind]
-       (Lang.source_t kind)),
-  Some (Lang.list []),
+  Lang.list_t transition_t,
+  Some (Lang.list transition_t []),
   Some "Transition functions, \
         padded with <code>fun (x,y) -> y</code> functions."
 ]
 
-let default_transition =
-  Lang.val_fun [ "","x",None ; "","y",None ] (fun e _ -> List.assoc "y" e)
+let default_transition k =
+  let t = Lang.source_t (Lang.kind_type_of_frame_kind k) in
+    Lang.val_fun
+      [ "","x",t,None ; "","y",t,None ] ~ret_t:t
+      (fun e _ -> List.assoc "y" e)
 
-let extract_common p l =
+let extract_common ~kind p l =
   let ts =
     let before = Lang.to_float (List.assoc "before" p) in
       if Lang.to_bool (List.assoc "track_sensitive" p) then
@@ -282,7 +289,7 @@ let extract_common p l =
                                ((List.assoc "transitions" p),
                                 "Too many transitions")) ;
       if ltr < l then
-        tr @ (Utils.make_list (l-ltr) default_transition)
+        tr @ (Utils.make_list (l-ltr) (default_transition kind))
       else
         tr
   in
@@ -291,7 +298,7 @@ let extract_common p l =
 
 (** Switch: switch according to user-defined predicates. *)
 
-let satisfied f = Lang.to_bool (Lang.apply f [])
+let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
 let trivially_true = function
   | { Lang.value =
         Lang.Fun (_,_,_,{ Lang_values.term = Lang_values.Bool true }) } -> true
@@ -338,7 +345,7 @@ let () =
   let kind = Lang.univ_t 1 in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto = 
-    [ "single", Lang.list_t Lang.bool_t, Some (Lang.list []),
+    [ "single", Lang.list_t Lang.bool_t, Some (Lang.list Lang.bool_t []),
       Some "Forbid the selection of a branch for two tracks in a row. \
             The empty list stands for <code>[false,...,false]</code>." ;
       "", Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)), None,
@@ -358,7 +365,9 @@ let () =
                   pred, Lang.to_source s)
            (Lang.to_list (List.assoc "" p))
          in
-         let replay_meta,ts,tr = extract_common p (List.length children) in
+         let replay_meta,ts,tr =
+           extract_common ~kind p (List.length children)
+         in
          let singles =
            List.map Lang.to_bool (Lang.to_list (List.assoc "single" p))
          in
@@ -415,7 +424,9 @@ let () =
       ~kind:(Lang.Unconstrained kind)
       (fun p kind ->
          let children = Lang.to_source_list (List.assoc "" p) in
-         let replay_meta,ts,tr = extract_common p (List.length children) in
+         let replay_meta,ts,tr =
+           extract_common ~kind p (List.length children)
+         in
          let children =
            List.map2
              (fun t s -> { transition = t ; cur_meta = None ; source = s })
@@ -464,13 +475,15 @@ let () =
     let kind = Lang.univ_t 1 in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       (common  kind @
-       [ "weights", Lang.list_t Lang.int_t, Some (Lang.list []),
+       [ "weights", Lang.list_t Lang.int_t, Some (Lang.list Lang.int_t []),
          Some weight_descr ;
          "", Lang.list_t (Lang.source_t kind), None, None ])
       ~kind:(Lang.Unconstrained kind)
       (fun p kind ->
          let children = Lang.to_source_list (List.assoc "" p) in
-         let replay_meta,ts,tr = extract_common p (List.length children) in
+         let replay_meta,ts,tr =
+           extract_common ~kind p (List.length children)
+         in
          let weights =
            List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
          in

@@ -364,6 +364,7 @@
 %token <string> BIN3
 %token MINUS
 %token NOT
+%token REF GET SET
 %token PP_IFDEF PP_ENDIF PP_ENDL PP_INCLUDE PP_DEF
 %token <string list> PP_COMMENT
 
@@ -413,6 +414,8 @@ expr:
   | FLOAT                            { mk (Float  $1) }
   | STRING                           { mk (String $1) }
   | list                             { mk (List $1) }
+  | REF expr                         { mk (Ref $2) }
+  | GET expr                         { mk (Get $2) }
   | MP3 app_opt                      { mk_mp3 $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
@@ -461,6 +464,9 @@ cexpr:
   | FLOAT                            { mk (Float  $1) }
   | STRING                           { mk (String $1) }
   | list                             { mk (List $1) }
+  | REF expr                         { mk (Ref $2) }
+  | GET expr                         { mk (Get $2) }
+  | cexpr SET expr                   { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
@@ -567,8 +573,8 @@ ogg_items:
   | ogg_item { [$1] }
   | ogg_item COMMA ogg_items { $1::$3 }
 ogg_item:
-  | VORBIS app_opt { mk_vorbis $2 }
+  | VORBIS app_opt     { mk_vorbis $2 }
   | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
-  | THEORA app_opt { mk_theora $2 }
-  | DIRAC app_opt  { mk_dirac $2 }
-  | SPEEX app_opt { mk_speex $2 }
+  | THEORA app_opt     { mk_theora $2 }
+  | DIRAC app_opt      { mk_dirac $2 }
+  | SPEEX app_opt      { mk_speex $2 }

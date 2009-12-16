@@ -34,7 +34,7 @@ object (self)
   (** [get_next_file] returns a ready audio request.
     * It is supposed to return "quickly", which means that no resolving
     * can be done here. *)
-  method virtual get_next_file : Request.audio Request.t option
+  method virtual get_next_file : Request.t option
 
   val mutable remaining = 0
 
@@ -162,7 +162,7 @@ object (self)
 
   method stype = Fallible
 
-  method virtual get_next_request : Request.audio Request.t option
+  method virtual get_next_request : Request.t option
 
   (** Management of the queue of files waiting to be played. *)
   val min_queue_length = Frame.master_of_seconds length

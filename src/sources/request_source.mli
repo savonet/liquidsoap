@@ -26,13 +26,13 @@ class virtual unqueued : kind:Frame.content_kind -> name:string ->
 object
   (** [get_next_file] is the only thing you've got to define,
     * it's supposed to return "quickly" as it is run in the Root thread. *)
-  method virtual get_next_file : Request.audio Request.t option
+  method virtual get_next_file : Request.t option
 
   inherit Source.source
   method is_ready : bool
   method private get_frame : Frame.t -> unit
   method abort_track : unit
-  method copy_queue : Request.audio Request.t list
+  method copy_queue : Request.t list
   method remaining : int
 end
 
@@ -40,12 +40,12 @@ class virtual queued : kind:Frame.content_kind -> name:string ->
   ?length:float -> ?default_duration:float -> ?conservative:bool -> 
   ?timeout:float -> unit ->
 object
-  method copy_queue : Request.audio Request.t list
+  method copy_queue : Request.t list
 
   method stype : Source.source_t
 
   (** You should only define this. *)
-  method virtual get_next_request : Request.audio Request.t option
+  method virtual get_next_request : Request.t option
 
   (** This method should be called whenever the feeding task gets
     * a new opportunity to add more data into the queue. *)
@@ -54,7 +54,7 @@ object
   inherit unqueued
 
   (** Everything you need is defined. Dont touch. *)
-  method private get_next_file : Request.audio Request.t option
+  method private get_next_file : Request.t option
 end
 
 val queued_proto : Lang.proto

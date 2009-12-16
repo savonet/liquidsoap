@@ -27,7 +27,7 @@ module Vars = Term.Vars
 
 type t = T.t
 
-(** Some shortcuts *)
+(** Type construction *)
 
 let ground_t x = T.make (T.Ground x)
 
@@ -36,10 +36,20 @@ let unit_t    = ground_t T.Unit
 let float_t   = ground_t T.Float
 let bool_t    = ground_t T.Bool
 let string_t  = ground_t T.String
-let list_t t  = T.make (T.List t)
 let product_t a b = T.make (T.Product (a,b))
 let fun_t p b = T.make (T.Arrow (p,b))
+
+let list_t t  = T.make (T.List t)
+let of_list_t t = match (T.deref t).T.descr with
+  | T.List t -> t
+  | _ -> assert false
+
 let metadata_t = list_t (product_t string_t string_t)
+
+let zero_t = Term.zero_t
+let succ_t t = Term.succ_t t
+let variable_t = Term.variable_t
+let type_of_int n = Term.type_of_int n
 
 (** In order to keep the old way of declaring the type of builtins,
   * we have to do a little work. Keeping the same style avoids rewriting
@@ -75,34 +85,161 @@ let format_t t = Term.format_t t
 let request_t t = Term.request_t t
 let of_request_t t = Term.of_request_t t
 
-let mk v = { t = T.dummy ; value = v }
-let unit = mk Unit
-let int i = mk (Int i)
-let bool i = mk (Bool i)
-let float i = mk (Float i)
-let string i = mk (String i)
-let list l = mk (List l)
-let source s = mk (Source s)
+let rec t_of_mul = function
+  | Frame.Zero -> zero_t
+  | Frame.Variable -> variable_t
+  | Frame.Succ m -> succ_t (t_of_mul m)
 
-(** Warning: this is unsafe, not necessarily really audio. *)
-let request r = mk (Request r)
-let product a b = mk (Product (a,b))
-let val_fun p f =
-  let f env t = f (List.map (fun (s,(l,v)) -> assert (l=[]) ; s,v) env) t in
-    mk (FFI (p,[],f))
+let kind_type_of_frame_kind kind =
+  let audio = t_of_mul kind.Frame.audio in
+  let video = t_of_mul kind.Frame.video in
+  let midi  = t_of_mul kind.Frame.midi in
+    frame_kind_t ~audio ~video ~midi
+
+(** Given a Lang type that has been infered, convert it to a kind.
+  * This might require to force some Any_fixed variables. *)
+let rec mul_of_type default t =
+  match (T.deref t).T.descr with
+    | T.Succ t -> Frame.Succ (mul_of_type (default-1) t)
+    | T.Zero -> Frame.Zero
+    | T.Variable -> Frame.Variable
+    | T.EVar _ ->
+        let default = max 0 default in
+          T.bind t (type_of_int default) ;
+          Frame.mul_of_int default
+    | _ -> assert false
+
+let frame_kind_of_kind_type t =
+  let k = Term.of_frame_kind_t t in
+    { Frame.
+        audio = mul_of_type (Lazy.force Frame.audio_channels) k.Frame.audio ;
+        video = mul_of_type (Lazy.force Frame.video_channels) k.Frame.video ;
+        midi  = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi }
+
+(** Description of how many of a channel type does an operator want.
+  * [Fixed n] means exactly [n] channels.
+  * [Any_fixed n] means any fixed numbers of channels that is [>=n].
+  * [Variable n] means any (possibly variable) number of channels that
+  *   is [>=n]. *)
+type lang_kind_format =
+  | Fixed of int | Variable of int | Any_fixed of int
+type lang_kind_formats =
+  | Unconstrained of t
+  | Constrained of
+      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+
+let any_fixed =
+  Constrained
+    { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
+
+let any_fixed_with ?(audio=0) ?(video=0) ?(midi=0) () =
+  Constrained
+    { Frame.
+        audio = Any_fixed audio ;
+        video = Any_fixed video ;
+        midi  = Any_fixed midi }
+
+let audio_variable =
+  Constrained
+    { Frame.
+        audio = Variable 1 ;
+        video = Fixed 0 ;
+        midi = Fixed 0 }
+
+let audio_any =
+  Constrained
+    { Frame.
+        audio = Any_fixed 1 ;
+        video = Fixed 0 ;
+        midi = Fixed 0 }
+
+let audio_mono =
+  Constrained
+    { Frame. audio = Fixed 1 ; video = Fixed 0 ; midi = Fixed 0 }
+
+let audio_stereo =
+  Constrained
+    { Frame. audio = Fixed 2 ; video = Fixed 0 ; midi = Fixed 0 }
+
+let video_only =
+  Constrained
+    { Frame. audio = Fixed 0 ; video = Fixed 1 ; midi = Fixed 0 }
+
+let kind_type_of_kind_format ~fresh fmt =
+  match fmt with
+    | Unconstrained t -> t
+    | Constrained fields ->
+        let aux fresh = function
+          | Fixed i ->
+              let rec aux i =
+                if i = 0 then zero_t else succ_t (aux (i-1))
+              in
+                fresh, aux i
+          | Any_fixed i ->
+              let zero = univ_t ~constraints:[T.Fixed] fresh in
+              let rec aux i =
+                if i = 0 then zero else succ_t (aux (i-1))
+              in
+                fresh+1, aux i
+          | Variable i ->
+              let rec aux i =
+                if i = 0 then variable_t else succ_t (aux (i-1))
+              in
+                fresh, aux i
+        in
+        let fresh,audio = aux fresh fields.Frame.audio in
+        let fresh,video = aux fresh fields.Frame.video in
+        let _,midi  = aux fresh fields.Frame.midi in
+          frame_kind_t ~audio ~video ~midi
+
+(** Value construction *)
+
+let mk ~t v = { t = t ; value = v }
+let unit = mk unit_t Unit
+let int i = mk int_t (Int i)
+let bool i = mk bool_t (Bool i)
+let float i = mk float_t (Float i)
+let string i = mk string_t (String i)
+let product a b = mk (product_t a.t b.t) (Product (a,b))
+
+let list ~t l = mk (list_t t) (List l)
+
+let source s =
+  mk (source_t (kind_type_of_frame_kind s#kind)) (Source s)
+
+let request r =
+  (* TODO get rid of that option, by removing the limit of RID *)
+  let r = Utils.get_some r in
+  mk (request_t (kind_type_of_frame_kind (Request.kind r))) (Request (Some r))
+
+let val_fun p ~ret_t f =
+  let f env t = f (List.map (fun (x,(g,v)) -> assert (g=[]) ; x,v) env) t in
+  let t = fun_t (List.map (fun (l,_,t,d) -> d<>None,l,t) p) ret_t in
+  let p' = List.map (fun (l,x,t,d) -> l,x,d) p in
+    mk ~t (FFI (p',[],f))
+
 let val_cst_fun p c =
-  let f tm = mk (Fun (p,[],[],{ Term.t = c.t ; Term.term = tm })) in
+  let t = fun_t (List.map (fun (l,t,d) -> d<>None,l,t) p) c.t in
+  let p' = List.map (fun (l,_,d) -> l,l,d) p in
+  let f tm =
+      mk ~t (Fun (p',[],[],{ Term.t = c.t ; Term.term = tm }))
+  in
+    (* Convert the value into a term if possible,
+     * to enable introspection, mostly for printing. *)
     match c.value with
       | Unit -> f Term.Unit
       | Int i -> f (Term.Int i)
       | Bool i -> f (Term.Bool i)
       | Float i -> f (Term.Float i)
       | String i -> f (Term.String i)
-      | _ -> mk (FFI (p,[],fun _ _ -> c))
+      | _ -> mk ~t (FFI (p',[],fun _ _ -> c))
+
 let metadata m =
-  list (Hashtbl.fold
-          (fun k v l -> (product (string k) (string v))::l)
-          m [])
+  list
+    (product_t string_t string_t)
+    (Hashtbl.fold
+       (fun k v l -> (product (string k) (string v))::l)
+       m [])
 
 (** Runtime error, should eventually disappear. *)
 exception Invalid_value of value*string
@@ -204,95 +341,6 @@ let string_of_category x = "Source / " ^ match x with
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
-(** Description of how many of a channel type does an operator want.
-  * [Fixed n] means exactly [n] channels.
-  * [Any_fixed n] means any fixed numbers of channels that is [>=n].
-  * [Variable n] means any (possibly variable) number of channels that
-  *   is [>=n]. *)
-type lang_kind_format =
-  | Fixed of int | Variable of int | Any_fixed of int
-type lang_kind_formats =
-  | Unconstrained of t
-  | Constrained of
-      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
-
-let any_fixed =
-  Constrained
-    { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
-
-let any_fixed_with ?(audio=0) ?(video=0) ?(midi=0) () =
-  Constrained
-    { Frame.audio = Any_fixed audio ; Frame.video = Any_fixed video ; Frame.midi = Any_fixed midi }
-
-let audio_variable =
-  Constrained
-    { Frame.audio = Variable 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
-let audio_any =
-  Constrained
-    { Frame.audio = Any_fixed 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
-let audio_mono =
-  Constrained
-    { Frame.audio = Fixed 1 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
-let audio_stereo =
-  Constrained
-    { Frame.audio = Fixed 2 ; Frame.video = Fixed 0 ; Frame.midi = Fixed 0 }
-
-let video_only =
-  Constrained
-    { Frame.audio = Fixed 0 ; Frame.video = Fixed 1 ; Frame.midi = Fixed 0 }
-
-let zero_t = Term.zero_t
-let succ_t t = Term.succ_t t
-let variable_t = Term.variable_t
-let type_of_int n = Term.type_of_int n
-
-let kind_type_of_kind_format ~fresh fmt =
-  match fmt with
-    | Unconstrained t -> t
-    | Constrained fields ->
-        let aux fresh = function
-          | Fixed i ->
-              let rec aux i =
-                if i = 0 then zero_t else succ_t (aux (i-1))
-              in
-                fresh, aux i
-          | Any_fixed i ->
-              let zero = univ_t ~constraints:[T.Fixed] fresh in
-              let rec aux i =
-                if i = 0 then zero else succ_t (aux (i-1))
-              in
-                fresh+1, aux i
-          | Variable i ->
-              let rec aux i =
-                if i = 0 then variable_t else succ_t (aux (i-1))
-              in
-                fresh, aux i
-        in
-        let fresh,audio = aux fresh fields.Frame.audio in
-        let fresh,video = aux fresh fields.Frame.video in
-        let _,midi  = aux fresh fields.Frame.midi in
-          frame_kind_t ~audio ~video ~midi
-
-(** Given an Lang type that has been infered, convert it to a kind.
-  * This might require to force some Any_fixed variables. *)
-let rec mul_of_type default t =
-  match (T.deref t).T.descr with
-    | T.Succ t -> Frame.Succ (mul_of_type (default-1) t)
-    | T.Zero -> Frame.Zero
-    | T.Variable -> Frame.Variable
-    | T.EVar _ ->
-        let default = max 0 default in
-          T.bind t (type_of_int default) ;
-          Frame.mul_of_int default
-    | _ -> assert false
-
-let frame_kind_of_kind_type t =
-  let k = Term.of_frame_kind_t t in
-    { Frame.
-        audio = mul_of_type (Lazy.force Frame.audio_channels) k.Frame.audio ;
-        video = mul_of_type (Lazy.force Frame.video_channels) k.Frame.video ;
-        midi  = mul_of_type (Lazy.force Frame.midi_channels) k.Frame.midi }
-
 let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
   let proto =
     let t = T.make (T.Ground T.String) in
@@ -324,8 +372,9 @@ let iter_sources f v =
     | Term.Unit | Term.Bool _ | Term.String _
     | Term.Int _ | Term.Float _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
-    | Term.Ref a -> iter_term env a
-    | Term.Let {Term.def=a;body=b} | Term.Product (a,b) | Term.Seq (a,b) ->
+    | Term.Ref a | Term.Get a -> iter_term env a
+    | Term.Let {Term.def=a;body=b}
+    | Term.Product (a,b) | Term.Seq (a,b) | Term.Set (a,b) ->
         iter_term env a ; iter_term env b
     | Term.Var v ->
         (* If it's locally bound it won't be in [env]. *)
@@ -383,7 +432,9 @@ let to_string_getter t = match t.value with
   | String s -> (fun () -> s)
   | Fun _ | FFI _ ->
       (fun () ->
-         match (apply t []).value with String s -> s | _ -> assert false)
+         match (apply ~t:string_t t []).value with
+           | String s -> s
+           | _ -> assert false)
   | _ -> assert false
 
 let to_float t = match t.value with
@@ -394,7 +445,9 @@ let to_float_getter t = match t.value with
   | Float s -> (fun () -> s)
   | Fun _ | FFI _ ->
       (fun () ->
-         match (apply t []).value with Float s -> s | _ -> assert false)
+         match (apply ~t:float_t t []).value with
+           | Float s -> s
+           | _ -> assert false)
   | _ -> assert false
 
 let to_source t = match t.value with
@@ -406,13 +459,7 @@ let to_format t = match t.value with
   | _ -> assert false
 
 let to_request t = match t.value with
-  | Request (Some r) -> Some (Request.to_audio r)
-  | Request None -> None
-  | _ -> assert false
-
-let to_request_raw t = match t.value with
-  | Request (Some r) -> Some (Request.to_raw r)
-  | Request None -> None
+  | Request x -> x
   | _ -> assert false
 
 let to_int t = match t.value with

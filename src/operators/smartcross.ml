@@ -233,8 +233,9 @@ object (self)
       in
         ((new Sequence.sequence ~kind ~merge:true [beginning;s]):>source)
     in
-    let metadata =
-      function None -> Lang.list [] | Some m -> Lang.metadata m
+    let metadata = function
+       | None -> Lang.list (Lang.product_t Lang.int_t Lang.string_t) []
+       | Some m -> Lang.metadata m
     in
     let f a b =
       let params =
@@ -245,7 +246,8 @@ object (self)
           "", Lang.source a ;
           "", Lang.source b ]
       in
-        Lang.to_source (Lang.apply transition params)
+      let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
+        Lang.to_source (Lang.apply ~t transition params)
     in
     let compound =
       self#log#f 3 "Analysis: %fdB / %fdB (%.2fs / %.2fs)"

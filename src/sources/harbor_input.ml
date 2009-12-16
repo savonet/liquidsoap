@@ -232,10 +232,9 @@ let () =
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data.";
 
-        "on_connect", Lang.fun_t 
-        [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)] Lang.unit_t,
-        Some (Lang.val_cst_fun 
-          ["","headers",None] Lang.unit),
+        "on_connect",
+        Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+        Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
         Some "Function to execute when a source is connected. \
               Its receives the list of headers, of the form: \
               (\"label\",\"value\"). All labels are lowercase.";
@@ -252,11 +251,12 @@ let () =
         Some (Lang.string ""),
         Some "Source password. Override default if not empty.";
 
-        "auth",Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t]
-                                    Lang.bool_t,
-        Some (Lang.val_cst_fun
-                ["","login",None;"","password",None]
-                (Lang.bool false)),
+        "auth",
+        Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
+        Some
+          (Lang.val_cst_fun
+             ["",Lang.string_t,None;"",Lang.string_t,None]
+             (Lang.bool false)),
         Some "Authentification function. \
               <code>f(login,password)</code> returns <code>true</code> \
               if the user should be granted access for this login. \
@@ -303,7 +303,8 @@ let () =
            in
              if not (trivially_false auth_function) then
                Lang.to_bool
-                 (Lang.apply auth_function
+                 (Lang.apply ~t:Lang.bool_t
+                    auth_function
                     ["",Lang.string user;
                      "",Lang.string pass])
              else
@@ -335,11 +336,16 @@ let () =
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
               l
            in
-           let arg = Lang.list l in
-           ignore (Lang.apply (List.assoc "on_connect" p) ["",arg])
+           let arg =
+             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
+           in
+           ignore
+             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
          in
-         let on_disconnect = fun () -> ignore (Lang.apply
-                               (List.assoc "on_disconnect" p) []) in
+         let on_disconnect () =
+           ignore
+             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+         in
            try
              ((Harbor.find_source mount):>Source.source)
            with

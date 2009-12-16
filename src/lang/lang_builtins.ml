@@ -143,7 +143,7 @@ let () =
                  Lang.float (get Dtools.Conf.as_float path s)
              | Lang.List l ->
                  let l = List.map Lang.to_string l in
-                   Lang.list
+                   Lang.list Lang.string_t
                      (List.map
                         Lang.string
                         (get Dtools.Conf.as_list path l))
@@ -174,7 +174,7 @@ let () =
          let name = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
          let decoder name = 
-           Lang.to_string (Lang.apply f ["",Lang.string name])
+           Lang.to_string (Lang.apply ~t:Lang.string_t f ["",Lang.string name])
          in
          Externalformat.register_external_decoder name decoder;
          Lang.unit)
@@ -184,8 +184,7 @@ let () =
     Lang.fun_t
       [false,"format",Lang.string_t;
        false,"",Lang.string_t] 
-         (Lang.list_t (Lang.product_t 
-                        Lang.string_t Lang.string_t))
+      Lang.metadata_t
   in
     add_builtin "add_metadata_resolver" 
           ~cat:Liq ~descr:"Register an external file metadata decoder."
@@ -199,8 +198,11 @@ let () =
          let format = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
          let resolver ~format name =
-           let ret = Lang.apply f ["format",Lang.string format;
-                                   "",Lang.string name] 
+           let ret =
+             Lang.apply ~t:Lang.metadata_t
+               f
+               ["format",Lang.string format;
+                "",Lang.string name] 
            in
            let ret = Lang.to_list ret in
            let ret = List.map Lang.to_product ret in
@@ -235,8 +237,9 @@ let () =
                Request.resolve =
                  fun arg ~log timeout ->
                    let l =
-                     Lang.apply f ["",Lang.string arg;
-                                   "",Lang.float timeout]
+                     Lang.apply ~t:(Lang.list_t Lang.string_t)
+                       f ["",Lang.string arg;
+                          "",Lang.float timeout]
                    in
                      List.map
                        (fun s ->
@@ -390,33 +393,6 @@ let () =
 (** Operations on strings *)
 
 let () =
-  add_builtin "string.ref" ~cat:String
-    ~descr:"Returns a pair (get,set) \
-            where get is a function of type <code>unit -> string</code>, \
-            to get current value, \
-            and set a function of type <code>string -> unit</code>, \
-            to set a new value. \n\
-            This is a workaround, and it shall be removed \
-            when variable references are implemented."
-    ["",Lang.string_t,None,Some "Initial value"]
-    (Lang.product_t (Lang.fun_t [] Lang.string_t)
-       (Lang.fun_t [false,"",Lang.string_t] Lang.unit_t))
-    (fun p ->
-       let i = ref (Lang.to_string (List.assoc "" p)) in
-       let get  =
-         Lang.val_fun []
-         (fun p _ -> Lang.string !i)
-       in
-       let set =
-         Lang.val_fun ["","",None]
-         (fun p _ ->
-             let v = List.assoc "" p in
-             i := Lang.to_string v ;
-             Lang.unit)
-       in
-       Lang.product get set)
-
-let () =
   add_builtin "^" ~cat:String ~descr:"Concatenate strings."
     ["",Lang.string_t,None,None ; "",Lang.string_t,None,None]
     Lang.string_t
@@ -449,8 +425,8 @@ let () =
        let sep = Lang.to_string (List.assoc "separator" p) in
        let string = Lang.to_string (List.assoc "" p) in
        let rex = Pcre.regexp sep in
-         Lang.list (List.map Lang.string
-                      (Pcre.split ~rex string)))
+         Lang.list Lang.string_t
+           (List.map Lang.string (Pcre.split ~rex string)))
 
 let () =
   add_builtin "string.extract" ~cat:String
@@ -463,7 +439,7 @@ let () =
             it means that the corresponding pattern was not found."
     [ "pattern", Lang.string_t, None, None ;
       "", Lang.string_t, None, None ]
-    (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
+    Lang.metadata_t
     (fun p ->
        let pattern = Lang.to_string (List.assoc "pattern" p) in
        let string = Lang.to_string (List.assoc "" p) in
@@ -482,12 +458,15 @@ let () =
              l
          in
          let l = extract [] 1 in
-         Lang.list 
-             (List.map (fun (x,y) -> 
-                          Lang.product (Lang.string x) (Lang.string y))
-                        l)
+         Lang.list
+           (Lang.product_t Lang.string_t Lang.string_t)
+           (List.map
+              (fun (x,y) -> 
+                 Lang.product (Lang.string x) (Lang.string y))
+              l)
        with
-         | Not_found -> Lang.list [])
+         | Not_found ->
+             Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])
 
 let () =
   add_builtin "string.match" ~cat:String
@@ -565,7 +544,7 @@ let () =
        let subst = Lang.assoc "" 1 p in
        let subst s = 
          let ret = 
-           Lang.apply subst [("",Lang.string s)] 
+           Lang.apply ~t:Lang.string_t subst [("",Lang.string s)] 
          in 
          Lang.to_string ret
        in
@@ -580,7 +559,7 @@ let () =
              \ - <code>$(if $(k2),\"a\",\"b\")</code> into \
                  \"a\" if k2 is found in the list, \"b\" otherwise."
     ["",Lang.string_t,None,None ;
-     "",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),None,None]
+     "",Lang.metadata_t,None,None]
     Lang.string_t
     (fun p ->
                      let s = Lang.to_string (Lang.assoc "" 1 p) in
@@ -610,7 +589,7 @@ let () =
     ~descr:"<code>l[k]</code> returns the first <code>v</code> such that \
             <code>(k,v)</code> is in the list <code>l</code>."
     ["",Lang.string_t,None,None ;
-     "",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),None,None]
+     "",Lang.metadata_t,None,None]
     Lang.string_t
     (fun p ->
        let k = Lang.to_string (Lang.assoc "" 1 p) in
@@ -636,7 +615,7 @@ let () =
            | _ -> assert false
        in
        let l = Lang.to_list l in
-         List.iter (fun c -> ignore (Lang.apply f ["",c])) l ;
+         List.iter (fun c -> ignore (Lang.apply ~t:Lang.unit_t f ["",c])) l ;
          Lang.unit)
 
 let () =
@@ -651,9 +630,10 @@ let () =
            | [("",f);("",l)] -> f,l
            | _ -> assert false
        in
+       let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
-       let l = List.map (fun c -> (Lang.apply f ["",c])) l in
-         Lang.list l)
+       let l = List.map (fun c -> (Lang.apply ~t f ["",c])) l in
+         Lang.list ~t l)
 
 let () =
   add_builtin "list.fold" ~cat:List
@@ -674,7 +654,7 @@ let () =
            | _ -> assert false
        in
        let l = Lang.to_list l in
-         List.fold_left (fun x y -> Lang.apply f ["",x; "",y]) x l)
+         List.fold_left (fun x y -> Lang.apply ~t:x.Lang.t f ["",x; "",y]) x l)
 
 let () =
   add_builtin "list.nth" ~cat:List ~descr:"Get the n-th element of a list."
@@ -700,15 +680,19 @@ let () =
 let () =
   add_builtin "list.sort" ~cat:List
     ~descr:"Sort a list according to a comparison function."
-    ["",Lang.fun_t [false,"",Lang.univ_t 1;false,"",Lang.univ_t 1] Lang.int_t,None,None ;
+    ["",
+     Lang.fun_t [false,"",Lang.univ_t 1;false,"",Lang.univ_t 1] Lang.int_t,
+     None, None ;
      "",Lang.list_t (Lang.univ_t 1),None,None] (Lang.list_t (Lang.univ_t 1))
     (fun p ->
        let f = Lang.assoc "" 1 p in
        let sort x y = 
-         Lang.to_int (Lang.apply f ["",x;"",y])
+         Lang.to_int (Lang.apply ~t:Lang.int_t f ["",x;"",y])
        in
+       let l = Lang.assoc "" 2 p in
        Lang.list 
-        (List.sort sort (Lang.to_list (Lang.assoc "" 2 p))))
+         (Lang.of_list_t l.Lang.t)
+         (List.sort sort (Lang.to_list l)))
 
 let () =
   add_builtin "list.tl" ~cat:List
@@ -716,10 +700,12 @@ let () =
     ["",Lang.list_t (Lang.univ_t 1),None,None]
     (Lang.list_t (Lang.univ_t 1))
     (fun p ->
-       let l = Lang.to_list (Lang.assoc "" 1 p) in
+       let l = Lang.assoc "" 1 p in
+       let t = Lang.of_list_t l.Lang.t in
+       let l = Lang.to_list l in
          match l with
-           | [] -> Lang.list []
-           | _::tl -> Lang.list tl)
+           | [] -> Lang.list t []
+           | _::tl -> Lang.list t tl)
 
 let () =
   add_builtin "list.append" ~cat:List
@@ -728,9 +714,11 @@ let () =
      "",Lang.list_t (Lang.univ_t 1),None,None]
     (Lang.list_t (Lang.univ_t 1))
     (fun p ->
-       let l = Lang.to_list (Lang.assoc "" 1 p) in
+       let l = Lang.assoc "" 1 p in
+       let t = Lang.of_list_t l.Lang.t in
+       let l = Lang.to_list l in
        let l' = Lang.to_list (Lang.assoc "" 2 p) in
-       Lang.list (l@l'))
+       Lang.list ~t (l@l'))
 
 let () =
   add_builtin "list.remove" ~cat:List
@@ -740,14 +728,16 @@ let () =
     (Lang.list_t (Lang.univ_t 1))
     (fun p ->
        let a = Lang.assoc "" 1 p in
-       let l = Lang.to_list (Lang.assoc "" 2 p) in
+       let l = Lang.assoc "" 2 p in
+       let t = Lang.of_list_t l.Lang.t in
+       let l = Lang.to_list l in
        let rec remove a l l' = 
          match l with
            | x :: l'' when x = a -> l' @ l''
            | x :: l'' -> remove a l'' (l' @ [x])
            | [] -> l'
        in
-       Lang.list (remove a l []))
+         Lang.list ~t (remove a l []))
 
 let () =
   add_builtin "list.rev" ~cat:List
@@ -755,8 +745,10 @@ let () =
     ["",Lang.list_t (Lang.univ_t 1),None,None]
     (Lang.list_t (Lang.univ_t 1))
     (fun p ->
-       let l = Lang.to_list (Lang.assoc "" 1 p) in
-       Lang.list (List.rev l))
+       let l = Lang.assoc "" 1 p in
+       let t = Lang.of_list_t l.Lang.t in
+       let l = Lang.to_list l in
+         Lang.list ~t (List.rev l))
 
 let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Ord] 1 in
@@ -823,7 +815,7 @@ let () =
              events   = [`Delay d] ;
              handler  =
                fun _ ->
-	         let d = Lang.to_float (Lang.apply f []) in
+	         let d = Lang.to_float (Lang.apply ~t:Lang.float_t f []) in
                  if d >= 0. then [t d] else [] }
        in
          Duppy.Task.add Tutils.scheduler (t d);
@@ -846,7 +838,7 @@ let () =
         | _ -> c ^ " " ^ a
     in
     let r = try Server.exec (s) with Not_found -> "Command not found!" in
-      Lang.list (List.map Lang.string (Pcre.split ~pat:"\n" r))
+      Lang.list Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
   in
   add_builtin "server.execute" 
     ~cat ~descr params return_t execute ;
@@ -872,7 +864,8 @@ let () =
        let fy = List.assoc "then" p in
        let fn = List.assoc "else" p in
        let c = Lang.to_bool c in
-         Lang.apply (if c then fy else fn) [])
+       let t = Lang_types.fresh_evar ~level:0 ~pos:None in
+         Lang.apply ~t (if c then fy else fn) [])
 
 let () =
   add_builtin "on_shutdown" ~cat:Sys
@@ -881,7 +874,7 @@ let () =
     ~descr:"Register a function to be called when Liquidsoap shuts down."
     (fun p ->
        let f = List.assoc "" p in
-       let wrap_f = fun () -> ignore (Lang.apply f []) in
+       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
          ignore (Dtools.Init.at_stop wrap_f) ;
          Lang.unit)
 
@@ -936,7 +929,7 @@ let () =
        in
        let l = aux () in
          ignore (Unix.close_process_in chan) ;
-         Lang.list (List.map Lang.string l))
+         Lang.list Lang.string_t (List.map Lang.string l))
 
 let () =
   add_builtin "log" ~cat:Sys ~descr:"Log a message."
@@ -1036,7 +1029,9 @@ let () =
        let usage = Lang.to_string (List.assoc "usage" p) in
        let command = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f x = Lang.to_string (Lang.apply f ["",Lang.string x]) in
+       let f x =
+         Lang.to_string (Lang.apply ~t:Lang.string_t f ["",Lang.string x])
+       in
        let ns = (Pcre.split ~pat:"\\." namespace) in
        let usage = if usage = "" then command ^ " <variable>" else usage in
            Server.add ~ns ~usage ~descr command f ;
@@ -1120,12 +1115,13 @@ let () =
             for streaming. Creation may fail if there is no available RID, \
             which cannot be detected currently: in that case one will obtain \
             a request that will fail to be resolved."
-    ["indicators",Lang.list_t Lang.string_t,Some (Lang.list []),None;
+    [("indicators",
+      Lang.list_t Lang.string_t,
+      Some (Lang.list Lang.string_t []),
+      None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
     (Lang.request_t (Lang.frame_kind_t Lang.zero_t Lang.zero_t Lang.zero_t))
-    (* At the Lang level, we use the frame kind (0,0,0) for raw requests,
-     * it might be a good idea to do the same at the Request level. *)
     (fun p ->
        let indicators = List.assoc "indicators" p in
        let persistent = Lang.to_bool (List.assoc "persistent" p) in
@@ -1151,7 +1147,10 @@ let () =
     ~descr:"Create a request. Creation may fail if there is no available RID, \
             which cannot be detected currently: in that case one will obtain \
             a request that will fail to be resolved."
-    ["indicators",Lang.list_t Lang.string_t,Some (Lang.list []),None;
+    [("indicators",
+      Lang.list_t Lang.string_t,
+      Some (Lang.list Lang.string_t []),
+      None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
     (Lang.request_t (Lang.univ_t 1))
@@ -1181,9 +1180,7 @@ let () =
            Lang.frame_kind_of_kind_type k_t
        in
          Lang.request
-           (match Request.create ~kind ~persistent ~indicators initial with
-              | Some r -> Some (Request.to_raw r)
-              | None -> None))
+           (Request.create ~kind ~persistent ~indicators initial))
 
 let () =
   add_builtin "request.resolve" ~cat:Liq
@@ -1196,7 +1193,7 @@ let () =
             was successful, false otherwise (timeout or invalid URI)."
     (fun p ->
        let timeout = Lang.to_float (List.assoc "timeout" p) in
-          match Lang.to_request_raw (List.assoc "" p) with
+          match Lang.to_request (List.assoc "" p) with
             | Some r ->
                 Lang.bool (Request.Resolved = Request.resolve r timeout)
             | _ -> Lang.bool false)
@@ -1208,7 +1205,7 @@ let () =
             has to be resolved before being ready."
     ["", Lang.request_t (Lang.univ_t 1),None,None] Lang.bool_t
     (fun p ->
-       match Lang.to_request_raw (List.assoc "" p) with
+       match Lang.to_request (List.assoc "" p) with
          | Some e -> Lang.bool (Request.is_ready e)
          | _ -> Lang.bool false)
 
@@ -1218,7 +1215,7 @@ let () =
             and the empty string otherwise."
     [ "",Lang.request_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p ->
-       match Lang.to_request_raw (List.assoc "" p) with
+       match Lang.to_request (List.assoc "" p) with
          | None -> Lang.string ""
          | Some r ->
              Lang.string (match Request.get_filename r with
@@ -1235,7 +1232,7 @@ let () =
     Lang.unit_t
     (fun p ->
        let force = Lang.to_bool (List.assoc "force" p) in
-         begin match Lang.to_request_raw (List.assoc "" p) with
+         begin match Lang.to_request (List.assoc "" p) with
             | Some e -> Request.destroy ~force e
             | None -> ()
          end ;
@@ -1255,10 +1252,7 @@ let () =
 let () =
   add_builtin "playlist.parse" ~cat:Liq
     ["", Lang.string_t,None,None]
-    (Lang.list_t
-       (Lang.product_t
-          (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t))
-          Lang.string_t))
+    (Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t))
     ~descr:"Try to parse a local playlist. \
             Return a list of (metadata,URI) items, where metadata is a list \
             of (key,value) bindings."
@@ -1268,6 +1262,7 @@ let () =
        let channel = open_in f in
        let length = in_channel_length channel in
        let content = String.create length in
+       let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
          really_input channel content 0 length ;
          close_in channel ;
          try
@@ -1276,14 +1271,16 @@ let () =
              let f (n,v) =
                Lang.product (Lang.string n) (Lang.string v)
              in
-               Lang.list (List.map f m)
+               Lang.list
+                 (Lang.product_t Lang.string_t Lang.string_t)
+                 (List.map f m)
            in
            let process (m,uri) =
              Lang.product (process m) (Lang.string uri)
            in
-             Lang.list (List.map process l)
+             Lang.list ret_item_t (List.map process l)
          with
-           | _ -> Lang.list [])
+           | _ -> Lang.list ret_item_t [])
 
 (** Sound utils. *)
 
@@ -1396,7 +1393,7 @@ let () =
                         with _ ->
                           raise (Var.Invalid_value
                                    (s ^ " is not a string")));
-         Lang.val_fun [] (fun p _ -> Lang.string !v))
+         Lang.val_fun [] ~ret_t:Lang.string_t (fun p _ -> Lang.string !v))
 
 let () =
   add_builtin "interactive.float" ~cat:Interaction
@@ -1418,9 +1415,9 @@ let () =
                         with _ ->
                           raise (Var.Invalid_value
                                    (s ^ " is not a float")));
-         Lang.val_fun [] (fun p _ -> Lang.float !v))
+         Lang.val_fun [] ~ret_t:Lang.float_t (fun p _ -> Lang.float !v))
 
-let () = (* TODO do not print when daemonized *)
+let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
     ["newline",Lang.bool_t,Some (Lang.bool true),
      Some "If true, a newline is added after displaying the value." ;

@@ -154,6 +154,10 @@ rule token = parse
   | "+" | "%" | "^" | "+." | "-."  { BIN2 (Lexing.lexeme lexbuf) }
   | "*" | "/" | "*." | "/."        { BIN3 (Lexing.lexeme lexbuf) }
 
+  | "ref" { REF }
+  | "!"   { GET }
+  | ":="  { SET }
+
   | "true"  { BOOL true }
   | "false" { BOOL false }
   | int_literal { INT (int_of_string (Lexing.lexeme lexbuf)) }

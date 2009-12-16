@@ -122,7 +122,8 @@ object (self)
       ~length ~default_duration ~timeout ~conservative ()
   method get_next_request =
     try
-      match Lang.to_request (Lang.apply f []) with
+      let t = Lang.request_t (Lang.kind_type_of_frame_kind kind) in
+      match Lang.to_request (Lang.apply ~t f []) with
         | None -> None
         | Some req ->
             Request.set_root_metadata req "source" self#id ;

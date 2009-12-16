@@ -76,13 +76,13 @@ object (self)
         self#check_blank ab p0 ;
         if blank_len <= length then begin
           if in_blank then begin
-            ignore (Lang.apply on_noise []) ;
+            ignore (Lang.apply ~t:Lang.unit_t on_noise []) ;
             in_blank <- false
           end
         end else
           if not in_blank then begin
             in_blank <- true ;
-            ignore (Lang.apply on_blank [])
+            ignore (Lang.apply ~t:Lang.unit_t on_blank [])
           end
       end
 end

@@ -37,9 +37,7 @@ and in_value =
   | String  of string
   | Float   of float
   | Source  of Source.source
-  | Request of Request.raw Request.t option
-               (* Request.raw is arbitrary: this information is violated
-                * in the script language until it has enough expressivity. *)
+  | Request of Request.t option
   | Encoder of Encoder.format
   | List    of value list
   | Product of value * value
@@ -61,7 +59,7 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 (** {2 Computation} *)
 
 (** Multiapply a value to arguments. *)
-val apply : value -> env -> value
+val apply : value -> env -> t:t -> value
 
 (** {3 Helpers for source builtins} *)
 
@@ -144,11 +142,7 @@ val to_float : value -> float
 val to_float_getter : value -> unit -> float
 val to_source : value -> Source.source
 val to_format : value -> Encoder.format
-(** Expands a value representing a request
-  * Value here *must* be an audio request. 
-  * Assert false if not.. *)
-val to_request : value -> Request.audio Request.t option
-val to_request_raw : value -> Request.raw Request.t option
+val to_request : value -> Request.t option
 val to_int : value -> int
 val to_list : value -> value list
 val to_product : value -> value * value
@@ -158,7 +152,7 @@ val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
-  * This is useful for retreiving arguments of a function. *)
+  * This is useful for retrieving arguments of a function. *)
 val assoc : 'a -> int -> ('a * 'b) list -> 'b
 
 val int_t      : t
@@ -166,8 +160,10 @@ val unit_t     : t
 val float_t    : t
 val bool_t     : t
 val string_t   : t
-val list_t     : t -> t
 val product_t  : t -> t -> t
+
+val list_t     : t -> t
+val of_list_t  : t -> t
 
 val zero_t     : t
 val variable_t : t
@@ -185,6 +181,8 @@ val frame_kind_t : audio:t -> video:t -> midi:t -> t
 val of_frame_kind_t : t -> (t,t,t) Frame.fields
 
 val frame_kind_of_kind_type : t -> Frame.content_kind
+
+val kind_type_of_frame_kind : Frame.content_kind -> t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].
@@ -209,17 +207,21 @@ val int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
-val list : value list -> value
+val list : t:t -> value list -> value
 val source : Source.source -> value
-val request : Request.raw Request.t option -> value
+val request : Request.t option -> value
 val product : value -> value -> value
-val val_fun :
-      (string * string * value option) list -> (env -> t -> value) -> value
 
-(** Specialized builder for constant functions.
+(** Build a function from an OCaml function.
+  * Items in the prototype indicate the label, type and optional
+  * values. *)
+val val_fun : (string * string * t * value option) list -> ret_t:t ->
+              (env -> t -> value) -> value
+
+(** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure
   * when the constant is ground. *)
-val val_cst_fun : (string * string * value option) list -> value -> value
+val val_cst_fun : (string * t * value option) list -> value -> value
 
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value

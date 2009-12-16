@@ -182,6 +182,8 @@ object (self)
 
   (** Streaming *)
 
+  method kind = content_kind
+
   (* Number of frames left in the current track:
    * -1 means Infinity, time unit is the frame. *)
   method virtual remaining : int

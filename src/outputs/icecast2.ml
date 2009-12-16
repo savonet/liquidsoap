@@ -37,35 +37,36 @@ let no_name = "Use [mount]"
 
 let proto kind =
   Output.proto @
-  [ "restart", Lang.bool_t, Some (Lang.bool false),
-    Some "Restart output after a failure. By default, liquidsoap will stop \
-          if the output failed." ;
-    "restart_delay", Lang.int_t, Some (Lang.int 3),
-    Some "Delay, in seconds, before attempting new connection, if restart \
-          is enabled." ;
+  [ ("restart", Lang.bool_t, Some (Lang.bool false),
+     Some "Restart output after a failure. By default, liquidsoap will stop \
+           if the output failed.") ;
+    ("restart_delay", Lang.int_t, Some (Lang.int 3),
+     Some "Delay, in seconds, before attempting new connection, if restart \
+           is enabled.") ;
     "mount", Lang.string_t, Some (Lang.string no_mount), None ;
     "name", Lang.string_t, Some (Lang.string no_name), None ;
-    "protocol", Lang.string_t, (Some (Lang.string "http")),
-    Some "Protocol of the streaming server: \
-          'http' for Icecast, 'icy' for shoutcast." ;
+    ("protocol", Lang.string_t, (Some (Lang.string "http")),
+     Some "Protocol of the streaming server: \
+           'http' for Icecast, 'icy' for shoutcast.") ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
-    "user", Lang.string_t, Some (Lang.string "source"),
-    Some "User for shout source connection. \
-          Useful only in special cases, like with per-mountpoint users." ;
+    ("user", Lang.string_t, Some (Lang.string "source"),
+     Some "User for shout source connection. \
+           Useful only in special cases, like with per-mountpoint users.") ;
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
     "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
-    "description", Lang.string_t,
-    Some (Lang.string "OCaml Radio!"), None ;
+    ("description", Lang.string_t,
+     Some (Lang.string "OCaml Radio!"), None) ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
-    "headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t),
-    Some (Lang.list []), Some "Additional headers." ;
-    "format", Lang.string_t, Some (Lang.string ""),
-    Some (Printf.sprintf
-            "When empty, the encoder is used to guess.") ;
-    "dumpfile", Lang.string_t, Some (Lang.string ""), 
-    Some "Dump stream to file, for debugging purpose. Disabled if empty." ;
+    ("headers", Lang.metadata_t,
+     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) []),
+     Some "Additional headers.") ;
+    ("format", Lang.string_t, Some (Lang.string ""),
+     Some (Printf.sprintf
+             "When empty, the encoder is used to guess.")) ;
+    ("dumpfile", Lang.string_t, Some (Lang.string ""), 
+     Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
     "", Lang.format_t kind, None, Some "Encoding format." ;
     "", Lang.source_t kind, None, None ]
 
@@ -174,11 +175,11 @@ class output ~kind p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =
     let f = List.assoc "on_start" p in
-      fun () -> ignore (Lang.apply f [])
+      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
   let on_stop =
     let f = List.assoc "on_stop" p in
-      fun () -> ignore (Lang.apply f [])
+      fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
 
   let restart = e Lang.to_bool "restart" in

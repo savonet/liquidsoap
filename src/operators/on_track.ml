@@ -37,10 +37,11 @@ object
       if not called then begin
         let m =
           match Frame.get_metadata ab p with
-            | None -> Lang.list []
+            | None ->
+                Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
             | Some m -> Lang.metadata m
         in
-          ignore (Lang.apply f ["",m]) ;
+          ignore (Lang.apply ~t:Lang.unit_t f ["",m]) ;
           called <- true
       end ;
       if Frame.is_partial ab then called <- false

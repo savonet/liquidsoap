@@ -20,41 +20,38 @@
 
  *****************************************************************************)
 
-(** Plug for resolving, that is obtaining a file from an URI.
-  * [src/protocols] plugins provide ways
-  * to resolve URIs: fetch, generate, ...
-  * The request is actually the file abstraction in liquidsoap, and you
-  * should think about using it as much as possible. *)
+(** The request is actually the file abstraction in liquidsoap, used
+  * whenever possible. *)
 
-type audio = [ `Audio ]
-type raw   = [ `Raw ]
-type flags = [ audio | raw ]
-
-type 'a t constraint 'a = [<flags]
 type metadata = (string,string) Hashtbl.t
 
+(** An indicator is a resource location (URI),
+  * when meaningful, it can be declared as temporary if liquidsoap
+  * should destroy it after usage (this means deleting a local file). *)
 type indicator
+
 val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
 
-(** For audio requests,
-  * resolving includes testing that the file can actually be decoded. *)
+(** Type of requests,
+  * which are devices for obtaining a local file from an URI. *)
+type t
+
+(** For media requests,
+  * resolving includes testing that the file can actually be decoded
+  * into a stream of the expected kind. *)
 val create :
   kind:Frame.content_kind ->
   ?metadata:((string*string) list) -> 
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->
-  (audio t) option
+  t option
 val create_raw :
   ?metadata:((string*string) list) -> 
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->
-  (raw t) option
+  t option
 
-(** This should eventually disappear, but is useful in Lang for now. *)
-val to_raw : 'a t -> raw t
-val to_audio : 'a t -> audio t
-
-val kind : audio t -> Frame.content_kind
+val kind : t -> Frame.content_kind
 
 (** Destroying of a requests causes its file to be deleted if it's a temporary
   * one, for example a downloaded file. If the metadata ["persistent"] is
@@ -62,10 +59,7 @@ val kind : audio t -> Frame.content_kind
   * Persistent sources are useful for static URIs (see below for the definition
   * of staticity,
   * and in [src/sources/one_file.ml] for an example of use). *)
-val destroy : ?force:bool -> 'a t -> unit
-
-(** Check if a request is currently being streamed. *)
-val on_air : audio t -> unit
+val destroy : ?force:bool -> t -> unit
 
 (** {1 General management} *)
 
@@ -74,10 +68,10 @@ val on_air : audio t -> unit
 val clean : unit -> unit
 
 
-(** Every request has an id, and you can find a request from its id. *)
+(** Every request has an ID, and you can find a request from its ID. *)
 
-val get_id : 'a t -> int
-val from_id : int -> audio t option
+val get_id : t -> int
+val from_id : int -> t option
 
 (** Get the list of requests that are currently
   * alive/on air/being resolved. *)
@@ -105,14 +99,6 @@ type protocol = {
   * Sometimes, it allows removing useless destroy/create/resolve. *)
 val is_static : string -> bool option
 
-(** Two plugs are used. One for the proper file resolving, the second
-  * one for metadata reading/filling. Metadata filling doesn't come with
-  * the Decoder, simply because we want it to occur immediately
-  * after resolving. *)
-
-val mresolvers : (format:string -> string -> (string*string) list) Plug.plug
-val protocols : protocol Plug.plug
-
 (** Resolving can fail because an URI is invalid, or doesn't refer to a valid
   * audio file, or simply because there was no enough time left. *)
 type resolve_flag = Resolved | Failed | Timeout
@@ -120,55 +106,70 @@ type resolve_flag = Resolved | Failed | Timeout
 (** [resolve request timeout] tries to resolve the request within [timeout]
   * seconds. If resolving succeeds, [is_ready request] is true and you
   * can get a filename. *)
-val resolve : 'a t -> float -> resolve_flag
+val resolve : t -> float -> resolve_flag
 
 (** [is_ready r] if there's an available local filename. It can be true even if
   * the resolving hasn't been run, if the initial URI was already a local
   * filename. *)
-val is_ready : 'a t -> bool
+val is_ready : t -> bool
 
 (** Return a valid local filename if there is one, which means that the request
   * is ready. *)
-val get_filename : 'a t -> string option
+val get_filename : t -> string option
 
 (** {1 URI manipulation} For protocol plugins. *)
 
-val peek_indicator : 'a t -> string
 (** Removes the top URI, possibly destroys the associated file. *)
-val pop_indicator : 'a t -> unit
+val pop_indicator : t -> unit
+
+(** Return the top URI, without removing it. *)
+val peek_indicator : t -> string
 
 (** In most of the case you don't peek or pop any URI, you just push the
   * new URIs you computed from [first_uri]. *)
-val push_indicators : 'a t -> indicator list -> unit
+val push_indicators : t -> indicator list -> unit
 
 (** {1 Metadatas} *)
 
 val string_of_metadata : metadata -> string
 val short_string_of_metadata : metadata -> string
-val set_metadata : 'a t -> string -> string -> unit
-val get_metadata : 'a t -> string -> string option
-val set_root_metadata : 'a t -> string -> string -> unit
-val get_root_metadata : 'a t -> string -> string option
-val get_all_metadata : 'a t -> metadata
-
-(** {1 Duration} *)
-
-val dresolvers : (string -> float) Plug.plug
-
-(** [duration filename] computes the duration of audio data contained in
-  * [filename]. The computation may be expensive.
-  * @raise Not_found if no duration computation method is found. *)
-val duration : string -> float
-
+val set_metadata : t -> string -> string -> unit
+val get_metadata : t -> string -> string option
+val set_root_metadata : t -> string -> string -> unit
+val get_root_metadata : t -> string -> string option
+val get_all_metadata : t -> metadata
 
 (** {1 Logging}
   * Every request has a separate log in which its history can be written. *)
 
 type log = (Unix.tm*string) Queue.t
 val string_of_log : log -> string
-val add_log : 'a t -> string -> unit
-val get_log : 'a t -> log
+val add_log : t -> string -> unit
+val get_log : t -> log
+
+(** {1 Media operations}
+  * These operations are only meaningful for media requests,
+  * and might crash otherwise. *)
+
+(** Indicate that a request is currently being streamed. *)
+val on_air : t -> unit
+
+(** [duration filename] computes the duration of audio data contained in
+  * [filename]. The computation may be expensive.
+  * @raise Not_found if no duration computation method is found. *)
+val duration : string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
   * available data to deliver. *)
-val get_decoder : audio t -> Decoder.decoder option
+val get_decoder : t -> Decoder.decoder option
+
+(** {1 Plugs}
+  * Respectively for computing duration,
+  * resolving metadata,
+  * and resolving URIs.
+  * Metadata filling isn't included in Decoder because we want it to
+  * occur immediately after request resolution. *)
+
+val dresolvers : (string -> float) Plug.plug
+val mresolvers : (format:string -> string -> (string*string) list) Plug.plug
+val protocols : protocol Plug.plug

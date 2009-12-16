@@ -46,7 +46,9 @@ object (self)
                   | Some m ->
                       (Utils.hashtbl_get m "liq_prepend" = Some "false"),
                       Lang.metadata m
-                  | None -> false, Lang.list []
+                  | None ->
+                      false,
+                      Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
               in
                 if inhibit then begin
                   self#log#f 4 "Prepending disabled from metadata \
@@ -54,7 +56,8 @@ object (self)
                   state <- `Buffer peek ;
                   self#get_frame buf
                 end else
-                  let prepend = Lang.to_source (Lang.apply f ["",lang_m]) in
+                  let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
+                  let prepend = Lang.to_source (Lang.apply ~t f ["",lang_m]) in
                     self#register prepend ;
                     if not prepend#is_ready then begin
                       self#log#f 3
@@ -147,9 +150,7 @@ let register =
       "", Lang.source_t k, None, None ;
 
       "",
-      Lang.fun_t
-        [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
-        (Lang.source_t k),
+      Lang.fun_t [false,"",Lang.metadata_t] (Lang.source_t k),
       None,
       Some
         "Given the metadata, build the source producing the track to prepend. \

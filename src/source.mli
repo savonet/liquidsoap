@@ -69,6 +69,9 @@ object
 
   (** {1 Streaming} *)
 
+  (** What kind of content does this source produce. *)
+  method kind : Frame.content_kind
+
   (** Number of frames left in the current track. Defaults to -1=infinity. *)
   method virtual remaining : int
 
@@ -103,7 +106,7 @@ object
     ?metadata:((string*string) list) ->
     ?persistent:bool ->
     ?indicators:(Request.indicator list) -> string ->
-    Request.audio Request.t option
+    Request.t option
 
   method private log : Dtools.Log.t
 

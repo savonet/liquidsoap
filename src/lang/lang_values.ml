@@ -131,6 +131,8 @@ and in_term =
   | List    of term list
   | Product of term * term
   | Ref     of term
+  | Get     of term
+  | Set     of term * term
   | Let     of let_t
   | Var     of string
   | Seq     of term * term
@@ -176,14 +178,14 @@ let rec print_term v = match v.term with
           tl
       in
         (print_term hd)^"("^(String.concat "," tl)^")"
-  | Let _ | Seq _ -> assert false
+  | Let _ | Seq _ | Get _ | Set _ -> assert false
 
 let rec free_vars tm = match tm.term with
   | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
       Vars.empty
   | Var x -> Vars.singleton x
-  | Ref r -> free_vars r
-  | Product (a,b) | Seq (a,b) ->
+  | Ref r | Get r -> free_vars r
+  | Product (a,b) | Seq (a,b) | Set (a,b) ->
       Vars.union (free_vars a) (free_vars b)
   | List l ->
       List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
@@ -213,12 +215,18 @@ let rec map_types f (gen:'a list) tm = match tm.term with
   | Ref r ->
       { t = f gen tm.t ;
         term = Ref (map_types f gen r) }
+  | Get r ->
+      { t = f gen tm.t ;
+        term = Get (map_types f gen r) }
   | Product (a,b) ->
       { t = f gen tm.t ;
         term = Product (map_types f gen a, map_types f gen b) }
   | Seq (a,b) ->
       { t = f gen tm.t ;
         term = Seq (map_types f gen a, map_types f gen b) }
+  | Set (a,b) ->
+      { t = f gen tm.t ;
+        term = Set (map_types f gen a, map_types f gen b) }
   | List l ->
       { t = f gen tm.t ;
         term = List (List.map (map_types f gen) l) }
@@ -247,10 +255,10 @@ let rec fold_types f gen x tm = match tm.term with
       f gen x tm.t
   | List l ->
       List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
-  (* In the next three cases, don't care about tm.t, nothing "new" in it. *)
-  | Ref r ->
+  (* In the next cases, don't care about tm.t, nothing "new" in it. *)
+  | Ref r | Get r ->
       fold_types f gen x r
-  | Product (a,b) | Seq (a,b) ->
+  | Product (a,b) | Seq (a,b) | Set (a,b) ->
       fold_types f gen (fold_types f gen x a) b
   | App (tm,l) ->
       let x = fold_types f gen x tm in
@@ -282,7 +290,7 @@ struct
     | String  of string
     | Float   of float
     | Source  of Source.source
-    | Request of Request.raw Request.t option (* cf. terms *)
+    | Request of Request.t option
     | Encoder of Encoder.format
     | List    of value list
     | Product of value * value
@@ -438,6 +446,14 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Ref a ->
       check ~level ~env a ;
       e.t >: ref_t ~pos ~level a.t
+  | Get a ->
+      check ~level ~env a ;
+      a.t <: ref_t ~pos ~level e.t
+  | Set (a,b) ->
+      check ~level ~env a ;
+      check ~level ~env b ;
+      a.t <: ref_t ~pos ~level b.t ;
+      e.t >: mkg T.Unit
   | Seq (a,b) ->
       check ~env ~level a ;
       begin match (T.deref a.t).T.descr with
@@ -636,9 +652,21 @@ let instantiate ~generalized def =
 
 let lookup env var ty =
   let generalized,def = List.assoc var env in
-  let def = instantiate ~generalized def in
-    def.V.t <: ty ;
-    def
+  let v = instantiate ~generalized def in
+    if debug then
+      Printf.eprintf
+        "Runtime instantiation of %s: %s targets %s.\n"
+        var
+        (T.print ~generalized def.V.t)
+        (T.print ty) ;
+    v.V.t <: ty ;
+    if debug then
+      Printf.eprintf
+        "Runtime instantiation of %s: %s becomes %s.\n"
+        var
+        (T.print ~generalized def.V.t)
+        (T.print v.V.t) ;
+    v
 
 let rec eval ~env tm =
   let mk v = { V.t = tm.t ; V.value = v } in
@@ -652,6 +680,18 @@ let rec eval ~env tm =
       | List l -> mk (V.List (List.map (eval ~env) l))
       | Product (a,b) -> mk (V.Product (eval ~env a, eval ~env b))
       | Ref v -> mk (V.Ref (ref (eval ~env v)))
+      | Get r ->
+          begin match (eval ~env r).V.value with
+            | V.Ref r -> !r
+            | _ -> assert false
+          end
+      | Set (r,v) ->
+          begin match (eval ~env r).V.value with
+            | V.Ref r ->
+                r := eval ~env v ;
+                mk V.Unit
+            | _ -> assert false
+          end
       | Let {gen=generalized;var=x;def=v;body=b} ->
           (* It should be the case that generalizable variables don't
            * get instantiated in any way when evaluating the definition.
@@ -680,7 +720,7 @@ let rec eval ~env tm =
       | App (f,l) ->
           apply ~t:tm.t (eval ~env f) (List.map (fun (l,t) -> l, eval ~env t) l)
 
-and apply ?(t=T.dummy) f l =
+and apply ~t f l =
   let mk v = { V.t = t ; V.value = v } in
   (* Extract the components of the function, whether it's explicit
    * or foreign, together with a rewrapping function for creating
@@ -794,6 +834,9 @@ let rec eval_toplevel t =
         let env = builtins#get_all in
         let def = eval ~env def in
           toplevel_add comment name ~generalized def ;
+          if debug then
+            Printf.eprintf "Added toplevel %s : %s\n"
+              name (T.print ~generalized def.V.t) ;
           eval_toplevel body
     | Seq (a,b) ->
         check_unit_like

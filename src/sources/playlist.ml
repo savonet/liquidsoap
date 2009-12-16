@@ -74,12 +74,12 @@ object (self)
   method virtual stype : Source.source_t
   method virtual id : string
   method virtual set_id : ?definitive:bool -> string -> unit
-  method virtual copy_queue : Request.audio Request.t list
+  method virtual copy_queue : Request.t list
   method virtual create_request :
     ?metadata:((string*string) list) ->
     ?persistent:bool ->
     ?indicators:(Request.indicator list) -> string ->
-    Request.audio Request.t option
+    Request.t option
   method virtual log : Dtools.Log.t
 
   (** How to get the playlist. *)
@@ -260,7 +260,7 @@ object (self)
           if round_c <= 0 then
             self#reload_playlist ()
 
-  method get_next_request : Request.audio Request.t option =
+  method get_next_request : Request.t option =
     Mutex.lock mylock ;
     if !playlist = [||] then
       ( self#reload_update true ;
@@ -406,7 +406,8 @@ object (self)
   method is_valid uri =
     Sys.file_exists uri &&
     match Request.create ~kind uri with
-      | None -> assert false
+      | None -> assert false (* TODO can happen if we lack RID or if file
+        is  deleted *)
       | Some r ->
           let check = Request.resolve r 0. = Request.Resolved in
             Request.destroy r ;
@@ -435,6 +436,7 @@ let () =
             mode), or shuffle the playlist each time it is loaded, \
             and play it in this order for a whole round (\"randomize\" mode), \
             or pick a random file in the playlist each time (\"random\" mode)." ;
+
       "reload",
       Lang.int_t,
       Some (Lang.int 0),
