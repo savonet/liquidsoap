@@ -30,13 +30,13 @@ type 'a file_decoder =
     openfile : string -> 'a;
     get_kind : 'a -> Frame.content_kind;
     decode   : 'a -> Generator.t -> unit;
-    position : 'a -> int;
+    position : 'a -> int; (* in bytes *)
     close    : 'a -> unit
   }
 
 let decode decoder mode file =
   let fd =
-    decoder.log#f 5 "open %S" file ;
+    decoder.log#f 5 "Open %S." file ;
     try
       decoder.openfile file
     with
@@ -53,7 +53,7 @@ let decode decoder mode file =
   let close () =
     assert (not !closed) ;
     closed := true ;
-    decoder.log#f 5 "close %S" file ;
+    decoder.log#f 5 "Close %S." file ;
     decoder.close fd
   in
 
@@ -79,15 +79,11 @@ let decode decoder mode file =
           let compression =
             (float (!out_ticks+gen_len)) /. (float in_bytes)
           in
-          let remaining_samples =
+          let remaining_ticks =
             (float gen_len) +.
             (float (file_size - in_bytes)) *. compression
           in
-            (* I suspect that in_bytes in not accurate, since I don't
-             * get an exact countdown after that in_size=in_bytes.
-             * Instead, there is a stall at the beginning
-             * after which the countdown starts. TODO really? *)
-            int_of_float remaining_samples
+            int_of_float remaining_ticks
   in
     { Decoder.fill = fill ; Decoder.close = close }
 
