@@ -402,6 +402,14 @@ exception Unbound of T.pos option * string
   * more helpful. *)
 exception No_label of term * string * bool * term
 
+(** A simple delaying mechanism for printing toplevel tasks
+  * as late as possible, to avoid seeing to many unknown variables. *)
+let add_task, pop_tasks =
+  let q = Queue.create () in
+    (fun f -> Queue.add f q),
+    (fun () ->
+       try while true do (Queue.take q) () done with Queue.Empty -> ())
+
 (* Type-check an expression.
  * [level] should be the sum of the lengths of [env] and [builtins],
  * that is the size of the typing context, that is the number of surrounding
@@ -577,9 +585,22 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       let env = (name,(generalized,def.t))::env in
         l.gen <- generalized ;
         if print_toplevel then
-          Printf.printf "%s \t: %s\n%!" name (T.print ~generalized def.t) ;
+          (add_task (fun () ->
+             Printf.printf "%s \t: %s\n%!" name (T.print ~generalized def.t))) ;
         check ~print_toplevel ~level:(level+1) ~env body ;
         e.t >: body.t
+
+(* The simple definition for external use. *)
+let check e =
+  let print_toplevel = !Configure.display_types in
+    try
+      check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e ;
+      pop_tasks ()
+    with
+      | e -> pop_tasks () ; raise e
+
+
+(** {1 Computations} *)
 
 (** For internal use. I want to give an ID to sources built by FFI application
   * based on the name under which the FFI is registered.
@@ -594,8 +615,6 @@ let get_name f =
     "<ff>"
   with
     | F s -> s
-
-(** {1 Computations} *)
 
 (** This check could be done completely during type analysis,
   * if it were possible to distinguish active sources at this point.. *)
@@ -844,9 +863,3 @@ let rec eval_toplevel t =
              if v.V.t.T.pos = None then { v with V.t = a.t } else v) ;
         eval_toplevel b
     | _ -> eval ~env:builtins#get_all t
-
-(** Simpler definitions for external use. *)
-
-let check e =
-  let print_toplevel = !Configure.display_types in
-    check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e
