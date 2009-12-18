@@ -237,6 +237,7 @@ if test "$enable_nativecode" \!= "no" ; then
     if test "x$enable_debugging" = "xyes" ; then
         CFLAGS="$CFLAGS -g"
         ocamlcflags="-g $ocamlcflags"
+        ocamllflags="-g $ocamllflags"
     fi
     AC_MSG_CHECKING(whether ocamlopt accepts -ffast-math)
     if [ `$OCAMLFIND ocamlopt -ffast-math 2>/dev/null` ]; then
