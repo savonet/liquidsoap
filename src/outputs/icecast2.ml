@@ -213,6 +213,17 @@ object (self)
             ~infallible ~autostart ~on_start ~on_stop
             ~name:mount source
 
+  (** In this operator, we don't exactly follow the start/stop
+    * mechanism of Output.encoded because we want to control
+    * in a more subtle way the connection/disconnection with
+    * icecast.
+    * So we have specific icecast_start/stop procedures that
+    * only deal with the shout connection.
+    * And the global output_start/stop also deal with the encoder.
+    * As a result, if shout gets disconnected, encoding will keep
+    * going, and the sending will keep being attempted, which
+    * will at some point trigger a restart. *)
+
   (** When is the last time we tried to connect. *)
   val mutable last_attempt = 0.
 
@@ -221,106 +232,6 @@ object (self)
 
   val connection = Cry.create ()
   val mutable encoder = None
-
-  method send b =
-    match Cry.get_status connection with
-      | Cry.Disconnected ->
-          if Unix.time () > restart_delay +. last_attempt then begin
-            ignore(self#reset_encoder (Hashtbl.create 0));
-            self#output_start
-          end
-      | Cry.Connected _ ->
-          (* TODO think about some limitation of shout restarting *)
-          begin try
-            Cry.send connection b;
-            match dump with
-              | Some s -> output_string s b
-              | None -> () 
-          with
-            | Cry.Error e ->
-                self#log#f 2
-                  "Cry socket error: timeout, network failure, \
-                   server shutdown? Restarting the output in %.f seconds."
-                  restart_delay  ;
-                (* Ask for a restart after last_attempt. *)
-                self#output_stop ;
-                last_attempt <- Unix.time ()
-            end
-
-  (** It there's too much latency, we'll stop trying to catchup.
-    * Reconnect to cancel the latency on the server's side too. *)
-  method output_reset =
-    self#output_stop ;
-    self#output_start
-
-  method output_start =
-
-    assert (encoder = None) ;
-    encoder <- Some (encoder_factory self#id) ;
-
-    begin match dumpfile with
-      | Some f -> dump <- Some (open_out_bin f)
-      | None -> ()
-    end ;
-
-    assert (Cry.get_status connection = Cry.Disconnected) ;
-    self#log#f 3 "Connecting mount %s for %s@%s..." mount user host ;
-    let audio_info = Hashtbl.create 10 in
-    let f x y z =
-      match x with
-        | Some q -> Hashtbl.add audio_info y (z q)
-        | None -> ()
-    in
-      f icecast_info.bitrate "bitrate" string_of_int;
-      f icecast_info.quality "quality" (fun x -> x);
-      f icecast_info.samplerate "samplerate" string_of_int;
-      f icecast_info.channels "channels" string_of_int;
-      let user_agent =
-        Printf.sprintf "liquidsoap %s" Configure.version
-      in 
-      let source = 
-        Cry.connection ~host ~port ~user ~password
-                       ~genre ~url ~description ~name
-                       ~public ~protocol ~mount  
-                       ~audio_info ~user_agent ~content_type:format ()
-      in
-      List.iter (fun (x,y) -> Hashtbl.add source.Cry.headers x y) headers;
-
-      try
-        begin try
-          Cry.connect connection source
-        with
-          | Cry.Error x as e ->
-              self#log#f 2
-                "Connection failed: %s"
-                (Cry.string_of_error x) ;
-              raise e
-        end ;
-        self#log#f 3 "Connection setup was successful."
-      with
-        (* In restart mode, no_connect and no_login are not fatal.
-         * The output will just try to reconnect later. *)
-        | Cry.Error _ when restart -> 
-            self#log#f 3
-              "Connection failed, will try again in %.f sec."
-              restart_delay ;
-            self#output_stop ;
-            last_attempt <- Unix.time ()
-
-  method output_stop =
-    (* In some cases it might be possible to output the remaining data,
-     * but it's not worth the trouble. *)
-    ignore ((Utils.get_some encoder).Encoder.stop ()) ;
-    encoder <- None ;
-    self#log#f 3 "Closing connection..." ;
-    begin match Cry.get_status connection with
-      | Cry.Disconnected -> ()
-      | Cry.Connected _ ->
-          Cry.close connection
-    end ;
-    match dump with
-      | Some f -> close_out f
-      | None -> ()
 
   method encode frame ofs len =
     let enc = Utils.get_some encoder in
@@ -376,6 +287,108 @@ object (self)
           | Cry.Disconnected ->
               (* Do nothing if shout connection isn't available *)
               ""
+  method send b =
+    match Cry.get_status connection with
+      | Cry.Disconnected ->
+          if Unix.time () > restart_delay +. last_attempt then begin
+            ignore(self#reset_encoder (Hashtbl.create 0));
+            self#icecast_start
+          end
+      | Cry.Connected _ ->
+          (* TODO think about some limitation of shout restarting *)
+          begin try
+            Cry.send connection b;
+            match dump with
+              | Some s -> output_string s b
+              | None -> () 
+          with
+            | Cry.Error e ->
+                self#log#f 2
+                  "Cry socket error: timeout, network failure, \
+                   server shutdown? Restarting the output in %.f seconds."
+                  restart_delay  ;
+                (* Ask for a restart after last_attempt. *)
+                self#icecast_stop ;
+                last_attempt <- Unix.time ()
+            end
+
+  (** It there's too much latency, we'll stop trying to catchup.
+    * Reconnect to cancel the latency on the server's side too. *)
+  method output_reset =
+    self#output_stop ;
+    self#output_start
+
+  method output_start =
+    assert (encoder = None) ;
+    encoder <- Some (encoder_factory self#id) ;
+    self#icecast_start
+
+  method output_stop =
+    (* In some cases it might be possible to output the remaining data,
+     * but it's not worth the trouble. *)
+    ignore ((Utils.get_some encoder).Encoder.stop ()) ;
+    encoder <- None ;
+    self#icecast_stop
+
+  method icecast_start =
+    assert (Cry.get_status connection = Cry.Disconnected) ;
+    begin match dumpfile with
+      | Some f -> dump <- Some (open_out_bin f)
+      | None -> ()
+    end ;
+    self#log#f 3 "Connecting mount %s for %s@%s..." mount user host ;
+    let audio_info = Hashtbl.create 10 in
+    let f x y z =
+      match x with
+        | Some q -> Hashtbl.add audio_info y (z q)
+        | None -> ()
+    in
+      f icecast_info.bitrate "bitrate" string_of_int;
+      f icecast_info.quality "quality" (fun x -> x);
+      f icecast_info.samplerate "samplerate" string_of_int;
+      f icecast_info.channels "channels" string_of_int;
+      let user_agent =
+        Printf.sprintf "liquidsoap %s" Configure.version
+      in 
+      let source = 
+        Cry.connection ~host ~port ~user ~password
+                       ~genre ~url ~description ~name
+                       ~public ~protocol ~mount  
+                       ~audio_info ~user_agent ~content_type:format ()
+      in
+      List.iter (fun (x,y) -> Hashtbl.add source.Cry.headers x y) headers;
+
+      try
+        begin try
+          Cry.connect connection source
+        with
+          | Cry.Error x as e ->
+              self#log#f 2
+                "Connection failed: %s"
+                (Cry.string_of_error x) ;
+              raise e
+        end ;
+        self#log#f 3 "Connection setup was successful."
+      with
+        (* In restart mode, no_connect and no_login are not fatal.
+         * The output will just try to reconnect later. *)
+        | Cry.Error _ when restart -> 
+            self#log#f 3
+              "Connection failed, will try again in %.f sec."
+              restart_delay ;
+            self#icecast_stop ;
+            last_attempt <- Unix.time ()
+
+  method icecast_stop =
+    self#log#f 3 "Closing connection..." ;
+    begin match Cry.get_status connection with
+      | Cry.Disconnected -> ()
+      | Cry.Connected _ ->
+          Cry.close connection
+    end ;
+    match dump with
+      | Some f -> close_out f
+      | None -> ()
 
 end
 
