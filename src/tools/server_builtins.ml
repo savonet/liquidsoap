@@ -31,7 +31,7 @@ let () =
          String.concat " "
            (List.map
               string_of_int
-              (Request.alive_requests ()))) ;
+              (Request.all_requests ()))) ;
     add "request.alive"
       ~descr:"Get the identifiers of requests that are still in use."
       (fun args ->
