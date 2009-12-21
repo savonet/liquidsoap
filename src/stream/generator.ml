@@ -187,7 +187,7 @@ struct
   let fill fg frame =
     let offset = Frame.position frame in
     let buffer_size = Lazy.force Frame.size in
-    let needed = min buffer_size (remaining fg) in
+    let needed = min (buffer_size-offset) (remaining fg) in
     let blocks = Generator.get fg.generator needed in
       List.iter
         (fun (block,o,o',size) ->
