@@ -82,6 +82,40 @@ struct
 
 end
 
+module External =
+struct
+
+  exception No_process
+
+  type restart_condition = Delay of int | Track | No_condition
+
+  type t = {
+    channels            : int ;
+    samplerate          : int ;
+    header              : bool ;
+    restart_on_crash    : bool ;
+    restart             : restart_condition ;
+    process             : string 
+  }
+
+  let to_string e =
+    let string_of_restart_condition c = 
+      match c with
+        | Delay d      -> Printf.sprintf "restart_after_delay=%i" d
+        | Track        -> "restart_on_new_track"
+        | No_condition -> ""
+    in
+    Printf.sprintf "External(channels=%i,samplerate=%i,header=%s,restart_on_crash=%s,\
+                    %s,process=%s)"
+      e.channels
+      e.samplerate
+      (string_of_bool e.header)
+      (string_of_bool e.restart_on_crash)
+      (string_of_restart_condition e.restart)
+      e.process
+
+end
+
 module Speex =
 struct
 
@@ -202,6 +236,7 @@ type format =
   | WAV of WAV.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
+  | External of External.t
 
 let kind_of_format = function
   | WAV w ->
@@ -224,6 +259,9 @@ let kind_of_format = function
                { k with Frame.audio = k.Frame.audio+n })
         { Frame.audio = 0 ; Frame.video = 0 ; Frame.midi = 0 }
         l
+  | External e ->
+      { Frame.audio = e.External.channels ;
+        Frame.video = 0 ; Frame.midi = 0 }
 
 let kind_of_format f =
   let k = kind_of_format f in
@@ -235,6 +273,7 @@ let string_of_format = function
   | WAV w -> WAV.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
+  | External w -> External.to_string w
 
 (** An encoder, once initialized, is something that consumes
   * frames, and that you eventually close (triggers flushing). *)

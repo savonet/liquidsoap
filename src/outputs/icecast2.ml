@@ -63,8 +63,7 @@ let proto kind =
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) []),
      Some "Additional headers.") ;
     ("format", Lang.string_t, Some (Lang.string ""),
-     Some (Printf.sprintf
-             "When empty, the encoder is used to guess.")) ;
+     Some "Format, e.g. \"audio/ogg\". When empty, the encoder is used to guess.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
     "", Lang.format_t kind, None, Some "Encoding format." ;
@@ -99,6 +98,12 @@ class output ~kind p =
               bitrate = Some m.Encoder.MP3.bitrate ;
               samplerate = Some m.Encoder.MP3.samplerate ;
               channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
+            }, false
+        | Encoder.External m ->
+            { quality = None ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.External.samplerate ;
+              channels = Some m.Encoder.External.channels
             }, false
         | Encoder.Ogg o ->
             let info =

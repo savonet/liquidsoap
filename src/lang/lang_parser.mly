@@ -145,6 +145,44 @@
     in
       mk (Encoder (Encoder.MP3 mp3))
 
+  let mk_external params =
+    let defaults =
+      { Encoder.External.
+          channels = 2 ;
+          samplerate = 44100 ;
+          header  = true ;
+          restart_on_crash = false ;
+          restart = Encoder.External.No_condition ;
+          process = "" }
+    in
+    let ext =
+      List.fold_left
+        (fun f ->
+          function
+            | ("channels",{ term = Int c }) ->
+                { f with Encoder.External.channels = c }
+            | ("samplerate",{ term = Int i }) ->
+                { f with Encoder.External.samplerate = i }
+            | ("header",{ term = Bool h }) ->
+                { f with Encoder.External.header = h }
+            | ("restart_on_crash",{ term = Bool h }) ->
+                { f with Encoder.External.restart_on_crash = h }
+            | ("",{ term = Var s }) when String.lowercase s = "restart_on_new_track" ->
+                { f with Encoder.External.restart = Encoder.External.Track }
+            | ("restart_after_delay",{ term = Int i }) ->
+                { f with Encoder.External.restart = Encoder.External.Delay  i }
+            | ("process",{ term = String s }) ->
+                { f with Encoder.External.process = s }
+            | ("",{ term = String s }) ->
+                { f with Encoder.External.process = s }
+
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      if ext.Encoder.External.process = "" then
+        raise Encoder.External.No_process ;
+      mk (Encoder (Encoder.External ext))
+
   let mk_vorbis_cbr params =
     let defaults =
       { Encoder.Vorbis.
@@ -350,7 +388,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX WAV MP3
+%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX WAV MP3 EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -417,6 +455,7 @@ expr:
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
   | MP3 app_opt                      { mk_mp3 $2 }
+  | EXTERNAL app_opt                      { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }

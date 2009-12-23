@@ -97,7 +97,10 @@ conversions = \
 
 analyze = analyze/analyze_rms.ml
 
-encoders = encoder/wav_encoder.ml $(if $(W_LAME),encoder/lame_encoder.ml) \
+encoders = \
+	encoder/wav_encoder.ml \
+	encoder/external_encoder.ml \
+	$(if $(W_LAME),encoder/lame_encoder.ml) \
 	# $(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
 	$(if $(W_FAAC),outputs/faac_encoded.ml)
 
