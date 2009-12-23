@@ -35,7 +35,7 @@ let ladspa_enable =
   with
     | Not_found -> true
 
-let plugin_dirs = 
+let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_LADSPA_PATH" in
       Pcre.split ~pat:":" path
@@ -233,16 +233,20 @@ let norm_string s =
   let s = String.lowercase s in
     s
 
-let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
+(* List the indexes of control ports. *)
+let get_control_ports d =
   let ports = Descriptor.port_count d in
-  let control_ports =
-    let ans = ref [] in
-      for i = 0 to ports - 1 do
-        if Descriptor.port_is_control d i && Descriptor.port_is_input d i then
-          ans := i :: !ans;
-      done;
-      List.rev !ans
-  in
+  let ans = ref [] in
+    for i = 0 to ports - 1 do
+      if Descriptor.port_is_control d i && Descriptor.port_is_input d i then
+        ans := i :: !ans;
+    done;
+    List.rev !ans
+
+(* Make a parameter for each control port. Returns the liquidsoap parameters and
+ * the parameters for the plugin. *)
+let params_of_descr d =
+  let control_ports = get_control_ports d in
   let liq_params =
     let univ = ref 0 in
       List.map
@@ -284,38 +288,60 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
                            begin match t with
                              | Float ->
                                  bounds :=
-                                   Printf.sprintf "%s%.6g <= " !bounds f
+                                 Printf.sprintf "%s%.6g <= " !bounds f
                              | Int ->
                                  bounds :=
-                                   Printf.sprintf "%s%d <= " !bounds
-                                     (int_of_float (ceil f))
+                                 Printf.sprintf "%s%d <= " !bounds
+                                   (int_of_float (ceil f))
                              | Bool -> ()
                            end
                        | None -> ()
                      end ;
                      bounds :=
-                       !bounds ^ (norm_string (Descriptor.port_name d p));
+                     !bounds ^ (norm_string (Descriptor.port_name d p));
                      begin match max with
                        | Some f ->
                            begin match t with
                              | Float ->
                                  bounds :=
-                                   Printf.sprintf "%s <= %.6g" !bounds f
+                                 Printf.sprintf "%s <= %.6g" !bounds f
                              | Int ->
                                  bounds :=
-                                   Printf.sprintf "%s <= %d" !bounds
-                                     (int_of_float f)
+                                 Printf.sprintf "%s <= %d" !bounds
+                                   (int_of_float f)
                              | Bool -> ()
                            end
                        | None -> ()
                      end ;
                      !bounds ^ ")"
              in
-             Some (Descriptor.port_name d p ^ bounds ^ ".")
+               Some (Descriptor.port_name d p ^ bounds ^ ".")
         )
         control_ports
   in
+  let params p =
+    let f v = List.assoc v p in
+      List.map
+        (fun p ->
+           p,
+           let v = f (norm_string (Descriptor.port_name d p)) in
+             match port_t d p with
+               | Float -> Lang.to_float_getter v
+               | Int ->
+                   let f = float_of_int (Lang.to_int v) in
+                     fun () -> f
+                       | Bool ->
+                           let f = if Lang.to_bool v then 1. else 0. in
+                             fun () -> f
+        )
+        control_ports
+  in
+    liq_params, params
+
+
+let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
   let k = Lang.kind_type_of_kind_format ~fresh:1 (if stereo then Lang.audio_stereo else Lang.any_fixed) in
+  let liq_params, params = params_of_descr d in
   let liq_params =
     liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
   in
@@ -332,22 +358,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
            with
              | Not_found -> None
          in
-         let params =
-           List.map
-             (fun p ->
-                p,
-                let v = f (norm_string (Descriptor.port_name d p)) in
-                  match port_t d p with
-                    | Float -> Lang.to_float_getter v
-                    | Int ->
-                        let f = float_of_int (Lang.to_int v) in
-                          fun () -> f
-                    | Bool ->
-                        let f = if Lang.to_bool v then  1. else 0. in
-                          fun () -> f
-             )
-             control_ports
-         in
+         let params = params p in
            match inputs with
              | Some inputs ->
                  if stereo then
@@ -381,56 +392,56 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
                        params
       )
 
+(** Get input and output ports. *)
+let get_audio_ports d =
+  let i = ref [] in
+  let o = ref [] in
+  let ports = Descriptor.port_count d in
+    for n = 0 to ports - 1 do
+      if Descriptor.port_is_audio d n then
+        if Descriptor.port_is_input d n then
+          i := n :: !i
+        else
+          o := n :: !o
+    done;
+    Array.of_list (List.rev !i), Array.of_list (List.rev !o)
+
 (** Get the input and the output port. Raises [Not_found] if there is not
   * exactly one output and zero or one input. *)
 let get_io d =
-  let i, o = ref None, ref None in
-  let ports = Descriptor.port_count d in
-    for n = 0 to ports - 1 do
-      if Descriptor.port_is_audio d n then
-        if Descriptor.port_is_input d n then
-          if !i <> None then
-            raise Not_found
-          else
-            i := Some n
-        else
-          if !o <> None then
-            raise Not_found
-          else
-            o := Some n
-    done;
-    !i,
-    match !o with
-      | Some o -> o
-      | None -> raise Not_found
+  let i, o = get_audio_ports d in
+    (
+      if Array.length i = 0 then
+        None
+      else if Array.length i = 1 then
+        Some i.(0)
+      else
+        raise Not_found
+    ),
+    (
+      if Array.length o = 1 then
+        o.(0)
+      else
+        raise Not_found
+    )
 
 (* Same thing but for stereo I/O. *)
 let get_stereo_io d =
-  let i = ref None, ref None in
-  let o = ref None, ref None in
-  let ports = Descriptor.port_count d in
-    for n = 0 to ports - 1 do
-      if Descriptor.port_is_audio d n then
-        if Descriptor.port_is_input d n then
-          if !(fst i) = None then
-            fst i := Some n
-          else if !(snd i) = None then
-            snd i := Some n
-          else
-            raise Not_found
-        else
-          if !(fst o) = None then
-            fst o := Some n
-          else if !(snd o) = None then
-            snd o := Some n
-          else
-            raise Not_found
-    done;
-    match !(fst i), !(snd i), !(fst o), !(snd o) with
-      | Some i_l, Some i_r, Some o_l, Some o_r ->
-          (Some [|i_l; i_r|]), [|o_l; o_r|]
-      | None, None, Some o_l, Some o_r -> None, [|o_l; o_r|]
-      | _ -> raise Not_found
+  let i, o = get_audio_ports d in
+    (
+      if Array.length i = 0 then
+        None
+      else if Array.length i = 2 then
+        Some i
+      else
+        raise Not_found
+    ),
+    (
+      if Array.length o = 2 then
+        o
+      else
+        raise Not_found
+    )
 
 let register_plugin pname =
   try
@@ -477,7 +488,7 @@ let register_plugins () =
             | End_of_file -> Unix.closedir dir
       with
         | Unix.Unix_error (e,_,_) ->
-            log#f 4 "Error while loading directory %s: %s" 
+            log#f 4 "Error while loading directory %s: %s"
               plugins_dir (Unix.error_message e)
     in
       List.iter add plugin_dirs ;

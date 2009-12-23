@@ -102,7 +102,7 @@ AC_ARG_WITH([opal-include],
    AC_HELP_STRING(
       [--with-opal-include=path],
       [look for opal headers in path (defaults to /usr/include/opal)]))
-AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],[don't use opal]))
+AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],["don't use opal"]))
 
 W_OPAL=""
 w_OPAL=no
@@ -137,7 +137,7 @@ AC_ARG_WITH([v4l-include],
    AC_HELP_STRING(
       [--with-v4l-include=path],
       [look for v4l headers in path (defaults to /usr/include/linux)]))
-AC_ARG_ENABLE([v4l],AC_HELP_STRING([--disable-v4l],[don't use v4l]))
+AC_ARG_ENABLE([v4l],AC_HELP_STRING([--disable-v4l],["don't use v4l"]))
 
 if test "x$enable_v4l" != "xno" ; then
   AC_MSG_CHECKING(for v4l)
@@ -658,7 +658,7 @@ AC_ARG_WITH([mad-dir],
    AC_HELP_STRING(
       [--with-mad-dir=path],
       [look for ocaml-mad library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([mad],AC_HELP_STRING([--disable-mad],[don't use ocaml-mad]))
+AC_ARG_ENABLE([mad],AC_HELP_STRING([--disable-mad],["don't use ocaml-mad"]))
 
 if test "x$enable_mad" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-mad)
@@ -698,7 +698,7 @@ AC_ARG_WITH([lame-dir],
    AC_HELP_STRING(
       [--with-lame-dir=path],
       [look for ocaml-lame library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([lame],AC_HELP_STRING([--disable-lame],[don't use ocaml-lame]))
+AC_ARG_ENABLE([lame],AC_HELP_STRING([--disable-lame],["don't use ocaml-lame"]))
 
 if test "x$enable_lame" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-lame)
@@ -737,7 +737,7 @@ AC_ARG_WITH([aacplus-dir],
    AC_HELP_STRING(
       [--with-aacplus-dir=path],
       [look for ocaml-aacplus library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([aacplus],AC_HELP_STRING([--disable-aacplus],[don't use ocaml-aacplus]))
+AC_ARG_ENABLE([aacplus],AC_HELP_STRING([--disable-aacplus],["don't use ocaml-aacplus"]))
 
 if test "x$enable_aacplus" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-aacplus)
@@ -776,8 +776,7 @@ AC_ARG_WITH([theora-dir],
    AC_HELP_STRING(
       [--with-theora-dir=path],
       [look for ocaml-theora library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([theora],AC_HELP_STRING([--disable-theora],[don't use ocaml-theora]))
-
+AC_ARG_ENABLE([theora],AC_HELP_STRING([--disable-theora],["don't use ocaml-theora"]))
 if test "x$enable_theora" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-theora)
 if test -z "$with_theora_dir" ; then
@@ -815,7 +814,7 @@ AC_ARG_WITH([schroedinger-dir],
    AC_HELP_STRING(
       [--with-schroedinger-dir=path],
       [look for ocaml-schroedinger library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([schroedinger],AC_HELP_STRING([--disable-schroedinger],[don't use ocaml-schroedinger]))
+AC_ARG_ENABLE([schroedinger],AC_HELP_STRING([--disable-schroedinger],["don't use ocaml-schroedinger"]))
 
 if test "x$enable_schroedinger" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-schroedinger)
@@ -854,7 +853,7 @@ AC_ARG_WITH([gavl-dir],
    AC_HELP_STRING(
       [--with-gavl-dir=path],
       [look for ocaml-gavl library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([gavl],AC_HELP_STRING([--disable-gavl],[don't use ocaml-gavl]))
+AC_ARG_ENABLE([gavl],AC_HELP_STRING([--disable-gavl],["don't use ocaml-gavl"]))
 
 if test "x$enable_gavl" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-gavl)
@@ -893,7 +892,7 @@ AC_ARG_WITH([bjack-dir],
    AC_HELP_STRING(
       [--with-bjack-dir=path],
       [look for ocaml-bjack library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([bjack],AC_HELP_STRING([--disable-bjack],[don't use ocaml-bjack]))
+AC_ARG_ENABLE([bjack],AC_HELP_STRING([--disable-bjack],["don't use ocaml-bjack"]))
 
 if test "x$enable_bjack" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-bjack)
@@ -932,7 +931,7 @@ AC_ARG_WITH([jack-dir],
    AC_HELP_STRING(
       [--with-jack-dir=path],
       [look for ocaml-jack library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([jack],AC_HELP_STRING([--disable-jack],[don't use ocaml-jack]))
+AC_ARG_ENABLE([jack],AC_HELP_STRING([--disable-jack],["don't use ocaml-jack"]))
 
 if test "x$enable_jack" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-jack)
@@ -971,7 +970,7 @@ AC_ARG_WITH([alsa-dir],
    AC_HELP_STRING(
       [--with-alsa-dir=path],
       [look for ocaml-alsa library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([alsa],AC_HELP_STRING([--disable-alsa],[don't use ocaml-alsa]))
+AC_ARG_ENABLE([alsa],AC_HELP_STRING([--disable-alsa],["don't use ocaml-alsa"]))
 
 if test "x$enable_alsa" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-alsa)
@@ -1010,7 +1009,7 @@ AC_ARG_WITH([ao-dir],
    AC_HELP_STRING(
       [--with-ao-dir=path],
       [look for ocaml-ao library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([ao],AC_HELP_STRING([--disable-ao],[don't use ocaml-ao]))
+AC_ARG_ENABLE([ao],AC_HELP_STRING([--disable-ao],["don't use ocaml-ao"]))
 
 if test "x$enable_ao" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-ao)
@@ -1049,7 +1048,7 @@ AC_ARG_WITH([samplerate-dir],
    AC_HELP_STRING(
       [--with-samplerate-dir=path],
       [look for ocaml-samplerate library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([samplerate],AC_HELP_STRING([--disable-samplerate],[don't use ocaml-samplerate]))
+AC_ARG_ENABLE([samplerate],AC_HELP_STRING([--disable-samplerate],["don't use ocaml-samplerate"]))
 
 if test "x$enable_samplerate" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-samplerate)
@@ -1089,7 +1088,7 @@ AC_ARG_WITH([taglib-dir],
       [--with-taglib-dir=path],
       [look for ocaml-taglib library in "path" (autodetected by default)]))
 AC_ARG_ENABLE([taglib],
-              AC_HELP_STRING([--disable-taglib],[don't use ocaml-taglib]))
+              AC_HELP_STRING([--disable-taglib],["don't use ocaml-taglib"]))
 
 if test "x$enable_taglib" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-taglib)
@@ -1124,7 +1123,7 @@ fi
 # OSS
 #
 
-AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],[don't use OSS]))
+AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],["don't use OSS"]))
 
 if test "x$enable_oss" != "xno" ; then
   AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
@@ -1146,7 +1145,7 @@ AC_ARG_WITH([magic-dir],
       [--with-magic-dir=path],
       [look for ocaml-magic library in "path" (autodetected by default)]))
 AC_ARG_ENABLE([magic],
-              AC_HELP_STRING([--disable-magic],[don't use ocaml-magic]))
+              AC_HELP_STRING([--disable-magic],["don't use ocaml-magic"]))
 
 if test "x$enable_magic" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-magic)
@@ -1196,7 +1195,7 @@ AC_ARG_WITH([camomile-dir],
       [--with-camomile-dir=path],
       [look for ocaml-camomile library in "path" (autodetected by default)]))
 AC_ARG_ENABLE([camomile],
-              AC_HELP_STRING([--disable-camomile],[don't use ocaml-camomile]))
+              AC_HELP_STRING([--disable-camomile],["don't use ocaml-camomile"]))
 
 if test "x$enable_camomile" != "xno" ; then
 AC_MSG_CHECKING(for camomile)
@@ -1324,7 +1323,7 @@ AC_ARG_WITH([faad-dir],
    AC_HELP_STRING(
       [--with-faad-dir=path],
       [look for ocaml-faad library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([faad],AC_HELP_STRING([--disable-faad],[don't use ocaml-faad]))
+AC_ARG_ENABLE([faad],AC_HELP_STRING([--disable-faad],["don't use ocaml-faad"]))
 
 if test "x$enable_faad" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-faad)
@@ -1364,7 +1363,7 @@ AC_ARG_WITH([faac-dir],
    AC_HELP_STRING(
       [--with-faac-dir=path],
       [look for ocaml-faac library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([faac],AC_HELP_STRING([--disable-faac],[don't use ocaml-faac]))
+AC_ARG_ENABLE([faac],AC_HELP_STRING([--disable-faac],["don't use ocaml-faac"]))
 
 if test "x$enable_faac" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-faac)
@@ -1404,7 +1403,7 @@ AC_ARG_WITH([soundtouch-dir],
    AC_HELP_STRING(
       [--with-soundtouch-dir=path],
       [look for ocaml-soundtouch library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([soundtouch],AC_HELP_STRING([--disable-soundtouch],[don't use ocaml-soundtouch]))
+AC_ARG_ENABLE([soundtouch],AC_HELP_STRING([--disable-soundtouch],["don't use ocaml-soundtouch"]))
 
 if test "x$enable_soundtouch" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-soundtouch)
@@ -1444,7 +1443,7 @@ AC_ARG_WITH([portaudio-dir],
    AC_HELP_STRING(
       [--with-portaudio-dir=path],
       [look for ocaml-portaudio library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([portaudio],AC_HELP_STRING([--disable-portaudio],[don't use ocaml-portaudio]))
+AC_ARG_ENABLE([portaudio],AC_HELP_STRING([--disable-portaudio],["don't use ocaml-portaudio"]))
 
 if test "x$enable_portaudio" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-portaudio)
@@ -1484,7 +1483,7 @@ AC_ARG_WITH([pulseaudio-dir],
    AC_HELP_STRING(
       [--with-pulseaudio-dir=path],
       [look for ocaml-pulseaudio library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([pulseaudio],AC_HELP_STRING([--disable-pulseaudio],[don't use ocaml-pulseaudio]))
+AC_ARG_ENABLE([pulseaudio],AC_HELP_STRING([--disable-pulseaudio],["don't use ocaml-pulseaudio"]))
 
 if test "x$enable_pulseaudio" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-pulseaudio)
@@ -1524,7 +1523,7 @@ AC_ARG_WITH([ladspa-dir],
    AC_HELP_STRING(
       [--with-ladspa-dir=path],
       [look for ocaml-ladspa library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([ladspa],AC_HELP_STRING([--disable-ladspa],[don't use ocaml-ladspa]))
+AC_ARG_ENABLE([ladspa],AC_HELP_STRING([--disable-ladspa],["don't use ocaml-ladspa"]))
 
 if test "x$enable_ladspa" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-ladspa)
@@ -1557,6 +1556,46 @@ else
 fi
 
 #
+# DSSI
+#
+
+AC_ARG_WITH([dssi-dir],
+   AC_HELP_STRING(
+      [--with-dssi-dir=path],
+      [look for ocaml-dssi library in "path" (autodetected by default)]))
+AC_ARG_ENABLE([dssi],AC_HELP_STRING([--disable-dssi],["don't use ocaml-dssi"]))
+
+if test "x$enable_dssi" != "xno" ; then
+AC_MSG_CHECKING(for ocaml-dssi)
+if test -z "$with_dssi_dir" ; then
+    if ! $OCAMLFIND query dssi > /dev/null 2>&1 ; then
+        AC_MSG_RESULT(not found)
+    else
+        W_DSSI=yes
+        AC_MSG_RESULT(ok)
+        ocamlcflags="$ocamlcflags -package dssi"
+        requires="$requires dssi"
+    fi
+else
+    echo $with_dssi_dir | grep ^/ > /dev/null 2>&1 \
+        || with_dssi_dir=$PWD/$with_dssi_dir
+    ocamlcflags="$ocamlcflags -I $with_dssi_dir"
+    ocamllflags="$ocamllflags dssi.$cma"
+    requires="$requires dssi"
+    W_DSSI=yes
+    AC_MSG_RESULT(ok)
+fi
+fi
+
+AC_SUBST(W_DSSI)
+
+if test -z "$W_DSSI" ; then
+    w_DSSI=no
+else
+    w_DSSI=yes
+fi
+
+#
 # SDL
 #
 
@@ -1564,7 +1603,7 @@ AC_ARG_WITH([sdl-dir],
    AC_HELP_STRING(
       [--with-sdl-dir=path],
       [look for ocaml-sdl library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([sdl],AC_HELP_STRING([--disable-sdl],[don't use ocaml-sdl]))
+AC_ARG_ENABLE([sdl],AC_HELP_STRING([--disable-sdl],["don't use ocaml-sdl"]))
 
 if test "x$enable_sdl" != "xno" ; then
 AC_MSG_CHECKING(for ocaml-sdl)
@@ -1600,7 +1639,7 @@ fi
 # camlimages
 #
 
-AC_ARG_ENABLE([camlimages],AC_HELP_STRING([--disable-camlimages],[don't use camlimages]))
+AC_ARG_ENABLE([camlimages],AC_HELP_STRING([--disable-camlimages],["don't use camlimages"]))
 
 if test "x$enable_camlimages" = "xyes" ; then
     AC_MSG_CHECKING(for ocaml-camlimages)
@@ -1675,7 +1714,7 @@ fi
 #
 
 AC_ARG_ENABLE([gui],
-       AC_HELP_STRING([--disable-gui],[don't use the controller GUI]))
+       AC_HELP_STRING([--disable-gui],["don't use the controller GUI"]))
 w_PYTHON=no
 if test "x$enable_gui" != "xno" ; then
 AC_PATH_PROG(PYTHON,python,no)
@@ -1814,6 +1853,9 @@ cat <<EOMSG
  * Video manipulation
    - Gavl              : $w_GAVL
    - camlimages        : $w_CAMLIMAGES
+
+ * MIDI manipulation
+   - DSSI              : $w_DSSI
 
  * Visualization
    - Graphics          : $w_GRAPHICS

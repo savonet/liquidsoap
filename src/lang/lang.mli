@@ -116,6 +116,7 @@ val any_fixed_with : ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_
 val audio_any : lang_kind_formats
 val audio_mono : lang_kind_formats
 val audio_stereo : lang_kind_formats
+val audio_n : int -> lang_kind_formats
 val audio_variable : lang_kind_formats
 
 val video_only : lang_kind_formats

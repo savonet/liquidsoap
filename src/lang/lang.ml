@@ -153,13 +153,13 @@ let audio_any =
         video = Fixed 0 ;
         midi = Fixed 0 }
 
-let audio_mono =
+let audio_n n =
   Constrained
-    { Frame. audio = Fixed 1 ; video = Fixed 0 ; midi = Fixed 0 }
+    { Frame. audio = Fixed n ; video = Fixed 0 ; midi = Fixed 0 }
 
-let audio_stereo =
-  Constrained
-    { Frame. audio = Fixed 2 ; video = Fixed 0 ; midi = Fixed 0 }
+let audio_mono = audio_n 1
+
+let audio_stereo = audio_n 2
 
 let video_only =
   Constrained
