@@ -83,7 +83,7 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "visu.glvolume"
     [ "", Lang.source_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
