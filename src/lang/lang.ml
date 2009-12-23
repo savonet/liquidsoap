@@ -165,6 +165,10 @@ let video_only =
   Constrained
     { Frame. audio = Fixed 0 ; video = Fixed 1 ; midi = Fixed 0 }
 
+let midi_only =
+  Constrained
+    { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed 1 }
+
 let kind_type_of_kind_format ~fresh fmt =
   match fmt with
     | Unconstrained t -> t

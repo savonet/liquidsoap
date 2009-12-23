@@ -40,20 +40,17 @@ let plugin_dirs =
   with
     | Not_found -> ["/usr/lib/dssi";"/usr/local/lib/dssi"]
 
-class dssi ~kind plugin descr outputs params =
+class dssi ~kind plugin descr outputs params source =
 object (self)
-  inherit source kind
+  inherit operator kind [source] as super
 
-  method stype = Infallible
+  method stype = source#stype
 
-  method is_ready = true
+  method remaining = source#remaining
 
-  val mutable must_fail = false
+  method is_ready = source#is_ready
 
-  method abort_track =
-    must_fail <- true
-
-  method remaining = -1
+  method abort_track = source#abort_track
 
   val di =
     let p = Plugin.load plugin in
@@ -68,41 +65,55 @@ object (self)
     Ladspa.Descriptor.activate (snd di)
 
   method private get_frame buf =
-    if must_fail then
-      (
-        AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false
-      )
-    else
-      let descr, inst = di in
-      let offset = AFrame.position buf in
-      let b = AFrame.content buf offset in
-      let position = AFrame.size () in
-      let len = position - offset in
-        List.iter
-          (fun (p,v) -> Ladspa.Descriptor.connect_control_port_in inst p (v ()))
-          params;
-        Ladspa.Descriptor.set_samples inst len;
-        for c = 0 to Array.length outputs - 1 do
-          Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+    let descr, inst = di in
+    let offset = AFrame.position buf in
+    let evs = (MFrame.content buf (MFrame.position buf)) in
+    source#get buf;
+    let b = AFrame.content buf offset in
+    let position = AFrame.position buf in
+    let len = position - offset in
+    let evs =
+      let ans = ref [] in
+        (* TODO: correctly handle delta times *)
+        for c = 0 to Array.length evs - 1 do
+          List.iter
+            (function (t, e) -> match e with
+               | Midi.Note_on (n, v) ->
+                   ans := (0, Dssi.Event_note_on (c, n, int_of_float (v *. 127.))) :: !ans
+               | Midi.Note_off (n, v) ->
+                   ans := (0, Dssi.Event_note_off (c, n, int_of_float (v *. 127.))) :: !ans
+               | _ -> () (* TODO *)
+            ) !(evs.(c))
         done;
-        Descriptor.run_synth descr inst len [||] (*TODO: events... *);
-        AFrame.add_break buf position
+        Array.of_list (List.rev !ans)
+    in
+      List.iter
+        (fun (p,v) -> Ladspa.Descriptor.connect_control_port_in inst p (v ()))
+        params;
+      Ladspa.Descriptor.set_samples inst len;
+      for c = 0 to Array.length outputs - 1 do
+        Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+      done;
+      Descriptor.run_synth descr inst len evs;
+      AFrame.add_break buf position
 end
 
 let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.audio_n (Array.length outputs)) in
-  let liq_params = liq_params in
+  let chans = Array.length outputs in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:chans ~midi:1 ()) in
+  let liq_params = liq_params@["", Lang.source_t k, None, None] in
     Lang.add_operator ("dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr)) liq_params
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
       ~flags:[Lang.Hidden]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
+         let f v = List.assoc v p in
+         let source = Lang.to_source (f "") in
          let params = params p in
-           new dssi ~kind plugin_name descr_n outputs params
+           new dssi ~kind plugin_name descr_n outputs params source
       )
 
 let register_plugin pname =
