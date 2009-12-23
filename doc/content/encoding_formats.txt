@@ -78,7 +78,18 @@ You can also control quality using @abr=x@ or @vbr=y@.
 
 h4. External encoders
 
-Not yet implemented (as of December 13, 2009).
+%%
+%external(channels=2,samplerate=44100,header=true,
+          restart_on_crash=false,
+          restart_on_new_track,
+          restart_after_delay=<int>,
+          process="")
+%%
+
+Only one of @restart_on_new_track@ and @restart_after_delay@ should
+be passed. The delay is specified in seconds.
+The encoding process is mandatory, and can also be passed directly
+as a string, without @process=@.
 
 h3. Formats determine the stream content
 

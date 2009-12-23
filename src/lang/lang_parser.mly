@@ -167,7 +167,8 @@
                 { f with Encoder.External.header = h }
             | ("restart_on_crash",{ term = Bool h }) ->
                 { f with Encoder.External.restart_on_crash = h }
-            | ("",{ term = Var s }) when String.lowercase s = "restart_on_new_track" ->
+            | ("",{ term = Var s })
+              when String.lowercase s = "restart_on_new_track" ->
                 { f with Encoder.External.restart = Encoder.External.Track }
             | ("restart_after_delay",{ term = Int i }) ->
                 { f with Encoder.External.restart = Encoder.External.Delay  i }
@@ -455,7 +456,7 @@ expr:
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
   | MP3 app_opt                      { mk_mp3 $2 }
-  | EXTERNAL app_opt                      { mk_external $2 }
+  | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }
@@ -507,6 +508,7 @@ cexpr:
   | GET expr                         { mk (Get $2) }
   | cexpr SET expr                   { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
+  | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }

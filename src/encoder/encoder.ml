@@ -28,7 +28,7 @@ struct
 
   type t = { stereo : bool }
 
-  let to_string w = Printf.sprintf "WAV(%s)" (string_of_stereo w.stereo)
+  let to_string w = Printf.sprintf "%%wav(%s)" (string_of_stereo w.stereo)
 
 end
 
@@ -57,7 +57,7 @@ struct
         Printf.sprintf "quality=%.2f" q
 
   let to_string v =
-    Printf.sprintf "Vorbis(%s,%d channels,samplerate=%d)"
+    Printf.sprintf "%%vorbis(%s,%d channels,samplerate=%d)"
       (string_of_mode v.mode)
       v.channels
       v.samplerate
@@ -74,7 +74,7 @@ struct
   }
 
   let to_string m =
-    Printf.sprintf "MP3(%s,quality=%d,samplerate=%d,bitrate=%d)"
+    Printf.sprintf "%%mp3(%s,quality=%d,samplerate=%d,bitrate=%d)"
       (string_of_stereo m.stereo)
       m.quality
       m.samplerate
@@ -105,8 +105,8 @@ struct
         | Track        -> "restart_on_new_track"
         | No_condition -> ""
     in
-    Printf.sprintf "External(channels=%i,samplerate=%i,header=%s,restart_on_crash=%s,\
-                    %s,process=%s)"
+    Printf.sprintf "%%external(channels=%i,samplerate=%i,header=%s,\
+                              restart_on_crash=%s,%s,process=%s)"
       e.channels
       e.samplerate
       (string_of_bool e.header)
@@ -149,7 +149,8 @@ struct
       | Some x -> Printf.sprintf ",complexity=%d" x
 
   let to_string m =
-    Printf.sprintf "Speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s)"
+    Printf.sprintf
+      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s)"
       (string_of_stereo m.stereo)
       (string_of_br_ctl m.bitrate_control)
       m.samplerate
@@ -207,7 +208,8 @@ struct
 
   let to_string dr =
     let f = Lazy.force in
-    Printf.sprintf "Dirac(quality=%02f,width=%d,height=%d,aspect_numerator=%d,aspect_denominator=%d)"
+    Printf.sprintf "%%dirac(quality=%02f,width=%d,height=%d,\
+                            aspect_numerator=%d,aspect_denominator=%d)"
     dr.quality (f dr.width) (f dr.height)
     dr.aspect_numerator dr.aspect_denominator
 
@@ -220,7 +222,7 @@ struct
   type t = item list
 
   let to_string l =
-    Printf.sprintf "Ogg(%s)"
+    Printf.sprintf "%%ogg(%s)"
       (String.concat ","
          (List.map
             (function
