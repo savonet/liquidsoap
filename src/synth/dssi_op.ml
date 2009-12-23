@@ -94,8 +94,7 @@ object (self)
       for c = 0 to Array.length outputs - 1 do
         Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
       done;
-      Descriptor.run_synth descr inst len evs;
-      AFrame.add_break buf position
+      Descriptor.run_synth descr inst len evs
 end
 
 let register_descr plugin_name descr_n descr outputs =
