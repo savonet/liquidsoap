@@ -124,3 +124,56 @@ let () =
     [ "", Lang.source_t input, None, None ]
     (fun p kind ->
        new drop_audio ~kind (Lang.to_source (List.assoc "" p)))
+
+class drop_midi ~kind source =
+object
+  inherit Source.operator kind [source]
+
+  method stype = source#stype
+  method is_ready = source#is_ready
+  method abort_track = source#abort_track
+  method remaining = source#remaining
+
+  method private get_frame frame =
+    let start = Frame.position frame in
+    let stop  = source#get frame ; Frame.position frame in
+    let _,src = Frame.content frame start in
+    let new_type = { (Frame.type_of_content src) with Frame.midi = 0 } in
+    let dst = Frame.content_of_type frame start new_type in
+      for i = 0 to Array.length src.Frame.audio - 1 do
+        let (!) = Frame.audio_of_master in
+          Float_pcm.blit
+            src.Frame.audio.(i) !start
+            dst.Frame.audio.(i) !start
+            !stop
+      done ;
+      for i = 0 to Array.length src.Frame.video - 1 do
+        let (!) = Frame.video_of_master in
+          for j = 0 to !stop-1 do
+            RGB.blit_fast
+              src.Frame.video.(i).(!start+j)
+              dst.Frame.video.(i).(!start+j)
+          done
+      done
+end
+
+let () =
+  let input =
+    Lang.frame_kind_t
+      ~audio:(Lang.univ_t 1)
+      ~video:(Lang.univ_t 2)
+      ~midi:(Lang.univ_t 3)
+  in
+  let output =
+    Lang.frame_kind_t
+      ~audio:(Lang.univ_t 1)
+      ~video:(Lang.univ_t 2)
+      ~midi:Lang.zero_t
+  in
+  Lang.add_operator "drop_midi"
+    ~category:Lang.Conversions
+    ~descr:"Drop all midi channels of a stream."
+    ~kind:(Lang.Unconstrained output)
+    [ "", Lang.source_t input, None, None ]
+    (fun p kind ->
+       new drop_midi ~kind (Lang.to_source (List.assoc "" p)))
