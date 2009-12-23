@@ -47,6 +47,7 @@ type event =
   | Key_signature of int * bool
   | Custom of string
 
+(** First element is the number of ticks from the begining of the frame. *)
 type track = (int * event) list
 
 let create_track () = []

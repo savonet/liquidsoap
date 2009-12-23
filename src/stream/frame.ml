@@ -114,9 +114,11 @@ let m_o_v = delayed (fun () -> !!master_rate / !!video_rate)
 
 let master_of_audio a = a * !!m_o_a
 let master_of_video v = v * !!m_o_v
+let master_of_midi m = m
 
 let audio_of_master m = m / !!m_o_a
 let video_of_master m = m / !!m_o_v
+let midi_of_master m = m
 
 let master_of_seconds d = int_of_float (d *. float !!master_rate)
 let audio_of_seconds d = int_of_float (d *. float !!audio_rate)

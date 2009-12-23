@@ -74,15 +74,16 @@ object (self)
     let len = position - offset in
     let evs =
       let ans = ref [] in
-        (* TODO: correctly handle delta times *)
         for c = 0 to Array.length evs - 1 do
           List.iter
-            (function (t, e) -> match e with
-               | Midi.Note_on (n, v) ->
-                   ans := (0, Dssi.Event_note_on (c, n, int_of_float (v *. 127.))) :: !ans
-               | Midi.Note_off (n, v) ->
-                   ans := (0, Dssi.Event_note_off (c, n, int_of_float (v *. 127.))) :: !ans
-               | _ -> () (* TODO *)
+            (function (t, e) ->
+              let t = Frame.audio_of_master (Frame.master_of_midi t) in
+                match e with
+                  | Midi.Note_on (n, v) ->
+                      ans := (t, Dssi.Event_note_on (c, n, int_of_float (v *. 127.))) :: !ans
+                  | Midi.Note_off (n, v) ->
+                      ans := (t, Dssi.Event_note_off (c, n, int_of_float (v *. 127.))) :: !ans
+                  | _ -> () (* TODO *)
             ) !(evs.(c))
         done;
         Array.of_list (List.rev !ans)
@@ -94,7 +95,8 @@ object (self)
       for c = 0 to Array.length outputs - 1 do
         Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
       done;
-      Descriptor.run_synth descr inst len evs
+      Descriptor.run_synth descr inst len evs;
+      Ladspa.Descriptor.run inst
 end
 
 let register_descr plugin_name descr_n descr outputs =

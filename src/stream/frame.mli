@@ -128,8 +128,10 @@ val duration : float Lazy.t
 
 val audio_of_master : int -> int
 val video_of_master : int -> int
+val midi_of_master : int -> int
 val master_of_audio : int -> int
 val master_of_video : int -> int
+val master_of_midi : int -> int
 
 val master_of_seconds : float -> int
 val audio_of_seconds : float -> int
