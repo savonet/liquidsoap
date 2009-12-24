@@ -102,7 +102,7 @@ let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:chans ~midi:1 ()) in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.Constrained {Frame. audio = Lang.Fixed chans; video = Lang.Any_fixed 0; midi = Lang.Fixed 1}) in
   let liq_params = liq_params@["", Lang.source_t k, None, None] in
     Lang.add_operator ("dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr)) liq_params
       ~kind:(Lang.Unconstrained k)
