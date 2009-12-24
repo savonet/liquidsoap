@@ -20,8 +20,12 @@
 
  *****************************************************************************)
 
-let knotes2 = [|'&'; 'a'; '\233'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '\232'; 'u'; 'i'; '\231'; 'o'; '\224'; 'p'|]
-let knotes1 = [|'q'; 'w'; 's'; 'x'; 'd'; 'c'; 'v'; 'g'; 'b'; 'h'; 'n'; 'j'; ','; ';'; 'l'; ':'; 'm'; '!'|]
+let knotes2 =
+  [|'&'; 'a'; '\233'; 'z'; '"'; 'e'; 'r'; '('; 't';
+    '-'; 'y'; '\232'; 'u'; 'i'; '\231'; 'o'; '\224'; 'p'|]
+let knotes1 =
+  [|'q'; 'w'; 's'; 'x'; 'd'; 'c'; 'v'; 'g'; 'b';
+    'h'; 'n'; 'j'; ','; ';'; 'l'; ':'; 'm'; '!'|]
 
 let array_index a x =
   let ans = ref None in
@@ -52,7 +56,9 @@ object (self)
   initializer
     Sdl.init [`EVENTTHREAD; `VIDEO];
     Sdlevent.disable_events (Sdlevent.all_events_mask);
-    Sdlevent.enable_events (Sdlevent.make_mask [Sdlevent.KEYDOWN_EVENT; Sdlevent.KEYUP_EVENT; Sdlevent.QUIT_EVENT]);
+    Sdlevent.enable_events
+      (Sdlevent.make_mask
+         [Sdlevent.KEYDOWN_EVENT; Sdlevent.KEYUP_EVENT; Sdlevent.QUIT_EVENT]);
     ignore (Sdlvideo.set_video_mode ~w:640 ~h:480 ~bpp:16 [])
 
   val mutable reader = None
@@ -98,9 +104,13 @@ end
 let () =
   Lang.add_operator "input.keyboard.sdl"
     [
-      "velocity", Lang.float_t, Some (Lang.float 0.8), Some "Velocity of notes."
+      "velocity", Lang.float_t, Some (Lang.float 0.8),
+      Some "Velocity of notes."
     ]
-    ~kind:(Lang.Constrained { Frame. audio = Lang.Any_fixed 0 ; video = Lang.Fixed 0 ; midi = Lang.Any_fixed 1 })
+    ~kind:(Lang.Constrained
+             { Frame. audio = Lang.Any_fixed 0 ;
+                      video = Lang.Fixed 0 ;
+                      midi = Lang.Any_fixed 1 })
     ~category:Lang.Input
     ~flags:[Lang.Experimental]
     ~descr:"Play notes from the keyboard."
