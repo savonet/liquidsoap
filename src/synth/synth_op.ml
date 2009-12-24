@@ -94,6 +94,7 @@ let register obj name descr =
        in
        let src = Lang.to_source (f "") in
          new synth ~kind (obj adsr) src chan volume);
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:16 ()) in
   Lang.add_operator ("synth.all." ^ name)
     [
       "attack", Lang.float_t, Some (Lang.float 0.02), Some "Envelope attack (in seconds).";
