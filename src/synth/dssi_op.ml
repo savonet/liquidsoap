@@ -40,7 +40,7 @@ let plugin_dirs =
   with
     | Not_found -> ["/usr/lib/dssi";"/usr/local/lib/dssi"]
 
-class dssi ~kind plugin descr outputs params source =
+class dssi ~kind plugin descr outputs params chan source =
 object (self)
   inherit operator kind [source] as super
 
@@ -71,27 +71,26 @@ object (self)
     let _,content = Frame.content buf offset in
     let b = content.Frame.audio in
     let evs = content.Frame.midi in
+    let evs = !(evs.(chan)) in
     (* Now convert everything to audio samples. *)
     let offset = Frame.audio_of_master offset in
     let position = Frame.audio_of_master position in
     let len = position - offset in
     let evs =
       let ans = ref [] in
-        for c = 0 to Array.length evs - 1 do
-          List.iter
-            (function (t, e) ->
-              let t = Frame.audio_of_master (Frame.master_of_midi t) in
-              let push x = ans := (t,x) :: !ans in
-                match e with
-                  | Midi.Note_on (n, v) ->
-                      push
-                        (Dssi.Event_note_on (c, n, int_of_float (v *. 127.)))
-                  | Midi.Note_off (n, v) ->
-                      push
-                        (Dssi.Event_note_off (c, n, int_of_float (v *. 127.)))
-                  | _ -> () (* TODO *)
-            ) !(evs.(c))
-        done;
+        List.iter
+          (function (t, e) ->
+            let t = Frame.audio_of_master (Frame.master_of_midi t) in
+            let push x = ans := (t,x) :: !ans in
+              match e with
+                | Midi.Note_on (n, v) ->
+                    push
+                      (Dssi.Event_note_on (0, n, int_of_float (v *. 127.)))
+                | Midi.Note_off (n, v) ->
+                    push
+                      (Dssi.Event_note_off (0, n, int_of_float (v *. 127.)))
+                | _ -> () (* TODO *)
+          ) evs;
         Array.of_list (List.rev !ans)
     in
       List.iter
@@ -115,7 +114,11 @@ let register_descr plugin_name descr_n descr outputs =
                                 video = Lang.Any_fixed 0;
                                 midi = Lang.Fixed 1})
   in
-  let liq_params = liq_params@["", Lang.source_t k, None, None] in
+  let liq_params =
+    ["channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle."]
+    @liq_params
+    @["", Lang.source_t k, None, None]
+  in
     Lang.add_operator
       ("dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
       liq_params
@@ -125,9 +128,10 @@ let register_descr plugin_name descr_n descr outputs =
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in
+         let chan = Lang.to_int (f "channel") in
          let source = Lang.to_source (f "") in
          let params = params p in
-           new dssi ~kind plugin_name descr_n outputs params source
+           new dssi ~kind plugin_name descr_n outputs params chan source
       )
 
 let register_plugin pname =
