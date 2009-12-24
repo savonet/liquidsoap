@@ -63,6 +63,8 @@ object (self)
 
   val mutable reader = None
 
+  val mutable velocity = velocity
+
   method output_get_ready = ()
 
   method output_reset = ()
@@ -80,9 +82,14 @@ object (self)
             match Sdlevent.poll () with
               | Some (Sdlevent.KEYDOWN k) ->
                   let c = Sdlkey.char_of_key k.Sdlevent.keysym in
-                  let n = note_of_char c in
-                    (* Printf.printf "Playing note %d.\n%!" n; *)
-                    ans := (0,Midi.Note_on (n, velocity))::!ans
+                    if c = '+' || c = '*' then
+                      velocity <- min 1. (velocity +. 0.1)
+                    else if c = '-' || c = '/' then
+                      velocity <- max 0. (velocity -. 0.1)
+                    else
+                      let n = note_of_char c in
+                        (* Printf.printf "Playing note %d.\n%!" n; *)
+                        ans := (0,Midi.Note_on (n, velocity))::!ans
               | Some (Sdlevent.KEYUP k) ->
                   let c = Sdlkey.char_of_key k.Sdlevent.keysym in
                   let n = note_of_char c in
