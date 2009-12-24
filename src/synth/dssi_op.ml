@@ -66,11 +66,14 @@ object (self)
 
   method private get_frame buf =
     let descr, inst = di in
-    let offset = AFrame.position buf in
-    let evs = (MFrame.content buf (MFrame.position buf)) in
-    source#get buf;
-    let b = AFrame.content buf offset in
-    let position = AFrame.position buf in
+    let offset = Frame.position buf in
+    let position = source#get buf ; Frame.position buf in
+    let _,content = Frame.content buf offset in
+    let b = content.Frame.audio in
+    let evs = content.Frame.midi in
+    (* Now convert everything to audio samples. *)
+    let offset = Frame.audio_of_master offset in
+    let position = Frame.audio_of_master position in
     let len = position - offset in
     let evs =
       let ans = ref [] in
@@ -78,11 +81,14 @@ object (self)
           List.iter
             (function (t, e) ->
               let t = Frame.audio_of_master (Frame.master_of_midi t) in
+              let push x = ans := (t,x) :: !ans in
                 match e with
                   | Midi.Note_on (n, v) ->
-                      ans := (t, Dssi.Event_note_on (c, n, int_of_float (v *. 127.))) :: !ans
+                      push
+                        (Dssi.Event_note_on (c, n, int_of_float (v *. 127.)))
                   | Midi.Note_off (n, v) ->
-                      ans := (t, Dssi.Event_note_off (c, n, int_of_float (v *. 127.))) :: !ans
+                      push
+                        (Dssi.Event_note_off (c, n, int_of_float (v *. 127.)))
                   | _ -> () (* TODO *)
             ) !(evs.(c))
         done;
@@ -92,6 +98,7 @@ object (self)
         (fun (p,v) -> Ladspa.Descriptor.connect_control_port_in inst p (v ()))
         params;
       Ladspa.Descriptor.set_samples inst len;
+      assert (Array.length outputs = Array.length b) ;
       for c = 0 to Array.length outputs - 1 do
         Ladspa.Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
       done;
@@ -102,9 +109,16 @@ let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
   let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
   let chans = Array.length outputs in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.Constrained {Frame. audio = Lang.Fixed chans; video = Lang.Any_fixed 0; midi = Lang.Fixed 1}) in
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1
+      (Lang.Constrained {Frame. audio = Lang.Fixed chans;
+                                video = Lang.Any_fixed 0;
+                                midi = Lang.Fixed 1})
+  in
   let liq_params = liq_params@["", Lang.source_t k, None, None] in
-    Lang.add_operator ("dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr)) liq_params
+    Lang.add_operator
+      ("dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      liq_params
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
       ~flags:[Lang.Hidden]
