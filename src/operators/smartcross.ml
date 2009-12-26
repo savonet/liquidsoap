@@ -234,7 +234,7 @@ object (self)
         ((new Sequence.sequence ~kind ~merge:true [beginning;s]):>source)
     in
     let metadata = function
-       | None -> Lang.list (Lang.product_t Lang.int_t Lang.string_t) []
+       | None -> Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
        | Some m -> Lang.metadata m
     in
     let f a b =
