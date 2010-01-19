@@ -1180,7 +1180,7 @@ EOCONF
 else
     w_MAGIC=yes
     cat >> src/configure.ml <<EOCONF
-let magic_cookie = Magic.create ~flags:[[Magic.Mime]] [[]]
+let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[]]
 let file_mime s = Some (Magic.file magic_cookie s)
 let data_mime ?len s = Some (Magic.buffer magic_cookie ?len s)
 EOCONF
