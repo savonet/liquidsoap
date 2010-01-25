@@ -88,23 +88,29 @@ class output ~kind p =
   in
 
   let source = Lang.assoc "" 2 p in
-  let encoder_factory,ogg,icecast_info =
+  let encoder_factory,format,icecast_info =
     let v = Lang.assoc "" 1 p in
     let enc = Lang.to_format v in
-    let icecast_info,ogg =
+    let icecast_info,format =
       match enc with
         | Encoder.MP3 m ->
             { quality = Some (string_of_int m.Encoder.MP3.quality) ;
               bitrate = Some m.Encoder.MP3.bitrate ;
               samplerate = Some m.Encoder.MP3.samplerate ;
               channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
-            }, false
+            }, Some Cry.mpeg
+        | Encoder.AACPlus m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.AACPlus.bitrate ;
+              samplerate = Some m.Encoder.AACPlus.samplerate ;
+              channels = Some m.Encoder.AACPlus.channels
+            }, Some (Cry.content_type_of_string "audio/aacp")
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
               samplerate = Some m.Encoder.External.samplerate ;
               channels = Some m.Encoder.External.channels
-            }, false
+            }, None
         | Encoder.Ogg o ->
             let info =
               match o with
@@ -117,6 +123,7 @@ class output ~kind p =
                       bitrate = None ;
                       samplerate = Some s ;
                       channels = Some n }
+                
                 | [Encoder.Ogg.Vorbis
                      {Encoder.Vorbis.channels=n;
                                      mode=Encoder.Vorbis.ABR (_,b,_);
@@ -137,7 +144,7 @@ class output ~kind p =
             if protocol = Cry.Icy then
               raise (Lang.Invalid_value
                        (v, "icy protocol (shoutcast) does not support Ogg")) ;
-              info, true
+              info, Some Cry.ogg_application
         | Encoder.WAV _ ->
             raise (Lang.Invalid_value (v, "WAV is not supported"))
     in
@@ -147,13 +154,23 @@ class output ~kind p =
             raise (Lang.Invalid_value
                      (v, "No encoder found for that format"))
     in
-      encoder_factory, ogg, icecast_info
+      encoder_factory, format, icecast_info
   in
 
   let format =
     let f = s "format" in
       if f <> "" then Cry.content_type_of_string f else
-        if ogg then Cry.ogg_application else Cry.mpeg
+        match format with 
+          | Some x -> x
+          | None   -> raise (Lang.Invalid_value (Lang.assoc "" 1 p, 
+                                                 "No content-type (mime) found, \
+                                                  please specify one."))
+  in
+
+  let ogg = 
+   (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_application) ||
+   (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_audio) ||
+   (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_video)
   in
 
   let mount = s "mount" in

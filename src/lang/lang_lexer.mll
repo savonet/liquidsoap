@@ -137,6 +137,8 @@ rule token = parse
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
   | "%mp3" { MP3 }
+  | "%aac+" { AACPLUS }
+  | "%aacplus" { AACPLUS }
 
   | '[' { LBRA }
   | ']' { RBRA }

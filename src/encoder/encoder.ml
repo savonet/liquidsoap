@@ -82,6 +82,23 @@ struct
 
 end
 
+module AACPlus =
+struct
+
+  type t = {
+    channels   : int ;
+    samplerate : int ;
+    bitrate    : int ;
+  }
+
+  let to_string m =
+    Printf.sprintf "%%aac+(channels=%d,samplerate=%d,bitrate=%d)"
+      m.channels
+      m.samplerate
+      m.bitrate
+
+end
+
 module External =
 struct
 
@@ -238,6 +255,7 @@ type format =
   | WAV of WAV.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
+  | AACPlus of AACPlus.t
   | External of External.t
 
 let kind_of_format = function
@@ -246,6 +264,9 @@ let kind_of_format = function
         Frame.video = 0 ; Frame.midi = 0 }
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;
+        Frame.video = 0 ; Frame.midi = 0 }
+  | AACPlus m ->
+      { Frame.audio = m.AACPlus.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | Ogg l ->
       List.fold_left
@@ -275,6 +296,7 @@ let string_of_format = function
   | WAV w -> WAV.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
+  | AACPlus w -> AACPlus.to_string w
   | External w -> External.to_string w
 
 (** An encoder, once initialized, is something that consumes

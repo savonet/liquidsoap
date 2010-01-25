@@ -145,6 +145,33 @@
     in
       mk (Encoder (Encoder.MP3 mp3))
 
+  let mk_aacplus params =
+    let defaults =
+      { Encoder.AACPlus.
+          channels = 2 ;
+          samplerate = 44100 ;
+          bitrate = 64 }
+    in
+    let aacplus =
+      List.fold_left
+        (fun f ->
+          function
+            | ("channels",{ term = Int i }) ->
+                { f with Encoder.AACPlus.channels = i }
+            | ("samplerate",{ term = Int i }) ->
+                { f with Encoder.AACPlus.samplerate = i }
+            | ("bitrate",{ term = Int i }) ->
+                { f with Encoder.AACPlus.bitrate = i }
+            | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+                { f with Encoder.AACPlus.channels = 1 }
+            | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+                { f with Encoder.AACPlus.channels = 2 }
+
+            | _ -> raise Parsing.Parse_error)
+        defaults params
+    in
+      mk (Encoder (Encoder.AACPlus aacplus))
+
   let mk_external params =
     let defaults =
       { Encoder.External.
@@ -389,7 +416,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX WAV MP3 EXTERNAL
+%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX WAV AACPLUS MP3 EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -456,6 +483,7 @@ expr:
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
   | MP3 app_opt                      { mk_mp3 $2 }
+  | AACPLUS app_opt                      { mk_aacplus $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
@@ -508,6 +536,7 @@ cexpr:
   | GET expr                         { mk (Get $2) }
   | cexpr SET expr                   { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
+  | AACPLUS app_opt                      { mk_aacplus $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }

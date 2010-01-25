@@ -101,8 +101,8 @@ encoders = \
 	encoder/wav_encoder.ml \
 	encoder/external_encoder.ml \
 	$(if $(W_LAME),encoder/lame_encoder.ml) \
-	# $(if $(W_AACPLUS),outputs/aacplus_encoded.ml) \
-	$(if $(W_FAAC),outputs/faac_encoded.ml)
+	$(if $(W_AACPLUS),encoder/aacplus_encoder.ml) \
+	# $(if $(W_FAAC),outputs/faac_encoded.ml)
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	outputs/file_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
