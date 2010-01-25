@@ -163,7 +163,7 @@ class output ~kind p =
         match format with 
           | Some x -> x
           | None   -> raise (Lang.Invalid_value (Lang.assoc "" 1 p, 
-                                                 "No content-type (mime) found, \
+                                                 "No format (mime) found, \
                                                   please specify one."))
   in
 
