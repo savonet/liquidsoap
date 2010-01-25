@@ -40,14 +40,15 @@ let create_encoder ~samplerate ~bitrate ~quality ~stereo =
 
 let encoder mp3 =
   let channels = if mp3.stereo then 2 else 1 in
-  let e = create_encoder ~samplerate:mp3.samplerate ~bitrate:mp3.bitrate ~quality:mp3.quality ~stereo:mp3.stereo in
-
+  let e = create_encoder ~samplerate:mp3.samplerate 
+                         ~bitrate:mp3.bitrate 
+                         ~quality:mp3.quality 
+                         ~stereo:mp3.stereo 
+  in
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
-    let s = String.create (2 * len * channels) in
-    ignore (Float_pcm.to_s16le b start len s 0) ;
     if channels = 1 then
       Lame.encode_buffer_float_part e b.(0) b.(0) start len
     else
