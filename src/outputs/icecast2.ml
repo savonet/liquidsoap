@@ -94,8 +94,13 @@ class output ~kind p =
     let icecast_info,format =
       match enc with
         | Encoder.MP3 m ->
-            { quality = Some (string_of_int m.Encoder.MP3.quality) ;
-              bitrate = Some m.Encoder.MP3.bitrate ;
+            let quality,bitrate = 
+              match m.Encoder.MP3.bitrate with
+                | Encoder.MP3.Bitrate x -> None,(Some x)
+                | Encoder.MP3.Quality x -> (Some (string_of_int x)),None
+            in
+            { quality = quality ;
+              bitrate = bitrate ;
               samplerate = Some m.Encoder.MP3.samplerate ;
               channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
             }, Some Cry.mpeg

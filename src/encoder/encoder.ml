@@ -66,19 +66,24 @@ end
 module MP3 =
 struct
 
+  type bitrate_control = Quality of int | Bitrate of int
+
   type t = {
     stereo     : bool ;
-    quality    : int ;
+    bitrate    : bitrate_control ;
     samplerate : int ;
-    bitrate    : int ;
   }
 
+  let string_of_bitrate_control x = 
+    match x with
+      | Quality x -> Printf.sprintf "quality=%i" x
+      | Bitrate x -> Printf.sprintf "bitrate=%i" x
+
   let to_string m =
-    Printf.sprintf "%%mp3(%s,quality=%d,samplerate=%d,bitrate=%d)"
+    Printf.sprintf "%%mp3(%s,%s,samplerate=%d)"
       (string_of_stereo m.stereo)
-      m.quality
+      (string_of_bitrate_control m.bitrate)
       m.samplerate
-      m.bitrate
 
 end
 

@@ -119,8 +119,7 @@
       { Encoder.MP3.
           stereo = true ;
           samplerate = 44100 ;
-          bitrate = 128 ;
-          quality = 5 }
+          bitrate = Encoder.MP3.Bitrate 128 }
     in
     let mp3 =
       List.fold_left
@@ -131,9 +130,11 @@
             | ("samplerate",{ term = Int i }) ->
                 { f with Encoder.MP3.samplerate = i }
             | ("bitrate",{ term = Int i }) ->
-                { f with Encoder.MP3.bitrate = i }
+                { f with Encoder.MP3.bitrate = 
+                         Encoder.MP3.Bitrate i }
             | ("quality",{ term = Int q }) ->
-                { f with Encoder.MP3.quality = q }
+                { f with Encoder.MP3.bitrate = 
+                         Encoder.MP3.Quality q }
 
             | ("",{ term = Var s }) when String.lowercase s = "mono" ->
                 { f with Encoder.MP3.stereo = false }

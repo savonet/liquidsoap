@@ -25,16 +25,21 @@
 open Encoder
 open Encoder.MP3
 
-let create_encoder ~samplerate ~bitrate ~quality ~stereo =
+let create_encoder ~samplerate ~bitrate ~stereo =
   let enc = Lame.create_encoder () in
     (* Input settings *)
     Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
     Lame.set_num_channels enc (if stereo then 2 else 1) ;
     (* Output settings *)
     Lame.set_mode enc (if stereo then Lame.Stereo else Lame.Mono) ;
-    Lame.set_quality enc quality ;
+    begin
+      match bitrate with
+        | Encoder.MP3.Quality quality ->
+             Lame.set_quality enc quality
+        | Encoder.MP3.Bitrate bitrate ->
+             Lame.set_brate enc bitrate
+    end; 
     Lame.set_out_samplerate enc samplerate ;
-    Lame.set_brate enc bitrate ;
     Lame.init_params enc ;
     enc
 
@@ -42,7 +47,6 @@ let encoder mp3 =
   let channels = if mp3.stereo then 2 else 1 in
   let e = create_encoder ~samplerate:mp3.samplerate 
                          ~bitrate:mp3.bitrate 
-                         ~quality:mp3.quality 
                          ~stereo:mp3.stereo 
   in
   let encode frame start len =
