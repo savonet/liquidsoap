@@ -145,10 +145,10 @@ fi
 
 # Check for OS
 OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
-if test "$OS_TYPE" \!= "Win32" ; then
-  OS_EXEC_SUFFIX=""
-else
+if test "$OS_TYPE" \!= "Unix" ; then
   OS_EXEC_SUFFIX=".exe"
+else
+  OS_EXEC_SUFFIX=""
 fi
 AC_SUBST(OS_EXEC_SUFFIX)
 

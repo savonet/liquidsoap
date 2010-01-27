@@ -61,13 +61,15 @@ let resolve proto program command s ~log maxtime =
         []
       end
 
+let exec_suffix = if Sys.os_type = "Unix" then "" else ".exe"
+
 let extproto = [
-  "ufetch",
+  "ufetch" ^ exec_suffix,
   [ "smb"; "http"; "file" ],
   (fun prog src dst ->
      [|prog;"--quiet";src;"file://"^dst|]) ;
 
-  "wget",
+  "wget" ^ exec_suffix,
   [ "http";"https";"ftp" ],
   (fun prog src dst ->
      [|prog;"-q";src;"-O";dst|]) ;

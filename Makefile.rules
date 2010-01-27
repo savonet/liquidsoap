@@ -57,14 +57,14 @@ ifdef ocaml_tests
 endif
 ifdef ocaml_progs
 	rm -f *_depend
-	rm -f $(ocaml_progs)
+	rm -f $(ocaml_progs)$(OS_EXEC_SUFFIX)
 endif
 
 all-auto: all-auto-ocaml-prog
 
 all-auto-ocaml-prog:
 	@for prog in $(ocaml_progs) $(if $(BUILD_TESTS),$(ocaml_tests)) ; do \
-		$(MAKE) PROG=$$prog $$prog || exit $$? ; \
+		$(MAKE) PROG=$$prog $$prog$(OS_EXEC_SUFFIX) || exit $$? ; \
 	done
 
 ifdef PROG
@@ -78,9 +78,9 @@ $(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers)
 	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
 		$($(PROG)_sources) $($(PROG)_headers) > $@
 
-$(PROG): $($(PROG)_sources:.ml=.$(o))
-	$(V)echo OCAMLC -o $(PROG)
-	$(V)$(OCAMLC) -o $(PROG) \
+$(PROG)$(OS_EXEC_SUFFIX): $($(PROG)_sources:.ml=.$(o))
+	$(V)echo OCAMLC -o $(PROG)$(OS_EXEC_SUFFIX)
+	$(V)$(OCAMLC) -o $(PROG)$(OS_EXEC_SUFFIX) \
 		$(_OCAML_CFLAGS) $(OCAML_CFLAGS) \
 		$(_OCAML_LFLAGS) $(OCAML_LFLAGS) \
 		$($(PROG)_sources:.ml=.$(o)) $($(PROG)_objs)

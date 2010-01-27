@@ -5,7 +5,7 @@ SUBDIRS= tools decoder playlists encoder protocols plugins stream lang \
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
-ocaml_progs= liquidsoap$(OS_EXEC_SUFFIX)
+ocaml_progs= liquidsoap
 
 ogg_demuxer = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
