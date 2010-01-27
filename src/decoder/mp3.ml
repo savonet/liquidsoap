@@ -27,7 +27,7 @@ open Dtools
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
-let log = Log.make ["format";"mp3"]
+let log = Log.make ["decoder";"mp3"]
 
 let create_decoder input =
   let resampler = Rutils.create_audio () in
@@ -37,9 +37,6 @@ let create_decoder input =
       let sample_freq,channels,_ = Mad.get_output_format fd in
       let content,length =
         resampler ~audio_src_rate:(float sample_freq) data
-      in
-      let content =
-        if Random.int 100 = 0 then [|content.(0)|] else content
       in
         Generator.put_audio gen content 0 (Array.length content.(0)))
 

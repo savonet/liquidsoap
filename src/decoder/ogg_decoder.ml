@@ -25,7 +25,9 @@
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
-let log = Dtools.Log.make ["format";"ogg"]
+let log = Dtools.Log.make ["decoder";"ogg"]
+
+(** Generic decoder *)
 
 exception Channels of int
 
@@ -156,6 +158,8 @@ let create_decoder input =
         if not got_audio && not got_video then
           Ogg_demuxer.feed decoder)
 
+(** Stream decoder *)
+
 let create_file_decoder filename content_type kind =
   let mode =
     match content_type.Frame.video, content_type.Frame.audio with
@@ -209,6 +213,30 @@ let () =
            Some (fun () -> create_file_decoder filename content_type kind)
          else
            None)
+
+(** Stream decoder *)
+
+let mimes = ["application/ogg";"application/x-ogg";
+             "audio/x-ogg";"audio/ogg";"video/ogg"]
+let mime_types =
+  Dtools.Conf.list ~p:(Http_source.conf_mime_types#plug "ogg")
+    ~d:mimes "Mime types associated to Ogg container"
+let _ =
+  Dtools.Conf.list ~p:(Http_source.conf_mime_types#plug "vorbis")
+    ~d:mimes "Mime types associated to Ogg container. \n\
+      This settings has been DEPRECATED."
+
+let () =
+  Decoder.stream_decoders#register
+    "OGG"
+    ~sdoc:"Decode as OGG any stream with an appropriate MIME type."
+     (fun mime kind ->
+        if List.mem mime mime_types#get then
+          Some create_decoder
+        else
+          None)
+
+(** Metadata *)
 
 exception Metadata of (string*string) list
 

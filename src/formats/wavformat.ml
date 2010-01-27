@@ -22,83 +22,126 @@
 
 (** Decode WAV files. *)
 
+let log = Dtools.Log.make ["decoder";"wav"]
+
 module Generator = Generator.From_audio_video
+module Buffered = Decoder.Buffered(Generator)
 
-let bytes_to_get = 1024*64
+(** {1 Generic decoder} *)
 
-type 'a wav_decoder =
-  {
-    log     : Dtools.Log.t;
-    create  : string -> 'a * Wav.t;
-    close   : 'a -> unit
-  }
+exception End_of_stream
 
-type 'a handle =
-  {
-    decoder          : 'a ;
-    w                : Wav.t ;
-    tmpbuf           : String.t ;
-    mutable position : int ;
-    converter        : Rutils.s16le_converter ;
-    channels         : int ;
-    audio_src_rate   : float
-  }
+let rec really_input input len =
+  let s,i = input len in
+    if i=len then s else
+      if i=0 then raise End_of_stream else
+        String.sub s 0 i ^ really_input input (len-i)
 
-(** Generic wav decoder *)
-let decoder wav_decoder =
-  { File_decoder.
-    log = wav_decoder.log;
-    openfile =
-        (fun file ->
-           let dec,w = wav_decoder.create file in
-           (** Get input format *)
-           let channels       = Wav.channels w in
-           let audio_src_rate = float (Wav.sample_rate w) in
-           let samplesize     = Wav.sample_size w in
-           let big_endian     = Wav.big_endian w in
-           let signed         = Wav.signed w in
-           (* Create converter *)
-           let converter =
-             Rutils.create_from_s16le
-               ~channels ~samplesize ~signed ~big_endian ()
-           in
-           let tmpbuf = String.create bytes_to_get in
-           let position = 0 in
-           {
-             decoder = dec ; w = w ; tmpbuf = tmpbuf;
-             converter = converter ; channels = channels ;
-             audio_src_rate = audio_src_rate; position = position
-           });
-    get_kind =
-      (fun handle ->
-         { Frame.
-             audio = Frame.mul_of_int handle.channels;
-             video = Frame.mul_of_int 0;
-             midi  = Frame.mul_of_int 0});
-    close =
-      (fun handle ->
-                Wav.close handle.w;
-                wav_decoder.close handle.decoder);
-    decode =
-      (fun handle buffer ->
-         let l = Wav.sample handle.w handle.tmpbuf 0 bytes_to_get in
-         handle.position <- handle.position + l ;
-         let audio_src_rate = handle.audio_src_rate in
-         let content,length =
-           handle.converter ~audio_src_rate (String.sub handle.tmpbuf 0 l)
-         in
-         Generator.put_audio buffer content 0 length);
-    position = (fun handler -> handler.position)
-  }
+let input_byte input =
+  let s,i = input 1 in
+    if i=0 then raise End_of_stream ;
+    int_of_char s.[0]
 
-(** Wav file decoder *)
-let wav_file_decoder =
-  let wav_decoder =
-    { log     = Dtools.Log.make ["format";"wav"] ;
-      create  = (fun file -> (),Wav.fopen file) ;
-      close   = (fun () -> ()) }
+let read_int_num_bytes ic =
+  let rec aux = function
+    | 0 -> 0
+    | n ->
+        let b = input_byte ic in
+          b + 256*(aux (n-1))
   in
-  decoder wav_decoder
+    aux
 
-let () = Decoder.formats#register "WAV" (File_decoder.decode wav_file_decoder)
+let read_int ic = read_int_num_bytes ic 4
 
+let read_short ic = read_int_num_bytes ic 2
+
+(* TODO It might be more efficient to write our code for an input
+ * channel and use directly the one we have when decoding files
+ * or external processes, if we could wrap the input function used
+ * for decoding stream (in http and harbor) as an in_channel. *)
+let create_decoder input =
+  let decoder = ref (fun gen -> assert false) in
+
+  let main_decoder converter gen =
+    let bytes_to_get = 1024*64 in
+    let data,bytes = input bytes_to_get in
+      if bytes=0 then raise End_of_stream ;
+      log#f 4 "Read %d bytes of PCM" bytes ;
+      let content,length = converter (String.sub data 0 bytes) in
+        Generator.put_audio gen content 0 length ;
+        log#f 4 "Done (%d)" length
+  in
+
+  let read_header () =
+
+    if really_input input 4 <> "RIFF" then
+      raise (Wav.Not_a_wav_file "Bad header: \"RIFF\" not found") ;
+    (* Ignore the file size *)
+    ignore (really_input input 4) ;
+    if really_input input 8 <> "WAVEfmt " then
+      raise (Wav.Not_a_wav_file "Bad header: \"WAVEfmt \" not found") ;
+    (* Now we always have the following uninteresting bytes:
+     * 0x10 0x00 0x00 0x00 0x01 0x00 *)
+    ignore (really_input input 6) ;
+
+    let channels = read_short input in
+    let samplerate (* in Hz *) = read_int input in
+    let _ (* byt_per_sec *) = read_int input in
+    let _ (* byt_per_samp *) = read_short input in
+    let samplesize (* in bits *) = read_short input in
+
+    let signed = samplesize <> 8 in
+    let big_endian = false in
+
+    let section = really_input input 4 in
+    if section <> "data" then begin
+      if section = "INFO" then
+        raise (Wav.Not_a_wav_file "Valid wav file but unread");
+      raise (Wav.Not_a_wav_file "Bad header : string \"data\" not found")
+    end ;
+
+    let _ (* len_dat *) = read_int input in
+
+    let converter =
+      Rutils.create_from_s16le
+        ~channels ~samplesize ~signed ~big_endian ()
+    in
+
+      log#f 4
+        "WAV header read (%dHz, %dbits), starting decoding..."
+        samplerate samplesize ;
+      decoder :=
+        main_decoder
+          (fun pcm -> converter ~audio_src_rate:(float samplerate) pcm)
+
+  in
+    decoder := (fun _ -> read_header ()) ;
+    Decoder.Decoder (fun gen -> !decoder gen)
+
+(* File decoding *)
+
+let get_type filename =
+  let chan = open_in filename in
+  let info = Wav.read_header chan filename in
+    close_in chan ;
+    { Frame. video = 0 ; midi = 0 ; audio = Wav.channels info }
+
+let create_file_decoder filename kind =
+  let generator = Generator.create Generator.Audio in
+    Buffered.file_decoder filename kind create_decoder generator
+
+let () =
+  Decoder.file_decoders#register "WAV"
+    ~sdoc:"Decode as WAV any file with a correct header."
+    (fun filename kind ->
+       let file_type = get_type filename in
+         if Frame.type_has_kind file_type kind then
+           Some (fun () -> create_file_decoder filename kind)
+         else begin
+           log#f 3
+             "WAV file %S has content type %s but %s was expected."
+             filename
+             (Frame.string_of_content_type file_type)
+             (Frame.string_of_content_kind kind) ;
+           None
+         end)

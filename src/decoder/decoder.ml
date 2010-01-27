@@ -172,20 +172,40 @@ struct
         while Generator.length gen < frame_size do
           decoder gen
         done
-      with _ -> ()
+      with e ->
+        log#f 4 "Decoding %S failed: %s." filename (Printexc.to_string e)
       end ;
 
       let offset = Frame.position frame in
       let old_breaks = Frame.breaks frame in
+      let c_end,content =
         Generator.fill gen frame ;
+        Frame.content frame offset
+      in
+      let c_type = Frame.type_of_content content in
+      let position = Frame.position frame in
+        (* Check that we got only one chunk of data,
+         * and that it has a correct type. *)
         if
-          (* Check that we got only one chunk of data,
-           * and that it has a correct type. *)
-          let end_pos,content = Frame.content frame offset in
-            not (end_pos = Frame.position frame &&
-                 Frame.type_has_kind (Frame.type_of_content content) kind)
+          not (c_end = frame_size && Frame.type_has_kind c_type kind)
         then begin
-          log#f 2 "Decoder of %S didn't respect its content type!" filename ;
+          if c_end = frame_size then
+            log#f 2
+              "Decoder of %S produced %s, but %s was expected!"
+              filename
+              (Frame.string_of_content_type c_type)
+              (Frame.string_of_content_kind kind)
+          else
+            log#f 2
+              "Decoder of %S produced non-uniform data: \
+               %s at %d, %s at %d! (End at %d)."
+              filename
+              (Frame.string_of_content_type c_type)
+              offset
+              (Frame.string_of_content_type
+                 (Frame.type_of_content (snd (Frame.content frame c_end))))
+              c_end
+              position ;
           (* Pretend nothing happened, and end decoding.
            * We first restore a content layer with a valid type, so that
            * the code which reads that frame doesn't see the anomaly.

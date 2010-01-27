@@ -35,12 +35,12 @@ video_converters = \
 formats = \
 	$(if $(W_VORBIS),formats/vorbisduration.ml) \
 	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
-	formats/wavformat.ml \
 	formats/externalformat.ml \
 	formats/midiformat.ml \
 	# $(if $(W_FAAD),formats/aacformat.ml) \
 
 decoders = \
+	formats/wavformat.ml \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
 	$(if $(W_MP3),decoder/mp3.ml)
 
@@ -148,7 +148,7 @@ synth = synth/synth.ml synth/keyboard.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	decoder.ml request.ml source.ml root.ml tools/rutils.ml \
+	decoder/decoder.ml request.ml source.ml root.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
