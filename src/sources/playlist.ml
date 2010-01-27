@@ -108,7 +108,11 @@ object (self)
   (** Randomly exchange files in the playlist.
     * Must be called within mylock critical section. *)
   method randomize_playlist =
-    assert (not (Mutex.try_lock mylock)) ;
+    (* This assertion does not work on
+     * win32 because a thread can double-lock
+     * the same mutex.. *)
+    if Sys.os_type <> "Win32" then
+      assert (not (Mutex.try_lock mylock)) ;
     Utils.randomize !playlist
 
   (** (re-)read playlist_file and update datas.
@@ -230,8 +234,12 @@ object (self)
             []) }
 
   method reload_playlist_internal new_playlist_uri =
-
-    assert (not (Mutex.try_lock reloading)) ;
+    
+    (* This assertion does not work on
+     * win32 because a thread can double-lock
+     * the same mutex.. *)
+    if Sys.os_type <> "Win32" then
+      assert (not (Mutex.try_lock reloading)) ;
 
     self#load_playlist ?uri:new_playlist_uri true ;
 
@@ -247,7 +255,11 @@ object (self)
 
   method reload_update round_done =
     (* Must be called by somebody who owns [mylock] *)
-    assert (not (Mutex.try_lock mylock)) ;
+    (* This assertion does not work on
+     * win32 because a thread can double-lock
+     * the same mutex.. *)
+    if Sys.os_type <> "Win32" then
+      assert (not (Mutex.try_lock mylock)) ;
     match reload with
       | Never -> ()
       | Every_N_seconds n ->

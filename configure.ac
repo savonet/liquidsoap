@@ -59,11 +59,13 @@ _BLAH_
 # This is ugly, I'd like to find a better solution.
 if test "x$prefix" = "xNONE" ; then
   prefix=/usr/local
+  default_prefix=/usr
 else
   # Add passed prefix to compilation variables.
   CFLAGS="$CFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
+  default_prefix=$prefix
 fi
 
 # User/group for installed files and directories
@@ -95,75 +97,6 @@ fi
 AC_C_BIGENDIAN(
   AC_DEFINE([LIQ_BIG_ENDIAN], [1], [Define if this target is
   big endian]),[])
-
-# opal
-
-AC_ARG_WITH([opal-include],
-   AC_HELP_STRING(
-      [--with-opal-include=path],
-      [look for opal headers in path (defaults to /usr/include/opal)]))
-AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],["don't use opal"]))
-
-W_OPAL=""
-w_OPAL=no
-if test "x$enable_opal" != "xno" ; then
-  AC_MSG_CHECKING(for libopal)
-
-  if test -z "$with_opal_include" ; then
-    OPAL_INCLUDE=/usr/include/opal
-  else
-    OPAL_INCLUDE=$with_opal_include
-  fi
-
-  if test \! -f ${OPAL_INCLUDE}/opal.h ; then
-    AC_MSG_RESULT(Header not found: ${OPAL_INCLUDE}/opal.h)
-    W_OPAL=""
-    w_OPAL=no
-  else
-    W_OPAL=yes
-    w_OPAL=yes
-    AC_MSG_RESULT(ok)
-  fi
-else
-  AC_MSG_RESULT(no)
-fi
-
-AC_SUBST(W_OPAL)
-AC_SUBST(OPAL_INCLUDE)
-
-# V4L
-
-AC_ARG_WITH([v4l-include],
-   AC_HELP_STRING(
-      [--with-v4l-include=path],
-      [look for v4l headers in path (defaults to /usr/include/linux)]))
-AC_ARG_ENABLE([v4l],AC_HELP_STRING([--disable-v4l],["don't use v4l"]))
-
-if test "x$enable_v4l" != "xno" ; then
-  AC_MSG_CHECKING(for v4l)
-
-  if test -z "$with_v4l_include" ; then
-    V4L_INCLUDE=/usr/include/linux
-  else
-    V4L_INCLUDE=$with_v4l_include
-  fi
-
-  if test \! -f ${V4L_INCLUDE}/videodev.h ; then
-    AC_MSG_RESULT(Header not found: ${V4L_INCLUDE}/videodev.h)
-    W_V4L=""
-    w_V4L=no
-  else
-    W_V4L=yes
-    w_V4L=yes
-    AC_MSG_RESULT(ok)
-  fi
-else
-    W_V4L=""
-    w_V4L=no
-fi
-
-AC_SUBST(W_V4L)
-AC_SUBST(V4L_INCLUDE)
 
 #
 # OCaml stuff
@@ -210,8 +143,20 @@ if test "$OCAMLOPT" = no ; then
     enable_nativecode=no
 fi
 
+# Check for OS
+OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
+if test "$OS_TYPE" \!= "Win32" ; then
+  OS_EXEC_SUFFIX=""
+else
+  OS_EXEC_SUFFIX=".exe"
+fi
+AC_SUBST(OS_EXEC_SUFFIX)
+
 # Add -fPIC to CFLAGS for compatibility with x86_64
-CFLAGS="$CFLAGS -fPIC"
+if test "$OS_TYPE" \!= "Win32" ; then
+  CFLAGS="$CFLAGS -fPIC"
+fi
+
 # Optimize for local machine
 AC_ARG_ENABLE([optimize],
    AC_HELP_STRING(
@@ -296,6 +241,75 @@ AC_SUBST(NEED_TCP_NODELAY)
 AC_SUBST(TCP_NODELAY_VALUE)
 
 AC_SUBST(BYTE)
+
+# opal
+
+AC_ARG_WITH([opal-include],
+   AC_HELP_STRING(
+      [--with-opal-include=path],
+      [look for opal headers in path (defaults to /usr/include/opal)]))
+AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],["don't use opal"]))
+
+W_OPAL=""
+w_OPAL=no
+if test "x$enable_opal" != "xno" ; then
+  AC_MSG_CHECKING(for libopal)
+
+  if test -z "$with_opal_include" ; then
+    OPAL_INCLUDE=$default_prefix/include/opal
+  else
+    OPAL_INCLUDE=$with_opal_include
+  fi
+
+  if test \! -f ${OPAL_INCLUDE}/opal.h ; then
+    AC_MSG_RESULT(Header not found: ${OPAL_INCLUDE}/opal.h)
+    W_OPAL=""
+    w_OPAL=no
+  else
+    W_OPAL=yes
+    w_OPAL=yes
+    AC_MSG_RESULT(ok)
+  fi
+else
+  AC_MSG_RESULT(no)
+fi
+
+AC_SUBST(W_OPAL)
+AC_SUBST(OPAL_INCLUDE)
+
+# V4L
+
+AC_ARG_WITH([v4l-include],
+   AC_HELP_STRING(
+      [--with-v4l-include=path],
+      [look for v4l headers in path (defaults to /usr/include/linux)]))
+AC_ARG_ENABLE([v4l],AC_HELP_STRING([--disable-v4l],["don't use v4l"]))
+
+if test "x$enable_v4l" != "xno" ; then
+  AC_MSG_CHECKING(for v4l)
+
+  if test -z "$with_v4l_include" ; then
+    V4L_INCLUDE=$default_prefix/include/linux
+  else
+    V4L_INCLUDE=$with_v4l_include
+  fi
+
+  if test \! -f ${V4L_INCLUDE}/videodev.h ; then
+    AC_MSG_RESULT(Header not found: ${V4L_INCLUDE}/videodev.h)
+    W_V4L=""
+    w_V4L=no
+  else
+    W_V4L=yes
+    w_V4L=yes
+    AC_MSG_RESULT(ok)
+  fi
+else
+    W_V4L=""
+    w_V4L=no
+fi
+
+AC_SUBST(W_V4L)
+AC_SUBST(V4L_INCLUDE)
 
 AC_ARG_ENABLE([graphics],
    AC_HELP_STRING(
@@ -1790,6 +1804,7 @@ cat <<EOMSG
 
  Compiler       : $OCAMLC
  Version        : $OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION
+ OS             : $OS_TYPE
  OCAML_CFLAGS   : $ocamlcflags
  OCAML_LFLAGS   : $ocamllflags
  CFLAGS         : $CFLAGS

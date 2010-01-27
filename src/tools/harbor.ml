@@ -577,7 +577,8 @@ let start_harbor () =
           handler  = incoming ~icy:true sock }
 
 let start () =
-  Sys.set_signal Sys.sigpipe Sys.Signal_ignore ;
+  if Sys.os_type <> "Win32" then
+    Sys.set_signal Sys.sigpipe Sys.Signal_ignore ;
   if Hashtbl.length sources > 0 then begin
     Tutils.need_non_blocking_queue () ;
     start_harbor ()
