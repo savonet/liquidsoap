@@ -53,7 +53,7 @@ let () =
            (List.map
               string_of_int
               (Request.resolving_requests ()))) ;
-    add "request.trace" ~usage:"trace <rid>"
+    add "request.trace" ~usage:"request.trace <rid>"
       ~descr:"Print the log associated to a request."
       (fun args ->
          let id = int_of_string args in
@@ -64,7 +64,7 @@ let () =
                    Request.string_of_log log
              | None -> "No such request."
            end) ;
-    add "request.metadata" ~usage:"metadata <rid>"
+    add "request.metadata" ~usage:"request.metadata <rid>"
       ~descr:"Display the metadata associated to a request."
       (fun args ->
          let id = int_of_string args in
