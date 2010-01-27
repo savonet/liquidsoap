@@ -29,6 +29,6 @@ let () =
     [ "",Lang.string_t,None,None ] Lang.string_t
     (fun p ->
        let file = Lang.to_string (Lang.assoc "" 1 p) in
-         match Configure.file_mime file with
-           | Some s -> Lang.string s
+         match Configure.file_mime with
+           | Some s -> Lang.string (s file)
            | None -> assert false (* TODO is that really impossible ? *))
