@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -162,7 +162,7 @@ val duration : string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
   * available data to deliver. *)
-val get_decoder : t -> Decoder.decoder option
+val get_decoder : t -> Decoder.file_decoder option
 
 (** {1 Plugs}
   * Respectively for computing duration,
@@ -172,5 +172,5 @@ val get_decoder : t -> Decoder.decoder option
   * occur immediately after request resolution. *)
 
 val dresolvers : (string -> float) Plug.plug
-val mresolvers : (format:string -> string -> (string*string) list) Plug.plug
+val mresolvers : (string -> (string*string) list) Plug.plug
 val protocols : protocol Plug.plug

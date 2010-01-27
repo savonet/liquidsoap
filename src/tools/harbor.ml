@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ object(self)
   method virtual login : (string option)*(string -> string -> bool)
   method virtual is_taken : bool
   method virtual register_decoder : string -> unit
-  method virtual get_type : string option
+  method virtual get_mime_type : string option
 
 end
 
@@ -266,7 +266,7 @@ let handle_source_request ~icy hprotocol c uri headers =
       | true -> raise Mount_taken
       | _ ->
           s#register_decoder stype ;
-          log#f 3 "Adding source on mountpoint '%s' with type '%s'." uri stype ;
+          log#f 3 "Adding source on mountpoint %S with type %S." uri stype ;
           if not icy then write_answer ~keep:true c "HTTP/1.0 200 OK\r\n\r\n" ;
           s#relay headers c
   with
@@ -365,7 +365,7 @@ let handle_get_request c uri headers =
                   (http_error_page 401 "Unknown request"
                     "Source is not mp3")
               in
-              if not (List.mem (Utils.get_some s#get_type) 
+              if not (List.mem (Utils.get_some s#get_mime_type) 
                                conf_icy_metadata#get) 
               then
                 raise (Answer ans) ;

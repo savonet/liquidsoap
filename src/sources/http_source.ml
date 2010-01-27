@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,22 +41,10 @@ let conf_mime_types =
       "contact the developpers."
     ]
 
-type sink = {
-  read : int -> string ;
-  put : int -> float array array -> unit ;
-  insert_metadata : Frame.metadata -> unit ;
-  close : unit -> unit
-}
-
 (** Types for playlist handling *)
 type playlist_mode =  Random | First | Randomize | Normal
 
-
-let stream_decoders : (sink -> unit) Plug.plug =
-  Plug.create ~doc:"Methods for decoding audio streams." "stream formats"
-
-(** Utilities for reading icy metadata *)
-
+(** Utility for reading icy metadata *)
 let read_metadata () = let old_chunk = ref "" in fun socket ->
   let size =
     let buf = " " in
@@ -127,15 +115,13 @@ let read_stream socket chunked metaint insert_metadata =
   let read_metadata = read_metadata () in
   let chunkbuf = ref "" in
   let read buf offs len =
-    if chunked then
-      (
-        if String.length !chunkbuf = 0 then chunkbuf := read_chunk socket;
-        let n = min len (String.length !chunkbuf) in
-          String.blit !chunkbuf 0 buf offs n;
-          chunkbuf := String.sub !chunkbuf n (String.length !chunkbuf - n);
-          n
-      )
-    else
+    if chunked then begin
+      if String.length !chunkbuf = 0 then chunkbuf := read_chunk socket;
+      let n = min len (String.length !chunkbuf) in
+        String.blit !chunkbuf 0 buf offs n;
+        chunkbuf := String.sub !chunkbuf n (String.length !chunkbuf - n);
+        n
+    end else
       Unix.read socket buf 0 len
   in
     match metaint with
@@ -143,14 +129,14 @@ let read_stream socket chunked metaint insert_metadata =
           fun len ->
             let b = String.create len in
             let r = read b 0 len in
-              if r < 0 then "" else String.sub b 0 r
+              if r < 0 then "",0 else b,r
       | Some metaint ->
           let readcnt = ref 0 in
             fun len ->
               let len = min len (metaint - !readcnt) in
               let b = String.create len in
               let r = read b 0 len in
-                if r < 0 then "" else begin
+                if r < 0 then "",0 else begin
                   readcnt := !readcnt + r;
                   if !readcnt = metaint then begin
                     readcnt := 0;
@@ -158,10 +144,10 @@ let read_stream socket chunked metaint insert_metadata =
                       | Some m -> insert_metadata m
                       | None -> ()
                   end ;
-                  String.sub b 0 r
+                  b,r
                 end
 
-(** Generic http input *)
+(** HTTP input *)
 
 let url_expr = Str.regexp "^http://\\([^/]+\\)\\(/.*\\)?$"
 let host_expr = Str.regexp "^\\([^:]+\\):\\([0-9]+\\)$"
@@ -201,7 +187,24 @@ class http ~kind
         ~bind_address ~autostart ~bufferize ~max
         ~debug ?(logfile=None)
         ~user_agent url =
-  let max_len =
+  let _ =
+  (* TODO
+   * We used to deal with overfull generators in the [put] method,
+   * passed to the stream decoders in the [sink]. Now, the
+   * interface is simpler, but we need to put this back somewhere:
+   * add overfull management to Generators? This can be done
+   * for a specific kind of generator, that also needs to be
+   * thread safe:
+   *
+   * The old "sink" system was used to:
+   *  - control concurrency on the generator
+   *  - log
+   *  - conversions (samplerate)
+   *  - control (fail to stop feeding on source/output stop)
+   * Most of it was adapted by passing directly a generator to the
+   * decoder, but we still need to handle multi-threading,
+   * by ensuring that read/writing in the generator don't occur
+   * at the same time. *)
     Frame.audio_of_seconds (Pervasives.max max bufferize)
   in
 object (self)
@@ -224,10 +227,6 @@ object (self)
 
   val mutable logf = None
 
-  (* Frame content converter *)
-  (* TODO: VIDEO !*)
-  val converter = Rutils.create_audio ()
-
   val mutable connected = false
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
@@ -240,34 +239,8 @@ object (self)
     Generator.add_metadata generator m ;
     if track_on_meta then Generator.add_break generator ;
 
-  (* Feed the buffer generator
-   * TODO this is too restrictive, data could be of any [kind] *)
-  method private put sample_freq data =
-    if not relaying then failwith "relaying stopped" ;
-    if poll_should_stop then failwith "source stopped" ;
-    Mutex.lock lock ;
-    (* Drop data when buffer is full. This is the only way
-     * to make it work with switches, when input.http is not
-     * pulled for some time.
-     * It can also be necessary if liquidsoap is slower than the stream. *)
-    if Generator.length generator >= max_len then begin
-      (* TODO Inserting a break in the generator could be a good idea,
-       * for notifying about the gap/drop.
-       * It would require to stop the current #put, since multiple
-       * breaks are not allowed. *)
-      self#log#f 5 "Overfull buffer: dropping data." ;
-      Generator.remove generator (Generator.length generator - max_len)
-    end;
-   let audio_src_rate = float sample_freq in
-   let content,length =
-     converter ~audio_src_rate data
-   in
-     Generator.put_audio generator content 0 (Frame.master_of_audio length) ;
-     Mutex.unlock lock
-
-  method feeding ?(newstream=true) dec socket chunked metaint =
+  method feeding ?(newstream=true) create_decoder socket chunked metaint =
     connected <- true ;
-    let close () = Http.disconnect socket in
     let read = read_stream socket chunked metaint self#insert_metadata in
     let read =
       match logf with
@@ -275,19 +248,18 @@ object (self)
         | Some f ->
             let t0 = Unix.gettimeofday () in
               fun len ->
-                let ret : string = read len in
+                let ret = read len in
                 let time = (Unix.gettimeofday () -. t0) /. 60. in
                   Printf.fprintf f "%f %d\n%!" time self#length ;
                   ret
     in
-    let sink =
-      { put = self#put ; read = read ;
-        insert_metadata = self#insert_metadata ; close = close }
-    in
+    let Decoder.Decoder decoder = create_decoder read in
       try
-       (* Starting decoding: adding a break here *)
-       Generator.add_break generator ;
-       dec sink
+        while true do
+          if should_fail then failwith "end of track" ;
+          if poll_should_stop then failwith "source stopped" ;
+          decoder generator
+        done
       with
         | e ->
             (* Feeding has stopped: adding a break here. *)
@@ -430,7 +402,7 @@ object (self)
                           self#log#f 4 "Chunked HTTP/1.1 transfer" ;
                         let dec =
                           match
-                            stream_decoders#get content_type
+                            Decoder.get_stream_decoder content_type kind
                           with
                             | Some d -> d
                             | None -> failwith "Unknown format!"
@@ -490,7 +462,6 @@ object (self)
     Server.add ~ns "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
-
 
   method sleep = poll_should_stop <- true
 

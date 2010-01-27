@@ -1,5 +1,5 @@
 
-SUBDIRS= tools formats playlists encoder protocols plugins stream lang \
+SUBDIRS= tools decoder playlists encoder protocols plugins stream lang \
 		 ogg_formats video_converters audio_converters \
 		 operators sources conversions outputs io visualization analyze synth
 
@@ -31,15 +31,18 @@ video_converters = \
 	video_converters/native_video_converter.ml \
 	$(if $(W_GAVL),video_converters/gavl_converter.ml)
 
+# TODO move all formats to encoders
 formats = \
-	$(if $(W_OGG),formats/oggformat.ml) \
 	$(if $(W_VORBIS),formats/vorbisduration.ml) \
 	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
 	formats/wavformat.ml \
 	formats/externalformat.ml \
 	formats/midiformat.ml \
-	$(if $(W_MP3),formats/mp3.ml)
 	# $(if $(W_FAAD),formats/aacformat.ml) \
+
+decoders = \
+	$(if $(W_OGG),decoder/ogg_decoder.ml) \
+	$(if $(W_MP3),decoder/mp3.ml)
 
 playlists = \
 	playlists/playlist_basic.ml $(if $(W_XMLPLAYLIST),playlists/playlist_xml.ml)
@@ -56,9 +59,6 @@ sources = \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
-	$(if $(W_MP3),sources/http_mp3.ml) \
-	$(if $(W_OGG),sources/http_ogg.ml) \
-	$(if $(W_FAAD),sources/http_aac.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
@@ -109,8 +109,7 @@ outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \
-	$(if $(W_BJACK),outputs/bjack_out.ml) \
-	# outputs/external_encoded.ml \
+	$(if $(W_BJACK),outputs/bjack_out.ml)
 
 io = \
         $(if $(W_ALSA),io/alsa_io.ml) \
@@ -156,11 +155,11 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
-	tools/ioRing.ml tools/file_decoder.ml tools/mutils.ml \
+	tools/ioRing.ml tools/mutils.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(operators) $(conversions) $(outputs) \
 	$(encoders) $(ogg_muxer) $(io) \
-	$(analyze) $(playlists) $(visualization) $(synth) $(formats) \
+	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
 	shebang.ml \
 	lang/lang_builtins.ml \
 	$(if $(W_MAGIC),lang/lang_magic.ml) \
@@ -226,7 +225,7 @@ libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/harbor.ml $(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
-	$(analyze) $(playlists) $(formats) \
+	$(analyze) $(playlists) $(decoders) \
 	lang/lang_builtins.ml
 libliq_objects=$(libliq_sources:.ml=.$(o))
 liquidsoap.$(a): $(libliq_objects:.c=.o) Makefile

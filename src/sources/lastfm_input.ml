@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -79,23 +79,16 @@ object (self)
       | Lastfm.Radio.Error e ->
           session <- None ;
           self#log#f 4
-            "Could not get file from lastfm: %s" (Lastfm.Radio.string_of_error e)
+            "Could not get file from lastfm: %s"
+            (Lastfm.Radio.string_of_error e)
       | e -> self#log#f 4 "Lastfm connection failed: %s" (Printexc.to_string e)
 
-  val mutable abort_stream = false
+  (* TODO abort streaming on #abort_track,
+   *   setting relaying <- false is too radical, it would completely
+   *   stop. *)
 
-  method put sample_freq data =
-    if abort_stream then begin
-      abort_stream <- false ;
-      failwith "streaming was aborted"
-    end ;
-    http#put sample_freq data
-
-  method abort_track =
-    abort_stream <- true
-
-  method get ab = 
-    http#get ab ;
+  method private get_frame ab = 
+    http#get_frame ab ;
     if Frame.is_partial ab then
      begin
       match latest_metadata with
@@ -107,6 +100,7 @@ object (self)
           latest_metadata <- None
         | None -> ()
      end
+
 end
 
 let () =
@@ -114,15 +108,16 @@ let () =
     Lang.add_operator "input.lastfm"
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.Input
-      ~descr:("Forwards the given lastfm stream. The relay can be "^
-              "paused/resumed using the start/stop telnet commands.")
+      ~descr:"Forwards the given lastfm stream. The relay can be \
+              paused/resumed using the start/stop telnet commands."
       [ "autostart", Lang.bool_t, Some (Lang.bool true),
         Some "Initially start relaying or not." ;
         "buffer", Lang.float_t, Some (Lang.float 2.),
         Some "Duration of the pre-buffered data." ;
         "bind_address", Lang.string_t, Some (Lang.string ""),
-        Some ("address to bind on the local machine. This option can be useful if " ^
-        "your machine is bound to multiple IPs. \"\" means no bind address.") ;
+        Some "Address to bind on the local machine. \
+              This option can be useful if your machine is bound to \
+              multiple IPs. \"\" means no bind address." ;
         "timeout", Lang.float_t, Some (Lang.float 10.),
         Some "Timeout for HTTP connections." ;
         "poll_delay", Lang.float_t, (Some (Lang.float 2.)),

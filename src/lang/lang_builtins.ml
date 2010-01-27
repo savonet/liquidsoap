@@ -156,6 +156,8 @@ let () =
       Tutils.shutdown () ;
       Lang.unit)
 
+(* TODO restore the following code when Wav and External decoding are back
+
 let () =
   let process_t =
     Lang.fun_t
@@ -215,6 +217,7 @@ let () =
          in
          Externalformat.register_external_metadata_resolver format resolver;
          Lang.unit)
+ *)
 
 let () =
   let protocol_t =

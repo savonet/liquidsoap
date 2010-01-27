@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,14 +28,15 @@ let split_lines buf =
   Pcre.split ~pat:"[\r\n]+" buf
 
 let test_text s = 
-  match Configure.data_mime s with
+  match Configure.data_mime with
     | None -> ()
-    | Some e when Pcre.pmatch ~pat:"text/.*" e -> ()
-    | Some e -> 
-       begin
-         log#f 3 "Wrong mime type %s for playlist" e ;
-         assert false
-       end
+    | Some get_mime ->
+        let mime = get_mime s in
+          if not (Pcre.pmatch ~pat:"text/.*" mime) then begin
+            log#f 3 "Wrong mime type %s for playlist!" mime ;
+            (* TODO this shouldn't be an assert false, it can happen *)
+            assert false
+          end
 
 (* This parser cannot detect the format !! *)
 let parse_mpegurl string =

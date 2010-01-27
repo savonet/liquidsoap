@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,9 +22,10 @@
 
 (** Decode and read ogg files. *)
 
-let log = Dtools.Log.make ["format";"ogg"]
-
 module Generator = Generator.From_audio_video
+module Buffered = Decoder.Buffered(Generator)
+
+let log = Dtools.Log.make ["format";"ogg"]
 
 exception Channels of int
 
@@ -108,114 +109,110 @@ let video_resample () =
         (Utils.get_some !resampler) buf off len
       end
 
-type state = {
-  decoder : Ogg_demuxer.t ;
-  fd : Unix.file_descr ;
-  video_convert : Ogg_demuxer.video -> RGB.t ;
-  audio_resample : ?audio_src_rate:float -> Float_pcm.pcm -> Float_pcm.pcm*int ;
-  video_resample : in_freq:int -> out_freq:int ->
-                   RGB.t array -> int -> int -> RGB.t array
-}
+(* TODO this mimicks the old code, but in the near future decoding should
+ * take into account the target content kind, e.g. for dropping channels *)
+let create_decoder input =
+  let decoder =
+    let sync = Ogg.Sync.create input in
+      Ogg_demuxer.init sync
+  in
+  let video_convert = video_convert () in
+  let audio_resample = Rutils.create_audio () in
+  let video_resample = video_resample () in
+    Decoder.Decoder (fun buffer ->
+      if Ogg_demuxer.eos decoder then
+        raise Ogg_demuxer.End_of_stream;
+      let feed ((buf,sample_freq),_) =
+        let audio_src_rate = float sample_freq in
+        let content,length =
+          audio_resample ~audio_src_rate buf
+        in
+          Generator.put_audio buffer content 0 length
+      in
+      let got_audio =
+        try
+          Ogg_demuxer.decode_audio decoder feed ;
+          true
+        with
+          | Not_found
+          | Ogg.Not_enough_data -> false
+      in
+      let feed (buf,_) =
+        let in_freq = int_of_float buf.Ogg_demuxer.fps in
+        let out_freq = Lazy.force Frame.video_rate in
+        let rgb = video_convert buf in
+        let stream = video_resample ~in_freq ~out_freq [|rgb|] 0 1 in
+          Generator.put_video buffer [|stream|] 0 (Array.length stream)
+      in
+      (* Try to decode video. *)
+      let got_video =
+        try
+          Ogg_demuxer.decode_video decoder feed ;
+          true
+        with
+          | Not_found
+          | Ogg.Not_enough_data -> false
+      in
+        if not got_audio && not got_video then
+          Ogg_demuxer.feed decoder)
 
-let decoder =
-  {
-   File_decoder.
-    log = log;
-    openfile =
-      (fun file ->
-        let sync,fd = Ogg.Sync.create_from_file file in
-        begin
-         try
-           {
-             decoder = Ogg_demuxer.init sync ;
-             fd = fd ;
-             video_convert = video_convert () ;
-             audio_resample = Rutils.create_audio () ;
-             video_resample = video_resample ()
-           }
-         with
-           | e -> (try Unix.close fd with _ -> ()); raise e
-        end);
-    get_kind =
-      (fun {decoder=decoder} ->
-        let feed ((buf,_),_) =
-          raise (Channels (Array.length buf))
-        in
-        let audio =
-          try
-            Ogg_demuxer.decode_audio_rec decoder feed;
-            raise Not_found
-          with
-            | Channels x -> x
-            | Not_found  -> 0
-        in
-        let feed (buf,_) =
-          raise (Channels 1)
-        in
-        let video =
-          try
-            Ogg_demuxer.decode_video_rec decoder feed;
-            raise Not_found
-          with
-            | Channels x -> x
-            | Not_found  -> 0
-        in
-        { Frame.
-            audio = Frame.mul_of_int audio ;
-            video = Frame.mul_of_int video ;
-            midi  = Frame.mul_of_int 0 });
-    decode =
-      (fun s buffer ->
-          if Ogg_demuxer.eos s.decoder then
-            raise Ogg_demuxer.End_of_stream;
-          let feed ((buf,sample_freq),_) =
-            let audio_src_rate = float sample_freq in
-            let content,length =
-              s.audio_resample ~audio_src_rate buf
-            in
-            Generator.put_audio buffer content 0 length
-          in
-          let got_audio =
-           try
-            Ogg_demuxer.decode_audio s.decoder feed ;
-            true
-           with
-             | Not_found
-             | Ogg.Not_enough_data -> false
-          in
-          let feed (buf,_) =
-            let in_freq = int_of_float buf.Ogg_demuxer.fps in
-            let out_freq = Lazy.force Frame.video_rate in
-            let rgb = s.video_convert buf in
-            let stream = s.video_resample ~in_freq ~out_freq [|rgb|] 0 1 in
-              Generator.put_video buffer [|stream|] 0 (Array.length stream)
-          in
-          (* Try to decode video. *)
-          let got_video =
-            try
-              Ogg_demuxer.decode_video s.decoder feed ;
-              true
-            with
-              | Not_found
-              | Ogg.Not_enough_data -> false
-          in
-          if not got_audio && not got_video then
-            Ogg_demuxer.feed s.decoder);
-    position = (fun s -> Unix.lseek s.fd 0 Unix.SEEK_CUR);
-    close = (fun s ->
-               try
-                 Unix.close s.fd
-               with _ -> ())
-  }
+let create_file_decoder filename content_type kind =
+  let mode =
+    match content_type.Frame.video, content_type.Frame.audio with
+      | 0, _ -> Generator.Audio
+      | _, 0 -> Generator.Video
+      | _, _ -> Generator.Both
+  in
+  let generator = Generator.create mode in
+    Buffered.file_decoder filename kind create_decoder generator
 
-let () = Decoder.formats#register "OGG" (File_decoder.decode decoder)
+let get_type filename =
+  let sync,fd = Ogg.Sync.create_from_file filename in
+  let decoder = Ogg_demuxer.init sync in
+  let feed ((buf,_),_) =
+    raise (Channels (Array.length buf))
+  in
+  let audio =
+    try
+      Ogg_demuxer.decode_audio_rec decoder feed;
+      raise Not_found
+    with
+      | Channels x -> x
+      | Not_found  -> 0
+  in
+  let feed (buf,_) =
+    raise (Channels 1)
+  in
+  let video =
+    try
+      Ogg_demuxer.decode_video_rec decoder feed;
+      raise Not_found
+    with
+      | Channels x -> x
+      | Not_found  -> 0
+  in
+  let c_type =
+    { Frame.
+        audio = audio ;
+        video = video ;
+        midi  = 0 }
+  in
+    Unix.close fd ;
+    c_type
+
+let () =
+  Decoder.file_decoders#register "OGG"
+    ~sdoc:"Decode a file as OGG provided that libogg accepts it."
+    (fun filename kind ->
+       let content_type = get_type filename in
+         if Frame.type_has_kind content_type kind then
+           Some (fun () -> create_file_decoder filename content_type kind)
+         else
+           None)
 
 exception Metadata of (string*string) list
 
-let get_tags ~format file =
-  (* Fail if file is not decoded using the OGG demuxer. *)
-  if format <> "OGG" then
-    raise Not_found;
+let get_tags file =
   let sync,fd = Ogg.Sync.create_from_file file in
   let close () =
     try

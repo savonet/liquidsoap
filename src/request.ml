@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -153,7 +153,7 @@ let string_of_log log =
                      Printf.sprintf "\n[%s] %s" (pretty_date date) msg)) "" log
 
 (** Requests.
-  * The purpose of a request is to get a valid file. The file can be audio,
+  * The purpose of a request is to get a valid file. The file can contain media
   * in which case validity implies finding a working decoder, or can be
   * something arbitrary, like a playlist.
   * This file is fetched using protocols. For example the fetching can involve
@@ -216,7 +216,7 @@ type t = {
   log : log ;
   mutable root_metadata : metadata ;
   mutable indicators : indicator list list ;
-  mutable decoder : (unit -> Decoder.decoder) option ;
+  mutable decoder : (unit -> Decoder.file_decoder) option ;
 }
 
 let kind x = x.kind
@@ -316,13 +316,13 @@ let local_check t =
     while t.decoder = None && Sys.file_exists (peek_indicator t).string do
       let indicator = peek_indicator t in
       let name = indicator.string in
-        match Decoder.search_valid name kind with
-          | Some (format,f) ->
+        match Decoder.get_file_decoder name kind with
+          | Some f ->
               t.decoder <- Some f ;
               mresolvers#iter
                 (fun _ resolver ->
                    try
-                     let ans = resolver ~format name in
+                     let ans = resolver name in
                        List.iter
                          (fun (k,v) ->
                             (* XXX Policy ? Never/always overwrite ? *)
@@ -377,7 +377,7 @@ exception Duration of float
 let duration file =
   try
     dresolvers#iter
-      (fun format resolver ->
+      (fun name resolver ->
         try
          let ans = resolver file in
          raise (Duration ans)

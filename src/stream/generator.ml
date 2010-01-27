@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,17 @@
 
  *****************************************************************************)
 
-(** The base module doesn't even know what it is buffering. *)
+module type S =
+sig
+  type t
+  val length : t -> int (* ticks *)
+  val remaining : t -> int (* ticks *)
+  val clear : t -> unit
+  val fill : t -> Frame.t -> unit
+  val add_metadata : t -> Frame.metadata -> unit
+end
+
+(** The base module doesn't even know what kind of data it is buffering. *)
 module Generator =
 struct
 

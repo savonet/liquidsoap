@@ -1174,15 +1174,15 @@ AC_SUBST(W_MAGIC)
 if test -z "$W_MAGIC" ; then
     w_MAGIC="no (requires ocaml-magic)"
     cat >> src/configure.ml <<EOCONF
-let file_mime s = None
-let data_mime ?len s = None
+let file_mime = None
+let data_mime = None
 EOCONF
 else
     w_MAGIC=yes
     cat >> src/configure.ml <<EOCONF
 let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[]]
-let file_mime s = Some (Magic.file magic_cookie s)
-let data_mime ?len s = Some (Magic.buffer magic_cookie ?len s)
+let file_mime = Some (Magic.file magic_cookie)
+let data_mime = Some (Magic.buffer magic_cookie)
 EOCONF
 fi
 
