@@ -33,8 +33,6 @@ video_converters = \
 
 # TODO move all formats to encoders
 formats = \
-	$(if $(W_VORBIS),formats/vorbisduration.ml) \
-	$(if $(W_TAGLIB),formats/taglib_plug.ml) \
 	formats/externalformat.ml \
 	formats/midiformat.ml \
 	# $(if $(W_FAAD),formats/aacformat.ml) \
@@ -42,7 +40,9 @@ formats = \
 decoders = \
 	formats/wavformat.ml \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
-	$(if $(W_MP3),decoder/mp3.ml)
+	$(if $(W_MP3),decoder/mp3.ml) \
+	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
+	$(if $(W_TAGLIB),decoder/taglib_plug.ml)
 
 playlists = \
 	playlists/playlist_basic.ml $(if $(W_XMLPLAYLIST),playlists/playlist_xml.ml)

@@ -22,8 +22,7 @@
 
 open Taglib
 
-let get_tags ~format fname =
-  if format <> "MP3" then [] else
+let get_tags fname =
   try
     let f = open_file ~file_type:Mpeg fname in
     try
