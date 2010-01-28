@@ -121,7 +121,7 @@ let usage () =
   let l = Hashtbl.fold (fun k v l -> (k,v)::l) commands [] in
   let l = List.sort compare l in
     List.fold_left
-      (fun s (k,(h,u,_)) -> s^(Printf.sprintf "\n| %s" u))
+      (fun s (k,(h,u,_)) -> s^(Printf.sprintf "\r\n| %s" u))
       "" l
 
 (** {1 Handling of a client} *)
@@ -143,17 +143,17 @@ let () =
             in
             let (_,us,d) = Hashtbl.find commands args in
 	    Printf.sprintf
-            "\nHelp for command %s.\n\nUsage: %s\n  %s"
+            "\r\nHelp for command %s.\r\n\nUsage: %s\r\n  %s"
 	    args us d
          with
           | Not_found ->
-              (if args <> "" then "No such command: " ^ args ^ "\n" else "")
-               ^ "Available commands:" ^ (usage ()) ^ "\n\n"
+              (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
+               ^ "Available commands:" ^ (usage ()) ^ "\r\n\r\n"
                ^ "Type \"help <command>\" for more information.") ;
     add "list" 
         ~descr:"Get the list of available operators with their interfaces." 
                (fun _ ->
-                  String.concat "\n"
+                  String.concat "\r\n"
                     (Hashtbl.fold
                        (fun k v s ->
                           (Printf.sprintf "%s : %s" (to_string k) v)::s)
@@ -205,9 +205,9 @@ let handle_client socket =
       in
       let len = String.length answer in
         if len > 0 && answer.[len - 1] = '\n' then
-          answer^"END\n"
+          answer^"END\r\n"
         else
-          answer^"\nEND\n"
+          answer^"\r\nEND\r\n"
     in
     let answer,init = 
       try
