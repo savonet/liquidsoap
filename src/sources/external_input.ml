@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-module Generator = Generator.From_audio_video
-module Generated = Generated.From_audio_video
+module Generator = Generator.From_audio_video_plus
+module Generated = Generated.From_audio_video_plus
 
 (* {1 External Input handling} *)
 
@@ -37,7 +37,7 @@ class external_input ~kind ~restart ~bufferize ~channels
                              ~signed:true ~big_endian:false
                              () ~audio_src_rate:in_freq
   in
-  let abg = Generator.create Generator.Audio in
+  let abg = Generator.create `Audio in
   let priority = Tutils.Non_blocking in
 object (self)
   inherit Source.source kind

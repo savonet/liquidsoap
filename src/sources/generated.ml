@@ -23,8 +23,8 @@
 module Make (Generator:Generator.S) =
 struct
 
-(* Reads data from an audio buffer generator. The generator can be feeded
- * in parallel, using [lock] if not in the main thread.
+(* Reads data from an audio buffer generator.
+ * A thread safe generator should be used if it has to be fed concurrently.
  * Store [bufferize] seconds before declaring itself as ready. *)
 class virtual source ~bufferize ~empty_on_abort gen =
   let bufferize = Frame.master_of_seconds bufferize in
@@ -34,7 +34,6 @@ object (self)
   val generator = gen
 
   val mutable buffering = true
-  val lock = Mutex.create ()
 
   val mutable should_fail = false
 
@@ -42,11 +41,7 @@ object (self)
 
   method abort_track = should_fail <- true
 
-  method private length =
-    Mutex.lock lock ;
-    let r = Generator.length generator in
-      Mutex.unlock lock ;
-      r
+  method private length = Generator.length generator
 
   method is_ready =
     let r = self#length in
@@ -68,20 +63,17 @@ object (self)
   method remaining =
     if should_fail then 0 else
       let r = self#length in
-        Mutex.lock lock ;
         let l = Generator.remaining generator in
-        Mutex.unlock lock ;
-        if buffering && r <= bufferize then 0 else l
+          if buffering && r <= bufferize then 0 else l
 
   method private get_frame ab =
     buffering <- false ;
     if should_fail then begin
       self#log#f 4 "Performing skip." ;
       should_fail <- false ;
-      if empty_on_abort then Generator.clear generator ; (* TODO lock *)
+      if empty_on_abort then Generator.clear generator ;
       Frame.add_break ab (Frame.position ab)
     end else begin
-      Mutex.lock lock ;
       Generator.fill generator ab ;
       (* Currently, we don't enter the buffering phase between tracks
        * even when there's not enough data in the buffer. This is mostly
@@ -95,8 +87,7 @@ object (self)
       if Generator.length generator = 0 then begin
         self#log#f 4 "Buffer emptied, starting buffering." ;
         buffering <- true
-      end ;
-      Mutex.unlock lock
+      end
     end
 
 end
@@ -112,12 +103,4 @@ end
 
 end
 
-module From_audio_video =
-  Make(struct
-         type t = Generator.From_audio_video.t
-         let length x = Generator.From_audio_video.length x
-         let remaining x = Generator.From_audio_video.remaining x
-         let clear = Generator.From_audio_video.clear
-         let add_metadata = Generator.From_audio_video.add_metadata
-         let fill = Generator.From_audio_video.fill
-       end)
+module From_audio_video_plus = Make(Generator.From_audio_video_plus)

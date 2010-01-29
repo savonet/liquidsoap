@@ -63,7 +63,15 @@ end
 module From_audio_video :
 sig
   type t
-  type mode = Audio | Video | Both
+
+  (** In [Audio] mode, only audio can be put in the buffer, and similarly
+    * for the [Video] mode. In [Both] mode, both types of content can
+    * be fed into the generator, asynchronously, and they exit the
+    * buffer synchronously.
+    * The [Undefined] forbids any feeding, it's useful to make sure
+    * a meaningful mode is assigned before any use. *)
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
+
   val create : mode -> t
 
   val mode : t -> mode
@@ -82,6 +90,59 @@ sig
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
   (* [put_video buffer data offset length]: offset and length
    * are in samples ! *)
+  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val fill : t -> Frame.t -> unit
+
+  val remove : t -> int -> unit
+  val clear : t -> unit
+end
+
+(** Generator not only with Output but also with ASynchronous Input. *)
+module type S_Asio =
+sig
+  type t
+  val length : t -> int (* ticks *)
+  val remaining : t -> int (* ticks *)
+  val clear : t -> unit
+  val fill : t -> Frame.t -> unit
+  val add_metadata : t -> Frame.metadata -> unit
+  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
+end
+
+(** Same as From_audio_video but with two extra features useful for
+  * streaming decoders: it is thread safe and supports overfull
+  * buffer management. *)
+module From_audio_video_plus :
+sig
+  type t
+
+  (** Same as [From_audio_video]. *)
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
+
+  (** How to handle overfull buffers:
+    * drop old data, keeping at most [len] ticks. *)
+  type overfull = [ `Drop_old of int ]
+
+  val create : ?lock:Mutex.t -> ?overfull:overfull -> mode -> t
+
+  val mode : t -> From_audio_video.mode
+  val set_mode : t -> From_audio_video.mode -> unit
+
+  val audio_length : t -> int
+  val video_length : t -> int
+  val length : t -> int
+  val remaining : t -> int
+
+  val add_metadata : t -> Frame.metadata -> unit
+  val add_break : t -> unit
+
+  (* [put_audio buffer data offset length]:
+   * offset and length are in audio samples! *)
+  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  (* [put_video buffer data offset length]:
+   * offset and length are in video samples! *)
   val put_video : t -> Frame.video_t array -> int -> int -> unit
   val fill : t -> Frame.t -> unit
 

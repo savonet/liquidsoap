@@ -29,13 +29,12 @@ class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max
                         ~on_connect ~on_disconnect
                         ~login ~debug =
-  (* let abg_max_len = Frame.audio_of_seconds max in
-     TODO handle buffer overflow, cf. input.http *)
+  let max_ticks = Frame.master_of_seconds max in
 object (self)
   inherit Source.source kind
   (* TODO: we want video also in the genrator *)
   inherit Generated.source
-            (Generator.create Generator.Audio)
+            (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize
 
   val mutable relaying = false
@@ -57,7 +56,7 @@ object (self)
      * as the "title" field if "title" is not provided. *)
     if not (Hashtbl.mem m "title") then
       (try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
-    self#log#f 3 "New metadata chunk \"%s -- %s\""
+    self#log#f 3 "New metadata chunk %S -- %S."
       (try Hashtbl.find m "artist" with _ -> "?")
       (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m
@@ -115,7 +114,7 @@ object (self)
         done
       with
         | e ->
-            self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e) ;
+            self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
             if debug then raise e ;
             self#disconnect ;
             begin try Unix.close socket with _ -> () end
@@ -148,6 +147,7 @@ object (self)
     if relaying then self#disconnect
 
   method register_decoder mime =
+    Generator.set_mode generator `Undefined ;
     match
       Decoder.get_stream_decoder mime kind
     with
@@ -214,7 +214,7 @@ let () =
         Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
         Some "Function to execute when a source is connected. \
               Its receives the list of headers, of the form: \
-              (\"label\",\"value\"). All labels are lowercase.";
+              (<label>,<value>). All labels are lowercase.";
 
         "on_disconnect",Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),

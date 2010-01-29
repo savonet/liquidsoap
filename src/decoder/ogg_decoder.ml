@@ -22,9 +22,6 @@
 
 (** Decode and read ogg files. *)
 
-module Generator = Generator.From_audio_video
-module Buffered = Decoder.Buffered(Generator)
-
 let log = Dtools.Log.make ["decoder";"ogg"]
 
 (** Generic decoder *)
@@ -111,9 +108,12 @@ let video_resample () =
         (Utils.get_some !resampler) buf off len
       end
 
+module Make (Generator:Generator.S_Asio) =
+struct
+
 (* TODO this mimicks the old code, but in the near future decoding should
  * take into account the target content kind, e.g. for dropping channels *)
-let create_decoder input =
+let create_decoder mode input =
   let decoder =
     let sync = Ogg.Sync.create input in
       Ogg_demuxer.init sync
@@ -122,6 +122,7 @@ let create_decoder input =
   let audio_resample = Rutils.create_audio () in
   let video_resample = video_resample () in
     Decoder.Decoder (fun buffer ->
+      Generator.set_mode buffer mode ;
       if Ogg_demuxer.eos decoder then
         raise Ogg_demuxer.End_of_stream;
       let feed ((buf,sample_freq),_) =
@@ -158,17 +159,23 @@ let create_decoder input =
         if not got_audio && not got_video then
           Ogg_demuxer.feed decoder)
 
-(** Stream decoder *)
+end
+
+(** File decoder *)
+
+module G = Generator.From_audio_video
+module Buffered = Decoder.Buffered(G)
+module D = Make(G)
 
 let create_file_decoder filename content_type kind =
   let mode =
     match content_type.Frame.video, content_type.Frame.audio with
-      | 0, _ -> Generator.Audio
-      | _, 0 -> Generator.Video
-      | _, _ -> Generator.Both
+      | 0, _ -> `Audio
+      | _, 0 -> `Video
+      | _, _ -> `Both
   in
-  let generator = Generator.create mode in
-    Buffered.file_decoder filename kind create_decoder generator
+  let generator = G.create mode in
+    Buffered.file_decoder filename kind (D.create_decoder mode) generator
 
 let get_type filename =
   let sync,fd = Ogg.Sync.create_from_file filename in
@@ -226,13 +233,16 @@ let _ =
     ~d:mimes "Mime types associated to Ogg container. \n\
       This settings has been DEPRECATED."
 
+module D_stream = Make(Generator.From_audio_video_plus)
+
 let () =
   Decoder.stream_decoders#register
     "OGG"
     ~sdoc:"Decode as OGG any stream with an appropriate MIME type."
      (fun mime kind ->
         if List.mem mime mime_types#get then
-          Some create_decoder
+          (* TODO We must find a way here... *)
+          Some (D_stream.create_decoder `Audio)
         else
           None)
 

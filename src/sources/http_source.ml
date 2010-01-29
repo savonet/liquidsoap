@@ -176,7 +176,7 @@ let parse_url url =
     else
       host,80,mount,auth
 
-module Generator = Generator.From_audio_video
+module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
 (* Used to handle redirections. *)
@@ -187,31 +187,12 @@ class http ~kind
         ~bind_address ~autostart ~bufferize ~max
         ~debug ?(logfile=None)
         ~user_agent url =
-  let _ =
-  (* TODO
-   * We used to deal with overfull generators in the [put] method,
-   * passed to the stream decoders in the [sink]. Now, the
-   * interface is simpler, but we need to put this back somewhere:
-   * add overfull management to Generators? This can be done
-   * for a specific kind of generator, that also needs to be
-   * thread safe:
-   *
-   * The old "sink" system was used to:
-   *  - control concurrency on the generator
-   *  - log
-   *  - conversions (samplerate)
-   *  - control (fail to stop feeding on source/output stop)
-   * Most of it was adapted by passing directly a generator to the
-   * decoder, but we still need to handle multi-threading,
-   * by ensuring that read/writing in the generator don't occur
-   * at the same time. *)
-    Frame.audio_of_seconds (Pervasives.max max bufferize)
-  in
+  let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
 object (self)
   inherit Source.source kind
   inherit
     Generated.source
-      (Generator.create Generator.Audio)
+      (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
       ~empty_on_abort:false ~bufferize
 
   method stype = Source.Fallible
@@ -233,7 +214,7 @@ object (self)
 
   (* Insert metadata *)
   method insert_metadata m =
-    self#log#f 3 "New metadata chunk \"%s -- %s\""
+    self#log#f 3 "New metadata chunk: %S -- %S."
                 (try Hashtbl.find m "artist" with _ -> "?")
                 (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m ;
@@ -268,7 +249,7 @@ object (self)
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s." s
               | e ->
-                  self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
+                  self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e)
             end ;
             begin match logf with
               | Some f -> close_out f ; logf <- None
@@ -397,9 +378,10 @@ object (self)
                         with
                           | Not_found -> ()
                       end else begin
-                        self#log#f 4 "Content-type \"%s\"." content_type ;
+                        self#log#f 4 "Content-type %S." content_type ;
                         if chunked then
                           self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+                        Generator.set_mode generator `Undefined ;
                         let dec =
                           match
                             Decoder.get_stream_decoder content_type kind
@@ -566,7 +548,7 @@ let () =
        if bufferize > max then
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
-                   "Maximun buffering inferior to pre-buffered data"));
+                   "Maximum buffering inferior to pre-buffered data"));
        let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          ((new http ~kind ~playlist_mode ~timeout ~autostart ~track_on_meta
                     ~force_mime ~bind_address ~poll_delay

@@ -30,6 +30,19 @@ sig
   val add_metadata : t -> Frame.metadata -> unit
 end
 
+module type S_Asio =
+sig
+  type t
+  val length : t -> int (* ticks *)
+  val remaining : t -> int (* ticks *)
+  val clear : t -> unit
+  val fill : t -> Frame.t -> unit
+  val add_metadata : t -> Frame.metadata -> unit
+  val put_audio : t -> Frame.audio_t array -> int -> int -> unit
+  val put_video : t -> Frame.video_t array -> int -> int -> unit
+  val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
+end
+
 (** The base module doesn't even know what kind of data it is buffering. *)
 module Generator =
 struct
@@ -231,7 +244,7 @@ end
 module From_audio_video =
 struct
 
-  type mode = Audio | Video | Both
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
   type t = {
     mutable mode : mode ;
     audio : Frame.audio_t array Generator.t ;
@@ -298,10 +311,10 @@ struct
     let l = Frame.master_of_audio l in
       Generator.put t.audio content o l ;
       match t.mode with
-        | Audio ->
+        | `Audio ->
             Generator.put t.video [||] 0 l
-        | Both -> ()
-        | Video -> assert false
+        | `Both -> ()
+        | `Video | `Undefined -> assert false
 
   (** Add some video content. Offset and length are given in video samples. *)
   let put_video t content o l =
@@ -310,10 +323,10 @@ struct
     let l = Frame.master_of_video l in
       Generator.put t.video content o l ;
       match t.mode with
-        | Video ->
+        | `Video ->
             Generator.put t.audio [||] 0 l
-        | Both -> ()
-        | Audio -> assert false
+        | `Both -> ()
+        | `Audio | `Undefined -> assert false
 
   (* Advance metadata and breaks by [len] ticks. *)
   let advance t len =
@@ -401,5 +414,60 @@ struct
           | 0::tl -> t.breaks <- tl
           | [] -> () (* end of stream / underrun ... *)
           | _ -> assert false
+
+end
+
+module From_audio_video_plus =
+struct
+
+  module Super = From_audio_video
+
+  type mode = [ `Audio | `Video | `Both | `Undefined ]
+  type overfull = [ `Drop_old of int ]
+  type t = {
+    lock : Mutex.t ;
+    overfull : overfull option ;
+    gen : Super.t
+  }
+
+  let create ?(lock=Mutex.create()) ?overfull mode =
+    { lock = lock ; overfull = overfull ; gen = Super.create mode }
+
+  let mode t = Tutils.mutexify t.lock Super.mode t.gen
+  let set_mode t mode = Tutils.mutexify t.lock (Super.set_mode t.gen) mode
+
+  let audio_length t = Tutils.mutexify t.lock Super.audio_length t.gen
+  let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
+  let length t = Tutils.mutexify t.lock Super.length t.gen
+  let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
+
+  let add_metadata t m =
+    Tutils.mutexify t.lock (Super.add_metadata t.gen) m
+  let add_break t = Tutils.mutexify t.lock Super.add_break t.gen
+
+  let clear t = Tutils.mutexify t.lock Super.clear t.gen
+  let fill t frame = Tutils.mutexify t.lock (Super.fill t.gen) frame
+
+  let remove t len =
+    Tutils.mutexify t.lock (Super.remove t.gen) len
+
+  let check_overfull t extra =
+    assert (Tutils.seems_locked t.lock) ;
+    match t.overfull with
+      | Some (`Drop_old len) when Super.length t.gen + extra > len ->
+          Super.remove t.gen (Super.length t.gen + extra - len)
+      | _ -> ()
+
+  let put_audio t buf off len =
+    Tutils.mutexify t.lock
+      (fun () ->
+         check_overfull t (Frame.master_of_audio len) ;
+         Super.put_audio t.gen buf off len) ()
+
+  let put_video t buf off len =
+    Tutils.mutexify t.lock
+      (fun () ->
+         check_overfull t (Frame.master_of_video len) ;
+         Super.put_video t.gen buf off len) ()
 
 end

@@ -76,7 +76,7 @@ type input = int -> string * int
   * and is generally assumed to not allocate resources (in the sense
   * of things that should be explicitly managed, not just garbage collected).
   * Hence it does not need a close function. *)
-type stream_decoder = input -> Generator.From_audio_video.t decoder
+type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
 
 (** A decoder is a filling function and a closing function,
   * called at least when filling fails, i.e. the frame is partial.

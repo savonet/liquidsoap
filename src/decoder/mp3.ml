@@ -24,10 +24,10 @@
 
 open Dtools
 
-module Generator = Generator.From_audio_video
-module Buffered = Decoder.Buffered(Generator)
-
 let log = Log.make ["decoder";"mp3"]
+
+module Make (Generator:Generator.S_Asio) =
+struct
 
 let create_decoder input =
   let resampler = Rutils.create_audio () in
@@ -38,11 +38,18 @@ let create_decoder input =
       let content,length =
         resampler ~audio_src_rate:(float sample_freq) data
       in
+        Generator.set_mode gen `Audio ;
         Generator.put_audio gen content 0 (Array.length content.(0)))
 
+end
+
+module G = Generator.From_audio_video
+module Buffered = Decoder.Buffered(G)
+module D = Make(G)
+
 let create_file_decoder filename kind =
-  let generator = Generator.create Generator.Audio in
-    Buffered.file_decoder filename kind create_decoder generator
+  let generator = G.create `Audio in
+    Buffered.file_decoder filename kind D.create_decoder generator
 
 let conf_mad =
   Conf.void ~p:(Configure.conf#plug "mad")
@@ -99,6 +106,8 @@ let () =
                  else
                    None)
 
+module D_stream = Make(Generator.From_audio_video_plus)
+
 let () =
   Decoder.stream_decoders#register
     "MP3/libmad"
@@ -116,7 +125,7 @@ let () =
              * decoding-time. Failing early would only be an advantage
              * if there was possibly another plugin for decoding
              * correctly the stream (e.g. by performing conversions). *)
-            Some create_decoder
+            Some D_stream.create_decoder
           else
             None)
 

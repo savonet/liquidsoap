@@ -24,9 +24,6 @@
 
 let log = Dtools.Log.make ["decoder";"wav"]
 
-module Generator = Generator.From_audio_video
-module Buffered = Decoder.Buffered(Generator)
-
 (** {1 Generic decoder} *)
 
 exception End_of_stream
@@ -55,11 +52,14 @@ let read_int ic = read_int_num_bytes ic 4
 
 let read_short ic = read_int_num_bytes ic 2
 
+module Make (Generator:Generator.S_Asio) =
+struct
+
 (* TODO It might be more efficient to write our code for an input
  * channel and use directly the one we have when decoding files
  * or external processes, if we could wrap the input function used
  * for decoding stream (in http and harbor) as an in_channel. *)
-let create_decoder input =
+let create input =
   let decoder = ref (fun gen -> assert false) in
 
   let main_decoder converter gen =
@@ -68,6 +68,7 @@ let create_decoder input =
       if bytes=0 then raise End_of_stream ;
       log#f 4 "Read %d bytes of PCM" bytes ;
       let content,length = converter (String.sub data 0 bytes) in
+        Generator.set_mode gen `Audio ;
         Generator.put_audio gen content 0 length ;
         log#f 4 "Done (%d)" length
   in
@@ -118,7 +119,14 @@ let create_decoder input =
     decoder := (fun _ -> read_header ()) ;
     Decoder.Decoder (fun gen -> !decoder gen)
 
+end
+
+module Generator = Generator.From_audio_video
+module Buffered = Decoder.Buffered(Generator)
+
 (* File decoding *)
+
+module D = Make(Generator)
 
 let get_type filename =
   let chan = open_in filename in
@@ -127,8 +135,8 @@ let get_type filename =
     { Frame. video = 0 ; midi = 0 ; audio = Wav.channels info }
 
 let create_file_decoder filename kind =
-  let generator = Generator.create Generator.Audio in
-    Buffered.file_decoder filename kind create_decoder generator
+  let generator = Generator.create `Audio in
+    Buffered.file_decoder filename kind D.create generator
 
 let () =
   Decoder.file_decoders#register "WAV"

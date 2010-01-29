@@ -28,7 +28,7 @@ type stream = string
 type input = int -> string * int
 
 type 'a decoder = Decoder of ('a -> unit)
-type stream_decoder = input -> Generator.From_audio_video.t decoder
+type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
 type file_decoder = { fill : Frame.t -> int; close : unit -> unit; }
 
 val file_decoders :
