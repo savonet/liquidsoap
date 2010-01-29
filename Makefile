@@ -1,7 +1,7 @@
 
 SUBDIRS= src examples doc gui scripts
 DISTFILES = CHANGES COPYING INSTALL README \
-	bootstrap configure.ac configure config.h.in test_os.ml \
+	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh
 
 top_srcdir=.
