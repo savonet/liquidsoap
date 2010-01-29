@@ -68,11 +68,7 @@ object (self)
     * Should be called within critical section,
     * when there is no ready request. *)
   method private begin_track =
-    (* This assertion does not work on
-     * win32 because a thread can double-lock
-     * the same mutex.. *)
-    if Sys.os_type <> "Win32" then
-      assert (not (Mutex.try_lock plock)) ;
+    assert (Tutils.seems_locked plock) ;
     assert (current = None) ;
     match self#get_next_file with
       | None ->

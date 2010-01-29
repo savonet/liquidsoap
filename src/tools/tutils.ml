@@ -81,6 +81,15 @@ let mutexify lock f =
     with
       | e -> Mutex.unlock lock ; raise e
 
+let seems_locked =
+  if Sys.os_type = "Win32" then (fun _ -> true) else
+    fun m ->
+      if Mutex.try_lock m then begin
+        Mutex.unlock m ;
+        false
+      end else
+        true
+
 (** Manage a set of threads and make sure they terminate correctly,
   * i.e. not by raising an exception. *)
 
