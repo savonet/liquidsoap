@@ -76,19 +76,14 @@
     in
     (fun ~audio_src_rate src ->
       let sample_bytes = samplesize / 8 in
-      let len = (String.length src) / (sample_bytes*channels) in
-      let dst =
-        (* TODO: convert channel number? *)
-        Array.init channels (fun _ -> Array.make len 0.)
-      in
       let ratio = audio_dst_rate /. audio_src_rate in
+      (* Compute the length in samples, in the source data,
+       * then in the destination format, adding 1 to prevent rounding bugs. *)
+      let len_src = (String.length src) / (sample_bytes*channels) in
+      let len_dst = 1 + int_of_float (float len_src *. ratio) in
+      let dst = Array.init channels (fun _ -> Array.make len_dst 0.) in
         ignore
-          (
-            Float_pcm.resample_s16le
-              src 0 len signed samplesize big_endian
-              ratio dst 0
-          );
-      dst,Frame.master_of_audio len)
-
-
-  
+          (Float_pcm.resample_s16le
+              src 0 len_src signed samplesize big_endian
+              ratio dst 0) ;
+        dst, Frame.master_of_audio len_dst)
