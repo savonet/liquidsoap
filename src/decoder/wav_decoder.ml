@@ -55,7 +55,7 @@ let read_short ic = read_int_num_bytes ic 2
 module Make (Generator:Generator.S_Asio) =
 struct
 
-(* TODO It might be more efficient to write our code for an input
+(* It might be more efficient to write our code for an input
  * channel and use directly the one we have when decoding files
  * or external processes, if we could wrap the input function used
  * for decoding stream (in http and harbor) as an in_channel. *)
@@ -66,11 +66,9 @@ let create input =
     let bytes_to_get = 1024*64 in
     let data,bytes = input bytes_to_get in
       if bytes=0 then raise End_of_stream ;
-      log#f 4 "Read %d bytes of PCM" bytes ;
       let content,length = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 length ;
-        log#f 4 "Done (%d)" length
+        Generator.put_audio gen content 0 length
   in
 
   let read_header () =

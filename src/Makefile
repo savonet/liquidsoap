@@ -38,7 +38,7 @@ formats = \
 	# $(if $(W_FAAD),formats/aacformat.ml) \
 
 decoders = \
-	formats/wavformat.ml \
+	decoder/wav_decoder.ml \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
 	$(if $(W_MP3),decoder/mp3.ml) \
 	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
