@@ -130,9 +130,11 @@ module D = Make(Generator)
 
 let get_type filename =
   let chan = open_in filename in
-  let info = Wav.read_header chan filename in
-    close_in chan ;
-    { Frame. video = 0 ; midi = 0 ; audio = Wav.channels info }
+    Tutils.finalize
+      ~k:(fun () -> close_in chan)
+      (fun () ->
+         { Frame. video = 0 ; midi = 0 ;
+                  audio = Wav.channels (Wav.read_header chan filename) })
 
 let create_file_decoder filename kind =
   let generator = Generator.create `Audio in

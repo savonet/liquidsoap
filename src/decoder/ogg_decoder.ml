@@ -179,37 +179,35 @@ let create_file_decoder filename content_type kind =
 
 let get_type filename =
   let sync,fd = Ogg.Sync.create_from_file filename in
-  let decoder = Ogg_demuxer.init sync in
-  let feed ((buf,_),_) =
-    raise (Channels (Array.length buf))
-  in
-  let audio =
-    try
-      Ogg_demuxer.decode_audio_rec decoder feed;
-      raise Not_found
-    with
-      | Channels x -> x
-      | Not_found  -> 0
-  in
-  let feed (buf,_) =
-    raise (Channels 1)
-  in
-  let video =
-    try
-      Ogg_demuxer.decode_video_rec decoder feed;
-      raise Not_found
-    with
-      | Channels x -> x
-      | Not_found  -> 0
-  in
-  let c_type =
-    { Frame.
-        audio = audio ;
-        video = video ;
-        midi  = 0 }
-  in
-    Unix.close fd ;
-    c_type
+    Tutils.finalize ~k:(fun () -> Unix.close fd)
+      (fun () ->
+         let decoder = Ogg_demuxer.init sync in
+         let feed ((buf,_),_) =
+           raise (Channels (Array.length buf))
+         in
+         let audio =
+           try
+             Ogg_demuxer.decode_audio_rec decoder feed;
+             raise Not_found
+           with
+             | Channels x -> x
+             | Not_found  -> 0
+         in
+         let feed (buf,_) =
+           raise (Channels 1)
+         in
+         let video =
+           try
+             Ogg_demuxer.decode_video_rec decoder feed;
+             raise Not_found
+           with
+             | Channels x -> x
+             | Not_found  -> 0
+         in
+           { Frame.
+             audio = audio ;
+             video = video ;
+             midi  = 0 })
 
 let () =
   Decoder.file_decoders#register "OGG"

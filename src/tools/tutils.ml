@@ -81,6 +81,9 @@ let mutexify lock f =
     with
       | e -> Mutex.unlock lock ; raise e
 
+let finalize ~k f =
+  try let x = f () in k () ; x with e -> k () ; raise e
+
 let seems_locked =
   if Sys.os_type = "Win32" then (fun _ -> true) else
     fun m ->

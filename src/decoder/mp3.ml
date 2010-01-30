@@ -64,16 +64,17 @@ let conf_mime_types =
  * that libmad can actually open the file -- which doesn't mean much. *)
 let get_type filename =
   let fd = Mad.openfile filename in
-    ignore(Mad.decode_frame_float fd);
-    let rate,channels,_ = Mad.get_output_format fd in
-      log#f 4
-        "Libmad recognizes %S as MP3 (%dHz,%d channels)."
-        filename rate channels ;
-      Mad.close fd ;
-      { Frame.
-          audio = channels ;
-          video = 0 ;
-          midi  = 0 }
+    Tutils.finalize ~k:(fun () -> Mad.close fd)
+      (fun () ->
+         ignore(Mad.decode_frame_float fd);
+         let rate,channels,_ = Mad.get_output_format fd in
+           log#f 4
+             "Libmad recognizes %S as MP3 (%dHz,%d channels)."
+             filename rate channels ;
+           { Frame.
+             audio = channels ;
+             video = 0 ;
+             midi  = 0 })
 
 let () =
   match Configure.file_mime with

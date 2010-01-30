@@ -63,6 +63,10 @@ val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 (** Make a function work in critical section, protected by a given lock. *)
 val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
+(** [finalize ~k f] calls [f] and returns it result,
+  * and always executes [k], even when [f] raises an exception. *)
+val finalize : k:(unit -> unit) -> (unit -> 'a) -> 'a
+
 (** Tests whether a mutex is locked, without blocking.
   * We cannot check on Win32, where [true] is always returned:
   * it always "seems" OK, we don't raise false alarms.
