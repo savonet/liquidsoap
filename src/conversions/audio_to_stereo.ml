@@ -44,6 +44,7 @@ object
   method private get_frame frame =
     let start = Frame.position frame in
     let stop  = source#get frame ; Frame.position frame in
+    let len   = stop-start in
     let _,src = Frame.content frame start in
       assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
       match src.Frame.audio with
@@ -58,23 +59,24 @@ object
               Array.blit
                 src !start
                 dst.Frame.audio.(0) !start
-                !stop ;
+                !len ;
               Array.blit
                 src !start
                 dst.Frame.audio.(1) !start
-                !stop
+                !len
         | [|_;_|] -> ()
         | src ->
+            (* We have more than two channels: drop the last ones. *)
             let dst = Frame.content_of_type frame start stereo in
             let (!) = Frame.audio_of_master in
               Array.blit
                 src.(0) !start
                 dst.Frame.audio.(0) !start
-                !stop ;
+                !len ;
               Array.blit
                 src.(1) !start
                 dst.Frame.audio.(1) !start
-                !stop
+                !len
 
 end
 
