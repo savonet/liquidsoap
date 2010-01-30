@@ -392,24 +392,39 @@ let content frame pos =
   * one. Hence, the caller of this function should always assume the
   * invalidation of all data after the given position. *)
 let content_of_type frame pos content_type =
-  let rec aux acc = function
+  (* Start_pos indicates the start of the first layer,
+   * acc contains the previous layers in reverse order,
+   * and we're walking through the next layers. *)
+  let rec aux start_pos acc = function
     | [] -> assert false
     | (end_pos,content)::l ->
-        if end_pos<=pos then aux ((end_pos,content)::acc) l else
+        if end_pos<=pos then aux end_pos ((end_pos,content)::acc) l else
+          (* We are starting somewhere inside that layer. *)
           if content_has_type content content_type then begin
             if l=[] then assert (end_pos = !!size) else
               frame.contents <- List.rev ((!!size,content)::acc) ;
             content
           end else begin
-            let acc =
-              if pos=0 then acc else (pos,content)::acc
-            in
-            let content = create_content content_type in
-              frame.contents <- List.rev ((!!size, content)::acc) ;
-              content
+            if pos=start_pos then
+              (* We are erasing the current layer. *)
+              match acc with
+                | (end_pos,content)::acc
+                  when content_has_type content content_type ->
+                    (* We must re-use the previous layer. *)
+                    frame.contents <- List.rev ((!!size, content)::acc) ;
+                    content
+                | _ ->
+                    let content = create_content content_type in
+                      frame.contents <- List.rev ((!!size, content)::acc) ;
+                      content
+            else
+              let acc = (pos,content)::acc in
+              let content = create_content content_type in
+                frame.contents <- List.rev ((!!size, content)::acc) ;
+                content
           end
   in
-    aux [] frame.contents
+    aux 0 [] frame.contents
 
 let blit_content src src_pos dst dst_pos len =
   Utils.array_iter2 src.audio dst.audio
