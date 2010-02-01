@@ -147,13 +147,6 @@ fi
 OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
 AC_SUBST(OS_TYPE)
 
-if test "$OS_TYPE" \!= "Unix" ; then
-  OS_EXEC_SUFFIX=".exe"
-else
-  OS_EXEC_SUFFIX=""
-fi
-AC_SUBST(OS_EXEC_SUFFIX)
-
 # Add -fPIC to CFLAGS for compatibility with x86_64
 if test "$OS_TYPE" \!= "Win32" ; then
   CFLAGS="$CFLAGS -fPIC"
@@ -1708,7 +1701,7 @@ if test "$CP" = false ; then
   AC_MSG_ERROR(Cannot find cp)
 fi
 
-AC_PATH_PROG(TEXT2WAVE,text2wave$(OS_EXEC_SUFFIX),false)
+AC_PATH_PROG(TEXT2WAVE,text2wave$(EXEEXT),false)
 AC_PATH_PROG(SOX,sox,false)
 AC_PATH_PROG(NORMALIZE,normalize,false)
 

@@ -35,7 +35,6 @@ ifneq ($(OS_TYPE),Win32)
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
-	# In windows, we load everything from the current directory.
 	@echo let tts_program = \"liquidtts\" >> src/configure.ml
 	@echo let rundir = \"run\" >> src/configure.ml
 	@echo let logdir = \"logs\" >> src/configure.ml
