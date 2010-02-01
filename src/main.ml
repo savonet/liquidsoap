@@ -315,13 +315,16 @@ let options =
 
       ["--debug"],
       Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
-      "Print debugging log messages." ;
-
-      ["-d";"--daemon"],
-      Arg.Unit (fun f -> Init.conf_daemon#set true),
-      "Run in daemon mode." ;
-
-      ["-t";"--enable-telnet"],
+      "Print debugging log messages." ]
+      @
+      (* Unix.fork is not implemented in Win32. *) 
+      (if Sys.os_type <> "Win32" then
+        [["-d";"--daemon"],
+         Arg.Unit (fun f -> Init.conf_daemon#set true),
+         "Run in daemon mode."]
+       else [])
+      @
+      [["-t";"--enable-telnet"],
       Arg.Unit (fun _ -> Server.conf_telnet#set true),
       "Enable the telnet server." ;
 

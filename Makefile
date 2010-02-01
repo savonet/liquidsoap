@@ -26,6 +26,7 @@ doc-local: all
 
 finish-configure:
 	@echo Creating src/configure.ml
+ifneq ($(OS_TYPE),Win32)
 	@echo let tts_program = \"$(libdir)/liquidsoap/$(libs_dir_version)/liquidtts\" >> src/configure.ml
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
@@ -33,6 +34,16 @@ finish-configure:
 	@echo let display_types = ref false >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
+else
+	# In windows, we load everything from the current directory.
+	@echo let tts_program = \"liquidtts\" >> src/configure.ml
+	@echo let rundir = \"run\" >> src/configure.ml
+	@echo let logdir = \"logs\" >> src/configure.ml
+	@echo let libs_dir = \"libs\" >> src/configure.ml
+	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
+	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
+endif
+	@echo let display_types = ref false >> src/configure.ml
 	@echo "(* Enable backtrace printing if possible, does nothing on ocaml<3.11 *)" >> src/configure.ml
 	@echo "let record_backtrace _ = ()" >> src/configure.ml
 	@echo "open Printexc" >> src/configure.ml
