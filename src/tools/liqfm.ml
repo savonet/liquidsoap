@@ -158,7 +158,7 @@ let init () =
      Hashtbl.iter f submit ;
      (-1.)
    with
-     | e -> reason (Printexc.to_string e); raise e
+     | e -> reason (Printexc.to_string e); (-1.)
    in
    (* Add and wake the task *)
    let t =
