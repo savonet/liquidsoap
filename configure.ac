@@ -5,9 +5,18 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
+# Remove +svn and set svn_snapshot to false
+# before releasing
 AC_INIT([liquidsoap],[0.9.2+svn])
-version="0.9.2+svn"
-libs_dir_version="svn"
+svn_snapshot=true
+version=0.9.2
+
+if test $svn_snapshot != "false"; then
+  version="$version+svn"
+  libs_dir_version="svn"
+else
+  libs_dir_version="$version"
+fi
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
 
@@ -40,6 +49,7 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 
 cat > src/configure.ml << _BLAH_
 let version = "$version"
+let svn_snapshot = $svn_snapshot
 let conf = Dtools.Conf.void "Liquidsoap configuration"
 let var_script = ref "default"
 let substs = ref
@@ -1701,9 +1711,11 @@ if test "$CP" = false ; then
   AC_MSG_ERROR(Cannot find cp)
 fi
 
-AC_PATH_PROG(TEXT2WAVE,text2wave$(EXEEXT),false)
-AC_PATH_PROG(SOX,sox,false)
-AC_PATH_PROG(NORMALIZE,normalize,false)
+if test $OS_TYPE != "Win32"; then
+  AC_PATH_PROG(TEXT2WAVE,text2wave,false)
+  AC_PATH_PROG(SOX,sox,false)
+  AC_PATH_PROG(NORMALIZE,normalize,false)
+fi
 
 if test "$TEXT2WAVE" = false ; then
    w_TTS="liquidtts will use \"false\" as a synthetizer,

@@ -389,8 +389,29 @@ let options =
 
 let log = Log.make ["main"]
 
-let () =
-  log#f 3 "Liquidsoap %s%s" Configure.version SVN.rev
+let () = 
+  log#f 1 "Liquidsoap %s%s" Configure.version SVN.rev ;
+  if Configure.svn_snapshot then
+    List.iter (log#f 1 "%s")
+      ["DISCLAIMER: This version of Liquidsoap was";
+       "compiled from a snapshot of the developpement";
+       "code. As such, it should not be used in production";
+       "unless you know what you are doing !";
+       "";
+       "We are, however, very interested in any feedback";
+       "about our developpement code and commited to fix";
+       "issues as soon as possible.";
+       "";
+       "If you are interested into collaborating with";
+       "the developpement of Liquidsoap, feel free to";
+       "drop us a mail at: savonet-devl@lists.sf.net";
+       "or to join our #savonet IRC channel on Freenode";
+       "";
+       "Please send any bug report of feature request";
+       "using our trac system at: http://savonet.rastageeks.org";
+       "";
+       "We hope you will enjoy the use of this snapshot";
+       "build of Liquidsoap !"]
 
 (** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
 let parse argv l f msg =
