@@ -1,7 +1,6 @@
 title: External encoders
 
-** External encoders are currently unavailable in the SVN trunk. This page will be updated
-when they are available again. **
+**External encoders are currently unavailable in the SVN trunk. This page will be updated when they are available again.**
 
 h3. Introduction
 
