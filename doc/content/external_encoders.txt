@@ -1,5 +1,8 @@
 title: External encoders
 
+** External encoders are currently unavailable in the SVN trunk. This page will be updated
+when they are available again. **
+
 h3. Introduction
 
 You can use any external program that accepts wav or raw PCM data to encode audio data and use the resulting compressed 

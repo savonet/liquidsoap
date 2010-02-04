@@ -62,7 +62,7 @@ end
 **Partial application.** Application of arguments can be partial. For example if <code>f</code> takes two integer arguments, <code>f(3)</code> is the function waiting for the second argument. This can be useful to instantiate once for all dummy parameters of a function:
 
 %%(lang_partial_application.liq)
-out = output.icecast.vorbis(host="streamer",port="8080",
+out = output.icecast(%vorbis, host="streamer",port="8080",
                             password="sesame")
 # out is a function waiting for the other parameters
 out(bitrate=112, my_radio)

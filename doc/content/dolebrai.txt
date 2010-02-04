@@ -125,12 +125,12 @@ s = smooth_add(normal=s,special=switch([({ 0m0s or 30m0s }, jingles_dyn)]))
 # s = mix([s,request.equeue(id="eq")])
 
 # === OUTPUT ===
-out_mp3 = output.icecast.mp3(
+out_mp3 = output.icecast(%mp3, 
     password="XXX", bitrate=64, samplerate=22050, quality=2,
     genre="Musique Libre",
     url="http://dolebrai.net",
     description="La radio des musiques libres")
-out_vorbis = output.icecast.vorbis(
+out_vorbis = output.icecast(%vorbis, 
     password="XXX",
     genre="Musique Libre",
     description="La radio des musiques libres")

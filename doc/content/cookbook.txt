@@ -55,13 +55,13 @@ url = "http://streaming.example.com:8000/your-stream.ogg"
 input = mksafe(input.http(url))
 
 # First transcoder: MP3 32 kbps
-output.icecast.mp3(
+output.icecast(%mp3, 
   mount="/your-stream-32.mp3", bitrate=32,
   samplerate = 22050, stereo = false,
   host="streaming.example.com", port=8000, password="xxx",
   input)
 # Second transcoder : MP3 128 kbps
-output.icecast.mp3(
+output.icecast(%mp3, 
   mount="/your-stream-128.mp3", bitrate=128,
   host="streaming.example.com", port=8000, password="xxx",
   input)
@@ -85,7 +85,7 @@ set("root.sync",false)
 input = "/some/file.mp3" # any format supported by liquidsoap
 output = "/tmp/output.ogg"
 source = once(single(input))
-output.file.vorbis(output,fallible=true,on_stop=shutdown,source)
+output.file(%vorbis, output,fallible=true,on_stop=shutdown,source)
 %%
 
 h4. Scheduling
@@ -188,7 +188,7 @@ radio = fallback(track_sensitive=false,
                  [live,playlist,emergency])
 
 # output it
-output.icecast.vorbis(radio,mount="test",host="host")
+output.icecast(%vorbis, radio,mount="test",host="host")
 %%
 
 This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.

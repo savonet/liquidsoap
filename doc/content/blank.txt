@@ -25,7 +25,7 @@ stream = fallback(track_sensitive=false,
 	              [ strip_blank(length=5.,live) , interlude ])
 
 # Put that stream to a local file
-output.file.ogg("/tmp/hop.ogg",stream)
+output.file(%vorbis, "/tmp/hop.ogg", stream)
 %%
 
 

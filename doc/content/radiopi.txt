@@ -73,16 +73,16 @@ live = input.harbor(id="live",on_connect=live_start,on_disconnect=live_stop,"liv
 live_safe = mksafe(live)
 
 # Live relay to secondary encoder
-output.icecast.vorbis(id="stream_relay",start=false,restart=true,host="1.2.3.4",port=8005,password="xxxx",mount="live.ogg",live_safe)
+output.icecast(%vorbis, id="stream_relay",start=false,restart=true,host="1.2.3.4",port=8005,password="xxxx",mount="live.ogg",live_safe)
 
 # File source for archiving
 title = '$(if $(title),"$(title)","Emission inconnue")$(if $(artist), " par  $(artist)") - %m-%d-%Y, %H:%M:%S'
-output.file.vorbis(id="archives",start=false,reopen_on_metadata=true,"/path/to/archives/" ^ title ^ ".ogg",live_safe)
+output.file(%vorbis, id="archives",start=false,reopen_on_metadata=true,"/path/to/archives/" ^ title ^ ".ogg",live_safe)
 
 # === Main script ===
 
 # Specialize the output functions by partial application
-output.icecast     = output.icecast.mp3(restart=true,description=descr, url=url)
+output.icecast     = output.icecast(%mp3, restart=true,description=descr, url=url)
 out = output.icecast(host=ice_host,port=8080,password=pass)
 
 # A file for playing during failures
