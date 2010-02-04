@@ -1,5 +1,7 @@
 title: Video with a static image.
 
+**This page needs to be updated !**
+
 h3. A simple video script
 
 The other day, I wanted to prepare some videos of my favorite reggae and soul 

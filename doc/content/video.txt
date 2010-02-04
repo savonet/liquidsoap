@@ -1,5 +1,7 @@
 title: Video in Liquidsoap
 
+**This page needs to be updated !**
+
 h3. Video
 
 h4. Getting started with video
