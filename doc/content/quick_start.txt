@@ -117,6 +117,8 @@ liquidsoap
 
 The main difference with the previous is that we used <code>output.icecast.vorbis</code> instead of <code>out</code>. The second difference is the use of the <code>mksafe</code> which turns your fallible playlist source into an infallible source.
 
+** This example needs to be updated to reflect the code in the current SVN**
+
 Streaming to Shoutcast is quite similar, using the <code>output.shoutcast.mp3</code> function:
 
 %%(shoutcast.sh)

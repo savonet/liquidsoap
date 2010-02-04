@@ -1,5 +1,7 @@
 title: Streaming to Shoutcast
 
+**This page needs to be updated. Currently, it does not reflect the current code in the SVN.**
+
 h3. Streaming to Shoutcast
 
 
