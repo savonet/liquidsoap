@@ -1,14 +1,12 @@
 title: Video in Liquidsoap
 
-**This page needs to be updated !**
-
 h3. Video
 
 h4. Getting started with video
 
 In order to stream video, you should first inform your script that you are going to use video by doing
 %%
-set("frame.video.channels",1)
+set("frame.video.channels",0)
 %%
 Optionnaly, you can also set the width, the height and the number of frames per seconds of the streamed video with
 %%
@@ -18,44 +16,22 @@ set("frame.video.fps",25)
 %%
 And that's almost it! You can use usual operators such as <code>single</code> or <code>playlist</code> to read video files. For now, only file in the ogg/theora format are supported (you can use the "ffmpeg2theora":http://v2v.cc/~j/ffmpeg2theora/ program to convert your videos to this format). For instance, a playlist of ogg videos can be streamed using
 %%
-output.icecast.theora(playlist("my_playlist"))
+output.icecast(%ogg(%theora,%vorbis), playlist("my_playlist"))
 %%
 where <code>my_playlist</code> is a list of video files.
 
+For more details about the encoding settings, you can see the "encoding formats":encoding_formats.html page.
+
 If you have SDL support in Liquidsoap, the video part of the stream can be previewed locally using the <code>output.sdl</code> operator. For example, the script
 %%
-output.sdl(single("file.ogv"))
+output.sdl(drop_audio(single("file.ogv")))
 %%
 will display the video file <code>file.ogv</code>.
+
+We use the @drop_audio@ operator because the @output.sdl@ operator only supports pure video stream. 
+Hence, @drop_audio@ returns a source where only the video track is present.
 
 h4. Video effects
 
 A lot of video effects are available in Liquidsoap. The corresponding operators are named <code>video.*</code>. In particular, the <code>video.fade.in</code> and <code>video.fade.out</code> should be used to program transitions, similarly to the <code>fade.in</code> and <code>fade.out</code> operators for audio.
-
-h4. Known issues and limitations.
-
-Current support for video is not complete. There are several limitations. In particular, liquidsoap cannot do any video 
-framerate conversion. This means that all video files must have the same number of frames per second as the global setting.
-
-Additionally, in order to maintain audio and video synchronisation, you have to make sure that the duration of
-a liquidsoap frame is a multiple of the duration of a video frame and the duration of an audio frame.
-
-For instance, if you want to read videos with 10 frames per seconds, and audio is sampled at 44.100 Hz, then 
-if @x@ is the length of a liquidsoap frame -- set with @set("frame.size",x)@:
-
-* For now liquidsoap frame duration is exactly the audio duration, then the liquidsoap frame duration is: @x*44.100@.
-* For this duration, there are exactly: @y = floor(x*44.100/10)@ video frames.
-* The duration of the @y@ frames is: @y*10@.
-
-Hence, the equation is: @y*10 = x*44.100@ for @x@ and @y@ integers. We can for instance take @y = 1@, such that there 
-will be a single video frame per liquidsoap frame, and then @x = 4.410@, and you have to add the following at the begining of your script:
-
-%%
-set("frame.video.channels",1) 
-set("frame.size",4410) 
-set("frame.video.fps",10)
-%%
-
-
-This limitation will be removed with the next major release.
 

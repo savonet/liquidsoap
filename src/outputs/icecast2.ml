@@ -32,8 +32,15 @@ type icecast_info =
     channels    : int option
   }
 
+type icy_metadata = Guess | True | False
+
 let no_mount = "Use [name] with .ogg extension if relevant"
 let no_name = "Use [mount]"
+
+let user_agent =
+  Printf.sprintf "liquidsoap %s" Configure.version
+let user_agent = Lang.product (Lang.string "User-Agent")
+                              (Lang.string user_agent)
 
 let proto kind =
   Output.proto @
@@ -60,8 +67,10 @@ let proto kind =
      Some (Lang.string "OCaml Radio!"), None) ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
-     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) []),
+     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
      Some "Additional headers.") ;
+    "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
+    Some "Send new metadata using the ICY protocol. One of: \"guess\", \"true\", \"false\"";
     ("format", Lang.string_t, Some (Lang.string ""),
      Some "Format, e.g. \"audio/ogg\". When empty, the encoder is used to guess.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
@@ -85,6 +94,18 @@ class output ~kind p =
             raise (Lang.Invalid_value
                      (v, "Valid values are 'http' (icecast) \
                           and 'icy' (shoutcast)"))
+  in
+
+  let icy_metadata = 
+    let v = List.assoc "icy_metadata" p in
+    match Lang.to_string v with
+      | "guess" -> Guess
+      | "true"  -> True
+      | "false" -> False
+      | _ -> 
+            raise (Lang.Invalid_value
+                     (v, "Valid values are 'guess', \
+                          'true' or 'false'"))
   in
 
   let source = Lang.assoc "" 2 p in
@@ -171,6 +192,23 @@ class output ~kind p =
                                                  "No format (mime) found, \
                                                   please specify one."))
   in
+  
+  let icy_metadata = 
+    let f = Cry.string_of_content_type in
+    match format, icy_metadata with
+      | _, True -> true
+      | _, False -> false
+      | x, _ when f x = f Cry.mpeg -> true
+      | x, _ when f x = f Cry.ogg_application ||
+                         f x = f Cry.ogg_audio ||
+                         f x = f Cry.ogg_video -> false
+      | _, Guess -> 
+           raise (Lang.Invalid_value (List.assoc "icy_metadata" p,
+                                                 "Could not guess icy_metadata \
+                                                  for this format, please specify \
+                                                  either 'true' or 'false'."))
+  in
+
 
   let ogg = 
    (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_application) ||
@@ -265,9 +303,9 @@ object (self)
       enc.Encoder.encode frame ofs len
 
   method reset_encoder m =
-    if ogg then
-      (Utils.get_some encoder).Encoder.reset m
-    else
+    (* Update metadata using ICY if told to.. *)
+    if icy_metadata then
+     begin
       let get h k l =
         try
           (k,(Hashtbl.find h k))::l
@@ -310,10 +348,16 @@ object (self)
       in
         match Cry.get_status connection with
           | Cry.Connected _ ->
-              (try Cry.update_metadata connection m ; "" with _ -> "")
+              (try Cry.update_metadata connection m with _ -> ())
           | Cry.Disconnected ->
               (* Do nothing if shout connection isn't available *)
-              ""
+              ()
+     end ;
+    (* Now send the remaining data.. *)
+    if ogg then
+      (Utils.get_some encoder).Encoder.reset m 
+    else ""
+
   method send b =
     match Cry.get_status connection with
       | Cry.Disconnected ->
@@ -375,7 +419,10 @@ object (self)
       f icecast_info.samplerate "samplerate" string_of_int;
       f icecast_info.channels "channels" string_of_int;
       let user_agent =
-        Printf.sprintf "liquidsoap %s" Configure.version
+        try
+          List.assoc "User-Agent" headers
+        with
+          | Not_found -> Printf.sprintf "liquidsoap %s" Configure.version
       in 
       let source = 
         Cry.connection ~host ~port ~user ~password

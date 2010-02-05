@@ -78,6 +78,8 @@ You can also control quality using @abr=x@ or @vbr=y@.
 
 h4. External encoders
 
+For a detailed presentation of external encoders, see "this page":external_encoders.html.
+
 %%
 %external(channels=2,samplerate=44100,header=true,
           restart_on_crash=false,
