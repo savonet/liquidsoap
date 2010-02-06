@@ -353,8 +353,12 @@ object (self)
               (* Do nothing if shout connection isn't available *)
               ()
      end ;
-    (* Now send the remaining data.. *)
-    if ogg then
+    (* Now send the remaining data.. 
+     * We reset the ogg encoder only if
+     * icy_metadata = false. This allows 
+     * the use of icy.update_metadata in order
+     * to have custom metadata updates. *)
+    if ogg && (not icy_metadata) then
       (Utils.get_some encoder).Encoder.reset m 
     else ""
 
