@@ -79,6 +79,7 @@ operators = \
 	operators/compress.ml operators/clip.ml operators/filter.ml \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
+	operators/dyn_op.ml \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml operators/video_fade.ml \
