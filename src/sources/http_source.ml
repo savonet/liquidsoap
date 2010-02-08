@@ -193,7 +193,7 @@ object (self)
   inherit
     Generated.source
       (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
-      ~empty_on_abort:false ~bufferize
+      ~empty_on_abort:false ~bufferize as generated
 
   method stype = Source.Fallible
 
@@ -447,6 +447,12 @@ object (self)
 
   method sleep = poll_should_stop <- true
 
+  method remaining =
+    if relaying then
+      if buffering then 0 else -1
+    else
+      generated#remaining
+
 end
 
 let () =
@@ -545,7 +551,7 @@ let () =
        let bufferize = Lang.to_float (List.assoc "buffer" p) in
        let timeout = Lang.to_float (List.assoc "timeout" p) in
        let max = Lang.to_float (List.assoc "max" p) in
-       if bufferize > max then
+       if bufferize >= max then
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
                    "Maximum buffering inferior to pre-buffered data"));

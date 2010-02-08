@@ -35,7 +35,7 @@ object (self)
   (* TODO: we want video also in the genrator *)
   inherit Generated.source
             (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
-            ~empty_on_abort:false ~bufferize
+            ~empty_on_abort:false ~bufferize as generated
 
   val mutable relaying = false
   val mutable ns = []
@@ -194,6 +194,12 @@ object (self)
 
   method is_taken = relaying
 
+  method remaining =
+    if relaying then
+      if buffering then 0 else -1
+    else
+      generated#remaining
+
 end
 
 let () =
@@ -303,7 +309,7 @@ let () =
          in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
-         if bufferize > max then
+         if bufferize >= max then
            raise (Lang.Invalid_value
                     (List.assoc "max" p,
                      "Maximun buffering inferior to pre-buffered data"));
