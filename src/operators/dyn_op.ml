@@ -80,4 +80,4 @@ let () =
       ~kind:(Lang.Unconstrained k)
       ~descr:"Dynamically change the underlying source."
       ~category:Lang.TrackProcessing (* TODO create better category *)
-      (fun p kind -> new dyn kind (List.assoc "" p)
+      (fun p kind -> new dyn kind (List.assoc "" p))
