@@ -423,7 +423,17 @@ struct
   module Super = From_audio_video
 
   type mode = [ `Audio | `Video | `Both | `Undefined ]
+
+  (** There are different ways of handling an overful generator:
+    * (1) when streaming, one should just stop the decoder for a while;
+    * (2) when not streaming, one should throw some data.
+    * Doing 1 instead of 2 can lead to deconnections.
+    * Doing 2 instead of 1 leads to ugly sound.
+    * Currently the only possibility is to drop data, since we want to remain
+    * connected to the client. This behaves well in most cases, since clients
+    * generally don't not go faster than stream-time. *)
   type overfull = [ `Drop_old of int ]
+
   type t = {
     lock : Mutex.t ;
     overfull : overfull option ;

@@ -224,12 +224,8 @@ let () =
 let mimes = ["application/ogg";"application/x-ogg";
              "audio/x-ogg";"audio/ogg";"video/ogg"]
 let mime_types =
-  Dtools.Conf.list ~p:(Http_source.conf_mime_types#plug "ogg")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ogg")
     ~d:mimes "Mime types associated to Ogg container"
-let _ =
-  Dtools.Conf.list ~p:(Http_source.conf_mime_types#plug "vorbis")
-    ~d:mimes "Mime types associated to Ogg container. \n\
-      This settings has been DEPRECATED."
 
 module D_stream = Make(Generator.From_audio_video_plus)
 

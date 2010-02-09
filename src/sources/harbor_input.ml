@@ -21,7 +21,9 @@
  *****************************************************************************)
 
 open Unix
-open Http_source
+
+module Generator = Generator.From_audio_video_plus
+module Generated = Generated.Make(Generator)
 
 (* {1 Input handling} *)
 
@@ -32,7 +34,6 @@ class http_input_server ~kind ~dumpfile ~logfile
   let max_ticks = Frame.master_of_seconds max in
 object (self)
   inherit Source.source kind
-  (* TODO: we want video also in the genrator *)
   inherit Generated.source
             (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize as generated
@@ -60,15 +61,6 @@ object (self)
       (try Hashtbl.find m "artist" with _ -> "?")
       (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m
-
-  (* TODO There must be two ways of handling overfull generator:
-   * (1) when streaming, one should just stop the decoder for a while;
-   * (2) when not streaming, one should throw some data.
-   * Doing 1 instead of 2 can lead to deconnections.
-   * Doing 2 instead of 1 leads to ugly sound.
-   * Here, we USED TO drop data since we want to remain
-   * connected to the client.
-   * TODO Restore the old behavior. *)
 
   method get_mime_type = mime_type
 

@@ -51,12 +51,9 @@ let create_file_decoder filename kind =
   let generator = G.create `Audio in
     Buffered.file_decoder filename kind D.create_decoder generator
 
-let conf_mad =
-  Conf.void ~p:(Configure.conf#plug "mad")
-    "Mad (mp3) decoding options."
 let conf_mime_types =
-  Conf.list ~p:(conf_mad#plug "mime_types")
-    "Mime-types used for guessing formats"
+  Conf.list ~p:(Decoder.conf_mime_types#plug "mp3")
+    "Mime-types used for guessing MP3 format"
     ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
 
 (* Get the number of channels of audio in an MP3 file.

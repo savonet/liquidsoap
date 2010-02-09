@@ -22,25 +22,6 @@
 
 exception Internal
 
-(** Interface with stream decoders.
-  * We can't use Decoder since it is designed for files, and estimates
-  * the remaining number of frames. *)
-
-let conf_http_source =
-  Dtools.Conf.void ~p:(Configure.conf#plug "stream_decoding")
-    "Stream decoding settings"
-let conf_mime_types =
-  Dtools.Conf.void ~p:(conf_http_source#plug "mime_types")
-    "Mime-types used for guessing audio stream formats"
-    ~comments:[
-      "When a mime-type is available (e.g. with input.http), it can be used";
-      "to guess which audio stream format is used.";
-      "This section contains the listings used for that detection, which you";
-      "might want to tweak if you encounter a new mime-type.";
-      "If you feel that new mime-types should be permanently added, please";
-      "contact the developpers."
-    ]
-
 (** Types for playlist handling *)
 type playlist_mode =  Random | First | Randomize | Normal
 
