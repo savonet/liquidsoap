@@ -42,13 +42,11 @@ type child = {
 }
 
 (** The switch can either happen at any time in the stream (insensitive)
-  * or only at track limits (sensitive), in which case it is possible
-  * to have the transition being triggered a while before end of track --
-  * anticipation parameter specified as a number of ticks. *)
-type track_mode = Sensitive of int | Insensitive
+  * or only at track limits (sensitive). *)
+type track_mode = Sensitive | Insensitive
 
 class virtual switch ~kind
-  ?(mode=Sensitive 0) ?(replay_meta=true) (cases : child list) =
+  ?(mode=Sensitive) ?(replay_meta=true) (cases : child list) =
 object (self)
 
   inherit operator kind (List.map (fun x -> x.source) cases) as super
@@ -222,11 +220,7 @@ object (self)
           if Frame.is_partial ab then
             reselect ~forget:true ()
           else
-            if
-              match mode with
-                | Insensitive -> true
-                | Sensitive d -> s#remaining > 0 && s#remaining <= d
-            then
+            if mode = Insensitive then
               reselect ()
 
   method remaining =
@@ -251,10 +245,6 @@ let common kind = [
   Some "Replay the last metadata of a child when switching to it \
         in the middle of a track." ;
 
-  "before", Lang.float_t, Some (Lang.float 0.),
-  Some "EXPERIMENTAL: for track_sensitive switches, \
-        trigger transitions before the end of track." ;
-
   let transition_t =
     Lang.fun_t
       [false,"",Lang.source_t kind;
@@ -276,11 +266,10 @@ let default_transition k =
 
 let extract_common ~kind p l =
   let ts =
-    let before = Lang.to_float (List.assoc "before" p) in
-      if Lang.to_bool (List.assoc "track_sensitive" p) then
-        Sensitive (Frame.master_of_seconds before)
-      else
-        Insensitive
+    if Lang.to_bool (List.assoc "track_sensitive" p) then
+      Sensitive
+    else
+      Insensitive
   in
   let tr =
     let tr = Lang.to_list (List.assoc "transitions" p) in
