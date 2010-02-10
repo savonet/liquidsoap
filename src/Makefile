@@ -34,11 +34,10 @@ video_converters = \
 # TODO move all formats to encoders
 formats = \
 	formats/externalformat.ml \
-	formats/midiformat.ml \
 	# $(if $(W_FAAD),formats/aacformat.ml) \
 
 decoders = \
-	decoder/wav_decoder.ml \
+	decoder/wav_decoder.ml decoder/midi_decoder.ml \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
 	$(if $(W_MP3),decoder/mp3.ml) \
 	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
@@ -141,7 +140,7 @@ visualization = visualization/vumeter.ml \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
 	$(if $(W_GL),visualization/vis_glvolume.ml) \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
-        visualization/midimeter.ml \
+	visualization/midimeter.ml \
 	visualization/video_volume.ml \
 
 synth = synth/synth.ml synth/keyboard.ml \

@@ -20,7 +20,8 @@
 
  *****************************************************************************)
 
-(** Read MIDI files. *)
+(** Read MIDI files.
+  * The metadata support is TODO. *)
 
 exception Invalid_header
 
@@ -136,7 +137,8 @@ let read_track fd =
             let v = get_byte () in
               Some chan,
               if v = 0 then
-                Midi.Note_off (n, 0.) (* I have seen notes at 0. used as note off...... *)
+                (* I have seen notes at 0. used as note off...... *)
+                Midi.Note_off (n, 0.)
               else
                 Midi.Note_on (n, float v /. 127.)
         | 0xa ->
@@ -201,10 +203,14 @@ let read_track fd =
                             None, Midi.Tempo t
                       | 0x58 (* Time signature *) ->
                           assert (len = 4);
-                          let n = get_byte () in (* numerator *)
-                          let d = get_byte () in (* denominator *)
-                          let c = get_byte () in (* ticks in a metronome click *)
-                          let b = get_byte () in (* 32nd notes to the quarter note *)
+                          (* numerator,
+                           * denominator,
+                           * ticks in a metronome click,
+                           * 32nd notes to the quarter note *)
+                          let n = get_byte () in
+                          let d = get_byte () in
+                          let c = get_byte () in
+                          let b = get_byte () in
                             None, Midi.Time_signature (n, d, c, b)
                       | 0x59 (* Key signature *) ->
                           assert (len = 2);
@@ -237,7 +243,7 @@ let read_track fd =
     List.rev !ans
 
 let decoder file =
-  log#f 4 "Decoding %s..." file;
+  log#f 4 "Decoding %S..." file;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   let closed = ref false in
 
@@ -247,7 +253,9 @@ let decoder file =
     Unix.close fd
   in
   let close_on_err f x =
-    try f x with e -> log#f 5 "Closing on error: %s" (Printexc.to_string e); close (); raise e
+    try f x with e ->
+      log#f 5 "Closing on error: %s." (Printexc.to_string e);
+      close (); raise e
   in
 
   let ntracks, division = close_on_err read_header fd in
@@ -315,33 +323,31 @@ let decoder file =
         while !track <> [] && !offset_in_buf < buflen do
           let d,(c,e) = List.hd !track in
             offset_in_buf := !offset_in_buf + d;
-            if !offset_in_buf < buflen then
-              (
-                track := List.tl !track;
-                match c with
-                  | Some c ->
-                      (
-                        (* Filter out relevant events. *)
-                        match e with
-                          | Midi.Note_on _
-                          | Midi.Note_off _
-                          | Midi.Control_change _ ->
-                              (
-                                try
-                                  m.(c) := !(m.(c))@[!offset_in_buf, e]
-                                with
-                                  | Invalid_argument _ ->
-                                      if !warn_channels then
-                                        (
-                                          log#f 3 "Event on channel %d will be ignored, increase frame.midi.channels (this message is displayed only once)." c;
-                                          warn_channels := false
-                                        )
-                              )
-                          | _ -> () (* TODO *)
-                      )
-                  | None -> () (* TODO *)
-              )
-            else
+            if !offset_in_buf < buflen then begin
+              track := List.tl !track;
+              match c with
+               | Some c ->
+                   (* Filter out relevant events. *)
+                   begin match e with
+                     | Midi.Note_on _
+                     | Midi.Note_off _
+                     | Midi.Control_change _ ->
+                         begin try
+                           m.(c) := !(m.(c))@[!offset_in_buf, e]
+                         with
+                           | Invalid_argument _ ->
+                               if !warn_channels then begin
+                                   log#f 3 "Event on channel %d \
+                                     will be ignored, increase \
+                                     frame.midi.channels (this message \
+                                     is displayed only once)." c;
+                                   warn_channels := false
+                                 end
+                         end
+                       | _ -> () (* TODO *)
+                   end
+                | None -> () (* TODO *)
+            end else
               track := (!offset_in_buf - buflen,(c,e))::(List.tl !track)
         done;
         if !track = [] then
@@ -353,13 +359,10 @@ let decoder file =
       { Decoder.fill = fill ; Decoder.close = fun () -> () }
 
 let () =
-  Decoder.formats#register "MID"
-    (fun name kind -> try Some (decoder name) with _ -> None)
-
-(* TODO *)
-(*
-let metadatas ~format file =
-  []
-
-let () = Request.mresolvers#register "MID" metadatas
-*)
+  Decoder.file_decoders#register "MIDI"
+    (fun filename kind ->
+       (* TODO check precisely channel numbers *)
+       if kind.Frame.midi <> Frame.Zero then
+           Some (fun () -> decoder filename)
+       else
+           None)
