@@ -82,7 +82,7 @@ let () =
          Lang.float_getter_t 2,
          Some (Lang.float (0.)), Some "Feedback coefficient in dB.";
       "phase", Lang.float_getter_t 3, Some (Lang.float 1.),
-         Some "Phasse difference between channels in radians.";
+         Some "Phase difference between channels in radians.";
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)

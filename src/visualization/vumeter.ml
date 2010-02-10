@@ -46,14 +46,16 @@ object
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
     let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
     let channels = Array.length rms in
     let vol = Array.map (vol channels) rms in
     let vol = Array.fold_left (fun ans s -> ans ^ "  " ^ s) "" vol in
-    let vol = if channels = 0 then "vumeter: no audio channel!" else String.sub vol 2 (String.length vol - 2) in
+    let vol =
+      if channels = 0 then "vumeter: no audio channel!" else
+        String.sub vol 2 (String.length vol - 2) in
       if scroll then
         Printf.printf "%s\n%!" vol
       else
@@ -74,4 +76,4 @@ let () =
          Lang.to_bool (f "scroll"),
          Lang.to_source (f "")
        in
-         ((new vumeter ~kind src scroll):>Source.source))
+         new vumeter ~kind src scroll)

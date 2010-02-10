@@ -442,7 +442,7 @@ object (self)
         with
           | Cry.Error x as e ->
               self#log#f 2
-                "Connection failed: %s"
+                "Connection failed: %s!"
                 (Cry.string_of_error x) ;
               raise e
         end ;
