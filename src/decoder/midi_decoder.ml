@@ -200,6 +200,7 @@ let read_track fd =
                           let t2 = get_byte () in
                           let t3 = get_byte () in
                           let t = t1 lsl 16 + t2 lsl 8 + t3 in
+                            log#f 6 "Tempo: %d µs per quarter" t;
                             None, Midi.Tempo t
                       | 0x58 (* Time signature *) ->
                           assert (len = 4);
