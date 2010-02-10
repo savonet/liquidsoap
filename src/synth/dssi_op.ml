@@ -135,7 +135,7 @@ let register_descr plugin_name descr_n descr outputs =
   in
   let liq_params = liq_params in
     Lang.add_operator
-      ("dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      ("synth.dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
       (["channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle."]@liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
@@ -155,7 +155,7 @@ let register_descr plugin_name descr_n descr outputs =
                                 midi = Lang.Fixed all_chans})
   in
     Lang.add_operator
-      ("dssi.all." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      ("synth.all.dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
       (liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
