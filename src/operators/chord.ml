@@ -36,22 +36,23 @@ object (self)
 
   method abort_track = source#abort_track
 
+  val mutable notes_on = []
+
   method private get_frame buf =
     let offset = MFrame.position buf in
     source#get buf;
     let m = MFrame.content buf offset in
     (* let meta = MFrame.get_all_metadata buf in *)
-    let notes_on = ref [] in
     let chords = [0,72,""] in
     let play t n =
       let notes = List.map (fun n -> t, Midi.Note_on (n,1.)) n in
         m.(chan) := notes @ !(m.(chan));
-        notes_on := n @ !notes_on
+        notes_on <- n @ notes_on
     in
     let mute t =
-      let notes = List.map (fun n -> t, Midi.Note_off (n,1.)) !notes_on in
+      let notes = List.map (fun n -> t, Midi.Note_off (n,1.)) notes_on in
         m.(chan) := notes @ !(m.(chan));
-        notes_on := []
+        notes_on <- []
     in
       List.iter
         (fun (t,c,m) -> (* time, base, mode *)
