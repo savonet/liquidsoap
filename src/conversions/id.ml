@@ -87,3 +87,19 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
          new id ~kind src)
+
+let () =
+  let kind =
+    { Frame. audio = Frame.Zero ; video = Frame.Zero ; midi = Frame.Zero }
+  in
+  let kind_type = Lang.kind_type_of_frame_kind kind in
+    Lang.add_operator "id.empty"
+      ["", Lang.source_t kind_type, None, None]
+      ~category:Lang.SoundProcessing
+      ~descr:"Does not do anything, \
+              but forces the stream type of the input source."
+      ~kind:(Lang.Unconstrained kind_type)
+      (fun p kind ->
+         let f v = List.assoc v p in
+         let src = Lang.to_source (f "") in
+           new id ~kind src)
