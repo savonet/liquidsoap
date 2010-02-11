@@ -59,6 +59,14 @@ object (self)
              match m with
                | "" -> (* major *)
                    play t [c;c+4;c+7]
+               | "m" -> (* minor *)
+                   play t [c;c+3;c+7]
+               | "7" ->
+                   play t [c;c+4;c+7;c+10]
+               | "M7" ->
+                   play t [c;c+4;c+7;c+11]
+               | "m7" ->
+                   play t [c;c+3;c+7;c+10]
                | m ->
                    self#log#f 5 "Unknown mode: %s\n%!" m
            );
