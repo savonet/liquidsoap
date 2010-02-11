@@ -40,3 +40,7 @@ let ticks_of_delta division tempo delta =
           Int64.to_int ((((delta * tempo) / tpq) * tps) / ten)
     | Midi.SMPTE (fps,res) ->
         (delta * Lazy.force Frame.size) / (fps * res)
+
+(** Midi tracks should be sorted according to time. This function sorts a
+  * track. *)
+let sort_track t = List.sort (fun (t1,_) (t2,_) -> t1 - t2) t

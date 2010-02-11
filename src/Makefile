@@ -86,7 +86,7 @@ operators = \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
-	operators/midi_routing.ml
+	operators/midi_routing.ml operators/chord.ml
 	# \
 	operators/time_wrap.ml operators/lag.ml \
 	operators/fork.ml
