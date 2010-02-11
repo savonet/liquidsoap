@@ -73,6 +73,7 @@ let register obj name descr =
     [
       "channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle.";
       "volume", Lang.float_t, Some (Lang.float 0.3), Some "Initial volume.";
+      "envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.";
       "attack", Lang.float_t, Some (Lang.float 0.02), Some "Envelope attack (in seconds).";
       "decay", Lang.float_t, Some (Lang.float 0.01), Some "Envelope decay (in seconds).";
       "sustain", Lang.float_t, Some (Lang.float 0.9), Some "Envelope sustain level.";
@@ -92,11 +93,13 @@ let register obj name descr =
          Lang.to_float (f "sustain"),
          Lang.to_float (f "release")
        in
+       let adsr = if Lang.to_bool (f "envelope") then Some adsr else None in
        let src = Lang.to_source (f "") in
          new synth ~kind (obj adsr) src chan volume);
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:16 ()) in
   Lang.add_operator ("synth.all." ^ name)
     [
+      "envelope", Lang.bool_t, Some (Lang.bool true), Some "Use envelope.";
       "attack", Lang.float_t, Some (Lang.float 0.02), Some "Envelope attack (in seconds).";
       "decay", Lang.float_t, Some (Lang.float 0.01), Some "Envelope decay (in seconds).";
       "sustain", Lang.float_t, Some (Lang.float 0.9), Some "Envelope sustain level.";
@@ -115,6 +118,7 @@ let register obj name descr =
          Lang.to_float (f "sustain"),
          Lang.to_float (f "release")
        in
+       let adsr = if Lang.to_bool (f "envelope") then Some adsr else None in
        let synths = Array.init ((Frame.type_of_kind kind).Frame.midi) (fun c -> 1, new synth ~kind (obj adsr) src c 1.) in
        let synths = Array.to_list synths in
          new Add.add ~kind ~renorm:false synths
@@ -122,7 +126,7 @@ let register obj name descr =
            (fun _ buf tmp -> RGB.add buf tmp)
     )
 
-let () = register (fun adsr -> (new Synth.sine ~adsr () :> Synth.synth)) "sine" "Sine synthesizer."
-let () = register (fun adsr -> (new Synth.square ~adsr () :> Synth.synth)) "square" "Square synthesizer."
-let () = register (fun adsr -> (new Synth.saw ~adsr () :> Synth.synth)) "saw" "Saw synthesizer."
-let () = register (fun adsr -> (new Synth.hammond ~adsr (* [|4.; 6.; 8.; 3.; 6.; 4.; 8.; 7.; 6.|] *) [|0.; 0.; 6.; 5.; 4.; 5.; 4.; 5.; 6.|] :> Synth.synth)) "hammond" "Hammond synthsizer."
+let () = register (fun adsr -> (new Synth.sine ?adsr () :> Synth.synth)) "sine" "Sine synthesizer."
+let () = register (fun adsr -> (new Synth.square ?adsr () :> Synth.synth)) "square" "Square synthesizer."
+let () = register (fun adsr -> (new Synth.saw ?adsr () :> Synth.synth)) "saw" "Saw synthesizer."
+let () = register (fun adsr -> (new Synth.hammond ?adsr (* [|4.; 6.; 8.; 3.; 6.; 4.; 8.; 7.; 6.|] *) [|0.; 0.; 6.; 5.; 4.; 5.; 4.; 5.; 6.|] :> Synth.synth)) "hammond" "Hammond synthsizer."
