@@ -75,10 +75,13 @@ struct
     let convert i b =
       if ratio = 1. then
         Array.sub b ofs len
-    else
+      else
         conv.(i) ratio b ofs len
     in
-    Array.mapi convert data
+    if Array.length data.(0) = 0 then
+      data
+    else
+      Array.mapi convert data
 
   (** Log which converter is used at start. *)
   let () =
