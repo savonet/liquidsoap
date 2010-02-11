@@ -55,21 +55,25 @@ object (self)
     in
       List.iter
         (fun (t,c,m) -> (* time, base, mode *)
-           (
-             match m with
-               | "" -> (* major *)
-                   play t [c;c+4;c+7]
-               | "m" -> (* minor *)
-                   play t [c;c+3;c+7]
-               | "7" ->
-                   play t [c;c+4;c+7;c+10]
-               | "M7" ->
-                   play t [c;c+4;c+7;c+11]
-               | "m7" ->
-                   play t [c;c+3;c+7;c+10]
-               | m ->
-                   self#log#f 5 "Unknown mode: %s\n%!" m
-           );
+           (* Negative base note means mute. *)
+           if c >= 0 then
+             (
+               match m with
+                 | "" | "M" -> (* major *)
+                     play t [c;c+4;c+7]
+                 | "m" -> (* minor *)
+                     play t [c;c+3;c+7]
+                 | "7" ->
+                     play t [c;c+4;c+7;c+10]
+                 | "M7" ->
+                     play t [c;c+4;c+7;c+11]
+                 | "m7" ->
+                     play t [c;c+3;c+7;c+10]
+                 | "dim" ->
+                     play t [c;c+3;c+6]
+                 | m ->
+                     self#log#f 5 "Unknown mode: %s\n%!" m
+             );
            (* It's important to call this after because we want to mute before
             * playing the new chord. *)
            mute t
