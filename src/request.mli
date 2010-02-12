@@ -51,7 +51,8 @@ val create_raw :
   ?indicators:(indicator list) -> string ->
   t
 
-val kind : t -> Frame.content_kind
+(** Return the kind of a media request, None for raw requests. *)
+val kind : t -> Frame.content_kind option
 
 (** Destroying of a requests causes its file to be deleted if it's a temporary
   * one, for example a downloaded file. If the metadata ["persistent"] is

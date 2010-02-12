@@ -75,7 +75,9 @@ object (self)
           self#log#f 5 "Failed to prepare track: no file." ;
           false
       | Some req when Request.is_ready req ->
-          assert (Frame.kind_sub_kind (Request.kind req) kind) ;
+          assert (Frame.kind_sub_kind
+                    (Utils.get_some (Request.kind req))
+                    kind) ;
           (* [Request.is_ready] ensures that we can get a filename from
            * the request, and it can be decoded. *)
           let file = Utils.get_some (Request.get_filename req) in

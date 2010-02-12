@@ -215,7 +215,12 @@ let source s =
   mk (source_t (kind_type_of_frame_kind s#kind)) (Source s)
 
 let request r =
-  mk (request_t (kind_type_of_frame_kind (Request.kind r))) (Request r)
+  let kind =
+    match Request.kind r with
+      | Some k -> k
+      | None -> let z = Frame.Zero in {Frame.audio=z;video=z;midi=z}
+  in
+    mk (request_t (kind_type_of_frame_kind kind)) (Request r)
 
 let val_fun p ~ret_t f =
   let f env t = f (List.map (fun (x,(g,v)) -> assert (g=[]) ; x,v) env) t in

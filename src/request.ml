@@ -186,19 +186,10 @@ type indicator = {
 
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
-(** Each request has a kind, telling how it might be used.
-  * Non-trivial kinds are for "media requests", audio or video files.
-  * For other, "raw requests", we use the following empty kind. *)
-let raw_kind =
-  { Frame.
-      audio = Frame.Zero ;
-      video = Frame.Zero ;
-      midi  = Frame.Zero }
-
 type t = {
   id : int ;
   initial_uri : string ;
-  kind : Frame.content_kind ;
+  kind : Frame.content_kind option ; (* No kind for raw requests *)
   persistent : bool ;
 
   (* The status of a request gives partial information of what's being done
@@ -337,7 +328,7 @@ let local_check t =
   with
     | No_indicator -> ()
   in
-    if t.kind <> raw_kind then check_decodable t.kind
+    match t.kind with None -> () | Some k -> check_decodable k
 
 let push_indicators t l =
   if l <> [] then
@@ -355,7 +346,7 @@ let push_indicators t l =
 let is_ready t =
   t.indicators <> [] &&
   Sys.file_exists (peek_indicator t).string &&
-  ( t.decoder <> None || t.kind = raw_kind )
+  ( t.decoder <> None || t.kind = None )
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -413,8 +404,11 @@ let update_metadata t =
           replace "on_air" (pretty_date (Unix.localtime d))
       | None -> ()
     end ;
-    if t.kind <> raw_kind then
-      replace "kind" (Frame.string_of_content_kind t.kind) ;
+    begin match t.kind with
+      | None -> ()
+      | Some k ->
+          replace "kind" (Frame.string_of_content_kind k)
+    end ;
     replace "status"
       (match t.status with
          | Idle -> "idle"
@@ -485,7 +479,8 @@ let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
       (if indicators=[] then [indicator u] else indicators) ;
     t
 
-let create_raw = create ~kind:raw_kind
+let create_raw = create ~kind:None
+let create ~kind = create ~kind:(Some kind)
 
 let on_air t =
   t.on_air <- Some (Unix.time ()) ;
