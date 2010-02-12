@@ -24,6 +24,18 @@ open Source
 
 let chan = 0
 
+(* TODO: bemol and sharp *)
+let note_of_string = function
+  | "A" -> 69
+  | "B" -> 71
+  | "C" -> 72
+  | "D" -> 74
+  | "E" -> 76
+  | "F" -> 77
+  | "G" -> 79
+  | _ -> assert false
+let note_of_string s = note_of_string s - 12
+
 class chord ~kind (source:source) =
 object (self)
   inherit operator kind [source] as super
@@ -42,8 +54,27 @@ object (self)
     let offset = MFrame.position buf in
     source#get buf;
     let m = MFrame.content buf offset in
-    (* let meta = MFrame.get_all_metadata buf in *)
-    let chords = [0,72,""] in
+    let meta = MFrame.get_all_metadata buf in
+    let chords =
+      let ans = ref [] in
+        List.iter
+          (fun (t,m) ->
+             if t >= offset then
+               List.iter
+                 (fun c ->
+                    try
+                      let sub = Pcre.exec ~pat:"^([A-G])(|M|m|M7|m7|dim)$" c in
+                      let n = Pcre.get_substring sub 1 in
+                      let n = note_of_string n in
+                      let m = Pcre.get_substring sub 2 in
+                        ans := (t,n,m) :: !ans
+                    with
+                      | Not_found ->
+                          self#log#f 3 "Could not parse chord '%s'." c
+                 ) (Hashtbl.find_all m "chord")
+          ) meta;
+        List.rev !ans
+    in
     let play t n =
       let notes = List.map (fun n -> t, Midi.Note_on (n,1.)) n in
         m.(chan) := notes @ !(m.(chan));
