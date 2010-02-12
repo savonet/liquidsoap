@@ -114,12 +114,18 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ()) in
+  let in_k =
+    let z = Frame.Zero in
+      Lang.kind_type_of_frame_kind {Frame.audio=z;video=z;midi=z}
+  in
+  let out_k =
+    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ())
+  in
   Lang.add_operator "midi.chord"
     [
-      "", Lang.source_t k, None, None
+      "", Lang.source_t in_k, None, None
     ]
-    ~kind:(Lang.Unconstrained k)
+    ~kind:(Lang.Unconstrained out_k)
     ~category:Lang.MIDIProcessing
     ~descr:"Generate a chord."
     (fun p kind ->
