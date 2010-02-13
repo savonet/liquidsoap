@@ -34,11 +34,12 @@ object (self)
 
   method private get_frame buf =
     let offset = AFrame.position buf in
+    let moffset = Frame.position buf in
     let buffer = source#get buf ; AFrame.content buf offset in
-    let dst = Frame.content_of_type buf (Frame.master_of_audio offset) ctype in
+    let dst = Frame.content_of_type buf moffset ctype in
     let dst = dst.Frame.audio.(0) in
       for i = offset to AFrame.position buf - 1 do
-        dst.(i) <- 
+        dst.(i) <-
           Array.fold_left (fun m b -> m +. b.(i)) 0. buffer
           /. float (Array.length buffer)
       done
