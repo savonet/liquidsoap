@@ -25,6 +25,7 @@ open Source
 let chan = 0
 
 let note_of_string = function
+  | "-" -> -1 (* mute *)
   | "A" -> 69
   | "A#" | "Bb" -> 70
   | "B" | "Cb" -> 71
@@ -69,7 +70,7 @@ object (self)
                List.iter
                  (fun c ->
                     try
-                      let sub = Pcre.exec ~pat:"^([A-G](?:b|#)?)(|M|m|M7|m7|dim)$" c in
+                      let sub = Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c in
                       let n = Pcre.get_substring sub 1 in
                       let n = note_of_string n in
                       let m = Pcre.get_substring sub 2 in
