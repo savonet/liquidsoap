@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@
 
 open Source
 
-class text ~kind ttf ttf_size color dx dy speed cycle meta text (source:source) =
+class text ~kind
+  ttf ttf_size color dx dy speed cycle meta text (source:source) =
 let video_height = Lazy.force Frame.video_height in
 let video_width = Lazy.force Frame.video_width in
 object (self)
@@ -74,6 +75,8 @@ object (self)
         Sdlttf.open_font ttf ttf_size
       with
         | e ->
+            (* TODO it is forbidden to raise Invalid_value on a made-up value
+             *   because it needs a position information to report the error *)
             raise (Lang.Invalid_value
                      ((Lang.string ttf),
                       Printf.sprintf
@@ -119,24 +122,29 @@ object (self)
             pos_x <- video_width
           else
             pos_x <- -tfw (* avoid overflows *)
-      done;
-      VFrame.add_break ab (VFrame.size ab)
+      done
+
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ()) in
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ())
+  in
   Lang.add_operator "video.text"
     [
       "font", Lang.string_t,
+      (* TODO Autodetect *)
       Some (Lang.string "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"),
       Some "Path to ttf font file.";
 
       "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
 
+      (* TODO background color, possibly transparent *)
       "color", Lang.int_t, Some (Lang.int 0xffffff),
       Some "Text color (in 0xRRGGBB format).";
 
-      "x", Lang.int_t, Some (Lang.int (Lazy.force Frame.video_width)), Some "x offset.";
+      "x", Lang.int_t, Some (Lang.int (Lazy.force Frame.video_width)),
+      Some "x offset.";
       "y", Lang.int_t, Some (Lang.int (-5)),
       Some "y offset (negative means from bottom).";
 
@@ -144,7 +152,10 @@ let () =
       Some "Speed in pixels per second.";
 
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cycle text.";
-      "metadata", Lang.string_t, Some (Lang.string ""), Some "Change text on a particular metadata (empty string means disabled).";
+      "metadata", Lang.string_t, Some (Lang.string ""),
+      Some "Change text on a particular metadata \
+            (empty string means disabled).";
+
       "", Lang.string_getter_t 1, None, Some "Text to display.";
       "", Lang.source_t k, None, None
     ]
