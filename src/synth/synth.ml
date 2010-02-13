@@ -158,20 +158,39 @@ object (self)
 
   method synth_note gs ns freq buf ofs len =
     let phase i = ns.simple_phase +. float i /. freq *. ns.simple_freq in
-      for c = 0 to Array.length buf - 1 do
-        let buf_c = buf.(c) in
-          for i = ofs to ofs + len - 1 do
-            buf_c.(i) <- buf_c.(i) +. volume *. ns.simple_ampl *. f (phase i)
+    (
+    match adsr with
+      | None ->
+          (* Without ADSR we can synth in place. *)
+          for c = 0 to Array.length buf - 1 do
+            let buf_c = buf.(c) in
+              for i = ofs to ofs + len - 1 do
+                buf_c.(i) <- buf_c.(i) +. volume *. ns.simple_ampl *. f (phase i)
+              done
           done
-      done;
-      ns.simple_phase <- fst (modf (phase len));
-      match adsr with
-        | Some adsr ->
-            ns.simple_adsr <- self#adsr adsr ns.simple_adsr buf ofs len;
-            gs
-        | None -> gs
+      | Some adsr ->
+          let tmpbuf = Array.init (Array.length buf) (fun _ -> Array.create len 0.) in
+            for c = 0 to Array.length tmpbuf - 1 do
+              let buf_c = tmpbuf.(c) in
+                for i = 0 to len - 1 do
+                  buf_c.(i) <- volume *. ns.simple_ampl *. f (phase i)
+                done
+            done;
+            ns.simple_adsr <- self#adsr adsr ns.simple_adsr tmpbuf 0 len;
+            for c = 0 to Array.length buf - 1 do
+              let buf_c = buf.(c) in
+              let tmpbuf_c = tmpbuf.(c) in
+                for i = 0 to len - 1 do
+                  buf_c.(i + ofs) <- buf_c.(i + ofs) +. tmpbuf_c.(i)
+                done
+            done
+
+    );
+    ns.simple_phase <- fst (modf (phase len));
+    gs
 
   method synth freq buf ofs len =
+    (* Remove dead notes. *)
     if adsr <> None then
       notes <- List.filter (fun (_, ns) -> fst ns.simple_adsr < 4) notes;
     super#synth freq buf ofs len
