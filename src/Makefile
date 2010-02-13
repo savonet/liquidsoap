@@ -64,8 +64,7 @@ sources = \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
-	sources/external_input.ml \
-	sources/video_text.ml
+	sources/external_input.ml
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
@@ -84,6 +83,7 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml operators/video_fade.ml \
+	operators/video_text.ml \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
@@ -96,7 +96,7 @@ operators = \
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
-	conversions/swap.ml conversions/mean.ml conversions/add_audio.ml
+	conversions/swap.ml conversions/mean.ml conversions/add_stream.ml
 
 analyze = analyze/analyze_rms.ml
 

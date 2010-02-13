@@ -22,25 +22,20 @@
 
 open Source
 
-class text ~kind ttf ttf_size color dx dy speed cycle text =
+class text ~kind ttf ttf_size color dx dy speed cycle meta text (source:source) =
 let channels = (Frame.type_of_kind kind).Frame.video in
 let video_height = Lazy.force Frame.video_height in
 let video_width = Lazy.force Frame.video_width in
 object (self)
-  inherit source kind as super
+  inherit operator kind [source] as super
 
-  method stype = Infallible
-  method is_ready = true
+  method stype = source#stype
 
-  val mutable remaining = 0
-
-  val mutable must_fail = false
-  method abort_track =
-    must_fail <- true;
-    remaining <- 0
+  method remaining = source#remaining
+  method is_ready = source#is_ready
+  method abort_track = source#abort_track
 
   val mutable text_frame = None
-  method remaining = 0
 
   val mutable pos_x = dx
   val mutable pos_y = dy
@@ -51,7 +46,7 @@ object (self)
 
   method private render_text text =
     let font = Utils.get_some font in
-    let text = if text="" then " " else text in
+    let text = if text = "" then " " else text in
     let ts =
       Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white
     in
@@ -94,9 +89,24 @@ object (self)
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
     let tfw = tf.RGB.width in
-      if cur_text <> text () then
+    let text =
+      match meta with
+        | None -> text ()
+        | Some meta ->
+            let ans = ref cur_text in
+              List.iter
+                (fun (t,m) ->
+                   Printf.printf "META\n%!";
+                   try
+                     ans := Hashtbl.find m meta
+                   with
+                     | Not_found -> ()
+                ) (Frame.get_all_metadata ab);
+              !ans
+    in
+      if cur_text <> text then
         (
-          cur_text <- text ();
+          cur_text <- text;
           self#render_text cur_text;
           if pos_x = -tfw then pos_x <- video_width
         );
@@ -117,6 +127,7 @@ object (self)
 end
 
 let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ()) in
   Lang.add_operator "video.text"
     [
       "font", Lang.string_t,
@@ -136,14 +147,16 @@ let () =
       Some "Speed in pixels per second.";
 
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cycle text.";
+      "metadata", Lang.string_t, Some (Lang.string ""), Some "Change text on a particular metadata (empty string means disabled).";
       "", Lang.string_getter_t 1, None, Some "Text to display.";
+      "", Lang.source_t k, None, None
     ]
-    ~kind:Lang.video_only
+    ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Display a text."
     (fun p kind ->
        let f v = List.assoc v p in
-       let ttf, ttf_size, color, x, y, speed, cycle, txt =
+       let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
          Lang.to_string (f "font"),
          Lang.to_int (f "size"),
          Lang.to_int (f "color"),
@@ -151,7 +164,10 @@ let () =
          Lang.to_int (f "y"),
          Lang.to_int (f "speed"),
          Lang.to_bool (f "cycle"),
-         Lang.to_string_getter (f "")
+         Lang.to_string (f "metadata"),
+         Lang.to_string_getter (Lang.assoc "" 1 p),
+         Lang.to_source (Lang.assoc "" 2 p)
        in
        let speed = speed / (Lazy.force Frame.video_rate) in
-         new text ~kind ttf ttf_size color x y speed cycle txt)
+       let meta = if meta = "" then None else Some meta in
+         new text ~kind ttf ttf_size color x y speed cycle meta txt source)
