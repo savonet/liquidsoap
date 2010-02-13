@@ -114,6 +114,7 @@ val any_fixed : lang_kind_formats
 val any_fixed_with :
         ?audio:int -> ?video:int -> ?midi:int -> unit -> lang_kind_formats
 
+val empty : lang_kind_formats
 val audio_any : lang_kind_formats
 val audio_mono : lang_kind_formats
 val audio_stereo : lang_kind_formats
@@ -172,6 +173,7 @@ val of_list_t  : t -> t
 val zero_t     : t
 val variable_t : t
 val succ_t     : t -> t
+val type_of_int : int -> t
 
 val request_t    : t -> t
 val of_request_t : t -> t

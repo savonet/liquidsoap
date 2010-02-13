@@ -132,6 +132,10 @@ let any_fixed =
   Constrained
     { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Any_fixed 0 }
 
+let empty =
+  Constrained
+    { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed 0 }
+
 let any_fixed_with ?(audio=0) ?(video=0) ?(midi=0) () =
   Constrained
     { Frame.
