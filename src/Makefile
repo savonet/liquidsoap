@@ -95,7 +95,7 @@ operators = \
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
-	conversions/swap.ml conversions/mean.ml
+	conversions/swap.ml conversions/mean.ml conversions/add_audio.ml
 
 analyze = analyze/analyze_rms.ml
 
