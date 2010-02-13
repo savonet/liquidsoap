@@ -24,19 +24,23 @@ open Source
 
 let chan = 0
 
-(* TODO: bemol and sharp *)
 let note_of_string = function
   | "A" -> 69
-  | "B" -> 71
-  | "C" -> 72
+  | "A#" | "Bb" -> 70
+  | "B" | "Cb" -> 71
+  | "C" | "B#" -> 72
+  | "C#" | "Db" -> 73
   | "D" -> 74
-  | "E" -> 76
-  | "F" -> 77
+  | "D#" | "Eb" -> 75
+  | "E" | "Fb" -> 76
+  | "F" | "E#" -> 77
+  | "F#" | "Gb" -> 78
   | "G" -> 79
+  | "G#" | "Ab" -> 80
   | _ -> assert false
 let note_of_string s = note_of_string s - 12
 
-class chord ~kind (source:source) =
+class chord ~kind metadata_name (source:source) =
 object (self)
   inherit operator kind [source] as super
 
@@ -52,8 +56,10 @@ object (self)
 
   method private get_frame buf =
     let offset = MFrame.position buf in
+    let moffset = Frame.position buf in
     source#get buf;
-    let m = MFrame.content buf offset in
+    let m = Frame.content_of_type buf moffset (Frame.type_of_kind kind) in
+    let m = m.Frame.midi in
     let meta = MFrame.get_all_metadata buf in
     let chords =
       let ans = ref [] in
@@ -63,7 +69,7 @@ object (self)
                List.iter
                  (fun c ->
                     try
-                      let sub = Pcre.exec ~pat:"^([A-G])(|M|m|M7|m7|dim)$" c in
+                      let sub = Pcre.exec ~pat:"^([A-G](?:b|#)?)(|M|m|M7|m7|dim)$" c in
                       let n = Pcre.get_substring sub 1 in
                       let n = note_of_string n in
                       let m = Pcre.get_substring sub 2 in
@@ -71,7 +77,7 @@ object (self)
                     with
                       | Not_found ->
                           self#log#f 3 "Could not parse chord '%s'." c
-                 ) (Hashtbl.find_all m "chord")
+                 ) (Hashtbl.find_all m metadata_name)
           ) meta;
         List.rev !ans
     in
@@ -80,13 +86,15 @@ object (self)
         m.(chan) := notes @ !(m.(chan));
         notes_on <- n @ notes_on
     in
+    let to_mute = ref [] in
     let mute t =
       let notes = List.map (fun n -> t, Midi.Note_off (n,1.)) notes_on in
-        m.(chan) := notes @ !(m.(chan));
+        to_mute := notes @ !to_mute;
         notes_on <- []
     in
       List.iter
         (fun (t,c,m) -> (* time, base, mode *)
+           mute t;
            (* Negative base note means mute. *)
            if c >= 0 then
              (
@@ -106,23 +114,18 @@ object (self)
                  | m ->
                      self#log#f 5 "Unknown mode: %s\n%!" m
              );
-           (* It's important to call this after because we want to mute before
-            * playing the new chord. *)
-           mute t
         ) chords;
-      m.(chan) := Mutils.sort_track !(m.(chan))
+      (* We should mute before playing the new chord, so we need a stable sort. *)
+      m.(chan) := Mutils.sort_track (!to_mute @ !(m.(chan)))
 end
 
 let () =
-  let in_k =
-    let z = Frame.Zero in
-      Lang.kind_type_of_frame_kind {Frame.audio=z;video=z;midi=z}
-  in
-  let out_k =
-    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ())
-  in
+  (* TODO: is this really the type we want to give to it? *)
+  let in_k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let out_k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ()) in
   Lang.add_operator "midi.chord"
     [
+      "metadata", Lang.string_t, Some (Lang.string "chord"), Some "Name of the metadata containing the chords.";
       "", Lang.source_t in_k, None, None
     ]
     ~kind:(Lang.Unconstrained out_k)
@@ -131,4 +134,5 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new chord ~kind src)
+       let metadata = Lang.to_string (f "metadata") in
+         new chord ~kind metadata src)
