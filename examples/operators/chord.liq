@@ -1,0 +1,12 @@
+#!liquidsoap -v
+
+set("log.stdout",true)
+
+pl = on_metadata(fun (m)->log(string_of(m)),single("chord.txt"))
+pl = add_audio.mono(pl)
+
+def ch(s)
+  synth.sine(midi.chord(s))
+end
+
+output.alsa(ch(pl))
