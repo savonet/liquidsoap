@@ -64,7 +64,8 @@ sources = \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
-	sources/external_input.ml
+	sources/external_input.ml \
+	sources/video_text.ml
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
