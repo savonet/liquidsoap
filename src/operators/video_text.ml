@@ -23,7 +23,6 @@
 open Source
 
 class text ~kind ttf ttf_size color dx dy speed cycle meta text (source:source) =
-let channels = (Frame.type_of_kind kind).Frame.video in
 let video_height = Lazy.force Frame.video_height in
 let video_width = Lazy.force Frame.video_width in
 object (self)
@@ -85,7 +84,8 @@ object (self)
 
   method private get_frame ab =
     let off = VFrame.position ab in
-    let b = VFrame.content_of_type ~channels ab off in
+    source#get ab;
+    let rgb = (VFrame.content ab off).(0) in
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
     let tfw = tf.RGB.width in
@@ -110,18 +110,15 @@ object (self)
           self#render_text cur_text;
           if pos_x = -tfw then pos_x <- video_width
         );
-      for c = 0 to Array.length b - 1 do
-        let buf_c = b.(c) in
-          for i = off to size - 1 do
-            if pos_x <> -tfw then
-              RGB.blit tf buf_c.(i) ~x:pos_x ~y:pos_y;
-            pos_x <- pos_x - speed;
-            if pos_x < -tfw then
-              if cycle then
-                pos_x <- video_width
-              else
-                pos_x <- -tfw (* avoid overflows *)
-          done;
+      for i = off to size - 1 do
+        if pos_x <> -tfw then
+          RGB.blit tf rgb.(i) ~x:pos_x ~y:pos_y;
+        pos_x <- pos_x - speed;
+        if pos_x < -tfw then
+          if cycle then
+            pos_x <- video_width
+          else
+            pos_x <- -tfw (* avoid overflows *)
       done;
       VFrame.add_break ab (VFrame.size ab)
 end
