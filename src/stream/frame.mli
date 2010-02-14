@@ -77,6 +77,7 @@ val get_past_metadata : t -> metadata option
 
 val content : t -> int -> int * content
 val content_of_type : t -> int -> content_type -> content
+val set_content_unsafe : t -> int -> content -> unit
 
 exception No_chunk
 val get_chunk : t -> t -> unit
@@ -86,18 +87,11 @@ val get_chunk : t -> t -> unit
 val mul_sub_mul : multiplicity -> multiplicity -> bool
 val mul_sub_int : multiplicity -> int -> bool
 val mul_eq_int  : multiplicity -> int -> bool
-val kind_sub_kind :
-  (multiplicity, multiplicity, multiplicity) fields ->
-  (multiplicity, multiplicity, multiplicity) fields -> bool
-val type_has_kind :
-  (int, int, int) fields ->
-  (multiplicity, multiplicity, multiplicity) fields -> bool
-val content_has_type :
-  ('a array, 'b array, 'c array) fields -> (int, int, int) fields -> bool
-val type_of_content :
-  ('a array, 'b array, 'c array) fields -> (int, int, int) fields
-val type_of_kind :
-  (multiplicity, multiplicity, multiplicity) fields -> (int, int, int) fields
+val kind_sub_kind : content_kind -> content_kind -> bool
+val type_has_kind : content_type -> content_kind -> bool
+val content_has_type : content -> content_type -> bool
+val type_of_content : content -> content_type
+val type_of_kind : content_kind -> content_type
 
 val mul_of_int : int -> multiplicity
 

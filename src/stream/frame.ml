@@ -392,8 +392,8 @@ let content frame pos =
   * one. Hence, the caller of this function should always assume the
   * invalidation of all data after the given position. *)
 let content_of_type frame pos content_type =
-  (* Start_pos indicates the start of the first layer,
-   * acc contains the previous layers in reverse order,
+  (* [acc] contains the previous layers in reverse order,
+   * [start_pos] is the starting position of the first layer in [acc],
    * and we're walking through the next layers. *)
   let rec aux start_pos acc = function
     | [] -> assert false
@@ -426,19 +426,41 @@ let content_of_type frame pos content_type =
   in
     aux 0 [] frame.contents
 
+(** Directly set content layer for a given position.
+  * This is an unsafe operation, in particular if the current content
+  * has the same type as the new one.
+  * Use this only for optimizations when you know what you're doing. *)
+let set_content_unsafe frame pos new_content =
+  let rec aux acc = function
+    | [] -> assert false
+    | (end_pos,content)::l ->
+        if end_pos<=pos then aux ((end_pos,content)::acc) l else
+          (* We possibly leave an empty-duration content, if it started
+           * exactly where our new layer starts.
+           * This is to allow re-using it in content_of_type even even
+           * in that case. *)
+          frame.contents <-
+            List.rev ((!!size,new_content)::(pos,content)::l)
+  in
+    aux [] frame.contents
+
 let blit_content src src_pos dst dst_pos len =
   Utils.array_iter2 src.audio dst.audio
     (fun a a' ->
-       let (!) = audio_of_master in
-         Float_pcm.blit a !src_pos a' !dst_pos !len) ;
+       if a != a' then
+         let (!) = audio_of_master in
+           Float_pcm.blit a !src_pos a' !dst_pos !len) ;
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
-       let (!) = video_of_master in
-         for i = 0 to !len-1 do
-           RGB.blit_fast v.(!src_pos+i) v'.(!dst_pos+i)
-         done) ;
+       if v != v' then
+         let (!) = video_of_master in
+           for i = 0 to !len-1 do
+             RGB.blit_fast v.(!src_pos+i) v'.(!dst_pos+i)
+           done) ;
   Utils.array_iter2 src.midi dst.midi
-    (fun m m' -> Midi.blit m' src_pos m dst_pos len)
+    (fun m m' ->
+       if m != m' then
+         Midi.blit m' src_pos m dst_pos len)
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
