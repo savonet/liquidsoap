@@ -550,10 +550,10 @@ CAMLprim value caml_rgb_randomize(value f)
   caml_enter_blocking_section();
   for (j = 0; j < rgb.height; j++)
     for (i = 0; i < rgb.width; i++) {
-	  Alpha(&rgb,i,j) = 0xff;
+      Alpha(&rgb,i,j) = 0xff;
       for (c = 0; c < Rgb_colors; c++)
         Color(&rgb,c,i,j) = rand();
-	}
+    }
   caml_leave_blocking_section();
   caml_remove_global_root(&f);
 
@@ -864,6 +864,99 @@ CAMLprim value caml_rgb_add(value _dst, value _src)
 
   return Val_unit;
 }
+
+CAMLprim value caml_rgb_add_off(value _src, value _dst, value _dx, value _dy)
+{
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
+  int dx = Int_val(_dx),
+      dy = Int_val(_dy);
+  int i, j, c;
+  unsigned char sa;
+  int istart = max(0, dx),
+      iend = min(dst.width, src.width + dx),
+      jstart = max(0, dy),
+      jend = min(dst.height, src.height + dy);
+
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
+  caml_enter_blocking_section();
+  for (j = jstart; j < jend; j++)
+    for (i = istart; i < iend; i++)
+    {
+      sa = Alpha(&src, (i-dx), (j-dy));
+      if (sa != 0)
+      {
+        if (sa == 0xff)
+        {
+          for (c = 0; c < Rgb_colors; c++)
+            Color(&dst, c, i, j) = Color(&src, c, (i-dx), (j-dy));
+          Alpha(&dst, i, j) = 0xff;
+        }
+        else
+        {
+          for (c = 0; c < Rgb_colors; c++)
+            Color(&dst, c, i, j) = CLIP(Color(&src, c, (i-dx), (j-dy)) * sa / 0xff + Color(&dst, c, i, j) * (0xff - sa) / 0xff);
+          Alpha(&dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(&dst, i, j));
+        }
+      }
+    }
+  caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
+
+  return Val_unit;
+}
+
+CAMLprim value caml_rgb_add_off_scale(value _src, value _dst, value d, value dim)
+{
+  frame src,dst;
+  frame_of_value(_src, &src);
+  frame_of_value(_dst, &dst);
+
+  int dx = Int_val(Field(d, 0)),
+      dy = Int_val(Field(d, 1)),
+      w = Int_val(Field(dim, 0)),
+      h = Int_val(Field(dim, 1));
+  int i, j, c;
+  unsigned char sa;
+  int istart = max(0, dx),
+      iend = min(dst.width, w + dx),
+      jstart = max(0, dy),
+      jend = min(dst.height, h + dy);
+
+  caml_register_global_root(&_dst);
+  caml_register_global_root(&_src);
+  caml_enter_blocking_section();
+  for (j = jstart; j < jend; j++)
+    for (i = istart; i < iend; i++)
+    {
+      sa = Alpha(&src, (i-dx)*src.width/w, (j-dy)*src.height/h);
+      if (sa != 0)
+      {
+        if (sa == 0xff)
+        {
+          for (c = 0; c < Rgb_colors; c++)
+            Color(&dst, c, i, j) = Color(&src, c, (i-dx)*src.width/w, (j-dy)*src.height/h);
+          Alpha(&dst, i, j) = 0xff;
+        }
+        else
+        {
+          for (c = 0; c < Rgb_colors; c++)
+            Color(&dst, c, i, j) = CLIP(Color(&src, c, (i-dx)*src.width/w, (j-dy)*src.height/h) * sa / 0xff + Color(&dst, c, i, j) * (0xff - sa) / 0xff);
+          Alpha(&dst, i, j) = CLIP(sa + (0xff - sa) * Alpha(&dst, i, j));
+        }
+      }
+    }
+  caml_leave_blocking_section();
+  caml_remove_global_root(&_dst);
+  caml_remove_global_root(&_src);
+
+  return Val_unit;
+}
+
 
 CAMLprim value caml_rgb_invert(value _rgb)
 {

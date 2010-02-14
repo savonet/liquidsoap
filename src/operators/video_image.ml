@@ -73,7 +73,7 @@ object (self)
     (* TODO: Handle other channels? *)
       for i = off to size - 1 do
         (* TODO: add instead of blitting *)
-        RGB.blit img rgb.(i) ~x:pos_x ~y:pos_y
+        RGB.add img rgb.(i) ~x:pos_x ~y:pos_y
       done
 end
 

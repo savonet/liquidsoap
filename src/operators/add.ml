@@ -212,7 +212,7 @@ let () =
          new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                (fun _ -> ())
-               (fun _ buf tmp -> RGB.add buf tmp))
+               (fun _ buf tmp -> RGB.add_fast buf tmp))
 
 let tile_pos n =
   let vert l x y x' y' =

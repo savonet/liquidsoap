@@ -221,6 +221,18 @@ external invert : t -> unit = "caml_rgb_invert" "noalloc"
 
 external add : t -> t -> unit = "caml_rgb_add" "noalloc"
 
+let add_fast = add
+
+external add_off : t -> t -> int -> int -> unit = "caml_rgb_add_off" "noalloc"
+
+external add_off_scale : t -> t -> int * int -> int * int -> unit = "caml_rgb_add_off_scale" "noalloc"
+
+let add ?(x=0) ?(y=0) ?w ?h src dst =
+  match (w,h) with
+    | None, None -> add_off src dst x y
+    | Some w, Some h -> add_off_scale src dst (x,y) (w,h)
+    | _, _ -> assert false
+
 external rotate : t -> float -> unit = "caml_rgb_rotate" "noalloc"
 
 external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity" "noalloc"

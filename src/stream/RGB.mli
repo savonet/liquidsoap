@@ -69,15 +69,17 @@ val set_pixel : t -> int -> int -> color -> unit
   * Frames don't have to be of the same size. The [blank] parameter should
   * be set to [false] if what's outside [src] in [dst] does not need to be
   * blanked. *)
-val blit :
-      ?blank:bool -> ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
+val blit : ?blank:bool -> ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
 
 (** Faster implementation of blit without translation or scaling, when both
   * images are of the same dimension. *)
 val blit_fast : t -> t -> unit
 
-(** [add dst src] adds the frame [src] on top of the frame [dst] in [dst]. *)
-val add : t -> t -> unit
+(** [add dst src] adds the frame [src] on top of the frame [dst] in [dst] (see
+  * [blit] for the meaning of other parameters. *)
+val add : ?x:int -> ?y:int -> ?w:int -> ?h:int -> t -> t -> unit
+
+val add_fast : t -> t -> unit
 
 (** {2 Conversions} *)
 

@@ -123,7 +123,7 @@ let register obj name descr =
        let synths = Array.to_list synths in
          new Add.add ~kind ~renorm:false synths
            (fun _ -> ())
-           (fun _ buf tmp -> RGB.add buf tmp)
+           (fun _ buf tmp -> RGB.add_fast buf tmp)
     )
 
 let () = register (fun adsr -> (new Synth.sine ?adsr () :> Synth.synth)) "sine" "Sine synthesizer."
