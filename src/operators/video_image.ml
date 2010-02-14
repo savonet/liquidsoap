@@ -72,7 +72,6 @@ object (self)
     let img = Utils.get_some img in
     (* TODO: Handle other channels? *)
       for i = off to size - 1 do
-        (* TODO: add instead of blitting *)
         RGB.add img rgb.(i) ~x:pos_x ~y:pos_y
       done
 end
