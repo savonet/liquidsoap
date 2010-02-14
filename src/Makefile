@@ -55,7 +55,7 @@ protocols = \
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
-	sources/sine.ml sources/square.ml sources/saw.ml sources/video_image.ml \
+	sources/sine.ml sources/square.ml sources/saw.ml \
 	sources/request_source.ml \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
@@ -83,7 +83,7 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml operators/video_fade.ml \
-	operators/video_text.ml \
+	operators/video_text.ml operators/video_image.ml \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
