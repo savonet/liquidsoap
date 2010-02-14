@@ -6,4 +6,4 @@
 5 "chord" "Am"
 6 "chord" "F"
 7 "chord" "G"
-8 "chord" "C"
+8 "end" ""
