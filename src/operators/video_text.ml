@@ -148,7 +148,7 @@ let () =
       Some "y offset (negative means from bottom).";
 
       "speed", Lang.int_t, Some (Lang.int 70),
-      Some "Speed in pixels per second.";
+      Some "Speed in pixels per second (0 means no scrolling).";
 
       "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cycle text.";
       "metadata", Lang.string_t, Some (Lang.string ""),
