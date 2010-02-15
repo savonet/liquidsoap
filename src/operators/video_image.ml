@@ -68,12 +68,13 @@ object (self)
     source#get ab;
     let rgb = (VFrame.content ab off).(0) in
     let size = VFrame.size ab in
-    (* TODO: Handle None *)
-    let img = Utils.get_some img in
-    (* TODO: Handle other channels? *)
-      for i = off to size - 1 do
-        RGB.add img rgb.(i) ~x:pos_x ~y:pos_y
-      done
+      match img with
+        | Some img ->
+            (* TODO: Handle other channels? *)
+            for i = off to size - 1 do
+              RGB.add img rgb.(i) ~x:pos_x ~y:pos_y
+            done
+        | None -> ()
 end
 
 let () =
