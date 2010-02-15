@@ -83,7 +83,8 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml operators/video_fade.ml \
-	operators/video_text.ml operators/video_image.ml \
+	$(if $(W_SDL),operators/video_text.ml) \
+	operators/video_image.ml \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
