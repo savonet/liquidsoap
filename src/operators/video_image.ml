@@ -24,7 +24,7 @@ open Source
 
 (** The content kind should allow for pure video,
   * we handle any number of channels. *)
-class image kind fname duration width height x y alpha source =
+class image kind fname duration width height x y alpha meta source =
 object (self)
   inherit operator kind [source] as super
 
@@ -39,7 +39,7 @@ object (self)
   val mutable pos_x = x
   val mutable pos_y = y
 
-  initializer
+  method private load fname =
     try
       let f =
         (* TODO: Handle more formats. *)
@@ -63,11 +63,28 @@ object (self)
           self#log#f 3 "Could not open file %s." fname;
           img <- None
 
+  initializer
+    self#load fname
+
   method private get_frame ab =
     let off = VFrame.position ab in
     source#get ab;
     let rgb = (VFrame.content ab off).(0) in
     let size = VFrame.size ab in
+    let read_from_meta () =
+      match meta with
+        | Some meta ->
+            List.iter
+              (fun (t,m) ->
+                 try
+                   self#load (Hashtbl.find m meta)
+                 with
+                   | Not_found -> ()
+              ) (Frame.get_all_metadata ab)
+        | None -> ()
+    in
+      (* TODO: be able to load an image in the middle of a frame? *)
+      read_from_meta ();
       match img with
         | Some img ->
             (* TODO: Handle other channels? *)
@@ -103,13 +120,15 @@ let () =
 
       "duration", Lang.float_t, Some (Lang.float 0.), None;
 
-      "file", Lang.string_t, None, Some "Path to image file.";
+      "file", Lang.string_t, Some (Lang.string ""), Some "Path to image file.";
+
+      "metadata", Lang.string_t, Some (Lang.string ""), Some "Metadata on which file name should be read (empty means disabled).";
 
       "", Lang.source_t k, None, None;
     ]
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
-       let fname, duration, w, h, x, y, alpha, source =
+       let fname, duration, w, h, x, y, alpha, meta, source =
          let f v = List.assoc v p in
            Lang.to_string (f "file"),
            Lang.to_float (f "duration"),
@@ -118,6 +137,8 @@ let () =
            Lang.to_int (f "x"),
            Lang.to_int (f "y"),
            Lang.to_int (f "alpha"),
+           Lang.to_string (f "metadata"),
            Lang.to_source (f "")
        in
-         new image kind fname duration w h x y alpha source)
+       let meta = if meta = "" then None else Some meta in
+         new image kind fname duration w h x y alpha meta source)
