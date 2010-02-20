@@ -164,11 +164,11 @@ end
 # @param ~fade_in Duration of the fade in for next track
 # @param ~fade_out Duration of the fade out for previous track
 # @param s The source to use
-def crossfade(~start_next,~fade_in,~fade_out,s)
+def crossfade(~id="",~start_next,~fade_in,~fade_out,s)
   s = fade.in(duration=fade_in,s)
   s = fade.out(duration=fade_out,s)
   fader = fun (a,b) -> add(normalize=false,[b,a])
-  cross(conservative=true,duration=start_next,fader,s)
+  cross(id=id,conservative=true,duration=start_next,fader,s)
 end
 
 # Append speech-synthesized tracks reading the metadata.
