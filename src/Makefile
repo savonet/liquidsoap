@@ -152,7 +152,7 @@ synth = synth/synth.ml synth/keyboard.ml \
 	$(if $(W_DSSI),synth/dssi_op.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	decoder/decoder.ml request.ml source.ml root.ml tools/rutils.ml \
+	decoder/decoder.ml request.ml source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_LAST),tools/liqfm.ml) \
@@ -176,7 +176,7 @@ OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS)) 
 
 liquidsoap_doc_sources= \
-	source.ml root.ml \
+	source.ml clock.ml \
 	tools/plug.ml tools/http.ml \
 	decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml tools/server.ml \

@@ -26,7 +26,7 @@ open Http_source
 
 let conf_harbor =
   Conf.void ~p:(Configure.conf#plug "harbor")
-    "Builtin HTTP stream receiver."
+    "HTTP stream receiver (minimal icecast/shoutcast clone)."
 let conf_harbor_port =
   Conf.int ~p:(conf_harbor#plug "port") ~d:8005
     "Port on which the HTTP stream receiver should listen."
@@ -41,7 +41,7 @@ let conf_harbor_pass =
     "Default password for source connection."
 let conf_icy =
   Conf.bool ~p:(conf_harbor#plug "icy") ~d:false
-    "Enable the builtin ICY (shout) stream receiver."
+    "Enable the ICY (shout) protocol."
 let conf_timeout =
   Conf.float ~p:(conf_harbor#plug "timeout") ~d:30.
     "Timeout for source connections."
@@ -507,7 +507,7 @@ let start_harbor () =
   let rec incoming ~icy sock _ =
     begin
       try
-        if !Root.shutdown then failwith "shutting down" ;
+        if !Clock.shutdown then failwith "shutting down" ;
         let (socket,caller) = accept sock in
         let ip =
           let a =
@@ -528,7 +528,7 @@ let start_harbor () =
         log#f 3 "New client: %s" ip
       with e -> log#f 2 "Failed to accept new client: %s" (Printexc.to_string e)
     end ;
-    if !Root.shutdown then begin
+    if !Clock.shutdown then begin
       (try Unix.close sock with _ -> ()) ;
       []
     end else

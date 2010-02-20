@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,20 +20,11 @@
 
  *****************************************************************************)
 
-(** Here is the definition of what's a [source], a streamer, a radio.
-  * This definition is probably the most important in liquidsoap. *)
+type clock_variable
 
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
-  * A Infallible source never fails is always ready.
-  *
-  * In order to infer liveness information an operator, we must now
-  * if it is a "And" operator, or an "Or" one.
-  * A "And" operator behaves as a Infallible source if and only if
-  * all of its sources are Infallible.
-  * A "Or" operator is Infallible if at least one of its sources is Infallible.
-  * Typically, an operator that switches between 2 sources is an "Or" one,
-  * and an operator that mixes 2 sources together is an "And" one. *)
+  * A Infallible source never fails; it is always ready. *)
 type source_t = Fallible | Infallible
 
 (** The [source] use is to send music frames through the [get] method. *)
@@ -50,11 +41,18 @@ object
     *
     * [stype] is the liveness type, telling whether a scheduler is
     * fallible or not, i.e. [get] will never fail.
-    * It is defined in the derived classes. *)
+    * It is defined by each operator based on its sources' types. *)
 
   method virtual stype : source_t
 
   (** {1 Init/shutdown} *)
+
+  (** The clock under which the source will run, initially unknown. *)
+  method clock : clock_variable
+
+  (** Choose your clock, by adjusting to your children source,
+    * or anything custom. *)
+  method set_clock : unit
 
   (** The operator says to the source that he will ask it frames. *)
   method get_ready : ?dynamic:bool -> source list -> unit
@@ -75,13 +73,13 @@ object
   (** Number of frames left in the current track. Defaults to -1=infinity. *)
   method virtual remaining : int
 
-  (** [is_ready] tells you if [get] would succeed. *)
+  (** [is_ready] tells you if [get] can be called. *)
   method virtual is_ready : bool
 
   (** [get buf] asks the source to fill the buffer [buf] if possible. 
-    * We say that [get] fails when nothing is added to the buffer.
     * The [get] call is partial when the buffer is not completely filled.
-    * [get] should never be called with a full buffer. *)
+    * [get] should never be called with a full buffer,
+    * and without checking that the source is ready. *)
   method get : Frame.t -> unit
   method private virtual get_frame : Frame.t -> unit
 
@@ -112,14 +110,8 @@ object
 
 end
 
-(* This is for defining a source which has children *)
-class virtual operator : ?name:string -> Frame.content_kind -> source list ->
-object
-  inherit source
-end
-
 (* Entry-points sources, which need to actively perform some task. *)
-class virtual active_source : ?name:string -> Frame.content_kind ->
+and virtual active_source : ?name:string -> Frame.content_kind ->
 object
   inherit source
   val memo : Frame.t
@@ -135,10 +127,18 @@ object
   (** Do whatever needed when the latency gets too big and is reset. *)
   method virtual output_reset : unit
 
-  (** Is the source active ? If the returned value is [false], then [output_reset]
-    * should not be called on that source. If [output_reset] does nothing, this
-    * function can return any value. *)
+  (** Is the source active ?
+    * If the returned value is [false], then [output_reset]
+    * should not be called on that source.
+    * If [output_reset] does nothing, this function can return any value.
+    * TODO that kind of detail could be left inside #output_reset *)
   method virtual is_active : bool
+end
+
+(* This is for defining a source which has children *)
+class virtual operator : ?name:string -> Frame.content_kind -> source list ->
+object
+  inherit source
 end
 
 (* Most usual active source: the active_operator, pulling one source's data
@@ -148,6 +148,23 @@ object
   inherit active_source
 end
 
-val iter_outputs : (active_source -> unit) -> unit
-val fold_outputs : ('a -> active_source -> 'a) -> 'a -> 'a
 val has_outputs : unit -> bool
+
+class type clock =
+object
+  method id : string
+  method attach : active_source -> unit
+  method start : unit
+  method stop : unit
+end
+
+exception Clock_conflict
+
+module Clock_variables :
+sig
+  val to_string : clock_variable -> string
+  val create_unknown : active_source list -> clock_variable
+  val create_known   : clock              -> clock_variable
+  val unify : clock_variable -> clock_variable -> bool
+  val get_clocks : default:clock -> clock list
+end

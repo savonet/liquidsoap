@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,56 +20,160 @@
 
  *****************************************************************************)
 
+(** In this module we define the central streaming concepts: sources, active
+  * sources and clocks.
+  *
+  * Sources can produce a stream, if something pulls it.
+  * Sources can pull streams from other sources (such non-elementary sources
+  * are called operators).
+  * But who starts pulling?
+  *
+  * Some sources have a noticeable effect, for example outputs.
+  * Some are indirectly needed by outputs.
+  * Some are useless, they have no direct or indirect observable effect.
+  * We only want to pull data from sources that have an effect,
+  * thereby "animating them". Those sources are called active.
+  *
+  * Clocks are in charge of animating active sources.
+  * Each clock "owns" a number of active sources, and indirectly some
+  * sources owned by those active sources,
+  * and controls access to their streams. *)
+
+(** Fallibility type MUST be defined BEFORE clocks.
+  * Otherwise the module cannot be well-typed since the list of all
+  * clock variables refers to active sources and hence to #stype : source_t.
+  * Don't mess with this, type errors will give you a hard time!
+  * (By the way, there's no problem of scope escaping for class type
+  *  since those are structural, not nominal like a variant type.) *)
+type source_t = Fallible | Infallible
+
+(** {1 Proto clocks} 
+  *
+  * Roughly describe what a clock is, and build a notion of clock variable
+  * on top of that. More concrete clock stuff is done the [Clock] module.
+  *
+  * Clocks play two roles:
+  *  (1) making sure that one source belongs to only one time flow,
+  *  (2) giving a handle on how to run a time flow.
+  *
+  * Most clocks are passive, i.e. they don't run anything
+  * directly, but may only tick when something happens to a source.
+  * The wallclock (formerly root.ml) is the default, active clock:
+  * when started, it launches a thread which keeps ticking regularly.
+  *
+  * A clock needs to know all the active sources under its control,
+  * so it can execute them. This might seem surprising in some cases:
+  *   cross(s)       <-- create a clock, assigns it to s
+  *   output.file(s) <-- also assigns it to the output
+  * In effect, we make it equivalent to
+  *   cross(output.file(s))
+  * Anyway, it'd be very strange that an output isn't animated at all.
+  *
+  * Clock variables can represent an unknown clock, with attached outputs.
+  * A source gets assigned a clock variable, which might leave it
+  * a chance to choose that clock (by attempting to unify it).
+  *
+  * The idea is that when an output is created it assigns a clock to itself
+  * according to its sources' clocks. Eventually, all remaining unknown clocks
+  * are forced to wallclock. *)
+
+class type ['a] proto_clock =
+object
+  method id : string
+  method attach : 'a -> unit
+  method start : unit
+  method stop : unit
+end
+
+(** {1 Clock variables}
+  * Used to infer what clock a source belongs to. *)
+
+type 'a var =
+  | Link of 'a link_t ref
+  | Known of 'a proto_clock
+and 'a link_t =
+  | Unknown of 'a list
+  | Same_as of 'a var
+
+(** Maintain a list of all clock variables, one per source,
+  * which in the end will be assigned a much more limited number
+  * of concrete clocks. *)
+let clocks = ref []
+
+let create_known c =
+  (* Registering is not really needed as concrete clocks will always be
+   * unified with unknown variables, which are registered.
+   * But it doesn't hurt much. *)
+  clocks := (Known c) :: ! clocks ;
+  Known c
+
+let create_unknown l =
+  let clock = Link (ref (Unknown l)) in
+    clocks := clock :: !clocks ;
+    clock
+
+let rec deref = function
+  | Link {contents = Same_as a} -> deref a
+  | x -> x
+
+let rec variable_to_string = function
+  | Link {contents=Same_as c} -> variable_to_string c
+  | Link ({contents=Unknown l} as r) ->
+      Printf.sprintf "?(%x:%d)" (Obj.magic r) (List.length l)
+  | Known c -> c#id
+
+exception Clock_conflict
+
+let rec unify a b =
+  match a,b with
+    | Link {contents=Same_as a}, _ -> unify a b
+    | _, Link {contents=Same_as b} -> unify a b
+    | Known s, Known s' -> s = s'
+    | Link ({contents=Unknown la} as ra), Link ({contents=Unknown lb} as rb) ->
+        let merge = Link (ref (Unknown (la@lb))) in
+          ra := Same_as merge ;
+          rb := Same_as merge ;
+          true
+    | Known c, Link ({contents=Unknown l} as r)
+    | Link ({contents=Unknown l} as r), Known c ->
+        List.iter c#attach l ;
+        r := Same_as (Known c) ;
+        true
+
+let assign_clocks ~default =
+  let new_clocks =
+    List.fold_left
+      (fun clocks c ->
+         match deref c with
+           | Known c ->
+               if List.mem c clocks then clocks else c::clocks
+           | _ ->
+               ignore (unify c (Known default)) ;
+               if List.mem default clocks then clocks else default::clocks)
+      [] !clocks
+  in
+    clocks := List.map (fun c -> Known c) new_clocks ;
+    new_clocks
+
+(** {1 Sources} *)
+
 open Dtools
 
 let source_log = Log.make ["source"]
 
-type source_t = Fallible | Infallible
-
-(* Activation management.
- *
- * A source may be accessed by several sources, and must switch to caching
- * mode when it may be accessed by more than one source, in order to ensure
- * the consistency of the delivered audio data.
- *
- * Before that a source P accesses another source S it must activate it. The
- * activation can be static, or dynamic. A dynamic activation means that P won't
- * use S directly but may at some point build a dynamic source which will access
- * S. It is important that such possibility is known by S, since it can happen
- * in the middle of an output round, in which case S will have to be in caching
- * mode if accessed at the same time by another source.
- *
- * An activation is identified by the path to the source which required it.
- * It is possible that two identical activations are done, and they should not
- * be treated as a single one.
- *
- * In short, a source can avoid caching when: it has only one static activation
- * and all its dynamic activations are sub-paths of the static one.
- * When there is no static activation, there cannot be any access.
- *
- * A dynamic activation allows more than one static activations to happen
- * at runtime, which requires a lock to avoid that the first registered
- * source gets data before the second one is registered and makes the accessed
- * source switch to caching mode.
- * TODO This has not been implemented, since all calls to #get, #get_ready and
- * #leave are done in the same Root thread. *)
+(** Has any output been created? This is used by Main to decide if
+  * there's anything "to run". Note that we could get rid of it, since
+  * outputs (active sources) are actually registered to clock variables. *)
+let has_outputs = ref false
 
 class virtual source ?(name="src") content_kind =
 object (self)
 
+  (** Logging and identification *)
+
   val mutable log = source_log
   method private create_log = log <- Log.make [self#id]
   method private log = log
-
-  (* General information *)
-  method is_output = false
-
-  (** Children sources, if any *)
-  val mutable sources : source list = []
-
-  (** Is the source infallible, i.e. is it always guaranteed that there
-    * will be always be a next track immediately available. *)
-  method virtual stype : source_t
 
   val mutable id = ""
   val mutable definitive_id = false
@@ -87,10 +191,72 @@ object (self)
      * If the ID changes, and [log] has already been initialized, reset it. *)
     if log != source_log then self#create_log
 
+  (** Is the source infallible, i.e. is it always guaranteed that there
+    * will be always be a next track immediately available. *)
+  method virtual stype : source_t
+
+  (** Is the source active *)
+  method is_output = false
+
+  (** Children sources, if any (this will be overridden for operators).
+    * We forbid ourselves to directly assign [sources].
+    * By calling this method we trigger clock setup once the sources
+    * have been assigned -- it's a bit messy, essentially because
+    * sources assignment is done in initializers, which cannot be
+    * overridden.
+    * Note that currently, set_sources and set_clock won't be called
+    * for passive sources. *)
+
+  val mutable sources : source list = []
+
+  method private set_sources l =
+    sources <- l ;
+    self#set_clock
+
+  (* Each source starts with an unknown clock.
+   * This clock will be unified with children clocks in most cases.
+   * Once the clock has been set to a concrete clock, it cannot be
+   * changed anymore: a source lives in only one time flow. *)
+
+  val clock : active_source var = create_unknown []
+
+  method clock = clock
+
+  method set_clock =
+    List.iter
+      (fun s ->
+         if not (unify self#clock s#clock) then
+           raise Clock_conflict)
+      sources
+
   (** Startup/shutdown.
     * Get the source ready for streaming on demand, have it release resources
     * when it's not used any more, and decide whether the source should run in
-    * caching mode. *)
+    * caching mode.
+    *
+    * A source may be accessed by several sources, and must switch to caching
+    * mode when it may be accessed by more than one source, in order to ensure
+    * consistency of the delivered stream chunk.
+    *
+    * Before that a source P accesses another source S it must activate it. The
+    * activation can be static, or dynamic. A static activation means that
+    * P may pull data from S at any time. A dynamic activation means that P
+    * won't use S directly but may at some point build a source which will
+    * access S. This dynamic creation may occur in the middle of an output
+    * round, which is why S needs to know in advance, since in some cases it
+    * might have to enter caching mode from the beginning of the round in case
+    * the dynamic activation occurs.
+    *
+    * An activation is identified by the path to the source which required it.
+    * It is possible that two identical activations are done, and they should
+    * not be treated as a single one.
+    *
+    * In short, a source can avoid caching when: it has only one static
+    * activation and all its dynamic activations are sub-paths of the static
+    * one. When there is no static activation, there cannot be any access.
+    *
+    * It is assumed that all streaming is done in one thread for a given clock,
+    * so the activation management API is not thread-safe. *)
 
   val mutable caching = false
   val mutable dynamic_activations : source list list = []
@@ -133,7 +299,7 @@ object (self)
    * The current implementation makes it dangerous to call #get_ready from
    * another thread than the Root one, as interleaving with #get is
    * forbidden. *)
-  method get_ready ?(dynamic=false) activation =
+  method get_ready ?(dynamic=false) (activation:source list) =
     if log == source_log then self#create_log ;
     if static_activations = [] && dynamic_activations = [] then begin
       source_log#f 4 "Source %s gets up." id ;
@@ -151,7 +317,9 @@ object (self)
    * forbidden. *)
   method leave ?(dynamic=false) src =
     let rec remove acc = function
-      | [] -> self#log#f 1 "Got ill-balanced activations!" ; assert false
+      | [] ->
+          self#log#f 1 "Got ill-balanced activations (from %s)!" src#id ;
+          assert false
       | (s::_)::tl when s = src -> List.rev_append acc tl
       | h::tl -> remove (h::acc) tl
     in
@@ -173,11 +341,11 @@ object (self)
     let activation = (self:>source)::activation in
       List.iter
         (fun s ->
-           (s#get_ready:?dynamic:bool -> source list -> unit) activation)
+           s#get_ready ?dynamic:None activation)
         sources
   method private sleep =
     List.iter
-      (fun s -> (s#leave:?dynamic:bool->source->unit) (self:>source))
+      (fun s -> s#leave ?dynamic:None (self:>source))
       sources
 
   (** Streaming *)
@@ -263,27 +431,15 @@ object (self)
 
 end
 
-(* Just an easy shortcut for defining the children sources *)
-class virtual operator ?name content_kind (l:source list) =
-object
-  inherit source ?name content_kind
-  initializer sources <- l
-end
-
-(** Output stuff. The entry points for the scheduler are the active nodes. *)
-let entries = ref []
-let register s = entries := s::!entries
-let iter_outputs f = List.iter f !entries
-let fold_outputs f x = List.fold_left f x !entries
-let has_outputs () = !entries <> []
-
-(* Entry-points sources, which need to actively perform some task. *)
-class virtual active_source ?name content_kind =
+(* Entry-point sources, which need to actively perform some task. *)
+and virtual active_source ?name content_kind =
 object (self)
   inherit source ?name content_kind
   initializer
-    sources <- [] ;
-    register (self:>active_source)
+    has_outputs := true ;
+    ignore
+      (unify self#clock (create_unknown [(self:>active_source)])) ;
+    self#set_sources []
 
   method is_output = true
 
@@ -302,10 +458,39 @@ object (self)
   method virtual output_get_ready : unit
 end
 
-(* Most usual active source: the active_operator, pulling one source's data
- * and outputting it. *)
-class virtual active_operator ?name content_kind (l:source) =
+(* Shortcuts for defining the children sources *)
+
+class virtual operator ?name content_kind (l:source list) =
+object (self)
+  inherit source ?name content_kind
+  initializer self#set_sources l
+end
+
+class virtual active_operator ?name content_kind (s:source) =
 object (self)
   inherit active_source ?name content_kind
-  initializer sources <- [l]
+  initializer self#set_sources [s]
 end
+
+(** Specialized shortcuts *)
+
+type clock_variable = active_source var
+
+class type clock =
+object
+  method id : string
+  method attach : active_source -> unit
+  method start : unit
+  method stop : unit
+end
+
+module Clock_variables =
+struct
+  let to_string = variable_to_string
+  let create_unknown = create_unknown
+  let create_known = create_known
+  let unify = unify
+  let get_clocks = assign_clocks
+end
+
+let has_outputs () = !has_outputs

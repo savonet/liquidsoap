@@ -65,7 +65,9 @@ object (self)
     * highly blocking reading task: it is hard to get it to
     * stop and restart cleanly when the source is asked to do so.
     * So we start it once for all and never stop it,
-    * unless the full app stops. *)
+    * unless the full app stops.
+    * TODO Solve this problem and generally create an appropriate
+    *   sdl interface for the operators that use/share it. *)
   val mutable reader = None
 
   method private sleep = ()
@@ -73,7 +75,7 @@ object (self)
   method private output_get_ready =
     if reader = None then
       let task () =
-        while not !Root.shutdown do
+        while not !Clock.shutdown do
           let c =
             let c = String.create 1 in
               ignore (Unix.read Unix.stdin c 0 1);

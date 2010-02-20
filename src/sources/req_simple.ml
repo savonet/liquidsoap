@@ -75,7 +75,7 @@ let () =
             * Finally, the unqueued source asserts that it can create a request,
             * which is not realistic in the context of dynamic instantiation,
             * where there may temporarily be no RID left. *)
-           if Root.running () then None else Request.is_static uri
+           if Clock.running () then None else Request.is_static uri
          with
            | Some true ->
                let r = Request.create ~kind ~persistent:true uri in

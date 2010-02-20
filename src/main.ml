@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Root
 open Dtools
 open Printf
 
@@ -395,24 +394,24 @@ let () =
     List.iter (log#f 2 "%s")
       ["";
        "DISCLAIMER: This version of Liquidsoap was";
-       "compiled from a snapshot of the developpement";
+       "compiled from a snapshot of the development";
        "code. As such, it should not be used in production";
        "unless you know what you are doing!";
        "";
        "We are, however, very interested in any feedback";
-       "about our developpement code and commited to fix";
+       "about our development code and committed to fix";
        "issues as soon as possible.";
        "";
        "If you are interested into collaborating with";
-       "the developpement of Liquidsoap, feel free to";
+       "the development of Liquidsoap, feel free to";
        "drop us a mail at <savonet-devl@lists.sf.net>";
        "or to join the #savonet IRC channel on Freenode.";
        "";
        "Please send any bug report of feature request";
        "using our trac <http://savonet.rastageeks.org>.";
        "";
-       "We hope you will enjoy the use of this snapshot";
-       "build of Liquidsoap!";
+       "We hope you will enjoy this snapshot build of";
+       "Liquidsoap!";
        ""]
 
 (** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
@@ -470,31 +469,27 @@ let check_directories () =
 
 (* Now that outputs have been defined, we can start the main loop. *)
 let () =
-  let root = ref (Thread.self ()) in
-    let cleanup () =
-      log#f 3 "Shutdown started!" ;
-      Root.shutdown := true ;
-      (* It's the root's job to shutdown sources,
-       * but we might have to replace it if it died. *)
-      if not (Tutils.running "root" !root) then Root.sleep () ;
-      log#f 3 "Waiting for threads to terminate..." ;
-      Tutils.join_all () ;
-      log#f 3 "Cleaning downloaded files..." ;
-      Request.clean ()
-    in
-    let main () =
-      root := Tutils.create Root.start () "root" ;
-      Tutils.main ()
-    in
-      ignore (Init.at_stop cleanup) ;
-      if Source.has_outputs () then
-        if not !dont_run then begin
-          check_directories () ;
-          Init.init ~prohibit_root:true main
-        end else
-          cleanup ()
-      else
-        (* If there's no output and no secondary task has been performed,
-         * warn the user that his scripts didn't define any output. *)
-        if not !secondary_task then
-          Printf.printf "No output defined, nothing to do.\n"
+  let cleanup () =
+    log#f 3 "Shutdown started!" ;
+    Clock.stop () ;
+    log#f 3 "Waiting for threads to terminate..." ;
+    Tutils.join_all () ;
+    log#f 3 "Cleaning downloaded files..." ;
+    Request.clean ()
+  in
+  let main () =
+    Clock.start () ;
+    Tutils.main ()
+  in
+    ignore (Init.at_stop cleanup) ;
+    if Source.has_outputs () then
+      if not !dont_run then begin
+        check_directories () ;
+        Init.init ~prohibit_root:true main
+      end else
+        cleanup ()
+    else
+      (* If there's no output and no secondary task has been performed,
+       * warn the user that his scripts didn't define any output. *)
+      if not !secondary_task then
+        Printf.printf "No output defined, nothing to do.\n"

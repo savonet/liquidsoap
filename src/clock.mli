@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,18 +20,22 @@
 
  *****************************************************************************)
 
-val conf : Dtools.Conf.ut
-val conf_max_latency : float Dtools.Conf.t
+class clock : string ->
+object
+  method id : string
+  method attach : Source.active_source -> unit
+  method end_tick : unit
+  method start : unit
+  method stop : unit
+end
 
-(** The core loop, reading from the scheduler and controlling output. *)
-val start : unit -> unit
+val shutdown : bool ref
 val running : unit -> bool
 
-(** Set [shutdown] to false to stop the loop *)
-val shutdown : bool ref
+val start : unit -> unit
+val stop : unit -> unit
 
-(** Puts the root sources to sleep, to do only if the scheduler crashed. *)
-val sleep : unit -> unit
-
-val uptime : unit -> float
-val delay : unit -> float
+type clock_variable = Source.clock_variable
+val create_unknown : Source.active_source list -> clock_variable
+val create_known   : clock                     -> clock_variable
+val unify : clock_variable -> clock_variable -> bool
