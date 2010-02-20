@@ -76,10 +76,11 @@ let () =
              | None -> "No such request."
            end) ;
     add "uptime" ~descr:"Print the uptime for this instance."
-      (fun _ ->
-         let date = int_of_float (Root.uptime ()) in
-           Printf.sprintf "%dd %02dh %02dm %02ds"
-             (date/(24*60*60))
-             ((date mod (24*60*60)) / (60*60))
-             ((date mod (60*60)) / 60)
-             (date mod 60))
+      (let base = Unix.time () in
+         fun args ->
+           let date = int_of_float (Unix.time () -. base) in
+             Printf.sprintf "%dd %02dh %02dm %02ds"
+               (date/(24*60*60))
+               ((date mod (24*60*60)) / (60*60))
+               ((date mod (60*60)) / 60)
+               (date mod 60))

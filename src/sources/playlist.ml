@@ -118,7 +118,7 @@ object (self)
     let _playlist =
       let read_playlist filename =
         if is_dir filename then begin
-          self#log#f 3 "Playlist is a directory" ;
+          self#log#f 3 "Playlist is a directory." ;
           List.filter self#is_valid (list_files self#log filename)
         end else
           try

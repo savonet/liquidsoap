@@ -169,8 +169,9 @@ let () =
     (fun () ->
       let prefered = prefered_converter_conf#get in
       match video_converters#get prefered with
-        | None -> log#f 4 "Couldn't find prefered video converter: %s" prefered
-        | _ -> log#f 4 "Using prefered video converter: %s" prefered)) 
+        | None ->
+            log#f 4 "Couldn't find prefered video converter: %s." prefered
+        | _ -> log#f 4 "Using prefered video converter: %s." prefered)) 
 
 
 let find_converter src dst = 
@@ -183,24 +184,21 @@ let find_converter src dst =
             if List.mem src sf && List.mem dst df then
               raise (Exit (f ()))
             else
-              log#f 4 "Default video converter %s cannot do %s->%s" prefered
-                       (string_of_pixel_format src)
-                       (string_of_pixel_format dst)
+              log#f 4 "Default video converter %s cannot do %s->%s."
+                prefered
+                (string_of_pixel_format src)
+                (string_of_pixel_format dst)
     end;   
     List.iter
       (fun (name,(sf,df,f)) ->
-           log#f 4 "Trying %s video converter" name ;
+           log#f 4 "Trying %s video converter..." name ;
            if List.mem src sf && List.mem dst df then
              raise (Exit (f ()))
            else ())
       video_converters#get_all;
-    log#f 4 "Couldn't find a video converter from \
-                 format %s to format %s" 
-                 (string_of_pixel_format src)
-                 (string_of_pixel_format dst);
+    log#f 4 "Couldn't find a video converter from format %s to format %s." 
+      (string_of_pixel_format src)
+      (string_of_pixel_format dst);
     raise Not_found
   with
     | Exit x -> x ~proportional:proportional_scale_conf#get
-
-
-
