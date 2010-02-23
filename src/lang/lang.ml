@@ -625,6 +625,18 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
       | Failure s ->
           Printf.printf "ERROR: %s!\n" s ;
           exit 1
+      | Source.Clock_conflict (a,b) ->
+          (* TODO better printing of clock errors: we don't have position
+           *   information, use the source's ID *)
+          Printf.printf
+            "An operator cannot belong to two clocks (%s, %s).\n"
+            a b ;
+          exit 1
+      | Source.Clock_loop (a,b) ->
+          Printf.printf
+            "Cannot unify two dependent clocks: %s, %s.\n"
+            a b ;
+          exit 1
       | e -> print_error "Unknown error" ; raise e
 
 let from_file ?parse_only ~ns filename =

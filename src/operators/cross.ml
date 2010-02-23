@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,7 +42,19 @@ class cross s ~kind ?(meta="liq_start_next") ~cross_length
 object (self)
   inherit operator ~name:"cross" kind [s] as super
 
-  method stype = s#stype (* This actually depends on [f]. *)
+  method stype = s#stype (* This should actually depend on [f]. *)
+
+  val my_clock = new Clock.clock "cross_clock"
+
+  method set_clock =
+    let my_clock = Clock.create_known my_clock in
+    (* The source must belong to our clock, since we need occasional
+     * control on its flow (to fold an end of track over a beginning). *)
+    Clock.unify my_clock s#clock ;
+    (* Our external clock should stricly contain the internal my_clock. *)
+    Clock.unify
+      self#clock
+      (Clock.create_unknown ~sources:[] ~sub_clocks:[my_clock])
 
   (* The played source will be [s] at first, but can become a combination of
    * tracks by [f]. See the doc for the corresponding field, as well as
@@ -51,16 +63,19 @@ object (self)
 
   method private source_get ab =
     source#get ab ;
+    (* TODO it might be abusive to end the tick all the time,
+     *   maybe we didn't consume till the end of the current frame *)
+    my_clock#end_tick ;
+    (* TODO for now, we need to handle this (possibly passive) source
+     *   ourselves since the clock only takes care of the active guys *)
     source#after_output
 
-  val mutable activation = []
-
-  method private wake_up activator =
-    activation <- (self:>source)::activator ;
-    s#get_ready ~dynamic:true activation ;
+  method private wake_up _ =
+    s#get_ready ~dynamic:true [(self:>source)] ;
     source <- s ;
-    source#get_ready activation ;
-    Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
+    source#get_ready [(self:>source)] ;
+    (* TODO when using f we'll have to force our clock on it *)
+    Lang.iter_sources (fun s -> s#get_ready ~dynamic:true [(self:>source)]) f
 
   method private sleep =
     s#leave ~dynamic:true (self:>source) ;
@@ -174,7 +189,7 @@ object (self)
           end
       in
         source#leave (self:>source) ;
-        s#get_ready activation ;
+        s#get_ready [(self:>source)] ;
         source <- s ;
         status <- `After inhibit
     else

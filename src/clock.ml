@@ -62,8 +62,11 @@ object
   val log = Dtools.Log.make ["clock";id]
 
   val mutable outputs = []
-
   method attach s = outputs <- s::outputs
+
+  val mutable sub_clocks : Source.clock_variable list = []
+  method attach_clock c = sub_clocks <- c::sub_clocks
+  method sub_clocks = sub_clocks
 
   method end_tick =
     List.iter (fun s -> s#output) outputs ;

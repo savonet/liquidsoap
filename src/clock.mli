@@ -24,6 +24,8 @@ class clock : string ->
 object
   method id : string
   method attach : Source.active_source -> unit
+  method attach_clock : Source.clock_variable -> unit
+  method sub_clocks : Source.clock_variable list
   method end_tick : unit
   method start : unit
   method stop : unit
@@ -36,6 +38,9 @@ val start : unit -> unit
 val stop : unit -> unit
 
 type clock_variable = Source.clock_variable
-val create_unknown : Source.active_source list -> clock_variable
-val create_known   : clock                     -> clock_variable
-val unify : clock_variable -> clock_variable -> bool
+val to_string      : clock_variable -> string
+val create_unknown : sources:(Source.active_source list) ->
+                     sub_clocks:(clock_variable list) ->
+                     clock_variable
+val create_known : clock -> clock_variable
+val unify : clock_variable -> clock_variable -> unit

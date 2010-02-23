@@ -150,21 +150,30 @@ end
 
 val has_outputs : unit -> bool
 
+(** {1 Clocks} *)
+
 class type clock =
 object
   method id : string
   method attach : active_source -> unit
+
   method start : unit
   method stop : unit
+
+  method attach_clock : clock_variable -> unit
+  method sub_clocks : clock_variable list
 end
 
-exception Clock_conflict
+exception Clock_conflict of string*string
+exception Clock_loop of string*string
 
 module Clock_variables :
 sig
   val to_string : clock_variable -> string
-  val create_unknown : active_source list -> clock_variable
-  val create_known   : clock              -> clock_variable
-  val unify : clock_variable -> clock_variable -> bool
+  val create_unknown : sources:(active_source list) ->
+                       sub_clocks:(clock_variable list) ->
+                       clock_variable
+  val create_known : clock -> clock_variable
+  val unify : clock_variable -> clock_variable -> unit
   val get_clocks : default:clock -> clock list
 end

@@ -77,22 +77,61 @@ type source_t = Fallible | Infallible
   * according to its sources' clocks. Eventually, all remaining unknown clocks
   * are forced to wallclock. *)
 
-class type ['a] proto_clock =
+class type ['a,'b] proto_clock =
 object
+
   method id : string
+
+  (** Attach an active source.
+    * For now this only works before #start, but in a near future
+    * dynamic attaching/detaching should be supported. *)
   method attach : 'a -> unit
+
+  (** Attach a sub_clock, get all subclocks, see below. *)
+  method attach_clock : 'b -> unit
+  method sub_clocks : 'b list
+
   method start : unit
   method stop : unit
+
 end
 
 (** {1 Clock variables}
-  * Used to infer what clock a source belongs to. *)
+  * Used to infer what clock a source belongs to.
+  * Each variable comes with
+  *   - a list of active sources belonging to the clock, unused during
+  *     inference/unification, but animated by the clock when running
+  *   - a list of sub-clocks, used during unification's occurs-check
+  *     to avoid cycles which would result in unsound behavior
+  *     e.g. add([s,cross(f,s)]).
+  * Clock constants are objects of type proto_clock, but need to also
+  * maintain the information attached to variables.
+  *
+  * The unification algorithm can be described as follows, ignoring
+  * the active source maintenance.
+  * X[Y1,Y2,..,Yn] denotes a variable or constant clock with the set Gamma
+  *    of subclocks,
+  *    from a first-order unification perspective it should be thought of
+  *    as a term X(Y1,Y2,..,Yn,...) where the second ... denotes a
+  *    row variable: we don't know if there are more parameters there
+  *    (more subclocks)
+  * We write X[Gamma] with Gamma list of clocks, and X[..Y..] when
+  * Y belongs to the subclocks of X, or the subclocks of the subclocks,
+  * etc.
+  * Unification rules are:
+  *   X[..Y..] = Y[..]    ---> ERROR (occurs-check)
+  *   c1[...]  = c2[...]  ---> ERROR (rigid-rigid)
+  *   X[Gamma] = Y[Delta] ---> X,Y:=Z[Gamma,Delta]
+  *      Here Gamma,Delta denotes an union. It is possible that two
+  *      distinct variables might become unified, in which case we'll
+  *      end up with two occurrences of the same subclock.
+  *)
 
 type 'a var =
   | Link of 'a link_t ref
-  | Known of 'a proto_clock
+  | Known of ('a,'a var) proto_clock
 and 'a link_t =
-  | Unknown of 'a list
+  | Unknown of 'a list * 'a var list
   | Same_as of 'a var
 
 (** Maintain a list of all clock variables, one per source,
@@ -107,8 +146,8 @@ let create_known c =
   clocks := (Known c) :: ! clocks ;
   Known c
 
-let create_unknown l =
-  let clock = Link (ref (Unknown l)) in
+let create_unknown ~sources ~sub_clocks =
+  let clock = Link (ref (Unknown (sources,sub_clocks))) in
     clocks := clock :: !clocks ;
     clock
 
@@ -118,27 +157,68 @@ let rec deref = function
 
 let rec variable_to_string = function
   | Link {contents=Same_as c} -> variable_to_string c
-  | Link ({contents=Unknown l} as r) ->
-      Printf.sprintf "?(%x:%d)" (Obj.magic r) (List.length l)
-  | Known c -> c#id
+  | Link ({contents=Unknown (sources,clocks)} as r) ->
+      Printf.sprintf "?(%x:%d)[%s]"
+        (Obj.magic r)
+        (List.length sources)
+        (String.concat "," (List.map variable_to_string clocks))
+  | Known c ->
+      Printf.sprintf "%s[%s]"
+        c#id
+        (String.concat "," (List.map variable_to_string c#sub_clocks))
 
-exception Clock_conflict
+(** Equality modulo dereferencing, does not identify two variables
+  * with the same sources and clocks. *)
+let var_eq a b =
+  let a = deref a in
+  let b = deref b in
+    match a, b with
+      | Link a, Link b -> a==b
+      | Known a, Known b -> a=b
+      | _,_ -> false
+
+exception Clock_conflict of string * string
+exception Clock_loop of string * string
+
+let rec sub_clocks = function
+  | Known c -> c#sub_clocks
+  | Link {contents = Unknown (_,sc)} -> sc
+  | Link {contents = Same_as x} -> sub_clocks x
+
+let occurs_check x y =
+  let rec aux = function
+    | [] -> ()
+    | []::tl -> aux tl
+    | (x'::clocks)::tl ->
+        if var_eq x x' then
+          raise (Clock_loop (variable_to_string x, variable_to_string y)) ;
+        aux (sub_clocks x' :: clocks :: tl)
+  in
+    aux [sub_clocks y]
+
+let occurs_check x y =
+  occurs_check x y ;
+  occurs_check y x
 
 let rec unify a b =
   match a,b with
     | Link {contents=Same_as a}, _ -> unify a b
     | _, Link {contents=Same_as b} -> unify a b
-    | Known s, Known s' -> s = s'
-    | Link ({contents=Unknown la} as ra), Link ({contents=Unknown lb} as rb) ->
-        let merge = Link (ref (Unknown (la@lb))) in
+    | Known s, Known s' -> if s <> s' then
+        raise (Clock_conflict (variable_to_string a, variable_to_string b))
+    | Link ({contents=Unknown (sa,ca)} as ra),
+      Link ({contents=Unknown (sb,cb)} as rb) ->
+        (* TODO perhaps optimize ca@cb *)
+        occurs_check a b ;
+        let merge = Link (ref (Unknown (sa@sb,ca@cb))) in
           ra := Same_as merge ;
-          rb := Same_as merge ;
-          true
-    | Known c, Link ({contents=Unknown l} as r)
-    | Link ({contents=Unknown l} as r), Known c ->
-        List.iter c#attach l ;
-        r := Same_as (Known c) ;
-        true
+          rb := Same_as merge
+    | Known c, Link ({contents=Unknown (s,sc)} as r)
+    | Link ({contents=Unknown (s,sc)} as r), Known c ->
+        occurs_check (Known c) (Link r) ;
+        List.iter c#attach s ;
+        List.iter c#attach_clock sc ;
+        r := Same_as (Known c)
 
 let assign_clocks ~default =
   let new_clocks =
@@ -218,16 +298,12 @@ object (self)
    * Once the clock has been set to a concrete clock, it cannot be
    * changed anymore: a source lives in only one time flow. *)
 
-  val clock : active_source var = create_unknown []
+  val clock : active_source var = create_unknown ~sources:[] ~sub_clocks:[]
 
   method clock = clock
 
   method set_clock =
-    List.iter
-      (fun s ->
-         if not (unify self#clock s#clock) then
-           raise Clock_conflict)
-      sources
+    List.iter (fun s -> unify self#clock s#clock) sources
 
   (** Startup/shutdown.
     * Get the source ready for streaming on demand, have it release resources
@@ -438,7 +514,9 @@ object (self)
   initializer
     has_outputs := true ;
     ignore
-      (unify self#clock (create_unknown [(self:>active_source)])) ;
+      (unify
+         self#clock
+         (create_unknown ~sources:[(self:>active_source)] ~sub_clocks:[])) ;
     self#set_sources []
 
   method is_output = true
@@ -480,6 +558,8 @@ class type clock =
 object
   method id : string
   method attach : active_source -> unit
+  method attach_clock : clock_variable -> unit
+  method sub_clocks : clock_variable list
   method start : unit
   method stop : unit
 end
