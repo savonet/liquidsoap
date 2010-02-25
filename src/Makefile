@@ -155,7 +155,8 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
-	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
+	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
+	lang/lang_pp.ml lang/lang.ml \
 	tools/ioRing.ml tools/mutils.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \
@@ -224,7 +225,8 @@ libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	shebang.ml alsa_settings.ml \
 	tools/server.ml tools/server_builtins.ml \
 	lang/lang_types.ml lang/lang_values.ml \
-	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
+	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
+	lang/lang_pp.ml lang/lang.ml \
 	tools/harbor.ml $(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(decoders) \
