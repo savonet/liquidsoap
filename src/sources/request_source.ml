@@ -195,6 +195,8 @@ object (self)
   val mutable task = None
 
   method private wake_up activation =
+    (* Not for unqueued#wake_up but source#wake_up performs some logging. *)
+    super#wake_up activation ;
     assert (task = None) ;
     Tutils.mutexify state_lock
       (fun () ->
