@@ -589,7 +589,6 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
     with
       | Failure "lexing: empty token" -> print_error "Empty token" ; exit 1
       | Parsing.Parse_error -> print_error "Parse error" ; exit 1
-      | Lang_encoders.Error s -> print_error s ; exit 1
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Printf.printf
@@ -622,6 +621,13 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
             (T.print_pos ~prefix:"Invalid value at "
                (Utils.get_some v.t.T.pos))
             msg ;
+          exit 1
+      | Lang_encoders.Error (v,s) ->
+          Printf.printf
+            "%s: %s.\n"
+            (T.print_pos ~prefix:"Error in encoding format at "
+               (Utils.get_some v.Lang_values.t.T.pos))
+            s ;
           exit 1
       | Failure s ->
           Printf.printf "ERROR: %s!\n" s ;

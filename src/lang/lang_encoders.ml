@@ -22,23 +22,28 @@
 
 open Lang_values
 
-exception Error of string
-
 (** Parsing locations. *)
 let curpos ?pos () =
   match pos with
     | None -> Parsing.symbol_start_pos (), Parsing.symbol_end_pos ()
     | Some (i,j) -> Parsing.rhs_start_pos i, Parsing.rhs_end_pos j
 
+(** Errors *)
+
+exception Error of (term*string)
+
 let invalid t =
   match t.term with
     | Int _ | Bool _ | Float _ | String _ -> false
     | _ -> true
 
-let make_error t =
-  match t.term with
-    | Var _ -> Error "variables are forbidden in encoding formats"
-    | _ -> Error "complex expressions are forbidden in encoding formats"
+let generic_error t =
+  if invalid t then
+    match t.term with
+      | Var _ -> Error (t,"variables are forbidden in encoding formats")
+      | _ -> Error (t,"complex expressions are forbidden in encoding formats")
+  else
+    Error (t,"unknown parameter name or invalid parameter value")
 
 (** Create a new value with an unknown type. *)
 let mk ?pos e =
@@ -64,10 +69,7 @@ let mk_wav params =
               { Encoder.WAV.stereo = true }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { Encoder.WAV.stereo = false }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     mk (Encoder (Encoder.WAV wav))
@@ -85,12 +87,24 @@ let mk_mp3 params =
         function
           | ("stereo",{ term = Bool b }) ->
               { f with Encoder.MP3.stereo = b }
-          | ("samplerate",{ term = Int i }) ->
+          | ("samplerate",({ term = Int i } as t)) ->
+              let allowed =
+                [8000;11025;12000;16000;22050;24000;32000;44100;48000]
+              in
+              if not (List.mem i allowed) then
+                raise (Error (t,"invalid samplerate value")) ;
               { f with Encoder.MP3.samplerate = i }
-          | ("bitrate",{ term = Int i }) ->
+          | ("bitrate",({ term = Int i } as t)) ->
+              let allowed =
+                [8;16;24;32;40;48;56;64;80;96;112;128;144;160;192;224;256;320]
+              in
+              if not (List.mem i allowed) then
+                raise (Error (t,"invalid bitrate value")) ;
               { f with Encoder.MP3.bitrate = 
                        Encoder.MP3.Bitrate i }
-          | ("quality",{ term = Int q }) ->
+          | ("quality",({ term = Int q } as t)) ->
+              if q<0 || q>9 then
+                raise (Error (t,"quality should be in [0..9]")) ;
               { f with Encoder.MP3.bitrate = 
                        Encoder.MP3.Quality q }
 
@@ -99,9 +113,7 @@ let mk_mp3 params =
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.MP3.stereo = true }
 
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     mk (Encoder (Encoder.MP3 mp3))
@@ -127,10 +139,7 @@ let mk_aacplus params =
               { f with Encoder.AACPlus.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.AACPlus.channels = 2 }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     mk (Encoder (Encoder.AACPlus aacplus))
@@ -166,10 +175,7 @@ let mk_external params =
               { f with Encoder.External.process = s }
           | ("",{ term = String s }) ->
               { f with Encoder.External.process = s }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     if ext.Encoder.External.process = "" then
@@ -198,10 +204,7 @@ let mk_vorbis_cbr params =
               { f with Encoder.Vorbis.channels = 2 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Vorbis vorbis
@@ -220,9 +223,13 @@ let mk_vorbis params =
         function
           | ("samplerate",{ term = Int i }) ->
               { f with Encoder.Vorbis.samplerate = i }
-          | ("quality",{ term = Float q }) ->
+          | ("quality",({ term = Float q } as t)) ->
+              if q<0. || q>1. then
+                raise (Error (t,"quality should be in [0..1]")) ;
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
-          | ("quality",{ term = Int i }) ->
+          | ("quality",({ term = Int i } as t)) ->
+              if i<>0 && i<>1 then
+                raise (Error (t,"quality should be in [0..1]")) ;
               let q = float i in
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
           | ("channels",{ term = Int i }) ->
@@ -231,10 +238,7 @@ let mk_vorbis params =
               { f with Encoder.Vorbis.channels = 2 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Vorbis vorbis
@@ -284,10 +288,7 @@ let mk_theora params =
               { f with Encoder.Theora.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Theora.aspect_denominator = i }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Theora theora
@@ -319,10 +320,7 @@ let mk_dirac params =
               { f with Encoder.Dirac.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Dirac.aspect_denominator = i }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Dirac dirac
@@ -375,10 +373,7 @@ let mk_speex params =
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Speex.stereo = true }
-
-          | (_,t) when invalid t -> raise (make_error t)
-
-          | _ -> raise Parsing.Parse_error)
+          | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Speex speex
