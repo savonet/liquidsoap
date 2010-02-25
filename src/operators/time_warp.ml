@@ -110,6 +110,8 @@ struct
     method output_start = ()
     method output_stop  = ()
 
+    val source = Lang.to_source source_val
+
     method output_send frame =
       proceed c
         (fun () ->
@@ -132,7 +134,8 @@ struct
     let control = {
       generator = Generator.create () ;
       lock = Mutex.create () ;
-      buffering = true
+      buffering = true ;
+      abort = false
     } in
     let source = Lang.to_source source_val in
     let _ =
