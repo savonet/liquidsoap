@@ -88,12 +88,9 @@ operators = \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
-	operators/midi_routing.ml operators/chord.ml
-	# \
-	operators/time_wrap.ml operators/lag.ml \
-	operators/fork.ml
-
-# MAJOR CHANGES for operators/resample.ml operators/pipe.ml operators/accel.ml
+	operators/midi_routing.ml operators/chord.ml \
+	operators/time_warp.ml
+	# operators/lag.ml operators/fork.ml resample pipe accel
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
@@ -161,7 +158,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_lexer.ml lang/lang_parser.ml lang/lang_pp.ml lang/lang.ml \
 	tools/ioRing.ml tools/mutils.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
-	$(sources) $(operators) $(conversions) $(outputs) \
+	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
 	shebang.ml \

@@ -31,6 +31,8 @@ object
   method stop : unit
 end
 
+class wallclock : ?sync:bool -> string -> clock
+
 val shutdown : bool ref
 val running : unit -> bool
 

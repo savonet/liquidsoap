@@ -134,17 +134,17 @@ let usleep d =
    * This cheap thing does the job for now.. *)
   try Thread.delay d with Unix.Unix_error (Unix.EINTR,_,_) -> ()
 
-class wallclock =
+class wallclock ?sync id =
 object (self)
 
-  inherit clock "wall" as super
+  inherit clock id as super
 
   (** Main loop. *)
 
   method private run =
     let acc = ref 0 in
     let max_latency = -. conf_max_latency#get in
-    let sync = conf_sync#get in
+    let sync = match sync with None -> conf_sync#get | Some b -> b in
     let last_latency_log = ref (time ()) in
     let t0 = ref (time ()) in
     let ticks = ref 0L in
@@ -153,7 +153,10 @@ object (self)
       +. (Lazy.force Frame.duration) *. Int64.to_float (Int64.add !ticks 1L)
       -. time ()
     in
-      log#f 3 "Streaming starts up!" ;
+      if sync then
+        log#f 3 "Streaming loop starts, real time rate (wallclock mode)."
+      else
+        log#f 3 "Streaming loop starts, maximum time rate (CPU-burn mode)." ;
       while not !shutdown do
         let rem = if not sync then 0. else delay () in
           (* Sleep a while or worry about the latency *)
@@ -188,22 +191,24 @@ object (self)
 
   val mutable thread = Thread.self ()
 
+  val thread_name = "wallclock_" ^ id
+
   method start =
     (* Wake up outputs. *)
     super#start ;
     (* Have them work in rhythm. *)
-    thread <- Tutils.create (fun () -> self#run) () "wallclock streaming"
+    thread <- Tutils.create (fun () -> self#run) () thread_name
 
   method stop =
     (* If #run has crashed, do the cleanup ourselves. *)
-    if not (Tutils.running "wallclock streaming" thread) then super#stop ;
+    if not (Tutils.running thread_name thread) then super#stop ;
     (* We might be able to omit joining, since this code is currently
      * only ever called by Main which joins everything at once afterwards. *)
     Thread.join thread
 
 end
 
-let default = (new wallclock :> Source.clock)
+let default = (new wallclock "wall" :> Source.clock)
 
 let start () =
   let clocks = get_clocks ~default in
