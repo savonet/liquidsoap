@@ -22,11 +22,23 @@
 
 open Lang_values
 
+exception Error of string
+
 (** Parsing locations. *)
 let curpos ?pos () =
   match pos with
     | None -> Parsing.symbol_start_pos (), Parsing.symbol_end_pos ()
     | Some (i,j) -> Parsing.rhs_start_pos i, Parsing.rhs_end_pos j
+
+let invalid t =
+  match t.term with
+    | Int _ | Bool _ | Float _ | String _ -> false
+    | _ -> true
+
+let make_error t =
+  match t.term with
+    | Var _ -> Error "variables are forbidden in encoding formats"
+    | _ -> Error "complex expressions are forbidden in encoding formats"
 
 (** Create a new value with an unknown type. *)
 let mk ?pos e =
@@ -52,6 +64,9 @@ let mk_wav params =
               { Encoder.WAV.stereo = true }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { Encoder.WAV.stereo = false }
+
+          | (_,t) when invalid t -> raise (make_error t)
+
           | _ -> raise Parsing.Parse_error)
       defaults params
   in
@@ -84,6 +99,8 @@ let mk_mp3 params =
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.MP3.stereo = true }
 
+          | (_,t) when invalid t -> raise (make_error t)
+
           | _ -> raise Parsing.Parse_error)
       defaults params
   in
@@ -110,6 +127,8 @@ let mk_aacplus params =
               { f with Encoder.AACPlus.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.AACPlus.channels = 2 }
+
+          | (_,t) when invalid t -> raise (make_error t)
 
           | _ -> raise Parsing.Parse_error)
       defaults params
@@ -148,6 +167,8 @@ let mk_external params =
           | ("",{ term = String s }) ->
               { f with Encoder.External.process = s }
 
+          | (_,t) when invalid t -> raise (make_error t)
+
           | _ -> raise Parsing.Parse_error)
       defaults params
   in
@@ -177,6 +198,8 @@ let mk_vorbis_cbr params =
               { f with Encoder.Vorbis.channels = 2 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
+
+          | (_,t) when invalid t -> raise (make_error t)
 
           | _ -> raise Parsing.Parse_error)
       defaults params
@@ -208,6 +231,8 @@ let mk_vorbis params =
               { f with Encoder.Vorbis.channels = 2 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
+
+          | (_,t) when invalid t -> raise (make_error t)
 
           | _ -> raise Parsing.Parse_error)
       defaults params
@@ -259,6 +284,9 @@ let mk_theora params =
               { f with Encoder.Theora.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Theora.aspect_denominator = i }
+
+          | (_,t) when invalid t -> raise (make_error t)
+
           | _ -> raise Parsing.Parse_error)
       defaults params
   in
@@ -291,6 +319,9 @@ let mk_dirac params =
               { f with Encoder.Dirac.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Dirac.aspect_denominator = i }
+
+          | (_,t) when invalid t -> raise (make_error t)
+
           | _ -> raise Parsing.Parse_error)
       defaults params
   in
@@ -344,6 +375,8 @@ let mk_speex params =
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Speex.stereo = true }
+
+          | (_,t) when invalid t -> raise (make_error t)
 
           | _ -> raise Parsing.Parse_error)
       defaults params

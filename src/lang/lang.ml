@@ -589,6 +589,7 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
     with
       | Failure "lexing: empty token" -> print_error "Empty token" ; exit 1
       | Parsing.Parse_error -> print_error "Parse error" ; exit 1
+      | Lang_encoders.Error s -> print_error s ; exit 1
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Printf.printf
