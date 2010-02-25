@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -60,6 +60,9 @@ object
   method add_metadata : Request.metadata -> unit
   method metadata_queue : Request.metadata Queue.t
 
+  (* TODO except for #output_reset those methods should be private
+   *   while we're at it I'm tempted to remove #is_active and let each
+   *   output deal with it *)
   method virtual output_reset : unit
   method virtual output_send : Frame.t -> unit
   method virtual output_start : unit
