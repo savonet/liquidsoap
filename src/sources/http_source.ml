@@ -428,12 +428,6 @@ object (self)
 
   method sleep = poll_should_stop <- true
 
-  method remaining =
-    if relaying then
-      if buffering then 0 else -1
-    else
-      generated#remaining
-
 end
 
 let () =

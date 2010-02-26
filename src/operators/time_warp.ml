@@ -71,8 +71,6 @@ struct
     method stype = Source.Fallible
 
     method remaining =
-      (* This is not obvious, notably it is never infinite (-1),
-       * but that's the same "choice" as with input.http/harbor(). *)
       proceed c (fun () -> Generator.remaining c.generator)
 
     method is_ready =

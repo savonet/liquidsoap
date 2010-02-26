@@ -154,12 +154,11 @@ struct
   (** Total length. *)
   let length fg = Generator.length fg.generator
 
-  (** Duration of data (in ticks) before the next break,
-    * or total [length] otherwise. *)
+  (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining fg =
     match fg.breaks with
       | a :: _ -> a
-      | _ -> length fg
+      | _ -> -1
 
   let add_metadata fg m =
     fg.metadata <- fg.metadata @ [length fg, m]
@@ -178,7 +177,13 @@ struct
     Generator.remove fg.generator len ;
     advance fg len
 
-  let feed fg content ofs len =
+  let feed fg ?(breaks=[]) ?(metadata=[]) content ofs len =
+    let breaks = List.filter (fun p -> ofs<p && p<ofs+len) breaks in
+    let metadata = List.filter (fun (p,_) -> ofs<p && p<ofs+len) metadata in
+    fg.breaks <-
+      fg.breaks @ List.map (fun p -> length fg + p - ofs) breaks ;
+    fg.metadata <-
+      fg.metadata @ List.map (fun (p,m) -> length fg + p - ofs, m) metadata ;
     Generator.put fg.generator content ofs len
 
   (** Take all data from a frame: breaks, metadata and available content. *)
@@ -210,7 +215,11 @@ struct
   let fill fg frame =
     let offset = Frame.position frame in
     let buffer_size = Lazy.force Frame.size in
-    let needed = min (buffer_size-offset) (remaining fg) in
+    let remaining =
+      let l = remaining fg in
+        if l = -1 then length fg else l
+    in
+    let needed = min (buffer_size-offset) remaining in
     let blocks = Generator.get fg.generator needed in
       List.iter
         (fun (block,o,o',size) ->
@@ -270,12 +279,11 @@ struct
   (** Total length. *)
   let length t = min (Generator.length t.audio) (Generator.length t.video)
 
-  (** Duration of data (in ticks) before the next break,
-    * or total [length] otherwise. *)
+  (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t =
     match t.breaks with
       | a :: _ -> a
-      | _ -> length t
+      | _ -> -1
 
   (** Add metadata at the minimum position of audio and video.
     * You probably want to call this when there is as much
@@ -343,7 +351,11 @@ struct
   let fill t frame =
     let fpos = Frame.position frame in
     let size = Lazy.force Frame.size in
-    let l = min (size-fpos) (remaining t) in
+    let remaining =
+      let l = remaining t in
+        if l = -1 then length t else l
+    in
+    let l = min (size-fpos) remaining in
     let audio = Generator.get t.audio l in
     let video = Generator.get t.video l in
     (* We got equal durations of audio and video, but segmented differently.

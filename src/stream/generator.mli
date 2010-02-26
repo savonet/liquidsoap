@@ -53,7 +53,9 @@ sig
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : t -> unit
   val remove : t -> int -> unit
-  val feed : t -> Frame.content -> int -> int -> unit
+  val feed : t ->
+             ?breaks:(int list) -> ?metadata:((int*Frame.metadata) list) ->
+             Frame.content -> int -> int -> unit
   val feed_from_frame : t -> Frame.t -> unit
   val fill : t -> Frame.t -> unit
 end

@@ -106,6 +106,8 @@ object (self)
         done
       with
         | e ->
+            (* Feeding has stopped: adding a break here. *)
+            Generator.add_break generator ;
             self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
             if debug then raise e ;
             self#disconnect ;
@@ -185,12 +187,6 @@ object (self)
     relaying <- false
 
   method is_taken = relaying
-
-  method remaining =
-    if relaying then
-      if buffering then 0 else -1
-    else
-      generated#remaining
 
 end
 
