@@ -155,13 +155,15 @@ val has_outputs : unit -> bool
 class type clock =
 object
   method id : string
-  method attach : active_source -> unit
 
-  method start : unit
-  method stop : unit
+  method attach : active_source -> unit
 
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
+
+  method start : unit
+  method end_tick : unit
+  method stop : unit
 end
 
 exception Clock_conflict of string*string
@@ -175,5 +177,6 @@ sig
                        clock_variable
   val create_known : clock -> clock_variable
   val unify : clock_variable -> clock_variable -> unit
+  val get : clock_variable -> clock
   val get_clocks : default:clock -> clock list
 end

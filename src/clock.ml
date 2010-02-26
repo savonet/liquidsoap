@@ -75,7 +75,7 @@ object
   method start =
     begin match outputs with
       | [] -> log#f 4 "No active source in this time flow."
-      | [s] -> log#f 4 "Waking up on active source: %s." s#id
+      | [s] -> log#f 4 "Waking up one active source: %s." s#id
       | _ ->
           log#f 4 "Waking up %d active sources: %s."
             (List.length outputs)
@@ -137,7 +137,7 @@ let usleep d =
 class wallclock ?sync id =
 object (self)
 
-  inherit clock id as super
+  inherit clock ("wallclock_"^id) as super
 
   (** Main loop. *)
 
@@ -208,7 +208,7 @@ object (self)
 
 end
 
-let default = (new wallclock "wall" :> Source.clock)
+let default = (new wallclock "main" :> Source.clock)
 
 let start () =
   let clocks = get_clocks ~default in

@@ -20,16 +20,7 @@
 
  *****************************************************************************)
 
-class clock : string ->
-object
-  method id : string
-  method attach : Source.active_source -> unit
-  method attach_clock : Source.clock_variable -> unit
-  method sub_clocks : Source.clock_variable list
-  method end_tick : unit
-  method start : unit
-  method stop : unit
-end
+class clock : string -> Source.clock
 
 class wallclock : ?sync:bool -> string -> clock
 
@@ -46,3 +37,4 @@ val create_unknown : sources:(Source.active_source list) ->
                      clock_variable
 val create_known : clock -> clock_variable
 val unify : clock_variable -> clock_variable -> unit
+val get : clock_variable -> Source.clock

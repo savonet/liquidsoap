@@ -92,6 +92,7 @@ object
   method sub_clocks : 'b list
 
   method start : unit
+  method end_tick : unit
   method stop : unit
 
 end
@@ -561,6 +562,7 @@ object
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
   method start : unit
+  method end_tick : unit
   method stop : unit
 end
 
@@ -570,6 +572,10 @@ struct
   let create_unknown = create_unknown
   let create_known = create_known
   let unify = unify
+  let get v =
+    match deref v with
+      | Known c -> c
+      | _ -> assert false
   let get_clocks = assign_clocks
 end
 
