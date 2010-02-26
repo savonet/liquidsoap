@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,12 +24,11 @@ open Source
 
 exception Added_break
 
-class resample (source:source) ratio =
-  let fst (x,_,_) = x in
-  let snd (_,x,_) = x in
-  let trd (_,_,x) = x in
+module Generator = Generator.From_frames
+
+class resample ~kind (source:source) ratio =
 object (self)
-  inherit operator [source] as super
+  inherit operator ~name:"resample" kind [source] as super
 
   method stype = source#stype
 
@@ -38,88 +37,113 @@ object (self)
       if rem = -1 then rem else
         int_of_float (float rem *. (ratio ()))
 
-  method is_ready = source#is_ready
-
   method abort_track = source#abort_track
 
-  (* Data is: (pcm data, metadata, breaks) *)
-  val mutable data = (Array.make (Fmt.channels()) [||],[],[])
+  (* Clock setting: we need total control on our source's flow. *)
 
-  val databuf = Frame.make ()
+  method set_clock =
+    let c = Clock.create_known (new Clock.clock self#id) in
+      Clock.unify
+        self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]) ;
+      Clock.unify source#clock c
 
-  val converter = Audio_converter.Samplerate.create (Fmt.channels ())
+  (* Actual processing: put data in a buffer until there is enough,
+   * then produce a frame using that buffer.
+   * Although this is (currently) an audio-only operator,
+   * we do everything using Frame and ticks to avoid any confusion,
+   * since the Generator uses that convention. *)
 
-  val mutable dpos = 0
+  val mutable generator = Generator.create ()
 
-  method private get_frame buf =
-    let b = AFrame.get_float_pcm buf in
-     try
-      for i = AFrame.position buf to AFrame.size buf - 1 do
-        let audio = fst data in
-        if dpos >= Array.length audio.(0) then
-          (
-            AFrame.advance databuf;
-            if source#is_ready then
-              source#get databuf
-            else
-              begin
-                AFrame.add_break buf i;
-                data <- (Array.make (Fmt.channels()) [||],[],[]);
-                dpos <- 0;
-                raise Added_break
-              end;
-            let ratio = ratio () in
-            let db = AFrame.get_float_pcm databuf in
-              let audio =  Audio_converter.Samplerate.resample converter
-                         ratio db 0 (Array.length db.(0))
+  method is_ready = Generator.length generator > 0 || source#is_ready
+
+  val mutable converter = None
+
+  (* Whenever we need data we call our source, using a special frame.
+   * Say A is our self#clock and B is the clock we've assigned to
+   * the source. There could be several ways to tick B, it is possible
+   * to tick it sometimes even though the source hasn't produced a full
+   * frame yet, just like A might tick even though we stopped streaming
+   * before the end of the frame. But we find it the simplest policy
+   * to align B ticks on [frame] being full.
+   * This has the inconvenient that if the resample stops being used
+   * in clock A, then clock B and its outputs stop moving. *)
+
+  val frame = Frame.create kind
+
+  method private fill_buffer =
+    if Lazy.force Frame.size = Frame.position frame then begin
+      (Clock.get source#clock)#end_tick ;
+      Frame.advance frame
+    end ;
+    let start = Frame.position frame in
+    let stop = source#get frame ; Frame.position frame in
+    let ratio = ratio () in
+    let content =
+      let start = Frame.audio_of_master start in
+      let stop  = Frame.audio_of_master stop in
+      let content = AFrame.content frame start in
+      let converter =
+        match converter with
+          | Some c -> c
+          | None ->
+              let c =
+                Audio_converter.Samplerate.create (Array.length content)
               in
-              (* Add metadata and breaks (not end of frame breaks) *)
-              let meta = AFrame.get_all_metadata databuf in
-              let meta = 
-                List.map (fun (x,y) -> int_of_float (float x /. ratio),y) meta 
-              in
-              let breaks = 
-                List.filter (fun x -> x < AFrame.size databuf)
-                            (AFrame.breaks databuf)
-              in
-              let breaks =
-                List.map (fun x -> int_of_float (float x /. ratio)) breaks 
-              in
-              data <- (audio,meta,breaks);
-              dpos <- 0
-          );
-        let audio = fst data in
-        let metadata = snd data in
-        let breaks = trd data in
-        for c = 0 to (Fmt.channels()) - 1 do
-          b.(c).(i) <- audio.(c).(dpos)
-        done;
-        if List.mem_assoc dpos metadata then
-          AFrame.set_metadata buf i (List.assoc dpos metadata);
-        dpos <- dpos + 1;
-        (** Add break. Stop loop in this case. *)
-        if List.mem (dpos-1) breaks then
-         begin
-          AFrame.add_break buf i;
-          raise Added_break
-         end
-      done;
-      AFrame.add_break buf (AFrame.size buf)
-     with
-       | Added_break -> ()
+                converter <- Some c ;
+                c
+      in
+      let len = stop-start in
+      let pcm =
+        Audio_converter.Samplerate.resample converter ratio content start len
+      in
+        { Frame.audio = pcm ; video = [||] ; midi = [||] }
+    in
+    let convert x = int_of_float (float x *. ratio) in
+    let metadata =
+      List.map
+        (fun (i,m) -> convert i, m)
+        (List.filter
+           (fun (i,_) -> start<=i && stop<i)
+           (Frame.get_all_metadata frame))
+    in
+    let start = convert start in
+    let stop = convert stop in
+      Generator.feed generator ~metadata content start (stop-start) ;
+      if Frame.is_partial frame then Generator.add_break generator
+
+  method private get_frame frame =
+    let needed = Lazy.force Frame.size - Frame.position frame in
+    let need_fill () =
+      if Generator.remaining generator = -1 then
+        Generator.length generator < needed
+      else
+        false
+    in
+      (* If self#get_frame is called it means that we and our source
+       * are ready, and if our source fails we will stop filling,
+       * so there's no need to check that it's ready. *)
+      while need_fill () do
+        self#fill_buffer
+      done ;
+      Generator.fill generator frame
 
 end
 
 let () =
-  Lang.add_operator "resample"
+  let k = Lang.audio_any in
+  Lang.add_operator "stretch" (* TODO better name *)
     [
-      "ratio", Lang.float_getter_t 1, None, Some "Conversion ratio";
-      "", Lang.source_t, None, None
+      "ratio", Lang.float_getter_t 1, None,
+        Some "A value higher than 1 means slowing down.";
+      "", Lang.source_t (Lang.kind_type_of_kind_format ~fresh:2 k), None, None
     ]
+    ~kind:k
     ~category:Lang.SoundProcessing
-    ~descr:"Resample source's sound using a resampling factor"
-    (fun p _ ->
+    ~descr:"Accelerate or slow down an audio stream by
+            squeezing (makes it sound higher) or stretching (sounds low) it."
+    (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let ratio = Lang.to_float_getter (f "ratio") in
-         new resample src ratio)
+         new resample ~kind src ratio)
