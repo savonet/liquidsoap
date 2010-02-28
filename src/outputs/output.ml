@@ -63,7 +63,7 @@ class virtual output ~content_kind ~output_kind ?(name="")
     val_source autostart =
   let source = Lang.to_source val_source in
 object (self)
-  inherit active_operator ~name:output_kind content_kind source as super
+  inherit active_operator ~name:output_kind content_kind [source] as super
 
   method virtual output_start : unit
   method virtual output_stop : unit

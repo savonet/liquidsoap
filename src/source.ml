@@ -247,7 +247,7 @@ let source_log = Log.make ["source"]
   * outputs (active sources) are actually registered to clock variables. *)
 let has_outputs = ref false
 
-class virtual source ?(name="src") content_kind =
+class virtual operator ?(name="src") content_kind sources =
 object (self)
 
   (** Logging and identification *)
@@ -279,34 +279,30 @@ object (self)
   (** Is the source active *)
   method is_output = false
 
-  (** Children sources, if any (this will be overridden for operators).
-    * We forbid ourselves to directly assign [sources].
-    * By calling this method we trigger clock setup once the sources
-    * have been assigned -- it's a bit messy, essentially because
-    * sources assignment is done in initializers, which cannot be
-    * overridden.
-    * Note that currently, set_sources and set_clock won't be called
-    * for passive sources. *)
+  (** Children sources *)
+  val mutable sources : operator list = sources
 
-  val mutable sources : source list = []
-
-  method private set_sources l =
-    sources <- l ;
-    self#set_clock
-
-  (* Each source starts with an unknown clock.
+  (* Clock setup
+   * Each source starts with an unknown clock.
    * This clock will be unified with children clocks in most cases.
    * Once the clock has been set to a concrete clock, it cannot be
-   * changed anymore: a source lives in only one time flow. *)
+   * changed anymore: a source lives in only one time flow.
+   *
+   * We need a #set_clock method with a default behavior that can
+   * be overridden, and it needs to be called at initialization:
+   * #wake_up is too late since it's the clock who initiates it. *)
 
-  val clock : active_source var = create_unknown ~sources:[] ~sub_clocks:[]
+  val clock : active_operator var = create_unknown ~sources:[] ~sub_clocks:[]
 
   method clock = clock
 
   method set_clock =
     List.iter (fun s -> unify self#clock s#clock) sources
 
+  initializer self#set_clock
+
   (** Startup/shutdown.
+    *
     * Get the source ready for streaming on demand, have it release resources
     * when it's not used any more, and decide whether the source should run in
     * caching mode.
@@ -336,8 +332,8 @@ object (self)
     * so the activation management API is not thread-safe. *)
 
   val mutable caching = false
-  val mutable dynamic_activations : source list list = []
-  val mutable static_activations  : source list list = []
+  val mutable dynamic_activations : operator list list = []
+  val mutable static_activations  : operator list list = []
 
   method private update_caching_mode =
     let string_of activations =
@@ -376,7 +372,7 @@ object (self)
    * The current implementation makes it dangerous to call #get_ready from
    * another thread than the Root one, as interleaving with #get is
    * forbidden. *)
-  method get_ready ?(dynamic=false) (activation:source list) =
+  method get_ready ?(dynamic=false) (activation:operator list) =
     if log == source_log then self#create_log ;
     if static_activations = [] && dynamic_activations = [] then begin
       source_log#f 4 "Source %s gets up." id ;
@@ -415,14 +411,14 @@ object (self)
     self#log#f 4
       "Content kind is %s."
       (Frame.string_of_content_kind content_kind) ;
-    let activation = (self:>source)::activation in
+    let activation = (self:>operator)::activation in
       List.iter
         (fun s ->
            s#get_ready ?dynamic:None activation)
         sources
   method private sleep =
     List.iter
-      (fun s -> s#leave ?dynamic:None (self:>source))
+      (fun s -> s#leave ?dynamic:None (self:>operator))
       sources
 
   (** Streaming *)
@@ -508,17 +504,16 @@ object (self)
 
 end
 
-(* Entry-point sources, which need to actively perform some task. *)
-and virtual active_source ?name content_kind =
+(** Entry-point sources, which need to actively perform some task. *)
+and virtual active_operator ?name content_kind sources =
 object (self)
-  inherit source ?name content_kind
+  inherit operator ?name content_kind sources
   initializer
     has_outputs := true ;
     ignore
       (unify
          self#clock
-         (create_unknown ~sources:[(self:>active_source)] ~sub_clocks:[])) ;
-    self#set_sources []
+         (create_unknown ~sources:[(self:>active_operator)] ~sub_clocks:[]))
 
   method is_output = true
 
@@ -537,18 +532,16 @@ object (self)
   method virtual output_get_ready : unit
 end
 
-(* Shortcuts for defining the children sources *)
+(** Shortcuts for defining sources with no children *)
 
-class virtual operator ?name content_kind (l:source list) =
+class virtual source ?name content_kind =
 object (self)
-  inherit source ?name content_kind
-  initializer self#set_sources l
+  inherit operator ?name content_kind []
 end
 
-class virtual active_operator ?name content_kind (s:source) =
+class virtual active_source ?name content_kind =
 object (self)
-  inherit active_source ?name content_kind
-  initializer self#set_sources [s]
+  inherit active_operator ?name content_kind []
 end
 
 (** Specialized shortcuts *)

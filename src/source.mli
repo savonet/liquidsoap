@@ -143,7 +143,8 @@ end
 
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
-class virtual active_operator : ?name:string -> Frame.content_kind -> source ->
+class virtual active_operator :
+  ?name:string -> Frame.content_kind -> source list ->
 object
   inherit active_source
 end
