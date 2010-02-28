@@ -22,12 +22,14 @@
 
 open Source
 
-exception Added_break
-
 module Generator = Generator.From_frames
 
 class resample ~kind (source:source) ratio =
 object (self)
+
+  (* We choose to not "hide our child" so that the activation management
+   * is done implicitly, but it means that we have to explicitly override
+   * the handling of our child in #after_output. *)
   inherit operator ~name:"resample" kind [source] as super
 
   method stype = source#stype
@@ -70,6 +72,8 @@ object (self)
    * in clock A, then clock B and its outputs stop moving. *)
 
   val frame = Frame.create kind
+
+  method after_output = self#advance
 
   method private fill_buffer =
     if Lazy.force Frame.size = Frame.position frame then begin
@@ -140,8 +144,8 @@ let () =
     ]
     ~kind:k
     ~category:Lang.SoundProcessing
-    ~descr:"Accelerate or slow down an audio stream by
-            squeezing (makes it sound higher) or stretching (sounds low) it."
+    ~descr:"Slow down or accelerate an audio stream by \
+            stretching (sounds lower) or squeezing it (sounds higher)."
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
