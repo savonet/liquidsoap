@@ -25,11 +25,11 @@
   * clock that will animate independently the subgraph.
   * This should usually be used in conjunction with a buffer interfacing
   * this clock with another. *)
-class clock ~kind source =
+class clock ~kind ~sync source =
 object (self)
   inherit Id.id ~name:"clock" ~kind source
   method set_clock =
-    let my_clock = new Clock.wallclock ~sync:true self#id in
+    let my_clock = new Clock.wallclock ~sync self#id in
     let my_clock = Clock.create_known my_clock in
       Clock.unify source#clock my_clock ;
       Clock.unify self#clock my_clock
@@ -149,15 +149,19 @@ end
 let () =
   let k = Lang.univ_t 1 in
     Lang.add_operator "clock"
-      ["", Lang.source_t k, None, None]
+      [("sync", Lang.bool_t, Some (Lang.bool true),
+        Some "Do not synchronize the clock on regular wallclock time, \
+              but try to run as fast as possible (CPU burning mode).") ;
+       ("", Lang.source_t k, None, None)]
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.Output (* Whatever... TODO create categories *)
       ~descr:"Forces a source and other time-dependent sources to belong \
               to a new clock that runs indepently of others."
       (fun p kind ->
          let s = List.assoc "" p in
+         let sync = Lang.to_bool (List.assoc "sync" p) in
          let src = Lang.to_source s in
-           new clock ~kind src)
+           new clock ~kind ~sync src)
 
 let () =
   let k = Lang.univ_t 1 in
