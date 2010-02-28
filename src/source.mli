@@ -151,7 +151,11 @@ end
 
 val has_outputs : unit -> bool
 
-(** {1 Clocks} *)
+(** {1 Clocks}
+  * Tick identifiers are useful (cf. [#get_tick]) but we don't need much
+  * more than the guarantee that the next tick is different from the
+  * current one. Booleans should be OK, in any case an overflow on int
+  * is not a problem. *)
 
 class type clock =
 object
@@ -163,6 +167,7 @@ object
   method sub_clocks : clock_variable list
 
   method start : unit
+  method get_tick : int
   method end_tick : unit
   method stop : unit
 end

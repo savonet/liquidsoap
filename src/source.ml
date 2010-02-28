@@ -92,6 +92,7 @@ object
   method sub_clocks : 'b list
 
   method start : unit
+  method get_tick : int
   method end_tick : unit
   method stop : unit
 
@@ -555,6 +556,7 @@ object
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
   method start : unit
+  method get_tick : int
   method end_tick : unit
   method stop : unit
 end

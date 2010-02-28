@@ -24,13 +24,11 @@ open Source
 
 module Generator = Generator.From_frames
 
-class resample ~kind (source:source) ratio =
+class resample ~kind ~active ~ratio (source:source) =
 object (self)
 
-  (* We choose to not "hide our child" so that the activation management
-   * is done implicitly, but it means that we have to explicitly override
-   * the handling of our child in #after_output. *)
-  inherit operator ~name:"resample" kind [source] as super
+  (* Hide our child: we'll treat it specially. *)
+  inherit source ~name:"resample" kind as super
 
   method stype = source#stype
 
@@ -40,6 +38,12 @@ object (self)
         int_of_float (float rem *. (ratio ()))
 
   method abort_track = source#abort_track
+
+  method private wake_up x =
+    (* Call super just for the debugging log messages *)
+    super#wake_up x ;
+    source#get_ready [(self:>source)]
+  method private sleep = source#leave (self:>source)
 
   (* Clock setting: we need total control on our source's flow. *)
 
@@ -72,14 +76,28 @@ object (self)
    * in clock A, then clock B and its outputs stop moving. *)
 
   val frame = Frame.create kind
+  val mutable master_time = 0
+  val mutable last_slave_tick = 0 (* in master time *)
 
-  method after_output = self#advance
+  method private slave_tick =
+    (Clock.get source#clock)#end_tick ;
+    source#after_output ;
+    Frame.advance frame ;
+    last_slave_tick <- (Clock.get self#clock)#get_tick
+
+  method after_output =
+    super#after_output ;
+    let master_clock = Clock.get self#clock in
+      if master_time <> master_clock#get_tick then begin
+        if active && last_slave_tick <> master_time then begin
+          self#slave_tick ;
+          last_slave_tick <- master_time
+        end ;
+        master_time <- master_clock#get_tick
+      end
 
   method private fill_buffer =
-    if Lazy.force Frame.size = Frame.position frame then begin
-      (Clock.get source#clock)#end_tick ;
-      Frame.advance frame
-    end ;
+    if Lazy.force Frame.size = Frame.position frame then self#slave_tick ;
     let start = Frame.position frame in
     let stop = source#get frame ; Frame.position frame in
     let ratio = ratio () in
@@ -140,6 +158,12 @@ let () =
     [
       "ratio", Lang.float_getter_t 1, None,
         Some "A value higher than 1 means slowing down.";
+      "active", Lang.bool_t, Some (Lang.bool true),
+        Some "The active behavior is to keep ticking the child's clock \
+              when the operator is not streaming. Otherwise the child's clock \
+              is strictly based on what is streamed off the child source, \
+              which results in time-dependent active sources to be frozen \
+              when that source is stopped." ;
       "", Lang.source_t (Lang.kind_type_of_kind_format ~fresh:2 k), None, None
     ]
     ~kind:k
@@ -150,4 +174,5 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let ratio = Lang.to_float_getter (f "ratio") in
-         new resample ~kind src ratio)
+       let active = Lang.to_bool (f "active") in
+         new resample ~kind ~active ~ratio src)

@@ -55,21 +55,28 @@ let iter ~rollback f l =
 (** Base clock class *)
 
 class clock id =
-object
+object (self)
 
   method id = id
 
   val log = Dtools.Log.make ["clock";id]
 
   val mutable outputs = []
-  method attach s = outputs <- s::outputs
+  method attach s =
+    if not (List.mem s outputs) then outputs <- s::outputs
 
   val mutable sub_clocks : Source.clock_variable list = []
-  method attach_clock c = sub_clocks <- c::sub_clocks
   method sub_clocks = sub_clocks
+  method attach_clock c =
+    if not (List.mem c sub_clocks) then sub_clocks <- c::sub_clocks
+
+  val mutable round = 0
+
+  method get_tick = round
 
   method end_tick =
     List.iter (fun s -> s#output) outputs ;
+    round <- round + 1 ;
     List.iter (fun s -> s#after_output) outputs
 
   method start =
