@@ -355,6 +355,9 @@ let string_of_category x = "Source / " ^ match x with
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
+exception Clock_conflict of (T.pos option * string * string)
+exception Clock_loop of (T.pos option * string * string)
+
 let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
   let proto =
     let t = T.make (T.Ground T.String) in
@@ -374,6 +377,13 @@ let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
       if id <> "" then src#set_id id ;
       { t = t ;
         value = Source src }
+  in
+  let f env t =
+    try f env t with
+      | Source.Clock_conflict (a,b) ->
+          raise (Clock_conflict (t.T.pos,a,b))
+      | Source.Clock_loop (a,b) ->
+          raise (Clock_loop (t.T.pos,a,b))
   in
   let fresh = (* TODO *) 1 in
   let kind_type = kind_type_of_kind_format ~fresh kind in
@@ -632,16 +642,20 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
       | Failure s ->
           Printf.printf "ERROR: %s!\n" s ;
           exit 1
-      | Source.Clock_conflict (a,b) ->
+      | Clock_conflict (pos,a,b) ->
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
           Printf.printf
-            "An operator cannot belong to two clocks (%s, %s).\n"
+            "%s: an operator cannot belong to two clocks (%s, %s).\n"
+            (T.print_pos ~prefix:"Error when initializing source at "
+               (Utils.get_some pos))
             a b ;
           exit 1
-      | Source.Clock_loop (a,b) ->
+      | Clock_loop (pos,a,b) ->
           Printf.printf
-            "Cannot unify two dependent clocks: %s, %s.\n"
+            "%s: cannot unify two dependent clocks: %s, %s.\n"
+            (T.print_pos ~prefix:"Error when initializing source at "
+               (Utils.get_some pos))
             a b ;
           exit 1
       | e -> print_error "Unknown error" ; raise e
