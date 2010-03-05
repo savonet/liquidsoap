@@ -4,17 +4,30 @@ h3. Video
 
 h4. Getting started with video
 
-In order to stream video, you should first inform your script that you are going to use video by doing
-%%
-set("frame.video.channels",0)
-%%
-Optionnaly, you can also set the width, the height and the number of frames per seconds of the streamed video with
+There is nothing special to do in order to stream video. In most cases,
+liquidsoap will detect which sources have to manipulate video data. This
+detection is typically based on the output (see below).
+
+Although it is possible to have some sources manipulating video and some
+others not, all sources manipulating video will share the same image
+dimensions and video samplerate (number of frames per seconds). Those
+values are associated with the following configuration keys:
 %%
 set("frame.video.width",320)
 set("frame.video.height",240)
-set("frame.video.fps",25)
+set("frame.video.samplerate",25)
 %%
-And that's almost it! You can use usual operators such as <code>single</code> or <code>playlist</code> to read video files. For now, only file in the ogg/theora format are supported (you can use the "ffmpeg2theora":http://v2v.cc/~j/ffmpeg2theora/ program to convert your videos to this format). For instance, a playlist of ogg videos can be streamed using
+
+Finally, in some cases, you may wish to override the default number of video
+channels, used when liquidsoap cannot guess the correct number of channels
+for a given source:
+%%
+set("frame.video.channels",0)
+%%
+
+You can use usual operators such as <code>single</code>
+or <code>playlist</code> to read video files.
+For now, only ogg/theora format is supported (you can use the "ffmpeg2theora":http://v2v.cc/~j/ffmpeg2theora/ program to convert your videos to this format). For instance, a playlist of ogg videos can be streamed using
 %%
 output.icecast(%ogg(%theora,%vorbis), playlist("my_playlist"))
 %%
@@ -34,4 +47,3 @@ Hence, @drop_audio@ returns a source where only the video track is present.
 h4. Video effects
 
 A lot of video effects are available in Liquidsoap. The corresponding operators are named <code>video.*</code>. In particular, the <code>video.fade.in</code> and <code>video.fade.out</code> should be used to program transitions, similarly to the <code>fade.in</code> and <code>fade.out</code> operators for audio.
-
