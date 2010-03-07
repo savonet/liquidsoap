@@ -90,7 +90,6 @@ operators = \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml operators/chord.ml \
 	operators/time_warp.ml operators/resample.ml
-	# operators/fork.ml resample pipe accel
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
