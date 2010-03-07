@@ -98,9 +98,10 @@ let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ())
   in
-  Lang.add_operator "video.image"
+  Lang.add_operator "video.add_image"
     ~category:Lang.Input
-    ~descr:"Display a static image."
+    ~descr:"Add a static image on the first video channel. \
+            The image can be changed based on metadata."
     [
       "width", Lang.int_t, Some (Lang.int (-1)),
       Some "Scale to width (negative means original width).";
@@ -120,9 +121,11 @@ let () =
 
       "duration", Lang.float_t, Some (Lang.float 0.), None;
 
-      "file", Lang.string_t, Some (Lang.string ""), Some "Path to image file.";
+      "file", Lang.string_t, Some (Lang.string ""),
+      Some "Path to image file.";
 
-      "metadata", Lang.string_t, Some (Lang.string ""), Some "Metadata on which file name should be read (empty means disabled).";
+      "metadata", Lang.string_t, Some (Lang.string ""),
+      Some "Metadata on which file name should be read (empty means disabled).";
 
       "", Lang.source_t k, None, None;
     ]

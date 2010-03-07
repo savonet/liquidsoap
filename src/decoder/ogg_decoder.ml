@@ -122,7 +122,6 @@ let create_decoder mode input =
   let audio_resample = Rutils.create_audio () in
   let video_resample = video_resample () in
     Decoder.Decoder (fun buffer ->
-      Generator.set_mode buffer mode ;
       if Ogg_demuxer.eos decoder then
         raise Ogg_demuxer.End_of_stream;
       let feed ((buf,sample_freq),_) =
@@ -204,6 +203,9 @@ let get_type filename =
              | Channels x -> x
              | Not_found  -> 0
          in
+           log#f 4
+             "File %S recognized as audio=%d video=%d."
+             filename audio video ;
            { Frame.
              audio = audio ;
              video = video ;

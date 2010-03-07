@@ -309,8 +309,10 @@ struct
   (** Change the generator mode.
     * Only allowed when there is as much audio as video.  *)
   let set_mode t m =
-    assert (audio_length t = video_length t) ;
-    t.mode <- m
+    if t.mode <> m then begin
+      assert (audio_length t = video_length t) ;
+      t.mode <- m
+    end
 
   (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =

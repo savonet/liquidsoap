@@ -129,7 +129,7 @@ let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ())
   in
-  Lang.add_operator "video.text"
+  Lang.add_operator "video.add_text"
     [
       "font", Lang.string_t,
       (* TODO Autodetect *)

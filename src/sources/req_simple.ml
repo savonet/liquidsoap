@@ -91,7 +91,9 @@ let () =
                raise (Lang.Invalid_value
                         (val_uri,
                          (Printf.sprintf
-                            "Could not get a valid media file from %S"
+                            "Could not get a valid media file of kind \
+                             %s from %S"
+                            (Frame.string_of_content_kind kind)
                             uri))))
 
 let () =

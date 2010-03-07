@@ -55,13 +55,13 @@ let read_header fd =
     if division land 0x8000 = 0 then
       (
         (* Delta-time ticks per quarter *)
-        log#f 5 "Ticks per quarter: %d" division;
+        log#f 4 "Ticks per quarter: %d" division;
         Midi.Ticks_per_quarter division
       )
     else
       let frames = (division lsr 8) land 0x7f in
       let ticks = division land 0xff in
-        log#f 5 "SMPTE: %d * %d" frames ticks;
+        log#f 4 "SMPTE: %d * %d" frames ticks;
         Midi.SMPTE (frames, ticks)
   in
     if id <> "MThd" || len <> 6 || (fmt <> 0 && fmt <> 1 && fmt <> 2) then
@@ -69,18 +69,18 @@ let read_header fd =
         log#f 4 "Invalid header (%s, %d, %d)" id len fmt;
         raise Invalid_header;
       );
-    log#f 5 "Format: %d (%d tracks)" fmt tracks;
+    log#f 4 "Format: %d (%d tracks)" fmt tracks;
     tracks, division
 
 (** Read a midi track. *)
 let read_track fd =
   let id = read_id fd in
   let len = read_long fd in
-  log#f 5 "Reading track %s (len: %d)" id len;
+  log#f 4 "Reading track %s (len: %d)" id len;
   if id <> "MTrk" then raise Invalid_header;
   let data = String.create len in
   let r = Utils.really_read fd data 0 len in
-  if r <> len then log#f 5 "Read %d instead of %d" r len;
+  if r <> len then log#f 4 "Read %d instead of %d" r len;
   assert (r = len);
   let data = Array.init len (fun i -> int_of_char data.[i]) in
   let pos = ref 0 in
@@ -255,7 +255,7 @@ let decoder file =
   in
   let close_on_err f x =
     try f x with e ->
-      log#f 5 "Closing on error: %s." (Printexc.to_string e);
+      log#f 4 "Closing on error: %s." (Printexc.to_string e);
       close (); raise e
   in
 
@@ -362,7 +362,8 @@ let decoder file =
 let () =
   Decoder.file_decoders#register "MIDI"
     (fun filename kind ->
-       (* TODO check precisely channel numbers *)
+       (* Any number of MIDI channel is acceptable as the decoder
+        * silently drops events on higher channels if needed. *)
        if kind.Frame.midi <> Frame.Zero then
            Some (fun () -> decoder filename)
        else
