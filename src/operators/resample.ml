@@ -65,15 +65,22 @@ object (self)
 
   val mutable converter = None
 
-  (* Whenever we need data we call our source, using a special frame.
-   * Say A is our self#clock and B is the clock we've assigned to
-   * the source. There could be several ways to tick B, it is possible
-   * to tick it sometimes even though the source hasn't produced a full
-   * frame yet, just like A might tick even though we stopped streaming
-   * before the end of the frame. But we find it the simplest policy
-   * to align B ticks on [frame] being full.
-   * This has the inconvenient that if the resample stops being used
-   * in clock A, then clock B and its outputs stop moving. *)
+  (** Whenever we need data we call our source, using a special
+    * [frame]. We always source#get from the current position of
+    * [frame], and perform #slave_tick when we need to advance.
+    * Alone, this is a very clean way to proceed.
+    *
+    * When [active] we also tick whenever our master clock ticks,
+    * if we haven't ticked the slave clock yet. This seems natural
+    * in many cases but can cause data losses: if we get data in
+    * [frame] from position 0 to X<size (i.e. end of track) then
+    * we have enough to perform one self#get_frame after which
+    * the master clock might tick (we might have reach the end of
+    * the master frame, because of resampling or the different
+    * initial offset) and ticking the slave clock at this point
+    * could discard data that has been cached for the range X..size
+    * if this data has been required by an output operator in the
+    * slave clock. *)
 
   val frame = Frame.create kind
   val mutable master_time = 0
@@ -88,7 +95,9 @@ object (self)
   method after_output =
     super#after_output ;
     let master_clock = Clock.get self#clock in
+      (* Is it really a new tick? *)
       if master_time <> master_clock#get_tick then begin
+        (* Did the slave clock tick during this instant? *)
         if active && last_slave_tick <> master_time then begin
           self#slave_tick ;
           last_slave_tick <- master_time

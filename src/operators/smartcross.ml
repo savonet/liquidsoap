@@ -28,15 +28,12 @@ module Generated = Generated.Make(Generator)
 (** [rms_width], [inhibit] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross ~kind s
+class cross ~kind (s:source)
             ~cross_length ~rms_width ~inhibit ~minimum_length
-            ~conservative transition =
+            ~conservative ~active transition =
   let channels = float (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  (* We declare that [s] is our source but we'll actually
-   * have to overrid some of the children maintainance operations
-   * since we forge our child. *)
-  inherit operator kind [s] as super
+  inherit source kind as super
 
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
@@ -76,55 +73,86 @@ object (self)
 
   (* The played source: [s] at first, then a combination of tracks by [f].
    * We _need_ exclusive control on that source, since we are going to
-   * pull data from it at a higher rate around track limits.
-   * It is OK if there is sharing underneath our source. It is not OK if
-   * there is an active source underneath it. A source relaying an external
-   * stream, such as input.harbor or input.http, may be able to work
-   * properly (no crash) but is likely to behave in a disappointing way.
-   * We should eventually be able to control all this statically.
-   *
-   * This implies that we must take special care of the life-cycle of our
-   * source, especially its #after_output signal. Since we assume
-   * exclusivity, the safe thing to do is to send that signal after each #get.
-   * It doesnt matter if it's sent several times, e.g. by our #after_output. *)
+   * pull data from it at a higher rate around track limits. *)
   val mutable source = s
 
-  method private source_get ab =
-    source#get ab ;
-    source#after_output
-
-  (* Activation record for our chilren sources. *)
-  val mutable activation = []
-
   method private wake_up activator =
-    activation <- (self:>source)::activator ;
-    s#get_ready ~dynamic:true activation ;
+    s#get_ready ~dynamic:true [(self:>source)] ;
     source <- s ;
-    source#get_ready activation ;
+    source#get_ready [(self:>source)] ;
     Lang.iter_sources
-      (fun s -> s#get_ready ~dynamic:true activation)
+      (fun s -> s#get_ready ~dynamic:true [(self:>source)])
       transition
 
   method private sleep =
+    source#leave (self:>source) ;
     s#leave ~dynamic:true (self:>source) ;
     Lang.iter_sources
       (fun s -> s#leave ~dynamic:true (self:>source))
       transition
+
+  (** See cross.ml for the details of clock management. *)
+
+  method set_clock =
+    let slave_clock = Clock.create_known (new Clock.clock self#id) in
+    (* Our external clock should stricly contain the slave clock. *)
+    Clock.unify
+      self#clock
+      (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
+    (* The source must belong to our clock, since we need occasional
+     * control on its flow (to fold an end of track over a beginning).
+     *
+     * To be safe, also require that the transition's sources belong
+     * to that same clock, since we (dynamically) activate them as well.
+     * The activation mechanism is designed for a single thread,
+     * which multiples clocks wouldn't ensure. *)
+    Clock.unify slave_clock s#clock ;
+    Lang.iter_sources
+      (fun s -> Clock.unify slave_clock s#clock)
+      transition
+
+  val mutable master_time = 0
+  val mutable last_slave_tick = 0 (* in master time *)
+
+  (* Indicate that the source should be managed by relaying master ticks,
+   * and it has been used during the current tick, so it should be ticked
+   * even if we're not in active mode. *)
+  val mutable needs_tick = false
+
+  method private slave_tick =
+    (Clock.get source#clock)#end_tick ;
+    source#after_output ;
+    Frame.advance buf_frame ;
+    needs_tick <- false ;
+    last_slave_tick <- (Clock.get self#clock)#get_tick
+
+  method after_output =
+    super#after_output ;
+    if needs_tick then self#slave_tick ;
+    let master_clock = Clock.get self#clock in
+      (* Is it really a new tick? *)
+      if master_time <> master_clock#get_tick then begin
+        (* Did the slave clock tick during this instant? *)
+        if active && last_slave_tick <> master_time then begin
+          self#slave_tick ;
+          last_slave_tick <- master_time
+        end ;
+        master_time <- master_clock#get_tick
+      end
 
   val mutable status = `Idle
 
   method private get_frame frame =
     match status with
       | `Idle ->
-          (* TODO 0 is often answered just before the beginning of a track
-           * I'd prefer -1 if possible. Otherwise add more info in the state.
-           * Or simply don't bother about that harmless transition. *)
           let rem = if conservative then 0 else source#remaining in
-            if rem < 0 || rem > cross_length then
-              self#source_get frame
-            else begin
+            if rem < 0 || rem > cross_length then begin
+              source#get frame ;
+              needs_tick <- true
+            end else begin
               self#log#f 4 "Buffering end of track..." ;
               status <- `Before ;
+              Frame.set_breaks buf_frame [Frame.position frame] ;
               Frame.set_all_metadata buf_frame
                 (match Frame.get_past_metadata frame with
                    | Some x -> [-1,x] | None -> []) ;
@@ -144,6 +172,7 @@ object (self)
           (* The track finished.
            * We compute rms_after and launch the transition. *)
           if source#is_ready then self#analyze_after ;
+          self#slave_tick ;
           self#create_transition ;
           (* Check if the new source is ready *)
           if source#is_ready then
@@ -159,21 +188,29 @@ object (self)
             self#get_frame frame
           end else
             let position = AFrame.position frame in
-              self#source_get frame ;
+              source#get frame ;
+              needs_tick <- true ;
               status <- `After (size-(AFrame.position frame)+position)
 
   (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
    * where [d=AFrame.size-1]. *)
   method private buffering n =
-    (* Get audio samples *)
-    AFrame.advance buf_frame ;
-    assert (source#is_ready) ;
-    self#source_get buf_frame ;
-    (* Store them. *)
-    Generator.feed_from_frame gen_before buf_frame ;
+    (* For the first call, the position is the old position in the master
+     * frame. After that it'll always be 0. *)
+    if not (Frame.is_partial buf_frame) then self#slave_tick ;
+    let start = Frame.position buf_frame in
+    let stop = source#get buf_frame ; Frame.position buf_frame in
+    let content =
+      let end_pos,c = Frame.content buf_frame start in
+        assert (end_pos>=stop) ;
+        c
+    in
+    Generator.feed gen_before
+      ~metadata:(Frame.get_all_metadata buf_frame)
+      content start (stop-start) ;
     (* Analyze them *)
-    let pcm = AFrame.content buf_frame 0 in
-    for i = 0 to AFrame.position buf_frame - 1 do
+    let pcm = content.Frame.audio in
+    for i = start to stop - 1 do
       let squares =
         Array.fold_left
           (fun squares track -> squares +. track.(i)*.track.(i))
@@ -196,14 +233,27 @@ object (self)
     let todo = ref rms_width in
     let first = ref true in
       while !todo > 0 do
-        AFrame.advance buf_frame ;
-        assert (source#is_ready) ;
-        self#source_get buf_frame ;
-        if !first then after_metadata <- AFrame.get_metadata buf_frame 0 ;
-        first := false ;
-        Generator.feed_from_frame gen_after buf_frame ;
-        let pcm = AFrame.content buf_frame 0 in
-        for i = 0 to AFrame.position buf_frame - 1 do
+
+        if not (Frame.is_partial buf_frame) then self#slave_tick ;
+        let start = Frame.position buf_frame in
+        let stop = source#get buf_frame ; Frame.position buf_frame in
+        let content =
+          let end_pos,c = Frame.content buf_frame start in
+            assert (end_pos>=stop) ;
+            c
+        in
+
+        Generator.feed gen_after
+          ~metadata:(Frame.get_all_metadata buf_frame)
+          content start (stop-start) ;
+
+        if !first then begin
+          after_metadata <- AFrame.get_metadata buf_frame start ;
+          first := false
+        end ;
+
+        let pcm = content.Frame.audio in
+        for i = start to stop - 1 do
           let squares =
             Array.fold_left
               (fun squares track -> squares +. track.(i)*.track.(i))
@@ -262,7 +312,8 @@ object (self)
       end
     in
       source#leave (self:>source) ;
-      compound#get_ready activation ;
+      compound#get_ready [(self:>source)] ;
+      Clock.unify compound#clock s#clock ;
       source <- compound ;
       status <- `After inhibit ;
       self#reset_analysis
@@ -312,6 +363,13 @@ let () =
             data in advance. This avoids being tricked by skips, either \
             manual or caused by skip_blank()." ;
 
+      "active", Lang.bool_t, Some (Lang.bool false),
+      Some "The active behavior is to keep ticking the child's clock \
+            when the operator is not streaming. Otherwise the child's clock \
+            is strictly based on what is streamed off the child source, \
+            which results in time-dependent active sources to be frozen \
+            when that source is stopped." ;
+
       "",
       Lang.fun_t
         [false,"",Lang.float_t; false,"",Lang.float_t;
@@ -350,7 +408,8 @@ let () =
        let transition = Lang.assoc "" 1 p in
 
        let conservative = Lang.to_bool (List.assoc "conservative" p) in
+       let active = Lang.to_bool (List.assoc "active" p) in
 
        let source = Lang.to_source (Lang.assoc "" 2 p) in
-         new cross ~kind source transition ~conservative
+         new cross ~kind source transition ~conservative ~active
                ~cross_length ~rms_width ~inhibit ~minimum_length)
