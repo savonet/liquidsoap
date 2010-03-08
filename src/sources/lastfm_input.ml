@@ -23,7 +23,7 @@
 open Lastfm
 
 class lastfm ~kind ~autostart ~poll_delay ~submit ~track_on_meta 
-             ~bufferize ~timeout ~bind_address 
+             ~bufferize ~timeout ~bind_address ~user ~password 
              ~debug ~max ~user_agent ~audioscrobbler_host uri =
 let playlist_mode = Http_source.First in
 object (self)
@@ -38,7 +38,20 @@ object (self)
   (* Called when there's no decoding process, in order to create one. *)
   method connect url =
     try
-      let login,station,options = Lastfm.Radio.parse uri in
+      (* user/password passed through the URL
+       * come first.. *)
+      let login,station,options = 
+       try
+        Lastfm.Radio.parse uri
+       with
+         | Lastfm.Radio.Error (Lastfm.Radio.Auth _) ->
+            let subst x =
+              Printf.sprintf "lastfm://%s:%s@" user password
+            in
+            let uri = Pcre.substitute ~pat:"lastfm://" ~subst uri
+            in
+            Lastfm.Radio.parse uri
+      in
       let id = 
         match session with
 	  | Some (l,v) when l = login -> v
@@ -123,9 +136,7 @@ let () =
         "poll_delay", Lang.float_t, (Some (Lang.float 2.)),
         Some "Polling delay." ;
         "submit", Lang.bool_t, Some (Lang.bool false),
-        Some "Submit song to Audioscrobbler. \
-           Only when the url is not anonymous, e.g. \
-           <code>lastfm://user:password@artist/foo</code>." ;
+        Some "Submit song to Audioscrobbler.";
         "submit_host", Lang.string_t, 
         Some (Lang.string !(Lastfm.Audioscrobbler.base_host)),
         Some "Host for audioscrobbling submissions.";
@@ -143,6 +154,8 @@ let () =
             (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
                 Configure.version Sys.os_type Sys.ocaml_version)),
         Some "User agent." ;
+        "user", Lang.string_t, None, Some "Lastfm user." ;
+        "password", Lang.string_t, None, Some "Lastfm password." ;
         "", Lang.string_t, None,
         Some "URI of a lastfm  stream (e.g. lastfm://user/toots5446/playlist)."
       ]
@@ -161,13 +174,15 @@ let () =
              | s -> Some s
          in
          let user_agent = Lang.to_string (List.assoc "user_agent" p) in
-         let submit_host = Lang.to_string (List.assoc "host" p) in
-         let submit_port = Lang.to_int (List.assoc "port" p) in
+         let submit_host = Lang.to_string (List.assoc "submit_host" p) in
+         let submit_port = Lang.to_int (List.assoc "submit_port" p) in
          let audioscrobbler_host = (submit_host,submit_port) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
 	 let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
+         let user = Lang.to_string (List.assoc "user" p) in
+         let password = Lang.to_string (List.assoc "password" p) in
          if bufferize > max then
            raise (Lang.Invalid_value
                     (List.assoc "max" p,
@@ -175,4 +190,4 @@ let () =
            ((new lastfm ~kind ~autostart ~submit ~poll_delay ~bufferize
                         ~track_on_meta ~audioscrobbler_host
                         ~bind_address ~timeout ~max ~debug 
-                        ~user_agent uri):>Source.source))
+                        ~user_agent ~user ~password uri):>Source.source))
