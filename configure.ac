@@ -1632,7 +1632,7 @@ if test -z "$with_sdl_dir" ; then
     else
         W_SDL=yes
         AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package sdl -package sdl.sdlmixer -package sdl.sdlttf"
+        ocamlcflags="$ocamlcflags -package sdl -package sdl.sdlmixer -package sdl.sdlttf -package sdl.sdlimage"
         requires="$requires sdl"
     fi
 else
