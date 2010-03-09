@@ -361,7 +361,7 @@ let decoder file =
 
 let () =
   Decoder.file_decoders#register "MIDI"
-    (fun filename kind ->
+    (fun ~metadata filename kind ->
        (* Any number of MIDI channel is acceptable as the decoder
         * silently drops events on higher channels if needed. *)
        if kind.Frame.midi <> Frame.Zero then

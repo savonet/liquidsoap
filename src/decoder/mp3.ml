@@ -79,7 +79,9 @@ let () =
         Decoder.file_decoders#register
           "MP3/libmad"
           ~sdoc:"Use libmad to decode MP3, if it works."
-          (fun filename kind ->
+          (fun ~metadata filename kind ->
+             (* Don't get the file's type if no audio is allowed anyway. *)
+             if kind.Frame.audio = Frame.Zero then None else
              if Frame.type_has_kind (get_type filename) kind then
                Some (fun () -> create_file_decoder filename kind)
              else begin
@@ -89,7 +91,7 @@ let () =
         Decoder.file_decoders#register
           "MP3/libmad/mime"
           ~sdoc:"Use libmad to decode MP3 if MIME type is appropriate."
-          (fun filename kind ->
+          (fun ~metadata filename kind ->
              let mime = mime_type filename in
                if not (List.mem mime conf_mime_types#get) then begin
                  log#f 3 "Invalid MIME type for %s: %s!" filename mime ;

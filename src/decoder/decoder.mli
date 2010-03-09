@@ -32,7 +32,8 @@ type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
 type file_decoder = { fill : Frame.t -> int; close : unit -> unit; }
 
 val file_decoders :
-  (file -> Frame.content_kind -> (unit -> file_decoder) option)
+  (metadata:Frame.metadata -> file -> Frame.content_kind ->
+     (unit -> file_decoder) option)
   Plug.plug
 val stream_decoders :
   (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
@@ -40,7 +41,8 @@ val stream_decoders :
 val conf_mime_types : Dtools.Conf.ut
 
 val get_file_decoder :
-  file -> Frame.content_kind -> (unit -> file_decoder) option
+  metadata:Frame.metadata -> file -> Frame.content_kind ->
+  (unit -> file_decoder) option
 val get_stream_decoder :
   file -> Frame.content_kind -> stream_decoder option
 
@@ -48,7 +50,7 @@ module Buffered :
   functor (Generator : Generator.S) ->
     sig
       val file_decoder :
-        string ->
+        file ->
         Frame.content_kind ->
         (input -> Generator.t decoder) ->
         Generator.t ->

@@ -307,7 +307,8 @@ let local_check t =
     while t.decoder = None && Sys.file_exists (peek_indicator t).string do
       let indicator = peek_indicator t in
       let name = indicator.string in
-        match Decoder.get_file_decoder name kind with
+      let metadata = get_all_metadata t in
+        match Decoder.get_file_decoder ~metadata name kind with
           | Some f ->
               t.decoder <- Some f ;
               mresolvers#iter

@@ -141,7 +141,9 @@ let create_file_decoder filename kind =
 let () =
   Decoder.file_decoders#register "WAV"
     ~sdoc:"Decode as WAV any file with a correct header."
-    (fun filename kind ->
+    (fun ~metadata filename kind ->
+       (* Don't get the file's type if no audio is allowed anyway. *)
+       if kind.Frame.audio = Frame.Zero then None else
        let file_type = get_type filename in
          if Frame.type_has_kind file_type kind then
            Some (fun () -> create_file_decoder filename kind)

@@ -214,7 +214,7 @@ let get_type filename =
 let () =
   Decoder.file_decoders#register "OGG"
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
-    (fun filename kind ->
+    (fun ~metadata filename kind ->
        let content_type = get_type filename in
          if Frame.type_has_kind content_type kind then
            Some (fun () -> create_file_decoder filename content_type kind)

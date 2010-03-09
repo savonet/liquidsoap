@@ -94,7 +94,8 @@ type file_decoder = {
   * times. This is at least useful to separate the actual opening of
   * the file from checking that it is a valid media file. *)
 let file_decoders :
-      (file -> Frame.content_kind -> (unit -> file_decoder) option)
+      (metadata:Frame.metadata -> file -> Frame.content_kind ->
+         (unit -> file_decoder) option)
       Plug.plug =
   Plug.create
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
@@ -128,17 +129,26 @@ let dummy =
 exception Exit of (string * (unit -> file_decoder))
 
 (** Get a valid decoder creator for [filename]. *)
-let get_file_decoder filename kind : (unit -> file_decoder) option =
+let get_file_decoder ~metadata filename kind : (unit -> file_decoder) option =
   try
     file_decoders#iter ~rev:true 
       (fun name decoder ->
          log#f 4 "Trying method %S for %S..." name filename ;
-         match try decoder filename kind with _ -> None with
+         match
+           try decoder ~metadata filename kind with
+             | e ->
+                 log#f 4
+                   "Decoder %S failed on %S: %s!"
+                   name filename (Printexc.to_string e) ;
+                 None
+         with
            | Some f ->
                log#f 3 "Method %S accepted %S." name filename ;
                raise (Exit (name,f))
            | None -> ()) ;
-    log#f 3 "Unable to decode %S!" filename ;
+    log#f 3
+      "Unable to decode %S as %s!"
+      filename (Frame.string_of_content_kind kind) ;
     None
   with
     | Exit (name,f) ->

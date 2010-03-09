@@ -70,12 +70,18 @@ let from_32 surface =
     a
 
 let load_image filename =
+  (* This seems to avoid _some_ segfaults, and it's a better practice than
+   * not initializing, but what we really need is a clean central module
+   * for Sdl, that is thread-safe. Most Sdl stuff is in a streaming
+   * thread but there are now several, and image loading is done from
+   * duppy tasks. *)
+  if Sdl.was_init () = [] then Sdl.init [`VIDEO] ;
   let surface = Sdlloader.load_image filename in
   let image =
-    match (Sdlvideo.surface_format surface).Sdlvideo.bytes_pp with
-      | 1 -> from_8 surface
-      | 3 -> from_24 surface
-      | 4 -> from_32 surface
+    match Sdlvideo.surface_bpp surface with
+      | 8 -> from_8 surface
+      | 24 -> from_24 surface
+      | 32 -> from_32 surface
       | _ -> failwith "unsupported pixel format"
   in
     RGB.proportional_scale_to
@@ -83,29 +89,48 @@ let load_image filename =
       (Lazy.force Frame.video_width)
       (Lazy.force Frame.video_height)
 
+let create_decoder metadata img =
+  let duration =
+    ref (try
+           let seconds =
+             float_of_string (Hashtbl.find metadata "duration")
+           in
+             Frame.video_of_seconds seconds
+         with
+           | Not_found -> -1)
+  in
+  let close () = () in
+  let fill frame =
+    let start = VFrame.position frame in
+    let video = (VFrame.content_of_type ~channels:1 frame start).(0) in
+    let stop =
+      if !duration = -1 then VFrame.size frame else
+        min (VFrame.size frame) (start + !duration)
+    in
+      VFrame.add_break frame stop ;
+      for i = start to stop-1 do
+        (* One could think of avoiding the creation of a blank
+         * video layer that will be overwritten immediately.
+         * However, in most cases an old layer will be re-used.
+         * In fact, we might even need to explicitly blankify
+         * because our image might be transparent and the
+         * current frame might contain random stuff. TODO *)
+        RGB.blit img video.(i)
+      done ;
+      if !duration = -1 then -1 else begin
+        duration := !duration - (stop-start) ;
+        Frame.master_of_video !duration
+      end
+  in
+    { Decoder. fill = fill ; close = close }
+
 let () =
   Decoder.file_decoders#register "SDL/image"
     ~sdoc:"Use SDL to display static images."
-    (fun filename kind ->
+    (fun ~metadata filename kind ->
        let ctype = { Frame. video = 1 ; audio = 0 ; midi = 0 } in
          if Frame.type_has_kind ctype kind then
            let img = load_image filename in
-           let close () = () in
-           let fill frame =
-             let pos = VFrame.position frame in
-             let video = (VFrame.content_of_type ~channels:1 frame pos).(0) in
-               for i = pos to VFrame.size frame - 1 do
-                 (* If we had [Frame.set_content] (not the unsafe version
-                  * but one that blits only if necessary) we could avoid
-                  * the creation of empty frames that we're going to
-                  * replace anyway. Anyway, in most cases we're only changing
-                  * an existing content layer. *)
-                 RGB.blit img video.(i)
-               done ;
-               VFrame.add_break frame (VFrame.size frame) ;
-               -1
-           in
-             Some (fun () -> { Decoder. fill = fill ; close = close })
-         else begin
-           None
-       end)
+             Some (fun () -> create_decoder metadata img)
+         else
+           None)
