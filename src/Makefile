@@ -51,7 +51,7 @@ playlists = \
 protocols = \
 	protocols/say.ml protocols/annotate.ml \
 	protocols/mpd.ml \
-	$(ifneq ($(OS_TYPE),Win32), protocols/extproto.ml) \
+	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml) \
 	$(if $(W_LAST),protocols/lastfm_req.ml)
 
 sources = \
