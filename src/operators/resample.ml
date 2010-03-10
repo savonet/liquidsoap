@@ -134,13 +134,12 @@ object (self)
     let metadata =
       List.map
         (fun (i,m) -> convert i, m)
-        (List.filter
-           (fun (i,_) -> start<=i && stop<i)
-           (Frame.get_all_metadata frame))
+        (Frame.get_all_metadata frame)
     in
     let start = convert start in
     let stop = convert stop in
-      Generator.feed generator ~metadata content start (stop-start) ;
+    let len = stop-start in
+      Generator.feed generator ~metadata ~copy:false content start len ;
       if Frame.is_partial frame then Generator.add_break generator
 
   method private get_frame frame =

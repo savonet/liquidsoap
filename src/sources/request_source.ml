@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -117,6 +117,9 @@ object (self)
       let rec try_get () =
         match current with
           | None ->
+              (* When we're infallible, our caller doesn't to check that
+               * we're ready, so #begin_track hasn't been called yet.
+               * When we're fallible, this point should never be reacher. *)
               if self#begin_track then try_get () else assert false
           | Some (req,get_frame,_) ->
               if send_metadata then begin

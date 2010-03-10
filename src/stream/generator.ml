@@ -177,9 +177,13 @@ struct
     Generator.remove fg.generator len ;
     advance fg len
 
-  let feed fg ?(breaks=[]) ?(metadata=[]) content ofs len =
-    let breaks = List.filter (fun p -> ofs<p && p<ofs+len) breaks in
-    let metadata = List.filter (fun (p,_) -> ofs<p && p<ofs+len) metadata in
+  (** Only the breaks and metadata in the considered portion of the
+    * content will be taken into account. This includes position
+    * ofs but excludes ofs+len for metadata and the opposite for breaks. *)
+  let feed fg ?(copy=true) ?(breaks=[]) ?(metadata=[]) content ofs len =
+    let breaks = List.filter (fun p -> ofs<p && p<=ofs+len) breaks in
+    let metadata = List.filter (fun (p,_) -> ofs<=p && p<ofs+len) metadata in
+    let content = if copy then Frame.copy content else content in
     fg.breaks <-
       fg.breaks @ List.map (fun p -> length fg + p - ofs) breaks ;
     fg.metadata <-

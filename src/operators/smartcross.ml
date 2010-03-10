@@ -157,10 +157,8 @@ object (self)
                 (match Frame.get_past_metadata frame with
                    | Some x -> [-1,x] | None -> []) ;
               self#buffering cross_length ;
-              begin match status with
-                | `Limit -> ()
-                | _ -> self#log#f 4 "More buffering will be needed."
-              end ;
+              if status <> `Limit then
+                self#log#f 4 "More buffering will be needed." ;
               self#get_frame frame
             end
       | `Before ->
@@ -178,6 +176,8 @@ object (self)
           if source#is_ready then
             self#get_frame frame
           else
+            (* If not, finish this track, which requires our callers
+             * to wait that we become ready again. *)
             Frame.add_break frame (Frame.position frame)
       | `After size ->
           (* The work is done, we are now playing the transition.
@@ -276,12 +276,16 @@ object (self)
     let db_before =
       Sutils.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
     in
-    let before = ((new Generated.consumer ~kind gen_before):>source) in
+    let before = new Generated.consumer ~kind gen_before in
     let after  =
       let beginning =
-        ((new Generated.consumer ~kind gen_after):>source)
+        new Generated.consumer ~kind gen_after
       in
-        ((new Sequence.sequence ~kind ~merge:true [beginning;s]):>source)
+        new Sequence.sequence ~kind ~merge:true [beginning;s]
+    in
+    let () =
+      before#set_id (self#id ^ "_before") ;
+      after#set_id (self#id ^ "_after")
     in
     let metadata = function
        | None -> Lang.list (Lang.product_t Lang.string_t Lang.string_t) []

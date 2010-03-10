@@ -54,6 +54,7 @@ sig
   val add_break : t -> unit
   val remove : t -> int -> unit
   val feed : t ->
+             ?copy:bool ->
              ?breaks:(int list) -> ?metadata:((int*Frame.metadata) list) ->
              Frame.content -> int -> int -> unit
   val feed_from_frame : t -> Frame.t -> unit
