@@ -85,7 +85,7 @@ object (self)
       if Frame.is_partial ab then
         self#log#f 4 "End of track." ;
       if Generator.length generator = 0 then begin
-        self#log#f 4 "Buffer emptied, starting buffering." ;
+        self#log#f 4 "Buffer emptied, buffering needed." ;
         buffering <- true
       end
     end

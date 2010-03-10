@@ -401,11 +401,11 @@ object (self)
         dynamic_activations <- remove [] dynamic_activations
       else
         static_activations <- remove [] static_activations ;
+      self#update_caching_mode ;
       if static_activations = [] && dynamic_activations = [] then begin
         source_log#f 4 "Source %s gets down." id ;
         self#sleep
-      end ;
-      self#update_caching_mode
+      end
 
   (** Two methods called for initialization and shutdown of the source *)
   method private wake_up activation =
