@@ -419,23 +419,3 @@ def input.mplayer(~id="input.mplayer",
                  "mplayer -really-quiet -ao pcm:file=/dev/stdout \
                     -vc null -vo null #{quote(s)} 2>/dev/null")
 end
-
-# Enable replay gain metadata resolver. This resolver will
-# process any file decoded by liquidsoap and add a @replay_gain@
-# metadata when this value could be computed. For a finer-grained
-# replay gain processing, use the @replay_gain@ protocol.
-# @category Liquidsoap
-# @param ~extract_replaygain The extraction program
-def enable_replaygain_metadata(
-       ~extract_replaygain="#{configure.libdir}/extract-replaygain")
-  def replaygain_metadata(~format,file)
-    x = get_process_lines("#{extract_replaygain} \
-                              #{quote(file)}")
-    if list.hd(x) != "" then
-      [("replay_gain",list.hd(x))]
-    else
-      []
-    end
-  end
-  add_metadata_resolver("replay_gain", replaygain_metadata)
-end

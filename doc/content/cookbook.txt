@@ -194,7 +194,35 @@ output.icecast(%vorbis, radio,mount="test",host="host")
 This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
 Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
 
-h4@lastfm. Lastfm input
+h4. Adding new commands
+
+You can add more commands to interact with your script through telnet or the server socket.
+
+For instance, the following code, available in the standard API, attaches a @source.skip@ command 
+to a source. It is useful when the original source do not have a built-in skip command.
+
+%%(source_skip_command.liq)
+# Add a skip function to a source
+# when it does not have one
+# by default
+def add_skip_command(s) =
+ # A command to skip
+ def skip(_) =
+   source.skip(s)
+   "Done!"
+ end
+ # Register the command:
+ server.register(namespace="#{source.id(s)}",
+                 usage="skip",
+                 description="Skip the current song.",
+                 "skip",skip)
+end
+
+# Attach a skip command to the source s:
+add_skip_command(s)
+%%
+
+h4. Lastfm input
 
 You can listen to "lastfm":http://www.last.fm/ radios using "Liquidsoap":index.html. The corresponding operator is <code>input.lastfm</code> and is used that way:
 

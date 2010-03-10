@@ -180,12 +180,12 @@ let () =
          in
          Externalformat.register_external_decoder name decoder;
          Lang.unit)
+*)
 
 let () =
   let resolver_t =
     Lang.fun_t
-      [false,"format",Lang.string_t;
-       false,"",Lang.string_t] 
+      [false,"",Lang.string_t] 
       Lang.metadata_t
   in
     add_builtin "add_metadata_resolver" 
@@ -199,12 +199,10 @@ let () =
       (fun p ->
          let format = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
-         let resolver ~format name =
+         let resolver name =
            let ret =
              Lang.apply ~t:Lang.metadata_t
-               f
-               ["format",Lang.string format;
-                "",Lang.string name] 
+               f ["",Lang.string name] 
            in
            let ret = Lang.to_list ret in
            let ret = List.map Lang.to_product ret in
@@ -215,9 +213,8 @@ let () =
            in
            ret
          in
-         Externalformat.register_external_metadata_resolver format resolver;
+         Request.mresolvers#register format resolver ;
          Lang.unit)
- *)
 
 let () =
   let protocol_t =

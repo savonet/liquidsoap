@@ -59,6 +59,24 @@ def rewrite_metadata(l,~insert_missing=true,
                update=update,strip=strip,s)
 end
 
+# Add a skip function to a source
+# when it does not have one
+# by default
+# @category Interaction
+# @param s The source to attach the command to.
+def add_skip_command(s) =
+ # A command to skip
+ def skip(_) =
+   source.skip(s)
+   "Done!"
+ end
+ # Register the command:
+ server.register(namespace="#{source.id(s)}",
+                 usage="skip",
+                 description="Skip the current song.",
+                 "skip",skip)
+end
+
 # Removes all metadata coming from a source
 # @category Source / Track Processing
 def clear_metadata(s)
@@ -476,3 +494,22 @@ def replaygain_protocol(arg,delay)
 end
 add_protocol("replay_gain", replaygain_protocol)
 
+# Enable replay gain metadata resolver. This resolver will
+# process any file decoded by liquidsoap and add a @replay_gain@
+# metadata when this value could be computed. For a finer-grained
+# replay gain processing, use the @replay_gain@ protocol.
+# @category Liquidsoap
+# @param ~extract_replaygain The extraction program
+def enable_replaygain_metadata(
+       ~extract_replaygain="#{configure.libdir}/extract-replaygain")
+  def replaygain_metadata(file)
+    x = get_process_lines("#{extract_replaygain} \
+                              #{quote(file)}")
+    if list.hd(x) != "" then
+      [("replay_gain",list.hd(x))]
+    else
+      []
+    end
+  end
+  add_metadata_resolver("replay_gain", replaygain_metadata)
+end
