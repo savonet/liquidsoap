@@ -211,14 +211,26 @@ struct
     in
     let Decoder decoder = create_decoder input in
     let out_ticks = ref 0 in
+    let decoding_done = ref false in
     let fill frame =
-      begin try
-        while Generator.length gen < prebuf do
-          decoder gen
-        done
-      with e ->
-        log#f 4 "Decoding %S failed: %s." filename (Printexc.to_string e)
-      end ;
+      (* We want to avoid trying to decode when
+       * it is no longer possible. Hence, this loop
+       * will be executed iff there was no exception
+       * raised before. If a decoder wants to recover
+       * on an exception, it should catch it and deal
+       * with it on its own. 
+       * Hence, the current policy for decoding is:
+       * decoding stops at the first exception raised. *)
+      if (not !decoding_done) then
+        begin try
+          while Generator.length gen < prebuf do
+            decoder gen
+          done
+        with
+          | e ->
+             log#f 4 "Decoding %S ended: %s." filename (Printexc.to_string e) ;
+             decoding_done := true
+        end ;
 
       let offset = Frame.position frame in
       let old_breaks = Frame.breaks frame in
