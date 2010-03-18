@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,8 +21,9 @@
  *****************************************************************************)
 
 (* The annotate protocol allows to set the initial metadata for a request:
- * annotate:key1="val1",key2="val2",...:uri
- * is resolved into uri, and adds the bindings to the request metadata. *)
+ * annotate:key1=val1,key2=val2,...:uri
+ * is resolved into uri, and adds the bindings to the request metadata.
+ * The values can be "strings", or directly integers, floats or identifiers. *)
 
 open Genlex
 exception Error
@@ -48,6 +49,9 @@ let annotate s ~log maxtime =
             else begin match Stream.next lexer with
               | Kwd "=" -> begin match Stream.next lexer with
                   | String s -> parse ((key,s)::metadata)
+                  | Int i -> parse ((key,string_of_int i)::metadata)
+                  | Float f -> parse ((key,string_of_float f)::metadata)
+                  | Ident k -> parse ((key,k)::metadata)
                   | _ -> raise Error
                 end
               | _ -> raise Error
