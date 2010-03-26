@@ -144,9 +144,11 @@ end
   * After the second song, the buffer strategy becomes
   * static, with an average buffer of 20s. *)
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
     Lang.add_operator "input.lastfm"
-      ~kind:(Lang.Unconstrained k)
+      (* I am not really sure,
+       * but it seems that all lastfm tracks
+       * are stereo.. *)
+      ~kind:Lang.audio_stereo
       ~category:Lang.Input
       ~descr:"Forwards the given lastfm stream. The relay can be \
               paused/resumed using the start/stop telnet commands."
