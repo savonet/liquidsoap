@@ -32,10 +32,14 @@ class http_input_server ~kind ~dumpfile ~logfile
                         ~on_connect ~on_disconnect
                         ~login ~debug =
   let max_ticks = Frame.master_of_seconds max in
+  (* We need a temporary log until
+   * the source has an id *)
+  let log_ref = ref (fun _ -> ()) in
+  let log = (fun x -> !log_ref x) in
 object (self)
   inherit Source.source kind
   inherit Generated.source
-            (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
+            (Generator.create ~log ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize as generated
 
   val mutable relaying = false
@@ -114,6 +118,8 @@ object (self)
             begin try Unix.close socket with _ -> () end
 
   method private wake_up _ =
+    (* Now we can create the log function *)
+    log_ref := self#log#f 3 "%s" ;
     if ns = [] then
       ns <- Server.register [self#id] "input.harbor" ;
     self#set_id (Server.to_string ns) ;

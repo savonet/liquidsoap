@@ -37,7 +37,11 @@ class external_input ~kind ~restart ~bufferize ~channels
                              ~signed:true ~big_endian:false
                              () ~audio_src_rate:in_freq
   in
-  let abg = Generator.create `Audio in
+  (* We need a temporary log until 
+   * the source has an id *)
+  let log_ref = ref (fun _ -> ()) in
+  let log = (fun x -> !log_ref x) in
+  let abg = Generator.create ~log `Audio in
   let priority = Tutils.Non_blocking in
 object (self)
   inherit Source.source kind
@@ -48,6 +52,8 @@ object (self)
   method stype = Source.Fallible
 
   method wake_up _ =
+    (* Now we can create the log function *)
+    log_ref := self#log#f 3 "%s" ;
     self#log#f 2 "Starting process.";
     let create () =
       let in_e = Unix.open_process_in command in

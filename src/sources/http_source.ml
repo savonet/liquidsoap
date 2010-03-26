@@ -169,11 +169,15 @@ class http ~kind
         ~debug ?(logfile=None)
         ~user_agent url =
   let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
+  (* We need a temporary log until
+   * the source has an id *)
+  let log_ref = ref (fun _ -> ()) in
+  let log = (fun x -> !log_ref x) in
 object (self)
   inherit Source.source kind
   inherit
     Generated.source
-      (Generator.create ~overfull:(`Drop_old max_ticks) `Undefined)
+      (Generator.create ~log ~overfull:(`Drop_old max_ticks) `Undefined)
       ~empty_on_abort:false ~bufferize as generated
 
   method stype = Source.Fallible
@@ -412,6 +416,8 @@ object (self)
   val mutable ns = []
 
   method wake_up _ =
+    (* Now we can create the log function *)
+    log_ref := self#log#f 3 "%s" ;
     (* Wait for the old polling thread to return, then create a new one. *)
     Tutils.wait polling_cond polling_lock (fun () -> not poll_should_stop) ;
     ignore (Tutils.create (fun () -> self#poll) () "http polling") ;

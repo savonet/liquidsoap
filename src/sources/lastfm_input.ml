@@ -25,7 +25,8 @@ open Lastfm
 class lastfm ~kind ~autostart ~poll_delay ~submit ~track_on_meta 
              ~bufferize ~timeout ~bind_address ~user ~password 
              ~debug ~max ~user_agent ~audioscrobbler_host uri =
-let playlist_mode = Http_source.First in
+ let playlist_mode = Http_source.First in
+ let bufferize_time = Frame.master_of_seconds bufferize in
 object (self)
   inherit Http_source.http ~kind ~playlist_mode ~poll_delay ~timeout 
                            ~autostart ~bind_address ~bufferize 
@@ -37,7 +38,14 @@ object (self)
 
   (* Called when there's no decoding process, in order to create one. *)
   method connect url =
-    try
+    (* Do nothing is the buffer is
+     * still greater than bufferize.
+     * This is not an active wait because 
+     * the polling thread is timed. Hence,
+     * we do not need to put the thread to sleep. *)
+    if self#length > bufferize_time then ()
+    else
+     try
       (* user/password passed through the URL
        * come first.. *)
       let login,station,options = 
@@ -88,13 +96,13 @@ object (self)
                Liqfm.NowPlaying [metas] ;
         latest_metadata <- Some (auth,metas) ;
         http#connect uri
-    with
-      | Lastfm.Radio.Error e ->
-          session <- None ;
-          self#log#f 4
-            "Could not get file from lastfm: %s"
-            (Lastfm.Radio.string_of_error e)
-      | e -> self#log#f 4 "Lastfm connection failed: %s" (Printexc.to_string e)
+     with
+       | Lastfm.Radio.Error e ->
+           session <- None ;
+           self#log#f 4
+             "Could not get file from lastfm: %s"
+             (Lastfm.Radio.string_of_error e)
+       | e -> self#log#f 4 "Lastfm connection failed: %s" (Printexc.to_string e)
 
   (* TODO abort streaming on #abort_track,
    *   setting relaying <- false is too radical, it would completely
@@ -116,6 +124,25 @@ object (self)
 
 end
 
+(** Values for max buffer and bufferize are 
+  * tricky. Lastfm sends a burst of 10s of
+  * data at the beginning of the streaming.
+  * Hence, if we immediatly request the next
+  * track when the current tracks end, the
+  * burst sum-up and we end-up with 10 then
+  * 20 then 30... seconds in the buffer.
+  * Instead, we wait for the buffer to consume
+  * its data up-to bufferize and then request the
+  * next song.
+  * Good values for max and bufferize are then 25
+  * and 10. With these values, the initial buffer is
+  * 10 so we start streaming immediatly. When the
+  * first song ends, the buffer jumps from 10 to 20
+  * with the next burst. When the second song ends, 
+  * the buffer is emptied up-to 10, then we request
+  * the next song and it jumps again to 20.
+  * After the second song, the buffer strategy becomes
+  * static, with an average buffer of 20s. *)
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
     Lang.add_operator "input.lastfm"
@@ -125,7 +152,7 @@ let () =
               paused/resumed using the start/stop telnet commands."
       [ "autostart", Lang.bool_t, Some (Lang.bool true),
         Some "Initially start relaying or not." ;
-        "buffer", Lang.float_t, Some (Lang.float 2.),
+        "buffer", Lang.float_t, Some (Lang.float 10.),
         Some "Duration of the pre-buffered data." ;
         "bind_address", Lang.string_t, Some (Lang.string ""),
         Some "Address to bind on the local machine. \
@@ -147,7 +174,7 @@ let () =
         Some "Treat new metadata as new track." ;
         "debug", Lang.bool_t, Some (Lang.bool false),
         Some "Run in debugging mode by not catching some exceptions." ;
-        "max", Lang.float_t, Some (Lang.float 10.),
+        "max", Lang.float_t, Some (Lang.float 25.),
         Some "Maximum duration of the buffered data." ;
        "user_agent", Lang.string_t,
         Some (Lang.string
