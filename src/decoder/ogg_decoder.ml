@@ -163,34 +163,26 @@ let create_decoder source mode input =
           | _,_ -> ()
       in
       let audio_feed ((buf,sample_freq),meta) =
-        if decode_audio then
-         begin
-          let audio_src_rate = float sample_freq in
-          let content,length =
-            audio_resample ~audio_src_rate buf
-          in
-          Generator.put_audio buffer content 0 length ;
-          add_meta meta
-         end
+        let audio_src_rate = float sample_freq in
+        let content,length =
+          audio_resample ~audio_src_rate buf
+        in
+        Generator.put_audio buffer content 0 length ;
+        add_meta meta
       in
       let video_feed (buf,meta) =
-        if decode_video then
-         begin
-          let in_freq = int_of_float buf.Ogg_demuxer.fps in
-          let out_freq = Lazy.force Frame.video_rate in
-          let rgb = video_convert buf in
-          let stream = video_resample ~in_freq ~out_freq [|rgb|] 0 1 in
-          Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
-          add_meta meta
-         end
+        let in_freq = int_of_float buf.Ogg_demuxer.fps in
+        let out_freq = Lazy.force Frame.video_rate in
+        let rgb = video_convert buf in
+        let stream = video_resample ~in_freq ~out_freq [|rgb|] 0 1 in
+        Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
+        add_meta meta
       in
-      (* Catch Not_found when a track type 
-       * does not exist (consistentcy has already been
-       * checked.. *)
-      let exec f x = try f decoder x with Not_found -> () in
       try
-        exec Ogg_demuxer.decode_audio audio_feed ;
-        exec Ogg_demuxer.decode_video video_feed
+        if decode_audio then
+          Ogg_demuxer.decode_audio decoder audio_feed ;
+        if decode_video then
+          Ogg_demuxer.decode_video decoder video_feed
       with
         | Ogg_demuxer.End_of_stream -> reset buffer ;
         | Ogg.Not_enough_data ->  
