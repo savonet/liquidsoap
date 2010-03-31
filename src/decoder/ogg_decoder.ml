@@ -113,7 +113,7 @@ struct
 
 (* TODO this mimicks the old code, but in the near future decoding should
  * take into account the target content kind, e.g. for dropping channels *)
-let create_decoder mode input =
+let create_decoder source mode input =
   let decoder =
     let sync = Ogg.Sync.create input in
       Ogg_demuxer.init sync
@@ -121,42 +121,80 @@ let create_decoder mode input =
   let video_convert = video_convert () in
   let audio_resample = Rutils.create_audio () in
   let video_resample = video_resample () in
+  let initial_decoding = ref true in
+  let decode_audio = mode = `Both || mode = `Audio in
+  let decode_video = mode = `Both || mode = `Video in
+  let reset buffer = 
+    if source = `Stream then
+     begin
+      try
+       Ogg_demuxer.reset decoder ;
+       Generator.add_break buffer ;
+       initial_decoding := true
+      with
+        | _ -> raise Ogg_demuxer.End_of_stream
+     end
+    else
+      raise Ogg_demuxer.End_of_stream;
+  in
     Decoder.Decoder (fun buffer ->
       if Ogg_demuxer.eos decoder then
-        raise Ogg_demuxer.End_of_stream;
-      let feed ((buf,sample_freq),_) =
-        let audio_src_rate = float sample_freq in
-        let content,length =
-          audio_resample ~audio_src_rate buf
-        in
-          Generator.put_audio buffer content 0 length
+        reset buffer ;
+      if !initial_decoding then
+       begin
+        Generator.set_mode buffer mode ;
+        (* Make sure the stream has what we need *)
+        match Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder,
+              Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder,
+              mode with
+           | true, true, `Both  -> () 
+           | true, _   , `Audio -> 
+               Ogg_demuxer.drop_track Ogg_demuxer.Video_track decoder
+           | _   , true, `Video -> 
+               Ogg_demuxer.drop_track Ogg_demuxer.Audio_track decoder
+           | _  ->  
+                failwith "Ogg stream does no contain required data"
+       end ;
+      initial_decoding := false ;
+      let add_meta meta = 
+        match meta,source with
+          | Some m, `Stream ->
+             Generator.add_metadata buffer m
+          | _,_ -> ()
       in
-      let got_audio =
-        try
-          Ogg_demuxer.decode_audio decoder feed ;
-          true
-        with
-          | Not_found
-          | Ogg.Not_enough_data -> false
+      let audio_feed ((buf,sample_freq),meta) =
+        if decode_audio then
+         begin
+          let audio_src_rate = float sample_freq in
+          let content,length =
+            audio_resample ~audio_src_rate buf
+          in
+          Generator.put_audio buffer content 0 length ;
+          add_meta meta
+         end
       in
-      let feed (buf,_) =
-        let in_freq = int_of_float buf.Ogg_demuxer.fps in
-        let out_freq = Lazy.force Frame.video_rate in
-        let rgb = video_convert buf in
-        let stream = video_resample ~in_freq ~out_freq [|rgb|] 0 1 in
-          Generator.put_video buffer [|stream|] 0 (Array.length stream)
+      let video_feed (buf,meta) =
+        if decode_video then
+         begin
+          let in_freq = int_of_float buf.Ogg_demuxer.fps in
+          let out_freq = Lazy.force Frame.video_rate in
+          let rgb = video_convert buf in
+          let stream = video_resample ~in_freq ~out_freq [|rgb|] 0 1 in
+          Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
+          add_meta meta
+         end
       in
-      (* Try to decode video. *)
-      let got_video =
-        try
-          Ogg_demuxer.decode_video decoder feed ;
-          true
-        with
-          | Not_found
-          | Ogg.Not_enough_data -> false
-      in
-        if not got_audio && not got_video then
-          Ogg_demuxer.feed decoder)
+      (* Catch Not_found when a track type 
+       * does not exist (consistentcy has already been
+       * checked.. *)
+      let exec f x = try f decoder x with Not_found -> () in
+      try
+        exec Ogg_demuxer.decode_audio audio_feed ;
+        exec Ogg_demuxer.decode_video video_feed
+      with
+        | Ogg_demuxer.End_of_stream -> reset buffer ;
+        | Ogg.Not_enough_data ->  
+            Ogg_demuxer.feed decoder)
 
 end
 
@@ -174,7 +212,7 @@ let create_file_decoder filename content_type kind =
       | _, _ -> `Both
   in
   let generator = G.create mode in
-    Buffered.file_decoder filename kind (D.create_decoder mode) generator
+    Buffered.file_decoder filename kind (D.create_decoder `File mode) generator
 
 let get_type filename =
   let sync,fd = Ogg.Sync.create_from_file filename in
@@ -238,7 +276,7 @@ let () =
      (fun mime kind ->
         if List.mem mime mime_types#get then
           (* TODO We must find a way here... *)
-          Some (D_stream.create_decoder `Audio)
+          Some (D_stream.create_decoder `Stream `Audio)
         else
           None)
 

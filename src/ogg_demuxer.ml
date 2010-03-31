@@ -188,6 +188,26 @@ let has_track dtype dec =
   with
     | Not_found -> false
 
+let drop_track dtype dec = 
+  (* Remove all track of this type *)
+  let rec get_tracks a (x,y,decoder) l = 
+    match decoder with
+      | Audio d when dtype = Audio_track -> (a,x,y)::l
+      | Video d when dtype = Video_track -> (a,x,y)::l
+      | _ -> l
+  in
+  let tracks = Hashtbl.fold get_tracks dec.streams [] in
+  let stype = 
+    match dtype with
+      | Audio_track -> "audio" 
+      | Video_track -> "video"
+  in
+  let f (a,x,y) = 
+    log#f 5 "Dropping %s track with serial %nx." stype a ;
+    Hashtbl.replace dec.streams a (x,y,Unknown)
+  in
+  List.iter f tracks  
+
 let decode_audio dec f = 
   let (eos,d) = get_track Audio_track dec in
   try

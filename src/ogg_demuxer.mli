@@ -74,6 +74,9 @@ val reset : t -> unit
 (** [true] if the decoder has a track of that type. *)
 val has_track : track -> t -> bool 
 
+(** Remove all tracks of the given type. *)
+val drop_track : track -> t -> unit
+
 (** Feed new pages into the decoder 
   *
   * Raises [End_of_stream] is the stream has ended.
