@@ -335,8 +335,8 @@ struct
           let alen = audio_length t in
           let vlen = video_length t in
             if alen>vlen then
-              Generator.remove_end t.audio (alen-vlen)
-            else
+              Generator.remove_end t.audio (alen-vlen) ;
+            if vlen>alen then
               Generator.remove_end t.video (vlen-alen)
     end ;
     t.breaks <- t.breaks @ [length t]
