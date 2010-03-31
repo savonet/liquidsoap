@@ -86,7 +86,7 @@ sig
   val remaining : t -> int
 
   val add_metadata : t -> Frame.metadata -> unit
-  val add_break : t -> unit
+  val add_break : ?sync:[`Strict|`Ignore|`Drop] -> t -> unit
 
   (* [put_audio buffer data offset length]: offset and length
    * are in samples ! *)
@@ -109,6 +109,7 @@ sig
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
+  val add_break : ?sync:[`Strict|`Ignore|`Drop] -> t -> unit
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
   val put_video : t -> Frame.video_t array -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
@@ -140,7 +141,7 @@ sig
   val remaining : t -> int
 
   val add_metadata : t -> Frame.metadata -> unit
-  val add_break : t -> unit
+  val add_break : ?sync:[`Strict|`Ignore|`Drop] -> t -> unit
 
   (* [put_audio buffer data offset length]:
    * offset and length are in audio samples! *)

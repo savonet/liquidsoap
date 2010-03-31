@@ -203,7 +203,7 @@ object (self)
                 (try Hashtbl.find m "artist" with _ -> "?")
                 (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m ;
-    if track_on_meta then Generator.add_break generator ;
+    if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
   method feeding ?(newstream=true) create_decoder socket chunked metaint =
     connected <- true ;
@@ -229,7 +229,7 @@ object (self)
       with
         | e ->
             (* Feeding has stopped: adding a break here. *)
-            Generator.add_break generator ;
+            Generator.add_break ~sync:`Drop generator ;
             begin match e with
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s." s

@@ -38,6 +38,7 @@ sig
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
   val add_metadata : t -> Frame.metadata -> unit
+  val add_break : ?sync:[`Strict|`Ignore|`Drop] -> t -> unit
   val put_audio : t -> Frame.audio_t array -> int -> int -> unit
   val put_video : t -> Frame.video_t array -> int -> int -> unit
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
@@ -87,6 +88,36 @@ let rec remove g len =
         g.length <- g.length - removed ;
         g.offset <- 0 ;
         remove g (len-removed)
+
+(** Remove data at the end of the generator: this is inefficient, not
+  * natural for a Generator. *)
+let rec remove_end g len =
+  failwith "Not yet implemented!" ;
+  (* Remove length [l] at the beginning of the buffers,
+   * should correspond exactly to some last [n] chunks. *)
+  let rec remove l =
+    if l>0 then
+      let (_,ofs,len) = Queue.take g.buffers in
+        remove (l-len)
+  in
+  (* Go through the beginning of length [l] of the queue,
+   * possibly cut some element in half, remove the rest.
+   * The parsed elements are put back at the end
+   * of the queue. *)
+  let rec cut l remaining =
+    let (c,ofs,len) = Queue.take g.buffers in
+      if len<l then begin
+        Queue.push (c,ofs,len) g.buffers ;
+        cut (len-l) (remaining-l)
+      end else if len=l then
+        remove (remaining-len)
+      else begin
+        Queue.push (c,ofs,l) g.buffers ;
+        remove (remaining-len)
+      end
+  in
+    cut (g.length-len) g.length ;
+    g.length <- g.length - len
 
 (** Feed an item into a generator.
   * The item is put as such, not copied. *)
@@ -296,8 +327,18 @@ struct
     t.metadata <- t.metadata @ [length t, m]
 
   (** Add a track limit. Audio and video length should be equal. *)
-  let add_break t =
-    assert (audio_length t = video_length t) ;
+  let add_break ?(sync=`Strict) t =
+    begin match sync with
+      | `Strict -> assert (audio_length t = video_length t)
+      | `Ignore -> ()
+      | `Drop ->
+          let alen = audio_length t in
+          let vlen = video_length t in
+            if alen>vlen then
+              Generator.remove_end t.audio (alen-vlen)
+            else
+              Generator.remove_end t.video (vlen-alen)
+    end ;
     t.breaks <- t.breaks @ [length t]
 
   let clear t =
@@ -473,7 +514,7 @@ struct
 
   let add_metadata t m =
     Tutils.mutexify t.lock (Super.add_metadata t.gen) m
-  let add_break t = Tutils.mutexify t.lock Super.add_break t.gen
+  let add_break ?sync t = Tutils.mutexify t.lock (Super.add_break ?sync) t.gen
 
   let clear t = Tutils.mutexify t.lock Super.clear t.gen
   let fill t frame = Tutils.mutexify t.lock (Super.fill t.gen) frame
