@@ -111,8 +111,6 @@ let video_resample () =
 module Make (Generator:Generator.S_Asio) =
 struct
 
-(* TODO this mimicks the old code, but in the near future decoding should
- * take into account the target content kind, e.g. for dropping channels *)
 let create_decoder source mode input =
   let decoder =
     let sync = Ogg.Sync.create input in
@@ -124,12 +122,14 @@ let create_decoder source mode input =
   let initial_decoding = ref true in
   let decode_audio = mode = `Both || mode = `Audio in
   let decode_video = mode = `Both || mode = `Video in
-  let reset buffer = 
+  let reset buffer =
     if source = `Stream then
      begin
       try
        Ogg_demuxer.reset decoder ;
-       Generator.add_break buffer ;
+       (* We enforce that all contents end together, otherwise there will
+        * be a lag between different content types in the next track. *)
+       Generator.add_break ~sync:`Drop buffer ;
        initial_decoding := true
       with
         | _ -> raise Ogg_demuxer.End_of_stream
@@ -144,19 +144,21 @@ let create_decoder source mode input =
        begin
         Generator.set_mode buffer mode ;
         (* Make sure the stream has what we need *)
+        (* TODO this should be done based on the kind, not the mode,
+         *      which should be (re)set accordingly *)
         match Ogg_demuxer.has_track Ogg_demuxer.Audio_track decoder,
               Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder,
               mode with
-           | true, true, `Both  -> () 
-           | true, _   , `Audio -> 
+           | true, true, `Both  -> ()
+           | true, _   , `Audio ->
                Ogg_demuxer.drop_track Ogg_demuxer.Video_track decoder
-           | _   , true, `Video -> 
+           | _   , true, `Video ->
                Ogg_demuxer.drop_track Ogg_demuxer.Audio_track decoder
-           | _  ->  
+           | _  ->
                 failwith "Ogg stream does no contain required data"
        end ;
       initial_decoding := false ;
-      let add_meta meta = 
+      let add_meta meta =
         match meta,source with
           | Some m, `Stream ->
              Generator.add_metadata buffer m
@@ -184,9 +186,8 @@ let create_decoder source mode input =
         if decode_video then
           Ogg_demuxer.decode_video decoder video_feed
       with
-        | Ogg_demuxer.End_of_stream -> reset buffer ;
-        | Ogg.Not_enough_data ->  
-            Ogg_demuxer.feed decoder)
+        | Ogg_demuxer.End_of_stream -> reset buffer
+        | Ogg.Not_enough_data -> Ogg_demuxer.feed decoder)
 
 end
 
@@ -246,6 +247,19 @@ let () =
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
     (fun ~metadata filename kind ->
        let content_type = get_type filename in
+       let content_type =
+         (* If the kind doesn't allow audio, or video,
+          * pretend that we don't have any: it will be dropped
+          * anyway.
+          * A more fine-grained approach might or might not
+          * be possible, based on the number of channels. *)
+         if kind.Frame.video = Frame.Zero then
+           { content_type with Frame.video = 0 }
+         else if kind.Frame.audio = Frame.Zero then
+           { content_type with Frame.audio = 0 }
+         else
+           content_type
+       in
          if Frame.type_has_kind content_type kind then
            Some (fun () -> create_file_decoder filename content_type kind)
          else
