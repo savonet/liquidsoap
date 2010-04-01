@@ -89,35 +89,35 @@ let rec remove g len =
         g.offset <- 0 ;
         remove g (len-removed)
 
-(** Remove data at the end of the generator: this is inefficient, not
-  * natural for a Generator. *)
-let rec remove_end g len =
-  failwith "Not yet implemented!" ;
+(** Remove data at the end of the generator: this is not a natural operation
+  * for Generators, it's done in linear time. *)
+let rec remove_end g remove_len =
   (* Remove length [l] at the beginning of the buffers,
    * should correspond exactly to some last [n] chunks. *)
   let rec remove l =
     if l>0 then
       let (_,ofs,len) = Queue.take g.buffers in
+        assert (l>=len) ;
         remove (l-len)
   in
   (* Go through the beginning of length [l] of the queue,
    * possibly cut some element in half, remove the rest.
    * The parsed elements are put back at the end
    * of the queue. *)
-  let rec cut l remaining =
+  let rec cut l =
     let (c,ofs,len) = Queue.take g.buffers in
       if len<l then begin
         Queue.push (c,ofs,len) g.buffers ;
-        cut (len-l) (remaining-l)
-      end else if len=l then
-        remove (remaining-len)
-      else begin
+        cut (l-len)
+      end else begin
         Queue.push (c,ofs,l) g.buffers ;
-        remove (remaining-len)
+        remove (remove_len-(len-l))
       end
   in
-    cut (g.length-len) g.length ;
-    g.length <- g.length - len
+  let new_len = g.length - remove_len in
+    assert (remove_len>0 && new_len>=0) ;
+    cut new_len ;
+    g.length <- new_len
 
 (** Feed an item into a generator.
   * The item is put as such, not copied. *)
