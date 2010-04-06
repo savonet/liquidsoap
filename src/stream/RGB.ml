@@ -62,13 +62,13 @@ let copy f =
 
 let copy_channel a = Array.map copy a
 
-external blit : t -> t -> unit = "caml_rgb_blit" "noalloc"
+external blit : t -> t -> unit = "caml_rgb_blit"
 
 external blit_off : t -> t -> int -> int -> bool -> unit
-  = "caml_rgb_blit_off" "noalloc"
+  = "caml_rgb_blit_off"
 
 external blit_off_scale : t -> t -> int * int -> int * int -> bool -> unit
-  = "caml_rgb_blit_off_scale" "noalloc"
+  = "caml_rgb_blit_off_scale"
 
 let blit_fast src dst =
   blit src dst
@@ -79,12 +79,12 @@ let blit ?(blank=true) ?(x=0) ?(y=0) ?w ?h src dst =
     | Some w, Some h -> blit_off_scale src dst (x,y) (w,h) blank
     | _, _ -> assert false
 
-external fill : t -> color -> unit = "caml_rgb_fill" "noalloc"
+external fill : t -> color -> unit = "caml_rgb_fill"
 
 external blank : t -> unit = "caml_rgb_blank" "noalloc"
 
 external of_linear_rgb : t -> string -> unit
-  = "caml_rgb_of_linear_rgb" "noalloc"
+  = "caml_rgb_of_linear_rgb"
 
 let of_linear_rgb data width =
   let height = (String.length data / 3) / width in
@@ -94,7 +94,7 @@ let of_linear_rgb data width =
 
 type yuv = (data *int ) * (data * data * int)
 
-external of_YUV420 : yuv -> t -> unit = "caml_rgb_of_YUV420" "noalloc"
+external of_YUV420 : yuv -> t -> unit = "caml_rgb_of_YUV420"
 
 let of_YUV420_create frame width height =
   let ans = create width height in
@@ -105,20 +105,20 @@ external create_yuv : int -> int -> yuv = "caml_yuv_create"
 
 external blank_yuv : yuv -> unit = "caml_yuv_blank"
 
-external to_YUV420 : t -> yuv -> unit = "caml_rgb_to_YUV420" "noalloc"
+external to_YUV420 : t -> yuv -> unit = "caml_rgb_to_YUV420"
 
 external get_pixel : t -> int -> int -> color = "caml_rgb_get_pixel"
 
 external set_pixel : t -> int -> int -> color -> unit
   = "caml_rgb_set_pixel" "noalloc"
 
-external randomize : t -> unit = "caml_rgb_randomize" "noalloc"
+external randomize : t -> unit = "caml_rgb_randomize"
 
 external scale_coef : t -> t -> int * int -> int * int -> unit
-  = "caml_rgb_scale" "noalloc"
+  = "caml_rgb_scale"
 
 external bilinear_scale_coef : t -> t -> float -> float -> unit
-  = "caml_rgb_bilinear_scale" "noalloc"
+  = "caml_rgb_bilinear_scale"
 
 let scale src dst =
   let sw, sh = src.width,src.height in
@@ -211,21 +211,22 @@ let read_ppm ?alpha fname =
 
 external to_int_image : t -> int array array = "caml_rgb_to_color_array"
 
-external greyscale : t -> bool -> unit = "caml_rgb_greyscale" "noalloc"
+external greyscale : t -> bool -> unit = "caml_rgb_greyscale"
 
 let sepia buf = greyscale buf true
 
 let greyscale buf = greyscale buf false
 
-external invert : t -> unit = "caml_rgb_invert" "noalloc"
+external invert : t -> unit = "caml_rgb_invert"
 
-external add : t -> t -> unit = "caml_rgb_add" "noalloc"
+external add : t -> t -> unit = "caml_rgb_add"
 
 let add_fast = add
 
-external add_off : t -> t -> int -> int -> unit = "caml_rgb_add_off" "noalloc"
+external add_off : t -> t -> int -> int -> unit = "caml_rgb_add_off"
 
-external add_off_scale : t -> t -> int * int -> int * int -> unit = "caml_rgb_add_off_scale" "noalloc"
+external add_off_scale : t -> t -> int * int -> int * int -> unit
+  = "caml_rgb_add_off_scale"
 
 let add ?(x=0) ?(y=0) ?w ?h src dst =
   match (w,h) with
@@ -233,25 +234,25 @@ let add ?(x=0) ?(y=0) ?w ?h src dst =
     | Some w, Some h -> add_off_scale src dst (x,y) (w,h)
     | _, _ -> assert false
 
-external rotate : t -> float -> unit = "caml_rgb_rotate" "noalloc"
+external rotate : t -> float -> unit = "caml_rgb_rotate"
 
-external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity" "noalloc"
+external scale_opacity : t -> float -> unit = "caml_rgb_scale_opacity"
 
 external disk_opacity : t -> int -> int -> int -> unit
-  = "caml_rgb_disk_opacity" "noalloc"
+  = "caml_rgb_disk_opacity"
 
 external affine : t -> float -> float -> int -> int -> unit
-  = "caml_rgb_affine" "noalloc"
+  = "caml_rgb_affine"
 
 (* TODO: faster implementation? *)
 let translate f x y =
   affine f 1. 1. x y
 
-external mask : t -> t -> unit = "caml_rgb_mask" "noalloc"
+external mask : t -> t -> unit = "caml_rgb_mask"
 
-external lomo : t -> unit = "caml_rgb_lomo" "noalloc"
+external lomo : t -> unit = "caml_rgb_lomo"
 
 external color_to_alpha : t -> int * int * int -> int -> unit
-  = "caml_rgb_color_to_alpha" "noalloc"
+  = "caml_rgb_color_to_alpha"
 
 external blur_alpha : t -> unit = "caml_rgb_blur_alpha"
