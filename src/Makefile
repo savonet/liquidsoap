@@ -152,6 +152,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
 	tools/server.ml tools/server_builtins.ml \
+	$(if $(W_SDL),tools/sdl_utils.ml) \
 	$(if $(W_LAST),tools/liqfm.ml) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
@@ -227,7 +228,8 @@ libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang.ml \
-	tools/harbor.ml $(video_converters) $(audio_converters) \
+	tools/harbor.ml $(if $(W_SDL),tools/sdl_utils.ml) \
+	$(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
 	$(analyze) $(playlists) $(decoders) \
 	lang/lang_builtins.ml

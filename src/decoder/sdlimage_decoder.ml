@@ -20,68 +20,16 @@
 
  *****************************************************************************)
 
-let from_8 surface =
-  let width,height,pitch = Sdlvideo.surface_dims surface in
-  let image = Sdlvideo.pixel_data_8 surface in
-  let a = RGB.create width height in
-    for i = 0 to width-1 do
-      for j = 0 to height-1 do
-        let r,g,b = Sdlvideo.get_palette_color surface image.{i+j*pitch} in
-          RGB.set_pixel a i j (r,g,b,0xff)
-      done
-    done ;
-    a
-
-let from_24 surface =
-  let width,height,pitch = Sdlvideo.surface_dims surface in
-  let rgb = Sdlvideo.pixel_data_24 surface in
-  let a = RGB.create width height in
-  let rgba = a.RGB.data in
-    for i = 0 to width-1 do
-      for j = 0 to height-1 do
-        for c = 0 to 2 do
-          rgba.{c+i*4+j*a.RGB.stride} <- rgb.{c+i*3+j*pitch}
-        done ;
-        rgba.{3+i*4+j*a.RGB.stride} <- 0xff
-      done
-    done ;
-    a
-
-let from_32 surface =
-  let img = Sdlvideo.pixel_data_32 surface in
-  let width,height,pitch = Sdlvideo.surface_dims surface in
-  let pitch = pitch/4 in (* pitch is in bytes, convert for int32 array *)
-  let a = RGB.create width height in
-  let rgba = a.RGB.data in
-  let (&&) = Int32.logand in
-  let (>>) = Int32.shift_right in
-    for i = 0 to width-1 do
-      for j = 0 to height-1 do
-        rgba.{0+i*4+j*a.RGB.stride} <-
-                Int32.to_int ((img.{i+j*pitch} && 0x000000ffl) >> 0) ;
-        rgba.{1+i*4+j*a.RGB.stride} <-
-                Int32.to_int ((img.{i+j*pitch} && 0x0000ff00l) >> 8) ;
-        rgba.{2+i*4+j*a.RGB.stride} <-
-                Int32.to_int ((img.{i+j*pitch} && 0x00ff0000l) >> 16) ;
-        rgba.{3+i*4+j*a.RGB.stride} <-
-                Int32.to_int ((img.{i+j*pitch} && 0xff000000l) >> 24)
-      done
-    done ;
-    a
+let log = Dtools.Log.make ["decoder";"sdlimage"]
 
 let load_image filename =
-  (* This seems to avoid _some_ segfaults, and it's a better practice than
-   * not initializing, but what we really need is a clean central module
-   * for Sdl, that is thread-safe. Most Sdl stuff is in a streaming
-   * thread but there are now several, and image loading is done from
-   * duppy tasks. *)
-  if Sdl.was_init () = [] then Sdl.init [`VIDEO] ;
   let surface = Sdlloader.load_image filename in
   let image =
+    log#f 4 "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface) ;
     match Sdlvideo.surface_bpp surface with
-      | 8 -> from_8 surface
-      | 24 -> from_24 surface
-      | 32 -> from_32 surface
+      | 8 -> Sdl_utils.from_8 surface
+      | 24 -> Sdl_utils.from_24 surface
+      | 32 -> Sdl_utils.from_32 surface
       | _ -> failwith "unsupported pixel format"
   in
     RGB.proportional_scale_to

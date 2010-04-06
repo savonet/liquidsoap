@@ -1,6 +1,7 @@
 (*****************************************************************************
 
-  Copyright 2003-2009 Savonet team
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,11 +36,12 @@ object (self)
             ~content_kind:kind source autostart
 
   method output_start =
-    Sdl.init [`VIDEO] ;
     Sdlevent.enable_events Sdlevent.quit_mask ;
     ignore (Sdlvideo.set_video_mode
               ~w:video_width ~h:video_height
-              ~bpp:16 [`DOUBLEBUF])
+              ~bpp:16 [`ANYFORMAT;`DOUBLEBUF]) ;
+    self#log#f 4 "Initialized SDL video surface with %dbpp."
+      (Sdlvideo.surface_bpp (Sdlvideo.get_video_surface ()))
 
   (** We don't care about latency. *)
   method output_reset = ()
@@ -57,11 +59,13 @@ object (self)
       stop_output <- true
     end else
       let surface = Sdlvideo.get_video_surface () in
-      let rgb = (VFrame.content buf 0).(0) in
-      let frame = 0 in (* we only display the first image of each frame *)
-      let bmp = RGB.to_bmp rgb.(frame) in
-      let sbmp = Sdlvideo.load_BMP_from_mem bmp in
-        Sdlvideo.blit_surface ~src:sbmp ~dst:surface () ;
+      (* We only display the first image of each frame *)
+      let rgb = (VFrame.content buf 0).(0).(0) in
+        begin match Sdlvideo.surface_bpp surface with
+          | 16 -> Sdl_utils.to_16 rgb surface
+          | 32 -> Sdl_utils.to_32 rgb surface
+          | i -> failwith (Printf.sprintf "Unsupported format %dbpp" i)
+        end ;
         Sdlvideo.flip surface
 
 end
