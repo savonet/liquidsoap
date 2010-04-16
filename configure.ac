@@ -1835,6 +1835,7 @@ cat <<EOMSG
    - Vorbis            : $w_VORBIS
    - Theora            : $w_THEORA
    - Speex             : $w_SPEEX
+   - Dirac             : $w_SCHROEDINGER
    - MP3               : $w_MP3
    - AAC               : $w_FAAD
    - text-to-speech    : $w_TTS
