@@ -487,12 +487,47 @@ def replaygain_protocol(arg,delay)
  extract_replaygain = "#{configure.libdir}/extract-replaygain"
  x = get_process_lines("#{extract_replaygain} #{quote(arg)}")
  if list.hd(x) != "" then
-  ["annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"]
+  ([arg],[("replay_gain",list.hd(x))])
  else
-  [arg]
+  ([arg],[])
  end
 end
-add_protocol("replay_gain", replaygain_protocol)
+add_post_processor("replay_gain", temporary = false, replaygain_protocol)
+
+# Register the cut protocol
+def cut_protocol(arg,delay)
+ # The extraction program
+ cut_file = "#{configure.libdir}/cut-file"
+ # Parse args 
+ ret = string.extract(pattern="cut_start=(\d+)",arg)
+ start = 
+   if list.length(ret) == 0 then 
+     "0"
+   else
+     ret["1"]
+   end
+ ret = string.extract(pattern="cut_stop=(\d+)",arg)
+ stop =
+   if list.length(ret) == 0 then
+     "0"
+   else
+     ret["1"]
+   end
+ ret = string.extract(pattern=":(.*)$",arg)
+ uri = 
+   if list.length(ret) == 0 then
+     ""
+   else
+     ret["1"]
+   end
+ x = get_process_lines("#{cut_file} #{quote(uri)} #{start} #{stop}")
+ if list.hd(x) != "" then
+   ([list.hd(x)],[])
+ else
+   ([uri],[])
+ end
+end
+add_post_processor("cut_file", temporary=true, cut_protocol)
 
 # Enable replay gain metadata resolver. This resolver will
 # process any file decoded by liquidsoap and add a @replay_gain@

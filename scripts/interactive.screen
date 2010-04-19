@@ -1,0 +1,8 @@
+screen liquidsoap/src/liquidsoap --interactive 'set("log.file.path","/tmp/interactive.log")'
+screen tail -f /tmp/interactive.log
+bindkey "^D" quit
+split -v
+select 0
+focus
+select 1
+focus
