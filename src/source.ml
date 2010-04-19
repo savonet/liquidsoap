@@ -82,16 +82,19 @@ object
 
   method id : string
 
-  (** Attach an active source.
-    * For now this only works before #start, but in a near future
-    * dynamic attaching/detaching should be supported. *)
+  (** Attach an active source, detach active sources by filter. *)
+
   method attach : 'a -> unit
+  method detach : ('a -> bool) -> unit
 
   (** Attach a sub_clock, get all subclocks, see below. *)
+
   method attach_clock : 'b -> unit
   method sub_clocks : 'b list
 
+  method is_started : bool
   method start : unit
+  method start_outputs : unit
   method get_tick : int
   method end_tick : unit
   method stop : unit
@@ -145,7 +148,7 @@ let create_known c =
   (* Registering is not really needed as concrete clocks will always be
    * unified with unknown variables, which are registered.
    * But it doesn't hurt much. *)
-  clocks := (Known c) :: ! clocks ;
+  clocks := (Known c) :: !clocks ;
   Known c
 
 let create_unknown ~sources ~sub_clocks =
@@ -553,9 +556,12 @@ class type clock =
 object
   method id : string
   method attach : active_source -> unit
+  method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
+  method is_started : bool
   method start : unit
+  method start_outputs : unit
   method get_tick : int
   method end_tick : unit
   method stop : unit

@@ -45,6 +45,9 @@ let pervasives = ref true
 (* Have we been used for an other purpose than streaming? *)
 let secondary_task = ref false
 
+(* Shall we start an interactive interpreter (REPL) *)
+let interactive = ref false
+
 (** [check_pervasives] should be called before loading a script or looking up
   * the documentation, to make sure that pervasive libraries have been loaded,
   * unless the user explicitly opposed to it. *)
@@ -378,11 +381,15 @@ let options =
                      See <http://savonet.sf.net> for more information.\n"
                     Configure.version SVN.rev ;
                   exit 0),
-     "Display liquidsoap's version." ;
+      "Display liquidsoap's version." ;
 
-    ["--"],
-    Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
-    "Stop parsing the command-line and pass subsequent items to the script." ]
+      ["--interactive"],
+      Arg.Set interactive,
+      "Start an interactive interpreter." ;
+
+      ["--"],
+      Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
+      "Stop parsing the command-line and pass subsequent items to the script." ]
 
      in opts@LiqConf.args Configure.conf@Configure.dynliq_option)
 
@@ -477,15 +484,16 @@ let () =
     log#f 3 "Cleaning downloaded files..." ;
     Request.clean ()
   in
-  let main () =
-    Clock.start () ;
-    Tutils.main ()
-  in
     ignore (Init.at_stop cleanup) ;
-    if Source.has_outputs () then
+    if !interactive then begin
+      Log.conf_stdout#set_d (Some false) ;
+      Log.conf_file#set_d (Some true) ;
+      Log.conf_file_path#set_d (Some "<syslogdir>/interactive.log") ;
+      Init.init Lang.interactive
+    end else if Source.has_outputs () then
       if not !dont_run then begin
         check_directories () ;
-        Init.init ~prohibit_root:true main
+        Init.init ~prohibit_root:true Tutils.main
       end else
         cleanup ()
     else

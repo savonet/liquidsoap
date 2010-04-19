@@ -845,7 +845,7 @@ let toplevel_add (doc,params) x ~generalized v =
     doc#add_subsection "type" (Doc.trivial (T.print ~generalized v.V.t)) ;
     builtins#register ~doc x (generalized,v)
 
-let rec eval_toplevel t =
+let rec eval_toplevel ?(interactive=false) t =
   match t.term with
     | Let {doc=comment;
            gen=generalized;
@@ -856,10 +856,17 @@ let rec eval_toplevel t =
           if debug then
             Printf.eprintf "Added toplevel %s : %s\n"
               name (T.print ~generalized def.V.t) ;
-          eval_toplevel body
+          if interactive then
+            Printf.printf "%s : %s = %s\n"
+              name (T.print ~generalized def.V.t) (V.print_value def) ;
+          eval_toplevel ~interactive body
     | Seq (a,b) ->
         check_unit_like
           (let v = eval_toplevel a in
              if v.V.t.T.pos = None then { v with V.t = a.t } else v) ;
-        eval_toplevel b
-    | _ -> eval ~env:builtins#get_all t
+        eval_toplevel ~interactive b
+    | _ ->
+        let v = eval ~env:builtins#get_all t in
+          if interactive && t.term <> Unit then
+            Printf.printf "- : %s = %s\n" (T.print v.V.t) (V.print_value v) ;
+          v

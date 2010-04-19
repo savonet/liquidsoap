@@ -43,6 +43,9 @@ let shutdown = ref false
 
 let running () = !started
 
+(** If initialization raises an exception, we want to report it and shutdown.
+  * However, this has to be done carefully, by un-initializing first:
+  * otherwise shutdown will hang (and temporary files may remain, etc). *)
 let iter ~rollback f l =
   let rec aux ran = function
     | [] -> ()
@@ -61,9 +64,31 @@ object (self)
 
   val log = Dtools.Log.make ["clock";id]
 
+  val lock = Mutex.create ()
   val mutable outputs = []
+
   method attach s =
-    if not (List.mem s outputs) then outputs <- s::outputs
+    Tutils.mutexify lock
+      (fun () ->
+         if not (List.exists (fun (_,s') -> s=s') outputs) then
+           outputs <- (`New,s)::outputs)
+      ()
+
+  method detach test =
+    Tutils.mutexify lock
+      (fun () ->
+         outputs <-
+           List.fold_left
+             (fun outputs (flag,s) ->
+                if test s then
+                  match flag with
+                    | `New -> outputs
+                    | `Active -> (`Old,s)::outputs
+                    | `Starting -> (`Aborted,s)::outputs
+                    | `Old | `Aborted -> (flag,s)::outputs
+                else
+                  (flag,s)::outputs)
+             [] outputs) ()
 
   val mutable sub_clocks : Source.clock_variable list = []
   method sub_clocks = sub_clocks
@@ -75,30 +100,106 @@ object (self)
   method get_tick = round
 
   method end_tick =
-    List.iter (fun s -> s#output) outputs ;
-    round <- round + 1 ;
-    List.iter (fun s -> s#after_output) outputs
+    let leaving,outputs =
+      Tutils.mutexify lock
+        (fun () ->
+           let new_outputs,leaving,active =
+             List.fold_left
+               (fun (outputs,leaving,active) (flag,(s:active_source)) ->
+                  match flag with
+                    | `Old -> outputs, s::leaving, active
+                    | `Active -> (flag,s)::outputs, leaving, s::active
+                    | _ -> (flag,s)::outputs, leaving, active)
+               ([],[],[])
+               outputs
+           in
+             outputs <- new_outputs ;
+             leaving,active) ()
+    in
+      List.iter (fun (s:active_source) -> s#leave (s:>source)) leaving ;
+      List.iter (fun s -> s#output) outputs ;
+      round <- round + 1 ;
+      List.iter (fun s -> s#after_output) outputs
+
+  method start_outputs =
+    (* Extract the list of outputs to start, mark them as Starting
+     * so they are not managed by a nested call of start_outputs
+     * (triggered by collect, which can be triggered by the
+     *  starting of outputs).
+     *
+     * It would be simpler to let the streaming loop (or #end_tick) take
+     * care of initialization, just like it takes care of shutting sources
+     * down. But this way we guarantee that sources created "simultaneously"
+     * start streaming simultaneously.
+     *
+     * TODO this is actually slightly wrong since collection might arise
+     * from another Lang execution in another thread... *)
+    let to_start =
+      Tutils.mutexify lock
+        (fun () ->
+           let rec aux (outputs,to_start) = function
+             | (`New,s)::tl -> aux ((`Starting,s)::outputs,s::to_start) tl
+             | (flag,s)::tl -> aux ((flag,s)::outputs,to_start) tl
+             | [] -> outputs,to_start
+           in
+           let new_outputs,to_start = aux ([],[]) outputs in
+             outputs <- new_outputs ;
+             to_start)
+        ()
+    in
+      if to_start <> [] then
+        log#f 4 "Starting %d sources..." (List.length to_start) ;
+      iter
+        (fun (s:active_source) -> s#get_ready [(s:>source)])
+        ~rollback:(fun (s:active_source) -> s#leave (s:>source))
+        to_start ;
+      List.iter
+        (fun s -> s#output_get_ready)
+        to_start ;
+      let leaving =
+        Tutils.mutexify lock
+          (fun () ->
+             let new_outputs, leaving =
+               List.fold_left
+                 (fun (outputs,leaving) (flag,s) ->
+                    if List.mem s to_start then
+                      match flag with
+                         | `Starting -> (`Active,s)::outputs, leaving
+                         | `Aborted -> outputs, s::leaving
+                         | `New | `Active | `Old -> assert false
+                    else
+                      (flag,s)::outputs, leaving)
+                 ([],[]) outputs
+             in
+               outputs <- new_outputs ;
+               leaving) ()
+      in
+        List.iter (fun (s:active_source) -> s#leave (s:>source)) leaving
+
+  val mutable started = false
+  method is_started = started
 
   method start =
+    (* Set the flag first to avoid "recursive" calls to #start via collect *)
+    started <- true ;
     begin match outputs with
       | [] -> log#f 4 "No active source in this time flow."
-      | [s] -> log#f 4 "Waking up one active source: %s." s#id
+      | [_,s] -> log#f 4 "Waking up one active source: %s." s#id
       | _ ->
           log#f 4 "Waking up %d active sources: %s."
             (List.length outputs)
             (String.concat ", "
-               (List.map (fun s -> s#id) outputs))
+               (List.map (fun (_,s) -> s#id) outputs))
     end ;
-    iter
-      (fun (s:active_source) -> s#get_ready [(s:>source)])
-      ~rollback:(fun (s:active_source) -> s#leave (s:>source))
-      outputs ;
-    List.iter
-      (fun s -> s#output_get_ready)
-      outputs
+    self#start_outputs
 
   method stop =
-    List.iter (fun (s:active_source) -> s#leave (s:>source)) outputs
+    List.iter
+      (function
+         | (`Active,(s:active_source)) -> s#leave (s:>source)
+         | _ -> ())
+      outputs ;
+    started <- false
 
 end
 
@@ -174,7 +275,11 @@ object (self)
             incr acc ;
             if rem < max_latency then begin
               log#f 2 "Too much latency! Resetting active sources.." ;
-              List.iter (fun s -> if s#is_active then s#output_reset) outputs ;
+              List.iter
+                (function
+                   | (`Active,s) when s#is_active -> s#output_reset
+                   | _ -> ())
+                outputs ;
               t0 := time () ;
               ticks := 0L ;
               acc := 0
@@ -208,7 +313,8 @@ object (self)
 
   method stop =
     (* If #run has crashed, do the cleanup ourselves. *)
-    if not (Tutils.running thread_name thread) then super#stop ;
+    (* if started && not (Tutils.running thread_name thread) then super#stop ;
+     * *)
     (* We might be able to omit joining, since this code is currently
      * only ever called by Main which joins everything at once afterwards. *)
     Thread.join thread
@@ -217,19 +323,24 @@ end
 
 let default = (new wallclock "main" :> Source.clock)
 
-let start () =
+(** After some sources have been created or removed (by script execution),
+  * finish assigning clocks to sources (assigning the default clock),
+  * start clocks and sources that need starting,
+  * and stop those that need stopping. *)
+let collect () =
   let clocks = get_clocks ~default in
-    begin match clocks with
-      | [] -> assert false
-      | [c] -> log#f 4 "There is only one clock: %s." c#id
+  let new_clocks = List.filter (fun c -> not c#is_started) clocks in
+    begin match new_clocks with
+      | [] -> ()
+      | [c] ->
+          log#f 4 "Starting one clock: %s..." c#id
       | _ ->
-          log#f 4 "There are %d clocks: %s."
-            (List.length clocks)
-            (String.concat ", " (List.map (fun c -> c#id) clocks))
+          log#f 4 "Starting %d clocks: %s..."
+            (List.length new_clocks)
+            (String.concat ", " (List.map (fun c -> c#id) new_clocks))
     end ;
-    iter
-      (fun s -> s#start) ~rollback:(fun s -> s#stop)
-      clocks ;
+    iter (fun s -> s#start) ~rollback:(fun s -> s#stop) new_clocks ;
+    List.iter (fun s -> s#start_outputs) clocks ;
     started := true
 
 let stop () =

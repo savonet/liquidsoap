@@ -440,7 +440,10 @@ let iter_sources f v =
   in
     iter_value v
 
-let apply f p = Term.apply f p
+let apply f p =
+  let v = Term.apply f p in
+    Clock.collect () ;
+    v
 
 (** {1 High-level manipulation of values} *)
 
@@ -529,7 +532,8 @@ let rec assoc label n = function
 
 let type_and_run ast =
   Term.check ast ;
-  ignore (Term.eval_toplevel ast)
+  ignore (Term.eval_toplevel ast) ;
+  Clock.collect ()
 
 let infered_pos a =
   let dpos = (T.deref a).T.pos in
@@ -595,7 +599,7 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
     end ;
     try
       (if parse_only then ignore else type_and_run)
-        (Lang_parser.scheduler Lang_pp.token lexbuf)
+        (Lang_parser.program Lang_pp.token lexbuf)
     with
       | Failure "lexing: empty token" -> print_error "Empty token" ; exit 1
       | Parsing.Parse_error -> print_error "Parse error" ; exit 1
@@ -687,3 +691,33 @@ let from_string ?parse_only expr =
 
 let from_in_channel ?parse_only x =
   from_in_channel ?parse_only ~ns:None x
+
+let interactive () =
+  Printf.printf
+    "\nWelcome to the EXPERIMENTAL liquidsoap interactive loop.\n\n\
+     You may enter any sequence of expressions, terminated by \";;\".\n\
+     Each input will be fully processed: parsing, type-checking,\n\
+     evaluation (forces default types), \
+     output startup (forces default clock).\n\n\
+     By default, logs can be found in \"<syslogdir>/interactive.log\".\n\n" ;
+  let lexbuf = Lexing.from_channel stdin in
+  let rec loop () =
+    Printf.printf "# %!" ;
+    if
+      try
+        let expr = Lang_parser.interactive Lang_pp.token lexbuf in
+          Term.check expr ;
+          ignore (Term.eval_toplevel ~interactive:true expr) ;
+          Clock.collect () ;
+          true
+      with
+        | End_of_file ->
+            Printf.printf "Bye bye!\n" ;
+            false
+        | e ->
+            Printf.printf "Exception: %s!\n" (Printexc.to_string e) ;
+            true
+    then
+      loop ()
+  in
+    loop ()

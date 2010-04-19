@@ -249,3 +249,6 @@ val from_file       : ?parse_only:bool -> string -> unit
 
 (** Evaluate a script from a string. *)
 val from_string     : ?parse_only:bool -> string -> unit
+
+(** Interactive loop: read from command line, eval, print and loop. *)
+val interactive : unit -> unit

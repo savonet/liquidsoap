@@ -152,7 +152,7 @@ let () =
 let () =
   add_builtin "shutdown" ~cat:Liq ~descr:"Shutdown the application."
     [] Lang.unit_t
-    (fun p -> 
+    (fun p ->
       Tutils.shutdown () ;
       Lang.unit)
 
@@ -175,7 +175,7 @@ let () =
       (fun p ->
          let name = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
-         let decoder name = 
+         let decoder name =
            Lang.to_string (Lang.apply ~t:Lang.string_t f ["",Lang.string name])
          in
          Externalformat.register_external_decoder name decoder;
@@ -185,10 +185,10 @@ let () =
 let () =
   let resolver_t =
     Lang.fun_t
-      [false,"",Lang.string_t] 
+      [false,"",Lang.string_t]
       Lang.metadata_t
   in
-    add_builtin "add_metadata_resolver" 
+    add_builtin "add_metadata_resolver"
           ~cat:Liq ~descr:"Register an external file metadata decoder."
       ["",Lang.string_t,None,Some "Format/resolver's name." ;
        "",resolver_t,None,Some "Process to start. The function \
@@ -202,13 +202,13 @@ let () =
          let resolver name =
            let ret =
              Lang.apply ~t:Lang.metadata_t
-               f ["",Lang.string name] 
+               f ["",Lang.string name]
            in
            let ret = Lang.to_list ret in
            let ret = List.map Lang.to_product ret in
-           let ret = 
-             List.map 
-               (fun (x,y) -> Lang.to_string x,Lang.to_string y) 
+           let ret =
+             List.map
+               (fun (x,y) -> Lang.to_string x,Lang.to_string y)
                ret
            in
            ret
@@ -450,7 +450,7 @@ let () =
          let rec extract l i =
            if i < n then
              try
-               extract (l @ [(string_of_int i,Pcre.get_substring sub i)]) 
+               extract (l @ [(string_of_int i,Pcre.get_substring sub i)])
                        (i+1)
              with
                | Not_found -> extract l (i+1)
@@ -461,7 +461,7 @@ let () =
          Lang.list
            (Lang.product_t Lang.string_t Lang.string_t)
            (List.map
-              (fun (x,y) -> 
+              (fun (x,y) ->
                  Lang.product (Lang.string x) (Lang.string y))
               l)
        with
@@ -486,7 +486,7 @@ let () =
 let () =
   add_builtin "string.case" ~cat:String
     ~descr:"Convert a string to lower or upper case."
-    [ "lower", Lang.bool_t, Some (Lang.bool true), 
+    [ "lower", Lang.bool_t, Some (Lang.bool true),
       Some "Convert to lower case if true and uppercase otherwise.";
       "", Lang.string_t, None, None ]
     Lang.string_t
@@ -503,7 +503,7 @@ let () =
   add_builtin "string.capitalize" ~cat:String
     ~descr:"Return a string with the first character set to upper case \
             (capitalize), or to lower case (uncapitalize)."
-    [ "capitalize", Lang.bool_t, Some (Lang.bool true), 
+    [ "capitalize", Lang.bool_t, Some (Lang.bool true),
         Some "Capitalize if true, uncapitalize otherwise";
       "space_sensitive", Lang.bool_t, Some (Lang.bool true),
         Some "Capitalize each space seperated sub-string.";
@@ -513,7 +513,7 @@ let () =
        let cap = Lang.to_bool (List.assoc "capitalize" p) in
        let space_sensitive = Lang.to_bool (List.assoc "space_sensitive" p) in
        let string = Lang.to_string (List.assoc "" p) in
-       let f s = 
+       let f s =
            if cap then
              String.capitalize(s)
            else
@@ -542,10 +542,10 @@ let () =
        let pattern = Lang.to_string (List.assoc "pattern" p) in
        let string = Lang.to_string (Lang.assoc "" 2 p) in
        let subst = Lang.assoc "" 1 p in
-       let subst s = 
-         let ret = 
-           Lang.apply ~t:Lang.string_t subst [("",Lang.string s)] 
-         in 
+       let subst s =
+         let ret =
+           Lang.apply ~t:Lang.string_t subst [("",Lang.string s)]
+         in
          Lang.to_string ret
        in
        let rex = Pcre.regexp pattern in
@@ -687,11 +687,11 @@ let () =
      "",Lang.list_t (Lang.univ_t 1),None,None] (Lang.list_t (Lang.univ_t 1))
     (fun p ->
        let f = Lang.assoc "" 1 p in
-       let sort x y = 
+       let sort x y =
          Lang.to_int (Lang.apply ~t:Lang.int_t f ["",x;"",y])
        in
        let l = Lang.assoc "" 2 p in
-       Lang.list 
+       Lang.list
          (Lang.of_list_t l.Lang.t)
          (List.sort sort (Lang.to_list l)))
 
@@ -732,7 +732,7 @@ let () =
        let l = Lang.assoc "" 2 p in
        let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
-       let rec remove a l l' = 
+       let rec remove a l l' =
          match l with
            | x :: l'' when x = a -> l' @ l''
            | x :: l'' -> remove a l'' (l' @ [x])
@@ -825,7 +825,7 @@ let () =
 let () =
   let descr = "Execute a liquidsoap server command." in
   let cat = Liq in
-  let params = 
+  let params =
     [ "", Lang.string_t, None, None ;
       "", Lang.string_t, Some (Lang.string ""), None ]
   in
@@ -841,17 +841,17 @@ let () =
     let r = try Server.exec (s) with Not_found -> "Command not found!" in
       Lang.list Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
   in
-  add_builtin "server.execute" 
+  add_builtin "server.execute"
     ~cat ~descr params return_t execute ;
   add_builtin "execute" ~cat ~flags:[Lang.Deprecated]
     ~descr:(descr ^
             "\nThis operator is deprecated, in favor of 'server.execute'.")
-    params return_t 
+    params return_t
     (fun p ->
       log#f 1 "WARNING: 'execute' is DEPRECATED and will be \
                removed in future releases. You can use \
                'server.execute' instead." ;
-       execute p) 
+       execute p)
 
 let () =
   Lang.add_builtin "if"
@@ -1127,6 +1127,15 @@ let () =
          Lang.float f)
 
 let () =
+  add_builtin "source.shutdown" ~cat:Liq ~descr:"Desactivate a source."
+    [ "", Lang.source_t (Lang.univ_t 1), None, None ] Lang.unit_t
+    (fun p ->
+      let s = Lang.to_source (List.assoc "" p) in
+        (Clock.get s#clock)#detach
+           (fun (s':Source.active_source) -> (s':>Source.source)=s) ;
+        Lang.unit)
+
+let () =
   add_builtin "request.create.raw" ~cat:Liq
     ~descr:"Create a raw request, i.e. for files that should not be decoded \
             for streaming. Creation may fail if there is no available RID, \
@@ -1326,7 +1335,7 @@ struct
 
   let () =
     let usage = "list" in
-      Server.add ~ns ~usage "list" 
+      Server.add ~ns ~usage "list"
                  ~descr:"List available interactive variables."
         (fun s ->
            String.concat "\n"

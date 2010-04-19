@@ -115,7 +115,7 @@
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
-%token LPAR RPAR COMMA SEQ
+%token LPAR RPAR COMMA SEQ SEQSEQ
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token <string> BIN0
@@ -135,12 +135,18 @@
 %left BIN3
 %left unary_minus
 
-%start scheduler
-%type <Lang_values.term> scheduler
+%start program
+%type <Lang_values.term> program
+
+%start interactive
+%type <Lang_values.term> interactive
 
 %%
 
-scheduler: exprs EOF { $1 }
+program: exprs EOF { $1 }
+interactive:
+  | exprs SEQSEQ { $1 }
+  | EOF { raise End_of_file }
 
 s: | {} | SEQ  {}
 g: | {} | GETS {}
@@ -177,7 +183,7 @@ expr:
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
   | MP3 app_opt                      { mk_mp3 $2 }
-  | AACPLUS app_opt                      { mk_aacplus $2 }
+  | AACPLUS app_opt                  { mk_aacplus $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }

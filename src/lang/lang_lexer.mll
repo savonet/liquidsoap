@@ -148,6 +148,7 @@ rule token = parse
   | '}' { RCUR }
   | ',' { COMMA }
   | ';' { SEQ }
+  | ";;" { SEQSEQ }
   | "~" { TILD }
   | "-" { MINUS }
   | "not" { NOT }
