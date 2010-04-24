@@ -361,7 +361,7 @@ struct
 
   (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =
-    assert (content = [||] || Array.length content.(0) <= o+l) ;
+    assert (content = [||] || Array.length content.(0) >= o+l) ;
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
       Generator.put t.audio content o l ;

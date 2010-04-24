@@ -104,14 +104,13 @@ let create input =
     let converter =
       Rutils.create_from_s16le
         ~channels ~samplesize ~signed ~big_endian ()
+        ~audio_src_rate:(float samplerate)
     in
 
       log#f 4
         "WAV header read (%dHz, %dbits), starting decoding..."
         samplerate samplesize ;
-      decoder :=
-        main_decoder
-          (fun pcm -> converter ~audio_src_rate:(float samplerate) pcm)
+      decoder := main_decoder converter
 
   in
     decoder := (fun _ -> read_header ()) ;

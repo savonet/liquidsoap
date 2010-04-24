@@ -80,10 +80,14 @@
       (* Compute the length in samples, in the source data,
        * then in the destination format, adding 1 to prevent rounding bugs. *)
       let len_src = (String.length src) / (sample_bytes*channels) in
+      (* Adding 1 just in case the resampler doesn't round like us.
+       * Currently it always truncates which means that data is dropped:
+       * a proper resampling would have to be stateful. *)
       let len_dst = 1 + int_of_float (float len_src *. ratio) in
       let dst = Array.init channels (fun _ -> Array.make len_dst 0.) in
-        ignore
-          (Float_pcm.resample_s16le
-              src 0 len_src signed samplesize big_endian
-              ratio dst 0) ;
+      let len_dst =
+        Float_pcm.resample_s16le
+          src 0 len_src signed samplesize big_endian
+          ratio dst 0
+      in
         dst, Frame.master_of_audio len_dst)
