@@ -699,7 +699,9 @@ let interactive () =
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), \
      output startup (forces default clock).\n\n\
-     By default, logs can be found in \"<syslogdir>/interactive.log\".\n\n" ;
+     Logs can be found in %S.\n\n"
+    (Dtools.Conf.as_string
+       (Configure.conf#path (Dtools.Conf.path_of_string "log.file.path")))#get ;
   let lexbuf = Lexing.from_channel stdin in
   let rec loop () =
     Printf.printf "# %!" ;
