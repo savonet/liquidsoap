@@ -28,7 +28,10 @@ let get_tags fname =
     try
       let gt l (n, t) =
         try
-          (n, t f) :: l
+          (* Do not pass empty strings.. *)
+          match t f with
+            | "" -> l 
+            | x  -> (n, x) :: l
         with
           | _ -> l
       in
