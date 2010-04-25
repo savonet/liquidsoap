@@ -45,11 +45,11 @@ type child = {
   * or only at track limits (sensitive). *)
 type track_mode = Sensitive | Insensitive
 
-class virtual switch ~kind
+class virtual switch ~kind ~name
   ?(mode=Sensitive) ?(replay_meta=true) (cases : child list) =
 object (self)
 
-  inherit operator kind (List.map (fun x -> x.source) cases) as super
+  inherit operator ~name kind (List.map (fun x -> x.source) cases) as super
 
   val mutable selected : (child*source) option = None
 
@@ -299,7 +299,8 @@ class lang_switch ~kind
   mode ?replay_meta (children : (Lang.value * bool * child) list) =
 object (self)
 
-  inherit switch ~kind ~mode ?replay_meta (List.map third children)
+  inherit
+    switch ~name:"switch" ~kind ~mode ?replay_meta (List.map third children)
 
   method private select =
     let selected s =
@@ -385,7 +386,7 @@ let () =
 class fallback ~kind ?replay_meta mode children =
 object
 
-  inherit switch ~kind ~mode ?replay_meta children
+  inherit switch ~name:"fallback" ~kind ~mode ?replay_meta children
 
   method private select =
     try Some (List.find (fun s -> s.source#is_ready) children) with
@@ -426,8 +427,9 @@ let () =
 (** Random switch *)
 exception Found of child
 class random ~kind ?replay_meta strict mode children =
+  let name = if strict then "quota" else "random" in
 object
-  inherit switch ~kind ?replay_meta ~mode (List.map snd children)
+  inherit switch ~name ~kind ?replay_meta ~mode (List.map snd children)
 
   val mutable pos = -1
 
