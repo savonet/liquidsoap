@@ -698,10 +698,11 @@ let interactive () =
      You may enter any sequence of expressions, terminated by \";;\".\n\
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), \
-     output startup (forces default clock).\n\n\
-     Logs can be found in %S.\n\n"
-    (Dtools.Conf.as_string
-       (Configure.conf#path (Dtools.Conf.path_of_string "log.file.path")))#get ;
+     output startup (forces default clock).\n\n" ;
+  if Dtools.Log.conf_file#get then
+    Printf.printf
+      "Logs can be found in %S.\n\n"
+      Dtools.Log.conf_file_path#get ;
   let lexbuf = Lexing.from_channel stdin in
   let rec loop () =
     Printf.printf "# %!" ;
