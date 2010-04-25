@@ -61,34 +61,35 @@ object (self)
       Mutex.unlock ev_m;
       e
 
-  (** This source is not really clean for production, due to its
-    * highly blocking reading task: it is hard to get it to
-    * stop and restart cleanly when the source is asked to do so.
-    * So we start it once for all and never stop it,
-    * unless the full app stops.
-    * TODO Solve this problem and generally create an appropriate
-    *   sdl interface for the operators that use/share it. *)
-  val mutable reader = None
+  (* Unique ID for runs (a run is delimited by get_ready/sleep,
+   * used to manage the asynchronous task. *)
+  val mutable run_id = 0
+  val lock = Mutex.create ()
 
-  method private sleep = ()
+  method private sleep =
+    Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
 
   method private output_get_ready =
-    if reader = None then
-      let task () =
-        while not !Clock.shutdown do
+    let id = run_id in
+      let rec task _ =
+        if run_id <> id then [] else
           let c =
             let c = String.create 1 in
               ignore (Unix.read Unix.stdin c 0 1);
               c.[0]
           in
-            try
-              Printf.printf "\nPlaying note %d.\n%!" (note_of_char c);
+            begin try
+              self#log#f 3 "Playing note %d." (note_of_char c);
               self#add_event 0 (Midi.Note_on (note_of_char c, 0.8))
-               with
+            with
               | Not_found -> ()
-        done
+            end ;
+            [{ Duppy.Task. handler = task ; priority = Tutils.Non_blocking ;
+                 events = [`Read Unix.stdin] }]
       in
-        reader <- Some (Tutils.create task () "Virtual keyboard")
+        Duppy.Task.add Tutils.scheduler
+          { Duppy.Task. handler = task ; priority = Tutils.Non_blocking ;
+              events = [`Read Unix.stdin] }
 
   method output_reset = ()
   method is_active = true

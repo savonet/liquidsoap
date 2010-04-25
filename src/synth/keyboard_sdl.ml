@@ -53,7 +53,8 @@ object (self)
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  initializer
+  method output_get_ready =
+    (* TODO use sdl_utils and cooperate with other sdl-based operators *)
     Sdl.init [`EVENTTHREAD; `VIDEO];
     Sdlevent.disable_events (Sdlevent.all_events_mask);
     Sdlevent.enable_events
@@ -61,11 +62,11 @@ object (self)
          [Sdlevent.KEYDOWN_EVENT; Sdlevent.KEYUP_EVENT; Sdlevent.QUIT_EVENT]);
     ignore (Sdlvideo.set_video_mode ~w:640 ~h:480 ~bpp:16 [])
 
+  method private sleep = Sdl.quit ()
+
   val mutable reader = None
 
   val mutable velocity = velocity
-
-  method output_get_ready = ()
 
   method output_reset = ()
   method is_active = true
