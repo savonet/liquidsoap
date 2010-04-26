@@ -136,17 +136,15 @@ and 'a link_t =
   | Unknown of 'a list * 'a var list
   | Same_as of 'a var
 
-(** Maintain a list of all clock variables, one per source,
-  * which in the end will be assigned a much more limited number
-  * of concrete clocks. *)
+(** Maintain a list of all unknown clock variables, to eventually
+  * assign them to a default clock if it's still unknown at the time
+  * of starting the source.
+  * There is initially one variable per source, but it quickly
+  * boils down to a much more limited number of variables as unifications
+  * are performed. *)
 let clocks = ref []
 
-let create_known c =
-  (* Registering is not really needed as concrete clocks will always be
-   * unified with unknown variables, which are registered.
-   * But it doesn't hurt much. *)
-  clocks := (Known c) :: !clocks ;
-  Known c
+let create_known c = Known c
 
 let create_unknown ~sources ~sub_clocks =
   let clock = Link (ref (Unknown (sources,sub_clocks))) in
@@ -223,19 +221,13 @@ let rec unify a b =
         r := Same_as (Known c)
 
 let assign_clocks ~default =
-  let new_clocks =
-    List.fold_left
-      (fun clocks c ->
-         match deref c with
-           | Known c ->
-               if List.mem c clocks then clocks else c::clocks
-           | _ ->
-               ignore (unify c (Known default)) ;
-               if List.mem default clocks then clocks else default::clocks)
-      [] !clocks
-  in
-    clocks := List.map (fun c -> Known c) new_clocks ;
-    new_clocks
+  List.iter
+    (fun c ->
+       match deref c with
+         | Known c -> ()
+         | _ -> ignore (unify c (Known default)))
+      !clocks ;
+  clocks := []
 
 (** {1 Sources} *)
 
@@ -571,7 +563,7 @@ struct
     match deref v with
       | Known c -> c
       | _ -> assert false
-  let get_clocks = assign_clocks
+  let assign_clocks = assign_clocks
 end
 
 let has_outputs () = !has_outputs

@@ -184,5 +184,5 @@ sig
   val create_known : clock -> clock_variable
   val unify : clock_variable -> clock_variable -> unit
   val get : clock_variable -> clock
-  val get_clocks : default:clock -> clock list
+  val assign_clocks : default:clock -> unit
 end

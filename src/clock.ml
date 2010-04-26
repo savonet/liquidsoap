@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
-open Source
-
 type clock_variable = Source.clock_variable
+type source = Source.source
+type active_source = Source.active_source
 
-include Clock_variables
+include Source.Clock_variables
 
 let create_known s = create_known (s:>Source.clock)
 
@@ -53,10 +53,24 @@ let iter ~rollback f l =
   in
     aux [] l
 
+(** We need to keep track of all used clocks, to have them (un)register
+  * new sources. We use a weak table to avoid keeping track forever of
+  * clocks that are unused and unusable. *)
+
+module H = struct
+  type t = Source.clock
+  let equal a b = a = b
+  let hash a = Oo.id a
+end
+module Clocks = Weak.Make(H)
+let clocks = Clocks.create 10
+
 (** Base clock class *)
 
 class clock id =
 object (self)
+
+  initializer Clocks.add clocks (self:>Source.clock)
 
   method id = id
 
@@ -344,9 +358,10 @@ let default = (new wallclock "main" :> Source.clock)
   *   require a collect on an old clock... unless we maintain a list
   *   of clocks that may require collection *)
 let collect () =
-  let clocks = get_clocks ~default in
-    List.iter (fun s -> s#start_outputs) clocks
+  assign_clocks ~default ;
+  log#f 4 "Currently %d clocks allocated." (Clocks.count clocks) ;
+  Clocks.iter (fun s -> s#start_outputs) clocks
 
 (** To stop, simply detach everything and the clocks will stop running. *)
 let stop () =
-  List.iter (fun s -> s#detach (fun _ -> true)) (get_clocks ~default)
+  Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
