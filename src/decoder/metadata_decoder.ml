@@ -83,8 +83,6 @@ let file_deco filename =
     in
       ignore (Frame.content_of_type frame pos empty) ;
       aux pos ;
-      (* log#f 4 "Decoded metadata file chunk (%d-%d)." pos (Frame.position) ;
-       *)
       t := !t +. Frame.seconds_of_master (Frame.position frame - pos) ;
       -1 (* TODO remaining time *)
   in
@@ -94,9 +92,7 @@ let () =
   Decoder.file_decoders#register "META"
     (fun ~metadata filename kind ->
        if Frame.type_has_kind empty kind then begin
-         log#f 4 "Trying to read %S as pure metadata." filename ;
          ignore (parse_file filename) ;
-         log#f 4 "Read %S as pure metadata." filename ;
          Some (fun () -> file_deco filename)
        end else
          None)
