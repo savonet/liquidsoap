@@ -1,3 +1,23 @@
+# These operators need to be updated..
+
+
+# Stream data from mplayer
+# @category Source / Input
+# @param s data URI.
+# @param ~restart restart on exit.
+# @param ~restart_on_error restart on exit with error.
+# @param ~buffer Duration of the pre-buffered data.
+# @param ~max Maximum duration of the buffered data.
+def input.mplayer(~id="input.mplayer",
+         ~restart=true,~restart_on_error=false,
+         ~buffer=0.2,~max=10.,s) =
+  input.external(id=id,restart=restart,
+                 restart_on_error=restart_on_error,
+                 buffer=buffer,max=max,
+                 "mplayer -really-quiet -ao pcm:file=/dev/stdout \
+                    -vc null -vo null #{quote(s)} 2>/dev/null")
+end
+
 
 # Output the stream using aplay.
 # Using this turns "root.sync" to false
@@ -292,130 +312,3 @@ def output.shoutcast.aacplusenc(
 end
 %endif
 
-# Decoders, enabled when the binary is detected
-if test_process("which flac") then
-  def flac_p(file)=
-    "flac -d -c #{quote(file)} 2>/dev/null"
-  end
-  add_decoder("FLAC",flac_p)
-else
-  log(level=3,"flac binary not found: flac decoder disabled.")
-end
-if test_process("which metaflac") then
-  def flac_meta(~format,file)
-    if format != "FLAC" then
-      []
-    else
-      ret = get_process_lines("metaflac --export-tags-to=- \
-                   #{quote(file)} 2>/dev/null")
-      ret = list.map(string.split(separator="="),ret)
-      # Could be made better..
-      def f(l',l)=
-        if list.length(l) >= 2 then
-          list.append([(list.hd(l),list.nth(l,1))],l')
-        else
-          if list.length(l) >= 1 then
-            list.append([(list.hd(l),"")],l')
-          else
-            l'
-          end
-        end
-      end
-      list.fold(f,[],ret)
-    end
-  end
-  add_metadata_resolver("FLAC",flac_meta)
-else
-  log(level=3,"metaflac binary not found: flac metadata resolver disabled.")
-end
-
-# Enable faad decoding (needs faad binary in path)
-# @category Liquidsoap
-def enable_faad() =
-  if test_process("which faad") then
-    def faad_p(file)=
-      "faad -o /dev/stdout #{quote(file)} 2>/dev/null"
-    end
-    add_decoder("FAAD",faad_p)
-    def faad_meta(~format,file)
-      if format != "FAAD" then
-        []
-      else
-        ret = get_process_lines("faad -i \
-                     #{quote(file)} 2>&1")
-        # Yea, this is tuff programming (again) !
-        def get_meta(l,s)=
-          ret = string.extract(pattern="^(\w+):\s(.+)$",s)
-          if list.length(ret) > 0 then
-            list.append([(ret["1"],ret["2"])],l)
-          else
-            l
-          end
-        end
-        list.fold(get_meta,[],ret)
-      end
-    end
-    add_metadata_resolver("FAAD",faad_meta)
-  else
-    log(level=3,"faad binary not found: faad decoder disabled.")
-  end
-end
-
-# Enable mplayer decoder (needs mplayer binary in path)
-# @category Liquidsoap
-def enable_mplayer(~debug=false)=
-  def mplayer_p(file)=
-    s = "mplayer -really-quiet -ao pcm:file=/dev/stdout \
-           -vc null -vo null #{quote(file)}"
-    if debug then
-      log(label="utils.liq",level=2,"Mplayer external decoder called: \n#{s}")
-      s
-    else
-      "#{s} 2>/dev/null"
-    end
-  end
-  if test_process("which mplayer") then
-    add_decoder("MPLAYER",mplayer_p)
-  else
-    log(label="utils.liq",level=2,"couldn't enable mplayer \
-          decoder: no binary found")
-  end
-end
-
-# Enable gstreamer decoder (needs gst-launch binary in path)
-# @category Liquidsoap
-def enable_gstreamer(~debug=false)=
-  def gstreamer_p(file)=
-    s = "gst-launch filesrc location=#{quote(file)} ! \
-           decodebin ! wavenc ! fdsink fd=1"
-    if debug then
-      log(label="utils.liq",level=2,"Gstreamer external decoder called: \n#{s}")
-      s
-    else
-      "#{s} 2>/dev/null"
-    end
-  end
-  if test_process("which gst-launch") then
-    add_decoder("GSTREAMER",gstreamer_p)
-  else
-    log(label="utils.liq",level=2,"couldn't enable gstreamer \
-          decoder: no gst-launch binary found")
-  end
-end
-
-# Stream data from mplayer
-# @category Source / Input
-# @param s data URI.
-# @param ~restart restart on exit.
-# @param ~restart_on_error restart on exit with error.
-# @param ~buffer Duration of the pre-buffered data.
-# @param ~max Maximum duration of the buffered data.
-def input.mplayer(~id="input.mplayer",
-         ~restart=true,~restart_on_error=false,
-         ~buffer=0.2,~max=10.,s) = 
-  input.external(id=id,restart=restart,
-                 restart_on_error=restart_on_error,
-                 buffer=buffer,max=max,
-                 "mplayer -really-quiet -ao pcm:file=/dev/stdout \
-                    -vc null -vo null #{quote(s)} 2>/dev/null")
-end

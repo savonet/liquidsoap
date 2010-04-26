@@ -39,6 +39,7 @@ formats = \
 decoders = \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
 	decoder/metadata_decoder.ml \
+	decoder/external_decoder.ml \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
 	$(if $(W_MP3),decoder/mp3.ml) \
 	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
