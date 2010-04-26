@@ -24,8 +24,8 @@ class clock : string -> Source.clock
 
 class wallclock : ?sync:bool -> string -> clock
 
-val shutdown : bool ref
 val running : unit -> bool
+val set_running : unit -> unit
 
 val collect : unit -> unit
 val stop : unit -> unit

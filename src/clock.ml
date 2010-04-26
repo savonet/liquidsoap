@@ -30,18 +30,16 @@ let create_known s = create_known (s:>Source.clock)
 
 let log = Dtools.Log.make ["clock"]
 
-(** Two flags controlling the running of clocks:
-  * [started] indicates that clocks are running (or have crashed, but
-  * did not shutdown properly);
-  * [shutdown] requires that all properly running clocks stop gracefully. *)
+(** [started] indicates that the application has loaded and started
+  * its initial configuration.
+  * It is mostly intended to allow different behaviors on error:
+  *  - for the initial conf, all errors are fatal
+  *  - after that (dynamic code execution, interactive mode) some errors
+  *    are not fatal anymore. *)
 
 let started = ref false
-let shutdown = ref false
-(* Note that shutdown could be made local to each clock (nicer) except
- * for a few sources that use it to stop too
- * (they should use the local wake_up/sleep mechanism instead). *)
-
 let running () = !started
+let set_running () = started := true
 
 (** If initialization raises an exception, we want to report it and shutdown.
   * However, this has to be done carefully, by un-initializing first:
@@ -132,8 +130,11 @@ object (self)
      * down. But this way we guarantee that sources created "simultaneously"
      * start streaming simultaneously.
      *
-     * TODO this is actually slightly wrong since collection might arise
-     * from another Lang execution in another thread... *)
+     * The simultaneity is actually not quite there, since collections
+     * can be run from several threads running Lang code (and a collection
+     * from one thread/code will start outputs from the other). To avoid
+     * this we would need execution contexts, but I'm happy to not implement
+     * that for now. *)
     let to_start =
       Tutils.mutexify lock
         (fun () ->
@@ -147,59 +148,60 @@ object (self)
              to_start)
         ()
     in
+    let to_start =
       if to_start <> [] then
         log#f 4 "Starting %d sources..." (List.length to_start) ;
-      iter
-        (fun (s:active_source) -> s#get_ready [(s:>source)])
-        ~rollback:(fun (s:active_source) -> s#leave (s:>source))
-        to_start ;
-      List.iter
-        (fun s -> s#output_get_ready)
-        to_start ;
-      let leaving =
-        Tutils.mutexify lock
-          (fun () ->
-             let new_outputs, leaving =
-               List.fold_left
-                 (fun (outputs,leaving) (flag,s) ->
-                    if List.mem s to_start then
-                      match flag with
-                         | `Starting -> (`Active,s)::outputs, leaving
-                         | `Aborted -> outputs, s::leaving
-                         | `New | `Active | `Old -> assert false
-                    else
-                      (flag,s)::outputs, leaving)
-                 ([],[]) outputs
-             in
-               outputs <- new_outputs ;
-               leaving) ()
-      in
-        List.iter (fun (s:active_source) -> s#leave (s:>source)) leaving
-
-  val mutable started = false
-  method is_started = started
-
-  method start =
-    (* Set the flag first to avoid "recursive" calls to #start via collect *)
-    started <- true ;
-    begin match outputs with
-      | [] -> log#f 4 "No active source in this time flow."
-      | [_,s] -> log#f 4 "Waking up one active source: %s." s#id
-      | _ ->
-          log#f 4 "Waking up %d active sources: %s."
-            (List.length outputs)
-            (String.concat ", "
-               (List.map (fun (_,s) -> s#id) outputs))
-    end ;
-    self#start_outputs
-
-  method stop =
-    List.iter
-      (function
-         | (`Active,(s:active_source)) -> s#leave (s:>source)
-         | _ -> ())
-      outputs ;
-    started <- false
+      List.map
+        (fun (s:active_source) ->
+           try s#get_ready [(s:>source)] ; `Woken_up s with
+             | e when !started ->
+                 log#f 2 "Error when starting %s: %s!"
+                   s#id (Printexc.to_string e) ;
+                 `Error s)
+        to_start
+    in
+    let to_start =
+      List.map
+        (function
+           | `Error s -> `Error s
+           | `Woken_up (s:active_source) ->
+               try s#output_get_ready ; `Started s with
+                 | e when !started ->
+                     log#f 2 "Error when starting %s: %s!"
+                       s#id (Printexc.to_string e) ;
+                     s#leave (s:>source) ;
+                     `Error s)
+        to_start
+    in
+    (* Now mark the started sources as `Active,
+     * unless they have been deactivating in the meantime (`Aborted)
+     * in which case they have to be cleanly stopped. *)
+    let leaving =
+      Tutils.mutexify lock
+        (fun () ->
+           let new_outputs, leaving =
+             List.fold_left
+               (fun (outputs,leaving) (flag,s) ->
+                  if List.mem (`Started s) to_start then
+                    match flag with
+                       | `Starting -> (`Active,s)::outputs, leaving
+                       | `Aborted -> outputs, s::leaving
+                       | `New | `Active | `Old -> assert false
+                  else if List.mem (`Error s) to_start then
+                    match flag with
+                       | `Starting -> outputs, leaving
+                       | `Aborted -> outputs, leaving
+                       | `New | `Active | `Old -> assert false
+                  else
+                    (flag,s)::outputs, leaving)
+               ([],[]) outputs
+           in
+             outputs <- new_outputs ;
+             leaving) ()
+    in
+      if leaving <> [] then
+        log#f 4 "Stopping %d sources..." (List.length leaving) ;
+      List.iter (fun (s:active_source) -> s#leave (s:>source)) leaving
 
 end
 
@@ -249,6 +251,11 @@ object (self)
 
   (** Main loop. *)
 
+  val mutable running = false
+  val do_running =
+    let lock = Mutex.create () in
+      fun f -> Tutils.mutexify lock f ()
+
   method private run =
     let acc = ref 0 in
     let max_latency = -. conf_max_latency#get in
@@ -265,7 +272,8 @@ object (self)
         log#f 3 "Streaming loop starts, real time rate (wallclock mode)."
       else
         log#f 3 "Streaming loop starts, maximum time rate (CPU-burn mode)." ;
-      while not !shutdown do
+      let rec loop () =
+        if outputs = [] then () else
         let rem = if not sync then 0. else delay () in
           (* Sleep a while or worry about the latency *)
           if (not sync) || rem > 0. then begin
@@ -296,28 +304,26 @@ object (self)
           end ;
           ticks := Int64.add !ticks 1L ;
           (* This is where the streaming actually happens: *)
-          super#end_tick
-      done ;
-      (* Clocks have been asked to stop. *)
-      super#stop
-
-  val mutable thread = Thread.self ()
+          super#end_tick ;
+          loop ()
+      in
+        loop () ;
+        do_running (fun () -> running <- false) ;
+        log#f 3 "Streaming loop stopped."
 
   val thread_name = "wallclock_" ^ id
 
-  method start =
-    (* Wake up outputs. *)
-    super#start ;
-    (* Have them work in rhythm. *)
-    thread <- Tutils.create (fun () -> self#run) () thread_name
-
-  method stop =
-    (* If #run has crashed, do the cleanup ourselves. *)
-    (* if started && not (Tutils.running thread_name thread) then super#stop ;
-     * *)
-    (* We might be able to omit joining, since this code is currently
-     * only ever called by Main which joins everything at once afterwards. *)
-    Thread.join thread
+  method start_outputs =
+    super#start_outputs ;
+    if List.exists (function (`Active,_) -> true | _ -> false) outputs then
+      do_running
+        (fun () ->
+           (* TODO this might be too early: this could be a nested #start_o
+            *   in which case we'd prefer the outer one to start the thread *)
+           if not running then begin
+             running <- true ;
+             ignore (Tutils.create (fun () -> self#run) () thread_name)
+           end)
 
 end
 
@@ -326,26 +332,21 @@ let default = (new wallclock "main" :> Source.clock)
 (** After some sources have been created or removed (by script execution),
   * finish assigning clocks to sources (assigning the default clock),
   * start clocks and sources that need starting,
-  * and stop those that need stopping. *)
+  * and stop those that need stopping.
+  *
+  * TODO the next step is to get rid of (non-weak) references to clocks
+  *   so that they can be garbage collected when they stop running
+  *   the purpose of the list of clock variables is only to assign the
+  *   default clock currently, which we could do simply by keeping a list
+  *   of freshly created outputs
+  *
+  *   we do need a list of ALL clocks, because source.deactivate() could
+  *   require a collect on an old clock... unless we maintain a list
+  *   of clocks that may require collection *)
 let collect () =
   let clocks = get_clocks ~default in
-  let new_clocks = List.filter (fun c -> not c#is_started) clocks in
-    begin match new_clocks with
-      | [] -> ()
-      | [c] ->
-          log#f 4 "Starting one clock: %s..." c#id
-      | _ ->
-          log#f 4 "Starting %d clocks: %s..."
-            (List.length new_clocks)
-            (String.concat ", " (List.map (fun c -> c#id) new_clocks))
-    end ;
-    iter (fun s -> s#start) ~rollback:(fun s -> s#stop) new_clocks ;
-    List.iter (fun s -> s#start_outputs) clocks ;
-    started := true
+    List.iter (fun s -> s#start_outputs) clocks
 
+(** To stop, simply detach everything and the clocks will stop running. *)
 let stop () =
-  if running () then begin
-    (* Gently ask for shutdown. *)
-    shutdown := true ;
-    List.iter (fun s -> s#stop) (get_clocks ~default)
-  end
+  List.iter (fun s -> s#detach (fun _ -> true)) (get_clocks ~default)

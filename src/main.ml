@@ -401,15 +401,15 @@ let () =
     List.iter (log#f 2 "%s")
       ["";
        "DISCLAIMER: This version of Liquidsoap was";
-       "compiled from a snapshot of the development";
-       "code. As such, it should not be used in production";
+       "compiled from a snapshot of the development code.";
+       "As such, it should not be used in production";
        "unless you know what you are doing!";
        "";
        "We are, however, very interested in any feedback";
        "about our development code and committed to fix";
        "issues as soon as possible.";
        "";
-       "If you are interested into collaborating with";
+       "If you are interested in collaborating to";
        "the development of Liquidsoap, feel free to";
        "drop us a mail at <savonet-devl@lists.sf.net>";
        "or to join the #savonet IRC channel on Freenode.";
@@ -479,17 +479,20 @@ let () =
   let cleanup () =
     log#f 3 "Shutdown started!" ;
     Clock.stop () ;
+    Harbor.stop () ;
     log#f 3 "Waiting for threads to terminate..." ;
     Tutils.join_all () ;
     log#f 3 "Cleaning downloaded files..." ;
     Request.clean ()
   in
+    Clock.set_running () ;
     ignore (Init.at_stop cleanup) ;
     if !interactive then begin
       Log.conf_stdout#set_d (Some false) ;
       Log.conf_file#set_d (Some true) ;
       Log.conf_file_path#set_d (Some "<syslogdir>/interactive.log") ;
-      Init.init Lang.interactive
+      ignore (Thread.create Lang.interactive ()) ;
+      Init.init Tutils.main
     end else if Source.has_outputs () then
       if not !dont_run then begin
         check_directories () ;

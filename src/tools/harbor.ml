@@ -503,11 +503,14 @@ let handle_client ~icy socket =
 
 (* {1 The server} *)
 
+let shutdown = ref false
+let stop () = shutdown := true
+
 let start_harbor () =
   let rec incoming ~icy sock _ =
     begin
       try
-        if !Clock.shutdown then failwith "shutting down" ;
+        if !shutdown then failwith "shutting down" ;
         let (socket,caller) = accept sock in
         let ip =
           let a =
@@ -528,7 +531,7 @@ let start_harbor () =
         log#f 3 "New client: %s" ip
       with e -> log#f 2 "Failed to accept new client: %s" (Printexc.to_string e)
     end ;
-    if !Clock.shutdown then begin
+    if !shutdown then begin
       (try Unix.close sock with _ -> ()) ;
       []
     end else

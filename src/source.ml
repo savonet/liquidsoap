@@ -92,12 +92,9 @@ object
   method attach_clock : 'b -> unit
   method sub_clocks : 'b list
 
-  method is_started : bool
-  method start : unit
   method start_outputs : unit
   method get_tick : int
   method end_tick : unit
-  method stop : unit
 
 end
 
@@ -559,12 +556,9 @@ object
   method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
-  method is_started : bool
-  method start : unit
   method start_outputs : unit
   method get_tick : int
   method end_tick : unit
-  method stop : unit
 end
 
 module Clock_variables =

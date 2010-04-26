@@ -723,4 +723,5 @@ let interactive () =
     then
       loop ()
   in
-    loop ()
+    loop () ;
+    Tutils.shutdown ()
