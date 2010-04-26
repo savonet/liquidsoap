@@ -262,6 +262,7 @@ class output ~kind port_names val_source synchronize =
   let source = Lang.to_source val_source in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
+
   initializer
     (* We need the source to be infallible. *)
     if source#stype <> Source.Infallible then

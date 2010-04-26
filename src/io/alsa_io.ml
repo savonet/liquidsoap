@@ -163,14 +163,16 @@ class output ~kind dev val_source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_operator kind [source]
-  inherit base ~kind dev [Pcm.Playback]
 
   initializer
     self#set_id (Printf.sprintf "alsa_out(%s)" dev) ;
-    (* We need the source to be infallible. *)
+    (* We need the source to be infallible, and this has to be checked
+     * before we are registered as an active source (inherit active_op). *)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
+
+  inherit Source.active_operator kind [source]
+  inherit base ~kind dev [Pcm.Playback]
 
   val samplerate_converter = Audio_converter.Samplerate.create channels
 

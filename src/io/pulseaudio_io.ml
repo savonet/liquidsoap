@@ -45,13 +45,14 @@ class output ~kind p =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_operator kind [source]
-  inherit base p
 
   initializer
     (* We need the source to be infallible. *)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (source_val, "That source is fallible"))
+
+  inherit Source.active_operator kind [source]
+  inherit base p
 
   val mutable stream = None
 

@@ -70,13 +70,14 @@ class output ~kind ~pipe ~reopen val_source =
   let g = close_out in
   let flags = [Open_wronly;Open_binary] in
 object (self)
-  inherit Source.active_operator kind source
-  inherit base ~pipe ~f ~fd ~g ~flags ()
 
   initializer
     (* We need the source to be infallible. *)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
+
+  inherit Source.active_operator kind source
+  inherit base ~pipe ~f ~fd ~g ~flags ()
 
   method stype = Source.Infallible
   method is_ready = true

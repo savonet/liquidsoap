@@ -63,15 +63,18 @@ class virtual output ~content_kind ~output_kind ?(name="")
     val_source autostart =
   let source = Lang.to_source val_source in
 object (self)
+
+  initializer
+    (* This should be done before the active_operator initializer
+     * attaches us to a clock. *)
+    if infallible && source#stype <> Infallible then
+      raise (Lang.Invalid_value (val_source, "That source is fallible"))
+
   inherit active_operator ~name:output_kind content_kind [source] as super
 
   method virtual output_start : unit
   method virtual output_stop : unit
   method virtual output_send : Frame.t -> unit
-
-  initializer
-    if infallible && source#stype <> Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
   method stype = source#stype
 
