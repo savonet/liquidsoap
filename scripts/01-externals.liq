@@ -1,32 +1,5 @@
 # Decoders, enabled when the binary is detected
 
-# Generic mime test. First try
-# to use file.mime if it exist.
-# Otherwise try to get the value 
-# using the file binary.
-def mime_test(file,pattern) = 
-  def file_method(file,pattern) = 
-    if test_process("which file") then
-      ret = list.hd(get_process_lines("file -b --mime-type \
-                                       #{quote(file)}"))
-      string.match(pattern=pattern,ret)
-    else
-      false
-    end
-  end
-  def mime_method(file,pattern) = 
-    ret = false
-    %ifdef file.mime
-      ret = string.match(pattern=pattern,file.mime(file))
-    %endif
-    ret
-  end
-  # First try mime method
-  mime_method(file,pattern) or
-  # Now try file method
-  file_method(file,pattern)
-end
-
 if test_process("which flac") then
   log(level=3,"Found flac binary: enabling flac external decoder.")
   flac_p = "flac -d -c - 2>/dev/null"
@@ -38,7 +11,9 @@ if test_process("which flac") then
       # If the value is not an int, this returns 0 and we are ok :)
       int_of_string(channels)
     else
-      if mime_test(file,"flac") then
+      # Try to detect using mime test..
+      mime = get_mime(file)
+      if string.match(pattern="flac",file) then
         # We do not know the number of audio channels
         # so setting to -1
         (-1)
@@ -80,37 +55,76 @@ else
  log(level=3,"metaflac binary not found: flac metadata resolver disabled.")
 end
 
+# A list of know extensions and content-type for AAC.
+# Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding 
+# TODO: can we register a setting for that ??
+aac_mimes = ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
+             "audio/MP4A-LATM", "audio/mpeg4-generic", "audio/x-hx-aac-adts"]
+aac_filexts = ["m4a", "m4b", "m4p", "m4v",
+               "m4r", "3gp", "mp4", "aac"]
+
+# Faad is not very selective so
+# We are checking only file that
+# end with a known extension or mime type
+def faad_test(file) = 
+  # Get the file's mime
+  mime = get_mime(file)
+  # Test mime
+  if list.mem(mime,aac_mimes) then
+    true
+  else
+    # Otherwise test file extension
+    ret = string.extract(pattern='\.(.+)$',file)
+      if list.length(ret) != 0 then
+        ext = ret["1"]
+        list.mem(ext,aac_filexts)
+      else
+        false
+      end
+  end
+end
+
 if test_process("which faad") then
   log(level=3,"Found faad binary: enabling external faad decoder and \
                metadata resolver.")
   faad_p = (fun (f) -> "faad -w #{quote(f)} 2>/dev/null")
-  def test_faad(file) = 
-    channels = list.hd(get_process_lines("faad -i #{quote(file)} 2>&1 | \
-                                          grep 'ch,'"))
-    ret = string.extract(pattern=", (\d) ch,",channels)
-    ret = if list.length(ret) == 0 then
-      "0"
+  def test_faad(file) =
+    if faad_test(file) then
+      channels = list.hd(get_process_lines("faad -i #{quote(file)} 2>&1 | \
+                                            grep 'ch,'"))
+      ret = string.extract(pattern=", (\d) ch,",channels)
+      ret = 
+        if list.length(ret) == 0 then
+        # If we pass the faad_test, chances are
+        # high that the file will contain aac audio data..
+          "-1"
+        else
+          ret["1"]
+        end
+      int_of_string(default=(-1),ret)
     else
-      ret["1"]
+      0
     end
-    # If the value is not an int, this returns 0 and we are ok :)
-    int_of_string(ret)
   end
   add_oblivious_decoder(name="FAAD",description="Decode files using \
                         the faad binary.", test=test_faad, faad_p)
   def faad_meta(file) =
-    ret = get_process_lines("faad -i \
-                 #{quote(file)} 2>&1")
-    # Yea, this is tuff programming (again) !
-    def get_meta(l,s)=
-      ret = string.extract(pattern="^(\w+):\s(.+)$",s)
-      if list.length(ret) > 0 then
-        list.append([(ret["1"],ret["2"])],l)
-      else
-        l
+    if faad_test(file) then
+      ret = get_process_lines("faad -i \
+                   #{quote(file)} 2>&1")
+      # Yea, this is tuff programming (again) !
+      def get_meta(l,s)=
+        ret = string.extract(pattern="^(\w+):\s(.+)$",s)
+        if list.length(ret) > 0 then
+          list.append([(ret["1"],ret["2"])],l)
+        else
+          l
+        end
       end
+      list.fold(get_meta,[],ret)
+    else
+      []
     end
-    list.fold(get_meta,[],ret)
   end
   add_metadata_resolver("FAAD",faad_meta)
 else

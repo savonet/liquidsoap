@@ -272,6 +272,37 @@ def read(~hide=false)
   s
 end
 
+# Generic mime test. First try to use file.mime if it exist.
+# Otherwise try to get the value using the file binary.
+# Returns "" (empty string) if no value can be find.
+# @category System
+def get_mime(file) =
+  def file_method(file) =
+    if test_process("which file") then
+      list.hd(get_process_lines("file -b --mime-type \
+                                  #{quote(file)}"))
+    else
+      ""
+    end
+  end
+  def mime_method(file) =
+    ret = ""
+    %ifdef file.mime
+      ret = file.mime(file)
+    %endif
+    ret
+  end
+  # First try mime method
+  ret = mime_method(file)
+  if ret != "" then
+    ret 
+  else
+    # Now try file method
+    file_method(file)
+  end
+end
+
+
 # Remove low frequencies often produced by microphones.
 # @category Source / Sound Processing
 # @param s The input source.
