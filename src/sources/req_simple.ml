@@ -72,9 +72,12 @@ let () =
            (* Being static is not enough when the single() is being
             * dynamically created: the creation must be immediate.
             * For example, speech synthesis is static but long.
-            * Finally, the unqueued source asserts that it can create a request,
-            * which is not realistic in the context of dynamic instantiation,
-            * where there may temporarily be no RID left. *)
+            *
+            * The compromise here is to attempt resolution only in
+            * the initial loading phase, not in dynamically executed code.
+            * This is not such a solid design choice: we don't take the
+            * same precaution with other operators that take long to
+            * create or wake up, such as playlist.safe(). *)
            if Clock.running () then None else Request.is_static uri
          with
            | Some true ->
