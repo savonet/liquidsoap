@@ -287,7 +287,5 @@ let wait c m f =
 (** Wait for some thread to crash *)
 let run = ref true
 let main () =
-  (* The mutex required by [Condition.wait] is pretty useless in that case. *)
-  let m = Mutex.create () in
-    wait no_problem m (fun () -> not (!run && !uncaught=None))
+  wait no_problem lock (fun () -> not (!run && !uncaught=None))
 let shutdown () = run := false; Condition.signal no_problem

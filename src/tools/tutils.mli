@@ -23,10 +23,12 @@
 (** Multithreading utilities *)
 
 (** {1 Thread wrapper}
-  Give names to threads, and forbid them to raise an exception.
-  The main process is expected to run raise_everything after having launched
-  the needed threads. So the main process will sleep, until a thread
-  aborts. In that case it will log and output the error, and return. *)
+  Give names to threads, and forbid them to raise an exception;
+  if that happens, the thread dies anyway but it is logged and [main]
+  will notice it.
+  The main process is expected to run [main] after having launched
+  the needed threads: that function will sleep until a thread
+  raises an exception. *)
 val create : ('a -> unit) -> 'a -> string -> Thread.t
 val main : unit -> unit
 val shutdown : unit -> unit
