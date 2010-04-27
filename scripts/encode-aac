@@ -1,0 +1,19 @@
+#!/bin/bash
+NERO_AAC_ENC="/home/smimram/prog/savonet/progs/nero-aac/linux/neroAacEnc"
+WAV_FILE="/tmp/aac.wav"
+MP4_FILE="/tmp/aac.mp4"
+AAC_FILE="/tmp/aac.aac"
+
+while true; do
+    # Header
+    #echo -n $'\x52\x49\x46\x46\x04\xc0\x50\x00\x57\x41\x56\x45\x66\x6d\x74\x20\x10\x00\x00\x00\x01\x00\x02\x00\x44\xac\x00\x00\x10\xb1\x02\x00\x04\x00\x10\x00\x64\x61\x74\x61\xe0\xbf\x50\x00' > $WAV_FILE
+    cat encode-aac.wav-header > $WAV_FILE
+    # Read 30 sec
+    head -c 5292000 >> $WAV_FILE
+    # Encode MP4
+    $NERO_AAC_ENC -if $WAV_FILE -of $MP4_FILE
+    # Extract AAC
+    ffmpeg -y -i $MP4_FILE -acodec copy -f mpegts $AAC_FILE
+    # Display
+    cat $AAC_FILE
+done
