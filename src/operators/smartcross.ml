@@ -276,48 +276,54 @@ object (self)
     let db_before =
       Sutils.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
     in
-    let before = new Generated.consumer ~kind gen_before in
-    let after  =
-      let beginning =
-        new Generated.consumer ~kind gen_after
-      in
-        new Sequence.sequence ~kind ~merge:true [beginning;s]
-    in
-    let () =
-      before#set_id (self#id ^ "_before") ;
-      after#set_id (self#id ^ "_after")
-    in
-    let metadata = function
-       | None -> Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
-       | Some m -> Lang.metadata m
-    in
-    let f a b =
-      let params =
-        [ "", Lang.float db_before ;
-          "", Lang.float db_after ;
-          "", metadata before_metadata ;
-          "", metadata after_metadata ;
-          "", Lang.source a ;
-          "", Lang.source b ]
-      in
-      let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-        Lang.to_source (Lang.apply ~t transition params)
-    in
     let compound =
-      self#log#f 3 "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
-           db_before db_after
-           (Frame.seconds_of_master (Generator.length gen_before))
-           (Frame.seconds_of_master (Generator.length gen_after)) ;
-      if Generator.length gen_before > Frame.master_of_audio minimum_length then
-        f before after
-      else begin
-        self#log#f 3 "Not enough data for crossing." ;
-        ((new Sequence.sequence ~kind [before;after]):>source)
-      end
+      Clock.collect_after
+        (fun () ->
+           let before = new Generated.consumer ~kind gen_before in
+           let after =
+             let beginning =
+               new Generated.consumer ~kind gen_after
+             in
+               new Sequence.sequence ~kind ~merge:true [beginning;s]
+           in
+           let () =
+             before#set_id (self#id ^ "_before") ;
+             after#set_id (self#id ^ "_after")
+           in
+           let metadata = function
+             | None -> Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
+             | Some m -> Lang.metadata m
+           in
+           let f a b =
+             let params =
+               [ "", Lang.float db_before ;
+                 "", Lang.float db_after ;
+                 "", metadata before_metadata ;
+                 "", metadata after_metadata ;
+                 "", Lang.source a ;
+                 "", Lang.source b ]
+             in
+             let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
+               Lang.to_source (Lang.apply ~t transition params)
+           in
+           let compound =
+             self#log#f 3 "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
+               db_before db_after
+               (Frame.seconds_of_master (Generator.length gen_before))
+               (Frame.seconds_of_master (Generator.length gen_after)) ;
+             if Generator.length gen_before >
+                  Frame.master_of_audio minimum_length then
+               f before after
+             else begin
+               self#log#f 3 "Not enough data for crossing." ;
+               ((new Sequence.sequence ~kind [before;after]):>source)
+             end
+           in
+             Clock.unify compound#clock s#clock ;
+             compound)
     in
-      source#leave (self:>source) ;
       compound#get_ready [(self:>source)] ;
-      Clock.unify compound#clock s#clock ;
+      source#leave (self:>source) ;
       source <- compound ;
       status <- `After inhibit ;
       self#reset_analysis

@@ -441,9 +441,7 @@ let iter_sources f v =
     iter_value v
 
 let apply f p =
-  let v = Term.apply f p in
-    Clock.collect () ;
-    v
+  Clock.collect_after (fun () -> Term.apply f p)
 
 (** {1 High-level manipulation of values} *)
 
@@ -531,9 +529,10 @@ let rec assoc label n = function
 (** {1 Parsing} *)
 
 let type_and_run ast =
-  Term.check ast ;
-  ignore (Term.eval_toplevel ast) ;
-  Clock.collect ()
+  Clock.collect_after
+    (fun () ->
+       Term.check ast ;
+       ignore (Term.eval_toplevel ast))
 
 let infered_pos a =
   let dpos = (T.deref a).T.pos in
@@ -710,8 +709,9 @@ let interactive () =
       try
         let expr = Lang_parser.interactive Lang_pp.token lexbuf in
           Term.check expr ;
-          ignore (Term.eval_toplevel ~interactive:true expr) ;
-          Clock.collect () ;
+          Clock.collect_after
+            (fun () ->
+               ignore (Term.eval_toplevel ~interactive:true expr)) ;
           true
       with
         | End_of_file ->

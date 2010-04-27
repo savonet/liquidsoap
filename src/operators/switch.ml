@@ -145,32 +145,35 @@ object (self)
                   (if forget then " forgetful" else "") ;
                 old_s#leave (self:>source) ;
                 to_finish <- old_s::to_finish ;
-                let old_source =
-                  if forget then Blank.empty kind else old_c.source
-                in
-                let new_source =
-                  (* Force insertion of old metadata if relevant.
-                   * It can't be done in a static way: we need to start
-                   * pulling data to see if new metadata comes out, in case
-                   * the source was shared and kept streaming from somewhere
-                   * else (this is thanks to Frame.get_chunk).
-                   * A quicker hack might have been doable if there wasn't a
-                   * transition in between. *)
-                  match c.cur_meta with
-                    | Some m when replay_meta ->
-                        new Insert_metadata.replay ~kind m c.source
-                    | _ -> c.source
-                in
-                let s =
-                  let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-                  Lang.to_source
-                    (Lang.apply ~t
-                       c.transition
-                       [ "",Lang.source old_source ;
-                         "",Lang.source new_source ])
-                in
-                  s#get_ready activation ;
-                  selected <- Some (c,s)
+                Clock.collect_after begin fun () ->
+                  let old_source =
+                    if forget then Blank.empty kind else old_c.source
+                  in
+                  let new_source =
+                    (* Force insertion of old metadata if relevant.
+                     * It can't be done in a static way: we need to start
+                     * pulling data to see if new metadata comes out, in case
+                     * the source was shared and kept streaming from somewhere
+                     * else (this is thanks to Frame.get_chunk).
+                     * A quicker hack might have been doable if there wasn't a
+                     * transition in between. *)
+                    match c.cur_meta with
+                      | Some m when replay_meta ->
+                          new Insert_metadata.replay ~kind m c.source
+                      | _ -> c.source
+                  in
+                  let s =
+                    let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
+                    Lang.to_source
+                      (Lang.apply ~t
+                         c.transition
+                         [ "",Lang.source old_source ;
+                           "",Lang.source new_source ])
+                  in
+                    Clock.unify s#clock self#clock ;
+                    s#get_ready activation ;
+                    selected <- Some (c,s)
+                end
             | _ ->
                 (* We are staying on the same child,
                  * don't start a new track. *)

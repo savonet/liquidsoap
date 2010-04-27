@@ -27,7 +27,7 @@ class wallclock : ?sync:bool -> string -> clock
 val running : unit -> bool
 val set_running : unit -> unit
 
-val collect : unit -> unit
+val collect_after : (unit -> 'a) -> 'a
 val stop : unit -> unit
 
 type clock_variable = Source.clock_variable

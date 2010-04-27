@@ -249,21 +249,33 @@ object (self)
        * the composed [source]. *)
       let s =
         self#slave_tick ;
-        if not s#is_ready then self#log#f 3 "No next track ready yet." ;
-        let end_of_track = new Generated.consumer ~kind buffer in
-          if Generator.length buffer > minimum_length then
-            let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
-            Lang.to_source
-              (Lang.apply ~t f ["",Lang.source end_of_track;
-                                "",Lang.source s])
-          else begin
-            self#log#f 4 "Not enough data for crossing." ;
-            new Sequence.sequence ~kind [end_of_track; s]
-          end
+        Clock.collect_after
+          (fun () ->
+             let s =
+               (* TODO if end_of_track isn't ready [source] isn't going
+                *   to be ready either, and it'll crash *)
+               if not s#is_ready then self#log#f 3 "No next track ready yet." ;
+               let end_of_track = new Generated.consumer ~kind buffer in
+                 if Generator.length buffer > minimum_length then
+                   let t = Lang.source_t (Lang.kind_type_of_frame_kind kind) in
+                     Lang.to_source
+                       (Lang.apply ~t f ["",Lang.source end_of_track;
+                                         "",Lang.source s])
+                 else begin
+                   self#log#f 4 "Not enough data for crossing." ;
+                   new Sequence.sequence ~kind [end_of_track; s]
+                 end
+             in
+               (* This might seem useless by construction of [source]
+                * but is actually useful if [f] discards [s]. *)
+               Clock.unify s#clock source#clock ;
+               s)
       in
-        source#leave (self:>source) ;
+        (* [source] almost always contains [s], it's better to have it
+         * activated twice for a split second than to have it stop
+         * and restart completely: get_ready before leave. *)
         s#get_ready [(self:>source)] ;
-        Clock.unify s#clock source#clock ;
+        source#leave (self:>source) ;
         source <- s ;
         status <- `After inhibit
     else

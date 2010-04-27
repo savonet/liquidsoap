@@ -167,7 +167,7 @@ object
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
 
-  method start_outputs : unit
+  method start_outputs : unit -> unit
   method get_tick : int
   method end_tick : unit
 end

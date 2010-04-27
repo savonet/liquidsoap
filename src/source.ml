@@ -92,7 +92,7 @@ object
   method attach_clock : 'b -> unit
   method sub_clocks : 'b list
 
-  method start_outputs : unit
+  method start_outputs : unit -> unit
   method get_tick : int
   method end_tick : unit
 
@@ -548,7 +548,7 @@ object
   method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
-  method start_outputs : unit
+  method start_outputs : unit -> unit
   method get_tick : int
   method end_tick : unit
 end

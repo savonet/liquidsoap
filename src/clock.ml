@@ -142,13 +142,7 @@ object (self)
      * It would be simpler to let the streaming loop (or #end_tick) take
      * care of initialization, just like it takes care of shutting sources
      * down. But this way we guarantee that sources created "simultaneously"
-     * start streaming simultaneously.
-     *
-     * The simultaneity is actually not quite there, since collections
-     * can be run from several threads running Lang code (and a collection
-     * from one thread/code will start outputs from the other). To avoid
-     * this we would need execution contexts, but I'm happy to not implement
-     * that for now. *)
+     * start streaming simultaneously. *)
     let to_start =
       Tutils.mutexify lock
         (fun () ->
@@ -162,6 +156,7 @@ object (self)
              to_start)
         ()
     in
+    fun () ->
     let to_start =
       if to_start <> [] then
         log#f 4 "Starting %d sources..." (List.length to_start) ;
@@ -328,40 +323,100 @@ object (self)
   val thread_name = "wallclock_" ^ id
 
   method start_outputs =
-    super#start_outputs ;
-    if List.exists (function (`Active,_) -> true | _ -> false) outputs then
-      do_running
-        (fun () ->
-           (* TODO this might be too early: this could be a nested #start_o
-            *   in which case we'd prefer the outer one to start the thread *)
-           if not running then begin
-             running <- true ;
-             ignore (Tutils.create (fun () -> self#run) () thread_name)
-           end)
+    let f = super#start_outputs in
+      fun () -> begin
+        f () ;
+        if List.exists (function (`Active,_) -> true | _ -> false) outputs then
+          do_running
+            (fun () ->
+               (* TODO This might be too early: this could be a nested
+                *   #start_outputs in which case we'd prefer the outer
+                *   one to start the thread. *)
+               if not running then begin
+                 running <- true ;
+                 ignore (Tutils.create (fun () -> self#run) () thread_name)
+               end)
+      end
 
 end
+
+(** To stop, simply detach everything and the clocks will stop running.
+  * No need to collect, stopping is done by itself. *)
+let stop () =
+  Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
+
+(** When created, sources have a clock variable, which gets unified
+  * with other variables or concrete clocks. When the time comes to
+  * initialize the source, if its clock isn't defined yet, it gets
+  * assigned to a default clock and that clock will take care of
+  * starting it.
+  *
+  * Taking all freshly created sources, assigning them to the default
+  * clock if needed, and starting them, is performed by [collect].
+  * This is typically called after each script execution.
+  *
+  * Sometimes we need to be sure that collect doesn't happen during
+  * the execution of a function. Otherwise, sources might be assigned
+  * the default clock too early. This is done using [collect_after].
+  * This need is not cause by running collect in too many places, but
+  * simply because there is no way to control collection on a per-thread
+  * basis (collect only the sources created by a given thread of
+  * script execution).
+  *
+  * Functions running using [after_collect] should be kept short.
+  * However, in theory, with multiple threads, we could have plenty
+  * of short functions always overlapping so that collection can
+  * never be done. This shouldn't happen too much, but in any case
+  * we can't get rid of this without a more fine-grained collect,
+  * which would require (heavy) execution contexts to tell from
+  * which thread/code a given source has been added. *)
+
+(** We must keep track of the number of tasks currently executing
+  * in an after_collect. When the last one exits it must collect.
+  *
+  * It is okay to start a new after_collect task when a collect is
+  * ongoing: all that we're doing is avoiding collection of sources
+  * created by the task. That's why #start_outputs first harvest
+  * sources then returns a function actually starting those sources:
+  * the first part only is done within critical section.
+  *
+  * Technically we could separate collect and assign_clocks, this
+  * might simplify some things if it becomes unmanageable in the
+  * future. *)
+let after_collect_tasks = ref 0
+let lock = Mutex.create ()
+let cond = Condition.create ()
 
 let default = (new wallclock "main" :> Source.clock)
 
 (** After some sources have been created or removed (by script execution),
   * finish assigning clocks to sources (assigning the default clock),
   * start clocks and sources that need starting,
-  * and stop those that need stopping.
-  *
-  * TODO the next step is to get rid of (non-weak) references to clocks
-  *   so that they can be garbage collected when they stop running
-  *   the purpose of the list of clock variables is only to assign the
-  *   default clock currently, which we could do simply by keeping a list
-  *   of freshly created outputs
-  *
-  *   we do need a list of ALL clocks, because source.deactivate() could
-  *   require a collect on an old clock... unless we maintain a list
-  *   of clocks that may require collection *)
-let collect () =
-  assign_clocks ~default ;
-  log#f 4 "Currently %d clocks allocated." (Clocks.count clocks) ;
-  Clocks.iter (fun s -> s#start_outputs) clocks
+  * and stop those that need stopping. *)
+let collect ~must_lock =
+  if must_lock then Mutex.lock lock ;
+  (* If at least one task is engaged it will take care of collection later.
+   * Otherwise, prepare a collection while in critical section
+   * (to avoid harvesting sources created by a task) and run it
+   * outside of critical section (to avoid all sorts of shit). *)
+  if !after_collect_tasks > 0 then
+    Mutex.unlock lock
+  else begin
+    assign_clocks ~default ;
+    log#f 4 "Currently %d clocks allocated." (Clocks.count clocks) ;
+    let collects =
+      Clocks.fold (fun s l -> s#start_outputs::l) clocks []
+    in
+      Mutex.unlock lock ;
+      List.iter (fun f -> f ()) collects
+  end
 
-(** To stop, simply detach everything and the clocks will stop running. *)
-let stop () =
-  Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
+let collect_after f =
+  Mutex.lock lock ;
+  after_collect_tasks := !after_collect_tasks + 1 ;
+  Mutex.unlock lock ;
+  Tutils.finalize f
+    ~k:(fun () ->
+          Mutex.lock lock ;
+          after_collect_tasks := !after_collect_tasks - 1 ;
+          collect ~must_lock:false)
