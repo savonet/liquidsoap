@@ -131,7 +131,11 @@ let unregister ns =
   Tutils.mutexify lock
     (fun () ->
        let ns_str = to_string ns in
-       let is_prefix cmd = ns_str = String.sub cmd 0 (String.length ns_str) in
+       let ns_len = String.length ns_str in
+       let is_prefix cmd =
+         String.length cmd > ns_len &&
+         ns_str = String.sub cmd 0 ns_len
+       in
        let to_remove =
          Hashtbl.fold
            (fun cmd _ l -> if is_prefix cmd then cmd::l else l)
