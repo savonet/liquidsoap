@@ -275,7 +275,8 @@ end
 # Generic mime test. First try to use file.mime if it exist.
 # Otherwise try to get the value using the file binary.
 # Returns "" (empty string) if no value can be find.
-# @category System
+# @category System
+# @param file The file to test
 def get_mime(file) =
   def file_method(file) =
     if test_process("which file") then
