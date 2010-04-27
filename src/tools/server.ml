@@ -81,10 +81,14 @@ let conf_telnet_revdns =
 
 let log = Log.make ["server"]
 
-(* {1 Manage available commands and namespaces} *)
+(* {1 Manage available commands and namespaces}
+ *
+ * This needs to be thread safe: (un)registering is done in wakeup/sleep
+ * which can be called from arbitrary clock threads. *)
 
 type namespace = string list
 
+let lock = Mutex.create ()
 let namespaces = Hashtbl.create 10
 let commands : (string,(string->string)*string*string) Hashtbl.t =
   Hashtbl.create 50
@@ -93,14 +97,17 @@ let commands : (string,(string->string)*string*string) Hashtbl.t =
 let register ns kind =
   let c = ref 0 in
   let mkns () = if !c = 0 then ns else ns@[string_of_int !c] in
-  let ns =
+  let ns () =
     while Hashtbl.mem namespaces (mkns ()) do
       incr c ;
     done ;
     mkns ()
   in
-    Hashtbl.add namespaces ns kind ;
-    ns
+    Tutils.mutexify lock
+      (fun () ->
+         let ns = ns () in
+           Hashtbl.add namespaces ns kind ;
+           ns) ()
 
 let to_string = String.concat "."
 
@@ -110,15 +117,37 @@ let rec prefix_ns cmd ns = to_string (ns@[cmd])
 let add ~ns ?usage ~descr cmd handler =
   let usage = match usage with None -> cmd | Some u -> u in
   let usage = prefix_ns usage ns in
-    Hashtbl.add commands (prefix_ns cmd ns) (handler,usage,descr)
+    Tutils.mutexify lock
+      (fun () -> Hashtbl.add commands (prefix_ns cmd ns) (handler,usage,descr))
+      ()
 
 (* ... maybe remove them *)
 let remove ~ns cmd =
-  Hashtbl.remove commands (prefix_ns cmd ns)
+  Tutils.mutexify lock
+    (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
+    ()
+
+let unregister ns =
+  Tutils.mutexify lock
+    (fun () ->
+       let ns_str = to_string ns in
+       let is_prefix cmd = ns_str = String.sub cmd 0 (String.length ns_str) in
+       let to_remove =
+         Hashtbl.fold
+           (fun cmd _ l -> if is_prefix cmd then cmd::l else l)
+           commands
+           []
+       in
+         List.iter (Hashtbl.remove commands) to_remove ;
+         Hashtbl.remove namespaces ns)
+    ()
 
 (* The usage string sums up all the commands... *)
 let usage () =
-  let l = Hashtbl.fold (fun k v l -> (k,v)::l) commands [] in
+  let l =
+    Tutils.mutexify lock
+      (fun () -> Hashtbl.fold (fun k v l -> (k,v)::l) commands []) ()
+  in
   let l = List.sort compare l in
     List.fold_left
       (fun s (k,(h,u,_)) -> s^(Printf.sprintf "\r\n| %s" u))
@@ -141,7 +170,7 @@ let () =
               Pcre.substitute ~pat:"\\s*" 
                               ~subst:(fun _ -> "") args
             in
-            let (_,us,d) = Hashtbl.find commands args in
+            let (_,us,d) = Tutils.mutexify lock (Hashtbl.find commands) args in
 	    Printf.sprintf
             "\r\nHelp for command %s.\r\n\nUsage: %s\r\n  %s"
 	    args us d
@@ -153,11 +182,14 @@ let () =
     add "list" 
         ~descr:"Get the list of available operators with their interfaces." 
                (fun _ ->
-                  String.concat "\r\n"
-                    (Hashtbl.fold
-                       (fun k v s ->
-                          (Printf.sprintf "%s : %s" (to_string k) v)::s)
-                       namespaces []))
+                  Tutils.mutexify lock
+                    (fun () ->
+                       String.concat "\r\n"
+                         (Hashtbl.fold
+                            (fun k v s ->
+                               (Printf.sprintf "%s : %s" (to_string k) v)::s)
+                            namespaces []))
+                    ())
 
 let exec s =
   let s,args =
@@ -168,15 +200,12 @@ let exec s =
     with
       | Not_found -> s,""
   in
-    if Hashtbl.mem commands s then
-      try
-        let fst (x,_,_) = x in
-        (fst (Hashtbl.find commands s)) args
-      with
-        | Exit -> raise Exit
-        | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
-    else
-      raise Not_found
+  let command,_,_ = Tutils.mutexify lock (Hashtbl.find commands) s in
+    try
+      command args
+    with
+      | Exit -> raise Exit
+      | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
 
 let priority = Tutils.Non_blocking
 

@@ -150,13 +150,6 @@ let () =
              | _ -> assert false)
 
 let () =
-  add_builtin "shutdown" ~cat:Liq ~descr:"Shutdown the application."
-    [] Lang.unit_t
-    (fun p ->
-      Tutils.shutdown () ;
-      Lang.unit)
-
-let () =
   (** The type of the test function for external decoders.
     * Return is one of:
     * . 0: no audio
@@ -915,6 +908,13 @@ let () =
          Lang.apply ~t (if c then fy else fn) [])
 
 let () =
+  add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
+    [] Lang.unit_t
+    (fun p ->
+      Tutils.shutdown () ;
+      Lang.unit)
+
+let () =
   add_builtin "on_shutdown" ~cat:Sys
     [ "", Lang.fun_t [] Lang.unit_t, None, None ]
     Lang.unit_t
@@ -924,6 +924,14 @@ let () =
        let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
          ignore (Dtools.Init.at_stop wrap_f) ;
          Lang.unit)
+
+let () =
+  add_builtin "garbage_collect" ~cat:Sys
+    ~descr:"Trigger full major garbage collection."
+    [] Lang.unit_t
+    (fun p ->
+      Gc.full_major () ;
+      Lang.unit)
 
 let () =
   add_builtin "system" ~cat:Sys

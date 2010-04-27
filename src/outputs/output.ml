@@ -183,7 +183,9 @@ object (self)
       on_stop () ;
       does_output <- false
     end ;
-    source#leave (self:>operator)
+    source#leave (self:>operator) ;
+    Server.unregister ns ;
+    ns <- []
 
   (* Metadata stuff: keep track of what was streamed. *)
 
