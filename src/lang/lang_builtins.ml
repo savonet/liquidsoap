@@ -156,24 +156,27 @@ let () =
       Tutils.shutdown () ;
       Lang.unit)
 
-(** The type of the test function for external decoders.
-  * Return is one of:
-  * . 0: no audio
-  * . -1: audio with unknown number of channels.
-  * . x >= 1: audio with a fixed number (x) of channels. *)
-let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t
-let test_arg = "test",test_file_t,None, 
-               Some "Function used to \
-               determine if the file should \
-               be decoded by the decoder. Returned values are: \
-               0: no decodable audio, -1: decodable audio but \
-               number of audio channels unknown, x: fixed number of decodable \
-               audio channels."                               
-let test_f f = 
-  (fun file ->
-     Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
-
 let () =
+  (** The type of the test function for external decoders.
+    * Return is one of:
+    * . 0: no audio
+    * . -1: audio with unknown number of channels.
+    * . x >= 1: audio with a fixed number (x) of channels. *)
+  let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
+  let test_arg =
+    "test",test_file_t,None, 
+    Some "Function used to \
+          determine if the file should \
+          be decoded by the decoder. Returned values are: \
+          0: no decodable audio, -1: decodable audio but \
+          number of audio channels unknown, x: fixed number of decodable \
+          audio channels."                               
+  in
+  let test_f f = 
+    (fun file ->
+       Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
+  in
+
     add_builtin "add_decoder" ~cat:Liq
       ~descr:"Register an external file decoder. \
               The encoder should output in WAV format \
@@ -190,24 +193,22 @@ let () =
          let descr = Lang.to_string (List.assoc "description" p) in
          let test = List.assoc "test" p in
          External_decoder.register_stdin name descr (test_f test) process;
-         Lang.unit)
+         Lang.unit) ;
 
-let () =
-  let process_t =
-    Lang.fun_t
-      [false,"",Lang.string_t] Lang.string_t
-  in
+    let process_t = Lang.fun_t [false,"",Lang.string_t] Lang.string_t in
     add_builtin "add_oblivious_decoder" ~cat:Liq
       ~descr:"Register an external file decoder. \
               The encoder should output in WAV format \
               to his standard output (stdout) and read \
               data from the file it receives. The estimated \
               remaining duration for this decoder will be \
-              very imprecise. If possible, it is recommended \
+              unknown until the @buffer@ last seconds of the file. \
+              If possible, it is recommended \
               to decode from stdin and use @add_decoder@."
       ["name",Lang.string_t,None,Some "Format/decoder's name." ;
        "description",Lang.string_t,None,Some "Description of the decoder.";
        test_arg;
+       "buffer", Lang.float_t, Some (Lang.float 5.), None;
        "",process_t,None,Some "Process to start. The function \
                            takes the filename as argument and \
                            returns the process to start." ]
@@ -216,12 +217,14 @@ let () =
          let f = Lang.assoc "" 1 p in
          let name = Lang.to_string (List.assoc "name" p) in
          let descr = Lang.to_string (List.assoc "description" p) in
+         let prebuf = Lang.to_float (List.assoc "buffer" p) in
          let process file =
            Lang.to_string (Lang.apply f ~t:Lang.string_t ["",Lang.string file])
          in
          let test = List.assoc "test" p in
-         External_decoder.register_oblivious name descr 
-                                             (test_f test) process;
+         External_decoder.register_oblivious
+           name descr 
+           (test_f test) process prebuf ;
          Lang.unit)
 
 let () =

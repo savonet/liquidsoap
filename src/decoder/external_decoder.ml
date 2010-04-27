@@ -55,7 +55,6 @@ let external_input process input =
   let close_task () =
     (** First, close the processes' stdout
       * as well as the task's side of the pipe. *)
-    Unix.close push_e ;
     Unix.close pull_p ;
     (** Now grab the synchronization
       * lock, set is_task to false
@@ -72,10 +71,10 @@ let external_input process input =
   (** The main task function. (rem,ofs,len)
     * is the remaining string to write. *)
   let rec task (rem,ofs,len) l =
-    let rem,ofs,len = 
+   let rem,ofs,len = 
       (* If we are done with the current string,
        * try to get a new one from the original input. *)
-      if ofs = len then
+      if len = 0 then
         let s,read = input buf_size in
         s,0,read
       else
@@ -86,7 +85,7 @@ let external_input process input =
     * if the close pipe contains something, we 
     * close the task. *)
    if len = 0 || must_close then begin
-      close_task ()
+     close_task ()
    end else
      try
       (* Otherwise, we write and keep track of 
@@ -96,7 +95,7 @@ let external_input process input =
           [{ Duppy.Task.
               priority = priority;
               events   = events;
-              handler  = task (rem,ofs+written,len)
+              handler  = task (rem,ofs+written,len-written)
           }]
      with _ ->
        close_task ()
@@ -153,29 +152,29 @@ let create process kind filename =
           !close) }
 
 let test_kind f filename = 
-  (* 0 = no audio, >= 1 = fixed number of channels,
-   * -1 = variable audio channels. *)
+  (* 0 = file rejected,
+   * n<0 = file accepted, unknown number of audio channels,
+   * n>0 = file accepted, known number of channels. *)
   let ret = f filename in
-  let audio =
-    match ret with
-      | 0 -> Frame.Zero
-      | -1 -> Frame.Succ Frame.Variable
-      | x -> Frame.mul_of_int x
-  in
-  { Frame.
-      audio = audio ;
-      video = Frame.Zero ;
-      midi = Frame.Zero }
+    if ret = 0 then None else
+      Some { Frame. video = Frame.Zero ; midi = Frame.Zero ;
+                    audio =
+                      if ret < 0 then
+                        Frame.Succ Frame.Variable
+                      else
+                        Frame.mul_of_int ret }
 
 let register_stdin name sdoc test process =
-    Decoder.file_decoders#register name ~sdoc
-      (fun ~metadata filename kind ->
-         let out_kind = test_kind test filename in
-         (* Check that kind is more permissive than out_kind and
-          * declare that our decoding function will respect out_kind. *)
-         if Frame.kind_sub_kind kind out_kind then
-           Some (fun () -> create process out_kind filename)
-         else None)
+  Decoder.file_decoders#register name ~sdoc
+    (fun ~metadata filename kind ->
+       match test_kind test filename with
+         | None -> None
+         | Some out_kind ->
+             (* Check that kind is more permissive than out_kind and
+              * declare that our decoding function will respect out_kind. *)
+             if Frame.kind_sub_kind kind out_kind then
+               Some (fun () -> create process out_kind filename)
+             else None)
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case
@@ -186,7 +185,7 @@ let register_stdin name sdoc test process =
 
 let log = Dtools.Log.make ["decoder";"external";"oblivious"]
 
-let external_input_oblivious process filename = 
+let external_input_oblivious process filename prebuf = 
   let process = process filename in
   let process_done = ref false in
   let pull = Unix.open_process_in process in
@@ -208,18 +207,19 @@ let external_input_oblivious process filename =
       "",0
   in
   let gen = Generator.create `Audio in
-  let prebuf = Frame.master_of_seconds 0.5 in
+  let prebuf = Frame.master_of_seconds prebuf in
   let Decoder.Decoder decoder = Wav_decoder.D.create input in
   let fill frame = 
-     begin try
-      while Generator.length gen < prebuf && (not !process_done) do
-        decoder gen
-      done
-     with
-       | e ->
-          log#f 4 "Decoding %s ended: %s." process (Printexc.to_string e) ;
-          close ()
-     end ;
+     if not !process_done then
+       begin try
+         while Generator.length gen < prebuf && (not !process_done) do
+           decoder gen
+         done
+       with
+         | e ->
+             log#f 4 "Decoding %s ended: %s." process (Printexc.to_string e) ;
+             close ()
+       end ;
      Generator.fill gen frame ;
      (** We return -1 while the process is not yet
        * finished. *)
@@ -229,12 +229,14 @@ let external_input_oblivious process filename =
      fill = fill ;
      close = close }
 
-let register_oblivious name sdoc test process =
-    Decoder.file_decoders#register name ~sdoc
-      (fun ~metadata filename kind ->
-         let out_kind = test_kind test filename in
-         (* Check that kind is more permissive than out_kind and
-          * declare that our decoding function will respect out_kind. *)
-         if Frame.kind_sub_kind kind out_kind then
-           Some (fun () -> external_input_oblivious process filename)
-         else None)
+let register_oblivious name sdoc test process prebuf =
+  Decoder.file_decoders#register name ~sdoc
+    (fun ~metadata filename kind ->
+       match test_kind test filename with
+         | None -> None
+         | Some out_kind ->
+             (* Check that kind is more permissive than out_kind and
+              * declare that our decoding function will respect out_kind. *)
+             if Frame.kind_sub_kind kind out_kind then
+               Some (fun () -> external_input_oblivious process filename prebuf)
+             else None)
