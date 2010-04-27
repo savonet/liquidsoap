@@ -402,7 +402,10 @@ let collect ~must_lock =
   if !after_collect_tasks > 0 then
     Mutex.unlock lock
   else begin
-    assign_clocks ~default ;
+    Source.iterate_new_outputs
+      (fun o ->
+         if not (is_known o#clock) then
+           ignore (unify o#clock (create_known default))) ;
     log#f 4 "Currently %d clocks allocated." (Clocks.count clocks) ;
     let collects =
       Clocks.fold (fun s l -> s#start_outputs::l) clocks []

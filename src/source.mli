@@ -150,6 +150,7 @@ object
 end
 
 val has_outputs : unit -> bool
+val iterate_new_outputs : (active_source -> unit) -> unit
 
 (** {1 Clocks}
   * Tick identifiers are useful (cf. [#get_tick]) but we don't need much
@@ -184,5 +185,5 @@ sig
   val create_known : clock -> clock_variable
   val unify : clock_variable -> clock_variable -> unit
   val get : clock_variable -> clock
-  val assign_clocks : default:clock -> unit
+  val is_known : clock_variable -> bool
 end

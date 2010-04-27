@@ -50,16 +50,19 @@ object (self)
       | None -> ()
 
   method private select =
-    let kind = Lang.kind_type_of_frame_kind kind in
-    let l = Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [] in
-    let l = Lang.to_source_list l in
-      match l with
-        | [] -> ()
-        | [s] ->
-            self#unregister_source ;
-            s#get_ready activation ;
-            source <- Some s
-        | _ -> assert false
+    Clock.collect_after begin fun () ->
+      let kind = Lang.kind_type_of_frame_kind kind in
+      let l = Lang.apply ~t:(Lang.list_t (Lang.source_t kind)) f [] in
+      let l = Lang.to_source_list l in
+        match l with
+          | [] -> ()
+          | [s] ->
+              Clock.unify s#clock self#clock ;
+              s#get_ready activation ;
+              self#unregister_source ;
+              source <- Some s
+          | _ -> assert false
+    end
 
   method is_ready =
     match source with Some s when s#is_ready -> true | _ -> false

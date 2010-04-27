@@ -136,20 +136,11 @@ and 'a link_t =
   | Unknown of 'a list * 'a var list
   | Same_as of 'a var
 
-(** Maintain a list of all unknown clock variables, to eventually
-  * assign them to a default clock if it's still unknown at the time
-  * of starting the source.
-  * There is initially one variable per source, but it quickly
-  * boils down to a much more limited number of variables as unifications
-  * are performed. *)
-let clocks = ref []
-
-let create_known c = Known c
+let create_known c =
+  Known c
 
 let create_unknown ~sources ~sub_clocks =
-  let clock = Link (ref (Unknown (sources,sub_clocks))) in
-    clocks := clock :: !clocks ;
-    clock
+  Link (ref (Unknown (sources,sub_clocks)))
 
 let rec deref = function
   | Link {contents = Same_as a} -> deref a
@@ -220,15 +211,6 @@ let rec unify a b =
         List.iter c#attach_clock sc ;
         r := Same_as (Known c)
 
-let assign_clocks ~default =
-  List.iter
-    (fun c ->
-       match deref c with
-         | Known c -> ()
-         | _ -> ignore (unify c (Known default)))
-      !clocks ;
-  clocks := []
-
 (** {1 Sources} *)
 
 open Dtools
@@ -239,6 +221,14 @@ let source_log = Log.make ["source"]
   * there's anything "to run". Note that we could get rid of it, since
   * outputs (active sources) are actually registered to clock variables. *)
 let has_outputs = ref false
+
+let add_new_output, iterate_new_outputs =
+  let lock = Mutex.create () in
+  let l = ref [] in
+    Tutils.mutexify lock
+      (fun x -> l := x :: !l),
+    Tutils.mutexify lock
+      (fun f -> List.iter f !l ; l := [])
 
 class virtual operator ?(name="src") content_kind sources =
 object (self)
@@ -503,6 +493,7 @@ object (self)
   inherit operator ?name content_kind sources
   initializer
     has_outputs := true ;
+    add_new_output (self:>active_operator) ;
     ignore
       (unify
          self#clock
@@ -563,7 +554,10 @@ struct
     match deref v with
       | Known c -> c
       | _ -> assert false
-  let assign_clocks = assign_clocks
+  let is_known v =
+    match deref v with
+      | Known _ -> true
+      | _ -> false
 end
 
 let has_outputs () = !has_outputs
