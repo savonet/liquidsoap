@@ -163,7 +163,7 @@ let short_string i =
     (String.make 1 (char_of_int up))
 
 let int_string n =
-  let s = "abcd" in
+  let s = String.create 4 in
     s.[0] <- char_of_int (n land 0xff) ;
     s.[1] <- char_of_int ((n land 0xff00) lsr 8) ;
     s.[2] <- char_of_int ((n land 0xff0000) lsr 16) ;
