@@ -147,6 +147,12 @@ object (self)
 
 end
 
+type queue_item = {
+  request : Request.t ;
+  duration : int ;
+  mutable expired : bool
+}
+
 (* Private types for request resolutions *)
 type resolution = Empty | Retry | Finished
 
@@ -172,7 +178,7 @@ object (self)
   (** Management of the queue of files waiting to be played. *)
   val min_queue_length = Frame.master_of_seconds length
   val qlock = Mutex.create ()
-  val retrieved = Queue.create ()
+  val retrieved : queue_item Queue.t = Queue.create ()
   val mutable queue_length = 0 (* Ticks *)
   val mutable resolving = None
 
@@ -235,7 +241,7 @@ object (self)
     begin try
       Mutex.lock qlock ;
       while true do
-        let (_,req) = Queue.take retrieved in
+        let {request=req} = Queue.take retrieved in
           Request.destroy req
       done
     with e -> Mutex.unlock qlock ;
@@ -330,8 +336,21 @@ object (self)
                     | None -> default_duration
                 in
                 let len = Frame.master_of_seconds len in
+                let rec remove_expired n =
+                  if n = 0 then () else
+                    let r = Queue.take retrieved in
+                      if r.expired then begin
+                        self#log#f 4 "Dropping expired request." ;
+                        Request.destroy r.request
+                      end else
+                        Queue.add r retrieved ;
+                      remove_expired (n-1)
+                in
                   Mutex.lock qlock ;
-                  Queue.add (len,req) retrieved ;
+                  remove_expired (Queue.length retrieved) ;
+                  Queue.add
+                    { request = req ; duration = len ; expired = false }
+                    retrieved ;
                   self#log#f 4
                     "Remaining: %d, queued: %d, adding: %d (RID %d)"
                     self#remaining queue_length len (Request.get_id req) ;
@@ -351,12 +370,12 @@ object (self)
     Mutex.lock qlock ;
     let ans =
       try
-        let len,f = Queue.take retrieved in
+        let r = Queue.take retrieved in
           self#log#f 4
             "Remaining: %d, queued: %d, taking: %d"
-            self#remaining queue_length len ;
-          queue_length <- queue_length - len ;
-          Some f
+            self#remaining queue_length r.duration ;
+          if not r.expired then queue_length <- queue_length - r.duration ;
+          Some r.request
       with
         | Queue.Empty ->
             self#log#f 5 "Queue is empty!" ;
@@ -373,6 +392,21 @@ object (self)
        * produced, we'll get the first non-infinite remaining time
        * estimations. *)
       ans
+
+  method private expire test =
+    Mutex.lock qlock ;
+    Queue.iter
+      (fun r ->
+         if test r.request then begin
+           r.expired <- true ;
+           queue_length <- queue_length - r.duration
+         end)
+      retrieved ;
+    Mutex.unlock qlock ;
+    if self#available_length < min_queue_length then begin
+      self#log#f 4 "Expirations made the queue too short, feeding..." ;
+      self#notify_new_request
+    end
 
   method private get_frame ab =
     super#get_frame ab ;
@@ -393,7 +427,7 @@ object (self)
       | None -> q
       | Some r -> r::q
     in
-    let q = Queue.fold (fun l r -> (snd r)::l) q retrieved in
+    let q = Queue.fold (fun l r -> r.request::l) q retrieved in
       Mutex.unlock qlock ;
       q
 

@@ -81,6 +81,7 @@ object (self)
     ?indicators:(Request.indicator list) -> string ->
     Request.t
   method virtual log : Dtools.Log.t
+  method virtual private expire : (Request.t -> bool) -> unit
 
   (** How to get the playlist. *)
   val mutable playlist_uri = playlist_uri
@@ -190,9 +191,14 @@ object (self)
         assert (not (self#stype = Infallible && _playlist = [])) ;
         playlist := Array.of_list _playlist ;
         playlist_uri <- uri ;
-        (* The only case where keeping the old index is safe and makes sense *)
-        if not (random = Normal && index_played < Array.length !playlist) then
-          index_played <- -1 ;
+        (* Even in Normal playing mode (no randomization) it doesn't
+         * necessarily make sense to keep the old index. It would if the
+         * list wasn't modified, or was simply extended, but that's hard
+         * to detect for sure. So we always reset the index and mark
+         * old requests as expired. Users who don't want that we'll have
+         * to avoid useless reloading. *)
+        index_played <- -1 ;
+        self#expire (fun _ -> true) ;
         Mutex.unlock mylock ;
         self#log#f 3
           "Successfully loaded a playlist of %d tracks."
@@ -417,6 +423,9 @@ object (self)
 
   (** Directly play the files of the playlist. *)
   method get_next_file = pl#get_next_request
+
+  (** Nothing queued, hence nothing to expire. *)
+  method private expire _ = ()
 
 end
 

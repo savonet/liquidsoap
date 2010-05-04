@@ -55,6 +55,11 @@ object
 
   (** Everything you need is defined. Dont touch. *)
   method private get_next_file : Request.t option
+
+  (** [#expire f] marks queued requests [r] such that [f r] as expired,
+    * which will trigger their removal from the queue as soon as possible .*)
+  method private expire : (Request.t -> bool) -> unit
+
 end
 
 val queued_proto : Lang.proto
