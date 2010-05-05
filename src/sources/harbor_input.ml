@@ -102,8 +102,8 @@ object (self)
       end ;
       buf,input
     in
-    let Decoder.Decoder decoder = create_decoder read in
       try
+        let Decoder.Decoder decoder = create_decoder read in
         while true do
           if not relaying then failwith "relaying stopped" ;
           decoder generator

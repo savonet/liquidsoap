@@ -219,8 +219,8 @@ object (self)
                   Printf.fprintf f "%f %d\n%!" time self#length ;
                   ret
     in
-    let Decoder.Decoder decoder = create_decoder read in
       try
+        let Decoder.Decoder decoder = create_decoder read in
         while true do
           if should_fail then failwith "end of track" ;
           if poll_should_stop then failwith "source stopped" ;
