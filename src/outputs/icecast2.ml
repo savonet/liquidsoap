@@ -434,7 +434,10 @@ object (self)
                        ~public ~protocol ~mount  
                        ~audio_info ~user_agent ~content_type:format ()
       in
-      List.iter (fun (x,y) -> Hashtbl.add source.Cry.headers x y) headers;
+      List.iter (fun (x,y) -> 
+                      (* User-Agent has already been passed to Cry.. *)
+                      if x <> "User-Agent" then 
+                        Hashtbl.add source.Cry.headers x y) headers;
 
       try
         begin try
