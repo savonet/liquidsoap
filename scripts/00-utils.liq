@@ -37,10 +37,18 @@ end
 
 # Rewrite metadata on the fly using a list of (target,rules).
 # @category Source / Track Processing
-# @param l list of (target,value) rewriting rules
-# @param ~insert_missing Treat track beginnings without metadata as having empty ones. The operational order is: create empty if needed, map and strip if enabled.
-# @param ~update Only update metadata. If false, only returned values will be set as metadata.
-# @param ~strip Completly remove empty metadata. Operates on both empty values and empty metadata chunk.
+# @param l \
+#    List of (target,value) rewriting rules.
+# @param ~insert_missing \
+#    Treat track beginnings without metadata as having empty ones. \
+#    The operational order is: \
+#    create empty if needed, map and strip if enabled.
+# @param ~update \
+#    Only update metadata. \
+#    If false, only returned values will be set as metadata.
+# @param ~strip \
+#    Completly remove empty metadata. \
+#    Operates on both empty values and empty metadata chunk.
 def rewrite_metadata(l,~insert_missing=true,
                        ~update=true,~strip=false,
                        s)
@@ -65,7 +73,7 @@ end
 # @category Interaction
 # @param s The source to attach the command to.
 def add_skip_command(s) =
- # A command to skip
+ # A command to skip
  def skip(_) =
    source.skip(s)
    "Done!"
@@ -332,10 +340,12 @@ end
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
 # @param ~conservative Always prepare for a premature end-of-track.
-# @param ~default      Default transition when no rule can apply (default: sequence)
+# @param ~default      Transition used when no rule applies \
+#                      (default: sequence).
 # @param ~high         Value, in dB, for loud sound level
 # @param ~medium       Value, in dB, for medium sound level
-# @param ~margin       Margin to detect sources that have too different sound level
+# @param ~margin       Margin to detect sources that have too different \
+#                      sound level for crossing.
 # @param s             The input source.
 def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
                      ~default=(fun (a,b) -> sequence([a, b])),
@@ -492,7 +502,8 @@ end
 
 # Restrict a source to play only when a predicate is true.
 # @category Source / Track Processing
-# @param pred The predicate, typically a time interval such as <code>{10h-10h30}</code>.
+# @param pred The predicate, typically a time interval such as \
+#             <code>{10h-10h30}</code>.
 def at(pred,s)
   switch([(pred,s)])
 end
@@ -501,7 +512,8 @@ end
 # This will be run in background.
 # @category System
 # @param ~freq Frequency for checking the predicate, in seconds.
-# @param ~pred Predicate, typically a time interval such as <code>{10h-10h30}</code>.
+# @param ~pred Predicate indicating when to execute the function, \
+#              typically a time interval such as <code>{10h-10h30}</code>.
 # @param f Function to execute when the predicate is true.
 def exec_at(~freq=1.,~pred,f)
   def check()

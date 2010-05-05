@@ -198,37 +198,56 @@ let parse_comments tokenizer =
     let doc =
       List.map (Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "")) doc
     in
-    let main,special,params =
-      List.fold_left
-        (fun (main,special,params) line ->
-           try
-             let sub =
-               Pcre.exec ~pat:"^\\s*@(category|flag|param)\\s*(.*)$" line
-             in
-             let s = Pcre.get_substring sub 2 in
-               match Pcre.get_substring sub 1 with
-                 | "category" -> main, `Category s :: special, params
-                 | "flag" -> main, `Flag s :: special, params
-                 | "param" ->
-                     let sub =
-                       Pcre.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s
-                     in
-                     let label = Pcre.get_substring sub 1 in
-                     let descr = Pcre.get_substring sub 2 in
-                     let label =
-                       if label.[0] = '~' then
-                         String.sub label 1 (String.length label - 1)
-                       else
-                         ""
-                     in
-                       main, special,
-                       (label,descr) :: params
-                 | _ -> raise Not_found
-           with
-             | Not_found -> line::main,special,params)
-        ([],[],[])
-        doc
+    let rec parse_doc (main,special,params) = function
+      | [] -> (main,special,params)
+      | line::lines ->
+          begin try
+            let sub =
+              Pcre.exec ~pat:"^\\s*@(category|flag|param)\\s*(.*)$" line
+            in
+            let s = Pcre.get_substring sub 2 in
+              match Pcre.get_substring sub 1 with
+                | "category" ->
+                    parse_doc (main, `Category s :: special, params) lines
+                | "flag" ->
+                    parse_doc (main, `Flag s :: special, params) lines
+                | "param" ->
+                    let sub =
+                      Pcre.exec ~pat:"^(~?[a-zA-Z0-9_.]+)\\s*(.*)$" s
+                    in
+                    let label = Pcre.get_substring sub 1 in
+                    let descr = Pcre.get_substring sub 2 in
+                    let label =
+                      if label.[0] = '~' then
+                        String.sub label 1 (String.length label - 1)
+                      else
+                        ""
+                    in
+                    let rec parse_descr descr lines =
+                      match lines with
+                        | [] -> raise Not_found
+                        | line::lines ->
+                            let line =
+                              Pcre.substitute
+                                ~pat:"^ *" ~subst:(fun _ -> "") line
+                            in
+                            let n = String.length line - 1 in
+                              if line.[n] = '\\' then
+                                let descr = String.sub line 0 n :: descr in
+                                  parse_descr descr lines
+                              else
+                                let descr = List.rev (line::descr) in
+                                  String.concat "" descr, lines
+                    in
+                    let descr,lines = parse_descr [] (descr::lines) in
+                      parse_doc (main, special, (label,descr) :: params) lines
+                | _ -> assert false
+          with
+            | Not_found ->
+                parse_doc (line::main,special,params) lines
+          end
     in
+    let main,special,params = parse_doc ([],[],[]) doc in
     let main = List.rev main and params = List.rev params in
     let main = String.concat "\n" main in
     let doc =
