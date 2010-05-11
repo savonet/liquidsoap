@@ -458,16 +458,14 @@ let check_directories () =
   let check_dir conf_path kind =
     let path = conf_path#get in
     let dir = Filename.dirname path in
-      if not (Sys.file_exists dir) then begin
-        Printf.printf "FATAL ERROR: %s directory %S does not exist.\n"
-          kind dir ;
+      if not (Sys.file_exists dir) then
         let routes = Configure.conf#routes conf_path#ut in
           Printf.printf
-            "To change it, add the following to your script:\n";
-          Printf.printf "  set(%S, \"<path>\")\n"
-            (Conf.string_of_path (List.hd routes)) ;
+            "FATAL ERROR: %s directory %S does not exist.\n\
+             To change it, add the following to your script:\n\
+            \  set(%S, \"<path>\")\n"
+            kind dir (Conf.string_of_path (List.hd routes)) ;
           exit 1
-      end
   in
     if Log.conf_file#get then
       check_dir Log.conf_file_path "Log" ;
@@ -492,6 +490,7 @@ let () =
       Log.conf_file#set_d (Some true) ;
       Log.conf_file_path#set_d (Some "<syslogdir>/interactive.log") ;
       ignore (Thread.create Lang.interactive ()) ;
+      check_directories () ;
       Init.init Tutils.main
     end else if Source.has_outputs () then
       if not !dont_run then begin
