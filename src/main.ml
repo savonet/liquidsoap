@@ -483,6 +483,10 @@ let () =
     log#f 3 "Cleaning downloaded files..." ;
     Request.clean ()
   in
+  let main () =
+    Clock.start () ;
+    Tutils.main ()
+  in
     Clock.set_running () ;
     ignore (Init.at_stop cleanup) ;
     if !interactive then begin
@@ -491,11 +495,11 @@ let () =
       Log.conf_file_path#set_d (Some "<syslogdir>/interactive.log") ;
       ignore (Thread.create Lang.interactive ()) ;
       check_directories () ;
-      Init.init Tutils.main
+      Init.init main
     end else if Source.has_outputs () then
       if not !dont_run then begin
         check_directories () ;
-        Init.init ~prohibit_root:true Tutils.main
+        Init.init ~prohibit_root:true main
       end else
         cleanup ()
     else

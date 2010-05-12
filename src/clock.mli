@@ -28,6 +28,7 @@ val running : unit -> bool
 val set_running : unit -> unit
 
 val collect_after : (unit -> 'a) -> 'a
+val start : unit -> unit
 val stop : unit -> unit
 
 type clock_variable = Source.clock_variable

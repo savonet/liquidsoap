@@ -380,10 +380,16 @@ let stop () =
   * sources then returns a function actually starting those sources:
   * the first part only is done within critical section.
   *
+  * The last trick is that we start with a fake task (after_collect_tasks=1)
+  * to avoid that the initial parsing of files triggers collect and thus
+  * a too early initialization of outputs (before daemonization). Main is
+  * in charge of finishing that virtual task and trigger the initial
+  * collect.
+  *
   * Technically we could separate collect and assign_clocks, this
   * might simplify some things if it becomes unmanageable in the
   * future. *)
-let after_collect_tasks = ref 0
+let after_collect_tasks = ref 1
 let lock = Mutex.create ()
 let cond = Condition.create ()
 
@@ -423,3 +429,8 @@ let collect_after f =
           Mutex.lock lock ;
           after_collect_tasks := !after_collect_tasks - 1 ;
           collect ~must_lock:false)
+
+let start () =
+  Mutex.lock lock ;
+  after_collect_tasks := !after_collect_tasks - 1 ;
+  collect ~must_lock:false
