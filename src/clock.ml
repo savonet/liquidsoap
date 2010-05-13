@@ -434,3 +434,5 @@ let start () =
   Mutex.lock lock ;
   after_collect_tasks := !after_collect_tasks - 1 ;
   collect ~must_lock:false
+
+let fold f x = Clocks.fold f clocks x

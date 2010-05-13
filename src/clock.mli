@@ -31,6 +31,8 @@ val collect_after : (unit -> 'a) -> 'a
 val start : unit -> unit
 val stop : unit -> unit
 
+val fold : (Source.clock -> 'a -> 'a) -> 'a -> 'a
+
 type clock_variable = Source.clock_variable
 val to_string      : clock_variable -> string
 val create_unknown : sources:(Source.active_source list) ->

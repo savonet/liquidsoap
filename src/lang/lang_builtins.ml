@@ -150,6 +150,24 @@ let () =
              | _ -> assert false)
 
 let () =
+  let t = Lang.product_t Lang.string_t Lang.int_t in
+    add_builtin "get_clock_status" ~cat:Liq
+      ~descr:"Get the current time for all allocated clocks."
+      []
+      (Lang.list_t t)
+      (fun p ->
+         let l =
+           Clock.fold
+             (fun clock l ->
+                Lang.product
+                  (Lang.string clock#id)
+                  (Lang.int clock#get_tick)
+                :: l)
+             []
+         in
+           Lang.list t l)
+
+let () =
   (** The type of the test function for external decoders.
     * Return is one of:
     * . 0: no audio
