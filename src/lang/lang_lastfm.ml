@@ -51,6 +51,7 @@ let () =
       else
         proto
     in
+    let tasks = Hashtbl.create 1 in
     add_builtin name ~cat:Interaction (* TODO better cat *)
       ~descr proto
       Lang.unit_t
@@ -86,7 +87,16 @@ let () =
            else
              length
          in
-           Liqfm.submit ~host (user,password) length mode stype [metas];
+         let task = 
+          try
+           Hashtbl.find tasks host 
+          with
+            | Not_found ->
+                let t = Liqfm.init host in
+                Hashtbl.add tasks host t ;
+                t
+         in
+           Liqfm.submit (user,password) task length mode stype [metas];
            Lang.unit)
   in
   f "audioscrobbler.submit" Liqfm.Played 

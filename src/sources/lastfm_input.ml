@@ -35,6 +35,17 @@ object (self)
 
   val mutable session = None
   val mutable latest_metadata = None
+  val mutable submit_task = None
+
+  method submit_task = 
+    match submit_task with
+      | None ->
+         let t = 
+           Liqfm.init audioscrobbler_host
+         in
+         submit_task <- Some t ;
+         t
+      | Some t -> t
 
   (* Called when there's no decoding process, in order to create one. *)
   method connect url =
@@ -63,14 +74,14 @@ object (self)
       let id = 
         match session with
 	  | Some (l,v) when l = login -> v
-	  | _ ->  let id = Lastfm.Radio.init login in
+	  | _ ->  let id = Lastfm.Radio.init ~timeout login in
                   session <- Some (login,id) ;
                   id
       in
       let tracks = 
         try
-          ignore(Lastfm.Radio.adjust id station);
-          Lastfm.Radio.tracks id options
+          ignore(Lastfm.Radio.adjust ~timeout id station);
+          Lastfm.Radio.tracks ~timeout id options
 	with
 	  | Lastfm.Radio.Error _ -> 
               (* Give another try in case of expired session *)
@@ -90,9 +101,9 @@ object (self)
         List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
         http#insert_metadata metas;
         let auth = (login.user,login.password) in
-        if submit then 
-          Liqfm.submit ~host:audioscrobbler_host 
-               auth true Liqfm.Lastfm 
+        if submit then
+          Liqfm.submit
+               auth self#submit_task true Liqfm.Lastfm 
                Liqfm.NowPlaying [metas] ;
         latest_metadata <- Some (auth,metas) ;
         http#connect uri
@@ -115,8 +126,8 @@ object (self)
       match latest_metadata with
         | Some (auth,metas) -> 
           if submit then
-            Liqfm.submit ~host:audioscrobbler_host
-                 auth true Liqfm.Lastfm
+            Liqfm.submit
+                 auth self#submit_task true Liqfm.Lastfm
                  Liqfm.Played [metas] ;
           latest_metadata <- None
         | None -> ()

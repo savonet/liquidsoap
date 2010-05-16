@@ -28,26 +28,38 @@ type source = User | Lastfm | Broadcast | Recommendation | Unknown
 
 type submission = NowPlaying | Played
 
+type task =
+  { task : Duppy.Async.t ;
+    submit_m : Mutex.t ;
+    submissions : (string * string * source * submission *
+          bool * (string, string) Hashtbl.t) Queue.t ;
+  }
+
 let log = Dtools.Log.make ["audioscrobbler"]
 
 exception Duration
 
-(* The list of waiting submitions *)
-let submissions = Queue.create ()
-(* A mutex to manage thread concurrency *)
-let submit_m = Mutex.create ()
-(* A reference to the task *)
-let task = ref None
+let conf_liqfm =
+  Dtools.Conf.void ~p:(Configure.conf#plug "audioscrobbler")
+	    "Audioscrobbler configuration."
+	let conf_timeout =
+  Dtools.Conf.float ~p:(conf_liqfm#plug "timeout") ~d:5.
+    "Default timeout for HTTP requests."
 
 let client = { client = "lsp"; version = "0.1" }
 
-let init () =
+let init host =
+ (* The list of waiting submitions *)
+ let submissions = Queue.create () in
+ (* A mutex to manage thread concurrency *)
+ let submit_m = Mutex.create () in
+ Lastfm.default_timeout := conf_timeout#get ;
  let reason = log#f 3 "Lastfm Submission failed: %s" in
  (* Define a new task *)
  let rec do_submit () =
    try
     (* This function checks that the submission is valid *)
-    let song songs (user,password,host,source,stype,length,m) =
+    let song songs (user,password,source,stype,length,m) =
       let login = { user = user ; password = password } in
       let f = fun x -> try Hashtbl.find m x with Not_found -> "" in
       let artist,track = f "artist",f "title" in
@@ -56,8 +68,9 @@ let init () =
           | Played -> ""
           | NowPlaying -> " (nowplaying)"
       in
-      log#f 4 "Submiting %s -- %s%s" 
-         artist track s;
+      let (h,p) = host in
+      log#f 4 "Submiting %s -- %s%s to %s:%i" 
+         artist track s h p;
       try
         let duration () =
           try
@@ -112,7 +125,7 @@ let init () =
                      musicbrainzid = None ; trackauth = trackauth }
         in
         check_song song Submit ;
-        (login,host,stype,song) :: songs
+        (login,stype,song) :: songs
       with
         | Duration ->
             log#f 4 "could not submit track %s -- %s, no duration available"
@@ -132,23 +145,23 @@ let init () =
      Queue.clear submissions ;
      Mutex.unlock submit_m;
      let submit = Hashtbl.create 10 in
-     let filter (c,h,t,m) =
+     let filter (c,t,m) =
        try
-         let v = Hashtbl.find submit (c,h,t) in
-         Hashtbl.replace submit (c,h,t) (m::v)
+         let v = Hashtbl.find submit (c,t) in
+         Hashtbl.replace submit (c,t) (m::v)
        with
-         | Not_found -> Hashtbl.add submit (c,h,t) [m]
+         | Not_found -> Hashtbl.add submit (c,t) [m]
      in
      List.iter filter songs ;
-     let f (login,host,stype) songs =
+     let f (login,stype) songs =
        try
          match stype with
            | NowPlaying -> 
                List.iter (fun song -> 
-                    Lastfm.Audioscrobbler.do_np ?host client login song)
+                    Lastfm.Audioscrobbler.do_np ~host client login song)
                     songs
            | Played ->
-              ignore(Lastfm.Audioscrobbler.do_submit ?host client login songs)
+              ignore(Lastfm.Audioscrobbler.do_submit ~host client login songs)
        with
          | Lastfm.Audioscrobbler.Error e ->
              reason (Lastfm.Audioscrobbler.string_of_error e)
@@ -160,18 +173,16 @@ let init () =
    with
      | e -> reason (Printexc.to_string e); (-1.)
    in
-   (* Add and wake the task *)
-   let t =
+   let task = 
      Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler do_submit
    in
-   task := Some t;
-   Duppy.Async.wake_up t
+   { task = task ;
+     submit_m = submit_m ;
+     submissions = submissions }
 
-let submit ?host (user,password) length source stype songs =
- let songs = List.map (fun x -> (user,password,host,source,stype,length,x)) songs in
- Mutex.lock submit_m;
- List.iter (fun x -> Queue.add x submissions) songs ;
- Mutex.unlock submit_m;
- match !task with
-   | None -> init ()
-   | Some t -> Duppy.Async.wake_up t
+let submit (user,password) task length source stype songs =
+ let songs = List.map (fun x -> (user,password,source,stype,length,x)) songs in
+ Mutex.lock task.submit_m;
+ List.iter (fun x -> Queue.add x task.submissions) songs ;
+ Mutex.unlock task.submit_m;
+ Duppy.Async.wake_up task.task
