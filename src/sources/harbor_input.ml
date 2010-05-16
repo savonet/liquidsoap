@@ -228,6 +228,11 @@ let () =
         Some (Lang.string ""),
         Some "Source password. Override default if not empty.";
 
+        "port", Lang.int_t,
+        Some (Lang.int (-1)),
+        Some "Port used to connect to the source. Harbor default \
+              if negative.";
+
         "auth",
         Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
         Some
@@ -267,6 +272,10 @@ let () =
          let user = Lang.to_string (List.assoc "user" p) in
          let password = Lang.to_string (List.assoc "password" p) in
          let debug = Lang.to_bool (List.assoc "debug" p) in
+         let port = 
+           let p = Lang.to_int (List.assoc "port" p) in
+           if p < 0 then None else Some p
+         in
          let auth_function = List.assoc "auth" p in
          let login user pass =
            let user_login test_user test_pass =
@@ -323,13 +332,21 @@ let () =
            ignore
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
          in
-           try
-             ((Harbor.find_source mount):>Source.source)
-           with
-             | Not_found ->
-                 Harbor.add_source mount
-                   ((new http_input_server ~kind
-                       ~bufferize ~max ~login
-                       ~dumpfile ~logfile
-                       ~on_connect ~on_disconnect ~debug):>Harbor.source) ;
-                 ((Harbor.find_source mount):>Source.source))
+         let s = 
+             new http_input_server ~kind
+                   ~bufferize ~max ~login
+                   ~dumpfile ~logfile
+                   ~on_connect ~on_disconnect ~debug
+         in
+         try
+           Harbor.add_source ?port mount (s:>Harbor.source) ;
+           (s:>Source.source)
+         with
+           | Harbor.Registered ->
+               raise (Lang.Invalid_value 
+                        (List.assoc "" p,
+                         (* TODO: raise two script values ? *)
+                         let port = Lang.to_int (List.assoc "port" p) in
+                         Printf.sprintf 
+                         "A source is already register for this \
+                          mountpoint '%s' and port %i." mount port)))

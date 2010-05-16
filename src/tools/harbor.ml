@@ -56,9 +56,12 @@ let conf_icy_metadata =
   ~d:["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"]
   "Content-type (mime) of formats which allow shout metadata update."
 
+let opened_ports = ref []
+
 let log = Log.make ["harbor"]
 
 exception Internal
+exception Registered
 
 (* Define what we need as a source *)
 class virtual source ~kind =
@@ -74,19 +77,10 @@ object(self)
 
 end
 
-let sources : (string,source) Hashtbl.t = Hashtbl.create 1
+let sources : (string*int,source) Hashtbl.t = Hashtbl.create 1
 
-(* Add your sources *)
-let add_source mountpoint source =
-  log#f 3 "Adding mountpoint '%s' to list..." mountpoint ;
-  Hashtbl.add sources mountpoint source
-
-(* ... maybe remove them *)
-let remove_source mountpoint =
-  Hashtbl.remove sources mountpoint
-
-let find_source mountpoint =
-  Hashtbl.find sources mountpoint
+let find_source mountpoint port =
+  Hashtbl.find sources (mountpoint,port)
 
 (** {1 Handling of a client} *)
 
@@ -123,9 +117,9 @@ let http_error_page code status msg =
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>" ^ msg ^ "</p></body></html>\n" )
 
-let parse_icy_request_line r =
+let parse_icy_request_line ~port r =
       (try
-        let s = find_source "/" in
+        let s = find_source "/" (port-1) in
         let user,auth_f = s#login in
         let user = 
           match user with
@@ -229,9 +223,11 @@ let auth_check ~login c uri headers =
              ( log#f 3 "Returned 401: bad authentification." ;
                answer "No login / password supplied.") ) )
 
-let handle_source_request ~icy hprotocol c uri headers =
+let handle_source_request ~port ~icy hprotocol c uri headers =
   try
-    let s = find_source uri in
+    (* ICY request are on port+1 *)
+    let source_port = if icy then port-1 else port in
+    let s = find_source uri source_port in
     let icy,uri =
       try
         (* ICY auth check was done before.. *)
@@ -300,7 +296,7 @@ let handle_source_request ~icy hprotocol c uri headers =
              "The server could not handle your request.") ;
         failwith (Printexc.to_string e)
 
-let handle_get_request c uri headers =
+let handle_get_request ~port c uri headers =
   let default =
     "HTTP/1.0 200 OK\r\n\
      Content-Type: text/html\r\n\r\n\
@@ -332,8 +328,8 @@ let handle_get_request c uri headers =
               Hashtbl.find args "mount"
             with Not_found -> "/"
           in
-            log#f 3 "Request to update metadata for mount %s" mount;
-            let s = find_source mount in
+            log#f 3 "Request to update metadata for mount %s on port %i" mount port;
+            let s = find_source mount port in
               begin try
                 auth_check ~login:s#login c uri headers
               with
@@ -414,7 +410,7 @@ let handle_get_request c uri headers =
 
 let priority = Tutils.Non_blocking
 
-let handle_client ~icy socket =
+let handle_client ~port ~icy socket =
   let on_error _ =
     log#f 3 "Client left." ;
     try
@@ -431,7 +427,7 @@ let handle_client ~icy socket =
   in
   let recursive = false in
   let parse = match icy with
-                 | true -> parse_icy_request_line
+                 | true -> parse_icy_request_line ~port
                  | false -> parse_http_request_line
   in
   let process l =
@@ -454,10 +450,10 @@ let handle_client ~icy socket =
         match hmethod with
           | Source when not icy ->
               let headers = parse_headers (List.tl lines) in
-              handle_source_request ~icy hprotocol socket huri headers
+              handle_source_request ~port ~icy hprotocol socket huri headers
           | Get when not icy ->
               let headers = parse_headers (List.tl lines) in
-              handle_get_request socket huri headers
+              handle_get_request ~port socket huri headers
           | Shout when icy ->
               write_answer ~keep:true socket "OK2\r\nicy-caps:11\r\n\r\n" ;
               (* Now parsing headers *)
@@ -467,7 +463,7 @@ let handle_client ~icy socket =
                  let s = grab l in
                  let lines = Str.split (Str.regexp "\n") s in
                  let headers = parse_headers (List.tl lines) in
-                 handle_source_request ~icy:true hprotocol socket huri headers
+                 handle_source_request ~port ~icy:true hprotocol socket huri headers
                 with
                   | Failure s ->
                       log#f 3 "Failed: %s" s;
@@ -506,8 +502,9 @@ let handle_client ~icy socket =
 let shutdown = ref false
 let stop () = shutdown := true
 
-let start_harbor () =
-  let rec incoming ~icy sock _ =
+(* Open a port and listen to it. *)
+let open_port port = 
+  let rec incoming ~port ~icy sock _ =
     begin
       try
         if !shutdown then failwith "shutting down" ;
@@ -527,8 +524,8 @@ let start_harbor () =
         (* Add timeout *)
         Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get ;
         Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get ;
-        handle_client icy socket ;
-        log#f 3 "New client: %s" ip
+        handle_client ~port ~icy socket ;
+        log#f 3 "New client on port %i: %s" port ip
       with e -> log#f 2 "Failed to accept new client: %s" (Printexc.to_string e)
     end ;
     if !shutdown then begin
@@ -538,7 +535,7 @@ let start_harbor () =
       [{ Duppy.Task.
          priority = priority ;
          events = [`Read sock] ;
-         handler = (incoming ~icy sock) }]
+         handler = (incoming ~port ~icy sock) }]
   in
   let open_socket port =
     let bind_addr = conf_harbor_bind_addr#get in
@@ -561,13 +558,13 @@ let start_harbor () =
     listen sock max_conn ;
     sock
   in
-  let port = conf_harbor_port#get in
   let sock = open_socket port in
+  opened_ports := port :: !opened_ports ;
   Duppy.Task.add Tutils.scheduler
     { Duppy.Task.
         priority = priority ;
         events   = [`Read sock] ;
-        handler  = incoming ~icy:false sock } ;
+        handler  = incoming ~port ~icy:false sock } ;
   (* Now do the same for ICY if enabled *)
   if conf_icy#get then
     (* Open port+1 *)
@@ -577,7 +574,31 @@ let start_harbor () =
       { Duppy.Task.
           priority = priority ;
           events   = [`Read sock] ;
-          handler  = incoming ~icy:true sock }
+          handler  = incoming ~port ~icy:true sock }
+
+(* Add sources... *)
+let add_source ?port mountpoint source =
+  let port =
+    match port with
+      | Some x -> 
+          if not (List.mem x !opened_ports) then
+          open_port x ;
+          x
+      | None   -> conf_harbor_port#get
+  in
+  if Hashtbl.mem sources (mountpoint,port) then
+    raise Registered ;
+  log#f 3 "Adding mountpoint '%s' on port %i"
+     mountpoint port;
+  Hashtbl.add sources (mountpoint,port) source
+
+(* ... maybe remove them *)
+let remove_source mountpoint =
+  Hashtbl.remove sources mountpoint
+
+let start_harbor () = 
+  (* Open main port *)
+  open_port conf_harbor_port#get
 
 let start () =
   if Sys.os_type <> "Win32" then
