@@ -970,6 +970,14 @@ let () =
        Lang.int (Unix.getpid()))
 
 let () =
+  add_builtin "gettimeofday" ~cat:Sys
+    []
+    Lang.float_t
+    ~descr:"Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
+    (fun p ->
+       Lang.float (Unix.gettimeofday ()))
+
+let () =
   add_builtin "get_process_output" ~cat:Sys
     ~descr:"Perform a shell call and return its output."
     [ "",Lang.string_t,None,None] Lang.string_t
