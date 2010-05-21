@@ -156,6 +156,23 @@ let signed w = w.bits_per_sample <> 8
 let close w =
   close_in w.ic
 
+let data_len file = 
+  let stats = Unix.stat file in
+  stats.Unix.st_size - 36
+
+let duration ?(header_len=false) w = 
+  let length = 
+    if not header_len then
+      let stats = Unix.stat w.filename in
+      stats.Unix.st_size - 36
+    else
+      w.length_of_data_to_follow
+  in
+  let samples_n = 
+    (float length) /. (float w.bytes_per_sample)
+  in
+  samples_n /. (float w.sample_rate)
+
 let short_string i =
   let up = i/256 in
   let down = i-256*up in

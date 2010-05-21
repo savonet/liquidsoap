@@ -154,3 +154,14 @@ let () =
              (Frame.string_of_content_kind kind) ;
            None
          end)
+
+
+let () =
+  let duration file = 
+    let w = Wav.fopen file in
+    let ret = Wav.duration w in
+    Wav.close w ;
+    ret
+  in
+  Request.dresolvers#register "WAV" duration
+

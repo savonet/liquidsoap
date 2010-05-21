@@ -131,6 +131,13 @@ let external_input process input =
       Unix.close push_p ;
       ignore(Unix.close_process (pull,push)))
 
+let duration process = 
+  let pull = Unix.open_process_in process in
+  let w = Wav.read_header pull process in
+  let ret = Wav.duration ~header_len:true w in
+  ignore(Unix.close_process_in pull) ;
+  ret
+
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
@@ -174,7 +181,14 @@ let register_stdin name sdoc test process =
               * declare that our decoding function will respect out_kind. *)
              if Frame.kind_sub_kind kind out_kind then
                Some (fun () -> create process out_kind filename)
-             else None)
+             else None) ;
+  let duration filename = 
+    let process = 
+      Printf.sprintf "cat %s | %s" filename process
+    in
+    duration process
+  in
+  Request.dresolvers#register name duration
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case
@@ -239,4 +253,8 @@ let register_oblivious name sdoc test process prebuf =
               * declare that our decoding function will respect out_kind. *)
              if Frame.kind_sub_kind kind out_kind then
                Some (fun () -> external_input_oblivious process filename prebuf)
-             else None)
+             else None);
+  let duration filename = 
+    duration (process filename)
+  in
+  Request.dresolvers#register name duration

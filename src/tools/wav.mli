@@ -70,3 +70,9 @@ val close : t -> unit
   * The lengths of file and data are set to their maximum possible value. *)
 val header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
              big_endian:bool -> signed:bool -> unit -> string
+
+(** Returns the duration of the file.
+  * [header_len] speficies if data length should be
+  * taken from the header or the actual size of 
+  * the file. Default: [false] (file size). *)
+val duration : ?header_len:bool -> t -> float
