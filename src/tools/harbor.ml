@@ -592,10 +592,6 @@ let add_source ?port mountpoint source =
      mountpoint port;
   Hashtbl.add sources (mountpoint,port) source
 
-(* ... maybe remove them *)
-let remove_source mountpoint =
-  Hashtbl.remove sources mountpoint
-
 let start_harbor () = 
   (* Open main port *)
   open_port conf_harbor_port#get
