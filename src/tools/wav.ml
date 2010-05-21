@@ -168,10 +168,7 @@ let duration ?(header_len=false) w =
     else
       w.length_of_data_to_follow
   in
-  let samples_n = 
-    (float length) /. (float w.bytes_per_sample)
-  in
-  samples_n /. (float w.sample_rate)
+  (float length) /. (float w.bytes_per_second)
 
 let short_string i =
   let up = i/256 in
