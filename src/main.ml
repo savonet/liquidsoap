@@ -103,6 +103,7 @@ let eval src =
           Lang.from_file ~parse_only:!parse_only f
 
 let process_request s =
+  check_pervasives () ;
   secondary_task := true ;
   let kind =
     { Frame.audio = Frame.Variable ;
