@@ -38,9 +38,7 @@ object (self)
   val mutable open_date = 0.
   val mutable current_metadata = fun _ -> raise Not_found
 
-  method output_start =
-    assert (fd = None && encoder = None) ;
-    encoder <- Some (encoder_factory self#id) ;
+  method open_file = 
     let mode =
       Open_wronly::Open_creat::
       (if append then [Open_append] else [Open_trunc])
@@ -62,6 +60,15 @@ object (self)
       open_date <- Unix.gettimeofday () ;
       fd <- Some chan
 
+  method file_reset = 
+    close_out (Utils.get_some fd) ;
+    fd <- None ;
+    self#open_file
+
+  method output_start =
+    assert (fd = None && encoder = None) ;
+    encoder <- Some (encoder_factory self#id) ;
+
   method output_stop =
     let flush = (Utils.get_some encoder).Encoder.stop () in
       self#send flush ;
@@ -71,21 +78,21 @@ object (self)
 
   method output_reset = ()
 
-  val mutable need_close = false
-  val mutable closing = false
+  val mutable need_reset = false
+  val mutable reopening = false
 
   method encode frame ofs len =
     let enc = Utils.get_some encoder in
       enc.Encoder.encode frame ofs len
 
   method send b =
+    if fd = None then self#open_file ;
     output_string (Utils.get_some fd) b ;
-    if not closing then
-      if need_close then begin
-        need_close <- false ;
+    if not reopening then
+      if need_reset then begin
+        need_reset <- false ;
         self#log#f 3 "Re-opening output file..." ;
-        self#output_stop ;
-        self#output_start
+        self#file_reset
       end else
         if Unix.gettimeofday () > reload_delay +. open_date then
           if Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []) then
@@ -93,10 +100,10 @@ object (self)
             self#log#f 3 "Re-opening output file..." ;
             (* #output_stop can trigger #send,
              * the [closing] flag avoids loops *)
-            closing <- true ;
+            reopening <- true ;
             self#output_stop ;
             self#output_start ;
-            closing <- false
+            reopening <- false
           end
 
   method reset_encoder m =
@@ -104,7 +111,7 @@ object (self)
       * After a new metadata we know that we can split the file (and we
       * can do it only after a metadata change.
       * But for other encoders a split might be impossible anyways. *)
-    if reload_on_metadata then need_close <- true ;
+    if reload_on_metadata then need_reset <- true ;
     current_metadata <- (Hashtbl.find (Hashtbl.copy m)) ;
     (Utils.get_some encoder).Encoder.reset m
 
