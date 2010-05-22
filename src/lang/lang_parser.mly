@@ -143,7 +143,9 @@
 
 %%
 
-program: exprs EOF { $1 }
+program:
+  | EOF { mk Unit }
+  | exprs EOF { $1 }
 interactive:
   | exprs SEQSEQ { $1 }
   | EOF { raise End_of_file }
