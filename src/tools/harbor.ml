@@ -267,9 +267,9 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
           s#relay headers c
   with
     | Mount_taken ->
-        log#f 3 "Returned 401: Mount taken" ;
+        log#f 3 "Returned 403: Mount taken" ;
         write_answer c
-          (http_error_page 401
+          (http_error_page 403
              "Unauthorized\r\n\
               WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
              "Mountpoint in use") ;
@@ -281,18 +281,18 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
              "This mountpoint isn't available.") ;
         failwith "no such mountpoint"
     | Unknown_codec ->
-        log#f 3 "Returned 401: unknown audio codec" ;
+        log#f 3 "Returned 501: unknown audio codec" ;
         write_answer c
-          (http_error_page 401 "Not recognized"
-             "This stream's format recognized.") ;
+          (http_error_page 501 "Not Implemented"
+             "This stream's format is not recognized.") ;
         failwith "bad codec"
     | Answer s ->
           s () ;
           failwith "wrong source authentification"
     | e ->
-        log#f 3 "Returned 401 for '%s'." uri ;
+        log#f 3 "Returned 500 for '%s'." uri ;
         write_answer c
-          (http_error_page 401 "Error"
+          (http_error_page 500 "Internal Server Error"
              "The server could not handle your request.") ;
         failwith (Printexc.to_string e)
 
@@ -312,15 +312,15 @@ let handle_get_request ~port c uri headers =
     write_answer c (http_error_page 404 "Not found"
     "This page isn't available.")
   in
-  let ans_401 = fun () ->
-    log#f 3 "Returned 401 for '%s'." uri ;
-    write_answer c (http_error_page 401 "Unknown request"
-    "Unknown request.")
+  let ans_500 = fun () ->
+    log#f 3 "Returned 500 for '%s'." uri ;
+    write_answer c (http_error_page 500 "Internal Server Error"
+    "There was an error processing your request.")
   in
   let admin args =
     match
       try Hashtbl.find args "mode"
-      with Not_found -> raise (Answer(ans_401))
+      with Not_found -> raise (Answer(ans_404))
     with
       | "updinfo" ->
           let mount =
@@ -355,11 +355,11 @@ let handle_get_request ~port c uri headers =
                       | Not_found -> raise e
               end ;
               let ans () =
-                log#f 3 "Returned 401 for '%s': Source format does not support \
+                log#f 3 "Returned 405 for '%s': Source format does not support \
                          ICY metadata update" uri ;
                 write_answer c
-                  (http_error_page 401 "Unknown request"
-                    "Source is not mp3")
+                  (http_error_page 405 "Method Not Allowed"
+                    "Method Not Allowed: Source is not mp3")
               in
               if not (List.mem (Utils.get_some s#get_mime_type) 
                                conf_icy_metadata#get) 
@@ -375,7 +375,7 @@ let handle_get_request ~port c uri headers =
               Hashtbl.remove args "mode";
               s#insert_metadata args ;
               raise (Answer (fun () -> write_answer c ans))
-     | _ -> raise (Answer ans_401)
+     | _ -> raise (Answer ans_500)
   in
   let rex = Pcre.regexp "^(.+)\\?(.+)$" in
   let base_uri,args =
@@ -406,7 +406,7 @@ let handle_get_request ~port c uri headers =
        | _ -> raise (Answer(ans_404))
   with
     | Answer(s) ->  s ()
-    | e -> ans_404 () ; failwith (Printexc.to_string e)
+    | e -> ans_500 () ; failwith (Printexc.to_string e)
 
 let priority = Tutils.Non_blocking
 
