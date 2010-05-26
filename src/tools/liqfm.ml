@@ -42,7 +42,7 @@ exception Duration
 let conf_liqfm =
   Dtools.Conf.void ~p:(Configure.conf#plug "audioscrobbler")
 	    "Audioscrobbler configuration."
-	let conf_timeout =
+let conf_timeout =
   Dtools.Conf.float ~p:(conf_liqfm#plug "timeout") ~d:5.
     "Default timeout for HTTP requests."
 
@@ -53,7 +53,7 @@ let init host =
  let submissions = Queue.create () in
  (* A mutex to manage thread concurrency *)
  let submit_m = Mutex.create () in
- Lastfm.default_timeout := conf_timeout#get ;
+ Lastfm.Http_ocamlnet.default_timeout := conf_timeout#get ;
  let reason = log#f 3 "Lastfm Submission failed: %s" in
  (* Define a new task *)
  let rec do_submit () =
