@@ -16,6 +16,13 @@ def test_process(command)
   end
 end
 
+# Get_mime is not always defined
+# so we define a default in this case..
+my_get_mime = fun (_) -> false 
+%ifdef get_mime
+my_get_mime = get_mime
+%endif
+get_mime = my_get_mime
 
 if test_process("which flac") then
   log(level=3,"Found flac binary: enabling flac external decoder.")
