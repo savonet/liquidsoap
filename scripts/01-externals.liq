@@ -1,5 +1,22 @@
 # Decoders, enabled when the binary is detected
 
+# TODO: remove this and fix the damn inclusion thing...
+# Refs #360
+# Return true if process exited with 0 code.
+# Command should return quickly.
+# @category System
+# @param command    Command to test
+def test_process(command)
+  lines =
+    get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
+  if list.length(lines) == 0 then
+    false
+  else
+    "0" == list.hd(lines)
+  end
+end
+
+
 if test_process("which flac") then
   log(level=3,"Found flac binary: enabling flac external decoder.")
   flac_p = "flac -d -c - 2>/dev/null"
