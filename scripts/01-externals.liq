@@ -1,9 +1,24 @@
 # Decoders, enabled when the binary is detected
 
-%open "00-utils"
+# TODO: remove this and fix the damn inclusion thing...
+# Refs #360
+# Return true if process exited with 0 code.
+# Command should return quickly.
+# @category System
+# @param command    Command to test
+def test_process(command)
+  lines =
+    get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
+  if list.length(lines) == 0 then
+    false
+  else
+    "0" == list.hd(lines)
+  end
+end
 
+# Get_mime is not always defined
 # so we define a default in this case..
-my_get_mime = fun (_) -> "" 
+my_get_mime = fun (_) -> ""
 %ifdef get_mime
 my_get_mime = get_mime
 %endif

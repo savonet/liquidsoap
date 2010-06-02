@@ -1,5 +1,9 @@
 
+dummy = fun () -> log("Lastfm/audiocscrobbler support was not compiled.")
+
 %ifdef input.lastfm
+dummy = fun () -> ()
+
 # Utility to compose last.fm URIs.
 # @category String
 # @param ~user      Lastfm user
@@ -122,4 +126,8 @@ def lastfm.submit.full(
       host="post.audioscrobbler.com",port=80,
       delay=delay,force=force,s)
 end
+
 %endif
+
+dummy ()
+
