@@ -23,7 +23,6 @@
 open Source
 
 class mean ~kind (source:source) =
-  let ctype = Frame.type_of_kind kind in
 object (self)
   inherit operator kind [source] as super
 
@@ -34,19 +33,24 @@ object (self)
 
   method private get_frame buf =
     let offset = AFrame.position buf in
-    let moffset = Frame.position buf in
     let buffer = source#get buf ; AFrame.content buf offset in
-    let dst = Frame.content_of_type buf moffset ctype in
-    let dst = dst.Frame.audio.(0) in
       for i = offset to AFrame.position buf - 1 do
-        dst.(i) <-
+        buffer.(0).(i) <-
           Array.fold_left (fun m b -> m +. b.(i)) 0. buffer
           /. float (Array.length buffer)
       done
 end
 
 let () =
-  let in_kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let format = 
+    Lang.Constrained 
+     { Frame.
+        audio = Lang.Variable 1;
+        video = Lang.Any_fixed 0;
+        midi  = Lang.Any_fixed 0
+     }
+  in
+  let in_kind = Lang.kind_type_of_kind_format ~fresh:1 format in
   let out_kind =
     let { Frame.audio=a;video=v;midi=m } = Lang.of_frame_kind_t in_kind in
       Lang.frame_kind_t (Lang.succ_t Lang.zero_t) v m
