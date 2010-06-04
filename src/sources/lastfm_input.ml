@@ -22,9 +22,9 @@
 
 open Lastfm_generic
 
-class lastfm ~kind ~autostart ~poll_delay ~submit ~track_on_meta 
+class lastfm ~kind ~autostart ~poll_delay ~track_on_meta 
              ~bufferize ~timeout ~bind_address ~user ~password 
-             ~debug ~max ~user_agent ~audioscrobbler_host uri =
+             ~debug ~max ~user_agent uri =
  let playlist_mode = Http_source.First in
  let bufferize_time = Frame.master_of_seconds bufferize in
 object (self)
@@ -34,18 +34,6 @@ object (self)
                            ~debug ~user_agent uri as http
 
   val mutable session = None
-  val mutable latest_metadata = None
-  val mutable submit_task = None
-
-  method submit_task = 
-    match submit_task with
-      | None ->
-         let t = 
-           Liqfm.init audioscrobbler_host
-         in
-         submit_task <- Some t ;
-         t
-      | Some t -> t
 
   (* Called when there's no decoding process, in order to create one. *)
   method connect url =
@@ -100,12 +88,6 @@ object (self)
       let metas = Hashtbl.create 2 in
         List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
         http#insert_metadata metas;
-        let auth = (login.user,login.password) in
-        if submit then
-          Liqfm.submit
-               auth self#submit_task true Liqfm.Lastfm 
-               Liqfm.NowPlaying [metas] ;
-        latest_metadata <- Some (auth,metas) ;
         http#connect uri
      with
        | Liqfm.Radio.Error e ->
@@ -118,20 +100,6 @@ object (self)
   (* TODO abort streaming on #abort_track,
    *   setting relaying <- false is too radical, it would completely
    *   stop. *)
-
-  method private get_frame ab = 
-    http#get_frame ab ;
-    if Frame.is_partial ab then
-     begin
-      match latest_metadata with
-        | Some (auth,metas) -> 
-          if submit then
-            Liqfm.submit
-                 auth self#submit_task true Liqfm.Lastfm
-                 Liqfm.Played [metas] ;
-          latest_metadata <- None
-        | None -> ()
-     end
 
 end
 
@@ -175,14 +143,6 @@ let () =
         Some "Timeout for HTTP connections." ;
         "poll_delay", Lang.float_t, (Some (Lang.float 2.)),
         Some "Polling delay." ;
-        "submit", Lang.bool_t, Some (Lang.bool false),
-        Some "Submit song to Audioscrobbler.";
-        "submit_host", Lang.string_t, 
-        Some (Lang.string !(Liqfm.Audioscrobbler.base_host)),
-        Some "Host for audioscrobbling submissions.";
-        "submit_port", Lang.int_t,
-        Some (Lang.int !(Liqfm.Audioscrobbler.base_port)),
-        Some "Port for audioscrobbling submissions.";
         "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
         Some "Treat new metadata as new track." ;
         "debug", Lang.bool_t, Some (Lang.bool false),
@@ -202,7 +162,6 @@ let () =
       (fun p kind ->
          let uri = Lang.to_string (List.assoc "" p) in
          let autostart = Lang.to_bool (List.assoc "autostart" p) in
-         let submit = Lang.to_bool (List.assoc "submit" p) in
          let track_on_meta =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)
          in
@@ -214,9 +173,6 @@ let () =
              | s -> Some s
          in
          let user_agent = Lang.to_string (List.assoc "user_agent" p) in
-         let submit_host = Lang.to_string (List.assoc "submit_host" p) in
-         let submit_port = Lang.to_int (List.assoc "submit_port" p) in
-         let audioscrobbler_host = (submit_host,submit_port) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
 	 let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
@@ -227,7 +183,6 @@ let () =
            raise (Lang.Invalid_value
                     (List.assoc "max" p,
                      "Maximun buffering inferior to pre-buffered data"));
-           ((new lastfm ~kind ~autostart ~submit ~poll_delay ~bufferize
-                        ~track_on_meta ~audioscrobbler_host
-                        ~bind_address ~timeout ~max ~debug 
+           ((new lastfm ~kind ~autostart ~poll_delay ~bufferize
+                        ~track_on_meta ~bind_address ~timeout ~max ~debug 
                         ~user_agent ~user ~password uri):>Source.source))
