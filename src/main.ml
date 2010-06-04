@@ -485,6 +485,10 @@ let () =
     Request.clean ()
   in
   let main () =
+    (* We need to catch SIGINT in win32 (no shell) *)
+    if Sys.os_type = "Win32" then
+      let f _ = Tutils.shutdown () in
+      Sys.set_signal Sys.sigint (Sys.Signal_handle f) ;
     Clock.start () ;
     Tutils.main ()
   in
