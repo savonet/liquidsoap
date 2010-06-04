@@ -21,7 +21,7 @@ val http_encode : string -> string
 val args_split : string -> (string, string) Hashtbl.t
 
 (** Connect to an http server given an host and a port. *)
-val connect : bind_address:string option -> timeout:float option -> string -> int -> connection
+val connect : ?bind_address:string -> ?timeout:float -> string -> int -> connection
 
 (** Disconnect from an http server. *)
 val disconnect : connection -> unit
@@ -30,14 +30,17 @@ val disconnect : connection -> unit
   * version of the HTTP protocol, status number and status message. *)
 type status = string * int * string
 
+(* An ugly code to read until we see [\r]?\n[\r]?\n. *)
+val read_crlf : ?max:int -> connection -> string
+
 val request : connection -> string -> (status * (string * string) list)
 
-(** [get headers socket host port file] makes a GET request.
+(** [get ?headers socket host port file] makes a GET request.
   * Returns the status and the headers. *)
 val get : ?headers:((string*string) list) -> connection
   -> string -> int -> string -> (status * (string * string) list)
 
-(** [post headers socket host port file] makes a POST request.
+(** [post ?headers data socket host port file] makes a POST request.
   * Returns the status and the headers. *)
 val post : ?headers:((string*string) list) -> string
   -> connection -> string -> int -> string -> (status * (string * string) list)

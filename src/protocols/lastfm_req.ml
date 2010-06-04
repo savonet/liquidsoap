@@ -22,7 +22,7 @@
 
 let lastfm req ~log maxtime =
   try
-    let l = Lastfm.Radio.get (Printf.sprintf "lastfm:%s" req) in
+    let l = Liqfm.Radio.get (Printf.sprintf "lastfm:%s" req) in
     if l <> [] then
       List.map (fun (metadata,uri) -> 
                  Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri)
@@ -30,9 +30,9 @@ let lastfm req ~log maxtime =
     else
       ( log "empty playlist"; [] )
   with
-    | Lastfm.Radio.Error e -> 
+    | Liqfm.Radio.Error e -> 
         log (Printf.sprintf "lastfm: Error %s" 
-	  (Lastfm.Radio.string_of_error e)); []
+	  (Liqfm.Radio.string_of_error e)); []
     | _ -> log "lastfm request failed: unknown reason"; []
 
 let () =

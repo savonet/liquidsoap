@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Lastfm
+open Lastfm_generic
 
 class lastfm ~kind ~autostart ~poll_delay ~submit ~track_on_meta 
              ~bufferize ~timeout ~bind_address ~user ~password 
@@ -61,41 +61,41 @@ object (self)
        * come first.. *)
       let login,station,options = 
        try
-        Lastfm.Radio.parse uri
+        Liqfm.Radio.parse uri
        with
-         | Lastfm.Radio.Error (Lastfm.Radio.Auth _) ->
+         | Liqfm.Radio.Error (Liqfm.Radio.Auth _) ->
             let subst x =
               Printf.sprintf "lastfm://%s:%s@" user password
             in
             let uri = Pcre.substitute ~pat:"lastfm://" ~subst uri
             in
-            Lastfm.Radio.parse uri
+            Liqfm.Radio.parse uri
       in
       let id = 
         match session with
 	  | Some (l,v) when l = login -> v
-	  | _ ->  let id = Lastfm.Radio.init ~timeout login in
+	  | _ ->  let id = Liqfm.Radio.init ~timeout login in
                   session <- Some (login,id) ;
                   id
       in
       let tracks = 
         try
-          ignore(Lastfm.Radio.adjust ~timeout id station);
-          Lastfm.Radio.tracks ~timeout id options
+          ignore(Liqfm.Radio.adjust ~timeout id station);
+          Liqfm.Radio.tracks ~timeout id options
 	with
-	  | Lastfm.Radio.Error _ -> 
+	  | Liqfm.Radio.Error _ -> 
               (* Give another try in case of expired session *)
-	      Lastfm.Radio.clear id ;
-	      let id = Lastfm.Radio.init login in
+	      Liqfm.Radio.clear id ;
+	      let id = Liqfm.Radio.init login in
 	      session <- Some (login,id) ;
-              ignore(Lastfm.Radio.adjust id station);
-	      Lastfm.Radio.tracks id options
+              ignore(Liqfm.Radio.adjust id station);
+	      Liqfm.Radio.tracks id options
       in
       let (m,uri) =
         match tracks with
           | (m,uri) :: l -> (m,uri)
-          | _ -> Lastfm.Radio.clear id ; 
-	         raise (Lastfm.Radio.Error Lastfm.Radio.Empty)
+          | _ -> Liqfm.Radio.clear id ; 
+	         raise (Liqfm.Radio.Error Liqfm.Radio.Empty)
       in
       let metas = Hashtbl.create 2 in
         List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
@@ -108,11 +108,11 @@ object (self)
         latest_metadata <- Some (auth,metas) ;
         http#connect uri
      with
-       | Lastfm.Radio.Error e ->
+       | Liqfm.Radio.Error e ->
            session <- None ;
            self#log#f 4
              "Could not get file from lastfm: %s"
-             (Lastfm.Radio.string_of_error e)
+             (Liqfm.Radio.string_of_error e)
        | e -> self#log#f 4 "Lastfm connection failed: %s" (Printexc.to_string e)
 
   (* TODO abort streaming on #abort_track,
@@ -178,10 +178,10 @@ let () =
         "submit", Lang.bool_t, Some (Lang.bool false),
         Some "Submit song to Audioscrobbler.";
         "submit_host", Lang.string_t, 
-        Some (Lang.string !(Lastfm.Audioscrobbler.base_host)),
+        Some (Lang.string !(Liqfm.Audioscrobbler.base_host)),
         Some "Host for audioscrobbling submissions.";
         "submit_port", Lang.int_t,
-        Some (Lang.int !(Lastfm.Audioscrobbler.base_port)),
+        Some (Lang.int !(Liqfm.Audioscrobbler.base_port)),
         Some "Port for audioscrobbling submissions.";
         "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
         Some "Treat new metadata as new track." ;

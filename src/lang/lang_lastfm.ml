@@ -31,10 +31,10 @@ let () =
       [ "user",Lang.string_t,None,None ;
         "password",Lang.string_t,None,None ;
         "host", Lang.string_t,
-        Some (Lang.string !(Lastfm.Audioscrobbler.base_host)),
+        Some (Lang.string !(Liqfm.Audioscrobbler.base_host)),
         Some "Host for audioscrobbling submissions.";
         "port", Lang.int_t,
-        Some (Lang.int !(Lastfm.Audioscrobbler.base_port)),
+        Some (Lang.int !(Liqfm.Audioscrobbler.base_port)),
         Some "Port for audioscrobbling submissions.";
         "length",Lang.bool_t,Some (Lang.bool false),
         Some "Try to submit length information. This operation can be CPU intensive. \

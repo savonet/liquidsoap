@@ -272,7 +272,7 @@ object (self)
       self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
       try
         let socket =
-          Http.connect ~bind_address ~timeout:(Some timeout) host port
+          Http.connect ?bind_address ~timeout host port
         in
           try
             let (_, status, status_msg), fields = Http.request socket request in

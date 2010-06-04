@@ -20,9 +20,71 @@
 
  *****************************************************************************)
 
-open Lastfm
-open Lastfm.Audioscrobbler
 open Duppy
+
+(* A custom implementation of HTTP 
+ * requests. *)
+module Liq_http =
+ struct 
+  type request = Get | Post of string
+
+  exception Http of string
+
+  let exc_of_exc e = 
+    match e with
+      | Unix.Unix_error (e,x,y) -> 
+          raise (Http (Printf.sprintf "Unix error: %s,%s,%s"  
+                          (Unix.error_message e) x y))
+      | e -> raise (Http (Printexc.to_string e))
+
+  let default_timeout = ref 5.
+  let request ?timeout ?headers ?(port=80) 
+              ~host ~url ~request () =
+   let connection = 
+    try
+     let timeout =
+       match timeout with
+         | Some x -> x
+         | None   -> !default_timeout
+     in
+     Http.connect ~timeout host port
+    with e -> exc_of_exc e
+   in
+   try
+    (* We raise an error if the statuses are not correct. *)
+    let status,headers = 
+      match request with
+        | Get -> 
+           Http.get ?headers connection host port url
+        | Post data -> 
+           Http.post ?headers data connection host port url 
+    in
+    begin
+      match status with
+        | _, 200, _ -> () 
+        | x,y,z -> 
+          raise (Http (Printf.sprintf "Http connection failed \
+                         with status (%s,%d,%s)" x y z))
+    end ;
+      let ret = Http.read_crlf ~max:max_int connection in
+      Unix.close connection ;
+      Pcre.substitute 
+        ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret
+   with 
+     | e -> 
+         begin
+          try
+           Unix.close connection
+          with _ -> ()
+         end ;
+         exc_of_exc e
+ end
+
+module Audioscrobbler = Lastfm_generic.Audioscrobbler_generic(Liq_http)
+module Radio          = Lastfm_generic.Radio_generic(Liq_http)
+
+open Lastfm_generic
+open Audioscrobbler
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
 
@@ -53,7 +115,7 @@ let init host =
  let submissions = Queue.create () in
  (* A mutex to manage thread concurrency *)
  let submit_m = Mutex.create () in
- Lastfm.Http_ocamlnet.default_timeout := conf_timeout#get ;
+ Liq_http.default_timeout := conf_timeout#get ;
  let reason = log#f 3 "Lastfm Submission failed: %s" in
  (* Define a new task *)
  let rec do_submit () =
@@ -65,11 +127,11 @@ let init host =
       let artist,track = f "artist",f "title" in
       let s = 
         match stype with
-          | Played -> ""
-          | NowPlaying -> " (nowplaying)"
+          | Played -> "submit"
+          | NowPlaying -> "nowplaying"
       in
       let (h,p) = host in
-      log#f 4 "Submiting %s -- %s%s to %s:%i" 
+      log#f 4 "Submiting %s -- %s with mode: %s to %s:%i" 
          artist track s h p;
       try
         let duration () =
@@ -111,11 +173,11 @@ let init host =
             | _ -> None
         in
         let source = match source with
-                       | User -> Lastfm.Audioscrobbler.User
-                       | Lastfm -> Lastfm.Audioscrobbler.Lastfm
-                       | Broadcast -> Lastfm.Audioscrobbler.Broadcast
-                       | Recommendation -> Lastfm.Audioscrobbler.Recommendation
-                       | Unknown -> Lastfm.Audioscrobbler.Unknown
+                       | User -> Audioscrobbler.User
+                       | Lastfm -> Audioscrobbler.Lastfm
+                       | Broadcast -> Audioscrobbler.Broadcast
+                       | Recommendation -> Audioscrobbler.Recommendation
+                       | Unknown -> Audioscrobbler.Unknown
         in
         let song = { artist = artist ; track = track ;
                      time = Some time  ;
@@ -158,15 +220,13 @@ let init host =
          match stype with
            | NowPlaying -> 
                List.iter (fun song -> 
-                    Lastfm.Audioscrobbler.do_np ~host client login song)
+                    Audioscrobbler.do_np ~host client login song)
                     songs
            | Played ->
-              ignore(Lastfm.Audioscrobbler.do_submit ~host client login songs)
+              ignore(Audioscrobbler.do_submit ~host client login songs)
        with
-         | Lastfm.Audioscrobbler.Error e ->
-             reason (Lastfm.Audioscrobbler.string_of_error e)
-         | Lastfm.Radio.Error e ->
-             reason (Lastfm.Radio.string_of_error e)
+         | Audioscrobbler.Error e ->
+             reason (Audioscrobbler.string_of_error e)
      in
      Hashtbl.iter f submit ;
      (-1.)

@@ -105,7 +105,7 @@ let http_encode url =
 
 (** HTTP functions. *)
 
-let connect ~bind_address ~timeout host port =
+let connect ?bind_address ?timeout host port =
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   begin
     match timeout with
@@ -159,38 +159,40 @@ let read socket buflen =
 
 type status = string * int * string
 
+(* An ugly code to read until we see [\r]?\n[\r]?\n. *)
+let read_crlf ?(max=4096) socket = 
+  (* We read until we see [\r]?\n[\r]?\n *)
+  let ans = ref "" in
+  let n = ref 0 in
+  let loop = ref true in
+  let was_n = ref false in
+  let c = String.create 1 in
+    (* TODO XXX What is this hard-coded 4096 ?
+     *          This whole loop is ugly and unreadable... is that state
+     *          machine was_n really correct ? *)
+    while !loop && !n < max do
+      let h = Unix.read socket c 0 1 in
+        if h < 1 then
+          loop := false
+        else
+          (
+            ans := !ans ^ c;
+            if c = "\n" then
+              (if !was_n then loop := false else was_n := true)
+            else if c <> "\r" then
+              was_n := false
+          );
+        incr n
+    done;
+    !ans
+
 let request socket request =
   if
     let len = String.length request in
       Unix.write socket request 0 len < len
   then
     raise Socket ;
-  let header =
-    (* We read until we see \r\n\r\n *)
-    let ans = ref "" in
-    let n = ref 0 in
-    let loop = ref true in
-    let was_n = ref false in
-    let c = String.create 1 in
-      (* TODO XXX What is this hard-coded 4096 ?
-       *          This whole loop is ugly and unreadable... is that state
-       *          machine was_n really correct ? *)
-      while !loop && !n < 4096 do
-        let h = Unix.read socket c 0 1 in
-          if h < 1 then
-            loop := false
-          else
-            (
-              ans := !ans ^ c;
-              if c = "\n" then
-                (if !was_n then loop := false else was_n := true)
-              else if c <> "\r" then
-                was_n := false
-            );
-          incr n
-      done;
-      !ans
-  in
+  let header = read_crlf socket in
   let header = Pcre.split ~pat:"[\r]?\n" header in
   let response,header = 
      match header with
@@ -229,7 +231,7 @@ let http_req ?(post="") ?(headers=[]) socket host port file =
     Printf.sprintf "%s %s HTTP/1.0\r\n" action file
   in
   let req =
-    Printf.sprintf "%sHost: %s:%d\r\n" req host port
+    Printf.sprintf "%sHost: %s\r\n" req host
   in
   let req =
     Printf.sprintf "%sUser-Agent: liquidsoap/%s (%s; ocaml %s)\r\n"
