@@ -162,21 +162,24 @@ type status = string * int * string
 (* An ugly code to read until we see [\r]?\n[\r]?\n. *)
 let read_crlf ?(max=4096) socket = 
   (* We read until we see [\r]?\n[\r]?\n *)
-  let ans = ref "" in
+  let ans = Buffer.create 10 in
   let n = ref 0 in
   let loop = ref true in
   let was_n = ref false in
   let c = String.create 1 in
-    (* TODO XXX What is this hard-coded 4096 ?
-     *          This whole loop is ugly and unreadable... is that state
-     *          machine was_n really correct ? *)
+    (* We need to parse char by char because
+     * we want to make sure we stop at the exact
+     * end of [\r]?\n[\r]?\n in order to pass a socket
+     * which is placed at the exact char after it. 
+     * The maximal length is a security but it may
+     * be lifted.. *)
     while !loop && !n < max do
       let h = Unix.read socket c 0 1 in
         if h < 1 then
           loop := false
         else
           (
-            ans := !ans ^ c;
+            Buffer.add_string ans c;
             if c = "\n" then
               (if !was_n then loop := false else was_n := true)
             else if c <> "\r" then
@@ -184,7 +187,7 @@ let read_crlf ?(max=4096) socket =
           );
         incr n
     done;
-    !ans
+    Buffer.contents ans
 
 let request socket request =
   if
