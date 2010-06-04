@@ -485,10 +485,11 @@ let () =
     Request.clean ()
   in
   let main () =
-    (* We need to catch SIGINT in win32 (no shell) *)
+    (* On Windows we need to initiate shutdown ourselves by catching INT
+     * since dtools doesn't do it. *)
     if Sys.os_type = "Win32" then
-      let f _ = Tutils.shutdown () in
-      Sys.set_signal Sys.sigint (Sys.Signal_handle f) ;
+      Sys.set_signal Sys.sigint
+        (Sys.Signal_handle (fun _ -> Tutils.shutdown ())) ;
     Clock.start () ;
     Tutils.main ()
   in
