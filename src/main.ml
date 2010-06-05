@@ -401,7 +401,7 @@ let () =
   if Configure.svn_snapshot then
     List.iter (log#f 2 "%s")
       ["";
-       "DISCLAIMER: This version of Liquidsoap was";
+       "DISCLAIMER: This version of Liquidsoap has been";
        "compiled from a snapshot of the development code.";
        "As such, it should not be used in production";
        "unless you know what you are doing!";

@@ -22,6 +22,14 @@
 
 (** A few things should be shared among several sources. *)
 
+(* TODO SERIOUSLY
+ * These I/O operators are deprecated and the code has several problems.
+ * The global initialization doesn't support on-the-fly creation/deletion
+ * of inputs/outputs. It also has several scary comments.
+ * I'm not sure whether this module should remain in liquidsoap 1.0.
+ * If it does, then we should make those sources force their own clock
+ * to a dedicated jack_clock. *)
+
 let log = Dtools.Log.make ["jack"]
 
 let need_jack = ref false

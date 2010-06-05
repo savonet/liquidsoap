@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,16 +29,31 @@
 open Alsa
 open Source
 
-class mic ~kind device =
+class mic ~kind ~clock_safe device =
   let buffer_length = AFrame.size () in
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
 object (self)
-  inherit active_source kind
-  inherit [float array array] IoRing.input
-      ~nb_blocks ~blank () as ioring
+  inherit active_source kind as active_source
+  inherit [float array array] IoRing.input ~nb_blocks ~blank as ioring
+
+  method set_clock =
+    active_source#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
+
+  method private wake_up l =
+    active_source#wake_up l ;
+    if clock_safe then
+      (Alsa_settings.get_clock ())#register_blocking_source
+
+  method private sleep =
+    ioring#sleep ;
+    if clock_safe then
+      (Alsa_settings.get_clock ())#unregister_blocking_source
 
   method stype = Infallible
   method is_ready = true

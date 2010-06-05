@@ -38,10 +38,9 @@ class virtual base ~kind dev mode =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let samples_per_frame = AFrame.size () in
 object (self)
-  initializer
-    (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
 
   method virtual log : Dtools.Log.t
+  method virtual clock : Clock.clock_variable
 
   val mutable alsa_rate = -1
 
@@ -158,7 +157,7 @@ object (self)
   method is_active = true
 end
 
-class output ~kind dev val_source =
+class output ~kind ~clock_safe dev val_source =
   let source = Lang.to_source val_source in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -171,8 +170,19 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
-  inherit Source.active_operator kind [source]
+  inherit Source.active_operator kind [source] as super
   inherit base ~kind dev [Pcm.Playback]
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then begin
+      Clock.unify self#clock
+        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock)) ;
+      (* TODO in the future we should use the Output class to have
+       * a start/stop behavior; until then we register once for all,
+       * which is a quick but dirty solution. *)
+      (Alsa_settings.get_clock ())#register_blocking_source
+    end
 
   val samplerate_converter = Audio_converter.Samplerate.create channels
 
@@ -217,12 +227,23 @@ object (self)
 
 end
 
-class input ~kind dev =
+class input ~kind ~clock_safe dev =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
 object (self)
-  inherit Source.active_source kind
+  inherit Source.active_source kind as super
   inherit base ~kind dev [Pcm.Capture]
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then begin
+      Clock.unify self#clock
+        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock)) ;
+      (* TODO in the future we should use the Output class to have
+       * a start/stop behavior; until then we register once for all,
+       * which is a quick but dirty solution. *)
+      (Alsa_settings.get_clock ())#register_blocking_source
+    end
 
   method stype = Source.Infallible
   method is_ready = true
@@ -257,47 +278,57 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
+  in
   Lang.add_operator "output.alsa"
-    [
-      "bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize output";
-
-      "device", Lang.string_t, Some (Lang.string "default"),
-      Some "Alsa device to use";
-
-      "", Lang.source_t k, None, None
-    ]
+    [ "bufferize",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Bufferize output";
+      "clock_safe",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated ALSA clock" ;
+      "device",
+        Lang.string_t, Some (Lang.string "default"),
+        Some "Alsa device to use" ;
+      "", Lang.source_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
        let bufferize = e Lang.to_bool "bufferize" in
+       let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
          if bufferize then
            (* TODO: add a parameter for autostart? *)
-           ((new Alsa_out.output ~kind device true source):>Source.source)
+           ((new Alsa_out.output ~kind ~clock_safe device true source)
+              :>Source.source)
          else
-           ((new output ~kind device source):>Source.source)
-    ) ;
+           ((new output ~kind ~clock_safe device source):>Source.source))
+
+let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.alsa"
-    [
-      "bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input.";
-
-      "device", Lang.string_t, Some (Lang.string "default"),
-      Some "Alsa device to use."
-    ]
+    [ "bufferize",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Bufferize input";
+      "clock_safe",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated ALSA clock" ;
+      "device",
+        Lang.string_t, Some (Lang.string "default"),
+        Some "Alsa device to use" ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from an ALSA input device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
        let bufferize = e Lang.to_bool "bufferize" in
+       let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string  "device" in
          if bufferize then
-           ((new Alsa_in.mic ~kind device):>Source.source)
+           ((new Alsa_in.mic ~kind ~clock_safe device):>Source.source)
          else
-           ((new input ~kind device):>Source.source)
-    ) ;
+           ((new input ~kind ~clock_safe device):>Source.source))

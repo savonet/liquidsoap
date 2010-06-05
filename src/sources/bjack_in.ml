@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,19 +24,35 @@ open Source
 
 let log = Dtools.Log.make ["input";"jack"]
 
-class jack_in ~kind ~nb_blocks ~server =
+let bjack_clock =
+  Tutils.lazy_cell (fun () -> new Clock.self_sync "bjack")
+
+class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
-  let blank () = 
+  let blank () =
     String.make (samples_per_frame * channels * bytes_per_sample) '0' 
   in
 object (self)
-  inherit active_source kind
-  inherit [string] IoRing.input 
-      ~blocking:true ~nb_blocks ~blank () as ioring
+  inherit active_source kind as active_source
+  inherit [string] IoRing.input ~nb_blocks ~blank as ioring
+
+  method set_clock =
+    active_source#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known ((bjack_clock ()):>Clock.clock))
+
+  method private wake_up l =
+    active_source#wake_up l ;
+    if clock_safe then (bjack_clock ())#register_blocking_source
+
+  method private sleep =
+    active_source#sleep ;
+    if clock_safe then (bjack_clock ())#unregister_blocking_source
 
   method stype = Infallible
   method is_ready = true
@@ -100,7 +116,10 @@ end
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.jack"
-    ["buffer_size",
+    ["clock_safe",
+      Lang.bool_t, Some (Lang.bool true),
+      Some "Force the use of the dedicated bjack clock." ;
+     "buffer_size",
       Lang.int_t, Some (Lang.int 2),
       Some "Set buffer size, in frames. Must be >= 1.";
      "server",
@@ -110,7 +129,7 @@ let () =
     ~category:Lang.Input
     ~descr:"Get stream from jack."
     (fun p kind ->
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in
-         ((new jack_in ~kind ~nb_blocks ~server):>Source.source))
-
+         ((new jack_in ~kind ~clock_safe ~nb_blocks ~server):>Source.source))

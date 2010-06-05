@@ -1,6 +1,7 @@
 (*****************************************************************************
 
-  Copyright 2003-2009 Savonet team
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +24,7 @@
 
 let bytes_per_sample = 2
 
-class output ~kind
+class output ~kind ~clock_safe
        ~infallible ~on_stop ~on_start
        ~nb_blocks ~server source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
@@ -35,10 +36,24 @@ class output ~kind
   in
 object (self)
   inherit Output.output
-              ~infallible ~on_stop ~on_start ~content_kind:kind
-              ~name:"output.jack" ~output_kind:"output.jack" source true
-  inherit [string] IoRing.output ~nb_blocks ~blank
-                                 ~blocking:true () as ioring
+            ~infallible ~on_stop ~on_start ~content_kind:kind
+            ~name:"output.jack" ~output_kind:"output.jack" source true
+          as super
+  inherit [string] IoRing.output ~nb_blocks ~blank as ioring
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known ((Bjack_in.bjack_clock ()):>Clock.clock))
+
+  method output_start =
+    ioring#output_start ;
+    if clock_safe then (Bjack_in.bjack_clock ())#register_blocking_source
+
+  method output_stop =
+    ioring#output_stop ;
+    if clock_safe then (Bjack_in.bjack_clock ())#unregister_blocking_source
 
   val mutable device = None
 
@@ -92,18 +107,22 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "output.jack"
    ( Output.proto @
-    [ "buffer_size",
-      Lang.int_t, Some (Lang.int 2),
-      Some "Set buffer size, in frames.";
-     "server",
-      Lang.string_t, Some (Lang.string ""),
-      Some "Jack server to connect to.";
+    [ "clock_safe",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated bjack clock." ;
+      "buffer_size",
+        Lang.int_t, Some (Lang.int 2),
+        Some "Set buffer size, in frames.";
+      "server",
+        Lang.string_t, Some (Lang.string ""),
+        Some "Jack server to connect to.";
       "", Lang.source_t k, None, None ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output stream to jack."
     (fun p kind ->
        let source = List.assoc "" p in
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let server = Lang.to_string (List.assoc "server" p) in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -115,6 +134,6 @@ let () =
          let f = List.assoc "on_stop" p in
            fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
-         ((new output ~kind
+         ((new output ~kind ~clock_safe
                   ~infallible ~on_start ~on_stop
                   ~nb_blocks ~server source):>Source.source))

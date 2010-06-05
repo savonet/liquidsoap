@@ -38,3 +38,7 @@ let periods =
   Dtools.Conf.int ~p:(conf#plug "periods") ~d:5
     "Number of periods"
 
+(** A dedicated clock for all ALSA I/O operators, to make sure other
+  * blocking I/O inteferes with them. In the future, we might even want
+  * to have different clocks for different ALSA devices. *)
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "alsa")

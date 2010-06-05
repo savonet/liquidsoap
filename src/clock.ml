@@ -265,10 +265,12 @@ object (self)
     let lock = Mutex.create () in
       fun f -> Tutils.mutexify lock f ()
 
+  val mutable sync =
+    match sync with None -> conf_sync#get | Some b -> b
+
   method private run =
     let acc = ref 0 in
     let max_latency = -. conf_max_latency#get in
-    let sync = match sync with None -> conf_sync#get | Some b -> b in
     let last_latency_log = ref (time ()) in
     let t0 = ref (time ()) in
     let ticks = ref 0L in
@@ -278,9 +280,9 @@ object (self)
       -. time ()
     in
       if sync then
-        log#f 3 "Streaming loop starts, real time rate (wallclock mode)."
+        log#f 3 "Streaming loop starts, synchronized with wallclock."
       else
-        log#f 3 "Streaming loop starts, maximum time rate (CPU-burn mode)." ;
+        log#f 3 "Streaming loop starts, no sync." ;
       let rec loop () =
         if outputs = [] then () else
         let rem = if not sync then 0. else delay () in
@@ -340,10 +342,41 @@ object (self)
 
 end
 
-(** To stop, simply detach everything and the clocks will stop running.
-  * No need to collect, stopping is done by itself. *)
-let stop () =
-  Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
+(** {1 Self-sync wallclock}
+  * Special kind of clock for self-synched devices,
+  * that only does synchronization when all input/outputs are stopped
+  * (a normal non-synched wallclock goes 100% CPU when blocking I/O
+  * stops). *)
+
+class self_sync id =
+object
+  inherit wallclock ~sync:true id as super
+
+  val mutable blocking_sources = 0
+  val bs_lock = Mutex.create ()
+
+  method register_blocking_source =
+    Tutils.mutexify bs_lock
+      (fun () ->
+         if blocking_sources = 0 then begin
+           log#f 4 "Delegating clock to active sources." ;
+           sync <- false
+         end ;
+         blocking_sources <- blocking_sources + 1)
+      ()
+
+  method unregister_blocking_source =
+    Tutils.mutexify bs_lock
+      (fun () ->
+         blocking_sources <- blocking_sources - 1 ;
+         if blocking_sources = 0 then begin
+           sync <- true ;
+           log#f 4 "All active sources stopped, synching with wallclock."
+         end)
+      ()
+end
+
+(** {1 Global clock management} *)
 
 (** When created, sources have a clock variable, which gets unified
   * with other variables or concrete clocks. When the time comes to
@@ -354,6 +387,9 @@ let stop () =
   * Taking all freshly created sources, assigning them to the default
   * clock if needed, and starting them, is performed by [collect].
   * This is typically called after each script execution.
+  * Technically we could separate collection and clock assignment,
+  * which might simplify some things if it becomes unmanageable in the
+  * future.
   *
   * Sometimes we need to be sure that collect doesn't happen during
   * the execution of a function. Otherwise, sources might be assigned
@@ -363,7 +399,7 @@ let stop () =
   * basis (collect only the sources created by a given thread of
   * script execution).
   *
-  * Functions running using [after_collect] should be kept short.
+  * Functions running using [collect_after] should be kept short.
   * However, in theory, with multiple threads, we could have plenty
   * of short functions always overlapping so that collection can
   * never be done. This shouldn't happen too much, but in any case
@@ -372,28 +408,27 @@ let stop () =
   * which thread/code a given source has been added. *)
 
 (** We must keep track of the number of tasks currently executing
-  * in an after_collect. When the last one exits it must collect.
+  * in a collect_after. When the last one exits it must collect.
   *
-  * It is okay to start a new after_collect task when a collect is
+  * It is okay to start a new collect_after when a collect is
   * ongoing: all that we're doing is avoiding collection of sources
-  * created by the task. That's why #start_outputs first harvest
+  * created by the task. That's why #start_outputs first harvests
   * sources then returns a function actually starting those sources:
-  * the first part only is done within critical section.
+  * only the first part is done within critical section.
   *
   * The last trick is that we start with a fake task (after_collect_tasks=1)
   * to avoid that the initial parsing of files triggers collect and thus
   * a too early initialization of outputs (before daemonization). Main is
   * in charge of finishing that virtual task and trigger the initial
-  * collect.
-  *
-  * Technically we could separate collect and assign_clocks, this
-  * might simplify some things if it becomes unmanageable in the
-  * future. *)
+  * collect. *)
 let after_collect_tasks = ref 1
 let lock = Mutex.create ()
 let cond = Condition.create ()
 
-let default = (new wallclock "main" :> Source.clock)
+(** We might not need a default clock, so we use a lazy clock value.
+  * We don't use Lazy because we need a thread-safe mechanism. *)
+let get_default =
+  Tutils.lazy_cell (fun () -> (new wallclock "main" :> Source.clock))
 
 (** After some sources have been created or removed (by script execution),
   * finish assigning clocks to sources (assigning the default clock),
@@ -411,7 +446,7 @@ let collect ~must_lock =
     Source.iterate_new_outputs
       (fun o ->
          if not (is_known o#clock) then
-           ignore (unify o#clock (create_known default))) ;
+           ignore (unify o#clock (create_known (get_default ())))) ;
     log#f 4 "Currently %d clocks allocated." (Clocks.count clocks) ;
     let collects =
       Clocks.fold (fun s l -> s#start_outputs::l) clocks []
@@ -434,5 +469,10 @@ let start () =
   Mutex.lock lock ;
   after_collect_tasks := !after_collect_tasks - 1 ;
   collect ~must_lock:false
+
+(** To stop, simply detach everything and the clocks will stop running.
+  * No need to collect, stopping is done by itself. *)
+let stop () =
+  Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
 
 let fold f x = Clocks.fold f clocks x

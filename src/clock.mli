@@ -24,6 +24,13 @@ class clock : string -> Source.clock
 
 class wallclock : ?sync:bool -> string -> clock
 
+class self_sync : string ->
+object
+  inherit Source.clock
+  method register_blocking_source : unit
+  method unregister_blocking_source : unit
+end
+
 val running : unit -> bool
 val set_running : unit -> unit
 

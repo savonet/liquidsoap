@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,12 +22,10 @@
 
  (** Producer/consumer source utils. *)
 
-class virtual ['a] base ~nb_blocks ~blank ~blocking () =
+class virtual ['a] base ~nb_blocks ~blank =
   let () =
     if nb_blocks < 1 then
       failwith "Buffered I/O requires a non-zero buffer length." ;
-    if blocking then
-      (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
   in
 object (self)
 
@@ -80,9 +78,9 @@ object (self)
 
 end
 
-class virtual ['a] input ~nb_blocks ~blank ?(blocking=false) () =
+class virtual ['a] input ~nb_blocks ~blank =
 object (self)
-  inherit ['a] base ~nb_blocks ~blank ~blocking ()
+  inherit ['a] base ~nb_blocks ~blank
 
   method virtual pull_block : 'a -> unit
 
@@ -90,7 +88,7 @@ object (self)
 
   method virtual close : unit
 
-  method sleep = self#sourcering_stop
+  method private sleep = self#sourcering_stop
 
   method output_get_ready =
     assert (state = `Idle) ;
@@ -156,10 +154,10 @@ object (self)
 
 end
 
-class virtual ['a] output ~nb_blocks ~blank ?(blocking=false) () =
+class virtual ['a] output ~nb_blocks ~blank =
 object (self)
 
-  inherit ['a] base ~nb_blocks ~blank ~blocking ()
+  inherit ['a] base ~nb_blocks ~blank
 
   method virtual id : string
 

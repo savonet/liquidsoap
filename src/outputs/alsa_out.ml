@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ open Dtools
 (** ALSA should be quiet *)
 let () = no_stderr_report ()
 
-class output ~kind dev start source =
+class output ~kind ~clock_safe dev start source =
   let buffer_length = AFrame.size () in
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
@@ -40,11 +40,28 @@ class output ~kind dev start source =
   let on_stop () = () in
   let on_start () = () in
 object (self)
-  inherit Output.output
-              ~infallible ~on_stop ~on_start ~content_kind:kind
-              ~name:"output.alsa" ~output_kind:"output.alsa" source start
-  inherit [float array array] IoRing.output ~nb_blocks ~blank
-                                 ~blocking:true () as ioring
+  inherit
+    Output.output
+      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~name:"output.alsa" ~output_kind:"output.alsa" source start
+    as super
+  inherit [float array array] IoRing.output ~nb_blocks ~blank as ioring
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
+
+  method output_start =
+    ioring#output_start ;
+    if clock_safe then
+      (Alsa_settings.get_clock ())#register_blocking_source
+
+  method output_stop =
+    ioring#output_stop ;
+    if clock_safe then
+      (Alsa_settings.get_clock ())#unregister_blocking_source
 
   val mutable device = None
 

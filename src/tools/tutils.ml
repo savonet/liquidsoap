@@ -296,3 +296,16 @@ let run = ref true
 let main () =
   wait no_problem lock (fun () -> not (!run && !uncaught=None))
 let shutdown () = run := false; Condition.signal no_problem
+
+(** Thread-safe lazy cell. *)
+let lazy_cell f =
+  let lock = Mutex.create () in
+  let c = ref None in
+    mutexify lock
+      (fun () ->
+         match !c with
+           | Some v -> v
+           | None ->
+               let v = f () in
+                 c := Some v ;
+                 v)

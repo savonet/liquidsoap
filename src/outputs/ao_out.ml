@@ -1,6 +1,7 @@
 (*****************************************************************************
 
-  Copyright 2003-2009 Savonet team
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +24,12 @@
 
 open Ao
 
-class output ~kind ~nb_blocks ~driver
+(** As with ALSA (even more maybe) it would be better to have one clock
+  * per driver... but it might also depend on driver options. *)
+let get_clock =
+  Tutils.lazy_cell (fun () -> new Clock.self_sync "ao")
+
+class output ~kind ~clock_safe ~nb_blocks ~driver
              ~infallible ~on_start ~on_stop
              ~options source start =
   let channels = (Frame.type_of_kind kind).Frame.audio in
@@ -36,9 +42,22 @@ class output ~kind ~nb_blocks ~driver
 object (self)
   inherit Output.output  ~content_kind:kind
               ~infallible ~on_start ~on_stop
-              ~name:"ao" ~output_kind:"output.ao" source start
-  inherit [string] IoRing.output ~nb_blocks ~blank 
-                                 ~blocking:true () as ioring
+              ~name:"ao" ~output_kind:"output.ao" source start as super
+  inherit [string] IoRing.output ~nb_blocks ~blank as ioring
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      Clock.unify self#clock
+        (Clock.create_known ((get_clock ()):>Clock.clock))
+
+  method output_start =
+    ioring#output_start ;
+    if clock_safe then (get_clock ())#register_blocking_source
+
+  method output_stop =
+    ioring#output_stop ;
+    if clock_safe then (get_clock ())#unregister_blocking_source
 
   val mutable device = None
 
@@ -96,7 +115,11 @@ let () =
   let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "output.ao"
    ( Output.proto @
-    [ "driver",
+    [ "clock_safe",
+      Lang.bool_t, Some (Lang.bool true),
+      Some "Use the dedicated AO clock." ;
+      
+      "driver",
       Lang.string_t, Some (Lang.string ""),
       Some "Driver to be used, \"\" for AO's default." ;
 
@@ -115,6 +138,7 @@ let () =
     ~descr:"Output stream to local sound card using libao."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
        let driver = Lang.to_string (List.assoc "driver" p) in
        let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
        let options =
@@ -135,6 +159,6 @@ let () =
            fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
        in
        let source = List.assoc "" p in
-         ((new output ~kind ~nb_blocks ~driver
+         ((new output ~kind ~clock_safe ~nb_blocks ~driver
                       ~infallible ~on_start ~on_stop
                       ~options source start):>Source.source))
