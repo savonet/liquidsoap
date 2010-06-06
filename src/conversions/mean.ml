@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 open Source
 
-class mean ~kind (source:source) =
+class mean ~kind source =
 object (self)
   inherit operator kind [source] as super
 
@@ -31,26 +31,46 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  method private get_frame buf =
-    let offset = AFrame.position buf in
-    let buffer = source#get buf ; AFrame.content buf offset in
-      for i = offset to AFrame.position buf - 1 do
-        buffer.(0).(i) <-
-          Array.fold_left (fun m b -> m +. b.(i)) 0. buffer
-          /. float (Array.length buffer)
-      done
+  method private get_frame frame =
+    let start = Frame.position frame in
+    let src =
+      source#get frame ;
+      let layer_end,src = Frame.content frame start in
+        assert (layer_end = Lazy.force Frame.size) ;
+        src
+    in
+    let len = Frame.position frame - start in
+    let src_type = Frame.type_of_content src in
+    let dst_type = { src_type with Frame.audio = 1 } in
+    let dst = Frame.content_of_type frame start dst_type in
+      (* Copy midi and video channels. This should be avoided eventually. *)
+      for i = 0 to Array.length src.Frame.video - 1 do
+        let (!) = Frame.video_of_master in
+          for j = 0 to !len-1 do
+            RGB.blit_fast
+              src.Frame.video.(i).(!start+j)
+              dst.Frame.video.(i).(!start+j)
+          done
+      done ;
+      for i = 0 to Array.length src.Frame.midi - 1 do
+        Midi.blit
+          src.Frame.midi.(i) start
+          dst.Frame.midi.(i) start
+          len
+      done ;
+      (* Fill the unique audio channel. *)
+      let (!) = Frame.audio_of_master in
+      let channels = float (Array.length dst.Frame.audio) in
+        if channels>0. then
+          for i = !start to !(start+len) - 1 do
+            dst.Frame.audio.(0).(i) <-
+              Array.fold_left (fun m b -> m +. b.(i)) 0. src.Frame.audio
+              /. channels
+          done
 end
 
 let () =
-  let format = 
-    Lang.Constrained 
-     { Frame.
-        audio = Lang.Variable 1;
-        video = Lang.Any_fixed 0;
-        midi  = Lang.Any_fixed 0
-     }
-  in
-  let in_kind = Lang.kind_type_of_kind_format ~fresh:1 format in
+  let in_kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   let out_kind =
     let { Frame.audio=a;video=v;midi=m } = Lang.of_frame_kind_t in_kind in
       Lang.frame_kind_t (Lang.succ_t Lang.zero_t) v m
