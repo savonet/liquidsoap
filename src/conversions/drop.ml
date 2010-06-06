@@ -31,9 +31,9 @@ object
 
   method private get_frame frame =
     let start = Frame.position frame in
-    let stop  = source#get frame ; Frame.position frame in
-    let stop',src = Frame.content frame start in
-      assert (stop'>=stop) ;
+    let len = source#get frame ; Frame.position frame - start in
+    let layer_end,src = Frame.content frame start in
+      assert (layer_end = Lazy.force Frame.size) ;
       if Array.length src.Frame.video > 0 then
         let new_type = { (Frame.type_of_content src) with Frame.video = 0 } in
         let dst = Frame.content_of_type frame start new_type in
@@ -42,13 +42,13 @@ object
             Float_pcm.blit
               src.Frame.audio.(i) !start
               dst.Frame.audio.(i) !start
-              !stop
+              !len
           done ;
           for i = 0 to Array.length src.Frame.midi - 1 do
             Midi.blit
               src.Frame.midi.(i) start
               dst.Frame.midi.(i) start
-              stop
+              len
           done
 end
 
@@ -84,15 +84,15 @@ object
 
   method private get_frame frame =
     let start = Frame.position frame in
-    let stop  = source#get frame ; Frame.position frame in
-    let stop',src = Frame.content frame start in
-      assert (stop'>=stop) ;
+    let len = source#get frame ; Frame.position frame - start in
+    let layer_end,src = Frame.content frame start in
+      assert (layer_end = Lazy.force Frame.size) ;
       if Array.length src.Frame.audio > 0 then
         let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
         let dst = Frame.content_of_type frame start new_type in
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
-              for j = 0 to !stop-1 do
+              for j = 0 to !len-1 do
                 RGB.blit_fast
                   src.Frame.video.(i).(!start+j)
                   dst.Frame.video.(i).(!start+j)
@@ -102,7 +102,7 @@ object
             Midi.blit
               src.Frame.midi.(i) start
               dst.Frame.midi.(i) start
-              stop
+              len
           done
 end
 
@@ -138,9 +138,9 @@ object
 
   method private get_frame frame =
     let start = Frame.position frame in
-    let stop  = source#get frame ; Frame.position frame in
-    let stop',src = Frame.content frame start in
-      assert (stop'>=stop) ;
+    let len = source#get frame ; Frame.position frame - start in
+    let layer_end,src = Frame.content frame start in
+      assert (layer_end = Lazy.force Frame.size) ;
       if Array.length src.Frame.midi > 0 then
         let new_type = { (Frame.type_of_content src) with Frame.midi = 0 } in
         let dst = Frame.content_of_type frame start new_type in
@@ -149,11 +149,11 @@ object
               Float_pcm.blit
                 src.Frame.audio.(i) !start
                 dst.Frame.audio.(i) !start
-                !stop
+                !len
           done ;
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
-              for j = 0 to !stop-1 do
+              for j = 0 to !len-1 do
                 RGB.blit_fast
                   src.Frame.video.(i).(!start+j)
                   dst.Frame.video.(i).(!start+j)
