@@ -51,15 +51,17 @@ let preprocess tokenizer =
   in
     token
 
-let includer tokenizer =
-  (* The purpose of this preprocessor is to insert some files instead
-   * of %include statements. This is done by keeping a stack ([state])
-   * of the lexbufs of the nested included files.
+(** Expand %include statements by inserting the content of files.
+  * Filenames are understood relatively to the current directory,
+  * which can be a relative path such as "." or "..". *)
+let includer dir tokenizer =
+  (* We maintain a stack ([state]) of the lexbufs of the nested included files
+   * and a stack of dirnames and in_channels for [opened] files.
    * In order to maintain the lexing positions, we have to copy data from
    * the current active lexbuf to the toplevel one, the only visible one
    * from the parser. *)
   let state = Stack.create () in
-  let in_channels = Stack.create () in
+  let opened = Stack.create () in
   let copy_lexbuf dst src =
     (* Yuk. *)
     dst.Lexing.lex_buffer      <- src.Lexing.lex_buffer ;
@@ -73,6 +75,9 @@ let includer tokenizer =
     dst.Lexing.lex_mem         <- src.Lexing.lex_mem ;
     dst.Lexing.lex_start_p     <- src.Lexing.lex_start_p ;
     dst.Lexing.lex_curr_p      <- src.Lexing.lex_curr_p ;
+  in
+  let current_dir () =
+    if Stack.is_empty opened then dir else fst (Stack.top opened)
   in
   let rec token top_lexbuf =
     (* At the first call the state will be initialized with a copy
@@ -112,9 +117,16 @@ let includer tokenizer =
                   | Lang_parser.STRING s -> s
                   | _ -> failwith "expected a string after %include"
               in
-              let channel = open_in (Utils.home_unrelate filename) in
+              let filename = Utils.home_unrelate filename in
+              let filename =
+                if Filename.is_relative filename then
+                  Filename.concat (current_dir ()) filename
+                else
+                  filename
+              in
+              let channel = open_in filename in
               let new_lexbuf = Lexing.from_channel channel in
-                Stack.push channel in_channels ;
+                Stack.push (Filename.dirname filename,channel) opened ;
                 new_lexbuf.Lexing.lex_start_p <-
                   { new_lexbuf.Lexing.lex_start_p with
                       Lexing.pos_fname = filename } ;
@@ -128,7 +140,7 @@ let includer tokenizer =
         | Lang_parser.EOF ->
             if Stack.length state = 1 then Lang_parser.EOF else begin
               ignore (Stack.pop state) ;
-              close_in (Stack.pop in_channels) ;
+              close_in (snd (Stack.pop opened)) ;
               if Stack.length state = 1 then
                 (* top_lexbuf is containing outdated data *)
                 copy_lexbuf top_lexbuf (Stack.top state) ;
@@ -301,7 +313,7 @@ let strip_newlines tokenizer =
     token
 
 (* Wrap the lexer with its extensions *)
-let token =
+let token dir =
   let (+) a b = b a in
     Lang_lexer.token
     + parse_comments
@@ -310,4 +322,4 @@ let token =
     + expand
     (* The includer has to be the last, since it uses its input tokenizer
      * (which wouldn't get extended by further additions) on inclusions. *)
-    + includer
+    + includer dir

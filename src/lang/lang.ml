@@ -571,8 +571,13 @@ let rec print_type_error focus_left = function
 
 let print_type_error trace = print_type_error true trace
 
-let from_in_channel ?(parse_only=false) ~ns stdin =
-  let lexbuf = Lexing.from_channel stdin in
+(** The Parsing module is not thread safe, it has global variables
+  * describing the current parsing state. Hence we need to do one
+  * parsing at a time. *)
+let parse_lock = Mutex.create ()
+
+let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
+  let lexbuf = Lexing.from_channel in_chan in
   let print_error error =
     flush_all () ;
     let start = lexbuf.Lexing.lex_curr_p in
@@ -597,8 +602,11 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
       | None -> ()
     end ;
     try
-      (if parse_only then ignore else type_and_run)
-        (Lang_parser.program Lang_pp.token lexbuf)
+      let tokenizer = Lang_pp.token dir in
+      let program =
+        Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
+      in
+        if not parse_only then type_and_run program
     with
       | Failure "lexing: empty token" -> print_error "Empty token" ; exit 1
       | Parsing.Parse_error -> print_error "Parse error" ; exit 1
@@ -665,7 +673,7 @@ let from_in_channel ?(parse_only=false) ~ns stdin =
 
 let from_file ?parse_only ~ns filename =
   let ic = open_in filename in
-    from_in_channel ?parse_only ~ns ic ;
+    from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ic ;
     close_in ic
 
 let load_libs ?parse_only () =
@@ -707,7 +715,11 @@ let interactive () =
     Printf.printf "# %!" ;
     if
       try
-        let expr = Lang_parser.interactive Lang_pp.token lexbuf in
+        let tokenizer = Lang_pp.token (Unix.getcwd ()) in
+        let expr =
+          Tutils.mutexify parse_lock
+            (Lang_parser.interactive tokenizer) lexbuf
+        in
           Term.check expr ;
           Clock.collect_after
             (fun () ->
