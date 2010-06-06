@@ -97,6 +97,31 @@
     let args = List.map (fun x -> "", mk (Int x)) [a;b;c] in
       mk (App (mk (Var "time_in_mod"), args))
 
+  let mk_ty name args =
+    match name with
+      | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
+      | "unit" -> Lang_types.make (Lang_types.Ground Lang_types.Unit)
+      | "bool" -> Lang_types.make (Lang_types.Ground Lang_types.Bool)
+      | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
+      | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
+      | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
+      | "source" ->
+          (* TODO less confusion in hiding the stream_kind constructed type *)
+          let audio,video,midi =
+            match args with
+              | ["",a;"",v;"",m] -> a,v,m
+              | _::_::_::_ -> failwith "invalid type parameters"
+              | l ->
+                  let assoc x =
+                    try List.assoc x l with
+                      | Not_found ->
+                          Lang_types.fresh_evar ~level:(-1) ~pos:None
+                  in
+                    assoc "audio", assoc "video", assoc "midi"
+          in
+            Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
+      | _ -> failwith "unknown type constructor"
+
   open Lang_encoders
 
 %}
@@ -110,18 +135,20 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX WAV AACPLUS MP3 EXTERNAL
+%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
+%token WAV AACPLUS MP3 EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
-%token LPAR RPAR COMMA SEQ SEQSEQ
+%token LPAR RPAR COMMA SEQ SEQSEQ COLON
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token <string> BIN0
 %token <string> BIN1
 %token <string> BIN2
 %token <string> BIN3
+%token TIMES
 %token MINUS
 %token NOT
 %token REF GET SET
@@ -129,11 +156,15 @@
 %token <string list> PP_COMMENT
 
 %left YIELDS
+%left SET
+%left REF
 %left BIN0
 %left BIN1
 %left BIN2 MINUS NOT
 %left BIN3
+%left TIMES
 %left unary_minus
+%left GET
 
 %start program
 %type <Lang_values.term> program
@@ -168,10 +199,12 @@ exprs:
                                            body = $3 }) }
 
 /* General expressions.
- * The only difference is the ability to start with an unary MINUS.
+ * The only difference with cexpr is the ability to start with an unary MINUS.
  * But having two rules, one coercion and one for MINUS expr, would
  * be wrong: we want to parse -3*2 as (-3)*2. */
 expr:
+  | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ;
+                                       $2 }
   | MINUS expr %prec unary_minus     { mk (App (mk ~pos:(1,1) (Var "~-"),
                                                 ["", $2])) }
   | LPAR expr RPAR                   { $2 }
@@ -218,15 +251,35 @@ expr:
                                                 ["",$1;"",$3])) }
   | expr BIN3 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
+  | expr TIMES expr                { mk (App (mk ~pos:(2,2) (Var "*"),
+                                                ["",$1;"",$3])) }
   | expr MINUS expr                { mk (App (mk ~pos:(2,2) (Var "-"),
                                                 ["",$1;"",$3])) }
   | INTERVAL                       { mk_time_pred (between (fst $1) (snd $1)) }
   | TIME                           { mk_time_pred (during $1) }
 
+ty:
+  | VAR                       { mk_ty $1 [] }
+  | VARLPAR ty_args RPAR      { mk_ty $1 $2 }
+  | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
+  | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
+  | INT                       { Lang_values.type_of_int $1 }
+
+ty_args:
+  |                      { [] }
+  | ty_arg               { [$1] }
+  | ty_arg COMMA ty_args { $1::$3 }
+
+ty_arg:
+  | ty { "",$1 }
+  | VAR GETS ty { $1,$3 }
+
 /* An expression,
  * in a restricted form that can be concenated without ambiguity */
 cexpr:
   | LPAR expr RPAR                   { $2 }
+  | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ;
+                                       $2 }
   | INT                              { mk (Int $1) }
   | NOT expr                         { mk (App (mk ~pos:(1,1) (Var "not"),
                                                 ["", $2])) }
@@ -270,6 +323,8 @@ cexpr:
   | cexpr BIN2 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
   | cexpr BIN3 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+                                                ["",$1;"",$3])) }
+  | cexpr TIMES expr                { mk (App (mk ~pos:(2,2) (Var "*"),
                                                 ["",$1;"",$3])) }
   | cexpr MINUS expr                { mk (App (mk ~pos:(2,2) (Var "-"),
                                                 ["",$1;"",$3])) }

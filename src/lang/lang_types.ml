@@ -354,8 +354,15 @@ let rec occur_check a b =
             p ;
           occur_check a t
       | EVar _ ->
-          assert (a.level <> -1 && b.level <> -1) ;
-          b.level <- min b.level a.level
+          (* In normal type inference level -1 should never arise.
+           * Unfortunately we can't check it strictly because this code 
+           * is also used to process type annotations, which make use
+           * of unknown levels. Also note that >=0 levels can arise
+           * when processing type annotations, because of builtins. *)
+          if b.level = -1 then
+            b.level <- a.level
+          else if a.level <> -1 then
+            b.level <- min b.level a.level
       | Ground _ -> ()
       | Link _ -> assert false
 
