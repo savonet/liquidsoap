@@ -430,6 +430,19 @@ let cond = Condition.create ()
 let get_default =
   Tutils.lazy_cell (fun () -> (new wallclock "main" :> Source.clock))
 
+(** A function displaying the varying number of allocating clocks.
+  * It's not thread safe but the worst that can happen is a doubled log. *)
+let gc_alarm =
+  let last_displayed = ref (-1) in
+    fun () ->
+      let nb_clocks = Clocks.count clocks in
+        if nb_clocks <> !last_displayed then begin
+          log#f 4 "Currently %d clocks allocated." nb_clocks ;
+          last_displayed := nb_clocks
+        end
+
+let () = ignore (Gc.create_alarm gc_alarm)
+
 (** After some sources have been created or removed (by script execution),
   * finish assigning clocks to sources (assigning the default clock),
   * start clocks and sources that need starting,
@@ -447,7 +460,7 @@ let collect ~must_lock =
       (fun o ->
          if not (is_known o#clock) then
            ignore (unify o#clock (create_known (get_default ())))) ;
-    log#f 4 "Currently %d clocks allocated." (Clocks.count clocks) ;
+    gc_alarm () ;
     let collects =
       Clocks.fold (fun s l -> s#start_outputs::l) clocks []
     in
