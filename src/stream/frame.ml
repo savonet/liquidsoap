@@ -33,11 +33,13 @@ let conf =
 
 let conf_duration =
   Conf.float ~p:(conf#plug "duration") ~d:0.04
-    "Frame duration in seconds"
+    "Tentative frame duration in seconds"
     ~comments:[
-      "Tweaking this is tricky but needed when dealing with latency." ;
-      "It can also help to get ALSA correctly synchronized with liquidsoap" ;
-      "when used in non-buffered mode."
+    "Audio and video samplerates constrain the possible frame durations.";
+    "This setting is used as a hint for the duration, when 'frame.audio.size'";
+    "is not provided.";
+    "Tweaking frame duration is tricky but needed when dealing with latency";
+    "or getting soundcard I/O correctly synchronized with liquidsoap."
     ]
 
 (* Audio *)
@@ -47,6 +49,16 @@ let conf_audio_samplerate =
   Conf.int ~p:(conf_audio#plug "samplerate") ~d:44100 "Samplerate"
 let conf_audio_channels =
   Conf.int ~p:(conf_audio#plug "channels") ~d:2 "Default number of channels"
+let conf_audio_size =
+  Conf.int ~p:(conf_audio#plug "size")
+    "Tentative frame duration in audio samples"
+    ~comments:[
+    "Audio and video samplerates constrain the possible frame durations.";
+    "This setting is used as a hint for the duration, overriding";
+    "'frame.duration'.";
+    "Tweaking frame duration is tricky but needed when dealing with latency";
+    "or getting soundcard I/O correctly synchronized with liquidsoap."
+    ]
 
 (* Video *)
 let conf_video =
@@ -98,7 +110,7 @@ let rec gcd a b =
     | _ (* a<b *) -> gcd a (b-a)
 
 (** Least common multiplier. *)
-let lcm a b = (a*b) / gcd a b
+let lcm a b = a / gcd a b * b (* divide early to avoid overflow *)
 
 (** [upper_multiple k m] is the least multiple of [k] that is [>=m]. *)
 let upper_multiple k m =
@@ -128,6 +140,8 @@ let seconds_of_master d = float d /. float !!master_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
 
+let log = Dtools.Log.make ["frame"]
+
 (** The frame size (in master ticks) should allow for an integer
   * number of samples of all types (audio, video).
   * With audio@44100Hz and video@25Hz, ticks=samples and one video
@@ -137,9 +151,41 @@ let size =
              let audio = !!audio_rate in
              let video = !!video_rate in
              let master = !!master_rate in
-               upper_multiple
-                 (lcm (master/audio) (master/video))
-                 (max 1 (master_of_seconds conf_duration#get)))
+             let granularity = lcm (master/audio) (master/video) in
+             let target =
+               log#f 3
+                 "Using %dHz audio, %dHz video, %dHz master."
+                 audio video master ;
+               log#f 3
+                 "Frame size must be a multiple of %d ticks = \
+                  %d audio samples = %d video samples."
+                 granularity
+                 (audio_of_master granularity)
+                 (video_of_master granularity) ;
+               match conf_audio_size#get_d with
+                 | Some d ->
+                     log#f 3
+                       "Targetting 'frame.audio.size': \
+                        %d audio samples = %d ticks."
+                       d (master_of_audio d) ;
+                     master_of_audio d
+                 | None ->
+                     log#f 3
+                       "Targetting 'frame.duration': \
+                        %.2fs = %d audio samples = %d ticks."
+                       conf_duration#get
+                       (audio_of_seconds conf_duration#get)
+                       (master_of_seconds conf_duration#get) ;
+                     master_of_seconds conf_duration#get
+             in
+             let s = upper_multiple granularity (max 1 target) in
+               log#f 3
+                 "Frames last %.2fs = \
+                    %d audio samples = %d video samples = %d ticks."
+                 (seconds_of_master s) (audio_of_master s)
+                 (video_of_master s) s ;
+               s)
+
 let duration = delayed (fun () -> float !!size /. float !!master_rate)
 
 (** Data types *)
@@ -473,8 +519,6 @@ let blit src src_pos dst dst_pos len =
   (* Get a compatible chunk in [dst]. *)
   let dst = content_of_type dst dst_pos (type_of_content src) in
     blit_content src src_pos dst dst_pos len
-
-let log = Dtools.Log.make ["frame"]
 
 exception No_chunk
 
