@@ -57,6 +57,14 @@ let () =
       ("rundir", "PID file", Configure.rundir) ;
       ("logdir", "logging", Configure.logdir) ]
 
+let () =
+  Lang.add_builtin_base
+    ~category:(string_of_category Liq)
+    ~descr:"Type of OS running liquifsoap."
+    "os.type"
+    (Lang.String Sys.os_type)
+    Lang.string_t
+
 (** Liquidsoap stuff *)
 
 let log = Dtools.Log.make ["lang"]
@@ -168,26 +176,27 @@ let () =
            Lang.list t l)
 
 let () =
-  (** The type of the test function for external decoders.
-    * Return is one of:
-    * . 0: no audio
-    * . -1: audio with unknown number of channels.
-    * . x >= 1: audio with a fixed number (x) of channels. *)
-  let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
-  let test_arg =
-    "test",test_file_t,None, 
-    Some "Function used to \
-          determine if the file should \
-          be decoded by the decoder. Returned values are: \
-          0: no decodable audio, -1: decodable audio but \
-          number of audio channels unknown, x: fixed number of decodable \
-          audio channels."                               
-  in
-  let test_f f = 
-    (fun file ->
-       Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
-  in
-
+  if Sys.os_type <> "Win32" then
+   begin
+   (** The type of the test function for external decoders.
+     * Return is one of:
+     * . 0: no audio
+     * . -1: audio with unknown number of channels.
+     * . x >= 1: audio with a fixed number (x) of channels. *)
+   let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
+   let test_arg =
+     "test",test_file_t,None, 
+     Some "Function used to \
+           determine if the file should \
+           be decoded by the decoder. Returned values are: \
+           0: no decodable audio, -1: decodable audio but \
+           number of audio channels unknown, x: fixed number of decodable \
+           audio channels."                               
+   in
+   let test_f f = 
+     (fun file ->
+        Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
+   in
     add_builtin "add_decoder" ~cat:Liq
       ~descr:"Register an external file decoder. \
               The encoder should output in WAV format \
@@ -237,6 +246,7 @@ let () =
            name descr 
            (test_f test) process prebuf ;
          Lang.unit)
+   end
 
 let () =
   let resolver_t =

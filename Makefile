@@ -76,11 +76,9 @@ endif
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
-	# We want to load externals.liq *after* utils.liq, so we name them 0x.
-	# This should be fixed for 1.0..
-	$(INSTALL_DATA) scripts/01-externals.liq $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_DATA) scripts/02-lastfm.liq $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_DATA) scripts/00-utils.liq $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_DATA) scripts/externals.liq $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_DATA) scripts/lastfm.liq $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_DATA) scripts/utils.liq $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq \
 	  ${sysconfdir}/liquidsoap/radio.liq.example

@@ -1,5 +1,5 @@
 
-dummy = fun () -> log("Lastfm/audiocscrobbler support was not compiled.")
+dummy = fun () -> log("Lastfm/audioscrobbler support was not compiled.")
 
 %ifdef input.lastfm
 dummy = fun () -> ()
