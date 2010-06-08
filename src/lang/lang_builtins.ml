@@ -60,7 +60,7 @@ let () =
 let () =
   Lang.add_builtin_base
     ~category:(string_of_category Liq)
-    ~descr:"Type of OS running liquifsoap."
+    ~descr:"Type of OS running liquidsoap."
     "os.type"
     (Lang.String Sys.os_type)
     Lang.string_t
