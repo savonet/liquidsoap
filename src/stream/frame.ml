@@ -162,14 +162,13 @@ let size =
                  granularity
                  (audio_of_master granularity)
                  (video_of_master granularity) ;
-               match conf_audio_size#get_d with
-                 | Some d ->
+               try let d = conf_audio_size#get in
                      log#f 3
                        "Targetting 'frame.audio.size': \
                         %d audio samples = %d ticks."
                        d (master_of_audio d) ;
                      master_of_audio d
-                 | None ->
+               with Conf.Undefined _ ->
                      log#f 3
                        "Targetting 'frame.duration': \
                         %.2fs = %d audio samples = %d ticks."
