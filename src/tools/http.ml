@@ -70,6 +70,11 @@ let args_split s =
   List.iter fill_arg (Pcre.split ~pat:"&" s) ;
   args
 
+(* TODO: is this an optimal solution ?
+ * Why do we need to decode the url prior to encoding it ?
+ * I suspect decoding the url first may lead to issues when 
+ * for instance for arguments in a GET requests have a & in 
+ * them. *)
 let http_encode url = 
   try
     (* First decode the url 

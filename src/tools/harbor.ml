@@ -387,7 +387,15 @@ let handle_get_request ~port c uri headers =
     | Not_found -> uri,""
   in
   log#f 3 "GET request on %s." base_uri ;
-  let args = Http.args_split (Http.url_decode args) in
+  let args = Http.args_split args in
+  (* decoder args *)
+  let args = 
+    let ret = Hashtbl.create (Hashtbl.length args) in
+    let g = Http.url_decode in
+    let f x y = Hashtbl.add ret (g x) (g y) in 
+    Hashtbl.iter f args ;
+    ret
+  in
   (* Filter out password *)
   let log_args = 
     if conf_pass_verbose#get then
