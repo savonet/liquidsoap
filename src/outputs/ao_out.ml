@@ -31,7 +31,7 @@ let get_clock =
 
 class output ~kind ~clock_safe ~nb_blocks ~driver
              ~infallible ~on_start ~on_stop
-             ~options source start =
+             ~options ?channels_matrix source start =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -77,7 +77,7 @@ object (self)
              self#log#f 3
                "Opening %s (%d channels)..."
                (driver_name driver) channels ;
-             open_live ~driver ~options
+             open_live ~driver ~options ?channels_matrix
                        ~rate:samples_per_second
                        ~bits:(bytes_per_sample * 8)
                        ~channels ()
@@ -123,6 +123,10 @@ let () =
       Lang.string_t, Some (Lang.string ""),
       Some "Driver to be used, \"\" for AO's default." ;
 
+      "channels_matrix",
+      Lang.string_t, Some (Lang.string ""),
+      Some "Output channels matrix, \"\" for AO's default.";
+
       "buffer_size",
       Lang.int_t, Some (Lang.int 2),
       Some "Set buffer size, in frames." ;
@@ -148,6 +152,13 @@ let () =
                 Lang.to_string a, Lang.to_string b)
            (Lang.to_list (List.assoc "options" p))
        in
+       let channels_matrix = Lang.to_string (List.assoc "channels_matrix" p) in
+       let channels_matrix = 
+          if channels_matrix = "" then
+            None
+          else
+            Some channels_matrix
+       in
        let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
        let start = Lang.to_bool (List.assoc "start" p) in
        let on_start =
@@ -160,5 +171,5 @@ let () =
        in
        let source = List.assoc "" p in
          ((new output ~kind ~clock_safe ~nb_blocks ~driver
-                      ~infallible ~on_start ~on_stop
+                      ~infallible ~on_start ~on_stop ?channels_matrix
                       ~options source start):>Source.source))
