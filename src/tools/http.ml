@@ -71,7 +71,7 @@ let args_split s =
   List.iter fill_arg (Pcre.split ~pat:"&" s) ;
   args
 
-let http_encode url = 
+let http_sanitize url = 
   try
     let basic_rex = Pcre.regexp "^http://([^/]+)/(.*)$" in
     let path_rex = Pcre.regexp "^([^?]+)\\?(.+)$" in

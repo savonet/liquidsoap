@@ -14,8 +14,9 @@ val url_decode : ?plus:bool -> string -> string
 (** Encode an url. *)
 val url_encode : ?plus:bool -> string -> string
 
-(** [http_encode url] encode only relevant parts in url *)
-val http_encode : string -> string
+(** [http_sanitize url] encodes the relevant parts of a url
+ *  (path and arguments, without their seperators). *)
+val http_sanitize : string -> string
 
 (** split arg=value&arg2=value2 into (arg, value) Hashtbl.t *)
 val args_split : string -> (string, string) Hashtbl.t

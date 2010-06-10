@@ -243,13 +243,13 @@ object (self)
             Http.disconnect socket ;
             if debug then raise e
 
-  method connect = self#private_connect ~encode:true
+  method connect = self#private_connect ~sanitize:true
 
   (* Called when there's no decoding process, in order to create one. *)
-  method private_connect ?(encode=true) url =
+  method private_connect ?(sanitize=true) url =
     let url =
-      if encode then
-        Http.http_encode url
+      if sanitize then
+        Http.http_sanitize url
       else
         url
     in
@@ -395,7 +395,7 @@ object (self)
                 raise e
       with
         | Redirection location ->
-            self#private_connect ~encode:false location
+            self#private_connect ~sanitize:false location
         | Http.Error e ->
             self#log#f 4 "Connection failed: %s!" (Http.string_of_error e)
         | e ->
