@@ -75,8 +75,13 @@ let create_gen enc freq m =
     end_of_stream  = end_of_stream
   }
 
+(** Rates are given in bits per seconds,
+  * i.e. 128000 instead of 128.. *)
 let create_abr ~channels ~samplerate ~min_rate 
                ~max_rate ~average_rate ~metadata () = 
+  let min_rate,max_rate,average_rate = 
+    1000*min_rate,1000*max_rate,1000*average_rate
+  in
   let enc = 
     Vorbis.Encoder.create channels samplerate max_rate 
                           average_rate min_rate 
@@ -131,9 +136,18 @@ let create_vorbis =
                   ())
         in
         let enc =
+          (* For ABR, a value of -1 means unset.. *)
+          let f x = 
+            match x with
+              | Some x -> x
+              | None   -> -1
+          in
           match vorbis.Encoder.Vorbis.mode with
             | Encoder.Vorbis.ABR (min_rate,average_rate,max_rate) 
-                -> create_abr ~channels ~samplerate 
+                -> let min_rate,average_rate,max_rate = 
+                     f min_rate, f average_rate, f max_rate
+                   in
+                   create_abr ~channels ~samplerate 
                               ~max_rate ~average_rate 
                               ~min_rate ~metadata ()
             | Encoder.Vorbis.CBR bitrate 

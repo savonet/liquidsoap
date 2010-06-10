@@ -154,6 +154,11 @@ class output ~kind p =
                      {Encoder.Vorbis.channels=n;
                                      mode=Encoder.Vorbis.ABR (_,b,_);
                                      samplerate=s}]
+                  ->
+                    { quality = None ;
+                      bitrate = b ;
+                      samplerate = Some s ;
+                      channels = Some n }
                 | [Encoder.Ogg.Vorbis
                      {Encoder.Vorbis.channels=n;
                                      mode=Encoder.Vorbis.CBR b;

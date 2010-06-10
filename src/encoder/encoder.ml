@@ -40,7 +40,7 @@ struct
   type mode =
     | VBR of quality                 (* Variable bitrate. *)
     | CBR of bitrate                 (* Constant bitrate. *)
-    | ABR of bitrate*bitrate*bitrate (* Average: min,avg,max. *)
+    | ABR of (bitrate option)*(bitrate option)*(bitrate option) (* Average: min,avg,max. *)
 
   type t = {
     channels   : int ;
@@ -50,7 +50,12 @@ struct
 
   let string_of_mode = function
     | ABR (min,avg,max) ->
-        Printf.sprintf "ABR(%d,%d,%d)" min avg max
+        let f x = 
+          match x with
+            | Some x -> Printf.sprintf "%i" x
+            | None   -> "unset"
+        in
+        Printf.sprintf "ABR(%s,%s,%s)" (f min) (f avg) (f max)
     | CBR bitrate ->
         Printf.sprintf "CBR(%d)" bitrate
     | VBR q ->

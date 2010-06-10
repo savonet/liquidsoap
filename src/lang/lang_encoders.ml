@@ -185,7 +185,7 @@ let mk_external params =
 let mk_vorbis_cbr params =
   let defaults =
     { Encoder.Vorbis.
-        mode = Encoder.Vorbis.ABR (128,128,128) ;
+        mode = Encoder.Vorbis.CBR 128 ;
         channels = 2 ;
         samplerate = 44100 ;
     }
@@ -198,6 +198,45 @@ let mk_vorbis_cbr params =
               { f with Encoder.Vorbis.samplerate = i }
           | ("bitrate",{ term = Int i }) ->
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR i }
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.Vorbis.channels = i }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.Vorbis.channels = 2 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Vorbis.channels = 1 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    Encoder.Ogg.Vorbis vorbis
+
+let mk_vorbis_abr params =
+  let defaults =
+    { Encoder.Vorbis.
+        mode = Encoder.Vorbis.ABR (None,None,None) ;
+        channels = 2 ;
+        samplerate = 44100 ;
+    }
+  in
+  let get_rates x = 
+    match x.Encoder.Vorbis.mode with
+      | Encoder.Vorbis.ABR (x,y,z) -> x,y,z
+      | _ -> assert false 
+  in
+  let vorbis =
+    List.fold_left
+      (fun f ->
+        function
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.Vorbis.samplerate = i }
+          | ("bitrate",{ term = Int i }) ->
+              let (x,_,y) = get_rates f in
+              { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (x,Some i,y) }
+          | ("max_bitrate",{ term = Int i }) ->
+              let (x,y,_) = get_rates f in
+              { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (x,y,Some i) }
+          | ("min_bitrate",{ term = Int i }) ->
+              let (_,x,y) = get_rates f in
+              { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (Some i,x,y) }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->

@@ -402,6 +402,7 @@ ogg_items:
 ogg_item:
   | VORBIS app_opt     { mk_vorbis $2 }
   | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
+  | VORBIS_ABR app_opt { mk_vorbis_abr $2 }
   | THEORA app_opt     { mk_theora $2 }
   | DIRAC app_opt      { mk_dirac $2 }
   | SPEEX app_opt      { mk_speex $2 }
