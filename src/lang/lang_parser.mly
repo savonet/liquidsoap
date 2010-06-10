@@ -155,16 +155,21 @@
 %token PP_IFDEF PP_ENDIF PP_ENDL PP_INCLUDE PP_DEF
 %token <string list> PP_COMMENT
 
-%left YIELDS
-%left SET
-%left REF
-%left BIN0
+%nonassoc YIELDS       /* fun x -> (x+x) */
+%right SET             /* expr := (expr + expr), expr := (expr := expr) */
+%nonassoc REF          /* ref (1+2) */
+%left BIN0             /* ((x+(y*z))==3) or ((not a)==b) */
 %left BIN1
-%left BIN2 MINUS NOT
-%left BIN3
-%left TIMES
-%left unary_minus
-%left GET
+%nonassoc NOT
+%left BIN2 MINUS
+%left BIN3 TIMES
+%nonassoc GET          /* (!x)+2 */
+
+/* When in doubt, take LPAR as the beginning of an application (app_opt).
+ * It's scary to give a precendence to LPAR but the hope is that there's
+ * no ambiguity around it except for optional applications after %formats. */
+%nonassoc no_app
+%nonassoc LPAR
 
 %start program
 %type <Lang_values.term> program
@@ -205,7 +210,12 @@ exprs:
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ;
                                        $2 }
-  | MINUS expr %prec unary_minus     { mk (App (mk ~pos:(1,1) (Var "~-"),
+  /* The next three rules create reduce/reduce conflicts (98 currently).
+   * Ocamlyacc doesn't let us solve it with precedence, only the
+   * relative order of the rules matter (and we get a warning). */
+  | MINUS FLOAT                      { mk (Float (-. $2)) }
+  | MINUS INT                        { mk (Int (- $2)) }
+  | MINUS expr                       { mk (App (mk ~pos:(1,1) (Var "~-"),
                                                 ["", $2])) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk (Int $1) }
@@ -217,6 +227,7 @@ expr:
   | list                             { mk (List $1) }
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
+  | expr SET expr                    { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
@@ -393,7 +404,7 @@ if_elsif:
   |                                 { mk_fun [] (mk Unit) }
 
 app_opt:
-  | { [] }
+  | %prec no_app { [] }
   | LPAR app_list RPAR { $2 }
 
 ogg_items:
