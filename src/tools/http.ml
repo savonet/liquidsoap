@@ -63,6 +63,7 @@ let url_decode ?(plus = true) s =
 let args_split s = 
   let args = Hashtbl.create 2 in
   let fill_arg arg = 
+    let arg = url_decode arg in
     match Pcre.split ~pat:"=" arg with
       | e :: l -> (List.iter (Hashtbl.replace args e) l) (* There should be only arg=value *)
       | [] -> ()
@@ -70,28 +71,23 @@ let args_split s =
   List.iter fill_arg (Pcre.split ~pat:"&" s) ;
   args
 
-(* TODO: is this an optimal solution ?
- * Why do we need to decode the url prior to encoding it ?
- * I suspect decoding the url first may lead to issues when 
- * for instance for arguments in a GET requests have a & in 
- * them. *)
 let http_encode url = 
   try
-    (* First decode the url 
-     * That way we don't reencode already encoded urls *)
-    let url = url_decode url in
     let basic_rex = Pcre.regexp "^http://([^/]+)/(.*)$" in
     let path_rex = Pcre.regexp "^([^?]+)\\?(.+)$" in
     let sub = Pcre.exec ~rex:basic_rex url in
     let host,path = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
     let encode path = 
       let path = Pcre.split ~pat:"/" path in
-      let path = List.map (fun x -> url_encode ~plus:false x) path in
+      (* We decode the path, in case it was already encoded. *)
+      let path = List.map (fun x -> url_encode ~plus:false (url_decode x)) path in
       List.fold_left (Printf.sprintf "%s/%s") "" path
     in
     try 
       let sub = Pcre.exec ~rex:path_rex path in
       let path,options = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
+      (* args_split also decodes the arguments if
+       * they were already encoded. *)
       let options = args_split options in
       let args = Hashtbl.create 2 in
       Hashtbl.iter (fun a b -> Hashtbl.replace args (url_encode a) (url_encode b)) options ;
