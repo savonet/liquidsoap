@@ -724,7 +724,8 @@ let () =
          List.fold_left (fun x y -> Lang.apply ~t:x.Lang.t f ["",x; "",y]) x l)
 
 let () =
-  add_builtin "list.nth" ~cat:List ~descr:"Get the n-th element of a list."
+  add_builtin "list.nth" ~cat:List 
+    ~descr:"Get the n-th element of a list (the first element is at position 0)."
     [ "",Lang.list_t (Lang.univ_t 1),None,None ;
       "",Lang.int_t,None,None ]
     (Lang.univ_t 1)
