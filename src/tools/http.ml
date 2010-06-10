@@ -94,7 +94,7 @@ let http_sanitize url =
       let merge a b c = 
         match c with
           | "" -> Printf.sprintf "%s=%s" a b
-          | _ -> Printf.sprintf "%s&%s=%s" c a b
+          | _ -> Printf.sprintf "%s=%s&%s" a b c
       in
       let options = Hashtbl.fold merge args "" in
       let path = encode path in
