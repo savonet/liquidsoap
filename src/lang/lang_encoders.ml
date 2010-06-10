@@ -100,12 +100,12 @@ let mk_mp3 params =
               in
               if not (List.mem i allowed) then
                 raise (Error (t,"invalid bitrate value")) ;
-              { f with Encoder.MP3.bitrate = 
+              { f with Encoder.MP3.bitrate =
                        Encoder.MP3.Bitrate i }
           | ("quality",({ term = Int q } as t)) ->
               if q<0 || q>9 then
                 raise (Error (t,"quality should be in [0..9]")) ;
-              { f with Encoder.MP3.bitrate = 
+              { f with Encoder.MP3.bitrate =
                        Encoder.MP3.Quality q }
 
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
@@ -170,7 +170,7 @@ let mk_external params =
             when String.lowercase s = "restart_on_new_track" ->
               { f with Encoder.External.restart = Encoder.External.Track }
           | ("restart_after_delay",{ term = Int i }) ->
-              { f with Encoder.External.restart = Encoder.External.Delay  i }
+              { f with Encoder.External.restart = Encoder.External.Delay i }
           | ("process",{ term = String s }) ->
               { f with Encoder.External.process = s }
           | ("",{ term = String s }) ->
@@ -251,7 +251,7 @@ let mk_vorbis_abr params =
 let mk_vorbis params =
   let defaults =
     { Encoder.Vorbis.
-        mode = Encoder.Vorbis.VBR 2. ;
+        mode = Encoder.Vorbis.VBR 0.3 ;
         channels = 2 ;
         samplerate = 44100 ;
     }
@@ -263,12 +263,12 @@ let mk_vorbis params =
           | ("samplerate",{ term = Int i }) ->
               { f with Encoder.Vorbis.samplerate = i }
           | ("quality",({ term = Float q } as t)) ->
-              if q<0. || q>1. then
-                raise (Error (t,"quality should be in [0..1]")) ;
+              if q<(-0.2) || q>1. then
+                raise (Error (t,"quality should be in [(-0.2)..1]")) ;
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
           | ("quality",({ term = Int i } as t)) ->
               if i<>0 && i<>1 then
-                raise (Error (t,"quality should be in [0..1]")) ;
+                raise (Error (t,"quality should be in [-(0.2)..1]")) ;
               let q = float i in
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
           | ("channels",{ term = Int i }) ->
@@ -283,8 +283,8 @@ let mk_vorbis params =
     Encoder.Ogg.Vorbis vorbis
 
 let mk_theora params =
-  let defaults = 
-    { 
+  let defaults =
+    {
       Encoder.Theora.
        bitrate_control    = Encoder.Theora.Quality 40 ;
        width              = Frame.video_width ;
@@ -295,7 +295,7 @@ let mk_theora params =
        picture_y          = 0 ;
        aspect_numerator   = 1 ;
        aspect_denominator = 1 ;
-    } 
+    }
   in
   let theora =
     List.fold_left
@@ -385,11 +385,11 @@ let mk_speex params =
               { f with Encoder.Speex.samplerate = i }
           | ("abr",{ term = Int i }) ->
               { f with Encoder.Speex.
-                        bitrate_control = 
+                        bitrate_control =
                           Encoder.Speex.Abr i }
           | ("quality",{ term = Int q }) ->
               { f with Encoder.Speex.
-                        bitrate_control = 
+                        bitrate_control =
                          Encoder.Speex.Quality q }
           | ("vbr",{ term = Int q }) ->
               { f with Encoder.Speex.
