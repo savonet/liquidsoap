@@ -489,8 +489,7 @@ let () =
 
       "", Lang.string_t, None,
       Some "URL of an http stream (default port is 80)." ]
-    (* TODO: generalize this! *)
-    ~kind:Lang.audio_stereo
+    ~kind:Lang.audio_video_any
     (fun p kind ->
        let playlist_mode =
          let s = List.assoc "playlist_mode" p in

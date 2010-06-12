@@ -125,6 +125,8 @@ val video_only : lang_kind_formats
 val midi_n : int -> lang_kind_formats
 val midi_only : lang_kind_formats
 
+val audio_video_any : lang_kind_formats
+
 val kind_type_of_kind_format : fresh:int -> lang_kind_formats -> t
 
 (** Add an operator to the language and to the documentation. *)

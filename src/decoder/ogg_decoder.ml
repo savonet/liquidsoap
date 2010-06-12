@@ -281,8 +281,14 @@ let () =
     ~sdoc:"Decode as OGG any stream with an appropriate MIME type."
      (fun mime kind ->
         if List.mem mime mime_types#get then
-          (* TODO We must find a way here... *)
-          Some (D_stream.create_decoder `Stream `Audio)
+          let mode =
+            let content_type = Frame.type_of_kind kind in
+            match content_type.Frame.video, content_type.Frame.audio with
+              | 0, _ -> `Audio
+              | _, 0 -> `Video
+              | _, _ -> `Both
+          in
+          Some (D_stream.create_decoder `Stream mode)
         else
           None)
 

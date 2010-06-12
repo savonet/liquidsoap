@@ -169,6 +169,10 @@ let video_only =
   Constrained
     { Frame. audio = Fixed 0 ; video = Fixed 1 ; midi = Fixed 0 }
 
+let audio_video_any =
+  Constrained
+    { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Fixed 0 }
+
 let midi_n n =
   Constrained
     { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed n }
