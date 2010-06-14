@@ -415,11 +415,10 @@ let () =
        "drop us a mail at <savonet-devl@lists.sf.net>";
        "or to join the #savonet IRC channel on Freenode.";
        "";
-       "Please send any bug report of feature request";
+       "Please send any bug report or feature request";
        "using our trac <http://savonet.rastageeks.org>.";
        "";
-       "We hope you will enjoy this snapshot build of";
-       "Liquidsoap!";
+       "We hope you enjoy this snapshot build of Liquidsoap!";
        ""]
 
 (** Just like Arg.parse_argv but with Arg.parse's behavior on errors.. *)
