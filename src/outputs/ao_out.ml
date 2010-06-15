@@ -76,7 +76,7 @@ object (self)
            let dev =
              self#log#f 3
                "Opening %s (%d channels)..."
-               (driver_name driver) channels ;
+               driver.Ao.name channels ;
              open_live ~driver ~options ?channels_matrix
                        ~rate:samples_per_second
                        ~bits:(bytes_per_sample * 8)
