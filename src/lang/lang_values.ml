@@ -167,7 +167,7 @@ let rec print_term v = match v.term with
   | Product (a,b) ->
       Printf.sprintf "(%s,%s)" (print_term a) (print_term b)
   | Ref a ->
-      Printf.sprintf "ref (%s)" (print_term a)
+      Printf.sprintf "ref(%s)" (print_term a)
   | Fun (_,[],v) when is_ground v -> "{"^(print_term v)^"}"
   | Fun _ -> "<fun>"
   | Var s -> s
@@ -319,7 +319,7 @@ struct
     | List l ->
         "["^(String.concat ", " (List.map print_value l))^"]"
     | Ref a ->
-        Printf.sprintf "ref (%s)" (print_value !a)
+        Printf.sprintf "ref(%s)" (print_value !a)
     | Product (a,b) ->
         Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
     | Fun (_,_,_,x) when is_ground x -> "{"^print_term x^"}"

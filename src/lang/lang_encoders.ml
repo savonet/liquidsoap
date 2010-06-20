@@ -65,6 +65,8 @@ let mk_wav params =
         function
           | ("stereo",{ term = Bool b }) ->
               { Encoder.WAV.stereo = b }
+          | ("mono",{ term = Bool b }) ->
+              { Encoder.WAV.stereo = not b }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { Encoder.WAV.stereo = true }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
@@ -87,6 +89,8 @@ let mk_mp3 params =
         function
           | ("stereo",{ term = Bool b }) ->
               { f with Encoder.MP3.stereo = b }
+          | ("mono",{ term = Bool b }) ->
+              { f with Encoder.MP3.stereo = not b }
           | ("samplerate",({ term = Int i } as t)) ->
               let allowed =
                 [8000;11025;12000;16000;22050;24000;32000;44100;48000]
@@ -201,9 +205,9 @@ let mk_vorbis_cbr params =
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
-              { f with Encoder.Vorbis.channels = 2 }
-          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Vorbis.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
@@ -240,9 +244,9 @@ let mk_vorbis_abr params =
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
-              { f with Encoder.Vorbis.channels = 2 }
-          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Vorbis.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
@@ -274,9 +278,9 @@ let mk_vorbis params =
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
-              { f with Encoder.Vorbis.channels = 2 }
-          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.Vorbis.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Vorbis.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
@@ -381,6 +385,8 @@ let mk_speex params =
         function
           | ("stereo",{ term = Bool b }) ->
               { f with Encoder.Speex.stereo = b }
+          | ("mono",{ term = Bool b }) ->
+              { f with Encoder.Speex.stereo = not b }
           | ("samplerate",{ term = Int i }) ->
               { f with Encoder.Speex.samplerate = i }
           | ("abr",{ term = Int i }) ->
