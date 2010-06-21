@@ -216,9 +216,9 @@ class output ~kind p =
 
 
   let ogg = 
-   (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_application) ||
-   (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_audio) ||
-   (Cry.string_of_content_type format = Cry.string_of_content_type Cry.ogg_video)
+   (format = Cry.ogg_application) ||
+   (format = Cry.ogg_audio) ||
+   (format = Cry.ogg_video)
   in
 
   let mount = s "mount" in
