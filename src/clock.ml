@@ -31,15 +31,14 @@ let create_known s = create_known (s:>Source.clock)
 let log = Dtools.Log.make ["clock"]
 
 (** [started] indicates that the application has loaded and started
-  * its initial configuration.
+  * its initial configuration; it is set after the first collect.
   * It is mostly intended to allow different behaviors on error:
   *  - for the initial conf, all errors are fatal
   *  - after that (dynamic code execution, interactive mode) some errors
   *    are not fatal anymore. *)
-
 let started = ref false
+
 let running () = !started
-let set_running () = started := true
 
 (** If initialization raises an exception, we want to report it and shutdown.
   * However, this has to be done carefully, by un-initializing first:
@@ -430,8 +429,7 @@ let cond = Condition.create ()
 let get_default =
   Tutils.lazy_cell (fun () -> (new wallclock "main" :> Source.clock))
 
-(** A function displaying the varying number of allocating clocks.
-  * It's not thread safe but the worst that can happen is a doubled log. *)
+(** A function displaying the varying number of allocating clocks. *)
 let gc_alarm =
   let last_displayed = ref (-1) in
     fun () ->
@@ -465,7 +463,8 @@ let collect ~must_lock =
       Clocks.fold (fun s l -> s#start_outputs::l) clocks []
     in
       Mutex.unlock lock ;
-      List.iter (fun f -> f ()) collects
+      List.iter (fun f -> f ()) collects ;
+      started := true
   end
 
 let collect_after f =

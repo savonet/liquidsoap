@@ -489,10 +489,12 @@ let () =
     if Sys.os_type = "Win32" then
       Sys.set_signal Sys.sigint
         (Sys.Signal_handle (fun _ -> Tutils.shutdown ())) ;
+    (* TODO if start fails (e.g. invalid password or mountpoint) it
+     *   raises an exception and dtools catches it so we don't get
+     *   a backtrace (by default at least). *)
     Clock.start () ;
     Tutils.main ()
   in
-    Clock.set_running () ;
     ignore (Init.at_stop cleanup) ;
     if !interactive then begin
       Log.conf_stdout#set_d (Some false) ;

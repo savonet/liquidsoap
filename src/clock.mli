@@ -32,7 +32,6 @@ object
 end
 
 val running : unit -> bool
-val set_running : unit -> unit
 
 val collect_after : (unit -> 'a) -> 'a
 val start : unit -> unit
