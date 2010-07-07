@@ -128,9 +128,19 @@ object (self)
       in
       f 0
     with
-      | Buffer_xrun ->
-           self#log#f 2 "Underrun!" ;
-           Pcm.prepare dev
+      | e ->
+        begin
+         match e with
+           | Buffer_xrun ->
+               self#log#f 2 "Underrun!"
+             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+        end ;
+        if e = Buffer_xrun || e = Suspended || e = Interrupted then
+         begin
+          self#log#f 2 "Trying to recover.." ;
+          Pcm.recover dev e
+         end
+        else raise e
 
   method output_send buf =
     let buf = AFrame.content buf 0 in

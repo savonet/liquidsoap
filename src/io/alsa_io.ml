@@ -26,12 +26,9 @@ exception Error of string
 
 let handle lbl f x =
   try f x with
-    | Unknown_error e ->
-        failwith (Printf.sprintf "Error while setting %s: %s"
-                    lbl (string_of_error e))
     | e ->
         failwith (Printf.sprintf "Error while setting %s: %s"
-                    lbl (Printexc.to_string e))
+                    lbl (string_of_error e))
 
 class virtual base ~kind dev mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
@@ -151,7 +148,7 @@ object (self)
           handle "non-blocking" (Pcm.set_nonblock dev) false ;
           pcm <- Some dev
     with
-      | Unknown_error n -> raise (Error (string_of_error n))
+      | Unknown_error _ as e -> raise (Error (string_of_error e))
 
   method output_reset = ()
   method is_active = true
@@ -218,13 +215,21 @@ object (self)
             r := !r + (write pcm buf !r (Array.length buf.(0) - !r))
           done
       with
-        | Buffer_xrun ->
-            self#log#f 2
-              "Underrun! You may minimize them by increasing the buffer size." ;
-            Pcm.prepare pcm ; Pcm.reset pcm ;
+        | e -> 
+          begin
+           match e with
+             | Buffer_xrun -> 
+                 self#log#f 2
+                   "Underrun! You may minimize them by increasing the buffer size."
+             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+          end ;
+          if e = Buffer_xrun || e = Suspended || e = Interrupted then
+           begin
+            self#log#f 2 "Trying to recover.." ;
+            Pcm.recover pcm e ;
             self#output
-        | Unknown_error e -> raise (Error (string_of_error e))
-
+           end
+          else raise e
 end
 
 class input ~kind ~clock_safe dev =
@@ -268,12 +273,21 @@ object (self)
           done;
           AFrame.add_break frame (AFrame.size ())
       with
-        | Buffer_xrun ->
-            self#log#f 2
-              "Overrun! You may minimize them by increasing the buffer size." ;
-            Pcm.prepare pcm ; Pcm.reset pcm ;
-            self#get_frame frame
-        | Unknown_error e -> raise (Error (string_of_error e))
+        | e ->
+          begin
+           match e with
+             | Buffer_xrun ->
+                 self#log#f 2
+                   "Overrun! You may minimize them by increasing the buffer size."
+             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+          end ;
+          if e = Buffer_xrun || e = Suspended || e = Interrupted then
+           begin
+            self#log#f 2 "Trying to recover.." ;
+            Pcm.recover pcm e ;
+            self#output
+           end
+          else raise e
 
 end
 

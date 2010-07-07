@@ -117,10 +117,19 @@ object (self)
         pos := !pos + ret;
       done;
     with
-      | Buffer_xrun ->
-          (* Restart. Try again ... *)
-          self#log#f 2 "Overrun!" ;
-          Pcm.prepare dev
+      | e ->
+        begin
+         match e with
+           | Buffer_xrun ->
+               self#log#f 2 "Overrun!"
+             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+        end ;
+        if e = Buffer_xrun || e = Suspended || e = Interrupted then
+         begin
+          self#log#f 2 "Trying to recover.." ;
+          Pcm.recover dev e
+         end
+        else raise e
 
   method get_frame buf =
     assert (0 = AFrame.position buf) ;
