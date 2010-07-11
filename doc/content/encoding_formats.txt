@@ -117,7 +117,12 @@ h3. Technical details
 You can store an atomic format in a variable, it is a value like another:
 @fmt = %mp3@. However, an atomic format is an atomic constant despite its
 appearance. You cannot use a variable for one of its parameters: for
-example @x = 44100@ and @%vorbis(samplerate=x)@ is not allowed,
+example 
+%%
+x = 44100
+%vorbis(samplerate=x)
+%%
+is not allowed,
 you must write @%vorbis(samplerate=44100)@.
 
 In programming languages like ML, the typing of @printf@ is a bit special.
