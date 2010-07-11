@@ -1,39 +1,46 @@
 title: Streaming to Shoutcast
 
-**This page needs to be updated. Currently, it does not reflect the current code in the SVN.**
-
 h3. Streaming to Shoutcast
 
+Although Liquidsoap is primarily aimed at streaming to Icecast servers (that provide 
+much more features than Shoutcast), it is also able to stream to Shoutcast.
 
-Although LiquidSoap is primarily aimed at streaming to Icecast servers (that provide much more features than Shoutcast), it is also able to stream to Shoutcast, thanks to <code>libshout</code>.
+h4. Shoutcast output
 
-h4. output.shoutcast.mp3
+Shoutcast server accept streams encoded with the MP3 or AAC/AAC+ codec. You to compile Liquidsoap with 
+@lame@ support, so it can encode in MP3. Liquidsoap also has support for AAC+ encoding
+using libaacplus or using an "external encoder":external_encoders.html. The recommended format is MP3.
 
-You can use the function <code>output.shoutcast.mp3</code> to feed
-your server with audio data:
+Shoutcast output are done using the @output.icecast@ operator with the appropriate parameters.
+An example is:
 
 %%(shoutcast.liq)
 source = single("audiofile.ogg")
 
-output.shoutcast.mp3(host="shoutcast.example.org",
+output.icecast(%mp3, host="shoutcast.example.org",
                      port=8000, password="changeme",
+                     protocol="icy", mount="/", 
                      source)
 %%
 
-The options of <code>output.shoutcast.mp3</code> are the same as those of <code>output.icecast.mp3</code>, except for <code>mount</code> that does not exist in the Shoutcast world, and <code>protocol</code>, which is forced to ICY. This means you can set the bitrate, the samplerate, etc as you see fit. Don't forget to set your station's name / genre / description / website. Important note : you cannot set AIM / ICQ / IRC contacts, due to a limitation within libshout.
-
-The function is defined in <code>utils.liq</code>. You need to compile LiquidSoap with <code>lame</code> support, so that it can encode to MP3.
+The @protocol@ option has to be set to @'icy'@, which is the source protocol used by shoutcast servers.
+The @mount@ option does not exist in the shoutcast world so it is set to @"/"@, and @protocol@.
+You may set the other options the same way as for an icecast output. You can also set the shoutcast-specific
+@"icy-irc"@, @"icy-icq"@ and @"icy-aim"@ by adding them to the list of @headers@.
 
 h4. Shoutcast as relay
 
-A side note for those of you who feel they "need" to use Shoutcast for non-technical reasons (such as their stream directory service...): you can still benefit from Icecast's power by streaming to an Icecast server, and then relaying it through a Shoutcast server.
+A side note for those of you who feel they "need" to use Shoutcast for non-technical reasons (such as their stream 
+directory service...): you can still benefit from Icecast's power by streaming to an Icecast server, and then relaying 
+it through a shoutcast server.
 
-In order to do that, you have to alias the root mountpoint ("<code>/</code>") to your MP3 mountpoint in your Icecast server configuration, like this:
-
+In order to do that, you have to alias the root mountpoint ("<code>/</code>") to your MP3 mountpoint in your icecast server 
+configuration, like this:
 
 <pre>
 &lt;alias source="/" dest="/mystream.mp3" /&gt;
 </pre>
 
 
-Be careful that Icecast often aliases the status page (<code>/status.xsl</code>) with the <code>/</code>. In this case, comment out the status page alias before inserting yours.
+Be careful that icecast often aliases the status page (<code>/status.xsl</code>) with the <code>/</code>. In this case, comment 
+out the status page alias before inserting yours.

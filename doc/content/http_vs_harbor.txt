@@ -2,7 +2,8 @@ title: HTTP and harbot inputs.
 
 h3. HTTP input
 
-Liquidsoap can create a source that pulls its data from an HTTP location. This location can be a distant file or playlist, or an icecast or shoutcast stream.
+Liquidsoap can create a source that pulls its data from an HTTP location. This location can 
+be a distant file or playlist, or an icecast or shoutcast stream.
 
 To use it in your script, simply create a source that way:
 %%(http_source.liq)
@@ -11,16 +12,25 @@ To use it in your script, simply create a source that way:
 source = input.http(url)
 %%
 
-This operator will pull regulary the given location for its data, so it should be used for locations that are assumed to be available most of the time. If not, it might generate unnecessary traffic and polute the logs. In this case, it is perhaps better to inverse the paradigm and use the <code>input.harbor</code> operator.
+This operator will pull regulary the given location for its data, so it should be used for 
+locations that are assumed to be available most of the time. If not, it might generate unnecessary 
+traffic and polute the logs. In this case, it is perhaps better to inverse the paradigm and 
+use the <code>input.harbor</code> operator.
 
 h3. Harbor input
 
-Liquidsoap is also able to receive a source using icecast or shoutcast source protocol with the <code>input.harbor</code> operator. Using this operator, the running liquidsoap will open a network socket and wait for an incoming connection.
+Liquidsoap is also able to receive a source using icecast or shoutcast source protocol with 
+the <code>input.harbor</code> operator. Using this operator, the running liquidsoap will open 
+a network socket and wait for an incoming connection.
 
 This operator is very useful to seamlessly add live streams
 into your final streams:
 you configure the live source client to connect directly to liquidsoap,
 and manage the switch to and from the live inside your script.
+
+Additionally, liquidsoap can handle many simulataneous harbor sources on different ports, 
+with finer-grained authentication schemes that can be particularly useful when used with
+source clients designed for the shoutcast servers.
 
 h4. Parameters
 
@@ -28,7 +38,7 @@ The global parameters for harbor can be retreived using
 <code>liquidsoap --conf-descr-key harbor</code>. They are:
 
 * <code>harbor.bind_addr</code>: IP address on which the HTTP stream receiver should listen. The default is <code>"0.0.0.0"</code>. You can use this parameter to restrict connections only to your LAN.
-* <code>harbor.port</code>: Port on which the HTTP stream receiver should listen. Defaults to <code>8005</code>.
+* <code>harbor.port</code>: Port on which the HTTP stream receiver should listen. Defaults to <code>8005</code>. You may also define a different port per harbor input using the @port@ parameter of the @input.harbor@ operator.
 * <code>harbor.icy</code>: By default, harbor communicates with source clients using the Icecast2 protocol. Enable this setting if you plan to use the Shoutcast/ICY protocol instead. If so, you should configure the source clients to use port <code>harbor.port</code>, but beware that they will also need access to <code>harbor.port+1</code>.
 * <code>harbor.password</code>: Password for source connection. Defaults to <code>"hackme"</code>.
 * <code>harbor.username</code>: Username for source connection. Defaults to <code>"source"</code>.
@@ -38,8 +48,16 @@ You may also set some parameters per-source. You can retreive them using the com
 
 * <code>user</code>, <code>password</code>: set a permanent login and password for this harbor source.
 * <code>auth</code>: Authenticate the user according to a specific function.
+* @port@: Use a custom port for this input.
+* @id@: The mountpoint registered for the source is also the id of the source.
 
-Let <code>auth</code> function is a function, that takes a pair @(user,password)@ and returns a boolean representing whether the user 
+When using different ports with different harbor inputs, mountpoints are attributed
+per-port. Hence, there can be a harbor input with mountpoint @"foo"@ on port @1356@
+and a harbor input with mountpoint @"foo"@ on port @3567@. Additionaly, if an harbor 
+source uses custom port @n@ with shoutcast (ICY) source protocol enabled, shoutcast
+source clients should set their connection port to @n+1@.
+
+The <code>auth</code> function is a function, that takes a pair @(user,password)@ and returns a boolean representing whether the user 
 should be granted access or not. Typical example can be:
 
 %%(harbor_auth.liq)

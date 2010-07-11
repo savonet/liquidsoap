@@ -44,7 +44,6 @@ h4. Documentation
 * "Smart crossfading":smartcrossfade.html
 * "Sources":sources.html are our streams
 * "Multichannel":multichannel.html
-* "Optimizing liquidsoap":optimization.html
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
 * "Video":video.html: stream videos.
 

@@ -143,7 +143,7 @@ let print_snippet f title snippet =
       <a href=\"%s\">Download</a>
     </div>
     <div>
-      <div id=\"footer\"> 2003-2009 Savonet team</div>
+      <div id=\"footer\"> 2003-2010 Savonet team</div>
     </div>
   </div>
 </body>
@@ -187,7 +187,7 @@ let print_snippet_main ~rel f title snippet =
       <a href=\"%s\">Download</a>
     </div>
     <div>
-      <div id=\"footer\"> 2003-2009 Savonet team</div>
+      <div id=\"footer\"> 2003-2010 Savonet team</div>
     </div>
   </div>
 </body>
@@ -305,7 +305,7 @@ let print ?filename f ?title doc =
   %a\
   </div></div>
   <div>
-    <div id=\"footer\"> 2003-2009 Savonet team</div>
+    <div id=\"footer\"> 2003-2010 Savonet team</div>
   </div>
   </div>
 </body></html>\n"
@@ -380,7 +380,7 @@ let print_main_main ?filename f ?title doc =
         </div>
       </div>
   <div>
-    <div id=\"footer\"> 2003-2009 Savonet team</div>
+    <div id=\"footer\"> 2003-2010 Savonet team</div>
   </div>
   </div>
 </body>
@@ -449,7 +449,7 @@ let print_main ?filename ?(basedir=Filename.current_dir_name) f ?title doc =
          %a
       </div>
       <div>
-        <div id=\"footer\"> 2003-2009 Savonet team</div>
+        <div id=\"footer\"> 2003-2010 Savonet team</div>
       </div>
     </div>
   </body>

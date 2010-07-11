@@ -49,6 +49,8 @@ of @output.icecast@
 * @format@: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of
 "application/ogg", "audio/ogg" or "video/ogg" and for mp3 data it is "audio/mpeg".
 
+**The remaining part of this page needs to be updated..**
+
 h3. Wrappers
 
 On top of the basic operators, wrappers have been written for using the @lame@ encoder and the @flac@ encoder to output data to an icecast server, or output to local sound card using @aplay@. The code is present, as usual, in @utils.liq@ and is as follows.
