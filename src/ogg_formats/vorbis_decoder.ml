@@ -25,9 +25,6 @@ let check = Vorbis.Decoder.check_packet
 let buflen = 1024
 
 let decoder os =
-  let chan _ = Array.make buflen 0. in
-  (* TODO: multiple channels.. *)
-  let buf = Array.init 2 chan in
   let decoder = ref None in
   let meta    = ref None in
   let packet1 = ref None in
@@ -35,7 +32,7 @@ let decoder os =
   let packet3 = ref None in
   let fill feed = 
     (* Decoder is created upon first decoding..*)
-    let decoder,sample_freq = 
+    let decoder,sample_freq,buf = 
       match !decoder with
         | None -> 
            let packet1 =
@@ -61,10 +58,15 @@ let decoder os =
            in
            let d = Vorbis.Decoder.init packet1 packet2 packet3 in
            let info = Vorbis.Decoder.info d in
+           (* This buffer is created once. The call to Array.sub
+            * below makes a fresh array out of it to pass to
+            * liquidsoap. *)
+           let chan _ = Array.make buflen 0. in
+           let buf = Array.init info.Vorbis.audio_channels chan in
            meta := Some (Vorbis.Decoder.comments d);
            let samplerate = info.Vorbis.audio_samplerate in
-           decoder := Some (d,samplerate);
-           d,samplerate
+           decoder := Some (d,samplerate,buf);
+           d,samplerate,buf
         | Some d -> d
     in
     try
