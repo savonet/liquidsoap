@@ -375,14 +375,15 @@ if test -z "$with_dtools_dir" ; then
    if ! $OCAMLFIND query dtools > /dev/null 2>&1; then
        AC_MSG_ERROR(Not found.)
    fi
-   ocamlcflags="$ocamlcflags -package dtools"
-   requires="$requires dtools"
+   ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " dtools` -package dtools"
+   requires="$requires `ocamlfind query -r -separator " " -format "%p" dtools`"
 else
    echo $with_dtools_dir | grep ^/ > /dev/null 2>&1 \
    || with_dtools_dir=$PWD/$with_dtools_dir
-   ocamlcflags="$ocamlcflags -I $with_dtools_dir"
-   ocamllflags="$ocamllflags dtools.$cma"
-   requires="$requires dtools"
+   packages=`cat $with_dtools_dir/META | grep 'requires' | sed -e 's#thread##' | cut -d '=' -f 2 | tr -d '"'`
+   ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_dtools_dir"
+   ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` dtools.$cma"
+   requires="$requires $packages"
 fi
 AC_MSG_RESULT(ok)
 
