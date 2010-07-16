@@ -26,8 +26,12 @@ open Encoder
 open Encoder.WAV
 
 let encoder wav =
-  let channels = if wav.stereo then 2 else 1 in
-  let sample_rate = Lazy.force Frame.audio_rate in
+  let channels = wav.channels in
+  let sample_rate = wav.samplerate in
+  let ratio =
+    (float sample_rate) /. (float (Lazy.force Frame.audio_rate))
+  in
+  let converter = Audio_converter.Samplerate.create channels in
   let header =
     Wav.header
       ~channels ~sample_rate
@@ -38,6 +42,17 @@ let encoder wav =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
+    (* Resample if needed. *)
+    let b,start,len =
+      if ratio = 1. then
+        b,start,len
+      else
+        let b =
+          Audio_converter.Samplerate.resample
+                 converter ratio b start len
+        in
+        b,0,Array.length b.(0)
+    in
     let s = String.create (2 * len * channels) in
     ignore (Float_pcm.to_s16le b start len s 0) ;
     if !need_header then begin

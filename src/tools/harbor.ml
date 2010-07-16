@@ -53,7 +53,8 @@ let conf_revdns =
     "Perform reverse DNS lookup to get the client's hostname from its IP."
 let conf_icy_metadata = 
   Conf.list ~p:(conf_icy#plug "metadata_formats") 
-  ~d:["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"]
+  ~d:["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac";
+      "audio/wav"; "audio/wave"]
   "Content-type (mime) of formats which allow shout metadata update."
 
 let opened_ports = ref []

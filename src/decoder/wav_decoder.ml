@@ -118,6 +118,7 @@ let create input =
 
 end
 
+module Generator_plus = Generator.From_audio_video_plus
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
@@ -164,4 +165,34 @@ let () =
     ret
   in
   Request.dresolvers#register "WAV" duration
+
+(* Stream decoding *)
+
+let conf_mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "wav")
+    "Mime-types used for guessing WAV format"
+    ~d:["audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
+
+module D_stream = Make(Generator_plus)
+
+let () =
+  Decoder.stream_decoders#register
+    "WAV"
+    ~sdoc:"Decode a WAV stream with an appropriate MIME type."
+     (fun mime kind ->
+        let (<:) a b = Frame.mul_sub_mul a b in
+          if List.mem mime conf_mime_types#get &&
+             kind.Frame.video <: Frame.Zero &&
+             kind.Frame.midi <: Frame.Zero &&
+             kind.Frame.audio <> Frame.Zero
+          then
+            (* In fact we can't be sure that we'll satisfy the content
+             * kind, because the MP3 stream might be mono or stereo.
+             * For now, we let this problem result in an error at
+             * decoding-time. Failing early would only be an advantage
+             * if there was possibly another plugin for decoding
+             * correctly the stream (e.g. by performing conversions). *)
+            Some D_stream.create
+          else
+            None)
 

@@ -58,19 +58,26 @@ let mk ?pos e =
     { t = kind ; term = e }
 
 let mk_wav params =
-  let defaults = { Encoder.WAV.stereo = true } in
+  let defaults = { Encoder.WAV.
+                    channels   = 2 ;
+                    samplerate = 44100 } in
   let wav =
     List.fold_left
       (fun f ->
         function
           | ("stereo",{ term = Bool b }) ->
-              { Encoder.WAV.stereo = b }
+              let chans = if b then 2 else 1 in
+              { f with Encoder.WAV.channels = chans }
           | ("mono",{ term = Bool b }) ->
               { Encoder.WAV.stereo = not b }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
-              { Encoder.WAV.stereo = true }
+              { f with Encoder.WAV.channels = 2 }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
-              { Encoder.WAV.stereo = false }
+              { f with Encoder.WAV.channels = 1 }
+          | ("channels",{ term = Int c }) ->
+              { f with Encoder.WAV.channels = c }
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.WAV.samplerate = i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in

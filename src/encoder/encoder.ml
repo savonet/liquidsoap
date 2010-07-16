@@ -26,9 +26,11 @@ let string_of_stereo s =
 module WAV =
 struct
 
-  type t = { stereo : bool }
+  type t = { samplerate : int;
+             channels   : int }
 
-  let to_string w = Printf.sprintf "%%wav(%s)" (string_of_stereo w.stereo)
+  let to_string w = Printf.sprintf "%%wav(samplerate=%d,channels=%d)" 
+                       w.samplerate w.channels
 
 end
 
@@ -270,7 +272,7 @@ type format =
 
 let kind_of_format = function
   | WAV w ->
-      { Frame.audio = if w.WAV.stereo then 2 else 1 ;
+      { Frame.audio = w.WAV.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;

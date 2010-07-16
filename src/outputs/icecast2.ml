@@ -37,6 +37,9 @@ type icy_metadata = Guess | True | False
 let no_mount = "Use [name] with .ogg extension if relevant"
 let no_name = "Use [mount]"
 
+(* Mime for WAV data.. *)
+let wav_format = Cry.content_type_of_string "audio/wav"
+
 let user_agent =
   Printf.sprintf "liquidsoap %s" Configure.version
 let user_agent = Lang.product (Lang.string "User-Agent")
@@ -137,6 +140,12 @@ class output ~kind p =
               samplerate = Some m.Encoder.External.samplerate ;
               channels = Some m.Encoder.External.channels
             }, None
+        | Encoder.WAV m ->
+            { quality = None ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.WAV.samplerate ;
+              channels = Some m.Encoder.WAV.channels
+            }, Some wav_format
         | Encoder.Ogg o ->
             let info =
               match o with
@@ -176,8 +185,6 @@ class output ~kind p =
               raise (Lang.Invalid_value
                        (v, "icy protocol (shoutcast) does not support Ogg")) ;
               info, Some Cry.ogg_application
-        | Encoder.WAV _ ->
-            raise (Lang.Invalid_value (v, "WAV is not supported"))
     in
     let encoder_factory =
       try Encoder.get_factory enc with
@@ -199,14 +206,14 @@ class output ~kind p =
   in
   
   let icy_metadata = 
-    let f = Cry.string_of_content_type in
     match format, icy_metadata with
       | _, True -> true
       | _, False -> false
-      | x, _ when f x = f Cry.mpeg -> true
-      | x, _ when f x = f Cry.ogg_application ||
-                         f x = f Cry.ogg_audio ||
-                         f x = f Cry.ogg_video -> false
+      | x, _ when x = Cry.mpeg || 
+                  x = wav_format -> true
+      | x, _ when x = Cry.ogg_application ||
+                  x = Cry.ogg_audio ||
+                  x = Cry.ogg_video -> false
       | _, Guess -> 
            raise (Lang.Invalid_value (List.assoc "icy_metadata" p,
                                                  "Could not guess icy_metadata \
