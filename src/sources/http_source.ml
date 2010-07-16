@@ -228,6 +228,7 @@ object (self)
         done
       with
         | e ->
+            if debug then raise e ;
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
             begin match e with
@@ -397,9 +398,11 @@ object (self)
         | Redirection location ->
             self#private_connect ~sanitize:false location
         | Http.Error e ->
-            self#log#f 4 "Connection failed: %s!" (Http.string_of_error e)
+            self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
+            if debug then raise (Http.Error e)
         | e ->
-            self#log#f 4 "Connection failed: %s" (Printexc.to_string e)
+            self#log#f 4 "Connection failed: %s" (Printexc.to_string e) ;
+            if debug then raise e
 
   (* Take care of (re)starting the decoding *)
   method poll =
