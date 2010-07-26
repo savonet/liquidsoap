@@ -374,6 +374,14 @@ let handle_get_request ~port c uri headers =
               in
               Hashtbl.remove args "mount";
               Hashtbl.remove args "mode";
+              (* Recode tags.. *)
+              let f x y m = 
+                let g = Configure.recode_tag in
+                Hashtbl.add m (g x) (g y) ; m
+              in
+              let args = 
+                Hashtbl.fold f args (Hashtbl.create (Hashtbl.length args))
+              in
               s#insert_metadata args ;
               raise (Answer (fun () -> write_answer c ans))
      | _ -> raise (Answer ans_500)
