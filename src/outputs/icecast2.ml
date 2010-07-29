@@ -68,6 +68,14 @@ let proto kind =
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
     ("description", Lang.string_t,
      Some (Lang.string "OCaml Radio!"), None) ;
+    "on_connect",
+    Lang.fun_t [] Lang.unit_t,
+    Some (Lang.val_cst_fun [] Lang.unit),
+    Some "Callback executed when connection is established." ;
+    "on_disconnect",
+    Lang.fun_t [] Lang.unit_t,
+    Some (Lang.val_cst_fun [] Lang.unit),
+    Some "Callback executed when connection stops."  ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
@@ -87,6 +95,11 @@ class output ~kind p =
 
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
+
+  let on_connect = List.assoc "on_connect" p in
+  let on_disconnect = List.assoc "on_disconnect" p in
+  let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
+  let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
 
   let protocol =
     let v = List.assoc "protocol" p in
@@ -461,7 +474,9 @@ object (self)
                 (Cry.string_of_error x) ;
               raise e
         end ;
-        self#log#f 3 "Connection setup was successful."
+        self#log#f 3 "Connection setup was successful." ;
+        (* Execute on_connect hook. *)
+        on_connect () ;
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
@@ -479,6 +494,8 @@ object (self)
       | Cry.Connected _ ->
           Cry.close connection
     end ;
+    (* Executes on_disconnect hook. *)
+    on_disconnect () ;
     match dump with
       | Some f -> close_out f
       | None -> ()
