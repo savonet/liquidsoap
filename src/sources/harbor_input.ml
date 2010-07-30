@@ -61,7 +61,7 @@ object (self)
      * as the "title" field if "title" is not provided. *)
     if not (Hashtbl.mem m "title") then
       (try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
-    self#log#f 3 "New metadata chunk %S -- %S."
+    self#log#f 3 "New metadata chunk %s -- %s."
       (try Hashtbl.find m "artist" with _ -> "?")
       (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m

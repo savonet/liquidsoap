@@ -199,7 +199,7 @@ object (self)
 
   (* Insert metadata *)
   method insert_metadata m =
-    self#log#f 3 "New metadata chunk: %S -- %S."
+    self#log#f 3 "New metadata chunk: %s -- %s."
                 (try Hashtbl.find m "artist" with _ -> "?")
                 (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m ;
