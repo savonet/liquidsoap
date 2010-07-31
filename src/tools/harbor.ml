@@ -374,9 +374,15 @@ let handle_get_request ~port c uri headers =
               in
               Hashtbl.remove args "mount";
               Hashtbl.remove args "mode";
+              let encoding = 
+                try
+                  Some (Hashtbl.find args "charset")
+                with
+                  | Not_found -> None
+              in
               (* Recode tags.. *)
               let f x y m = 
-                let g = Configure.recode_tag in
+                let g = Configure.recode_tag ?encoding in
                 Hashtbl.add m (g x) (g y) ; m
               in
               let args = 
