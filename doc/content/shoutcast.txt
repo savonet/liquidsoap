@@ -11,22 +11,18 @@ Shoutcast server accept streams encoded with the MP3 or AAC/AAC+ codec. You to c
 @lame@ support, so it can encode in MP3. Liquidsoap also has support for AAC+ encoding
 using libaacplus or using an "external encoder":external_encoders.html. The recommended format is MP3.
 
-Shoutcast output are done using the @output.icecast@ operator with the appropriate parameters.
+Shoutcast output are done using the @output.shoutcast@ operator with the appropriate parameters.
 An example is:
 
 %%(shoutcast.liq)
 source = single("audiofile.ogg")
 
-output.icecast(%mp3, host="shoutcast.example.org",
+output.shoutcast(%mp3, host="shoutcast.example.org",
                      port=8000, password="changeme",
-                     protocol="icy", mount="/", 
                      source)
 %%
 
-The @protocol@ option has to be set to @'icy'@, which is the source protocol used by shoutcast servers.
-The @mount@ option does not exist in the shoutcast world so it is set to @"/"@, and @protocol@.
-You may set the other options the same way as for an icecast output. You can also set the shoutcast-specific
-@"icy-irc"@, @"icy-icq"@ and @"icy-aim"@ by adding them to the list of @headers@.
+As usual, @liquidsoap -h output.shoutcast@ gives you the full list of options for this operator.
 
 h4. Shoutcast as relay
 

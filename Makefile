@@ -79,6 +79,7 @@ endif
 	$(INSTALL_DATA) scripts/externals.liq $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DATA) scripts/lastfm.liq $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DATA) scripts/utils.liq $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_DATA) scripts/shoutcast.liq $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq \
 	  ${sysconfdir}/liquidsoap/radio.liq.example
