@@ -278,6 +278,23 @@ let () =
          in
          let auth_function = List.assoc "auth" p in
          let login user pass =
+           (** We try to decode user & password here. 
+             * Idealy, it would be better to decode them
+             * in tools/harbor.ml in order to use any
+             * possible charset information there.
+             * However: 
+             * - ICY password are given raw, without
+             *   any charset information
+             * - HTTP password are encoded in Base64 and 
+             *   passed through the HTTP headers, where
+             *   there are no charset information concerning
+             *   the password. Note: Content-Type may contain
+             *   a charset information, but this refers to 
+             *   the charset of the HTML content.. *)
+           let user,pass = 
+              let f = Configure.recode_tag in
+              f user, f pass
+           in
            let user_login test_user test_pass =
              let user,pass =
                let f g x = match x with "" -> g | _ -> x in
