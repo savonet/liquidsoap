@@ -71,4 +71,5 @@ let parse_scpls string =
 
 let () =
   Playlist_parser.parsers#register "audio/x-scpls" { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls } ;
-  Playlist_parser.parsers#register "audio/x-mpegurl" { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
+  Playlist_parser.parsers#register "audio/x-mpegurl" { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
+  Playlist_parser.parsers#register "audio/mpegurl" { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
