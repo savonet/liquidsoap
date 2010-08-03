@@ -223,7 +223,8 @@ object (self)
         let Decoder.Decoder decoder = create_decoder read in
         while true do
           if should_fail then failwith "end of track" ;
-          if poll_should_stop then failwith "source stopped" ;
+          if poll_should_stop || (not relaying) then 
+            failwith "source stopped" ;
           decoder generator
         done
       with
