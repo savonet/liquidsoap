@@ -1250,8 +1250,29 @@ else
     camdir=`$OCAMLFIND query camomile -l | \
       grep location | tr -d ' ' | cut -d':' -f 2`
     camencoding=Camomile.CharEncoding
-    if test -f $camdir/camomileLibrary.cmi ; then
-      camencoding=CamomileLibrary.Default.$camencoding
+    # Use Camomile with environment variables if
+    # available
+    if test -f $camdir/camomileLibraryDyn.cmi ; then
+      if test "$OS_TYPE" \!= "Win32" ; then
+        camencoding=CamomileLibraryDyn.$camencoding
+      else
+        # For win32, we use the functorial version 
+        # with our own config.
+        camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
+        cat >> src/configure.ml <<EOCONF
+module CamomileConfig = 
+struct
+  let datadir = Filename.concat "camomile" "database"
+  let localedir = Filename.concat "camomile" "locales"
+  let charmapdir = Filename.concat "camomile" "charmaps"
+  let unimapdir = Filename.concat "camomile" "mappings"
+end
+EOCONF
+      fi
+    else
+      if test -f $camdir/camomileLibrary.cmi ; then
+        camencoding=CamomileLibrary.Default.$camencoding
+      fi
     fi
     cat >> src/configure.ml <<EOCONF
 module C = $camencoding
