@@ -1,3 +1,24 @@
+(*****************************************************************************
+
+  Liqi, a simple wiki-like langage
+  Copyright 2008-2010 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
 
 open Liqi_parser
 
@@ -96,10 +117,13 @@ let () =
   in
     match !outfmt with
       | `HTML ->
-          (if !main_main then Html.print_main_main else
-	    let basedir = !basedir in
-            if !main then Html.print_main ~basedir else Html.print)
-            ?filename:(if !outfile="stdout" then None else Some !outfile)
-            outchan ?title doc
+          let printer =
+            if !main_main then Html.print_main_main else
+              let basedir = !basedir in
+                if !main then Html.print_main ~basedir else Html.print
+          in
+            printer
+              ?filename:(if !outfile="stdout" then None else Some !outfile)
+              outchan ?title doc
       | `LATEX -> Latex.print false outchan doc
       | `LATEX_FULL -> Latex.print true outchan doc
