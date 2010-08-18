@@ -110,13 +110,9 @@ let includer dir tokenizer =
           token
     in
       match tokenizer () with
-        | Lang_parser.PP_INCLUDE ->
+        | Lang_parser.PP_INCLUDE filename ->
+            let lexbuf = Stack.top state in
             let new_lexbuf =
-              let filename =
-                match tokenizer () with
-                  | Lang_parser.STRING s -> s
-                  | _ -> failwith "expected a string after %include"
-              in
               let filename = Utils.home_unrelate filename in
               let filename =
                 if Filename.is_relative filename then
@@ -124,7 +120,19 @@ let includer dir tokenizer =
                 else
                   filename
               in
-              let channel = open_in filename in
+              let channel =
+                try open_in filename with
+                  | Sys_error _ ->
+                      flush_all () ;
+                      let start = lexbuf.Lexing.lex_curr_p in
+                        Printf.printf "%sine %d, char %d: cannot %%include, "
+                          (if start.Lexing.pos_fname="" then "L" else
+                             Printf.sprintf "File %S, l" start.Lexing.pos_fname)
+                          start.Lexing.pos_lnum
+                          (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
+                        Printf.printf "file %S doesn't exist.\n" filename ;
+                        exit 1
+              in
               let new_lexbuf = Lexing.from_channel channel in
                 Stack.push (Filename.dirname filename,channel) opened ;
                 new_lexbuf.Lexing.lex_start_p <-

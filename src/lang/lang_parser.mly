@@ -152,7 +152,8 @@
 %token MINUS
 %token NOT
 %token REF GET SET
-%token PP_IFDEF PP_ENDIF PP_ENDL PP_INCLUDE PP_DEF
+%token PP_IFDEF PP_ENDIF PP_ENDL PP_DEF
+%token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 
 %nonassoc YIELDS       /* fun x -> (x+x) */
