@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 exception Internal
+exception Read_error
 
 (** Types for playlist handling *)
 type playlist_mode =  Random | First | Randomize | Normal
@@ -30,7 +31,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
   let size =
     let buf = " " in
     let s = Unix.read socket buf 0 1 in
-      assert (s=1) ; (* NON *)
+      if s<>1 then raise Read_error ;
       int_of_char buf.[0]
   in
   let size = 16*size in
@@ -39,7 +40,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
     let rec read pos =
       if pos=size then buf else
         let p = Unix.read socket buf pos (size-pos) in
-          assert (p>0) ; (* NON *)
+          if p<=0 then raise Read_error ;
           read (pos+p)
     in
       read 0
@@ -74,10 +75,10 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
 let read_line socket =
   let ans = ref "" in
   let c = String.create 1 in
-    assert (Unix.read socket c 0 1 = 1); (* NON *)
+    if Unix.read socket c 0 1 <> 1 then raise Read_error ;
     while c <> "\n" do
       ans := !ans ^ c;
-      assert (Unix.read socket c 0 1 = 1); (* NON *)
+      if Unix.read socket c 0 1 <> 1 then raise Read_error
     done;
     String.sub !ans 0 (String.length !ans - 1)
 
