@@ -842,7 +842,7 @@ let toplevel_add (doc,params) x ~generalized v =
       (fun (s,_) ->
          Printf.eprintf "WARNING: Unused @param %S for %s!\n" s x)
       params ;
-    doc#add_subsection "type" (Doc.trivial (T.print ~generalized v.V.t)) ;
+    doc#add_subsection "_type" (Doc.trivial (T.print ~generalized v.V.t)) ;
     builtins#register ~doc x (generalized,v)
 
 let rec eval_toplevel ?(interactive=false) t =

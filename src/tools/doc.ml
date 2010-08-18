@@ -90,19 +90,19 @@ let print_lang (i:item) : unit =
   let sub = i#get_subsections in
   let sub =
     try
-      Printf.printf "Category: %s\n" (List.assoc "category" sub)#get_doc ;
-      List.remove_assoc "category" sub
+      Printf.printf "Category: %s\n" (List.assoc "_category" sub)#get_doc ;
+      List.remove_assoc "_category" sub
     with
       | Not_found -> sub
   in
   let sub =
-    Printf.printf "Type: %s\n" (i#get_subsection "type")#get_doc ;
-    List.remove_assoc "type" sub
+    Printf.printf "Type: %s\n" (i#get_subsection "_type")#get_doc ;
+    List.remove_assoc "_type" sub
   in
   let rec print_flags sub =
     try
-      Printf.printf "Flag: %s\n" (List.assoc "flag" sub)#get_doc ;
-      print_flags (List.remove_assoc "flag" sub)
+      Printf.printf "Flag: %s\n" (List.assoc "_flag" sub)#get_doc ;
+      print_flags (List.remove_assoc "_flag" sub)
     with
       | Not_found -> sub
   in

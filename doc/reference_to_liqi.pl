@@ -132,13 +132,13 @@ sub print_operator {
   }
 
   # Extract its type and category
-  my $type = get_info $section{"type"}->[0] ;
-  if ($#{$section{"category"}}>=0) {
-    $category = get_info $section{"category"}->[0] ;
+  my $type = get_info $section{"_type"}->[0] ;
+  if ($#{$section{"_category"}}>=0) {
+    $category = get_info $section{"_category"}->[0] ;
   }
 
   # Get the associated flags
-  for (@{$section{"flag"}}) {
+  for (@{$section{"_flag"}}) {
     push @flags, get_info $_ ;
   }
 
@@ -165,7 +165,7 @@ sub print_operator {
   sub filter {
     return 0 unless ($_->getNodeType == 1 && $_->getTagName eq "section") ;
     my $l = text_of($_->getElementsByTagName("label")->[0]->getFirstChild) ;
-    return ($l ne "category" && $l ne "type" && $l ne "flag") ;
+    return ($l ne "_category" && $l ne "_type" && $l ne "_flag") ;
   }
   my @params = grep { filter } $node->getChildNodes ;
 

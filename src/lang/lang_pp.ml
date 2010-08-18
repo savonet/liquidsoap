@@ -268,8 +268,8 @@ let parse_comments tokenizer =
     in
       List.iter
         (function
-           | `Category c -> doc#add_subsection "category" (Doc.trivial c)
-           | `Flag c -> doc#add_subsection "flag" (Doc.trivial c))
+           | `Category c -> doc#add_subsection "_category" (Doc.trivial c)
+           | `Flag c -> doc#add_subsection "_flag" (Doc.trivial c))
         special ;
       Lang_parser.DEF (doc,params)
   in

@@ -178,7 +178,7 @@ DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 liquidsoap_doc_sources= \
 	source.ml clock.ml \
 	tools/plug.ml tools/http.ml \
-	decoder.ml request.ml outputs/output.ml \
+	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml tools/server.ml \
 	tools/tutils.ml tools/sutils.ml tools/mutils.ml \
 	tools/ringbuffer.ml \
