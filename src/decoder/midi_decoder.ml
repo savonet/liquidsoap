@@ -25,17 +25,21 @@
 
 exception Invalid_header
 
+exception Invalid_data
+
 let log = Dtools.Log.make ["format";"midi"]
 
 let read_id fd =
   let buf = String.create 4 in
-    assert (Unix.read fd buf 0 4 = 4);
+    if Unix.read fd buf 0 4 <> 4 then
+      raise Invalid_data;
     buf
 
 let read_nat n fd =
   let buf = String.create n in
   let ans = ref 0 in
-    assert (Unix.read fd buf 0 n = n);
+    if Unix.read fd buf 0 n <> n then
+      raise Invalid_data;
     for i = 0 to n - 1 do
       ans := !ans lsl 8 + int_of_char buf.[i]
     done;
@@ -46,6 +50,7 @@ let read_short = read_nat 2
 
 (** Read midi header. *)
 let read_header fd =
+  (* Actual header reading. *)
   let id = read_id fd in
   let len = read_long fd in
   let fmt = read_short fd in
@@ -80,15 +85,19 @@ let read_track fd =
   if id <> "MTrk" then raise Invalid_header;
   let data = String.create len in
   let r = Utils.really_read fd data 0 len in
-  if r <> len then log#f 4 "Read %d instead of %d" r len;
-  assert (r = len);
+  if r <> len then
+   (
+     log#f 4 "Read %d instead of %d" r len;
+     raise Invalid_data
+   );
   let data = Array.init len (fun i -> int_of_char data.[i]) in
   let pos = ref 0 in
   let read_delta () =
     let ans = ref 0 in
       while data.(!pos) land 0x80 <> 0 do
         ans := !ans lsl 7 + (data.(!pos) land 0x7f);
-        incr pos
+        incr pos;
+        if !pos >= Array.length data then raise Invalid_data
       done;
       ans := !ans lsl 7 + data.(!pos);
       incr pos;
@@ -97,11 +106,13 @@ let read_track fd =
   let status = ref 0 in (* for running status *)
   let read_event () =
     let get_byte () =
+      if !pos >= Array.length data then raise Invalid_data;
       incr pos;
       data.(!pos - 1)
     in
     let get_text len =
       let ans = String.create len in
+        if !pos + len >= Array.length data then raise Invalid_data;
         for i = 0 to len - 1 do
           ans.[i] <- char_of_int data.(!pos + i)
         done;
@@ -111,7 +122,10 @@ let read_track fd =
     let advance len =
       pos := !pos + len
     in
-    let command = data.(!pos) in
+    let command =
+      if !pos >= Array.length data then raise Invalid_data;
+      data.(!pos)
+    in
     incr pos;
     let command =
       if command land 0x80 <> 0 then
@@ -173,7 +187,7 @@ let read_track fd =
                   let len = read_delta () in
                     match cmd with
                       | 0 ->
-                          assert (len = 2);
+                          if len <> 2 then raise Invalid_data;
                           let h = get_byte () in
                           let l = get_byte () in
                             None, Midi.Sequence_number ((h lsl 8) + l)
@@ -192,10 +206,10 @@ let read_track fd =
                       | 7 ->
                           None, Midi.Cue (get_text len)
                       | 0x2f (* End of track *) ->
-                          assert (len = 0);
+                          if len <> 0 then raise Invalid_data;
                           raise Not_found
                       | 0x51 (* Tempo in microseconds per quarter note *) ->
-                          assert (len = 3);
+                          if len <> 3 then raise Invalid_data;
                           let t1 = get_byte () in
                           let t2 = get_byte () in
                           let t3 = get_byte () in
@@ -203,7 +217,7 @@ let read_track fd =
                             log#f 6 "Tempo: %d µs per quarter" t;
                             None, Midi.Tempo t
                       | 0x58 (* Time signature *) ->
-                          assert (len = 4);
+                          if len <> 4 then raise Invalid_data;
                           (* numerator,
                            * denominator,
                            * ticks in a metronome click,
@@ -214,7 +228,7 @@ let read_track fd =
                           let b = get_byte () in
                             None, Midi.Time_signature (n, d, c, b)
                       | 0x59 (* Key signature *) ->
-                          assert (len = 2);
+                          if len <> 2 then raise Invalid_data;
                           let sf = get_byte () in (* sharps / flats *)
                           let m = get_byte () in (* minor? *)
                             None, Midi.Key_signature (sf, m <> 0)
@@ -333,18 +347,18 @@ let decoder file =
                      | Midi.Note_on _
                      | Midi.Note_off _
                      | Midi.Control_change _ ->
-                         begin try
+                         if c >= Array.length m then
+                           (
+                             if !warn_channels then begin
+                               log#f 3 "Event on channel %d \
+                                 will be ignored, increase \
+                                 frame.midi.channels (this message \
+                                 is displayed only once)." c;
+                               warn_channels := false
+                             end
+                           )
+                         else
                            m.(c) := !(m.(c))@[!offset_in_buf, e]
-                         with
-                           | Invalid_argument _ ->
-                               if !warn_channels then begin
-                                   log#f 3 "Event on channel %d \
-                                     will be ignored, increase \
-                                     frame.midi.channels (this message \
-                                     is displayed only once)." c;
-                                   warn_channels := false
-                                 end
-                         end
                        | _ -> () (* TODO *)
                    end
                 | None -> () (* TODO *)
