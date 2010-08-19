@@ -76,10 +76,10 @@ endif
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_DATA) scripts/externals.liq $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_DATA) scripts/lastfm.liq $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_DATA) scripts/utils.liq $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_DATA) scripts/shoutcast.liq $(libdir)/liquidsoap/$(libs_dir_version)
+	for l in externals.liq lastfm.liq utils.liq shoutcast.liq pervasives.liq ; \
+	do \
+	  $(INSTALL_DATA) scripts/$$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
+	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq \
 	  ${sysconfdir}/liquidsoap/radio.liq.example

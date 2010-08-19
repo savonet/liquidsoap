@@ -1,7 +1,5 @@
 # Decoders, enabled when the binary is detected and the os is not Win32.
 
-%include "utils.liq"
-
 # Get_mime is not always defined
 # so we define a default in this case..
 my_get_mime = fun (_) -> ""

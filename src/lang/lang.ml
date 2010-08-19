@@ -682,12 +682,9 @@ let from_file ?parse_only ~ns filename =
 
 let load_libs ?parse_only () =
   let dir = Configure.libs_dir in
-    Array.iter
-      (fun file ->
-        if Filename.check_suffix file ".liq" then
-          from_file ?parse_only
-            ~ns:(Some (Filename.basename file)) (dir^"/"^file))
-      (try Sys.readdir dir with _ -> [||])
+  let file = Filename.concat dir "pervasives.liq" in
+    if Sys.file_exists file then
+      from_file ?parse_only ~ns:(Some file) file
 
 let from_file = from_file ~ns:None
 
