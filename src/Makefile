@@ -12,7 +12,7 @@ ogg_demuxer = \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) 
+	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml)
 
 ogg_muxer = \
 	$(if $(W_OGG),ogg_muxer.ml) \
@@ -121,7 +121,7 @@ io = \
 #	io/marshal_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
-	tools/rqueue.ml tools/ringbuffer.ml \
+	tools/rqueue.ml \
 	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
 	tools/liq_sockets.ml \
 	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
@@ -131,7 +131,8 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 stream = stream/midi.ml stream/rgb_c.c stream/RGB.ml \
 	stream/float_pcm_c.c stream/float_pcm.ml \
 	stream/frame.ml stream/generator.ml \
-	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
+	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
+	tools/ringbuffer.ml # ringbuffer needs float_pcm
 
 visualization = visualization/vumeter.ml \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
@@ -169,7 +170,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
 OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
-DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS)) 
+DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
 liquidsoap_doc_sources= \
 	source.ml clock.ml \

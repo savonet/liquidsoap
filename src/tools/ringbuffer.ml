@@ -64,12 +64,12 @@ let read t buff off len =
   let extra = len - pre in
     if extra > 0 then
       for c = 0 to Array.length t.buffer - 1 do
-        Array.blit t.buffer.(c) t.rpos buff.(c) off pre;
-        Array.blit t.buffer.(c) 0 buff.(c) (off + pre) extra
+        Float_pcm.blit t.buffer.(c) t.rpos buff.(c) off pre;
+        Float_pcm.blit t.buffer.(c) 0 buff.(c) (off + pre) extra
       done
     else
       for c = 0 to Array.length t.buffer - 1 do
-        Array.blit t.buffer.(c) t.rpos buff.(c) off len
+        Float_pcm.blit t.buffer.(c) t.rpos buff.(c) off len
       done;
     read_advance t len
 
@@ -79,12 +79,12 @@ let write t buff off len =
   let extra = len - pre in
     if extra > 0 then
       for c = 0 to Array.length t.buffer - 1 do
-        Array.blit buff.(c) off t.buffer.(c) t.wpos pre;
-        Array.blit buff.(c) (off + pre) t.buffer.(c) 0 extra
+        Float_pcm.blit buff.(c) off t.buffer.(c) t.wpos pre;
+        Float_pcm.blit buff.(c) (off + pre) t.buffer.(c) 0 extra
       done
     else
       for c = 0 to Array.length t.buffer - 1 do
-        Array.blit buff.(c) off t.buffer.(c) t.wpos len
+        Float_pcm.blit buff.(c) off t.buffer.(c) t.wpos len
       done;
     write_advance t len
 
