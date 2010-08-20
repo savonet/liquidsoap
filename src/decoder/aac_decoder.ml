@@ -174,8 +174,8 @@ module D_stream = Make(Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register
-    "MP3/libmad"
-    ~sdoc:"Use libmad to decode any stream with an appropriate MIME type."
+    "AAC/libfaad"
+    ~sdoc:"Use libfaad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
           if List.mem mime conf_mime_types#get &&
