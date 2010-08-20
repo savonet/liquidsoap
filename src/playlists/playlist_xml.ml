@@ -27,6 +27,7 @@ let log = Dtools.Log.make ["parser";"xml"]
 let conf_xml =
   Dtools.Conf.list ~p:(Playlist_parser.conf_mime_types#plug "xml")
     ~d:["video/x-ms-asf";
+        "audio/x-ms-asx";
         "text/xml";
         "application/xml";
         "application/smil";
