@@ -182,6 +182,16 @@ object (self)
   val mutable queue_length = 0 (* Ticks *)
   val mutable resolving = None
 
+  (** [available_length] is the length of the queue plus the remaining
+    * time in the current track (0 in conservative mode).
+    * Although [queue_length] should be accessed under [qlock] we
+    * don't do it here, and more importantly, all the instances of
+    * "if self#available_length < min_queue_length then ..." are not
+    * run within [qlock]'s critical section. The potential race
+    * condition (there seems to be enough, then the length decreases
+    * but we have already decided to take no action) is harmless
+    * because all the portions of the code that decrease the length
+    * trigger the appropriate action (feeding) themselves. *)
   method private available_length =
     if conservative then
       queue_length
@@ -394,6 +404,7 @@ object (self)
       ans
 
   method private expire test =
+    let already_short = self#available_length < min_queue_length in
     Mutex.lock qlock ;
     Queue.iter
       (fun r ->
@@ -404,7 +415,9 @@ object (self)
       retrieved ;
     Mutex.unlock qlock ;
     if self#available_length < min_queue_length then begin
-      self#log#f 4 "Expirations made the queue too short, feeding..." ;
+      if not already_short then
+        self#log#f 4 "Expirations made the queue too short, feeding..." ;
+      (* Notify in any case, notifying twice never hurts. *)
       self#notify_new_request
     end
 
