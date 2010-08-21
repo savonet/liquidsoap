@@ -257,7 +257,7 @@ let read_track fd =
     done;
     List.rev !ans
 
-let decoder file =
+let decoder ~channels file =
   log#f 4 "Decoding %S..." file;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   let closed = ref false in
@@ -331,7 +331,7 @@ let decoder file =
     let track = ref track in
     let warn_channels = ref true in
     let fill buf =
-      let m = MFrame.content buf 0 in
+      let m = MFrame.content_of_type ~channels buf 0 in
       MFrame.clear buf;
       let buflen = MFrame.size () in
       let offset_in_buf = ref 0 in
@@ -348,15 +348,15 @@ let decoder file =
                      | Midi.Note_off _
                      | Midi.Control_change _ ->
                          if c >= Array.length m then
-                           (
-                             if !warn_channels then begin
-                               log#f 3 "Event on channel %d \
-                                 will be ignored, increase \
-                                 frame.midi.channels (this message \
-                                 is displayed only once)." c;
-                               warn_channels := false
-                             end
-                           )
+                           if !warn_channels then begin
+                             log#f 3 "Event on channel %d will be ignored. \
+                               To avoid this, increase the number of MIDI \
+                               channels for that source, either by forcing \
+                               its type or by setting a higher default in \
+                               \"frame.midi.channels\". \
+                               This message is displayed only once." c ;
+                             warn_channels := false
+                           end else ()
                          else
                            m.(c) := !(m.(c))@[!offset_in_buf, e]
                        | _ -> () (* TODO *)
@@ -377,8 +377,15 @@ let () =
   Decoder.file_decoders#register "MIDI"
     (fun ~metadata filename kind ->
        (* Any number of MIDI channel is acceptable as the decoder
-        * silently drops events on higher channels if needed. *)
-       if kind.Frame.midi <> Frame.Zero then
-           Some (fun () -> decoder filename)
-       else
-           None)
+        * silently drops events on higher channels if needed.
+        * The number of MIDI channels is chosen at the beginning
+        * independently of the actual file contents.
+        * The kind should allow empty audio and video. *)
+       let content =
+         { (Frame.type_of_kind kind) with Frame.audio = 0 ; video = 0 }
+       in
+       let channels = content.Frame.midi in
+         if channels > 0 && Frame.type_has_kind content kind then
+             Some (fun () -> decoder ~channels filename)
+         else
+             None)
