@@ -44,10 +44,10 @@ let home_unrelate s = Utils.home_unrelate (remove_file_proto s)
 let parse_uri uri =
   try
     let i = String.index uri ':' in
-      (String.sub uri 0 i),
-      (String.sub uri (i+1) ((String.length uri)-(i+1)))
+      Some ((String.sub uri 0 i),
+            (String.sub uri (i+1) ((String.length uri)-(i+1))))
   with
-    | _ -> "",""
+    | _ -> None
 
 let cleanup =
   let re1 = Str.regexp "^[\t ]*" in
@@ -525,10 +525,13 @@ let is_static s =
   if Sys.file_exists (home_unrelate s) then
     Some true
   else
-    let proto,arg = parse_uri s in
-      match protocols#get proto with
-        | Some handler -> Some handler.static
-        | None -> None
+    match parse_uri s with
+      | Some (proto,arg) ->
+          begin match protocols#get proto with
+            | Some handler -> Some handler.static
+            | None -> None
+          end
+      | None -> None
 
 (** Resolving engine. *)
 
@@ -549,24 +552,33 @@ let resolve t timeout =
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)
     if Sys.file_exists i.string then local_check t else
-    let proto,arg = parse_uri i.string in
-      match protocols#get proto with
-        | Some handler ->
-            add_log t
-              (Printf.sprintf
-                 "Resolving %S (timeout %.fs)..."
-                 i.string timeout) ;
-            let production = handler.resolve ~log:(add_log t) arg maxtime in
-              if production = [] then begin
-                log#f 4
-                  "Failed to resolve %S! \
-                   For more info, see server command 'trace %d'."
-                  i.string t.id ;
-                ignore (pop_indicator t)
-              end else
-                push_indicators t production
+      match parse_uri i.string with
+        | Some (proto,arg) ->
+            begin match protocols#get proto with
+              | Some handler ->
+                  add_log t
+                    (Printf.sprintf
+                       "Resolving %S (timeout %.fs)..."
+                       i.string timeout) ;
+                  let production =
+                    handler.resolve ~log:(add_log t) arg maxtime
+                  in
+                    if production = [] then begin
+                      log#f 4
+                        "Failed to resolve %S! \
+                         For more info, see server command 'trace %d'."
+                        i.string t.id ;
+                      ignore (pop_indicator t)
+                    end else
+                      push_indicators t production
+              | None ->
+                  log#f 3 "Unknown protocol %S in URI %S!" proto i.string ;
+                  add_log t "Unknown protocol!" ;
+                  pop_indicator t
+            end
         | None ->
-            add_log t "Unknown protocol!" ;
+            log#f 3 "Nonexistent file or ill-formed URI %S!" i.string ;
+            add_log t "Nonexistent file or ill-formed URI!" ;
             pop_indicator t
   in
   let result =
