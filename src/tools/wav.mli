@@ -60,8 +60,6 @@ val info : t -> string
 val channels : t -> int
 val sample_rate : t -> int
 val sample_size : t -> int
-val big_endian : t -> bool
-val signed : t -> bool
 
 val close : t -> unit
 (** [close w] close the wav descriptor [w] *)
@@ -69,7 +67,7 @@ val close : t -> unit
 (** Returns the WAV header that declares the given format.
   * The lengths of file and data are set to their maximum possible value. *)
 val header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
-             big_endian:bool -> signed:bool -> unit -> string
+             unit -> string
 
 (** Returns the duration of the file.
   * [header_len] speficies if data length should be

@@ -150,8 +150,6 @@ let info w =
 let channels w = w.channels_number
 let sample_rate w = w.sample_rate
 let sample_size w = w.bits_per_sample
-let big_endian w = false
-let signed w = w.bits_per_sample <> 8
 
 let close w =
   close_in w.ic
@@ -184,7 +182,7 @@ let int_string n =
     s.[3] <- char_of_int ((n land 0x7f000000) lsr 24) ;
     s
 
-let header ?len ~channels ~sample_rate ~sample_size ~big_endian ~signed () =
+let header ?len ~channels ~sample_rate ~sample_size () =
   (* The data lengths are set to their maximum possible values. *)
   let header_len,data_len = 
     match len with

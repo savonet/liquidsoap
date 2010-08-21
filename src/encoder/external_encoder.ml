@@ -125,8 +125,7 @@ let encoder id ext =
         let header =
           Wav.header ~channels:h.params.channels
                      ~sample_rate:h.params.samplerate
-                     ~sample_size:16
-                     ~big_endian:false ~signed:true ()
+                     ~sample_size:16 ()
         in
         (* Write WAV header *)
         output_string out_e header

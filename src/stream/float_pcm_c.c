@@ -108,13 +108,18 @@ CAMLprim value caml_float_pcm_to_s16le(value a, value _offs, value _len, value _
   CAMLreturn(Val_int(dst_len));
 }
 
-#define s2f(x) (((double)x)/32768)
+#define s16tof(x) (((double)x)/32768)
+#define u8tof(x)  (((double)x-127)/127)
+#define get_u8(src,offset,nc,c,i)    u8tof(((uint8_t*)src)[offset+i*nc+c])
+#ifdef LIQ_BIG_ENDIAN
+#define get_s16le(src,offset,nc,c,i) s16tof(bswap_16(((int16_t*)src)[offset/2+i*nc+c]))
+#else
+#define get_s16le(src,offset,nc,c,i) s16tof(((int16_t*)src)[offset/2+i*nc+c])
+#endif
 
-CAMLprim value caml_float_pcm_convert_le_native(
+CAMLprim value caml_float_pcm_convert_u8_native(
     value _src, value _offset, value _length,
-    value _signed, value _bits_per_sample, value _bigendian,
-    value _ratio,
-    value _dst, value _dst_off)
+    value _ratio, value _dst, value _dst_off)
 {
   CAMLparam2(_src, _dst) ;
   CAMLlocal1(dstc) ;
@@ -130,30 +135,19 @@ CAMLprim value caml_float_pcm_convert_le_native(
 
   if (dst_off + newlen > dst_len)
     caml_invalid_argument("convert_native: output buffer too small");
-  if (Int_val(_bits_per_sample) != 16 || !Bool_val(_signed) || Bool_val(_bigendian))
-    caml_invalid_argument("convert_native: bad input format");
-
-  // TODO get_s16le get_s16be get_s32le etc.
-  //      correspondingly there should be convert_s16le, and others, expanded
-  //      from macros.
-#ifdef LIQ_BIG_ENDIAN
-#define get_sample_le(c,i) s2f(bswap_16(((int16_t*)src)[offset/2+i*nc+c]))
-#else
-#define get_sample_le(c,i) s2f(((int16_t*)src)[offset/2+i*nc+c])
-#endif
 
   if (ratio==1) {
     for (c=0 ; c<nc ; c++) {
       dstc = Field(_dst,c) ;
       for (i=0 ; i<newlen; i++) {
-        Store_double_field(dstc, dst_off+i, get_sample_le(c,i)) ;
+        Store_double_field(dstc, dst_off+i, get_u8(src,offset,nc,c,i)) ;
       }
     }
   }else{
     for (c=0 ; c<nc ; c++) {
       dstc = Field(_dst,c) ;
       for (i=0 ; i<newlen; i++) {
-        Store_double_field(dstc, dst_off+i, get_sample_le(c,((int)(i/ratio)))) ;
+        Store_double_field(dstc, dst_off+i, get_u8(src,offset,nc,c,((int)(i/ratio)))) ;
       }
     }
   }
@@ -161,17 +155,14 @@ CAMLprim value caml_float_pcm_convert_le_native(
   CAMLreturn(Val_int(dst_off+newlen)) ;
 }
 
-CAMLprim value caml_float_pcm_convert_le_byte(value* argv, int argn) {
-  return caml_float_pcm_convert_le_native(argv[0],argv[1],argv[2],
-                                       argv[3],argv[4],argv[5],
-                                       argv[6],argv[7],argv[8]) ;
+CAMLprim value caml_float_pcm_convert_u8_byte(value* argv, int argn) {\
+  return caml_float_pcm_convert_u8_native(argv[0],argv[1],argv[2],\
+                                       argv[3],argv[4],argv[5]) ;\
 }
 
-CAMLprim value caml_float_pcm_convert_be_native(
+CAMLprim value caml_float_pcm_convert_s16le_native(
     value _src, value _offset, value _length,
-    value _signed, value _bits_per_sample, value _bigendian,
-    value _ratio,
-    value _dst, value _dst_off)
+    value _ratio, value _dst, value _dst_off)
 {
   CAMLparam2(_src, _dst) ;
   CAMLlocal1(dstc) ;
@@ -187,30 +178,19 @@ CAMLprim value caml_float_pcm_convert_be_native(
 
   if (dst_off + newlen > dst_len)
     caml_invalid_argument("convert_native: output buffer too small");
-  if (Int_val(_bits_per_sample) != 16 || !Bool_val(_signed) || !Bool_val(_bigendian))
-    caml_invalid_argument("convert_native: bad input format");
-
-  // TODO get_s16le get_s16be get_s32le etc.
-  //      correspondingly there should be convert_s16le, and others, expanded
-  //      from macros.
-#ifdef LIQ_BIG_ENDIAN
-#define get_sample_be(c,i) s2f(((int16_t*)src)[offset/2+i*nc+c])
-#else
-#define get_sample_be(c,i) s2f(bswap_16(((int16_t*)src)[offset/2+i*nc+c]))
-#endif
 
   if (ratio==1) {
     for (c=0 ; c<nc ; c++) {
       dstc = Field(_dst,c) ;
       for (i=0 ; i<newlen; i++) {
-        Store_double_field(dstc, dst_off+i, get_sample_be(c,i)) ;
+        Store_double_field(dstc, dst_off+i, get_s16le(src,offset,nc,c,i)) ;
       }
     }
   }else{
     for (c=0 ; c<nc ; c++) {
       dstc = Field(_dst,c) ;
       for (i=0 ; i<newlen; i++) {
-        Store_double_field(dstc, dst_off+i, get_sample_be(c,((int)(i/ratio)))) ;
+        Store_double_field(dstc, dst_off+i, get_s16le(src,offset,nc,c,((int)(i/ratio)))) ;
       }
     }
   }
@@ -218,10 +198,9 @@ CAMLprim value caml_float_pcm_convert_be_native(
   CAMLreturn(Val_int(dst_off+newlen)) ;
 }
 
-CAMLprim value caml_float_pcm_convert_be_byte(value* argv, int argn) {
-  return caml_float_pcm_convert_be_native(argv[0],argv[1],argv[2],
-                                       argv[3],argv[4],argv[5],
-                                       argv[6],argv[7],argv[8]) ;
+CAMLprim value caml_float_pcm_convert_s8le_byte(value* argv, int argn) {\
+  return caml_float_pcm_convert_s16le_native(argv[0],argv[1],argv[2],\
+                                       argv[3],argv[4],argv[5]) ;\
 }
 
 CAMLprim value caml_float_pcm_from_s16le(value a, value _aoffs, value _buf, value _boffs, value _len)
@@ -242,7 +221,7 @@ CAMLprim value caml_float_pcm_from_s16le(value a, value _aoffs, value _buf, valu
   {
     cbuf = Field(a, c);
       for(i = 0; i < len; i++)
-        Store_double_field(cbuf, i + aoffs, ((double)buf[chans*i+c+boffs])/32768);
+        Store_double_field(cbuf, i + aoffs, get_s16le(buf,boffs,chans,c,i));
   }
 
   CAMLreturn(Val_unit);

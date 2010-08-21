@@ -30,15 +30,16 @@
 
   val create_audio : unit -> audio_converter
 
-  type s16le_converter = 
+  type wav_converter = 
           audio_src_rate:float -> 
           string -> Frame.audio_t array * int
 
-  (** samplesize is in bits (usually 16) *)
-  val create_from_s16le :            
+  (** samplesize is in bits. 
+      Formats: unsigned 8 bit (u8) or
+               signed 16 bit little endian (s16le) *)
+  val create_from_wav :            
            channels:int ->
            samplesize:int ->
-           signed:bool ->
-           big_endian:bool ->
            unit ->
-           s16le_converter
+           wav_converter
+

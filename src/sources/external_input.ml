@@ -33,9 +33,8 @@ class external_input ~kind ~restart ~bufferize ~channels
   let abg_max_len = Frame.audio_of_seconds max in
   let in_freq = float samplerate in
   let converter = 
-    Rutils.create_from_s16le ~channels ~samplesize:16 
-                             ~signed:true ~big_endian:false
-                             () ~audio_src_rate:in_freq
+    Rutils.create_from_wav ~channels ~samplesize:16 
+                           () ~audio_src_rate:in_freq
   in
   (* We need a temporary log until 
    * the source has an id *)

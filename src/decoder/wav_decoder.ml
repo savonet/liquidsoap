@@ -89,9 +89,6 @@ let create input =
     let _ (* byt_per_samp *) = read_short input in
     let samplesize (* in bits *) = read_short input in
 
-    let signed = samplesize <> 8 in
-    let big_endian = false in
-
     let section = really_input input 4 in
     if section <> "data" then begin
       if section = "INFO" then
@@ -102,9 +99,9 @@ let create input =
     let _ (* len_dat *) = read_int input in
 
     let converter =
-      Rutils.create_from_s16le
-        ~channels ~samplesize ~signed ~big_endian ()
-        ~audio_src_rate:(float samplerate)
+        Rutils.create_from_wav
+          ~samplesize ~channels ()
+          ~audio_src_rate:(float samplerate)
     in
 
       log#f 4
@@ -131,8 +128,25 @@ let get_type filename =
     Tutils.finalize
       ~k:(fun () -> close_in chan)
       (fun () ->
+         let header = Wav.read_header chan filename in
+         let channels = 
+           let channels  = Wav.channels header in
+           let sample_rate = Wav.sample_rate header in
+           let ok_message s = 
+             log#f 4
+               "%S recognized as WAV file (%s,%dHz,%d channels)."
+                 filename s sample_rate channels ;
+           in
+           match Wav.sample_size header with
+             | 8  -> ok_message "u8"; channels
+             | 16 -> ok_message "s16le"; channels
+             | _ -> 
+                log#f 4 "Only 16 and 8 bit WAV files \
+                         are supported at the moment.." ;
+                0
+         in
          { Frame. video = 0 ; midi = 0 ;
-                  audio = Wav.channels (Wav.read_header chan filename) })
+                  audio = channels })
 
 let create_file_decoder filename kind =
   let generator = Generator.create `Audio in

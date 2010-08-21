@@ -31,29 +31,26 @@ let sub buf ofs len =
   else
     Array.map (fun a -> Array.sub a ofs len) buf
 
-external caml_float_pcm_convert_le_byte : string -> int -> int ->
-                      bool -> int -> bool ->
+external resample_u8 : string -> int -> int ->
+                       float ->
+                       float array array -> int -> int
+         = "caml_float_pcm_convert_u8_byte" "caml_float_pcm_convert_u8_native"
+
+external resample_s16le : string -> int -> int ->
                       float ->
                       float array array -> int -> int
-         = "caml_float_pcm_convert_le_byte" "caml_float_pcm_convert_le_native"
+         = "caml_float_pcm_convert_s16le_byte" "caml_float_pcm_convert_s16le_native"
 
-external caml_float_pcm_convert_be_byte : string -> int -> int ->
-                      bool -> int -> bool ->
-                      float ->
-                      float array array -> int -> int
-         = "caml_float_pcm_convert_be_byte" "caml_float_pcm_convert_be_native"
-
-let resample_s16le
-      src src_off len signed samplesize big_endian
+let resample_wav
+      src src_off len samplesize
       ratio dst dst_off =
-  if big_endian then
-    caml_float_pcm_convert_be_byte
-      src src_off len signed samplesize big_endian
-      ratio dst dst_off
-  else
-    caml_float_pcm_convert_le_byte
-      src src_off len signed samplesize big_endian
-      ratio dst dst_off
+  let f = 
+   match samplesize with
+      | 8  -> resample_u8
+      | 16 -> resample_s16le
+      | _ -> failwith "unsuported format."
+  in
+    f src src_off len ratio dst dst_off
 
 external to_s16le : float array array -> int -> int -> string -> int -> int
          = "caml_float_pcm_to_s16le"

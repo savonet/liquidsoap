@@ -66,11 +66,11 @@
       in
       process_audio audio_rate)
 
-  type s16le_converter = 
+  type wav_converter = 
           audio_src_rate:float ->
           string -> Frame.audio_t array * int
 
-  let create_from_s16le ~channels ~samplesize ~signed ~big_endian () = 
+  let create_from_wav ~channels ~samplesize x = 
     let audio_dst_rate =
       float (Lazy.force Frame.audio_rate)
     in
@@ -86,8 +86,8 @@
       let len_dst = 1 + int_of_float (float len_src *. ratio) in
       let dst = Array.init channels (fun _ -> Array.make len_dst 0.) in
       let len_dst =
-        Float_pcm.resample_s16le
-          src 0 len_src signed samplesize big_endian
+        Float_pcm.resample_wav 
+          src 0 len_src samplesize
           ratio dst 0
       in
         dst, Frame.master_of_audio len_dst)

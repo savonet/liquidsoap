@@ -35,7 +35,7 @@ let encoder wav =
   let header =
     Wav.header
       ~channels ~sample_rate
-      ~sample_size:16 ~big_endian:false ~signed:true ()
+      ~sample_size:16 ()
   in
   let need_header = ref true in
   let encode frame start len =
