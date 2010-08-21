@@ -20,12 +20,9 @@
 
  *****************************************************************************)
 
-(** Output using SDL lib.
-  * Currently only supports video, but an audio support would be nice. *)
+(** Output using SDL lib. *)
 
 open Sdl
-
-let chunksize = 4096
 
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_width    = Lazy.force Frame.video_width in
@@ -37,9 +34,11 @@ object (self)
 
   method output_start =
     Sdlevent.enable_events Sdlevent.quit_mask ;
+    (* Try to get 32bpp because it's faster (twice as fast here),
+     * but accept other formats too. *)
     ignore (Sdlvideo.set_video_mode
               ~w:video_width ~h:video_height
-              ~bpp:16 [`ANYFORMAT;`DOUBLEBUF]) ;
+              ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ;
     self#log#f 4 "Initialized SDL video surface with %dbpp."
       (Sdlvideo.surface_bpp (Sdlvideo.get_video_surface ()))
 

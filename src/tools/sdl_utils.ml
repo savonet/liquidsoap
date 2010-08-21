@@ -82,7 +82,25 @@ let from_24 surface =
 
 (** 32bits surfaces are standard RGBA
   * However, the RGB components are (at least sometimes) packed in
-  * a different order as in liquidsoap: 0xAARRGGBB. *)
+  * a different order as in liquidsoap: 0xAARRGGBB.
+  *
+  * An alternative implementation, which is surprisingly not sensibly
+  * faster, uses SDL blitting directly by casting a char* into an int*.
+  * The alpha is masked out because we don't want
+  * to see video frames on top of each other on screen.
+  * This hack might not work the same on different platforms.
+      let s =
+        Sdlvideo.create_RGB_surface_from_32
+        (Obj.magic rgb.RGB.data)
+        ~w:rgb.RGB.width
+        ~h:rgb.RGB.height
+        ~pitch:rgb.RGB.stride
+        (* The masks might be endianness dependent *)
+        ~rmask:0xffl ~gmask:0xff00l ~bmask:0xff0000l
+        ~amask:0l
+      in
+        Sdlvideo.blit_surface ~src:s ~dst:surface ()
+  *)
 let to_32 rgb surface =
   let s = Sdlvideo.pixel_data_32 surface in
   let width,height,pitch = Sdlvideo.surface_dims surface in
