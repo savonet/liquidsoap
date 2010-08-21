@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,6 +24,8 @@ open Source
 
 class visu ~kind source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
+  let width = Lazy.force Frame.video_width in
+  let height = Lazy.force Frame.video_height in
 object (self)
   inherit operator kind [source] as super
 
@@ -32,22 +34,25 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val width = Lazy.force Frame.video_width
-  val height = Lazy.force Frame.video_height
+  (* [vol] contains the pixel coordinates to be displayed for each channel:
+   * each pixel corresponds to the volume (rms) of one frame (rather, one
+   * output chunk, which is bad because they don't all have the same
+   * duration.. TODO). *)
+  val vol = Array.init channels (fun _ -> Array.make width 0.)
 
-  val vol = Array.init channels (fun _ -> Array.make (Lazy.force Frame.video_width) 0.)
-
-  method add_vol v =
+  method private add_vol v =
     for c = 0 to channels - 1 do
+      (* Shift old values *)
       for i = 1 to width - 1 do
         vol.(c).(i - 1) <- vol.(c).(i)
       done;
+      (* Add the new one *)
       vol.(c).(width - 1) <- v.(c)
     done
 
-  method render buf =
+  method private render frame offset len =
     let clip y =
-      max 0 (min height y)
+      max 0 (min (height-1) y)
     in
     let pts =
       Array.mapi
@@ -55,31 +60,61 @@ object (self)
            Array.mapi
              (fun i x ->
                 i,
-                clip (height - (int_of_float (x *. float height) / channels + j * height / channels))
-             ) v
-        ) vol
+                clip (height -
+                      (int_of_float (x *. float height) / channels +
+                       j * height / channels)))
+             v)
+        vol
     in
-    let offset = VFrame.position buf in
     let pts = Array.concat (Array.to_list pts) in
-    let buf = VFrame.content_of_type ~channels:1 buf offset in
-    let buf = buf.(0) in
-      for f = 0 to Array.length buf - 1 do
-        Array.iter (fun (i,j) -> RGB.set_pixel buf.(f) i j (0xff, 0xff, 0xff, 0xff)) pts
+
+    (* Add a video channel to the frame contents. *)
+    let _,src = Frame.content frame offset in
+    let src_type = Frame.type_of_content src in
+    let dst_type = { src_type with Frame.video = 1 } in
+    let dst = Frame.content_of_type frame offset dst_type in
+
+    (* Reproduce audio data in the new contents. *)
+    for i = 0 to Array.length src.Frame.audio - 1 do
+      let (!) = Frame.audio_of_master in
+      Float_pcm.blit
+        src.Frame.audio.(i) !offset
+        dst.Frame.audio.(i) !offset
+        !len
+    done ;
+
+    (* Fill-in video information. *)
+    let buf = dst.Frame.video.(0) in
+    let start = Frame.video_of_master offset in
+    let stop = start + Frame.video_of_master len in
+      for f = start to stop - 1 do
+        RGB.blank buf.(f) ;
+        Array.iter
+          (fun (i,j) -> RGB.set_pixel buf.(f) i j (0xff, 0xff, 0xff, 0xff))
+          pts
       done
 
-  method get_frame buf =
-    let offset = AFrame.position buf in
-    source#get buf;
-    let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
-      self#add_vol rms;
-      self#render buf
+  method private get_frame frame =
+    let offset = Frame.position frame in
+    let len = source#get frame ; Frame.position frame - offset in
+    let rms =
+      AFrame.rms
+        frame (Frame.audio_of_master offset) (Frame.audio_of_master len)
+    in
+      self#add_vol rms ;
+      self#render frame offset len
+
 end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
+  let fmt =
+    { Frame. audio = Lang.Any_fixed 1;
+             video = Lang.Fixed 1; midi = Lang.Fixed 0 }
+  in
   Lang.add_operator "video.volume"
     [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Constrained {Frame. audio = Lang.Any_fixed 1; video = Lang.Fixed 1; midi = Lang.Fixed 0})
+    ~kind:(Lang.Constrained fmt)
     ~category:Lang.Visualization
     ~descr:"Graphical visualization of the sound."
     (fun p kind ->
@@ -87,4 +122,4 @@ let () =
        let src =
          Lang.to_source (f "")
        in
-         ((new visu ~kind src):>Source.source))
+         new visu ~kind src)
