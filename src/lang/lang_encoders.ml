@@ -66,10 +66,9 @@ let mk_wav params =
       (fun f ->
         function
           | ("stereo",{ term = Bool b }) ->
-              let chans = if b then 2 else 1 in
-              { f with Encoder.WAV.channels = chans }
+              { f with Encoder.WAV.channels = if b then 2 else 1 }
           | ("mono",{ term = Bool b }) ->
-              { f with Encoder.WAV.channels = 1 }
+              { f with Encoder.WAV.channels = if b then 1 else 2 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
               { f with Encoder.WAV.channels = 2 }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
