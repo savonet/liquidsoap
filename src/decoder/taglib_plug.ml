@@ -24,7 +24,7 @@ open Taglib
 
 let get_tags fname =
   try
-    let f = open_file ~file_type:Mpeg fname in
+    let f = open_file fname in
     try
       let gt l (n, t) =
         try
