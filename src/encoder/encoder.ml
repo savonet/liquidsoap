@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@ struct
   type t = { samplerate : int;
              channels   : int }
 
-  let to_string w = Printf.sprintf "%%wav(samplerate=%d,channels=%d)" 
-                       w.samplerate w.channels
+  let to_string w =
+    Printf.sprintf "%%wav(samplerate=%d,channels=%d)" w.samplerate w.channels
 
 end
 
@@ -52,7 +52,7 @@ struct
 
   let string_of_mode = function
     | ABR (min,avg,max) ->
-        let f x = 
+        let f x =
           match x with
             | Some x -> Printf.sprintf "%i" x
             | None   -> "unset"
@@ -81,7 +81,7 @@ struct
     samplerate : int ;
   }
 
-  let string_of_bitrate_control x = 
+  let string_of_bitrate_control x =
     match x with
       | Quality x -> Printf.sprintf "quality=%i" x
       | Bitrate x -> Printf.sprintf "bitrate=%i" x
@@ -124,11 +124,11 @@ struct
     header              : bool ;
     restart_on_crash    : bool ;
     restart             : restart_condition ;
-    process             : string 
+    process             : string
   }
 
   let to_string e =
-    let string_of_restart_condition c = 
+    let string_of_restart_condition c =
       match c with
         | Delay d      -> Printf.sprintf "restart_after_delay=%i" d
         | Track        -> "restart_on_new_track"
@@ -160,19 +160,19 @@ struct
     complexity        : int option
   }
 
-  let string_of_br_ctl x = 
+  let string_of_br_ctl x =
     match x with
       | Vbr x -> Printf.sprintf "vbr,quality=%d" x
       | Abr x -> Printf.sprintf "abr,bitrate=%d" x
       | Quality x -> Printf.sprintf "quality=%d" x
 
-  let string_of_mode x = 
+  let string_of_mode x =
     match x with
       | Narrowband -> "narrowband"
       | Wideband   -> "widebande"
       | Ultra_wideband -> "ultra-wideband"
 
-  let string_of_complexity x = 
+  let string_of_complexity x =
     match x with
       | None -> ""
       | Some x -> Printf.sprintf ",complexity=%d" x
@@ -207,16 +207,16 @@ struct
     aspect_denominator : int
   }
 
-  let bit_ctl_to_string bit_ctl = 
+  let bit_ctl_to_string bit_ctl =
     match bit_ctl with
       | Quality x -> Printf.sprintf "quality=%d" x
       | Bitrate x -> Printf.sprintf "bitrate=%d" x
 
-  let to_string th = 
+  let to_string th =
     let f = Lazy.force in
     Printf.sprintf "Theora(%s,width=%d,height=%d,picture_width=%d,\
                            picture_height=%d,picture_x=%d,picture_y=%d,\
-                           aspect_numerator=%d,aspect_denominator=%d)" 
+                           aspect_numerator=%d,aspect_denominator=%d)"
     (bit_ctl_to_string th.bitrate_control) (f th.width) (f th.height)
     (f th.picture_width) (f th.picture_height) th.picture_x th.picture_y
     th.aspect_numerator th.aspect_denominator
@@ -247,7 +247,11 @@ end
 module Ogg =
 struct
 
-  type item = Speex of Speex.t | Vorbis of Vorbis.t | Theora of Theora.t | Dirac of Dirac.t
+  type item =
+    | Speex of Speex.t
+    | Vorbis of Vorbis.t
+    | Theora of Theora.t
+    | Dirac of Dirac.t
   type t = item list
 
   let to_string l =

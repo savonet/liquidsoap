@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ let () =
     (fun (prog,protos,command) ->
        try
          let prog = Utils.which prog in
-           dlog#f 3 "Found %S" prog ;
+           dlog#f 3 "Found %S." prog ;
            List.iter
              (fun proto ->
                 Request.protocols#register
@@ -93,6 +93,6 @@ let () =
              protos
        with
          | Not_found ->
-             dlog#f 3 "Didn't find %S" prog
+             dlog#f 3 "Didn't find %S." prog
     )
     extproto
