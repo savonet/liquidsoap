@@ -133,8 +133,8 @@ let external_input process input =
 
 let duration process = 
   let pull = Unix.open_process_in process in
-  let w = Wav.read_header pull process in
-  let ret = Wav.duration ~header_len:true w in
+  let w = Wav.in_chan_read_header pull in
+  let ret = Wav.duration w in
   ignore(Unix.close_process_in pull) ;
   ret
 

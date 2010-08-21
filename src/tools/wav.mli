@@ -22,22 +22,34 @@
 
 (** Encode/decode WAV files. *)
 
-type t
+type 'a t
 
 exception Not_a_wav_file of string
 
-val fopen : string -> t
+type 'a read_ops = 
+  { 
+    really_input : 'a -> string -> int -> int -> unit ;
+    input_byte   : 'a -> int ;
+    input        : 'a -> string -> int -> int -> int ;
+    close        : 'a -> unit
+  }
+
+val in_chan_ops :  in_channel read_ops
+
+val fopen : string -> in_channel t
 (** Open the named wav for reading, and return a new wav descriptor.
    Raise [Sys_error] if the file could not be opened and [Not_a_wav_file]
    if it hasn't the right format. *)
 
-val read_header : in_channel -> string -> t
-(** Read WAV data from an in_channel. Second argument
-  * is the file's name and its value is meaningless. *)
+val read_header : 'a read_ops -> 'a -> 'a t
+(** Generic WAV opener. *)
 
-val skip_header : in_channel -> unit
+val in_chan_read_header : in_channel -> in_channel t
+(** Read WAV data from an input channel. *)
 
-val sample : t -> string -> int -> int -> int
+val skip_header : 'a read_ops -> 'a -> 'a t
+
+val sample : 'a t -> string -> int -> int -> int
 (** [sample w buf pos len] reads up to [len] characters from
    the given wav [w], storing them in string [buf], starting at
    character number [pos].
@@ -53,15 +65,15 @@ val sample : t -> string -> int -> int -> int
    Exception [Invalid_argument "input"] is raised if [pos] and [len]
    do not designate a valid substring of [buf]. *)
 
-val info : t -> string
+val info : 'a t -> string
 (** [info w] returns a string containing some informations on wav [w] *)
 
 (** Parameters of the output PCM format. *)
-val channels : t -> int
-val sample_rate : t -> int
-val sample_size : t -> int
+val channels : 'a t -> int
+val sample_rate : 'a t -> int
+val sample_size : 'a t -> int
 
-val close : t -> unit
+val close : 'a t -> unit
 (** [close w] close the wav descriptor [w] *)
 
 (** Returns the WAV header that declares the given format.
@@ -69,8 +81,7 @@ val close : t -> unit
 val header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
              unit -> string
 
-(** Returns the duration of the file.
-  * [header_len] speficies if data length should be
-  * taken from the header or the actual size of 
-  * the file. Default: [false] (file size). *)
-val duration : ?header_len:bool -> t -> float
+(** Returns the duration of the WAV data. 
+    Warning: value may not be accurate for 
+    streams. *)
+val duration : 'a t -> float

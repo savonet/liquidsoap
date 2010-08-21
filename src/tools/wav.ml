@@ -20,10 +20,22 @@
 
  *****************************************************************************)
 
-type t =
+type 'a read_ops =
+  {
+    really_input : 'a -> string -> int -> int -> unit ;
+    input_byte   : 'a -> int;
+    input        : 'a -> string -> int -> int -> int ;
+    close        : 'a -> unit; 
+  }
+
+let in_chan_ops = { really_input = really_input ;
+                    input_byte = input_byte ;
+                    input = input; close = close_in }
+
+type 'a t =
     {
-      ic : in_channel;
-      filename : string;
+      ic : 'a;
+      read_ops : 'a read_ops;
 
       channels_number : int;  (* 1 = mono ; 2 = stereo *)
       sample_rate : int;      (* in Hz *)
@@ -36,21 +48,6 @@ type t =
 
 exception Not_a_wav_file of string
 
-let read_int_num_bytes ic =
-  let rec aux = function
-    | 0 -> 0
-    | n ->
-        let b = input_byte ic in
-          b + 256*(aux (n-1))
-  in
-    aux
-
-let read_int ic =
-  read_int_num_bytes ic 4
-
-let read_short ic =
-  read_int_num_bytes ic 2
-
 (* open file and verify it has the right format *)  
 
 let debug =
@@ -59,7 +56,24 @@ let debug =
   with
     | Not_found -> false
 
-let read_header ic file =
+let read_header read_ops ic =
+  let really_input = read_ops.really_input in
+  let input_byte = read_ops.input_byte in
+  let read_int_num_bytes ic =
+    let rec aux = function
+      | 0 -> 0
+      | n ->
+          let b = input_byte ic in
+            b + 256*(aux (n-1))
+    in
+      aux
+  in
+  let read_int ic =
+    read_int_num_bytes ic 4
+  in
+  let read_short ic =
+    read_int_num_bytes ic 2
+  in
   let buff = "riffwaveFMT?" in
     (* verify it has a right header *)
     really_input ic buff 0 4;
@@ -101,7 +115,7 @@ let read_header ic file =
       let len_dat = read_int ic in
         {
           ic = ic ;
-          filename = file;
+          read_ops = read_ops;
           channels_number = chan_num;
           sample_rate = samp_hz;
           bytes_per_second = byt_per_sec;
@@ -110,10 +124,12 @@ let read_header ic file =
           length_of_data_to_follow = len_dat;
         }
 
+let in_chan_read_header = read_header in_chan_ops
+
 let fopen file =
   let ic = open_in_bin file in
     try
-      read_header ic file
+      in_chan_read_header ic
     with
       | End_of_file ->
           close_in ic ;
@@ -122,51 +138,42 @@ let fopen file =
           close_in ic ;
           raise e
 
-let skip_header c = ignore (read_header c "")
+let skip_header f c = read_header f c
 
 let sample w buf pos len=
-  match input w.ic buf 0 len with
+  match w.read_ops.input w.ic buf 0 len with
     | 0 -> raise End_of_file
     | n -> n
 
 
 let info w =
   Printf.sprintf
-    "    filename = %s
-    channels_number = %d
-    sample_rate = %d
-    bytes_per_second = %d
-    bytes_per_sample = %d
-    bits_per_sample = %d
-    length_of_data_to_follow = %d"
-    w.filename
-    w.channels_number
-    w.sample_rate
-    w.bytes_per_second
-    w.bytes_per_sample
-    w.bits_per_sample
-    w.length_of_data_to_follow
+    "channels_number = %d
+     sample_rate = %d
+     bytes_per_second = %d
+     bytes_per_sample = %d
+     bits_per_sample = %d
+     length_of_data_to_follow = %d"
+     w.channels_number
+     w.sample_rate
+     w.bytes_per_second
+     w.bytes_per_sample
+     w.bits_per_sample
+     w.length_of_data_to_follow
 
 let channels w = w.channels_number
 let sample_rate w = w.sample_rate
 let sample_size w = w.bits_per_sample
 
 let close w =
-  close_in w.ic
+  w.read_ops.close w.ic
 
 let data_len file = 
   let stats = Unix.stat file in
   stats.Unix.st_size - 36
 
-let duration ?(header_len=false) w = 
-  let length = 
-    if not header_len then
-      let stats = Unix.stat w.filename in
-      stats.Unix.st_size - 36
-    else
-      w.length_of_data_to_follow
-  in
-  (float length) /. (float w.bytes_per_second)
+let duration w = 
+  (float w.length_of_data_to_follow) /. (float w.bytes_per_second)
 
 let short_string i =
   let up = i/256 in

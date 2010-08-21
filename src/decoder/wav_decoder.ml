@@ -28,29 +28,37 @@ let log = Dtools.Log.make ["decoder";"wav"]
 
 exception End_of_stream
 
-let rec really_input input len =
-  let s,i = input len in
-    if i=len then s else
+let really_input input buf ofs len =
+  let rec f len cur =
+    if len > 0 then
+     begin 
+      let s,i = input len in
       if i=0 then raise End_of_stream else
-        String.sub s 0 i ^ really_input input (len-i)
+      f (len-i) (cur ^ String.sub s 0 i)
+     end
+    else
+       cur
+  in
+  let ret = f len "" in
+  String.blit ret 0 buf ofs len
 
 let input_byte input =
   let s,i = input 1 in
     if i=0 then raise End_of_stream ;
     int_of_char s.[0]
 
-let read_int_num_bytes ic =
-  let rec aux = function
-    | 0 -> 0
-    | n ->
-        let b = input_byte ic in
-          b + 256*(aux (n-1))
-  in
-    aux
+let input input buf ofs len = 
+  let ret,len = input len in
+  String.blit ret 0 buf ofs len ;
+  len
 
-let read_int ic = read_int_num_bytes ic 4
-
-let read_short ic = read_int_num_bytes ic 2
+let input_ops = 
+  { Wav.
+     really_input = really_input ;
+     input_byte = input_byte ;
+     input = input ;
+     close = fun _ -> ()
+  }
 
 module Make (Generator:Generator.S_Asio) =
 struct
@@ -72,32 +80,10 @@ let create input =
   in
 
   let read_header () =
-
-    if really_input input 4 <> "RIFF" then
-      raise (Wav.Not_a_wav_file "Bad header: \"RIFF\" not found") ;
-    (* Ignore the file size *)
-    ignore (really_input input 4) ;
-    if really_input input 8 <> "WAVEfmt " then
-      raise (Wav.Not_a_wav_file "Bad header: \"WAVEfmt \" not found") ;
-    (* Now we always have the following uninteresting bytes:
-     * 0x10 0x00 0x00 0x00 0x01 0x00 *)
-    ignore (really_input input 6) ;
-
-    let channels = read_short input in
-    let samplerate (* in Hz *) = read_int input in
-    let _ (* byt_per_sec *) = read_int input in
-    let _ (* byt_per_samp *) = read_short input in
-    let samplesize (* in bits *) = read_short input in
-
-    let section = really_input input 4 in
-    if section <> "data" then begin
-      if section = "INFO" then
-        raise (Wav.Not_a_wav_file "Valid wav file but unread");
-      raise (Wav.Not_a_wav_file "Bad header : string \"data\" not found")
-    end ;
-
-    let _ (* len_dat *) = read_int input in
-
+    let header = Wav.read_header input_ops input in
+    let samplesize = Wav.sample_size header in
+    let channels = Wav.channels header in
+    let samplerate = Wav.sample_rate header in
     let converter =
         Rutils.create_from_wav
           ~samplesize ~channels ()
@@ -124,11 +110,10 @@ module Buffered = Decoder.Buffered(Generator)
 module D = Make(Generator)
 
 let get_type filename =
-  let chan = open_in filename in
+  let header = Wav.fopen filename in
     Tutils.finalize
-      ~k:(fun () -> close_in chan)
+      ~k:(fun () -> Wav.close header)
       (fun () ->
-         let header = Wav.read_header chan filename in
          let channels = 
            let channels  = Wav.channels header in
            let sample_rate = Wav.sample_rate header in
