@@ -102,24 +102,12 @@ object (self)
 end
 
 let () =
-  let master_t =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:Lang.zero_t
-      ~midi:(Lang.univ_t 3)
+  let out_t = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let { Frame. audio = audio ; video = video ; midi = midi } =
+    Lang.of_frame_kind_t out_t
   in
-  let aux_t =
-    Lang.frame_kind_t
-      ~audio:Lang.zero_t
-      ~video:(Lang.univ_t 2)
-      ~midi:Lang.zero_t
-  in
-  let out_t =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
-  in
+  let master_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
+  let aux_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi:Lang.zero_t in
     Lang.add_operator "mux_video"
       ~category:Lang.Conversions
       ~descr:"Add video channnels to a stream."
@@ -141,24 +129,12 @@ let () =
              ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let () =
-  let master_t =
-    Lang.frame_kind_t
-      ~audio:Lang.zero_t
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
+  let out_t = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let { Frame. audio = audio ; video = video ; midi = midi } =
+    Lang.of_frame_kind_t out_t
   in
-  let aux_t =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:Lang.zero_t
-      ~midi:Lang.zero_t
-  in
-  let out_t =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
-  in
+  let master_t = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
+  let aux_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi:Lang.zero_t in
     Lang.add_operator "mux_audio"
       ~category:Lang.Conversions
       ~descr:"Add audio channnels to a stream."
