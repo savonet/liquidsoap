@@ -92,6 +92,19 @@ object (self)
     * other. Finally, we also have to relay some master ticks
     * as slave ticks when the slave frame is unused.
     *
+    * The normal situation is like that (number are slave ticks):
+    *   Master 11111|22222|        444|55555|66
+    *   Slave             |33333|44
+    * At the end of tick 2, we realize that the end of track is getting close
+    * so we start buffering it. In the middle of 4 we reach the end of
+    * track, and pass the buffer and source to the transition function.
+    *
+    * Technically it is possible that buffering doesn't start at the
+    * beginning of a frame: we trigger it at the beginning of #get_frame,
+    * which could be in the middle of a frame. For example, after an
+    * end of track, #get_frame could be anywhere, and we might buffer
+    * already if we're conservative.
+    *
     * For the switch from slave frame to master frame, we need to
     * break synchronization: the buffering ended at position P
     * in the slave frame, but when we pass the buffer and the
@@ -248,6 +261,8 @@ object (self)
        * We compose the end of a track with the original source [s] instead of
        * the composed [source]. *)
       let s =
+        (* TODO this is questionable: if the source is caching
+         *   the transition won't see the beginning of the next track *)
         self#slave_tick ;
         Clock.collect_after
           (fun () ->
