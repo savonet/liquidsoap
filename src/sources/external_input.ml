@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,11 +32,11 @@ class external_input ~kind ~restart ~bufferize ~channels
                      ~samplerate command =
   let abg_max_len = Frame.audio_of_seconds max in
   let in_freq = float samplerate in
-  let converter = 
-    Rutils.create_from_wav ~channels ~samplesize:16 
+  let converter =
+    Rutils.create_from_wav ~channels ~samplesize:16
                            () ~audio_src_rate:in_freq
   in
-  (* We need a temporary log until 
+  (* We need a temporary log until
    * the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -64,7 +64,7 @@ object (self)
       let get_data () =
         let ret = input in_e tmpbuf 0 1024 in
           if ret = 0 then raise (Finished ("Process exited.",restart));
-          let data,len = converter (String.sub tmpbuf 0 ret) in 
+          let data,len = converter (String.sub tmpbuf 0 ret) in
           Generator.put_audio abg data 0 len
       in
       let do_restart s restart f =
@@ -116,11 +116,11 @@ object (self)
        | Finished (s,b) -> do_restart s b (fun () -> ())
        | e ->
           do_restart
-            (Printf.sprintf "Process exited with error: %s" 
+            (Printf.sprintf "Process exited with error: %s"
                 (Printexc.to_string e)) restart_on_error
                 (fun () -> raise e)
     in
-    let task = 
+    let task =
      { Duppy.Task.
         priority = priority;
         events   = [ `Read in_d];
@@ -163,7 +163,7 @@ let () =
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let channels = Lang.to_int (List.assoc "channels" p) in
          if not (Frame.mul_eq_int kind.Frame.audio channels) then
-           raise (Lang.Invalid_value 
+           raise (Lang.Invalid_value
                    (List.assoc "channels" p,
                     "Incompatible number of channels, \
                      please use a conversion operator.")) ;

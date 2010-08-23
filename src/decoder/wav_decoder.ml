@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ exception End_of_stream
 let really_input input buf ofs len =
   let rec f len cur =
     if len > 0 then
-     begin 
+     begin
       let s,i = input len in
       if i=0 then raise End_of_stream else
       f (len-i) (cur ^ String.sub s 0 i)
@@ -47,12 +47,12 @@ let input_byte input =
     if i=0 then raise End_of_stream ;
     int_of_char s.[0]
 
-let input input buf ofs len = 
+let input input buf ofs len =
   let ret,len = input len in
   String.blit ret 0 buf ofs len ;
   len
 
-let input_ops = 
+let input_ops =
   { Wav.
      really_input = really_input ;
      input_byte = input_byte ;
@@ -114,10 +114,10 @@ let get_type filename =
     Tutils.finalize
       ~k:(fun () -> Wav.close header)
       (fun () ->
-         let channels = 
+         let channels =
            let channels  = Wav.channels header in
            let sample_rate = Wav.sample_rate header in
-           let ok_message s = 
+           let ok_message s =
              log#f 4
                "%S recognized as WAV file (%s,%dHz,%d channels)."
                  filename s sample_rate channels ;
@@ -125,7 +125,7 @@ let get_type filename =
            match Wav.sample_size header with
              | 8  -> ok_message "u8"; channels
              | 16 -> ok_message "s16le"; channels
-             | _ -> 
+             | _ ->
                 log#f 4 "Only 16 and 8 bit WAV files \
                          are supported at the moment.." ;
                 0
@@ -157,7 +157,7 @@ let () =
 
 
 let () =
-  let duration file = 
+  let duration file =
     let w = Wav.fopen file in
     let ret = Wav.duration w in
     Wav.close w ;
@@ -194,4 +194,3 @@ let () =
             Some D_stream.create
           else
             None)
-

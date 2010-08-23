@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2009 Savonet team
+  Copyright 2003-2010 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
  
  (** TODO: video *)
 
+ (** The returned length (int) is in audio samples *)
  type audio_converter =
             ?audio_src_rate:float ->
             Frame.audio_t array -> Frame.audio_t array*int
@@ -66,6 +67,7 @@
       in
       process_audio audio_rate)
 
+ (** The returned length (int) is in audio samples *)
   type wav_converter = 
           audio_src_rate:float ->
           string -> Frame.audio_t array * int
@@ -90,4 +92,4 @@
           src 0 len_src samplesize
           ratio dst 0
       in
-        dst, Frame.master_of_audio len_dst)
+        dst, len_dst)
