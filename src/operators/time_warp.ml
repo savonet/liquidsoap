@@ -25,11 +25,12 @@
   * clock that will animate independently the subgraph.
   * This should usually be used in conjunction with a buffer interfacing
   * this clock with another. *)
-class clock ~kind ~sync source =
+class clock ~kind ~sync ~id source =
 object (self)
   inherit Id.id ~name:"clock" ~kind source
   method set_clock =
-    let my_clock = new Clock.wallclock ~sync self#id in
+    let id = if id = "" then string_of_int (Oo.id self) else id in
+    let my_clock = new Clock.wallclock ~sync id in
     let my_clock = Clock.create_known my_clock in
       Clock.unify source#clock my_clock ;
       Clock.unify self#clock my_clock
@@ -160,8 +161,9 @@ let () =
       (fun p kind ->
          let s = List.assoc "" p in
          let sync = Lang.to_bool (List.assoc "sync" p) in
+         let id = Lang.to_string (List.assoc "id" p) in
          let src = Lang.to_source s in
-           new clock ~kind ~sync src)
+           new clock ~kind ~sync ~id src)
 
 let () =
   let k = Lang.univ_t 1 in
