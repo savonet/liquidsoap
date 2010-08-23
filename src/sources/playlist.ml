@@ -120,9 +120,11 @@ object (self)
       let read_playlist filename =
         if is_dir filename then begin
           self#log#f 3 "Playlist is a directory." ;
-          List.filter self#is_valid (list_files self#log filename)
+          list_files self#log filename
         end else
           try
+            (* TODO This is quite inefficient:
+             *   reading the whole file as a string before parsing it... *)
             let channel = open_in filename in
             let length = in_channel_length channel in
             let content = String.create length in
@@ -177,9 +179,11 @@ object (self)
               Request.destroy req ;
               []
     in
-    (* Add prefix to all requests. *)
+    (* Remove invalid entries, add prefix to all requests. *)
     let _playlist =
-      List.map (Printf.sprintf "%s%s" prefix) _playlist
+      List.map
+        (Printf.sprintf "%s%s" prefix)
+        (List.filter self#is_valid _playlist)
     in
       (* TODO distinguish error and empty if fallible *)
       if _playlist = [] && reload then
