@@ -228,7 +228,7 @@ h4. What's next?
 
 You can first have a look at a "more complex example":complete_case.html. There is also a second tutorial about "advanced techniques":advanced.html.
 
-You should definitely learn how to get "help":help.html.
+You should definitely learn "how to get help":help.html.
 If you know enough liquidsoap for your use, you'll only need to refer to the
 "scripting reference":reference.html, or see the "cookbook":cookbook.html.
 At some point,

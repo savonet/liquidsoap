@@ -1,5 +1,7 @@
 title: Sources
 
+h3. Sources
+
 Using liquidsoap is about writing a script describing how to build what you want. It is about building a stream using elementary streams and stream combinators, etc. Actually, it's a bit more than streams, we call them sources -- in liquidsoap's code there is a <code>Source.source</code> type, and in <code>*.liq</code> scripts one of the elementary datatypes is source.
 
 A source is a stream with metadata and track annotations. It is discretized as a stream of fixed-length buffers of raw audio, the frames. Every frame may have metadata inserted at any point, independently of track boundaries. At every instant, a source can be asked to fill a frame of data. Track boundaries are denoted by a single denial of completely filling a frame. More than one denial is taken as a failure, and liquidsoap chooses to crash in that case.

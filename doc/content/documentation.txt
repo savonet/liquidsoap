@@ -19,6 +19,7 @@ h4. Tutorials
 * "Complete case analysis":complete_case.html: an example that is not a toy.
 * "Advanced":advanced.html: overview of more advanced features for serious usage.
 * "How to find help":help.html about operators, settings, server commands, etc.
+* "Frequently Asked Questions":faq.html
 
 h4. Reference
 
