@@ -56,6 +56,36 @@ let conf_mime_types =
     "Mime-types used for guessing MP3 format"
     ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
 
+let conf_file_extensions =
+  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp3")
+    "File extensions used for guessing MP3 format"
+    ~d:["mp3"]
+
+(** We assume that .mp3 
+  * files are supposed to 
+  * be mp3 files.. *)
+let test_mp3 fname = 
+  let mp3_ext =
+    try 
+      let file_ext =
+          List.hd (List.rev (Pcre.split ~pat:"\\." fname))
+      in
+      List.mem file_ext conf_file_extensions#get
+    with
+      | _ -> false
+  in
+  if not mp3_ext then
+    log#f 3 "Invalid file extension for %s!" fname ;
+  match Configure.file_mime with
+    | None -> mp3_ext 
+    | Some mime_type ->
+        let mime = mime_type fname in
+        let mp3_mime = List.mem mime conf_mime_types#get in
+        if not mp3_mime then
+          log#f 3 "Invalid MIME type for %s: %s!" fname mime ;
+        mp3_ext || mp3_mime
+        
+
 (* Get the number of channels of audio in an MP3 file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
@@ -74,37 +104,21 @@ let get_type filename =
              midi  = 0 })
 
 let () =
-  match Configure.file_mime with
-    | None ->
-        Decoder.file_decoders#register
-          "MP3/libmad"
-          ~sdoc:"Use libmad to decode MP3, if it works."
-          (fun ~metadata filename kind ->
-             (* Don't get the file's type if no audio is allowed anyway. *)
-             if kind.Frame.audio = Frame.Zero then None else
-             if Frame.type_has_kind (get_type filename) kind then
-               Some (fun () -> create_file_decoder filename kind)
-             else begin
-               None
-             end)
-    | Some mime_type ->
-        Decoder.file_decoders#register
-          "MP3/libmad/mime"
-          ~sdoc:"Use libmad to decode MP3 if MIME type is appropriate."
-          (fun ~metadata filename kind ->
-             let mime = mime_type filename in
-               if not (List.mem mime conf_mime_types#get) then begin
-                 log#f 3 "Invalid MIME type for %s: %s!" filename mime ;
-                 None
-               end else
-                 if kind.Frame.audio = Frame.Variable ||
-                    kind.Frame.audio = Frame.Succ Frame.Variable ||
-                    (* libmad always respects the first two kinds *)
-                    Frame.type_has_kind (get_type filename) kind
-                 then
-                   Some (fun () -> create_file_decoder filename kind)
-                 else
-                   None)
+  Decoder.file_decoders#register
+  "MP3/libmad"
+  ~sdoc:"Use libmad to decode MP3 if MIME type or file extension is appropriate."
+  (fun ~metadata filename kind ->
+  if not (test_mp3 filename) then
+    None
+  else
+    if kind.Frame.audio = Frame.Variable ||
+       kind.Frame.audio = Frame.Succ Frame.Variable ||
+       (* libmad always respects the first two kinds *)
+       Frame.type_has_kind (get_type filename) kind
+    then
+      Some (fun () -> create_file_decoder filename kind)
+    else
+    None)
 
 module D_stream = Make(Generator.From_audio_video_plus)
 

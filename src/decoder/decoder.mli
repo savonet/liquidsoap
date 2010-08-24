@@ -39,6 +39,7 @@ val stream_decoders :
   (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
 
 val conf_mime_types : Dtools.Conf.ut
+val conf_file_extensions : Dtools.Conf.ut
 
 val get_file_decoder :
   metadata:Frame.metadata -> file -> Frame.content_kind ->

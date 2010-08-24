@@ -27,7 +27,14 @@ let dlog = Log.make ["protocols";"external"]
 
 let resolve proto program command s ~log maxtime =
   let s = proto ^ ":" ^ s in
-  let local = Filename.temp_file "liq" ".osb" in
+  let file_ext = 
+    Printf.sprintf ".%s"
+    (try
+       List.hd (List.rev (Pcre.split ~pat:"\\." s))
+     with
+       | _ -> "osb")
+  in
+  let local = Filename.temp_file "liq" file_ext in
   (* We create a fresh stdin for the process,
    * and another one, unused by the child, on which we'll wait for EOF
    * as a mean to detect termination. *)

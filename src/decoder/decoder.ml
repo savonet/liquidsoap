@@ -105,12 +105,12 @@ let stream_decoders :
   Plug.create
     ~doc:"Stream decoding methods." ~insensitive:true "stream decoding"
 
-let conf_http_source =
-  Dtools.Conf.void ~p:(Configure.conf#plug "stream_decoding")
-    "Stream decoding settings"
+let conf_decoder =
+  Dtools.Conf.void ~p:(Configure.conf#plug "decoder")
+    "Decoder settings"
 let conf_mime_types =
-  Dtools.Conf.void ~p:(conf_http_source#plug "mime_types")
-    "Mime-types used for guessing audio stream formats"
+  Dtools.Conf.void ~p:(conf_decoder#plug "mime_types")
+    "Mime-types used for guessing audio formats"
     ~comments:[
       "When a mime-type is available (e.g. with input.http), it can be used";
       "to guess which audio stream format is used.";
@@ -119,6 +119,9 @@ let conf_mime_types =
       "If you feel that new mime-types should be permanently added, please";
       "contact the developpers."
     ]
+let conf_file_extensions =
+  Dtools.Conf.void ~p:(conf_decoder#plug "file_extensions")
+    "File extensions used for guessing audio formats"
 
 let dummy =
   { fill = (fun b ->

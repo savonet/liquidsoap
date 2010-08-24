@@ -47,8 +47,6 @@ val read_header : 'a read_ops -> 'a -> 'a t
 val in_chan_read_header : in_channel -> in_channel t
 (** Read WAV data from an input channel. *)
 
-val skip_header : 'a read_ops -> 'a -> 'a t
-
 val sample : 'a t -> string -> int -> int -> int
 (** [sample w buf pos len] reads up to [len] characters from
    the given wav [w], storing them in string [buf], starting at
