@@ -661,14 +661,14 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
           Printf.printf
-            "%s: an operator cannot belong to two clocks (%s, %s).\n"
+            "%s: a source cannot belong to two clocks (%s, %s).\n"
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
           exit 1
       | Clock_loop (pos,a,b) ->
           Printf.printf
-            "%s: cannot unify two dependent clocks: %s, %s.\n"
+            "%s: cannot unify two nested clocks: %s, %s.\n"
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;

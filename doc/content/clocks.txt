@@ -1,0 +1,147 @@
+title: Clocks
+
+h3. Clocks
+
+In the "quickstart":quick_start.html and in the introduction to liquidsoap
+"sources":sources.html, we have described a simple world in which sources
+talk to each other, creating, communicating and transforming data that
+composes multimedia streams.
+In this simple view, all sources produce data at the same rate,
+animated by a single clock: at every tick of the clock,
+a fixed amount of data is produced.
+
+For many purposes, this model is too simple.
+We need to introduce multiple clocks, or in other words several time flows
+within a streaming system.
+
+The first reason is **external** to liquidsoap: there is simply
+not a unique notion of time in the real world.
+Your computer has an internal clock which is indicates
+a slightly different time than your watch, another computer's clock.
+Even within a single computer there are several clocks: notably, each
+soundcard has its own clock, which will tick at a slightly different
+rate than the main clock of the computer. Finally, when sending data
+over the network, an application is subject to the "network time"
+which can suddenly stop if there is a lag.
+
+There are also some reasons that are purely **internal** to liquidsoap:
+in order to produce a stream at a given speed,
+a source might need to obtain data from another source at
+a different rate. This is obvious for an operator that speeds up or
+slows down audio (<code>stretch</code>). But it also holds more subtly
+for <code>cross</code>, <code>smart_cross</code> as well as the
+derived operators: during the lapse of time where the operator combines
+data from an end of track with the beginning of the other other,
+the crossing operator needs twice as much stream. After ten tracks,
+with a crossing duration of six seconds, one more minute will have
+passed for the source compared to the time of the crossing operator.
+
+In order to maintain a simple and efficient execution model for
+its sources, liquidsoap has to put a reasonable restriction on clocks:
+one source can only belong to one clock (and that clock is fixed once for all)
+
+Graphically, one should think of a clock as a box that encloses
+a region of the graph of sources and operators (TODO: an example).
+
+h4. Error messages
+
+Most of the time you won't have to do anything special about clocks:
+operators that have special requirements regarding clocks will do
+what's necessary themselves, and liquidsoap will check that everything is 
+fine. In this section we present two examples illustrating the two
+kind of errors than can occur.
+
+h5. Disjoint clocks
+
+On the following example, liquidsoap will issue the fatal error
+<code>a source cannot belong to two clocks</code>:
+<pre>
+s = playlist("~/media/audio")
+output.alsa(s) # perhaps for monitoring
+output.icecast(mount="radio.ogg",%vorbis,crossfade(s))
+</pre>
+
+Here, the source <code>s</code> is first assigned the ALSA clock,
+because it is tied to an ALSA output.
+Then, we attempt to build a <code>crossfade</code> over <code>s</code>.
+But this operator requires its source to belong to a dedicated
+internal clock (because crossfading requires control over the flow
+of the of the source, to accelerate it around track changes).
+The error expresses this conflict:
+<code>s</code> must belong to the ALSA clock
+but also the <code>crossfade</code>'s clock.
+
+h5. Nested clocks
+
+On the following example, liquidsoap will issue the fatal error
+<code>cannot unify two nested clocks</code>:
+<pre>
+jingles = playlist("jingles.lst")
+music = rotate([1,10],[jingles,playlist("remote.lst")])
+safe = rotate([1,10],[jingles,single("local.ogg")])
+q = fallback([crossfade(music),safe])
+</pre>
+
+Let's see what happened.
+The <code>rotate</code> operator, like most operators, operates
+within a single clock, which means that <code>jingles</code>
+and our two <code>playlist</code> instances must belong to the same clock.
+Similarly, <code>music</code> and <code>safe</code> must belong to that
+same clock.
+When we applied crossfading to <code>music</code>,
+the <code>crossfade</code> operator created its own internal clock,
+call it <code>cross_clock</code>,
+to signify that it needs the ability to accelerate at will the
+streaming of <code>music</code>.
+So, <code>music</code> is attached to <code>cross_clock</code>,
+and all sources built above come along.
+Finally, we build the fallback, which requires that all of its
+sources belong to the same clock.
+In other words, <code>crossfade(music)</code> must belong
+to <code>cross_clock</code> just like <code>safe</code>.
+The error message simply says that this is forbidden: the internal
+clock of our crossfade cannot be its external clock -- otherwise
+it would not have exclusive control over its internal flow of time.
+
+The same error also occurs on <code>add([crossfade(s),s])</code>,
+the simplest example of conflicting time flows, described above.
+However, you won't find yourself writing this obviously problematic
+piece of code. On the other hand, one would sometimes like to
+write things like our first example.
+
+The key to the error with our first example is that the same
+<code>jingles</code> source is used in combination with <code>music</code>
+and <code>safe</code>. As a result, liquidsoap sees a potentially
+nasty situation, which indeed could be turned into a real mess
+by adding just a little more complexity. To obtain the desired effect
+without requiring illegal clock assignments, it suffices to
+create two jingle sources, one for each clock:
+<pre>
+music = rotate([1,10],[playlist("jingles.lst"),
+                       playlist("remote.lst")])
+safe = rotate([1,10],[playlist("jingles.lst"),
+                      single("local.ogg")])
+q = fallback([crossfade(music),safe])
+</pre>
+There is no problem anymore: <code>music</code> belongs to 
+<code>crossfade</code>'s internal clock, and <code>crossfade(music)</code>,
+<code>safe</code> and the <code>fallback</code> belong to another clock.
+
+h4. The clock API
+
+It is possible to forcefully assign operators to a new clock
+
+Buffers
+
+h4. Internal clocks
+
+What to say?
+
+h4. External clocks
+
+How to isolate network lag.
+The API isn't fixed, and there is a parameter to make everything sloppy.
+
+h4. Exploiting multiple cores
+
+Separate clocks are animated in separate threads.

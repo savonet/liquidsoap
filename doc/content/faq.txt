@@ -37,17 +37,15 @@ Indeed, <code>fallback</code> expects a source, but <code>crossfade(x)</code> is
 
 h5. That source is fallible!
 
-See the "quickstart":quick_start.html.
+See the "quickstart":quick_start.html, or read more about 
+"sources":sources.html.
 
 h5. Clock error
 
-See "clocks.html" for errors of the following form:
-<pre>
-Error ...: an operator cannot belong to two clocks (...).
-</pre>
-<pre>
-Error ...: cannot unify two dependent clocks: ..., ....
-</pre>
+Read about "clocks":clocks.html for the errors
+<code>a source cannot belong to two clocks</code>
+and
+<code>cannot unify two nested clocks</code>.
 
 h5. We must catchup x.xx!
 
