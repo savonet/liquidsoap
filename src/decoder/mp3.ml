@@ -51,41 +51,6 @@ let create_file_decoder filename kind =
   let generator = G.create `Audio in
     Buffered.file_decoder filename kind D.create_decoder generator
 
-let conf_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mp3")
-    "Mime-types used for guessing MP3 format"
-    ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
-
-let conf_file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp3")
-    "File extensions used for guessing MP3 format"
-    ~d:["mp3"]
-
-(** We assume that .mp3 
-  * files are supposed to 
-  * be mp3 files.. *)
-let test_mp3 fname = 
-  let mp3_ext =
-    try 
-      let file_ext =
-          List.hd (List.rev (Pcre.split ~pat:"\\." fname))
-      in
-      List.mem file_ext conf_file_extensions#get
-    with
-      | _ -> false
-  in
-  if not mp3_ext then
-    log#f 3 "Invalid file extension for %s!" fname ;
-  match Configure.file_mime with
-    | None -> mp3_ext 
-    | Some mime_type ->
-        let mime = mime_type fname in
-        let mp3_mime = List.mem mime conf_mime_types#get in
-        if not mp3_mime then
-          log#f 3 "Invalid MIME type for %s: %s!" fname mime ;
-        mp3_ext || mp3_mime
-        
-
 (* Get the number of channels of audio in an MP3 file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
@@ -108,7 +73,8 @@ let () =
   "MP3/libmad"
   ~sdoc:"Use libmad to decode MP3 if MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
-  if not (test_mp3 filename) then
+  let log = log#f 3 "%s" in
+  if not (Decoder.test_mp3 ~log filename) then
     None
   else
     if kind.Frame.audio = Frame.Variable ||
@@ -128,7 +94,7 @@ let () =
     ~sdoc:"Use libmad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime conf_mime_types#get &&
+          if List.mem mime Decoder.mp3_mime_types#get &&
              kind.Frame.video <: Frame.Zero &&
              kind.Frame.midi <: Frame.Zero &&
              kind.Frame.audio <> Frame.Zero
@@ -145,7 +111,7 @@ let () =
 
 let check filename =
   match Configure.file_mime with
-    | Some f -> List.mem (f filename) conf_mime_types#get
+    | Some f -> List.mem (f filename) Decoder.mp3_mime_types#get
     | None -> (try ignore (get_type filename) ; true with _ -> false)
 
 let duration file =

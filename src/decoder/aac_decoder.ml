@@ -111,9 +111,7 @@ let create_file_decoder filename kind =
   let generator = G.create `Audio in
     Buffered.file_decoder filename kind Aac.create_decoder generator
 
-(* Get the number of channels of audio in an AAC file.
- * This is done by decoding a first chunk of data, thus checking
- * that libmad can actually open the file -- which doesn't mean much. *)
+(* Get the number of channels of audio in an AAC file. *)
 let get_type filename =
   let dec = Faad.create () in
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
@@ -132,43 +130,22 @@ let get_type filename =
              video = 0 ;
              midi  = 0 })
 
-let conf_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "aac")
-    "Mime-types used for guessing AAC format"
-    ~d:["audio/aac"; "audio/aacp"; "audio/x-hx-aac-adts"]
-
 let () =
- match Configure.file_mime with
-    | None -> 
-       Decoder.file_decoders#register
-         "AAC/faad"
-         ~sdoc:"Use libfaad to decode AAC."
-         (fun ~metadata filename kind ->
-           (* Don't get the file's type if no audio is allowed anyway. *)
-           if kind.Frame.audio = Frame.Zero then None else
-             if Frame.type_has_kind (get_type filename) kind then
-               Some (fun () -> create_file_decoder filename kind)
-             else begin
-               None
-             end)
-    | Some mime_type ->
-        Decoder.file_decoders#register
-          "AAC/faad/mime"
-          ~sdoc:"Use libmad to decode AAC if MIME type is appropriate."
-          (fun ~metadata filename kind ->
-             let mime = mime_type filename in
-               if not (List.mem mime conf_mime_types#get) then begin
-                 log#f 3 "Invalid MIME type for %s: %s!" filename mime ;
-                 None
-               end else
-                 if kind.Frame.audio = Frame.Variable ||
-                    kind.Frame.audio = Frame.Succ Frame.Variable ||
-                    (* libmad always respects the first two kinds *)
-                    Frame.type_has_kind (get_type filename) kind
-                 then
-                   Some (fun () -> create_file_decoder filename kind)
-                 else
-                   None)
+  Decoder.file_decoders#register
+  "AAC/libfaad"
+  ~sdoc:"Use libfaad to decode AAC if MIME type or file extension is appropriate."
+  (fun ~metadata filename kind ->
+  let log = log#f 3 "%s" in
+  if not (Decoder.test_aac ~log filename) then
+    None
+  else
+    if kind.Frame.audio = Frame.Variable ||
+       kind.Frame.audio = Frame.Succ Frame.Variable ||
+       Frame.type_has_kind (get_type filename) kind
+    then
+      Some (fun () -> create_file_decoder filename kind)
+    else
+    None)
 
 module D_stream = Make(Generator.From_audio_video_plus)
 
@@ -178,7 +155,7 @@ let () =
     ~sdoc:"Use libfaad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime conf_mime_types#get &&
+          if List.mem mime Decoder.aac_mime_types#get &&
              kind.Frame.video <: Frame.Zero &&
              kind.Frame.midi <: Frame.Zero &&
              kind.Frame.audio <> Frame.Zero
@@ -261,14 +238,7 @@ let mp4_decoder filename =
      fill = fill ;
      close = close }
 
-let conf_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mp4")
-    "Mime-types used for guessing MP4 format"
-    ~d:["audio/mp4"; "application/mp4"]
-
-(* Get the number of channels of audio in an AAC file.
- * This is done by decoding a first chunk of data, thus checking
- * that libmad can actually open the file -- which doesn't mean much. *)
+(* Get the number of channels of audio in an MP4 file. *)
 let get_type filename =
   let dec = Faad.create () in
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
@@ -286,37 +256,21 @@ let get_type filename =
              midi  = 0 })
 
 let () =
- match Configure.file_mime with
-    | None ->
-       Decoder.file_decoders#register
-         "MP4/faad"
-         ~sdoc:"Use libfaad to decode MP4."
-         (fun ~metadata filename kind ->
-           (* Don't get the file's type if no audio is allowed anyway. *)
-           if kind.Frame.audio = Frame.Zero then None else
-             if Frame.type_has_kind (get_type filename) kind then
-               Some (fun () -> mp4_decoder filename)
-             else begin
-               None
-             end)
-    | Some mime_type ->
-        Decoder.file_decoders#register
-          "MP4/faad/mime"
-          ~sdoc:"Use libmad to decode MP4 if MIME type is appropriate."
-          (fun ~metadata filename kind ->
-             let mime = mime_type filename in
-               if not (List.mem mime conf_mime_types#get) then begin
-                 log#f 3 "Invalid MIME type for %s: %s!" filename mime ;
-                 None
-               end else
-                 if kind.Frame.audio = Frame.Variable ||
-                    kind.Frame.audio = Frame.Succ Frame.Variable ||
-                    (* libmad always respects the first two kinds *)
-                    Frame.type_has_kind (get_type filename) kind
-                 then
-                   Some (fun () -> mp4_decoder filename)
-                 else
-                   None)
+  Decoder.file_decoders#register
+  "MP4/libfaad"
+  ~sdoc:"Use libfaad to decode MP4 if MIME type or file extension is appropriate."
+  (fun ~metadata filename kind ->
+  let log = log#f 3 "%s" in
+  if not (Decoder.test_mp4 ~log filename) then
+    None
+  else
+    if kind.Frame.audio = Frame.Variable ||
+       kind.Frame.audio = Frame.Succ Frame.Variable ||
+       Frame.type_has_kind (get_type filename) kind
+    then
+      Some (fun () -> mp4_decoder filename)
+    else
+    None)
 
 let get_tags file =
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
@@ -326,4 +280,3 @@ let get_tags file =
       Array.to_list (Faad.Mp4.metadata mp4))
 
 let () = Request.mresolvers#register "MP4" get_tags
-

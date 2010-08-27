@@ -273,3 +273,16 @@ let encode64 s =
     end else if extra = 2 then
       dst.[4*(n/3)-1] <- '=' ;
     dst
+
+(** Get a file/uri extension. *)
+(* This is not garanteed to work 100% but should
+ * be ok on reasonable cases. A problematic cases
+ * is for instance: http://bla.com/foo.mp3?gni=bla.truc *)
+let get_ext s = 
+ try
+  let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
+  let ret = Pcre.exec ~rex s in
+  Pcre.get_substring ret 1
+ with
+   | _ -> raise Not_found
+

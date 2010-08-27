@@ -41,6 +41,21 @@ val stream_decoders :
 val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
 
+(** Configuration keys for mp3. *)
+val mp3_mime_types : string list Dtools.Conf.t
+val mp3_file_extensions : string list Dtools.Conf.t
+val test_mp3 : ?log:(string->unit) -> string -> bool 
+
+(** Configuration keys for aac. *)
+val aac_mime_types : string list Dtools.Conf.t
+val aac_file_extensions : string list Dtools.Conf.t
+val test_aac : ?log:(string->unit) -> string -> bool
+
+(** Configuration keys for mp4. *)
+val mp4_mime_types : string list Dtools.Conf.t
+val mp4_file_extensions : string list Dtools.Conf.t
+val test_mp4 : ?log:(string->unit) -> string -> bool
+
 val get_file_decoder :
   metadata:Frame.metadata -> file -> Frame.content_kind ->
   (unit -> file_decoder) option

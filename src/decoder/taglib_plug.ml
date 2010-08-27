@@ -22,10 +22,29 @@
 
 open Taglib
 
+exception Done of Taglib.file_type
+
+(** Force the type for formats
+  * we know about.. *)
+let taglib_format fname =
+  try 
+    if Decoder.test_mp3 fname then
+      raise (Done Taglib.Mpeg) ;
+    (* For now, we force taglib on
+     * mp3 only.. *)
+    raise Not_found ;
+(*    if Decoder.test_mp4 fname then
+      raise (Done Taglib.Mp4) ;
+    None *)
+  with
+    | Done x -> Some x
+
 let get_tags fname =
   try
-    let f = open_file fname in
-    try
+    let file_type = taglib_format fname in
+    let f = open_file ?file_type fname in
+    Tutils.finalize ~k:(fun () -> close_file f)
+    (fun () -> 
       let gt l (n, t) =
         try
           (* Do not pass empty strings.. *)
@@ -35,22 +54,16 @@ let get_tags fname =
         with
           | _ -> l
       in
-      let ans = 
-        List.fold_left gt []
-          [
-            "Title", tag_title;
-            "Artist", tag_artist;
-            "Album", tag_album;
-            "Track", (fun x -> string_of_int (tag_track x));
-            "Year", (fun x -> string_of_int (tag_year x));
-            "Genre", tag_genre;
-            "Comment", tag_comment;
-          ]
-      in
-      close_file f;
-      ans
-    with
-      | _ -> close_file f; raise Not_found
+      List.fold_left gt []
+        [
+          "Title", tag_title;
+          "Artist", tag_artist;
+          "Album", tag_album;
+          "Track", (fun x -> string_of_int (tag_track x));
+          "Year", (fun x -> string_of_int (tag_year x));
+          "Genre", tag_genre;
+          "Comment", tag_comment;
+        ])
   with
     | _ -> raise Not_found
 

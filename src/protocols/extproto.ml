@@ -30,7 +30,7 @@ let resolve proto program command s ~log maxtime =
   let file_ext = 
     Printf.sprintf ".%s"
     (try
-       List.hd (List.rev (Pcre.split ~pat:"\\." s))
+      Utils.get_ext s
      with
        | _ -> "osb")
   in

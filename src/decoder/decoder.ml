@@ -108,6 +108,11 @@ let stream_decoders :
 let conf_decoder =
   Dtools.Conf.void ~p:(Configure.conf#plug "decoder")
     "Decoder settings"
+
+let conf_debug =
+  Dtools.Conf.bool ~p:(conf_decoder#plug "debug") ~d:false
+    "Set debugging mode."
+
 let conf_mime_types =
   Dtools.Conf.void ~p:(conf_decoder#plug "mime_types")
     "Mime-types used for guessing audio formats"
@@ -122,6 +127,85 @@ let conf_mime_types =
 let conf_file_extensions =
   Dtools.Conf.void ~p:(conf_decoder#plug "file_extensions")
     "File extensions used for guessing audio formats"
+
+(** Configuration keys for mp3. *)
+let mp3_mime_types =
+  Conf.list ~p:(conf_mime_types#plug "mp3")
+    "Mime-types used for guessing MP3 format"
+    ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
+
+let mp3_file_extensions =
+  Conf.list ~p:(conf_file_extensions#plug "mp3")
+    "File extensions used for guessing MP3 format"
+    ~d:["mp3"]
+
+(** Configuration keys for aac/mp4. *)
+let aac_mime_types =
+  Conf.list ~p:(conf_mime_types#plug "aac")
+    "Mime-types used for guessing AAC format"
+    ~d:["audio/aac"; "audio/aacp"; "audio/x-hx-aac-adts"]
+
+let aac_file_extensions =
+  Conf.list ~p:(conf_file_extensions#plug "aac")
+    "File extensions used for guessing AAC format"
+    ~d:["aac"]
+
+let mp4_mime_types =
+  Conf.list ~p:(conf_mime_types#plug "mp4")
+    "Mime-types used for guessing MP4 format"
+    ~d:["audio/mp4"; "application/mp4"]
+
+let mp4_file_extensions =
+  Conf.list ~p:(conf_file_extensions#plug "mp4")
+    "File extensions used for guessing MP4 format"
+    ~d:[".m4a"; ".m4b"; ".m4p"; ".m4v"; 
+        ".m4r"; ".3gp"; ".mp4"]
+
+
+let test_file ?(log=(fun _ -> ())) ~mimes ~extensions fname =
+  let fexist = 
+   try
+    ignore(Unix.stat fname) ;
+    true
+   with
+     | _ -> false
+  in
+  if not fexist then
+   begin
+    log (Printf.sprintf "File %S does not exist!" fname) ;
+    false
+   end
+  else 
+   begin 
+    let file_ext =
+      try
+        List.mem (Utils.get_ext fname) extensions
+      with
+        | _ -> false
+    in
+    if not file_ext then
+      log (Printf.sprintf "Invalid file extension for %s!" fname) ;
+    begin
+     match Configure.file_mime with
+       | None -> file_ext
+       | Some mime_type ->
+           let mime = mime_type fname in
+           let file_mime = List.mem mime mimes in
+           if not file_mime then
+             log (Printf.sprintf "Invalid MIME type for %s: %s!" fname mime) ;
+           file_ext || file_mime
+    end
+   end
+
+let test_mp3 = test_file ~mimes:mp3_mime_types#get 
+                         ~extensions:mp3_file_extensions#get
+
+let test_aac = test_file ~mimes:aac_mime_types#get
+                         ~extensions:aac_file_extensions#get
+
+let test_mp4 = test_file ~mimes:mp4_mime_types#get
+                         ~extensions:mp4_file_extensions#get
+ 
 
 let dummy =
   { fill = (fun b ->
@@ -232,7 +316,8 @@ struct
         with
           | e ->
              log#f 4 "Decoding %S ended: %s." filename (Printexc.to_string e) ;
-             decoding_done := true
+             decoding_done := true ;
+             if conf_debug#get then raise e
         end ;
 
       let offset = Frame.position frame in
