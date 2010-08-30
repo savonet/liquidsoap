@@ -524,17 +524,8 @@ let open_port port =
       try
         if !shutdown then failwith "shutting down" ;
         let (socket,caller) = accept sock in
-        let ip =
-          let a =
-            match caller with
-              | ADDR_INET (a,_) -> a
-              | _ -> assert false
-          in
-            try
-              if not conf_revdns#get then raise Not_found ;
-              (gethostbyaddr a).h_name
-            with
-              | Not_found -> string_of_inet_addr a
+        let ip = 
+          Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller 
         in
         (* Add timeout *)
         Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get ;

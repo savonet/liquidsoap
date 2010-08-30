@@ -286,3 +286,19 @@ let get_ext s =
  with
    | _ -> raise Not_found
 
+let name_of_sockaddr ?(rev_dns=true) ?(show_port=false) a =
+  match a with
+    | Unix.ADDR_UNIX s -> Printf.sprintf "unix socket %s" s
+    | Unix.ADDR_INET (x,p) ->
+         let host = 
+            try
+              if not rev_dns then raise Not_found ;
+              (Unix.gethostbyaddr x).Unix.h_name
+            with
+              | Not_found -> Unix.string_of_inet_addr x
+        in
+        if show_port then
+          Printf.sprintf "%s:%i" host p
+        else
+          host
+

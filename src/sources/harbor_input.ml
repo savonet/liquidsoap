@@ -42,7 +42,7 @@ object (self)
             (Generator.create ~log ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize as generated
 
-  val mutable relaying = false
+  val mutable relay_socket = None
   val mutable ns = []
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
@@ -105,7 +105,7 @@ object (self)
       try
         let Decoder.Decoder decoder = create_decoder read in
         while true do
-          if not relaying then failwith "relaying stopped" ;
+          if relay_socket = None then failwith "relaying stopped" ;
           decoder generator
         done
       with
@@ -114,8 +114,7 @@ object (self)
             Generator.add_break ~sync:`Drop generator ;
             self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
             if debug then raise e ;
-            self#disconnect ;
-            begin try Unix.close socket with _ -> () end
+            self#disconnect
 
   method private wake_up _ =
     (* Now we can create the log function *)
@@ -124,7 +123,7 @@ object (self)
       ns <- Server.register [self#id] "input.harbor" ;
     self#set_id (Server.to_string ns) ;
     let stop _ =
-      if relaying then (self#disconnect ; "Done")
+      if relay_socket <> None then (self#disconnect ; "Done")
       else "No source client connected"
     in
     Server.add
@@ -134,17 +133,20 @@ object (self)
     Server.add
       ~ns "status" ~descr:"Display current status."
       (fun _ ->
-         if relaying then
-           "source client connected"
-         else
-           "no source client connected") ;
+         match relay_socket with
+           | Some s -> 
+               Printf.sprintf "source client connected from %s" 
+                  (Utils.name_of_sockaddr ~rev_dns:Harbor.conf_revdns#get 
+                                         (Unix.getpeername s))
+           | None ->
+               "no source client connected") ;
     Server.add ~ns "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f"
              (Frame.seconds_of_audio self#length))
 
   method private sleep =
-    if relaying then self#disconnect
+    if relay_socket <> None then self#disconnect
 
   method register_decoder mime =
     Generator.set_mode generator `Undefined ;
@@ -155,7 +157,7 @@ object (self)
       | None -> raise Harbor.Unknown_codec
 
   method relay (headers:(string*string) list) socket =
-    relaying <- true ;
+    relay_socket <- Some socket ;
     let headers = List.map (fun (x,y) -> String.lowercase x,y) headers in
     on_connect headers ;
     begin match dumpfile with
@@ -181,18 +183,27 @@ object (self)
               "harbor source feeding")
 
   method disconnect =
-    if relaying then on_disconnect () ;
-    begin match dump with
-      | Some f -> close_out f ; dump <- None
+   begin
+    match relay_socket with
+      | Some s -> 
+         on_disconnect () ;
+         begin match dump with
+           | Some f -> close_out f ; dump <- None
+           | None -> ()
+         end ;
+         begin match logf with
+           | Some f -> close_out f ; logf <- None
+           | None -> ()
+         end ;
+         begin try
+           Unix.close s
+          with _ -> ()
+         end;
       | None -> ()
-    end ;
-    begin match logf with
-      | Some f -> close_out f ; logf <- None
-      | None -> ()
-    end ;
-    relaying <- false
+   end ;
+   relay_socket <- None
 
-  method is_taken = relaying
+  method is_taken = relay_socket <> None
 
 end
 
