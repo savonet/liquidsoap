@@ -24,7 +24,10 @@ The constants and their syntax are quite common:
 
 Strings might be surrounded by double or single quotes. In both cases, you can escape the quote you're using: <code>"He said: \"Hello, you\"."</code> is valid but <code>'He said: "Hello, you".'</code> is equivalent and nicer.
 
-Also, you can include variables in a string using the following syntax: <code>"foo #{quote(my_var)} bar"</code>.
+Also, you can include variables in a string using the <code>#{...}</code>
+syntax: 
+<code>"foo #{quote(my_var)} bar"</code> is equivalent to
+<code>"foo " ^ quote(my_var) ^ " bar"</code>.
 
 h4. Expressions
 
@@ -77,7 +80,19 @@ h4. Types
 
 We believe in static typing especially for a script which is intended to run during weeks: we don't want to notice a mistake only when the special code for your rare live events is triggered! Moreover, we find it important to show that even for a simple script language like that, it is worth implementing type inference. It's not that hard, and makes life easier.
 
-The basic types are <code>int</code>, <code>float</code>, <code>bool</code>, <code>string</code>, but also <code>source</code> and <code>request</code>. Corresponding to pairs and lists, you get <code>(T*T)</code> and <code>[T]</code> types -- all elements of a list should have the same type. For example, <code>[(1,"un"),(2,"deux")]</code> has type <code>[(int*string)]</code>.
+The basic types are <code>int</code>, <code>float</code>, <code>bool</code> 
+and <code>string</code>.
+Corresponding to pairs and lists,
+you get <code>(T*T)</code> and <code>[T]</code> types --
+all elements of a list should have the same type.
+For example, <code>[(1,"un"),(2,"deux")]</code>
+has type <code>[(int*string)]</code>.
+
+There are several types that are specific to liquidsoap, such as
+<code>source</code>, <code>request</code>, <code>format</code>.
+Those three types are parametrized by the kind of stream that they
+carry. This is described in more details in a
+"dedicated page":stream_content.html.
 
 A function type is noted as <code>(arg_types) -> return_type</code>. Labeled arguments are denoted as <code>~label:T</code> or <code>?label:T</code> for optional arguments. For example the following function has type <code>(source,source,?jingle:string) -> source</code>.
 
@@ -117,7 +132,9 @@ switch([
 
 h4. Includes
 
-You can include other files, to compose complex configurations from multiple blocks of utility or configuration directives.
+You can include other files,
+to compose complex configurations from
+multiple blocks of utility or configuration directives.
 
 %%
 # Store passwords in another configuration file,
@@ -127,3 +144,6 @@ You can include other files, to compose complex configurations from multiple blo
 # Use the definitions from the other file here.
 %%
 
+In the command <code>%include "file"</code> the path is relative to
+the script file. In <code>%include &lt;file&gt;</code>, it is relative
+to the library directory of liquidsoap.

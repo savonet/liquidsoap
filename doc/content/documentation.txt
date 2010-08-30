@@ -30,9 +30,10 @@ h4. Reference
 
 h4. Documentation
 
-* Basic concepts: "sources":sources.html and "requests":requests.html.
+* Basic concepts: "sources":sources.html, "clocks":clocks.html and "requests":requests.html.
 * "Bubble":bubble.html: a simple example of a database interface as a custom protocol.
 * "Blank detection":blank.html
+* "Clocks":clocks.html: they animate your streams at the right pace.
 * "Cookbook":cookbook.html: contains lots of idiomatic examples.
 * "Customize metadata":metadata.html
 * "External decoders":external_decoders.html: use an external program for decoding audio files.
@@ -45,9 +46,9 @@ h4. Documentation
 * "Shoutcast output":shoutcast.html
 * "Smart crossfading":smartcrossfade.html
 * "Sources":sources.html are our streams
+* "Stream contents":stream_content.html: what kind of streams are supported, and how.
 * "Multichannel":multichannel.html
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
-* "Video":video.html: stream videos.
 
 h4. User scripts
 
