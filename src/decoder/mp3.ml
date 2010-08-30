@@ -51,6 +51,7 @@ let create_file_decoder filename kind =
   let generator = G.create `Audio in
     Buffered.file_decoder filename kind D.create_decoder generator
 
+
 (* Get the number of channels of audio in an MP3 file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
@@ -71,20 +72,21 @@ let get_type filename =
 let () =
   Decoder.file_decoders#register
   "MP3/libmad"
-  ~sdoc:"Use libmad to decode MP3 if MIME type or file extension is appropriate."
+  ~sdoc:"Use libmad to decode any file \
+         if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
-  let log = log#f 3 "%s" in
-  if not (Decoder.test_mp3 ~log filename) then
-    None
-  else
-    if kind.Frame.audio = Frame.Variable ||
-       kind.Frame.audio = Frame.Succ Frame.Variable ||
-       (* libmad always respects the first two kinds *)
-       Frame.type_has_kind (get_type filename) kind
-    then
-      Some (fun () -> create_file_decoder filename kind)
-    else
-    None)
+     let log = log#f 3 "%s" in
+       if not (Decoder.test_mp3 ~log filename) then
+         None
+       else
+         if kind.Frame.audio = Frame.Variable ||
+            kind.Frame.audio = Frame.Succ Frame.Variable ||
+            (* libmad always respects the first two kinds *)
+            Frame.type_has_kind (get_type filename) kind
+         then
+           Some (fun () -> create_file_decoder filename kind)
+         else
+           None)
 
 module D_stream = Make(Generator.From_audio_video_plus)
 

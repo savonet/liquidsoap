@@ -158,8 +158,8 @@ let mp4_mime_types =
 let mp4_file_extensions =
   Conf.list ~p:(conf_file_extensions#plug "mp4")
     "File extensions used for guessing MP4 format"
-    ~d:[".m4a"; ".m4b"; ".m4p"; ".m4v"; 
-        ".m4r"; ".3gp"; ".mp4"]
+    ~d:["m4a"; "m4b"; "m4p"; "m4v"; 
+        "m4r"; "3gp"; "mp4"]
 
 
 let test_file ?(log=(fun _ -> ())) ~mimes ~extensions fname =
