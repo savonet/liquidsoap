@@ -4,25 +4,45 @@ h3. Clocks
 
 In the "quickstart":quick_start.html and in the introduction to liquidsoap
 "sources":sources.html, we have described a simple world in which sources
-talk to each other, creating, communicating and transforming data that
+communicate with each other, creating and transforming data that
 composes multimedia streams.
 In this simple view, all sources produce data at the same rate,
 animated by a single clock: at every tick of the clock,
 a fixed amount of data is produced.
 
-For many purposes, this model is too simple.
-We need to introduce multiple clocks, or in other words several time flows
-within a streaming system.
+While this simple picture is useful to get a fair idea of what's going on
+in liquidsoap, the full picture is more complex: in fact, a streaming
+system might involve _multiple clocks_, or in other words several
+time flows.
+
+It is only in very particular cases that liquidsoap scripts
+need to mention clocks explicitly. Otherwise, you won't even notice
+how many clocks are involved in your setup: indeed, liquidsoap can figure
+out the clocks by itself, much like it infers types.
+Nevertheless, there will sometimes be cases where your script cannot
+be assigned clocks in a correct way, in which case liquidsoap will
+complain. For that reason, every user should eventually get a minimum
+understanding of clocks.
+
+In the following, we first describe why we need clocks.
+Then we go through the possible errors that any user might encounter
+regarding clocks.
+Finally, we describe how to explicitly use clocks,
+and show a few striking examples of what can be achieved that way.
+
+h4. Why multiple clocks
 
 The first reason is **external** to liquidsoap: there is simply
 not a unique notion of time in the real world.
-Your computer has an internal clock which is indicates
-a slightly different time than your watch, another computer's clock.
+Your computer has an internal clock which indicates
+a slightly different time than your watch or another computer's clock.
+Moreover, when communicating with a remote computer, network
+latency causes extra time distortions.
 Even within a single computer there are several clocks: notably, each
 soundcard has its own clock, which will tick at a slightly different
-rate than the main clock of the computer. Finally, when sending data
-over the network, an application is subject to the "network time"
-which can suddenly stop if there is a lag.
+rate than the main clock of the computer.
+Since liquidsoap communicates with soundcards and remote computers,
+it has to take those mismatches into account.
 
 There are also some reasons that are purely **internal** to liquidsoap:
 in order to produce a stream at a given speed,
@@ -32,24 +52,42 @@ slows down audio (<code>stretch</code>). But it also holds more subtly
 for <code>cross</code>, <code>smart_cross</code> as well as the
 derived operators: during the lapse of time where the operator combines
 data from an end of track with the beginning of the other other,
-the crossing operator needs twice as much stream. After ten tracks,
+the crossing operator needs twice as much stream data. After ten tracks,
 with a crossing duration of six seconds, one more minute will have
 passed for the source compared to the time of the crossing operator.
 
-In order to maintain a simple and efficient execution model for
-its sources, liquidsoap has to put a reasonable restriction on clocks:
-one source can only belong to one clock (and that clock is fixed once for all)
+In order to avoid inconsistencies caused by time differences,
+while maintaining a simple and efficient execution model for
+its sources, liquidsoap works under the restriction that
+one source belongs to a unique clock,
+fixed once for all when the source is created.
 
-Graphically, one should think of a clock as a box that encloses
-a region of the graph of sources and operators (TODO: an example).
+The graph representation of streaming systems can be adapted
+into a good representation of what clocks mean.
+One simply needs to add boxes representing clocks:
+a source can belong to only one box,
+and all sources of a box produce streams at the same rate.
+For example, 
+<code>output.icecast(fallback([crossfade(playlist(..)),jingles]))</code>
+yields the following graph:
+!images/graph_clocks.png(Graph representation with clocks)!
+Here, <code>clock_1</code> was created specifically for the crossfading
+operator; the rate of that clock is controlled by that operator,
+which can hence accelerate it around track changes without any
+risk of inconsistency.
+The other clock is simply a wallclock, so that the main stream
+is produced following the "real" time rate.
+
+**TODO** the previous drawing doesn't illustrate that clocks are
+nested
 
 h4. Error messages
 
 Most of the time you won't have to do anything special about clocks:
 operators that have special requirements regarding clocks will do
 what's necessary themselves, and liquidsoap will check that everything is 
-fine. In this section we present two examples illustrating the two
-kind of errors than can occur.
+fine. But if the check fails, you'll need to understand the error,
+which is what this section is for.
 
 h5. Disjoint clocks
 
@@ -68,8 +106,8 @@ But this operator requires its source to belong to a dedicated
 internal clock (because crossfading requires control over the flow
 of the of the source, to accelerate it around track changes).
 The error expresses this conflict:
-<code>s</code> must belong to the ALSA clock
-but also the <code>crossfade</code>'s clock.
+<code>s</code> must belong at the same time to the ALSA clock
+and <code>crossfade</code>'s clock.
 
 h5. Nested clocks
 
@@ -119,8 +157,8 @@ create two jingle sources, one for each clock:
 <pre>
 music = rotate([1,10],[playlist("jingles.lst"),
                        playlist("remote.lst")])
-safe = rotate([1,10],[playlist("jingles.lst"),
-                      single("local.ogg")])
+safe  = rotate([1,10],[playlist("jingles.lst"),
+                       single("local.ogg")])
 q = fallback([crossfade(music),safe])
 </pre>
 There is no problem anymore: <code>music</code> belongs to 
@@ -129,19 +167,96 @@ There is no problem anymore: <code>music</code> belongs to
 
 h4. The clock API
 
-It is possible to forcefully assign operators to a new clock
+There are only a couple operations dealing explicitly with clocks.
 
-Buffers
+Calling <code>clock(s)</code> creates a new clock and assigns it
+to the source <code>s</code>. For convenience (?) it returns the source
+itself. The new clock will follow (the computer's idea of) real time,
+unless <code>sync=false</code> is passed, in which case it will run
+as fast as possible.
 
-h4. Internal clocks
+The <code>buffer</code> operator can be used to communicate between
+any two clocks: it takes a source in one clock and builds a source
+in another. The trick is that it uses a buffer: if one clock
+happens to run too fast or too slow, the buffer may empty or overflow.
 
-What to say?
+Finally, <code>get_clock_status</code> can be used to monitor or
+graph the time in the various clocks of a liquidsoap setup.
+This can be useful to debug latency issues.
 
-h4. External clocks
+h4. External clocks: decoupling latencies
 
-How to isolate network lag.
-The API isn't fixed, and there is a parameter to make everything sloppy.
+The first reason to explicitly assign clocks is to precisely handle
+the various latencies that might occur in your setup.
 
-h4. Exploiting multiple cores
+At the time of writing, the behavior of input/output operators with
+respect to clocks isn't stabilized. Some require their own clocks
+(_e.g._, ALSA, AO and Jack) and some don't (_e.g._ OSS, icecast and
+HTTP-based inputs). The general idea is that when the processing
+rate of an operator is tied to external factors such as soundcard API
+or network, the operator should belong to a clock representing
+those factors. Sometimes, it is too much of an inconvenience,
+in which case one can set <code>clock_safe=false</code> to allow
+another clock assignment (which might create bad latency interferences,
+at your own risk).
 
-Separate clocks are animated in separate threads.
+Currently, <code>output.icecast</code> does not require to belong
+to any particular clock. This allows to stream according to the
+soundcard's internal clock, like in most other tools:
+in <code>output.icecast(%vorbis,mount="live.ogg",input.alsa())</code>,
+the ALSA clock will drive the streaming of the soundcard input via
+icecast.
+
+Sometimes, the external factors tied to Icecast output cannot be
+disregarded: the network may lag. If you stream a soundcard input
+to icecast and the network lags, there will be a glitch in the
+soundcard input -- a long enough lag will cause a disconnection,
+in which case there won't be anybody to notice the huge glitch.
+This might be undesirable, and is certainly disappointing if you
+are recording a backup of your precious soundcard input using
+<code>output.file</code>: by default it will suffer the same
+latencies and glitches, while in theory it could be perfect.
+To fix this you can explicitly separate icecast (high latency,
+low quality) from the backup and soundcard input (low latency,
+high quality wanted):
+<pre>
+input = clock(id="oss",sync=false, input.oss())
+
+output.icecast(%mp3,mount="blah",restart=true,
+  mksafe(buffer(input)))
+
+output.file(%mp3,"record-%Y-%m-%d-%H-%M-%S.mp3",
+  input)
+</pre>
+
+Here, the soundcard input and file output end up in the
+explicitly created <code>"oss"</code> clock. The icecast output
+goes to the default wallclock, and a buffer is used to
+connect it to the soundcard input. If the network lags, the
+buffer will overflow, but nobody will hear this and the
+soundcard input and file output won't be affected.
+
+h4. Internal clocks: exploiting multiple cores
+
+Clocks can also be useful even when external factors are not an issue.
+Indeed, several clocks run in several threads, which creates an opportunity
+to exploit multiple CPU cores.
+The story is a bit complex because OCaml has some limitations on
+exploiting multiple cores, but in many situations most of the computing
+is done in C code (typically decoding and encoding) so it parallelizes
+quite well.
+
+Typically, if you run several outputs that do not share much (any) code,
+you can put each of them in a separate clock:
+<pre>
+def create_a_stream(name)
+  ...
+end
+clock(id=name1,create_a_stream(name1))
+clock(id=name2,create_a_stream(name2))
+...
+</pre>
+
+h4. Dynamic source creation and deletion, garbage collection
+
+Stay tuned, or ask for more doc on that...
