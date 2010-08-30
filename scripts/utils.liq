@@ -558,3 +558,19 @@ def enable_replaygain_metadata(
   add_metadata_resolver("replay_gain", replaygain_metadata)
 end
 
+# Create a log of clock times for all the clocks initially present.
+# The log is in simple format, which you can notably directly use with gnuplot.
+def log_clocks(interval=1.,logfile)
+  # Get the current clocks
+  clocks = list.map(fst,get_clock_status())
+  # Column headers
+  system("echo \# #{string.concat(separator=' ',clocks)} > #{logfile}")
+  def report()
+    status = get_clock_status()
+    status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
+    status = list.map(fun (c) -> status[c], clocks)
+    system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
+    1.
+  end
+  add_timeout(1.,report)
+end

@@ -292,7 +292,7 @@ object (self)
           end else begin
             incr acc ;
             if rem < max_latency then begin
-              log#f 2 "Too much latency! Resetting active sources.." ;
+              log#f 2 "Too much latency! Resetting active sources..." ;
               List.iter
                 (function
                    | (`Active,s) when s#is_active -> s#output_reset

@@ -12,23 +12,39 @@ All sources, operators and outputs are listed in the "scripting API reference":r
 
 h4. How does it work?
 
-To clarify the picture let's study in more details an example.
-
+To clarify the picture let's study in more details an example:
 %%(lang_dummy_example.liq)
 radio =
   output.icecast(
-    mount="test.ogg",
+    %vorbis,mount="test.ogg",
     random(
       [ jingle ,
         fallback([ playlist1,playlist2,playlist3 ]) ]))
 %%
 
 
-At every tick, the output asks the "random" node for data, until it gets a full frame of raw audio. Then it encodes it, and sends it to the Icecast server. Suppose "random" has chosen the "fallback" node, and that only "playlist2" is available, and thus played. At every tick, the buffer is passed from "random" to "fallback" and then to "playlist2", which fills it, returns it to "fallback", which returns it to "random", which returns it to the output. Every step is local.
+At every cycle, the output asks the <code>random</code> node for data,
+until it gets a full frame of raw audio.
+Then, it encodes the frame and sends it to the Icecast server.
+Suppose <code>random</code> has chosen the <code>fallback</code> node,
+and that only <code>playlist2</code> is available, and thus played.
+At every cycle, the buffer is passed from <code>random</code> to
+<code>fallback</code> and then to "playlist2</code> which fills it,
+returns it to <code>fallback</code> which returns it to <code>random</code>
+which returns it to the output. Every step is local.
 
-At some point, "playlist2" ends a track. The "fallback" detects that on the returned buffer, and selects a new child for the next filling, depending on who's available. But it doesn't change the buffer, and returns it to "random", which also selects a new child, randomly, and return the buffer to the output. On next filling, the route of the frame can be different.
+At some point, <code>playlist2</code> ends a track.
+The fallback detects that on the returned buffer,
+and selects a new child for the next filling,
+depending on who's available.
+But it doesn't change the buffer, and returns it to <code>random</code>,
+which also (randomly) selects a new child at this point,
+before returning the buffer to the output.
+On next filling, the route of the frame can be different.
 
-It is possible to have the route changed inside a track, for example using the <code>track_sensitive</code> option of fallback, which is typically done for instant switches to live shows when they start.
+It is possible to have the route changed inside a track,
+for example using the <code>track_sensitive</code> option of fallback,
+which is typically done for instant switches to live shows when they start.
 
 h4. Fallibility
 
@@ -60,14 +76,48 @@ to restart when it is ready to emit a stream again.
 
 h4. Caching mode
 
+In some situations, a source must take care of the consistency of its 
+output. If it is asked twice to fill buffers during the same cycle, it 
+should fill them with the same data. Suppose for example that a playlist is 
+used by two outputs, and that it gives the first frame to the first 
+output, the second frame to the second output: it would give the third frame 
+to the first output during the second cycle,
+and the output will have missed one frame.
 
-In some situations, a source must take care about the consistency of its output. If it is asked twice to fill buffers during the same time tick, it should fill them with the same data. Suppose for example that a playlist is listened by two outputs, and that it gives the first frame to the first output, the second frame to the second output: it would give the third frame to the first output during the second tick, and the output will have missed one frame.
+It is sometimes useful to keep this is mind to understand the behaviour
+of some complex scripts. The high-level picture is enough for users,
+more details follow for developers and curious readers.
 
-Keeping that in mind is required to understand the behaviour of some complex scripts. The high-level picture is enough for users, more details follow for developers and curious readers.
-
-The sources detect if they need to remember (cache) their previous output in order to replay it. To do that, clients of the source must register in advance. If two clients have registered, then the caching should be enabled. Actually that's a bit more complicated, because of transitions. Obviously the sources which use a transition involving some other source must register to it, because they may eventually use it. But a jingle used in two transitions by the same switching operator doesn't need caching. The solution involves two kinds of registering: _dynamic_ and _static activations_. Activations are associated with a path in the graph of sources' nesting. The dynamic activation is a pre-registration allowing a real _static activation_ to come later, possibly in the middle of a time tick, from a super-path -- _i.e._ a path of which the first one is a prefix. Two static activations trigger caching. The other reason for enabling caching is when there is one static activation and one dynamic activation which doesn't come from a prefix of the static activation's path. It means that the dynamic activation can yield at any moment to a static activation and that the source will be used by two sources at the same time.
+The sources detect if they need to remember (cache) their previous output in 
+order to replay it. To do that, clients of the source must register in 
+advance. If two clients have registered, then caching should be enabled. 
+Actually that's a bit more complicated, because of transitions. Obviously the 
+sources which use a transition involving some other source must register to 
+it, because they may eventually use it. But a jingle used in two transitions 
+by the same switching operator doesn't need caching. The solution involves two 
+kinds of registering: _dynamic_ and _static activations_. Activations are 
+associated with a path in the graph of sources' nesting. The dynamic 
+activation is a pre-registration allowing a single real _static activation_
+to come later, possibly in the middle of a cycle.
+Two static activations trigger caching. The other reason for enabling caching
+is when there is one static activation and one dynamic activation which 
+doesn't come from a prefix of the static activation's path. It means that the 
+dynamic activation can yield at any moment to a static activation and that the 
+source will be used by two sources at the same time.
 
 h4. Execution model
 
 
-In your script you define a bunch of sources interacting together. The output sources hook their output function to the root thread manager. Then the streaming starts. At every tick the root thread calls the output hooks, and the outputs do their jobs. This task is the most important and shouldn't be disturbed. Thus, other tasks are done in auxiliary threads: file download, audio validity checking, http polling, playlist reloading... No blocking or expensive call should be done in the root thread. Remote files are completely downloaded to a local temporary file before use by the root thread. It also means that you shouldn't access NFS or any kind of falsely local files.
+In your script you define a bunch of sources interacting together. Each
+source belongs to a "clock":clocks.html, but clocks only have direct access
+to _active sources_, which are mostly outputs.
+At every cycle of the clock, active sources are animated: a chunk of stream
+(frame) is computed, and potentially outputted one way or another.
+
+This streaming task is the most important and shouldn't be disturbed.
+Thus, other tasks are done in auxiliary threads:
+file download, audio validity checking, http polling, playlist reloading...
+No blocking or expensive call should be done in streaming threads.
+Remote files are completely downloaded to a local temporary file
+before use by the root thread. It also means that you shouldn't access NFS
+or any kind of falsely local files.
