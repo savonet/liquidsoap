@@ -102,28 +102,29 @@ Its code is the following:
 Additionaly, a metadata resolver is registered when the @metaflac@ command can be found in the @$PATH@:
 
 %%(flac_resolver.liq)
-  if test_process("which metaflac") then
-   log(level=3,"Found metaflac binary: enabling flac external metadata \
-                resolver.")
-   def flac_meta(file)
-     ret = get_process_lines("metaflac --export-tags-to=- \
-                  #{quote(file)} 2>/dev/null")
-     ret = list.map(string.split(separator="="),ret)
-     # Could be made better..
-     def f(l',l)=
-       if list.length(l) >= 2 then
-         list.append([(list.hd(l),list.nth(l,1))],l')
-       else
-         if list.length(l) >= 1 then
-           list.append([(list.hd(l),"")],l')
-         else
-           l'
-         end
-       end
-     end
-     list.fold(f,[],ret)
-   end
-   add_metadata_resolver("FLAC",flac_meta)
+if test_process("which metaflac") then
+  log(level=3,"Found metaflac binary: \
+               enabling flac external metadata resolver.")
+  def flac_meta(file)
+    ret = get_process_lines("metaflac --export-tags-to=- \
+                            #{quote(file)} 2>/dev/null")
+    ret = list.map(string.split(separator="="),ret)
+    # Could be made better..
+    def f(l',l)=
+      if list.length(l) >= 2 then
+        list.append([(list.hd(l),list.nth(l,1))],l')
+      else
+        if list.length(l) >= 1 then
+          list.append([(list.hd(l),"")],l')
+        else
+          l'
+        end
+      end
+    end
+  list.fold(f,[],ret)
+  end
+  add_metadata_resolver("FLAC",flac_meta)
+end
 %%
 
 h4. The faad decoder

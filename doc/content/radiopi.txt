@@ -56,7 +56,7 @@ url = "http://radiopi.org"
 
 # === Live relays ===
 
-def live_start() =
+def live_start(header) =
   log("got live source, starting relays..")
   ignore(execute("stream_relay.start"))
   ignore(execute("archives.start"))
