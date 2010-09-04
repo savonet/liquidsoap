@@ -20,18 +20,18 @@
 
  *****************************************************************************)
 
+(** Dedicated clock. *)
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pa")
+
 let initialized = ref false
 
 class virtual base =
 object (self)
   initializer
-    if not !initialized then
-      (
-        Portaudio.init ();
-        initialized := true
-      );
-    (* We are using blocking functions to read/write. *)
-    (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
+    if not !initialized then begin
+      Portaudio.init ();
+      initialized := true
+    end
 
   method virtual log : Dtools.Log.t
 
@@ -39,16 +39,20 @@ object (self)
   method handle lbl f =
     try f () with
       | Portaudio.Error n ->
-          failwith (Printf.sprintf "Portaudio error in %s: %s" lbl (Portaudio.string_of_error n))
+          failwith
+            (Printf.sprintf
+               "Portaudio error in %s: %s" lbl (Portaudio.string_of_error n))
       | Portaudio.Unanticipated_host_error ->
           let n, s = Portaudio.get_last_host_error () in
             if n = 0 then
-              self#log#f 3 "Unanticipated host error in %s. (ignoring)" lbl
+              self#log#f 3
+                "Unanticipated host error in %s. (ignoring)" lbl
             else
-              self#log#f 3 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
+              self#log#f 3
+                "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
 end
 
-class output ~kind buflen val_source =
+class output ~kind ~clock_safe buflen val_source =
   let source = Lang.to_source val_source in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -59,8 +63,18 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
-  inherit Source.active_operator kind [source]
+  inherit Source.active_operator kind [source] as super
   inherit base
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   val mutable stream = None
 
@@ -89,12 +103,23 @@ object (self)
       self#handle "write_stream" (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0)))
 end
 
-class input ~kind buflen =
+class input ~kind ~clock_safe buflen =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source kind
+
+  inherit Source.active_source kind as super
   inherit base
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   val mutable stream = None
 
@@ -108,8 +133,12 @@ object (self)
     self#handle
       "open_default_stream"
       (fun () ->
-         stream <- Some (Portaudio.open_default_stream channels 0 samples_per_second buflen));
-    self#handle "start_stream" (fun () -> Portaudio.start_stream (Utils.get_some stream))
+         stream <-
+           Some (Portaudio.open_default_stream
+                   channels 0 samples_per_second buflen));
+    self#handle
+      "start_stream"
+      (fun () -> Portaudio.start_stream (Utils.get_some stream))
 
   method output_reset = ()
   method is_active = true
@@ -118,15 +147,22 @@ object (self)
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
     let buf = AFrame.content_of_type ~channels frame 0 in
-      self#handle "read_stream" (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
+      self#handle
+        "read_stream"
+        (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
       AFrame.add_break frame (AFrame.size ())
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
+  in
   Lang.add_operator "output.portaudio"
     [
-      "buflen", Lang.int_t, Some (Lang.int 256), Some "Length of a buffer in samples.";
+      "clock_safe", Lang.bool_t, Some (Lang.bool true),
+        Some "Force teh use of the dedicated Portaudio clock." ;
+      "buflen", Lang.int_t, Some (Lang.int 256),
+        Some "Length of a buffer in samples.";
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)
@@ -136,12 +172,15 @@ let () =
        let e f v = f (List.assoc v p) in
        let buflen = e Lang.to_int "buflen" in
        let source = List.assoc "" p in
-         ((new output ~kind buflen source):>Source.source)
-    );
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+         ((new output ~kind ~clock_safe buflen source):>Source.source)) ;
+
   Lang.add_operator "input.portaudio"
     [
+      "clock_safe", Lang.bool_t, Some (Lang.bool true),
+        Some "Force teh use of the dedicated Portaudio clock." ;
       "buflen", Lang.int_t, Some (Lang.int 256),
-      Some "Length of a buffer in samples.";
+        Some "Length of a buffer in samples.";
     ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
@@ -149,5 +188,5 @@ let () =
     (fun p kind ->
        let e f v = f (List.assoc v p) in
        let buflen = e Lang.to_int "buflen" in
-       ((new input ~kind buflen):>Source.source)
-    );
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+         ((new input ~kind ~clock_safe buflen):>Source.source))

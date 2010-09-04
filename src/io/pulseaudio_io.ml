@@ -22,6 +22,9 @@
 
 open Pulseaudio
 
+(** Dedicated clock. *)
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pulse")
+
 class virtual base p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
@@ -31,10 +34,6 @@ class virtual base p =
 object (self)
   val client_name = client
   val dev = device
-
-  initializer
-    (* We are using blocking functions to read/write. *)
-    (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
 
   method virtual log : Dtools.Log.t
 end
@@ -51,8 +50,18 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (source_val, "That source is fallible"))
 
-  inherit Source.active_operator kind [source]
+  inherit Source.active_operator kind [source] as super
   inherit base p
+
+  method set_clock =
+    super#set_clock ;
+    if Lang.to_bool (List.assoc "clock_safe" p) then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   val mutable stream = None
 
@@ -94,8 +103,19 @@ class input ~kind p =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source kind
+
+  inherit Source.active_source kind as super
   inherit base p
+
+  method set_clock =
+    super#set_clock ;
+    if Lang.to_bool (List.assoc "clock_safe" p) then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   val mutable stream = None
 
@@ -135,10 +155,13 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
   let proto =
     [ "client", Lang.string_t, 
-      Some (Lang.string "liquidsoap"), None ;
+        Some (Lang.string "liquidsoap"), None ;
       "device", Lang.string_t,
-      Some (Lang.string ""), 
-      Some "Device to use. Uses default if set to \"\"."]
+        Some (Lang.string ""), 
+        Some "Device to use. Uses default if set to \"\"." ;
+      "clock_safe", Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Force the use of the dedicated Pulseaudio clock." ]
   in
   Lang.add_operator "output.pulseaudio"
     (proto @ ["", Lang.source_t k, None, None])

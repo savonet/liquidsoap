@@ -26,9 +26,10 @@
  * These I/O operators are deprecated and the code has several problems.
  * The global initialization doesn't support on-the-fly creation/deletion
  * of inputs/outputs. It also has several scary comments.
- * I'm not sure whether this module should remain in liquidsoap 1.0.
- * If it does, then we should make those sources force their own clock
- * to a dedicated jack_clock. *)
+ * I'm not sure whether this module should remain in liquidsoap 1.0. *)
+
+(** Dedicated Jack clock. *)
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "jack")
 
 let log = Dtools.Log.make ["jack"]
 
@@ -102,15 +103,12 @@ let ringbuffer_coeff = Dtools.Conf.int ~p:(conf#plug "ringbuffer_coeff") ~d:8
       "Should be supperior or equal to 4."
     ]
 
-class virtual base ~kind port_names mode synchronize =
+class virtual base ~kind port_names mode =
 object
   val channels = (Frame.type_of_kind kind).Frame.audio
   val samples_per_frame = AFrame.size ()
 
-  initializer
-    need_jack := true;
-    if synchronize then
-      (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
+  initializer need_jack := true
 
   method stype = Source.Infallible
   method is_ready = true
@@ -165,11 +163,21 @@ object
         port_names
 end
 
-class input ~kind port_names synchronize =
+class input ~kind ~clock_safe port_names =
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source kind
-  inherit base ~kind port_names `Input synchronize
+  inherit Source.active_source kind as super
+  inherit base ~kind port_names `Input
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   method output = if AFrame.is_partial memo then self#get_frame memo
 
@@ -266,7 +274,7 @@ object (self)
       done
 end
 
-class output ~kind port_names val_source synchronize =
+class output ~kind ~clock_safe port_names val_source =
   let source = Lang.to_source val_source in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
@@ -276,8 +284,18 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
-  inherit Source.active_operator kind [source]
-  inherit base ~kind port_names `Output synchronize
+  inherit Source.active_operator kind [source] as super
+  inherit base ~kind port_names `Output
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   method get_frame ab = source#get ab
 
@@ -330,36 +348,39 @@ let () =
     ~flags:[Lang.Deprecated]
     ~descr:"Deprecated jack input."
     [
+      "clock_safe",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated Jack clock" ;
       "ports", Lang.list_t Lang.string_t, Some (get_default_ports "input"),
-      Some "Port names." ;
-      "synchronize", Lang.bool_t, Some (Lang.bool true),
-      Some "Synchronize on jack input." ;
+        Some "Port names." ;
     ]
     (fun p kind ->
        let ports = Lang.to_list (List.assoc "ports" p) in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
-       let sync = Lang.to_bool (List.assoc "synchronize" p) in
-         ((new input ~kind ports sync):>Source.source)) ;
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+         ((new input ~kind ~clock_safe ports):>Source.source)) ;
+
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
+  in
   Lang.add_operator "output.jack.legacy"
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~flags:[Lang.Deprecated]
     ~descr:"Deprecated jack output."
     [
+      "clock_safe",
+        Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated Jack clock" ;
       "ports", Lang.list_t Lang.string_t, Some (get_default_ports "output"),
-      Some "Port names." ;
-      "synchronize", Lang.bool_t, Some (Lang.bool true),
-      Some "Synchronize on jack output." ;
+        Some "Port names." ;
       "", Lang.source_t k, None, None
     ]
     (fun p kind ->
        let ports = Lang.to_list (List.assoc "ports" p) in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
-       let sync = Lang.to_bool (List.assoc "synchronize" p) in
-         ((new output ~kind
-             ports
-             (List.assoc "" p)
-             sync):>Source.source))
+       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+       let src = List.assoc "" p in
+         ((new output ~kind ~clock_safe ports src):>Source.source))

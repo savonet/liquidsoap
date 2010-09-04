@@ -229,17 +229,6 @@ let conf_max_latency =
       "instead of trying to catch it up second by second." ;
       "The reset is typically only useful to reconnect icecast mounts."
     ]
-let conf_sync =
-  Conf.bool ~p:(conf#plug "sync") ~d:true "Synchronization flag"
-    ~comments:[
-      "Control whether or not liquidsoap should take care of the timing.";
-      "Otherwise, the sources may handle it by themselves -- typically in the ";
-      "case of un-bufferized alsa I/O, which turns root synchronization off";
-      "automatically.";
-      "Leaving the sources without synchronization can also be useful for ";
-      "debugging or measuring performance, as it results in liquidsoap running";
-      "as fast as possible."
-    ]
 
 (** Timing stuff, make sure the frame rate is correct. *)
 
@@ -252,7 +241,7 @@ let usleep d =
    * This cheap thing does the job for now.. *)
   try Thread.delay d with Unix.Unix_error (Unix.EINTR,_,_) -> ()
 
-class wallclock ?sync id =
+class wallclock ?(sync=true) id =
 object (self)
 
   inherit clock ("wallclock_"^id) as super
@@ -264,8 +253,7 @@ object (self)
     let lock = Mutex.create () in
       fun f -> Tutils.mutexify lock f ()
 
-  val mutable sync =
-    match sync with None -> conf_sync#get | Some b -> b
+  val mutable sync = sync
 
   method private run =
     let acc = ref 0 in

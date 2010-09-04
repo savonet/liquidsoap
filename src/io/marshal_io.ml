@@ -118,10 +118,6 @@ object (self)
   inherit Source.source kind
   inherit base ~pipe ~f ~fd ~g ~flags ()
 
-  initializer
-    (* We are using blocking functions to read. *)
-    (Dtools.Conf.as_bool (Configure.conf#path ["root";"sync"]))#set false
-
   method stype = Source.Infallible
   method remaining = -1
   method abort_track = ()
@@ -161,7 +157,7 @@ let () =
       "", Lang.source_t, None, None
     ]
     ~category:Lang.Output
-    ~flags:[Lang.Experimental]
+    ~flags:[Lang.Experimental;Lang.Hidden]
     ~descr:"Output the source's stream to a pipe using marshaling."
     (fun p _ ->
        let pipe = Lang.to_string (Lang.assoc "" 1 p) in
@@ -177,7 +173,7 @@ let () =
       Some "Pipe to get the stream from.";
     ]
     ~category:Lang.Input
-    ~flags:[Lang.Experimental]
+    ~flags:[Lang.Experimental;Lang.Hidden]
     ~descr:"Get a stream from a pipe using marshaling."
     (fun p _ ->
        let pipe = Lang.to_string (List.assoc "" p) in
