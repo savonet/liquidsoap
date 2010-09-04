@@ -81,7 +81,7 @@ object (self)
                      ((Lang.string ttf),
                       Printf.sprintf
                         "Could not open font: %s"
-                        (Printexc.to_string e)));
+                        (Utils.error_message e)));
     );
     self#render_text cur_text
 

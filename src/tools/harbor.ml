@@ -295,7 +295,7 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
         write_answer c
           (http_error_page 500 "Internal Server Error"
              "The server could not handle your request.") ;
-        failwith (Printexc.to_string e)
+        failwith (Utils.error_message e)
 
 let handle_get_request ~port c uri headers =
   let default =
@@ -421,7 +421,7 @@ let handle_get_request ~port c uri headers =
        | _ -> raise (Answer(ans_404))
   with
     | Answer(s) ->  s ()
-    | e -> ans_500 () ; failwith (Printexc.to_string e)
+    | e -> ans_500 () ; failwith (Utils.error_message e)
 
 let priority = Tutils.Non_blocking
 
@@ -532,7 +532,7 @@ let open_port port =
         Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get ;
         handle_client ~port ~icy socket ;
         log#f 3 "New client on port %i: %s" port ip
-      with e -> log#f 2 "Failed to accept new client: %s" (Printexc.to_string e)
+      with e -> log#f 2 "Failed to accept new client: %s" (Utils.error_message e)
     end ;
     if !shutdown then begin
       (try Unix.close sock with _ -> ()) ;

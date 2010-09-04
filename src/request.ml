@@ -292,7 +292,7 @@ let rec pop_indicator t =
         Unix.unlink i.string
       with
         | e ->
-            log#f 2 "Unlink failed: %S" (Printexc.to_string e)
+            log#f 2 "Unlink failed: %S" (Utils.error_message e)
       end ;
     t.decoder <- None ;
     if repop then pop_indicator t

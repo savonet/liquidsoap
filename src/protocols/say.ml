@@ -74,7 +74,7 @@ let say s ~log maxtime =
           (* This could for example be ENOMEM raised by Unix.fork. *)
           dlog#f 3
             "Failed to synthetize speech: %s!"
-            (match e with Failure s -> s | _ -> Printexc.to_string e) ;
+            (match e with Failure s -> s | _ -> Utils.error_message e) ;
           log "Speech synthesis failed!" ;
           (try Unix.unlink local with _ -> ()) ;
           []

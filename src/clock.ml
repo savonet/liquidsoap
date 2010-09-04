@@ -164,7 +164,7 @@ object (self)
            try s#get_ready [(s:>source)] ; `Woken_up s with
              | e when !started = `Yes ->
                  log#f 2 "Error when starting %s: %s!"
-                   s#id (Printexc.to_string e) ;
+                   s#id (Utils.error_message e) ;
                  `Error s)
         to_start
     in
@@ -176,7 +176,7 @@ object (self)
                try s#output_get_ready ; `Started s with
                  | e when !started = `Yes ->
                      log#f 2 "Error when starting output %s: %s!"
-                       s#id (Printexc.to_string e) ;
+                       s#id (Utils.error_message e) ;
                      s#leave (s:>source) ;
                      `Error s)
         to_start

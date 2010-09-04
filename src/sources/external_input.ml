@@ -117,7 +117,7 @@ object (self)
        | e ->
           do_restart
             (Printf.sprintf "Process exited with error: %s"
-                (Printexc.to_string e)) restart_on_error
+                (Utils.error_message e)) restart_on_error
                 (fun () -> raise e)
     in
     let task =

@@ -269,7 +269,7 @@ let decoder ~channels file =
   in
   let close_on_err f x =
     try f x with e ->
-      log#f 4 "Closing on error: %s." (Printexc.to_string e);
+      log#f 4 "Closing on error: %s." (Utils.error_message e);
       close (); raise e
   in
 

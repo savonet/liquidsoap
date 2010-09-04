@@ -124,13 +124,6 @@ let no_problem = Condition.create ()
 
 let log = Log.make ["threads"]
 
-let error_message e=
- match e with
-   | Unix.Unix_error (e,x,y) -> 
-      Printf.sprintf "Unix: %s, %s, %s"
-        (Unix.error_message e) x y
-   | _ -> Printexc.to_string e
-
 exception Exit
 
 let create ~wait f x s =
@@ -159,7 +152,7 @@ let create ~wait f x s =
                      log#f 1 "Thread %S failed: %s!" s e
                  | e ->
                      log#f 1 "Thread %S aborts with exception %s!"
-                              s (error_message e)
+                              s (Utils.error_message e)
                end ;
                if wait then all := Set.remove (s,(Thread.self ())) !all ;
                uncaught := Some e ;

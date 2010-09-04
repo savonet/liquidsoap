@@ -209,7 +209,7 @@ let exec s =
       command args
     with
       | Exit -> raise Exit
-      | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
+      | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
 
 let priority = Tutils.Non_blocking
 
@@ -287,7 +287,7 @@ let start_socket () =
           log#f 3 "New client on %s" socket_name ;
           handle_client socket
       with e ->
-        log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
+        log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
     end ;
     [{ Duppy.Task.
          priority = priority ;
@@ -348,7 +348,7 @@ let start_telnet () =
         log#f 3 "New client: %s" ip ;
         handle_client socket;
       with e ->
-      log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
+      log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
     end ;
     [{ Duppy.Task.
          priority = priority ;

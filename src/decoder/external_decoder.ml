@@ -231,7 +231,7 @@ let external_input_oblivious process filename prebuf =
          done
        with
          | e ->
-             log#f 4 "Decoding %s ended: %s." process (Printexc.to_string e) ;
+             log#f 4 "Decoding %s ended: %s." process (Utils.error_message e) ;
              close ()
        end ;
      Generator.fill gen frame ;

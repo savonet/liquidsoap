@@ -731,7 +731,7 @@ let interactive () =
             Printf.printf "Bye bye!\n" ;
             false
         | e ->
-            Printf.printf "Exception: %s!\n" (Printexc.to_string e) ;
+            Printf.printf "Exception: %s!\n" (Utils.error_message e) ;
             true
     then
       loop ()

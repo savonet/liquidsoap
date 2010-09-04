@@ -35,7 +35,7 @@ module Liq_http =
       | Unix.Unix_error (e,x,y) -> 
           raise (Http (Printf.sprintf "Unix error: %s,%s,%s"  
                           (Unix.error_message e) x y))
-      | e -> raise (Http (Printexc.to_string e))
+      | e -> raise (Http (Utils.error_message e))
 
   let default_timeout = ref 5.
   let request ?timeout ?headers ?(port=80) 
@@ -199,7 +199,7 @@ let init host =
             songs
         | e ->
             log#f 4 "could not submit track %s -- %s: unknown error %s"
-              artist track (Printexc.to_string e) ;
+              artist track (Utils.error_message e) ;
             songs
      in
      Mutex.lock submit_m;
@@ -231,7 +231,7 @@ let init host =
      Hashtbl.iter f submit ;
      (-1.)
    with
-     | e -> reason (Printexc.to_string e); (-1.)
+     | e -> reason (Utils.error_message e); (-1.)
    in
    let task = 
      Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler do_submit

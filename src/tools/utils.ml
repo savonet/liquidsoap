@@ -68,6 +68,13 @@ let really_read fd buf ofs len =
     done;
     !l
 
+let error_message e =
+ match e with
+   | Unix.Unix_error (e,x,y) ->
+      Printf.sprintf "Unix: %s, %s, %s"
+        (Unix.error_message e) x y
+   | _ -> Printexc.to_string e
+
 (** Perfect Fisher-Yates shuffle
   * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
 let randomize a =

@@ -216,7 +216,7 @@ let mp4_decoder filename =
        done
      with
        | e ->
-           log#f 4 "Decoding ended: %s." (Printexc.to_string e) ;
+           log#f 4 "Decoding ended: %s." (Utils.error_message e) ;
            close ()
      end ;
      let offset = Frame.position frame in

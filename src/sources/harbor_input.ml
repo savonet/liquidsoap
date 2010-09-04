@@ -112,7 +112,7 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
+            self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
             if debug then raise e ;
             self#disconnect
 
@@ -165,7 +165,7 @@ object (self)
           begin try
             dump <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open dump file: %s" (Printexc.to_string e)
+            self#log#f 2 "Could not open dump file: %s" (Utils.error_message e)
           end
       | None -> ()
     end ;
@@ -174,7 +174,7 @@ object (self)
           begin try
             logf <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open log file: %s" (Printexc.to_string e)
+            self#log#f 2 "Could not open log file: %s" (Utils.error_message e)
           end
       | None -> ()
     end ;
