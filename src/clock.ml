@@ -36,9 +36,9 @@ let log = Dtools.Log.make ["clock"]
   *  - for the initial conf, all errors are fatal
   *  - after that (dynamic code execution, interactive mode) some errors
   *    are not fatal anymore. *)
-let started = ref false
+let started : [ `Yes | `No | `Soon ] ref = ref `No
 
-let running () = !started
+let running () = !started = `Yes
 
 (** If initialization raises an exception, we want to report it and shutdown.
   * However, this has to be done carefully, by un-initializing first:
@@ -162,7 +162,7 @@ object (self)
       List.map
         (fun (s:active_source) ->
            try s#get_ready [(s:>source)] ; `Woken_up s with
-             | e when !started ->
+             | e when !started = `Yes ->
                  log#f 2 "Error when starting %s: %s!"
                    s#id (Printexc.to_string e) ;
                  `Error s)
@@ -174,8 +174,8 @@ object (self)
            | `Error s -> `Error s
            | `Woken_up (s:active_source) ->
                try s#output_get_ready ; `Started s with
-                 | e when !started ->
-                     log#f 2 "Error when starting %s: %s!"
+                 | e when !started = `Yes ->
+                     log#f 2 "Error when starting output %s: %s!"
                        s#id (Printexc.to_string e) ;
                      s#leave (s:>source) ;
                      `Error s)
@@ -462,9 +462,19 @@ let collect ~must_lock =
     let collects =
       Clocks.fold (fun s l -> s#start_outputs::l) clocks []
     in
+    let start =
+      if !started <> `No then ignore else begin
+        (* Avoid that some other collection takes up the task
+         * to set started := true. Typically they would be
+         * trivial (empty) collections terminating before us,
+         * which defeats the purpose of the flag. *)
+        started := `Soon ;
+        fun () -> ( log#f 4 "Main phase starts." ; started := `Yes )
+      end
+    in
       Mutex.unlock lock ;
       List.iter (fun f -> f ()) collects ;
-      started := true
+      start ()
   end
 
 let collect_after f =
