@@ -311,27 +311,65 @@ let mk_theora params =
     List.fold_left
       (fun f ->
         function
-          | ("quality",{ term = Int i }) ->
+          | ("quality",({ term = Int i } as t)) ->
+              (* According to the doc, this should be a value between
+               * 0 and 63. *)
+              if i < 0 || i > 63 then
+                raise (Error (t,"Theora quality should be in 0..63")) ;
               { f with
                   Encoder.Theora.bitrate_control = Encoder.Theora.Quality i }
           | ("bitrate",{ term = Int i }) ->
               { f with
                   Encoder.Theora.bitrate_control = Encoder.Theora.Bitrate i }
-          | ("width",{ term = Int i }) ->
+          | ("width",({ term = Int i } as t)) ->
+              (* According to the doc: must be a multiple of 16, and less than 1048576. *)
+              if i mod 16 <> 0 || i >= 1048576 then
+                raise (Error (t,"invalid frame width value")) ;
               { f with Encoder.Theora.
                     width = Lazy.lazy_from_val i;
                     picture_width = Lazy.lazy_from_val i }
-          | ("height",{ term = Int i }) ->
+          | ("height",({ term = Int i } as t)) ->
+              (* According to the doc: must be a multiple of 16, and less than 1048576. *)
+              if i mod 16 <> 0 || i >= 1048576 then
+                raise (Error (t,"invalid frame height value")) ;
               { f with Encoder.Theora.
                     height = Lazy.lazy_from_val i;
                     picture_height = Lazy.lazy_from_val i }
-          | ("picture_width",{ term = Int i }) ->
+          | ("picture_width",({ term = Int i } as t)) ->
+              (* According to the doc: must not be larger than width. *)
+              if i > Lazy.force f.Encoder.Theora.width then
+                raise (Error (t,"picture width must not be larger than width.")) ;
               { f with Encoder.Theora.picture_width = Lazy.lazy_from_val i }
-          | ("picture_height",{ term = Int i }) ->
+          | ("picture_height",({ term = Int i } as t)) ->
+              (* According to the doc: must not be larger than height. *)
+              if i > Lazy.force f.Encoder.Theora.height then
+                raise (Error (t,"picture height must not be larger than height.")) ;
               { f with Encoder.Theora.picture_height = Lazy.lazy_from_val i }
-          | ("picture_x",{ term = Int i }) ->
+          | ("picture_x",({ term = Int i } as t)) ->
+              (* According to the doc: must be no larger than width-picture_width 
+               * or 255, whichever is smaller. *)
+              if 
+                i > min 
+                     ((Lazy.force f.Encoder.Theora.width) - 
+                      (Lazy.force f.Encoder.Theora.picture_width)) 
+                     255 
+              then
+                raise (Error (t,"picture x must not be larger than \
+                                 width - picture width or 255, \
+                                 whichever is smaller.")) ;
               { f with Encoder.Theora.picture_x = i }
-          | ("picture_y",{ term = Int i }) ->
+          | ("picture_y",({ term = Int i } as t)) ->
+              (* According to the doc: must be no larger than width-picture_width   
+               * and frame_height-pic_height-pic_y must be no larger than 255. *)
+              if 
+                i > ((Lazy.force f.Encoder.Theora.height) - 
+                     (Lazy.force f.Encoder.Theora.picture_height)) 
+              then
+                raise (Error (t,"picture y must not be larger than height - \
+                                 picture height."));
+              if (Lazy.force f.Encoder.Theora.picture_height) - i > 255 then
+                raise (Error (t,"picture height - picture y must not be \
+                                 larger than 255.")) ;
               { f with Encoder.Theora.picture_y = i }
           | ("aspect_numerator",{ term = Int i }) ->
               { f with Encoder.Theora.aspect_numerator = i }
@@ -399,7 +437,10 @@ let mk_speex params =
               { f with Encoder.Speex.
                         bitrate_control =
                           Encoder.Speex.Abr i }
-          | ("quality",{ term = Int q }) ->
+          | ("quality",({ term = Int q } as t)) ->
+            (* Doc say this should be from 0 to 10. *)
+            if q < 0 || q > 10 then
+              raise (Error (t,"Speex quality should be in 0..10"));
               { f with Encoder.Speex.
                         bitrate_control =
                          Encoder.Speex.Quality q }
@@ -418,7 +459,10 @@ let mk_speex params =
               { f with Encoder.Speex.mode = Encoder.Speex.Ultra_wideband }
           | ("frames_per_packet",{ term = Int i }) ->
               { f with Encoder.Speex.frames_per_packet = i }
-          | ("complexity",{ term = Int i }) ->
+          | ("complexity",({ term = Int i } as t)) ->
+              (* Doc says this should be between 1 and 10. *)
+              if i < 1 || i > 10 then
+                raise (Error (t,"Speex complexity should be in 1..10"));
               { f with Encoder.Speex.complexity = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Speex.stereo = false }
