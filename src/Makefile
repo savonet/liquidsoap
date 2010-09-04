@@ -173,12 +173,12 @@ OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
 liquidsoap_doc_sources= \
-	source.ml clock.ml \
+	source.ml clock.ml encoder/encoder.ml \
 	tools/plug.ml tools/http.ml \
 	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml tools/server.ml \
 	tools/tutils.ml tools/sutils.ml tools/mutils.ml \
-	tools/ringbuffer.ml \
+	tools/ringbuffer.ml playlist_parser.ml \
 	tools/doc.ml tools/wav.ml \
 	sources/request_source.ml operators/switch.ml \
 	configure.ml video_converter.ml \
