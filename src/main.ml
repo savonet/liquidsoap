@@ -446,15 +446,18 @@ let () =
   Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid") ;
 
   (* Parse command-line, and notably load scripts. *)
-  parse Shebang.argv options (fun s -> eval (`Expr_or_File s)) usage ;
+  parse Shebang.argv options (fun s -> eval (`Expr_or_File s)) usage
+
+(* When the log/pid paths have their definitive values,
+ * expand substitutions and check directories.
+ * This should be ran just before Dtools init. *)
+let check_directories () =
 
   (* Now that the paths have their definitive value, expand <shortcuts>. *)
   let subst conf = conf#set (Configure.subst_vars conf#get) in
-    subst Log.conf_file_path ;
-    subst Init.conf_daemon_pidfile_path
+  subst Log.conf_file_path ;
+  subst Init.conf_daemon_pidfile_path ;
 
-(* Check that directories used by Dtools exist. *)
-let check_directories () =
   let check_dir conf_path kind =
     let path = conf_path#get in
     let dir = Filename.dirname path in
@@ -499,9 +502,14 @@ let () =
     if !interactive then begin
       Log.conf_stdout#set_d (Some false) ;
       Log.conf_file#set_d (Some true) ;
-      Log.conf_file_path#set_d (Some "<syslogdir>/interactive.log") ;
-      ignore (Thread.create Lang.interactive ()) ;
+      let default_log =
+        Filename.temp_file
+          (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ())) ".log"
+      in
+      Log.conf_file_path#set_d (Some default_log) ;
+      ignore (Init.at_stop (fun _ -> Sys.remove default_log)) ;
       check_directories () ;
+      ignore (Thread.create Lang.interactive ()) ;
       Init.init main
     end else if Source.has_outputs () then
       if not !dont_run then begin
