@@ -65,7 +65,7 @@ let conf_telnet =
       "The standard \"telnet\" command will allow you to communicate through" ;
       "that interface, as well as the telnet libraries available in most"     ;
       "script languages." ;
-      "Since there is currently no authentification, you should be careful"   ;
+      "Since there is currently no authentication, you should be careful"   ;
       "about who can access this interface: either restrict it to connections";
       "from localhost (using the bind_addr param) or set up a firewall."
     ]

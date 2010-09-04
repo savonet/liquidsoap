@@ -49,18 +49,18 @@ struct
       "Samplerate conversion settings"
       ~comments:["Options related to samplerate conversion."]
 
-  let prefered_conf =
-    Dtools.Conf.string ~p:(samplerate_conf#plug "prefered")
-      "Prefered samplerate converter"
-      ~d:"libsamplerate" ~comments:["Prefered samplerate converter."]
+  let preferred_conf =
+    Dtools.Conf.string ~p:(samplerate_conf#plug "preferred")
+      "Preferred samplerate converter"
+      ~d:"libsamplerate" ~comments:["Preferred samplerate converter."]
 
   let converters : converter_plug Plug.plug =
     Plug.create "samplerate converters"
       ~doc:"Methods for converting samplerate."
 
   let create channels =
-    let prefered = prefered_conf#get in
-    match converters#get prefered with
+    let preferred = preferred_conf#get in
+    match converters#get preferred with
       | Some v ->
          Array.init channels (fun _ -> v ())
       | None ->
@@ -87,13 +87,13 @@ struct
   let () =
     ignore (Dtools.Init.at_start
       (fun () ->
-         let prefered = prefered_conf#get in
-         match converters#get prefered with
+         let preferred = preferred_conf#get in
+         match converters#get preferred with
            | Some v ->
-              log#f 4 "Using prefered samplerate converter: %s." prefered;
+              log#f 4 "Using preferred samplerate converter: %s." preferred;
            | None ->
-              log#f 4 "Couldn't find prefered samplerate converter: %s."
-                prefered;
+              log#f 4 "Couldn't find preferred samplerate converter: %s."
+                preferred;
               let (n,_) = List.hd converters#get_all in
               log#f 4 "Using %s samplerate converter" n))
 

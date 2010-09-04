@@ -466,7 +466,7 @@ let () =
       Lang.string_t,
       Some (Lang.string ""),
       Some "Add a constant prefix to all requests. \
-            Usefull for passing extra information using annotate, \
+            Useful for passing extra information using annotate, \
             or for resolution through a particular protocol, such \
             as replaygain." ;
 

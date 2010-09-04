@@ -213,15 +213,15 @@ let auth_check ~login c uri headers =
             raise Xaudiocast_auth )
           else
             raise (Answer(fun () ->
-                ( log#f 3 "Returned 401: no authentification given." ;
+                ( log#f 3 "Returned 401: no authentication given." ;
                   answer "No login / password supplied." ) ) )
       | Not_authenticated ->
             raise (Answer(fun () ->
              ( log#f 3 "Returned 401: wrong auth." ;
-               answer "Wrong Authentification data") ) )
+               answer "Wrong Authentication data") ) )
       | Not_supported ->
             raise (Answer(fun () ->
-             ( log#f 3 "Returned 401: bad authentification." ;
+             ( log#f 3 "Returned 401: bad authentication." ;
                answer "No login / password supplied.") ) )
 
 let handle_source_request ~port ~icy hprotocol c uri headers =
@@ -289,7 +289,7 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
         failwith "bad codec"
     | Answer s ->
           s () ;
-          failwith "wrong source authentification"
+          failwith "wrong source authentication"
     | e ->
         log#f 3 "Returned 500 for '%s'." uri ;
         write_answer c
@@ -347,8 +347,8 @@ let handle_get_request ~port c uri headers =
                       let ans () =
                         log#f 3 "Returned 401 for '%s': wrong auth." uri ;
                         write_answer c
-                          (http_error_page 401 "Authentification Failed"
-                             "Wrong Authentification data")
+                          (http_error_page 401 "Authentication Failed"
+                             "Wrong Authentication data")
                       in
                         if not (auth_f user pass) then
                           raise (Answer ans)

@@ -572,7 +572,7 @@ let () =
     [ "capitalize", Lang.bool_t, Some (Lang.bool true),
         Some "Capitalize if true, uncapitalize otherwise";
       "space_sensitive", Lang.bool_t, Some (Lang.bool true),
-        Some "Capitalize each space seperated sub-string.";
+        Some "Capitalize each space separated sub-string.";
       "", Lang.string_t, None, None ]
     Lang.string_t
     (fun p ->

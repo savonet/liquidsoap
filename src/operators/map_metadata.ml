@@ -85,7 +85,7 @@ let register =
       Some "Only update metadata. If false, only returned values \
             will be set as metadata." ;
       "strip", Lang.bool_t, Some (Lang.bool false),
-      Some "Completly remove empty metadata. Operates on both empty values \
+      Some "Completely remove empty metadata. Operates on both empty values \
             and empty metadata chunk.";
       "insert_missing", Lang.bool_t, Some (Lang.bool true),
       Some "Treat track beginnings without metadata as having empty ones. \

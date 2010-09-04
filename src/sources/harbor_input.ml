@@ -250,7 +250,7 @@ let () =
           (Lang.val_cst_fun
              ["",Lang.string_t,None;"",Lang.string_t,None]
              (Lang.bool false)),
-        Some "Authentification function. \
+        Some "Authentication function. \
               <code>f(login,password)</code> returns <code>true</code> \
               if the user should be granted access for this login. \
               Override any other method if used.";

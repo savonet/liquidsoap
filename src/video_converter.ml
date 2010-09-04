@@ -33,13 +33,13 @@ let video_converter_conf =
   Dtools.Conf.void ~p:(video_conf#plug "converter") "Video conversion"
     ~comments:["Options related to video conversion."]
 
-let prefered_converter_conf = 
-  Dtools.Conf.string ~p:(video_converter_conf#plug "prefered") ~d:"gavl"
-  "Prefered video converter"
+let preferred_converter_conf = 
+  Dtools.Conf.string ~p:(video_converter_conf#plug "preferred") ~d:"gavl"
+  "Preferred video converter"
 
 let proportional_scale_conf =
   Dtools.Conf.bool ~p:(video_converter_conf#plug "proportional_scale") ~d:true
-  "Prefered proportional scale."
+  "Preferred proportional scale."
 
 (* From Gavl *)
 type rgb_format = 
@@ -163,29 +163,29 @@ let video_converters : converter_plug Plug.plug =
 
 exception Exit of converter
 
-(** Only log prefered decoder availability once at start. *)
+(** Only log preferred decoder availability once at start. *)
 let () = 
   ignore(Dtools.Init.at_start
     (fun () ->
-      let prefered = prefered_converter_conf#get in
-      match video_converters#get prefered with
+      let preferred = preferred_converter_conf#get in
+      match video_converters#get preferred with
         | None ->
-            log#f 4 "Couldn't find prefered video converter: %s." prefered
-        | _ -> log#f 4 "Using prefered video converter: %s." prefered)) 
+            log#f 4 "Couldn't find preferred video converter: %s." preferred
+        | _ -> log#f 4 "Using preferred video converter: %s." preferred)) 
 
 
 let find_converter src dst = 
   try
     begin
-      let prefered = prefered_converter_conf#get in
-      match video_converters#get prefered with
+      let preferred = preferred_converter_conf#get in
+      match video_converters#get preferred with
         | None -> ()
         | Some (sf,df,f) -> 
             if List.mem src sf && List.mem dst df then
               raise (Exit (f ()))
             else
               log#f 4 "Default video converter %s cannot do %s->%s."
-                prefered
+                preferred
                 (string_of_pixel_format src)
                 (string_of_pixel_format dst)
     end;   
