@@ -184,7 +184,7 @@ let test_file ?(log=(fun _ -> ())) ~mimes ~extensions fname =
         | _ -> false
     in
     if not file_ext then
-      log (Printf.sprintf "Invalid file extension for %s!" fname) ;
+      log (Printf.sprintf "Invalid file extension for %S!" fname) ;
     begin
      match Configure.file_mime with
        | None -> file_ext
@@ -192,7 +192,7 @@ let test_file ?(log=(fun _ -> ())) ~mimes ~extensions fname =
            let mime = mime_type fname in
            let file_mime = List.mem mime mimes in
            if not file_mime then
-             log (Printf.sprintf "Invalid MIME type for %s: %s!" fname mime) ;
+             log (Printf.sprintf "Invalid MIME type for %S: %s!" fname mime) ;
            file_ext || file_mime
     end
    end

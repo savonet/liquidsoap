@@ -70,9 +70,8 @@ let really_read fd buf ofs len =
 
 let error_message e =
  match e with
-   | Unix.Unix_error (e,x,y) ->
-      Printf.sprintf "Unix: %s, %s, %s"
-        (Unix.error_message e) x y
+   | Unix.Unix_error (code,name,param) ->
+      Printf.sprintf "%s in %s(%s)" (Unix.error_message code) name param
    | _ -> Printexc.to_string e
 
 (** Perfect Fisher-Yates shuffle

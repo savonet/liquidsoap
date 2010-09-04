@@ -79,7 +79,7 @@ let () =
       [ "", Lang.source_t in_kind, None, None ]
       ~kind:(Lang.Unconstrained out_kind)
       ~category:Lang.SoundProcessing
-      ~descr:"Transform all audio channels into one by taking their mean."
+      ~descr:"Produce mono audio by taking the mean of all audio channels."
       (fun p kind ->
          let s = Lang.to_source (Lang.assoc "" 1 p) in
            new mean ~kind s)
