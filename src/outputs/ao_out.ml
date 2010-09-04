@@ -97,11 +97,13 @@ object (self)
     play dev data
 
   method output_send wav =
-    let push data =
-      let pcm = AFrame.content wav 0 in
-        ignore (Float_pcm.to_s16le pcm 0 (AFrame.size ()) data 0)
-    in
-    ioring#put_block push
+    if not (Frame.is_partial wav) then
+      let push data =
+        let pcm = AFrame.content wav 0 in
+          assert (Array.length pcm = channels) ;
+          ignore (Float_pcm.to_s16le pcm 0 (AFrame.size ()) data 0)
+      in
+        ioring#put_block push
 
   method output_reset = ()
 end
