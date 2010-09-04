@@ -370,6 +370,17 @@ let clear b =
   b.contents <- [last b.contents] ;
   b.breaks <- [] ; b.metadata <- []
 
+let clear_from b pos =
+  let rec aux = function
+    | [] -> assert false
+    | (end_pos,content)::l ->
+        if end_pos<pos then (end_pos,content) :: aux l else
+          [!!size,content]
+  in
+    b.contents <- aux b.contents ;
+    b.breaks <- List.filter (fun p -> p <= pos) b.breaks ;
+    b.metadata <- List.filter (fun (p,_) -> p <= pos) b.metadata
+
 (* Same as clear but leaves the last metadata at position -1. *)
 let advance b =
   b.breaks <- [] ;

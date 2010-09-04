@@ -54,6 +54,7 @@ val position : t -> int
 val is_partial : t -> bool
 
 val clear : t -> unit
+val clear_from : t -> int -> unit
 val advance : t -> unit
 
 (** {3 Breaks} *)

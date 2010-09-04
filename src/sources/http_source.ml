@@ -178,7 +178,7 @@ object (self)
   inherit Source.source kind
   inherit
     Generated.source
-      (Generator.create ~log ~overfull:(`Drop_old max_ticks) `Undefined)
+      (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
       ~empty_on_abort:false ~bufferize as generated
 
   method stype = Source.Fallible

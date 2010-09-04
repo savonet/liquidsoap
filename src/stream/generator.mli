@@ -130,6 +130,7 @@ sig
   type overfull = [ `Drop_old of int ]
 
   val create : ?lock:Mutex.t -> ?overfull:overfull -> 
+               kind:Frame.content_kind ->
                log:(string -> unit) -> mode -> t
 
   val mode : t -> From_audio_video.mode

@@ -40,7 +40,7 @@ class external_input ~kind ~restart ~bufferize ~channels
    * the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
-  let abg = Generator.create ~log `Audio in
+  let abg = Generator.create ~log ~kind `Audio in
   let priority = Tutils.Non_blocking in
 object (self)
   inherit Source.source kind

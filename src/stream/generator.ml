@@ -495,13 +495,14 @@ struct
 
   type t = {
     lock : Mutex.t ;
+    kind : Frame.content_kind ; mutable error : bool ;
     overfull : overfull option ;
     gen : Super.t ;
     log : string -> unit
   }
 
-  let create ?(lock=Mutex.create()) ?overfull ~log mode =
-    { lock = lock ; overfull = overfull ; 
+  let create ?(lock=Mutex.create()) ?overfull ~kind ~log mode =
+    { lock = lock ; kind = kind ; error = false ; overfull = overfull ; 
       log = log   ; gen = Super.create mode }
 
   let mode t = Tutils.mutexify t.lock Super.mode t.gen
@@ -517,7 +518,23 @@ struct
   let add_break ?sync t = Tutils.mutexify t.lock (Super.add_break ?sync) t.gen
 
   let clear t = Tutils.mutexify t.lock Super.clear t.gen
-  let fill t frame = Tutils.mutexify t.lock (Super.fill t.gen) frame
+
+  let fill t frame =
+    Tutils.mutexify t.lock
+      (fun () ->
+         let p = Frame.position frame in
+           Super.fill t.gen frame ;
+           let _,c = Frame.content frame p in
+             if not (Frame.type_has_kind (Frame.type_of_content c) t.kind) then
+               begin
+                 if not t.error then begin
+                   t.log "Incorrect stream type!" ;
+                   t.error <- true
+                 end ;
+                 Frame.clear_from frame p ;
+                 Frame.add_break frame p
+               end)
+        ()
 
   let remove t len =
     Tutils.mutexify t.lock (Super.remove t.gen) len
@@ -529,20 +546,30 @@ struct
           let len = Super.length t.gen + extra - len in
           let len_time = Frame.seconds_of_master len in
           t.log 
-            (Printf.sprintf "Buffer overrun ! Dropping %.2fs.." len_time); 
+            (Printf.sprintf "Buffer overrun: Dropping %.2fs." len_time); 
           Super.remove t.gen len
       | _ -> ()
 
   let put_audio t buf off len =
     Tutils.mutexify t.lock
       (fun () ->
-         check_overfull t (Frame.master_of_audio len) ;
-         Super.put_audio t.gen buf off len) ()
+         if t.error then begin
+           Super.clear t.gen ; t.error <- false ;
+           failwith "Incorrect stream type!"
+         end else begin
+           check_overfull t (Frame.master_of_audio len) ;
+           Super.put_audio t.gen buf off len
+         end) ()
 
   let put_video t buf off len =
     Tutils.mutexify t.lock
       (fun () ->
-         check_overfull t (Frame.master_of_video len) ;
-         Super.put_video t.gen buf off len) ()
+         if t.error then begin
+           Super.clear t.gen ; t.error <- false ;
+           failwith "Incorrect stream type!"
+         end else begin
+           check_overfull t (Frame.master_of_video len) ;
+           Super.put_video t.gen buf off len
+         end) ()
 
 end
