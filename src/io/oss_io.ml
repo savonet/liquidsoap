@@ -26,7 +26,10 @@ external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 
-class output ~kind dev val_source =
+(** Dedicated clock. *)
+let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "OSS")
+
+class output ~kind ~clock_safe dev val_source =
   let source = Lang.to_source val_source in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -37,7 +40,17 @@ object (self)
     if source#stype <> Source.Infallible then
       raise (Lang.Invalid_value (val_source, "That source is fallible"))
 
-  inherit Source.active_operator kind [source]
+  inherit Source.active_operator kind [source] as super
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   val mutable fd = None
 
@@ -68,11 +81,22 @@ object (self)
       assert (Unix.write fd s 0 r = r)
 end
 
-class input ~kind dev =
+class input ~kind ~clock_safe dev =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
-  inherit Source.active_source kind
+
+  inherit Source.active_source kind as super
+
+  method set_clock =
+    super#set_clock ;
+    if clock_safe then
+      let clock = get_clock () in
+        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
+        (* TODO in the future we should use the Output class to have
+         * a start/stop behavior; until then we register once for all,
+         * which is a quick but dirty solution. *)
+        clock#register_blocking_source
 
   val mutable fd = None
 
@@ -106,9 +130,13 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ()) in
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
+  in
   Lang.add_operator "output.oss"
     [
+      "clock_safe", Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated OSS clock." ;
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
       Some "OSS device to use.";
       "", Lang.source_t k, None, None
@@ -118,13 +146,16 @@ let () =
     ~descr:"Output the source's stream to an OSS output device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
+       let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
-         ((new output ~kind device source):>Source.source)
+         ((new output ~kind ~clock_safe device source):>Source.source)
     );
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.oss"
     [
+      "clock_safe", Lang.bool_t, Some (Lang.bool true),
+        Some "Force the use of the dedicated OSS clock." ;
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
       Some "OSS device to use.";
     ]
@@ -133,6 +164,7 @@ let () =
     ~descr:"Stream from an OSS input device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
+       let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
-         ((new input ~kind device):>Source.source)
+         ((new input ~kind ~clock_safe device):>Source.source)
     )
