@@ -183,7 +183,6 @@ object (self)
               "harbor source feeding")
 
   method disconnect =
-   begin
     match relay_socket with
       | Some s -> 
          on_disconnect () ;
@@ -199,9 +198,14 @@ object (self)
            Unix.close s
           with _ -> ()
          end;
-      | None -> ()
-   end ;
-   relay_socket <- None
+         relay_socket <- None
+      | None ->
+         (** TODO #disconnect might be called when relay_socket is None,
+           * even though there seems to be checks against that: the whole
+           * code is full of race conditions! For now, we ignore the
+           * problem (don't assert false here) and pray that nothing
+           * really bad happens... *)
+         ()
 
   method is_taken = relay_socket <> None
 
