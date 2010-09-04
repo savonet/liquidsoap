@@ -131,6 +131,8 @@ let error_message e=
         (Unix.error_message e) x y
    | _ -> Printexc.to_string e
 
+exception Exit
+
 let create ~wait f x s =
   mutexify lock (
     fun () ->
@@ -143,14 +145,16 @@ let create ~wait f x s =
                  Mutex.lock lock ;
                  all := Set.remove (s,(Thread.self ())) !all ;
                  log#f 3
-                   "Thread %S exited (%d remaining)."
+                   "Thread %S terminated (%d remaining)."
                    s (Set.cardinal !all) ;
                  Mutex.unlock lock
                end else
-                 log#f 3 "Thread %S exited." s
+                 log#f 3 "Thread %S terminated." s
              with e ->
                Mutex.lock lock ;
                begin match e with
+                 | Exit ->
+                     log#f 3 "Thread %S exited." s
                  | Failure e ->
                      log#f 1 "Thread %S failed: %s!" s e
                  | e ->
@@ -161,7 +165,7 @@ let create ~wait f x s =
                uncaught := Some e ;
                Condition.signal no_problem ;
                Mutex.unlock lock ;
-               raise e)
+               if e <> Exit then raise e)
           x
       in
         if wait then begin

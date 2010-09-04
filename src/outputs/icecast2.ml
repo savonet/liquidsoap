@@ -403,13 +403,13 @@ object (self)
               | None -> () 
           with
             | Cry.Error e ->
-                self#log#f 2
-                  "Cry socket error: timeout, network failure, \
-                   server shutdown? Restarting the output in %.f seconds."
-                  restart_delay  ;
+                self#log#f 2 "Cry socket error: %s!" (Cry.string_of_error e) ;
                 (* Ask for a restart after last_attempt. *)
                 self#icecast_stop ;
-                last_attempt <- Unix.time ()
+                last_attempt <- Unix.time () ;
+                self#log#f 3
+                  "Will try to reconnect in %.f seconds."
+                  restart_delay
             end
 
   (** It there's too much latency, we'll stop trying to catchup.
@@ -480,7 +480,8 @@ object (self)
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
-        | Cry.Error _ when restart -> 
+        | Cry.Error _ ->
+            if not restart then raise Tutils.Exit ;
             self#log#f 3
               "Connection failed, will try again in %.f sec."
               restart_delay ;
@@ -488,14 +489,13 @@ object (self)
             last_attempt <- Unix.time ()
 
   method icecast_stop =
-    self#log#f 3 "Closing connection..." ;
     begin match Cry.get_status connection with
       | Cry.Disconnected -> ()
       | Cry.Connected _ ->
-          Cry.close connection
+          self#log#f 3 "Closing connection..." ;
+          Cry.close connection ;
+          on_disconnect () ;
     end ;
-    (* Executes on_disconnect hook. *)
-    on_disconnect () ;
     match dump with
       | Some f -> close_out f
       | None -> ()

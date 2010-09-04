@@ -33,6 +33,10 @@ val create : ('a -> unit) -> 'a -> string -> Thread.t
 val main : unit -> unit
 val shutdown : unit -> unit
 
+(** Special exception allowed for "clean" termination of Tutils threads.
+  * All other exceptions are reported as bugs. *)
+exception Exit
+
 (** Wait for the threads to terminate,
   * never return if some thread keeps running. *)
 val join_all : unit -> unit
