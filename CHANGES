@@ -1,3 +1,17 @@
+0.9.3 (04-09-2010)
+========
+This release is a bugfix of the latest snapshot (0.9.2).
+It will be the last bugfix before 1.0.
+Bugs fixed:
+ - Add "audio/mpegurl" to the list of mime-type for basic playlist parsing.
+ - Decode arguments passed to input.harbor.
+ - Use Camomile framework to try to recode arguments and user/password
+   passed to input.harbor.
+ - Support Theora 1.1 API  via ocaml-theora 0.2.0.
+ - Fixed input.lastfm.
+ - Fixed SDL output.
+ - Allow magic file type detection to follow symlinks.
+
 0.9.2 (29-10-2009)
 ==================
 This release is a SNAPSHOT of upcoming features. It also contains several
