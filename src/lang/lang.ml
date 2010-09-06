@@ -444,8 +444,8 @@ let iter_sources f v =
   in
     iter_value v
 
-let apply f p =
-  Clock.collect_after (fun () -> Term.apply f p)
+let apply f p ~t =
+  Clock.collect_after (fun () -> Term.apply f p ~t)
 
 (** {1 High-level manipulation of values} *)
 
