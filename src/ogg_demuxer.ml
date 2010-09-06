@@ -218,8 +218,7 @@ let decode_audio dec f =
       | Audio d -> d f 
       | _ -> assert false
   with
-    | Ogg.Not_enough_data 
-    | Ogg.Out_of_sync ->
+    | Ogg.Not_enough_data -> 
         if !eos then
           raise End_of_stream ;
         raise Ogg.Not_enough_data
@@ -234,8 +233,7 @@ let decode_video dec f =
       | Video d -> d f
       | _ -> assert false
   with
-    | Ogg.Not_enough_data 
-    | Ogg.Out_of_sync ->
+    | Ogg.Not_enough_data -> 
         if !eos then
           raise End_of_stream ;
         raise Ogg.Not_enough_data

@@ -187,7 +187,17 @@ let create_decoder source mode input =
           Ogg_demuxer.decode_video decoder video_feed
       with
         | Ogg_demuxer.End_of_stream -> reset buffer
-        | Ogg.Not_enough_data -> Ogg_demuxer.feed decoder)
+        | Ogg.Not_enough_data -> Ogg_demuxer.feed decoder
+        (* We catch Ogg.Out_of_sync only in 
+         * stream mode. Ogg/theora streams, for instance,
+         * in icecast contain the header (packet 0) and 
+         * then current stream, with packet 1543 for instance.. 
+         * Note: we only catch during audio/video decoding
+         * which implies that the stream has already been
+         * parsed as ogg. Indeed, Ogg.Out_of_sync when
+         * parsing ogg means that the stream is not ogg... *)
+        | Ogg.Out_of_sync when source = `Stream -> 
+            Ogg_demuxer.feed decoder)
 
 end
 
