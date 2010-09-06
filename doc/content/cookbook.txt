@@ -222,6 +222,58 @@ end
 add_skip_command(s)
 %%
 
+h4. Manually dump a stream
+
+You may want to dump the content of 
+a stream. The following code adds 
+two server/telnet commands, @dump.start <filename>@
+and @dump.stop@ to dump the content of source s
+into the file given as argument
+
+%%(manual_dump.liq)
+# A source to dump
+# s = (...) 
+
+# A function to stop
+# the current dump source
+stop_f = ref (fun () -> ())
+# You should make sure you never
+# do a start when another dump
+# is running.
+
+# Start to dump
+def start_dump(file_name) =
+  # We create a new file output
+  # source
+  s = output.file(%vorbis,
+            fallible=true,
+            on_start={log("Starting dump with file #{file_name}.ogg")},
+            reopen_on_metadata=false,
+            "#{file_name}",
+            s)
+  # We update the stop function
+  stop_f := fun () -> source.shutdown(s)
+end
+
+# Stop dump
+def stop_dump() =
+  f = !stop_f
+  f ()
+end
+
+# Some telnet/server command
+server.register(namespace="dump",
+                description="Start dumping.",
+                usage="dump.start <filename>",
+                "start",
+                fun (s) ->  begin start_dump(s) "Done!" end)
+server.register(namespace="dump",
+                description="Stop dumping.",
+                usage="dump.stop",
+                "stop",
+                fun (s) -> begin stop_dump() "Done!" end)
+%%
+
 h4. Lastfm input
 
 You can listen to "lastfm":http://www.last.fm/ radios using "Liquidsoap":index.html. The corresponding operator is <code>input.lastfm</code> and is used that way:
