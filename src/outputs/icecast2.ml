@@ -81,9 +81,11 @@ let proto kind =
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
      Some "Additional headers.") ;
     "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
-    Some "Send new metadata using the ICY protocol. One of: \"guess\", \"true\", \"false\"";
+    Some "Send new metadata using the ICY protocol. \
+          One of: \"guess\", \"true\", \"false\"";
     ("format", Lang.string_t, Some (Lang.string ""),
-     Some "Format, e.g. \"audio/ogg\". When empty, the encoder is used to guess.") ;
+     Some "Format, e.g. \"audio/ogg\". \
+           When empty, the encoder is used to guess.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
     "", Lang.format_t kind, None, Some "Encoding format." ;
