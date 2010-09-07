@@ -81,8 +81,8 @@ Liquidsoap dies with messages such as these by the end of the log:
 </pre>
 
 Those internal errors can be of two sorts:
-* **User error**: by looking at the surrounding log messages, you might  realize that liquidsoap crashed for a good reason, that you are responsible  for fixing. For example, the exception <code>Cry.Error</code> is raised when liquidsoap fails to connect to an Icecast server and is not set up to restart on failure.
-* **Bug**: if you believe that this is not a normal error, please report it on the mailing list or bug tracker.
+* **Bug**: Normally, this means that you've found a bug, which you should report on the mailing list or bug tracker.
+* **User error**: In some cases, we let an exception go on user errors, instead of nicely reporting and handling it. By looking at the surrounding log messages, you might  realize that liquidsoap crashed for a good reason, that you are responsible  for fixing. You can still report a bug: you should not have seen an exception and its backtrace.
 
 In any case, once that kind of error happens, there is no way for the
 user to prevent liquidsoap from crashing. Those exceptions cannot be
@@ -114,13 +114,3 @@ eventually disconnect. Therefore, it is a good idea to use a non-silent
 jingle instead of <code>blank()</code> to fill in the blank. You can
 also achieve various effects using synthesis sources such as
 <code>noise()</code>, <code>sine()</code>, etc.
-
-h4. How to do this?
-
-It's not clear if the following should be here or in the cookbook.
-
-h5. Create output files hourly
-
-h5. Changing or reloading a playlist
-
-h5. Playing a file once
