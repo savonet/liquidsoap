@@ -174,7 +174,7 @@ itself. The new clock will follow (the computer's idea of) real time,
 unless <code>sync=false</code> is passed, in which case it will run
 as fast as possible.
 
-The <code>buffer</code> operator can be used to communicate between
+The <code>buffer()</code> operator can be used to communicate between
 any two clocks: it takes a source in one clock and builds a source
 in another. The trick is that it uses a buffer: if one clock
 happens to run too fast or too slow, the buffer may empty or overflow.
@@ -196,13 +196,10 @@ h4. External clocks: decoupling latencies
 The first reason to explicitly assign clocks is to precisely handle
 the various latencies that might occur in your setup.
 
-At the time of writing, the behavior of input/output operators with
-respect to clocks isn't stabilized. Some require their own clocks
-(_e.g._, ALSA, AO and Jack) and some don't (_e.g._ OSS, icecast and
-HTTP-based inputs). The general idea is that when the processing
-rate of an operator is tied to external factors such as soundcard API
-or network, the operator should belong to a clock representing
-those factors. Sometimes, it is too much of an inconvenience,
+Most input/output operators (ALSA, AO, Jack, OSS, etc)
+require their own clocks. Indeed, their processing rate is constrained
+by external sound APIs.
+Sometimes, it is too much of an inconvenience,
 in which case one can set <code>clock_safe=false</code> to allow
 another clock assignment (which might create bad latency interferences,
 at your own risk).
@@ -263,7 +260,3 @@ clock(id=name1,create_a_stream(name1))
 clock(id=name2,create_a_stream(name2))
 ...
 </pre>
-
-h4. Dynamic source creation and deletion, garbage collection
-
-Stay tuned, or ask for more doc on that...
