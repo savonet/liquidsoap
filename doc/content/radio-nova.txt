@@ -19,8 +19,13 @@ script will perform this.
 h4. The script
 
 %%(radio-nova.liq)
+#!/usr/bin/liquidsoap
 # Liquidsoap script to listen to radio nova, grabbing metadata
 # on the webpage.
+
+# Disable file log, enable stdout log
+set("log.file",false)
+set("log.stdout",true)
 
 # Initial input.http source
 nova = input.http("http://broadcast.infomaniak.net:80/radionova-high.mp3")
@@ -28,14 +33,10 @@ nova = input.http("http://broadcast.infomaniak.net:80/radionova-high.mp3")
 nova = insert_metadata(id="nova",
          clear_metadata(nova))
 
-# This string reference will be used to keed track
+# This string references will be used to keed track
 # of previous metadata
-x = string.ref("")
-get_title = fst(x)
-set_title = snd(x)
-x = string.ref("")
-get_artist = fst(x)
-set_artist = snd(x)
+title = ref "unknown title"
+artist = ref "unknown artist"
 
 # Capitalize and lowercase
 def cap(s)
@@ -60,15 +61,17 @@ def add_meta_nova()
   x = metas()
   new_artist = fst(x)
   new_title = snd(x)
-  old_title = get_title()
-  old_artist = get_artist()
-  if old_title != new_title or old_title != new_title then
+  old_title = !title
+  old_artist = !artist
+  if (old_title != new_title or old_title != new_title) and 
+     (new_title != "" or new_artist != "") 
+  then
     log("Got new metas: #{new_artist} -- #{new_title}")
     ignore(
       server.execute(
         'nova.insert artist="#{new_artist}",title="#{new_title}"'))
-    set_title(new_title)
-    set_artist(new_artist)
+    title := new_title
+    artist := new_artist
   else
     log("Keeping old metas")
   end

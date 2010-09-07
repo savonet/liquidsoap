@@ -109,7 +109,7 @@ We are now going to send an audio stream, encoded as Ogg Vorbis, to an Icecast s
 
 %%(icecast.sh)
 liquidsoap 
-  'output.icecast.vorbis(
+  'output.icecast(%vorbis,
      host = "localhost", port = 8000, \
      password = "hackme", mount = "liq.ogg", \
      mksafe(playlist("playlist.m3u")))'

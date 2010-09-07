@@ -4,55 +4,55 @@ h3. Documentation index
 
 **How to use**: Start with the "quickstart":quick_start.html and 
 make sure you learn "how to find help":help.html. Then it's as you like:
-go for another tutorial, pick a specific topic in the "Documentation" section,
-or some examples from the "cookbook":cookbook.html.
-If you've understood all you need,
-just browse the "reference":reference.html and 
-compose your dream stream.
+go for another "general tutorial":#general, or a 
+"specific example":#specific,
+pick a "basic notion":#core, or some examples from the 
+"cookbook":cookbook.html. If you've understood all you need,
+just browse the "reference":reference.html and compose your dream stream.
 
 If you downloaded a source tarball of liquidsoap, you may first read the
 "build instructions":build.html.
 
-h4. Tutorials
+h4@general. General tutorials
 
 * "Quickstart":quick_start.html: where anyone should start.
 * "Complete case analysis":complete_case.html: an example that is not a toy.
 * "Advanced":advanced.html: overview of more advanced features for serious usage.
 * "How to find help":help.html about operators, settings, server commands, etc.
+* "Cookbook":cookbook.html: contains lots of idiomatic examples.
 * "Frequently Asked Questions":faq.html
 
-h4. Reference
+h4@reference. Reference
 
 * "API reference":reference.html: All the builtin functions of liquidsoap.
 * "Settings":settings.html: The list of available settings for liquidsoap.
 * "Script language":language.html: A more detailed presentation.
 * "Encoding formats":encoding_formats.html: The available formats for encoding outputs.
 
-h4. Documentation
+h4@core. Core
 
 * Basic concepts: "sources":sources.html, "clocks":clocks.html and "requests":requests.html.
-* "Bubble":bubble.html: a simple example of a database interface as a custom protocol.
+* "Stream contents":stream_content.html: what kind of streams are supported, and how.
+* "Script loading":script_loading.html: load several scripts, learn about the script library.
+* "Execution phases":phases.html
+
+h4@specific. Specific tutorials 
+
 * "Blank detection":blank.html
-* "Clocks":clocks.html: they animate your streams at the right pace.
-* "Cookbook":cookbook.html: contains lots of idiomatic examples.
 * "Customize metadata":metadata.html
 * "External decoders":external_decoders.html: use an external program for decoding audio files.
 * "External streams":external_streams.html: use an external program for streaming audio data.
 * "External encoders":external_encoders.html: use an external audio encoding program.
-* "HTTP input":http_input.html: Relay external streams.
-* "Harbor input":harbor.html: Receive streams from icecast and shoutcast source clients.
-* "Normalization and replay gain":replay_gain.html
-* "Requests":requests.html are how we handle (remote) (audio) files
-* "Requests-based sources":request_sources.html
-* "Shoutcast output":shoutcast.html
-* "Smart crossfading":smartcrossfade.html
-* "Sources":sources.html are our streams
-* "Stream contents":stream_content.html: what kind of streams are supported, and how.
-* "Multichannel":multichannel.html
-* "Script loading":script_loading.html: load several scripts, learn about the script library.
+* "HTTP input":http_input.html: relay external streams.
+* "Harbor input":harbor.html: receive streams from icecast and shoutcast source clients.
+* "Normalization and replay gain":replay_gain.html normalize audio data.
+* "Requests-based sources":request_sources.html create advanced sources using requests.
+* "Shoutcast output":shoutcast.html output to shoutcast.
+* "Smart crossfading":smartcrossfade.html define custom crossfade transitions.
 
-h4. User scripts
+h4@users. User scripts
 
+* "Bubble":bubble.html: a simple example of a database interface as a custom protocol.
 * "Geekradio":geekradio.html
 * "RadioPi":radiopi.html
 * "Dolebraï":dolebrai.html
