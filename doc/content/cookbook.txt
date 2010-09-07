@@ -71,21 +71,33 @@ h4. Re-encoding a file
 
 As a simple example using a fallible output, we shall consider
 re-encoding a file.
-First, we shall disable synchronization (<code>root.sync</code> setting)
-so that liquidsoap runs as fast as possible,
-instead of decoding the music at a normal rate.
 We start by building a source that plays our file only once.
 That source is obviously fallible.
 We pass it to a file output, which has to be in fallible mode.
+We also disable the @sync@ parameter on the source's clock,
+to encode the file as quickly as possible.
 Finally, we use the <code>on_stop</code> handler to shutdown
 liquidsoap when streaming is finished.
 
 %%(reencoding.liq)
-set("root.sync",false)
-input = "/some/file.mp3" # any format supported by liquidsoap
+# The input file,
+# any format supported by liquidsoap
+input = "/tmp/input.mp3"
+
+# The output file
 output = "/tmp/output.ogg"
+
+# A source that plays the file once
 source = once(single(input))
-output.file(%vorbis, output,fallible=true,on_stop=shutdown,source)
+
+# We use disable sync for the 
+# source's clock
+clock(sync=false,source)
+
+# Finally, we output the source to an
+# ogg/vorbis file
+output.file(%vorbis, output,fallible=true,
+                     on_stop=shutdown,source)
 %%
 
 h4. Scheduling

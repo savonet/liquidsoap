@@ -49,7 +49,7 @@ of @output.icecast@
 * @format@: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of
 "application/ogg", "audio/ogg" or "video/ogg" and for mp3 data it is "audio/mpeg".
 
-**The remaining part of this page needs to be updated..**
+**The remaining part of this page is out of date starting with release 1.0-beta..**
 
 h3. Wrappers
 
