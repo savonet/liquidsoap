@@ -1,11 +1,15 @@
 title: Encoding formats
 
-Since after version 0.9.2, liquidsoap has decoding formats. These are
+Since after version 0.9.3, liquidsoap has decoding formats. These are
 special values describing how to encode raw data.
-Practically, this means that instead of writing
-@output.icecast.vorbis(quality=0.3,samplerate=44100,...)@
-you shall now write
-@output.icecast(%vorbis(quality=0.3,samplerate=44100),etc)@.
+Practically, this means that instead of writing:
+%%
+output.icecast.vorbis(quality=0.3,samplerate=44100,...)
+%%
+you shall now write:
+%%
+output.icecast(%vorbis(quality=0.3,samplerate=44100),etc)
+%%
 The same goes for @output.file@ and for other formats.
 
 h3. List of formats and their syntax

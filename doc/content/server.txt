@@ -1,0 +1,62 @@
+title: Interaction with the server
+
+h3. Interaction with the server
+
+Liquidsoap starts with one or several scripts as its configuration,
+and then streams forever if everything goes well.
+Once started, you can still interact with it by means of the _server_.
+The server allows you to run commands. Some are general and always available,
+some belong to a specific operator. For example the @request.queue()@ instances register commands to enqueue new requests, the outputs register commands
+to start or stop the outputting, display the last ten metadata chunks, etc.
+
+The protocol of the server is a simple human-readable one.
+Currently it does not have any kind of authentication and permissions.
+It is currently available via two media: TCP and Unix sockets.
+The TCP socket provides a simple telnet-like interface, available only on
+the local host by default.
+The Unix socket interface (_cf._ the @server.socket@ setting)
+is through some sort of virtual file.
+This is more constraining, which allows one to restrict the use of the socket
+to some priviledged users.
+
+You can find more details on how to configure the server in the
+"documentation":help.html#settings of the settings key @server@,
+in particular @server.telnet@ for the TCP interface and @server.socket@
+for the Unix interface.
+Liquidsoap also embeds some "documentation":help.html#server
+about the available server commands.
+
+Now, we shall simply enable the Telnet interface to the server,
+by setting @set("server.telnet",true)@ or simply passing the @-t@ option on
+the command-line.
+In a "complete case analysis":complete_case.html we set up a @request.queue()@
+instance to play user requests. It had the identifier @"queue"@.
+We are now going to interact via the server to push requests into that queue:
+
+%%
+dbaelde@selassie:~$ telnet localhost 1234
+Trying 127.0.0.1...
+Connected to localhost.localdomain.
+Escape character is '^]'.
+request.push /path/to/some/file.ogg
+5
+END
+metadata 5
+[...]
+END
+request.push http://remote/audio.ogg
+6
+END
+trace 6
+[...see if the download started/succeeded...]
+END
+exit
+%%
+
+Of course, the server isn't very user-friendly.
+But it is easy to write scripts to interact with Liquidsoap in that way,
+to implement a website or an IRC interface to your radio.
+However, this sort of tool is often bound to a specific usage, so we have
+not released any of ours. Feel free to
+"ask the community":mailto:savonet-users@lists.sf.net about code that you could re-use.
+

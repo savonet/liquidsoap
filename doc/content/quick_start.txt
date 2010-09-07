@@ -117,12 +117,10 @@ liquidsoap
 
 The main difference with the previous is that we used <code>output.icecast.vorbis</code> instead of <code>out</code>. The second difference is the use of the <code>mksafe</code> which turns your fallible playlist source into an infallible source.
 
-**This example needs to be updated to reflect the code in the current SVN**
-
-Streaming to Shoutcast is quite similar, using the <code>output.shoutcast.mp3</code> function:
+Streaming to Shoutcast is quite similar, using the <code>output.shoutcast</code> function:
 
 %%(shoutcast.sh)
-liquidsoap 'output.shoutcast.mp3( \
+liquidsoap 'output.shoutcast(%mp3, \
                 host="localhost", port = 8000, \
 	        password = "changeme", \
 	        mksafe(playlist("playlist.m3u")))'
@@ -194,7 +192,7 @@ h4. A simple radio
 
 We will start with a basic radio station, that plays songs randomly chosen from a playlist, adds a few jingles (more or less one every four songs), and output an Ogg Vorbis stream to an Icecast server.
 
-Before reading the code of the corresponding liquidsoap script, it might be useful to visualize the streaming process with the following tree-like diagram. The idea is that the audio streams flows through this diagram, following the arrows. In this case the nodes (<code>fallback</code> and <code>random</code>) select one of the incoming streams and relay it. The final node <code>output.icecast.vorbis</code> is an output: it actively pulls the data out of the graph and sends it to the world.
+Before reading the code of the corresponding liquidsoap script, it might be useful to visualize the streaming process with the following tree-like diagram. The idea is that the audio streams flows through this diagram, following the arrows. In this case the nodes (<code>fallback</code> and <code>random</code>) select one of the incoming streams and relay it. The final node <code>output.icecast</code> is an output: it actively pulls the data out of the graph and sends it to the world.
 
 !images/basic-radio-graph.png(Graph for 'basic-radio.liq')!
 
@@ -218,7 +216,7 @@ radio = random(weights = [1, 4],[jingles, radio])
 radio = fallback(track_sensitive = false, [radio, security])
 
  # Stream it out
-output.icecast.vorbis(
+output.icecast(%vorbis,
   host = "localhost", port = 8000,
   password = "hackme", mount = "basic-radio.ogg",
   radio)

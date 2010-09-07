@@ -131,8 +131,10 @@ For example, with <code>output.alsa(input.alsa())</code>,
 you'll see that liquidsoap decides that stereo audio should be used,
 and consequently the ALSA I/O will be initialized with two channels.
 If you want to use a different number of channels,
-for example mono, you can explicitly specify it using
-<code>(output.alsa(input.alsa()):source(1,0,0))</code>.
+for example mono, you can explicitly specify it using:
+%%
+(output.alsa(input.alsa()):source(1,0,0))
+%%
 
 h4. Guessing stream contents
 
@@ -146,7 +148,9 @@ script.
 Usually, the outputs pretty much determine what sources should contain.
 A critical ingredient here is often the
 "encoding format":encoding_formats.html. For example, in
-<code>output.icecast(%vorbis,mount="some.ogg",s)</code>,
+%%
+output.icecast(%vorbis,mount="some.ogg",s)
+%%
 <code>%vorbis</code> has type <code>format(2,0,0)</code>, hence <code>s</code>
 should have type <code>source(2,0,0)</code>. This works in more complex
 examples, when the types are guessed successively for several intermediate

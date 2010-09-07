@@ -34,9 +34,9 @@ through the "API reference":reference.html.
 
 h4@server. Server commands
 
-The server (_cf._ the "advanced":advanced.html tutorial)
+The server (_cf._ the "server":server.html tutorial)
 offers some help about its commands.
-Once connected to it (either via a TCP or UNIX socket) the @help@ command will 
+Once connected to it (either via a TCP or UNIX socket) the @help@ command will
 give you a list of available commands together with a short usage line.
 You can then get more detailed information about a specific command
 by typing @help COMMAND@:
@@ -79,6 +79,8 @@ for example server-related stuff, use @liquidsoap --conf-descr-key server@.
 The output of these commands is a valid liquidsoap script,
 which you can edit to set the values that you want,
 and load it ("implicitly":script_loading.html or not) before you other scripts.
+
+You can browse online the "list of available settings":settings.html.
 
 h4@plugins. All plugins
 
