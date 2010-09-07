@@ -1,6 +1,6 @@
 
- Liquidsoap 0.9.3
- ----------------
+ Liquidsoap 1.0.0 beta
+ ---------------------
 
  Mandatory dependencies :
 
@@ -10,7 +10,7 @@
 
  Optional dependencies :
 
-   ocaml-cry>=0.1.3         for sending to Shoutcast & Icecast
+   ocaml-cry>=0.1.5         for sending to Shoutcast & Icecast
    ocaml-ogg>=0.4.1         for Ogg data
    ocaml-vorbis>=0.5.1      for Ogg/Vorbis data
    ocaml-theora>=0.2.0      for Ogg/Theora data

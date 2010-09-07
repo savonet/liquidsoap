@@ -1,44 +1,42 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.TH LIQUIDSOAP 1 "May 27, 2007" "Liquidsoap 0.9.2"
+.TH LIQUIDSOAP 1 "September 06, 2010" "Liquidsoap 1.0.0 beta1"
 
 
 .SH NAME
-liquidsoap \- programmable audio stream generator
+liquidsoap \- a multimedia streaming language
 .\"
 .SH SYNOPSIS
 .B liquidsoap
 .RI [ option ... ]
-.RI [ script.liq | expression | audiofile ]
+.RI [ script | expression ]
 .\"
 .SH DESCRIPTION
-.B liquidsoap
-is an extensible and flexible audio stream generator, mainly used for 
-streaming to a shoutcast/icecast server. It is also possible to output in a 
-file, to speakers or as raw PCM stream.
-.BR liquidsoap
-can perform any audio processing, mixing streams together, applying filters, 
-generating sound procedurally, there is no limit but your imagination.
-Input files can be accessed through the network, using samba, ftp or speech 
-synthesis.
-Recognized formats are MP3, Ogg/Vorbis, AAC and WAV.
-Liquidsoap also inputs HTTP streams, or from a soundcard.
-The system features lots of programming operators, including user requests,
-time-based selection, sum.
-Many of these features are optional, so it is possible that they are 
-not enabled in your installation.
+.B Liquidsoap
+is a programming language for describing multimedia streaming systems.
+It is very flexible, making simple things simple but giving a lot
+of control for advanced uses.
+.B Liquidsoap
+supports audio, video and MIDI streams,
+and a wide range of input/output operators
+including Icecast and various soundcard APIs.
+It can perform a broad range of signal processing,
+combine streams in various ways, support custom transitions,
+generate sound procedurally...
+and all this can be assembled as you wish.
+Input files can be accessed remotely, or even be synthesized on the fly
+using external scripts such as speech synthesis.
+Finally, interaction with a running liquidsoap instance is possible
+via telnet or socket.
 
-.I script.liq
-is a
-.B liquidsoap
-script containing the settings and the source definitions.
-The script will be read from standard input if
-.B \-\-
+Liquidsoap scripts passed on the command line will be evaluated:
+they shall be used to define the streaming system to be ran.
+It is possible to pass multiple scripts; they will all be ran successively,
+and definitions from one script can be used in subsequent ones.
+A script will be read from standard input if
+.B \-
 is given as script filename.
 Information about scripting liquidsoap is available on our website:
 .B http://savonet.sf.net/
-
-If the parameter is an audio file then liquidsoap will attempt to decode it and 
-will display the obtained metadata.
 
 If the parameter is not a file it will be treated as an expression which will 
 be executed. It is a convenient way to test simple one-line scripts. In that 
@@ -48,8 +46,10 @@ telnet server.
 .\"
 .SH OPTIONS
 .TP
-.B \-h
-Print the description of a plugin: format, protocol, operator, etc.
+.BI \-h " NAME"
+Print the description of plugins of the given name
+(operators from the scripting API,
+ but also protocols, stream, file and metadata formats).
 .TP
 .B \-c, \-\-check
 Only check the syntax of the script.
@@ -68,6 +68,10 @@ Print debugging log messages.
 .B \-d, \-\-daemon
 Run in daemon mode, i.e. detach and write a PID file.
 .TP
+.B \-\-interactive
+Launch an interactive read-eval-print loop for executing scripting
+expressions.
+.TP
 .B \-t, \-\-enable-telnet
 Enable the telnet server interface.
 .TP
@@ -80,8 +84,12 @@ Enable the UNIX socket server interface.
 .B \-U, \-\-disable-unix-socket
 Disable the UNIX socket server interface.
 .TP
-.B \-\-
+.B \-
 Read script on standard input.
+.TP
+.BI \-r " FILENAME"
+Process a request: resolve it, attempt to decode it, display its metadata
+and duration. This is useful to test how liquidsoap sees your files.
 .TP
 .B \-\-list\-plugins
 Human-readable List of all protocols, operators formats, metadata resolvers, outputs.
@@ -103,6 +111,10 @@ Display a described table of the configuration keys.
 .TP
 .B \-\-conf\-dump
 Dump the configuration state
+.TP
+.B \-p, \-\-parse-only
+Parse scripts but do not type-check and run them.
+
 .\"
 .SH SEE ALSO
 Our website

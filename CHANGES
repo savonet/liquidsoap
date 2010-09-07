@@ -1,5 +1,42 @@
+
+1.0.0 beta1 (06-09-2010)
+========================
+This beta version introduces two major new features: heterogeneous stream
+types and clocks.
+New:
+ - Different sources can carry different types of content.
+ - Encoding formats have been introduced to help infer stream content types.
+   This brings static checking for bounds in encoding parameters.
+ - Introduce conversions between stream contents (mono, stereo, drop
+   audio, video, etc) and muxing.
+ - Allow explicit type annotations in scripts.
+ - Introduce clocks, cleanly allowing for the coexistence of different
+   time flows, and avoiding inconsistencies that can result from it.
+   Soundcard I/O and cross-based operators notably make use of it.
+ - Remove root.sync, replaced by attaching a source s to clock(sync=false,s).
+ - Enable dynamic source creation and source.shutdown().
+ - Extend and adapt MIDI and video operators.
+ - Introduce purely metadata streams (audio=video=midi=0 channels) and
+   metadata stream decoder.
+ - Support WAV streams in input.http/harbor().
+ - Introduce static image decoder using SDL image.
+ - Remove bound of request identifies (RID).
+ - Experimental: source.dynamic() for advanced dangerous hacking.
+ - Make path relative to script in %include "PATH", and introduce
+   %include <...> where path is relative to liquidsoap library directory.
+ - Add channels_matrix parameter to output.ao().
+ - Add on_(dis)connect hooks in input.harbor().
+Cleanup and fixes:
+ - Lots of cleanup and fixes as with all major code rewriting.
+ - Optimize video and stabilize it a little bit... still not perfect.
+ - Rewrite stream and file decoding API, as well as file format detection.
+ - Enhance shutdown and error message reporting, notably for icecast
+   and request-based sources.
+ - Avoid quasi-infinite loop in failed request resolving.
+
+
 0.9.3 (04-09-2010)
-========
+==================
 This release is a bugfix of the latest snapshot (0.9.2).
 It will be the last bugfix before 1.0.
 Bugs fixed:

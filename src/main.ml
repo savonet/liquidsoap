@@ -376,7 +376,7 @@ let options =
       Arg.Unit (fun () ->
                   Printf.printf
                     "Liquidsoap %s%s.\n\
-                     Copyright (c) 2003-2009 Savonet team\n\
+                     Copyright (c) 2003-2010 Savonet team\n\
                      Liquidsoap is open-source software, \
                      released under GNU General Public License.\n\
                      See <http://savonet.sf.net> for more information.\n"
