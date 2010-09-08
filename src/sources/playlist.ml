@@ -331,8 +331,15 @@ object (self)
     Server.add ~ns "reload"
       ~descr:"Reload the playlist, unless already being loaded."
       (fun s -> self#reload_playlist () ; "OK") ;
-    Server.add ~ns "uri" ~descr:"Set a new playlist URI, and load it."
-      (fun s -> self#reload_playlist ~new_playlist_uri:s () ; "OK") ;
+    Server.add ~ns "uri" 
+               ~descr:"print playlist's URI if called without an \
+                       argument, set a new playlist URI, and load it otherwise."
+               ~usage:"uri [<URI>]"
+      (fun s -> 
+         if s = "" then
+           playlist_uri
+         else
+           (self#reload_playlist ~new_playlist_uri:s () ; "OK")) ;
     Server.add ~ns "next" ~descr:"Return up to 10 next URIs to be played."
       (* We cannot return request IDs because we create requests at the last
        * moment. For those requests already created by the Request_source
