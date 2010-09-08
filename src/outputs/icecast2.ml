@@ -40,6 +40,10 @@ let no_name = "Use [mount]"
 (* Mime for WAV data.. *)
 let wav_format = Cry.content_type_of_string "audio/wav"
 
+(* Mime for AAC/AAC+ data.. *)
+let aac_format = Cry.content_type_of_string "audio/aac"
+let aacplus_format = Cry.content_type_of_string "audio/aacp"
+
 let user_agent =
   Printf.sprintf "liquidsoap %s" Configure.version
 let user_agent = Lang.product (Lang.string "User-Agent")
@@ -148,7 +152,7 @@ class output ~kind p =
               bitrate = Some m.Encoder.AACPlus.bitrate ;
               samplerate = Some m.Encoder.AACPlus.samplerate ;
               channels = Some m.Encoder.AACPlus.channels
-            }, Some (Cry.content_type_of_string "audio/aacp")
+            }, Some aacplus_format
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
@@ -225,7 +229,9 @@ class output ~kind p =
       | _, True -> true
       | _, False -> false
       | x, _ when x = Cry.mpeg || 
-                  x = wav_format -> true
+                  x = wav_format ||
+                  x = aac_format || 
+                  x = aacplus_format -> true
       | x, _ when x = Cry.ogg_application ||
                   x = Cry.ogg_audio ||
                   x = Cry.ogg_video -> false
