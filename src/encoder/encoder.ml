@@ -116,7 +116,7 @@ struct
 
   exception No_process
 
-  type restart_condition = Delay of int | Track | No_condition
+  type restart_condition = Delay of int | Metadata | No_condition
 
   type t = {
     channels            : int ;
@@ -130,9 +130,9 @@ struct
   let to_string e =
     let string_of_restart_condition c =
       match c with
-        | Delay d      -> Printf.sprintf "restart_after_delay=%i" d
-        | Track        -> "restart_on_new_track"
-        | No_condition -> ""
+        | Delay d         -> Printf.sprintf "restart_after_delay=%i" d
+        | Metadata        -> "restart_on_metadata"
+        | No_condition    -> ""
     in
     Printf.sprintf "%%external(channels=%i,samplerate=%i,header=%s,\
                               restart_on_crash=%s,%s,process=%s)"
@@ -316,9 +316,10 @@ let string_of_format = function
   | External w -> External.to_string w
 
 (** An encoder, once initialized, is something that consumes
-  * frames, and that you eventually close (triggers flushing). *)
+  * frames, insert metadata and that you eventually close 
+  * (triggers flushing). *)
 type encoder = {
-  reset : Frame.metadata -> string ;
+  insert_metadata : Frame.metadata -> string ;
   encode : Frame.t -> int -> int -> string ;
   stop : unit -> string
 }

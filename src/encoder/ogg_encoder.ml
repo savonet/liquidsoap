@@ -183,7 +183,7 @@ let encoder ogg name =
       else
        ""
     in
-    let reset m =
+    let insert_metadata m =
       let ret = stop () in
       let f track =
         track.id <- Some (track.reset ogg_enc m)
@@ -193,7 +193,7 @@ let encoder ogg name =
     in
     {
      Encoder.
-      reset  = reset ;
+      insert_metadata  = insert_metadata ;
       encode = encode ;
       stop   = stop
     }

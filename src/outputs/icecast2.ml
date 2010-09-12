@@ -332,10 +332,16 @@ object (self)
   val mutable encoder = None
 
   method encode frame ofs len =
-    let enc = Utils.get_some encoder in
-      enc.Encoder.encode frame ofs len
+    (* We assume here that there always is
+     * an encoder available when the source
+     * is connected. *)
+    match Cry.get_status connection with
+      | Cry.Connected _ ->
+         let enc = Utils.get_some encoder in
+         enc.Encoder.encode frame ofs len
+      | _ -> ""
 
-  method reset_encoder m =
+  method insert_metadata m =
     (* Update metadata using ICY if told to.. *)
     if icy_metadata then
      begin
@@ -381,25 +387,18 @@ object (self)
       in
         match Cry.get_status connection with
           | Cry.Connected _ ->
-              (try Cry.update_metadata connection m with _ -> ())
+              (try Cry.update_metadata connection m; "" with _ -> "")
           | Cry.Disconnected ->
               (* Do nothing if shout connection isn't available *)
-              ()
-     end ;
-    (* Now send the remaining data.. 
-     * We reset the ogg encoder only if
-     * icy_metadata = false. This allows 
-     * the use of icy.update_metadata in order
-     * to have custom metadata updates. *)
-    if ogg && (not icy_metadata) then
-      (Utils.get_some encoder).Encoder.reset m 
-    else ""
+              ""
+     end 
+    else
+      (Utils.get_some encoder).Encoder.insert_metadata m 
 
   method send b =
     match Cry.get_status connection with
       | Cry.Disconnected ->
           if Unix.time () > restart_delay +. last_attempt then begin
-            ignore(self#reset_encoder (Hashtbl.create 0));
             self#icecast_start
           end
       | Cry.Connected _ ->
@@ -427,18 +426,14 @@ object (self)
     self#output_start
 
   method output_start =
-    assert (encoder = None) ;
-    encoder <- Some (encoder_factory self#id) ;
     self#icecast_start
 
   method output_stop =
-    (* In some cases it might be possible to output the remaining data,
-     * but it's not worth the trouble. *)
-    ignore ((Utils.get_some encoder).Encoder.stop ()) ;
-    encoder <- None ;
     self#icecast_stop
 
   method icecast_start =
+    assert (encoder = None) ;
+    encoder <- Some (encoder_factory self#id) ;
     assert (Cry.get_status connection = Cry.Disconnected) ;
     begin match dumpfile with
       | Some f -> dump <- Some (open_out_bin f)
@@ -497,6 +492,12 @@ object (self)
             last_attempt <- Unix.time ()
 
   method icecast_stop =
+    (* In some cases it might be possible to output the remaining data,
+     * but it's not worth the trouble. *)
+    begin try
+      ignore ((Utils.get_some encoder).Encoder.stop ()) ;
+    with _ -> () end ;
+    encoder <- None ;
     begin match Cry.get_status connection with
       | Cry.Disconnected -> ()
       | Cry.Connected _ ->

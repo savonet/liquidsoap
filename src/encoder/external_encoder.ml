@@ -196,8 +196,8 @@ let encoder id ext =
 
   let reset_process = reset_process start_process in
 
-  let reset h _ = 
-    if h.params.restart = Track then
+  let insert_metadata h _ = 
+    if h.params.restart = Metadata then
       reset_process h;
     Mutex.lock h.read_m;
     let ret = Buffer.contents h.read in
@@ -268,7 +268,7 @@ let encoder id ext =
   (* Return the encoding handle *)
   {
    Encoder. 
-    reset  = reset handle ;
+    insert_metadata  = insert_metadata handle ;
     encode = encode handle ratio ;
     stop   = stop handle ;
   }

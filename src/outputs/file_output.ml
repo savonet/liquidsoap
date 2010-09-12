@@ -106,14 +106,14 @@ object (self)
             reopening <- false
           end
 
-  method reset_encoder m =
+  method insert_metadata m =
     (** NOTE: reload_on_metadata relies on vorbis.
       * After a new metadata we know that we can split the file (and we
       * can do it only after a metadata change.
       * But for other encoders a split might be impossible anyways. *)
     if reload_on_metadata then need_reset <- true ;
     current_metadata <- (Hashtbl.find (Hashtbl.copy m)) ;
-    (Utils.get_some encoder).Encoder.reset m
+    (Utils.get_some encoder).Encoder.insert_metadata m
 
 end
 

@@ -291,7 +291,7 @@ object (self)
             ~infallible ~on_start ~on_stop
             ~content_kind ~output_kind ~name source autostart
 
-  method virtual reset_encoder : (string,string) Hashtbl.t -> string
+  method virtual insert_metadata : (string,string) Hashtbl.t -> string
   method virtual encode : Frame.t -> int -> int -> string
   method virtual send : string -> unit
 
@@ -302,7 +302,7 @@ object (self)
           match Frame.get_metadata frame start with
             | None -> ()
             | Some m ->
-                let h = self#reset_encoder m in
+                let h = self#insert_metadata m in
                   self#send h
         end ;
         let data =

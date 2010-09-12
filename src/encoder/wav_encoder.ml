@@ -62,7 +62,7 @@ let encoder wav =
       s
   in
     {
-      reset = (fun m -> "") ;
+      insert_metadata = (fun m -> "") ;
       encode = encode ;
       stop = (fun () -> "")
     }

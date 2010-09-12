@@ -59,7 +59,7 @@ let encoder mp3 =
       Lame.encode_buffer_float_part e b.(0) b.(1) start len
   in
     {
-      reset = (fun m -> "") ;
+      insert_metadata = (fun m -> "") ;
       encode = encode ;
       stop = (fun () -> "")
     }
