@@ -53,9 +53,10 @@ let external_input process input =
   let task_c = Condition.create () in
   (** The function used to close the task. *)
   let close_task () =
-    (** First, close the processes' stdout
+    (** First, close the processes' stdin
       * as well as the task's side of the pipe. *)
     Unix.close pull_p ;
+    Unix.close push_e ;
     (** Now grab the synchronization
       * lock, set is_task to false
       * and signal it to wake-up the main
