@@ -20,14 +20,14 @@
 
  *****************************************************************************)
 
-(** Generate a saw *)
+(** Generate a square *)
 
 open Source
 
-class saw ~kind freq duration =
-  let nb_samples = Frame.audio_of_seconds duration in
-  let period = int_of_float (float (Lazy.force Frame.audio_rate) /. freq) in
+class gen ~kind g freq duration =
   let channels = (Frame.type_of_kind kind).Frame.audio in
+  let nb_samples = Frame.audio_of_seconds duration in
+  let g = g freq 1. in
 object
   inherit source kind
 
@@ -45,43 +45,41 @@ object
   val mutable pos = 0
 
   method get_frame ab =
-    if must_fail then begin
-      AFrame.add_break ab (AFrame.position ab);
-      remaining <- nb_samples ;
-      must_fail <- false
-    end else
+    if must_fail then
+      (
+        AFrame.add_break ab (AFrame.position ab);
+        remaining <- nb_samples;
+        must_fail <- false
+      )
+    else
       let off = AFrame.position ab in
-      let b = AFrame.content_of_type ~channels ab off in
+      let buf = AFrame.content_of_type ~channels ab off in
       let size = AFrame.size () in
-      let write i x =
-        for c = 0 to Array.length b - 1 do
-          b.(c).(i) <- x
-        done
-      in
-        for i = off to size - 1 do
-          write i (if pos < period / 2 then
-                     (4. *. float pos) /. (float period) -. 1.
-                   else
-                     1. -. (4. *. float (pos - period / 2)) /. (float period)) ;
-          pos <- pos + 1 ;
-          if pos >= period then pos <- pos - period;
-        done ;
-        AFrame.add_break ab size ;
-        remaining <- remaining - size - off ;
-        if remaining <= 0 then must_fail <- true
-
+      g#fill buf off (size - off);
+      AFrame.add_break ab size;
+      remaining <- remaining - size - off;
+      if remaining <= 0 then must_fail <- true
 end
 
-let () =
-  Lang.add_operator "saw"
+let add name g =
+  Lang.add_operator name
     ~category:Lang.Input
-    ~descr:"Generate a saw wave."
+    ~descr:("Generate a " ^ name ^ " wave.")
     ~kind:Lang.audio_any
     [
       "duration", Lang.float_t, Some (Lang.float 0.), None;
-      "", Lang.float_t, Some (Lang.float 440.), Some "Frequency of the saw."
+      "", Lang.float_t, Some (Lang.float 440.), Some ("Frequency of the " ^ name ^ ".")
     ]
     (fun p kind ->
-       (new saw ~kind
-          (Lang.to_float (List.assoc "" p))
-          (Lang.to_float (List.assoc "duration" p)) :> source))
+      (new gen ~kind g
+         (Lang.to_float (List.assoc "" p))
+         (Lang.to_float (List.assoc "duration" p)) :> source))
+
+let sine f volume = Audio.Generator.of_mono (Audio.Mono.Generator.sine (Lazy.force Frame.audio_rate) ~volume f)
+let square f volume = Audio.Generator.of_mono (Audio.Mono.Generator.square (Lazy.force Frame.audio_rate) ~volume f)
+let saw f volume = Audio.Generator.of_mono (Audio.Mono.Generator.saw (Lazy.force Frame.audio_rate) ~volume f)
+
+let () =
+  add "sine" sine;
+  add "square" square;
+  add "saw" saw

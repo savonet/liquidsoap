@@ -53,8 +53,7 @@ protocols = \
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
-	sources/sine.ml sources/square.ml sources/saw.ml \
-	sources/request_source.ml \
+	sources/audio_gen.ml sources/request_source.ml \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
