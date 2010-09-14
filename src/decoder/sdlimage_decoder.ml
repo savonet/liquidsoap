@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Img = Image.RGBA8
+
 let log = Dtools.Log.make ["decoder";"sdlimage"]
 
 let load_image filename =
@@ -32,7 +34,7 @@ let load_image filename =
       | 32 -> Sdl_utils.from_32 surface
       | _ -> failwith "unsupported pixel format"
   in
-    RGB.proportional_scale_to
+    Img.Scale.create ~proportional:true
       image
       (Lazy.force Frame.video_width)
       (Lazy.force Frame.video_height)
@@ -63,7 +65,7 @@ let create_decoder metadata img =
          * In fact, we might even need to explicitly blankify
          * because our image might be transparent and the
          * current frame might contain random stuff. TODO *)
-        RGB.blit img video.(i)
+        Img.blit img video.(i)
       done ;
       if !duration = -1 then -1 else begin
         duration := !duration - (stop-start) ;

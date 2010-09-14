@@ -28,7 +28,7 @@ exception Invalid_data
 exception Invalid_usage
 
 type audio = float array array
-type video = RGB.t array
+type video = Video.buffer
 type 'a data = 
   { 
     data   : 'a;

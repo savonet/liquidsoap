@@ -23,13 +23,15 @@
 
 open Video_converter
 
-type conveter = RGB.t ref
+module Img = Image.RGBA8
+
+type converter = Img.t ref
 
 let formats = [RGB Rgba_32;YUV Yuvj_420]
 
 let create () =
   let f =
-    RGB.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height)
+    Img.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height)
   in
   let buf = ref f in 
   let convert ~proportional src dst =
@@ -65,33 +67,18 @@ let create () =
       | true,true,false
       | false,false,_ -> raise Not_found (* TODO *)
       | true,true,true ->
-        let sf = {
-                  RGB.
-                   width  = src.width; 
-                   height = src.height;
-                   stride = rgb_stride src;
-                   data   = rgb_data src 
-                 }
-        in
-        let df = {
-                  RGB. 
-                   width  = dst.width;
-                   height = dst.height;
-                   stride = rgb_stride dst;
-                   data   = rgb_data dst 
-                 }
-        in
-        if proportional then
-          RGB.proportional_scale df sf
-        else
-          RGB.scale df sf;
-      | false,true,x -> 
+        let sf = Img.make ~stride:(rgb_stride src) src.width src.height (rgb_data src) in
+        let df = Img.make ~stride:(rgb_stride dst) dst.width dst.height (rgb_data dst) in
+        Img.Scale.onto ~proportional sf df
+      | false,true,x ->
+        raise Not_found (* TODO *)
+          (*
           if x then
             begin
-             if (!buf).RGB.width <> src.width ||
-                (!buf).RGB.height <> src.height then
+             if Img.width !buf <> src.width ||
+                Img.height !buf <> src.height then
                begin
-                 let frame = RGB.create src.width src.height in
+                 let frame = Img.create src.width src.height in
                  buf := frame
                end;
              RGB.of_YUV420 (yuv_data src) !buf;
@@ -118,23 +105,22 @@ let create () =
                      }
             in
             RGB.of_YUV420 (yuv_data src) df;
-      | true,false,x -> 
+          *)
+      | true,false,x ->
+        (* TODO *)
+        raise Not_found;
+        (*
           if x then
            begin
-            if (!buf).RGB.width <> src.width ||
-               (!buf).RGB.height <> src.height then
+            if Img.width !buf <> src.width ||
+               Img.height !buf <> src.height then
               begin
-                let frame = RGB.create src.width src.height in
+                let frame = Img.create src.width src.height in
                 buf := frame
               end;
-            let sf = {
-                      RGB. 
-                       width  = src.width; 
-                       height = src.height;
-                       stride = rgb_stride src;
-                       data   = rgb_data src 
-                     }
-            in
+            let sf = Img.make ~stride:(rgb_stride src) src.width src.height (rgb_data src) in
+            Img.scale_to ~proportional sf !buf
+              (*
             if proportional then
               RGB.proportional_scale sf !buf
             else
@@ -151,6 +137,8 @@ let create () =
                      }
             in
             RGB.to_YUV420 sf (yuv_data dst);
+              *)
+        *)
   in
   convert
 

@@ -224,7 +224,7 @@ let encoder id ext =
     in
     let slen = 2 * len * Array.length b in
     let sbuf = String.create slen in
-    ignore(Float_pcm.to_s16le b start len sbuf 0);
+    Audio.S16LE.of_audio b start sbuf 0 len;
     (** Wait for any possible creation.. *)
     Mutex.lock h.create_m;
     begin

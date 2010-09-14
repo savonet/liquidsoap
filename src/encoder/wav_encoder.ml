@@ -54,7 +54,7 @@ let encoder wav =
         b,0,Array.length b.(0)
     in
     let s = String.create (2 * len * channels) in
-    ignore (Float_pcm.to_s16le b start len s 0) ;
+    Audio.S16LE.of_audio b start s 0 len;
     if !need_header then begin
       need_header := false ;
       header ^ s

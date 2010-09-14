@@ -14,7 +14,7 @@ distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
 	       src/configure.ml Makefile.defs scripts/liquidsoap.initd \
 	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
-	       scripts/liquidtts gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2 
+	       scripts/liquidtts gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
 tild-clean:
 	find . -name '*~' -exec rm \{\} \;
 

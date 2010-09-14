@@ -35,24 +35,14 @@ object
       let off = Frame.audio_of_master off in
       let len = Frame.audio_of_master len in
       let b = content.Frame.audio in
-      let write i x =
-        for c = 0 to Array.length b - 1 do
-          b.(c).(i) <- x
-        done
-      in
-        for i = off to off+len-1 do
-          write i (Random.float 2. -. 1.)
-        done
+      Audio.Generator.white_noise b off len
     end ;
     begin
       let off = Frame.video_of_master off in
       let len = Frame.video_of_master len in
       let b = content.Frame.video in
-        for c = 0 to Array.length b - 1 do
-          let buf_c = b.(c) in
-          for i = 0 to len - 1 do
-            RGB.randomize buf_c.(off+i)
-          done
+      for c = 0 to Array.length b - 1 do
+        Video.randomize b.(c) off len
       done
     end
 

@@ -30,8 +30,8 @@ type content_kind = (multiplicity, multiplicity, multiplicity) fields
 type content_type = (int, int, int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
-and audio_t = float array
-and video_t = RGB.t array
+and audio_t = Audio.Mono.buffer
+and video_t = Video.buffer
 and midi_t = (int * Midi.event) list ref
 
 val blit_content : content -> int -> content -> int -> int -> unit

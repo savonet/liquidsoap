@@ -24,6 +24,8 @@
 
 open Source
 
+module Img = Image.RGBA8
+
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
 let get_again s buf =
@@ -129,21 +131,21 @@ object (self)
 
              let already = Frame.position buffer in
                if c<>1. && renorm then
-                 Float_pcm.multiply
+                 Audio.amplify
+                   c
                    (fixed_content buffer offset).Frame.audio
                    (Frame.audio_of_master offset)
-                   (Frame.audio_of_master (already-offset))
-                   c ;
+                   (Frame.audio_of_master (already-offset));
                if rank>0 then begin
                  (* The region grows, make sure it is clean before adding.
                   * TODO the same should be done for video. *)
                  if already>end_offset then
-                   Float_pcm.blankify
+                   Audio.clear
                      (fixed_content buf already).Frame.audio
                      (Frame.audio_of_master end_offset)
                      (Frame.audio_of_master (already-end_offset)) ;
                  (* Add to the main buffer. *)
-                 Float_pcm.add
+                 Audio.add
                    (fixed_content buf offset).Frame.audio offset
                    (fixed_content tmp offset).Frame.audio offset
                    (already-offset) ;
@@ -212,7 +214,7 @@ let () =
          new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                (fun _ -> ())
-               (fun _ buf tmp -> RGB.add_fast buf tmp))
+               (fun _ buf tmp -> Img.add buf tmp))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -262,7 +264,7 @@ let () =
          let x, y, w, h = tp.(n) in
          let x, y, w, h =
            if proportional then
-             let sw, sh = buf.RGB.width, buf.RGB.height in
+             let sw, sh = Img.width buf, Img.height buf in
                if w * sh < sw * h then
                  let h' = sh * w / sw in
                    x, y+(h-h')/2, w, h'
@@ -272,7 +274,7 @@ let () =
            else
              x, y, w, h
          in
-           RGB.blit ~blank:false tmp buf ~x ~y ~w ~h
+           Img.blit ~blank:false tmp buf ~x ~y ~w ~h
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then

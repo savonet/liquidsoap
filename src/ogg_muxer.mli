@@ -33,7 +33,7 @@ exception Invalid_usage
 type audio = float array array
 
 (** Video data type *)
-type video = RGB.t array
+type video = Video.buffer
 
 (** A data unit *)
 type 'a data = 

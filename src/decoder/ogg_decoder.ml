@@ -22,6 +22,8 @@
 
 (** Decode and read ogg files. *)
 
+module Img = Image.RGBA8
+
 let log = Dtools.Log.make ["decoder";"ogg"]
 
 (** Generic decoder *)
@@ -55,15 +57,13 @@ let video_convert () =
     let converter = converter buf.Ogg_demuxer.format in
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
-    let rgb = RGB.create width height in
+    let rgb = Img.create width height in
     let frame = Video_converter.frame_of_internal_rgb rgb in
+    let sframe = Image.YUV420.make buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.u  buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride in
     converter
       (Video_converter.frame_of_internal_yuv
          buf.Ogg_demuxer.width buf.Ogg_demuxer.height
-        ((buf.Ogg_demuxer.y, buf.Ogg_demuxer.y_stride),
-            (buf.Ogg_demuxer.u,
-             buf.Ogg_demuxer.v,
-             buf.Ogg_demuxer.uv_stride)))
+        sframe)
       frame;
     rgb)
 

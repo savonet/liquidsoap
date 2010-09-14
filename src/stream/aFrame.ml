@@ -37,11 +37,16 @@ let content_of_type ~channels b pos =
     content.audio
 
 let to_s16le b =
+  (* TODO: generalize this *)
   let fpcm = content b 0 in
+  assert (Audio.channels fpcm = 2);
+  (*
   let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
   let s = String.create slen in
-    assert (Float_pcm.to_s16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
+    assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
+  *)
+  Audio.S16LE.make fpcm 0 (Audio.duration fpcm)
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
@@ -58,15 +63,11 @@ let set_all_metadata t l =
   set_all_metadata t (List.map (fun (x,y) -> tos x, y) l)
 
 let blankify b off len =
-  Float_pcm.blankify (content b off) off len
+  Audio.clear (content b off) off len
 
-let multiply b off len c = Float_pcm.multiply (content b off) off len c
+let multiply b off len c = Audio.amplify c (content b off) off len
 
 let add b1 off1 b2 off2 len =
-  Float_pcm.add (content b1 off1) off1 (content b2 off2) off2 len
+  Audio.add (content b1 off1) off1 (content b2 off2) off2 len
 
-let substract b1 off1 b2 off2 len =
-  Float_pcm.substract
-    (content b1 off1) off1 (content b2 off2) off2 len
-
-let rms b off len = Float_pcm.rms (content b off) off len
+let rms b off len = Audio.Analyze.rms (content b off) off len

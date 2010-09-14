@@ -68,7 +68,7 @@ object (self)
   val mutable alsa_rate = samples_per_second
   val samplerate_converter = Audio_converter.Samplerate.create buffer_chans
   val mutable alsa_write =
-    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len) 
+    (fun pcm buf ofs len -> Pcm.writen_float pcm buf ofs len)
 
   method get_device =
     match device with
@@ -91,7 +91,7 @@ object (self)
                     alsa_write <-
                       (fun pcm buf ofs len ->
                          let sbuf = String.create (2 * len * Array.length buf) in
-                         let _ =  Float_pcm.to_s16le buf ofs len sbuf 0 in
+                         Audio.S16LE.of_audio buf ofs sbuf 0 len;
                          Pcm.writei pcm sbuf 0 len
                       )
              );
@@ -149,9 +149,7 @@ object (self)
                   ratio buf 0 (Array.length buf.(0))
     in
     let f data =
-      for c = 0 to Array.length buf - 1 do
-        Float_pcm.blit buf.(c) 0 data.(c) 0 (Array.length buf.(0))
-      done
+      Audio.blit buf 0 data 0 (Audio.duration buf)
     in
     ioring#put_block f
 

@@ -115,7 +115,7 @@ object (self)
         gain <- Array.fold_left (+.) 0. xcoeffs ;
         self#log#f 4 "Gain: %+.013f." gain ;
         self#log#f 4 "Init done."
-  
+
   (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
 
   method stype = source#stype

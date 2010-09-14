@@ -70,6 +70,4 @@ val multiply : t -> int -> int -> float -> unit
 
 val add : t -> int -> t -> int -> int -> unit
 
-val substract : t -> int -> t -> int -> int -> unit
-
 val rms : t -> int -> int -> float array

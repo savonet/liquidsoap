@@ -72,9 +72,8 @@ let create_encoder ~theora ~metadata () =
   let stream_start os = 
     Ogg_muxer.flush_pages os
   in
-  let ((y,y_stride), (u, v, uv_stride) as yuv) =
-    RGB.create_yuv width height
-  in
+  let yuv = Image.YUV420.create width height in
+  let (y,y_stride), (u, v, uv_stride) = Image.YUV420.internal yuv in
   let theora_yuv =
   {
     Theora.y_width = width ;
@@ -128,7 +127,7 @@ let create_encoder ~theora ~metadata () =
     (* Encode at least some data.. *)
     if not !started then
      begin
-      RGB.blank_yuv yuv;
+      Image.YUV420.blank_all yuv;
       Theora.Encoder.encode_buffer enc os theora_yuv
      end;
     Theora.Encoder.eos enc os

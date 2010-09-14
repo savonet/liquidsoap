@@ -20,17 +20,19 @@
 
  *****************************************************************************)
 
+module Img = Image.RGBA8
+
 let () = Sdl.init [`VIDEO]
 
 (** 8bit surfaces always use a palette *)
 let from_8 surface =
   let width,height,pitch = Sdlvideo.surface_dims surface in
   let image = Sdlvideo.pixel_data_8 surface in
-  let a = RGB.create width height in
+  let a = Img.create width height in
     for i = 0 to width-1 do
       for j = 0 to height-1 do
         let r,g,b = Sdlvideo.get_palette_color surface image.{i+j*pitch} in
-          RGB.set_pixel a i j (r,g,b,0xff)
+          Img.set_pixel a i j (r,g,b,0xff)
       done
     done ;
     a
@@ -41,16 +43,11 @@ let to_16 rgb surface =
   let width,height,pitch = Sdlvideo.surface_dims surface in
   let pitch = pitch/2 in (* initial pitch was in bytes *)
   let fmt = Sdlvideo.surface_format surface in
-  let stride = rgb.RGB.stride in
-    assert (width = rgb.RGB.width && height = rgb.RGB.height) ;
+    assert (width = Img.width rgb && height = Img.height rgb) ;
     assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette) ;
-    let rgb = rgb.RGB.data in
     for i = 0 to width-1 do
       for j = 0 to height-1 do
-        let pos = i*4+j*stride in
-        let r = rgb.{pos} in
-        let g = rgb.{1+pos} in
-        let b = rgb.{2+pos} in
+        let r,g,b,_ = Img.get_pixel rgb i j in
         let color =
           ((r lsr fmt.Sdlvideo.rloss) lsl fmt.Sdlvideo.rshift) lor
           ((g lsr fmt.Sdlvideo.gloss) lsl fmt.Sdlvideo.gshift) lor
@@ -67,15 +64,15 @@ let from_24 surface =
   let width,height,pitch = Sdlvideo.surface_dims surface in
   let fmt = Sdlvideo.surface_format surface in
   let rgb = Sdlvideo.pixel_data_24 surface in
-  let a = RGB.create width height in
-  let rgba = a.RGB.data in
+  let a = Img.create width height in
+  let col = Array.make 3 0 in
     for i = 0 to width-1 do
       for j = 0 to height-1 do
         for c = 0 to 2 do
           let c' = if fmt.Sdlvideo.rshift = 0 then c else 2-c in
-            rgba.{c+i*4+j*a.RGB.stride} <- rgb.{c'+i*3+j*pitch}
+          col.(c) <- rgb.{c'+i*3+j*pitch}
         done ;
-        rgba.{3+i*4+j*a.RGB.stride} <- 0xff
+        Img.set_pixel a i j (col.(0),col.(1),col.(2),0xff)
       done
     done ;
     a
@@ -106,30 +103,27 @@ let to_32 rgb surface =
   let width,height,pitch = Sdlvideo.surface_dims surface in
   let pitch = pitch/4 in (* initial pitch was in bytes *)
   let fmt = Sdlvideo.surface_format surface in
-  assert (width = rgb.RGB.width && height = rgb.RGB.height) ;
-  assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette) ;
-  let stride = rgb.RGB.stride in
-  let rgb = rgb.RGB.data in
-    for i = 0 to width-1 do
-      for j = 0 to height-1 do
-        let pos = i*4+j*stride in
-        let color =
-          Int32.of_int
-            ((rgb.{pos} lsl fmt.Sdlvideo.rshift) lor
-             (rgb.{1+pos} lsl fmt.Sdlvideo.gshift) lor
-             (rgb.{2+pos} lsl fmt.Sdlvideo.bshift))
-        in
-          s.{i+j*pitch} <- color
-      done
+  assert (width = Img.width rgb && height = Img.height rgb);
+  assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+  for i = 0 to width-1 do
+    for j = 0 to height-1 do
+      let r,g,b,_ = Img.get_pixel rgb i j in
+      let color =
+        Int32.of_int
+          ((r lsl fmt.Sdlvideo.rshift) lor
+              (g lsl fmt.Sdlvideo.gshift) lor
+              (b lsl fmt.Sdlvideo.bshift))
+      in
+      s.{i+j*pitch} <- color
     done
+  done
 
 let from_32 surface =
   let img = Sdlvideo.pixel_data_32 surface in
   let width,height,pitch = Sdlvideo.surface_dims surface in
   let fmt = Sdlvideo.surface_format surface in
   let pitch = pitch/4 in (* pitch is in bytes, convert for int32 array *)
-  let a = RGB.create width height in
-  let rgba = a.RGB.data in
+  let f = Img.create width height in
   assert (fmt.Sdlvideo.rloss = 0 &&
           fmt.Sdlvideo.gloss = 0 &&
           fmt.Sdlvideo.bloss = 0) ;
@@ -138,15 +132,11 @@ let from_32 surface =
     for i = 0 to width-1 do
       for j = 0 to height-1 do
         let pixel = img.{i+j*pitch} in
-        let pos = i*4+j*a.RGB.stride in
-        rgba.{0+pos} <-
-          Int32.to_int ((pixel && fmt.Sdlvideo.rmask) >> fmt.Sdlvideo.rshift) ;
-        rgba.{1+pos} <-
-          Int32.to_int ((pixel && fmt.Sdlvideo.gmask) >> fmt.Sdlvideo.gshift) ;
-        rgba.{2+pos} <-
-          Int32.to_int ((pixel && fmt.Sdlvideo.bmask) >> fmt.Sdlvideo.bshift) ;
-        rgba.{3+pos} <-
-          Int32.to_int ((pixel && fmt.Sdlvideo.amask) >> fmt.Sdlvideo.ashift)
+        let r = Int32.to_int ((pixel && fmt.Sdlvideo.rmask) >> fmt.Sdlvideo.rshift) in
+        let g = Int32.to_int ((pixel && fmt.Sdlvideo.gmask) >> fmt.Sdlvideo.gshift) in
+        let b = Int32.to_int ((pixel && fmt.Sdlvideo.bmask) >> fmt.Sdlvideo.bshift) in
+        let a = Int32.to_int ((pixel && fmt.Sdlvideo.amask) >> fmt.Sdlvideo.ashift) in
+        Img.set_pixel f i j (r,g,b,a)
       done
     done ;
-    a
+    f

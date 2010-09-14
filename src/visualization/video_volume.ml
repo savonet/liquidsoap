@@ -22,6 +22,8 @@
 
 open Source
 
+module Img = Image.RGBA8
+
 class visu ~kind source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let width = Lazy.force Frame.video_width in
@@ -75,22 +77,19 @@ object (self)
     let dst = Frame.content_of_type frame offset dst_type in
 
     (* Reproduce audio data in the new contents. *)
-    for i = 0 to Array.length src.Frame.audio - 1 do
-      let (!) = Frame.audio_of_master in
-      Float_pcm.blit
-        src.Frame.audio.(i) !offset
-        dst.Frame.audio.(i) !offset
-        !len
-    done ;
+    Audio.blit
+      src.Frame.audio (Frame.audio_of_master offset)
+      dst.Frame.audio (Frame.audio_of_master offset)
+      (Frame.audio_of_master len);
 
     (* Fill-in video information. *)
     let buf = dst.Frame.video.(0) in
     let start = Frame.video_of_master offset in
     let stop = start + Frame.video_of_master len in
       for f = start to stop - 1 do
-        RGB.blank buf.(f) ;
+        Img.blank_all buf.(f) ;
         Array.iter
-          (fun (i,j) -> RGB.set_pixel buf.(f) i j (0xff, 0xff, 0xff, 0xff))
+          (fun (i,j) -> Img.set_pixel buf.(f) i j (0xff, 0xff, 0xff, 0xff))
           pts
       done
 

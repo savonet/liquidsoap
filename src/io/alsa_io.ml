@@ -76,15 +76,15 @@ object (self)
                     write <-
                     (fun pcm buf ofs len ->
                        let sbuf = String.create (2 * len * Array.length buf) in
-                       let _ =  Float_pcm.to_s16le buf ofs len sbuf 0 in
-                         Pcm.writei pcm sbuf 0 len
+                       Audio.S16LE.of_audio buf ofs sbuf 0 len;
+                       Pcm.writei pcm sbuf 0 len
                     );
                     read <-
                     (fun pcm buf ofs len ->
                        let sbuf = String.create (2 * 2 * len) in
                        let r = Pcm.readi pcm sbuf 0 len in
-                         Float_pcm.from_s16le buf ofs sbuf 0 r;
-                         r
+                       Audio.S16LE.to_audio sbuf 0 buf ofs r;
+                       r
                     )
                   with
                     | Alsa.Invalid_argument ->
@@ -99,8 +99,10 @@ object (self)
                                channels
                                (fun _ -> String.create (2 * len))
                            in
-                           let _ =  Float_pcm.to_s16le_ni buf ofs len sbuf 0 in
-                             Pcm.writen pcm sbuf 0 len
+                           for c = 0 to Audio.channels buf - 1 do
+                             Audio.S16LE.of_audio [|buf.(c)|] ofs sbuf.(c) 0 len
+                           done;
+                           Pcm.writen pcm sbuf 0 len
                         );
                         read <-
                         (fun pcm buf ofs len ->
@@ -110,8 +112,10 @@ object (self)
                                (fun _ -> String.create (2 * len))
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
-                             Float_pcm.from_s16le_ni buf ofs sbuf 0 r;
-                             r
+                           for c = 0 to Audio.channels buf - 1 do
+                             Audio.S16LE.to_audio sbuf.(c) 0 [|buf.(c)|] ofs len
+                           done;
+                           r
                         )
                 );
         );

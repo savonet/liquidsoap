@@ -46,7 +46,7 @@ let encoder aacplus =
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
     let s = String.create (2 * len * channels) in
-    ignore (Float_pcm.to_s16le b start len s 0) ;
+    Audio.S16LE.of_audio b start s 0 len;
     Buffer.add_string rem s ;
     let data_length = String.length tmp in
     let rec put data =

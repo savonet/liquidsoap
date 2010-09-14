@@ -75,10 +75,10 @@ object (self)
           device <- None
       | None -> ()
 
-  method get_device = 
+  method get_device =
     match device with
-      | Some d -> d 
-      | None -> 
+      | Some d -> d
+      | None ->
           self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm alsa_device [Pcm.Capture] [] in
           let params = Pcm.get_params dev in
@@ -95,7 +95,7 @@ object (self)
                   (fun pcm buf ofs len ->
                      let sbuf = String.create (2 * 2 * len) in
                      let r = Pcm.readi pcm sbuf 0 len in
-                     Float_pcm.from_s16le buf ofs sbuf 0 r;
+                     Audio.S16LE.to_audio sbuf 0 buf ofs r;
                      r)
           end ;
           sample_freq <-
@@ -107,7 +107,7 @@ object (self)
           dev
 
   method pull_block block =
-    let dev = self#get_device in 
+    let dev = self#get_device in
     try
       let pos = ref 0 in
       while !pos < buffer_length do

@@ -22,6 +22,6 @@
 
   (** Native audio converters *)
 
-let samplerate_converter () = Float_pcm.native_resample
+let samplerate_converter () = Audio.Mono.resample
 
 let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter

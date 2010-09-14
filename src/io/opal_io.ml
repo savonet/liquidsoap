@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module R = LiqMM.RingbufferTS
+
 module Opal =
 struct
   exception Error of string
@@ -102,7 +104,7 @@ object (self)
 
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  val write_rb = Ringbuffer.TS.create channels ringbuffer_length
+  val write_rb = R.create channels ringbuffer_length
 
   method output_get_ready =
     (* TODO: init only once *)
@@ -150,7 +152,7 @@ object (self)
                  "Received %d bytes of %s for stream %s on call %s."
                  len fmt id token; *)
             assert (len <= buflen);
-            Float_pcm.from_s16le fbuf 0 data 0 len;
+            Audio.S16LE.to_audio data 0 fbuf 0 len;
             let fbuf =
               Audio_converter.Samplerate.resample
                 conv (outfreq /. infreq) fbuf 0 len
@@ -158,8 +160,8 @@ object (self)
             let fbuf =
               let fbuf = fbuf.(0) in Array.create channels fbuf
             in
-              if Ringbuffer.TS.write_space write_rb >= len then
-                Ringbuffer.TS.write write_rb fbuf 0 len
+              if R.write_space write_rb >= len then
+                R.write write_rb fbuf 0 len
               else
                 (* self#log#f 4 "Not enough space in ringbuffer. Dropping." *)
                 ()
@@ -182,12 +184,12 @@ object (self)
     let buf = AFrame.content_of_type ~channels frame 0 in
     let samples = AFrame.size () in
       (*
-        let available = Ringbuffer.TS.read_space write_rb in
+        let available = R.read_space write_rb in
           if available <> 0 then
             self#log#f 6 "Available: %d." available;
        *)
-      if Ringbuffer.TS.read_space write_rb >= samples then
-          Ringbuffer.TS.read write_rb buf 0 samples
+      if R.read_space write_rb >= samples then
+          R.read write_rb buf 0 samples
       else
         (); (* self#log#f 4 "Not enough samples in ringbuffer."; *)
       AFrame.add_break frame samples

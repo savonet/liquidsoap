@@ -120,18 +120,19 @@ let frame_of_internal_rgb f =
   let frame_data = 
     { 
       rgb_format = Rgba_32;
-      data = f.RGB.data;
-      stride = f.RGB.stride
+      data = Image.RGBA8.data f;
+      stride = Image.RGBA8.stride f;
     }
   in
   { 
     frame_data = Rgb frame_data;
-    width =  f.RGB.width;
-    height = f.RGB.height
+    width =  Image.RGBA8.width f;
+    height = Image.RGBA8.height f
   }
 
 
-let frame_of_internal_yuv w h ((y,y_stride),(u,v,uv_stride)) =
+let frame_of_internal_yuv w h f =
+  let ((y,y_stride),(u,v,uv_stride)) = Image.YUV420.internal f in
   let frame_data =
     {
       yuv_format = Yuvj_420;

@@ -22,6 +22,8 @@
 
 open Source
 
+module Img = Image.RGBA8
+
 class text ~kind
   ttf ttf_size color dx dy speed cycle meta text (source:source) =
 let video_height = Lazy.force Frame.video_height in
@@ -54,14 +56,14 @@ object (self)
       let si = Sdlvideo.surface_info ts in
         si.Sdlvideo.w, si.Sdlvideo.h
     in
-    let tf = RGB.create w h in
-    let tr, tg, tb = RGB.rgb_of_int color in
+    let tf = Img.create w h in
+    let tr, tg, tb = Image.RGB8.Color.of_int color in
       if dy < 0 then
         pos_y <- video_height + dy - h;
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
-            RGB.set_pixel tf x y (tr, tg, tb, r)
+            Img.set_pixel tf x y (tr, tg, tb, r)
         done
       done;
       text_frame <- Some tf
@@ -91,7 +93,7 @@ object (self)
     let rgb = (VFrame.content ab off).(0) in
     let size = VFrame.size ab in
     let tf = Utils.get_some text_frame in
-    let tfw = tf.RGB.width in
+    let tfw = Img.width tf in
     let text =
       match meta with
         | None -> text ()
@@ -114,7 +116,7 @@ object (self)
         );
       for i = off to size - 1 do
         if pos_x <> -tfw then
-          RGB.add tf rgb.(i) ~x:pos_x ~y:pos_y;
+          Img.add tf rgb.(i) ~x:pos_x ~y:pos_y;
         pos_x <- pos_x - speed;
         if pos_x < -tfw then
           if cycle then

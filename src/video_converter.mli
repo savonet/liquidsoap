@@ -79,11 +79,11 @@ type frame =
   }
 
 (** Creates a frame with the data of an internal frame. *)
-val frame_of_internal_rgb : RGB.t -> frame 
+val frame_of_internal_rgb : Image.RGBA8.t -> frame 
 
 (** Creates a frame from the data of an internal YUV frame. 
   * Parameters are: with, height, data. *)
-val frame_of_internal_yuv : int -> int -> RGB.yuv -> frame
+val frame_of_internal_yuv : int -> int -> Image.YUV420.t -> frame
 
 (** [~proportional src dst] performs the 
   * conversion from frame src to frame dst.

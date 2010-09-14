@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Img = Image.RGBA8
+
 external caps :
   Unix.file_descr -> string * int * int * int * int * int * int
   = "caml_v4l_caps"
@@ -58,7 +60,7 @@ object (self)
   method output_reset = ()
   method is_active = true
 
-  val mutable image = RGB.create 0 0
+  val mutable image = Img.create 0 0
   val mutable count = every
 
   method get_frame frame =
@@ -76,7 +78,7 @@ object (self)
       if count = every then
         (
           count <- 0;
-          RGB.of_linear_rgb (capture fd width height) width
+          Img.of_RGB8_string (capture fd width height) width
         )
       else
         (
@@ -86,7 +88,7 @@ object (self)
     in
       image <- img;
       for i = 0 to VFrame.size frame - 1 do
-        RGB.proportional_scale buf.(i) img
+        Img.Scale.onto ~proportional:true buf.(i) img
       done;
       AFrame.add_break frame (AFrame.size ())
 end

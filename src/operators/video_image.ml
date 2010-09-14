@@ -22,6 +22,16 @@
 
 open Source
 
+module Img = Image.RGBA8
+
+let read_PPM ?alpha fname =
+  let ic = open_in_bin fname in
+  let len = in_channel_length ic in
+  let data = String.create len in
+  really_input ic data 0 len;
+  close_in ic;
+  Img.of_PPM ?alpha data
+
 (** The content kind should allow for pure video,
   * we handle any number of channels. *)
 class image kind fname duration width height x y alpha meta source =
@@ -43,17 +53,19 @@ object (self)
     try
       let f =
         (* TODO: Handle more formats. *)
-        RGB.read_ppm
-          ?alpha:(if alpha < 0 then None else Some (RGB.rgb_of_int alpha))
+        read_PPM
+          ?alpha:(if alpha < 0 then None else Some (Image.RGB8.Color.of_int alpha))
           fname
       in
-      let w = if width < 0 then f.RGB.width else width in
-      let h = if height < 0 then f.RGB.height else height in
+      let fw, fh = Img.dimensions f in
+      let w = if width < 0 then fw else width in
+      let h = if height < 0 then fh else height in
       let f =
-        if w = f.RGB.width && h = f.RGB.height then
+        if w = fw && h = fh then
           f
         else
-          RGB.scale_to f w h
+          (* TODO: optionally proportional + option for scaling kind. *)
+          Img.Scale.create f w h
       in
         if x < 0 then pos_x <- (Lazy.force Frame.video_width) - w + x;
         if y < 0 then pos_y <- (Lazy.force Frame.video_height) - h + y;
@@ -89,7 +101,7 @@ object (self)
         | Some img ->
             (* TODO: Handle other channels? *)
             for i = off to size - 1 do
-              RGB.add img rgb.(i) ~x:pos_x ~y:pos_y
+              Img.add img rgb.(i) ~x:pos_x ~y:pos_y
             done
         | None -> ()
 end

@@ -56,10 +56,10 @@ object (self)
       end ;
       let k = match override with Some o -> o | None -> coeff () in
         if k <> 1. then
-          Float_pcm.multiply
+          Audio.amplify
+            k
             (AFrame.content buf offset) offset
-            ((AFrame.position buf)-offset)
-            k ;
+            ((AFrame.position buf)-offset);
         if AFrame.is_partial buf && override <> None then begin
           self#log#f 3 "End of the current overriding." ;
           override <- None

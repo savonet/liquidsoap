@@ -22,6 +22,8 @@
 
 open Source
 
+module Img = Image.RGBA8
+
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.
   * If the initial flag is set, only the first/current track is faded in. *)
@@ -160,16 +162,16 @@ let proto =
 let rec transition_of_string p transition =
   let ifm n a = int_of_float ((float_of_int n) *. a) in
     match transition with
-      | "fade" -> RGB.scale_opacity
-      | "slide_left" -> fun buf t -> RGB.translate buf (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
-      | "slide_right" -> fun buf t -> RGB.translate buf (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
-      | "slide_up" -> fun buf t -> RGB.translate buf 0 (ifm (Lazy.force Frame.video_height) (1.-.t))
-      | "slide_down" -> fun buf t -> RGB.translate buf 0 (ifm (Lazy.force Frame.video_height) (t-.1.))
-      | "grow" -> fun buf t -> RGB.affine buf t t 0 0
+      | "fade" -> Img.Effect.Alpha.scale
+      | "slide_left" -> fun buf t -> Img.Effect.translate buf (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
+      | "slide_right" -> fun buf t -> Img.Effect.translate buf (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
+      | "slide_up" -> fun buf t -> Img.Effect.translate buf 0 (ifm (Lazy.force Frame.video_height) (1.-.t))
+      | "slide_down" -> fun buf t -> Img.Effect.translate buf 0 (ifm (Lazy.force Frame.video_height) (t-.1.))
+      | "grow" -> fun buf t -> Img.Effect.affine buf t t 0 0
       | "disc" ->
           let w, h = Lazy.force Frame.video_width, Lazy.force Frame.video_height in
           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
-            fun buf t -> RGB.disk_opacity buf (w/2) (h/2) (ifm r_max t)
+            fun buf t -> Img.Effect.Alpha.disk buf (w/2) (h/2) (ifm r_max t)
       | "random" ->
           let trans =
             [|"fade"; "slide_left"; "slide_right"; "slide_up"; "slide_down"; "grow"; "disc"|]

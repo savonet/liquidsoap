@@ -67,9 +67,8 @@ let create_encoder ~metadata dirac =
     let serialno = Ogg.Stream.serialno os in
     Some (Schroedinger.Skeleton.fisbone ~serialno ~format:video_format ())
   in
-  let ((y,y_stride), (u, v, uv_stride) as yuv) =
-    RGB.create_yuv width height
-  in
+  let yuv = Image.YUV420.create width height in
+  let (y,y_stride), (u, v, uv_stride) = Image.YUV420.internal yuv in
   let dirac_yuv =
   {
    Schroedinger.
@@ -123,7 +122,7 @@ let create_encoder ~metadata dirac =
     (* Encode at least some data.. *)
     if not !started then
      begin
-      RGB.blank_yuv yuv;
+      Image.YUV420.blank_all yuv;
       Schroedinger.Encoder.encode_frame enc dirac_yuv os
      end;
     Schroedinger.Encoder.eos enc os

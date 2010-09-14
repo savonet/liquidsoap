@@ -96,7 +96,7 @@ object (self)
 
   method output_send wav =
     let push data =
-      ignore (Float_pcm.to_s16le (AFrame.content wav 0) 0 samples_per_frame data 0)
+      Audio.S16LE.of_audio (AFrame.content wav 0) 0 data 0 samples_per_frame
     in
     ioring#put_block push
 

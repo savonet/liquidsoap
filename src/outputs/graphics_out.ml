@@ -40,7 +40,7 @@ object (self)
   method output_send buf =
     let rgb = (VFrame.content buf 0).(0) in
       for frame = 0 to 0 do
-        let img = RGB.to_int_image rgb.(frame) in
+        let img = Image.RGBA8.to_int_image rgb.(frame) in
         let img = Graphics.make_image img in
           Graphics.draw_image img 0 0
       done

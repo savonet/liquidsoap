@@ -9,17 +9,17 @@ ocaml_progs= liquidsoap
 
 ogg_demuxer = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
-	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
+	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml)
+	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
 
 ogg_muxer = \
 	$(if $(W_OGG),ogg_muxer.ml) \
 	$(if $(W_OGG), encoder/ogg_encoder.ml) \
+	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
-	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
@@ -62,7 +62,8 @@ sources = \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LAST),sources/lastfm_input.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
-	sources/external_input.ml
+	sources/external_input.ml \
+	tools/liqMM.ml
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
@@ -72,7 +73,7 @@ operators = \
 	operators/sequence.ml operators/cross.ml operators/smartcross.ml \
 	operators/compress_exp.ml operators/pitch.ml \
 	operators/fir_filter.ml operators/iir_filter.ml \
-	operators/biquad_filter.ml operators/substract.ml \
+	operators/biquad_filter.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
 	operators/compress.ml operators/clip.ml operators/filter.ml \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
@@ -82,12 +83,12 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	operators/video_effects.ml operators/video_fade.ml \
 	$(if $(W_SDL),operators/video_text.ml) \
-	operators/video_image.ml \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml operators/chord.ml \
-	operators/time_warp.ml operators/resample.ml
+	operators/time_warp.ml operators/resample.ml \
+	operators/video_image.ml
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
@@ -128,11 +129,9 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/tutils.ml tools/sutils.ml tools/http.ml \
 	tools/pool.ml
 
-stream = stream/midi.ml stream/rgb_c.c stream/RGB.ml \
-	stream/float_pcm_c.c stream/float_pcm.ml \
+stream = stream/midi.ml \
 	stream/frame.ml stream/generator.ml \
-	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
-	tools/ringbuffer.ml # ringbuffer needs float_pcm
+	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization = visualization/vumeter.ml \
 	$(if $(W_GL),visualization/GLvisualizer.ml) \
@@ -141,10 +140,10 @@ visualization = visualization/vumeter.ml \
 	visualization/midimeter.ml \
 	visualization/video_volume.ml \
 
-synth = synth/synth.ml synth/keyboard.ml \
-	synth/synth_op.ml \
-	$(if $(W_SDL),synth/keyboard_sdl.ml) \
-	$(if $(W_DSSI),synth/dssi_op.ml)
+synth =
+#	synth/keyboard.ml synth/synth_op.ml \
+#	$(if $(W_SDL),synth/keyboard_sdl.ml) \
+#	$(if $(W_DSSI),synth/dssi_op.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml source.ml clock.ml tools/rutils.ml \
@@ -183,7 +182,7 @@ liquidsoap_doc_sources= \
 	sources/request_source.ml operators/switch.ml \
 	configure.ml video_converter.ml \
 	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml \
-	stream/vFrame.ml stream/RGB.ml audio_converter.ml \
+	stream/vFrame.ml audio_converter.ml \
 	stream/mFrame.ml stream/generator.ml
 
 top_srcdir=..

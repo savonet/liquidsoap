@@ -51,14 +51,14 @@ object (self)
     let content = Frame.content_of_type ab position content_type in
     let video_pos = Frame.video_of_master position in
       (* Audio *)
-      Float_pcm.blankify content.Frame.audio
+      Audio.clear content.Frame.audio
         (Frame.audio_of_master position)
         (Frame.audio_of_master length) ;
       (* Video *)
       Array.iter
         (fun a ->
            for i = 0 to Frame.video_of_master length - 1 do
-             RGB.blank a.(video_pos+i)
+             Image.RGBA8.blank_all a.(video_pos+i)
            done)
         content.Frame.video ;
       Frame.add_break ab (position+length) ;

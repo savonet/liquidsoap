@@ -22,6 +22,8 @@
 
 open Source
 
+module Ringbuffer = Audio.Ringbuffer
+
 let average_diff delta buf ofs len =
   let s = ref 0. in
     for i = 0 to len - delta - 1 do

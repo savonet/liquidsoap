@@ -76,9 +76,10 @@ object (self)
     done;
     let fd = Utils.get_some fd in
     let buf = AFrame.content memo 0 in
-    let s = String.create (2 * (Array.length buf) * (Array.length buf.(0))) in
-    let r = Float_pcm.to_s16le buf 0 (Array.length buf.(0)) s 0 in
-      assert (Unix.write fd s 0 r = r)
+    let r = Audio.S16LE.length (Audio.channels buf) (Audio.duration buf) in
+    let s = String.create r in
+    Audio.S16LE.of_audio buf 0 s 0 (Audio.duration buf);
+    assert (Unix.write fd s 0 r = r)
 end
 
 class input ~kind ~clock_safe dev =
@@ -125,7 +126,7 @@ object (self)
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;
-      Float_pcm.from_s16le buf 0 s 0 (Array.length buf.(0));
+      Audio.S16LE.to_audio s 0 buf 0 (Audio.duration buf);
       AFrame.add_break frame (AFrame.size ())
 end
 

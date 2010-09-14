@@ -439,16 +439,15 @@ struct
                     * blit round, minus those that have been outputted before.
                     * When everything is aligned, this is the same as [!l]. *)
                    let l = !(vpos'+l) - !vpos' in
-                     for i = 0 to l-1 do
-                       RGB.blit_fast v.(!vpos+i) v'.(!fpos+i)
-                     done) ;
+                   Video.blit v !vpos v' !fpos l
+                ) ;
               Utils.array_iter2 ablk dst.Frame.audio
                 (fun a a' ->
                    let (!) = Frame.audio_of_master in
                    (* Same as above, even if in practice everything
                     * will always be aligned on the audio side. *)
                    let l = !(apos'+l) - !apos' in
-                     Float_pcm.blit a !apos a' !fpos l) ;
+                     Audio.Mono.blit a !apos a' !fpos l) ;
               if al=vl then
                 blit audio video
               else if al>vl then

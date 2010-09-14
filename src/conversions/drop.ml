@@ -39,7 +39,7 @@ object
         let dst = Frame.content_of_type frame start new_type in
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
-            Float_pcm.blit
+            Audio.Mono.blit
               src.Frame.audio.(i) !start
               dst.Frame.audio.(i) !start
               !len
@@ -93,7 +93,7 @@ object
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
               for j = 0 to !len-1 do
-                RGB.blit_fast
+                Image.RGBA8.blit
                   src.Frame.video.(i).(!start+j)
                   dst.Frame.video.(i).(!start+j)
               done
@@ -146,7 +146,7 @@ object
         let dst = Frame.content_of_type frame start new_type in
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
-              Float_pcm.blit
+              Audio.Mono.blit
                 src.Frame.audio.(i) !start
                 dst.Frame.audio.(i) !start
                 !len
@@ -154,7 +154,7 @@ object
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
               for j = 0 to !len-1 do
-                RGB.blit_fast
+                Image.RGBA8.blit
                   src.Frame.video.(i).(!start+j)
                   dst.Frame.video.(i).(!start+j)
               done

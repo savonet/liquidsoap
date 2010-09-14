@@ -101,7 +101,7 @@ object (self)
       let push data =
         let pcm = AFrame.content wav 0 in
           assert (Array.length pcm = channels) ;
-          ignore (Float_pcm.to_s16le pcm 0 (AFrame.size ()) data 0)
+          Audio.S16LE.of_audio pcm 0 data 0 (AFrame.size ())
       in
         ioring#put_block push
 
@@ -120,7 +120,7 @@ let () =
     [ "clock_safe",
       Lang.bool_t, Some (Lang.bool true),
       Some "Use the dedicated AO clock." ;
-      
+
       "driver",
       Lang.string_t, Some (Lang.string ""),
       Some "Driver to be used, \"\" for AO's default." ;
@@ -155,7 +155,7 @@ let () =
            (Lang.to_list (List.assoc "options" p))
        in
        let channels_matrix = Lang.to_string (List.assoc "channels_matrix" p) in
-       let channels_matrix = 
+       let channels_matrix =
           if channels_matrix = "" then
             None
           else

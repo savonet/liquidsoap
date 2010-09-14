@@ -67,7 +67,7 @@ let conf_video_samplerate =
   Conf.int ~p:(conf_video#plug "samplerate") ~d:25 "Samplerate"
 let conf_video_channels =
   Conf.int ~p:(conf_video#plug "channels") ~d:0 "Default number of channels"
-let conf_video_width = 
+let conf_video_width =
   Conf.int ~p:(conf_video#plug "width") ~d:320 "Image width"
 let conf_video_height =
   Conf.int ~p:(conf_video#plug "height") ~d:240 "Image height"
@@ -207,8 +207,8 @@ type content_kind = (multiplicity,multiplicity,multiplicity) fields
 type content_type = (int,int,int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
-and audio_t = float array
-and video_t = RGB.t array
+and audio_t = Audio.Mono.buffer
+and video_t = Video.buffer
 and midi_t  = (int*Midi.event) list ref
 
 (** Compatibilities between content kinds, types and values.
@@ -332,8 +332,7 @@ let create_content content_type =
     video =
       Array.init content_type.video
         (fun i ->
-           Array.init (video_of_master !!size)
-             (fun _ -> RGB.create !!video_width !!video_height)) ;
+          Video.make (video_of_master !!size) !!video_width !!video_height);
     midi =
       Array.init content_type.midi (fun _ -> ref (Midi.create_track ()))
   }
@@ -505,14 +504,13 @@ let blit_content src src_pos dst dst_pos len =
     (fun a a' ->
        if a != a' then
          let (!) = audio_of_master in
-           Float_pcm.blit a !src_pos a' !dst_pos !len) ;
+           Audio.Mono.blit a !src_pos a' !dst_pos !len) ;
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
        if v != v' then
          let (!) = video_of_master in
-           for i = 0 to !len-1 do
-             RGB.blit_fast v.(!src_pos+i) v'.(!dst_pos+i)
-           done) ;
+         Video.blit v !src_pos v' !dst_pos !len
+    ) ;
   Utils.array_iter2 src.midi dst.midi
     (fun m m' ->
        if m != m' then
@@ -589,6 +587,6 @@ let get_chunk ab from =
     aux 0 (List.rev from.breaks)
 
 let copy content =
-  { audio = Array.map Float_pcm.copy content.audio ;
-    video = Array.map RGB.copy_channel content.video ;
+  { audio = Array.map Audio.Mono.copy content.audio ;
+    video = Array.map Video.copy content.video ;
     midi = Array.map Midi.copy content.midi }
