@@ -24,41 +24,17 @@
 
 open Source
 
-class gen ~kind g freq duration =
+class gen ~kind name g freq duration =
   let channels = (Frame.type_of_kind kind).Frame.audio in
-  let nb_samples = Frame.audio_of_seconds duration in
   let g = g freq 1. in
 object
-  inherit source kind
+  inherit Synthesized.source ~name kind duration
 
-  method stype = Infallible
-  method is_ready = true
-
-  val mutable remaining = nb_samples
-  method remaining = Frame.master_of_audio remaining
-
-  val mutable must_fail = false
-  method abort_track =
-    must_fail <- true;
-    remaining <- 0
-
-  val mutable pos = 0
-
-  method get_frame ab =
-    if must_fail then
-      (
-        AFrame.add_break ab (AFrame.position ab);
-        remaining <- nb_samples;
-        must_fail <- false
-      )
-    else
-      let off = AFrame.position ab in
-      let buf = AFrame.content_of_type ~channels ab off in
-      let size = AFrame.size () in
-      g#fill buf off (size - off);
-      AFrame.add_break ab size;
-      remaining <- remaining - size - off;
-      if remaining <= 0 then must_fail <- true
+  method private synthesize frame off len =
+    let off = Frame.audio_of_master off in
+    let len = Frame.audio_of_master len in
+    let buf = AFrame.content_of_type ~channels frame off in
+    g#fill buf off len
 end
 
 let add name g =
@@ -71,7 +47,7 @@ let add name g =
       "", Lang.float_t, Some (Lang.float 440.), Some ("Frequency of the " ^ name ^ ".")
     ]
     (fun p kind ->
-      (new gen ~kind g
+      (new gen ~kind name g
          (Lang.to_float (List.assoc "" p))
          (Lang.to_float (List.assoc "duration" p)) :> source))
 
