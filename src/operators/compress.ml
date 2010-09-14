@@ -24,30 +24,13 @@ open Source
 
 (** See http://www.musicdsp.org/archive.php?classid=4#169 *)
 
-class compress ~kind (source:source)
-        attack release threshold ratio knee rmsw gn =
-  (** Number of samples for computing rms. *)
-  let rmsn = Frame.audio_of_seconds rmsw in
-  let rate = float (Lazy.force Frame.audio_rate) in
+class compress ~kind (source:source) attack release threshold ratio knee rms_window gain =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let samplerate = Lazy.force Frame.audio_rate in
 object (self)
   inherit operator kind [source] as super
 
-  (** [rmsn] last squares. *)
-  val rmsv = Array.make rmsn 0.
-  (** Current position in [rmsv]. *)
-  val mutable rmsp = 0
-  (** Current squares of RMS. *)
-  val mutable rms = 0.
-
-  (* Processing variables. *)
-  val mutable amp = 0.
-  (** Envelope. *)
-  val mutable env = 0.
-  (** Current gain. *)
-  val mutable gain = 1.
-
-  (** Counter for debugging purposes. *)
-  val mutable count = 0
+  val effect = new Audio.Effect.compress ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ()) ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ()) channels samplerate
 
   method stype = source#stype
 
@@ -58,109 +41,21 @@ object (self)
   method abort_track = source#abort_track
 
   method private get_frame buf =
-    let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.content buf offset in
-      let chans = Array.length b in
-      let gn = gn () in
-      let attack = attack () in
-      let release = release () in
-      let threshold = threshold () in
-      (** Compression ratio. *)
-      let ratio = ratio () in
-      let ratio = (ratio -. 1.) /. ratio in
-      (** Knee. *)
-      let knee = knee () in
-      (* Attack and release "per sample decay". *)
-      let g_attack =
-        if attack = 0. then
-          0.
-        else
-          exp (-1. /. (rate *. attack));
-      in
-      let ef_a = g_attack *. 0.25 in
-      let g_release =
-        if release = 0. then
-          0.
-        else
-          exp (-1. /. (rate *. release));
-      in
-      let ef_ai = 1. -. ef_a in
-      (* Knees. *)
-      let knee_min = Audio.lin_of_dB (threshold -. knee) in
-      let knee_max = Audio.lin_of_dB (threshold +. knee) in
-        for i = offset to AFrame.position buf - 1 do
-
-          (* Input level. *)
-          let lev_in =
-            let ans = ref 0. in
-              for c = 0 to chans - 1 do
-                ans := !ans +. b.(c).(i) *. b.(c).(i)
-              done;
-              !ans /. (float chans)
-          in
-
-            (* RMS *)
-            rms <- rms -. rmsv.(rmsp) +. lev_in;
-            rms <- abs_float rms; (* Sometimes the rms was -0., avoid that. *)
-            rmsv.(rmsp) <- lev_in;
-            rmsp <- (rmsp + 1) mod rmsn;
-            amp <- sqrt (rms /. float rmsn);
-
-            (* Dynamic selection: attack or release? *)
-            (* Smoothing with capacitor, envelope extraction... Here be aware of
-             * pIV denormal numbers glitch. *)
-            if amp > env then
-              env <- env *. g_attack +. amp *. (1. -. g_attack)
-            else
-              env <- env *. g_release +. amp *. (1. -. g_release);
-
-            (* Compute the gain. *)
-            let gain_t =
-              if env < knee_min then
-                (* Do not compress. *)
-                1.
-              else
-                  if env < knee_max then
-                    (* Knee: compress smoothly. *)
-                    let x =
-                      (knee +. Audio.dB_of_lin env -. threshold)
-                      /. (2. *. knee)
-                    in
-                      Audio.lin_of_dB (0. -. knee *. ratio *. x *. x)
-                  else
-                    (* Maximal (n:1) compression. *)
-                    Audio.lin_of_dB
-                      ((threshold -. Audio.dB_of_lin env) *. ratio)
-            in
-              gain <- gain *. ef_a +. gain_t *. ef_ai;
-
-              (* Apply the gain. *)
-              let g = gain *. gn in
-                for c = 0 to chans - 1 do
-                  b.(c).(i) <- b.(c).(i) *. g
-                done;
-
-                (* Debug messages. *)
-                count <- count + 1;
-                if count mod 10000 = 0 then
-                  self#log#f 4
-                    "RMS:%7.02f     Env:%7.02f     Gain: %4.02f\r%!"
-                    (Audio.dB_of_lin amp) (Audio.dB_of_lin env) gain
-
-        done;
-        (* Reset values if it is the end of the track. *)
-        if AFrame.is_partial buf then
-          (
-            rms <- 0.;
-            rmsp <- 0;
-            for i = 0 to rmsn - 1 do
-              rmsv.(i) <- 0.
-            done;
-            gain <- 1.;
-            env <- 0.;
-            amp <- 0.
-          )
+    let ofs = AFrame.position buf in
+    source#get buf;
+    let b = AFrame.content buf ofs in
+    let pos = AFrame.position buf in
+    let len = pos - ofs in
+    effect#set_gain (gain ());
+    effect#set_attack (attack ());
+    effect#set_release (release ());
+    effect#set_threshold (threshold ());
+    effect#set_ratio (ratio ());
+    effect#set_knee (knee ());
+    effect#process b ofs len;
+    (* Reset values if it is the end of the track. *)
+    if AFrame.is_partial buf then
+      effect#reset
 end
 
 (* The five first variables ('a,'b...) are used for getters. *)
