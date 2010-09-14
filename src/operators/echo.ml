@@ -22,8 +22,7 @@
 
 open Source
 
-class echo ~kind (source:source) delay feedback =
-  let past_len = Frame.audio_of_seconds delay in
+class echo ~kind (source:source) delay feedback ping_pong =
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
   inherit operator kind [source] as super
@@ -33,7 +32,13 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
 
-  val past = Array.init channels (fun _ -> Array.make past_len 0.)
+  val effect =
+    Audio.Effect.delay
+      channels
+      (Lazy.force Frame.audio_rate)
+      ~ping_pong
+      (delay ())
+      (feedback ())
 
   val mutable past_pos = 0
 
@@ -42,24 +47,23 @@ object (self)
       source#get buf ;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
-      let feedback = feedback () in
-        for i = offset to position - 1 do
-          for c = 0 to Array.length b - 1 do
-            b.(c).(i) <- b.(c).(i) +. past.(c).(past_pos) *. feedback;
-            past.(c).(past_pos) <- b.(c).(i)
-          done;
-          past_pos <- (past_pos + 1) mod past_len
-        done
+      effect#set_delay (delay ());
+      effect#set_feedback (feedback ());
+      effect#process b offset (position - offset)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:2 Lang.any_fixed in
+  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.any_fixed in
   Lang.add_operator "echo"
-    [ "delay", Lang.float_t, Some (Lang.float 0.5), Some "Delay in seconds.";
+    [ "delay", Lang.float_getter_t 1, Some (Lang.float 0.5), Some "Delay in seconds.";
 
       "feedback",
-      Lang.float_getter_t 1,
+      Lang.float_getter_t 2,
       Some (Lang.float (-6.)), Some "Feedback coefficient in dB (negative).";
+
+      "ping_pong",
+      Lang.bool_t,
+      Some (Lang.bool false), Some "Use ping-pong delay.";
 
       "", Lang.source_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
@@ -67,9 +71,10 @@ let () =
     ~descr:"Add echo."
     (fun p kind ->
        let f v = List.assoc v p in
-       let duration, feedback, src =
-         Lang.to_float (f "delay"),
+       let duration, feedback, pp, src =
+         Lang.to_float_getter (f "delay"),
          Lang.to_float_getter (f "feedback"),
+         Lang.to_bool (f "ping_pong"),
          Lang.to_source (f "")
        in
        let feedback =
@@ -79,4 +84,4 @@ let () =
                                       "feedback should be negative"));
          fun () -> Sutils.lin_of_dB (feedback ())
        in
-         new echo ~kind src duration feedback)
+         new echo ~kind src duration feedback pp)

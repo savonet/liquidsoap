@@ -56,11 +56,8 @@ object (self)
         (Frame.audio_of_master length) ;
       (* Video *)
       Array.iter
-        (fun a ->
-           for i = 0 to Frame.video_of_master length - 1 do
-             Image.RGBA8.blank_all a.(video_pos+i)
-           done)
-        content.Frame.video ;
+        (fun a -> Video.blank a video_pos (Frame.video_of_master length))
+        content.Frame.video;
       Frame.add_break ab (position+length) ;
       if remaining = 0 then
         remaining <- ticks
