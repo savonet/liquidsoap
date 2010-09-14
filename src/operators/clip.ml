@@ -36,12 +36,7 @@ object (self)
       source#get buf ;
       let b = AFrame.content buf offset in
       let position = AFrame.position buf in
-        for c = 0 to Array.length b - 1 do
-          let bc = b.(c) in
-            for i = offset to position - 1 do
-              bc.(i) <- max vmin (min vmax bc.(i));
-            done
-        done
+      Audio.clip b offset (position - offset)
 end
 
 let () =
