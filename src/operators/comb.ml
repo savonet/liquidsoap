@@ -77,4 +77,4 @@ let () =
          Lang.to_source (f "")
        in
          new comb ~kind src duration
-               (fun () -> Sutils.lin_of_dB (feedback ())))
+               (fun () -> Audio.lin_of_dB (feedback ())))

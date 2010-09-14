@@ -271,10 +271,10 @@ object (self)
   (* Sum up analysis and build the transition *)
   method private create_transition =
     let db_after  =
-      Sutils.dB_of_lin (sqrt (rms_after  /. float rmsi_after /. channels))
+      Audio.dB_of_lin (sqrt (rms_after  /. float rmsi_after /. channels))
     in
     let db_before =
-      Sutils.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
+      Audio.dB_of_lin (sqrt (rms_before /. float rmsi_before /. channels))
     in
     let compound =
       Clock.collect_after

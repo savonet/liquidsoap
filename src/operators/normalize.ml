@@ -163,10 +163,10 @@ let () =
          Lang.to_source (f "")
        in
          new normalize ~kind src
-               (fun () -> Sutils.lin_of_dB (target ()))
+               (fun () -> Audio.lin_of_dB (target ()))
                window
                kup
                kdown
-               (fun () -> Sutils.lin_of_dB (threshold ()))
-               (fun () -> Sutils.lin_of_dB (gmin ()))
-               (fun () -> Sutils.lin_of_dB (gmax ())))
+               (fun () -> Audio.lin_of_dB (threshold ()))
+               (fun () -> Audio.lin_of_dB (gmin ()))
+               (fun () -> Audio.lin_of_dB (gmax ())))

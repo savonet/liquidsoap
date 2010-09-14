@@ -82,6 +82,6 @@ let () =
          if feedback () > 0. then
            raise (Lang.Invalid_value (f "feedback",
                                       "feedback should be negative"));
-         fun () -> Sutils.lin_of_dB (feedback ())
+         fun () -> Audio.lin_of_dB (feedback ())
        in
          new echo ~kind src duration feedback pp)

@@ -125,8 +125,7 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
 	tools/liq_sockets.ml \
 	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
-	tools/tutils.ml tools/sutils.ml tools/http.ml \
-	tools/pool.ml
+	tools/tutils.ml tools/http.ml tools/pool.ml
 
 stream = stream/midi.ml \
 	stream/frame.ml stream/generator.ml \

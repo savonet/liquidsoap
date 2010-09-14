@@ -29,7 +29,7 @@ let rms_max = -5.
 let rms_min = -25.
 
 let vol n v =
-  let v = Sutils.dB_of_lin v in
+  let v = Audio.dB_of_lin v in
   let ans = ref "" in
   let barwidth = screen_width / n - 7 in
   let barlen = int_of_float (float barwidth *. min 1. (max 0. ((v -. rms_min) /. (rms_max -. rms_min)))) in

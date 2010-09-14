@@ -44,7 +44,7 @@ object (self)
                    let s = Hashtbl.find m f in
                    let k =
                      try
-                       Scanf.sscanf s " %f dB" Sutils.lin_of_dB
+                       Scanf.sscanf s " %f dB" Audio.lin_of_dB
                      with
                        | _ -> float_of_string s
                    in

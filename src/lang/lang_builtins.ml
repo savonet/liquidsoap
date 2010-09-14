@@ -1397,12 +1397,12 @@ let () =
     ~descr:"Convert linear scale into decibels."
     (fun p ->
        let x = Lang.to_float (Lang.assoc "" 1 p) in
-         Lang.float (Sutils.dB_of_lin x)) ;
+         Lang.float (Audio.dB_of_lin x)) ;
   add_builtin "lin_of_dB" ~cat:Math ["",Lang.float_t,None,None] Lang.float_t
     ~descr:"Convert decibels into linear scale."
     (fun p ->
        let x = Lang.to_float (Lang.assoc "" 1 p) in
-         Lang.float (Sutils.lin_of_dB x))
+         Lang.float (Audio.lin_of_dB x))
 
 (** Interactive parameters. *)
 

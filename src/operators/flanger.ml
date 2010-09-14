@@ -97,5 +97,5 @@ let () =
          Lang.to_float_getter (f "phase"),
          Lang.to_source (f "")
        in
-       let feedback = fun () -> Sutils.lin_of_dB (feedback ()) in
+       let feedback = fun () -> Audio.lin_of_dB (feedback ()) in
          new flanger ~kind src duration freq feedback phase)

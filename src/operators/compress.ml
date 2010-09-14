@@ -87,8 +87,8 @@ object (self)
       in
       let ef_ai = 1. -. ef_a in
       (* Knees. *)
-      let knee_min = Sutils.lin_of_dB (threshold -. knee) in
-      let knee_max = Sutils.lin_of_dB (threshold +. knee) in
+      let knee_min = Audio.lin_of_dB (threshold -. knee) in
+      let knee_max = Audio.lin_of_dB (threshold +. knee) in
         for i = offset to AFrame.position buf - 1 do
 
           (* Input level. *)
@@ -124,14 +124,14 @@ object (self)
                   if env < knee_max then
                     (* Knee: compress smoothly. *)
                     let x =
-                      (knee +. Sutils.dB_of_lin env -. threshold)
+                      (knee +. Audio.dB_of_lin env -. threshold)
                       /. (2. *. knee)
                     in
-                      Sutils.lin_of_dB (0. -. knee *. ratio *. x *. x)
+                      Audio.lin_of_dB (0. -. knee *. ratio *. x *. x)
                   else
                     (* Maximal (n:1) compression. *)
-                    Sutils.lin_of_dB
-                      ((threshold -. Sutils.dB_of_lin env) *. ratio)
+                    Audio.lin_of_dB
+                      ((threshold -. Audio.dB_of_lin env) *. ratio)
             in
               gain <- gain *. ef_a +. gain_t *. ef_ai;
 
@@ -146,7 +146,7 @@ object (self)
                 if count mod 10000 = 0 then
                   self#log#f 4
                     "RMS:%7.02f     Env:%7.02f     Gain: %4.02f\r%!"
-                    (Sutils.dB_of_lin amp) (Sutils.dB_of_lin env) gain
+                    (Audio.dB_of_lin amp) (Audio.dB_of_lin env) gain
 
         done;
         (* Reset values if it is the end of the track. *)
@@ -209,7 +209,7 @@ let compress p kind =
           ratio
           knee
           rmsw
-          (fun () -> Sutils.lin_of_dB (gain ()))
+          (fun () -> Audio.lin_of_dB (gain ()))
 
 let () =
   Lang.add_operator "compress"

@@ -227,7 +227,7 @@ let extract p =
     let t = Lang.to_float v in
       if t>0. then
         raise (Lang.Invalid_value (v,"threshold should be negative")) ;
-      Sutils.lin_of_dB t
+      Audio.lin_of_dB t
   in
     length,threshold,s
 
