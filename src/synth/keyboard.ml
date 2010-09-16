@@ -46,18 +46,18 @@ object (self)
   method abort_track = ()
   method output = if AFrame.is_partial memo then self#get_frame memo
 
-  val mutable ev = []
+  val mutable ev = MIDI.create (MFrame.size ())
   val ev_m = Mutex.create ()
 
-  method private add_event (t:int) (e:Midi.event) =
+  method private add_event (t:int) (e:MIDI.event) =
     Mutex.lock ev_m;
-    ev <- (t,e)::ev;
+    MIDI.insert ev (t,e);
     Mutex.unlock ev_m
 
   method private get_events =
     Mutex.lock ev_m;
-    let e = List.rev ev in
-      ev <- [];
+    let e = MIDI.copy ev in
+      MIDI.clear_all ev;
       Mutex.unlock ev_m;
       e
 
@@ -80,7 +80,7 @@ object (self)
           in
             begin try
               self#log#f 3 "Playing note %d." (note_of_char c);
-              self#add_event 0 (Midi.Note_on (note_of_char c, 0.8))
+              self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
             with
               | Not_found -> ()
             end ;
@@ -100,7 +100,7 @@ object (self)
     let m = m.Frame.midi in
     let t = self#get_events in
       for c = 0 to Array.length m - 1 do
-        m.(c) := t
+        MIDI.blit_all m.(c) t
       done;
       MFrame.add_break frame (MFrame.size ())
 

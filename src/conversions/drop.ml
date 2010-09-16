@@ -45,7 +45,7 @@ object
               !len
           done ;
           for i = 0 to Array.length src.Frame.midi - 1 do
-            Midi.blit
+            MIDI.blit
               src.Frame.midi.(i) start
               dst.Frame.midi.(i) start
               len
@@ -99,7 +99,7 @@ object
               done
           done ;
           for i = 0 to Array.length src.Frame.midi - 1 do
-            Midi.blit
+            MIDI.blit
               src.Frame.midi.(i) start
               dst.Frame.midi.(i) start
               len

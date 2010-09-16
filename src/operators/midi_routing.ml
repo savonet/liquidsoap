@@ -44,10 +44,9 @@ object (self)
     source#get buf;
     let m = MFrame.content buf offset in
       for c = 0 to Array.length m - 1 do
-        m.(out) := !(m.(c)) @ !(m.(out));
-        if c <> out then m.(c) := []
-      done;
-      m.(out) := List.sort (fun (t1, _) (t2, _) -> t1 - t2) !(m.(out))
+        MIDI.merge m.(out) m.(c);
+          if c <> out then MIDI.clear_all m.(c)
+      done
 end
 
 class remove ~kind (source:source) t =
@@ -58,7 +57,7 @@ object (self)
     let offset = MFrame.position buf in
     source#get buf;
     let m = MFrame.content buf offset in
-      List.iter (fun c -> m.(c) := []) t
+      List.iter (fun c -> MIDI.clear_all m.(c)) t
 end
 
 let () =
@@ -73,7 +72,7 @@ let () =
     ~descr:"Merge all MIDI tracks in one."
     (fun p kind ->
        let f v = List.assoc v p in
-       let out = Mutils.to_chan (f "track_out") in
+       let out = Lang.to_int (f "track_out") in
        let src = Lang.to_source (f "") in
          new merge ~kind src out)
 
@@ -89,6 +88,6 @@ let () =
     ~descr:"Remove MIDI tracks."
     (fun p kind ->
        (* let f v = List.assoc v p in *)
-       let t = List.map Mutils.to_chan (Lang.to_list (Lang.assoc "" 1 p)) in
+       let t = List.map Lang.to_int (Lang.to_list (Lang.assoc "" 1 p)) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
          new remove ~kind src t)

@@ -20,24 +20,33 @@
 
  *****************************************************************************)
 
-include Frame
+open Frame
 
-let size () = Lazy.force Frame.size
+type t = Frame.t
 
-let position t = position t
+let mot = midi_of_master
+let tom = master_of_midi
+
+let size () = mot (Lazy.force Frame.size)
+let position t = mot (position t)
 
 let content b pos =
-  let stop,content = content b pos in
+  let stop,content = content b (tom pos) in
     assert (stop = size ()) ;
     content.midi
 
 let content_of_type ~channels b pos =
-  let ctype = { Frame. audio = 0 ; video = 0 ; midi = channels } in
-  let content = Frame.content_of_type b pos ctype in
-    content.Frame.midi
+  let ctype = { audio = 0 ; video = 0 ; midi = channels } in
+  let content = content_of_type b (tom pos) ctype in
+    content.midi
 
-let set_events f e = ()
+let add_break t i = add_break t (tom i)
+let is_partial = is_partial
 
-(* TODO this is ugly *)
-let clear f =
-  Array.iter (fun t -> t := []) (content f 0)
+type metadata = (string,string) Hashtbl.t
+let set_metadata t i m = set_metadata t (tom i) m
+let get_metadata t i = get_metadata t (tom i)
+let get_all_metadata t =
+  List.map (fun (x,y) -> mot x, y) (get_all_metadata t)
+let set_all_metadata t l =
+  set_all_metadata t (List.map (fun (x,y) -> tom x, y) l)

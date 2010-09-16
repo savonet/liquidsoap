@@ -101,6 +101,8 @@ let video_height = delayed (fun () -> conf_video_height#get)
 
 let audio_rate = delayed (fun () -> conf_audio_samplerate#get)
 let video_rate = delayed (fun () -> conf_video_samplerate#get)
+(* TODO: midi rate is the same as audio for now *)
+let midi_rate = delayed (fun () -> conf_audio_samplerate#get)
 
 (** Greatest common divisor. *)
 let rec gcd a b =
@@ -126,11 +128,13 @@ let m_o_v = delayed (fun () -> !!master_rate / !!video_rate)
 
 let master_of_audio a = a * !!m_o_a
 let master_of_video v = v * !!m_o_v
-let master_of_midi m = m
+(* TODO: for now MIDI rate is the same as audio rate. *)
+let master_of_midi = master_of_audio
 
 let audio_of_master m = m / !!m_o_a
 let video_of_master m = m / !!m_o_v
-let midi_of_master m = m
+(* TODO: for now MIDI rate is the same as audio rate. *)
+let midi_of_master = audio_of_master
 
 let master_of_seconds d = int_of_float (d *. float !!master_rate)
 let audio_of_seconds d = int_of_float (d *. float !!audio_rate)
@@ -209,7 +213,7 @@ type content_type = (int,int,int) fields
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer
 and video_t = Video.buffer
-and midi_t  = (int*Midi.event) list ref
+and midi_t  = MIDI.buffer
 
 (** Compatibilities between content kinds, types and values.
   * [sub a b] if [a] is more permissive than [b]. *)
@@ -327,14 +331,12 @@ let create_content content_type =
   {
     audio =
       Array.init content_type.audio
-        (fun i ->
-           Array.create (audio_of_master !!size) 0.) ;
+        (fun _ -> Array.create (audio_of_master !!size) 0.) ;
     video =
       Array.init content_type.video
-        (fun i ->
-          Video.make (video_of_master !!size) !!video_width !!video_height);
+        (fun _ -> Video.make (video_of_master !!size) !!video_width !!video_height);
     midi =
-      Array.init content_type.midi (fun _ -> ref (Midi.create_track ()))
+      Array.init content_type.midi (fun _ -> MIDI.create (midi_of_master !!size))
   }
 
 
@@ -514,7 +516,8 @@ let blit_content src src_pos dst dst_pos len =
   Utils.array_iter2 src.midi dst.midi
     (fun m m' ->
        if m != m' then
-         Midi.blit m' src_pos m dst_pos len)
+         let (!) = midi_of_master in
+         MIDI.blit m' !src_pos m !dst_pos !len)
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
@@ -589,4 +592,4 @@ let get_chunk ab from =
 let copy content =
   { audio = Array.map Audio.Mono.copy content.audio ;
     video = Array.map Video.copy content.video ;
-    midi = Array.map Midi.copy content.midi }
+    midi = Array.map MIDI.copy content.midi }

@@ -76,7 +76,7 @@ object (self)
     let m = Frame.content_of_type frame 0 (Frame.type_of_kind kind) in
     let m = m.Frame.midi in
     let t =
-      let ans = ref [] in
+      let ans = MIDI.create (MFrame.size ()) in
         Sdlevent.pump ();
         while Sdlevent.has_event () do
           try
@@ -90,21 +90,21 @@ object (self)
                     else
                       let n = note_of_char c in
                         (* Printf.printf "Playing note %d.\n%!" n; *)
-                        ans := (0,Midi.Note_on (n, velocity))::!ans
+                        MIDI.insert ans (0,MIDI.Note_on (n, velocity))
               | Some (Sdlevent.KEYUP k) ->
                   let c = Sdlkey.char_of_key k.Sdlevent.keysym in
                   let n = note_of_char c in
                     (* Printf.printf "Stopping note %d.\n%!" n; *)
-                    ans := (0,Midi.Note_off (n, velocity))::!ans
+                    MIDI.insert ans (0,MIDI.Note_off (n, velocity))
               | _ -> ()
           with
             | Not_found
             | Invalid_argument _ -> ()
         done;
-        !ans
+        ans
     in
       for c = 0 to Array.length m - 1 do
-        m.(c) := t
+        MIDI.merge m.(c) t
       done;
       MFrame.add_break frame (MFrame.size ())
 end

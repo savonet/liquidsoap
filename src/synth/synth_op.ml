@@ -40,31 +40,11 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
     let evs = (MFrame.content buf (MFrame.position buf)).(chan) in
-    let evs = !evs in
     source#get buf;
     let b = AFrame.content buf offset in
     let position = AFrame.position buf in
-    let sps = float (Lazy.force Frame.audio_rate) in
-    let rec process evs off =
-      match evs with
-        | (t,e)::tl ->
-            let t = Frame.audio_of_master t in
-              synth#synth sps b off (t - off);
-              (
-                match e with
-                  | Midi.Note_on (n, v) ->
-                      synth#note_on n v
-                  | Midi.Note_off (n, v) ->
-                      synth#note_off n v
-                  | Midi.Control_change (0x7, v) ->
-                      synth#set_volume (float v /. 127.)
-                  | _ -> ()
-              );
-              process tl t
-        | [] ->
-            synth#synth sps b off (position - off)
-    in
-      process evs offset
+    let len = position - offset in
+    synth#play evs offset b offset len
 end
 
 let register obj name descr =
@@ -85,7 +65,7 @@ let register obj name descr =
     ~descr
     (fun p kind ->
        let f v = List.assoc v p in
-       let chan = Mutils.to_chan (f "channel") in
+       let chan = Lang.to_int (f "channel") in
        let volume = Lang.to_float (f "volume") in
        let adsr =
          Lang.to_float (f "attack"),
@@ -93,7 +73,12 @@ let register obj name descr =
          Lang.to_float (f "sustain"),
          Lang.to_float (f "release")
        in
-       let adsr = if Lang.to_bool (f "envelope") then Some adsr else None in
+       let adsr =
+         if Lang.to_bool (f "envelope") then
+           Some (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
+         else
+           None
+       in
        let src = Lang.to_source (f "") in
          new synth ~kind (obj adsr) src chan volume);
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ~midi:16 ()) in
@@ -118,15 +103,22 @@ let register obj name descr =
          Lang.to_float (f "sustain"),
          Lang.to_float (f "release")
        in
-       let adsr = if Lang.to_bool (f "envelope") then Some adsr else None in
+       let adsr =
+         if Lang.to_bool (f "envelope") then
+           Some (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
+         else
+           None
+       in
        let synths = Array.init ((Frame.type_of_kind kind).Frame.midi) (fun c -> 1, new synth ~kind (obj adsr) src c 1.) in
        let synths = Array.to_list synths in
          new Add.add ~kind ~renorm:false synths
            (fun _ -> ())
-           (fun _ buf tmp -> RGB.add_fast buf tmp)
+           (fun _ buf tmp -> Image.RGBA8.add buf tmp)
     )
 
-let () = register (fun adsr -> (new Synth.sine ?adsr () :> Synth.synth)) "sine" "Sine synthesizer."
-let () = register (fun adsr -> (new Synth.square ?adsr () :> Synth.synth)) "square" "Square synthesizer."
-let () = register (fun adsr -> (new Synth.saw ?adsr () :> Synth.synth)) "saw" "Saw synthesizer."
+let () = register (fun adsr -> (new Synth.sine ?adsr (Lazy.force Frame.audio_rate))) "sine" "Sine synthesizer."
+let () = register (fun adsr -> (new Synth.square ?adsr (Lazy.force Frame.audio_rate))) "square" "Square synthesizer."
+let () = register (fun adsr -> (new Synth.saw ?adsr (Lazy.force Frame.audio_rate))) "saw" "Saw synthesizer."
+(*
 let () = register (fun adsr -> (new Synth.hammond ?adsr (* [|4.; 6.; 8.; 3.; 6.; 4.; 8.; 7.; 6.|] *) [|0.; 0.; 6.; 5.; 4.; 5.; 4.; 5.; 6.|] :> Synth.synth)) "hammond" "Hammond synthsizer."
+*)

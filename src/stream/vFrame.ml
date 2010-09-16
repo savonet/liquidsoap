@@ -20,7 +20,9 @@
 
  *****************************************************************************)
 
-include Frame
+open Frame
+
+type t = Frame.t
 
 let vot = Frame.video_of_master
 let tov = Frame.master_of_video
@@ -29,8 +31,11 @@ let size _ = vot (Lazy.force size)
 let position t = vot (position t)
 let add_break t i = add_break t (tov i)
 
+exception No_metadata
+type metadata = (string,string) Hashtbl.t
 let set_metadata t i m = set_metadata t (tov i) m
 let get_metadata t i = get_metadata t (tov i)
+let is_partial = is_partial
 
 let content b pos =
   let stop,content = content b (tov pos) in

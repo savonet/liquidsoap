@@ -86,10 +86,10 @@ object (self)
       let dssi_of_midi (t, e) =
         let t = Frame.audio_of_master (Frame.master_of_midi t) in
           match e with
-            | Midi.Note_on (n, v) ->
+            | MIDI.Note_on (n, v) ->
                 Some
                   (t, Dssi.Event_note_on (0, n, int_of_float (v *. 127.)))
-            | Midi.Note_off (n, v) ->
+            | MIDI.Note_off (n, v) ->
                 Some
                   (t, Dssi.Event_note_off (0, n, int_of_float (v *. 127.)))
             | _ -> None

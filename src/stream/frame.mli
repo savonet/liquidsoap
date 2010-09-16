@@ -32,7 +32,7 @@ type content_type = (int, int, int) fields
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer
 and video_t = Video.buffer
-and midi_t = (int * Midi.event) list ref
+and midi_t = MIDI.buffer
 
 val blit_content : content -> int -> content -> int -> int -> unit
 
@@ -114,6 +114,7 @@ val video_height : int Lazy.t
 
 val audio_rate : int Lazy.t
 val video_rate : int Lazy.t
+val midi_rate : int Lazy.t
 val master_rate : int Lazy.t
 
 val size : int Lazy.t

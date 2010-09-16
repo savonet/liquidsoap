@@ -85,9 +85,10 @@ operators = \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
-	operators/midi_routing.ml operators/chord.ml \
+	operators/midi_routing.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/video_image.ml
+	#operators/chord.ml
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
@@ -127,8 +128,7 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
 	tools/tutils.ml tools/http.ml tools/pool.ml
 
-stream = stream/midi.ml \
-	stream/frame.ml stream/generator.ml \
+stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization = visualization/vumeter.ml \
@@ -138,9 +138,8 @@ visualization = visualization/vumeter.ml \
 	visualization/midimeter.ml \
 	visualization/video_volume.ml \
 
-synth =
-#	synth/keyboard.ml synth/synth_op.ml \
-#	$(if $(W_SDL),synth/keyboard_sdl.ml) \
+synth = synth/keyboard.ml synth/synth_op.ml \
+	$(if $(W_SDL),synth/keyboard_sdl.ml) \
 #	$(if $(W_DSSI),synth/dssi_op.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
@@ -152,8 +151,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang.ml \
-	tools/ioRing.ml tools/mutils.ml \
+	lang/lang_pp.ml lang/lang.ml tools/ioRing.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \

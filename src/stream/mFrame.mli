@@ -5,7 +5,7 @@ type t = Frame.t
 (** Is it partially filled ? *)
 val is_partial : t -> bool
 
-(** Number of ticks in a MIDI frame. *)
+(** Number size of a MIDI frame. *)
 val size : unit -> int
 
 (** Position of the first break. *)
@@ -26,6 +26,3 @@ val content : t -> int -> Frame.midi_t array
 
 (** Get the MIDI tracks at a given position, creating it if needed. *)
 val content_of_type : channels:int -> t -> int -> Frame.midi_t array
-
-(** Clear up all midi data. *)
-val clear : t -> unit
