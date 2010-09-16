@@ -517,7 +517,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun m m' ->
        if m != m' then
          let (!) = midi_of_master in
-         MIDI.blit m' !src_pos m !dst_pos !len)
+         MIDI.blit m !src_pos m' !dst_pos !len)
 
 (** Copy data from [src] to [dst].
   * This triggers changes of contents layout if needed. *)
