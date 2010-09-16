@@ -87,8 +87,7 @@ operators = \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml \
 	operators/time_warp.ml operators/resample.ml \
-	operators/video_image.ml
-	#operators/chord.ml
+	operators/video_image.ml operators/chord.ml
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \

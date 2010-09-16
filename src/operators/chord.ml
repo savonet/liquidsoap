@@ -83,15 +83,12 @@ object (self)
         List.rev !ans
     in
     let play t n =
-      let notes = List.map (fun n -> t, Midi.Note_on (n,1.)) n in
-        m.(chan) := notes @ !(m.(chan));
-        notes_on <- n @ notes_on
+      List.iter (fun n -> MIDI.insert m.(chan) (t,MIDI.Note_on (n,1.))) n;
+      notes_on <- n @ notes_on
     in
-    let to_mute = ref [] in
     let mute t =
-      let notes = List.map (fun n -> t, Midi.Note_off (n,1.)) notes_on in
-        to_mute := notes @ !to_mute;
-        notes_on <- []
+      List.iter (fun n -> MIDI.insert m.(chan) (t,MIDI.Note_off (n,1.))) notes_on;
+      notes_on <- []
     in
       List.iter
         (fun (t,c,m) -> (* time, base, mode *)
@@ -115,9 +112,7 @@ object (self)
                  | m ->
                      self#log#f 5 "Unknown mode: %s\n%!" m
              );
-        ) chords;
-      (* We should mute before playing the new chord, so we need a stable sort. *)
-      m.(chan) := Mutils.sort_track (!to_mute @ !(m.(chan)))
+        ) chords
 end
 
 let () =
