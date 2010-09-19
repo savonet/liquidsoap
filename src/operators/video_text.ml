@@ -71,8 +71,7 @@ object (self)
   initializer
     Sdl.init [];
     Sdlttf.init ();
-    font <- Some
-    (
+    let f =
       try
         Sdlttf.open_font (Lang.to_string ttf) ttf_size
       with
@@ -80,8 +79,9 @@ object (self)
             raise (Lang.Invalid_value (ttf, s))
         | e ->
             raise (Lang.Invalid_value (ttf, Utils.error_message e))
-    );
-    self#render_text cur_text
+    in
+      font <- Some f;
+      self#render_text cur_text
 
   method private get_frame ab =
     let off = VFrame.position ab in
@@ -130,8 +130,7 @@ let () =
   Lang.add_operator "video.add_text"
     [
       "font", Lang.string_t,
-      (* TODO Autodetect *)
-      Some (Lang.string "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"),
+      Some (Lang.string "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf"),
       Some "Path to ttf font file.";
 
       "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
