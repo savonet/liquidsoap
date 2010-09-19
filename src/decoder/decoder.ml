@@ -216,7 +216,7 @@ let dummy =
 exception Exit of (string * (unit -> file_decoder))
 
 (** Get a valid decoder creator for [filename]. *)
-let get_file_decoder ~metadata filename kind : (unit -> file_decoder) option =
+let get_file_decoder ~metadata filename kind =
   try
     file_decoders#iter ~rev:true 
       (fun name decoder ->
@@ -239,7 +239,8 @@ let get_file_decoder ~metadata filename kind : (unit -> file_decoder) option =
     None
   with
     | Exit (name,f) ->
-        Some (fun () ->
+        Some (name,
+              fun () ->
                 try f () with _ ->
                   log#f 2 "Decoder %S betrayed us on %S!" name filename ;
                   dummy)

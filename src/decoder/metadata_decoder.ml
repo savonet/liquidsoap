@@ -50,7 +50,7 @@ let parse_file filename =
   let input = open_in filename in
   let lexer = Genlex.make_lexer [":"] (Stream.of_channel input) in
   let rec parse acc =
-    match try Some (parse_item lexer) with _ -> None with
+    match try Some (parse_item lexer) with Stream.Failure -> None with
       | Some i -> parse (i::acc)
       | None -> List.rev acc
   in

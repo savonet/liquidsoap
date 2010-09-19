@@ -58,7 +58,7 @@ val test_mp4 : ?log:(string->unit) -> string -> bool
 
 val get_file_decoder :
   metadata:Frame.metadata -> file -> Frame.content_kind ->
-  (unit -> file_decoder) option
+  (string * (unit -> file_decoder)) option
 val get_stream_decoder :
   file -> Frame.content_kind -> stream_decoder option
 
