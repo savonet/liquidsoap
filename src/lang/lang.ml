@@ -108,6 +108,7 @@ let rec mul_of_type default t =
           T.bind t (type_of_int default) ;
           Frame.mul_of_int default
     | _ -> assert false
+             (* TODO can happen e.g. on request.queue() *)
 
 let frame_kind_of_kind_type t =
   let k = Term.of_frame_kind_t t in
@@ -191,7 +192,7 @@ let kind_type_of_kind_format ~fresh fmt =
               in
                 fresh, aux i
           | Any_fixed i ->
-              let zero = univ_t ~constraints:[T.Fixed] fresh in
+              let zero = univ_t ~constraints:[T.Arity_fixed] fresh in
               let rec aux i =
                 if i = 0 then zero else succ_t (aux (i-1))
               in

@@ -85,8 +85,14 @@ let rec print_ground = function
 
 (** Type constraints *)
 
-type constr = Num | Ord | Getter of ground | Dtools | Fixed
+type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
 type constraints = constr list
+
+let print_symconstr = function
+  | Arity_any -> Some "*"
+  | Arity_fixed -> Some "#"
+  | _ -> None
+
 let print_constr = function
   | Num -> "a number type"
   | Ord -> "an orderable type"
@@ -94,7 +100,8 @@ let print_constr = function
       let t = print_ground t in
         Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "bool, int, float, string or [string]"
-  | Fixed -> "a fixed arity type"
+  | Arity_any -> "an arity"
+  | Arity_fixed -> "a fixed arity"
 
 (** Types *)
 
@@ -152,11 +159,11 @@ let name =
   * and variable names are generated.
   * Names are only meaningful over one printing, as they are re-used. *)
 let print ?(generalized=[]) t =
-  let uvar_name i =
+  let uvar_name ~constr_symbols i =
     let rec index n = function
       | v::tl ->
           if v=i then
-            Printf.sprintf "'%s" (name n)
+            Printf.sprintf "'%s%s" constr_symbols (name n)
           else
             index (n+1) tl
       | [] -> assert false
@@ -167,8 +174,8 @@ let print ?(generalized=[]) t =
   let evars = Hashtbl.create 10 in
   (* let uvars = Hashtbl.create 10 in *)
   let counter = let c = ref 0 in fun () -> incr c ; !c in
-  let evar_name i =
-    if debug then Printf.sprintf "?%d" i else
+  let evar_name ~constr_symbols i =
+    if debug then Printf.sprintf "?%s%d" constr_symbols i else
       let s =
         try
           Hashtbl.find evars i
@@ -177,20 +184,8 @@ let print ?(generalized=[]) t =
             Hashtbl.add evars i name ;
             name
       in
-        Printf.sprintf "?%s" s
+        Printf.sprintf "?%s%s" constr_symbols s
   in
-  (* let uvar_name i =
-    if debug then Printf.sprintf "'%d" i else
-      let s =
-        try
-          Hashtbl.find uvars i
-        with Not_found ->
-          let name = name (counter ()) in
-            Hashtbl.add uvars i name ;
-            name
-      in
-        Printf.sprintf "'%s" s
-  in *)
   (** Compute the string representation of a type, dereferencing it on-the-fly.
     * Attaches the list of variables that occur in the type.
     * The [par] params tells whether (..)->.. should be surrounded by
@@ -230,12 +225,20 @@ let print ?(generalized=[]) t =
         in
           aux 0 t
     | EVar (i,c) as d ->
+        let constr_symbols,c' =
+          List.fold_left
+            (fun (s,constraints) c ->
+               match print_symconstr c with
+                 | None -> s,c::constraints
+                 | Some sym -> s^sym,constraints)
+            ("",[]) c
+        in
         if generalized i then
-          (uvar_name (i,c)),
-          (if c<>[] then DS.add d vars else vars)
+          (uvar_name ~constr_symbols (i,c)),
+          (if c'<>[] then DS.add d vars else vars)
         else
-          (evar_name i),
-          (if c<>[] then DS.add d vars else vars)
+          (evar_name ~constr_symbols i),
+          (if c'<>[] then DS.add d vars else vars)
     | Arrow (p,t) ->
         let params,vars =
            List.fold_left
@@ -270,56 +273,66 @@ let print ?(generalized=[]) t =
         let x,vars = print ~par:false vars x in
           print_list vars (x::acc) l
   in
-  let repr,constraints = print ~par:false DS.empty t in
-    if DS.is_empty constraints then repr else
-      match (deref t).descr, DS.elements constraints with
-        | EVar _, [EVar(i,c)] ->
-            if generalized i then
-              Printf.sprintf "anything that is %s"
-                (String.concat " and " (List.map print_constr c))
-            else
-              Printf.sprintf "something that is %s"
-                (String.concat " and " (List.map print_constr c))
-        | _, constraints ->
-            let constraints =
-              List.map
-                (fun x ->
-                   let i,c =
-                     match x with
-                       | EVar (i,c) ->
-                           if generalized i then
-                             uvar_name (i,c), c
-                           else
-                             evar_name i, c
-                       | _ -> assert false
-                   in
-                   let c = String.concat " and " (List.map print_constr c) in
-                     i,c)
-                constraints
-            in
-            let constraints =
-              List.stable_sort (fun (_,a) (_,b) -> compare a b) constraints
-            in
-            let group : ('a*'b) list -> ('a list * 'b) list = function
-              | [] -> []
-              | (i,c)::l ->
-                  let rec group prev acc = function
-                    | [] -> [List.rev acc,prev]
-                    | (i,c)::l ->
-                        if prev = c then group c (i::acc) l else
-                          (List.rev acc, prev) :: group c [i] l
-                  in
-                    group c [i] l
-            in
-            let constraints = group constraints in
-            let constraints =
-              List.map
-                (fun (ids,c) ->
-                   Printf.sprintf "%s is %s" (String.concat ", " ids) c)
-                constraints
-            in
-              repr ^ " where " ^
-              (String.concat ", " constraints)
+    match (deref t).descr with
+      | EVar (i,c) ->
+          (* We're only printing a variable: ignore its [repr]esentation. *)
+          if generalized i then
+            Printf.sprintf "anything that is %s"
+              (String.concat " and " (List.map print_constr c))
+          else
+            Printf.sprintf "something that is %s"
+              (String.concat " and " (List.map print_constr c))
+      | _ ->
+          let repr,constraints = print ~par:false DS.empty t in
+          let constraints = DS.elements constraints in
+            if constraints = [] then repr else
+              let constraints =
+                List.map
+                  (fun x ->
+                     let i,c =
+                       match x with
+                         | EVar (i,c) ->
+                             let constr_symbols,c' =
+                               List.fold_left
+                                 (fun (s,constraints) c ->
+                                    match print_symconstr c with
+                                      | None -> s,c::constraints
+                                      | Some sym -> s^sym,constraints)
+                                 ("",[]) c
+                             in
+                             if generalized i then
+                               uvar_name ~constr_symbols (i,c), c'
+                             else
+                               evar_name ~constr_symbols i, c'
+                         | _ -> assert false
+                     in
+                     let c = String.concat " and " (List.map print_constr c) in
+                       i,c)
+                  constraints
+              in
+              let constraints =
+                List.stable_sort (fun (_,a) (_,b) -> compare a b) constraints
+              in
+              let group : ('a*'b) list -> ('a list * 'b) list = function
+                | [] -> []
+                | (i,c)::l ->
+                    let rec group prev acc = function
+                      | [] -> [List.rev acc,prev]
+                      | (i,c)::l ->
+                          if prev = c then group c (i::acc) l else
+                            (List.rev acc, prev) :: group c [i] l
+                    in
+                      group c [i] l
+              in
+              let constraints = group constraints in
+              let constraints =
+                List.map
+                  (fun (ids,c) ->
+                     Printf.sprintf "%s is %s" (String.concat ", " ids) c)
+                  constraints
+              in
+                repr ^ " where " ^
+                (String.concat ", " constraints)
 
 let fresh_evar =
   let fresh_id =
@@ -437,14 +450,23 @@ let rec bind a0 b =
                              b.descr <- EVar (j,Num::c)
                        | _ -> raise (Unsatisfied_constraint (Num,b))
                      end
-                 | Fixed ->
+                 | Arity_any ->
+                     let rec check b = match b.descr with
+                       | Zero | Variable -> ()
+                       | Succ b -> check (deref b)
+                       | EVar (j,c) ->
+                           if List.mem Arity_any c then () else
+                             b.descr <- EVar (j,Arity_any::c)
+                       | _ -> raise (Unsatisfied_constraint (Arity_any,b))
+                     in check b
+                 | Arity_fixed ->
                      let rec check b = match b.descr with
                        | Zero -> ()
                        | Succ b -> check (deref b)
                        | EVar (j,c) ->
-                           if List.mem Fixed c then () else
-                             b.descr <- EVar (j,Fixed::c)
-                       | _ -> raise (Unsatisfied_constraint (Fixed,b))
+                           if List.mem Arity_fixed c then () else
+                             b.descr <- EVar (j,Arity_fixed::c)
+                       | _ -> raise (Unsatisfied_constraint (Arity_fixed,b))
                      in check b)
               constraints
         | _ -> assert false (* only EVars are bindable *)
@@ -560,7 +582,8 @@ let rec (<:) a b =
     (* The two EVar cases are abusive because of subtyping. We should add a
      * subtyping constraint instead of unifying. Nevermind...
      * It's a pain for arrow types, and forgetting about it doesn't hurt. *)
-    | EVar (_,c), Variable when List.mem Fixed c -> ()
+    | EVar (_,c), Variable when List.mem Arity_fixed c -> ()
+    | EVar (_,c), Variable when List.mem Arity_any c -> ()
     | EVar _, _ ->
         begin try bind a b with
           | Occur_check _ | Unsatisfied_constraint _ ->

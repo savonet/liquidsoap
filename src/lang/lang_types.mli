@@ -29,7 +29,7 @@ type variance = Covariant | Contravariant | Invariant
 type ground = Unit | Bool | Int | String | Float
 val print_ground : ground -> string
 
-type constr = Num | Ord | Getter of ground | Dtools | Fixed
+type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
 type constraints = constr list
 val print_constr : constr -> string
 
