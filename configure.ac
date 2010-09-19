@@ -432,7 +432,7 @@ if test -z "$with_dtools_dir" ; then
 else
    echo $with_dtools_dir | grep ^/ > /dev/null 2>&1 \
    || with_dtools_dir=$PWD/$with_dtools_dir
-   packages=`cat $with_dtools_dir/META | grep 'requires' | sed -e 's#thread##' | cut -d '=' -f 2 | tr -d '"'`
+   packages=`cat $with_dtools_dir/META | grep 'requires' | sed -e 's#threads##' | cut -d '=' -f 2 | tr -d '"'`
    ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_dtools_dir"
    ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` dtools.$cma"
    requires="$requires $packages"
