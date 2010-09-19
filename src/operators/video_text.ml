@@ -74,16 +74,12 @@ object (self)
     font <- Some
     (
       try
-        Sdlttf.open_font ttf ttf_size
+        Sdlttf.open_font (Lang.to_string ttf) ttf_size
       with
+        | Sdlttf.SDLttf_exception s ->
+            raise (Lang.Invalid_value (ttf, s))
         | e ->
-            (* TODO it is forbidden to raise Invalid_value on a made-up value
-             *   because it needs a position information to report the error *)
-            raise (Lang.Invalid_value
-                     ((Lang.string ttf),
-                      Printf.sprintf
-                        "Could not open font: %s"
-                        (Utils.error_message e)));
+            raise (Lang.Invalid_value (ttf, Utils.error_message e))
     );
     self#render_text cur_text
 
@@ -166,7 +162,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
-         Lang.to_string (f "font"),
+         f "font",
          Lang.to_int (f "size"),
          Lang.to_int (f "color"),
          Lang.to_int (f "x"),
