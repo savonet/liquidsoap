@@ -560,7 +560,7 @@ end
 
 # Create a log of clock times for all the clocks initially present.
 # The log is in simple format, which you can notably directly use with gnuplot.
-def log_clocks(interval=1.,logfile)
+def log_clocks(~interval=1.,logfile)
   # Get the current clocks
   clocks = list.map(fst,get_clock_status())
   # Column headers

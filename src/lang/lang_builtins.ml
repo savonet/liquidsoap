@@ -173,6 +173,14 @@ let () =
                 :: l)
              []
          in
+         let l =
+           Lang.product
+             (Lang.string "uptime")
+             (Lang.int
+                (int_of_float
+                   (Utils.uptime () /. Lazy.force Frame.duration)))
+           :: l
+         in
            Lang.list t l)
 
 let () =
