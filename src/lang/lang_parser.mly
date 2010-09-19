@@ -107,11 +107,17 @@
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
       | "source" ->
           (* TODO less confusion in hiding the stream_kind constructed type *)
+          (* TODO print position in error message *)
           let audio,video,midi =
             match args with
               | ["",a;"",v;"",m] -> a,v,m
               | _::_::_::_ -> failwith "invalid type parameters"
               | l ->
+                  List.iter
+                    (fun (lbl,_) ->
+                      if not (List.mem lbl ["audio";"video";"midi"]) then
+                        failwith "invalid type parameters")
+                    l ;
                   let assoc x =
                     try List.assoc x l with
                       | Not_found ->
