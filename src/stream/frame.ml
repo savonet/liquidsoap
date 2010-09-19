@@ -216,18 +216,19 @@ and video_t = Video.buffer
 and midi_t  = MIDI.buffer
 
 (** Compatibilities between content kinds, types and values.
-  * [sub a b] if [a] is more permissive than [b]. *)
+  * [sub a b] if [a] is more permissive than [b]..
+  * TODO this is the other way around... it's correct in Lang, phew! *)
 
 let rec mul_sub_mul = function
-  | Variable, _ -> true
+  | _, Variable -> true
   | Zero, Zero -> true
   | Succ a, Succ b -> mul_sub_mul (a,b)
   | _ -> false
 
-let rec mul_sub_int = function
-  | Variable, _ -> true
-  | Succ m, n when n>0 -> mul_sub_int (m,(n-1))
-  | Zero, 0 -> true
+let rec int_sub_mul = function
+  | _, Variable -> true
+  | n, Succ m when n>0 -> int_sub_mul (n-1,m)
+  | 0, Zero -> true
   | _ -> false
 
 let rec mul_eq_int = function
@@ -236,7 +237,7 @@ let rec mul_eq_int = function
   | _ -> false
 
 let mul_sub_mul a b = mul_sub_mul (a,b)
-let mul_sub_int a b = mul_sub_int (a,b)
+let int_sub_mul a b = int_sub_mul (a,b)
 let mul_eq_int a b = mul_eq_int (a,b)
 
 let kind_sub_kind a b =
@@ -245,9 +246,9 @@ let kind_sub_kind a b =
   mul_sub_mul a.midi b.midi
 
 let type_has_kind t k =
-  mul_sub_int k.audio t.audio &&
-  mul_sub_int k.video t.video &&
-  mul_sub_int k.midi t.midi
+  int_sub_mul t.audio k.audio &&
+  int_sub_mul t.video k.video &&
+  int_sub_mul t.midi  k.midi
 
 let content_has_type c t =
   Array.length c.audio = t.audio &&

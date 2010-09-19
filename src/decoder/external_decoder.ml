@@ -180,7 +180,7 @@ let register_stdin name sdoc test process =
          | Some out_kind ->
              (* Check that kind is more permissive than out_kind and
               * declare that our decoding function will respect out_kind. *)
-             if Frame.kind_sub_kind kind out_kind then
+             if Frame.kind_sub_kind out_kind kind then
                Some (fun () -> create process out_kind filename)
              else None) ;
   let duration filename = 
@@ -252,7 +252,7 @@ let register_oblivious name sdoc test process prebuf =
          | Some out_kind ->
              (* Check that kind is more permissive than out_kind and
               * declare that our decoding function will respect out_kind. *)
-             if Frame.kind_sub_kind kind out_kind then
+             if Frame.kind_sub_kind out_kind kind then
                Some (fun () -> external_input_oblivious process filename prebuf)
              else None);
   let duration filename = 

@@ -86,7 +86,7 @@ val get_chunk : t -> t -> unit
 (** {2 Compatibilities between content values, types and kinds} *)
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
-val mul_sub_int : multiplicity -> int -> bool
+val int_sub_mul : int -> multiplicity -> bool
 val mul_eq_int  : multiplicity -> int -> bool
 val kind_sub_kind : content_kind -> content_kind -> bool
 val type_has_kind : content_type -> content_kind -> bool

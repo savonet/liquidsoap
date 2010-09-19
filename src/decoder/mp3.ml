@@ -97,8 +97,10 @@ let () =
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
           if List.mem mime Decoder.mp3_mime_types#get &&
-             kind.Frame.video <: Frame.Zero &&
-             kind.Frame.midi <: Frame.Zero &&
+             (* Check that it is okay to have zero video and midi,
+              * and at least one audio channel. *)
+             Frame.Zero <: kind.Frame.video &&
+             Frame.Zero <: kind.Frame.midi &&
              kind.Frame.audio <> Frame.Zero
           then
             (* In fact we can't be sure that we'll satisfy the content
