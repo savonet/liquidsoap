@@ -561,11 +561,8 @@ end
 # Create a log of clock times for all the clocks initially present.
 # The log is in simple format, which you can notably directly use with gnuplot.
 # @category Liquidsoap
-# @param ~wait Waiting time in seconds before the logging starts. \
-#              This should be used to delay logging until all clocks have \
-#              been created (i.e., after the beginning of streaming).
 # @param ~interval Polling interval.
-def log_clocks(~wait=1.,~interval=1.,logfile)
+def log_clocks(~interval=1.,logfile)
   # Get the current clocks
   clocks = list.map(fst,get_clock_status())
   # Column headers
@@ -577,5 +574,5 @@ def log_clocks(~wait=1.,~interval=1.,logfile)
     system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
     interval
   end
-  add_timeout(wait,report)
+  add_timeout(interval,report)
 end

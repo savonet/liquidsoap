@@ -261,9 +261,10 @@ object (self)
     let last_latency_log = ref (time ()) in
     let t0 = ref (time ()) in
     let ticks = ref 0L in
+    let frame_duration = Lazy.force Frame.duration in
     let delay () =
       !t0
-      +. (Lazy.force Frame.duration) *. Int64.to_float (Int64.add !ticks 1L)
+      +. frame_duration *. Int64.to_float (Int64.add !ticks 1L)
       -. time ()
     in
       if sync then
@@ -271,6 +272,7 @@ object (self)
       else
         log#f 3 "Streaming loop starts, no sync." ;
       let rec loop () =
+        (* Stop running if there is no output. *)
         if outputs = [] then () else
         let rem = if not sync then 0. else delay () in
           (* Sleep a while or worry about the latency *)

@@ -310,5 +310,5 @@ let name_of_sockaddr ?(rev_dns=true) ?(show_port=false) a =
 
 (** Uptime since the application was started. *)
 let uptime =
-  let base = Unix.time () in
-    fun () -> Unix.time () -. base
+  let base = Unix.gettimeofday () in
+    fun () -> Unix.gettimeofday () -. base
