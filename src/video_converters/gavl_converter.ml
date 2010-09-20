@@ -22,6 +22,9 @@
 
 open Video_converter
 
+module Img = Image.Generic
+module P = Img.Pixel
+
 let conf_gavl =
   Dtools.Conf.void ~p:(video_converter_conf#plug "gavl") "Gavl converter"
       ~comments:[
@@ -64,42 +67,38 @@ let conf_scale_mode =
     ~comments:("Scale mode. Values must be one of: " :: 
                 (List.map (fun (x,_) -> Printf.sprintf "\"%s\"" x) scale_modes))
 
-let formats = [RGB Rgb_24; RGB Bgr_24; RGB Rgb_32;
-               RGB Bgr_32; RGB Rgba_32; YUV Yuv_422;
-               YUV Yuv_444; YUV Yuv_411; YUV Yuv_410;
-               YUV Yuvj_420; YUV Yuvj_422; YUV Yuvj_444]
+let formats = [P.RGB P.RGB24; P.RGB P.BGR24; P.RGB P.RGB32;
+               P.RGB P.BGR32; P.RGB P.RGBA32; P.YUV P.YUV422;
+               P.YUV P.YUV444; P.YUV P.YUV411; P.YUV P.YUV410;
+               P.YUV P.YUVJ420; P.YUV P.YUVJ422; P.YUV P.YUVJ444]
 
-let gavl_format_of x = 
+let gavl_format_of x =
   match x with
-    | RGB x -> 
+    | P.RGB x ->
        begin
          match x with
-           | Rgb_24  -> Gavl.Video.Rgb_24
-           | Bgr_24  -> Gavl.Video.Bgr_24
-           | Rgb_32  -> Gavl.Video.Rgb_32
-           | Bgr_32  -> Gavl.Video.Bgr_32
-           | Rgba_32 -> Gavl.Video.Rgba_32
+           | P.RGB24  -> Gavl.Video.Rgb_24
+           | P.BGR24  -> Gavl.Video.Bgr_24
+           | P.RGB32  -> Gavl.Video.Rgb_32
+           | P.BGR32  -> Gavl.Video.Bgr_32
+           | P.RGBA32 -> Gavl.Video.Rgba_32
        end
-    | YUV x -> 
+    | P.YUV x ->
        begin
         match x with
-          | Yuv_422  -> Gavl.Video.Yuv_422_p
-          | Yuv_444  -> Gavl.Video.Yuv_444_p
-          | Yuv_411  -> Gavl.Video.Yuv_411_p
-          | Yuv_410  -> Gavl.Video.Yuv_410_p
-          | Yuvj_420 -> Gavl.Video.Yuvj_420_p
-          | Yuvj_422 -> Gavl.Video.Yuvj_422_p
-          | Yuvj_444 -> Gavl.Video.Yuvj_444_p
+          | P.YUV422  -> Gavl.Video.Yuv_422_p
+          | P.YUV444  -> Gavl.Video.Yuv_444_p
+          | P.YUV411  -> Gavl.Video.Yuv_411_p
+          | P.YUV410  -> Gavl.Video.Yuv_410_p
+          | P.YUVJ420 -> Gavl.Video.Yuvj_420_p
+          | P.YUVJ422 -> Gavl.Video.Yuvj_422_p
+          | P.YUVJ444 -> Gavl.Video.Yuvj_444_p
        end
 
-let video_format_of_frame f = 
-  let pf = 
-    match f.frame_data with
-      | Rgb x -> gavl_format_of (RGB x.rgb_format)
-      | Yuv x -> gavl_format_of (YUV x.yuv_format)
-  in
-  let w = f.width in
-  let h = f.height in
+let video_format_of_frame f =
+  let pf = gavl_format_of (Img.pixel_format f) in
+  let w = Img.width f in
+  let h = Img.height f in
   {
   Gavl.Video.
     frame_width      = w;
@@ -116,28 +115,29 @@ let video_format_of_frame f =
     interlace_mode   = Gavl.Video.No_interlace
   }
 
-let gavl_frame_of x = 
-  match x.frame_data with
-    | Rgb x -> 
-      { 
-       Gavl.Video.
-        planes = [|x.data,x.stride|];
+let gavl_frame_of img =
+  match Img.pixel_format img with
+    | P.RGB _ ->
+      let data, stride = Img.rgb_data img in
+      {
+        Gavl.Video.
+        planes = [|data, stride|];
         timestamp = Int64.zero;
         duration  = Int64.zero;
         frame_interlace_mode = Gavl.Video.No_interlace
       }
-    | Yuv x -> 
+    | P.YUV _ ->
+      let (y,y_stride),(u,v,uv_stride) = Img.yuv_data img in
       {
-       Gavl.Video.
-        planes = [|(x.y,x.y_stride);(x.u,x.uv_stride);(x.v,x.uv_stride)|];
+        Gavl.Video.
+        planes = [|(y,y_stride);(u,uv_stride);(v,uv_stride)|];
         timestamp = Int64.zero;
         duration  = Int64.zero;
         frame_interlace_mode = Gavl.Video.No_interlace
       }
 
 let create () =
-  (* Instanciate with a default 
-   * conversion type *)
+  (* Instanciate with a default conversion type *)
   let w = Lazy.force Frame.video_width in
   let h = Lazy.force Frame.video_height in
   let yuv =
@@ -180,15 +180,15 @@ let create () =
   let was_p = ref false in
   let init_c = ref false in
   let reinit_c = ref false in
-  let convert ~proportional src dst = 
+  let convert ~proportional src dst =
     (* Check if we need to init/reinit the converter. *)
     let old_f,new_f = Gavl.Video.get_formats conv in
     let src_f = video_format_of_frame src in
     let dst_f = video_format_of_frame dst in
-    let src_w = src.width in
-    let src_h = src.height in
-    let dst_w = dst.width in
-    let dst_h = dst.height in
+    let src_w = Img.width src in
+    let src_h = Img.height src in
+    let dst_w = Img.width dst in
+    let dst_h = Img.height dst in
     if old_f <> src_f || new_f <> dst_f then
      begin
       init_c := true;
@@ -196,7 +196,7 @@ let create () =
      end;
     if proportional && not !was_p then
      begin
-      let dst_rect = 
+      let dst_rect =
         if dst_h * src_w < src_h * dst_w then
           let ox = (dst_w - src_w * dst_h / src_h) / 2 in
           ox,0,dst_w - 2 * ox , dst_h
@@ -229,6 +229,6 @@ let create () =
     Gavl.Video.convert conv (gavl_frame_of src)
                             (gavl_frame_of dst)
   in
-  convert  
+  convert
 
 let () = video_converters#register "gavl" (formats,formats,create)

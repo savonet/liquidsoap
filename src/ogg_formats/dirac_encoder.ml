@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+module Img = Image.Generic
+module P = Img.Pixel
+
 let create_encoder ~metadata dirac =
   let width = Lazy.force dirac.Encoder.Dirac.width in
   let height = Lazy.force dirac.Encoder.Dirac.height in
@@ -80,8 +83,8 @@ let create_encoder ~metadata dirac =
   in
   let convert =
     Video_converter.find_converter
-      (Video_converter.RGB Video_converter.Rgba_32)
-      (Video_converter.YUV Video_converter.Yuvj_420)
+      (P.RGB P.RGBA32)
+      (P.YUV P.YUVJ420)
   in
   let stream_start os = [] in
   let data_encoder data os add_page = 
@@ -89,11 +92,10 @@ let create_encoder ~metadata dirac =
                     data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
-      let frame = Video_converter.frame_of_internal_rgb b.(i) in
+      let frame = Img.of_RGBA8 b.(i) in
       convert
         frame 
-        (Video_converter.frame_of_internal_yuv
-         width height yuv); 
+        (Img.of_YUV420 yuv);
       Schroedinger.Encoder.encode_frame enc dirac_yuv os;
       if not !started then
        begin

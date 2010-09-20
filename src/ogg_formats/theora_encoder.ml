@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+module Img = Image.Generic
+module P = Img.Pixel
+
 let create_encoder ~theora ~metadata () =
    let quality,bitrate =
      match theora.Encoder.Theora.bitrate_control with
@@ -92,8 +95,8 @@ let create_encoder ~theora ~metadata () =
   in
   let convert =
     Video_converter.find_converter
-      (Video_converter.RGB Video_converter.Rgba_32)
-      (Video_converter.YUV Video_converter.Yuvj_420)
+      (P.RGB P.RGBA32)
+      (P.YUV P.YUVJ420)
   in
   let data_encoder data os _ = 
     if not !started then
@@ -102,11 +105,10 @@ let create_encoder ~theora ~metadata () =
                     data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
-      let frame = Video_converter.frame_of_internal_rgb b.(i) in
+      let frame = Img.of_RGBA8 b.(i) in
       convert
         frame
-        (Video_converter.frame_of_internal_yuv
-         width height yuv);
+        (Img.of_YUV420 yuv);
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in

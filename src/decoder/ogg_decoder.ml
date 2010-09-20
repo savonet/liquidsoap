@@ -23,6 +23,8 @@
 (** Decode and read ogg files. *)
 
 module Img = Image.RGBA8
+module Gen = Image.Generic
+module P = Gen.Pixel
 
 let log = Dtools.Log.make ["decoder";"ogg"]
 
@@ -35,17 +37,17 @@ let converter () =
   (fun format ->
     let format =
       match format with
-        | Ogg_demuxer.Yuvj_422 -> Video_converter.Yuvj_422
-        | Ogg_demuxer.Yuvj_420 -> Video_converter.Yuvj_420
-        | Ogg_demuxer.Yuvj_444 -> Video_converter.Yuvj_444
+        | Ogg_demuxer.Yuvj_422 -> P.YUVJ422
+        | Ogg_demuxer.Yuvj_420 -> P.YUVJ420
+        | Ogg_demuxer.Yuvj_444 -> P.YUVJ444
     in
     match !current_format with
       | Some x when fst(x) = format -> snd(x)
       | _ ->
         let converter =
           Video_converter.find_converter
-             (Video_converter.YUV format)
-             (Video_converter.RGB Video_converter.Rgba_32)
+             (P.YUV format)
+             (P.RGB P.RGBA32)
         in
         current_format := Some (format,converter) ;
         converter)
@@ -58,12 +60,10 @@ let video_convert () =
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
     let rgb = Img.create width height in
-    let frame = Video_converter.frame_of_internal_rgb rgb in
-    let sframe = Image.YUV420.make buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.u  buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride in
+    let frame = Gen.of_RGBA8 rgb in
+    let sframe = Image.YUV420.make buf.Ogg_demuxer.width buf.Ogg_demuxer.height buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride in
     converter
-      (Video_converter.frame_of_internal_yuv
-         buf.Ogg_demuxer.width buf.Ogg_demuxer.height
-        sframe)
+      (Gen.of_YUV420 sframe)
       frame;
     rgb)
 

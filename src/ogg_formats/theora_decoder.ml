@@ -27,15 +27,15 @@ let decoder os =
   let data    = ref None in
   let latest_yuv = ref None in
   let fill feed =
-     let m,fps,format = 
-       match !data with 
+     let m,fps,format =
+       match !data with
          | Some (fps,format) -> None,fps,format
-         | None -> 
+         | None ->
             begin
              let packet = Ogg.Stream.get_packet os in
              try
-              let (info,vendor,m) = 
-                Theora.Decoder.headerin decoder packet 
+              let (info,vendor,m) =
+                Theora.Decoder.headerin decoder packet
               in
               let fps = (float (info.Theora.fps_numerator)) /.
                         (float (info.Theora.fps_denominator))
@@ -51,15 +51,15 @@ let decoder os =
               Some (vendor,m),fps,format
              with
                | Theora.Not_enough_data -> raise Ogg.Not_enough_data
-           end;
+           end
     in
-    let ret = 
+    let ret =
      try
       let yuv = Theora.Decoder.get_yuv decoder os in
       latest_yuv := Some yuv ;
       yuv
      with
-       | Theora.Duplicate_frame -> 
+       | Theora.Duplicate_frame ->
           begin
             match !latest_yuv with
               | Some yuv -> yuv

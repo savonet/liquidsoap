@@ -23,123 +23,12 @@
 
 open Video_converter
 
-module Img = Image.RGBA8
+module Img = Image.Generic
 
-type converter = Img.t ref
+let formats = [Img.Pixel.RGB Img.Pixel.RGBA32; Img.Pixel.YUV Img.Pixel.YUVJ420]
 
-let formats = [RGB Rgba_32;YUV Yuvj_420]
+let convert ~proportional src dst = Image.Generic.convert ~proportional src dst
 
-let create () =
-  let f =
-    Img.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height)
-  in
-  let buf = ref f in 
-  let convert ~proportional src dst =
-    let need_scale = 
-      src.width <> dst.width ||
-      src.height <> dst.height 
-    in
-    let is_rgb f = 
-      match f.frame_data with
-        | Rgb x when x.rgb_format = Rgba_32 -> true
-        | Yuv x when x.yuv_format = Yuvj_420 -> false
-        | _ -> raise Not_found
-    in
-    let rgb_data f = 
-      match f.frame_data with
-        | Rgb x when x.rgb_format = Rgba_32 
-            -> x.data
-        | _ -> raise Not_found
-    in
-    let rgb_stride f = 
-      match f.frame_data with
-        | Rgb x when x.rgb_format = Rgba_32
-            -> x.stride
-        | _ -> raise Not_found
-    in
-    let yuv_data f = 
-      match f.frame_data with
-        | Yuv x when x.yuv_format = Yuvj_420
-            -> (x.y,x.y_stride),(x.u,x.v,x.uv_stride)
-        | _ -> raise Not_found
-    in
-    match is_rgb src,is_rgb dst, need_scale with
-      | true,true,false
-      | false,false,_ -> raise Not_found (* TODO *)
-      | true,true,true ->
-        let sf = Img.make ~stride:(rgb_stride src) src.width src.height (rgb_data src) in
-        let df = Img.make ~stride:(rgb_stride dst) dst.width dst.height (rgb_data dst) in
-        Img.Scale.onto ~proportional sf df
-      | false,true,x ->
-        raise Not_found (* TODO *)
-          (*
-          if x then
-            begin
-             if Img.width !buf <> src.width ||
-                Img.height !buf <> src.height then
-               begin
-                 let frame = Img.create src.width src.height in
-                 buf := frame
-               end;
-             RGB.of_YUV420 (yuv_data src) !buf;
-             let df = {
-                       RGB.
-                        width  = dst.width; 
-                        height = dst.height;
-                        stride = rgb_stride dst; 
-                        data   = rgb_data dst 
-                      }
-             in
-             if proportional then
-               RGB.proportional_scale df !buf
-             else
-               RGB.scale df !buf
-            end
-          else
-            let df = {
-                      RGB.
-                       width  = dst.width;
-                       height = dst.height;
-                       stride = rgb_stride dst;
-                       data   = rgb_data dst
-                     }
-            in
-            RGB.of_YUV420 (yuv_data src) df;
-          *)
-      | true,false,x ->
-        (* TODO *)
-        raise Not_found;
-        (*
-          if x then
-           begin
-            if Img.width !buf <> src.width ||
-               Img.height !buf <> src.height then
-              begin
-                let frame = Img.create src.width src.height in
-                buf := frame
-              end;
-            let sf = Img.make ~stride:(rgb_stride src) src.width src.height (rgb_data src) in
-            Img.scale_to ~proportional sf !buf
-              (*
-            if proportional then
-              RGB.proportional_scale sf !buf
-            else
-              RGB.scale sf !buf;
-            RGB.to_YUV420 !buf (yuv_data dst)
-           end
-          else
-            let sf = {
-                      RGB.
-                       width  = src.width;
-                       height = src.height;
-                       stride = rgb_stride src;
-                       data   = rgb_data src
-                     }
-            in
-            RGB.to_YUV420 sf (yuv_data dst);
-              *)
-        *)
-  in
-  convert
+let create () = convert
 
 let () = video_converters#register "native" (formats,formats,create)
