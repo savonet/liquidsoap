@@ -29,11 +29,13 @@ class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_height   = Lazy.force Frame.video_height in
 object (self)
   inherit Output.output ~name:"sdl" ~output_kind:"output.sdl"
-            ~infallible ~on_start ~on_stop
-            ~content_kind:kind source autostart
+    ~infallible ~on_start ~on_stop
+    ~content_kind:kind source autostart
+
+  val mutable fullscreen = false
 
   method output_start =
-    Sdlevent.enable_events Sdlevent.quit_mask ;
+    Sdlevent.enable_events (Sdlevent.quit_mask lor Sdlevent.keydown_mask);
     (* Try to get 32bpp because it's faster (twice as fast here),
      * but accept other formats too. *)
     ignore (Sdlvideo.set_video_mode
@@ -48,24 +50,45 @@ object (self)
   (** Stop SDL. We have to assume that there's only one SDL output anyway. *)
   method output_stop = Sdl.quit ()
 
+  method process_events =
+    match Sdlevent.poll () with
+      | Some Sdlevent.QUIT ->
+        (* Avoid an immediate restart (which would happen with autostart).
+         * But do not cancel autostart.
+         * We should perhaps have a method in the output class for that
+         * kind of thing, and try to get an uniform behavior. *)
+        start_output <- false;
+        stop_output <- true
+      | Some (Sdlevent.KEYDOWN k) ->
+        (
+          match k.Sdlevent.keysym with
+            | Sdlkey.KEY_f ->
+              fullscreen <- not fullscreen;
+              let mode = [`ANYFORMAT;`DOUBLEBUF] in
+              let mode = if fullscreen then `FULLSCREEN::mode else mode in
+              ignore (Sdlvideo.set_video_mode
+                        ~w:video_width ~h:video_height
+                        ~bpp:32 mode);
+            | Sdlkey.KEY_q ->
+              Sdlevent.add [Sdlevent.QUIT]
+            | _ -> ()
+        );
+        self#process_events
+      | Some _ ->
+        self#process_events
+      | None -> ()
+
   method output_send buf =
-    if Sdlevent.poll () = Some Sdlevent.QUIT then begin
-      (* Avoid an immediate restart (which would happen with autostart).
-       * But do not cancel autostart.
-       * We should perhaps have a method in the output class for that
-       * kind of thing, and try to get an uniform behavior. *)
-      start_output <- false ;
-      stop_output <- true
-    end else
-      let surface = Sdlvideo.get_video_surface () in
-      (* We only display the first image of each frame *)
-      let rgb = (VFrame.content buf 0).(0).(0) in
-        begin match Sdlvideo.surface_bpp surface with
-          | 16 -> Sdl_utils.to_16 rgb surface
-          | 32 -> Sdl_utils.to_32 rgb surface
-          | i -> failwith (Printf.sprintf "Unsupported format %dbpp" i)
-        end ;
-        Sdlvideo.flip surface
+    self#process_events;
+    let surface = Sdlvideo.get_video_surface () in
+    (* We only display the first image of each frame *)
+    let rgb = (VFrame.content buf 0).(0).(0) in
+    begin match Sdlvideo.surface_bpp surface with
+      | 16 -> Sdl_utils.to_16 rgb surface
+      | 32 -> Sdl_utils.to_32 rgb surface
+      | i -> failwith (Printf.sprintf "Unsupported format %dbpp" i)
+    end ;
+    Sdlvideo.flip surface
 
 end
 
