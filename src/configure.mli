@@ -40,3 +40,6 @@ val display_types : bool ref
 
 (** Liquidsoap configuration root *)
 val conf : Dtools.Conf.ut
+
+(** Is the architecture big endian? *)
+val big_endian : bool

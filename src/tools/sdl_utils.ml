@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 module Img = Image.RGBA8
+module Gen = Image.Generic
 
 let () = Sdl.init [`VIDEO]
 
@@ -98,13 +99,7 @@ let from_24 surface =
       in
         Sdlvideo.blit_surface ~src:s ~dst:surface ()
   *)
-let to_32 rgb surface =
-  let s = Sdlvideo.pixel_data_32 surface in
-  let width,height,pitch = Sdlvideo.surface_dims surface in
-  let pitch = pitch/4 in (* initial pitch was in bytes *)
-  let fmt = Sdlvideo.surface_format surface in
-  assert (width = Img.width rgb && height = Img.height rgb);
-  assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+let to_32 rgb surface fmt width height pitch s =
   for i = 0 to width-1 do
     for j = 0 to height-1 do
       let r,g,b,_ = Img.get_pixel rgb i j in
@@ -117,6 +112,20 @@ let to_32 rgb surface =
       s.{i+j*pitch} <- color
     done
   done
+
+let to_32 rgb surface =
+  let width,height,stride = Sdlvideo.surface_dims surface in
+  let pitch = stride/4 in
+  let fmt = Sdlvideo.surface_format surface in
+  assert (width = Img.width rgb && height = Img.height rgb);
+  assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+  if fmt.Sdlvideo.rshift = 16 && fmt.Sdlvideo.gshift = 8 && fmt.Sdlvideo.bshift = 0 && not Configure.big_endian then
+    let s = Sdlvideo.pixel_data surface in
+    let pix = Gen.Pixel.BGR32 in
+    let sdl = Gen.make_rgb pix ~stride width height s in
+    Gen.convert (Gen.of_RGBA8 rgb) sdl
+  else
+    to_32 rgb surface fmt width height pitch (Sdlvideo.pixel_data_32 surface)
 
 let from_32 surface =
   let img = Sdlvideo.pixel_data_32 surface in

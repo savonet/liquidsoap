@@ -104,9 +104,16 @@ if test -z `which pkg-config 2>/dev/null` ; then
 fi
 
 # Check endianess
-AC_C_BIGENDIAN(
-  AC_DEFINE([LIQ_BIG_ENDIAN], [1], [Define if this target is
-  big endian]),[])
+AC_C_BIGENDIAN
+if test "x$ac_cv_c_bigendian" = "xyes"; then
+cat >> src/configure.ml <<__BLAH__
+let big_endian = true
+__BLAH__
+else
+cat >> src/configure.ml <<__BLAH__
+let big_endian = false
+__BLAH__
+fi
 
 # ffmpeg
 
