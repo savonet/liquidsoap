@@ -57,28 +57,29 @@ object (self)
 
   method private get_frame buf =
     let offset = MFrame.position buf in
-    let moffset = Frame.position buf in
+    let toffset = Frame.position buf in
     source#get buf;
-    let m = Frame.content_of_type buf moffset (Frame.type_of_kind kind) in
+    let m = Frame.content_of_type buf toffset (Frame.type_of_kind kind) in
+    let pos = MFrame.position buf in
     let m = m.Frame.midi in
     let meta = MFrame.get_all_metadata buf in
+    let meta = List.filter (fun (p,_) -> offset <= p && p < pos) meta in
     let chords =
       let ans = ref [] in
         List.iter
           (fun (t,m) ->
-             if t >= offset then
-               List.iter
-                 (fun c ->
-                    try
-                      let sub = Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c in
-                      let n = Pcre.get_substring sub 1 in
-                      let n = note_of_string n in
-                      let m = Pcre.get_substring sub 2 in
-                        ans := (t,n,m) :: !ans
-                    with
-                      | Not_found ->
-                          self#log#f 3 "Could not parse chord '%s'." c
-                 ) (Hashtbl.find_all m metadata_name)
+            List.iter
+              (fun c ->
+                try
+                  let sub = Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c in
+                  let n = Pcre.get_substring sub 1 in
+                  let n = note_of_string n in
+                  let m = Pcre.get_substring sub 2 in
+                  ans := (t,n,m) :: !ans
+                with
+                  | Not_found ->
+                    self#log#f 3 "Could not parse chord '%s'." c
+              ) (Hashtbl.find_all m metadata_name)
           ) meta;
         List.rev !ans
     in
@@ -92,7 +93,7 @@ object (self)
     in
       List.iter
         (fun (t,c,m) -> (* time, base, mode *)
-           mute t;
+          mute t;
            (* Negative base note means mute. *)
            if c >= 0 then
              (
