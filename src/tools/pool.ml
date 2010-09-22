@@ -37,6 +37,7 @@ sig
   val find : int -> t option
   val fold : (int -> t -> 'a -> 'a) -> 'a -> 'a
   val iter : (int -> t -> unit) -> unit
+  val remove : int -> unit
 end
 
 module Make (P:T) : (S with type t = P.t) =
@@ -82,6 +83,9 @@ struct
                 | None -> ())
            h)
       f
+
+  let remove i =
+    Hashtbl.remove h i
 
   let kill i grace =
     Tutils.mutexify m
