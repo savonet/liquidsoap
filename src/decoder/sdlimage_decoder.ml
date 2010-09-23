@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 module Img = Image.RGBA8
+module P = Image.Generic.Pixel
 
 let log = Dtools.Log.make ["decoder";"sdlimage"]
 
@@ -34,10 +35,17 @@ let load_image filename =
       | 32 -> Sdl_utils.from_32 surface
       | _ -> failwith "unsupported pixel format"
   in
-    Img.Scale.create ~proportional:true
-      image
-      (Lazy.force Frame.video_width)
-      (Lazy.force Frame.video_height)
+  let convert =
+    Video_converter.find_converter
+      (P.RGB P.RGBA32)
+      (P.RGB P.RGBA32)
+  in
+  let frame = Img.create (Lazy.force Frame.video_width)
+                         (Lazy.force Frame.video_height)
+  in
+  convert (Image.Generic.of_RGBA8 image) 
+          (Image.Generic.of_RGBA8 frame) ;
+  frame
 
 let create_decoder metadata img =
   let duration =
