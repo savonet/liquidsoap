@@ -278,12 +278,15 @@ is done in C code (typically decoding and encoding) so it parallelizes
 quite well.
 
 Typically, if you run several outputs that do not share much (any) code,
-you can put each of them in a separate clock:
+you can put each of them in a separate clock.
+For example the following script takes one file and encodes it as MP3
+twice. You should run it as <code>liquidsoap EXPR -- FILE</code>
+and observe that it fully exploits two cores:
 <pre>
-def create_a_stream(name)
-  ...
+def one()
+  clock(sync=false,
+        output.file(%mp3,"/dev/null",single(argv(1))))
 end
-clock(id=name1,create_a_stream(name1))
-clock(id=name2,create_a_stream(name2))
-...
+one()
+one()
 </pre>
