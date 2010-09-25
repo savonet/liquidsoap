@@ -9,14 +9,13 @@ When using an external encoding process, uncompressed PCM data will be sent to t
 
 h3. External encoders
 
-For a general presentation on encoding formats, see "this page":encoding_formats.html
-
 The main operators that can be used with external encoders are:
 
 * @output.file@
 * @output.icecast@
 
-In order to use external encoders with these operators, you have to use the @%external@ encoding format.
+In order to use external encoders with these operators, you have to use the 
+@%external@ "encoding format":encoding_formats.txt.
 Its syntax is:
 
 %%
@@ -43,178 +42,7 @@ close its standard output. If it does not close its standard output, the encodin
 If your encoding process has this issue, you should turn the @restart_on_crash@ option to @true@ and kill the encoding
 process yourself.
 
-If you use an external encoder with the @output.icecast@ operator, you should also use the following options
-of @output.icecast@
+If you use an external encoder with the @output.icecast@ operator,
+you should also use the following options of @output.icecast@:
 * @icy_metadata@: send new metadata as ICY update. This is the case for headerless formats, such as MP3 or AAC, and it appears to work also for ogg/vorbis streams.
-* @format@: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of
-"application/ogg", "audio/ogg" or "video/ogg" and for mp3 data it is "audio/mpeg".
-
-**The remaining part of this page is out of date starting with release 1.0-beta..**
-
-h3. Wrappers
-
-On top of the basic operators, wrappers have been written for using the @lame@ encoder and the @flac@ encoder to output data to an icecast server, or output to local sound card using @aplay@. The code is present, as usual, in @utils.liq@ and is as follows.
-
-h4. output.aplay
-
-%%(output-aplay.liq)
-# Output the stream using aplay.
-# Using this turns "root.sync" to false
-# since aplay will do the synchronisation
-# @category Source / Output
-# @param ~id Output's ID
-# @param ~device Alsa pcm device name
-# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
-# @param s Source to play
-def output.aplay(~id="output.aplay",
-                 ~device="default",
-                 ~restart_on_crash=false,
-                 s)
-  def aplay_p(m) = 
-    "aplay -D #{device}"
-  end
-  log(label=id,level=3,"Setting root.sync \
-                         to false")
-  set("root.sync",false)
-  output.pipe.external(
-    id=id,
-    restart_on_crash=restart_on_crash,
-    restart_on_new_track=false,
-    process=aplay_p,s)
-end
-%%
-
-h4. output.icecast.lame
-
-When preparing this wrapper, we noticed an inconsistency when using the "-x" parameter in lame, which forces 
-audio samples swaping. Depending on the endianess of your architecture, this parameter should or should not be set.
-
-On intel architectures, when using lame 3.97, the parameter "-x" should be present, while 
-when using 3.98, it should not be. The parameter is added when the @swap@ parameter of the wrapper 
-is equal to @true@.
-
-If you experience issues with garbaged audio data coming out when encoding with lame, you should 
-try to modify this parameter.
-
-%%(output-icecast-lame.liq)
-# Output to icecast using the lame command line encoder.
-# @category Source / Output
-# @param ~id Output's ID
-# @param ~start Start output threads on operator initialization.
-# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
-# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
-# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
-# @param ~restart_on_new_track Restart encoder upon new track.
-# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
-# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
-# @param ~lame The lame binary
-# @param ~bitrate Encoder bitrate
-# @param ~swap Swap audio samples. Depends on local machine's endianess and lame's version. Test this parameter if you experience garbaged mp3 audio data. On intel 32 and 64 architectures, the parameter should be "true" for lame prior 3.98.
-# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
-# @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
-# @param s The source to output
-def output.icecast.lame(
-  ~id="output.icecast.lame",~start=true,
-  ~restart=true,~restart_delay=3,
-  ~host="localhost",~port=8000,
-  ~user="source",~password="hackme",
-  ~genre="Misc",~url="http://savonet.sf.net/",
-  ~description="OCaml Radio!",~public=true,
-  ~dumpfile="",~mount="Use [name]",
-  ~name="Use [mount]",~protocol="http",
-  ~lame="lame",~bitrate=128,~swap=false,
-  ~restart_on_crash=false,~restart_on_new_track=false,
-  ~restart_encoder_delay=3600,~headers=[],s)
-  samplerate = get(default=44100,"frame.samplerate")
-  samplerate = float_of_int(samplerate) / 1000.
-  channels = get(default=2,"frame.channels")
-  swap = if swap then "-x" else "" end
-  mode = 
-    if channels == 2 then
-      "j" # Encoding in joint stereo..
-    else
-      "m"
-    end
-  # Metadata update is set by ICY with icecast
-  def lame_p(m)
-    "#{lame} -b #{bitrate} -r --bitwidth 16 -s #{samplerate} \
-       --signed -m #{mode} --nores #{swap} -t - -"
-  end
-  output.icecast.external(id=id,
-    process=lame_p,bitrate=bitrate,start=start,
-    restart=restart,restart_delay=restart_delay,
-    host=host,port=port,user=user,password=password,
-    genre=genre,url=url,description=description,
-    public=public,dumpfile=dumpfile,restart_encoder_delay=restart_encoder_delay,
-    name=name,mount=mount,protocol=protocol,
-    header=false,restart_on_crash=restart_on_crash,
-    restart_on_new_track=restart_on_new_track,headers=headers,
-    s)
-end
-%%
-
-A wrapper for shoutcast, @output.shoutcast.lame@ and, similarly, @output.icecast.aacplusenc@ and @output.shoutcast.aacplusenc@ are also defined on the same line.
-
-h4. output.icecast.flac
-
-Contrary to mpeg-based encoder, this encoder, which uses the ogg container, is restarted every new song. 
-Indeed, the ogg specifications makes this mandatory in order to be able to create a new ogg track with new metadata.
-
-%%(output-icecast-flac.liq)
-# Output to icecast using the flac command line encoder.
-# @category Source / Output
-# @param ~id Output's ID
-# @param ~start Start output threads on operator initialization.
-# @param ~restart Restart output after a failure. By default, liquidsoap will stop if the output failed.
-# @param ~restart_delay Delay, in seconds, before attempting new connection, if restart is enabled.
-# @param ~restart_on_crash Restart external process on crash. If false, liquidsoap will stop.
-# @param ~restart_on_new_track Restart encoder upon new track. If false, the resulting stream will have a single track.
-# @param ~restart_encoder_delay Restart the encoder after this delay, in seconds.
-# @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
-# @param ~flac The flac binary
-# @param ~quality Encoder quality (0..8)
-# @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
-# @param ~protocol Protocol of the streaming server: 'http' for Icecast, 'icy' for Shoutcast.
-# @param s The source to output
-def output.icecast.flac(
-  ~id="output.icecast.flac",~start=true,
-  ~restart=true,~restart_delay=3,
-  ~host="localhost",~port=8000,
-  ~user="source",~password="hackme",
-  ~genre="Misc",~url="http://savonet.sf.net/",
-  ~description="OCaml Radio!",~public=true,
-  ~dumpfile="",~mount="Use [name]",
-  ~name="Use [mount]",~protocol="http",
-  ~flac="flac",~quality=6,
-  ~restart_on_crash=false,
-  ~restart_on_new_track=true,
-  ~restart_encoder_delay=(-1),s)
-  # We will use raw format, to 
-  # bypass input length value in WAV
-  # header (input length is not known)
-  channels = get(default=2,"frame.channels")
-  samplerate = get(default=44100,"frame.samplerate")
-  def flac_p(m)=
-    def option(x) = 
-      "-T #{quote(fst(x))}=#{quote(snd(x))}"
-    end
-    m = list.map(option,m)
-    m = string.concat(separator=" ",m) 
-    "#{flac} --force-raw-format --endian=little --channels=#{channels} \
-      --bps=16 --sample-rate=#{samplerate} --sign=signed #{m} \
-      -#{quality} --ogg -c -"
-  end
-  output.icecast.external(id=id,
-    process=flac_p,bitrate=(-1),start=start,
-    restart=restart,restart_delay=restart_delay,
-    host=host,port=port,user=user,password=password,
-    genre=genre,url=url,description=description,
-    public=public,dumpfile=dumpfile,
-    name=name,mount=mount,protocol=protocol,
-    restart_on_new_track=restart_on_new_track,
-    format="ogg",header=false,icy_metadata=false,
-    restart_on_crash=restart_on_crash,
-    restart_encoder_delay=restart_encoder_delay,
-    s)
-end
-%%
+* @format@: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of "application/ogg", "audio/ogg" or "video/ogg" and for mp3 data it is "audio/mpeg".

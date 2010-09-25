@@ -20,7 +20,24 @@ The nice thing about resolution is that it is recursive and supports backtrackin
 
 On top of that, metadata is extracted at every step in the branch. Usually, only the final local file yields interesting metadata (artist,album,...). But metadata can also be the nickname of the user who requested the song, set using the <code>annotate</code> protocol.
 
-At the end of the resolution process, if the request is an audio one, liquidsoap check that the file is decodable: there should be a valid decoder for it (this isn't based on the extension but on the success of a format decoder), the decoder shouldn't yield an empty stream, and opening the decoder should be fast (less than 0.5 seconds), so that the opening of the audio file for its real playing in the main thread doesn't freeze it for too long.
+At the end of the resolution process, in case of a media request,
+liquidsoap checks that the file is decodable,
+_i.e._, there should be a valid decoder for it.
+
+Each request gets assigned a request identifier (RID) which is used by
+various sources to identify which request(s) they are using. Knowing
+this number, you can monitor a request, even after it's been destroyed
+(see setting <code>request.grace_time</code>). Two "server":server.html
+commands are available: <code>request.trace</code> shows a log of
+the resolution process and <code>request.metadata</code> shows the
+current request metadata. In addition, server commands are available
+to obtain the list of all requests, alive requests, currently resolving
+requests and currently playing requests (respectively
+<code>request.all</code>,
+<code>request.alive</code>,
+<code>request.resolving</code>,
+<code>request.on_air</code>).
+
 
 h4. Currently supported protocols
 

@@ -38,16 +38,16 @@ dbaelde@selassie:~$ telnet localhost 1234
 Trying 127.0.0.1...
 Connected to localhost.localdomain.
 Escape character is '^]'.
-request.push /path/to/some/file.ogg
+queue.push /path/to/some/file.ogg
 5
 END
-metadata 5
+request.metadata 5
 [...]
 END
-request.push http://remote/audio.ogg
+queue.push http://remote/audio.ogg
 6
 END
-trace 6
+request.trace 6
 [...see if the download started/succeeded...]
 END
 exit
@@ -58,5 +58,5 @@ But it is easy to write scripts to interact with Liquidsoap in that way,
 to implement a website or an IRC interface to your radio.
 However, this sort of tool is often bound to a specific usage, so we have
 not released any of ours. Feel free to
-"ask the community":mailto:savonet-users@lists.sf.net about code that you could re-use.
-
+"ask the community":mailto:savonet-users@lists.sf.net
+about code that you could re-use.
