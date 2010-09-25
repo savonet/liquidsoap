@@ -562,7 +562,10 @@ end
 # The log is in simple format, which you can notably directly use with gnuplot.
 # @category Liquidsoap
 # @param ~interval Polling interval.
-def log_clocks(~interval=1.,logfile)
+# @param ~delay    Delay before setting up the clock logger. This should
+#                  be used to ensure that the logger starts only after
+#                  the clocks are created.
+def log_clocks(~delay=0.,~interval=1.,logfile)
   # Get the current clocks
   clocks = list.map(fst,get_clock_status())
   # Column headers
@@ -574,5 +577,9 @@ def log_clocks(~interval=1.,logfile)
     system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
     interval
   end
-  add_timeout(interval,report)
+  if delay<=0. then
+    add_timeout(interval,report)
+  else
+    add_timeout(delay,{add_timeout(interval,report) (-1.)})
+  end
 end
