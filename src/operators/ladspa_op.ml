@@ -243,8 +243,16 @@ let get_control_ports d =
     done;
     List.rev !ans
 
-(* Make a parameter for each control port. Returns the liquidsoap parameters and
- * the parameters for the plugin. *)
+(** When creating operator for LADSPA plugins, we don't know yet at
+  * which samplerate liquidsoap will operate. But the default values and
+  * bounds for LADSPA parameters might depend on the samplerate.
+  * Lacking a better solution, we use the following default samplerate,
+  * potentially creating a mismatch between the doc and the actual
+  * behavior. *)
+let default_samplerate = 44100
+
+(* Make a parameter for each control port.
+ * Returns the liquidsoap parameters and the parameters for the plugin. *)
 let params_of_descr d =
   let control_ports = get_control_ports d in
   let liq_params =
@@ -261,7 +269,7 @@ let params_of_descr d =
              ),
              (match
                 Descriptor.port_get_default d
-                  ~samplerate:(Frame.audio_of_seconds 1.) p
+                  ~samplerate:default_samplerate p
               with
                 | Some f ->
                     Some
@@ -274,11 +282,11 @@ let params_of_descr d =
              let bounds =
                let min =
                  Descriptor.port_get_min d
-                   ~samplerate:(Frame.audio_of_seconds 1.) p
+                   ~samplerate:default_samplerate p
                in
                let max =
                  Descriptor.port_get_max d
-                   ~samplerate:(Frame.audio_of_seconds 1.) p
+                   ~samplerate:default_samplerate p
                in
                  if (min, max) = (None, None) then ""
                  else
@@ -340,7 +348,10 @@ let params_of_descr d =
 
 
 let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (if stereo then Lang.audio_stereo else Lang.any_fixed) in
+  let k =
+    Lang.kind_type_of_kind_format ~fresh:1
+      (if stereo then Lang.audio_stereo else Lang.any_fixed)
+  in
   let liq_params, params = params_of_descr d in
   let liq_params =
     liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
@@ -473,28 +484,23 @@ let register_plugin pname =
     | Plugin.Not_a_plugin -> ()
 
 let register_plugins () =
-  let plugins =
-    let ans = ref [] in
-    let add plugins_dir =
-      try
-        let dir = Unix.opendir plugins_dir in
-          try
-            while true do
-              let f = Unix.readdir dir in
-                if f <> "." && f <> ".." then
-                  ans := (plugins_dir ^ "/" ^ f) :: !ans
-            done
-          with
-            | End_of_file -> Unix.closedir dir
-      with
-        | Unix.Unix_error (e,_,_) ->
-            log#f 4 "Error while loading directory %s: %s"
-              plugins_dir (Unix.error_message e)
-    in
-      List.iter add plugin_dirs ;
-      List.rev !ans
+  let add plugins_dir =
+    try
+      let dir = Unix.opendir plugins_dir in
+        try
+          while true do
+            let f = Unix.readdir dir in
+              if f <> "." && f <> ".." then
+                register_plugin (plugins_dir ^ "/" ^ f)
+          done
+        with
+          | End_of_file -> Unix.closedir dir
+    with
+      | Unix.Unix_error (e,_,_) ->
+          log#f 4 "Error while loading directory %s: %s"
+            plugins_dir (Unix.error_message e)
   in
-    List.iter register_plugin plugins
+    List.iter add plugin_dirs
 
 let () =
   if ladspa_enable then
