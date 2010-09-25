@@ -70,8 +70,9 @@ end
 # A list of know extensions and content-type for AAC.
 # Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding 
 # TODO: can we register a setting for that ??
-aac_mimes = ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
-             "audio/MP4A-LATM", "audio/mpeg4-generic", "audio/x-hx-aac-adts"]
+aac_mimes =
+  ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
+   "audio/MP4A-LATM", "audio/mpeg4-generic", "audio/x-hx-aac-adts"]
 aac_filexts = ["m4a", "m4b", "m4p", "m4v",
                "m4r", "3gp", "mp4", "aac"]
 

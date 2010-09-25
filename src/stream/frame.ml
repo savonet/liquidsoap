@@ -101,7 +101,8 @@ let video_height = delayed (fun () -> conf_video_height#get)
 
 let audio_rate = delayed (fun () -> conf_audio_samplerate#get)
 let video_rate = delayed (fun () -> conf_video_samplerate#get)
-(* TODO: midi rate is the same as audio for now *)
+(* TODO: midi rate is assumed to be the same as audio,
+ *   so we should not have two different values *)
 let midi_rate = delayed (fun () -> conf_audio_samplerate#get)
 
 (** Greatest common divisor. *)
@@ -512,8 +513,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun v v' ->
        if v != v' then
          let (!) = video_of_master in
-         Video.blit v !src_pos v' !dst_pos !len
-    ) ;
+         Video.blit v !src_pos v' !dst_pos !len) ;
   Utils.array_iter2 src.midi dst.midi
     (fun m m' ->
        if m != m' then

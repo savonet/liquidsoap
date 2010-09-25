@@ -7,9 +7,6 @@ DISTFILES = CHANGES COPYING INSTALL README \
 top_srcdir=.
 include $(top_srcdir)/Makefile.rules
 
-debug:
-	$(MAKE) _OCAML_CFLAGS=-g -C src clean all
-
 distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
 	       src/configure.ml Makefile.defs scripts/liquidsoap.initd \

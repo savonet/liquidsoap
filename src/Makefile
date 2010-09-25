@@ -171,12 +171,11 @@ liquidsoap_doc_sources= \
 	tools/plug.ml tools/http.ml \
 	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml tools/server.ml \
-	tools/tutils.ml tools/sutils.ml tools/mutils.ml \
-	tools/ringbuffer.ml playlist_parser.ml \
+	tools/tutils.ml playlist_parser.ml \
 	tools/doc.ml tools/wav.ml \
 	sources/request_source.ml operators/switch.ml \
 	configure.ml video_converter.ml \
-	stream/frame.ml stream/float_pcm.ml stream/aFrame.ml \
+	stream/frame.ml stream/aFrame.ml \
 	stream/vFrame.ml audio_converter.ml \
 	stream/mFrame.ml stream/generator.ml
 
