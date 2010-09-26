@@ -185,7 +185,7 @@ let register_stdin name sdoc test process =
              else None) ;
   let duration filename = 
     let process = 
-      Printf.sprintf "cat %s | %s" filename process
+      Printf.sprintf "cat %s | %s" (Filename.quote filename) process
     in
     duration process
   in
