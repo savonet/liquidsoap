@@ -309,9 +309,9 @@ let local_check t =
       let name = indicator.string in
       let metadata = get_all_metadata t in
         match Decoder.get_file_decoder ~metadata name kind with
-          | Some (name,f) ->
+          | Some (decoder_name,f) ->
               t.decoder <- Some f ;
-              set_root_metadata t "decoder" name ;
+              set_root_metadata t "decoder" decoder_name ;
               mresolvers#iter
                 (fun _ resolver ->
                    try
