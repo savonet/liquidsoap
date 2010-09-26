@@ -46,6 +46,7 @@ h4@specific. Specific tutorials
 * "HTTP input":http_input.html: relay external streams.
 * "Harbor input":harbor.html: receive streams from icecast and shoutcast source clients.
 * "Interaction with the server":server.html interact with a running liquidsoap instance.
+* "ICY metadata update":icy_metadata.html: manipulate and configure metadata update in Icecast.
 * "Normalization and replay gain":replay_gain.html normalize audio data.
 * "Requests-based sources":request_sources.html create advanced sources using requests.
 * "Shoutcast output":shoutcast.html output to shoutcast.
