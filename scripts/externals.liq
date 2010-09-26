@@ -148,3 +148,44 @@ if os.type != "Win32" then
   end
 end
 
+# Standard function for displaying metadata.
+# Shows artist and title, using "Unknown" when a field is empty.
+# @param m Metadata packet to be displayed.
+def string_of_metadata(m)
+  artist = m["artist"]
+  title  = m["title"]
+  artist = if ""==artist then "Unknown" else artist end
+  title  = if ""==title  then "Unknown" else title  end
+  "#{artist} -- #{title}"
+end
+
+# Use X On Screen Display to display metadata info.
+# @param ~color    Color of the text.
+# @param ~position Position of the text (top|middle|bottom).
+# @param ~font     Font used (xfontsel is your friend...)
+# @param ~display  Function used to display a metadata packet.
+def osd_metadata(~color="green",~position="top",
+        ~font="-*-courier-*-r-*-*-*-240-*-*-*-*-*-*",
+        ~display=string_of_metadata,
+        s)
+  osd = 'osd_cat -p #{position} --font #{quote(font)}'
+      ^ ' --color #{color}'
+  def feedback(m)
+    system("echo #{quote(display(m))} | #{osd} &")
+  end
+  on_metadata(feedback,s)
+end
+
+# Use notify to display metadata info.
+# @param ~urgency Urgency (low|normal|critical).
+# @param ~icon    Icon filename or stock icon to display.
+# @param ~time    Timeout in milliseconds.
+# @param ~display Function used to display a metadata packet.
+# @param ~title   Title of the notification message.
+def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
+           ~display=string_of_metadata,
+           ~title="Liquidsoap: new track",s)
+  send = 'notify-send -i #{icon} -u #{urgency}'
+       ^ ' -t #{time} #{quote(title)} '
+  on_metadata(fun (m) -> system(send^quote(display(m))),s)
+end
