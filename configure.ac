@@ -115,58 +115,6 @@ let big_endian = false
 __BLAH__
 fi
 
-# ffmpeg
-
-AC_ARG_WITH([libavcodec-include],
-   AC_HELP_STRING(
-      [--with-libavcodec-include=path],
-      [look for libavcodec headers in path (defaults to /usr/include/libavcodec)]))
-AC_ARG_WITH([avformat-include],
-   AC_HELP_STRING(
-      [--with-libavformat-include=path],
-      [look for libavformat headers in path (defaults to /usr/include/libavformat)]))
-AC_ARG_ENABLE([ffmpeg],AC_HELP_STRING([--disable-ffmpeg],["don't use ffmpeg"]))
-
-W_FFMPEG=""
-w_FFMPEG=no
-if test "x$enable_ffmpeg" != "xno" ; then
-  AC_MSG_CHECKING(for libavcodec and libavformat)
-
-  if test -z "$with_libavcodec_include" ; then
-    AVCODEC_INCLUDE=/usr/include/libavcodec
-  else
-    AVCODEC_INCLUDE=$with_libavcodec_include
-  fi
-  if test -z "$with_libavformat_include" ; then
-    AVFORMAT_INCLUDE=/usr/include/libavformat
-  else
-    AVFORMAT_INCLUDE=$with_libavformat_include
-  fi
-
-  if test \! -f ${AVCODEC_INCLUDE}/avcodec.h ; then
-    AC_MSG_RESULT(Header not found: ${AVCODEC_INCLUDE}/avcodec.h)
-    W_FFMPEG=""
-    w_FFMPEG=no
-  else if test \! -f ${AVFORMAT_INCLUDE}/avformat.h ; then
-    AC_MSG_RESULT(Header not found: ${AVFORMAT_INCLUDE}/avformat.h)
-    W_FFMPEG=""
-    w_FFMPEG=no
-  else
-    W_FFMPEG=yes
-    w_FFMPEG=yes
-    AC_MSG_RESULT(ok)
-  fi
-  fi
-
-else
-  AC_MSG_RESULT(no)
-fi
-
-FFMPEG_INCLUDE=$AVCODEC_INCLUDE $AVFORMAT_INCLUDE
-
-AC_SUBST(W_FFMPEG)
-AC_SUBST(FFMPEG_INCLUDE)
-
 #
 # OCaml stuff
 #
