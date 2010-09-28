@@ -7,6 +7,12 @@ DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
 ocaml_progs= liquidsoap
 
+liquidsoap_c_files = \
+	$(if $(W_OSS),io/oss_io_c.c) \
+	$(if $(W_V4L),io/v4l_io_c.c) \
+	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
+	$(if $(W_OPAL),io/opal_io_c.c) 
+
 ogg_demuxer = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
@@ -111,18 +117,16 @@ outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 
 io = \
         $(if $(W_ALSA),io/alsa_io.ml) \
-	$(if $(W_OSS),io/oss_io_c.c io/oss_io.ml) \
+	$(if $(W_OSS),io/oss_io.ml) \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_JACK),io/jack_io.ml) \
-	$(if $(W_V4L),io/v4l_io_c.c) \
 	$(if $(W_V4L),io/v4l_io.ml) \
-	$(if $(W_OPAL),io/opal_io_c.o io/opal_io.ml) \
+	$(if $(W_OPAL),io/opal_io.ml) \
 #	io/marshal_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml \
-	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
 	tools/liq_sockets.ml \
 	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
 	tools/tutils.ml tools/http.ml tools/pool.ml
@@ -182,15 +186,6 @@ liquidsoap_doc_sources= \
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
 
-stream/float_pcm_c.o: stream/float_pcm_c.c
-	$(MAKE) -C stream float_pcm_c.o
-stream/rgb_c.o: stream/rgb_c.c
-	$(MAKE) -C stream rgb_c.o
-io/oss_io_c.o: io/oss_io_c.c
-	$(MAKE) -C io oss_io_c.o
-io/opal_io_c.o: io/opal_io_c.c
-	$(MAKE) -C io opal_io_c.o
-
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	if test -d .svn && which svn > /dev/null ; then \
@@ -219,6 +214,7 @@ libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang.ml \
+	$(liquidsoap_c_files) \
 	$(if $(W_SDL),tools/sdl_utils.ml) \
 	$(video_converters) $(audio_converters) \
 	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \

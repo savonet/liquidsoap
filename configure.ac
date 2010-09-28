@@ -155,6 +155,11 @@ AC_ARG_ENABLE([nativecode],
       [--disable-nativecode],
       [compile in bytecode]))
 
+AC_ARG_ENABLE([custom],
+   AC_HELP_STRING(
+      [--disable-custom],
+      [disable custom mode for bytecode compilation (use if you know what you are doing)]))
+
 AC_PATH_PROG(OCAMLOPT,ocamlopt,no)
 if test "$OCAMLOPT" = no ; then
     enable_nativecode=no
@@ -184,6 +189,7 @@ ocamllflags="-linkpkg -package unix -package threads -package str -package bigar
 requires="unix threads str"
 if test "$enable_nativecode" \!= "no" ; then
     BYTE=
+    OCAMLCOMP=OCAMLOPT
     cma=cmxa
     cmo=cmx
     cmi=cmi
@@ -210,10 +216,17 @@ let dynliq_option = [[]]
 __BLAH__
 else
     BYTE=yes
+    OCAMLCOMP=OCAMLC
     cma=cma
     cmo=cmo
     cmi=cmi
-    ocamlcflags="$ocamlcflags -custom"
+    if test "$enable_custom" = "no" ; then
+      NO_CUSTOM=yes ;
+      AC_PATH_PROG(OCAMLMKLIB,ocamlmklib,no)
+      if test "$OCAMLMKLIB" = "no"; then
+        AC_MSG_ERROR(Not found.)
+      fi
+    fi
     if test "x$enable_debugging" = "xyes" ; then
         CFLAGS="$CFLAGS -g"
         ocamlcflags="$ocamlcflags -g"
@@ -268,18 +281,19 @@ if test "x$enable_opal" != "xno" ; then
   AC_MSG_CHECKING(for libopal)
 
   if test -z "$with_opal_include" ; then
-    OPAL_INCLUDE=$default_prefix/include/opal
+    OPAL_INCLUDE=$default_prefix/include
   else
     OPAL_INCLUDE=$with_opal_include
   fi
 
-  if test \! -f ${OPAL_INCLUDE}/opal.h ; then
-    AC_MSG_RESULT(Header not found: ${OPAL_INCLUDE}/opal.h)
+  if test \! -f ${OPAL_INCLUDE}/opal/opal.h ; then
+    AC_MSG_RESULT(Header not found: ${OPAL_INCLUDE}/opal/opal.h)
     W_OPAL=""
     w_OPAL=no
   else
     W_OPAL=yes
     w_OPAL=yes
+    CFLAGS="$CFLAGS -I$OPAL_INCLUDE"
     AC_MSG_RESULT(ok)
   fi
 else
@@ -287,7 +301,6 @@ else
 fi
 
 AC_SUBST(W_OPAL)
-AC_SUBST(OPAL_INCLUDE)
 
 # V4L
 
@@ -301,18 +314,19 @@ if test "x$enable_v4l" != "xno" ; then
   AC_MSG_CHECKING(for v4l)
 
   if test -z "$with_v4l_include" ; then
-    V4L_INCLUDE=$default_prefix/include/linux
+    V4L_INCLUDE=$default_prefix/include
   else
     V4L_INCLUDE=$with_v4l_include
   fi
 
-  if test \! -f ${V4L_INCLUDE}/videodev.h ; then
-    AC_MSG_RESULT(Header not found: ${V4L_INCLUDE}/videodev.h)
+  if test \! -f ${V4L_INCLUDE}/linux/videodev.h ; then
+    AC_MSG_RESULT(Header not found: ${V4L_INCLUDE}/linux/videodev.h)
     W_V4L=""
     w_V4L=no
   else
     W_V4L=yes
     w_V4L=yes
+    CFLAGS="$CFLAGS -I$V4L_INCLUDE"
     AC_MSG_RESULT(ok)
   fi
 else
@@ -321,7 +335,6 @@ else
 fi
 
 AC_SUBST(W_V4L)
-AC_SUBST(V4L_INCLUDE)
 
 AC_ARG_ENABLE([graphics],
    AC_HELP_STRING(
@@ -1846,6 +1859,9 @@ AC_SUBST(prefered_output)
 ###############################################################################
 
 AC_SUBST(OCAMLC)
+AC_SUBST(OCAMLCOMP)
+AC_SUBST(NO_CUSTOM)
+AC_SUBST(OCAMLMKLIB)
 AC_SUBST(OCAMLDEP)
 AC_SUBST(OCAMLLEX)
 AC_SUBST(OCAMLYACC)
@@ -1870,6 +1886,14 @@ AC_CONFIG_FILES([src/tools/liq_sockets.ml],[chmod a-w src/tools/liq_sockets.ml])
 AC_OUTPUT
 $MAKE finish-configure
 
+if test "$BYTE" = "yes"; then
+  if test "$NO_CUSTOM" = "yes" ; then
+    BYTE_COMP="NO_CUSTOM      : yes
+ OCAMLMKLIB     : $OCAMLMKLIB
+"
+  fi
+fi
+
 cat <<EOMSG
 
  ----------------------------------------------------------------- Compilation
@@ -1881,7 +1905,7 @@ cat <<EOMSG
  OCAML_LFLAGS   : $ocamllflags
  CFLAGS         : $CFLAGS
  LDFLAGS        : $LDFLAGS
-
+ $BYTE_COMP
  ---------------------------------------------------------------- Installation
 
  prefix         : $prefix

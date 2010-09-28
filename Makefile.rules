@@ -78,12 +78,32 @@ $(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers)
 	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
 		$($(PROG)_sources) $($(PROG)_headers) > $@
 
-$(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o))
-	$(V)echo OCAMLC -o $(PROG)$(EXEEXT)
+dll$(PROG).so: $($(PROG)_c_files:.c=.o)
+	$(V)echo OCAMLMKLIB -o dll$(PROG).so
+	$(V)$(OCAMLMKLIB) -o $(PROG) $($(PROG)_c_files:.c=.o)
+
+ifdef $(PROG)_c_files
+  ifeq ($(BYTE),yes)
+    ifeq ($(NO_CUSTOM),yes)
+        c_objs=dll$(PROG).so $($(PROG)_c_files:.c=.o)
+        c_link=-dllib dll$(PROG).so $($(PROG)_c_files:.c=.o)
+    else
+      c_objs=$($(PROG)_c_files:.c=.o)
+      c_link=-custom $($(PROG)_c_files:.c=.o)
+    endif
+  else
+    c_objs=$($(PROG)_c_files:.c=.o)
+    c_link=$(c_objs)
+  endif
+endif
+
+$(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
+	$(V)echo $(OCAMLCOMP) -o $(PROG)$(EXEEXT)
 	$(V)$(OCAMLC) -o $(PROG)$(EXEEXT) \
 		$(_OCAML_CFLAGS) $(OCAML_CFLAGS) \
 		$(_OCAML_LFLAGS) $(OCAML_LFLAGS) \
-		$($(PROG)_sources:.ml=.$(o)) $($(PROG)_objs)
+		$($(PROG)_sources:.ml=.$(o)) \
+		$(c_link)
 endif
 
 %.ml: %.mll
@@ -96,11 +116,15 @@ endif
 	$(V)$(OCAMLYACC) $<
 
 %.$(o): %.ml
-	$(V)echo OCAMLC -c $<
+	$(V)echo $(OCAMLCOMP) -c $<
 	$(V)$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) -c $<
 %.$(i): %.mli
-	$(V)echo OCAMLC -c $<
+	$(V)echo $(OCAMLCOMP) -c $<
 	$(V)$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) -c $<
+
+%.o: %.c
+	$(V)echo CC -c $<
+	$(V)$(CC) $(CFLAGS) -c $< -o $@
 
 #
 # dist
