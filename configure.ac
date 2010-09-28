@@ -507,11 +507,6 @@ else
 fi
 
 AC_SUBST(W_MM)
-if test -z "$W_MM" ; then
-    w_MM=no
-else
-    w_MM=yes
-fi
 
 #
 # xmlplaylist
@@ -1959,7 +1954,6 @@ cat <<EOMSG
    - ffmpeg            : $w_FFMPEG
 
  * Audio manipulation
-   - MM                : $w_MM
    - Samplerate        : $w_SAMPLERATE
    - SoundTouch        : $w_SOUNDTOUCH
    - LADSPA            : $w_LADSPA
