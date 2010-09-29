@@ -6,7 +6,7 @@
 #include <caml/mlvalues.h>
 #include <caml/signals.h>
 
-#include <opal.h>
+#include <opal/opal.h>
 #include <limits.h>
 #include <unistd.h>
 #include <assert.h>
