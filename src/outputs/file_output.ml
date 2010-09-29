@@ -36,7 +36,7 @@ object (self)
   val mutable fd = None
   val mutable encoder = None
   val mutable open_date = 0.
-  val mutable current_metadata = fun _ -> raise Not_found
+  val mutable current_metadata = None
 
   method open_file = 
     let mode =
@@ -45,6 +45,11 @@ object (self)
     in
     let filename = Utils.strftime filename in
     let filename = Utils.home_unrelate filename in
+    let current_metadata = 
+      match current_metadata with
+        | Some m -> Hashtbl.find m
+        | None -> fun _ -> raise Not_found
+    in
     (* Avoid / in metas for filename.. *)
     let current_metadata s =
       Pcre.substitute
@@ -67,7 +72,13 @@ object (self)
 
   method output_start =
     assert (fd = None && encoder = None) ;
-    encoder <- Some (encoder_factory self#id) ;
+    let enc = encoder_factory self#id in
+    encoder <- Some enc ;
+    match current_metadata with
+      | Some m -> 
+          self#send (enc.Encoder.insert_metadata m) ;
+          current_metadata <- None
+      | None -> ()
 
   method output_stop =
     let flush = (Utils.get_some encoder).Encoder.stop () in
@@ -89,31 +100,29 @@ object (self)
     if fd = None then self#open_file ;
     output_string (Utils.get_some fd) b ;
     if not reopening then
-      if need_reset then begin
-        need_reset <- false ;
-        self#log#f 3 "Re-opening output file..." ;
-        self#file_reset
-      end else
-        if Unix.gettimeofday () > reload_delay +. open_date then
-          if Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []) then
+      if need_reset || 
+         (Unix.gettimeofday () > reload_delay +. open_date &&
+          (Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []))) then
           begin
             self#log#f 3 "Re-opening output file..." ;
             (* #output_stop can trigger #send,
-             * the [closing] flag avoids loops *)
+             * the [reopening] flag avoids loops *)
             reopening <- true ;
             self#output_stop ;
             self#output_start ;
-            reopening <- false
+            reopening <- false ;
+            need_reset <- false ;
           end
 
   method insert_metadata m =
-    (** NOTE: reload_on_metadata relies on vorbis.
-      * After a new metadata we know that we can split the file (and we
-      * can do it only after a metadata change.
-      * But for other encoders a split might be impossible anyways. *)
-    if reload_on_metadata then need_reset <- true ;
-    current_metadata <- (Hashtbl.find (Hashtbl.copy m)) ;
-    (Utils.get_some encoder).Encoder.insert_metadata m
+    if reload_on_metadata then
+     begin
+      current_metadata <- Some m ; 
+      need_reset <- true ;
+      ""
+     end 
+    else
+      (Utils.get_some encoder).Encoder.insert_metadata m
 
 end
 
