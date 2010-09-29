@@ -65,11 +65,6 @@ object (self)
       open_date <- Unix.gettimeofday () ;
       fd <- Some chan
 
-  method file_reset = 
-    close_out (Utils.get_some fd) ;
-    fd <- None ;
-    self#open_file
-
   method output_start =
     assert (fd = None && encoder = None) ;
     let enc = encoder_factory self#id in
