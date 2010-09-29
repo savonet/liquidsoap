@@ -76,7 +76,14 @@ let () =
          if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
      let log = log#f 3 "%s" in
-       if not (Decoder.test_mp3 ~log filename) then
+       (* Before doing anything, check that we are allowed to produce
+        * audio, and don't have to produce midi or video. Only then
+        * check that the file seems relevant for MP3 decoding. *)
+       if kind.Frame.audio = Frame.Zero ||
+          not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
+               Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
+          not (Decoder.test_mp3 ~log filename)
+       then
          None
        else
          if kind.Frame.audio = Frame.Variable ||
