@@ -308,13 +308,8 @@ exception Metadata of (string*string) list
 
 let get_tags file =
   let sync,fd = Ogg.Sync.create_from_file file in
-  let close () =
-    try
-      Unix.close fd
-    with
-      | _ -> ()
-  in
-  try
+  Tutils.finalize ~k:(fun () -> Unix.close fd)
+  (fun () ->
     let decoder = Ogg_demuxer.init sync in
     let feed (_,m) =
       let m =
@@ -335,17 +330,11 @@ let get_tags file =
       with
         | Metadata m -> m
     in
-    let m =
-      try
-        if Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
-          Ogg_demuxer.decode_video_rec decoder feed;
-        m
-      with
-        | Metadata m' -> m@m'
-    in
-    close ();
-    m
-  with
-    | _ -> close (); []
+    try
+      if Ogg_demuxer.has_track Ogg_demuxer.Video_track decoder then
+        Ogg_demuxer.decode_video_rec decoder feed;
+      m
+    with
+      | Metadata m' -> m@m')
 
 let () = Request.mresolvers#register "OGG" get_tags
