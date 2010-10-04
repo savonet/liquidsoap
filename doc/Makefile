@@ -12,6 +12,11 @@ HTML=html/scripts/index.html
 TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
 PDF=$(TEX:.tex=.pdf)
 
+LIQI = cd html && ../liqi/liqi \
+	     --template ../template.html --snippet-template ../snippet.html \
+		 --subst rel:
+LIQI_DEPS = liqi/liqi template.html snippet.html
+
 # PDF is not ready for end-users yet.
 doc: html
 
@@ -23,21 +28,21 @@ liqref.pdf: tex/liqref.tex $(TEX)
 	@echo Compiling liqref.pdf...
 	@cd tex; pdflatex -interaction nonstopmode liqref.tex
 
-html/scripts/index.html: html/scripts/index.txt liqi/liqi
+html/scripts/index.html: html/scripts/index.txt $(LIQI_DEPS)
 	@echo Generating $(@)...
 	@#Has to be called from html to put scripts in the right place
-	@cd html && ../liqi/liqi -i ../$(<) -o ../$(@)
+	$(LIQI) --subst rel:../ -i ../$(<) -o ../$(@)
 
 # I have to tell make that index.txt will be there
 # once the HTML have been generated.
 # Also ensures that the index is built last even with a concurrent make run.
 html/scripts/index.txt: $(PRE_HTML)
 
-html/%.html: content/%.txt liqi/liqi
+html/%.html: content/%.txt $(LIQI_DEPS)
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -rf orig/* html)
 	@#Has to be called from html to put scripts in the right place
-	@cd html && ../liqi/liqi -i ../$(<) -o ../$(@)
+	@$(LIQI) -i ../$(<) -o ../$(@)
 
 tex/%.tex: content/%.txt liqi/liqi
 	@echo Converting $(<) to $(@)...

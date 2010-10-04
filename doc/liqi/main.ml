@@ -56,10 +56,11 @@ type fmt = [`HTML | `LATEX_FULL | `LATEX]
 
 let infile = ref "stdin"
 let outfile = ref "stdout"
+let template = ref ""
+let subst = ref []
+let snippet_template = ref None
 let outfmt = (ref `HTML : fmt ref)
-let main = ref false
-let main_main = ref false
-let basedir = ref ""
+let basedir = ref "."
 
 let () =
   let () =
@@ -67,18 +68,28 @@ let () =
       [
         "-i", Arg.Set_string infile, "Input file.";
         "-o", Arg.Set_string outfile, "Output file.";
+        "--template", Arg.Set_string template, "Template file.";
+        "--snippet-template", Arg.String (fun s -> snippet_template := Some s),
+            "Template file for code snippets.";
+        "--subst",
+            Arg.String
+              (fun s ->
+                 match Pcre.split ~pat:":" s with
+                   | k::v ->
+                       let v = String.concat ":" v in
+                         subst := (k,v)::!subst
+                   | [] -> assert false),
+            "Define a substitution to be performed in the pattern: \
+             when passed <key>:<value>, @key@ will be replaced by value." ;
         "--latex",
-        Arg.Unit (fun () -> outfmt := `LATEX),
-        "Output LaTeX files (for inclusion).";
-        "--main", Arg.Set main, "Generate for main Savonet website.";
-        "--main-main",
-        Arg.Set main_main,
-        "Generate for main Savonet website's frontpage.";
-	"--basedir",
-	Arg.Set_string basedir,
-	"Basedir (to compute relative paths).";
+            Arg.Unit (fun () -> outfmt := `LATEX),
+            "Output LaTeX files (for inclusion).";
+        "--basedir",
+            Arg.Set_string basedir,
+            "Relative path (from output file) to directory where to find \
+             images, stylesheets, etc. Defaults to \".\".";
         "--latex-full",
-        Arg.Unit (fun () -> outfmt := `LATEX_FULL), "Output LaTeX files.";
+            Arg.Unit (fun () -> outfmt := `LATEX_FULL), "Output LaTeX files.";
       ]
       (fun _ -> ())
       "liqi [arguments]"
@@ -117,13 +128,12 @@ let () =
   in
     match !outfmt with
       | `HTML ->
-          let printer =
-            if !main_main then Html.print_main_main else
-              let basedir = !basedir in
-                if !main then Html.print_main ~basedir else Html.print
-          in
-            printer
-              ?filename:(if !outfile="stdout" then None else Some !outfile)
-              outchan ?title doc
+          if !template = "" then
+            failwith "You need to define a template, see help." ;
+          Html.print
+            ~template:!template
+            ?snippet_template:!snippet_template
+            ~subst:!subst
+            ~basedir:(!basedir^"/") outchan ?title doc
       | `LATEX -> Latex.print false outchan doc
       | `LATEX_FULL -> Latex.print true outchan doc
