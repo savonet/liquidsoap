@@ -40,6 +40,7 @@ video_converters = \
 decoders = \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
 	decoder/external_decoder.ml \
+	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
 	$(if $(W_MP3),decoder/mp3.ml) \

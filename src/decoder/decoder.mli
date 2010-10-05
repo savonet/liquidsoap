@@ -46,6 +46,11 @@ val mp3_mime_types : string list Dtools.Conf.t
 val mp3_file_extensions : string list Dtools.Conf.t
 val test_mp3 : ?log:(string->unit) -> string -> bool 
 
+(** Configuration keys for flac. *)
+val flac_mime_types : string list Dtools.Conf.t
+val flac_file_extensions : string list Dtools.Conf.t
+val test_flac : ?log:(string->unit) -> string -> bool
+
 (** Configuration keys for aac. *)
 val aac_mime_types : string list Dtools.Conf.t
 val aac_file_extensions : string list Dtools.Conf.t

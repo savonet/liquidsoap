@@ -762,6 +762,46 @@ else
 fi
 
 #
+# Flac
+#
+
+AC_ARG_WITH([flac-dir],
+   AC_HELP_STRING(
+      [--with-flac-dir=path],
+      [look for ocaml-flac library in "path" (autodetected by default)]))
+AC_ARG_ENABLE([flac],AC_HELP_STRING([--disable-flac],["don't use ocaml-flac"]))
+
+if test "x$enable_flac" != "xno" ; then
+AC_MSG_CHECKING(for ocaml-flac)
+if test -z "$with_flac_dir" ; then
+    if ! $OCAMLFIND query flac > /dev/null 2>&1 ; then
+        AC_MSG_RESULT(not found)
+    else
+        W_FLAC=yes
+        AC_MSG_RESULT(ok)
+        ocamlcflags="$ocamlcflags -package flac"
+        requires="$requires flac"
+    fi
+else
+    echo $with_flac_dir | grep ^/ > /dev/null 2>&1 \
+        || with_flac_dir=$PWD/$with_flac_dir
+    ocamlcflags="$ocamlcflags -I $with_flac_dir"
+    ocamllflags="$ocamllflags flac.$cma"
+    requires="$requires flac"
+    W_FLAC=yes
+    AC_MSG_RESULT(ok)
+fi
+fi
+
+AC_SUBST(W_FLAC)
+
+if test -z "$W_FLAC" ; then
+    w_FLAC=no
+else
+    w_FLAC=yes
+fi
+
+#
 # Lame
 #
 
@@ -1920,6 +1960,7 @@ cat <<EOMSG
    - Theora            : $w_THEORA
    - Speex             : $w_SPEEX
    - Dirac             : $w_SCHROEDINGER
+   - Flac (native)     : $w_FLAC
    - MP3               : $w_MP3
    - AAC               : $w_FAAD
    - text-to-speech    : $w_TTS

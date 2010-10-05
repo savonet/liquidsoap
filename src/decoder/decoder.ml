@@ -139,6 +139,17 @@ let mp3_file_extensions =
     "File extensions used for guessing MP3 format"
     ~d:["mp3"]
 
+(** Configuration keys for flac. *)
+let flac_mime_types =
+  Conf.list ~p:(conf_mime_types#plug "flac")
+    "Mime-types used for guessing FLAC format"
+    ~d:["audio/x-flac"]
+
+let flac_file_extensions =
+  Conf.list ~p:(conf_file_extensions#plug "flac")
+    "File extensions used for guessing FLAC format"
+    ~d:["flac"]
+
 (** Configuration keys for aac/mp4. *)
 let aac_mime_types =
   Conf.list ~p:(conf_mime_types#plug "aac")
@@ -199,6 +210,9 @@ let test_file ?(log=(fun _ -> ())) ~mimes ~extensions fname =
 
 let test_mp3 = test_file ~mimes:mp3_mime_types#get 
                          ~extensions:mp3_file_extensions#get
+
+let test_flac = test_file ~mimes:flac_mime_types#get
+                         ~extensions:flac_file_extensions#get
 
 let test_aac = test_file ~mimes:aac_mime_types#get
                          ~extensions:aac_file_extensions#get
