@@ -51,6 +51,7 @@ h4@specific. Specific tutorials
 * "Requests-based sources":request_sources.html create advanced sources using requests.
 * "Shoutcast output":shoutcast.html output to shoutcast.
 * "Smart crossfading":smartcrossfade.html define custom crossfade transitions.
+* "Secure command server":secure_server_access.html secure authenticated access to the command server.
 * "Using in production":in_production.html integrate liquidsoap scripts in a production environment
 
 h4@users. User scripts
