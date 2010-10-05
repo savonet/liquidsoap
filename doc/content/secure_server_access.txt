@@ -10,11 +10,11 @@ mechanism are provided.
 
 The telnet server has no authentication and listens
 by default on the localhost (@127.0.0.1@) network interface,
-which means that it accessible to any logged user on the machine.
+which means that it is accessible to any logged user on the machine.
 
 Many users have expressed interest into setting up a secured access
 to the command server, using for instance user and password information.
-While we understand and share, this need, we do not believe this 
+While we understand and share this need, we do not believe this 
 is a task that lies into liquidsoap's scope.
 
 An authentication mechanism is not something that should be implemented 
@@ -40,7 +40,7 @@ First, we enable the unix socket for the command server in liquidsoap:
 set("server.socket",true) 
 set("server.socket.path","/path/to/socket")
 %%
-When started, liquidsoap will create a file @"/path/to/socket"@
+When started, liquidsoap will create a socket file @/path/to/socket@
 that can be used to interact with the command server. For instance,
 if your user has read and write rights on the socket file, you can do:
 %%
@@ -64,14 +64,14 @@ fi
 %%
 We set this file as executable, and we add it in the list of shells in @/etc/shells@.
 
-Finally, we create a user with the @liq_shell@ as its shell:
+Now, we create a user with the @liq_shell@ as its shell:
 %%
 adduser --shell /usr/local/bin/liq_shell liq-user
 %%
-You also need to make sure that the @liq-user@ user has read and write rights
+You also need to make sure that @liq-user@ has read and write rights
 on the socket file.
 
-Finally, when logging through ssh with the @liq-user@, we get:
+Finally, when logging through ssh with @liq-user@, we get:
 %%
 11:27 toots@leonard % ssh liq-user@localhost
 liq-user@localhost's password: 
