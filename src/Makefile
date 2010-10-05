@@ -18,6 +18,7 @@ ogg_demuxer = \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
+	$(if $(W_OGG_FLAC),ogg_formats/ogg_flac_decoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
 
 ogg_muxer = \

@@ -779,6 +779,13 @@ if test -z "$with_flac_dir" ; then
     else
         W_FLAC=yes
         AC_MSG_RESULT(ok)
+        AC_MSG_CHECKING(for ogg/flac module)
+        if ! $OCAMLFIND query flac.ogg > /dev/null 2>&1 ; then
+          AC_MSG_RESULT(not found)
+        else
+          W_OGG_FLAC=yes
+          AC_MSG_RESULT(ok)
+        fi
         ocamlcflags="$ocamlcflags -package flac"
         requires="$requires flac"
     fi
@@ -790,15 +797,29 @@ else
     requires="$requires flac"
     W_FLAC=yes
     AC_MSG_RESULT(ok)
+    AC_MSG_CHECKING(for ogg/flac module)
+    if ! grep -r ogg $with_flac_dir/META > /dev/null 2>&1 ; then
+       AC_MSG_RESULT(not found)
+    else
+       W_OGG_FLAC=yes
+       AC_MSG_RESULT(ok)
+    fi
 fi
 fi
 
 AC_SUBST(W_FLAC)
+AC_SUBST(W_OGG_FLAC)
 
 if test -z "$W_FLAC" ; then
     w_FLAC=no
 else
     w_FLAC=yes
+fi
+
+if test -z "$W_OGG_FLAC" ; then
+    w_OGG_FLAC=no
+else
+    w_OGG_FLAC=yes
 fi
 
 #
@@ -1961,6 +1982,7 @@ cat <<EOMSG
    - Speex             : $w_SPEEX
    - Dirac             : $w_SCHROEDINGER
    - Flac (native)     : $w_FLAC
+   - Flac (ogg)        : $w_OGG_FLAC
    - MP3               : $w_MP3
    - AAC               : $w_FAAD
    - text-to-speech    : $w_TTS
