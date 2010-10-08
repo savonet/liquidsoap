@@ -27,6 +27,7 @@ ogg_muxer = \
 	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
+	$(if $(W_OGG_FLAC),ogg_formats/ogg_flac_encoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
@@ -107,6 +108,7 @@ encoders = \
 	encoder/wav_encoder.ml \
 	encoder/external_encoder.ml \
 	$(if $(W_LAME),encoder/lame_encoder.ml) \
+	$(if $(W_FLAC),encoder/flac_encoder.ml) \
 	$(if $(W_AACPLUS),encoder/aacplus_encoder.ml) \
 	# $(if $(W_FAAC),outputs/faac_encoded.ml)
 

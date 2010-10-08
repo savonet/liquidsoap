@@ -102,6 +102,19 @@ let encoder ogg name =
                     "%s: Could not find any vorbis encoder." name ;
                   raise Not_found          
            end
+        | Encoder.Ogg.Flac x ->
+           begin
+            try
+              let create_flac =
+                Hashtbl.find encoders "flac"
+              in
+              create_flac (Encoder.Ogg.Flac x) :: cur
+            with
+              | Not_found ->
+                  Ogg_muxer.log#f 3
+                    "%s: Could not find any flac encoder." name ;
+                  raise Not_found
+           end
         | Encoder.Ogg.Theora x ->
            begin
             try

@@ -154,6 +154,38 @@ let mk_aacplus params =
   in
     mk (Encoder (Encoder.AACPlus aacplus))
 
+let mk_flac_gen params =
+  let defaults =
+    { Encoder.Flac.
+        channels = 2 ;
+        samplerate = 44100 ;
+        bits_per_sample = 16;
+        compression = 5 }
+  in
+  List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.Flac.channels = i }
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.Flac.samplerate = i }
+          | ("compression",{ term = Int i }) ->
+              { f with Encoder.Flac.compression = i }
+          | ("bits_per_sample",{ term = Int i }) ->
+              { f with Encoder.Flac.bits_per_sample = i }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.Flac.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Flac.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+
+let mk_ogg_flac params = 
+    Encoder.Ogg.Flac (mk_flac_gen params)
+
+let mk_flac params = 
+    mk (Encoder (Encoder.Flac (mk_flac_gen params)))
+
 let mk_external params =
   let defaults =
     { Encoder.External.

@@ -28,10 +28,13 @@ let decoder os =
   let ogg_dec = ref None in
   let packet = ref None in
   let decoder = ref None in
-  let meta = ref None in
+  let is_first = ref true in 
+  let dummy_c  = 
+    Ogg_flac.Decoder.get_callbacks (fun _ -> ()) 
+  in
   let fill feed = 
     (* Decoder is created upon first decoding..*)
-    let decoder,sample_freq = 
+    let decoder,sample_freq,meta = 
       match !decoder with
         | None -> 
            let packet =
@@ -44,22 +47,30 @@ let decoder os =
            let ogg_dec = 
              match !ogg_dec with
                | None ->
-                   let dec = Ogg_flac.Decoder.create packet os in
+                   let dec = Ogg_flac.Decoder.create packet os dummy_c in
                    ogg_dec := Some dec ;
                    dec
                | Some dec -> dec
            in
-           let dec,info = Ogg_flac.Decoder.init ogg_dec in
-           meta := Flac.Decoder.comments dec;
+           let dec,info,meta = 
+             Flac.Decoder.init ogg_dec dummy_c 
+           in
            let samplerate = info.Flac.Decoder.sample_rate in
-           decoder := Some (dec,samplerate);
-           dec,samplerate
+           decoder := Some (dec,samplerate,meta);
+           dec,samplerate,meta
         | Some d -> d
     in
-    let ret = Flac.Decoder.read decoder in
-    let m = !meta in
-    meta := None;
-    feed ((ret,sample_freq),m)
+    let m = 
+      if !is_first then
+        ( is_first := false ; meta )
+      else
+       None
+    in
+    let c = 
+      Ogg_flac.Decoder.get_callbacks 
+       (fun ret -> feed ((ret,sample_freq),m)) 
+    in
+    Flac.Decoder.process decoder c
   in
   Ogg_demuxer.Audio fill
 

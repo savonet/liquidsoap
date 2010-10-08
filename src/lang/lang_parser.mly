@@ -141,7 +141,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
+%token OGG FLAC VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
 %token WAV AACPLUS MP3 EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD
@@ -237,10 +237,11 @@ expr:
   | expr SET expr                    { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
+  | FLAC app_opt                     { mk_flac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
-  | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }
+  | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
   | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
   | VAR                              { mk (Var $1) }
@@ -309,11 +310,12 @@ cexpr:
   | GET expr                         { mk (Get $2) }
   | cexpr SET expr                   { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
-  | AACPLUS app_opt                      { mk_aacplus $2 }
+  | FLAC app_opt                     { mk_flac $2 }
+  | AACPLUS app_opt                  { mk_aacplus $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
-  | ogg_item                         { mk (Encoder (Encoder.Ogg [$1])) }
+  | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
   | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
   | VAR                              { mk (Var $1) }
@@ -417,10 +419,13 @@ app_opt:
 ogg_items:
   | ogg_item { [$1] }
   | ogg_item COMMA ogg_items { $1::$3 }
-ogg_item:
+top_level_ogg_item:
   | VORBIS app_opt     { mk_vorbis $2 }
   | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
   | VORBIS_ABR app_opt { mk_vorbis_abr $2 }
   | THEORA app_opt     { mk_theora $2 }
   | DIRAC app_opt      { mk_dirac $2 }
   | SPEEX app_opt      { mk_speex $2 }
+ogg_item:
+  | FLAC app_opt   { mk_ogg_flac $2 }
+  | top_level_ogg_item { $1 }

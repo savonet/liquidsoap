@@ -94,6 +94,22 @@ struct
 
 end
 
+module Flac =
+struct
+
+  type t = {
+    channels : int ;
+    bits_per_sample : int ;
+    samplerate : int ;
+    compression : int ;
+  }
+
+  let to_string m =
+    Printf.sprintf "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
+      m.channels m.bits_per_sample m.samplerate m.compression
+
+end
+
 module AACPlus =
 struct
 
@@ -250,6 +266,7 @@ struct
   type item =
     | Speex of Speex.t
     | Vorbis of Vorbis.t
+    | Flac of Flac.t
     | Theora of Theora.t
     | Dirac of Dirac.t
   type t = item list
@@ -260,6 +277,7 @@ struct
          (List.map
             (function
                | Vorbis v -> Vorbis.to_string v
+               | Flac   v -> Flac.to_string v
                | Theora t -> Theora.to_string t
                | Speex  s -> Speex.to_string s
                | Dirac  d -> Dirac.to_string d)
@@ -271,6 +289,7 @@ type format =
   | WAV of WAV.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
+  | Flac of Flac.t
   | AACPlus of AACPlus.t
   | External of External.t
 
@@ -281,6 +300,9 @@ let kind_of_format = function
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | Flac m ->
+      { Frame.audio = m.Flac.channels ;
+        Frame.video = 0 ; Frame.midi = 0 }
   | AACPlus m ->
       { Frame.audio = m.AACPlus.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
@@ -288,6 +310,8 @@ let kind_of_format = function
       List.fold_left
         (fun k -> function
            | Ogg.Vorbis { Vorbis.channels = n } ->
+               { k with Frame.audio = k.Frame.audio+n }
+           | Ogg.Flac { Flac.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
                { k with Frame.video = k.Frame.video+1 }
@@ -312,6 +336,7 @@ let string_of_format = function
   | WAV w -> WAV.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
+  | Flac w -> Flac.to_string w
   | AACPlus w -> AACPlus.to_string w
   | External w -> External.to_string w
 

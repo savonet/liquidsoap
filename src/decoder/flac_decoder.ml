@@ -31,17 +31,26 @@ struct
 
 let create_decoder input =
   let resampler = Rutils.create_audio () in
-  let decoder,info = Flac.Decoder.create input in
+  let dummy_c = 
+    Flac.Decoder.get_callbacks input 
+             (fun _ -> ()) 
+  in 
+  let decoder = Flac.Decoder.create dummy_c in
+  let decoder,info,_ = Flac.Decoder.init decoder dummy_c in
   let sample_freq,channels = info.Flac.Decoder.sample_rate,
                              info.Flac.Decoder.channels
   in
     Decoder.Decoder (fun gen ->
-      let data = Flac.Decoder.read decoder in
-      let content,length =
-        resampler ~audio_src_rate:(float sample_freq) data
+      let c = 
+       Flac.Decoder.get_callbacks input
+        (fun data -> 
+           let content,length =
+             resampler ~audio_src_rate:(float sample_freq) data
+           in
+           Generator.set_mode gen `Audio ;
+           Generator.put_audio gen content 0 (Array.length content.(0)))
       in
-        Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 (Array.length content.(0)))
+      Flac.Decoder.process decoder c)
 
 end
 
@@ -61,14 +70,11 @@ let get_type filename =
   let fd =
     Unix.openfile filename [Unix.O_RDONLY] 0o640
   in
-  let read_f n =
-    let s = String.create n in
-    let ret = Unix.read fd s 0 n in
-    s,ret
-  in
     Tutils.finalize ~k:(fun () -> Unix.close fd)
       (fun () ->
-         let decoder,info = Flac.Decoder.create read_f in
+         let write = fun _ -> () in
+         let h = Flac.Decoder.File.create_from_fd write fd in
+         let info = h.Flac.Decoder.File.info in
          let rate,channels = info.Flac.Decoder.sample_rate,
                              info.Flac.Decoder.channels
          in
@@ -107,7 +113,7 @@ let () =
     ~sdoc:"Use libflac to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime Decoder.mp3_mime_types#get &&
+          if List.mem mime Decoder.flac_mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
@@ -128,15 +134,11 @@ let get_tags file =
   let fd =
     Unix.openfile file [Unix.O_RDONLY] 0o640
   in
-  let read_f n =
-    let s = String.create n in
-    let ret = Unix.read fd s 0 n in
-    s,ret
-  in
   Tutils.finalize ~k:(fun () -> Unix.close fd)
   (fun () ->
-    let decoder,_ = Flac.Decoder.create read_f in
-    match Flac.Decoder.comments decoder with
+    let write = fun _ -> () in
+    let h = Flac.Decoder.File.create_from_fd write fd in
+    match h.Flac.Decoder.File.comments with
       | Some (v,m) -> m
       | None -> [])
 
@@ -152,14 +154,11 @@ let duration file =
   let fd =
     Unix.openfile file [Unix.O_RDONLY] 0o640
   in
-  let read_f n =
-    let s = String.create n in
-    let ret = Unix.read fd s 0 n in
-    s,ret
-  in
   Tutils.finalize ~k:(fun () -> Unix.close fd)
   (fun () -> 
-    let _,info = Flac.Decoder.create read_f in
+    let write = fun _ -> () in
+    let h = Flac.Decoder.File.create_from_fd write fd in
+    let info = h.Flac.Decoder.File.info in
     match info.Flac.Decoder.total_samples with
     | x when x = Int64.zero -> raise Not_found
     | x -> (Int64.to_float x) /. (float info.Flac.Decoder.sample_rate))

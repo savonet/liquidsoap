@@ -44,6 +44,9 @@ let wav_format = Cry.content_type_of_string "audio/wav"
 let aac_format = Cry.content_type_of_string "audio/aac"
 let aacplus_format = Cry.content_type_of_string "audio/aacp"
 
+(* Mime for FLAC data.. *)
+let flac_format = Cry.content_type_of_string "audio/x-flac"
+
 let user_agent =
   Printf.sprintf "liquidsoap %s" Configure.version
 let user_agent = Lang.product (Lang.string "User-Agent")
@@ -159,6 +162,12 @@ class output ~kind p =
               samplerate = Some m.Encoder.External.samplerate ;
               channels = Some m.Encoder.External.channels
             }, None
+        | Encoder.Flac m ->
+            { quality = Some (string_of_int m.Encoder.Flac.compression) ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.Flac.samplerate ;
+              channels = Some m.Encoder.Flac.channels
+            }, Some flac_format
         | Encoder.WAV m ->
             { quality = None ;
               bitrate = None ;
@@ -177,7 +186,6 @@ class output ~kind p =
                       bitrate = None ;
                       samplerate = Some s ;
                       channels = Some n }
-                
                 | [Encoder.Ogg.Vorbis
                      {Encoder.Vorbis.channels=n;
                                      mode=Encoder.Vorbis.ABR (_,b,_);
@@ -231,7 +239,8 @@ class output ~kind p =
       | x, _ when x = Cry.mpeg || 
                   x = wav_format ||
                   x = aac_format || 
-                  x = aacplus_format -> true
+                  x = aacplus_format ||
+                  x = flac_format -> true
       | x, _ when x = Cry.ogg_application ||
                   x = Cry.ogg_audio ||
                   x = Cry.ogg_video -> false
