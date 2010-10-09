@@ -288,7 +288,7 @@ let get_ext s =
  try
   let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
   let ret = Pcre.exec ~rex s in
-  Pcre.get_substring ret 1
+  String.lowercase (Pcre.get_substring ret 1)
  with
    | _ -> raise Not_found
 
