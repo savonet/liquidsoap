@@ -169,9 +169,13 @@ let mk_flac_gen params =
               { f with Encoder.Flac.channels = i }
           | ("samplerate",{ term = Int i }) ->
               { f with Encoder.Flac.samplerate = i }
-          | ("compression",{ term = Int i }) ->
+          | ("compression",({ term = Int i } as t)) ->
+              if i < 0 || i >= 8 then
+                raise (Error (t,"invalid compression value")) ;
               { f with Encoder.Flac.compression = i }
-          | ("bits_per_sample",{ term = Int i }) ->
+          | ("bits_per_sample",({ term = Int i } as t)) ->
+              if i <> 8 && i <> 16 && i <> 32 then
+                raise (Error (t,"invalid bits_per_sample value")) ;
               { f with Encoder.Flac.bits_per_sample = i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Flac.channels = 1 }

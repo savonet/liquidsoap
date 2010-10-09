@@ -83,7 +83,23 @@ h5. Speex
 
 You can also control quality using @abr=x@ or @vbr=y@.
 
-h5. AAC+
+h5. Flac
+
+The flac encoding format comes in two flavors:
+* @%flac@ is the native flac format, useful for file output but not for streaming purpose
+* @%ogg(%flac,...)@ is the ogg/flac format, which can be used to broadcast data with icecast
+
+The parameters are:
+%%
+%flac(samplerate=44100, 
+      channels=2, 
+      compression=5, 
+      bits_per_sample=16)
+%%
+
+@compression@ ranges from 0 to 8 and @bits_per_sample@ should be one of: @8@, @16@ or @32@.
+
+h4. AAC+
 
 The syntax for the internal AAC+ encoder is:
 %%
