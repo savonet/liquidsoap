@@ -396,10 +396,9 @@ object (self)
       in
         match Cry.get_status connection with
           | Cry.Connected _ ->
-              (try Cry.update_metadata connection m; "" with _ -> "")
-          | Cry.Disconnected ->
+              (try Cry.update_metadata connection m with _ -> ())
+          | Cry.Disconnected -> ()
               (* Do nothing if shout connection isn't available *)
-              ""
      end 
     else
       (Utils.get_some encoder).Encoder.insert_metadata m 
@@ -442,7 +441,8 @@ object (self)
 
   method icecast_start =
     assert (encoder = None) ;
-    encoder <- Some (encoder_factory self#id) ;
+    let enc = encoder_factory self#id in
+    encoder <- Some (enc (Hashtbl.create 0)) ;
     assert (Cry.get_status connection = Cry.Disconnected) ;
     begin match dumpfile with
       | Some f -> dump <- Some (open_out_bin f)

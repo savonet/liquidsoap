@@ -82,7 +82,7 @@ let encode_video encoder id content start len =
   in
   Ogg_muxer.encode encoder id data
 
-let encoder ogg name =
+let encoder ogg name meta =
     (* We add a skeleton only 
      * if there are more than one stream for now. *)
     let skeleton = List.length ogg > 1 in
@@ -162,7 +162,7 @@ let encoder ogg name =
       let f track =
         match track.id with
           | Some _ -> ()
-          | None   -> track.id <- Some (track.reset ogg_enc (Hashtbl.create 0))
+          | None   -> track.id <- Some (track.reset ogg_enc meta)
       in
       List.iter f tracks ;
       Ogg_muxer.streams_start ogg_enc  
@@ -181,7 +181,7 @@ let encoder ogg name =
       List.iter f tracks ;
       Ogg_muxer.get_data ogg_enc
     in
-    let stop () = 
+    let ogg_stop () = 
       let f track = 
         track.id <- None
       in
@@ -189,20 +189,18 @@ let encoder ogg name =
       if Ogg_muxer.state ogg_enc = 
          Ogg_muxer.Streaming
       then
-       begin
-        Ogg_muxer.end_of_stream ogg_enc ;
-        Ogg_muxer.get_data ogg_enc
-       end
-      else
-       ""
+        Ogg_muxer.end_of_stream ogg_enc 
+    in
+    let stop () = 
+      ogg_stop () ;
+      Ogg_muxer.get_data ogg_enc
     in
     let insert_metadata m =
-      let ret = stop () in
+      ogg_stop () ;
       let f track =
         track.id <- Some (track.reset ogg_enc m)
       in
-      List.iter f tracks ;
-      ret
+      List.iter f tracks
     in
     {
      Encoder.

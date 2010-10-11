@@ -199,11 +199,6 @@ let encoder id ext =
   let insert_metadata h _ = 
     if h.params.restart = Metadata then
       reset_process h;
-    Mutex.lock h.read_m;
-    let ret = Buffer.contents h.read in
-    Buffer.reset h.read;
-    Mutex.unlock h.read_m;
-    ret
   in
 
   let encode h ratio frame start len =
@@ -276,5 +271,5 @@ let encoder id ext =
 let () =
   Encoder.plug#register "EXTERNAL"
     (function
-       | Encoder.External m -> Some (fun s -> encoder s m)
+       | Encoder.External m -> Some (fun s _ -> encoder s m)
        | _ -> None)

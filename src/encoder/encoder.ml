@@ -342,14 +342,22 @@ let string_of_format = function
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 
-  * (triggers flushing). *)
+  * (triggers flushing). 
+  * Insert metadata is really meant for inline metadata, i.e.
+  * in most cases, stream sources. Otherwise, metadata are
+  * passed when creating the encoder. For instance, the mp3 
+  * encoder may accept metadata initally and write them as 
+  * id3 tags but does not support inline metadata. 
+  * Also, the ogg encoder supports inline metadata but restarts
+  * its stream. This is ok, though, because the ogg container/streams 
+  * is meant to be sequentialized but not the mp3 format. *)
 type encoder = {
-  insert_metadata : Frame.metadata -> string ;
+  insert_metadata : Frame.metadata -> unit ;
   encode : Frame.t -> int -> int -> string ;
   stop : unit -> string
 }
 
-type factory = string -> encoder
+type factory = string -> (string,string) Hashtbl.t -> encoder
 
 (** A plugin might or might not accept a given format.
   * If it accepts it, it gives a function creating suitable encoders. *)
@@ -361,7 +369,7 @@ let plug : plugin Plug.plug =
     ~insensitive:true
     "stream encoding formats"
 
-exception Found of (string -> encoder)
+exception Found of factory
 
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =

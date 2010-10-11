@@ -59,7 +59,7 @@ let encoder mp3 =
       Lame.encode_buffer_float_part e b.(0) b.(1) start len
   in
     {
-      insert_metadata = (fun m -> "") ;
+      insert_metadata = (fun m -> ()) ;
       encode = encode ;
       stop = (fun () -> "")
     }
@@ -67,5 +67,5 @@ let encoder mp3 =
 let () =
   Encoder.plug#register "MP3"
     (function
-       | Encoder.MP3 m -> Some (fun _ -> encoder m)
+       | Encoder.MP3 m -> Some (fun _ _ -> encoder m)
        | _ -> None)

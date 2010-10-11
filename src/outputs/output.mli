@@ -84,10 +84,7 @@ object
   method output_send : Frame.t -> unit
 
   method virtual encode : Frame.t -> int -> int -> string
-  (** This method returns the remaining data
-    * if the encoder has to output data
-    * before inserting the metadata. *)
-  method virtual insert_metadata : Frame.metadata -> string
+  method virtual insert_metadata : Frame.metadata -> unit
   method virtual send : string -> unit
 
   method virtual output_reset : unit

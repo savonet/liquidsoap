@@ -62,7 +62,7 @@ let encoder wav =
       s
   in
     {
-      insert_metadata = (fun m -> "") ;
+      insert_metadata = (fun m -> ()) ;
       encode = encode ;
       stop = (fun () -> "")
     }
@@ -70,5 +70,5 @@ let encoder wav =
 let () =
   Encoder.plug#register "WAV"
     (function
-       | Encoder.WAV w -> Some (fun _ -> encoder w)
+       | Encoder.WAV w -> Some (fun _ _ -> encoder w)
        | _ -> None)

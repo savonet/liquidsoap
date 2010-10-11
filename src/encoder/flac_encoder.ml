@@ -22,7 +22,9 @@
 
 (** FLAC encoder *)
 
-let encoder flac =
+let encoder flac meta =
+  let f x y l = (x,y)::l in
+  let comments = Hashtbl.fold f meta [] in
   let channels = flac.Encoder.Flac.channels in
   let samplerate_converter =
     Audio_converter.Samplerate.create channels
@@ -42,7 +44,7 @@ let encoder flac =
   let buf = Buffer.create 1024 in
   let write = Buffer.add_string buf in
   let cb = Flac.Encoder.get_callbacks write in
-  let enc = Flac.Encoder.create p cb in
+  let enc = Flac.Encoder.create ~comments p cb in
   let enc = ref enc in
   let encode frame start len =
     let start = Frame.audio_of_master start in
@@ -70,7 +72,7 @@ let encoder flac =
   in
     {
      Encoder.
-      insert_metadata = ( fun _ -> "") ;
+      insert_metadata = ( fun _ -> ()) ;
       encode = encode ;
       stop = stop
     }

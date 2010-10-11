@@ -68,12 +68,12 @@ object (self)
   method output_start =
     assert (fd = None && encoder = None) ;
     let enc = encoder_factory self#id in
-    encoder <- Some enc ;
-    match current_metadata with
-      | Some m -> 
-          self#send (enc.Encoder.insert_metadata m) ;
-          current_metadata <- None
-      | None -> ()
+    let meta = 
+      match current_metadata with
+        | Some m -> m
+        | None -> Hashtbl.create 0
+    in
+    encoder <- Some (enc meta) ;
 
   method output_stop =
     let flush = (Utils.get_some encoder).Encoder.stop () in
@@ -113,8 +113,7 @@ object (self)
     if reload_on_metadata then
      begin
       current_metadata <- Some m ; 
-      need_reset <- true ;
-      ""
+      need_reset <- true 
      end 
     else
       (Utils.get_some encoder).Encoder.insert_metadata m

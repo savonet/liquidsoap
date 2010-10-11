@@ -73,7 +73,7 @@ let encoder aacplus =
     ret
   in
     {
-      insert_metadata = (fun m -> "") ;
+      insert_metadata = (fun m -> ()) ;
       encode = encode ;
       stop = (fun () -> "")
     }
@@ -81,5 +81,5 @@ let encoder aacplus =
 let () =
   Encoder.plug#register "AAC+"
     (function
-       | Encoder.AACPlus m -> Some (fun _ -> encoder m)
+       | Encoder.AACPlus m -> Some (fun _ _ -> encoder m)
        | _ -> None)
