@@ -132,6 +132,8 @@ let rewrite pre s =
 let (!) = rewrite false
 let (!!) = rewrite true
 
+let r_http_url = Str.regexp "^http://"
+
 let rec print_line f l =
   List.iter
     (function
@@ -144,7 +146,10 @@ let rec print_line f l =
              let f = open_out_gen [Open_append;Open_creat] 0o644 "links.txt" in
                fprintf f "%s\n" url ; close_out f
            end ;
-           fprintf f "<a href=\"%s\">%s</a>" url !txt
+         fprintf f "<a href=\"%s\" %s>%s</a>"
+           url
+           (if Str.string_match r_http_url url 0 then "target=\"_blank\"" else "")
+           !txt
        | Em l -> fprintf f "<em>%a</em>" print_line l
        | Bf l -> fprintf f "<b>%a</b>" print_line l)
     l
