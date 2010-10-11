@@ -111,6 +111,7 @@ let r_subst_pre =
 let r_subst =
   List.map (fun (r,s) -> Str.regexp r, s)
     [
+      "&lambda;", "λ";
       "&", "&amp;";
       "--", "&ndash;"
     ]
