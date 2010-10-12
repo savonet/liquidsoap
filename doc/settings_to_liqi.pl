@@ -4,8 +4,8 @@ print "title: Liquidsoap language settings\n";
 
 while (<STDIN>) {
 
-s/###/h3. /;
-s/##/h4. /;
+s/###/h2. /;
+s/##/h3. /;
 s/#//;
 s/Default: (.+)/Default: \@$1\@/;
 s/set\(([^)]+)?\)/%%\nset($1)\n%%/;

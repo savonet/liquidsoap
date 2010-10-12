@@ -204,9 +204,9 @@ sub compare {
 print <<HEADER ;
 title: Language reference
 
-h3. Liquidsoap scripting language reference
+h2. Liquidsoap scripting language reference
 
-h4. Categories
+h3. Categories
 
 The **Source / ...** categories contain all functions that return sources.
 The **Input** functions are those which build elementary sources
@@ -236,7 +236,7 @@ my $anchor = $key;
 $anchor =~ s/[^\w]//g;
   print <<HTML ;
 
-h4\@$anchor. $key
+h3\@$anchor. $key
 $cat{$key}
 HTML
 }
