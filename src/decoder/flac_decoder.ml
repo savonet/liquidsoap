@@ -26,6 +26,8 @@ open Dtools
 
 let log = Log.make ["decoder";"flac"]
 
+exception End_of_stream
+
 module Make (Generator:Generator.S_Asio) =
 struct
 
@@ -50,7 +52,13 @@ let create_decoder input =
            Generator.set_mode gen `Audio ;
            Generator.put_audio gen content 0 (Array.length content.(0)))
       in
-      Flac.Decoder.process decoder c)
+      match Flac.Decoder.state decoder c with
+        | `Search_for_metadata
+        | `Read_metadata
+        | `Search_for_frame_sync
+        | `Read_frame ->
+              Flac.Decoder.process decoder c
+        | _ -> raise End_of_stream)
 
 end
 
