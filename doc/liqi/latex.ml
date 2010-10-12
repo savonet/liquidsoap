@@ -32,7 +32,8 @@ let r_subst =
     "&eacute;", "é";
     "_", "\\_";
     "%", "\\%";
-    "\\^", "\\^\\null"
+    "\\^", "\\^\\null";
+    "#", "\#";
   ]
 let r_subst = List.map (fun (r,s) -> Str.regexp r, s) r_subst
 
@@ -77,11 +78,11 @@ let print_doc f =
          | Header (n,_,s) -> (* TODO *)
              fprintf f "\\%s{%s}\n"
                ((function
-                  | 3 -> "chapter"
-                  | 4 -> "section"
-                  | 5 -> "subsection"
-                  | 6 -> "subsubsection"
-                  | 7 -> "paragraph"
+                  | 2 -> "chapter"
+                  | 3 -> "section"
+                  | 4 -> "subsection"
+                  | 5 -> "subsubsection"
+                  | 6 -> "paragraph"
                   | _ -> assert false) n)
                !s
          | Paragraph p -> print_paragraph pprinter f p

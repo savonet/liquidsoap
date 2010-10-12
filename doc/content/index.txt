@@ -43,7 +43,7 @@ Here are a few things you can easily achieve using Liquidsoap:
 * Speech and sound synthesis.
 * "Metadata":metadata.html rewriting and insertion.
 * Arbitrary transitions: cross-fade, jingle insertion, custom, etc. The behaviour of the transition can be programmed to depend on metadata and average volume.
-* "Input of other streams":http_vs_harbor.html: useful for switching to a live show. Liquidsoap can relay an HTTP stream but also host it.
+* "Input of other streams":http_input.html: useful for switching to a live show. Liquidsoap can relay an HTTP stream but also host it.
 * "Blank detection":blank.html.
 * Definable event handlers on new tracks, new metadata and excessive blank.
 * "Last.fm":cookbook.html#lastfm support: play files, streams, audioscrobbling.
