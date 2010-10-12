@@ -41,6 +41,7 @@ let letter = [
   '\170' '\162' '\167' '-' '_' '+' '>' '<' '=' 
   '~' '&' '/' '[' ']'  '|' '^'
 ]
+let letter = letter | ("&" ['a'-'z' 'A'-'Z' '0'-'9']+ ";")
 let punctuation = [ ':' '.' ';' ',' '?' '!' ]
 let quotes = [ '"' '\'' ]
 let markup = ['*''_']*
@@ -87,6 +88,7 @@ rule token = parse
   | '"' ([^'"']+ as text) '"'
     ':' ([^' ''\n']+ [^'.'','';'':'' ''\n''('')''?''!'] as url)
                          { HREF (text,url) }
+
   | markup punctuation + markup
   | markup '(' | ')' markup
   | markup quotes + markup
