@@ -25,9 +25,8 @@
 open Encoder
 open Encoder.AACPlus
 
-module G = Generator.Generator
-
 let create_encoder ~samplerate ~bitrate ~channels =
+  Aacplus.init ();
   let bitrate = bitrate*1000 in
   Aacplus.create ~channels ~samplerate ~bitrate ()
 
@@ -37,41 +36,41 @@ let encoder aacplus =
                          ~bitrate:aacplus.bitrate 
                          ~channels 
   in
-  let samplerate_converter =
-    Audio_converter.Samplerate.create channels
-  in
-  let samplerate = aacplus.samplerate in
-  let src_freq = float (Frame.audio_of_seconds 1.) in
-  let dst_freq = float samplerate in
   (* Aacplus accepts data of a fixed length.. *)
-  let samples = Aacplus.frame_size enc in
-  let data = Audio.create channels samples in
-  let buf = G.create () in
+  let len = Aacplus.data_length enc in
+  let tmp = String.create len in
+  let rem = Buffer.create 1024 in
+  let encoded = Buffer.create 1024 in
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
     let len = Frame.audio_of_master len in
-    let b,start,len =
-      if src_freq <> dst_freq then
-        let b = Audio_converter.Samplerate.resample
-          samplerate_converter (dst_freq /. src_freq)
-          b start len
+    let s = String.create (2 * len * channels) in
+    Audio.S16LE.of_audio b start s 0 len;
+    Buffer.add_string rem s ;
+    let data_length = String.length tmp in
+    let rec put data =
+      let len = String.length data in
+      if len > data_length then
+       begin
+        let b = String.sub data 0 data_length in
+        let data =
+          String.sub data data_length (len-data_length)
         in
-        b,0,Array.length b.(0)
+        Buffer.add_string encoded (Aacplus.encode enc b) ;
+        put data
+       end
       else
-        Audio.copy b,start,len
+       begin
+        Buffer.reset rem;
+        Buffer.add_string rem data
+       end
     in
-    G.put buf b start len ;
-    if (G.length buf > samples) then
-     begin
-      let l = G.get buf samples in
-      let f (b,o,o',l) = 
-        Audio.blit b o data o' l
-      in
-      List.iter f l ;
-      Aacplus.encode enc data
-     end
-    else "" 
+    if Buffer.length rem > data_length then
+      put (Buffer.contents rem) ;
+    let ret = Buffer.contents encoded in
+    Buffer.reset encoded ;
+    ret
   in
     {
       insert_metadata = (fun m -> ()) ;
