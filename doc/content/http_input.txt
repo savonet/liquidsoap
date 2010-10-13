@@ -1,4 +1,4 @@
-title: HTTP inputs.
+title: HTTP input
 
 h3. HTTP input
 

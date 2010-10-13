@@ -1,4 +1,4 @@
-title: Harbor inputs.
+title: Harbor input
 
 h3. Harbor input
 
