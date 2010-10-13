@@ -174,6 +174,12 @@ if test "$OS_TYPE" \!= "Win32" ; then
   CFLAGS="$CFLAGS -fPIC"
 fi
 
+# Add -I`ocamlc -where` to CFLAGS for 
+# user with locally installed headers.
+if test "$OS_TYPE" \!= "Win32" ; then
+  CFLAGS="$CFLAGS -I`ocamlc -where`"
+fi
+
 # Optimize for local machine
 AC_ARG_ENABLE([optimize],
    AC_HELP_STRING(
