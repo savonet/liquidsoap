@@ -4,6 +4,7 @@ DISTDIR=liquidsoap-@version@
 
 user=@install_user@
 group=@install_group@
+INSTALL_DAEMON=@INSTALL_DAEMON@
 
 prefix= @prefix@
 exec_prefix= @exec_prefix@

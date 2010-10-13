@@ -59,11 +59,10 @@ api-doc-install:
 	do $(INSTALL_DATA) $$doc $(datadir)/doc/$(DISTDIR)/api ; \
 	done
 
-# User ${user} and group ${group} are expected to exist.
-# They are defined in Makefile.defs, written by configure.
+# user and group are defined in Makefile.defs, written by configure.
 
 install-local: doc-install
-ifneq ($(DEBIAN),yes)
+ifeq ($(INSTALL_DAEMON),yes)
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 \
 	  ${localstatedir}/log/liquidsoap
 	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 \

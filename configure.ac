@@ -79,6 +79,7 @@ else
 fi
 
 # User/group for installed files and directories
+# user is assumed to have access to the group.
 
 AC_ARG_WITH([user],
             AC_HELP_STRING([--with-user],[sets the owner of installed files]))
@@ -96,6 +97,23 @@ else
 fi
 AC_SUBST(install_user)
 AC_SUBST(install_group)
+
+AC_MSG_CHECKING(whether user $install_user exists)
+if ! id $install_user >/dev/null 2>&1 ; then
+  AC_MSG_RESULT(not found: will not install daemon files)
+  INSTALL_DAEMON=""
+else
+  AC_MSG_RESULT(ok)
+  AC_MSG_CHECKING(if user $install_user belongs to group $install_group)
+  if ! groups $install_user | grep $install_group >/dev/null 2>&1 ; then
+    AC_MSG_RESULT(no: will not install daemon files)
+    INSTALL_DAEMON=""
+  else
+    AC_MSG_RESULT(ok)
+    INSTALL_DAEMON="yes"
+  fi
+fi
+AC_SUBST(INSTALL_DAEMON)
 
 AC_PROG_CC
 
