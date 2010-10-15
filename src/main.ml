@@ -491,7 +491,8 @@ let () =
      * for this: we want Unix EPIPE error and not SIGPIPE, which
      * crashes the program.. *)
     Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-    ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]);
+    if Sys.os_type <> "Win32" then
+      ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]);
     (* On Windows we need to initiate shutdown ourselves by catching INT
      * since dtools doesn't do it. *)
     if Sys.os_type = "Win32" then

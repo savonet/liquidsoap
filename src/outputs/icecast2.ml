@@ -344,9 +344,8 @@ object (self)
     (* We assume here that there always is
      * an encoder available when the source
      * is connected. *)
-    match Cry.get_status connection with
-      | Cry.Connected _ ->
-         let enc = Utils.get_some encoder in
+    match Cry.get_status connection, encoder with
+      | Cry.Connected _, Some enc ->
          enc.Encoder.encode frame ofs len
       | _ -> ""
 
