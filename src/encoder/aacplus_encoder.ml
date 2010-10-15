@@ -40,6 +40,7 @@ let encoder aacplus =
   let samplerate_converter =
     Audio_converter.Samplerate.create channels
   in
+  let has_encoded = ref false in
   let samplerate = aacplus.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
@@ -69,14 +70,23 @@ let encoder aacplus =
         Audio.blit b o data o' l
       in
       List.iter f l ;
+      has_encoded := true;
       Aacplus.encode enc data
      end
     else "" 
   in
+  (* There is a bug in libaacplus when closing 
+   * an encoder tht has not yet encoded any data.
+   * Thus, we force it to happen before closing.. *)
+  let stop () = 
+    if not !has_encoded then
+      ignore(Aacplus.encode enc data) ;
+    ""
+  in
     {
       insert_metadata = (fun m -> ()) ;
       encode = encode ;
-      stop = (fun () -> "")
+      stop = stop
     }
 
 let () =
