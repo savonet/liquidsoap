@@ -104,6 +104,7 @@ object (self)
         ans
     in
       for c = 0 to Array.length m - 1 do
+        MIDI.clear_all m.(c);
         MIDI.merge m.(c) t
       done;
       MFrame.add_break frame (MFrame.size ())
