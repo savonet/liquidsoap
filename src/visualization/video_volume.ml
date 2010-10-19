@@ -96,12 +96,15 @@ object (self)
   method private get_frame frame =
     let offset = Frame.position frame in
     let len = source#get frame ; Frame.position frame - offset in
-    let rms =
-      AFrame.rms
-        frame (Frame.audio_of_master offset) (Frame.audio_of_master len)
-    in
-      self#add_vol rms ;
-      self#render frame offset len
+    (* If the data has duration=0 don't do anything as there might
+     * not even be a content layer of the right type to look at. *)
+    if len > offset then
+      let rms =
+        AFrame.rms
+          frame (Frame.audio_of_master offset) (Frame.audio_of_master len)
+      in
+        self#add_vol rms ;
+        self#render frame offset len
 
 end
 
