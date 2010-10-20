@@ -127,6 +127,7 @@ io = \
 	$(if $(W_JACK),io/jack_io.ml) \
 	$(if $(W_V4L),io/v4l_io.ml) \
 	$(if $(W_OPAL),io/opal_io.ml) \
+	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
 #	io/marshal_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \

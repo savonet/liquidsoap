@@ -886,6 +886,45 @@ else
 fi
 
 #
+# Gstreamer
+#
+
+AC_ARG_WITH([gstreamer-dir],
+   AC_HELP_STRING(
+      [--with-gstreamer-dir=path],
+      [look for ocaml-gstreamer library in "path" (autodetected by default)]))
+AC_ARG_ENABLE([gsteamer],AC_HELP_STRING([--disable-gstreamer],["don't use ocaml-gstreamer"]))
+
+if test "x$enable_gstreamer" != "xno" ; then
+AC_MSG_CHECKING(for ocaml-gstreamer)
+if test -z "$with_gstreamer_dir" ; then
+    if ! $OCAMLFIND query gstreamer > /dev/null 2>&1 ; then
+	AC_MSG_RESULT(not found)
+    else
+	W_GSTREAMER=yes
+	AC_MSG_RESULT(ok)
+        ocamlcflags="$ocamlcflags -package gstreamer"
+        requires="$requires gstreamer"
+    fi
+else
+    echo $with_gstreamer_dir | grep ^/ > /dev/null 2>&1 \
+	|| with_gstreamer_dir=$PWD/$with_gstreamer_dir
+    ocamlcflags="$ocamlcflags -I $with_gstreamer_dir"
+    ocamllflags="$ocamllflags gstreamer.$cma"
+    requires="$requires gstreamer"
+    W_GSTREAMER=yes
+    AC_MSG_RESULT(ok)
+fi
+fi
+
+AC_SUBST(W_GSTREAMER)
+if test "a$W_GSTREAMER" = "ayes" ; then
+        w_GSTREAMER=yes
+else
+        w_GSTREAMER=no
+fi
+
+#
 # Aacplus
 #
 
@@ -2038,7 +2077,7 @@ cat <<EOMSG
    - Old JACK          : $w_JACK
    - V4L               : $w_V4L
    - opal              : $w_OPAL
-   - ffmpeg            : $w_FFMPEG
+   - GStreamer         : $w_GSTREAMER
 
  * Audio manipulation
    - Samplerate        : $w_SAMPLERATE
