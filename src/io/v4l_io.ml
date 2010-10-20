@@ -88,7 +88,7 @@ object (self)
     in
       image <- img;
       for i = 0 to VFrame.size frame - 1 do
-        Img.Scale.onto ~proportional:true buf.(i) img
+        Img.Scale.onto ~proportional:true img buf.(i)
       done;
       AFrame.add_break frame (AFrame.size ())
 end
