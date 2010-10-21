@@ -477,7 +477,7 @@ let handle_client ~port ~icy socket =
                 try
                  let s = grab l in
                  let lines = Str.split (Str.regexp "\n") s in
-                 let headers = parse_headers (List.tl lines) in
+                 let headers = parse_headers lines in
                  handle_source_request ~port ~icy:true hprotocol socket huri headers
                 with
                   | Failure s ->
