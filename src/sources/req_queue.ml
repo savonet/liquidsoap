@@ -56,15 +56,16 @@ object (self)
                                (Printf.sprintf "#%d in secondary queue" pos) ;
                            (pos+1) ) 1 requests) ;
         Mutex.unlock reqlock ;
-        if Request.get_root_metadata out "skip" = Some "true" then
-          ( Request.add_log out "Out of the secondary queue, but skipped." ;
-            Request.destroy out ;
-            self#get_next_request )
-        else
-          ( Request.add_log out "Entering the primary queue." ;
-            Request.set_root_metadata out "2nd_queue_pos" "0" ;
-            Request.set_root_metadata out "queue" "primary" ;
-            Some out )
+        if Request.get_root_metadata out "skip" = Some "true" then begin
+          Request.add_log out "Out of the secondary queue, but skipped." ;
+          Request.destroy out ;
+          self#get_next_request
+        end else begin
+          Request.add_log out "Entering the primary queue." ;
+          Request.set_root_metadata out "2nd_queue_pos" "0" ;
+          Request.set_root_metadata out "queue" "primary" ;
+          Some out
+        end
     with
       | Queue.Empty -> Mutex.unlock reqlock ; None
 
@@ -131,29 +132,36 @@ object (self)
       ~descr:"Indicate that request <rid> should not be played \
               (set the \"skip\" metadata to true)."
       (fun s ->
-         ( let id = int_of_string s in
-             match Request.from_id id with
+         let id = int_of_string s in
+           match Request.from_id id with
              | None -> "No such request!"
              | Some r ->
                  if Request.get_root_metadata r "source_id" <>
                       Some (string_of_int (Oo.id self)) then
                    "That request doesn't belong to me!"
-                 else
-                   ( Request.set_root_metadata r "skip" "true" ;
-                     "OK" ))) ;
+                 else if Request.get_metadata r "queue" = Some "primary" then begin
+                   self#expire (fun r' -> Request.get_id r = Request.get_id r') ;
+                   "OK"
+                 end else begin
+                   Request.set_root_metadata r "skip" "true" ;
+                   "OK"
+                 end) ;
     Server.add ~ns "consider" ~usage:"consider <rid>"
       ~descr:"Cancel the effect of ignore on a request."
       (fun s ->
-         ( let id = int_of_string s in
-             match Request.from_id id with
+         let id = int_of_string s in
+           match Request.from_id id with
              | None -> "No such request!"
              | Some r ->
                  if Request.get_root_metadata r "source_id" <>
                       Some (string_of_int (Oo.id self)) then
                    "That request doesn't belong to me!"
-                 else
-                   ( Request.set_root_metadata r "skip" "false" ;
-                     "OK" )))
+                 else if Request.get_metadata r "queue" = Some "primary" then begin
+                   "Error: cannot un-ignore in the primary queue."
+                 end else begin
+                   Request.set_root_metadata r "skip" "false" ;
+                   "OK"
+                 end)
     end
 
   method private sleep =
