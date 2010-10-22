@@ -341,6 +341,11 @@ let mk_theora params =
        picture_y          = 0 ;
        aspect_numerator   = 1 ;
        aspect_denominator = 1 ;
+       keyframe_frequency = 64 ;
+       vp3_compatible     = None ;
+       soft_target        = false ;
+       buffer_delay       = None ;
+       speed              = None ;
     }
   in
   let theora =
@@ -411,6 +416,16 @@ let mk_theora params =
               { f with Encoder.Theora.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Theora.aspect_denominator = i }
+          | ("keyframe_frequency",{ term = Int i }) ->
+              { f with Encoder.Theora.keyframe_frequency = i }
+          | ("vp3_compatible",{ term = Bool i }) ->
+              { f with Encoder.Theora.vp3_compatible = Some i }
+          | ("soft_target",{ term = Bool i }) ->
+              { f with Encoder.Theora.soft_target = i }
+          | ("buffer_delay",{ term = Int i }) ->
+              { f with Encoder.Theora.buffer_delay = Some i }
+          | ("speed",{ term = Int i }) ->
+              { f with Encoder.Theora.speed = Some i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in

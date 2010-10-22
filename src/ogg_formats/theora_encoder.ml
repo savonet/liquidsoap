@@ -39,6 +39,11 @@ let create_encoder ~theora ~metadata () =
   let aspect_denominator = theora.Encoder.Theora.aspect_denominator in
   let fps = Frame.video_of_seconds 1. in
   let version_major,version_minor,version_subminor = Theora.version_number in
+  let keyframe_frequency = Some theora.Encoder.Theora.keyframe_frequency in
+  let vp3_compatible     = theora.Encoder.Theora.vp3_compatible in
+  let soft_target        = Some theora.Encoder.Theora.soft_target in
+  let buffer_delay       = theora.Encoder.Theora.buffer_delay in
+  let speed              = theora.Encoder.Theora.speed in
   let info =
     {
      Theora.
@@ -62,7 +67,17 @@ let create_encoder ~theora ~metadata () =
       pixel_fmt = Theora.PF_420
     }
   in
-  let enc = Theora.Encoder.create info metadata in
+  let params = 
+    {
+     Theora.Encoder.
+      keyframe_frequency = keyframe_frequency ;
+      vp3_compatible     = vp3_compatible ;
+      soft_target        = soft_target ;
+      buffer_delay       = buffer_delay ;
+      speed              = speed
+    }
+  in
+  let enc = Theora.Encoder.create info params metadata in
   let started = ref false in
   let header_encoder os = 
     Theora.Encoder.encode_header enc os;
