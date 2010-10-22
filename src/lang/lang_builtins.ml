@@ -1318,6 +1318,14 @@ let () =
          Lang.bool (Request.Resolved = Request.resolve r timeout))
 
 let () =
+  add_builtin "request.metadata" ~cat:Liq
+    ["",Lang.request_t (Lang.univ_t 1),None,None] Lang.metadata_t
+    ~descr:"Get the metadata associated to a request."
+    (fun p ->
+       let r = Lang.to_request (List.assoc "" p) in
+       Lang.metadata (Request.get_all_metadata r))
+
+let () =
   add_builtin "request.ready" ~cat:Liq
     ~descr:"Check if a request is ready, i.e. is associated to a valid \
             local file. Unless the initial URI was such a file, a request \
