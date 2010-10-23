@@ -1,4 +1,4 @@
-title:Frequently Asked Questions
+title:Frequently Asked Questions and Troubleshouting
 
 h3. Frequently Asked Questions
 
@@ -88,7 +88,64 @@ In any case, once that kind of error happens, there is no way for the
 user to prevent liquidsoap from crashing. Those exceptions cannot be
 caught or handled in any way at the level of liquidsoap scripts.
 
-h4. Common problems
+h4. Troubleshouting
+
+h5. Pulseaudio
+
+When using ALSA input or output or, more generaly any audio input or output 
+that is not using pulseaudio, you should disable pulseaudio, which is often installed
+by default. Pulseaudio emulates ALSA but this also generates bugs, 
+in particular errors of this form:
+%%
+Alsa.Unknown_error(1073697252)!
+%%
+
+There are two things you may do:
+* Make sure your alsa input/output does not use pulseaudio
+* Disable pulseaudio on your system
+
+In the first case, you should first find out which sound card you want to use,
+with the command @aplay -l@. An example of its output is:
+%%
+**** List of PLAYBACK Hardware Devices ****
+card 0: Intel [HDA Intel], device 0: STAC92xx Analog [STAC92xx Analog]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+%%
+In this case, the card we want to use is: device @0@, subdevice @0@, thus:
+@hw:0,0@. We now create a file @/etc/asound.conf@ (or @~/.asoundrc@ for single-user
+configuration) that contains the following:
+%%
+pcm.liquidsoap {
+        type plug
+        slave { pcm "hw:0,0" }
+}
+%%
+
+This creates a new alsa device that you can use with liquidsoap. The @plug@ operator
+in ALSA is used to work-around any hardward limitations in your device (mixing multiple
+outputs, resampling etc.). In some cases you may need to read more about ALSA and define
+your own PCM device.
+
+Once you have created this device, you can use it in liquidsoap as follows:
+%%
+input.alsa(device="pcm.liquidsoap", ...)
+%%
+
+In the second case -- disabling pulseaudio, you can edit the file @/etc/pulse/client.conf@ and
+change or add this line:
+%%
+autospawn = no
+%%
+And kill any running pulseaudio process:
+%%
+killall pulseaudio
+%%
+
+Otherwise you may simply remove pulseaudio's packages, if you use Debian or Ubuntu:
+%%
+apt-get remove pulseaudio libasound2-plugins
+%%
 
 h5. Listeners are disconnected at the end of every track
 
