@@ -33,7 +33,7 @@ let r_subst =
     "_", "\\_";
     "%", "\\%";
     "\\^", "\\^\\null";
-    "#", "\#";
+    "#", "\\#";
   ]
 let r_subst = List.map (fun (r,s) -> Str.regexp r, s) r_subst
 
