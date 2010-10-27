@@ -22,7 +22,7 @@
 
 open Source
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 
 class text ~kind
   ttf ttf_size color dx dy speed cycle meta text (source:source) =

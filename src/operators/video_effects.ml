@@ -22,7 +22,7 @@
 
 open Source
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 
 class effect ~kind effect (source:source) =
 object (self)

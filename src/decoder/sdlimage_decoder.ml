@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 
 let log = Dtools.Log.make ["decoder";"sdlimage"]
@@ -43,8 +43,8 @@ let load_image filename =
   let frame = Img.create (Lazy.force Frame.video_width)
                          (Lazy.force Frame.video_height)
   in
-  convert (Image.Generic.of_RGBA8 image) 
-          (Image.Generic.of_RGBA8 frame) ;
+  convert (Image.Generic.of_RGBA32 image)
+          (Image.Generic.of_RGBA32 frame) ;
   frame
 
 let create_decoder metadata img =

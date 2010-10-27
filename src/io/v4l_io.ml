@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 
 external caps :
   Unix.file_descr -> string * int * int * int * int * int * int
@@ -78,7 +78,7 @@ object (self)
       if count = every then
         (
           count <- 0;
-          Img.of_RGB8_string (capture fd width height) width
+          Img.of_RGB24_string (capture fd width height) width
         )
       else
         (

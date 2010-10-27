@@ -22,7 +22,7 @@
 
 open Source
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.

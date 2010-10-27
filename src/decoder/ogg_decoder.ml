@@ -22,7 +22,7 @@
 
 (** Decode and read ogg files. *)
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 module Gen = Image.Generic
 module P = Gen.Pixel
 
@@ -60,7 +60,7 @@ let video_convert () =
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
     let rgb = Img.create width height in
-    let frame = Gen.of_RGBA8 rgb in
+    let frame = Gen.of_RGBA32 rgb in
     let sframe = Image.YUV420.make buf.Ogg_demuxer.width buf.Ogg_demuxer.height buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride in
     converter
       (Gen.of_YUV420 sframe)

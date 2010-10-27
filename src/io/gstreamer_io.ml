@@ -1,6 +1,6 @@
 open Gstreamer
 
-module I = Image.RGBA8
+module I = Image.RGBA32
 module G = Image.Generic
 
 (* TODO.... *)
@@ -25,7 +25,7 @@ object (self)
   val mutable sink = None
 
   method output_get_ready =
-    let pipeline = Printf.sprintf "v4l2src device=%s ! ffmpegcolorspace ! videoscale ! appsink drop=true name=sink caps=\"video/x-raw-rgb,width=%d,height=%d,pixel-aspect-ratio=1/1,bpp=(int)24,depth=(int)24,endianness=(int)4321,red_mask=(int)0xff0000,green_mask=(int)0x00ff00,blue_mask=(int)0x0000ff,framerate=(fraction)%d/1\"" dev width height vfps in
+    let pipeline = Printf.sprintf "v4l2src device=%s ! ffmpegcolorspace ! videoscale ! appsink max-buffers=2 drop=true name=sink caps=\"video/x-raw-rgb,width=%d,height=%d,pixel-aspect-ratio=1/1,bpp=(int)24,depth=(int)24,endianness=(int)4321,red_mask=(int)0xff0000,green_mask=(int)0x00ff00,blue_mask=(int)0x0000ff,framerate=(fraction)%d/1\"" dev width height vfps in
     let bin = Pipeline.parse_launch pipeline in
     let s = Bin.get_by_name (Bin.of_element bin) "sink" in
     sink <- Some s;
@@ -44,7 +44,7 @@ object (self)
     let b = App_sink.pull_buffer (App_sink.of_element sink) in
     let vimg = G.make_rgb G.Pixel.RGB24 width height b in
     let img = I.create width height in
-    G.convert ~copy:true ~proportional:true vimg (G.of_RGBA8 img);
+    G.convert ~copy:true ~proportional:true vimg (G.of_RGBA32 img);
     for i = 0 to VFrame.size frame - 1 do
       I.Scale.onto ~proportional:true img buf.(i)
     done;

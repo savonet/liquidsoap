@@ -22,7 +22,7 @@
 
 open Source
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 
 class visu ~kind source =
   let channels = (Frame.type_of_kind kind).Frame.audio in

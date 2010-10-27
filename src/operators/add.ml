@@ -24,7 +24,7 @@
 
 open Source
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 
 let max a b = if b = -1 || a = -1 then -1 else max a b
 

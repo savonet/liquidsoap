@@ -92,7 +92,7 @@ let create_encoder ~metadata dirac =
                     data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
-      let frame = Img.of_RGBA8 b.(i) in
+      let frame = Img.of_RGBA32 b.(i) in
       convert
         frame 
         (Img.of_YUV420 yuv);

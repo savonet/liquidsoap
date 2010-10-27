@@ -113,7 +113,7 @@ let register obj name descr =
        let synths = Array.to_list synths in
          new Add.add ~kind ~renorm:false synths
            (fun _ -> ())
-           (fun _ buf tmp -> Image.RGBA8.add buf tmp)
+           (fun _ buf tmp -> Image.RGBA32.add buf tmp)
     )
 
 let () = register (fun adsr -> (new Synth.sine ?adsr (Lazy.force Frame.audio_rate))) "sine" "Sine synthesizer."

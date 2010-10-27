@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-module Img = Image.RGBA8
+module Img = Image.RGBA32
 module Gen = Image.Generic
 
 let () = Sdl.init [`VIDEO]
@@ -144,7 +144,7 @@ let to_32 rgb surface =
            let s = Sdlvideo.pixel_data surface in
            let pix = Gen.Pixel.BGR32 in
            let sdl = Gen.make_rgb pix ~stride width height s in
-             Gen.convert (Gen.of_RGBA8 rgb) sdl
+             Gen.convert (Gen.of_RGBA32 rgb) sdl
          else
            to_32_bigarray rgb fmt width height pitch
              (Sdlvideo.pixel_data_32 surface))
