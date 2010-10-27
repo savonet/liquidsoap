@@ -21,20 +21,18 @@ The global parameters for harbor can be retreived using
 @liquidsoap --conf-descr-key harbor@. They are:
 
 * @harbor.bind_addr@: IP address on which the HTTP stream receiver should listen. The default is @"0.0.0.0"@. You can use this parameter to restrict connections only to your LAN.
-* @harbor.port@: Port on which the HTTP stream receiver should listen. Defaults to @8005@. You may also define a different port per harbor input using the @port@ parameter of the @input.harbor@ operator.
-* @harbor.icy@: By default, harbor communicates with source clients using the Icecast2 protocol. Enable this setting if you plan to use the Shoutcast/ICY protocol instead. If so, you should configure the source clients to use port @harbor.port@, but beware that they will also need access to <code>harbor.port+1</code>.
-* @harbor.password@: Password for source connection. Defaults to @"hackme"@.
-* @harbor.username@: Username for source connection. Defaults to @"source"@.
 * @harbor.timeout@: Timeout for source connection, in seconds. Defaults to @30.@.
 * @harbor.verbose@: Print password used by source clients in logs, for debugging purposes. Defaults to: @false@
 * @harbor.reverse_dns@: Perform reverse DNS lookup to get the client's hostname from its IP. Defaults to: @true@
-* @harbor.metadata_formats@: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: @["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]@
-You may also set some parameters per-source. You can retreive them using the command 
+* @harbor.icy_formats@: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: @["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]@
+
+You also have per-source parameters. You can retreive them using the command 
 @liquidsoap -h input.harbor@. The most important one are:
 
 * @user@, @password@: set a permanent login and password for this harbor source.
 * @auth@: Authenticate the user according to a specific function.
 * @port@: Use a custom port for this input.
+* @icy@: Enable ICY (shoutcast) source connections.
 * @id@: The mountpoint registered for the source is also the id of the source.
 
 When using different ports with different harbor inputs, mountpoints are attributed
@@ -70,10 +68,8 @@ end
 %%
 
 In the case of the @ICY@ (shoutcast) source protocol, there is no @user@ parameter 
-for the source connection. Thus, the user used will be, by order of priority:
-
-* The @user@ parameter passed to the @input.http@ source, if not empty.
-* The @harbor.username@ configuration key.
+for the source connection. Thus, the user used will be the @user@ parameter passed 
+to the @input.harbor@ source.
 
 When using a custom authentication function, in case of a @ICY@ (shoutcast) connection, 
 the function will receive this value for the username.
@@ -90,14 +86,12 @@ The source client may use any of the recognized audio input codec. Hence, when u
 A sample code can be:
 %%(harbor_source.liq)
 set("harbor.bind_addr","0.0.0.0")
-set("harbor.port",8000)
-set("harbor.password","XXXX")
 
 # Some code...
 
 # This defines a source waiting on mount point 
 # /test-harbor
-live = input.harbor("test-harbor")
+live = input.harbor("test-harbor",port=8080,password="xxx")
 
 # This is the final stream.
 # Uses the live source as soon as available,

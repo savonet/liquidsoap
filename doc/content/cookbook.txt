@@ -183,8 +183,6 @@ An example can be:
 %%(harbor.liq)
 # Serveur settings
 set("harbor.bind_addr","0.0.0.0")
-set("harbor.port",8080)
-set("harbor.password","hackme")
 
 # An emergency file
 emergency = single("/path/to/emergency/single.ogg")
@@ -193,7 +191,7 @@ emergency = single("/path/to/emergency/single.ogg")
 playlist = playlist("/path/to/playlist")
 
 # A live source
-live = input.harbor("live")
+live = input.harbor("live",port=8080,password="hackme")
 
 # fallback
 radio = fallback(track_sensitive=false,

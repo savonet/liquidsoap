@@ -40,8 +40,6 @@ set("init.daemon",true)
 set("init.daemon.pidfile.path","/var/run/liquidsoap/pi.pid")
 set("server.telnet",true)
 set("harbor.bind_addr","0.0.0.0")
-set("harbor.port",8000)
-set("harbor.password","xxxxxx")
 set("log.level",4)
 set("scheduler.event_queues",4)
 set("scheduler.log",false)
@@ -69,7 +67,7 @@ def live_stop() =
 end
 
 # Live source through harbor
-live = input.harbor(id="live",on_connect=live_start,on_disconnect=live_stop,"live.ogg")
+live = input.harbor(id="live",port=8080,password=xxx,on_connect=live_start,on_disconnect=live_stop,"live.ogg")
 live_safe = mksafe(live)
 
 # Live relay to secondary encoder

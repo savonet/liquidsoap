@@ -28,9 +28,9 @@ module Generated = Generated.Make(Generator)
 (* {1 Input handling} *)
 
 class http_input_server ~kind ~dumpfile ~logfile
-                        ~bufferize ~max
-                        ~on_connect ~on_disconnect
-                        ~login ~debug =
+                        ~bufferize ~max ~icy ~port
+                        ~mountpoint ~on_connect ~on_disconnect
+                        ~login ~debug p =
   let max_ticks = Frame.master_of_seconds max in
   (* We need a temporary log until
    * the source has an id *)
@@ -51,7 +51,7 @@ object (self)
   val mutable dump = None
   val mutable logf = None
 
-  method login : (string option)*(string -> string -> bool) = login
+  method login : string*(string -> string -> bool) = login
 
   method stype = Source.Fallible
 
@@ -118,6 +118,19 @@ object (self)
             self#disconnect
 
   method private wake_up _ =
+     begin
+      try
+        Harbor.add_source ~port ~mountpoint ~icy (self:>Harbor.source) ;
+      with
+        | Harbor.Registered ->
+           raise (Lang.Invalid_value
+                    (List.assoc "" p,
+                     (* TODO: raise two script values ? *)
+                     let port = Lang.to_int (List.assoc "port" p) in
+                     Printf.sprintf
+                     "A source is already register for this \
+                      mountpointpoint '%s' and port %i." mountpoint port))
+    end ;
     (* Now we can create the log function *)
     log_ref := self#log#f 3 "%s" ;
     if ns = [] then
@@ -147,7 +160,8 @@ object (self)
              (Frame.seconds_of_audio self#length))
 
   method private sleep =
-    if relay_socket <> None then self#disconnect
+    if relay_socket <> None then self#disconnect ;
+    Harbor.remove_source ~port ~mountpoint () 
 
   method register_decoder mime =
     Generator.set_mode generator `Undefined ;
@@ -237,17 +251,20 @@ let () =
         Some "Functions to excecute when a source is disconnected";
 
         "user",Lang.string_t,
-        Some (Lang.string ""),
-        Some "Source user. Override default if not empty.";
+        Some (Lang.string "source"),
+        Some "Source user.";
 
         "password",Lang.string_t,
-        Some (Lang.string ""),
-        Some "Source password. Override default if not empty.";
+        Some (Lang.string "hackme"),
+        Some "Source password.";
 
         "port", Lang.int_t,
-        Some (Lang.int (-1)),
-        Some "Port used to connect to the source. Harbor default \
-              if negative.";
+        Some (Lang.int 8005),
+        Some "Port used to connect to the source.";
+
+        "icy", Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Enable ICY (shoutcast) protocol.";
 
         "auth",
         Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
@@ -273,10 +290,10 @@ let () =
         "", Lang.string_t, None,
         Some "Mountpoint to look for." ]
       (fun p kind ->
-         let mount = Lang.to_string (List.assoc "" p) in
-         let mount =
-           if mount<>"" && mount.[0]='/' then mount else
-             Printf.sprintf "/%s" mount
+         let mountpoint = Lang.to_string (List.assoc "" p) in
+         let mountpoint =
+           if mountpoint<>"" && mountpoint.[0]='/' then mountpoint else
+             Printf.sprintf "/%s" mountpoint
          in
          let trivially_false = function
            | { Lang.value =
@@ -288,10 +305,8 @@ let () =
          let user = Lang.to_string (List.assoc "user" p) in
          let password = Lang.to_string (List.assoc "password" p) in
          let debug = Lang.to_bool (List.assoc "debug" p) in
-         let port = 
-           let p = Lang.to_int (List.assoc "port" p) in
-           if p < 0 then None else Some p
-         in
+         let icy = Lang.to_bool (List.assoc "icy" p) in
+         let port = Lang.to_int (List.assoc "port" p) in
          let auth_function = List.assoc "auth" p in
          let login user pass =
            (** We try to decode user & password here. 
@@ -309,14 +324,9 @@ let () =
              *   the charset of the HTML content.. *)
            let user,pass = 
               let f = Configure.recode_tag in
-              f user, f pass
+              f user, f password
            in
            let user_login test_user test_pass =
-             let user,pass =
-               let f g x = match x with "" -> g | _ -> x in
-               f Harbor.conf_harbor_user#get user,
-               f Harbor.conf_harbor_pass#get password
-             in
              test_user = user &&
              test_pass = pass
            in
@@ -329,10 +339,7 @@ let () =
              else
                user_login user pass
          in
-         let login =
-           let f x = if x <> "" then Some x else None in
-           (f user, login)
-         in
+         let login = (user, login) in
          let dumpfile =
            match Lang.to_string (List.assoc "dumpfile" p) with
              | "" -> None
@@ -365,21 +372,8 @@ let () =
            ignore
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
          in
-         let s = 
-             new http_input_server ~kind
-                   ~bufferize ~max ~login
-                   ~dumpfile ~logfile
-                   ~on_connect ~on_disconnect ~debug
-         in
-         try
-           Harbor.add_source ?port mount (s:>Harbor.source) ;
-           (s:>Source.source)
-         with
-           | Harbor.Registered ->
-               raise (Lang.Invalid_value 
-                        (List.assoc "" p,
-                         (* TODO: raise two script values ? *)
-                         let port = Lang.to_int (List.assoc "port" p) in
-                         Printf.sprintf 
-                         "A source is already register for this \
-                          mountpoint '%s' and port %i." mount port)))
+         (new http_input_server ~kind
+                   ~bufferize ~max ~login ~mountpoint
+                   ~dumpfile ~logfile ~icy ~port
+                   ~on_connect ~on_disconnect ~debug 
+                   p :> Source.source))

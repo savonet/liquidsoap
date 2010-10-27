@@ -27,37 +27,26 @@ open Http_source
 let conf_harbor =
   Conf.void ~p:(Configure.conf#plug "harbor")
     "HTTP stream receiver (minimal icecast/shoutcast clone)."
-let conf_harbor_port =
-  Conf.int ~p:(conf_harbor#plug "port") ~d:8005
-    "Port on which the HTTP stream receiver should listen."
 let conf_harbor_bind_addr =
   Conf.string ~p:(conf_harbor#plug "bind_addr") ~d:"0.0.0.0"
     "IP address on which the HTTP stream receiver should listen."
-let conf_harbor_user =
-  Conf.string ~p:(conf_harbor#plug "username") ~d:"source"
-    "Default username for source connection."
-let conf_harbor_pass =
-  Conf.string ~p:(conf_harbor#plug "password") ~d:"hackme"
-    "Default password for source connection."
-let conf_icy =
-  Conf.bool ~p:(conf_harbor#plug "icy") ~d:false
-    "Enable the ICY (shout) protocol."
+let conf_harbor_max_conn = 
+  Conf.int ~p:(conf_harbor#plug "max_connections") ~d:2
+    "Maximun of pending source requests per port."
 let conf_timeout =
   Conf.float ~p:(conf_harbor#plug "timeout") ~d:30.
     "Timeout for source connections."
 let conf_pass_verbose =
-  Conf.bool ~p:(conf_harbor_pass#plug "verbose") ~d:false
+  Conf.bool ~p:(conf_harbor#plug "verbose") ~d:false
     "Display passwords, for debugging."
 let conf_revdns =
   Conf.bool ~p:(conf_harbor#plug "reverse_dns") ~d:true
     "Perform reverse DNS lookup to get the client's hostname from its IP."
 let conf_icy_metadata = 
-  Conf.list ~p:(conf_icy#plug "metadata_formats") 
+  Conf.list ~p:(conf_harbor#plug "icy_formats") 
   ~d:["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac";
-      "audio/wav"; "audio/wave"]
+      "audio/wav"; "audio/wave"; "audio/x-flac"]
   "Content-type (mime) of formats which allow shout metadata update."
-
-let opened_ports = ref []
 
 let log = Log.make ["harbor"]
 
@@ -71,17 +60,22 @@ object(self)
 
   method virtual relay : (string*string) list -> Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
-  method virtual login : (string option)*(string -> string -> bool)
+  method virtual login : (string*(string -> string -> bool))
   method virtual is_taken : bool
   method virtual register_decoder : string -> unit
   method virtual get_mime_type : string option
 
 end
 
-let sources : (string*int,source) Hashtbl.t = Hashtbl.create 1
+type sources = (string,source) Hashtbl.t
+
+type open_port = sources*(Unix.file_descr list)
+
+let opened_ports : (int,open_port) Hashtbl.t = Hashtbl.create 1
 
 let find_source mountpoint port =
-  Hashtbl.find sources (mountpoint,port)
+  let (sources,_) = Hashtbl.find opened_ports port in
+  Hashtbl.find sources mountpoint
 
 (** {1 Handling of a client} *)
 
@@ -122,11 +116,6 @@ let parse_icy_request_line ~port r =
       (try
         let s = find_source "/" (port-1) in
         let user,auth_f = s#login in
-        let user = 
-          match user with
-            | Some v -> v
-            | None -> conf_harbor_user#get
-        in
         if auth_f user r then
           Shout
         else
@@ -186,11 +175,6 @@ let auth_check ~login c uri headers =
            s)
     in
     let valid_user,auth_f = login in
-    let valid_user = 
-      match valid_user with
-        | None -> conf_harbor_user#get
-        | Some s -> s 
-    in
     try
       (* Authentication *)
       let auth = List.assoc "AUTHORIZATION" headers in
@@ -336,12 +320,7 @@ let handle_get_request ~port c uri headers =
               with
                 | e ->
                     try
-                      let (user,auth_f) = s#login in
-                     let user =
-                       match user with
-                          | Some s -> s
-                          | None -> conf_harbor_user#get
-                      in
+                     let (user,auth_f) = s#login in
                      let pass = Hashtbl.find args "pass"
                       in
                       let ans () =
@@ -514,34 +493,41 @@ let handle_client ~port ~icy socket =
 
 (* {1 The server} *)
 
-let shutdown = ref false
-let stop () = shutdown := true
-
 (* Open a port and listen to it. *)
-let open_port port = 
-  let rec incoming ~port ~icy sock _ =
-    begin
-      try
-        if !shutdown then failwith "shutting down" ;
-        let (socket,caller) = accept sock in
-        let ip = 
-          Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller 
-        in
-        (* Add timeout *)
-        Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get ;
-        Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get ;
-        handle_client ~port ~icy socket ;
-        log#f 3 "New client on port %i: %s" port ip
-      with e -> log#f 2 "Failed to accept new client: %s" (Utils.error_message e)
-    end ;
-    if !shutdown then begin
-      (try Unix.close sock with _ -> ()) ;
-      []
-    end else
-      [{ Duppy.Task.
-         priority = priority ;
-         events = [`Read sock] ;
-         handler = (incoming ~port ~icy sock) }]
+let open_port ~icy port = 
+  let rec incoming ~port ~icy sock out_s e =
+      if List.mem (`Read out_s) e then 
+       begin
+        try
+         Unix.shutdown sock Unix.SHUTDOWN_ALL ;
+         Unix.close sock;
+         Unix.close out_s;
+         []
+        with
+          | _ -> [] 
+       end 
+      else
+       begin
+        (try
+          begin
+           let (socket,caller) = accept sock in
+           let ip = 
+             Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller 
+           in
+           (* Add timeout *)
+           Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get ;
+           Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get ;
+           handle_client ~port ~icy socket ;
+           log#f 3 "New client on port %i: %s" port ip ;
+          end
+         with
+           | e -> 
+               log#f 2 "Failed to accept new client: %s" (Utils.error_message e)) ;
+        [{ Duppy.Task.
+            priority = priority ;
+            events = [`Read sock; `Read out_s] ;
+            handler = (incoming ~port ~icy sock out_s) }]
+       end
   in
   let open_socket port =
     let bind_addr = conf_harbor_bind_addr#get in
@@ -549,7 +535,6 @@ let open_port port =
       inet_addr_of_string bind_addr
     in
     let bind_addr = ADDR_INET(bind_addr_inet, port) in
-    let max_conn = Hashtbl.length sources in
     let sock = socket PF_INET SOCK_STREAM 0 in
     setsockopt sock SO_REUSEADDR true ;
     (* Set TCP_NODELAY on the socket *)
@@ -561,53 +546,68 @@ let open_port port =
       | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
           failwith (Printf.sprintf "port %d already taken" port)
     end ;
-    listen sock max_conn ;
+    listen sock conf_harbor_max_conn#get ;
     sock
   in
   let sock = open_socket port in
-  opened_ports := port :: !opened_ports ;
+  let (in_s,out_s) = Unix.pipe () in
   Duppy.Task.add Tutils.scheduler
     { Duppy.Task.
         priority = priority ;
-        events   = [`Read sock] ;
-        handler  = incoming ~port ~icy:false sock } ;
+        events   = [`Read sock; `Read in_s] ;
+        handler  = incoming ~port ~icy:false sock in_s} ;
   (* Now do the same for ICY if enabled *)
-  if conf_icy#get then
+  if icy then
+   begin
     (* Open port+1 *)
     let port = port+1 in
     let sock = open_socket port in
+    let (in_s2,out_s2) = Unix.pipe () in
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = priority ;
-          events   = [`Read sock] ;
-          handler  = incoming ~port ~icy:true sock }
+          events   = [`Read sock; `Read in_s2] ;
+          handler  = incoming ~port ~icy:true sock in_s2} ;
+    [out_s; out_s2]
+   end
+  else
+    [out_s]
 
 (* Add sources... *)
-let add_source ?port mountpoint source =
-  let port =
-    match port with
-      | Some x -> 
-          if not (List.mem x !opened_ports) then
-          open_port x ;
-          x
-      | None   -> conf_harbor_port#get
+let add_source ~port ~mountpoint ~icy source =
+  let sources = 
+   try
+     let (sources,_) = Hashtbl.find opened_ports port in
+     if Hashtbl.mem sources mountpoint then
+       raise Registered ;
+      sources
+   with
+     | Not_found -> 
+         let socks = open_port ~icy port in
+         let s = Hashtbl.create 1 in
+         Hashtbl.add opened_ports port (s,socks) ;
+         s 
   in
-  if Hashtbl.mem sources (mountpoint,port) then
-    raise Registered ;
   log#f 3 "Adding mountpoint '%s' on port %i"
-     mountpoint port;
-  Hashtbl.add sources (mountpoint,port) source
+     mountpoint port ;
+  Hashtbl.add sources mountpoint source
 
-let start_harbor () = 
-  (* Open main port *)
-  open_port conf_harbor_port#get
+(* Remove source. *)
+let remove_source ~port ~mountpoint () =
+  let (sources,socks) = Hashtbl.find opened_ports port in
+  assert (Hashtbl.mem sources mountpoint) ;
+  log#f 3 "Removing mountpoint '%s' on port %i"
+     mountpoint port ;
+  Hashtbl.remove sources mountpoint ;
+  if Hashtbl.length sources = 0 then
+   begin
+    log#f 3 "No more source on port %i: closing sockets." port ;
+    let f in_s = 
+      ignore(Unix.write in_s " " 0 1) ;
+      Unix.close in_s 
+    in
+    List.iter f socks ;
+    Hashtbl.remove opened_ports port
+   end
+    
 
-let start () =
-  if Sys.os_type <> "Win32" then
-    Sys.set_signal Sys.sigpipe Sys.Signal_ignore ;
-  if Hashtbl.length sources > 0 then begin
-    Tutils.need_non_blocking_queue () ;
-    start_harbor ()
-  end
-
-let () = ignore (Dtools.Init.at_start start)
