@@ -480,7 +480,6 @@ let () =
   let cleanup () =
     log#f 3 "Shutdown started!" ;
     Clock.stop () ;
-    Harbor.stop () ;
     log#f 3 "Waiting for threads to terminate..." ;
     Tutils.join_all () ;
     log#f 3 "Cleaning downloaded files..." ;
