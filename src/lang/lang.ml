@@ -60,7 +60,7 @@ let type_of_int n = Term.type_of_int n
   * are implicitly quantified universally.
   *
   * We cannot create new variables for each call to univ_t,
-  * because that would break the required sharing. So we memoize
+  * because that would break the required sharing. So we memorize
   * the results of earlier calls. Sharing the same varible for 'a
   * (or e.g. 'b where 'b is a num type) is OK. *)
 

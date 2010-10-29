@@ -360,959 +360,165 @@ fi
 
 AC_SUBST(W_V4L)
 
-AC_ARG_ENABLE([graphics],
-   AC_HELP_STRING(
-      [--enable-graphics],
-      [enable plugins which need the Graphics library]))
-
-if test "x$enable_graphics" != "xno"; then
-    AC_MSG_CHECKING(for Graphics)
-    # ocamlfind query graphics is not enough, but linking seems okay
-    if $OCAMLFIND ocamlc -linkpkg -package graphics -o /dev/null \
-       > /dev/null 2>&1; then
-        W_GRAPHICS=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package graphics"
-        requires="$requires graphics"
-    else
-        W_GRAPHICS=
-        AC_MSG_RESULT(not found)
-    fi
-fi
-
-if test "x$W_GRAPHICS" = "xyes"; then
-    w_GRAPHICS=yes
-else
-    w_GRAPHICS=no
-fi
-
-AC_SUBST(W_GRAPHICS)
-
 #
 # Libs
 #
 ###############################################################################
 
+# 
+# Graphics
+#
+
+AC_CHECK_OCAML_BINDING([graphics])
+
 #
 # PCRE
 #
 
-AC_MSG_CHECKING(for pcre-ocaml)
-if ! $OCAMLFIND query pcre > /dev/null 2>&1; then
-  AC_MSG_ERROR(Not found.)
-fi
-ocamlcflags="$ocamlcflags -package pcre"
-requires="$requires pcre"
-AC_MSG_RESULT(ok)
+AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
 
 #
 # Dtools
 #
 
-AC_ARG_WITH([dtools-dir],
-   AC_HELP_STRING(
-      [--with-dtools-dir=path],
-      [look for dtools library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-dtools)
-if test -z "$with_dtools_dir" ; then
-   if ! $OCAMLFIND query dtools > /dev/null 2>&1; then
-       AC_MSG_ERROR(Not found.)
-   fi
-   ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " dtools` -package dtools"
-   requires="$requires `ocamlfind query -r -separator " " -format "%p" dtools`"
-else
-   echo $with_dtools_dir | grep ^/ > /dev/null 2>&1 \
-   || with_dtools_dir=$PWD/$with_dtools_dir
-   packages=`cat $with_dtools_dir/META | grep 'requires' | sed -e 's#threads##' | cut -d '=' -f 2 | tr -d '"'`
-   ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_dtools_dir"
-   ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` dtools.$cma"
-   requires="$requires $packages"
-fi
-AC_MSG_RESULT(ok)
+AC_CHECK_OCAML_BINDING([dtools],[],[],[1])
 
 #
 # Duppy
 #
 
-AC_ARG_WITH([duppy-dir],
-   AC_HELP_STRING(
-      [--with-duppy-dir=path],
-      [look for duppy library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-duppy (>= 0.3.0))
-if test -z "$with_duppy_dir" ; then
-   if ! $OCAMLFIND query duppy > /dev/null 2>&1; then
-       AC_MSG_ERROR(Not found.)
-   fi
-   DUPPY_VERSION="`$OCAMLFIND query -format "%v" duppy`"
-   DUPPY_MAJOR="`echo $DUPPY_VERSION | cut -d'.' -f 1`"
-   DUPPY_MINOR="`echo $DUPPY_VERSION | cut -d'.' -f 2`"
-   if test $DUPPY_MAJOR -gt 0 -o $DUPPY_MINOR -gt 2; then
-     ocamlcflags="$ocamlcflags -package duppy"
-     requires="$requires duppy"
-   else
-     AC_MSG_ERROR([Found $DUPPY_VERSION.])
-   fi
-   ocamlcflags="$ocamlcflags -package duppy"
-   requires="$requires duppy"
-else
-   echo $with_duppy_dir | grep ^/ > /dev/null 2>&1 \
-   || with_duppy_dir=$PWD/$with_duppy_dir
-   ocamlcflags="$ocamlcflags -I $with_duppy_dir"
-   ocamllflags="$ocamllflags duppy.$cma"
-   requires="$requires duppy"
-fi
-AC_MSG_RESULT(ok)
+AC_CHECK_OCAML_BINDING([duppy],[0.3.0],[],[1])
 
 #
-# Shout
+# Cry
 #
 
-AC_ARG_WITH([cry-dir],
-   AC_HELP_STRING(
-      [--with-cry-dir=path],
-      [look for ocaml-cry library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-cry)
-if test -z "$with_cry_dir" ; then
-   if ! $OCAMLFIND query cry > /dev/null 2>&1 ; then
-       AC_MSG_RESULT(Not found.)
-   else
-       ocamlcflags="$ocamlcflags -package cry"
-       requires="$requires cry"
-       W_CRY=yes
-       AC_MSG_RESULT(ok)
-   fi
-else
-   echo $with_cry_dir | grep ^/ > /dev/null 2>&1 \
-   || with_cry_dir=$PWD/$with_cry_dir
-   ocamlcflags="$ocamlcflags -I $with_cry_dir"
-   ocamllflags="$ocamllflags cry.$cma"
-   requires="$requires cry"
-   W_CRY=yes
-   AC_MSG_RESULT(ok)
-fi
-
-AC_SUBST(W_CRY)
-if test -z "$W_CRY" ; then
-    w_CRY=no
-else
-    w_CRY=yes
-fi
+AC_CHECK_OCAML_BINDING([cry],[0.1.2])
 
 #
 # ocaml-mm
 #
 
-AC_ARG_WITH([mm-dir],
-   AC_HELP_STRING(
-      [--with-mm-dir=path],
-      [look for ocaml-mm library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-mm)
-if test -z "$with_mm_dir" ; then
-   if ! $OCAMLFIND query mm > /dev/null 2>&1 ; then
-       AC_MSG_ERROR(Not found.)
-   else
-       ocamlcflags="$ocamlcflags -package mm"
-       requires="$requires mm"
-       W_MM=yes
-       AC_MSG_RESULT(ok)
-   fi
-else
-   echo $with_mm_dir | grep ^/ > /dev/null 2>&1 \
-   || with_mm_dir=$PWD/$with_mm_dir
-   ocamlcflags="$ocamlcflags -I $with_mm_dir"
-   ocamllflags="$ocamllflags mm.$cma"
-   requires="$requires mm"
-   W_MM=yes
-   AC_MSG_RESULT(ok)
-fi
-
-AC_SUBST(W_MM)
+AC_CHECK_OCAML_BINDING([mm],[],[],[1])
 
 #
 # xmlplaylist
 #
 
-AC_ARG_WITH([xmlplaylist-dir],
-   AC_HELP_STRING(
-      [--with-xmlplaylist-dir=path],
-      [look for xmlplaylist library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-xmlplaylist)
-if ! $OCAMLFIND query xmlm > /dev/null 2>&1; then
-  AC_MSG_RESULT(needs xmlm.)
-else
-  if test -z "$with_xmlplaylist_dir" ; then
-     if ! $OCAMLFIND query xmlplaylist > /dev/null 2>&1; then
-         AC_MSG_RESULT(Not found.)
-     else
-         ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " xmlplaylist` -package xmlplaylist"
-         requires="$requires `ocamlfind query -r -separator " " -format "%p" xmlplaylist`"
-         W_XMLPLAYLIST=yes
-         AC_MSG_RESULT(ok)
-     fi
-  else
-     echo $with_xmlplaylist_dir | grep ^/ > /dev/null 2>&1 \
-     || with_xmlplaylist_dir=$PWD/$with_xmlplaylist_dir
-     packages=`cat $with_xmlplaylist_dir/META | grep 'requires' | cut -d '=' -f 2 | tr -d '"'`
-     ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_xmlplaylist_dir"
-     ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` xmlplaylist.$cma"
-     requires="$requires $packages"
-     W_XMLPLAYLIST=yes
-     AC_MSG_RESULT(ok)
-  fi
-fi
-
-AC_SUBST(W_XMLPLAYLIST)
-if test -z "$W_XMLPLAYLIST" ; then
-    w_XMLPLAYLIST=no
-else
-    w_XMLPLAYLIST=yes
-fi
+AC_CHECK_OCAML_BINDING([xmlplaylist],[],[],[],[xmlm])
 
 #
 # Lastfm
 #
 
-AC_ARG_WITH([lastfm-dir],
-   AC_HELP_STRING(
-      [--with-lastfm-dir=path],
-      [look for lastfm library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-lastfm)
-if test -z "$W_XMLPLAYLIST" ; then
-  AC_MSG_RESULT(needs xml-playlist.)
-else
-  if test -z "$with_lastfm_dir" ; then
-     if ! $OCAMLFIND query lastfm > /dev/null 2>&1; then
-         AC_MSG_RESULT(Not found.)
-     else
-         ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " lastfm` -package lastfm"
-         requires="$requires `ocamlfind query -r -separator " " -format "%p" lastfm`"
-         W_LAST=yes
-         AC_MSG_RESULT(ok)
-     fi
-  else
-     if test -z "W_XMLPLAYLIST" ; then
-       AC_MSG_ERROR(ocaml-xmlplaylist needed for ocaml-lastfm)
-     fi
-     echo $with_lastfm_dir | grep ^/ > /dev/null 2>&1 \
-     || with_lastfm_dir=$PWD/$with_lastfm_dir
-     packages=`cat $with_lastfm_dir/META | grep 'requires' | cut -d '=' -f 2 | tr -d '"' | sed -e 's#xmlplaylist##g'`
-     ocamlcflags="$ocamlcflags `ocamlfind query -r -i-format -separator " " $packages` -I $with_lastfm_dir"
-     ocamllflags="$ocamllflags `ocamlfind query -r -format "-package %p" -separator " " $packages` lastfm.$cma"
-     requires="$requires $packages"
-     W_LAST=yes
-     AC_MSG_RESULT(ok)
-  fi
-fi
-
-AC_SUBST(W_LAST)
-if test -z "$W_LAST" ; then
-    w_LAST=no
-else
-    w_LAST=yes
-fi
-
+AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 
 #
 # Ogg
 #
 
-AC_ARG_WITH([ogg-dir],
-   AC_HELP_STRING(
-      [--with-ogg-dir=path],
-      [look for ocaml-ogg library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-ogg)
-if test -z "$with_ogg_dir" ; then
-   if ! $OCAMLFIND query ogg > /dev/null 2>&1 ; then
-       AC_MSG_RESULT(Not found.)
-   else
-       ocamlcflags="$ocamlcflags -package ogg"
-       requires="$requires ogg"
-       W_OGG=yes
-       AC_MSG_RESULT(ok)
-   fi
-else
-   echo $with_ogg_dir | grep ^/ > /dev/null 2>&1 \
-   || with_ogg_dir=$PWD/$with_ogg_dir
-   ocamlcflags="$ocamlcflags -I $with_ogg_dir"
-   ocamllflags="$ocamllflags ogg.$cma"
-   requires="$requires ogg"
-   W_OGG=yes
-   AC_MSG_RESULT(ok)
-fi
-
-AC_SUBST(W_OGG)
-if test -z "$W_OGG" ; then
-    w_OGG=no
-else
-    w_OGG=yes
-fi
+AC_CHECK_OCAML_BINDING([ogg],[0.4.0])
 
 #
 # Vorbis
 #
 
-AC_ARG_WITH([vorbis-dir],
-   AC_HELP_STRING(
-      [--with-vorbis-dir=path],
-      [look for ocaml-vorbis library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-vorbis)
-if test -z "$with_vorbis_dir" ; then
-   if ! $OCAMLFIND query vorbis > /dev/null 2>&1 ; then
-       AC_MSG_RESULT(Not found.)
-   else
-       vorbis_version="`ocamlfind query -format "%v" vorbis`"
-       mid="`echo $version | cut -d. -f 2`"
-       if test $mid -lt 5; then
-           AC_MSG_RESULT([requires version >= 0.5.0, found $vorbis_version.])
-       else
-         ocamlcflags="$ocamlcflags -package vorbis"
-         requires="$requires vorbis"
-         if test "$w_OGG" = no ; then
-           AC_MSG_RESULT(Ocaml-vorbis needs ocaml-ogg.)
-         else
-           W_VORBIS=yes
-           AC_MSG_RESULT(ok)
-         fi
-       fi
-   fi
-else
-   echo $with_vorbis_dir | grep ^/ > /dev/null 2>&1 \
-   || with_vorbis_dir=$PWD/$with_vorbis_dir
-   ocamlcflags="$ocamlcflags -I $with_vorbis_dir"
-   ocamllflags="$ocamllflags vorbis.$cma"
-   requires="$requires vorbis"
-   if test "$w_OGG" = no ; then
-       AC_MSG_ERROR(ocaml-vorbis needs ocaml-ogg.)
-   fi
-   W_VORBIS=yes
-   AC_MSG_RESULT(ok)
-fi
-
-AC_SUBST(W_VORBIS)
-if test -z "$W_VORBIS" ; then
-    w_VORBIS=no
-else
-    w_VORBIS=yes
-fi
+AC_CHECK_OCAML_BINDING([vorbis],[0.5.0],[ogg])
 
 #
 # Speex
 #
 
-AC_ARG_WITH([speex-dir],
-   AC_HELP_STRING(
-      [--with-speex-dir=path],
-      [look for ocaml-speex library in "path" (autodetected by default)]))
-
-AC_MSG_CHECKING(for ocaml-speex)
-if test -z "$with_speex_dir" ; then
-   if ! $OCAMLFIND query speex > /dev/null 2>&1 ; then
-       AC_MSG_RESULT(Not found.)
-   else
-       ocamlcflags="$ocamlcflags -package speex"
-       requires="$requires speex"
-       if test "$w_OGG" = no ; then
-           AC_MSG_ERROR(Ocaml-speex needs ocaml-ogg.)
-       fi
-       W_SPEEX=yes
-       AC_MSG_RESULT(ok)
-   fi
-else
-   echo $with_speex_dir | grep ^/ > /dev/null 2>&1 \
-   || with_speex_dir=$PWD/$with_speex_dir
-   ocamlcflags="$ocamlcflags -I $with_speex_dir"
-   ocamllflags="$ocamllflags speex.$cma"
-   requires="$requires speex"
-   if test "$w_OGG" = no ; then
-       AC_MSG_ERROR(ocaml-speex needs ocaml-ogg.)
-   fi
-   W_SPEEX=yes
-   AC_MSG_RESULT(ok)
-fi
-
-AC_SUBST(W_SPEEX)
-if test -z "$W_SPEEX" ; then
-    w_SPEEX=no
-else
-    w_SPEEX=yes
-fi
+AC_CHECK_OCAML_BINDING([speex],[],[ogg])
 
 #
 # Mad
 #
 
-AC_ARG_WITH([mad-dir],
-   AC_HELP_STRING(
-      [--with-mad-dir=path],
-      [look for ocaml-mad library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([mad],AC_HELP_STRING([--disable-mad],["don't use ocaml-mad"]))
-
-if test "x$enable_mad" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-mad)
-if test -z "$with_mad_dir" ; then
-    if ! $OCAMLFIND query mad > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_MP3=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package mad"
-        requires="$requires mad"
-    fi
-else
-    echo $with_mad_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_mad_dir=$PWD/$with_mad_dir
-    ocamlcflags="$ocamlcflags -I $with_mad_dir"
-    ocamllflags="$ocamllflags mad.$cma"
-    requires="$requires mad"
-    W_MP3=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_MP3)
-
-if test -z "$W_MP3" ; then
-    w_MP3=no
-else
-    w_MP3=yes
-fi
+AC_CHECK_OCAML_BINDING([mad],[0.4.0])
 
 #
 # Flac
 #
 
-AC_ARG_WITH([flac-dir],
-   AC_HELP_STRING(
-      [--with-flac-dir=path],
-      [look for ocaml-flac library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([flac],AC_HELP_STRING([--disable-flac],["don't use ocaml-flac"]))
-
-if test "x$enable_flac" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-flac)
-if test -z "$with_flac_dir" ; then
-    if ! $OCAMLFIND query flac > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_FLAC=yes
-        AC_MSG_RESULT(ok)
-        AC_MSG_CHECKING(for ogg/flac module)
-        if ! $OCAMLFIND query flac.ogg > /dev/null 2>&1 ; then
-          AC_MSG_RESULT(not found)
-        else
-          W_OGG_FLAC=yes
-          AC_MSG_RESULT(ok)
-        fi
-        ocamlcflags="$ocamlcflags -package flac"
-        requires="$requires flac"
-    fi
-else
-    echo $with_flac_dir | grep ^/ > /dev/null 2>&1 \
-        || with_flac_dir=$PWD/$with_flac_dir
-    ocamlcflags="$ocamlcflags -I $with_flac_dir"
-    ocamllflags="$ocamllflags flac.$cma"
-    requires="$requires flac"
-    W_FLAC=yes
-    AC_MSG_RESULT(ok)
-    AC_MSG_CHECKING(for ogg/flac module)
-    if ! grep -r ogg $with_flac_dir/META > /dev/null 2>&1 ; then
-       AC_MSG_RESULT(not found)
-    else
-       W_OGG_FLAC=yes
-       AC_MSG_RESULT(ok)
-    fi
+AC_CHECK_OCAML_BINDING([flac])
+# Small hack..
+if test -z "${with_flac_ogg_dir}"; then
+  with_flac_ogg_dir=${with_flac_dir}
 fi
-fi
-
-AC_SUBST(W_FLAC)
-AC_SUBST(W_OGG_FLAC)
-
-if test -z "$W_FLAC" ; then
-    w_FLAC=no
-else
-    w_FLAC=yes
-fi
-
-if test -z "$W_OGG_FLAC" ; then
-    w_OGG_FLAC=no
-else
-    w_OGG_FLAC=yes
-fi
+AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
 
 #
 # Lame
 #
 
-AC_ARG_WITH([lame-dir],
-   AC_HELP_STRING(
-      [--with-lame-dir=path],
-      [look for ocaml-lame library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([lame],AC_HELP_STRING([--disable-lame],["don't use ocaml-lame"]))
-
-if test "x$enable_lame" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-lame)
-if test -z "$with_lame_dir" ; then
-    if ! $OCAMLFIND query lame > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_LAME=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package lame"
-        requires="$requires lame"
-    fi
-else
-    echo $with_lame_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_lame_dir=$PWD/$with_lame_dir
-    ocamlcflags="$ocamlcflags -I $with_lame_dir"
-    ocamllflags="$ocamllflags lame.$cma"
-    requires="$requires lame"
-    W_LAME=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_LAME)
-if test "a$W_LAME" = "ayes" ; then
-        w_LAME=yes
-else
-        w_LAME=no
-fi
+AC_CHECK_OCAML_BINDING([lame])
 
 #
 # Gstreamer
 #
 
-AC_ARG_WITH([gstreamer-dir],
-   AC_HELP_STRING(
-      [--with-gstreamer-dir=path],
-      [look for ocaml-gstreamer library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([gsteamer],AC_HELP_STRING([--disable-gstreamer],["don't use ocaml-gstreamer"]))
-
-if test "x$enable_gstreamer" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-gstreamer)
-if test -z "$with_gstreamer_dir" ; then
-    if ! $OCAMLFIND query gstreamer > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_GSTREAMER=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package gstreamer"
-        requires="$requires gstreamer"
-    fi
-else
-    echo $with_gstreamer_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_gstreamer_dir=$PWD/$with_gstreamer_dir
-    ocamlcflags="$ocamlcflags -I $with_gstreamer_dir"
-    ocamllflags="$ocamllflags gstreamer.$cma"
-    requires="$requires gstreamer"
-    W_GSTREAMER=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_GSTREAMER)
-if test "a$W_GSTREAMER" = "ayes" ; then
-        w_GSTREAMER=yes
-else
-        w_GSTREAMER=no
-fi
+AC_CHECK_OCAML_BINDING([gstreamer])
 
 #
 # Aacplus
 #
 
-AC_ARG_WITH([aacplus-dir],
-   AC_HELP_STRING(
-      [--with-aacplus-dir=path],
-      [look for ocaml-aacplus library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([aacplus],AC_HELP_STRING([--disable-aacplus],["don't use ocaml-aacplus"]))
-
-if test "x$enable_aacplus" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-aacplus)
-if test -z "$with_aacplus_dir" ; then
-    if ! $OCAMLFIND query aacplus > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_AACPLUS=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package aacplus"
-        requires="$requires aacplus"
-    fi
-else
-    echo $with_aacplus_dir | grep ^/ > /dev/null 2>&1 \
-        || with_aacplus_dir=$PWD/$with_aacplus_dir
-    ocamlcflags="$ocamlcflags -I $with_aacplus_dir"
-    ocamllflags="$ocamllflags aacplus.$cma"
-    requires="$requires aacplus"
-    W_AACPLUS=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_AACPLUS)
-if test "a$W_AACPLUS" = "ayes" ; then
-        w_AACPLUS=yes
-else
-        w_AACPLUS=no
-fi
+AC_CHECK_OCAML_BINDING([aacplus],[0.2.0])
 
 #
 # Theora
 #
 
-AC_ARG_WITH([theora-dir],
-   AC_HELP_STRING(
-      [--with-theora-dir=path],
-      [look for ocaml-theora library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([theora],AC_HELP_STRING([--disable-theora],["don't use ocaml-theora"]))
-if test "x$enable_theora" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-theora)
-if test -z "$with_theora_dir" ; then
-    if ! $OCAMLFIND query theora > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_THEORA=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package theora"
-        requires="$requires theora"
-    fi
-else
-    echo $with_theora_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_theora_dir=$PWD/$with_theora_dir
-    ocamlcflags="$ocamlcflags -I $with_theora_dir"
-    ocamllflags="$ocamllflags theora.$cma"
-    requires="$requires theora"
-    W_THEORA=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_THEORA)
-if test "a$W_THEORA" = "ayes" ; then
-        w_THEORA=yes
-else
-        w_THEORA=no
-fi
+AC_CHECK_OCAML_BINDING([theora],[0.2.0],[ogg])
 
 #
 # Schroedinger
 #
 
-AC_ARG_WITH([schroedinger-dir],
-   AC_HELP_STRING(
-      [--with-schroedinger-dir=path],
-      [look for ocaml-schroedinger library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([schroedinger],AC_HELP_STRING([--disable-schroedinger],["don't use ocaml-schroedinger"]))
-
-if test "x$enable_schroedinger" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-schroedinger)
-if test -z "$with_schroedinger_dir" ; then
-    if ! $OCAMLFIND query schroedinger > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_SCHROEDINGER=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package schroedinger"
-        requires="$requires schroedinger"
-    fi
-else
-    echo $with_schroedinger_dir | grep ^/ > /dev/null 2>&1 \
-        || with_schroedinger_dir=$PWD/$with_schroedinger_dir
-    ocamlcflags="$ocamlcflags -I $with_schroedinger_dir"
-    ocamllflags="$ocamllflags schroedinger.$cma"
-    requires="$requires schroedinger"
-    W_SCHROEDINGER=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_SCHROEDINGER)
-if test "a$W_SCHROEDINGER" = "ayes" ; then
-        w_SCHROEDINGER=yes
-else
-        w_SCHROEDINGER=no
-fi
+AC_CHECK_OCAML_BINDING([schroedinger],[],[ogg])
 
 #
 # Gavl
 #
 
-AC_ARG_WITH([gavl-dir],
-   AC_HELP_STRING(
-      [--with-gavl-dir=path],
-      [look for ocaml-gavl library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([gavl],AC_HELP_STRING([--disable-gavl],["don't use ocaml-gavl"]))
-
-if test "x$enable_gavl" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-gavl)
-if test -z "$with_gavl_dir" ; then
-    if ! $OCAMLFIND query gavl > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_GAVL=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package gavl"
-        requires="$requires gavl"
-    fi
-else
-    echo $with_gavl_dir | grep ^/ > /dev/null 2>&1 \
-        || with_gavl_dir=$PWD/$with_gavl_dir
-    ocamlcflags="$ocamlcflags -I $with_gavl_dir"
-    ocamllflags="$ocamllflags gavl.$cma"
-    requires="$requires gavl"
-    W_GAVL=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_GAVL)
-if test "a$W_GAVL" = "ayes" ; then
-        w_GAVL=yes
-else
-        w_GAVL=no
-fi
+AC_CHECK_OCAML_BINDING([gavl])
 
 #
 # Jack
 #
 
-AC_ARG_WITH([bjack-dir],
-   AC_HELP_STRING(
-      [--with-bjack-dir=path],
-      [look for ocaml-bjack library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([bjack],AC_HELP_STRING([--disable-bjack],["don't use ocaml-bjack"]))
-
-if test "x$enable_bjack" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-bjack)
-if test -z "$with_bjack_dir" ; then
-    if ! $OCAMLFIND query bjack > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_BJACK=yes
-	AC_MSG_RESULT(ok)
-	ocamlcflags="$ocamlcflags -package bjack"
-        requires="$requires bjack"
-    fi
-else
-    echo $with_bjack_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_bjack_dir=$PWD/$with_bjack_dir
-    ocamlcflags="$ocamlcflags -I $with_bjack_dir"
-    ocamllflags="$ocamllflags bjack.$cma"
-    requires="$requires bjack"
-    W_BJACK=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_BJACK)
-if test "a$W_BJACK" = "ayes" ; then
-        w_BJACK=yes
-else
-        w_BJACK=no
-fi
+AC_CHECK_OCAML_BINDING([bjack])
 
 #
 # Old Jack
 #
 
-AC_ARG_WITH([jack-dir],
-   AC_HELP_STRING(
-      [--with-jack-dir=path],
-      [look for ocaml-jack library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([jack],AC_HELP_STRING([--disable-jack],["don't use ocaml-jack"]))
-
-if test "x$enable_jack" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-jack)
-if test -z "$with_jack_dir" ; then
-    if ! $OCAMLFIND query jack > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_JACK=yes
-	AC_MSG_RESULT(ok)
-	ocamlcflags="$ocamlcflags -package jack"
-        requires="$requires jack"
-    fi
-else
-    echo $with_jack_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_jack_dir=$PWD/$with_jack_dir
-    ocamlcflags="$ocamlcflags -I $with_jack_dir"
-    ocamllflags="$ocamllflags jack.$cma"
-    requires="$requires jack"
-    W_JACK=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_JACK)
-if test "a$W_JACK" = "ayes" ; then
-        w_JACK=yes
-else
-        w_JACK=no
-fi
+AC_CHECK_OCAML_BINDING([jack])
 
 #
 # Alsa
 #
 
-AC_ARG_WITH([alsa-dir],
-   AC_HELP_STRING(
-      [--with-alsa-dir=path],
-      [look for ocaml-alsa library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([alsa],AC_HELP_STRING([--disable-alsa],["don't use ocaml-alsa"]))
-
-if test "x$enable_alsa" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-alsa)
-if test -z "$with_alsa_dir" ; then
-    if ! $OCAMLFIND query alsa > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_ALSA=yes
-	AC_MSG_RESULT(ok)
-	ocamlcflags="$ocamlcflags -package alsa"
-        requires="$requires alsa"
-    fi
-else
-    echo $with_alsa_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_alsa_dir=$PWD/$with_alsa_dir
-    ocamlcflags="$ocamlcflags -I $with_alsa_dir"
-    ocamllflags="$ocamllflags alsa.$cma"
-    requires="$requires alsa"
-    W_ALSA=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_ALSA)
-if test "a$W_ALSA" = "ayes" ; then
-        w_ALSA=yes
-else
-        w_ALSA=no
-fi
+AC_CHECK_OCAML_BINDING([alsa],[0.2.0])
 
 #
 # LibAO
 #
 
-AC_ARG_WITH([ao-dir],
-   AC_HELP_STRING(
-      [--with-ao-dir=path],
-      [look for ocaml-ao library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([ao],AC_HELP_STRING([--disable-ao],["don't use ocaml-ao"]))
-
-if test "x$enable_ao" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-ao)
-if test -z "$with_ao_dir" ; then
-    if ! $OCAMLFIND query ao > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_AO=yes
-	AC_MSG_RESULT(ok)
-	ocamlcflags="$ocamlcflags -package ao"
-        requires="$requires ao"
-    fi
-else
-    echo $with_ao_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_ao_dir=$PWD/$with_ao_dir
-    ocamlcflags="$ocamlcflags -I $with_ao_dir"
-    ocamllflags="$ocamllflags ao.$cma"
-    requires="$requires ao"
-    W_AO=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_AO)
-if test "a$W_AO" = "ayes" ; then
-        w_AO=yes
-else
-        w_AO=no
-fi
+AC_CHECK_OCAML_BINDING([ao],[0.2.0])
 
 #
 # Samplerate
 #
 
-AC_ARG_WITH([samplerate-dir],
-   AC_HELP_STRING(
-      [--with-samplerate-dir=path],
-      [look for ocaml-samplerate library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([samplerate],AC_HELP_STRING([--disable-samplerate],["don't use ocaml-samplerate"]))
-
-if test "x$enable_samplerate" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-samplerate)
-if test -z "$with_samplerate_dir" ; then
-    if ! $OCAMLFIND query samplerate > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_SAMPLERATE=yes
-	AC_MSG_RESULT(ok)
-	ocamlcflags="$ocamlcflags -package samplerate"
-        requires="$requires samplerate"
-    fi
-else
-    echo $with_samplerate_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_samplerate_dir=$PWD/$with_samplerate_dir
-    ocamlcflags="$ocamlcflags -I $with_samplerate_dir"
-    ocamllflags="$ocamllflags samplerate.$cma"
-    requires="$requires samplerate"
-    W_SAMPLERATE=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_SAMPLERATE)
-if test "a$W_SAMPLERATE" = "ayes" ; then
-  w_SAMPLERATE=yes
-else
-  w_SAMPLERATE=no
-fi
+AC_CHECK_OCAML_BINDING([samplerate])
 
 #
 # Taglib
 #
 
-AC_ARG_WITH([taglib-dir],
-   AC_HELP_STRING(
-      [--with-taglib-dir=path],
-      [look for ocaml-taglib library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([taglib],
-              AC_HELP_STRING([--disable-taglib],["don't use ocaml-taglib"]))
-
-if test "x$enable_taglib" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-taglib)
-if test -z "$with_taglib_dir" ; then
-    if ! $OCAMLFIND query taglib > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_TAGLIB=yes
-	AC_MSG_RESULT(ok)
-	ocamlcflags="$ocamlcflags -package taglib"
-        requires="$requires taglib"
-    fi
-else
-    echo $with_taglib_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_taglib_dir=$PWD/$with_taglib_dir
-    ocamlcflags="$ocamlcflags -I $with_taglib_dir"
-    ocamllflags="$ocamllflags taglib.$cma"
-    requires="$requires taglib"
-    W_TAGLIB=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_TAGLIB)
-if test "a$W_TAGLIB" = "ayes" ; then
-        w_TAGLIB=yes
-else
-        w_TAGLIB=no
-fi
+AC_CHECK_OCAML_BINDING([taglib])
 
 #
 # OSS
@@ -1335,45 +541,14 @@ fi
 # Magic
 #
 
-AC_ARG_WITH([magic-dir],
-   AC_HELP_STRING(
-      [--with-magic-dir=path],
-      [look for ocaml-magic library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([magic],
-              AC_HELP_STRING([--disable-magic],["don't use ocaml-magic"]))
-
-if test "x$enable_magic" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-magic)
-if test -z "$with_magic_dir" ; then
-    if ! $OCAMLFIND query magic > /dev/null 2>&1 ; then
-        W_MAGIC=
-        AC_MSG_RESULT(not found)
-    else
-        W_MAGIC=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package magic"
-        requires="$requires magic"
-    fi
-else
-    echo $with_magic_dir | grep ^/ > /dev/null 2>&1 \
-        || with_magic_dir=$PWD/$with_magic_dir
-    ocamlcflags="$ocamlcflags -I $with_magic_dir"
-    ocamllflags="$ocamllflags magic.$cma"
-    W_MAGIC=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_MAGIC)
+AC_CHECK_OCAML_BINDING([magic])
 
 if test -z "$W_MAGIC" ; then
-    w_MAGIC="no (requires ocaml-magic)"
     cat >> src/configure.ml <<EOCONF
 let file_mime = None
 let data_mime = None
 EOCONF
 else
-    w_MAGIC=yes
     cat >> src/configure.ml <<EOCONF
 let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[]]
 let file_mime = Some (Magic.file magic_cookie)
@@ -1385,43 +560,11 @@ fi
 # Camomile
 #
 
-AC_ARG_WITH([camomile-dir],
-   AC_HELP_STRING(
-      [--with-camomile-dir=path],
-      [look for ocaml-camomile library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([camomile],
-              AC_HELP_STRING([--disable-camomile],["don't use ocaml-camomile"]))
-
-if test "x$enable_camomile" != "xno" ; then
-AC_MSG_CHECKING(for camomile)
-if test -z "$with_camomile_dir" ; then
-    if ! $OCAMLFIND query camomile > /dev/null 2>&1 ; then
-        W_CAMOMILE=
-        AC_MSG_RESULT(not found)
-    else
-        W_CAMOMILE=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package camomile"
-        requires="$requires camomile"
-    fi
-else
-    echo $with_camomile_dir | grep ^/ > /dev/null 2>&1 \
-        || with_camomile_dir=$PWD/$with_camomile_dir
-    ocamlcflags="$ocamlcflags -I $with_camomile_dir"
-    ocamllflags="$ocamllflags camomile.$cma"
-    dnl TODO The META needs info here too...
-    W_CAMOMILE=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_CAMOMILE)
+AC_CHECK_OCAML_BINDING([camomile])
 
 if test -z "$W_CAMOMILE" ; then
-    w_CAMOMILE="no (requires camomile)"
     echo let recode_tag ?encoding s = s >> src/configure.ml
 else
-    w_CAMOMILE=yes
     camdir=`$OCAMLFIND query camomile -l | \
       grep location | tr -d ' ' | cut -d':' -f 2`
     camencoding=Camomile.CharEncoding
@@ -1495,387 +638,61 @@ fi
 # LablGL
 #
 
-AC_ARG_WITH([gl-dir],
-   AC_HELP_STRING(
-      [--with-gl-dir=path],
-      [look for lablGL library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([gl],AC_HELP_STRING([--disable-gl],[don't use lablGL]))
-
-if test "x$enable_gl" != "xno" ; then
-AC_MSG_CHECKING(for lablGL)
-if test -z "$with_gl_dir" ; then
-    if ! $OCAMLFIND query lablGL > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_GL=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package lablGL"
-        ocamllflags="$ocamllflags lablgl.$cma lablglut.$cma"
-        requires="$requires lablGL"
-    fi
-else
-    echo $with_gl_dir | grep ^/ > /dev/null 2>&1 \
-        || with_gl_dir=$PWD/$with_gl_dir
-    ocamlcflags="$ocamlcflags -I $with_gl_dir"
-    ocamllflags="$ocamllflags lablgl.$cma lablglut.$cma"
-    dnl TOTO See Camomile, something needs to be done for META here
-    W_GL=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_GL)
-if test "a$W_GL" = "ayes" ; then
-        w_GL=yes
-else
-        w_GL=no
-fi
+AC_CHECK_OCAML_BINDING([lablGL],[],[],[],[lablgl.glut],[lablgl lablgl.glut])
 
 #
 # Faad
 #
 
-AC_ARG_WITH([faad-dir],
-   AC_HELP_STRING(
-      [--with-faad-dir=path],
-      [look for ocaml-faad library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([faad],AC_HELP_STRING([--disable-faad],["don't use ocaml-faad"]))
-
-if test "x$enable_faad" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-faad)
-if test -z "$with_faad_dir" ; then
-    if ! $OCAMLFIND query faad > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_FAAD=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package faad"
-        requires="$requires faad"
-    fi
-else
-    echo $with_faad_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_faad_dir=$PWD/$with_faad_dir
-    ocamlcflags="$ocamlcflags -I $with_faad_dir"
-    ocamllflags="$ocamllflags faad.$cma"
-    requires="$requires faad"
-    W_FAAD=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_FAAD)
-
-if test -z "$W_FAAD" ; then
-    w_FAAD=no
-else
-    w_FAAD=yes
-fi
+AC_CHECK_OCAML_BINDING([faad])
 
 #
 # Faac
 #
 
-AC_ARG_WITH([faac-dir],
-   AC_HELP_STRING(
-      [--with-faac-dir=path],
-      [look for ocaml-faac library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([faac],AC_HELP_STRING([--disable-faac],["don't use ocaml-faac"]))
-
-if test "x$enable_faac" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-faac)
-if test -z "$with_faac_dir" ; then
-    if ! $OCAMLFIND query faac > /dev/null 2>&1 ; then
-	AC_MSG_RESULT(not found)
-    else
-	W_FAAC=yes
-	AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package faac"
-        requires="$requires faac"
-    fi
-else
-    echo $with_faac_dir | grep ^/ > /dev/null 2>&1 \
-	|| with_faac_dir=$PWD/$with_faac_dir
-    ocamlcflags="$ocamlcflags -I $with_faac_dir"
-    ocamllflags="$ocamllflags faac.$cma"
-    requires="$requires faac"
-    W_FAAC=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_FAAC)
-
-if test -z "$W_FAAC" ; then
-    w_FAAC=no
-else
-    w_FAAC=yes
-fi
+AC_CHECK_OCAML_BINDING([faac])
 
 #
 # SoundTouch
 #
 
-AC_ARG_WITH([soundtouch-dir],
-   AC_HELP_STRING(
-      [--with-soundtouch-dir=path],
-      [look for ocaml-soundtouch library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([soundtouch],AC_HELP_STRING([--disable-soundtouch],["don't use ocaml-soundtouch"]))
-
-if test "x$enable_soundtouch" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-soundtouch)
-if test -z "$with_soundtouch_dir" ; then
-    if ! $OCAMLFIND query soundtouch > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_SOUNDTOUCH=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package soundtouch"
-        requires="$requires soundtouch"
-    fi
-else
-    echo $with_soundtouch_dir | grep ^/ > /dev/null 2>&1 \
-        || with_soundtouch_dir=$PWD/$with_soundtouch_dir
-    ocamlcflags="$ocamlcflags -I $with_soundtouch_dir"
-    ocamllflags="$ocamllflags soundtouch.$cma"
-    requires="$requires soundtouch"
-    W_SOUNDTOUCH=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_SOUNDTOUCH)
-
-if test -z "$W_SOUNDTOUCH" ; then
-    w_SOUNDTOUCH=no
-else
-    w_SOUNDTOUCH=yes
-fi
+AC_CHECK_OCAML_BINDING([soundtouch])
 
 #
 # Portaudio
 #
 
-AC_ARG_WITH([portaudio-dir],
-   AC_HELP_STRING(
-      [--with-portaudio-dir=path],
-      [look for ocaml-portaudio library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([portaudio],AC_HELP_STRING([--disable-portaudio],["don't use ocaml-portaudio"]))
-
-if test "x$enable_portaudio" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-portaudio)
-if test -z "$with_portaudio_dir" ; then
-    if ! $OCAMLFIND query portaudio > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_PORTAUDIO=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package portaudio"
-        requires="$requires portaudio"
-    fi
-else
-    echo $with_portaudio_dir | grep ^/ > /dev/null 2>&1 \
-        || with_portaudio_dir=$PWD/$with_portaudio_dir
-    ocamlcflags="$ocamlcflags -I $with_portaudio_dir"
-    ocamllflags="$ocamllflags portaudio.$cma"
-    requires="$requires portaudio"
-    W_PORTAUDIO=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_PORTAUDIO)
-
-if test -z "$W_PORTAUDIO" ; then
-    w_PORTAUDIO=no
-else
-    w_PORTAUDIO=yes
-fi
+AC_CHECK_OCAML_BINDING([portaudio])
 
 #
 # Pulseaudio
 #
 
-AC_ARG_WITH([pulseaudio-dir],
-   AC_HELP_STRING(
-      [--with-pulseaudio-dir=path],
-      [look for ocaml-pulseaudio library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([pulseaudio],AC_HELP_STRING([--disable-pulseaudio],["don't use ocaml-pulseaudio"]))
-
-if test "x$enable_pulseaudio" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-pulseaudio)
-if test -z "$with_pulseaudio_dir" ; then
-    if ! $OCAMLFIND query pulseaudio > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_PULSEAUDIO=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package pulseaudio"
-        requires="$requires pulseaudio"
-    fi
-else
-    echo $with_pulseaudio_dir | grep ^/ > /dev/null 2>&1 \
-        || with_pulseaudio_dir=$PWD/$with_pulseaudio_dir
-    ocamlcflags="$ocamlcflags -I $with_pulseaudio_dir"
-    ocamllflags="$ocamllflags pulseaudio.$cma"
-    requires="$requires pulseaudio"
-    W_PULSEAUDIO=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_PULSEAUDIO)
-
-if test -z "$W_PULSEAUDIO" ; then
-    w_PULSEAUDIO=no
-else
-    w_PULSEAUDIO=yes
-fi
+AC_CHECK_OCAML_BINDING([pulseaudio])
 
 #
 # LADSPA
 #
 
-AC_ARG_WITH([ladspa-dir],
-   AC_HELP_STRING(
-      [--with-ladspa-dir=path],
-      [look for ocaml-ladspa library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([ladspa],AC_HELP_STRING([--disable-ladspa],["don't use ocaml-ladspa"]))
-
-if test "x$enable_ladspa" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-ladspa)
-if test -z "$with_ladspa_dir" ; then
-    if ! $OCAMLFIND query ladspa > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_LADSPA=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package ladspa"
-        requires="$requires ladspa"
-    fi
-else
-    echo $with_ladspa_dir | grep ^/ > /dev/null 2>&1 \
-        || with_ladspa_dir=$PWD/$with_ladspa_dir
-    ocamlcflags="$ocamlcflags -I $with_ladspa_dir"
-    ocamllflags="$ocamllflags ladspa.$cma"
-    requires="$requires ladspa"
-    W_LADSPA=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_LADSPA)
-
-if test -z "$W_LADSPA" ; then
-    w_LADSPA=no
-else
-    w_LADSPA=yes
-fi
+AC_CHECK_OCAML_BINDING([ladspa])
 
 #
 # DSSI
 #
 
-AC_ARG_WITH([dssi-dir],
-   AC_HELP_STRING(
-      [--with-dssi-dir=path],
-      [look for ocaml-dssi library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([dssi],AC_HELP_STRING([--disable-dssi],["don't use ocaml-dssi"]))
-
-if test "x$enable_dssi" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-dssi)
-if test -z "$with_dssi_dir" ; then
-    if ! $OCAMLFIND query dssi > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_DSSI=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package dssi"
-        requires="$requires dssi"
-    fi
-else
-    echo $with_dssi_dir | grep ^/ > /dev/null 2>&1 \
-        || with_dssi_dir=$PWD/$with_dssi_dir
-    ocamlcflags="$ocamlcflags -I $with_dssi_dir"
-    ocamllflags="$ocamllflags dssi.$cma"
-    requires="$requires dssi"
-    W_DSSI=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_DSSI)
-
-if test -z "$W_DSSI" ; then
-    w_DSSI=no
-else
-    w_DSSI=yes
-fi
+AC_CHECK_OCAML_BINDING([dssi])
 
 #
 # SDL
 #
 
-AC_ARG_WITH([sdl-dir],
-   AC_HELP_STRING(
-      [--with-sdl-dir=path],
-      [look for ocaml-sdl library in "path" (autodetected by default)]))
-AC_ARG_ENABLE([sdl],AC_HELP_STRING([--disable-sdl],["don't use ocaml-sdl"]))
-
-if test "x$enable_sdl" != "xno" ; then
-AC_MSG_CHECKING(for ocaml-sdl)
-if test -z "$with_sdl_dir" ; then
-    if ! $OCAMLFIND query sdl > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_SDL=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package sdl -package sdl.sdlmixer -package sdl.sdlttf -package sdl.sdlimage"
-        requires="$requires sdl"
-    fi
-else
-    echo $with_sdl_dir | grep ^/ > /dev/null 2>&1 \
-        || with_sdl_dir=$PWD/$with_sdl_dir
-    ocamlcflags="$ocamlcflags -I $with_sdl_dir"
-    ocamllflags="$ocamllflags sdl.$cma sdlmixer.$cma sdlttf.$cma"
-    requires="$requires sdl"
-    W_SDL=yes
-    AC_MSG_RESULT(ok)
-fi
-fi
-
-AC_SUBST(W_SDL)
-
-if test -z "$W_SDL" ; then
-    w_SDL=no
-else
-    w_SDL=yes
-fi
+AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage],[sdlmixer sdlttf])
 
 #
 # camlimages
 #
 
-AC_ARG_ENABLE([camlimages],AC_HELP_STRING([--disable-camlimages],["don't use camlimages"]))
-
-if test "x$enable_camlimages" = "xyes" ; then
-    AC_MSG_CHECKING(for ocaml-camlimages)
-    if ! $OCAMLFIND query camlimages > /dev/null 2>&1 ; then
-        AC_MSG_RESULT(not found)
-    else
-        W_CAMLIMAGES=yes
-        AC_MSG_RESULT(ok)
-        ocamlcflags="$ocamlcflags -package camlimages"
-        requires="$requires camlimages"
-    fi
-fi
-
-AC_SUBST(W_CAMLIMAGES)
-
-if test -z "$W_CAMLIMAGES" ; then
-    w_CAMLIMAGES=no
-else
-    w_CAMLIMAGES=yes
-fi
+AC_CHECK_OCAML_BINDING([camlimages])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -1977,6 +794,10 @@ AC_SUBST(prefered_output)
 #
 ###############################################################################
 
+cat >> src/configure.ml <<__BLAH__
+let libs_versions = "$LIBS_VERSIONS"
+__BLAH__
+
 AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLCOMP)
 AC_SUBST(NO_CUSTOM)
@@ -2045,12 +866,12 @@ cat <<EOMSG
    - Speex             : $w_SPEEX
    - Dirac             : $w_SCHROEDINGER
    - Flac (native)     : $w_FLAC
-   - Flac (ogg)        : $w_OGG_FLAC
-   - MP3               : $w_MP3
+   - Flac (ogg)        : $w_FLAC_OGG
+   - MP3               : $w_MAD
    - AAC               : $w_FAAD
    - text-to-speech    : $w_TTS
    - XML playlists     : $w_XMLPLAYLIST
-   - Lastfm            : $w_LAST
+   - Lastfm            : $w_LASTFM
 
  * Supported output formats
    - Vorbis            : $w_VORBIS
@@ -2093,7 +914,7 @@ cat <<EOMSG
 
  * Visualization
    - Graphics          : $w_GRAPHICS
-   - OpenGL            : $w_GL
+   - OpenGL            : $w_LABLGL
    - SDL               : $w_SDL
 
  * Additional libraries

@@ -1,5 +1,5 @@
 
-SUBDIRS= src examples doc gui scripts
+SUBDIRS= src examples doc gui scripts m4
 DISTFILES = CHANGES COPYING INSTALL README \
 	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh

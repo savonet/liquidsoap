@@ -18,7 +18,7 @@ ogg_demuxer = \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
-	$(if $(W_OGG_FLAC),ogg_formats/ogg_flac_decoder.ml) \
+	$(if $(W_FLAC_OGG),ogg_formats/ogg_flac_decoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
 
 ogg_muxer = \
@@ -27,7 +27,7 @@ ogg_muxer = \
 	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
-	$(if $(W_OGG_FLAC),ogg_formats/ogg_flac_encoder.ml) \
+	$(if $(W_FLAC_OGG),ogg_formats/ogg_flac_encoder.ml) \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
@@ -45,7 +45,7 @@ decoders = \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
-	$(if $(W_MP3),decoder/mp3.ml) \
+	$(if $(W_MAD),decoder/mp3.ml) \
 	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
 	$(if $(W_SDL),decoder/sdlimage_decoder.ml) \
@@ -58,7 +58,7 @@ protocols = \
 	protocols/say.ml protocols/annotate.ml \
 	protocols/mpd.ml \
 	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml) \
-	$(if $(W_LAST),protocols/lastfm_req.ml)
+	$(if $(W_LASTFM),protocols/lastfm_req.ml)
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
@@ -68,7 +68,7 @@ sources = \
 	sources/generated.ml sources/http_source.ml \
 	$(if $(W_ALSA),sources/alsa_in.ml) \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
-	$(if $(W_LAST),sources/lastfm_input.ml) \
+	$(if $(W_LASTFM),sources/lastfm_input.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
 	sources/external_input.ml \
 	tools/liqMM.ml
@@ -140,8 +140,8 @@ stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization = visualization/vumeter.ml \
-	$(if $(W_GL),visualization/GLvisualizer.ml) \
-	$(if $(W_GL),visualization/vis_glvolume.ml) \
+	$(if $(W_LABLGL),visualization/GLvisualizer.ml) \
+	$(if $(W_LABLGL),visualization/vis_glvolume.ml) \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
 	visualization/midimeter.ml \
 	visualization/video_volume.ml \
@@ -155,7 +155,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	playlist_parser.ml encoder/encoder.ml \
 	tools/server.ml tools/server_builtins.ml \
 	$(if $(W_SDL),tools/sdl_utils.ml) \
-	$(if $(W_LAST),tools/liqfm.ml) \
+	$(if $(W_LASTFM),tools/liqfm.ml) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
@@ -167,7 +167,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	shebang.ml \
 	lang/lang_builtins.ml \
 	$(if $(W_MAGIC),lang/lang_magic.ml) \
-	$(if $(W_LAST),lang/lang_lastfm.ml) \
+	$(if $(W_LASTFM),lang/lang_lastfm.ml) \
 	$(if $(W_CRY),lang/lang_cry.ml) \
 	main.ml
 
