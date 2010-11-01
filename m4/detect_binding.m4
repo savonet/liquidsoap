@@ -46,12 +46,17 @@ m4_define([VERSION_CHECK],[ifelse([$2],[],[],[ >= $2])])
 
 AC_MSG_CHECKING([for ocaml $1 module[]VERSION_CHECK()])
 
+OCAML_CHECK="${OCAMLFIND} query $1"
+if ! test -z "$7"; then
+  OCAML_QUERY_CHECK=$7
+fi
+
 AC_OCAML_CHECK_DEPS([$3])
 if test -z $DEPS_CHECK; then
   AC_MSG_RESULT([[]binding() needs $3])
 else
   if test -z "${with_[]binding()_dir}" ; then
-     if ! ${OCAMLFIND} query $1 > /dev/null 2>&1 ; then
+     if ! ${OCAML_CHECK} > /dev/null 2>&1 ; then
          AC_MSG_RESULT_NOT([$4],[Not found.])
      else
          version="`ocamlfind query -format "%v" $1`"
@@ -71,35 +76,35 @@ else
          fi
      fi
   else
-    if ! test -r ${with_[]binding()_dir}/META >/dev/null 2>&1; then
-      AC_MSG_RESULT_NOT([$4],[Cannot find META file for $1 in ${with_[]binding()_dir}])
-    else
+    if test -r ${with_[]binding()_dir}/META >/dev/null 2>&1; then
       # Grab version
       version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"'`
       AC_OCAML_COMPARE_VERSION([${version}],[$2])
       if test -z "${VERSION_OK}"; then
         AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${version}.])
-      else
-        echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
-        || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
-        for i in $5; do
-          PACKAGES="${PACKAGES} -package $i"
-        done
-        ocamlcflags="${ocamlcflags} -I ${with_[]binding()_dir} ${PACKAGES}"
-        if ! test -z "$6"; then
-          for i in $6; do
-            CMA_OBJS="${CMA_OBJS} $i.${cma}"
-          done
-        else
-          CMA_OBJS=$1.${cma}
-        fi  
-        ocamllflags="${ocamllflags} ${CMA_OBJS}"
-        requires="${requires} $1"
-        W_[]BINDING()=yes
-        LIBS_VERSIONS="${LIBS_VERSIONS} $1=$version"
-        AC_MSG_RESULT(ok)
       fi
     fi
+    if test -z "${version}"; then
+      version="[unknown version]"
+    fi
+    echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
+        || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
+    for i in $5; do
+      PACKAGES="${PACKAGES} -package $i"
+    done
+    ocamlcflags="${ocamlcflags} -I ${with_[]binding()_dir} ${PACKAGES}"
+    if ! test -z "$6"; then
+      for i in $6; do
+        CMA_OBJS="${CMA_OBJS} $i.${cma}"
+      done
+    else
+      CMA_OBJS=$1.${cma}
+    fi  
+    ocamllflags="${ocamllflags} ${CMA_OBJS}"
+    requires="${requires} $1"
+    W_[]BINDING()=yes
+    LIBS_VERSIONS="${LIBS_VERSIONS} $1=$version"
+    AC_MSG_RESULT(ok)
   fi
 fi
 
