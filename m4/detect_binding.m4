@@ -24,12 +24,7 @@ for i in deps(); do
 done])
 
 m4_defun([AC_MSG_RESULT_NOT],
-  [dnl
-if test -z "$1"; then
-  AC_MSG_RESULT($2)
-else
-  AC_MSG_ERROR($2)
-fi])
+  [ifelse([$1],[],[AC_MSG_RESULT($2)],[AC_MSG_ERROR($2)])])
 
 AC_DEFUN([AC_CHECK_OCAML_BINDING],[dnl
 
@@ -76,35 +71,44 @@ else
          fi
      fi
   else
+    STOP_CHECK=
+changequote({,})
+    version="[unknown version]"
+changequote([,])
     if test -r ${with_[]binding()_dir}/META >/dev/null 2>&1; then
       # Grab version
       version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"'`
       AC_OCAML_COMPARE_VERSION([${version}],[$2])
       if test -z "${VERSION_OK}"; then
         AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${version}.])
+        STOP_CHECK=yes
+      fi
+    else
+      if ! test -z "$2"; then
+        AC_MSG_RESULT_NOT([$4],[cannot find version from META file.])
+        STOP_CHECK=yes
       fi
     fi
-    if test -z "${version}"; then
-      version="[unknown version]"
-    fi
-    echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
-        || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
-    for i in $5; do
-      PACKAGES="${PACKAGES} -package $i"
-    done
-    ocamlcflags="${ocamlcflags} -I ${with_[]binding()_dir} ${PACKAGES}"
-    if ! test -z "$6"; then
-      for i in $6; do
-        CMA_OBJS="${CMA_OBJS} $i.${cma}"
+    if test -z "${STOP_CHECK}"; then
+      echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
+          || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
+      for i in $5; do
+        PACKAGES="${PACKAGES} -package $i"
       done
-    else
-      CMA_OBJS=$1.${cma}
-    fi  
-    ocamllflags="${ocamllflags} ${CMA_OBJS}"
-    requires="${requires} $1"
-    W_[]BINDING()=yes
-    LIBS_VERSIONS="${LIBS_VERSIONS} $1=$version"
-    AC_MSG_RESULT(ok)
+      ocamlcflags="${ocamlcflags} -I ${with_[]binding()_dir} ${PACKAGES}"
+      if ! test -z "$6"; then
+        for i in $6; do
+          CMA_OBJS="${CMA_OBJS} $i.${cma}"
+        done
+      else
+        CMA_OBJS=$1.${cma}
+      fi  
+      ocamllflags="${ocamllflags} ${CMA_OBJS}"
+      requires="${requires} $1"
+      W_[]BINDING()=yes
+      LIBS_VERSIONS="${LIBS_VERSIONS} $1=$version"
+      AC_MSG_RESULT(ok)
+    fi
   fi
 fi
 
