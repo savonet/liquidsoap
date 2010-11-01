@@ -31,9 +31,7 @@ else
   AC_MSG_ERROR($2)
 fi])
 
-m4_defun(
-  [AC_CHECK_OCAML_BINDING],
-  [dnl
+AC_DEFUN([AC_CHECK_OCAML_BINDING],[dnl
 
 m4_define([BINDING],[m4_translit([$1],['a-z.'],['A-Z_'])])
 m4_define([binding],[m4_translit([$1],['A-Z.'],['a-z_'])])
@@ -76,7 +74,7 @@ else
     if ! test -r ${with_[]binding()_dir}/META >/dev/null 2>&1; then
       AC_MSG_RESULT_NOT([$4],[Cannot find META file for $1 in ${with_[]binding()_dir}])
     else
-      # Grab version
+      # Grab version
       version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"'`
       AC_OCAML_COMPARE_VERSION([${version}],[$2])
       if test -z "${VERSION_OK}"; then
