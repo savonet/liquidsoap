@@ -43,7 +43,7 @@ AC_MSG_CHECKING([for ocaml $1 module[]VERSION_CHECK()])
 
 OCAML_CHECK="${OCAMLFIND} query $1"
 if ! test -z "$7"; then
-  OCAML_QUERY_CHECK=$7
+  OCAML_CHECK=$7
 fi
 
 AC_OCAML_CHECK_DEPS([$3])
