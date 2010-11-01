@@ -406,7 +406,7 @@ AC_CHECK_OCAML_BINDING([mm],[],[],[1])
 # xmlplaylist
 #
 
-AC_CHECK_OCAML_BINDING([xmlplaylist],[],[],[],[xmlm])
+AC_CHECK_OCAML_BINDING([xmlplaylist])
 
 #
 # Lastfm
@@ -639,7 +639,7 @@ fi
 # LablGL
 #
 
-AC_CHECK_OCAML_BINDING([lablGL],[],[],[],[lablgl.glut],[lablgl lablgl.glut])
+AC_CHECK_OCAML_BINDING([lablGL],[],[],[],[lablgl.glut],[lablgl lablgl.glut],[${OCAMLFIND} ocamlc -linkpkg -package lablgl -package lablgl.glut -o /dev/null])
 
 #
 # Faad

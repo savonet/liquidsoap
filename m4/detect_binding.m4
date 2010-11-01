@@ -54,59 +54,57 @@ else
      if ! ${OCAML_CHECK} > /dev/null 2>&1 ; then
          AC_MSG_RESULT_NOT([$4],[Not found.])
      else
-         version="`ocamlfind query -format "%v" $1`"
-         AC_OCAML_COMPARE_VERSION([${version}],[$2])
+         BINDING()_version="`${OCAMLFIND} query -format "%v" $1 2>/dev/null`"
+         AC_OCAML_COMPARE_VERSION([${[]BINDING()_version}],[$2])
          if test -z "${VERSION_OK}"; then
-           AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${version}.])
+           AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()_version}.])
          else
-           PACKAGES="-package $1"
-           for i in $5; do
-             PACKAGES="${PACKAGES} -package $i"
-           done
-           ocamlcflags="${ocamlcflags} $PACKAGES"
-           requires="${requires} $1 $5"
+           BINDING()_PACKAGES="`${OCAMLFIND} query -r -separator " " -format "-package %p" $1 $5 2>/dev/null`"
+           ocamlcflags="${ocamlcflags} ${[]BINDING()_PACKAGES}"
            W_[]BINDING()=yes
-           LIBS_VERSIONS="${LIBS_VERSIONS} $1=$version"
+           LIBS_VERSIONS="${LIBS_VERSIONS} $1=$[]BINDING()_version"
            AC_MSG_RESULT(ok)
          fi
      fi
   else
-    STOP_CHECK=
-changequote({,})
-    version="[unknown version]"
-changequote([,])
+    BINDING()_STOP_CHECK=
+    BINDING()_version=changequote({,})"[unknown version]"changequote([,])
+    BINDING()_requires=
     if test -r ${with_[]binding()_dir}/META >/dev/null 2>&1; then
       # Grab version
-      version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"'`
-      AC_OCAML_COMPARE_VERSION([${version}],[$2])
+      BINDING()_version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"'`
+      AC_OCAML_COMPARE_VERSION([${[]BINDING()_version}],[$2])
       if test -z "${VERSION_OK}"; then
-        AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${version}.])
-        STOP_CHECK=yes
+        AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()version}.])
+        BINDING()_STOP_CHECK=yes
       fi
+      BINDING()_requires=`cat "${with_[]binding()_dir}/META" | grep 'requires' | cut -d '=' -f 2 | tr -d '"'`
     else
       if ! test -z "$2"; then
         AC_MSG_RESULT_NOT([$4],[cannot find version from META file.])
-        STOP_CHECK=yes
+        BINDING()_STOP_CHECK=yes
       fi
     fi
     if test -z "${STOP_CHECK}"; then
-      echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
-          || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
-      for i in $5; do
-        PACKAGES="${PACKAGES} -package $i"
-      done
-      ocamlcflags="${ocamlcflags} -I ${with_[]binding()_dir} ${PACKAGES}"
       if ! test -z "$6"; then
         for i in $6; do
           CMA_OBJS="${CMA_OBJS} $i.${cma}"
         done
       else
         CMA_OBJS=$1.${cma}
-      fi  
-      ocamllflags="${ocamllflags} ${CMA_OBJS}"
-      requires="${requires} $1"
+      fi 
+      BINDING()_PACKAGES="`${OCAMLFIND} query -r -separator " " -format "-package %p" $5 2>/dev/null`"
+      echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
+          || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
+      ocamlcflags="${ocamlcflags} -I ${with_[]binding()_dir} ${[]BINDING()_PACKAGES}"
+      # We need to recurse here because
+      # some package may not be registered using ocamlfind
+      for i in ${[]BINDING()_requires}; do
+        BINDING()_PACKAGES="${[]BINDING()_PACKAGES} `${OCAMLFIND} query -r -separator " " -format "-package %p" $i 2>/dev/null`"
+      done
+      ocamllflags="${ocamllflags} ${[]BINDING()_PACKAGES} ${CMA_OBJS}"
       W_[]BINDING()=yes
-      LIBS_VERSIONS="${LIBS_VERSIONS} $1=$version"
+      LIBS_VERSIONS="${LIBS_VERSIONS} $1=$[]BINDING()_version"
       AC_MSG_RESULT(ok)
     fi
   fi
