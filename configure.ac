@@ -370,7 +370,7 @@ AC_SUBST(W_V4L)
 #
 
 # ocamlfind query graphics is not enough, but linking seems okay
-AC_CHECK_OCAML_BINDING([graphics],[],[],[],[],[],[${OCAMLFIND} ocamlc -linkpkg -package graphics -o /dev/null > /dev/null 2>&1])
+AC_CHECK_OCAML_BINDING([graphics],[],[],[],[],[],[${OCAMLFIND} ocamlc -linkpkg -package graphics -o /dev/null])
 
 #
 # PCRE
