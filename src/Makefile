@@ -11,7 +11,7 @@ liquidsoap_c_files = \
 	$(if $(W_OSS),io/oss_io_c.c) \
 	$(if $(W_V4L),io/v4l_io_c.c) \
 	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
-	$(if $(W_OPAL),io/opal_io_c.c) 
+	$(if $(W_OPAL),io/opal_io_c.c)
 
 ogg_demuxer = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
@@ -140,11 +140,9 @@ stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization = visualization/vumeter.ml \
-	$(if $(W_LABLGL),visualization/GLvisualizer.ml) \
-	$(if $(W_LABLGL),visualization/vis_glvolume.ml) \
 	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
 	visualization/midimeter.ml \
-	visualization/video_volume.ml \
+	visualization/video_volume.ml
 
 synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml) \

@@ -636,12 +636,6 @@ EOCONF
 fi
 
 #
-# LablGL
-#
-
-AC_CHECK_OCAML_BINDING([lablGL],[],[],[],[lablgl.glut],[lablgl lablgl.glut],[${OCAMLFIND} ocamlc -linkpkg -package lablgl -package lablgl.glut -o /dev/null])
-
-#
 # Faad
 #
 
@@ -915,7 +909,6 @@ cat <<EOMSG
 
  * Visualization
    - Graphics          : $w_GRAPHICS
-   - OpenGL            : $w_LABLGL
    - SDL               : $w_SDL
 
  * Additional libraries
