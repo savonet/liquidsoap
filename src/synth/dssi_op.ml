@@ -96,9 +96,10 @@ object (self)
       in
         match chan with
           | Some chan ->
-              [|Array.of_list (Utils.may_map dssi_of_midi !(evs.(chan)))|]
+            let evs = MIDI.data evs.(chan) in
+            [|Array.of_list (Utils.may_map dssi_of_midi evs)|]
           | None ->
-              Array.init all_chans (fun chan -> Array.of_list (Utils.may_map dssi_of_midi !(evs.(chan))))
+            Array.init all_chans (fun chan -> Array.of_list (Utils.may_map dssi_of_midi (MIDI.data evs.(chan))))
     in
       Array.iter
         (fun inst ->

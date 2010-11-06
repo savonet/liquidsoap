@@ -146,7 +146,7 @@ visualization = visualization/vumeter.ml \
 
 synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml) \
-#	$(if $(W_DSSI),synth/dssi_op.ml)
+	$(if $(W_DSSI),synth/dssi_op.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml source.ml clock.ml tools/rutils.ml \
