@@ -40,36 +40,45 @@ object (self)
   val mutable state = `Idle
 
   method private get_frame ab =
-    let p1 = VFrame.position ab in
-    let p2 = source#get ab ; VFrame.position ab in
-    (** In video frames: [length] of the fade, [count] since beginning. *)
+    let off_ticks = Frame.position ab in
+    let video_content = VFrame.get_content ab source in
+    (** In video frames: [length] of the fade, [count] since beginning.
+      * This must be done before accessing the (possibly empty video content)
+      * because the state has to be updated anyway. Also, it is important
+      * that the metadata is ready at the position in ticks rather than
+      * video, otherwise we might miss some data. *)
     let fade,length,count =
       match state with
         | `Idle ->
             let duration =
-              match VFrame.get_metadata ab p1 with
+              match Frame.get_metadata ab off_ticks with
                 | None -> duration
                 | Some m ->
                     match Utils.hashtbl_get m meta with
-                      | Some d -> (try float_of_string d with _ -> duration)
+                      | Some d ->
+                          (try float_of_string d with _ -> duration)
                       | None -> duration
             in
             let length = Frame.video_of_seconds duration in
-              fader length,
+            let fade = fader length in
+              state <- `Play (fade,length,0) ;
+              fade,
               length,
               0
         | `Play (fade,length,count) -> fade,length,count
     in
-    let rgb = (VFrame.content ab p1).(0) in
-      if count < length then
-        for i=0 to min (p2-p1-1) (length-count-1) do
-          let m = fade (count+i) in
-            fadefun rgb.(p1+i) m
-        done ;
-      state <- (if not initial && VFrame.is_partial ab then
-                  `Idle
-                else
-                  `Play (fade,length,count+p2-p1))
+      if not initial && Frame.is_partial ab then state <- `Idle ;
+      match video_content with
+        | None -> ()
+        | Some (rgb,off,len) ->
+            let rgb = rgb.(0) in
+              if count < length then
+                for i=0 to min (len-1) (length-count-1) do
+                  let m = fade (count+i) in
+                    fadefun rgb.(off+i) m
+                done ;
+              if state <> `Idle then
+                state <- `Play (fade,length,count+len)
 
 end
 

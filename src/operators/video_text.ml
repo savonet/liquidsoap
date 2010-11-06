@@ -84,42 +84,41 @@ object (self)
       self#render_text cur_text
 
   method private get_frame ab =
-    let off = VFrame.position ab in
-    source#get ab;
-    let rgb = (VFrame.content ab off).(0) in
-    let size = VFrame.size ab in
-    let tf = Utils.get_some text_frame in
-    let tfw = Img.width tf in
-    let text =
-      match meta with
-        | None -> text ()
-        | Some meta ->
-            let ans = ref cur_text in
-              List.iter
-                (fun (t,m) ->
-                   try
-                     ans := Hashtbl.find m meta
-                   with
-                     | Not_found -> ()
-                ) (Frame.get_all_metadata ab);
-              !ans
-    in
-      if cur_text <> text then
-        (
-          cur_text <- text;
-          self#render_text cur_text;
-          if pos_x = -tfw then pos_x <- video_width
-        );
-      for i = off to size - 1 do
-        if pos_x <> -tfw then
-          Img.add tf rgb.(i) ~x:pos_x ~y:pos_y;
-        pos_x <- pos_x - speed;
-        if pos_x < -tfw then
-          if cycle then
-            pos_x <- video_width
-          else
-            pos_x <- -tfw (* avoid overflows *)
-      done
+    match VFrame.get_content ab source with
+      | None -> ()
+      | Some (rgb,off,len) ->
+          let rgb = rgb.(0) in
+          let tf = Utils.get_some text_frame in
+          let tfw = Img.width tf in
+          let text =
+            match meta with
+              | None -> text ()
+              | Some meta ->
+                  let ans = ref cur_text in
+                    List.iter
+                      (fun (t,m) ->
+                         try
+                           ans := Hashtbl.find m meta
+                         with
+                           | Not_found -> ())
+                      (Frame.get_all_metadata ab) ;
+                    !ans
+          in
+            if cur_text <> text then begin
+              cur_text <- text ;
+              self#render_text cur_text ;
+              if pos_x = -tfw then pos_x <- video_width
+            end ;
+            for i = off to off + len - 1 do
+              if pos_x <> -tfw then
+                Img.add tf rgb.(i) ~x:pos_x ~y:pos_y ;
+                pos_x <- pos_x - speed ;
+                if pos_x < -tfw then
+                  if cycle then
+                    pos_x <- video_width
+                  else
+                    pos_x <- -tfw (* avoid overflows *)
+            done
 
 end
 
@@ -156,7 +155,7 @@ let () =
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Input
+    ~category:Lang.VideoProcessing
     ~descr:"Display a text."
     (fun p kind ->
        let f v = List.assoc v p in

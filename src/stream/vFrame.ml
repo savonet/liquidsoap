@@ -24,8 +24,11 @@ open Frame
 
 type t = Frame.t
 
-let vot = Frame.video_of_master
 let tov = Frame.master_of_video
+let vot ?round x =
+ match round with
+   | None | Some `Down -> Frame.video_of_master x
+   | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate / 2)
 
 let size _ = vot (Lazy.force size)
 let position t = vot (position t)
@@ -41,6 +44,18 @@ let content b pos =
   let stop,content = content b (tov pos) in
     assert (stop = Lazy.force Frame.size) ;
     content.video
+
+let get_content frame source =
+  let p0 = Frame.position frame in
+  let p1 = source#get frame ; Frame.position frame in
+  let v0 = vot ~round:`Up p0 in
+  let v1 = vot ~round:`Down p1 in
+    if v0<v1 then
+      let stop,content = Frame.content frame p0 in
+        assert (stop = Lazy.force Frame.size) ;
+        Some (content.video,v0,v1-v0)
+    else
+      None
 
 let content_of_type ~channels b pos =
   let ctype = { audio = 0 ; video = channels ; midi = 0 } in
