@@ -302,7 +302,7 @@ let handle_get_request ~port c uri headers =
     write_answer c (http_error_page 500 "Internal Server Error"
     "There was an error processing your request.")
   in
-  let admin args =
+  let admin ~icy args =
     match
       try Hashtbl.find args "mode"
       with Not_found -> raise (Answer(ans_404))
@@ -353,15 +353,19 @@ let handle_get_request ~port c uri headers =
               in
               Hashtbl.remove args "mount";
               Hashtbl.remove args "mode";
-              let encoding = 
+              let in_enc = 
                 try
                   Some (Hashtbl.find args "charset")
                 with
-                  | Not_found -> None
+                  | Not_found -> 
+                      if icy then 
+                        (Some "ISO-8859-1") 
+                      else 
+                        None
               in
               (* Recode tags.. *)
               let f x y m = 
-                let g = Configure.recode_tag ?encoding in
+                let g = Configure.recode_tag ?in_enc in
                 Hashtbl.add m (g x) (g y) ; m
               in
               let args = 
@@ -395,8 +399,10 @@ let handle_get_request ~port c uri headers =
   try
      match base_uri with
        | "/" -> write_answer c default
-       | "/admin/metadata" | "/admin.cgi"
-             -> admin args
+       (* Icecast *)
+       | "/admin/metadata" -> admin ~icy:false args
+       (* Shoutcast *)
+       | "/admin.cgi" -> admin ~icy:true args
        | _ -> raise (Answer(ans_404))
   with
     | Answer(s) ->  s ()

@@ -72,6 +72,8 @@ let proto kind =
            Useful only in special cases, like with per-mountpoint users.") ;
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
     "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
+    "encoding", Lang.string_t, Some (Lang.string ""), 
+    Some "Encoding used to send metadata, default (UTF-8) if empty." ;
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
     ("description", Lang.string_t,
      Some (Lang.string "OCaml Radio!"), None) ;
@@ -303,6 +305,11 @@ class output ~kind p =
       | s -> Some s
   in
   let description = s "description" in
+  let out_enc = 
+    match s "encoding" with
+      | "" -> None
+      | s -> Some s
+  in
   let public = e Lang.to_bool "public" in
   let headers = 
     List.map (fun v -> 
@@ -388,6 +395,8 @@ object (self)
                              (* for Shoutcast *)
                              (getd m "song" default_song []))))))))
       in
+      let f = Configure.recode_tag ?out_enc in
+      let a = Array.map (fun (x,y) -> (x, f y)) a in
       let m =
         let ret = Hashtbl.create 10 in
         let f (x,y) = Hashtbl.add ret x y in

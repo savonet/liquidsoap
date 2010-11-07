@@ -41,6 +41,8 @@ let () =
      "mount", Lang.string_t, None , None;
      "protocol", Lang.string_t, Some (Lang.string "http"), 
      Some "Protocol to use. One of: \"icy\" or \"http\"";
+     "encoding", Lang.string_t, Some (Lang.string ""),
+     Some "Encoding used to send metadata, default (UTF-8) if empty." ;
      "headers", Lang.metadata_t,
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
      Some "Additional headers." ;
@@ -50,6 +52,18 @@ let () =
       let password = Lang.to_string (List.assoc "password" p) in
       let mount = Lang.to_string (List.assoc "mount" p) in
       let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
+      let out_enc =
+        match Lang.to_string (List.assoc  "encoding" p) with
+          | "" -> None
+          | s -> Some s
+      in
+      let metas = 
+        let ret = Hashtbl.create (Hashtbl.length metas) in
+        Hashtbl.iter 
+          (fun x y -> Hashtbl.add ret x (Configure.recode_tag ?out_enc y))
+          metas ;
+        ret
+      in
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
       let headers = 

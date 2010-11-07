@@ -17,7 +17,7 @@ val libs_dir : string
 val dynliq_option : (string list * Arg.spec * string) list
 
 (** Function to reencode tags into utf8. *)
-val recode_tag : ?encoding:string -> string -> string
+val recode_tag : ?in_enc:string -> ?out_enc:string -> string -> string
 
 (** Maximal id for a request. *)
 val requests_max_id : int

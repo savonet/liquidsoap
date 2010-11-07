@@ -564,7 +564,7 @@ fi
 AC_CHECK_OCAML_BINDING([camomile])
 
 if test -z "$W_CAMOMILE" ; then
-    echo let recode_tag ?encoding s = s >> src/configure.ml
+    echo let recode_tag ?in_enc ?out_enc s = s >> src/configure.ml
 else
     camdir=`$OCAMLFIND query camomile -l | \
       grep location | tr -d ' ' | cut -d':' -f 2`
@@ -619,17 +619,22 @@ let get_encoding () =
           custom_encoding := Some e ;
           e
 
-let recode_tag ?encoding s =
+let recode_tag ?in_enc ?out_enc s =
   let in_enc =
-    match encoding with
+    match in_enc with
       | Some e -> enc_of_name e
       | None -> get_encoding ()
   in
-    C.recode_string ~in_enc ~out_enc:C.utf8 s
+  let out_enc =
+    match out_enc with
+      | Some e -> enc_of_name e
+      | None -> C.utf8
+  in
+    C.recode_string ~in_enc ~out_enc s
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then
-    fun ?encoding s -> s
+    fun ?in_enc ?out_enc s -> s
   else
     recode_tag
 EOCONF

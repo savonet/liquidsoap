@@ -41,7 +41,7 @@ def output.shoutcast(
     restart=restart, restart_delay=restart_delay,
     host=host, port=port, user=user, password=password,
     genre=genre, url=url, description="UNUSED",
-    public=public, dumpfile=dumpfile,
+    public=public, dumpfile=dumpfile,encoding="ISO-8859-1",
     name=name, mount="/", protocol="icy",
     fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)
