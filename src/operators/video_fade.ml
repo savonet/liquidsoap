@@ -110,8 +110,8 @@ object (self)
       Frame.add_break ab (Frame.position ab)
     else
       let n = Frame.video_of_master source#remaining in
-      let offset1 = VFrame.position ab in
-      let offset2 = source#get ab ; VFrame.position ab in
+      let off_ticks = Frame.position ab in
+      let video_content = VFrame.get_content ab source in
       (** In video frames: [length] of the fade. *)
       let fade,length =
         match cur_length with
@@ -119,7 +119,7 @@ object (self)
           | None ->
               (* Set the length at the beginning of a track *)
               let duration =
-                match VFrame.get_metadata ab offset1 with
+                match VFrame.get_metadata ab off_ticks with
                   | None -> duration
                   | Some m ->
                       match Utils.hashtbl_get m meta with
@@ -131,22 +131,26 @@ object (self)
                 cur_length <- Some (f,l) ;
                 f,l
       in
-        (* Process the buffer *)
-        begin match
-          if final then Some remaining else
-            if n>=0 && n<length then Some n else None
-        with
-          | Some n ->
-              let rgb = (VFrame.content ab offset1).(0) in
-                for i=0 to offset2-offset1-1 do
-                  let m = fade (n-i) in
-                    fadefun rgb.(offset1+i) m
-                done
-          | None -> ()
-        end ;
-        if final then remaining <- remaining - offset2 + offset1 ;
         (* Reset the length at the end of a track *)
-        if Frame.is_partial ab then cur_length <- None
+        if Frame.is_partial ab then cur_length <- None ;
+        (* Do the actual processing of video samples *)
+        match video_content with
+          | None -> ()
+          | Some (rgb,off,len) ->
+              (* Process the buffer *)
+              begin match
+                if final then Some remaining else
+                  if n>=0 && n<length then Some n else None
+              with
+                | Some n ->
+                    let rgb = rgb.(0) in
+                      for i=0 to len-1 do
+                        let m = fade (n-i) in
+                          fadefun rgb.(off+i) m
+                      done
+                | None -> ()
+              end ;
+              if final then remaining <- remaining - len
 
 end
 

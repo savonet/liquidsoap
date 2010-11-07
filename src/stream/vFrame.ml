@@ -28,7 +28,7 @@ let tov = Frame.master_of_video
 let vot ?round x =
  match round with
    | None | Some `Down -> Frame.video_of_master x
-   | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate / 2)
+   | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate - 1)
 
 let size _ = vot (Lazy.force size)
 let position t = vot (position t)
