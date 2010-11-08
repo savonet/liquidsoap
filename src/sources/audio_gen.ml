@@ -24,9 +24,9 @@
 
 open Source
 
-class gen ~kind name g freq duration =
+class gen ~kind name g freq duration ampl =
   let channels = (Frame.type_of_kind kind).Frame.audio in
-  let g = g freq 1. in
+  let g = g freq ampl in
 object
   inherit Synthesized.source ~name kind duration
 
@@ -44,12 +44,14 @@ let add name g =
     ~kind:Lang.audio_any
     [
       "duration", Lang.float_t, Some (Lang.float 0.), None;
+      "amplitude", Lang.float_t, Some (Lang.float 1.), Some "Maximal value of the waveform.";
       "", Lang.float_t, Some (Lang.float 440.), Some ("Frequency of the " ^ name ^ ".")
     ]
     (fun p kind ->
       (new gen ~kind name g
          (Lang.to_float (List.assoc "" p))
-         (Lang.to_float (List.assoc "duration" p)) :> source))
+         (Lang.to_float (List.assoc "duration" p))
+         (Lang.to_float (List.assoc "amplitude" p)) :> source))
 
 let sine f volume = new Audio.Generator.of_mono (new Audio.Mono.Generator.sine (Lazy.force Frame.audio_rate) ~volume f)
 let square f volume = new Audio.Generator.of_mono (new Audio.Mono.Generator.square (Lazy.force Frame.audio_rate) ~volume f)
