@@ -83,6 +83,20 @@ module Liq_http =
 module Audioscrobbler = Lastfm_generic.Audioscrobbler_generic(Liq_http)
 module Radio          = Lastfm_generic.Radio_generic(Liq_http)
 
+let error_translator =
+  function
+    | Audioscrobbler.Error x ->
+       raise (Utils.Translation
+          (Printf.sprintf "Audioscrobbler error: %s" 
+             (Audioscrobbler.string_of_error x)))
+    | Radio.Error x ->
+       raise (Utils.Translation
+          (Printf.sprintf "Lastfm radio error: %s"
+             (Radio.string_of_error x)))
+    | _ -> ()
+
+let () = Utils.register_error_translator error_translator
+
 open Lastfm_generic
 open Audioscrobbler
 

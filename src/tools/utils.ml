@@ -68,11 +68,28 @@ let really_read fd buf ofs len =
     done;
     !l
 
+exception Translation of string
+
+let error_translators = Queue.create ()
+
+let register_error_translator x = Queue.push x error_translators
+
+let unix_translator = 
+  function
+    | Unix.Unix_error (code,name,param) ->
+      raise (Translation 
+          (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
+                                         name param))
+    | _ -> ()
+
+let () = register_error_translator unix_translator
+
 let error_message e =
- match e with
-   | Unix.Unix_error (code,name,param) ->
-      Printf.sprintf "%s in %s(%s)" (Unix.error_message code) name param
-   | _ -> Printexc.to_string e
+ try
+   Queue.iter (fun f -> f e) error_translators ;
+   Printexc.to_string e
+ with
+   | Translation x -> x
 
 (** Perfect Fisher-Yates shuffle
   * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)

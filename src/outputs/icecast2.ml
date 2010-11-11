@@ -24,6 +24,15 @@
 
 open Dtools
 
+let error_translator =
+  function
+    | Cry.Error x ->
+       raise (Utils.Translation 
+         (Printf.sprintf "Cry error: %s" (Cry.string_of_error x)))
+    | _ -> ()
+
+let () = Utils.register_error_translator error_translator
+
 type icecast_info = 
   {
     quality     : string option;
