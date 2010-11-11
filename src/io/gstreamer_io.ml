@@ -63,9 +63,7 @@ object (self)
             Condition.wait poller_c poller_m;
             let sink = Utils.get_some sink in
             let b = App_sink.pull_buffer (App_sink.of_element sink) in
-            let vimg = G.make_rgb G.Pixel.RGB24 width height b in
-            let img = I.create width height in
-            G.convert ~copy:true ~proportional:true vimg (G.of_RGBA32 img);
+            let img = I.make width height b in
             Mutex.lock poller_img_m;
             image <- Some img;
             Mutex.unlock poller_img_m
@@ -79,9 +77,9 @@ object (self)
         "v4l2src device=%s ! ffmpegcolorspace ! videoscale ! \
          appsink max-buffers=2 drop=true name=sink \
            caps=\"video/x-raw-rgb,width=%d,height=%d,\
-                  pixel-aspect-ratio=1/1,bpp=(int)24,depth=(int)24,\
-                  endianness=(int)4321,red_mask=(int)0xff0000,\
-                  green_mask=(int)0x00ff00,blue_mask=(int)0x0000ff,\
+                  pixel-aspect-ratio=1/1,bpp=(int)32,depth=(int)24,\
+                  endianness=(int)4321,red_mask=(int)0xff000000,\
+                  green_mask=(int)0x00ff0000,blue_mask=(int)0x0000ff00,\
                   framerate=(fraction)%d/1\""
         dev width height vfps
     in
