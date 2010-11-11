@@ -9,7 +9,6 @@ ocaml_progs= liquidsoap
 
 liquidsoap_c_files = \
 	$(if $(W_OSS),io/oss_io_c.c) \
-	$(if $(W_V4L),io/v4l_io_c.c) \
 	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
 	$(if $(W_OPAL),io/opal_io_c.c)
 
@@ -125,7 +124,6 @@ io = \
 	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
 	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
 	$(if $(W_JACK),io/jack_io.ml) \
-	$(if $(W_V4L),io/v4l_io.ml) \
 	$(if $(W_OPAL),io/opal_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
 #	io/marshal_io.ml

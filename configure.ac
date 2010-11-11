@@ -326,40 +326,6 @@ fi
 
 AC_SUBST(W_OPAL)
 
-# V4L
-
-AC_ARG_WITH([v4l-include],
-   AC_HELP_STRING(
-      [--with-v4l-include=path],
-      [look for v4l headers in path (defaults to /usr/include/linux)]))
-AC_ARG_ENABLE([v4l],AC_HELP_STRING([--disable-v4l],["don't use v4l"]))
-
-if test "x$enable_v4l" != "xno" ; then
-  AC_MSG_CHECKING(for v4l)
-
-  if test -z "$with_v4l_include" ; then
-    V4L_INCLUDE=$default_prefix/include
-  else
-    V4L_INCLUDE=$with_v4l_include
-  fi
-
-  if test \! -f ${V4L_INCLUDE}/linux/videodev.h ; then
-    AC_MSG_RESULT(Header not found: ${V4L_INCLUDE}/linux/videodev.h)
-    W_V4L=""
-    w_V4L=no
-  else
-    W_V4L=yes
-    w_V4L=yes
-    CFLAGS="$CFLAGS -I$V4L_INCLUDE"
-    AC_MSG_RESULT(ok)
-  fi
-else
-    W_V4L=""
-    w_V4L=no
-fi
-
-AC_SUBST(W_V4L)
-
 #
 # Libs
 #
@@ -896,7 +862,6 @@ cat <<EOMSG
    - Pulseaudio        : $w_PULSEAUDIO
    - JACK              : $w_BJACK
    - Old JACK          : $w_JACK
-   - V4L               : $w_V4L
    - opal              : $w_OPAL
    - GStreamer         : $w_GSTREAMER
 
