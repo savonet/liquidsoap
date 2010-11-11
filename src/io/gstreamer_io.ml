@@ -33,6 +33,13 @@ class v4l2_input ~kind dev =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let vfps = 10 in
+  let poller_img_m = Mutex.create () in
+  let poller_m =
+    let m = Mutex.create () in
+    Mutex.lock m;
+    m
+  in
+  let poller_c = Condition.create () in
 object (self)
   inherit Source.active_source kind
 
@@ -45,6 +52,26 @@ object (self)
   method output = if VFrame.is_partial memo then self#get_frame memo
 
   val mutable sink = None
+
+  val mutable image = None
+
+  initializer
+    ignore (
+      Thread.create
+        (fun () ->
+          while true do
+            Condition.wait poller_c poller_m;
+            let sink = Utils.get_some sink in
+            let b = App_sink.pull_buffer (App_sink.of_element sink) in
+            let vimg = G.make_rgb G.Pixel.RGB24 width height b in
+            let img = I.create width height in
+            G.convert ~copy:true ~proportional:true vimg (G.of_RGBA32 img);
+            Mutex.lock poller_img_m;
+            image <- Some img;
+            Mutex.unlock poller_img_m
+          done
+        ) ()
+    )
 
   method output_get_ready =
     let pipeline =
@@ -62,26 +89,27 @@ object (self)
     let s = Bin.get_by_name (Bin.of_element bin) "sink" in
     sink <- Some s;
     Element.set_state bin State_playing;
+    Condition.signal poller_c
 
   method output_reset = ()
   method is_active = true
 
-  val mutable image = I.create 0 0
-
   method get_frame frame =
     assert (0 = Frame.position frame);
-    let sink = Utils.get_some sink in
     let buf = VFrame.content_of_type ~channels:1 frame in
     let buf = buf.(0) in
-    let b = App_sink.pull_buffer (App_sink.of_element sink) in
-    let vimg = G.make_rgb G.Pixel.RGB24 width height b in
-    let img = I.create width height in
-    G.convert ~copy:true ~proportional:true vimg (G.of_RGBA32 img);
-    for i = 0 to VFrame.size frame - 1 do
-      I.Scale.onto ~proportional:true img buf.(i)
-    done;
-    VFrame.add_break frame (VFrame.size ())
-
+    (
+      match image with
+        | Some img ->
+          Mutex.lock poller_img_m;
+          for i = 0 to VFrame.size frame - 1 do
+            I.Scale.onto ~proportional:true img buf.(i)
+          done;
+          Mutex.unlock poller_img_m
+        | None -> ()
+    );
+    VFrame.add_break frame (VFrame.size ());
+    Condition.signal poller_c
 end
 
 let () =
