@@ -85,7 +85,7 @@ let proto kind =
     Some "Encoding used to send metadata, default (UTF-8) if empty." ;
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
     ("description", Lang.string_t,
-     Some (Lang.string "OCaml Radio!"), None) ;
+     Some (Lang.string "Liquidsoap Radio!"), None) ;
     "on_connect",
     Lang.fun_t [] Lang.unit_t,
     Some (Lang.val_cst_fun [] Lang.unit),
