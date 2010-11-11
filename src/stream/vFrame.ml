@@ -31,19 +31,9 @@ let vot ?round x =
    | Some `Up -> Frame.video_of_master (x + Lazy.force Frame.video_rate - 1)
 
 let size _ = vot (Lazy.force size)
-let position t = vot (position t)
+let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)
-
-exception No_metadata
-type metadata = (string,string) Hashtbl.t
-let set_metadata t i m = set_metadata t (tov i) m
-let get_metadata t i = get_metadata t (tov i)
-let is_partial = is_partial
-
-let content b pos =
-  let stop,content = content b (tov pos) in
-    assert (stop = Lazy.force Frame.size) ;
-    content.video
+let is_partial t = is_partial t
 
 let get_content frame source =
   let p0 = Frame.position frame in
@@ -57,7 +47,7 @@ let get_content frame source =
     else
       None
 
-let content_of_type ~channels b pos =
+let content_of_type ~channels b =
   let ctype = { audio = 0 ; video = channels ; midi = 0 } in
-  let content = content_of_type b (tov pos) ctype in
+  let content = content_of_type b (Frame.position b) ctype in
     content.video

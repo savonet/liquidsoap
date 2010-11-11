@@ -54,7 +54,10 @@ object (self)
       let f =
         (* TODO: Handle more formats. *)
         read_PPM
-          ?alpha:(if alpha < 0 then None else Some (Image.RGB8.Color.of_int alpha))
+          ?alpha:(if alpha < 0 then
+                    None
+                  else
+                    Some (Image.RGB8.Color.of_int alpha))
           fname
       in
       let fw, fh = Img.dimensions f in
@@ -79,31 +82,29 @@ object (self)
     self#load fname
 
   method private get_frame ab =
-    let off = VFrame.position ab in
-    source#get ab;
-    let rgb = (VFrame.content ab off).(0) in
-    let size = VFrame.size ab in
-    let read_from_meta () =
-      match meta with
-        | Some meta ->
-            List.iter
-              (fun (t,m) ->
-                 try
-                   self#load (Hashtbl.find m meta)
-                 with
-                   | Not_found -> ()
-              ) (Frame.get_all_metadata ab)
+    let master_offset = Frame.position ab in
+    let content = VFrame.get_content ab source in
+      begin match meta, Frame.get_metadata ab master_offset with
+        | Some meta, Some m ->
+            begin try
+              self#load (Hashtbl.find m meta)
+            with
+              | Not_found -> ()
+            end
+        | _ -> ()
+      end ;
+      match content with
+        | Some (rgb,off,len) ->
+            let rgb = rgb.(0) in
+              begin match img with
+                | Some img ->
+                    for i = off to off+len-1 do
+                      Img.add img rgb.(i) ~x:pos_x ~y:pos_y
+                    done
+                | None -> ()
+              end
         | None -> ()
-    in
-      (* TODO: be able to load an image in the middle of a frame? *)
-      read_from_meta ();
-      match img with
-        | Some img ->
-            (* TODO: Handle other channels? *)
-            for i = off to size - 1 do
-              Img.add img rgb.(i) ~x:pos_x ~y:pos_y
-            done
-        | None -> ()
+
 end
 
 let () =
@@ -111,9 +112,10 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ())
   in
   Lang.add_operator "video.add_image"
-    ~category:Lang.Input
+    ~category:Lang.VideoProcessing
     ~descr:"Add a static image on the first video channel. \
-            The image can be changed based on metadata."
+            The image can be changed based on metadata \
+            found at the beginning of a track."
     [
       "width", Lang.int_t, Some (Lang.int (-1)),
       Some "Scale to width (negative means original width).";

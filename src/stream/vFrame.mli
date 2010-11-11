@@ -20,7 +20,20 @@
 
  *****************************************************************************)
 
-(** Video frame manipulation *)
+(** {1 Video frame manipulation}
+  *
+  * This is a simplified video-only version of Frame. Some parts of Frame,
+  * such as the metadata API, is unavailable. This is because it must
+  * be used with care.
+  *
+  * Even video-only operators must comply to the general requirements
+  * of sources in liquidsoap. In particular they should be able to fill
+  * a frame starting at any position. That position might not be
+  * a video position -- in that case, the first video sample to work on,
+  * if there is one, will be a little farther in the frame. When looking
+  * for metadata (usually attached at the beginning of a track) a
+  * video position cannot be used, for the same reason: the track might
+  * not start on a video sample position. *)
 
 type t = Frame.t
 
@@ -28,27 +41,23 @@ type t = Frame.t
 val is_partial : t -> bool
 
 (** Number of video frames. *)
-val size : t -> int
+val size : 'a -> int
 
-(** Position of the first break. *)
-val position : t -> int
+(** Position (in video samples) of the next video sample to fill-in. *)
+val next_sample_position : t -> int
 
-(** Add a break. *)
+(** Add a break at given video position. *)
 val add_break : t -> int -> unit
 
-type metadata = (string,string) Hashtbl.t
-
-val set_metadata     : t -> int -> metadata -> unit
-val get_metadata     : t -> int -> metadata option
-
-(** Get the video channels at a given position.
-  * Requires that the frame contains only video data starting at this point. *)
-val content : t -> int -> Video.buffer array
-
+(** [get_content source frame] has [source] fill [frame],
+  * and returns the produced chunk of video content.
+  * It is possible that a successful filling produced audio samples
+  * but no video sample. *)
 val get_content :
       Frame.t -> Source.source -> (Video.buffer array * int * int) option
 
-(** Get video channels starting at a given position,
-  * creating them if needed.
-  * This is the function to call for writing pure video in a frame. *)
-val content_of_type : channels:int -> t -> int -> Video.buffer array
+(** Create a new video-only content layer for [channels] video channels,
+  * at the current position in the frame, i.e., suitable for the next
+  * filling operation.
+  * To choose the position, use Frame directly, and be careful. *)
+val content_of_type : channels:int -> t -> Video.buffer array

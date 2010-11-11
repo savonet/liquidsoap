@@ -29,6 +29,7 @@ external init : Unix.file_descr -> unit = "caml_v4l_init"
 external get_dims : Unix.file_descr -> int * int = "caml_v4l_get_dims"
 external capture : Unix.file_descr -> int -> int -> string = "caml_v4l_capture"
 
+(* TODO WTF? should this module disappear anyway? *)
 let every = 5
 
 class input ~kind dev =
@@ -43,7 +44,7 @@ object (self)
 
   method abort_track = ()
 
-  method output = if AFrame.is_partial memo then self#get_frame memo
+  method output = if VFrame.is_partial memo then self#get_frame memo
 
   val mutable width = 0
   val mutable height = 0
@@ -64,9 +65,9 @@ object (self)
   val mutable count = every
 
   method get_frame frame =
-    assert (0 = AFrame.position frame);
+    assert (0 = Frame.position frame);
     let fd = Utils.get_some fd in
-    let buf = VFrame.content_of_type ~channels:1 frame 0 in
+    let buf = VFrame.content_of_type ~channels:1 frame in
     let buf = buf.(0) in
     let img =
       (*
@@ -90,14 +91,16 @@ object (self)
       for i = 0 to VFrame.size frame - 1 do
         Img.Scale.onto ~proportional:true img buf.(i)
       done;
-      AFrame.add_break frame (AFrame.size ())
+      VFrame.add_break frame (VFrame.size ())
 end
 
 let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:1
       (Lang.Constrained
-         { Frame. audio = Lang.Any_fixed 0 ; video = Lang.Fixed 1 ; midi = Lang.Fixed 0 })
+         { Frame. audio = Lang.Any_fixed 0 ;
+                  video = Lang.Fixed 1 ;
+                  midi = Lang.Fixed 0 })
   in
   Lang.add_operator "input.v4l"
     [
@@ -107,9 +110,8 @@ let () =
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[Lang.Experimental;Lang.Hidden]
-    ~descr:"Stream from a V4L (= video 4 linux) input device, such as a webcam."
+    ~descr:"Stream from a V4L (Video for Linux) input device, such as a webcam."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
        let device = e Lang.to_string "device" in
-         ((new input ~kind device):>Source.source)
-    )
+         ((new input ~kind device):>Source.source))

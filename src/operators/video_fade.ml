@@ -27,7 +27,8 @@ module Img = Image.RGBA32
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.
   * If the initial flag is set, only the first/current track is faded in. *)
-class fade_in ~kind ?(meta="liq_video_fade_in") ?(initial=false) duration fader fadefun source =
+class fade_in ~kind ?(meta="liq_video_fade_in") ?(initial=false) duration
+              fader fadefun source =
 object (self)
 
   inherit operator kind [source] as super
@@ -119,7 +120,7 @@ object (self)
           | None ->
               (* Set the length at the beginning of a track *)
               let duration =
-                match VFrame.get_metadata ab off_ticks with
+                match Frame.get_metadata ab off_ticks with
                   | None -> duration
                   | Some m ->
                       match Utils.hashtbl_get m meta with
@@ -156,7 +157,9 @@ end
 
 (** Lang interface *)
 
-let kind = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
+let kind =
+  Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
+
 (* TODO: share more with fade.ml *)
 let proto =
   [
@@ -165,7 +168,8 @@ let proto =
            This value can be set on a per-file basis using the metadata field \
            passed as override." ;
     "transition", Lang.string_t, Some (Lang.string "fade"),
-    Some "Kind of transition (fade|slide_left|slide_right|slide_up|slide_down|grow|disc|random).";
+    Some "Kind of transition \
+          (fade|slide_left|slide_right|slide_up|slide_down|grow|disc|random).";
     "type", Lang.string_t, Some (Lang.string "lin"),
     Some "Fader shape (lin|sin|log|exp): \
           linear, sinusoidal, logarithmic or exponential." ;
@@ -176,21 +180,37 @@ let rec transition_of_string p transition =
   let ifm n a = int_of_float ((float_of_int n) *. a) in
     match transition with
       | "fade" -> Img.Effect.Alpha.scale
-      | "slide_left" -> fun buf t -> Img.Effect.translate buf (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
-      | "slide_right" -> fun buf t -> Img.Effect.translate buf (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
-      | "slide_up" -> fun buf t -> Img.Effect.translate buf 0 (ifm (Lazy.force Frame.video_height) (1.-.t))
-      | "slide_down" -> fun buf t -> Img.Effect.translate buf 0 (ifm (Lazy.force Frame.video_height) (t-.1.))
+      | "slide_left" ->
+          fun buf t ->
+            Img.Effect.translate buf
+              (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
+      | "slide_right" ->
+          fun buf t ->
+            Img.Effect.translate buf
+              (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
+      | "slide_up" ->
+          fun buf t ->
+            Img.Effect.translate buf
+              0 (ifm (Lazy.force Frame.video_height) (1.-.t))
+      | "slide_down" ->
+          fun buf t ->
+            Img.Effect.translate buf
+              0 (ifm (Lazy.force Frame.video_height) (t-.1.))
       | "grow" -> fun buf t -> Img.Effect.affine buf t t 0 0
       | "disc" ->
-          let w, h = Lazy.force Frame.video_width, Lazy.force Frame.video_height in
+          let w = Lazy.force Frame.video_width in
+          let h = Lazy.force Frame.video_height in
           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
             fun buf t -> Img.Effect.Alpha.disk buf (w/2) (h/2) (ifm r_max t)
       | "random" ->
           let trans =
-            [|"fade"; "slide_left"; "slide_right"; "slide_up"; "slide_down"; "grow"; "disc"|]
+            [|"slide_left"; "slide_right"; "slide_up"; "slide_down";
+              "fade"; "grow"; "disc"|]
           in
             transition_of_string p trans.(Random.int (Array.length trans))
-      | _ -> raise (Lang.Invalid_value (List.assoc "transition" p, "Invalid transition kind"))
+      | _ ->
+          raise (Lang.Invalid_value
+                   (List.assoc "transition" p, "Invalid transition kind"))
 
 let extract p =
   Lang.to_float (List.assoc "duration" p),

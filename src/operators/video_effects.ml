@@ -36,16 +36,17 @@ object (self)
   method abort_track = source#abort_track
 
   method private get_frame buf =
-    let offset = VFrame.position buf in
-    source#get buf ;
-    let position = VFrame.position buf in
-    let rgb = (VFrame.content buf offset).(0) in
-      for i = offset to position - 1 do
-        effect rgb.(i)
-      done
+    match VFrame.get_content buf source with
+      | None -> ()
+      | Some (rgb,offset,length) ->
+          let rgb = rgb.(0) in
+            for i = offset to offset + length - 1 do
+              effect rgb.(i)
+            done
 end
 
-let kind = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
+let kind =
+  Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~video:1 ())
 
 let () =
   Lang.add_operator "video.greyscale"
@@ -188,7 +189,8 @@ let () =
          Lang.to_int (f "offset_x"),
          Lang.to_int (f "offset_y")
        in
-         new effect ~kind (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
+         new effect ~kind
+           (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
 
 let () =
   let effect a da buf =

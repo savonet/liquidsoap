@@ -38,7 +38,11 @@ object (self)
     sleep <- false
 
   method output_send buf =
-    let rgb = (VFrame.content buf 0).(0) in
+    let rgb =
+      let stop,c = Frame.content buf 0 in
+        assert (stop = Lazy.force Frame.size) ;
+        c.Frame.video.(0)
+    in
       for frame = 0 to 0 do
         let img = Image.RGBA32.to_int_image rgb.(frame) in
         let img = Graphics.make_image img in

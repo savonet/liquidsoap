@@ -82,7 +82,11 @@ object (self)
     self#process_events;
     let surface = Sdlvideo.get_video_surface () in
     (* We only display the first image of each frame *)
-    let rgb = (VFrame.content buf 0).(0).(0) in
+    let rgb =
+      let stop,c = Frame.content buf 0 in
+        assert (stop = Lazy.force Frame.size) ;
+        c.Frame.video.(0).(0)
+    in
     begin match Sdlvideo.surface_bpp surface with
       | 16 -> Sdl_utils.to_16 rgb surface
       | 32 -> Sdl_utils.to_32 rgb surface

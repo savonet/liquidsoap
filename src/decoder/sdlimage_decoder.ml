@@ -59,8 +59,8 @@ let create_decoder metadata img =
   in
   let close () = () in
   let fill frame =
-    let start = VFrame.position frame in
-    let video = (VFrame.content_of_type ~channels:1 frame start).(0) in
+    let video = (VFrame.content_of_type ~channels:1 frame).(0) in
+    let start = VFrame.next_sample_position frame in
     let stop =
       if !duration = -1 then VFrame.size frame else
         min (VFrame.size frame) (start + !duration)
