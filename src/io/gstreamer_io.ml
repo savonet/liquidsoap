@@ -131,7 +131,7 @@ let () =
            video = Lang.Fixed 1 ;
            midi = Lang.Fixed 0 })
   in
-  Lang.add_operator "input.gstreamer.v4l"
+  Lang.add_operator "input.v4l"
     [
       "device", Lang.string_t, Some (Lang.string "/dev/video0"),
       Some "V4L device to use.";
@@ -153,7 +153,7 @@ let () =
                   video = Lang.Fixed 1 ;
                   midi = Lang.Fixed 0 })
   in
-  Lang.add_operator "input.gstreamer.v4l2"
+  Lang.add_operator "input.v4l2"
     [
       "device", Lang.string_t, Some (Lang.string "/dev/video0"),
       Some "V4L device to use.";
