@@ -138,7 +138,7 @@ let () =
     ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
-    ~flags:[Lang.Experimental;Lang.Hidden]
+    ~flags:[]
     ~descr:"Stream from a video4linux input device, such as a webcam. The most recent version of this library is provided by input.gstreamer.v4l2, only use this one if the other does not work."
     (fun p kind ->
       let e f v = f (List.assoc v p) in
@@ -160,7 +160,7 @@ let () =
     ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
-    ~flags:[Lang.Experimental;Lang.Hidden]
+    ~flags:[]
     ~descr:"Stream from a video4linux 2 input device, such as a webcam."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
