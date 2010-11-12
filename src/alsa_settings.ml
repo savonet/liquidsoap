@@ -25,6 +25,24 @@
 (** ALSA should be quiet *)
 let () = Alsa.no_stderr_report ()
 
+(** Error translator *)
+let error_translator e =
+   match e with
+     | Alsa.Buffer_xrun
+     | Alsa.Bad_state
+     | Alsa.Suspended
+     | Alsa.IO_error
+     | Alsa.Device_busy
+     | Alsa.Invalid_argument
+     | Alsa.Device_removed
+     | Alsa.Interrupted
+     | Alsa.Unknown_error _ ->
+       raise (Utils.Translation
+         (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e)))
+     | _ -> ()
+
+let () = Utils.register_error_translator error_translator
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "alsa")
     "ALSA configuration"
