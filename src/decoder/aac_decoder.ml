@@ -24,54 +24,51 @@
 
 open Dtools
 
+let error_translator =
+  function
+    | Faad.Error x ->
+       raise (Utils.Translation 
+          (Printf.sprintf "Faad error: %s" (Faad.error_message x)))
+    | _ -> ()
+
+let () = Utils.register_error_translator error_translator
+
 (* A custom input function take takes 
  * an offset into account *)
 let offset_input input buf offset = 
+  let ret = Buffer.create 1024 in
   let len = String.length buf in
-  (* If the buff is less than the offset,
-   * consume the remaining data. *)
-  let ret = 
-    if len < offset then
-      let rec cons len = 
-        if len < offset then
-          let (_,read) = input (offset - len) in
-           cons (len+read)
-      in
-      cons len ;
-      ref ""
+  if offset < len then
+    Buffer.add_substring ret buf offset (len - offset);
+  (* Stupid code due to a lame Buffer API.. *)
+  let drop len = 
+    let size = Buffer.length ret in
+    assert(len <= size) ;
+    if len < size then
+      begin
+       let tmp = String.create (size-len) in
+       Buffer.blit ret len tmp 0 (size-len) ;
+       Buffer.reset ret ;
+       Buffer.add_string ret tmp
+      end
     else
-    (* If the buffer is more than the offset,
-     * retain it and consume it first later. *)
-      ref (String.sub buf offset (len-offset))
+      Buffer.reset ret
   in
-  let input len =
-    let first,fst_len = 
-      let ret_len = String.length !ret in
-      if ret_len > 0 then
+  let input len = 
+    let size = Buffer.length ret in
+    let len = 
+      if size < len then
        begin
-        let fst_len = min len ret_len in
-        let hd,tl = 
-          String.sub !ret 0 fst_len,
-          String.sub !ret fst_len (ret_len-fst_len)
-        in
-        ret := tl ;
-        hd, fst_len
+        let data,read = input (len-size) in
+        Buffer.add_substring ret data 0 read ;
+        size+read
        end
-      else
-        "",0
-    in
-    if fst_len > 0 then
-      let ret,len = 
-        if len > fst_len then
-          input (len-fst_len) 
-        else
-          "",0
-      in
-      Printf.sprintf "%s%s" first ret,(fst_len + len)
-    else
-      input len
+      else 
+       len
+   in
+   Buffer.sub ret 0 len,len
   in
-  input,ret
+  input,drop
 
 let log = Log.make ["decoder";"aac"]
 
@@ -86,20 +83,16 @@ let create_decoder input =
   let offset, sample_freq, chans =
      Faad.init dec aacbuf 0 len 
   in
-  let input,ret = offset_input input aacbuf offset in
+  let input,drop = offset_input input aacbuf offset in
     Decoder.Decoder (fun gen ->
-      let aacbuf,len = input aacbuflen in
-      let pos, data = Faad.decode dec aacbuf 0 len in
-      (* We need to keep the data 
-       * that has not been decoded yet.. *)
-      if pos < len then 
-        ret := Printf.sprintf "%s%s" 
-          !ret (String.sub aacbuf pos (len-pos)) ;
-      let content,length =
-        resampler ~audio_src_rate:(float sample_freq) data
-      in
-        Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 (Array.length content.(0)))
+        let aacbuf,len = input aacbuflen in
+        let pos, data = Faad.decode dec aacbuf 0 len in
+        drop pos ;
+        let content,length =
+          resampler ~audio_src_rate:(float sample_freq) data
+        in
+          Generator.set_mode gen `Audio ;
+          Generator.put_audio gen content 0 (Array.length content.(0)))
 
 end
 
@@ -113,8 +106,8 @@ let create_file_decoder filename kind =
 
 (* Get the number of channels of audio in an AAC file. *)
 let get_type filename =
-  let dec = Faad.create () in
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
+  let dec = Faad.create () in
   let aacbuflen = 1024 in
   let aacbuf = String.create aacbuflen in
     Tutils.finalize ~k:(fun () -> Unix.close fd)
