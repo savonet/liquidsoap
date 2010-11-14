@@ -28,13 +28,13 @@ let decoder os =
   let ogg_dec = ref None in
   let packet = ref None in
   let decoder = ref None in
-  let is_first = ref true in 
+  let meta = ref None in 
   let dummy_c  = 
     Ogg_flac.Decoder.get_callbacks (fun _ -> ()) 
   in
   let fill feed = 
     (* Decoder is created upon first decoding..*)
-    let decoder,sample_freq,meta = 
+    let decoder,sample_freq = 
       match !decoder with
         | None -> 
            let packet =
@@ -52,23 +52,21 @@ let decoder os =
                    dec
                | Some dec -> dec
            in
-           let dec,info,meta = 
+           let dec,info,m = 
              Flac.Decoder.init ogg_dec dummy_c 
            in
+           meta := m;
            let samplerate = info.Flac.Decoder.sample_rate in
-           decoder := Some (dec,samplerate,meta);
-           dec,samplerate,meta
+           decoder := Some (dec,samplerate);
+           dec,samplerate
         | Some d -> d
-    in
-    let m = 
-      if !is_first then
-        ( is_first := false ; meta )
-      else
-       None
     in
     let c = 
       Ogg_flac.Decoder.get_callbacks 
-       (fun ret -> feed ((ret,sample_freq),m)) 
+       (fun ret ->     
+          let m = !meta in
+          meta := None ; 
+          feed ((ret,sample_freq),m)) 
     in
     Flac.Decoder.process decoder c
   in
