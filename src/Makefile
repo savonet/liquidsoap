@@ -46,6 +46,7 @@ decoders = \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
 	$(if $(W_MAD),decoder/mp3.ml) \
 	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
+	$(if $(W_FLAC),decoder/flacduration.ml) \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
 	$(if $(W_SDL),decoder/sdlimage_decoder.ml) \
 	decoder/metadata_decoder.ml
