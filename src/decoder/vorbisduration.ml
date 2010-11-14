@@ -23,19 +23,9 @@
 (** Read duration of ogg/vorbis files. *)
 
 let duration file =
-  let close fd = 
-    try 
-      Unix.close fd
-    with
-      | _ -> ()
-  in
   let dec,fd = Vorbis.File.Decoder.openfile_with_fd file in
-  try
-    let ret = Vorbis.File.Decoder.duration dec (-1) in
-    close fd;
-    ret
-  with
-    | e -> close fd; raise e 
+  Tutils.finalize ~k:(fun () -> Unix.close fd)
+    (fun _ -> Vorbis.File.Decoder.duration dec (-1))
 
 let () = Request.dresolvers#register "VORBIS" duration
 
