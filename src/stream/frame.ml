@@ -153,18 +153,10 @@ let log = Dtools.Log.make ["frame"]
   * sample takes 1764 ticks: we need frames of size N*1764. *)
 let size =
   delayed (fun () ->
-             let audio_chans = !!audio_channels in
-             let video_chans = !!video_channels in
              let audio = !!audio_rate in
              let video = !!video_rate in
              let master = !!master_rate in
-             let granularity = 
-               match audio_chans,video_chans with
-                 | x,0 when x > 0 -> master/audio
-                 | 0,x when x > 0 -> master/video
-                 | _,_ ->
-                    lcm (master/audio) (master/video) 
-             in
+             let granularity = lcm (master/audio) (master/video) in
              let target =
                log#f 3
                  "Using %dHz audio, %dHz video, %dHz master."
