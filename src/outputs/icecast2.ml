@@ -419,7 +419,10 @@ object (self)
               (* Do nothing if shout connection isn't available *)
      end 
     else
-      (Utils.get_some encoder).Encoder.insert_metadata m 
+      (* Encoder is not always present.. *)
+      match encoder with
+        | Some encoder -> encoder.Encoder.insert_metadata m 
+        | None -> ()
 
   method send b =
     match Cry.get_status connection with
