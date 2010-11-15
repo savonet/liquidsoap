@@ -27,7 +27,7 @@ type track =
     encode     : Ogg_muxer.t -> nativeint -> 
                  Frame.content -> int -> int -> unit ;
     reset      : Ogg_muxer.t -> 
-                 Frame.metadata -> nativeint ;
+                 Encoder.Meta.export_metadata -> nativeint ;
     mutable id : nativeint option
   }
 

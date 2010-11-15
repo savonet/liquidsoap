@@ -105,6 +105,7 @@ let create_vorbis =
       let channels = vorbis.Encoder.Vorbis.channels in
       let samplerate = vorbis.Encoder.Vorbis.samplerate in
       let reset ogg_enc m =
+        let m =  (Encoder.Meta.to_metadata m) in
         let get h k =
           try
             Some (Hashtbl.find h k)

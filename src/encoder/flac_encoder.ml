@@ -23,8 +23,9 @@
 (** FLAC encoder *)
 
 let encoder flac meta =
-  let f x y l = (x,y)::l in
-  let comments = Hashtbl.fold f meta [] in
+  let comments = 
+    Utils.list_of_metadata (Encoder.Meta.to_metadata meta) 
+  in
   let channels = flac.Encoder.Flac.channels in
   let samplerate_converter =
     Audio_converter.Samplerate.create channels

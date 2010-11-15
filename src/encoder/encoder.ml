@@ -20,6 +20,46 @@
 
  *****************************************************************************)
 
+let conf = 
+  Dtools.Conf.void ~p:(Configure.conf#plug "encoder") "Encoder settings"
+    ~comments:["Settings for the encoder"]
+
+
+let conf_meta =
+  Dtools.Conf.void ~p:(conf#plug "encoder") "Metadata settings"
+    ~comments:["Settings for the encoded metadata."]
+
+(** The list of metadata that labels
+  * are exported when encoding data. *)
+let conf_export_metadata =
+  Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
+    ~d:["artist";"title";"album";"genre";"date";"tracknumber";
+        "comment"]
+    ~comments:["The list of labels of exported metadata."]
+
+(* This is because I am too lazy to 
+ * write encoder.mli.. *)
+module Meta : 
+  sig
+    (* I would like to use a private 
+     * type here but its only for ocaml >= 3.11.. *)
+    type export_metadata
+    val export_metadata : Frame.metadata -> export_metadata
+    val to_metadata : export_metadata -> Frame.metadata
+    val empty_metadata : export_metadata
+  end = 
+  struct
+    type export_metadata = Frame.metadata
+    let export_metadata m =
+      let ret = Hashtbl.create 10 in
+      let l = conf_export_metadata#get in
+      Hashtbl.iter (fun x y -> if List.mem (String.lowercase x) l then
+                               Hashtbl.add ret x y) m;
+    ret
+    let to_metadata m = m
+    let empty_metadata = Hashtbl.create 0
+  end
+
 let string_of_stereo s =
   if s then "stereo" else "mono"
 
@@ -374,12 +414,12 @@ let string_of_format = function
   * its stream. This is ok, though, because the ogg container/streams 
   * is meant to be sequentialized but not the mp3 format. *)
 type encoder = {
-  insert_metadata : Frame.metadata -> unit ;
+  insert_metadata : Meta.export_metadata -> unit ;
   encode : Frame.t -> int -> int -> string ;
   stop : unit -> string
 }
 
-type factory = string -> (string,string) Hashtbl.t -> encoder
+type factory = string -> Meta.export_metadata -> encoder
 
 (** A plugin might or might not accept a given format.
   * If it accepts it, it gives a function creating suitable encoders. *)

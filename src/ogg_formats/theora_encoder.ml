@@ -162,9 +162,10 @@ let create_encoder ~theora ~metadata () =
 let create_theora = 
   function 
     | Encoder.Ogg.Theora theora -> 
-       let reset ogg_enc metadata =
-         let f l v cur = (l,v) :: cur in
-         let metadata = Hashtbl.fold f metadata [] in 
+       let reset ogg_enc m =
+         let metadata = 
+           Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+         in 
          let enc =
            create_encoder ~theora ~metadata ()
          in

@@ -166,37 +166,28 @@ let create_speex =
   function 
    | Encoder.Ogg.Speex speex -> 
       let reset ogg_enc m =
-        let rec get l l' =
-          match l with
-            | k :: r ->
-              begin
-                try
-                  get r ((k,Hashtbl.find m k) :: l')
-                with _ -> get r l'
-              end
-            | [] -> l'
+        let m = 
+          Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
         in
         let title =
           try
-            Hashtbl.find m "title"
+            List.assoc "title" m
           with
-            | _ ->
+            | Not_found ->
              begin
               try
-                let s = Hashtbl.find m "uri" in
+                let s = List.assoc "uri" m in
                 let title = Filename.basename s in
                   (try
                     String.sub title 0 (String.rindex title '.')
                    with
                      | Not_found -> title)
               with
-                | _ -> "Unknown"
+                | Not_found -> "Unknown"
              end
         in
-        let l' = ["title",title] in
-        let metadata = get ["artist";"genre";"date";
-                        "album";"tracknumber";"comment"]
-                       l'
+        let metadata = 
+          ["title",title] @ (List.remove_assoc "title" m) 
         in
         let enc =
           create speex ~metadata ()

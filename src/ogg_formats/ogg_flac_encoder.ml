@@ -104,9 +104,10 @@ let create_encoder ~flac ~comments () =
 let create_flac = 
   function 
     | Encoder.Ogg.Flac flac -> 
-       let reset ogg_enc metadata =
-         let f l v cur = (l,v) :: cur in
-         let comments = Hashtbl.fold f metadata [] in 
+       let reset ogg_enc m =
+         let comments = 
+           Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+         in 
          let enc =
            create_encoder ~flac ~comments ()
          in

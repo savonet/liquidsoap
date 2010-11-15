@@ -37,6 +37,10 @@ let hashtbl_of_list l =
     List.iter (fun (k,v) -> Hashtbl.add h k v) l ;
     h
 
+let list_of_metadata m =
+  let f x y l = (x,y)::l in
+  Hashtbl.fold f m []
+
 let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None

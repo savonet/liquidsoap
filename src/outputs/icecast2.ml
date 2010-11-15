@@ -379,6 +379,7 @@ object (self)
           (k,(Hashtbl.find h k))::l
         with _ -> (k,d)::l
       in
+      let m = Encoder.Meta.to_metadata m in
       let def_title =
         match get m "uri" [] with
           | (_,s)::_ -> let title = Filename.basename s in
@@ -459,7 +460,8 @@ object (self)
   method icecast_start =
     assert (encoder = None) ;
     let enc = encoder_factory self#id in
-    encoder <- Some (enc (Hashtbl.create 0)) ;
+    encoder <- 
+       Some (enc (Encoder.Meta.empty_metadata)) ; 
     assert (Cry.get_status connection = Cry.Disconnected) ;
     begin match dumpfile with
       | Some f -> dump <- Some (open_out_bin f)

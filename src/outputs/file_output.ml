@@ -47,7 +47,7 @@ object (self)
     let filename = Utils.home_unrelate filename in
     let current_metadata = 
       match current_metadata with
-        | Some m -> Hashtbl.find m
+        | Some m -> Hashtbl.find (Encoder.Meta.to_metadata m)
         | None -> fun _ -> raise Not_found
     in
     (* Avoid / in metas for filename.. *)
@@ -71,7 +71,7 @@ object (self)
     let meta = 
       match current_metadata with
         | Some m -> m
-        | None -> Hashtbl.create 0
+        | None -> Encoder.Meta.empty_metadata
     in
     encoder <- Some (enc meta) ;
 
