@@ -116,7 +116,7 @@ object (self)
       need_reset <- true 
      end 
     else
-      (Utils.get_some encoder).Encoder.insert_metadata m
+      (Utils.get_some encoder).Encoder.insert_metadata m 
 
 end
 
