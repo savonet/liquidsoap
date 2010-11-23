@@ -368,8 +368,6 @@ let start_telnet () =
           handler  = incoming }
 
 let start () =
-  if Sys.os_type <> "Win32" then
-    Sys.set_signal Sys.sigpipe Sys.Signal_ignore ;
   let telnet = conf_telnet#get in
   let socket = conf_socket#get in
   if telnet || socket then begin
