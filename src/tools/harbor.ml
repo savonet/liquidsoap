@@ -69,13 +69,20 @@ end
 
 type sources = (string,source) Hashtbl.t
 
-type open_port = sources*(Unix.file_descr list)
+type http_handler = string -> (string*string) list -> string
+
+type http_handlers = (string,http_handler) Hashtbl.t
+
+type open_port = sources*http_handlers*(Unix.file_descr list)
 
 let opened_ports : (int,open_port) Hashtbl.t = Hashtbl.create 1
 
-let find_source mountpoint port =
-  let (sources,_) = Hashtbl.find opened_ports port in
-  Hashtbl.find sources mountpoint
+let find_handlers port = 
+  let (s,h,_) = Hashtbl.find opened_ports port in
+  s,h
+
+let find_source mount port = 
+  Hashtbl.find (fst (find_handlers port)) mount
 
 (** {1 Handling of a client} *)
 
@@ -397,13 +404,24 @@ let handle_get_request ~port c uri headers =
   in 
   Hashtbl.iter (fun h v -> log#f 4 "GET Arg: %s, value: %s." h v) log_args ;
   try
-     match base_uri with
-       | "/" -> write_answer c default
-       (* Icecast *)
-       | "/admin/metadata" -> admin ~icy:false args
-       (* Shoutcast *)
-       | "/admin.cgi" -> admin ~icy:true args
-       | _ -> raise (Answer(ans_404))
+    (* First, try with a registered handler. *)
+      let (_,h,_) = Hashtbl.find opened_ports port in
+      let f reg_uri handler =
+        let rex = Pcre.regexp reg_uri in 
+        if Pcre.pmatch ~rex uri then
+         raise (Answer(fun () ->
+                 (log#f 3 "Found handler '%s' on port %d." reg_uri port ;
+                  write_answer c (handler uri headers))))
+      in
+      Hashtbl.iter f h ;
+    (* Otherwise, try with a standard handler. *)
+      match base_uri with
+        | "/" -> write_answer c default
+        (* Icecast *)
+        | "/admin/metadata" -> admin ~icy:false args
+        (* Shoutcast *)
+        | "/admin.cgi" -> admin ~icy:true args
+        | _ -> raise (Answer(ans_404))
   with
     | Answer(s) ->  s ()
     | e -> ans_500 () ; failwith (Utils.error_message e)
@@ -501,6 +519,7 @@ let handle_client ~port ~icy socket =
 
 (* Open a port and listen to it. *)
 let open_port ~icy port = 
+  log#f 4 "Opening port %d with icy = %b" port icy ;
   let rec incoming ~port ~icy sock out_s e =
       if List.mem (`Read out_s) e then 
        begin
@@ -561,38 +580,45 @@ let open_port ~icy port =
     { Duppy.Task.
         priority = priority ;
         events   = [`Read sock; `Read in_s] ;
-        handler  = incoming ~port ~icy:false sock in_s} ;
-  (* Now do the same for ICY if enabled *)
-  if icy then
-   begin
-    (* Open port+1 *)
-    let port = port+1 in
-    let sock = open_socket port in
-    let (in_s2,out_s2) = Unix.pipe () in
-    Duppy.Task.add Tutils.scheduler
-      { Duppy.Task.
-          priority = priority ;
-          events   = [`Read sock; `Read in_s2] ;
-          handler  = incoming ~port ~icy:true sock in_s2} ;
-    [out_s; out_s2]
-   end
-  else
-    [out_s]
+        handler  = incoming ~port ~icy sock in_s} ;
+  out_s
+
+(* This, contrary to the find_xx functions
+ * creates the handlers when they are missing. *)
+let get_handlers ~icy port =
+  try
+    let (s,h,socks) = Hashtbl.find opened_ports port in
+    (* If we have only one socket and icy=true,
+     * we need to open a second one. *)
+    if List.length socks = 1 && icy then
+     begin
+      let socks = (open_port ~icy (port+1)) :: socks in
+      Hashtbl.replace opened_ports port (s,h,socks)
+     end ;
+    s,h
+  with
+    | Not_found ->
+         (* First the port without icy *)
+         let socks = [open_port ~icy:false port] in
+         (* Now the port with icy, is requested.*)
+         let socks = 
+           if icy then
+             (open_port ~icy (port+1)) :: socks
+           else
+             socks
+         in
+         let s = Hashtbl.create 1 in
+         let h = Hashtbl.create 1 in
+         Hashtbl.add opened_ports port (s,h,socks) ;
+         s,h
 
 (* Add sources... *)
 let add_source ~port ~mountpoint ~icy source =
   let sources = 
-   try
-     let (sources,_) = Hashtbl.find opened_ports port in
-     if Hashtbl.mem sources mountpoint then
-       raise Registered ;
-      sources
-   with
-     | Not_found -> 
-         let socks = open_port ~icy port in
-         let s = Hashtbl.create 1 in
-         Hashtbl.add opened_ports port (s,socks) ;
-         s 
+   let (sources,_) = get_handlers ~icy port in
+   if Hashtbl.mem sources mountpoint then
+     raise Registered ;
+    sources
   in
   log#f 3 "Adding mountpoint '%s' on port %i"
      mountpoint port ;
@@ -600,14 +626,14 @@ let add_source ~port ~mountpoint ~icy source =
 
 (* Remove source. *)
 let remove_source ~port ~mountpoint () =
-  let (sources,socks) = Hashtbl.find opened_ports port in
+  let (sources,handlers,socks) = Hashtbl.find opened_ports port in
   assert (Hashtbl.mem sources mountpoint) ;
   log#f 3 "Removing mountpoint '%s' on port %i"
      mountpoint port ;
   Hashtbl.remove sources mountpoint ;
-  if Hashtbl.length sources = 0 then
+  if Hashtbl.length sources = 0 && Hashtbl.length handlers = 0 then
    begin
-    log#f 3 "No more source on port %i: closing sockets." port ;
+    log#f 3 "Nothing more on port %i: closing sockets." port ;
     let f in_s = 
       ignore(Unix.write in_s " " 0 1) ;
       Unix.close in_s 
@@ -616,4 +642,34 @@ let remove_source ~port ~mountpoint () =
     Hashtbl.remove opened_ports port
    end
     
+(* Add http_handler... *)
+let add_http_handler ~port ~uri handler =
+  let handlers =
+   let (_,handlers) = get_handlers ~icy:false port in
+   if Hashtbl.mem handlers uri then
+     raise Registered ;
+    handlers
+  in
+  log#f 3 "Adding HTTP handler for '%s' on port %i"
+     uri port ;
+  Hashtbl.add handlers uri handler
+
+(* Remove http_handler. *)
+let remove_http_handler ~port ~uri () =
+  let (sources,handlers,socks) = Hashtbl.find opened_ports port in
+  assert (Hashtbl.mem handlers uri) ;
+  log#f 3 "Removing HTTP handler for '%s' on port %i"
+     uri port ;
+  Hashtbl.remove handlers uri ;
+  if Hashtbl.length sources = 0 && Hashtbl.length handlers = 0 then
+   begin
+    log#f 4 "Nothing more on port %i: closing sockets." port ;
+    let f in_s =
+      ignore(Unix.write in_s " " 0 1) ;
+      Unix.close in_s
+    in
+    List.iter f socks ;
+    Hashtbl.remove opened_ports port
+   end
+
 

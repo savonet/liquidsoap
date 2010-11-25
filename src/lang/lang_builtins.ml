@@ -1137,6 +1137,57 @@ let () =
            Server.add ~ns ~usage ~descr command f ;
          Lang.unit)
 
+let () =
+  add_builtin "harbor.http.register" ~cat:Sys
+    ~descr:"Register a HTTP handler on the harbor. \
+           The given function receives as argument \
+           the full requested uri (e.g. \"foo?var=bar\") \
+           and the list of HTTP headers and returns the \
+           answer sent to the client, including HTTP headers. \
+           Registered uri can be regular expressions \
+           (e.g. \".+\\.php\") and can override default \
+           metadata handlers."
+    [ "port",Lang.int_t,None,Some "Port to server.";
+      "",Lang.string_t,None,Some "URI to serve." ;
+      "",Lang.fun_t [(false,"",Lang.string_t);
+                     (false,"",Lang.list_t
+                                 (Lang.product_t Lang.string_t 
+                                                 Lang.string_t))] 
+      Lang.string_t,
+      None,Some "Function to execute." ]
+    Lang.unit_t
+    (fun p ->
+       let port = Lang.to_int (List.assoc "port" p) in
+       let uri = Lang.to_string (Lang.assoc "" 1 p) in
+       let f = Lang.assoc "" 2 p in
+       let f s l =
+         let l =
+            List.map 
+              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
+              l
+         in
+         let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
+                           l
+         in
+         Lang.to_string
+           (Lang.apply ~t:Lang.string_t 
+                       f [("",Lang.string s);("",l)])
+       in
+       Harbor.add_http_handler ~port ~uri f;
+       Lang.unit)
+
+let () =
+  add_builtin "harbor.http.remove" ~cat:Sys
+    ~descr:"Remove a registered HTTP handler on the harbor."
+    [ "port",Lang.int_t,None,Some "Port to server.";
+      "",Lang.string_t,None,Some "URI to serve." ]
+    Lang.unit_t
+    (fun p ->
+       let port = Lang.to_int (List.assoc "port" p) in
+       let uri = Lang.to_string (Lang.assoc "" 1 p) in
+       Harbor.remove_http_handler ~port ~uri () ;
+       Lang.unit)
+
 (** Data conversions. *)
 
 let () =
