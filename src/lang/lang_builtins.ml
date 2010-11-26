@@ -1141,7 +1141,7 @@ let () =
   add_builtin "harbor.http.register" ~cat:Sys
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
-           the full requested uri (e.g. \"foo?var=bar\") \
+           the full requested uri (e.g. \"foo?var=bar\") \
            and the list of HTTP headers and returns the \
            answer sent to the client, including HTTP headers. \
            Registered uri can be regular expressions \
