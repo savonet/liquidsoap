@@ -190,9 +190,11 @@ rule token = parse
             String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;
             let s = process_string s in
             STRING (Pcre.substitute ~pat:"\\\\n" ~subst:(fun _ -> "\n")
-                      (Pcre.substitute ~pat:"\\\\'" ~subst:(fun _ -> "'") s)) }
+                     (Pcre.substitute ~pat:"\\\\r" ~subst:(fun _ -> "\r")
+                      (Pcre.substitute ~pat:"\\\\'" ~subst:(fun _ -> "'") s))) }
   | '"' (([^'"'] | '\\' '"')* as s) '"'   {
             String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;
             let s = process_string s in
             STRING (Pcre.substitute ~pat:"\\\\n" ~subst:(fun _ -> "\n")
-                      (Pcre.substitute ~pat:"\\\\\"" ~subst:(fun _ -> "\"") s)) }
+                      (Pcre.substitute ~pat:"\\\\r" ~subst:(fun _ -> "\r")
+                      (Pcre.substitute ~pat:"\\\\\"" ~subst:(fun _ -> "\"") s))) }
