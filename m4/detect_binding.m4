@@ -28,8 +28,8 @@ m4_defun([AC_MSG_RESULT_NOT],
 
 AC_DEFUN([AC_CHECK_OCAML_BINDING],[dnl
 
-m4_define([BINDING],[m4_translit([$1],['a-z.'],['A-Z_'])])
-m4_define([binding],[m4_translit([$1],['A-Z.'],['a-z_'])])
+m4_define([BINDING],[m4_translit([$1],['a-z.-'],['A-Z__'])])
+m4_define([binding],[m4_translit([$1],['A-Z.-'],['a-z__'])])
 
 AC_ARG_WITH([binding()-dir],
    AC_HELP_STRING(

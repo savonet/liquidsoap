@@ -527,6 +527,12 @@ fi
 # Camomile
 #
 
+AC_CHECK_OCAML_BINDING([json-wheel])
+
+#
+# Camomile
+#
+
 AC_CHECK_OCAML_BINDING([camomile])
 
 if test -z "$W_CAMOMILE" ; then
@@ -883,6 +889,7 @@ cat <<EOMSG
 
  * Additional libraries
    - magic             : $w_MAGIC
+   - json              : $w_JSON_WHEEL
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
