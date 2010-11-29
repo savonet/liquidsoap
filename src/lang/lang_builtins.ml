@@ -256,6 +256,17 @@ let () =
          Lang.unit)
    end
 
+let () = 
+  add_builtin "metadata.export" ~cat:Liq 
+   ~descr:"Filter-out internal metadata."
+   ["",Lang.metadata_t,None,None] Lang.metadata_t
+   (fun p ->
+     Lang.metadata 
+      (Encoder.Meta.to_metadata
+        (Encoder.Meta.export_metadata
+          (Lang.to_metadata 
+            (List.assoc "" p)))))
+
 let () =
   let resolver_t =
     Lang.fun_t
@@ -624,6 +635,46 @@ let () =
        in
        let rex = Pcre.regexp pattern in
        Lang.string (Pcre.substitute ~rex ~subst string))
+
+let () =
+  add_builtin "base64.decode" ~cat:String
+    ~descr:"Decode a Base64 encoded string."
+    [ "", Lang.string_t, None, None ]
+    Lang.string_t
+    (fun p ->
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string (Utils.decode64 string))
+
+let () =
+  add_builtin "base64.encode" ~cat:String
+    ~descr:"Encode a string in Base64."
+    [ "", Lang.string_t, None, None ]
+    Lang.string_t
+    (fun p ->
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string (Utils.encode64 string))
+
+let () =
+  add_builtin "url.decode" ~cat:String
+    ~descr:"Decode an encoded url (e.g. %20 -> \" \")."
+    [ "plus", Lang.bool_t, Some (Lang.bool true),None;
+      "", Lang.string_t, None, None ]
+    Lang.string_t
+    (fun p ->
+       let plus = Lang.to_bool (List.assoc "plus" p) in
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string (Http.url_decode ~plus string))
+
+let () =
+  add_builtin "url.encode" ~cat:String
+    ~descr:"Encode an url (e.g. \" \" -> %20)."
+    [ "plus", Lang.bool_t, Some (Lang.bool true),None;
+      "", Lang.string_t, None, None ]
+    Lang.string_t
+    (fun p ->
+       let plus = Lang.to_bool (List.assoc "plus" p) in
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string (Http.url_encode ~plus string))
 
 let () =
   add_builtin "%" ~cat:String
@@ -1141,37 +1192,46 @@ let () =
   add_builtin "harbor.http.register" ~cat:Sys
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
-           the full requested uri (e.g. \"foo?var=bar\") \
-           and the list of HTTP headers and returns the \
-           answer sent to the client, including HTTP headers. \
+           the full requested uri (e.g. \"foo?var=bar\"), \
+           method type, possible input data and the list of HTTP headers \
+           and returns the answer sent to the client, including HTTP headers. \
            Registered uri can be regular expressions \
            (e.g. \".+\\.php\") and can override default \
            metadata handlers."
     [ "port",Lang.int_t,None,Some "Port to server.";
       "",Lang.string_t,None,Some "URI to serve." ;
-      "",Lang.fun_t [(false,"",Lang.string_t);
-                     (false,"",Lang.list_t
-                                 (Lang.product_t Lang.string_t 
-                                                 Lang.string_t))] 
+      "",Lang.fun_t [(false,"method",Lang.string_t);
+                     (false,"data",Lang.string_t);
+                     (false,"headers",Lang.list_t
+                                 (Lang.product_t Lang.string_t
+                                                 Lang.string_t));
+                     (false,"",Lang.string_t)]
       Lang.string_t,
-      None,Some "Function to execute." ]
+      None,Some "Function to execute. method argument \
+                 is \"PUT\" or \"GET\", data argument \
+                 contains data passed in case of a PUT request, \
+                 and \"\" otherwise. headers argument contains \
+                 the HTTP headers. Unlabeled argument contains \
+                 the requested URI." ]
     Lang.unit_t
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f s l =
+       let f ~http_method ~data ~headers uri =
          let l =
             List.map 
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
-              l
+              headers
          in
          let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
                            l
          in
          Lang.to_string
            (Lang.apply ~t:Lang.string_t 
-                       f [("",Lang.string s);("",l)])
+                       f [("",Lang.string uri);("headers",l);
+                          ("data",Lang.string data);
+                          ("method",Lang.string http_method)])
        in
        Harbor.add_http_handler ~port ~uri f;
        Lang.unit)

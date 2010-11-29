@@ -237,6 +237,27 @@ def test_process(command)
   end
 end
 
+# Split an url of the form foo?arg=bar&arg2=bar2
+# into ("foo",[("arg","bar"),("arg2","bar2")]
+# @category String
+# @param uri Url to split
+def url.split(uri) = 
+  ret = string.extract(pattern="([^\?]*)\?(.*)",uri)
+  args = ret["2"]
+  if args != "" then
+    l = string.split(separator="&",args)
+    def f(x) =
+      ret = string.split(separator="=",x)
+      (url.decode(list.nth(ret,0)),
+       url.decode(list.nth(ret,1)))
+    end
+    l = list.map(f,l)
+    (ret["1"],l)
+  else
+    (uri,[])
+  end
+end
+
 # Get the base name of a path.
 # Implemented using the corresponding shell command.
 # @category System

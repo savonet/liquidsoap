@@ -69,7 +69,8 @@ end
 
 type sources = (string,source) Hashtbl.t
 
-type http_handler = string -> (string*string) list -> string
+type http_handler = http_method:string -> data:string -> headers:((string*string) list) -> 
+                    string -> string
 
 type http_handlers = (string,http_handler) Hashtbl.t
 
@@ -99,6 +100,7 @@ exception Mount_taken
 type request_type =
   | Source
   | Get
+  | Post
   | Shout
   | Invalid of string (* Used for icy *)
   | Unhandled
@@ -138,6 +140,7 @@ let parse_http_request_line r =
       (match (String.uppercase (List.nth data 0)) with
         | "SOURCE" -> Source
         | "GET" -> Get
+        | "POST" -> Post
         | _ -> Unhandled),
       (List.nth data 1),
       (match (String.uppercase (List.nth data 2)) with
@@ -288,7 +291,7 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
              "The server could not handle your request.") ;
         failwith (Utils.error_message e)
 
-let handle_get_request ~port c uri headers =
+let handle_http_request ~hmethod ~data ~port c uri headers =
   let default =
     "HTTP/1.0 200 OK\r\n\
      Content-Type: text/html\r\n\r\n\
@@ -391,7 +394,13 @@ let handle_get_request ~port c uri headers =
   with
     | Not_found -> uri,""
   in
-  log#f 3 "GET request on %s." base_uri ;
+  let smethod,data = 
+    match hmethod with
+      | Get -> "GET",""
+      | Post -> "POST",Utils.get_some data
+      | _ -> assert false
+  in
+  log#f 3 "HTTP %s request on %s." smethod base_uri ;
   let args = Http.args_split args in
   (* Filter out password *)
   let log_args = 
@@ -401,8 +410,8 @@ let handle_get_request ~port c uri headers =
       let log_args = Hashtbl.copy args in
       Hashtbl.remove log_args "pass" ;
       log_args
-  in 
-  Hashtbl.iter (fun h v -> log#f 4 "GET Arg: %s, value: %s." h v) log_args ;
+  in
+  Hashtbl.iter (fun h v -> log#f 4 "HTTP Arg: %s, value: %s." h v) log_args ;
   try
     (* First, try with a registered handler. *)
       let (_,h,_) = Hashtbl.find opened_ports port in
@@ -411,7 +420,7 @@ let handle_get_request ~port c uri headers =
         if Pcre.pmatch ~rex uri then
          raise (Answer(fun () ->
                  (log#f 3 "Found handler '%s' on port %d." reg_uri port ;
-                  write_answer c (handler uri headers))))
+                  write_answer c (handler ~http_method:smethod ~data ~headers uri))))
       in
       Hashtbl.iter f h ;
     (* Otherwise, try with a standard handler. *)
@@ -427,6 +436,8 @@ let handle_get_request ~port c uri headers =
     | e -> ans_500 () ; failwith (Utils.error_message e)
 
 let priority = Tutils.Non_blocking
+
+exception Internal of int
 
 let handle_client ~port ~icy socket =
   let on_error _ =
@@ -448,6 +459,14 @@ let handle_client ~port ~icy socket =
                  | true -> parse_icy_request_line ~port
                  | false -> parse_http_request_line
   in
+  let failed s =
+    log#f 3 "Failed: %s" s;
+    try
+      Unix.shutdown socket Unix.SHUTDOWN_ALL ;
+      Unix.close socket
+    with
+      | _ -> ()
+  in
   let process l =
     try
       let grab l = 
@@ -455,7 +474,7 @@ let handle_client ~port ~icy socket =
          match List.rev l with
            | []
            | _ :: [] -> (* Should not happen *)
-               raise (Failure "Invalid input data")
+               raise (Failure "invalid input data")
            | e :: l -> List.rev l
         in
         match l with
@@ -463,7 +482,7 @@ let handle_client ~port ~icy socket =
           | _ -> failwith "could not parse source data."
       in
       let s = grab l in
-      let lines = Str.split (Str.regexp "\n") s in
+      let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
       let (hmethod, huri, hprotocol) = parse (List.nth lines 0) in
         match hmethod with
           | Source when not icy ->
@@ -471,7 +490,30 @@ let handle_client ~port ~icy socket =
               handle_source_request ~port ~icy hprotocol socket huri headers
           | Get when not icy ->
               let headers = parse_headers (List.tl lines) in
-              handle_get_request ~port socket huri headers
+              handle_http_request ~hmethod ~data:None ~port socket huri headers 
+          | Post when not icy ->
+              let headers = parse_headers (List.tl lines) in
+              let length = 
+               try
+                 List.iter (fun (x,y) -> 
+                                 if String.lowercase x = "content-length" then
+                                   raise (Internal (int_of_string y)))
+                              headers ;
+                 failwith "wrong PUT data"
+               with
+                 | Internal x -> x
+                 | e -> failwith (Utils.error_message e)
+              in
+              let process l =
+                try 
+                  let data = Some (List.hd l) in
+                  handle_http_request ~hmethod ~data ~port socket huri headers
+                with 
+                  | Failure s -> failed s
+              in
+              let marker = Duppy.Io.Length length in
+              Duppy.Io.read ~priority ~recursive ~on_error
+                Tutils.scheduler socket marker process
           | Shout when icy ->
               write_answer ~keep:true socket "OK2\r\nicy-caps:11\r\n\r\n" ;
               (* Now parsing headers *)
@@ -479,17 +521,11 @@ let handle_client ~port ~icy socket =
               let process l = 
                 try
                  let s = grab l in
-                 let lines = Str.split (Str.regexp "\n") s in
+                 let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
                  let headers = parse_headers lines in
                  handle_source_request ~port ~icy:true hprotocol socket huri headers
                 with
-                  | Failure s ->
-                      log#f 3 "Failed: %s" s;
-                      try
-                       Unix.shutdown socket Unix.SHUTDOWN_ALL ;
-                       Unix.close socket
-                      with
-                        | _ -> ()
+                  | Failure s -> failed s
               in
               Duppy.Io.read ~priority ~recursive ~on_error
                             Tutils.scheduler socket marker process
@@ -504,13 +540,7 @@ let handle_client ~port ~icy socket =
                  "The server did not understand your request.") ;
             failwith "cannot handle this, exiting"
     with
-      | Failure s -> 
-          log#f 3 "Failed: %s" s;
-          try
-            Unix.shutdown socket Unix.SHUTDOWN_ALL ;
-            Unix.close socket
-          with
-            | _ -> ()
+      | Failure s -> failed s 
     in
       Duppy.Io.read ~priority ~recursive ~on_error
         Tutils.scheduler socket marker process
