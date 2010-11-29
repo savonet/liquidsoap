@@ -1193,7 +1193,8 @@ let () =
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
            the full requested uri (e.g. \"foo?var=bar\"), \
-           method type, possible input data and the list of HTTP headers \
+           method type, http protocol version, possible input data \
+           and the list of HTTP headers \
            and returns the answer sent to the client, including HTTP headers. \
            Registered uri can be regular expressions \
            (e.g. \".+\\.php\") and can override default \
@@ -1201,6 +1202,7 @@ let () =
     [ "port",Lang.int_t,None,Some "Port to server.";
       "",Lang.string_t,None,Some "URI to serve." ;
       "",Lang.fun_t [(false,"method",Lang.string_t);
+                     (false,"protocol",Lang.string_t);
                      (false,"data",Lang.string_t);
                      (false,"headers",Lang.list_t
                                  (Lang.product_t Lang.string_t
@@ -1208,7 +1210,8 @@ let () =
                      (false,"",Lang.string_t)]
       Lang.string_t,
       None,Some "Function to execute. method argument \
-                 is \"PUT\" or \"GET\", data argument \
+                 is \"PUT\" or \"GET\", protocol argument is \
+                 \"HTTP/1.1\" or \"HTTP/1.0\" etc., data argument \
                  contains data passed in case of a PUT request, \
                  and \"\" otherwise. headers argument contains \
                  the HTTP headers. Unlabeled argument contains \
@@ -1218,7 +1221,7 @@ let () =
        let port = Lang.to_int (List.assoc "port" p) in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f ~http_method ~data ~headers uri =
+       let f ~http_method ~protocol ~data ~headers uri =
          let l =
             List.map 
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
@@ -1231,6 +1234,7 @@ let () =
            (Lang.apply ~t:Lang.string_t 
                        f [("",Lang.string uri);("headers",l);
                           ("data",Lang.string data);
+                          ("protocol",Lang.string protocol);
                           ("method",Lang.string http_method)])
        in
        Harbor.add_http_handler ~port ~uri f;

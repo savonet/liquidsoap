@@ -53,6 +53,8 @@ let log = Log.make ["harbor"]
 exception Internal
 exception Registered
 
+let priority = Tutils.Non_blocking
+
 (* Define what we need as a source *)
 class virtual source ~kind =
 object(self)
@@ -69,8 +71,8 @@ end
 
 type sources = (string,source) Hashtbl.t
 
-type http_handler = http_method:string -> data:string -> headers:((string*string) list) -> 
-                    string -> string
+type http_handler = http_method:string -> protocol:string -> data:string -> 
+                    headers:((string*string) list) -> string -> string
 
 type http_handlers = (string,http_handler) Hashtbl.t
 
@@ -135,6 +137,7 @@ let parse_icy_request_line ~port r =
       Icy
 
 let parse_http_request_line r =
+  log#f 5 "HTTP request: %s" r ;
   let data = Str.split (Str.regexp "[ \t]+") r in
     (
       (match (String.uppercase (List.nth data 0)) with
@@ -150,13 +153,18 @@ let parse_http_request_line r =
     )
 
 let write_answer ?(keep=false) c a =
-  ignore (Unix.write c a 0 (String.length a)) ;
-  if not keep then
+  let on_error _ = 
     try
       Unix.shutdown c Unix.SHUTDOWN_ALL ;
       Unix.close c
     with
       | _ -> ()
+  in
+  let exec () = 
+    if not keep then on_error () 
+  in
+  Duppy.Io.write ~priority ~on_error ~exec
+        Tutils.scheduler c a
 
 let parse_headers headers =
   let split_header h l =
@@ -291,7 +299,7 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
              "The server could not handle your request.") ;
         failwith (Utils.error_message e)
 
-let handle_http_request ~hmethod ~data ~port c uri headers =
+let handle_http_request ~hmethod ~hprotocol ~data ~port c uri headers =
   let default =
     "HTTP/1.0 200 OK\r\n\
      Content-Type: text/html\r\n\r\n\
@@ -400,6 +408,12 @@ let handle_http_request ~hmethod ~data ~port c uri headers =
       | Post -> "POST",Utils.get_some data
       | _ -> assert false
   in
+  let protocol = 
+    match hprotocol with
+      | Http_10 -> "HTTP/1.0"
+      | Http_11 -> "HTTP/1.1"
+      | _ -> assert false
+  in
   log#f 3 "HTTP %s request on %s." smethod base_uri ;
   let args = Http.args_split args in
   (* Filter out password *)
@@ -420,7 +434,8 @@ let handle_http_request ~hmethod ~data ~port c uri headers =
         if Pcre.pmatch ~rex uri then
          raise (Answer(fun () ->
                  (log#f 3 "Found handler '%s' on port %d." reg_uri port ;
-                  write_answer c (handler ~http_method:smethod ~data ~headers uri))))
+                  write_answer c (handler ~http_method:smethod ~protocol
+                                          ~data ~headers uri))))
       in
       Hashtbl.iter f h ;
     (* Otherwise, try with a standard handler. *)
@@ -434,8 +449,6 @@ let handle_http_request ~hmethod ~data ~port c uri headers =
   with
     | Answer(s) ->  s ()
     | e -> ans_500 () ; failwith (Utils.error_message e)
-
-let priority = Tutils.Non_blocking
 
 exception Internal of int
 
@@ -481,6 +494,13 @@ let handle_client ~port ~icy socket =
           | s :: _ -> s
           | _ -> failwith "could not parse source data."
       in
+      let rem l = 
+        match List.rev l with
+          | [] 
+          | _ :: [] -> (* Should not happen *)
+               raise (Failure "invalid input data")
+          | e :: _ -> e
+      in
       let s = grab l in
       let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
       let (hmethod, huri, hprotocol) = parse (List.nth lines 0) in
@@ -490,7 +510,9 @@ let handle_client ~port ~icy socket =
               handle_source_request ~port ~icy hprotocol socket huri headers
           | Get when not icy ->
               let headers = parse_headers (List.tl lines) in
-              handle_http_request ~hmethod ~data:None ~port socket huri headers 
+              handle_http_request ~hmethod ~hprotocol ~data:None 
+                                           ~port socket 
+                                           huri headers 
           | Post when not icy ->
               let headers = parse_headers (List.tl lines) in
               let length = 
@@ -499,21 +521,37 @@ let handle_client ~port ~icy socket =
                                  if String.lowercase x = "content-length" then
                                    raise (Internal (int_of_string y)))
                               headers ;
-                 failwith "wrong PUT data"
+                 failwith "wrong POST data"
                with
                  | Internal x -> x
                  | e -> failwith (Utils.error_message e)
               in
-              let process l =
-                try 
-                  let data = Some (List.hd l) in
-                  handle_http_request ~hmethod ~data ~port socket huri headers
-                with 
-                  | Failure s -> failed s
-              in
-              let marker = Duppy.Io.Length length in
-              Duppy.Io.read ~priority ~recursive ~on_error
+              let init = rem l in
+              if String.length init < length then
+               begin
+                let process l =
+                  try 
+                    let data = Some (List.hd l) in
+                    handle_http_request ~hmethod ~hprotocol 
+                                        ~data    ~port 
+                                        socket huri headers
+                  with 
+                    | Failure s -> failed s
+                in
+                let marker = Duppy.Io.Length length in
+                Duppy.Io.read ~priority ~recursive ~on_error ~init
                 Tutils.scheduler socket marker process
+               end
+              else
+               begin
+                try
+                 let data = Some (String.sub init 0 length) in
+                 handle_http_request ~hmethod ~hprotocol 
+                                     ~data    ~port 
+                                     socket huri headers
+                with
+                  | Failure s -> failed s
+               end
           | Shout when icy ->
               write_answer ~keep:true socket "OK2\r\nicy-caps:11\r\n\r\n" ;
               (* Now parsing headers *)
