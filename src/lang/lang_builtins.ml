@@ -568,6 +568,29 @@ let () =
        let rex = Pcre.regexp pattern in
        Lang.bool (Pcre.pmatch ~rex string))
 
+
+let () =
+  add_builtin "string.recode" ~cat:String
+    ~descr:"Convert a string. Effective only if Camomile \
+            is enabled."
+    [ "in_enc", Lang.string_t, Some (Lang.string ""),
+      Some "Input encoding. Autodetected is empty." ;
+      "out_enc", Lang.string_t, Some (Lang.string "UTF-8"), 
+      Some "Output encoding." ;
+      "", Lang.string_t, None, None ]
+    Lang.string_t
+    (fun p ->
+       let in_enc = 
+         match Lang.to_string (List.assoc "in_enc" p) with
+           | "" -> None
+           | s  -> Some s
+       in
+       let out_enc = 
+         Lang.to_string (List.assoc "out_enc" p)
+       in
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string (Configure.recode_tag ?in_enc ~out_enc string))
+
 let () =
   add_builtin "string.case" ~cat:String
     ~descr:"Convert a string to lower or upper case."
