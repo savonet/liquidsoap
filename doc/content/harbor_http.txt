@@ -33,7 +33,7 @@ Content-type: text/html\r\n
 \r\n
 %%
 (@\r\n@ should always be used for line return
-in HTTP content.
+in HTTP content)
 
 This function can be used to create your own HTTP interface. Some examples
 are:
