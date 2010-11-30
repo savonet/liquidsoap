@@ -688,7 +688,7 @@ let () =
 
 let () =
   add_builtin "url.decode" ~cat:String
-    ~descr:"Decode an encoded url (e.g. %20 -> \" \")."
+    ~descr:"Decode an encoded url (e.g. @%20 -> \" \"@)."
     [ "plus", Lang.bool_t, Some (Lang.bool true),None;
       "", Lang.string_t, None, None ]
     Lang.string_t
@@ -699,7 +699,7 @@ let () =
 
 let () =
   add_builtin "url.encode" ~cat:String
-    ~descr:"Encode an url (e.g. \" \" -> %20)."
+    ~descr:"Encode an url (e.g. @\" \" -> %20@)."
     [ "plus", Lang.bool_t, Some (Lang.bool true),None;
       "", Lang.string_t, None, None ]
     Lang.string_t
@@ -1224,7 +1224,7 @@ let () =
   add_builtin "harbor.http.register" ~cat:Sys
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
-           the full requested uri (e.g. \"foo?var=bar\"), \
+           the full requested uri (e.g. \"foo?var=bar\"), \
            method type, http protocol version, possible input data \
            and the list of HTTP headers \
            and returns the answer sent to the client, including HTTP headers. \
@@ -1337,6 +1337,60 @@ let () =
        match List.assoc "" p with
          | {Lang.value=Lang.String s} -> Lang.string s
          | v -> Lang.string (Lang.print_value v))
+
+let rec to_json v =
+  match v.Lang.value with
+    | Lang.Unit -> "null"
+    | Lang.Bool b -> Printf.sprintf "%b" b
+    | Lang.Int  i -> Printf.sprintf "%i" i
+    | Lang.String s -> Printf.sprintf "\"%s\"" s
+    | Lang.Float  f -> Printf.sprintf "%F" f
+    | Lang.List   l ->
+        (* Convert (string*'a) list to object *)
+        begin 
+         try
+          match l with
+            | x :: _ ->
+               begin
+                match x.Lang.value with
+                  | Lang.Product (x,_) ->
+                     begin
+                      match x.Lang.value with
+                        | Lang.String _ ->
+                           let l = 
+                            List.map (fun x ->
+                                         let (x,y) = Lang.to_product x in
+                                         Printf.sprintf "\"%s\":%s" 
+                                          (Lang.to_string x) (to_json y))
+                            l
+                           in
+                           Printf.sprintf "{%s}" (String.concat "," l)
+                        | _ -> raise Not_found
+                     end
+                  | _ -> raise Not_found
+               end
+            | _ -> raise Not_found
+         with Not_found ->
+               Printf.sprintf "[%s]" 
+                (String.concat "," 
+                  (List.map to_json l))
+        end
+    | Lang.Product (p,q) -> 
+       Printf.sprintf "[%s,%s]"  (to_json p) (to_json q)
+    | Lang.Source _ -> "\"<source>\""
+    | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json !v)
+    | Lang.Encoder e -> Printf.sprintf "\"%s\"" (Encoder.string_of_format e)
+    | Lang.Request _ -> "\"<request>\""
+    | Lang.FFI _
+    | Lang.Fun _ -> "\"<fun>\""
+
+let () =
+  add_builtin "json_of" ~cat:String
+    ~descr:"Convert a value to a json string." 
+     ["",Lang.univ_t 1,None,None] Lang.string_t
+    (fun p ->
+      let v = to_json (List.assoc "" p) in
+      Lang.string v)
 
 let () =
   add_builtin "ignore" ~descr:"Convert anything to unit, preventing warnings."

@@ -167,7 +167,6 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_MAGIC),lang/lang_magic.ml) \
 	$(if $(W_LASTFM),lang/lang_lastfm.ml) \
 	$(if $(W_CRY),lang/lang_cry.ml) \
-	$(if $(W_JSON_WHEEL),lang/lang_json.ml) \
 	main.ml
 
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))

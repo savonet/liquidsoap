@@ -2,8 +2,7 @@ title: JSON export
 
 h3. Exporting data using JSON
 
-If compiled with json support, liquidsoap 
-can export any language value in JSON using
+Liquidsoap can export any language value in JSON using
 @json_of@.
 
 The format is the following :
