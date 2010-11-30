@@ -87,6 +87,17 @@ let find_handlers port =
 let find_source mount port = 
   Hashtbl.find (fst (find_handlers port)) mount
 
+exception Assoc of string
+
+let assoc_capitalize x y =
+  try 
+    List.iter 
+      (fun (l,v) -> if String.capitalize l = x then
+                     raise (Assoc v)) y ;
+    raise Not_found
+  with
+    | Assoc s -> s
+
 (** {1 Handling of a client} *)
 
 exception Exit
@@ -171,14 +182,15 @@ let parse_headers headers =
     try
       let rex = Pcre.regexp "([^:\\r\\n]+):\\s*([^\\r\\n]+)" in
       let sub = Pcre.exec ~rex h in
-      (String.uppercase (Pcre.get_substring sub 1),
+      (Pcre.get_substring sub 1,
        Pcre.get_substring sub 2) :: l
     with
       | Not_found -> l
   in
+  let f x = String.capitalize x in
   let headers = List.fold_right split_header headers [] in
   let display_headers = 
-    List.filter (fun (x,_) -> conf_pass_verbose#get || x <> "AUTHORIZATION") headers
+    List.filter (fun (x,_) -> conf_pass_verbose#get || (f x) <> "AUTHORIZATION") headers
   in
   List.iter (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v) display_headers ;
   headers
@@ -195,7 +207,7 @@ let auth_check ~login c uri headers =
     let valid_user,auth_f = login in
     try
       (* Authentication *)
-      let auth = List.assoc "AUTHORIZATION" headers in
+      let auth = assoc_capitalize "AUTHORIZATION" headers in
       let data = Str.split (Str.regexp "[ \t]+") auth in
         if List.nth data 0 <> "Basic" then raise Not_supported ;
         let auth_data =
@@ -256,7 +268,7 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
     log#f 3 "%s request on %s." sproto uri ;
     let stype =
       try
-        List.assoc "CONTENT-TYPE" headers
+        assoc_capitalize "CONTENT-TYPE" headers
       with
         | Not_found when icy -> "audio/mpeg"
         | Not_found -> raise Unknown_codec

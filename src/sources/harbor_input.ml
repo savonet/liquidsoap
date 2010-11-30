@@ -173,7 +173,6 @@ object (self)
 
   method relay (headers:(string*string) list) socket =
     relay_socket <- Some socket ;
-    let headers = List.map (fun (x,y) -> String.lowercase x,y) headers in
     on_connect headers ;
     begin match dumpfile with
       | Some f ->
