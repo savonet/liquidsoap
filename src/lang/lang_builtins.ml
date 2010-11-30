@@ -574,7 +574,7 @@ let () =
     ~descr:"Convert a string. Effective only if Camomile \
             is enabled."
     [ "in_enc", Lang.string_t, Some (Lang.string ""),
-      Some "Input encoding. Autodetected is empty." ;
+      Some "Input encoding. Autodetected if empty." ;
       "out_enc", Lang.string_t, Some (Lang.string "UTF-8"), 
       Some "Output encoding." ;
       "", Lang.string_t, None, None ]
@@ -590,6 +590,15 @@ let () =
        in
        let string = Lang.to_string (List.assoc "" p) in
        Lang.string (Configure.recode_tag ?in_enc ~out_enc string))
+
+let () =
+  add_builtin "string.length" ~cat:String
+    ~descr:"Get the length of a string."
+    [ "", Lang.string_t, None, None ]
+    Lang.int_t
+    (fun p ->
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.int (String.length string))
 
 let () =
   add_builtin "string.case" ~cat:String
