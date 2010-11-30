@@ -60,10 +60,8 @@ let rec to_json v =
        Json_type.Build.array [(to_json p);(to_json q)]
     | Lang.Source _ -> Json_type.Build.string "<source>"
     | Lang.Ref v -> Json_type.Build.objekt ["reference",to_json !v]
-    | Lang.Encoder e -> Json_type.Build.objekt
-                                ["encoder",
-                                  Json_type.Build.string
-                                     (Encoder.string_of_format e)]
+    | Lang.Encoder e -> Json_type.Build.string
+                              (Encoder.string_of_format e)
     | Lang.Request _ -> Json_type.Build.string "<request>"
     | Lang.FFI _
     | Lang.Fun _ -> Json_type.Build.string "<fun>"
