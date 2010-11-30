@@ -1,0 +1,25 @@
+title: JSON export
+
+h3. Exporting data using JSON
+
+If compiled with json support, liquidsoap 
+can export any language value in JSON using
+@json_of@.
+
+The format is the following :
+* @() : unit@ -> @null@
+* @true: bool@ -> @true@
+* @"abc" : string@ -> @"abc"@
+* @2.0 : float@ -> @2.0@
+* @[2,3,4] : int list@ -> @[2,3,4]@
+* @[("f",1),("b",4)] : (string*int) list@ -> @{"f": 1, "b": 4}@
+* @("foo",123) : string*int@ -> @[ "foo", 123 ]@
+* @s : source@ -> @"<source>"@
+* @r : int ref@ -> @{"reference": 4}@
+* @%mp3 : encoder@ -> @"%mp3(stereo,bitrate=128,samplerate=44100)" }@
+* @r : request@ -> @"<request>"@
+* @f : 'a -> 'b@ -> @"<fun>"@
+The two particular cases are:
+* Products are exported as lists
+* Lists of type @string*'a@ are exported as object of the form @{"key": value}@ 
+

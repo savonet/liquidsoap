@@ -100,7 +100,7 @@ h4. Get metadata
 
 You can use harbor to register HTTP services to 
 fecth/set the metadata of a source. For instance, 
-using @of_json@:
+using the "JSON export function":json.html @json_of@:
 
 %%(get_json_metadata.liq)
 meta = ref []

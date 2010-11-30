@@ -28,6 +28,7 @@ h4@reference. Reference
 * "Settings":settings.html: The list of available settings for liquidsoap.
 * "Script language":language.html: A more detailed presentation.
 * "Encoding formats":encoding_formats.html: The available formats for encoding outputs.
+* "JSON export":json.html: Exporting language values in JSON.
 
 h4@core. Core
 
