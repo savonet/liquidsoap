@@ -1364,8 +1364,8 @@ let rec to_json_compact v =
           let l = 
             List.map (fun x ->
                         let (x,y) = Lang.to_product x in
-                        Printf.sprintf "\"%s\":%s" 
-                          (Lang.to_string x) (to_json_compact y))
+                        Printf.sprintf "%s:%s" 
+                          (to_json_compact x) (to_json_compact y))
                       l
           in
           Printf.sprintf "{%s}" (String.concat "," l)
@@ -1378,7 +1378,7 @@ let rec to_json_compact v =
        Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
-    | Lang.Encoder e -> Printf.sprintf "\"%s\"" (Encoder.string_of_format e)
+    | Lang.Encoder e -> Printf.sprintf "%S" (Encoder.string_of_format e)
     | Lang.Request _ -> "\"<request>\""
     | Lang.FFI _
     | Lang.Fun _ -> "\"<fun>\""

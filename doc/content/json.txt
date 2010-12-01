@@ -10,8 +10,8 @@ The format is the following :
 * @true: bool@ -> @true@
 * @"abc" : string@ -> @"abc"@
 * @2.0 : float@ -> @2.0@
-* @[2,3,4] : int list@ -> @[2,3,4]@
-* @[("f",1),("b",4)] : (string*int) list@ -> @{"f": 1, "b": 4}@
+* @[2,3,4] : [int]@ -> @[2,3,4]@
+* @[("f",1),("b",4)] : [(string*int)]@ -> @{"f": 1, "b": 4}@
 * @("foo",123) : string*int@ -> @[ "foo", 123 ]@
 * @s : source@ -> @"<source>"@
 * @r : int ref@ -> @{"reference": 4}@
@@ -22,3 +22,5 @@ The two particular cases are:
 * Products are exported as lists
 * Lists of type @string*'a@ are exported as object of the form @{"key": value}@ 
 
+Output format is pretty printed by default. A compact output can
+be obtained by using the optional argument: @compact=true@.
