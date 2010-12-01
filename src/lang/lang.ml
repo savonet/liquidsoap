@@ -37,6 +37,10 @@ let float_t   = ground_t T.Float
 let bool_t    = ground_t T.Bool
 let string_t  = ground_t T.String
 let product_t a b = T.make (T.Product (a,b))
+let of_product_t t = match (T.deref t).T.descr with
+  | T.Product (t,t') -> t,t'
+  | _ -> assert false
+
 let fun_t p b = T.make (T.Arrow (p,b))
 
 let list_t t  = T.make (T.List t)

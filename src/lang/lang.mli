@@ -100,6 +100,9 @@ type category =
   | Visualization (** Visializations of the sound. *)
   | SoundSynthesis (** Synthesis. *)
 
+(** Get a string representation of a[ category]. *)
+val string_of_category : category -> string
+
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
 
@@ -168,6 +171,7 @@ val float_t    : t
 val bool_t     : t
 val string_t   : t
 val product_t  : t -> t -> t
+val of_product_t : t -> t * t
 
 val list_t     : t -> t
 val of_list_t  : t -> t

@@ -1338,58 +1338,121 @@ let () =
          | {Lang.value=Lang.String s} -> Lang.string s
          | v -> Lang.string (Lang.print_value v))
 
-let rec to_json v =
+let rec to_json_compact v =
   match v.Lang.value with
     | Lang.Unit -> "null"
     | Lang.Bool b -> Printf.sprintf "%b" b
     | Lang.Int  i -> Printf.sprintf "%i" i
-    | Lang.String s -> Printf.sprintf "\"%s\"" s
-    | Lang.Float  f -> Printf.sprintf "%F" f
-    | Lang.List   l ->
+    | Lang.String s -> Printf.sprintf "\"%S\"" s
+    (* JSON specs do not allow a trailing . *)
+    | Lang.Float  n ->
+          let s = string_of_float n in
+          let s = Printf.sprintf "%s" s in
+          if s.[ (String.length s) - 1 ] = '.' then
+            Printf.sprintf "%s0" s
+          else
+            s
+    | Lang.List l ->
         (* Convert (string*'a) list to object *)
         begin 
          try
-          match l with
-            | x :: _ ->
-               begin
-                match x.Lang.value with
-                  | Lang.Product (x,_) ->
-                     begin
-                      match x.Lang.value with
-                        | Lang.String _ ->
-                           let l = 
-                            List.map (fun x ->
-                                         let (x,y) = Lang.to_product x in
-                                         Printf.sprintf "\"%s\":%s" 
-                                          (Lang.to_string x) (to_json y))
-                            l
-                           in
-                           Printf.sprintf "{%s}" (String.concat "," l)
-                        | _ -> raise Not_found
-                     end
-                  | _ -> raise Not_found
-               end
-            | _ -> raise Not_found
-         with Not_found ->
+          let t = v.Lang.t in
+          let t = Lang.of_list_t t in
+          let (t,_) = Lang.of_product_t t in
+          let compare = Lang_types.( <: ) in
+          ignore(compare t Lang.string_t);
+          let l = 
+            List.map (fun x ->
+                        let (x,y) = Lang.to_product x in
+                        Printf.sprintf "\"%s\":%s" 
+                          (Lang.to_string x) (to_json_compact y))
+                      l
+          in
+          Printf.sprintf "{%s}" (String.concat "," l)
+         with _ ->
                Printf.sprintf "[%s]" 
                 (String.concat "," 
-                  (List.map to_json l))
+                  (List.map to_json_compact l))
         end
     | Lang.Product (p,q) -> 
-       Printf.sprintf "[%s,%s]"  (to_json p) (to_json q)
+       Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
     | Lang.Source _ -> "\"<source>\""
-    | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json !v)
+    | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> Printf.sprintf "\"%s\"" (Encoder.string_of_format e)
     | Lang.Request _ -> "\"<request>\""
     | Lang.FFI _
     | Lang.Fun _ -> "\"<fun>\""
 
+let rec to_json_pp f v =
+  match v.Lang.value with
+    | Lang.List l ->
+        (* Convert (string*'a) list to object *)
+        begin 
+         try
+          let t = v.Lang.t in
+          let t = Lang.of_list_t t in
+          let (t,_) = Lang.of_product_t t in
+            let compare = Lang_types.( <: ) in
+            ignore(compare t Lang.string_t);
+            let print f l = 
+              let len = List.length l in
+              let f pos x =
+                let (x,y) = Lang.to_product x in
+                if pos != len - 1 then
+                  Format.fprintf f "%a: %a,@;<1 0>" 
+                    to_json_pp x to_json_pp y
+                else
+                  Format.fprintf f "%a: %a" 
+                    to_json_pp x to_json_pp y ;
+                pos+1
+              in
+              ignore(List.fold_left f 0 l)
+            in
+            Format.fprintf f "@[{@;<1 1>@[%a@]@;<1 0>}@]" print l
+         with _ ->
+               let print f l =
+                 let len = List.length l in
+                 let f pos x =
+                   if pos < len -1 then
+                     Format.fprintf f "%a,@;<1 0>"
+                       to_json_pp x
+                   else
+                     Format.fprintf f "%a"
+                        to_json_pp x ;
+                 pos+1
+                 in
+                 ignore(List.fold_left f 0 l)
+               in
+               Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
+        end
+    | Lang.Product (p,q) -> 
+       Format.fprintf f "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]" to_json_pp p to_json_pp q
+    | Lang.Ref v -> 
+       Format.fprintf  f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]" to_json_pp !v
+    | _ -> Format.fprintf f "%s" (to_json_compact v)
+
+let to_json_pp v =
+  let b = Buffer.create 10 in
+  let f = Format.formatter_of_buffer b in
+  ignore(to_json_pp f v);
+  Format.pp_print_flush f ();
+  Buffer.contents b
+
+let to_json ~compact v = 
+  if compact then 
+     to_json_compact v
+  else
+     to_json_pp v
+
 let () =
   add_builtin "json_of" ~cat:String
     ~descr:"Convert a value to a json string." 
-     ["",Lang.univ_t 1,None,None] Lang.string_t
+     ["compact",Lang.bool_t,Some (Lang.bool false),
+      Some "Output compact text.";
+      "",Lang.univ_t 1,None,None] Lang.string_t
     (fun p ->
-      let v = to_json (List.assoc "" p) in
+      let compact = Lang.to_bool (List.assoc "compact" p) in
+      let v = to_json ~compact (List.assoc "" p) in
       Lang.string v)
 
 let () =
