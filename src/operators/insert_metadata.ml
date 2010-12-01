@@ -34,73 +34,27 @@ object (self)
   method abort_track = source#abort_track
 
   val mutable metadata = None
+  val lock_m = Mutex.create ()
   val mutable ns = []
 
-  method private wake_up l =
-    super#wake_up l ;
-    if ns = [] then
-      ns <- Server.register [self#id] "insert_metadata" ;
-    self#set_id (Server.to_string ns) ;
-    Server.add ~ns "insert" ~usage:"insert key1=\"val1\",key2=\"val2\",.."
-               ~descr:"Insert a metadata chunk."
-      (fun s ->
-         let l = String.length s in
-         let pos = ref 0 in
-         let str =
-           Stream.from (fun i ->
-                          pos := i ;
-                          if i<l then Some s.[i] else None)
-         in
-         let lexer = make_lexer [",";"="] str in
-         let m = Hashtbl.create 10 in
-         let state = ref `Ident in
-           try
-             while true do
-               match Stream.next lexer with
-                 | Kwd ","   when `Comma = !state ->
-                     state := `Ident
-                 | Ident key when `Ident = !state ->
-                     state := `Internal ;
-                     begin match Stream.next lexer with
-                       | Kwd "=" -> begin match Stream.next lexer with
-                           | String s ->
-                               Hashtbl.add m key s ;
-                               state := `Comma
-                           | _ -> raise Error
-                         end
-                       | _ -> raise Error
-                     end
-                 | _ -> raise Error
-             done ;
-             assert false
-           with
-             | Stream.Failure when `Indent = !state || `Comma = !state ->
-                 metadata <- Some m ;
-                 "Done"
-             | Error | Stream.Failure | Stream.Error _ ->
-                 "Syntax error: use key1=\"val1\",key2=\"val2\",..")
+  method insert_metadata m = 
+    Mutex.lock lock_m ;
+    metadata <- Some m ;
+    Mutex.unlock lock_m
 
   method private get_frame buf =
     let p = Frame.position buf in
       source#get buf ;
-      match metadata with
-        | Some m ->
-            Frame.set_metadata buf p m ;
-            metadata <- None
-        | None -> ()
+      Mutex.lock lock_m ;
+      Tutils.finalize ~k:(fun () -> Mutex.unlock lock_m)
+      (fun () -> 
+        match metadata with
+          | Some m ->
+              Frame.set_metadata buf p m ;
+              metadata <- None
+          | None -> ())
 
 end
-
-let register =
-  let kind = Lang.univ_t 1 in
-  Lang.add_operator "insert_metadata" [ "", Lang.source_t kind, None, None ]
-    ~category:Lang.SoundProcessing
-    ~descr:"Interactively insert metadata using the command \
-            <code>ID.insert key1=\"val1\",key2=\"val2\",...</code>."
-    ~kind:(Lang.Unconstrained kind)
-    (fun p kind ->
-       let source = Lang.to_source (Lang.assoc "" 1 p) in
-         new insert_metadata ~kind source)
 
 (** Insert metadata at the beginning if none is set.
   * Currently used by the switch classes. *)

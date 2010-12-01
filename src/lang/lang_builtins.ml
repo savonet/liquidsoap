@@ -1498,6 +1498,41 @@ let () =
         Lang.unit)
 
 let () =
+  let kind = Lang.univ_t 1 in
+  let return_t = 
+    Lang.product_t 
+     (Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t)
+     (Lang.source_t kind)
+  in
+  Lang.add_builtin "insert_metadata" 
+    ~category:(Lang.string_of_category Lang.TrackProcessing)
+    ~descr:"Dynamically insert metadata in a stream. \
+            Returns a pair (f,s) where s is a new source and \
+            f is a function of type @(metadata) -> unit@, used to \
+            insert metadata in s."
+    [ "id",Lang.string_t,Some (Lang.string ""),
+      Some "Force the value of the source ID.";
+      "",Lang.source_t kind,None,None ] return_t
+    (fun p t -> 
+       let s = Lang.to_source (List.assoc "" p) in
+       let id = Lang.to_string (List.assoc "id" p) in
+       let (_,t) = Lang.of_product_t t in
+       let kind = 
+         Lang.frame_kind_of_kind_type 
+          (Lang.of_source_t t)
+       in 
+       let s = new Insert_metadata.insert_metadata ~kind s in
+       if id <> "" then s#set_id id ; 
+       let f = 
+         Lang.val_fun ["","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
+                      (fun p t -> 
+                         s#insert_metadata 
+                          (Lang.to_metadata (List.assoc "" p));
+                         Lang.unit)
+       in
+       Lang.product f (Lang.source (s :> Source.source)))
+
+let () =
   add_builtin "request.create.raw" ~cat:Liq
     ~descr:"Create a raw request, i.e. for files that should not be decoded \
             for streaming. Creation may fail if there is no available RID, \

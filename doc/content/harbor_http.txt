@@ -156,7 +156,54 @@ metadata of source @s@
 
 h4. Set metadata
 
-TODO
+Using @insert_metadata@, you can register a GET handler that
+updates the metadata of a given source. For instance:
+%%(set_json_metadata.liq)
+s = (..some source..)
+
+# x is of type ((metadata)->unit)*source
+# first part is a function used to update
+# metadata and second part is the source 
+# whose metadata are updated
+x = insert_metadata(s)
+
+# Get the function
+insert = fst(x)
+
+# Redefine s as the new source
+s = snd(x)
+
+# The handler
+def set_meta(~method,~protocol,~data,~headers,uri) =
+  # Split uri of the form request?foo=bar&...
+  # into (request,[("foo","bar"),..])
+  x = url.split(uri)
+
+  # Filter out unusual metadata
+  meta = metadata.export(snd(x))
+  
+  # Grab the returned message
+  ret =
+    if meta != [] then
+      insert(meta)
+      "OK!"
+    else
+      "No metadata to add!"
+  end
+
+  # Output result
+  "HTTP/1.1 200 OK\r\n\
+   Content-Type: text/html\r\n\r\n\
+   <html><body><b>#{ret}</b></body></html>\r\n\r\n"
+end
+
+# Register handler on port 700
+harbor.http.register(port=7000,"/setmeta",set_meta)
+%%
+
+Now, a request of the form @http://server:7000/setmeta?title=foo@
+will update the metadata of source @s@ with @[("title","foo")]@. You
+can use this handler, for instance, in a custom HTML form.
 
 h3. Limitations
 

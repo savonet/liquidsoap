@@ -258,6 +258,51 @@ def url.split(uri) =
   end
 end
 
+# Register a server/telnet command to 
+# update a source's metadata. Returns 
+# a new source, which will receive the 
+# updated metadata. Semantics is the 
+# same as pre 1.0 insert_metadata operator, 
+# i.e. @insert key1="val1",key2="val2",..@
+# @category Source / Track Processing
+# @param ~id Force the value of the source ID.
+def server.insert_metadata(~id="",s) = 
+  x = insert_metadata(id=id,s)
+  insert = fst(x)
+  s = snd(x)
+  def insert(s) = 
+    l = string.split(separator='([^=]+\s*=\s*"(\\"|[^"])*")\s*,\s*',s)
+    def f(l,x) = 
+      sub = fun (s) -> string.replace(pattern='\\"',fun (_) -> '"',s)
+      if x != "" then
+        ret = string.extract(pattern='([^=]+)\s*=\s*"((?:\\"|[^"])*)"',x)
+        if ret["1"] != "" then
+          list.append(l,[(ret["1"],
+                          sub(ret["2"]))])
+        else
+          l
+        end
+      else
+        l
+      end
+    end
+    meta = list.fold(f,[],l)
+    if meta != [] then
+      insert(meta)
+      "Done"
+    else
+      "Syntax error or no metadata given. \
+       Use key1=\"val1\",key2=\"val2\",.."
+    end
+  end
+  id = source.id(s)
+  server.register(namespace="#{id}",
+                  description="Insert a metadata chunk.",
+                  usage="insert key1=\"val1\",key2=\"val2\",..",
+                  "insert",insert)
+  s
+end
+
 # Get the base name of a path.
 # Implemented using the corresponding shell command.
 # @category System
