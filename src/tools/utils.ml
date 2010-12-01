@@ -117,6 +117,34 @@ let array_iter2 a b f =
 
 (* Here we take care not to introduce new redexes when substituting *)
 
+(* Minimal string escaping,
+ * works with utf8 and the like.. 
+ * YES, this is slow as shit but I'm pissed
+ * that there ain't no such function in OCaml.. *)
+let escape s =
+  let b = Buffer.create (String.length s) in
+  let state = ref `None in 
+  let f c = 
+    match c with
+      | '"' when !state = `None ->
+         Buffer.add_char b '\\';
+         Buffer.add_char b '"'
+      | '"' when !state = `Reverse_solidus -> 
+         state := `None ;
+         Buffer.add_char b '"'
+      | '\\' when !state = `None -> 
+         state := `Reverse_solidus;
+         Buffer.add_char b '\\'
+      | c when c <> '\\' && !state = `Reverse_solidus ->
+         Buffer.add_char b '\\';
+         Buffer.add_char b c
+      | c ->
+          state := `None ;
+          Buffer.add_char b c
+  in
+  String.iter f s ;
+  Buffer.contents b       
+
 (* Interpolation:
  * takes a (string -> string) lookup function (raise Not_found on failure) and
  * a string containing special patterns like $(v) or $(if $(v),"bla","bli")

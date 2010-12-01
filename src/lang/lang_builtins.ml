@@ -1339,11 +1339,14 @@ let () =
          | v -> Lang.string (Lang.print_value v))
 
 let rec to_json_compact v =
+  let print_s s =
+    Printf.sprintf "\"%s\"" (Utils.escape s)
+  in
   match v.Lang.value with
     | Lang.Unit -> "null"
     | Lang.Bool b -> Printf.sprintf "%b" b
     | Lang.Int  i -> Printf.sprintf "%i" i
-    | Lang.String s -> Printf.sprintf "%S" s
+    | Lang.String s -> print_s s
     (* JSON specs do not allow a trailing . *)
     | Lang.Float  n ->
           let s = string_of_float n in
@@ -1378,7 +1381,7 @@ let rec to_json_compact v =
        Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
-    | Lang.Encoder e -> Printf.sprintf "%S" (Encoder.string_of_format e)
+    | Lang.Encoder e -> print_s (Encoder.string_of_format e)
     | Lang.Request _ -> "\"<request>\""
     | Lang.FFI _
     | Lang.Fun _ -> "\"<fun>\""
