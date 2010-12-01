@@ -1343,7 +1343,7 @@ let rec to_json_compact v =
     | Lang.Unit -> "null"
     | Lang.Bool b -> Printf.sprintf "%b" b
     | Lang.Int  i -> Printf.sprintf "%i" i
-    | Lang.String s -> Printf.sprintf "\"%S\"" s
+    | Lang.String s -> Printf.sprintf "%S" s
     (* JSON specs do not allow a trailing . *)
     | Lang.Float  n ->
           let s = string_of_float n in
