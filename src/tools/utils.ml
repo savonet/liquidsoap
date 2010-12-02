@@ -123,7 +123,6 @@ let array_iter2 a b f =
  * that there ain't no such function in OCaml.. *)
 let escape ?escaped s =
   let b = Buffer.create (String.length s) in
-  let state = ref `None in
   let escaped = 
     match escaped with
       | Some l -> l
@@ -139,29 +138,17 @@ let escape ?escaped s =
          else
            l
        in
-       (* We do not need to add '\\'
-        * which is already taken care of
-        * by Utils.escape. *)
-       escaped 0 ['"'] 
+       escaped 0 ['"'; '\\'] 
   in  
   let f c = 
-    match c with
-      | '\\' when !state = `None -> 
-         state := `Reverse_solidus;
-         Buffer.add_char b '\\'
-      | c ->
-         (* We add '\\' if we have special char
-          * that was not escaped. *)
-         if (List.mem c escaped && !state = `None) ||
-            (* Or the previous char was \ and it was
-             * not escaping itself. 
-             * Note: the second condition is redundant
-             *       but I'm leaving it for readability. *)
-            (c <> '\\' && !state = `Reverse_solidus) 
-         then
-           Buffer.add_char b '\\';
-         state := `None ;
-         Buffer.add_char b c
+    if List.mem c escaped then
+      (* '"' has to be treated seperately. *)
+      if c <> '"' then
+        Buffer.add_string b (Char.escaped c) 
+      else
+       Buffer.add_string b "\\\""
+    else
+      Buffer.add_char b c
   in
   String.iter f s ;
   Buffer.contents b       
