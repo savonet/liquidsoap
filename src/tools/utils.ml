@@ -136,6 +136,7 @@ let escape s =
          state := `Reverse_solidus;
          Buffer.add_char b '\\'
       | c when c <> '\\' && !state = `Reverse_solidus ->
+         state := `None ;
          Buffer.add_char b '\\';
          Buffer.add_char b c
       | c ->
