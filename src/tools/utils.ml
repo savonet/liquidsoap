@@ -121,27 +121,47 @@ let array_iter2 a b f =
  * works with utf8 and the like.. 
  * YES, this is slow as shit but I'm pissed
  * that there ain't no such function in OCaml.. *)
-let escape s =
+let escape ?escaped s =
   let b = Buffer.create (String.length s) in
-  let state = ref `None in 
+  let state = ref `None in
+  let escaped = 
+    match escaped with
+      | Some l -> l
+      | None ->
+       (* RFC 4627:
+        * "All Unicode characters may be placed within the
+        *  quotation marks except for the characters that must be escaped:
+        *  quotation mark, reverse solidus, and the control characters (U+0000
+        *  through U+001F)." *)
+       let rec escaped p l =
+         if p <= 0x1f then
+           escaped (p+1) ((Char.chr p)::l)
+         else
+           l
+       in
+       (* We do not need to add '\\'
+        * which is already taken care of
+        * by Utils.escape. *)
+       escaped 0 ['"'] 
+  in  
   let f c = 
     match c with
-      | '"' when !state = `None ->
-         Buffer.add_char b '\\';
-         Buffer.add_char b '"'
-      | '"' when !state = `Reverse_solidus -> 
-         state := `None ;
-         Buffer.add_char b '"'
       | '\\' when !state = `None -> 
          state := `Reverse_solidus;
          Buffer.add_char b '\\'
-      | c when c <> '\\' && !state = `Reverse_solidus ->
-         state := `None ;
-         Buffer.add_char b '\\';
-         Buffer.add_char b c
       | c ->
-          state := `None ;
-          Buffer.add_char b c
+         (* We add '\\' if we have special char
+          * that was not escaped. *)
+         if (List.mem c escaped && !state = `None) ||
+            (* Or the previous char was \ and it was
+             * not escaping itself. 
+             * Note: the second condition is redundant
+             *       but I'm leaving it for readability. *)
+            (c <> '\\' && !state = `Reverse_solidus) 
+         then
+           Buffer.add_char b '\\';
+         state := `None ;
+         Buffer.add_char b c
   in
   String.iter f s ;
   Buffer.contents b       

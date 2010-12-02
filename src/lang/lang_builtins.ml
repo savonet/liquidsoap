@@ -1339,8 +1339,11 @@ let () =
          | v -> Lang.string (Lang.print_value v))
 
 let rec to_json_compact v =
+  (* Utils.escape implements
+   * JSON's escaping RFC. *)
   let print_s s =
-    Printf.sprintf "\"%s\"" (Utils.escape s)
+    Printf.sprintf "\"%s\""
+       (Utils.escape s)
   in
   match v.Lang.value with
     | Lang.Unit -> "null"
