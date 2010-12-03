@@ -95,7 +95,6 @@ let () =
            ~user ~password
            ~mount ~headers metas
        with
-         | Cry.Error e -> log#f 2 "Manual metadata update failed: %s" (Cry.string_of_error e)
-         | e           -> log#f 2 "Manual metadata update failed: %s" (Utils.error_message e)
+         | e -> log#f 2 "Manual metadata update failed: %s" (Utils.error_message e)
       end ;
       Lang.unit)
