@@ -115,43 +115,86 @@ let array_iter2 a b f =
     f a.(i) b.(i)
   done
 
-(* Here we take care not to introduce new redexes when substituting *)
+let special_char = 
+  function
+    | '"' 
+    | '\\'
+    (* DEL *)
+    | '\x7F'
+    (* Control chars *)
+    | '\x00'..'\x1F' -> true
+    | _ -> false
 
-(* Minimal string escaping,
- * works with utf8 and the like.. 
- * YES, this is slow as shit but I'm pissed
- * that there ain't no such function in OCaml.. *)
-let escape ?escaped s =
-  let b = Buffer.create (String.length s) in
-  let escaped = 
-    match escaped with
-      | Some l -> l
-      | None ->
-       (* RFC 4627:
-        * "All Unicode characters may be placed within the
-        *  quotation marks except for the characters that must be escaped:
-        *  quotation mark, reverse solidus, and the control characters (U+0000
-        *  through U+001F)." *)
-       let rec escaped p l =
-         if p <= 0x1f then
-           escaped (p+1) ((Char.chr p)::l)
-         else
-           l
-       in
-       escaped 0 ['"'; '\\'] 
-  in  
-  let f c = 
-    if List.mem c escaped then
-      (* '"' has to be treated seperately. *)
-      if c <> '"' then
-        Buffer.add_string b (Char.escaped c) 
-      else
-       Buffer.add_string b "\\\""
+let escape_char c = 
+  if c <> '"' then 
+    Char.escaped c
+  else
+    "\\\""
+
+(* Generic escaping function *)
+let escape ?(special_char=special_char) 
+           ?(next=(fun _ i -> i+1)) 
+           ?(escape_char=escape_char)
+           f s =
+  let out = Format.pp_print_char f in
+  let outs = Format.pp_print_string f in
+  let len = String.length s in
+  let rec f pos = 
+    let c = String.unsafe_get s pos in
+    if special_char c then
+      outs (escape_char c)
     else
-      Buffer.add_char b c
+      out c ;
+    let new_pos = next s pos in
+    for i = pos+1 to (min (new_pos -1)
+                          (len - 1)) 
+    do
+      out (String.unsafe_get s i)
+    done ;
+    if new_pos < len then
+      f new_pos
   in
-  String.iter f s ;
-  Buffer.contents b       
+  out '"' ;
+  if len > 0 then
+    f 0 ;
+  out '"'
+
+(* These two functions are taken from Extlib's module UTF8
+ * Copyright (c) 2002, 2003 Yamagata Yoriyuki *)
+let rec utf8_search_head s i =
+  if i >= String.length s then i else
+  let n = Char.code (String.unsafe_get s i) in
+  if n < 0x80 || n >= 0xc2 then i else
+  utf8_search_head s (i + 1)
+let utf8_next s i =
+  let n = Char.code s.[i] in
+  if n < 0x80 then i + 1 else
+  if n < 0xc0 then utf8_search_head s (i + 1) else
+  if n <= 0xdf then i + 2
+  else if n <= 0xef then i + 3
+  else if n <= 0xf7 then i + 4
+  else if n <= 0xfb then i + 5
+  else if n <= 0xfd then i + 6
+  else failwith "Utils.utf_8.next"
+(* End of Extlib code *)
+
+let escape_utf8_char =
+  function
+      | '"'    -> "\\\""
+      | '\t'   -> "\\t"
+      | '\r'   -> "\\r"
+      | '\b'   -> "\\b"
+      | '\n'   -> "\\n"
+      | '\012' -> "\\f"
+      | '\\'   -> "\\\\"
+      | '/'    -> "\\/"
+      | c ->
+          Printf.sprintf "\\u%04X" (int_of_char c)
+
+let escape_utf8 ?special_char ?(escape_char=escape_utf8_char) = 
+  escape ?special_char ~escape_char ~next:utf8_next
+
+(* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:
  * takes a (string -> string) lookup function (raise Not_found on failure) and

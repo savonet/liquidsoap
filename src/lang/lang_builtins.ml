@@ -497,6 +497,92 @@ let () =
        let l = List.map Lang.to_string l in
          Lang.string (String.concat sep l))
 
+(* Special characters that must be escaped *)
+let special_chars =
+  (* Control chars between 0x00 and 0x1f *)
+  let rec escaped p l =
+    if p <= 0x1f then
+      escaped (p+1) ((Char.chr p)::l)
+    else
+      List.rev l
+  in
+  (* We also add 0x7F (DEL) and the
+   * usual '"' and '\' *)
+  escaped 0 ['"'; '\\'; '\x7F']
+
+let register_escape_fun ~name ~descr ~escape 
+                        ~escape_char =
+  let escape ~special_char ~escape_char s = 
+    let b = Buffer.create (String.length s) in
+    let f = Format.formatter_of_buffer b in
+    escape ~special_char ~escape_char f s ;
+    Format.pp_print_flush f () ;
+    Buffer.contents b
+  in
+  let special_chars =
+    Lang.list Lang.string_t
+     (List.map Lang.string 
+      (List.map (String.make 1) 
+        special_chars))
+  in
+  let escape_char p _ =
+    let v = List.assoc "" p in 
+    Lang.string
+     (escape_char
+       (Lang.to_string v).[0])
+  in
+  let escape_char = 
+    Lang.val_fun 
+     ["","",Lang.string_t,None]
+     ~ret_t:Lang.string_t
+     escape_char
+  in
+  add_builtin name ~cat:String ~descr 
+    [ "special_chars", Lang.list_t Lang.string_t, 
+      Some (special_chars),
+      Some ("List of characters that should be escaped. The first \
+             character of each element in the list is considered.") ;
+      "escape_char",
+      Lang.fun_t [false,"",Lang.string_t] Lang.string_t,
+      Some escape_char,
+      Some "Function used to escape a character." ;
+      "", Lang.string_t, None, None ]
+    Lang.string_t
+    (fun p ->
+       let s = Lang.to_string (List.assoc "" p) in
+       let special_chars = 
+         List.map 
+          (fun s -> s.[0])
+            (List.map Lang.to_string
+              (Lang.to_list (List.assoc "special_chars" p)))
+       in
+       let special_char c = List.mem c special_chars in
+       let f = List.assoc "escape_char" p in
+       let escape_char c = 
+         Lang.to_string
+          (Lang.apply f ~t:Lang.string_t 
+             ["",Lang.string (String.make 1 c)])
+       in
+       Lang.string (escape ~special_char ~escape_char s)) 
+
+let () = 
+  let escape ~special_char ~escape_char f s = 
+    Utils.escape ~special_char ~escape_char f s
+  in
+  register_escape_fun ~name:"string.escape" 
+                      ~descr:"Escape special charaters in a \
+                              string. String is parsed char by char. \
+                              See @string.utf8.escape@ for an UTF8-aware \
+                              parsing function."
+                      ~escape ~escape_char:Utils.escape_char ;
+  let escape ~special_char ~escape_char f s =
+    Utils.escape_utf8 ~special_char ~escape_char f s
+  in
+  register_escape_fun ~name:"string.utf8.escape" 
+                      ~descr:"Escape special charaters in an UTF8 \
+                              string."
+                      ~escape ~escape_char:Utils.escape_utf8_char
+
 let () =
   add_builtin "string.split" ~cat:String
     ~descr:"Split a string at 'separator'. \n\
@@ -1342,8 +1428,11 @@ let rec to_json_compact v =
   (* Utils.escape implements
    * JSON's escaping RFC. *)
   let print_s s =
-    Printf.sprintf "\"%s\""
-       (Utils.escape s)
+    let b = Buffer.create (String.length s) in
+    let f = Format.formatter_of_buffer b in
+    Utils.escape_utf8 f s ;
+    Format.pp_print_flush f () ;
+    Buffer.contents b 
   in
   match v.Lang.value with
     | Lang.Unit -> "null"

@@ -67,60 +67,17 @@ let get_extension f =
 
 type metadata = (string,string) Hashtbl.t
 
-(* These two functions are taken from Extlib's module UTF8
- * Copyright (c) 2002, 2003 Yamagata Yoriyuki *)
-let rec utf8_search_head s i =
-  if i >= String.length s then i else
-  let n = Char.code (String.unsafe_get s i) in
-  if n < 0x80 || n >= 0xc2 then i else
-  utf8_search_head s (i + 1)
-let utf8_next s i =
-  let n = Char.code s.[i] in
-  if n < 0x80 then i + 1 else
-  if n < 0xc0 then utf8_search_head s (i + 1) else
-  if n <= 0xdf then i + 2
-  else if n <= 0xef then i + 3
-  else if n <= 0xf7 then i + 4
-  else if n <= 0xfb then i + 5
-  else if n <= 0xfd then i + 6
-  else failwith "Request.utf_8.next"
-(* End of Extlib code *)
-
-(* The utf8_S_formatter provides some of the features of the standard S
- * formatter, but supports UTF8 encoded strings. So it won't escape wide
- * characters and mistake continuations of characters with normal ones.
- * Currently, it escapes '\n' and '"'. *)
-let utf8_S_formatter f s =
-  let i = ref 0 in
-  let next = utf8_next s in
-  let l = String.length s in
-  let out = Format.pp_print_char f in
-  let outs = Format.pp_print_string f in
-  let out_sub i j =
-    for n = i to j do out s.[n] done
-  in
-    out '"' ;
-    while !i < l do
-      let n = next !i in
-      if n-1 < l then
-        if n > !i+1 then out_sub !i (n-1) else
-          if s.[!i] = '"' then outs "\\\"" else
-          if s.[!i] = '\n' then outs "\\n" else
-            out s.[!i] ;
-      i := n
-    done ;
-    out '"'
-
 let string_of_metadata metadata =
   let b = Buffer.create 20 in
   let f = Format.formatter_of_buffer b in
+  let escape f s = Utils.escape_utf8 f s in
   let first = ref true in
     Hashtbl.iter (fun k v ->
                     if !first then begin
                       first := false ;
-                      Format.fprintf f "%s=%a" k utf8_S_formatter v
+                      Format.fprintf f "%s=%a" k escape v
                     end else
-                      Format.fprintf f "\n%s=%a" k utf8_S_formatter v)
+                      Format.fprintf f "\n%s=%a" k escape v)
       metadata ;
     Format.pp_print_flush f () ;
     Buffer.contents b
