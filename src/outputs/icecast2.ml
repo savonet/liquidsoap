@@ -26,9 +26,9 @@ open Dtools
 
 let error_translator =
   function
-    | Cry.Error x ->
+    | Cry.Error _ as e ->
        raise (Utils.Translation 
-         (Printf.sprintf "Cry error: %s" (Cry.string_of_error x)))
+         (Printf.sprintf "Cry error: %s" (Cry.string_of_error e)))
     | _ -> ()
 
 let () = Utils.register_error_translator error_translator
@@ -438,7 +438,7 @@ object (self)
               | Some s -> output_string s b
               | None -> () 
           with
-            | Cry.Error e ->
+            | Cry.Error _ as e ->
                 self#log#f 2 "Cry socket error: %s!" (Cry.string_of_error e) ;
                 (* Ask for a restart after last_attempt. *)
                 self#icecast_stop ;
@@ -502,10 +502,10 @@ object (self)
         begin try
           Cry.connect connection source
         with
-          | Cry.Error x as e ->
+          | Cry.Error _ as e ->
               self#log#f 2
                 "Connection failed: %s!"
-                (Cry.string_of_error x) ;
+                (Cry.string_of_error e) ;
               raise e
         end ;
         self#log#f 3 "Connection setup was successful." ;
