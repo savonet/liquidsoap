@@ -301,13 +301,17 @@ let () =
                -> true
            | _ -> false
          in
-         let user = Lang.to_string (List.assoc "user" p) in
-         let password = Lang.to_string (List.assoc "password" p) in
+         let default_user = 
+           Lang.to_string (List.assoc "user" p) 
+         in
+         let default_password = 
+           Lang.to_string (List.assoc "password" p) 
+         in
          let debug = Lang.to_bool (List.assoc "debug" p) in
          let icy = Lang.to_bool (List.assoc "icy" p) in
          let port = Lang.to_int (List.assoc "port" p) in
          let auth_function = List.assoc "auth" p in
-         let login user pass =
+         let login user password =
            (** We try to decode user & password here. 
              * Idealy, it would be better to decode them
              * in tools/harbor.ml in order to use any
@@ -321,24 +325,24 @@ let () =
              *   the password. Note: Content-Type may contain
              *   a charset information, but this refers to 
              *   the charset of the HTML content.. *)
-           let user,pass = 
+           let user,password = 
               let f = Configure.recode_tag in
               f user, f password
            in
-           let user_login test_user test_pass =
-             test_user = user &&
-             test_pass = pass
+           let default_login =
+             user = default_user &&
+             password = default_password
            in
              if not (trivially_false auth_function) then
                Lang.to_bool
                  (Lang.apply ~t:Lang.bool_t
                     auth_function
                     ["",Lang.string user;
-                     "",Lang.string pass])
+                     "",Lang.string password])
              else
-               user_login user pass
+               default_login
          in
-         let login = (user, login) in
+         let login = (default_user, login) in
          let dumpfile =
            match Lang.to_string (List.assoc "dumpfile" p) with
              | "" -> None

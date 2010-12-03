@@ -89,10 +89,10 @@ let find_source mount port =
 
 exception Assoc of string
 
-let assoc_capitalize x y =
+let assoc_uppercase x y =
   try 
     List.iter 
-      (fun (l,v) -> if String.capitalize l = x then
+      (fun (l,v) -> if String.uppercase l = x then
                      raise (Assoc v)) y ;
     raise Not_found
   with
@@ -163,19 +163,38 @@ let parse_http_request_line r =
         | s -> Unknown(s))
     )
 
-let write_answer ?(keep=false) c a =
-  let on_error _ = 
+(* Harbor execution flow requires 
+ * that we stay in the same thread 
+ * for now. Therefore, this has to
+ * be done in the current thread. *)
+(* TODO: rewrite harbor's execution flow.. *)
+let write_answer ?(keep=false) socket request =
+  let close () = 
     try
-      Unix.shutdown c Unix.SHUTDOWN_ALL ;
-      Unix.close c
+      if not keep then 
+       begin
+        Unix.shutdown socket Unix.SHUTDOWN_ALL ;
+        Unix.close socket
+       end
     with
       | _ -> ()
   in
-  let exec () = 
-    if not keep then on_error () 
+  let len = String.length request in
+  let rec write ofs =
+    let rem = len - ofs in
+    if rem > 0 then
+      let ret = Unix.write socket request ofs rem in
+      if ret = 0 then 
+        close ()
+      else
+        if ret < rem then
+          write (ofs+ret)
   in
-  Duppy.Io.write ~priority ~on_error ~exec
-        Tutils.scheduler c a
+  try
+    write 0 ;
+    close ()
+  with
+    | _ -> close ()
 
 let parse_headers headers =
   let split_header h l =
@@ -207,7 +226,7 @@ let auth_check ~login c uri headers =
     let valid_user,auth_f = login in
     try
       (* Authentication *)
-      let auth = assoc_capitalize "AUTHORIZATION" headers in
+      let auth = assoc_uppercase "AUTHORIZATION" headers in
       let data = Str.split (Str.regexp "[ \t]+") auth in
         if List.nth data 0 <> "Basic" then raise Not_supported ;
         let auth_data =
@@ -268,7 +287,7 @@ let handle_source_request ~port ~icy hprotocol c uri headers =
     log#f 3 "%s request on %s." sproto uri ;
     let stype =
       try
-        assoc_capitalize "CONTENT-TYPE" headers
+        assoc_uppercase "CONTENT-TYPE" headers
       with
         | Not_found when icy -> "audio/mpeg"
         | Not_found -> raise Unknown_codec
