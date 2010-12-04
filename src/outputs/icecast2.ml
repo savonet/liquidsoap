@@ -316,7 +316,11 @@ class output ~kind p =
   let description = s "description" in
   let out_enc = 
     match s "encoding" with
-      | "" -> None
+      | "" -> 
+         if protocol = Cry.Icy then
+           Some "ISO-8859-1"
+         else
+           None
       | s -> Some s
   in
   let public = e Lang.to_bool "public" in
