@@ -356,11 +356,12 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
   let liq_params =
     liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
   in
+  let descr = Printf.sprintf "%s by %s." (Descriptor.name d) (Descriptor.maker d) in
     Lang.add_operator ("ladspa." ^ norm_string (Descriptor.label d)) liq_params
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundProcessing
       ~flags:[Lang.Hidden]
-      ~descr:(Descriptor.name d ^ ".")
+      ~descr
       (fun p kind ->
          let f v = List.assoc v p in
          let source =
