@@ -100,18 +100,22 @@ let () =
   ~sdoc:"Use libflac to decode any file \
          if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
-     let log = log#f 3 "%s" in
-       if not (Decoder.test_flac ~log filename) then
-         None
+     if not (Decoder.test_flac ~log filename) then
+       None
+     else
+       if kind.Frame.audio = Frame.Variable ||
+          kind.Frame.audio = Frame.Succ Frame.Variable ||
+          (* libmad always respects the first two kinds *)
+          if Frame.type_has_kind (get_type filename) kind then true else begin
+            log#f 3
+              "File %S has an incompatible number of channels."
+              filename ;
+            false
+          end
+       then
+         Some (fun () -> create_file_decoder filename kind)
        else
-         if kind.Frame.audio = Frame.Variable ||
-            kind.Frame.audio = Frame.Succ Frame.Variable ||
-            (* libmad always respects the first two kinds *)
-            Frame.type_has_kind (get_type filename) kind
-         then
-           Some (fun () -> create_file_decoder filename kind)
-         else
-           None)
+         None)
 
 module D_stream = Make(Generator.From_audio_video_plus)
 

@@ -173,40 +173,33 @@ let mp4_file_extensions =
         "m4r"; "3gp"; "mp4"]
 
 
-let test_file ?(log=(fun _ -> ())) ~mimes ~extensions fname =
-  let fexist = 
-   try
-    ignore(Unix.stat fname) ;
-    true
-   with
-     | _ -> false
-  in
-  if not fexist then
-   begin
-    log (Printf.sprintf "File %S does not exist!" fname) ;
+let test_file ?(log=log) ~mimes ~extensions fname =
+  if not (Sys.file_exists fname) then begin
+    log#f 4 "File %S does not exist!" fname ;
     false
-   end
-  else 
-   begin 
-    let file_ext =
+  end else 
+    let ext_ok =
       try
         List.mem (Utils.get_ext fname) extensions
       with
         | _ -> false
     in
-    if not file_ext then
-      log (Printf.sprintf "Invalid file extension for %S!" fname) ;
-    begin
-     match Configure.file_mime with
-       | None -> file_ext
-       | Some mime_type ->
-           let mime = mime_type fname in
-           let file_mime = List.mem mime mimes in
-           if not file_mime then
-             log (Printf.sprintf "Invalid MIME type for %S: %s!" fname mime) ;
-           file_ext || file_mime
-    end
-   end
+    let mime_ok,mime =
+      match Configure.file_mime with
+        | None -> true, None
+        | Some mime_type ->
+            let mime = mime_type fname in
+              List.mem mime mimes, Some mime
+    in
+      if ext_ok || mime_ok then
+        true
+      else begin
+        if not mime_ok then
+          log#f 4 "Invalid MIME type for %S: %s!" fname (Utils.get_some mime) ;
+        if not ext_ok then
+          log#f 4 "Invalid file extension for %S!" fname ;
+        false
+      end
 
 let test_mp3 = test_file ~mimes:mp3_mime_types#get 
                          ~extensions:mp3_file_extensions#get

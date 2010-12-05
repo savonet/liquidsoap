@@ -35,7 +35,7 @@ if test_process("which flac") then
   add_decoder(name="FLAC",description="Decode files using the flac \
               decoder binary.", test=test_flac,flac_p)
 else
-  log(level=3,"flac binary not found: flac decoder disabled.")
+  log(level=3,"Did not find flac binary: flac decoder disabled.")
 end
 %endif
 
@@ -63,7 +63,7 @@ if os.type != "Win32" then
    end
    add_metadata_resolver("FLAC",flac_meta)
   else
-   log(level=3,"metaflac binary not found: flac metadata resolver disabled.")
+   log(level=3,"Did not find metaflac binary: flac metadata resolver disabled.")
   end
 end
 
@@ -144,7 +144,7 @@ if os.type != "Win32" then
     end
     add_metadata_resolver("FAAD",faad_meta)
   else
-    log(level=3,"faad binary not found: faad decoder disabled.")
+    log(level=3,"Did not find faad binary: faad decoder disabled.")
   end
 end
 

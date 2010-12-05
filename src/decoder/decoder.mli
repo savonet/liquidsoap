@@ -44,22 +44,22 @@ val conf_file_extensions : Dtools.Conf.ut
 (** Configuration keys for mp3. *)
 val mp3_mime_types : string list Dtools.Conf.t
 val mp3_file_extensions : string list Dtools.Conf.t
-val test_mp3 : ?log:(string->unit) -> string -> bool 
+val test_mp3 : ?log:Dtools.Log.t -> string -> bool 
 
 (** Configuration keys for flac. *)
 val flac_mime_types : string list Dtools.Conf.t
 val flac_file_extensions : string list Dtools.Conf.t
-val test_flac : ?log:(string->unit) -> string -> bool
+val test_flac : ?log:Dtools.Log.t -> string -> bool
 
 (** Configuration keys for aac. *)
 val aac_mime_types : string list Dtools.Conf.t
 val aac_file_extensions : string list Dtools.Conf.t
-val test_aac : ?log:(string->unit) -> string -> bool
+val test_aac : ?log:Dtools.Log.t -> string -> bool
 
 (** Configuration keys for mp4. *)
 val mp4_mime_types : string list Dtools.Conf.t
 val mp4_file_extensions : string list Dtools.Conf.t
-val test_mp4 : ?log:(string->unit) -> string -> bool
+val test_mp4 : ?log:Dtools.Log.t -> string -> bool
 
 val get_file_decoder :
   metadata:Frame.metadata -> file -> Frame.content_kind ->

@@ -75,25 +75,30 @@ let () =
   ~sdoc:"Use libmad to decode any file \
          if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
-     let log = log#f 3 "%s" in
-       (* Before doing anything, check that we are allowed to produce
-        * audio, and don't have to produce midi or video. Only then
-        * check that the file seems relevant for MP3 decoding. *)
-       if kind.Frame.audio = Frame.Zero ||
-          not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
-               Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
-          not (Decoder.test_mp3 ~log filename)
+     (* Before doing anything, check that we are allowed to produce
+      * audio, and don't have to produce midi or video. Only then
+      * check that the file seems relevant for MP3 decoding. *)
+     if kind.Frame.audio = Frame.Zero ||
+        not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
+             Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
+        not (Decoder.test_mp3 ~log filename)
+     then
+       None
+     else
+       if kind.Frame.audio = Frame.Variable ||
+          kind.Frame.audio = Frame.Succ Frame.Variable ||
+          (* libmad always respects the first two kinds *)
+          if Frame.type_has_kind (get_type filename) kind then true else begin
+             log#f 3
+               "File %S has an incompatible number of channels."
+               filename ;
+             false
+          end
        then
+         Some (fun () -> create_file_decoder filename kind)
+       else begin
          None
-       else
-         if kind.Frame.audio = Frame.Variable ||
-            kind.Frame.audio = Frame.Succ Frame.Variable ||
-            (* libmad always respects the first two kinds *)
-            Frame.type_has_kind (get_type filename) kind
-         then
-           Some (fun () -> create_file_decoder filename kind)
-         else
-           None)
+       end)
 
 module D_stream = Make(Generator.From_audio_video_plus)
 

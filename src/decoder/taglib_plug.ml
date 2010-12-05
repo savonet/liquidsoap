@@ -22,22 +22,16 @@
 
 open Taglib
 
-exception Done of Taglib.file_type
-
-(** Force the type for formats
-  * we know about.. *)
+(** Force the type for formats we know about.. *)
 let taglib_format fname =
-  try 
-    if Decoder.test_mp3 fname then
-      raise (Done Taglib.Mpeg) ;
-    (* For now, we force taglib on
-     * mp3 only.. *)
-    raise Not_found ;
-(*    if Decoder.test_mp4 fname then
-      raise (Done Taglib.Mp4) ;
-    None *)
-  with
-    | Done x -> Some x
+  if Decoder.test_mp3 fname then
+    Some Taglib.Mpeg
+  else
+    (* For now, we force taglib on mp3 only...
+    if Decoder.test_mp4 fname then
+      Some Taglib.Mp4
+    else *)
+    None
 
 let get_tags fname =
   try
