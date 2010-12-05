@@ -29,7 +29,7 @@ class fade_in ~kind
   ?(meta="liq_fade_in") ?(initial=false) duration fader source =
 object (self)
 
-  inherit operator kind [source] as super
+  inherit operator ~name:"fade_in" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -81,7 +81,7 @@ class fade_out ~kind
   ?(meta="liq_fade_out") ?(final=false) duration fader source =
 object (self)
 
-  inherit operator kind [source] as super
+  inherit operator ~name:"fade_out" kind [source] as super
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track
@@ -96,6 +96,7 @@ object (self)
 
   method remaining =
     if final then Frame.master_of_audio remaining else source#remaining
+
   method is_ready = (remaining > 0 || not final) && source#is_ready
 
   method private get_frame ab =

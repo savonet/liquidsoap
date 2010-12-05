@@ -456,7 +456,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port c uri headers =
       Hashtbl.remove log_args "pass" ;
       log_args
   in
-  Hashtbl.iter (fun h v -> log#f 4 "HTTP Arg: %s, value: %s." h v) log_args ;
+  Hashtbl.iter (fun h v -> log#f 4 "HTTP arg: %S, value: %S." h v) log_args ;
   try
     (* First, try with a registered handler. *)
       let (_,h,_) = Hashtbl.find opened_ports port in

@@ -37,7 +37,7 @@ class http_input_server ~kind ~dumpfile ~logfile
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
-  inherit Source.source kind
+  inherit Source.source ~name:"harbor" kind
   inherit Generated.source
             (Generator.create
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
