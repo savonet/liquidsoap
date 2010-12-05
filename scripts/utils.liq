@@ -2,7 +2,7 @@
 # Turn a source into an infaillible source.
 # by adding blank when the source is not available.
 # @param s the source to turn infaillible
-# @category Source / Input
+# @category Source / Track Processing
 def mksafe(s)
   fallback(id="mksafe",track_sensitive=false,[s,blank(id="safe_blank")])
 end
@@ -87,11 +87,14 @@ end
 
 # Removes all metadata coming from a source
 # @category Source / Track Processing
-def clear_metadata(s)
-  def map(m)
-    []
-  end
-  map_metadata(map,update=false,strip=true,s)
+def drop_metadata(s)
+  map_metadata(fun(_)->[],update=false,strip=true,insert_missing=false,s)
+end
+
+# Merge all tracks from a source, provided that it does not fail
+# @category Source / Track Processing
+def merge_tracks(s)
+  sequence(merge=true,[s])
 end
 
 output.prefered=output.dummy
@@ -125,7 +128,7 @@ in = fun () -> blank()
   in = fun () -> input.portaudio(id="pa_mic")
 %endif
 # Create a source from the first available input driver in this list:
-#   portaudio, alsa, oss, blank
+#   portaudio, alsa, oss, blank.
 # @category Source / Input
 def in()
   in()
@@ -206,12 +209,6 @@ def say_metadata
   fun (s,~pattern=p) ->
     append(s,fun (m) -> request.queue(queue=[request.create(pattern % m)],
                                       interactive=false))
-end
-
-# Relay the audio stream of Dolebraï, a libre music netradio running liquidsoap.
-# @category Source / Input
-def dolebrai ()
-  input.http(id="dolebrai","http://dolebrai.net:8000/dolebrai.ogg")
 end
 
 %ifdef soundtouch
