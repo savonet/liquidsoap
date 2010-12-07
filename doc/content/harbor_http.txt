@@ -228,7 +228,7 @@ def php_handler(path,~method,~protocol,~data,~headers,uri) =
   def sanitize(x) = 
     string.replace(pattern="-",
                    fun (_) -> "_", 
-                   string.capitalize(x))
+                   string.case(lower=false,x))
   end
   def f(x) = 
     (sanitize(fst(x)),snd(x))
@@ -329,7 +329,12 @@ def php_handler(path,~method,~protocol,~data,~headers,uri) =
       last_mod =  
         list.hd(get_process_lines("LANG=C date -R -d @#{last_mod_ts}"))
       server_headers = "Last-Modified: #{last_mod}\r\n"
-      mime = get_mime(script)
+      mime = 
+       if string.match(pattern="\.css$",script) then
+         "text/css"
+       else
+         get_mime(script)
+       end
       server_headers = 
         if mime != "" then
           "#{server_headers}Content-Type: #{mime}\r\n"
