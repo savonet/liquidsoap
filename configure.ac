@@ -360,11 +360,15 @@ AC_CHECK_OCAML_BINDING([dtools],[],[],[1])
 AC_CHECK_OCAML_BINDING([duppy],[0.4.0],[],[1])
 # Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
-  with_duppy_syntax_dir=${with_duppy_dir}
+  if test -n "${CAMLP4O}" ; then
+    with_duppy_syntax_dir=${with_duppy_dir}
+  fi
 fi
 AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.0],[],[],[],[ ])
-if test -n ${w_DUPPY_SYNTAX}; then
-  CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
+if test -n "${w_DUPPY_SYNTAX}"; then
+  if test -n "${CAMLP4O}"; then
+    CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
+  fi
 fi
 
 #
@@ -812,6 +816,11 @@ if test "$BYTE" = "yes"; then
   fi
 fi
 
+if test -n "$CAMLP4O"; then
+    CAMLP4O_COMP="CAMLP4O        : $CAMLP4O
+"
+fi
+
 cat <<EOMSG
 
  ----------------------------------------------------------------- Compilation
@@ -823,7 +832,7 @@ cat <<EOMSG
  OCAML_LFLAGS   : $ocamllflags
  CFLAGS         : $CFLAGS
  LDFLAGS        : $LDFLAGS
- $BYTE_COMP
+ ${BYTE_COMP}${CAMLP4O_COMP}
  ---------------------------------------------------------------- Installation
 
  prefix         : $prefix
