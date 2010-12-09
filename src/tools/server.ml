@@ -209,6 +209,8 @@ let exec s =
   
 exception Error
   
+exception Keep
+  
 let handle_client socket =
   let on_error e =
     ((match e with
@@ -225,7 +227,7 @@ let handle_client socket =
       on_error = on_error;
     } in
   (* Read and process lines *)
-  let rec process () =
+  let process =
     let __pa_duppy_0 =
       Duppy.Monad.Io.read ~priority: Tutils.Non_blocking
         ~marker: (Duppy.Io.Split "[\r\n]+") h
@@ -253,19 +255,19 @@ let handle_client socket =
                                Duppy.Monad.Io.write
                                  ~priority: Tutils.Non_blocking h
                                  "\r\nEND\r\n")))
-                    (fun () -> process ())))
-  in
-    Duppy.Monad.run (process ())
-      (fun e ->
-         let close () = try Unix.close socket with | _ -> ()
-         in
-           if e = Exit
-           then
-             (let on_error e = (ignore (on_error e); close ())
-              in
-                Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
-                  ~exec: close Tutils.scheduler ~string: "Bye!\r\n" socket)
-           else close ())
+                    (fun () -> Duppy.Monad.return Keep))) in
+  let close () = try Unix.close socket with | _ -> () in
+  let rec run () =
+    Duppy.Monad.run process
+      (function
+       | Keep -> run ()
+       | Exit ->
+           let on_error e = (ignore (on_error e); close ())
+           in
+             Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
+               ~exec: close Tutils.scheduler ~string: "Bye!\r\n" socket
+       | _ -> close ())
+  in run ()
   
 (* {1 The server} *)
 let start_socket () =
