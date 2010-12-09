@@ -257,7 +257,15 @@ let auth_check ?args ~login h uri headers =
 let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
   (* ICY request are on port+1 *)
   let source_port = if protocol = Shout then port-1 else port in
-  let s = find_source uri source_port in
+  duppy s = 
+    try
+      duppy_return (find_source uri source_port)
+    with
+      | Not_found -> 
+          log#f 3 "Request failed: no mountpoint '%s'!" uri ;
+          reply (http_error_page 404 "Not found"
+                     "This mountpoint isn't available.")
+  in
   duppy_do 
     (* ICY and Xaudiocast auth check was done before.. *)
     if not auth then
@@ -511,7 +519,8 @@ let handle_client ~port ~icy h =
                   with
                     | Not_found -> 
                          log#f 3 "Request failed: no mountpoint '%s'!" uri ;
-                         reply "No such mountpoint!\r\n\r\n"
+                         reply (http_error_page 404 "Not found"
+                                 "This mountpoint isn't available.")
                 in
                 (* Authentication can be blocking *)
                 duppy_exec 

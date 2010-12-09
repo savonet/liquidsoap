@@ -254,60 +254,70 @@ let auth_check ?args ~login h uri headers =
 let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
   (* ICY request are on port+1 *)
   let source_port = if protocol = Shout then port - 1 else port in
-  let s = find_source uri source_port
+  let __pa_duppy_0 =
+    try Duppy.Monad.return (find_source uri source_port)
+    with
+    | Not_found ->
+        (log#f 3 "Request failed: no mountpoint '%s'!" uri;
+         reply
+           (http_error_page 404 "Not found"
+              "This mountpoint isn't available."))
   in
-    Duppy.Monad.bind
-      ((* ICY and Xaudiocast auth check was done before.. *)
-       if not auth
-       then auth_check ~login: s#login h uri headers
-       else Duppy.Monad.return ())
-      (fun () ->
-         try
-           let sproto =
-             match protocol with
-             | Shout -> "ICY"
-             | Source -> "SOURCE"
-             | Xaudiocast -> "X-AUDIOCAST"
-             | _ -> assert false
-           in
-             (log#f 3 "%s request on %s." sproto uri;
-              let stype =
-                try assoc_uppercase "CONTENT-TYPE" headers
-                with
-                | Not_found when
-                    (protocol = Shout) || (protocol = Xaudiocast) ->
-                    "audio/mpeg"
-                | Not_found -> raise Unknown_codec
-              in
-                (if s#is_taken then raise Mount_taken else ();
-                 s#register_decoder stype;
-                 log#f 3 "Adding source on mountpoint %S with type %S." uri
-                   stype;
-                 s#relay headers h.Duppy.Monad.Io.socket;
-                 relayed "HTTP/1.0 200 OK\r\n\r\n"))
-         with
-         | Mount_taken ->
-             (log#f 3 "Returned 403: Mount taken";
-              reply
-                (http_error_page 403
-                   "Unauthorized\r\n\
+    Duppy.Monad.bind __pa_duppy_0
+      (fun s ->
+         Duppy.Monad.bind
+           ((* ICY and Xaudiocast auth check was done before.. *)
+            if not auth
+            then auth_check ~login: s#login h uri headers
+            else Duppy.Monad.return ())
+           (fun () ->
+              try
+                let sproto =
+                  match protocol with
+                  | Shout -> "ICY"
+                  | Source -> "SOURCE"
+                  | Xaudiocast -> "X-AUDIOCAST"
+                  | _ -> assert false
+                in
+                  (log#f 3 "%s request on %s." sproto uri;
+                   let stype =
+                     try assoc_uppercase "CONTENT-TYPE" headers
+                     with
+                     | Not_found when
+                         (protocol = Shout) || (protocol = Xaudiocast) ->
+                         "audio/mpeg"
+                     | Not_found -> raise Unknown_codec
+                   in
+                     (if s#is_taken then raise Mount_taken else ();
+                      s#register_decoder stype;
+                      log#f 3 "Adding source on mountpoint %S with type %S."
+                        uri stype;
+                      s#relay headers h.Duppy.Monad.Io.socket;
+                      relayed "HTTP/1.0 200 OK\r\n\r\n"))
+              with
+              | Mount_taken ->
+                  (log#f 3 "Returned 403: Mount taken";
+                   reply
+                     (http_error_page 403
+                        "Unauthorized\r\n\
                    WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
-                   "Mountpoint in use"))
-         | Not_found ->
-             (log#f 3 "Returned 404 for '%s'." uri;
-              reply
-                (http_error_page 404 "Not found"
-                   "This mountpoint isn't available."))
-         | Unknown_codec ->
-             (log#f 3 "Returned 501: unknown audio codec";
-              reply
-                (http_error_page 501 "Not Implemented"
-                   "This stream's format is not recognized."))
-         | e ->
-             (log#f 3 "Returned 500 for '%s': %s" uri (Utils.error_message e);
-              reply
-                (http_error_page 500 "Internal Server Error"
-                   "The server could not handle your request.")))
+                        "Mountpoint in use"))
+              | Not_found ->
+                  (log#f 3 "Returned 404 for '%s'." uri;
+                   reply
+                     (http_error_page 404 "Not found"
+                        "This mountpoint isn't available."))
+              | Unknown_codec ->
+                  (log#f 3 "Returned 501: unknown audio codec";
+                   reply
+                     (http_error_page 501 "Not Implemented"
+                        "This stream's format is not recognized."))
+              | e ->
+                  (log#f 3 "Returned 500 for '%s': %s" uri
+                     (Utils.error_message e);
+                   reply
+                     (http_error_page 500 "Internal Server Error"
+                        "The server could not handle your request."))))
   
 exception Handled of http_handler
   
@@ -498,7 +508,9 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                   (log#f 3
                                      "Request failed: no mountpoint '%s'!"
                                      uri;
-                                   reply "No such mountpoint!\r\n\r\n"))
+                                   reply
+                                     (http_error_page 404 "Not found"
+                                        "This mountpoint isn't available.")))
                            in
                              Duppy.Monad.bind __pa_duppy_0
                                (fun s -> (* Authentication can be blocking *)
