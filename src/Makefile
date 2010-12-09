@@ -12,6 +12,11 @@ liquidsoap_c_files = \
 	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
 	$(if $(W_OPAL),io/opal_io_c.c)
 
+liquidsoap_camlp4_files = \
+	$(if $(W_DUPPY_SYNTAX),tools/server.camlp4) \
+	$(if $(W_DUPPY_SYNTAX),tools/harbor.camlp4)
+
+
 ogg_demuxer = \
 	$(if $(W_OGG),ogg_demuxer.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
