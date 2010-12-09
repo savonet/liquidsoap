@@ -50,7 +50,7 @@ In this case, you can register the following handler:
 # located at localhost:8000
 def redirect_icecast(~method,~protocol,~data,~headers,uri) =
   "HTTP/1.1 301 Moved Permanently\r\n\
-   Location: http://localhost:8000#{s}\r\n\r\n"
+   Location: http://localhost:8000#{uri}\r\n\r\n"
 end
 
 # Register this handler at port 8005
