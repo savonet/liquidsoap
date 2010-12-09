@@ -41,9 +41,10 @@ m4_define([VERSION_CHECK],[ifelse([$2],[],[],[ >= $2])])
 
 AC_MSG_CHECKING([for ocaml $1 module[]VERSION_CHECK()])
 
-OCAML_CHECK="${OCAMLFIND} query $1"
 if ! test -z "$7"; then
   OCAML_CHECK="$7"
+else
+  OCAML_CHECK="${OCAMLFIND} query $1"
 fi
 
 AC_OCAML_CHECK_DEPS([$3])
@@ -79,7 +80,9 @@ else
         BINDING()_STOP_CHECK=yes
       fi
       BINDING()_requires=`cat "${with_[]binding()_dir}/META" | grep 'requires' | cut -d '=' -f 2 | tr -d '"'`
+      BINDING()_path="${with_[]binding()_dir}"
     else
+      BINDING()_path=`${OCAMLFIND} -query $1 2>/dev/null`
       if ! test -z "$2"; then
         AC_MSG_RESULT_NOT([$4],[cannot find version from META file.])
         BINDING()_STOP_CHECK=yes

@@ -183,6 +183,9 @@ if test "$OCAMLOPT" = no ; then
     enable_nativecode=no
 fi
 
+# check for camlp4o
+AC_PATH_PROG([CAMLP4O],[camlp4o],[])
+
 # Check for OS
 OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
 AC_SUBST(OS_TYPE)
@@ -354,7 +357,15 @@ AC_CHECK_OCAML_BINDING([dtools],[],[],[1])
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.3.0],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[0.4.0],[],[1])
+# Small hack..
+if test -z "${with_duppy_syntax_dir}"; then
+  with_duppy_syntax_dir=${with_duppy_dir}
+fi
+AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.0],[],[],[],[ ])
+if test -n ${w_DUPPY_SYNTAX}; then
+  CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
+fi
 
 #
 # Cry
@@ -772,6 +783,7 @@ AC_SUBST(OCAMLDEP)
 AC_SUBST(OCAMLLEX)
 AC_SUBST(OCAMLYACC)
 AC_SUBST(OCAMLFIND)
+AC_SUBST(CAMLP4O)
 AC_SUBST(_DEP_OPTS)
 AC_SUBST(ocamlcflags)
 AC_SUBST(ocamllflags)
