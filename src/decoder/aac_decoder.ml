@@ -129,7 +129,6 @@ let () =
   ~sdoc:"Use libfaad to decode AAC if MIME type or file extension \
          is appropriate."
   (fun ~metadata filename kind ->
-  let log = log#f 3 "%s" in
   (* Before doing anything, check that we are allowed to produce
    * audio, and don't have to produce midi or video. Only then
    * check that the file seems relevant for MP3 decoding. *)
@@ -264,7 +263,6 @@ let () =
   ~sdoc:"Use libfaad to decode MP4 if MIME type or file extension \
          is appropriate."
   (fun ~metadata filename kind ->
-  let log = log#f 3 "%s" in
   (* Before doing anything, check that we are allowed to produce
    * audio, and don't have to produce midi or video. Only then
    * check that the file seems relevant for MP3 decoding. *)
