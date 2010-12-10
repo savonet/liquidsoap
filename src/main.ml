@@ -55,8 +55,11 @@ let check_pervasives =
   let loaded = ref false in
     fun () ->
       if !pervasives && not !loaded then begin
-        Lang.load_libs ~parse_only:!parse_only () ;
-        loaded := true
+        let save = !Configure.display_types in
+          Configure.display_types := false ;
+          Lang.load_libs ~parse_only:!parse_only () ;
+          loaded := true ;
+          Configure.display_types := save
       end
 
 let plugin_doc name =
