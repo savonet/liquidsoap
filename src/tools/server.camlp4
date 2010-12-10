@@ -211,12 +211,8 @@ let exec s =
                       list of commands."
       | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
 
-exception Error
-exception Keep
-
 let handle_client socket =
   let on_error e =
-    begin
       match e with
         | Duppy.Io.Io_error ->
              log#f 3 "Client disconnected"
@@ -226,8 +222,6 @@ let handle_client socket =
                     (Unix.Unix_error (c,p,m)))
         | Duppy.Io.Unknown e ->
                  log#f 3 "%s" (Utils.error_message e)
-    end ;
-    Error
   in
   let h =
     { Duppy.Monad.Io.
@@ -251,7 +245,7 @@ let handle_client socket =
         try
           duppy_return (exec req)
         with
-          | e -> duppy_raise e
+          | _ -> duppy_raise ()
        end
       with
         { priority = Tutils.Maybe_blocking ;
@@ -265,7 +259,7 @@ let handle_client socket =
       with
         { priority = Tutils.Non_blocking ;
           handler  = h } ;
-      duppy_return Keep
+      duppy_return ()
     done
   in
   let close () = 
@@ -275,19 +269,20 @@ let handle_client socket =
       | _ -> ()
   in
   let rec run () = 
-    duppy_run 
-      process
-    with
-      | Keep -> run ()
-      | Exit ->
+    let raise () = 
          let on_error e =
-             ignore(on_error e) ;
+             on_error e ;
              close ()
          in
          Duppy.Io.write ~priority:Tutils.Non_blocking ~on_error
                         ~exec:close Tutils.scheduler ~string:"Bye!\r\n"
                         socket
-      | _ -> close ()
+    in
+    duppy_run 
+      process
+    with
+      { return = run ;
+        raise  = raise }
   in
   run ()
 

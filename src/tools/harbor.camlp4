@@ -100,7 +100,6 @@ let reply s = duppy_raise (Close s)
 let relayed s = duppy_raise (Reply s)
 
 exception Not_authenticated
-exception Not_supported
 exception Unknown_codec
 exception Mount_taken
 exception Registered
@@ -126,14 +125,16 @@ let http_error_page code status msg =
      \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n\
      <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\
      <head><title>Liquidsoap source harbor</title></head>\
-     <body><p>" ^ msg ^ "</p></body></html>\n" )
+     <body><p>" ^ msg ^ "</p></body></html>" )
 
 let parse_icy_request_line ~port h r =
   duppy s = 
     try
       duppy_return (find_source "/" (port-1))
     with
-    | Not_found -> reply "no / mountpoint\r\n\r\n"
+    | Not_found -> 
+       log#f 3 "ICY error: no / mountpoint" ;
+       reply "No / mountpoint\r\n\r\n"
   in 
   (* Authentication can be blocking. *)
   duppy_exec
@@ -142,7 +143,10 @@ let parse_icy_request_line ~port h r =
        duppy_return
          (Shout,"/",Icy)
      else
-       reply "invalid password\r\n\r\n"
+       begin
+         log#f 3 "ICY error: invalid password" ;
+         reply "Invalid password\r\n\r\n"
+       end
   with
     { priority = Tutils.Maybe_blocking ;
       handler  = h }
@@ -169,7 +173,7 @@ let parse_http_request_line r =
   with
     | e -> 
         log#f 4 "Invalid request line %s: %s" r (Utils.error_message e) ;
-        reply "Invalid request!\r\n\r\n"
+        reply "HTTP 500 Invalid request\r\n\r\n"
 
 let parse_headers headers =
   let split_header h l =
@@ -242,8 +246,7 @@ let auth_check ?args ~login uri headers =
       | Not_authenticated ->
              log#f 3 "Returned 401: wrong auth." ;
              http_reply "Wrong Authentication data"
-      | Not_found
-      | Not_supported ->
+      | Not_found ->
              log#f 3 "Returned 401: bad authentication." ;
              http_reply "No login / password supplied."
 
@@ -408,8 +411,8 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                s#insert_metadata args ;
                reply  
                  (Printf.sprintf
-                   "HTTP/1.0 200 OK\r\n\r\n\
-                    Updated metadatas for mount %s\r\n\r\n"
+                   "HTTP/1.0 200 OK\r\n\r\n
+                    Updated metadatas for mount %s"
                     mount) 
              end
            done
@@ -548,7 +551,7 @@ let handle_client ~port ~icy h =
            with
              | e -> 
                 log#f 3 "Failed: %s" (Utils.error_message e) ;
-                reply "Wrong data!\r\n\r\n"
+                reply "Wrong data!"
         in
         duppy data = 
           duppy_read 
@@ -608,7 +611,6 @@ let open_port ~icy port =
       else
        begin
         (try
-          begin
            let (socket,caller) = accept sock in
            let ip = 
              Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller 
@@ -629,7 +631,7 @@ let open_port ~icy port =
                 | Duppy.Io.Unknown e ->
                       log#f 3 "%s" (Utils.error_message e)
              end ;
-             Close "Network Error !\r\n\r\n"
+             Close "Network Error !"
            in
            let h = 
              { Duppy.Monad.Io.
@@ -638,10 +640,7 @@ let open_port ~icy port =
                 init      = "";
                 on_error  = on_error }
            in
-           duppy_run 
-             handle_client ~port ~icy h
-           with
-             | r ->
+           let reply r = 
                let close () =
                  try
                    Unix.close socket
@@ -657,11 +656,15 @@ let open_port ~icy port =
                  ignore(on_error e) ;
                  close ()
                in
-               Duppy.Io.write ~priority:Tutils.Non_blocking 
-                              ~on_error ~string:s
-                              ~exec Tutils.scheduler
-                              socket
-          end
+               Duppy.Io.write ~priority:Tutils.Non_blocking
+                              ~on_error ~string:s ~exec 
+                              Tutils.scheduler socket
+           in
+           duppy_run 
+             handle_client ~port ~icy h
+           with
+             { return = reply ;
+               raise  = reply }
          with
            | e -> 
                log#f 2 "Failed to accept new client: %s" (Utils.error_message e)) ;

@@ -115,8 +115,6 @@ let relayed s = Duppy.Monad.raise (Reply s)
   
 exception Not_authenticated
   
-exception Not_supported
-  
 exception Unknown_codec
   
 exception Mount_taken
@@ -140,12 +138,15 @@ let http_error_page code status msg =
      <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">\
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>"
-                ^ (msg ^ "</p></body></html>\n")))))
+                ^ (msg ^ "</p></body></html>")))))
   
 let parse_icy_request_line ~port h r =
   let __pa_duppy_0 =
     try Duppy.Monad.return (find_source "/" (port - 1))
-    with | Not_found -> reply "no / mountpoint\r\n\r\n"
+    with
+    | Not_found ->
+        (log#f 3 "ICY error: no / mountpoint";
+         reply "No / mountpoint\r\n\r\n")
   in
     Duppy.Monad.bind __pa_duppy_0
       (fun s -> (* Authentication can be blocking. *)
@@ -155,7 +156,9 @@ let parse_icy_request_line ~port h r =
               in
                 if auth_f user r
                 then Duppy.Monad.return (Shout, "/", Icy)
-                else reply "invalid password\r\n\r\n")
+                else
+                  (log#f 3 "ICY error: invalid password";
+                   reply "Invalid password\r\n\r\n"))
            ())
   
 let parse_http_request_line r =
@@ -178,7 +181,7 @@ let parse_http_request_line r =
   with
   | e ->
       (log#f 4 "Invalid request line %s: %s" r (Utils.error_message e);
-       reply "Invalid request!\r\n\r\n")
+       reply "HTTP 500 Invalid request\r\n\r\n")
   
 let parse_headers headers =
   let split_header h l =
@@ -243,7 +246,7 @@ let auth_check ?args ~login uri headers = (* 401 error model *)
     | Not_authenticated ->
         (log#f 3 "Returned 401: wrong auth.";
          http_reply "Wrong Authentication data")
-    | Not_found | Not_supported ->
+    | Not_found ->
         (log#f 3 "Returned 401: bad authentication.";
          http_reply "No login / password supplied.")
   
@@ -406,8 +409,8 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                                       (s#insert_metadata args;
                                        reply
                                          (Printf.sprintf
-                                            "HTTP/1.0 200 OK\r\n\r\n\
-                    Updated metadatas for mount %s\r\n\r\n"
+                                            "HTTP/1.0 200 OK\r\n\r\n
+                    Updated metadatas for mount %s"
                                             mount)))))))
            | _ -> ans_500 ()) in
   let rex = Pcre.regexp "^(.+)\\?(.+)$" in
@@ -547,7 +550,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                        with
                        | e ->
                            (log#f 3 "Failed: %s" (Utils.error_message e);
-                            reply "Wrong data!\r\n\r\n"))
+                            reply "Wrong data!"))
                     in
                       Duppy.Monad.bind __pa_duppy_0
                         (fun len ->
@@ -615,26 +618,27 @@ let open_port ~icy port =
                         (Utils.error_message (Unix.Unix_error (c, p, m)))
                   | Duppy.Io.Unknown e ->
                       log#f 3 "%s" (Utils.error_message e));
-                 Close "Network Error !\r\n\r\n") in
+                 Close "Network Error !") in
               let h =
                 {
                   Duppy.Monad.Io.scheduler = Tutils.scheduler;
                   socket = socket;
                   init = "";
                   on_error = on_error;
-                }
+                } in
+              let reply r =
+                let close () = try Unix.close socket with | _ -> () in
+                let (s, exec) =
+                  match r with
+                  | Reply s -> (s, (fun () -> ()))
+                  | Close s -> (s, close) in
+                let on_error e = (ignore (on_error e); close ())
+                in
+                  Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
+                    ~string: s ~exec Tutils.scheduler socket
               in
-                Duppy.Monad.run (handle_client ~port ~icy h)
-                  (fun r ->
-                     let close () = try Unix.close socket with | _ -> () in
-                     let (s, exec) =
-                       match r with
-                       | Reply s -> (s, (fun () -> ()))
-                       | Close s -> (s, close) in
-                     let on_error e = (ignore (on_error e); close ())
-                     in
-                       Duppy.Io.write ~priority: Tutils.Non_blocking
-                         ~on_error ~string: s ~exec Tutils.scheduler socket))
+                Duppy.Monad.run (handle_client ~port ~icy h) ~return: reply
+                  ~raise: reply ())
          with
          | e ->
              log#f 2 "Failed to accept new client: %s"

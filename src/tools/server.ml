@@ -207,18 +207,13 @@ let exec s =
                       list of commands."
     | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
   
-exception Error
-  
-exception Keep
-  
 let handle_client socket =
   let on_error e =
-    ((match e with
-      | Duppy.Io.Io_error -> log#f 3 "Client disconnected"
-      | Duppy.Io.Unix (c, p, m) ->
-          log#f 3 "%s" (Utils.error_message (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e -> log#f 3 "%s" (Utils.error_message e));
-     Error) in
+    match e with
+    | Duppy.Io.Io_error -> log#f 3 "Client disconnected"
+    | Duppy.Io.Unix (c, p, m) ->
+        log#f 3 "%s" (Utils.error_message (Unix.Unix_error (c, p, m)))
+    | Duppy.Io.Unknown e -> log#f 3 "%s" (Utils.error_message e) in
   let h =
     {
       Duppy.Monad.Io.scheduler = Tutils.scheduler;
@@ -238,7 +233,7 @@ let handle_client socket =
              Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
                (fun () ->
                   try Duppy.Monad.return (exec req)
-                  with | e -> Duppy.Monad.raise e)
+                  with | _ -> Duppy.Monad.raise ())
                ()
            in
              Duppy.Monad.bind __pa_duppy_0
@@ -255,18 +250,15 @@ let handle_client socket =
                                Duppy.Monad.Io.write
                                  ~priority: Tutils.Non_blocking h
                                  "\r\nEND\r\n")))
-                    (fun () -> Duppy.Monad.return Keep))) in
+                    (fun () -> Duppy.Monad.return ()))) in
   let close () = try Unix.close socket with | _ -> () in
   let rec run () =
-    Duppy.Monad.run process
-      (function
-       | Keep -> run ()
-       | Exit ->
-           let on_error e = (ignore (on_error e); close ())
-           in
-             Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
-               ~exec: close Tutils.scheduler ~string: "Bye!\r\n" socket
-       | _ -> close ())
+    let raise () =
+      let on_error e = (on_error e; close ())
+      in
+        Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error ~exec: close
+          Tutils.scheduler ~string: "Bye!\r\n" socket
+    in Duppy.Monad.run process ~return: run ~raise: raise ()
   in run ()
   
 (* {1 The server} *)
