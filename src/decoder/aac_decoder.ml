@@ -35,11 +35,9 @@ let () = Utils.register_error_translator error_translator
 
 (* A custom input function take takes 
  * an offset into account *)
-let offset_input input buf offset = 
+let offset_input input buf offset len = 
   let ret = Buffer.create 1024 in
-  let len = String.length buf in
-  if offset < len then
-    Buffer.add_substring ret buf offset (len - offset);
+  Buffer.add_substring ret buf offset len;
   (* Stupid code due to a lame Buffer API.. *)
   let drop len = 
     let size = Buffer.length ret in
@@ -83,7 +81,7 @@ let create_decoder input =
   let offset, sample_freq, chans =
      Faad.init dec aacbuf 0 len 
   in
-  let input,drop = offset_input input aacbuf offset in
+  let input,drop = offset_input input aacbuf offset (len-offset) in
     Decoder.Decoder (fun gen ->
         let aacbuf,len = input aacbuflen in
         let pos, data = Faad.decode dec aacbuf 0 len in
