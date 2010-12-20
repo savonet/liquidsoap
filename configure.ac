@@ -675,6 +675,8 @@ AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage],[sd
 
 AC_CHECK_OCAML_BINDING([camlimages])
 
+AC_CHECK_OCAML_BINDING([lo])
+
 #
 # Tuning (See INSTALL to understand these features)
 #
@@ -904,6 +906,7 @@ cat <<EOMSG
 
  * Additional libraries
    - magic             : $w_MAGIC
+   - lo                : $w_LO
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
