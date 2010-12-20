@@ -20,25 +20,24 @@
 
  *****************************************************************************)
 
+(** Common infrastructure for encoding streams *)
+
 let conf = 
   Dtools.Conf.void ~p:(Configure.conf#plug "encoder") "Encoder settings"
     ~comments:["Settings for the encoder"]
-
 
 let conf_meta =
   Dtools.Conf.void ~p:(conf#plug "encoder") "Metadata settings"
     ~comments:["Settings for the encoded metadata."]
 
-(** The list of metadata that labels
-  * are exported when encoding data. *)
+(** The list of metadata fields that should be exported when encoding. *)
 let conf_export_metadata =
   Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
     ~d:["artist";"title";"album";"genre";"date";"tracknumber";
         "comment"]
     ~comments:["The list of labels of exported metadata."]
 
-(* This is because I am too lazy to 
- * write encoder.mli.. *)
+(* This is because I am too lazy to write encoder.mli.. *)
 module Meta : 
   sig
     (* I would like to use a private 
@@ -145,7 +144,8 @@ struct
   }
 
   let to_string m =
-    Printf.sprintf "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
+    Printf.sprintf
+      "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
       m.channels m.bits_per_sample m.samplerate m.compression
 
 end
@@ -285,7 +285,7 @@ struct
 
   let to_string th =
     let f = Lazy.force in
-    Printf.sprintf "Theora(%s,width=%d,height=%d,picture_width=%d,\
+    Printf.sprintf "%%theora(%s,width=%d,height=%d,picture_width=%d,\
                            picture_height=%d,picture_x=%d,picture_y=%d,\
                            aspect_numerator=%d,aspect_denominator=%d,\
                            keyframe_frequence=%d,%s,\

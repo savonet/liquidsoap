@@ -123,7 +123,7 @@ let get_type filename =
 
 let () =
   Decoder.file_decoders#register
-  "AAC/libfaad"
+  "AAC/LIBFAAD"
   ~sdoc:"Use libfaad to decode AAC if MIME type or file extension \
          is appropriate."
   (fun ~metadata filename kind ->
@@ -149,7 +149,7 @@ module D_stream = Make(Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register
-    "AAC/libfaad"
+    "AAC/LIBFAAD"
     ~sdoc:"Use libfaad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in

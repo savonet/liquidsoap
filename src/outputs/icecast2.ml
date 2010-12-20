@@ -256,10 +256,10 @@ class output ~kind p =
                   x = Cry.ogg_audio ||
                   x = Cry.ogg_video -> false
       | _, Guess -> 
-           raise (Lang.Invalid_value (List.assoc "icy_metadata" p,
-                                                 "Could not guess icy_metadata \
-                                                  for this format, please specify \
-                                                  either 'true' or 'false'."))
+           raise (Lang.Invalid_value
+                    (List.assoc "icy_metadata" p,
+                     "Could not guess icy_metadata for this format, \
+                      please specify either 'true' or 'false'."))
   in
 
 
