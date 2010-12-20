@@ -33,38 +33,32 @@ let error_translator =
 
 let () = Utils.register_error_translator error_translator
 
-(* A custom input function take takes 
- * an offset into account *)
-let offset_input input buf offset len = 
-  let ret = Buffer.create 1024 in
-  Buffer.add_substring ret buf offset len;
-  (* Stupid code due to a lame Buffer API.. *)
+(** Buffered input device where
+  * the buffer initially contains [String.sub buf offset len]. *)
+let buffered_input input buf offset len =
+  let buffer = Buffer.create 1024 in
+  Buffer.add_substring buffer buf offset len;
+  (* Drop all but then [len] last bytes. *)
   let drop len = 
-    let size = Buffer.length ret in
-    assert(len <= size) ;
-    if len < size then
-      begin
-       let tmp = String.create (size-len) in
-       Buffer.blit ret len tmp 0 (size-len) ;
-       Buffer.reset ret ;
-       Buffer.add_string ret tmp
-      end
-    else
-      Buffer.reset ret
+    let size = Buffer.length buffer in
+    assert (len <= size) ;
+    if len = size then Buffer.reset buffer else
+      let tmp = Buffer.sub buffer len (size-len) in
+        Buffer.reset buffer ;
+        Buffer.add_string buffer tmp
   in
-  let input len = 
-    let size = Buffer.length ret in
+  (* Get at most [len] bytes from the buffer,
+   * which is refilled from [input] if needed.
+   * This does not remove data from the buffer. *)
+  let input len =
+    let size = Buffer.length buffer in
     let len = 
-      if size < len then
-       begin
+      if size >= len then len else
         let data,read = input (len-size) in
-        Buffer.add_substring ret data 0 read ;
-        size+read
-       end
-      else 
-       len
-   in
-   Buffer.sub ret 0 len,len
+          Buffer.add_substring buffer data 0 read ;
+          size+read
+    in
+      Buffer.sub buffer 0 len, len
   in
   input,drop
 
@@ -81,14 +75,15 @@ let create_decoder input =
   let offset, sample_freq, chans =
      Faad.init dec aacbuf 0 len 
   in
-  let input,drop = offset_input input aacbuf offset (len-offset) in
+  let input,drop = buffered_input input aacbuf offset (len-offset) in
     Decoder.Decoder (fun gen ->
         let aacbuf,len = input aacbuflen in
-        let pos, data = Faad.decode dec aacbuf 0 len in
+        let pos,data = Faad.decode dec aacbuf 0 len in
         drop pos ;
         let content,length =
           resampler ~audio_src_rate:(float sample_freq) data
         in
+          (* TODO assert (Array.length content.(0) = length) ? *)
           Generator.set_mode gen `Audio ;
           Generator.put_audio gen content 0 (Array.length content.(0)))
 
