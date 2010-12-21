@@ -36,7 +36,7 @@ object (self)
   val mutable session = None
 
   (* Called when there's no decoding process, in order to create one. *)
-  method connect url =
+  method connect should_stop url =
     (* Do nothing is the buffer is
      * still greater than bufferize.
      * This is not an active wait because 
@@ -88,7 +88,7 @@ object (self)
       let metas = Hashtbl.create 2 in
         List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
         http#insert_metadata metas;
-        http#connect uri
+        http#connect should_stop uri
      with
        | Liqfm.Radio.Error e ->
            session <- None ;

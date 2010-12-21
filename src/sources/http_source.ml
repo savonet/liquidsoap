@@ -170,8 +170,7 @@ class http ~kind
         ~debug ?(logfile=None)
         ~user_agent url =
   let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
-  (* We need a temporary log until
-   * the source has an id *)
+  (* We need a temporary log until the source has an ID. *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
@@ -183,15 +182,16 @@ object (self)
 
   method stype = Source.Fallible
 
-  (** The poll_should_stop says that the current polling thread should stop,
-    * because #sleep was called. The subsequent #wake_up call will wake for the
-    * thread to set poll_should_stop to false again and exit.
-    * The condition/lock devices are only useful for avoiding an active
-    * wait in #wake_up, because the race conditions are completely harmless. *)
-  val mutable poll_should_stop = false
-  val polling_lock = Mutex.create ()
-  val polling_cond = Condition.create ()
+  (** [kill_polling] is for requesting that the feeding thread stops;
+    * it is called on #sleep. *)
+  val mutable kill_polling = None
 
+  (** [wait_polling] is to make sure that the thread did stop;
+    * it is only called in #wake_up before creating a new thread,
+    * so that #sleep is instantaneous. *)
+  val mutable wait_polling = None
+
+  (** Log file for the timestamps of read events. *)
   val mutable logf = None
 
   val mutable connected = false
@@ -200,13 +200,15 @@ object (self)
 
   (* Insert metadata *)
   method insert_metadata m =
-    self#log#f 3 "New metadata chunk: %s -- %s."
-                (try Hashtbl.find m "artist" with _ -> "?")
-                (try Hashtbl.find m "title" with _ -> "?") ;
+    self#log#f 3
+      "New metadata chunk: %s -- %s."
+      (try Hashtbl.find m "artist" with _ -> "?")
+      (try Hashtbl.find m "title" with _ -> "?") ;
     Generator.add_metadata generator m ;
     if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
-  method feeding ?(newstream=true) create_decoder socket chunked metaint =
+  method feeding should_stop ?(newstream=true)
+                 create_decoder socket chunked metaint =
     connected <- true ;
     let read = read_stream socket chunked metaint self#insert_metadata in
     let read =
@@ -224,7 +226,7 @@ object (self)
         let Decoder.Decoder decoder = create_decoder read in
         while true do
           if should_fail then failwith "end of track" ;
-          if poll_should_stop || (not relaying) then 
+          if should_stop () || (not relaying) then 
             failwith "source stopped" ;
           decoder generator
         done
@@ -246,10 +248,16 @@ object (self)
             Http.disconnect socket ;
             if debug then raise e
 
-  method connect = self#private_connect ~sanitize:true
+  (** This method gets overriden by superclasses (see Lastfm_input)
+    * but #private_connect should not be changed.
+    * TODO Document more this OO problem to see why/if there really isn't
+    *   a better way (e.g. using super#connect instead of self#connect
+    *   in the derived class). *)
+  method connect should_stop url =
+    self#private_connect ~sanitize:true should_stop url
 
   (* Called when there's no decoding process, in order to create one. *)
-  method private_connect ?(sanitize=true) url =
+  method private_connect ?(sanitize=true) poll_should_stop url =
     let url =
       if sanitize then
         Http.http_sanitize url
@@ -320,11 +328,11 @@ object (self)
                 raise Internal
               end ;
               let play_track (m,uri) =
-                if not poll_should_stop then
+                if not (poll_should_stop ()) then
                 let metas = Hashtbl.create 2 in
                   List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
                   self#insert_metadata metas;
-                  self#private_connect uri
+                  self#private_connect poll_should_stop uri
               in
               let randomize playlist =
                 let aplay = Array.of_list playlist in
@@ -390,7 +398,8 @@ object (self)
                             | None -> ()
                           end ;
                           self#log#f 3 "Decoding..." ;
-                          self#feeding dec socket chunked metaint
+                          self#feeding
+                            poll_should_stop dec socket chunked metaint
                       end
           with
             | e ->
@@ -398,7 +407,7 @@ object (self)
                 raise e
       with
         | Redirection location ->
-            self#private_connect ~sanitize:false location
+            self#private_connect ~sanitize:false poll_should_stop location
         | Http.Error e ->
             self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
             if debug then raise (Http.Error e)
@@ -407,15 +416,15 @@ object (self)
             if debug then raise e
 
   (* Take care of (re)starting the decoding *)
-  method poll =
+  method poll (should_stop,has_stopped) =
     (* Try to read the stream *)
-    if relaying then self#connect url ;
-    if poll_should_stop then begin
-      poll_should_stop <- false ;
-      Condition.signal polling_cond
-    end else begin
+    if relaying then
+      self#connect should_stop url ;
+    if should_stop () then
+      has_stopped ()
+    else begin
       Thread.delay poll_delay ;
-      self#poll
+      self#poll (should_stop,has_stopped)
     end
 
   val mutable ns = []
@@ -424,8 +433,16 @@ object (self)
     (* Now we can create the log function *)
     log_ref := self#log#f 3 "%s" ;
     (* Wait for the old polling thread to return, then create a new one. *)
-    Tutils.wait polling_cond polling_lock (fun () -> not poll_should_stop) ;
-    ignore (Tutils.create (fun () -> self#poll) () "http polling") ;
+    assert (kill_polling = None) ;
+    begin match wait_polling with
+      | None -> ()
+      | Some f -> f () ; wait_polling <- None
+    end ;
+    begin
+      let kill,wait = Tutils.stoppable_thread self#poll "http polling" in
+        kill_polling <- Some kill ;
+        wait_polling <- Some wait
+    end ;
     if ns = [] then
       ns <- Server.register [self#id] "input.http" ;
     self#set_id (Server.to_string ns) ;
@@ -437,7 +454,9 @@ object (self)
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
 
-  method sleep = poll_should_stop <- true
+  method sleep =
+    (Utils.get_some kill_polling) () ;
+    kill_polling <- None
 
 end
 
