@@ -72,9 +72,9 @@ object (self)
 
   inherit active_operator ~name:output_kind content_kind [source] as super
 
-  method virtual output_start : unit
-  method virtual output_stop : unit
-  method virtual output_send : Frame.t -> unit
+  method virtual private output_start : unit
+  method virtual private output_stop : unit
+  method virtual private output_send : Frame.t -> unit
 
   method stype = source#stype
 
@@ -192,11 +192,11 @@ object (self)
   val q_length = 10
   val metadata_q = Queue.create ()
 
-  method add_metadata m =
+  method private add_metadata m =
     Queue.add m metadata_q ;
     if Queue.length metadata_q > q_length then ignore (Queue.take metadata_q) ;
 
-  method metadata_queue = Queue.copy metadata_q
+  method private metadata_queue = Queue.copy metadata_q
 
   (* The output process *)
 
@@ -257,10 +257,10 @@ object
       ~infallible ~on_start ~on_stop
       ~content_kind:kind
 
-  method output_reset  = ()
-  method output_start  = ()
-  method output_stop   = ()
-  method output_send _ = ()
+  method private output_reset  = ()
+  method private output_start  = ()
+  method private output_stop   = ()
+  method private output_send _ = ()
 end
 
 let () =
@@ -291,11 +291,11 @@ object (self)
             ~infallible ~on_start ~on_stop
             ~content_kind ~output_kind ~name source autostart
 
-  method virtual insert_metadata : Encoder.Meta.export_metadata -> unit
-  method virtual encode : Frame.t -> int -> int -> string
-  method virtual send : string -> unit
+  method virtual private insert_metadata : Encoder.Meta.export_metadata -> unit
+  method virtual private encode : Frame.t -> int -> int -> string
+  method virtual private send : string -> unit
 
-  method output_send frame =
+  method private output_send frame =
     let rec output_chunks frame =
       let f start stop =
         begin

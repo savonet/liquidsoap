@@ -57,16 +57,16 @@ object
   method is_active : bool
   method is_ready : bool
 
-  method add_metadata : Request.metadata -> unit
-  method metadata_queue : Request.metadata Queue.t
+  method private add_metadata : Request.metadata -> unit
+  method private metadata_queue : Request.metadata Queue.t
 
   (* TODO except for #output_reset those methods should be private
    *   while we're at it I'm tempted to remove #is_active and let each
    *   output deal with it *)
-  method virtual output_reset : unit
-  method virtual output_send : Frame.t -> unit
-  method virtual output_start : unit
-  method virtual output_stop : unit
+  method virtual private output_reset : unit
+  method virtual private output_send : Frame.t -> unit
+  method virtual private output_start : unit
+  method virtual private output_stop : unit
 end
 
 class virtual encoded :
@@ -81,13 +81,13 @@ class virtual encoded :
 object
   inherit output
 
-  method output_send : Frame.t -> unit
+  method private output_send : Frame.t -> unit
 
-  method virtual encode : Frame.t -> int -> int -> string
-  method virtual insert_metadata : Encoder.Meta.export_metadata -> unit
-  method virtual send : string -> unit
+  method virtual private encode : Frame.t -> int -> int -> string
+  method virtual private insert_metadata : Encoder.Meta.export_metadata -> unit
+  method virtual private send : string -> unit
 
-  method virtual output_reset : unit
-  method virtual output_start : unit
-  method virtual output_stop : unit
+  method virtual private output_reset : unit
+  method virtual private output_start : unit
+  method virtual private output_stop : unit
 end
