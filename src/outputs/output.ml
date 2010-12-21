@@ -72,6 +72,13 @@ object (self)
 
   inherit active_operator ~name:output_kind content_kind [source] as super
 
+  inherit Start_stop.base ~name ~source_kind:output_kind
+                          ~on_start ~on_stop ~autostart as start_stop
+
+  (* Eventually we can simply rename them... *)
+  method private start = self#output_start
+  method private stop = self#output_stop
+
   method virtual private output_start : unit
   method virtual private output_stop : unit
   method virtual private output_send : Frame.t -> unit
@@ -88,29 +95,11 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val mutable does_output = false       (* Currently outputting *)
-  val mutable start_output = autostart  (* Ask for startup *)
-  val mutable stop_output = false       (* Ask for termination *)
-  val mutable autostart = autostart     (* Start as soon as possible *)
-
-  method is_active = does_output
-
   (* Operator startup *)
 
-  val mutable ns = []
   method private wake_up activation =
-    (* Server commands
-     * We prefer [name] as an ID over the default,
-     * but do not overwrite user-defined ID.
-     * Then we get a unique Server identifier,
-     * and finally set the ID to be the same. *)
-    if name <> "" then self#set_id ~definitive:false name ;
-    if ns = [] then
-      ns <- Server.register [self#id] output_kind ;
-    self#set_id (Server.to_string ns) ;
-    self#log#f 4
-      "Content kind is %s."
-      (Frame.string_of_content_kind content_kind) ;
+    start_stop#wake_up activation ;
+    (* Add a few more server controls *)
     Server.add ~ns "skip" (fun _ -> self#skip ; "Done") 
                ~descr:"Skip current song.";
     Server.add ~ns "metadata" ~descr:"Print current metadata."
@@ -130,34 +119,6 @@ object (self)
            if r < 0 then "(undef)" else
              let t = Frame.seconds_of_master r in
                Printf.sprintf "%.2f" t) ;
-    Server.add ~ns "autostart" ~descr:"Enable/disable autostart."
-      (fun s ->
-         if s <> "" then begin
-           let update = s = "on" || s = "yes" || s = "y" in
-             (* Update start_output when:
-              *  - autostart becomes true (we now wait to start asap)
-              *  - autostart becomes false too (stop ongoing waiting)
-              * But not when it is unchanged. For example, this prevents
-              * cancelling a manually-ordered start. *)
-             if update <> autostart then begin
-               start_output <- update ;
-               autostart <- update
-             end
-         end ;
-         if autostart then "on" else "off") ;
-    Server.add ~ns "start" ~descr:"Start output."
-      (fun _ -> start_output <- true ; "OK") ;
-    Server.add ~ns "stop" ~descr:"Stop output. Disable autostart."
-      (fun _ ->
-         if autostart then begin
-           autostart <- false ;
-           start_output <- false
-         end ;
-         stop_output <- true ;
-         "OK") ;
-    Server.add ~ns "status" ~descr:"Get status."
-      (fun _ -> if does_output then "on" else "off") ;
-
     (* Get our source ready.
      * This can take a while (preparing playlists, etc). *)
     source#get_ready ((self:>operator)::activation) ;
@@ -167,25 +128,15 @@ object (self)
         Thread.delay 1. ;
       done
 
+  method private may_start = if self#is_ready then start_stop#may_start
+
   method output_get_ready =
-    if start_output && self#is_ready then begin
-      start_output <- autostart ;
-      if not does_output then begin
-        self#output_start ;
-        on_start () ;
-        does_output <- true
-      end
-    end
+    start_stop#may_start
 
   method private sleep =
-    if does_output then begin
-      self#output_stop ;
-      on_stop () ;
-      does_output <- false
-    end ;
+    self#do_stop ;
     source#leave (self:>operator) ;
-    Server.unregister ns ;
-    ns <- []
+    start_stop#sleep
 
   (* Metadata stuff: keep track of what was streamed. *)
 
@@ -205,16 +156,9 @@ object (self)
   method private get_frame buf = source#get buf
 
   method private output =
-    if start_output && self#is_ready then begin
-      start_output <- autostart ;
-      if not does_output then begin
-        self#output_start ;
-        on_start () ;
-        does_output <- true
-      end
-    end ;
+    self#may_start ;
 
-    if does_output then begin
+    if is_started then begin
       (* Complete filling of the frame *)
       while Frame.is_partial memo && self#is_ready do
         source#get memo
@@ -223,19 +167,14 @@ object (self)
         (fun (i,m) -> self#add_metadata m)
         (Frame.get_all_metadata memo) ;
       (* Output that frame *)
-      self#output_send memo
+      self#output_send memo ;
+      if Frame.is_partial memo then begin
+        self#log#f 3 "Source failed (no more tracks) stopping output..." ;
+        request_stop <- true
+      end
     end ;
 
-    if stop_output || Frame.is_partial memo then begin
-      stop_output <- false ;
-      if does_output then begin
-        if Frame.is_partial memo then
-          self#log#f 3 "Source failed (no more tracks), output stops." ;
-        self#output_stop ;
-        on_stop () ;
-        does_output <- false
-      end
-    end
+    self#may_stop
 
   method after_output =
     (* Let [memo] be cleared and signal propagated *)

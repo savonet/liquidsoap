@@ -134,7 +134,7 @@ io = \
 	$(if $(W_OPAL),io/opal_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
 	$(if $(W_LO),io/lo_io.ml) \
-#	io/marshal_io.ml
+	io/udp_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml \
@@ -163,7 +163,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(if $(W_ALSA), alsa_settings.ml) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang.ml tools/ioRing.ml \
+	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \

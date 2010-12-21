@@ -57,8 +57,8 @@ object (self)
          * But do not cancel autostart.
          * We should perhaps have a method in the output class for that
          * kind of thing, and try to get an uniform behavior. *)
-        start_output <- false;
-        stop_output <- true
+        request_start <- false;
+        request_stop <- true
       | Some (Sdlevent.KEYDOWN k) ->
         (
           match k.Sdlevent.keysym with

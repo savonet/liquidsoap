@@ -44,8 +44,8 @@ object
   method private get_frame : Frame.t -> unit
   method abort_track : unit
 
-  val mutable start_output : bool
-  val mutable stop_output : bool
+  val mutable request_start : bool
+  val mutable request_stop : bool
 
   (** An infallible (normal) output can always stream.
     * Both fallible and infallible outputs may not always be outputting
