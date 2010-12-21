@@ -123,7 +123,7 @@ exception Registered
   
 type request_type = | Source | Xaudiocast | Get | Post | Shout
 
-type protocol = | Http_10 | Http_11 | Icy | Xaudiocast_uri of string
+type protocol = | Http_10 | Http_11 | Ice_10 | Icy | Xaudiocast_uri of string
 
 let http_error_page code status msg =
   "HTTP/1.0 " ^
@@ -176,6 +176,7 @@ let parse_http_request_line r =
          (match String.uppercase (List.nth data 2) with
           | "HTTP/1.0" -> Http_10
           | "HTTP/1.1" -> Http_11
+          | "ICE/1.0" -> Ice_10
           | s when protocol = Source -> Xaudiocast_uri s
           | _ -> raise Not_found))
   with

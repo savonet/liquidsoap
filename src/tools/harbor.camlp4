@@ -114,6 +114,7 @@ type request_type =
 type protocol =
   | Http_10
   | Http_11
+  | Ice_10
   | Icy
   | Xaudiocast_uri of string
 
@@ -167,6 +168,7 @@ let parse_http_request_line r =
      (match (String.uppercase (List.nth data 2)) with
         | "HTTP/1.0" -> Http_10
         | "HTTP/1.1" -> Http_11
+        | "ICE/1.0"  -> Ice_10
         | s when protocol = Source -> 
               Xaudiocast_uri s
         | _ -> raise Not_found))
