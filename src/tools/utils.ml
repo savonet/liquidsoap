@@ -72,6 +72,15 @@ let really_read fd buf ofs len =
     done;
     !l
 
+(* Drop all but then [len] last bytes. *)
+let buffer_drop buffer len =
+  let size = Buffer.length buffer in
+  assert (len <= size) ;
+  if len = size then Buffer.reset buffer else
+    let tmp = Buffer.sub buffer len (size-len) in
+      Buffer.reset buffer ;
+      Buffer.add_string buffer tmp
+
 exception Translation of string
 
 let error_translators = Queue.create ()

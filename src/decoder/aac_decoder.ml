@@ -38,15 +38,7 @@ let () = Utils.register_error_translator error_translator
 let buffered_input input buf offset len =
   let buffer = Buffer.create 1024 in
   Buffer.add_substring buffer buf offset len;
-  (* Drop all but then [len] last bytes. *)
-  let drop len = 
-    let size = Buffer.length buffer in
-    assert (len <= size) ;
-    if len = size then Buffer.reset buffer else
-      let tmp = Buffer.sub buffer len (size-len) in
-        Buffer.reset buffer ;
-        Buffer.add_string buffer tmp
-  in
+  let drop = Utils.buffer_drop buffer in
   (* Get at most [len] bytes from the buffer,
    * which is refilled from [input] if needed.
    * This does not remove data from the buffer. *)
