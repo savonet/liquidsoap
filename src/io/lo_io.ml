@@ -2,6 +2,8 @@ open Dtools
 
 module S = LO.Server
 
+let m = Mutex.create ()
+
 let log = Log.make ["osc"]
 
 let conf_oss =
@@ -16,22 +18,25 @@ let osc_bool = ref []
 let osc_float = ref []
 
 let handler path data =
-  List.iter
-    (fun d ->
-      try
-        match d with
-          | `Float f | `Double f ->
+  Mutex.lock m;
+  (
+    try
+      (
+        match data with
+          | [|`Float f|] | [|`Double f|] ->
             log#f 6 "Float %f on path %s" f path;
             let v = List.assoc path !osc_float in
             v := f
-          | `True | `False ->
-            let b = (d = `True) in
+          | [|`True as b|] | [|`False as b|] ->
+            let b = (b = `True) in
             let v = List.assoc path !osc_bool in
             v := b
           | _ -> ()
-      with
-        | _ -> ()
-    ) data
+      )
+    with
+      | _ -> ()
+  );
+  Mutex.unlock m
 
 let server = ref None
 
@@ -51,9 +56,18 @@ let () =
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_float (Lang.assoc "" 2 p) in
       let v = ref v in
+      Mutex.lock m;
       osc_float := (path,v) :: !osc_float;
+      Mutex.unlock m;
       start_server ();
-      Lang.val_fun [] ~ret_t:Lang.float_t (fun p _ -> Lang.float !v))
+      Lang.val_fun [] ~ret_t:Lang.float_t
+        (fun p _ ->
+          Mutex.lock m;
+          let v = Lang.float !v in
+          Mutex.unlock m;
+          v
+        )
+    )
 
 let () =
   Lang.add_builtin "osc.bool" ~category:"Interaction"
@@ -64,6 +78,15 @@ let () =
       let path = Lang.to_string (Lang.assoc "" 1 p) in
       let v = Lang.to_bool (Lang.assoc "" 2 p) in
       let v = ref v in
+      Mutex.lock m;
       osc_bool := (path,v) :: !osc_bool;
+      Mutex.unlock m;
       start_server ();
-      Lang.val_fun [] ~ret_t:Lang.bool_t (fun p _ -> Lang.bool !v))
+      Lang.val_fun [] ~ret_t:Lang.bool_t
+        (fun p _ ->
+          Mutex.lock m;
+          let v = Lang.bool !v in
+          Mutex.unlock m;
+          v
+        )
+    )
