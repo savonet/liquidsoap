@@ -82,7 +82,9 @@ type sources = (string, source) Hashtbl.t
 type http_handler =
   http_method: string ->
     protocol: string ->
-      data: string -> headers: ((string * string) list) -> string -> string
+      data: string ->
+        headers: ((string * string) list) ->
+          socket: Unix.file_descr -> string -> (bool * string)
 
 type http_handlers = (string, http_handler) Hashtbl.t
 
@@ -145,21 +147,19 @@ let parse_icy_request_line ~port h r =
     try Duppy.Monad.return (find_source "/" (port - 1))
     with
     | Not_found ->
-        (log#f 3 "ICY error: no / mountpoint";
+        (log#f 4 "ICY error: no / mountpoint";
          reply "No / mountpoint\r\n\r\n")
   in
     Duppy.Monad.bind __pa_duppy_0
       (fun s -> (* Authentication can be blocking. *)
          Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-           (fun () ->
-              let (user, auth_f) = s#login
-              in
-                if auth_f user r
-                then Duppy.Monad.return (Shout, "/", Icy)
-                else
-                  (log#f 3 "ICY error: invalid password";
-                   reply "Invalid password\r\n\r\n"))
-           ())
+           (let (user, auth_f) = s#login
+            in
+              if auth_f user r
+              then Duppy.Monad.return (Shout, "/", Icy)
+              else
+                (log#f 4 "ICY error: invalid password";
+                 reply "Invalid password\r\n\r\n")))
   
 let parse_http_request_line r =
   try
@@ -232,8 +232,12 @@ let auth_check ?args ~login uri headers = (* 401 error model *)
              | Some args ->
                  (* ICY updates are done with
                        * password sent in GET args
-                       * and user being valid_user *)
-                 (valid_user, (Hashtbl.find args "pass"))
+                       * and user being valid_user 
+                       * or user, if given. *)
+                 let user =
+                   (try Hashtbl.find args "user"
+                    with | Not_found -> valid_user)
+                 in (user, (Hashtbl.find args "pass"))
              | _ -> raise Not_found)
       in
         (* OK *)
@@ -245,15 +249,15 @@ let auth_check ?args ~login uri headers = (* 401 error model *)
          Duppy.Monad.return ())
     with
     | Not_authenticated ->
-        (log#f 3 "Returned 401: wrong auth.";
+        (log#f 4 "Returned 401: wrong auth.";
          http_reply "Wrong Authentication data")
     | Not_found ->
-        (log#f 3 "Returned 401: bad authentication.";
+        (log#f 4 "Returned 401: bad authentication.";
          http_reply "No login / password supplied.")
   
 let auth_check ?args ~login h uri headers =
   Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-    (fun () -> auth_check ?args ~login uri headers) ()
+    (auth_check ?args ~login uri headers)
   
 let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
   (* ICY request are on port+1 *)
@@ -262,7 +266,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
     try Duppy.Monad.return (find_source uri source_port)
     with
     | Not_found ->
-        (log#f 3 "Request failed: no mountpoint '%s'!" uri;
+        (log#f 4 "Request failed: no mountpoint '%s'!" uri;
          reply
            (http_error_page 404 "Not found"
               "This mountpoint isn't available."))
@@ -283,7 +287,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                   | Xaudiocast -> "X-AUDIOCAST"
                   | _ -> assert false
                 in
-                  (log#f 3 "%s request on %s." sproto uri;
+                  (log#f 4 "%s request on %s." sproto uri;
                    let stype =
                      try assoc_uppercase "CONTENT-TYPE" headers
                      with
@@ -294,30 +298,30 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                    in
                      (if s#is_taken then raise Mount_taken else ();
                       s#register_decoder stype;
-                      log#f 3 "Adding source on mountpoint %S with type %S."
+                      log#f 4 "Adding source on mountpoint %S with type %S."
                         uri stype;
                       s#relay headers h.Duppy.Monad.Io.socket;
                       relayed "HTTP/1.0 200 OK\r\n\r\n"))
               with
               | Mount_taken ->
-                  (log#f 3 "Returned 403: Mount taken";
+                  (log#f 4 "Returned 403: Mount taken";
                    reply
                      (http_error_page 403
                         "Unauthorized\r\n\
                    WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
                         "Mountpoint in use"))
               | Not_found ->
-                  (log#f 3 "Returned 404 for '%s'." uri;
+                  (log#f 4 "Returned 404 for '%s'." uri;
                    reply
                      (http_error_page 404 "Not found"
                         "This mountpoint isn't available."))
               | Unknown_codec ->
-                  (log#f 3 "Returned 501: unknown audio codec";
+                  (log#f 4 "Returned 501: unknown audio codec";
                    reply
                      (http_error_page 501 "Not Implemented"
                         "This stream's format is not recognized."))
               | e ->
-                  (log#f 3 "Returned 500 for '%s': %s" uri
+                  (log#f 4 "Returned 500 for '%s': %s" uri
                      (Utils.error_message e);
                    reply
                      (http_error_page 500 "Internal Server Error"
@@ -327,15 +331,15 @@ exception Handled of http_handler
   
 let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
   let ans_404 () =
-    (log#f 3 "Returned 404 for '%s'." uri;
+    (log#f 4 "Returned 404 for '%s'." uri;
      reply (http_error_page 404 "Not found" "This page isn't available.")) in
   let ans_500 () =
-    (log#f 3 "Returned 500 for '%s'." uri;
+    (log#f 4 "Returned 500 for '%s'." uri;
      reply
        (http_error_page 500 "Internal Server Error"
           "There was an error processing your request.")) in
   let ans_401 () =
-    (log#f 3 "Returned 401 for '%s': wrong auth." uri;
+    (log#f 4 "Returned 401 for '%s': wrong auth." uri;
      reply
        (http_error_page 401 "Authentication Failed"
           "Wrong Authentication data")) in
@@ -351,7 +355,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                let mount =
                  (try Hashtbl.find args "mount" with | Not_found -> "/")
                in
-                 (log#f 3
+                 (log#f 4
                     "Request to update metadata for mount %s on \
                   port %i"
                     mount port;
@@ -359,7 +363,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                     (try Duppy.Monad.return (find_source mount port)
                      with
                      | Not_found ->
-                         (log#f 3
+                         (log#f 4
                             "Returned 401 for '%s': No mountpoint '%s' \
                           on port %d."
                             uri mount port;
@@ -379,7 +383,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                                         (Utils.get_some s#get_mime_type)
                                         conf_icy_metadata#get)
                                  then
-                                   (log#f 3
+                                   (log#f 4
                                       "Returned 405 for '%s': Source format \
                         does not support \
                         ICY metadata update"
@@ -431,7 +435,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
     | Http_11 -> "HTTP/1.1"
     | _ -> assert false
   in
-    (log#f 3 "HTTP %s request on %s." smethod base_uri;
+    (log#f 4 "HTTP %s request on %s." smethod base_uri;
      let args = Http.args_split args in (* Filter out password *)
      let log_args =
        if conf_pass_verbose#get
@@ -449,7 +453,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
           in
             if Pcre.pmatch ~rex uri
             then
-              (log#f 3 "Found handler '%s' on port %d." reg_uri port;
+              (log#f 4 "Found handler '%s' on port %d." reg_uri port;
                raise (Handled handler))
             else ()
         in
@@ -463,14 +467,12 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
           with
           | Handled handler ->
               Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-                (fun () ->
-                   let ans =
-                     handler ~http_method: smethod ~protocol ~data ~headers
-                       uri
-                   in reply ans)
-                ()
+                (let (close, ans) =
+                   handler ~http_method: smethod ~protocol ~data ~headers
+                     ~socket: h.Duppy.Monad.Io.socket uri
+                 in if close then reply ans else relayed ans)
           | e ->
-              (log#f 3 "HTTP %s request on uri '%s' failed: %s" smethod
+              (log#f 4 "HTTP %s request on uri '%s' failed: %s" smethod
                  (Utils.error_message e) uri;
                ans_500 ())))
   
@@ -509,7 +511,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                              (try Duppy.Monad.return (find_source uri port)
                               with
                               | Not_found ->
-                                  (log#f 3
+                                  (log#f 4
                                      "Request failed: no mountpoint '%s'!"
                                      uri;
                                    reply
@@ -524,15 +526,13 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                      * hapenned *)
                                       Tutils.Maybe_blocking
                                     h
-                                    (fun () ->
-                                       let (valid_user, auth_f) = s#login
-                                       in
-                                         if not (auth_f valid_user password)
-                                         then reply "Invalid password!"
-                                         else
-                                           Duppy.Monad.return
-                                             (true, uri, Xaudiocast))
-                                    ())
+                                    (let (valid_user, auth_f) = s#login
+                                     in
+                                       if not (auth_f valid_user password)
+                                       then reply "Invalid password!"
+                                       else
+                                         Duppy.Monad.return
+                                           (true, uri, Xaudiocast)))
                        | _ -> Duppy.Monad.return (false, huri, Source))
                     in
                       Duppy.Monad.bind __pa_duppy_0
@@ -550,7 +550,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                          in Duppy.Monad.return (int_of_string length)
                        with
                        | e ->
-                           (log#f 3 "Failed: %s" (Utils.error_message e);
+                           (log#f 4 "Failed: %s" (Utils.error_message e);
                             reply "Wrong data!"))
                     in
                       Duppy.Monad.bind __pa_duppy_0
@@ -584,7 +584,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                   handle_source_request ~port ~auth: true
                                     ~protocol: Shout hprotocol h huri headers))
                 | _ ->
-                    (log#f 3 "Returned 501: not implemented";
+                    (log#f 4 "Returned 501: not implemented";
                      reply
                        (http_error_page 501 "Not Implemented"
                           "The server did not understand your request."))))
@@ -608,17 +608,17 @@ let open_port ~icy port =
            let ip = Utils.name_of_sockaddr ~rev_dns: conf_revdns#get caller
            in
              (* Add timeout *)
-             (log#f 3 "New client on port %i: %s" port ip;
+             (log#f 4 "New client on port %i: %s" port ip;
               Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get;
               Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get;
               let on_error e =
                 ((match e with
-                  | Duppy.Io.Io_error -> log#f 3 "Client disconnected"
+                  | Duppy.Io.Io_error -> log#f 4 "Client disconnected"
                   | Duppy.Io.Unix (c, p, m) ->
-                      log#f 3 "%s"
+                      log#f 4 "%s"
                         (Utils.error_message (Unix.Unix_error (c, p, m)))
                   | Duppy.Io.Unknown e ->
-                      log#f 3 "%s" (Utils.error_message e));
+                      log#f 4 "%s" (Utils.error_message e));
                  Close "Network Error !") in
               let h =
                 {
@@ -638,8 +638,8 @@ let open_port ~icy port =
                   Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
                     ~string: s ~exec Tutils.scheduler socket
               in
-                Duppy.Monad.run (handle_client ~port ~icy h) ~return: reply
-                  ~raise: reply ())
+                Duppy.Monad.run ~return: reply ~raise: reply
+                  (handle_client ~port ~icy h))
          with
          | e ->
              log#f 2 "Failed to accept new client: %s"

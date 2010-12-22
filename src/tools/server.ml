@@ -231,10 +231,8 @@ let handle_client socket =
         (fun req ->
            let __pa_duppy_0 =
              Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-               (fun () ->
-                  try Duppy.Monad.return (exec req)
-                  with | _ -> Duppy.Monad.raise ())
-               ()
+               (try Duppy.Monad.return (exec req)
+                with | _ -> Duppy.Monad.raise ())
            in
              Duppy.Monad.bind __pa_duppy_0
                (fun ans ->
