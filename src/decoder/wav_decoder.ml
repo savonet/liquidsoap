@@ -67,7 +67,7 @@ struct
  * channel and use directly the one we have when decoding files
  * or external processes, if we could wrap the input function used
  * for decoding stream (in http and harbor) as an in_channel. *)
-let create input =
+let create ?header input =
   let decoder = ref (fun gen -> assert false) in
 
   let main_decoder converter gen =
@@ -96,7 +96,14 @@ let create input =
       decoder := main_decoder converter
 
   in
-    decoder := (fun _ -> read_header ()) ;
+    begin match header with
+      | None -> decoder := (fun _ -> read_header ())
+      | Some (samplesize,channels,audio_src_rate) ->
+          let converter =
+            Rutils.create_from_wav ~samplesize ~channels ~audio_src_rate ()
+          in
+            decoder := main_decoder converter
+    end ;
     Decoder.Decoder (fun gen -> !decoder gen)
 
 end
@@ -135,7 +142,7 @@ let get_type filename =
 
 let create_file_decoder filename kind =
   let generator = Generator.create `Audio in
-    Buffered.file_decoder filename kind D.create generator
+    Buffered.file_decoder filename kind (D.create ?header:None) generator
 
 let () =
   Decoder.file_decoders#register "WAV"
@@ -193,6 +200,23 @@ let () =
              * decoding-time. Failing early would only be an advantage
              * if there was possibly another plugin for decoding
              * correctly the stream (e.g. by performing conversions). *)
-            Some D_stream.create
+            Some (D_stream.create ?header:None)
+          else
+            None)
+
+let () =
+  Decoder.stream_decoders#register
+    "WAV"
+    ~sdoc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
+     (fun mime kind ->
+        let (<:) a b = Frame.mul_sub_mul a b in
+          if mime = "audio/basic" &&
+             (* Check that it is okay to have zero video and midi,
+              * and two audio channels. *)
+             Frame.Zero <: kind.Frame.video &&
+             Frame.Zero <: kind.Frame.midi &&
+             Frame.Succ (Frame.Succ Frame.Zero) <: kind.Frame.audio
+          then
+            Some (D_stream.create ~header:(8,2,8000.))
           else
             None)

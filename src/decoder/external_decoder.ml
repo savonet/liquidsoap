@@ -148,7 +148,7 @@ let create process kind filename =
   let create input =
     let input,actual_close = external_input process input in
       close := actual_close ;
-      Wav_decoder.D.create input
+      Wav_decoder.D.create ?header:None input
   in
   let generator = Generator.create `Audio in
   let dec = Buffered.file_decoder filename kind create generator in

@@ -28,16 +28,15 @@ open Encoder.WAV
 let encoder wav =
   let channels = wav.channels in
   let sample_rate = wav.samplerate in
+  let sample_size = wav.samplesize in
   let ratio =
     (float sample_rate) /. (float (Lazy.force Frame.audio_rate))
   in
   let converter = Audio_converter.Samplerate.create channels in
   let header =
-    Wav.header
-      ~channels ~sample_rate
-      ~sample_size:16 ()
+    Wav.header ~channels ~sample_rate ~sample_size ()
   in
-  let need_header = ref true in
+  let need_header = ref wav.header in
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
@@ -53,8 +52,12 @@ let encoder wav =
         in
         b,0,Array.length b.(0)
     in
-    let s = String.create (2 * len * channels) in
-    Audio.S16LE.of_audio b start s 0 len;
+    let s = String.create (sample_size / 8 * len * channels) in
+    begin match sample_size with
+      | 16 -> Audio.S16LE.of_audio b start s 0 len
+      | 8 -> Audio.U8.of_audio b start s 0 len
+      | _ -> failwith "unsupported sample size"
+    end ;
     if !need_header then begin
       need_header := false ;
       header ^ s

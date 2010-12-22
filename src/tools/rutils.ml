@@ -94,7 +94,7 @@ let create_from_wav ~channels ~samplesize x =
         match samplesize with
           | 8  -> Audio.U8.convert_to_audio
           | 16 -> Audio.S16LE.convert_to_audio
-          | _ -> failwith "unsuported format."
+          | _ -> failwith "unsuported sample size"
       in
       f src src_off len ~resample:ratio dst dst_off
     in

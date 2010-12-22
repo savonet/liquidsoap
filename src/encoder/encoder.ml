@@ -66,10 +66,14 @@ module WAV =
 struct
 
   type t = { samplerate : int;
-             channels   : int }
+             samplesize : int;
+             channels   : int;
+             header     : bool }
 
   let to_string w =
-    Printf.sprintf "%%wav(samplerate=%d,channels=%d)" w.samplerate w.channels
+    Printf.sprintf
+      "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b)"
+      w.samplerate w.channels w.samplesize w.header
 
 end
 
