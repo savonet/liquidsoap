@@ -1339,7 +1339,7 @@ let () =
        let port = Lang.to_int (List.assoc "port" p) in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f ~http_method ~protocol ~data ~headers uri =
+       let f ~http_method ~protocol ~data ~headers ~socket uri =
          let l =
             List.map 
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
@@ -1348,6 +1348,7 @@ let () =
          let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
                            l
          in
+         true,
          Lang.to_string
            (Lang.apply ~t:Lang.string_t 
                        f [("",Lang.string uri);("headers",l);
