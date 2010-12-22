@@ -60,6 +60,8 @@ let mk ?pos e =
 let mk_wav params =
   let defaults = { Encoder.WAV.
                     channels   = 2 ;
+                    samplesize = 16;
+                    header = true;
                     samplerate = 44100 } in
   let wav =
     List.fold_left
