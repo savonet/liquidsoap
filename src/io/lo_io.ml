@@ -16,6 +16,7 @@ let conf_port =
 
 let osc_bool = ref []
 let osc_float = ref []
+let osc_float_pair = ref []
 
 let handler path data =
   Mutex.lock m;
@@ -27,6 +28,10 @@ let handler path data =
             log#f 6 "Float %f on path %s" f path;
             let v = List.assoc path !osc_float in
             v := f
+          | [|`Float x; `Float y|] | [|`Double x; `Double y|] ->
+            log#f 6 "Float pair (%f,%f) on path %s" x y path;
+            let v = List.assoc path !osc_float_pair in
+            v := (x,y)
           | [|`True as b|] | [|`False as b|] ->
             let b = (b = `True) in
             let v = List.assoc path !osc_bool in
@@ -64,6 +69,31 @@ let () =
         (fun p _ ->
           Mutex.lock m;
           let v = Lang.float !v in
+          Mutex.unlock m;
+          v
+        )
+    )
+
+let () =
+  let t = Lang.product_t Lang.float_t Lang.float_t in
+  Lang.add_builtin "osc.float_pair" ~category:"Interaction"
+    ["",Lang.string_t,None,None; "",t,None,None]
+    (Lang.fun_t [] t)
+    ~descr:"Read a float from an OSC path."
+    (fun p _ ->
+      let path = Lang.to_string (Lang.assoc "" 1 p) in
+      let (v1,v2) = Lang.to_product (Lang.assoc "" 2 p) in
+      let v = Lang.to_float v1, Lang.to_float v2 in
+      let v = ref v in
+      Mutex.lock m;
+      osc_float_pair := (path,v) :: !osc_float_pair;
+      Mutex.unlock m;
+      start_server ();
+      Lang.val_fun [] ~ret_t:t
+        (fun p _ ->
+          Mutex.lock m;
+          let x, y = !v in
+          let v = Lang.product (Lang.float x) (Lang.float y) in
           Mutex.unlock m;
           v
         )
