@@ -258,7 +258,7 @@ let handle_client socket =
       in
         Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error ~exec: close
           Tutils.scheduler ~string: "Bye!\r\n" socket
-    in Duppy.Monad.run process ~return: run ~raise: raise ()
+    in Duppy.Monad.run ~return: run ~raise: raise process
   in run ()
   
 (* {1 The server} *)
@@ -324,14 +324,7 @@ let start_telnet () =
      let rec incoming _ =
        ((try
            let (socket, caller) = accept sock in
-           let ip =
-             let a =
-               match caller with | ADDR_INET (a, _) -> a | _ -> assert false
-             in
-               try
-                 (if not conf_telnet_revdns#get then raise Not_found else ();
-                  (gethostbyaddr a).h_name)
-               with | Not_found -> string_of_inet_addr a
+           let ip = Utils.name_of_sockaddr caller
            in (log#f 3 "New client: %s" ip; handle_client socket)
          with
          | e ->

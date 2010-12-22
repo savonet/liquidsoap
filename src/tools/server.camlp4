@@ -350,16 +350,7 @@ let start_telnet () =
       try
         let (socket,caller) = accept sock in
         let ip =
-          let a =
-            match caller with
-              | ADDR_INET (a,_) -> a
-              | _ -> assert false
-          in
-            try
-              if not conf_telnet_revdns#get then raise Not_found ;
-              (gethostbyaddr a).h_name
-            with
-              | Not_found -> string_of_inet_addr a
+           Utils.name_of_sockaddr caller
         in
         log#f 3 "New client: %s" ip ;
         handle_client socket;
