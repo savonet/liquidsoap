@@ -79,6 +79,12 @@ let mk_wav params =
               { f with Encoder.WAV.channels = c }
           | ("samplerate",{ term = Int i }) ->
               { f with Encoder.WAV.samplerate = i }
+          | ("samplesize",({ term = Int i } as t)) ->
+              if i <> 8 && i <> 16 then
+                raise (Error (t,"invalid sample size")) ;
+              { f with Encoder.WAV.samplesize = i }
+          | ("header",{ term = Bool b }) ->
+              { f with Encoder.WAV.header = b }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
