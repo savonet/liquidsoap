@@ -136,6 +136,9 @@ val state : t -> state
 (** Get and remove encoded data.. *)
 val get_data : t -> string
 
+(** Get header of a stream. *)
+val get_header : t -> string
+
 (** Peek encoded data without removing it. *)
 val peek_data : t -> string
 
