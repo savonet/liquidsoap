@@ -164,6 +164,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
+	tools/icecast_utils.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \

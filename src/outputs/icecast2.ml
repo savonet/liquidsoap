@@ -41,20 +41,105 @@ type icecast_info =
     channels    : int option
   }
 
-type icy_metadata = Guess | True | False
+module Icecast = 
+struct
+
+  type protocol = Cry.protocol
+
+  let protocol_of_icecast_protocol = 
+    function
+      | Icecast_utils.Http -> Cry.Http
+      | Icecast_utils.Icy -> Cry.Icy 
+
+  type content = Cry.content_type
+
+  let format_of_content x =
+    match x with
+      | x when x = Icecast_utils.mpeg_mime -> Cry.mpeg
+      | x when x = Icecast_utils.ogg_application_mime -> Cry.ogg_application
+      | x when x = Icecast_utils.ogg_audio_mime -> Cry.ogg_audio
+      | x when x = Icecast_utils.ogg_video_mime -> Cry.ogg_video
+      | _ -> Cry.content_type_of_string x
+
+  type info = icecast_info
+
+  let info_of_encoder =
+    function
+        | Encoder.MP3 m ->
+            let quality,bitrate = 
+              match m.Encoder.MP3.bitrate with
+                | Encoder.MP3.Bitrate x -> None,(Some x)
+                | Encoder.MP3.Quality x -> (Some (string_of_int x)),None
+            in
+            { quality = quality ;
+              bitrate = bitrate ;
+              samplerate = Some m.Encoder.MP3.samplerate ;
+              channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
+            }
+        | Encoder.AACPlus m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.AACPlus.bitrate ;
+              samplerate = Some m.Encoder.AACPlus.samplerate ;
+              channels = Some m.Encoder.AACPlus.channels
+            }
+        | Encoder.External m ->
+            { quality = None ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.External.samplerate ;
+              channels = Some m.Encoder.External.channels
+            }
+        | Encoder.Flac m ->
+            { quality = Some (string_of_int m.Encoder.Flac.compression) ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.Flac.samplerate ;
+              channels = Some m.Encoder.Flac.channels
+            }
+        | Encoder.WAV m ->
+            { quality = None ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.WAV.samplerate ;
+              channels = Some m.Encoder.WAV.channels
+            }
+        | Encoder.Ogg o ->
+            match o with
+              | [Encoder.Ogg.Vorbis
+                   {Encoder.Vorbis.channels=n;
+                                   mode=Encoder.Vorbis.VBR q;
+                                   samplerate=s}]
+                ->
+                  { quality = Some (string_of_float q) ;
+                    bitrate = None ;
+                    samplerate = Some s ;
+                    channels = Some n }
+              | [Encoder.Ogg.Vorbis
+                   {Encoder.Vorbis.channels=n;
+                                   mode=Encoder.Vorbis.ABR (_,b,_);
+                                   samplerate=s}]
+                ->
+                  { quality = None ;
+                    bitrate = b ;
+                    samplerate = Some s ;
+                    channels = Some n }
+              | [Encoder.Ogg.Vorbis
+                   {Encoder.Vorbis.channels=n;
+                                   mode=Encoder.Vorbis.CBR b;
+                                   samplerate=s}]
+                ->
+                  { quality = None ;
+                    bitrate = Some b ;
+                    samplerate = Some s ;
+                    channels = Some n }
+              | _ ->
+                  { quality = None ; bitrate = None ;
+                    samplerate = None ; channels = None }
+end
+
+module M = Icecast_utils.Icecast_v(Icecast)
+
+open M
 
 let no_mount = "Use [name] with .ogg extension if relevant"
 let no_name = "Use [mount]"
-
-(* Mime for WAV data.. *)
-let wav_format = Cry.content_type_of_string "audio/wav"
-
-(* Mime for AAC/AAC+ data.. *)
-let aac_format = Cry.content_type_of_string "audio/aac"
-let aacplus_format = Cry.content_type_of_string "audio/aacp"
-
-(* Mime for FLAC data.. *)
-let flac_format = Cry.content_type_of_string "audio/x-flac"
 
 let user_agent =
   Printf.sprintf "liquidsoap %s" Configure.version
@@ -121,153 +206,13 @@ class output ~kind p =
   let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
 
-  let protocol =
-    let v = List.assoc "protocol" p in
-      match Lang.to_string v with
-        | "http" -> Cry.Http
-        | "icy" -> Cry.Icy
-        | _ ->
-            raise (Lang.Invalid_value
-                     (v, "Valid values are 'http' (icecast) \
-                          and 'icy' (shoutcast)"))
-  in
-
-  let icy_metadata = 
-    let v = List.assoc "icy_metadata" p in
-    match Lang.to_string v with
-      | "guess" -> Guess
-      | "true"  -> True
-      | "false" -> False
-      | _ -> 
-            raise (Lang.Invalid_value
-                     (v, "Valid values are 'guess', \
-                          'true' or 'false'"))
+  let protocol,encoder_factory, 
+      format,icecast_info,icy_metadata,
+      ogg,out_enc =
+    encoder_data p
   in
 
   let source = Lang.assoc "" 2 p in
-  let encoder_factory,format,icecast_info =
-    let v = Lang.assoc "" 1 p in
-    let enc = Lang.to_format v in
-    let icecast_info,format =
-      match enc with
-        | Encoder.MP3 m ->
-            let quality,bitrate = 
-              match m.Encoder.MP3.bitrate with
-                | Encoder.MP3.Bitrate x -> None,(Some x)
-                | Encoder.MP3.Quality x -> (Some (string_of_int x)),None
-            in
-            { quality = quality ;
-              bitrate = bitrate ;
-              samplerate = Some m.Encoder.MP3.samplerate ;
-              channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
-            }, Some Cry.mpeg
-        | Encoder.AACPlus m ->
-            { quality = None ;
-              bitrate = Some m.Encoder.AACPlus.bitrate ;
-              samplerate = Some m.Encoder.AACPlus.samplerate ;
-              channels = Some m.Encoder.AACPlus.channels
-            }, Some aacplus_format
-        | Encoder.External m ->
-            { quality = None ;
-              bitrate = None ;
-              samplerate = Some m.Encoder.External.samplerate ;
-              channels = Some m.Encoder.External.channels
-            }, None
-        | Encoder.Flac m ->
-            { quality = Some (string_of_int m.Encoder.Flac.compression) ;
-              bitrate = None ;
-              samplerate = Some m.Encoder.Flac.samplerate ;
-              channels = Some m.Encoder.Flac.channels
-            }, Some flac_format
-        | Encoder.WAV m ->
-            { quality = None ;
-              bitrate = None ;
-              samplerate = Some m.Encoder.WAV.samplerate ;
-              channels = Some m.Encoder.WAV.channels
-            }, Some wav_format
-        | Encoder.Ogg o ->
-            let info =
-              match o with
-                | [Encoder.Ogg.Vorbis
-                     {Encoder.Vorbis.channels=n;
-                                     mode=Encoder.Vorbis.VBR q;
-                                     samplerate=s}]
-                  ->
-                    { quality = Some (string_of_float q) ;
-                      bitrate = None ;
-                      samplerate = Some s ;
-                      channels = Some n }
-                | [Encoder.Ogg.Vorbis
-                     {Encoder.Vorbis.channels=n;
-                                     mode=Encoder.Vorbis.ABR (_,b,_);
-                                     samplerate=s}]
-                  ->
-                    { quality = None ;
-                      bitrate = b ;
-                      samplerate = Some s ;
-                      channels = Some n }
-                | [Encoder.Ogg.Vorbis
-                     {Encoder.Vorbis.channels=n;
-                                     mode=Encoder.Vorbis.CBR b;
-                                     samplerate=s}]
-                  ->
-                    { quality = None ;
-                      bitrate = Some b ;
-                      samplerate = Some s ;
-                      channels = Some n }
-                | _ ->
-                    { quality = None ; bitrate = None ;
-                      samplerate = None ; channels = None }
-            in
-            if protocol = Cry.Icy then
-              raise (Lang.Invalid_value
-                       (v, "icy protocol (shoutcast) does not support Ogg")) ;
-              info, Some Cry.ogg_application
-    in
-    let encoder_factory =
-      try Encoder.get_factory enc with
-        | Not_found ->
-            raise (Lang.Invalid_value
-                     (v, "No encoder found for that format"))
-    in
-      encoder_factory, format, icecast_info
-  in
-
-  let format =
-    let f = s "format" in
-      if f <> "" then Cry.content_type_of_string f else
-        match format with 
-          | Some x -> x
-          | None   -> raise (Lang.Invalid_value (Lang.assoc "" 1 p, 
-                                                 "No format (mime) found, \
-                                                  please specify one."))
-  in
-  
-  let icy_metadata = 
-    match format, icy_metadata with
-      | _, True -> true
-      | _, False -> false
-      | x, _ when x = Cry.mpeg || 
-                  x = wav_format ||
-                  x = aac_format || 
-                  x = aacplus_format ||
-                  x = flac_format -> true
-      | x, _ when x = Cry.ogg_application ||
-                  x = Cry.ogg_audio ||
-                  x = Cry.ogg_video -> false
-      | _, Guess -> 
-           raise (Lang.Invalid_value
-                    (List.assoc "icy_metadata" p,
-                     "Could not guess icy_metadata for this format, \
-                      please specify either 'true' or 'false'."))
-  in
-
-
-  let ogg = 
-   (format = Cry.ogg_application) ||
-   (format = Cry.ogg_audio) ||
-   (format = Cry.ogg_video)
-  in
 
   let mount = s "mount" in
   let name = s "name" in
@@ -314,15 +259,6 @@ class output ~kind p =
       | s -> Some s
   in
   let description = s "description" in
-  let out_enc = 
-    match s "encoding" with
-      | "" -> 
-         if protocol = Cry.Icy then
-           Some "ISO-8859-1"
-         else
-           None
-      | s -> Some s
-  in
   let public = e Lang.to_bool "public" in
   let headers = 
     List.map (fun v -> 
