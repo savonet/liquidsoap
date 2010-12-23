@@ -76,6 +76,7 @@ type t =
   {
     id               : string;
     mutable skeleton : Ogg.Stream.t option;
+    header           : Buffer.t;
     encoded          : Buffer.t;
     mutable position : float;
     tracks           : (nativeint,track) Hashtbl.t;
@@ -141,9 +142,14 @@ let peek_data encoder =
   Buffer.contents encoder.encoded
 
 (** Add an ogg page. *)
-let add_page encoder (h,v) =
+let add_page encoder ?(header=false) (h,v) =
   Buffer.add_string encoder.encoded h;
-  Buffer.add_string encoder.encoded v
+  Buffer.add_string encoder.encoded v;
+  if header then
+   begin
+    Buffer.add_string encoder.header h;
+    Buffer.add_string encoder.header v
+   end
 
 let flush_pages os = 
   let rec f os l = 
@@ -158,35 +164,37 @@ let flush_pages os =
   in
   f os []
 
-let add_flushed_pages encoder os = 
-  List.iter (add_page encoder) (flush_pages os)
+let add_flushed_pages ?header encoder os = 
+  List.iter (add_page ?header encoder) (flush_pages os)
 
-let init_skeleton content =
+let init_skeleton encoder =
   let serial = get_serial () in
   let os = Ogg.Stream.create ~serial () in
   Ogg.Stream.put_packet os (Ogg.Skeleton.fishead ());
   (* Output first page at beginning of content. *)
-  let (h,v) = Ogg.Stream.get_page os in
-  Buffer.add_string content h;
-  Buffer.add_string content v;
+  add_page encoder ~header:true (Ogg.Stream.get_page os);
   os
 
 let create ~skeleton id =
-  let content = Buffer.create 1024 in
-  let skeleton =
-    if skeleton then
-      Some (init_skeleton content)
-    else
-      None
+   let skeleton encoder = 
+     if skeleton then
+       Some (init_skeleton encoder)
+     else
+       None
+   in
+   let encoder =
+     {
+      id       = id;
+      skeleton = None;
+      header   = Buffer.create 1024 ;
+      encoded  = Buffer.create 1024 ;
+      position = 0.;
+      tracks   = Hashtbl.create 10;
+      state    = Bos
+     }
   in
-  {
-    id       = id;
-    skeleton = skeleton;
-    encoded  = content;
-    position = 0.;
-    tracks   = Hashtbl.create 10;
-    state    = Bos
-  }
+  encoder.skeleton <- skeleton encoder ;
+  encoder
 
 let register_track encoder track_encoder =
   if encoder.state = Streaming then
@@ -198,7 +206,7 @@ let register_track encoder track_encoder =
    begin
     log#f 4 "%s: Starting new sequentialized ogg stream." encoder.id;
     if encoder.skeleton <> None then
-      encoder.skeleton <- Some (init_skeleton encoder.encoded);
+      encoder.skeleton <- Some (init_skeleton encoder);
     encoder.state <- Bos;
    end;
   (** Initiate a new logical stream *)
@@ -206,7 +214,7 @@ let register_track encoder track_encoder =
   let os = Ogg.Stream.create ~serial () in
   (** Encode headers *) 
   let p = track_encoder.header_encoder os in
-  add_page encoder p;
+  add_page ~header:true encoder p;
   let track = 
     match track_encoder.data_encoder with
       | Audio_encoder encoder -> 
@@ -254,14 +262,15 @@ let streams_start encoder =
               | Some p -> Ogg.Stream.put_packet os p;
               | None -> ())
           encoder.tracks;
-          add_flushed_pages encoder os
+          add_flushed_pages ~header:true encoder os
       | None -> ()
   end;
   Hashtbl.iter
    (fun _ -> fun t ->
      let os = os_of_ogg_track t in
      let stream_start = stream_start_of_ogg_track t in
-     List.iter (add_page encoder) (stream_start os))
+     let pages = stream_start os in
+     List.iter (add_page ~header:true encoder) pages)
    encoder.tracks;
   (** Finish skeleton stream now. *)
   begin
@@ -269,10 +278,13 @@ let streams_start encoder =
       | Some os -> 
          Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
          let p = Ogg.Stream.flush_page os in
-         add_page encoder p;
+         add_page ~header:true encoder p;
       | None -> ()
   end;
   encoder.state <- Streaming
+
+(** Get the first pages of each streams. *)
+let get_header x = Buffer.contents x.header
 
 (** Is a track empty ?*)
 let is_empty x =
@@ -448,6 +460,7 @@ let eos encoder =
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
   log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
+  Buffer.reset encoder.header ;
   encoder.position <- 0.;
   encoder.state <- Eos
 

@@ -158,30 +158,40 @@ let encoder ogg name meta =
     let tracks = 
       List.fold_left create_track [] ogg 
     in
-    let streams_start () = 
+    let rec enc =
+     {
+      Encoder.
+       insert_metadata  = insert_metadata ;
+       encode = encode ;
+       header = None ;
+       stop   = stop
+     }
+    and streams_start () = 
       let f track =
         match track.id with
           | Some _ -> ()
           | None   -> track.id <- Some (track.reset ogg_enc meta)
       in
       List.iter f tracks ;
-      Ogg_muxer.streams_start ogg_enc  
-    in
-    let encode frame start len =
+      Ogg_muxer.streams_start ogg_enc ;
+      enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
+    and encode frame start len =
       (* We do a lazy start, to 
        * avoid empty streams at beginning.. *)
       if Ogg_muxer.state ogg_enc <> 
          Ogg_muxer.Streaming 
       then
+       begin
         streams_start () ;
+        enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
+       end ;
       let _,content = Frame.content frame start in
       let f track = 
         track.encode ogg_enc (Utils.get_some track.id) content start len
       in
       List.iter f tracks ;
       Ogg_muxer.get_data ogg_enc
-    in
-    let ogg_stop () = 
+    and ogg_stop () = 
       let f track = 
         track.id <- None
       in
@@ -189,25 +199,23 @@ let encoder ogg name meta =
       if Ogg_muxer.state ogg_enc = 
          Ogg_muxer.Streaming
       then
-        Ogg_muxer.end_of_stream ogg_enc 
-    in
-    let stop () = 
+       begin
+        Ogg_muxer.end_of_stream ogg_enc ; 
+        enc.Encoder.header <- None 
+       end
+    and stop () = 
       ogg_stop () ;
+      enc.Encoder.header <- None ;
       Ogg_muxer.get_data ogg_enc
-    in
-    let insert_metadata m =
+    and insert_metadata m =
       ogg_stop () ;
       let f track =
         track.id <- Some (track.reset ogg_enc m)
       in
-      List.iter f tracks
+      List.iter f tracks ;
+      enc.Encoder.header <- Some (Ogg_muxer.get_header ogg_enc)
     in
-    {
-     Encoder.
-      insert_metadata  = insert_metadata ;
-      encode = encode ;
-      stop   = stop
-    }
+    enc
 
 let () =
   Encoder.plug#register "OGG"

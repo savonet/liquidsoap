@@ -61,6 +61,7 @@ let encoder mp3 =
     {
       insert_metadata = (fun m -> ()) ;
       encode = encode ;
+      header = None ;
       stop = (fun () -> "")
     }
 

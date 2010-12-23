@@ -74,6 +74,9 @@ let encoder flac meta =
     {
      Encoder.
       insert_metadata = ( fun _ -> ()) ;
+      (* Flac encoder do not support header
+       * for now. It will probably never do.. *)
+      header = None ;
       encode = encode ;
       stop = stop
     }

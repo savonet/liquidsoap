@@ -264,6 +264,10 @@ let encoder id ext =
   {
    Encoder. 
     insert_metadata  = insert_metadata handle ;
+    (* External encoders do not support 
+     * headers for now. They will probably
+     * never do.. *)
+    header = None ;
     encode = encode handle ratio ;
     stop   = stop handle ;
   }

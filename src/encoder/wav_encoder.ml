@@ -65,8 +65,10 @@ let encoder wav =
       s
   in
     {
+     Encoder.
       insert_metadata = (fun m -> ()) ;
       encode = encode ;
+      header = Some header ;
       stop = (fun () -> "")
     }
 

@@ -416,9 +416,15 @@ let string_of_format = function
   * id3 tags but does not support inline metadata. 
   * Also, the ogg encoder supports inline metadata but restarts
   * its stream. This is ok, though, because the ogg container/streams 
-  * is meant to be sequentialized but not the mp3 format. *)
+  * is meant to be sequentialized but not the mp3 format. 
+  * header contains data that should be sent first to streaming 
+  * client. *)
 type encoder = {
   insert_metadata : Meta.export_metadata -> unit ;
+  (* Encoder are all called from the main 
+   * thread so there's no need to protect this
+   * value with a mutex so far.. *)
+  mutable header : string option ;
   encode : Frame.t -> int -> int -> string ;
   stop : unit -> string
 }

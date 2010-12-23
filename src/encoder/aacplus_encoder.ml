@@ -85,6 +85,7 @@ let encoder aacplus =
   in
     {
       insert_metadata = (fun m -> ()) ;
+      header = None ;
       encode = encode ;
       stop = stop
     }
