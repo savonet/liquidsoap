@@ -13,6 +13,7 @@ liquidsoap_c_files = \
 	$(if $(W_OPAL),io/opal_io_c.c)
 
 liquidsoap_camlp4_files = \
+	$(if $(W_DUPPY_SYNTAX),outputs/harbor_output.camlp4) \
 	$(if $(W_DUPPY_SYNTAX),tools/server.camlp4) \
 	$(if $(W_DUPPY_SYNTAX),tools/harbor.camlp4)
 
@@ -120,6 +121,7 @@ encoders = \
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	outputs/file_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
+	outputs/harbor_output.ml \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
 	$(if $(W_ALSA),outputs/alsa_out.ml) \

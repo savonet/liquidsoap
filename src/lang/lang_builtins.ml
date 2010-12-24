@@ -1348,13 +1348,13 @@ let () =
          let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
                            l
          in
-         true,
-         Lang.to_string
-           (Lang.apply ~t:Lang.string_t 
-                       f [("",Lang.string uri);("headers",l);
-                          ("data",Lang.string data);
-                          ("protocol",Lang.string protocol);
-                          ("method",Lang.string http_method)])
+         Harbor.reply
+           (Lang.to_string
+             (Lang.apply ~t:Lang.string_t 
+                         f [("",Lang.string uri);("headers",l);
+                            ("data",Lang.string data);
+                            ("protocol",Lang.string protocol);
+                            ("method",Lang.string http_method)]))
        in
        Harbor.add_http_handler ~port ~uri f;
        Lang.unit)

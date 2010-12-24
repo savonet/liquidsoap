@@ -79,12 +79,18 @@ class virtual source ~kind =
   
 type sources = (string, source) Hashtbl.t
 
+type reply = | Close of string | Reply of string
+
+let reply s = Duppy.Monad.raise (Close s)
+  
+let relayed s = Duppy.Monad.raise (Reply s)
+  
 type http_handler =
   http_method: string ->
     protocol: string ->
       data: string ->
         headers: ((string * string) list) ->
-          socket: Unix.file_descr -> string -> (bool * string)
+          socket: Unix.file_descr -> string -> (reply, reply) Duppy.Monad.t
 
 type http_handlers = (string, http_handler) Hashtbl.t
 
@@ -107,13 +113,6 @@ let assoc_uppercase x y =
        y;
      raise Not_found)
   with | Assoc s -> s
-  
-(** {1 Handling of a client} *)
-type reply = | Close of string | Reply of string
-
-let reply s = Duppy.Monad.raise (Close s)
-  
-let relayed s = Duppy.Monad.raise (Reply s)
   
 exception Not_authenticated
   
@@ -467,10 +466,8 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
           with
           | Handled handler ->
               Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-                (let (close, ans) =
-                   handler ~http_method: smethod ~protocol ~data ~headers
-                     ~socket: h.Duppy.Monad.Io.socket uri
-                 in if close then reply ans else relayed ans)
+                (handler ~http_method: smethod ~protocol ~data ~headers
+                   ~socket: h.Duppy.Monad.Io.socket uri)
           | e ->
               (log#f 4 "HTTP %s request on uri '%s' failed: %s" smethod
                  (Utils.error_message e) uri;
@@ -592,7 +589,8 @@ let handle_client ~port ~icy h = (* Read and process lines *)
 (* {1 The server} *)
 (* Open a port and listen to it. *)
 let open_port ~icy port =
-  (log#f 4 "Opening port %d with icy = %b" port icy;
+  (Tutils.need_non_blocking_queue ();
+   log#f 4 "Opening port %d with icy = %b" port icy;
    let rec incoming ~port ~icy sock out_s e =
      if List.mem (`Read out_s) e
      then
