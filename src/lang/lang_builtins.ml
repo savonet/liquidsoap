@@ -540,7 +540,7 @@ let register_escape_fun ~name ~descr ~escape
   add_builtin name ~cat:String ~descr 
     [ "special_chars", Lang.list_t Lang.string_t, 
       Some (special_chars),
-      Some ("List of characters that should be escaped. The first \
+      Some ("List of characters that should be escaped. The first \
              character of each element in the list is considered.") ;
       "escape_char",
       Lang.fun_t [false,"",Lang.string_t] Lang.string_t,
