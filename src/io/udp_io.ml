@@ -190,8 +190,14 @@ let () =
          (* Specific UDP parameters *)
          let port = Lang.to_int (List.assoc "port" p) in
          let hostname = Lang.to_string (List.assoc "host" p) in
-         let fmt = Lang.to_format (Lang.assoc "" 1 p) in
-         let fmt = Encoder.get_factory fmt in
+         let fmt =
+           let fmt = Lang.assoc "" 1 p in
+             try Encoder.get_factory (Lang.to_format fmt) with
+               | Not_found ->
+                   raise (Lang.Invalid_value
+                            (fmt,
+                             "Cannot get a stream encoder for that format"))
+         in
          let source = Lang.assoc "" 2 p in
            ((new output ~kind ~on_start ~on_stop ~infallible ~autostart
                ~hostname ~port ~encoder_factory:fmt source):>Source.source))
