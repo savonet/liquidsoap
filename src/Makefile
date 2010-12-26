@@ -17,9 +17,8 @@ liquidsoap_camlp4_files = \
 	$(if $(W_DUPPY_SYNTAX),tools/server.camlp4) \
 	$(if $(W_DUPPY_SYNTAX),tools/harbor.camlp4)
 
-
 ogg_demuxer = \
-	$(if $(W_OGG),ogg_demuxer.ml) \
+	$(if $(W_OGG),ogg_formats/ogg_demuxer.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) \
 	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
@@ -27,7 +26,7 @@ ogg_demuxer = \
 	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
 
 ogg_muxer = \
-	$(if $(W_OGG),ogg_muxer.ml) \
+	$(if $(W_OGG),ogg_formats/ogg_muxer.ml) \
 	$(if $(W_OGG), encoder/ogg_encoder.ml) \
 	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
 	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
@@ -135,7 +134,6 @@ io = \
 	$(if $(W_JACK),io/jack_io.ml) \
 	$(if $(W_OPAL),io/opal_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
-	$(if $(W_LO),io/lo_io.ml) \
 	io/udp_io.ml
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
@@ -156,6 +154,12 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 	$(if $(W_SDL),synth/keyboard_sdl.ml) \
 	$(if $(W_DSSI),synth/dssi_op.ml)
 
+builtins = lang/lang_builtins.ml \
+	$(if $(W_LO),lang/builtins_lo.ml) \
+	$(if $(W_MAGIC),lang/builtins_magic.ml) \
+	$(if $(W_LASTFM),lang/builtins_lastfm.ml) \
+	$(if $(W_CRY),lang/builtins_cry.ml)
+
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
@@ -171,12 +175,7 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
-	shebang.ml \
-	lang/lang_builtins.ml \
-	$(if $(W_MAGIC),lang/lang_magic.ml) \
-	$(if $(W_LASTFM),lang/lang_lastfm.ml) \
-	$(if $(W_CRY),lang/lang_cry.ml) \
-	main.ml
+	shebang.ml $(builtins) main.ml
 
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
 OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
