@@ -130,9 +130,6 @@ let make ?(pos=None) ?(level=(-1)) d =
 
 let dummy = make ~pos:None (EVar (-1,[]))
 
-(** Sets of type descriptions. *)
-module DS = Set.Make(struct type t = descr let compare = compare end)
-
 (** Dereferencing gives you the meaning of a term,
   * going through links created by instantiations.
   * One should (almost) never work on a non-dereferenced type. *)
@@ -154,105 +151,160 @@ let name =
   in
     n ""
 
-(** Convert a type to a string.
-  * Unless in debug mode, variable identifiers are not shown,
-  * and variable names are generated.
-  * Names are only meaningful over one printing, as they are re-used. *)
-let print ?(generalized=[]) t =
-  let uvar_name ~constr_symbols i =
+(** Compute the structure that a term [repr]esents,
+  * given the list of universally quantified variables.
+  * Also takes care of computing the printing name of variables,
+  * including constraint symbols, which are removed from constraint lists.
+  * It supports a mechanism for filtering out parts of the type,
+  * which are then translated as `Ellipsis. *)
+let repr filter_out ?(generalized=[]) =
+  let split_constr c =
+    List.fold_left
+      (fun (s,constraints) c ->
+         match print_symconstr c with
+           | None -> s,c::constraints
+           | Some sym -> s^sym,constraints)
+      ("",[]) c
+  in
+  let uvar i c =
+    let constr_symbols,c = split_constr c in
     let rec index n = function
       | v::tl ->
-          if v=i then
+          if fst v = i then
             Printf.sprintf "'%s%s" constr_symbols (name n)
           else
             index (n+1) tl
       | [] -> assert false
     in
-      index 1 (List.rev generalized)
+      `UVar (index 1 (List.rev generalized), c)
+  in
+  let counter = let c = ref 0 in fun () -> incr c ; !c in
+  let evars = Hashtbl.create 10 in
+  let evar i c =
+    let constr_symbols,c = split_constr c in
+      if debug then
+        `EVar (Printf.sprintf "?%s%d" constr_symbols i, c)
+      else
+        let s =
+          try
+            Hashtbl.find evars i
+          with Not_found ->
+            let name = String.uppercase (name (counter ())) in
+              Hashtbl.add evars i name ;
+              name
+        in
+          `EVar (Printf.sprintf "?%s%s" constr_symbols s, c)
   in
   let generalized i = List.exists (fun (j,_) -> j=i) generalized in
-  let evars = Hashtbl.create 10 in
-  (* let uvars = Hashtbl.create 10 in *)
-  let counter = let c = ref 0 in fun () -> incr c ; !c in
-  let evar_name ~constr_symbols i =
-    if debug then Printf.sprintf "?%s%d" constr_symbols i else
-      let s =
-        try
-          Hashtbl.find evars i
-        with Not_found ->
-          let name = String.uppercase (name (counter ())) in
-            Hashtbl.add evars i name ;
-            name
-      in
-        Printf.sprintf "?%s%s" constr_symbols s
+  let rec repr t =
+    if filter_out t then `Ellipsis else
+      match t.descr with
+        | Ground g -> `Ground g
+        | List t -> `List (repr t)
+        | Product (a,b) -> `Product (repr a, repr b)
+        | Zero -> `Zero
+        | Variable -> `Variable
+        | Succ t -> `Succ (repr t)
+        | Constr { name=name; params=params } ->
+            `Constr (name,
+                     List.map (fun (l,t) -> l, repr t) params)
+        | Arrow (args,t) ->
+            `Arrow (List.map (fun (opt,lbl,t) -> opt,lbl,repr t) args,
+                    repr t)
+        | EVar (id,c) ->
+            if generalized id then
+              uvar id c
+            else
+              evar id c
+        | Link t -> repr t
   in
-  (** Compute the string representation of a type, dereferencing it on-the-fly.
+    repr
+
+(** Sets of type descriptions. *)
+module DS =
+  Set.Make(struct type t = (string*constraints) let compare = compare end)
+
+(** Convert a type to a string.
+  * Unless in debug mode, variable identifiers are not shown,
+  * and variable names are generated.
+  * Names are only meaningful over one printing, as they are re-used. *)
+let print_repr t =
+  (** Compute the string representation of a type.
     * Attaches the list of variables that occur in the type.
     * The [par] params tells whether (..)->.. should be surrounded by
     * parenthesis or not. *)
-  let rec print ~par vars t = match t.descr with
-    | Constr c ->
-        if c.name = "stream_kind" then
-          let fields = ["audio"; "video"; "midi"] in
-          let vfields,vars = print_list vars [] c.params in
-          let fields =
-            List.map2 (fun f v -> Printf.sprintf "%s=%s" f v) fields vfields
-          in
-            String.concat "," fields,
-            vars
+  let rec print ~par vars = function
+    | `Constr (name,params) ->
+        (* Let's assume that stream_kind occurs only inside a source
+         * or format type -- this should be pretty much true with the
+         * current API -- and simplify the printing by labeling its
+         * parameters and omitting the stream_kind(...) to avoid
+         * source(stream_kind(2,0,0)). *)
+        if name = "stream_kind" then
+          match params with
+            | [_,a;_,v;_,m] ->
+                let ellipsis,vars = print ~par:false vars `Ellipsis in
+                let has_ellipsis,l,vars =
+                  List.fold_left
+                    (fun (has_ellipsis,l,vars) (lbl,t) ->
+                       if t=`Ellipsis then true,l,vars else
+                         let t,vars = print ~par:false vars t in
+                           has_ellipsis,
+                           (lbl ^ "=" ^ t) :: l,
+                           vars)
+                    (false,[],vars)
+                    ["audio",a;"video",v;"midi",m]
+                in
+                let l = if has_ellipsis then ellipsis :: l else l in
+                let l = List.rev l in
+                  String.concat "," l,
+                  vars
+            | _ -> assert false
         else
-          let l,vars = print_list vars [] c.params in
-            Printf.sprintf "%s(%s)" c.name (String.concat "," l),
+          let l,vars = print_list vars [] params in
+            Printf.sprintf "%s(%s)" name (String.concat "," l),
             vars
-    | Ground g -> print_ground g, vars
-    | Product (a,b) ->
+    | `Ground g -> print_ground g, vars
+    | `Product (a,b) ->
         let a,vars = print ~par:true vars a in
         let b,vars = print ~par:true vars b in
           Printf.sprintf "(%s*%s)" a b,
           vars
-    | List t ->
+    | `List t ->
         let t,vars = print ~par:false vars t in
           Printf.sprintf "[%s]" t,
           vars
-    | Variable -> "*", vars
-    | Zero | Succ _ ->
-        let rec aux n t = match (deref t).descr with
-          | Succ t -> aux (n+1) t
-          | Zero -> string_of_int n, vars
-          | _ ->
+    | `Variable -> "*", vars
+    | `Zero | `Succ _ as t ->
+        let rec aux n = function
+          | `Succ t -> aux (n+1) t
+          | `Zero -> string_of_int n, vars
+          | t ->
               let s,vars = print ~par vars t in
                 Printf.sprintf "%s+%d" s n, vars
         in
           aux 0 t
-    | EVar (i,c) as d ->
-        let constr_symbols,c' =
+    | `EVar (name,c) | `UVar (name,c) ->
+        name,
+        (if c<>[] then DS.add (name,c) vars else vars)
+    | `Arrow (p,t) ->
+        let _,params,vars =
           List.fold_left
-            (fun (s,constraints) c ->
-               match print_symconstr c with
-                 | None -> s,c::constraints
-                 | Some sym -> s^sym,constraints)
-            ("",[]) c
-        in
-        if generalized i then
-          (uvar_name ~constr_symbols (i,c)),
-          (if c'<>[] then DS.add d vars else vars)
-        else
-          (evar_name ~constr_symbols i),
-          (if c'<>[] then DS.add d vars else vars)
-    | Arrow (p,t) ->
-        let params,vars =
-           List.fold_left
-             (fun (params,vars) (opt,lbl,kind) ->
-                let kind,vars = print ~par:true vars kind in
-                 let prefix =
-                   if lbl <> "" then
-                     (if opt then "?" else "~") ^ lbl ^ ":"
-                   else
-                     (if opt then "?" else "")
+            (fun (in_ellipsis,params,vars) (opt,lbl,kind) ->
+               if kind = `Ellipsis then
+                 if in_ellipsis then
+                   true, params, vars
+                 else
+                   true, "..."::params, vars
+               else
+                 let kind,vars = print ~par:true vars kind in
+                 let full =
+                   (if opt then "?" else "") ^
+                   (if lbl <> "" then lbl ^ ":" ^ kind else kind)
                  in
-                   (prefix^kind)::params,vars)
-             ([],vars)
-             p
+                   false, full::params, vars)
+            (false,[],vars)
+            p
         in
         let params = List.rev params in
         let t,vars = print ~par:false vars t in
@@ -266,48 +318,31 @@ let print ?(generalized=[]) t =
             (String.concat ", " params)
             t,
           vars
-    | Link x -> assert (x!=t) ; print ~par vars x
+    | `Ellipsis -> "...", vars
   and print_list vars acc = function
     | [] -> List.rev acc, vars
     | (_,x)::l ->
         let x,vars = print ~par:false vars x in
           print_list vars (x::acc) l
   in
-    match (deref t).descr with
-      | EVar (i,c) ->
-          (* We're only printing a variable: ignore its [repr]esentation. *)
-          if generalized i then
-            Printf.sprintf "anything that is %s"
-              (String.concat " and " (List.map print_constr c))
-          else
-            Printf.sprintf "something that is %s"
-              (String.concat " and " (List.map print_constr c))
+    match t with
+      (* We're only printing a variable: ignore its [repr]esentation. *)
+      | `EVar (i,c) when c <> [] ->
+          Printf.sprintf "something that is %s"
+            (String.concat " and " (List.map print_constr c))
+      | `UVar (i,c) when c <> [] ->
+          Printf.sprintf "anything that is %s"
+            (String.concat " and " (List.map print_constr c))
+      (* Print the full thing, then display constraints *)
       | _ ->
           let repr,constraints = print ~par:false DS.empty t in
           let constraints = DS.elements constraints in
             if constraints = [] then repr else
               let constraints =
                 List.map
-                  (fun x ->
-                     let i,c =
-                       match x with
-                         | EVar (i,c) ->
-                             let constr_symbols,c' =
-                               List.fold_left
-                                 (fun (s,constraints) c ->
-                                    match print_symconstr c with
-                                      | None -> s,c::constraints
-                                      | Some sym -> s^sym,constraints)
-                                 ("",[]) c
-                             in
-                             if generalized i then
-                               uvar_name ~constr_symbols (i,c), c'
-                             else
-                               evar_name ~constr_symbols i, c'
-                         | _ -> assert false
-                     in
-                     let c = String.concat " and " (List.map print_constr c) in
-                       i,c)
+                  (fun (name,c) ->
+                     name,
+                     String.concat " and " (List.map print_constr c))
                   constraints
               in
               let constraints =
@@ -507,6 +542,47 @@ let rec bind a0 b =
   * In both items, it is likely that <?> will be undefined. *)
 type trace_item = Item of t*t | Flip
 exception Error of trace_item list
+
+let print_type_error trace =
+  let rec strip = function
+    | Flip :: tl -> strip tl
+    | Item (a,b) :: tl -> (a,b) :: strip tl
+    | [] -> []
+  in
+  let trace = strip trace in
+  let tr_a,tr_b = List.split trace in
+  let a = List.hd tr_a and b = List.hd tr_b in
+  let filter_out x =
+    let eq y = deref x == deref y in
+      not (List.exists eq tr_a || List.exists eq tr_b)
+  in
+  let print t = print_repr (repr filter_out t) in
+  let infered_pos a =
+    let dpos = (deref a).pos in
+      if a.pos = dpos then "" else
+        match dpos with
+          | None -> ""
+          | Some p -> "\n    (infered at " ^ print_pos ~prefix:"" p ^ ")"
+  in
+    Printf.printf
+      "\n%s:\n  this value has type\n    %s%s\n"
+      (match a.pos with
+         | None -> "At unknown position"
+         | Some p -> print_pos p)
+      (print a)
+      (infered_pos a) ;
+    Printf.printf
+      "  but it should be a subtype of%s\n    %s%s\n%!"
+      (match b.pos with
+         | None -> ""
+         | Some p ->
+             Printf.sprintf " (the type of the value at %s)"
+               (print_pos ~prefix:"" p))
+      (print b)
+      (infered_pos b)
+
+let print ?generalized t =
+  print_repr (repr ?generalized (fun _ -> false) t)
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.

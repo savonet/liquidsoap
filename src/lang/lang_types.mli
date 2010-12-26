@@ -61,6 +61,7 @@ val generalizable : level:int -> t -> (int*constraints) list
 
 type trace_item = Item of t*t | Flip
 exception Error of trace_item list
+val print_type_error : trace_item list -> unit
 val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 

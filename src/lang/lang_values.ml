@@ -477,51 +477,60 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | App (a,l) ->
       check ~level ~env a ;
       List.iter (fun (_,b) -> check ~env ~level b) l ;
-      let p =
-        (* If [a] is known to have a function type, get the parameters'
-         * optionality from its type. Otherwise, they will all have to be
-         * mandatory. *)
-        match (T.deref a.t).T.descr with
-          | T.Arrow (ap,t) ->
-              let rec get_optionality lbl l =
-                let rec aux acc = function
-                  | [] -> None
-                  | (o,lbl',t)::l ->
-                      if lbl=lbl' then
-                        Some (o, List.rev_append acc l)
-                      else
-                        aux ((o,lbl',t)::acc) l
-                in
-                  aux [] l
+      (* If [a] is known to have a function type, manually dig through
+       * it for better error messages. Otherwise generate its type
+       * and unify -- in that case the optionality can't be guessed
+       * and mandatory is the default. *)
+      begin match (T.deref a.t).T.descr with
+        | T.Arrow (ap,t) ->
+            (* Find in l the first arg labeled lbl,
+             * return it together with the remaining of the list. *)
+            let rec get_arg lbl l =
+              let rec aux acc = function
+                | [] -> None
+                | (o,lbl',t)::l ->
+                    if lbl=lbl' then
+                      Some (o, t, List.rev_append acc l)
+                    else
+                      aux ((o,lbl',t)::acc) l
               in
-              let p',_ =
-                List.fold_left
-                  (fun (p',ap) (lbl,v) ->
-                     match get_optionality lbl ap with
-                       | None ->
-                           let first =
-                             not (List.exists (fun (_,l,_) -> l=lbl) p')
-                           in
-                             raise (No_label (a,lbl,first,v))
-                         | Some (o,ap') ->
-                             ((o,lbl,v.t)::p'),ap')
-                  ([],ap)
-                  l
-              in
-                List.rev p'
-          | _ ->
-              List.map (fun (lbl,b) -> false,lbl,b.t) l
-      in
-        begin try
-          (* Special case here for intuitive error messages:
-           * ignore the flipping of the focus in case error occurs.
-           * The inital focus should be on the function's type
-           * (not the synthesized one) but then the focus should not follow
-           * the function's type but move to the arguments types. *)
-          a.t <: T.make ~level ~pos:None (T.Arrow (p,e.t))
-        with
-          | T.Error (x::T.Flip::tl) -> raise (T.Error (x::tl))
-        end
+                aux [] l
+            in
+            let _,ap =
+              (* Remove the applied parameters,
+               * check their types on the fly. *)
+              List.fold_left
+                (fun (already,ap) (lbl,v) ->
+                   match get_arg lbl ap with
+                     | None ->
+                         let first = not (List.mem lbl already) in
+                           raise (No_label (a,lbl,first,v))
+                     | Some (o,t,ap') ->
+                         v.t <: t ;
+                         (lbl::already,ap'))
+                ([],ap)
+                l
+            in
+              (* See if any mandatory argument remains,
+               * check the return type. *)
+              if List.for_all (fun (o,_,_) -> o) ap then
+                e.t >: t
+              else
+                e.t >: T.make ~level ~pos:None (T.Arrow (ap,t))
+        | _ ->
+            let p = List.map (fun (lbl,b) -> false,lbl,b.t) l in
+              begin try
+                (* Special case here for intuitive error messages:
+                 * ignore the flipping of the focus in case error occurs.
+                 * The inital focus should be on the function's type
+                 * (not the synthesized one) but then the focus should
+                 * not follow the function's type
+                 * but move to the arguments types. *)
+                a.t <: T.make ~level ~pos:None (T.Arrow (p,e.t))
+              with
+                | T.Error (x::T.Flip::tl) -> raise (T.Error (x::tl))
+              end
+      end
   | Fun (_,proto,body) ->
       let base_check = check ~level ~env in
       let proto_t,env,level =

@@ -543,43 +543,6 @@ let type_and_run ast =
        Term.check ast ;
        ignore (Term.eval_toplevel ast))
 
-let infered_pos a =
-  let dpos = (T.deref a).T.pos in
-    if a.T.pos = dpos then "" else
-      match dpos with
-        | None -> ""
-        | Some p -> "\n    (infered at " ^ T.print_pos ~prefix:"" p ^ ")"
-
-(* We can't expect one position per item, think of a failed unification
- * between FFI types for example. *)
-let rec print_type_error focus_left = function
-  | T.Flip::tl -> print_type_error (not focus_left) tl
-  | T.Item (a,b)::tl ->
-      let (xtype,a,b) =
-        if focus_left then ("subtype",a,b) else ("supertype",b,a)
-      in
-        Printf.printf
-          "\n%s:\n  this value has type\n    %s%s\n"
-          (match a.T.pos with
-             | None -> "At unknown position"
-             | Some p -> T.print_pos p)
-          (T.print a)
-          (infered_pos a) ;
-        Printf.printf
-          "  but it should be a %s of%s\n    %s%s\n%!"
-          xtype
-          (match b.T.pos with
-             | None -> ""
-             | Some p ->
-                 Printf.sprintf " (the type of the value at %s)"
-                   (T.print_pos ~prefix:"" p))
-          (T.print b)
-          (infered_pos b) ;
-        print_type_error focus_left tl
-  | [] -> ()
-
-let print_type_error trace = print_type_error true trace
-
 (** The Parsing module is not thread safe, it has global variables
   * describing the current parsing state. Hence we need to do one
   * parsing at a time. *)
@@ -627,7 +590,7 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
       | T.Error trace ->
           flush_all () ;
           Printf.printf "ERROR: This script is not well typed!\n" ;
-          print_type_error trace ;
+          T.print_type_error trace ;
           exit 1
       | Term.No_label (f,lbl,first,x) ->
           let pos_f =
