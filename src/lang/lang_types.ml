@@ -280,8 +280,12 @@ let print_repr t =
           | `Succ t -> aux (n+1) t
           | `Zero -> string_of_int n, vars
           | t ->
-              let s,vars = print ~par vars t in
-                Printf.sprintf "%s+%d" s n, vars
+              if t = `Ellipsis then
+                let s,vars = print ~par vars t in
+                  Printf.sprintf "%d+%s" n s, vars
+              else
+                let s,vars = print ~par vars t in
+                  Printf.sprintf "%s+%d" s n, vars
         in
           aux 0 t
     | `EVar (name,c) | `UVar (name,c) ->
