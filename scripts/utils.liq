@@ -622,17 +622,18 @@ def enable_replaygain_metadata(
 end
 
 # Create a log of clock times for all the clocks initially present.
-# The log is in simple format, which you can notably directly use with gnuplot.
+# The log is in a simple format which you can directly use with gnuplot.
 # @category Liquidsoap
 # @param ~interval Polling interval.
-# @param ~delay    Delay before setting up the clock logger. This should
-#                  be used to ensure that the logger starts only after
+# @param ~delay    Delay before setting up the clock logger. This should \
+#                  be used to ensure that the logger starts only after \
 #                  the clocks are created.
+# @param unlabeled Path of the log file.
 def log_clocks(~delay=0.,~interval=1.,logfile)
   # Get the current clocks
   clocks = list.map(fst,get_clock_status())
   # Column headers
-  system("echo \# #{string.concat(separator=' ',clocks)} > #{logfile}")
+  system("echo \# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
   def report()
     status = get_clock_status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
