@@ -101,7 +101,8 @@ object (self)
               * This setting is critical as a too small bufsize will easily result in
               * underruns when the thread isn't fast enough.
               * TODO make it customizable *)
-             Pcm.set_periods dev params periods Dir_eq;
+             if periods > 0 then
+               Pcm.set_periods dev params periods Dir_eq;
              Pcm.set_buffer_size_near dev params 65536
           in
           self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"

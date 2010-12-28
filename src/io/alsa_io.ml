@@ -121,8 +121,10 @@ object (self)
         );
         handle "channels"
           (Pcm.set_channels dev params) channels ;
-        handle "periods"
-          (Pcm.set_periods dev params Alsa_settings.periods#get) Dir_eq ;
+        let periods = Alsa_settings.periods#get in
+        if periods > 0 then
+          handle "periods"
+            (Pcm.set_periods dev params periods) Dir_eq ;
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
