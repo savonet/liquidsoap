@@ -60,6 +60,7 @@ object (self)
   (* State of the I/O process:
    *   `Idle when stopped;
    *   `Running (thread ID) when running;
+   *   `Crashed when process has crashed.
    *   `Tired while shutting down. *)
   val mutable state = `Idle
   method sourcering_stop =
@@ -75,6 +76,7 @@ object (self)
           Thread.join id ;
           state <- `Idle
       | `Tired | `Idle -> assert false
+      | `Crashed -> ()
 
 end
 
@@ -133,6 +135,7 @@ object (self)
            * Let's resume it, even though he'll get an arbitrary block. *)
           Mutex.lock wait_m ;
           write <- (write + 1) mod (2*nb_blocks) ;
+          state <- `Crashed ;
           Mutex.unlock wait_m ;
           Condition.signal wait_c ;
           raise e
@@ -141,10 +144,10 @@ object (self)
    * so it makes sense to require that #sleep hasn't been called
    * and won't be called before #get_block returns. *)
   method private get_block =
-    assert (match state with `Running _ -> true | _ -> false) ;
+    assert (match state with `Running _ | `Crashed -> true | _ -> false) ;
     (* Check that the writer still has an advance. *)
     Mutex.lock wait_m ;
-    if write = read then
+    if write = read && state <>`Crashed then
       Condition.wait wait_c wait_m ;
     let b = buffer.(read mod nb_blocks) in
       read <- (read + 1) mod (2*nb_blocks) ;
@@ -208,6 +211,7 @@ object (self)
            * Let's resume it, even though he'll get an arbitrary block. *)
           Mutex.lock wait_m ;
           read <- (read + 1) mod (2*nb_blocks) ;
+          state <- `Crashed ;
           Mutex.unlock wait_m ;
           Condition.signal wait_c ;
           raise e
@@ -216,9 +220,10 @@ object (self)
    * so it makes sense to require that #sleep hasn't been called
    * and won't be called before #put_block returns. *)
   method put_block (f : 'a -> unit) =
-    assert (match state with `Running _ -> true | _ -> false) ;
+    assert (match state with `Running _ | `Crashed -> true | _ -> false) ;
     Mutex.lock wait_m ;
-    if read <> write && write mod nb_blocks = read mod nb_blocks then
+    if read <> write && write mod nb_blocks = read mod nb_blocks &&
+       state <> `Crashed then
       Condition.wait wait_c wait_m ;
     Mutex.unlock wait_m ;
     f buffer.(write mod nb_blocks) ;
