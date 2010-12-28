@@ -50,11 +50,17 @@ let conf_buffer_length =
   Dtools.Conf.int ~p:(conf#plug "buffer_length") ~d:1
     "Buffer size, in frames."
     ~comments:[
-      "This is only used for buffered ALSA I/O, and affects the latency."
+      "This is only used for buffered ALSA I/O, and affects latency."
     ]
 let periods =
-  Dtools.Conf.int ~p:(conf#plug "periods") ~d:5
-    "Number of periods"
+  Dtools.Conf.int ~p:(conf#plug "periods") ~d:0
+    "Number of periods. Set to 0 to disable this setting \
+     and use ALSA's default."
+let alsa_buffer =
+  Dtools.Conf.int ~p:(conf#plug "alsa_buffer") ~d:0
+    "Alsa internal buffer size. This setting is only used \
+     in buffered alsa I/O and affects latency. Set to 0 to \
+     disable this setting and use ALSA's default."
 
 (** A dedicated clock for all ALSA I/O operators, to make sure other
   * blocking I/O inteferes with them. In the future, we might even want

@@ -34,6 +34,7 @@ class virtual base ~kind dev mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let samples_per_frame = AFrame.size () in
+  let periods = Alsa_settings.periods#get in
 object (self)
 
   method virtual log : Dtools.Log.t
@@ -121,16 +122,22 @@ object (self)
         );
         handle "channels"
           (Pcm.set_channels dev params) channels ;
-        let periods = Alsa_settings.periods#get in
-        if periods > 0 then
-          handle "periods"
-            (Pcm.set_periods dev params periods) Dir_eq ;
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
         let bufsize =
           handle "buffer size"
             (Pcm.set_buffer_size_near dev params) samples_per_frame
+        in
+        let periods =
+          if periods > 0 then
+           begin
+            handle "periods"
+              (Pcm.set_periods dev params periods) Dir_eq ;
+            periods
+           end
+          else
+            fst(Pcm.get_periods_max params)
         in
           alsa_rate <- rate;
           if rate <> samples_per_second then
@@ -141,7 +148,8 @@ object (self)
             self#log#f 3
               "Could not set buffer size to 'frame.size' (%d samples), got %d."
               samples_per_frame bufsize ;
-
+          self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
+            alsa_rate bufsize (Pcm.get_frame_size params) periods ;
           (
           try
             Pcm.set_params dev params

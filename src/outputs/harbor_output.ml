@@ -84,7 +84,7 @@ let proto kind =
        (Some "Maximun buffer per-client."));
       ("burst", Lang.int_t, (Some (Lang.int 65534)),
        (Some "Initial burst of data sent to the client."));
-      ("chunk", Lang.int_t, (Some (Lang.int 4096)),
+      ("chunk", Lang.int_t, (Some (Lang.int 1024)),
        (Some
           "Send data to clients using chunks of at \
           least this length."));

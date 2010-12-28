@@ -31,6 +31,7 @@ let () = no_stderr_report ()
 class output ~kind ~clock_safe dev start source =
   let buffer_length = AFrame.size () in
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
+  let alsa_buffer = Alsa_settings.alsa_buffer#get in
   let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -77,7 +78,7 @@ object (self)
           self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
           let params = Pcm.get_params dev in
-          let bufsize =
+          let bufsize,periods =
              (
                try
                  Pcm.set_access dev params Pcm.Access_rw_noninterleaved ;
@@ -101,9 +102,16 @@ object (self)
               * This setting is critical as a too small bufsize will easily result in
               * underruns when the thread isn't fast enough.
               * TODO make it customizable *)
+             let bufsize = 
+               if alsa_buffer > 0 then
+                 Pcm.set_buffer_size_near dev params alsa_buffer 
+               else
+                 Pcm.get_buffer_size_max params
+             in
              if periods > 0 then
                Pcm.set_periods dev params periods Dir_eq;
-             Pcm.set_buffer_size_near dev params 65536
+             bufsize,
+             (fst (Pcm.get_periods_max params))
           in
           self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
             alsa_rate bufsize (Pcm.get_frame_size params) periods ;
