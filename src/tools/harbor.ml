@@ -609,6 +609,7 @@ let open_port ~icy port =
              (log#f 4 "New client on port %i: %s" port ip;
               Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get;
               Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get;
+              Liq_sockets.set_tcp_nodelay sock true;
               let on_error e =
                 ((match e with
                   | Duppy.Io.Io_error -> log#f 4 "Client disconnected"

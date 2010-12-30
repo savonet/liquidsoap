@@ -183,6 +183,8 @@ let proto kind =
     ("headers", Lang.metadata_t,
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
      Some "Additional headers.") ;
+    "timeout", Lang.float_t, Some (Lang.float 30.),
+    Some "Timeout for network operations.";
     "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
     Some "Send new metadata using the ICY protocol. \
           One of: \"guess\", \"true\", \"false\"";
@@ -268,6 +270,10 @@ class output ~kind p =
                 f (Lang.to_product v))
              (Lang.to_list (List.assoc "headers" p))
   in
+  let timeout = Lang.to_float (List.assoc "timeout" p) in
+  let connection = Cry.create ~timeout () in
+  let sock = Cry.get_socket connection in
+  let () = Liq_sockets.set_tcp_nodelay sock true in
 
 object (self)
 
@@ -293,7 +299,6 @@ object (self)
   (** File descriptor where to dump. *)
   val mutable dump = None
 
-  val connection = Cry.create ()
   val mutable encoder = None
 
   method encode frame ofs len =
