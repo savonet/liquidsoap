@@ -195,31 +195,29 @@ let new_queue ?priorities ~name () =
 
 let create f x name = create ~wait:true f x name
 
-(** Create a default queue at startup, that will accept any task. *)
-let () =
-  ignore (Dtools.Init.at_start (fun () ->
-    for i = 1 to generic_queues#get do
-      let name = Printf.sprintf "generic queue #%d" i in
-        new_queue ~name ()
-    done ;
-    for i = 1 to fast_queues#get do
-      let name = Printf.sprintf "fast queue #%d" i in
-        new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
-    done))
-
 let start_non_blocking = ref false
 let need_non_blocking_queue () = start_non_blocking := true
-(* Create non_blocking queues at startup, if 
- * needed. *) 
-let () = 
-  ignore (Dtools.Init.at_start (fun () ->
-    if !start_non_blocking then
-      for i = 1 to non_blocking_queues#get do
-        let name = Printf.sprintf "non-blocking queue #%d" i in
-        new_queue
-          ~priorities:(fun x -> x = Non_blocking)
-          ~name ()
-      done))
+
+let () =
+  (* A dtool atom to start
+   * tasks *)
+   ignore(Init.make 
+     ~name:"init-queues-start" ~after:[Init.start] (fun () ->
+      for i = 1 to generic_queues#get do
+        let name = Printf.sprintf "generic queue #%d" i in
+          new_queue ~name ()
+      done ;
+      for i = 1 to fast_queues#get do
+        let name = Printf.sprintf "fast queue #%d" i in
+          new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
+      done;
+      if !start_non_blocking then
+        for i = 1 to non_blocking_queues#get do
+          let name = Printf.sprintf "non-blocking queue #%d" i in
+          new_queue
+            ~priorities:(fun x -> x = Non_blocking)
+            ~name ()
+        done))
 
 (** Replace stdout/err by a pipe, and install a Duppy task that pulls data
   * out of that pipe and logs it.
