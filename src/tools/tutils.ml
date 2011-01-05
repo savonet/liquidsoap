@@ -207,18 +207,19 @@ let () =
         new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
     done))
 
-let need_non_blocking_queue =
-  let has_one = ref false in
-    fun () ->
-      if not !has_one then begin
-        for i = 1 to non_blocking_queues#get do
-          let name = Printf.sprintf "non-blocking queue #%d" i in
-            new_queue
-              ~priorities:(fun x -> x = Non_blocking)
-              ~name ()
-        done ;
-        has_one := true
-      end
+let start_non_blocking = ref false
+let need_non_blocking_queue () = start_non_blocking := true
+(* Create non_blocking queues at startup, if 
+ * needed. *) 
+let () = 
+  ignore (Dtools.Init.at_start (fun () ->
+    if !start_non_blocking then
+      for i = 1 to non_blocking_queues#get do
+        let name = Printf.sprintf "non-blocking queue #%d" i in
+        new_queue
+          ~priorities:(fun x -> x = Non_blocking)
+          ~name ()
+      done))
 
 (** Replace stdout/err by a pipe, and install a Duppy task that pulls data
   * out of that pipe and logs it.
