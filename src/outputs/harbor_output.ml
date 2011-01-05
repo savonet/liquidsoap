@@ -105,7 +105,6 @@ let proto kind =
        (Lang.fun_t [ (false, "", Lang.string_t) ] Lang.unit_t),
        (Some (Lang.val_cst_fun [ ("", Lang.string_t, None) ] Lang.unit)),
        (Some "Callback executed when connection stops."));
-      ("public", Lang.bool_t, (Some (Lang.bool true)), None);
       ("headers", Lang.metadata_t,
        (Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])),
        (Some "Additional headers."));
@@ -142,7 +141,6 @@ let add_meta c data =
     let f x =
       try Some (Hashtbl.find (Utils.get_some meta) x)
       with | Not_found -> None in
-    (* TODO: Add URL *)
     let meta_info =
       match ((f "artist"), (f "title")) with
       | (Some a, Some t) -> Some (Printf.sprintf "%s - %s" a t)
