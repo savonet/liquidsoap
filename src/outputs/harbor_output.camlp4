@@ -493,7 +493,7 @@ object (self)
         { Duppy.Monad.Io.
            scheduler = Tutils.scheduler ;
            socket    = s;
-           init      = "";
+           data      = "";
            on_error  = 
              (fun e ->
                 begin

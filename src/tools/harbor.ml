@@ -623,7 +623,7 @@ let open_port ~icy port =
                 {
                   Duppy.Monad.Io.scheduler = Tutils.scheduler;
                   socket = socket;
-                  init = "";
+                  data = "";
                   on_error = on_error;
                 } in
               let reply r =

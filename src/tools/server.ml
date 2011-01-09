@@ -218,7 +218,7 @@ let handle_client socket =
     {
       Duppy.Monad.Io.scheduler = Tutils.scheduler;
       socket = socket;
-      init = "";
+      data = "";
       on_error = on_error;
     } in
   (* Read and process lines *)

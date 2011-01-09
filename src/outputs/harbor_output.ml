@@ -658,7 +658,7 @@ class output ~kind p =
                                                                     scheduler;
                                                                     socket =
                                                                     s;
-                                                                    init = "";
+                                                                    data = "";
                                                                     on_error =
                                                                     (fun e ->
                                                                     ((
