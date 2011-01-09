@@ -201,7 +201,7 @@ let create_decoder source mode input =
           Ogg_demuxer.decode_video decoder video_feed
       with
         | Ogg_demuxer.End_of_stream -> reset buffer
-        | Ogg.Not_enough_data
+        | Ogg.Not_enough_data -> feed ()
         | Ogg.Out_of_sync when source = `Stream -> feed ())
 
 end
