@@ -272,8 +272,6 @@ class output ~kind p =
   in
   let timeout = Lang.to_float (List.assoc "timeout" p) in
   let connection = Cry.create ~timeout () in
-  let sock = Cry.get_socket connection in
-  let () = Liq_sockets.set_tcp_nodelay sock true in
 
 object (self)
 
@@ -454,6 +452,8 @@ object (self)
               raise e
         end ;
         self#log#f 3 "Connection setup was successful." ;
+        let sock = Cry.get_socket connection in
+        let () = Liq_sockets.set_tcp_nodelay sock true in
         (* Execute on_connect hook. *)
         on_connect () ;
       with
