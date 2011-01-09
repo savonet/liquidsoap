@@ -1429,11 +1429,7 @@ let rec to_json_compact v =
   (* Utils.escape implements
    * JSON's escaping RFC. *)
   let print_s s =
-    let b = Buffer.create (String.length s) in
-    let f = Format.formatter_of_buffer b in
-    Utils.escape_utf8 f s ;
-    Format.pp_print_flush f () ;
-    Buffer.contents b 
+    Utils.escape_string Utils.escape_utf8 s
   in
   match v.Lang.value with
     | Lang.Unit -> "null"

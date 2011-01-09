@@ -44,7 +44,8 @@ object (self)
                       let s = s^
                               (if s = "" then "--- " else "\n--- ")^
                               (string_of_int i)^" ---\n"^
-                              (Request.string_of_metadata m) in
+                              (Utils.escape_string Utils.escape_utf8
+                                (Request.string_of_metadata m)) in
                         s,(i-1))
                    ("",(Queue.length q)) q)))
 

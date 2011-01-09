@@ -203,6 +203,13 @@ let escape_utf8_char =
 let escape_utf8 ?special_char ?(escape_char=escape_utf8_char) = 
   escape ?special_char ~escape_char ~next:utf8_next
 
+let escape_string escape s = 
+  let b = Buffer.create (String.length s) in
+  let f = Format.formatter_of_buffer b in
+  escape f s ;
+  Format.pp_print_flush f () ;
+  Buffer.contents b
+
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:
