@@ -542,10 +542,18 @@ fi
 # Camomile
 #
 
+AC_ARG_ENABLE([camomile],
+  AC_HELP_STRING([--disable-camomile],
+                 ["don't use camomile (no charset detection and conversion)"]))
+
 AC_CHECK_OCAML_BINDING([camomile])
 
 if test -z "$W_CAMOMILE" ; then
+  if test "x$enable_camomile" = "xno" ; then
     echo let recode_tag ?in_enc ?out_enc s = s >> src/configure.ml
+  else
+    AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
+  fi
 else
     camdir=`$OCAMLFIND query camomile -l | \
       grep location | tr -d ' ' | cut -d':' -f 2`
