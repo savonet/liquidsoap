@@ -26,8 +26,10 @@ module Img = Image.RGBA32
 
 class text ~kind
   ttf ttf_size color dx dy speed cycle meta text (source:source) =
-let video_height = Lazy.force Frame.video_height in
-let video_width = Lazy.force Frame.video_width in
+  let video_height = Lazy.force Frame.video_height in
+  let video_width = Lazy.force Frame.video_width in
+  let () = Sdl_utils.init [] in
+  let () = Sdl_utils.ttf_init () in
 object (self)
   inherit operator kind [source] as super
 
@@ -69,8 +71,6 @@ object (self)
       text_frame <- Some tf
 
   initializer
-    Sdl.init [];
-    Sdlttf.init ();
     let f =
       try
         Sdlttf.open_font (Lang.to_string ttf) ttf_size

@@ -23,7 +23,38 @@
 module Img = Image.RGBA32
 module Gen = Image.Generic
 
-let () = Sdl.init [`VIDEO]
+type event = 
+        [ `AUDIO
+        | `CDROM
+        | `EVENTTHREAD
+        | `EVERYTHING
+        | `JOYSTICK
+        | `NOPARACHUTE
+        | `TIMER
+        | `VIDEO ]
+
+let options : event list option ref = ref None
+let start_ttf = ref false
+let rec add_elems cur = 
+  function 
+      | x::l' when not (List.mem x cur) -> add_elems (x::cur) l'
+      | _::l' -> add_elems cur l'
+      | [] -> cur
+
+let init l =
+  match !options with
+      | None -> options := Some l
+      | Some l' -> options := Some (add_elems l l')
+
+let ttf_init () = start_ttf := true
+
+let () = 
+  ignore (Dtools.Init.at_start (fun () ->
+            if !start_ttf then
+              Sdlttf.init ();
+            match !options with
+              | Some l -> Sdl.init l
+              | _ -> ()))
 
 module Pool = Pool.Make(struct type t = Sdlvideo.surface end)
 let keep_alive s f =

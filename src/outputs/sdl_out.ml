@@ -27,6 +27,7 @@ open Sdl
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_width    = Lazy.force Frame.video_width in
   let video_height   = Lazy.force Frame.video_height in
+  let () = Sdl_utils.init [`VIDEO] in
 object (self)
   inherit Output.output ~name:"sdl" ~output_kind:"output.sdl"
     ~infallible ~on_start ~on_stop

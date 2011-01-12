@@ -44,6 +44,7 @@ let note_of_char c =
         array_index knotes1 c + 59
 
 class keyboard ~kind velocity =
+  let () = Sdl_utils.init [`EVENTTHREAD; `VIDEO] in
 object (self)
   inherit Source.active_source ~name:"input.keyboard.sdl" kind
 
@@ -54,8 +55,6 @@ object (self)
   method output = if AFrame.is_partial memo then self#get_frame memo
 
   method output_get_ready =
-    (* TODO use sdl_utils and cooperate with other sdl-based operators *)
-    Sdl.init [`EVENTTHREAD; `VIDEO];
     Sdlevent.disable_events (Sdlevent.all_events_mask);
     Sdlevent.enable_events
       (Sdlevent.make_mask
