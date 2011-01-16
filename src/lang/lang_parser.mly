@@ -52,6 +52,8 @@
 
   let time_units = [| 7*24*60*60 ; 24*60*60 ; 60*60 ; 60 ; 1 |]
 
+  (** Given a date specified as a list of four values (whms),
+    * return a date in seconds from the beginning of the week. *)
   let date =
     let to_int = function None -> 0 | Some i -> i in
     let rec aux = function
@@ -73,13 +75,22 @@
     in
       aux
 
-  let rec last_index e n = function
-    | x::tl -> if x=e then last_index e (n+1) tl else n
-    | [] -> n
+  (** Give the index of the first non-None value in the list. *)
+  let last_index l =
+    let rec last_index n = function
+      | x::tl -> if x=None then last_index (n+1) tl else n
+      | [] -> n
+    in
+      last_index 0 l
 
-  let precision d = time_units.(last_index None 0 d)
+  (** Give the precision of a date-as-list.
+    * For example, the precision of Xs is 1, XmYs is 60, XhYmZs 3600, etc. *)
+  let precision d = time_units.(last_index d)
+
+  (** Give the duration of a data-as-list.
+   * For example, the duration of Xs is 1, Xm 60, XhYm 60, etc. *)
   let duration d = time_units.(Array.length time_units - 1 - 
-                               last_index None 0 (List.rev d))
+                               last_index (List.rev d))
 
   let between d1 d2 =
     let p1 = precision d1 in
@@ -283,6 +294,8 @@ ty:
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
   | INT                       { Lang_values.type_of_int $1 }
+  | TIMES                     { Lang_values.variable_t }
+  /* | TIMES PLUS INT            { Lang_values.variable_t + type_of_int $2 } */
 
 ty_args:
   |                      { [] }
