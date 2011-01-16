@@ -629,60 +629,17 @@ let recode_tag =
 EOCONF
 fi
 
-#
-# Faad
-#
+# OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad])
-
-#
-# Faac
-#
-
 AC_CHECK_OCAML_BINDING([faac])
-
-#
-# SoundTouch
-#
-
 AC_CHECK_OCAML_BINDING([soundtouch])
-
-#
-# Portaudio
-#
-
 AC_CHECK_OCAML_BINDING([portaudio])
-
-#
-# Pulseaudio
-#
-
 AC_CHECK_OCAML_BINDING([pulseaudio])
-
-#
-# LADSPA
-#
-
 AC_CHECK_OCAML_BINDING([ladspa])
-
-#
-# DSSI
-#
-
 AC_CHECK_OCAML_BINDING([dssi])
-
-#
-# SDL
-#
-
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage],[sdlmixer sdlttf])
-
-#
-# camlimages
-#
-
 AC_CHECK_OCAML_BINDING([camlimages])
-
 AC_CHECK_OCAML_BINDING([lo])
 
 #
