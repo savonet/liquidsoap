@@ -122,8 +122,21 @@ and descr =
   | Product of t * t
   | Zero | Succ of t | Variable
   | Arrow     of (bool*string*t) list * t
-  | EVar      of int*constraints (* existential/meta variable *)
+  | EVar      of int*constraints (* type variable *)
   | Link      of t
+
+type repr = [
+  | `Constr  of string * (variance*repr) list
+  | `Ground  of ground
+  | `List    of repr
+  | `Product of repr * repr
+  | `Zero | `Succ of repr | `Variable
+  | `Arrow     of (bool*string*repr) list * repr
+  | `EVar      of string*constraints (* existential variable *)
+  | `UVar      of string*constraints (* universal variable *)
+  | `Ellipsis       (* omitted sub-term *)
+  | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+]
 
 let make ?(pos=None) ?(level=(-1)) d =
   { pos = pos ; level = level ; descr = d }
@@ -157,7 +170,7 @@ let name =
   * including constraint symbols, which are removed from constraint lists.
   * It supports a mechanism for filtering out parts of the type,
   * which are then translated as `Ellipsis. *)
-let repr filter_out ?(generalized=[]) =
+let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
   let split_constr c =
     List.fold_left
       (fun (s,constraints) c ->
@@ -218,7 +231,7 @@ let repr filter_out ?(generalized=[]) =
               evar id c
         | Link t -> repr t
   in
-    repr
+    repr t
 
 (** Sets of type descriptions. *)
 module DS =
@@ -243,7 +256,7 @@ let print_repr t =
         if name = "stream_kind" then
           match params with
             | [_,a;_,v;_,m] ->
-                let ellipsis,vars = print ~par:false vars `Ellipsis in
+                let ellipsis,vars = print ~par:false vars `Range_Ellipsis in
                 let has_ellipsis,l,vars =
                   List.fold_left
                     (fun (has_ellipsis,l,vars) (lbl,t) ->
@@ -292,22 +305,17 @@ let print_repr t =
         name,
         (if c<>[] then DS.add (name,c) vars else vars)
     | `Arrow (p,t) ->
-        let _,params,vars =
+        let params,vars =
           List.fold_left
-            (fun (in_ellipsis,params,vars) (opt,lbl,kind) ->
-               if kind = `Ellipsis then
-                 if in_ellipsis then
-                   true, params, vars
-                 else
-                   true, "..."::params, vars
-               else
-                 let kind,vars = print ~par:true vars kind in
-                 let full =
-                   (if opt then "?" else "") ^
-                   (if lbl <> "" then lbl ^ ":" ^ kind else kind)
-                 in
-                   false, full::params, vars)
-            (false,[],vars)
+            (fun (params,vars) (opt,lbl,kind) ->
+               let kind,vars = print ~par:true vars kind in
+               let full =
+                 (if opt then "?" else "") ^
+                 (if lbl <> "" then lbl ^ ":" else "") ^
+                 kind
+               in
+                 full::params, vars)
+            ([],vars)
             p
         in
         let params = List.rev params in
@@ -319,10 +327,11 @@ let print_repr t =
             Printf.sprintf "(%s)->%s"
         in
           print
-            (String.concat ", " params)
+            (String.concat "," params)
             t,
           vars
-    | `Ellipsis -> "...", vars
+    | `Ellipsis -> "_", vars
+    | `Range_Ellipsis -> "...", vars
   and print_list vars acc = function
     | [] -> List.rev acc, vars
     | (_,x)::l ->
@@ -524,43 +533,12 @@ let rec bind a0 b =
 
 (* {1 Subtype checking/inference} *)
 
-(** Subtype checking raises a traced error. Each item (ta,tb) in the trace tells
-  * that ta<:tb failed. The next item refines the error, telling which sub-call
-  * failed. Not all types have a defined position, but in practical cases at
-  * least one of the outermost types should have one -- it came from the AST.
-  *
-  * From the user point of view this is not enough. The message has to take into
-  * account which is the already inferred type (this ...) and which is the
-  * expected generated type (... but should ...).
-  * This "focus" get changed when going through the left of an arrow.
-  * The first call by Lang_values.check knows where the focus initially is.
-  *
-  * Checking f(x), the type of f is required to be a supertype of (tx)->...
-  * If x doesn't fit, the complete trace should look like that:
-  *
-  * At POS(f), this expr. has type (t)->...
-  *   but should be a subtype of (tx)->..., inferred at <?>.
-  * At POS(x) this expr. has type tx
-  *   but should be a supertype of A, inferred at <?>.
-  *
-  * In both items, it is likely that <?> will be undefined. *)
 type trace_item = Item of t*t | Flip
-exception Error of trace_item list
+exception Error of (repr*repr)
+type explanation = bool*t*t*repr*repr
+exception Type_Error of explanation
 
-let print_type_error trace =
-  let rec strip = function
-    | Flip :: tl -> strip tl
-    | Item (a,b) :: tl -> (a,b) :: strip tl
-    | [] -> []
-  in
-  let trace = strip trace in
-  let tr_a,tr_b = List.split trace in
-  let a = List.hd tr_a and b = List.hd tr_b in
-  let filter_out x =
-    let eq y = deref x == deref y in
-      not (List.exists eq tr_a || List.exists eq tr_b)
-  in
-  let print t = print_repr (repr filter_out t) in
+let print_type_error (flipped,ta,tb,a,b) =
   let infered_pos a =
     let dpos = (deref a).pos in
       if a.pos = dpos then "" else
@@ -568,25 +546,27 @@ let print_type_error trace =
           | None -> ""
           | Some p -> "\n    (infered at " ^ print_pos ~prefix:"" p ^ ")"
   in
+  let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
     Printf.printf
-      "\n%s:\n  this value has type\n    %s%s\n"
-      (match a.pos with
+      "%s:\n  this value has type\n    %s%s\n"
+      (match ta.pos with
          | None -> "At unknown position"
          | Some p -> print_pos p)
-      (print a)
-      (infered_pos a) ;
+      (print_repr a)
+      (infered_pos ta) ;
     Printf.printf
-      "  but it should be a subtype of%s\n    %s%s\n%!"
-      (match b.pos with
+      "  but it should be a %stype of%s\n    %s%s\n%!"
+      (if flipped then "super" else "sub")
+      (match tb.pos with
          | None -> ""
          | Some p ->
              Printf.sprintf " (the type of the value at %s)"
                (print_pos ~prefix:"" p))
-      (print b)
-      (infered_pos b)
+      (print_repr b)
+      (infered_pos tb)
 
 let print ?generalized t =
-  print_repr (repr ?generalized (fun _ -> false) t)
+  print_repr (repr ?generalized t)
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
@@ -598,88 +578,175 @@ let print ?generalized t =
  * of type B can. Indeed, if you can pass a function, you can also pass the same
  * one with extra optional parameters.
  *
- * This relation should be transitive. Note that it is not safe to allow the
+ * This relation must be transitive. Note that it is not safe to allow the
  * promotion of optional parameters into mandatory ones, because the function
  * with the optional parameter, when fully applied, applies implicitely its
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
-let rec (<:) a b =
-  let (>:) b' a' =
-    try a' <: b' with Error trace -> raise (Error ((Item(a,b))::Flip::trace))
-  in
-  let (<:) a' b' =
-    try a' <: b' with Error trace -> raise (Error ((Item(a,b))::trace))
-  in
 
+(** Ensure that a<:b, perform unification if needed.
+  * In case of error, generate an explaination. *)
+let rec (<:) a b =
   if debug then Printf.eprintf "%s <: %s\n" (print a) (print b) ;
   match (deref a).descr, (deref b).descr with
     | Constr c1, Constr c2 when c1.name=c2.name ->
-        List.iter2 (fun (_,x) (_,y) -> x<:y) c1.params c2.params
-    | List t1, List t2 -> t1 <: t2
-    | Product (a,b), Product (aa,bb) -> a <: aa ; b <: bb
+        let rec aux pre p1 p2 =
+          match p1,p2 with
+            | (v,h1)::t1,(_,h2)::t2 ->
+                begin try
+                  (* TODO use variance info *)
+                  h1 <: h2
+                with
+                  | Error (a,b) ->
+                      let post = List.map (fun (v,_) -> v,`Ellipsis) t1 in
+                        raise (Error (`Constr (c1.name, pre@[v,a]@post),
+                                      `Constr (c1.name, pre@[v,b]@post)))
+                end ;
+                aux ((v,`Ellipsis)::pre) t1 t2
+            | [],[] -> ()
+            | _ -> assert false (* same name => same arity *)
+        in
+          aux [] c1.params c2.params
+    | List t1, List t2 ->
+        begin try t1 <: t2 with
+          | Error (a,b) -> raise (Error (`List a, `List b))
+        end
+    | Product (a,b), Product (aa,bb) ->
+        begin try a <: aa with
+          | Error (a,b) -> raise (Error (`Product (a,`Ellipsis),
+                                         `Product (b,`Ellipsis)))
+        end ;
+        begin try b <: bb with
+          | Error (a,b) -> raise (Error (`Product (`Ellipsis,a),
+                                         `Product (`Ellipsis,b)))
+        end
     | Zero, Zero -> ()
     | Zero, Variable -> ()
-    | Succ t1, Succ t2 -> t1 <: t2
-    | Succ t1, Variable -> t1 <: b
+    | Succ t1, Succ t2 ->
+        begin try t1 <: t2 with
+          | Error (a,b) -> raise (Error (`Succ a, `Succ b))
+        end
+    | Succ t1, Variable ->
+        begin try t1 <: b with
+          | Error (a,b) -> raise (Error (`Succ a, b))
+        end
     | Variable, Variable -> ()
-    | Arrow (p,t), Arrow (p',t') ->
-        (* Takes [l] and [l12] and returns [l1,l2] where:
-         * [l2] is the list of parameters from [l12] unmatched in [l];
-         * [l1] is the list of pairs [t,t12] of matched parameters. *)
-        let remove_params l l12 =
-          (* Takes a list of parameters, a label and an optionality.
-           * Returns the first matching parameter and the list without it. *)
-          let get_param o lbl l =
-            let rec aux acc = function
-              | [] ->
-                  (* TODO One could use some extra error explaination here. *)
-                  raise (Error [Item (a,b)])
-              | (o',lbl',t')::tl ->
-                  if o=o' && lbl=lbl' then
-                    (o,lbl,t'), List.rev_append acc tl
-                  else
-                    aux ((o',lbl',t')::acc) tl
-            in
-              aux [] l
-          in
-          let l1,l2 =
-            List.fold_left
-              (* Move param [lbl] required by [l] from [l2] to [l1]. *)
-              (fun (l1,l2) (o,lbl,t) ->
-                 let ((o,lbl,t'),l2') = get_param o lbl l2 in
-                   ((t,t')::l1),l2')
-              ([],l12)
-              l
-          in
-            List.rev l1, l2
+    | Arrow (l12,t), Arrow (l,t') ->
+        (* Here, it must be that l12 = l1@l2
+         * where l1 is essentially l modulo order
+         * and either l2 is erasable and t<:t'
+         *        or (l2)->t <: t'. *)
+        let ellipsis = false,"",`Range_Ellipsis in
+        let elide (o,l,t) = o,l,`Ellipsis in
+        let l1,l2 =
+          List.fold_left
+            (* Start with [l2:=l12], [l1:=[]] and
+             * move each param [o,lbl] required by [l] from [l2] to [l1]. *)
+            (fun (l1,l2) (o,lbl,t) ->
+               (* Search for a param with optionality o and label lbl.
+                * Returns the first matching parameter
+                * and the list without it. *)
+               let rec get_param acc = function
+                 | [] ->
+                     raise (Error (`Arrow (List.rev_append l1
+                                             (List.map elide l2),
+                                           `Ellipsis),
+                                   `Arrow (List.rev (ellipsis::
+                                                     (o,lbl,`Ellipsis)::
+                                                     l1),
+                                           `Ellipsis)))
+                 | (o',lbl',t')::tl ->
+                    if o=o' && lbl=lbl' then
+                      (o,lbl,t'), List.rev_append acc tl
+                    else
+                      get_param ((o',lbl',t')::acc) tl
+               in
+               let ((o,lbl,t'),l2') = get_param [] l2 in
+                 (* Check on-the-fly that the types match. *)
+                 begin try t<:t' with
+                   | Error (t,t') ->
+                       let make t =
+                         `Arrow (List.rev (ellipsis::(o,lbl,t)::l1),
+                                 `Ellipsis)
+                       in
+                         raise (Error (make t', make t))
+                 end ;
+                 ((o,lbl,`Ellipsis)::l1),l2')
+            ([],l12)
+            l
         in
-        let p1,p2 = remove_params p' p in
-          List.iter (fun (t',t) -> t >: t') p1 ;
-          if List.for_all (fun (o,_,_) -> o) p2 then
-            t <: t'
+        let l1 = List.rev l1 in
+          if List.for_all (fun (o,_,_) -> o) l2 then
+            begin try t <: t' with
+              | Error (t,t') ->
+                  raise (Error (`Arrow([ellipsis],t),`Arrow([ellipsis],t')))
+            end
           else
-            { a with descr = Arrow (p2,t) } <: t'
-    (* The two EVar cases are abusive because of subtyping. We should add a
-     * subtyping constraint instead of unifying. Nevermind...
-     * It's a pain for arrow types, and forgetting about it doesn't hurt. *)
+            begin try { a with descr = Arrow (l2,t) } <: t' with
+              | Error (`Arrow(p,t),t') ->
+                  raise (Error (`Arrow(l1@p,t),`Arrow(l1,t')))
+              | Error _ -> assert false
+            end
+    | Ground x,Ground y ->
+        if x <> y then raise (Error (repr a,repr b))
+    (* The EVar cases doing bind are abusive because of subtyping.
+     * In general we would need subtyping constraints, but that's
+     * a very different story, and it would be very hairy for arrows.
+     * For now we do with a couple special cases regarding arities... *)
     | EVar (_,c), Variable when List.mem Arity_fixed c -> ()
     | EVar (_,c), Variable when List.mem Arity_any c -> ()
+    | EVar (_,c), Succ b' ->
+        (* This could be optimized to process a bunch of succ all at once.
+         * But it doesn't matter. The point is that binding might fail,
+         * and is too abusive anyway. *)
+        let a' = fresh_evar ~level:a.level ~constraints:[] ~pos:None in
+        begin try bind a (make ~pos:a.pos (Succ a')) with
+          | Unsatisfied_constraint _ ->
+              raise (Error (repr a, repr b))
+        end ;
+        begin try a' <: b' with
+          | Error (a',b') -> raise (Error (`Succ a', `Succ b'))
+        end
+    | Succ a', EVar (_,c) ->
+        let b' = fresh_evar ~level:b.level ~constraints:[] ~pos:None in
+        begin try bind b (make ~pos:b.pos (Succ b')) with
+          | Unsatisfied_constraint _ ->
+              raise (Error (repr a, repr b))
+        end ;
+        begin try a' <: b' with
+          | Error (a',b') -> raise (Error (`Succ a', `Succ b'))
+        end
     | EVar _, _ ->
         begin try bind a b with
           | Occur_check _ | Unsatisfied_constraint _ ->
-              raise (Error [Item (a,b)]) end
+              (* Can't do more concise than a full representation,
+               * as the problem isn't local. *)
+              raise (Error (repr a,repr b))
+        end
     | _, EVar _ ->
         begin try bind b a with
           | Occur_check _ | Unsatisfied_constraint _ ->
-              raise (Error [Item (a,b)]) end
+              raise (Error (repr a,repr b))
+        end
     | Link _,_ | _,Link _ -> assert false (* thanks to deref *)
-    | Ground x,Ground y ->
-        (* The remaining cases are the base types, thanks to deref. *)
-        if x <> y then raise (Error [Item (a,b)])
-    | _,_ -> raise (Error [Item (a,b)])
+    | _,_ ->
+        (* The superficial representation is enough for explaining
+         * the mismatch. *)
+        let filter () =
+          let already = ref false in
+            function
+              | {descr = Link _} -> false
+              | _ -> let x = !already in already := true ; x
+        in
+        let a = repr ~filter_out:(filter ()) a in
+        let b = repr ~filter_out:(filter ()) b in
+          raise (Error (a,b))
 
 let (>:) a b =
-  try b <: a with Error l -> raise (Error (Flip::l))
+  try b <: a with Error (y,x) -> raise (Type_Error (true,b,a,y,x))
+
+let (<:) a b =
+  try a <: b with Error (x,y) -> raise (Type_Error (false,a,b,x,y))
 
 (** {1 Type generalization and instantiation}
   *

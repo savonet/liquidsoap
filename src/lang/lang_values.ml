@@ -402,8 +402,8 @@ exception Unbound of T.pos option * string
   * more helpful. *)
 exception No_label of term * string * bool * term
 
-(** A simple delaying mechanism for printing toplevel tasks
-  * as late as possible, to avoid seeing to many unknown variables. *)
+(** A simple mechanism for delaying printing toplevel tasks
+  * as late as possible, to avoid seeing too many unknown variables. *)
 let add_task, pop_tasks =
   let q = Queue.create () in
     (fun f -> Queue.add f q),
@@ -519,17 +519,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
                 e.t >: T.make ~level ~pos:None (T.Arrow (ap,t))
         | _ ->
             let p = List.map (fun (lbl,b) -> false,lbl,b.t) l in
-              begin try
-                (* Special case here for intuitive error messages:
-                 * ignore the flipping of the focus in case error occurs.
-                 * The inital focus should be on the function's type
-                 * (not the synthesized one) but then the focus should
-                 * not follow the function's type
-                 * but move to the arguments types. *)
-                a.t <: T.make ~level ~pos:None (T.Arrow (p,e.t))
-              with
-                | T.Error (x::T.Flip::tl) -> raise (T.Error (x::tl))
-              end
+              a.t <: T.make ~level ~pos:None (T.Arrow (p,e.t))
       end
   | Fun (_,proto,body) ->
       let base_check = check ~level ~env in

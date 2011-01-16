@@ -587,10 +587,9 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
             Printf.printf
               "%s: unbound symbol %s.\n" pos s ;
             exit 1
-      | T.Error trace ->
+      | T.Type_Error explain ->
           flush_all () ;
-          Printf.printf "ERROR: This script is not well typed!\n" ;
-          T.print_type_error trace ;
+          T.print_type_error explain ;
           exit 1
       | Term.No_label (f,lbl,first,x) ->
           let pos_f =
@@ -598,9 +597,8 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
           in
           let pos_x = T.print_pos (Utils.get_some x.Term.t.T.pos) in
             flush_all () ;
-            Printf.printf "ERROR: This script is not well typed!\n" ;
             Printf.printf
-              "\n%s: cannot apply that parameter because the function (%s) "
+              "%s: cannot apply that parameter because the function (%s) "
               pos_x pos_f ;
             Printf.printf
               "has %s %s!\n"
@@ -623,7 +621,7 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
             s ;
           exit 1
       | Failure s ->
-          Printf.printf "ERROR: %s!\n" s ;
+          Printf.printf "Error: %s!\n" s ;
           exit 1
       | Clock_conflict (pos,a,b) ->
           (* TODO better printing of clock errors: we don't have position
