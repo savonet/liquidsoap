@@ -72,8 +72,7 @@ let () =
              match Request.from_id id with
              | Some r ->
                  let m = Request.get_all_metadata r in
-                 let s = Request.string_of_metadata m in
-                 Utils.escape_string Utils.escape_utf8 s
+                   Request.string_of_metadata m
              | None -> "No such request."
            end) ;
     add "uptime" ~descr:"Print the uptime for this instance."
