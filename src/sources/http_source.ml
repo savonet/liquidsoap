@@ -174,6 +174,7 @@ class http ~kind
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
+
   inherit Source.source kind
   inherit
     Generated.source
@@ -181,6 +182,8 @@ object (self)
       ~empty_on_abort:false ~bufferize as generated
 
   method stype = Source.Fallible
+
+  val mutable url = url
 
   (** [kill_polling] is for requesting that the feeding thread stops;
     * it is called on #sleep. *)
@@ -447,12 +450,20 @@ object (self)
       ns <- Server.register [self#id] "input.http" ;
     self#set_id (Server.to_string ns) ;
     Server.add ~ns "start" ~usage:"start" ~descr:"Start the source, if needed."
-       (fun _ -> relaying <- true ; "Done") ;
+      (fun _ -> relaying <- true ; "Done") ;
     Server.add ~ns "stop" ~usage:"stop" ~descr:"Stop the source if streaming."
-       (fun _ -> relaying <- false ; "Done") ;
+      (fun _ -> relaying <- false ; "Done") ;
+    Server.add ~ns "url" ~usage:"url [url]"
+      ~descr:"Get or set the stream's HTTP URL. \
+              Setting a new URL will not affect an ongoing connection."
+      (fun u ->
+        if u = "" then url else begin
+          url <- u ;
+          "Done"
+        end) ;
     Server.add ~ns "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
-       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
+      (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
 
   method sleep =
     (Utils.get_some kill_polling) () ;
