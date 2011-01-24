@@ -431,7 +431,7 @@ object (self)
 
   method wake_up _ =
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s" ;
+    log_ref := (fun s -> self#log#f 3 "%s" s) ;
     (* Wait for the old polling thread to return, then create a new one. *)
     assert (kill_polling = None) ;
     begin match wait_polling with
