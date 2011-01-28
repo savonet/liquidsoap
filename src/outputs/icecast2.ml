@@ -333,9 +333,8 @@ object (self)
           | [] -> "Unknown"
       in
       let default_song =
-        let artist = try Hashtbl.find m "artist" with _ -> "" in
-        let title = try Hashtbl.find m "title" with _ -> "Unknown" in
-          artist^" - "^title
+        (try Hashtbl.find m "artist" ^ " - " with _ -> "") ^
+        (try Hashtbl.find m "title" with _ -> "Unknown")
       in
       let a = Array.of_list
         (getd m "title" def_title
