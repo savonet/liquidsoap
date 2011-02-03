@@ -71,6 +71,10 @@ class virtual source ~kind =
       
     method virtual is_taken : bool
       
+    method virtual icy_charset : string option
+      
+    method virtual meta_charset : string option
+      
     method virtual register_decoder : string -> unit
       
     method virtual get_mime_type : string option
@@ -400,8 +404,8 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                                       with
                                       | Not_found ->
                                           if icy
-                                          then Some "ISO-8859-1"
-                                          else None in
+                                          then s#icy_charset
+                                          else s#meta_charset in
                                     (* Recode tags.. *)
                                     let f x y m =
                                       let g = Configure.recode_tag ?in_enc

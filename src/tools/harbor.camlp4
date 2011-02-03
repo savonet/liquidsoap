@@ -59,6 +59,8 @@ object(self)
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string*(string -> string -> bool))
   method virtual is_taken : bool
+  method virtual icy_charset : string option 
+  method virtual meta_charset : string option
   method virtual register_decoder : string -> unit
   method virtual get_mime_type : string option
 
@@ -405,9 +407,9 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                 with
                   | Not_found -> 
                       if icy then 
-                        (Some "ISO-8859-1") 
+                        s#icy_charset
                       else 
-                        None
+                        s#meta_charset
                in
                (* Recode tags.. *)
                let f x y m = 

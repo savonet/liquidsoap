@@ -29,6 +29,7 @@ module Generated = Generated.Make(Generator)
 
 class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max ~icy ~port
+                        ~meta_charset ~icy_charset
                         ~mountpoint ~on_connect ~on_disconnect
                         ~login ~debug p =
   let max_ticks = Frame.master_of_seconds max in
@@ -54,6 +55,9 @@ object (self)
   method login : string*(string -> string -> bool) = login
 
   method stype = Source.Fallible
+
+  method icy_charset = icy_charset
+  method meta_charset = meta_charset
 
   (* Insert metadata *)
   method insert_metadata m =
@@ -265,6 +269,18 @@ let () =
         Some (Lang.bool false),
         Some "Enable ICY (shoutcast) protocol.";
 
+        "icy_metadata_charset", Lang.string_t,
+        Some (Lang.string ""),
+        Some "ICY (shoutcast) metadata charset. \
+              Guessed if empty. Default for shoutcast is ISO-8859-1. \
+              Set to that value if all your clients send metadata using this \
+              charset and automatic detection is not working for you.";
+
+        "metadata_charset", Lang.string_t,
+        Some (Lang.string ""),
+        Some "Metadata charset for non-ICY (shoutcast) source protocols. \
+              Guessed if empty.";
+
         "auth",
         Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
         Some
@@ -309,6 +325,16 @@ let () =
          in
          let debug = Lang.to_bool (List.assoc "debug" p) in
          let icy = Lang.to_bool (List.assoc "icy" p) in
+         let icy_charset = 
+           match Lang.to_string (List.assoc "icy_metadata_charset" p) with
+             | "" -> None
+             | s -> Some s
+         in
+         let meta_charset =
+           match Lang.to_string (List.assoc "metadata_charset" p) with
+             | "" -> None
+             | s -> Some s
+         in
          let port = Lang.to_int (List.assoc "port" p) in
          let auth_function = List.assoc "auth" p in
          let login user password =
@@ -377,6 +403,7 @@ let () =
          in
          (new http_input_server ~kind
                    ~bufferize ~max ~login ~mountpoint
-                   ~dumpfile ~logfile ~icy ~port
+                   ~dumpfile ~logfile ~icy ~port 
+                   ~icy_charset ~meta_charset
                    ~on_connect ~on_disconnect ~debug 
                    p :> Source.source))
