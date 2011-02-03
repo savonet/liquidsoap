@@ -27,14 +27,14 @@
 let pipe_proto kind arg_doc =
     (Output.proto @ [
        "reopen_delay", Lang.float_t, Some (Lang.float 120.),
-       Some "Prevent re-opening of the file within that delay, in seconds." ;
+       Some "Prevent re-opening within that delay, in seconds." ;
 
        "reopen_on_metadata", Lang.bool_t, Some (Lang.bool false),
        Some "Re-open on every new metadata information." ;
 
        "reopen_when", Lang.fun_t [] Lang.bool_t,
        Some (Lang.val_cst_fun [] (Lang.bool false)),
-       Some "When should the output file be re-opened." ;
+       Some "When should the output be re-opened." ;
 
        "",
        Lang.format_t kind,
