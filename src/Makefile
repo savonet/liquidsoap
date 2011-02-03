@@ -119,7 +119,7 @@ encoders = \
 	# $(if $(W_FAAC),outputs/faac_encoded.ml)
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
-	outputs/file_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
+	outputs/pipe_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
 	outputs/harbor_output.ml \
 	$(if $(W_SDL),outputs/sdl_out.ml) \
 	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
