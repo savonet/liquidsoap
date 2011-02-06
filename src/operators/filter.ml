@@ -76,7 +76,7 @@ let () =
     [ "freq", Lang.float_getter_t 1, None, None ;
       "q", Lang.float_getter_t 2, Some (Lang.float 1.), None ;
       "mode", Lang.string_t, None,
-      Some "Available modes are 'low', 'high', 'band' and 'notch'." ;
+      Some "Available modes are 'low' (for low-pass filter), 'high' (for high-pass filter), 'band' (for band-pass filter) and 'notch' (for notch / band-stop / band-rejection filter)." ;
       "wetness", Lang.float_getter_t 3, Some (Lang.float 1.),
       Some "How much of the original signal should be added \
             (1. means only filtered and 0. means only original signal).";
