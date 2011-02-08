@@ -586,7 +586,7 @@ EOCONF
 module C = $camencoding
 let enc_of_name s =
   try C.of_name s with
-    | Not_found -> failwith (Printf.sprintf "Unknown encoding %s !" s)
+    | Not_found -> failwith (Printf.sprintf "Unknown encoding %S!" s)
 
 let conf_tag =
   Dtools.Conf.void ~p:(conf#plug "tag") "Settings related to metadata tags"
@@ -608,6 +608,8 @@ let get_encoding () =
           custom_encoding := Some e ;
           e
 
+let camolog = Dtools.Log.make [["camomile"]]
+
 let recode_tag ?in_enc ?out_enc s =
   let in_enc =
     match in_enc with
@@ -619,7 +621,16 @@ let recode_tag ?in_enc ?out_enc s =
       | Some e -> enc_of_name e
       | None -> C.utf8
   in
-    C.recode_string ~in_enc ~out_enc s
+    try C.recode_string ~in_enc ~out_enc s with e ->
+      let in_enc =
+        if in_enc == get_encoding () then
+          Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
+        else
+          C.name_of in_enc
+      in
+      camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
+        s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
+      s
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then
