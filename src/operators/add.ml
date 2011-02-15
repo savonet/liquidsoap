@@ -42,7 +42,7 @@ let get_again s buf =
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
 object (self)
-  inherit operator kind (List.map snd sources) as super
+  inherit operator ~name:"add" kind (List.map snd sources) as super
 
   (* We want the sources at the beginning of the list to
    * have their metadatas copied to the output stream, so direction
@@ -105,12 +105,13 @@ object (self)
 
     (* Sum contributions *)
     let offset = Frame.position buf in
+    let old_breaks = Frame.breaks buf in
     let _,end_offset =
       List.fold_left
         (fun (rank,end_offset) (w,s) ->
            let buffer =
              (* The first source writes directly to [buf],
-              * the others write to [tmp] and we'll sum that. *)
+              * the others write to [tmp] and we'll combine everything. *)
              if rank=0 then buf else begin
                Frame.clear tmp ;
                Frame.set_breaks tmp [offset] ;
@@ -175,7 +176,19 @@ object (self)
       match Frame.breaks buf with
         | pos::breaks when pos < end_offset ->
             Frame.set_breaks buf (end_offset::breaks)
-        | _ -> ()
+        | new_breaks ->
+            if new_breaks = old_breaks then begin
+              (* This should never happen, but our protocol is slightly
+               * broken: it's possible that we are #is_ready because a
+               * source was ready, but the source's data has been pulled
+               * by another operator (the data is thus cached) so the
+               * source doesn't declare itself as #is_ready anymore.
+               * TODO another option is to remember who was ready
+               *   the real fix is to get a more precise protocol...  *)
+              self#log#f 2 "Shit hits the fan. Liquidsoap isn't perfect, \
+                            let's try to live with it..." ;
+              Frame.add_break buf (Frame.position buf)
+            end
 
 end
 
