@@ -39,67 +39,9 @@ let () =
   Lang.add_operator "id"
     ["", Lang.source_t kind, None, None]
     ~category:Lang.SoundProcessing
-    ~descr:"Does not do anything."
+    ~descr:"Does not do anything, simply forwards its input stream."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
          new id ~kind src)
-
-let () =
-  let stream_kind = Lang.audio_mono in
-  let kind_type = Lang.kind_type_of_kind_format ~fresh:1 stream_kind in
-  Lang.add_operator "id.mono"
-    ["", Lang.source_t kind_type, None, None]
-    ~category:Lang.SoundProcessing
-    ~descr:"Does not do anything, \
-            but forces the stream type of the input source."
-    ~kind:stream_kind
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new id ~kind src)
-
-let () =
-  let stream_kind = Lang.audio_stereo in
-  let kind_type = Lang.kind_type_of_kind_format ~fresh:1 stream_kind in
-  Lang.add_operator "id.stereo"
-    ["", Lang.source_t kind_type, None, None]
-    ~category:Lang.SoundProcessing
-    ~descr:"Does not do anything, \
-            but forces the stream type of the input source."
-    ~kind:stream_kind
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new id ~kind src)
-
-let () =
-  let stream_kind = Lang.video_only in
-  let kind_type = Lang.kind_type_of_kind_format ~fresh:1 stream_kind in
-  Lang.add_operator "id.video_only"
-    ["", Lang.source_t kind_type, None, None]
-    ~category:Lang.SoundProcessing
-    ~descr:"Does not do anything, \
-            but forces the stream type of the input source."
-    ~kind:stream_kind
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-         new id ~kind src)
-
-let () =
-  let kind =
-    { Frame. audio = Frame.Zero ; video = Frame.Zero ; midi = Frame.Zero }
-  in
-  let kind_type = Lang.kind_type_of_frame_kind kind in
-    Lang.add_operator "id.empty"
-      ["", Lang.source_t kind_type, None, None]
-      ~category:Lang.SoundProcessing
-      ~descr:"Does not do anything, \
-              but forces the stream type of the input source."
-      ~kind:(Lang.Unconstrained kind_type)
-      (fun p kind ->
-         let f v = List.assoc v p in
-         let src = Lang.to_source (f "") in
-           new id ~kind src)
