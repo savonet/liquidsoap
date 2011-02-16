@@ -183,10 +183,18 @@ object (self)
                * source was ready, but the source's data has been pulled
                * by another operator (the data is thus cached) so the
                * source doesn't declare itself as #is_ready anymore.
-               * TODO another option is to remember who was ready
-               *   the real fix is to get a more precise protocol...  *)
-              self#log#f 2 "Shit hits the fan. Liquidsoap isn't perfect, \
-                            let's try to live with it..." ;
+               * In short, it's possible that [sources] is empty.
+               *
+               * Another solution would be to cache the sources that
+               * declare themselves as ready in our #is_ready, so that
+               * we can force their use later despite a possibly
+               * changed status.
+               * This would lead to a slightly better behavior but
+               * it's still a dirty fix and other operators may need
+               * their own similar correction. The real fix is to
+               * redesign the source protocol. *)
+              self#log#f 4 "Source protocol bug encountered! \
+                            Let's try to live with it..." ;
               Frame.add_break buf (Frame.position buf)
             end
 
