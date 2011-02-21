@@ -205,6 +205,12 @@ SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	  revision=`LC_ALL=C svn info | grep Revision | \
 	            sed -e 's/Revision: \(.*\)/\1/'`  ; \
 	  echo "let rev = \" ($$url@rev$$revision)\"" > SVN.ml ; \
+	elif test -d ../../.hg && which hg > /dev/null ; then \
+	  branch=`LC_ALL=C hg summary | grep branch: | \
+	       sed -e 's/branch: \(.*\)/\1/'`; \
+	  revision=`LC_ALL=C hg summary | grep parent: | \
+	       sed -e 's/parent: ['0'-'9']*:\([^ ]*\) .*/\1/'`; \
+	  echo "let rev = \" ($$branch@$$revision)\"" > SVN.ml ; \
 	else \
 	  echo "let rev = \"\"" > SVN.ml ; \
 	fi
