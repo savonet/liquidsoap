@@ -1,9 +1,17 @@
-set("log.file",false)
+count = ref 1
+fail = ref false
 
-echo = fun (x) -> system("echo "^quote(x))
+def echo(s)
+  # system("echo "^quote(s))
+  if s != string_of(!count) then
+    fail := true
+  end
+  count := !count + 1
+  ()
+end
 
 def test(lbl,f)
-  if f() then echo(lbl) else system("echo fail "^lbl) end
+  if f() then echo(lbl) else echo("fail "^lbl) end
 end
 
 test("1",{ 1==1 })
@@ -30,4 +38,6 @@ echo(string_of(int_of_float(float_of_string(default=13.,"blah"))))
 f=fun(x)->x
 # Checking that the following is not recursive:
 f=fun(x)->f(x)
-print(f(14))
+echo(string_of(f(14)))
+
+if !fail then print("TEST FAILED") else print("TEST PASSED") end

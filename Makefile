@@ -15,6 +15,8 @@ distclean: clean
 tild-clean:
 	find . -name '*~' -exec rm \{\} \;
 
+test:
+	$(MAKE) -C scripts/tests test
 
 # Build liquidsoap as it will be used for building the doc
 doc-local: all

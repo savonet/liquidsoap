@@ -3,10 +3,8 @@
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
-set("log.file",false)
-
 # Check that some polymorphism is allowed.
-# id :: (string,'a)->'a
+# id : (string,'a)->'a
 def id(a,b)
   log(a)
   b
@@ -20,7 +18,7 @@ ignore(0==id("zero",0))
 # id(0,0)
 
 # Polymorphism is limited to outer generalizations, this is not system F.
-# apply :: ((string)->'a)->'a
+# apply : ((string)->'a)->'a
 def apply(f)
   f("bla")
   # f is not polymorphic, the following is forbidden:
@@ -29,7 +27,7 @@ def apply(f)
 end
 
 # The level checks forbid abusive generalization.
-# id' :: ('a)->'a
+# id' : ('a)->'a
 def id'(x)
   # If one isn't careful about levels/scoping, f2 gets the type ('a)->'b
   # and so does twisted_id.
@@ -90,16 +88,16 @@ list.iter(fun (f) -> log(string_of(f())), l1)
 
 echo = fun(x) -> system("echo #{quote(string_of(x))}")
 
-echo("bla")
-echo((1,3.12))
-echo(1 + 1)
-echo(1. + 2.14)
+ignore("bla")
+ignore((1,3.12))
+ignore(1 + 1)
+ignore(1. + 2.14)
 
 # string is not a Num
 # echo("bl"+"a")
 
-echo(1 <= 2)
-echo((1,2) == (1,3))
+ignore(1 <= 2)
+ignore((1,2) == (1,3))
 
 # float <> int
 # echo(1 == 2.)
@@ -110,3 +108,5 @@ echo((1,2) == (1,3))
 def sum_eq(a,b)
   a+b == a
 end
+
+print("TEST PASSED")
