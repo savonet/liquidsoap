@@ -2,7 +2,7 @@
 
 use strict ;
 
-my $liquidsoap = "../src/liquidsoap";
+my $liquidsoap = "../../src/liquidsoap";
 die unless -f $liquidsoap ;
 
 $liquidsoap = "$liquidsoap -c";
@@ -47,6 +47,7 @@ incorrect('((blank():source(*,*,*)):source(1,1,1))');
 correct('audio_to_stereo(add([]))');
 
 section("CONSTRAINTS");
+incorrect('"bl"+"a"');
 incorrect('(fun(a,b)->a+b)==(fun(a,b)->a+b)');
 incorrect('fun(x)->x(x)'); # TODO is it an accident that we get same varname
 incorrect('def f(x) y=snd(x) y(x) end');
