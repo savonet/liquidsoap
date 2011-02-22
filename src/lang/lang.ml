@@ -585,7 +585,8 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Printf.printf
-              "%s: unbound symbol %s.\n" pos s ;
+              (* "%s: unbound symbol %s.\n" pos s ; *)
+              "%s: the variable %s is used but was not previously defined.\n" pos s ;
             exit 1
       | T.Type_Error explain ->
           flush_all () ;
