@@ -210,7 +210,8 @@ SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	       sed -e 's/branch: \(.*\)/\1/'`; \
 	  revision=`LC_ALL=C hg summary | grep parent: | \
 	       sed -e 's/parent: ['0'-'9']*:\([^ ]*\) .*/\1/'`; \
-	  echo "let rev = \" ($$branch@$$revision)\"" > SVN.ml ; \
+          date=`date +%Y%m%d:%H%M%S`; \
+	  echo "let rev = \" ($$branch@$$revision:$$date)\"" > SVN.ml ; \
 	else \
 	  echo "let rev = \"\"" > SVN.ml ; \
 	fi
