@@ -459,6 +459,18 @@ object (self)
   method get buf =
     assert (Frame.is_partial buf) ;
     if not caching then begin
+      if not self#is_ready then
+        (* In some cases we can't avoid #get being called on a non-ready
+         * source, for example:
+         * - A starts pumping B, stops in the middle of the track
+         * - B finishes its track, becomes unavailable
+         * - A starts streaming again, needs to receive an EOT before
+         *   having to worry about availability.
+         * So we add this branch, which makes the whole protocol a bit
+         * sloppy because it removes any constraint tying #is_ready and
+         * #get. *)
+        Frame.add_break buf (Frame.position buf)
+      else
       let b = Frame.breaks buf in
         self#get_frame buf ;
         if List.length b + 1 <> List.length (Frame.breaks buf) then begin
@@ -470,6 +482,10 @@ object (self)
         Frame.get_chunk buf memo
       with
       | Frame.No_chunk ->
+          if not self#is_ready then
+            (* See similar test above. *)
+            Frame.add_break buf (Frame.position buf)
+          else
           (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
           let b = Frame.breaks memo in
           let p = Frame.position memo in

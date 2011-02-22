@@ -188,8 +188,8 @@ object (self)
             | None -> ()
           end
     in
-      (* #select is called only when selected=None,
-       * and the cache is cleared as soon as the new selection is set. *)
+      (* #select is called only when selected=None, and the cache is cleared
+       * as soon as the new selection is set. *)
       assert (selected=None || cached_selected=None) ;
       if need_eot then begin
         need_eot <- false ;
@@ -198,17 +198,9 @@ object (self)
       match selected with
       | None ->
           reselect ~forget:true () ;
-          if selected = None then begin
-            (* This was supposed to be impossible, by design of our
-             * #is_ready and the associated caching policy...
-             * But it is possible that we declared ourselves ready
-             * at the end of the previous cycle (before #after_output)
-             * but do not find ourselves ready now (the predicates
-             * can change after #after_output) so we have to
-             * accept this situation and disengage properly. *)
-            Frame.add_break ab (Frame.position ab)
-          end else
-            self#get_frame ab
+          (* Our #is_ready, and caching, ensure the following. *)
+          assert (selected <> None) ;
+          self#get_frame ab
       | Some (c,s) ->
           s#get ab ;
           c.cur_meta <-

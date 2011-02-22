@@ -117,10 +117,8 @@ object (self)
       let rec try_get () =
         match current with
           | None ->
-              (* When we're infallible, our caller doesn't to check that
-               * we're ready, so #begin_track hasn't been called yet.
-               * When we're fallible, this point should never be reached. *)
-              if self#begin_track then try_get () else assert false
+              (* We're supposed to be ready so this shouldn't be reached. *)
+              assert false
           | Some (req,get_frame,_) ->
               if send_metadata then begin
                 Request.on_air req ;
