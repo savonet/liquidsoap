@@ -46,7 +46,12 @@ and descr =
   | Link of t
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
+
+val pp_type : Format.formatter -> t -> unit
+val pp_type_generalized :
+      ((int*constraints) list) -> Format.formatter -> t -> unit
 val print : ?generalized:((int*constraints) list) -> t -> string
+val doc_of_type : generalized:((int*constraints) list) -> t -> Doc.item
 
 exception Occur_check of t*t
 val occur_check : t -> t -> unit

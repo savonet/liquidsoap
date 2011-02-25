@@ -33,57 +33,6 @@ sub get_info {
   return text_of $_[0]->getElementsByTagName("info")->[0]->getFirstChild ;
 }
 
-sub protect {
-  my $v = shift;
-  # html wrapping
-  $v =~ s/http:\/\/([\w\.\\]*)/"http:\/\/$1":http:\/\/$1/g;
-  return $v;
-}
-
-sub protect_html {
-  my $v = shift;
-  $v =~ s/"/&quot;/g ;
-  $v =~ s/</&lt\;/g;
-  $v =~ s/>/&gt\;/g;
-  return $v;
-}
-
-sub split_type {
-  my $type = shift;
-  $type =~ /\((.*)\)->(.*)/ || return $type;
-  my ($pars,$return) = ($1,$2);
-  my @params = split(", ",$pars);
-  my $maxline = 50;
-  my $result = "";
-  my $current = "(";
-  my $first = 1;
-  my ($param,$sep);
-  foreach $param (@params) {
-    if (length ($current . $param) >= $maxline) {
-      $result = $result . $current . ",\n";
-      $current = " ";
-      $first = 1;
-    }
-    if ($first == 1) { $sep = "";} else { $sep = ", "; }
-    $current = $current . $sep . $param;
-    $first = 0;
-  }
-  $current = $current . ")";
-  $first = 0;
-  my @returns = split("->",$return);
-  foreach $return (@returns) {
-    if (length ($current . $return) >= $maxline) {
-      $result = $result . $current;
-      $current = "";
-      $first = 1;
-    }
-    if ($first == 1) { $sep = "\n ->";} else { $sep = "->"; }
-    $current = $current . $sep . $return;
-    $first = 0;
-  }
-  $result . $current;
-}
-
 sub print_param {
   my $p = shift ;
   my $category = shift ;
@@ -100,14 +49,14 @@ sub print_param {
       = text_of $_->getElementsByTagName("info")->[0]->getFirstChild ;
   }
   my $default = "" ;
-  $b{default} = protect($b{default});
+  $b{default} = $b{default} ;
   if ($b{default} ne "None") {
-    $default = " -- defaults to <code>".protect_html($b{default})."</code>" ;
+    $default = " -- defaults to <code>".$b{default}."</code>" ;
   }
   $comment = ": $comment" if $comment ne "" ;
-  $comment = protect($comment);
+  $comment = $comment ;
 
-  $cat{$category} .= "* <code>".protect_html($name)."</code> (<code>".protect_html($b{type})."</code>$default)$comment\n";
+  $cat{$category} .= "* <code>$name</code> (<code>$b{type}</code>$default)$comment\n";
 
 }
 
@@ -144,7 +93,7 @@ sub print_operator {
 
   return if grep { "hidden" eq $_ } @flags ;
 
-  $cat{$category} .= "h5. ${label}\n<pre>" . split_type($type) . "</pre>\n";
+  $cat{$category} .= "h5. ${label}\n<pre>" . $type . "</pre>\n";
 
   $cat{$category} .= "WARNING: This is only EXPERIMENTAL!\n"
     if grep { "experimental" eq $_ } @flags ;
@@ -177,13 +126,8 @@ sub print_operator {
 
 for ($operators->getChildNodes) {
   if ($_->getNodeType == 1) {
-    if ($_->getTagName eq "info") {
-      next ; # No interesting info yet ...
-      print text_of($_->getChildNodes->[0]), "\n" ;
-      next ;
-    }
+    next if $_->getTagName eq "info" ;
     next if $_->getTagName eq "label" ;
-
     die $_->getTagName unless $_->getTagName eq "section" ;
     print_operator $_ ;
   }
@@ -224,20 +168,21 @@ information that liquidsoap puts in streams: track limits and metadata.
 
 HEADER
 
+# Print table of categories with links
 foreach my $key (sort { compare($a,$b) } (keys %cat)) {
-my $anchor = $key;
-$anchor =~ s/[^\w]//g;
-print "* \"$key\":#$anchor\n";
+  my $anchor = $key;
+  $anchor =~ s/[^\w]//g;
+  print "* \"$key\":#$anchor\n";
 }
 print "\n";
 
+# Print content of each category
 foreach my $key (sort { compare($a,$b) } (keys %cat)) {
-my $anchor = $key;
-$anchor =~ s/[^\w]//g;
-  print <<HTML ;
+  my $anchor = $key;
+  $anchor =~ s/[^\w]//g;
+  print <<DOC ;
 
 h3\@$anchor. $key
 $cat{$key}
-HTML
+DOC
 }
-
