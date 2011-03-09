@@ -20,15 +20,15 @@
 
  *****************************************************************************)
 open Unix
-  
+
 open Dtools
-  
+
 let conf =
   Conf.void ~p: (Configure.conf#plug "server") "Server configuration"
     ~comments:
       [ "The server is an abstract text-command-based communication protocol, ";
         "which can be used through several interfaces." ]
-  
+
 let conf_socket =
   Conf.bool ~p: (conf#plug "socket") ~d: false
     "Support for communication via a UNIX domain socket interface"
@@ -36,7 +36,7 @@ let conf_socket =
       [ "The main advantage of this method is that you can set very precisely";
         "the access permissions for the socket, just like for any other file.";
         "A useful command to use this interface is: \"socat stdin unix:<path>\"." ]
-  
+
 let conf_socket_path =
   Conf.string ~p: (conf_socket#plug "path") ~d: "<sysrundir>/<script>.sock"
     "Path of the UNIX domain socket"
@@ -44,7 +44,7 @@ let conf_socket_path =
       [ "In this filename, <pid>, <script> and <sysrundir> are replaced by ";
         "their respective values: PID of the instance of liquidsoap,";
         "base name of the .liq script (if any), default runtime data directory." ]
-  
+
 let conf_socket_perms =
   Conf.int ~p: (conf_socket#plug "permissions") ~d: 0o600
     "Socket permissions, up to umask"
@@ -52,7 +52,7 @@ let conf_socket_perms =
       [ "This parameter is better written in octal notation. Although you can ";
         "write octal numbers like 0o660, they are not displayed back in octal. ";
         "For example, the default value 384 is the decimal for 0o600." ]
-  
+
 let conf_telnet =
   Conf.bool ~p: (conf#plug "telnet") ~d: false
     "Support for communication via a telnet interface"
@@ -65,21 +65,21 @@ let conf_telnet =
         "Since there is currently no authentication, you should be careful";
         "about who can access this interface: either restrict it to connections";
         "from localhost (using the bind_addr param) or set up a firewall." ]
-  
+
 let conf_telnet_bind_addr =
   Conf.string ~p: (conf_telnet#plug "bind_addr") ~d: "127.0.0.1"
     "Network mask from which the telnet server should accept connections"
-  
+
 let conf_telnet_port =
   Conf.int ~p: (conf_telnet#plug "port") ~d: 1234
     "Port on which the telnet server should listen"
-  
+
 let conf_telnet_revdns =
   Conf.bool ~p: (conf_telnet#plug "reverse_dns") ~d: true
     "Perform reverse DNS lookup to get the client's hostname from its IP."
-  
+
 let log = Log.make [ "server" ]
-  
+
 (* {1 Manage available commands and namespaces}
  *
  * This needs to be thread safe: (un)registering is done in wakeup/sleep
@@ -87,12 +87,12 @@ let log = Log.make [ "server" ]
 type namespace = string list
 
 let lock = Mutex.create ()
-  
+
 let namespaces = Hashtbl.create 10
-  
+
 let commands : (string, ((string -> string) * string * string)) Hashtbl.t =
   Hashtbl.create 50
-  
+
 (* First, get a fresh namespace *)
 let register ns kind =
   let c = ref 0 in
@@ -102,11 +102,11 @@ let register ns kind =
   in
     Tutils.mutexify lock
       (fun () -> let ns = ns () in (Hashtbl.add namespaces ns kind; ns)) ()
-  
+
 let to_string = String.concat "."
-  
+
 let rec prefix_ns cmd ns = to_string (ns @ [ cmd ])
-  
+
 (* Then add your commands to that namespace *)
 let add ~ns ?usage ~descr cmd handler =
   let usage = match usage with | None -> cmd | Some u -> u in
@@ -116,12 +116,12 @@ let add ~ns ?usage ~descr cmd handler =
       (fun () ->
          Hashtbl.add commands (prefix_ns cmd ns) (handler, usage, descr))
       ()
-  
+
 (* ... maybe remove them *)
 let remove ~ns cmd =
   Tutils.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
     ()
-  
+
 let unregister ns =
   Tutils.mutexify lock
     (fun () ->
@@ -137,7 +137,7 @@ let unregister ns =
          (List.iter (Hashtbl.remove commands) to_remove;
           Hashtbl.remove namespaces ns))
     ()
-  
+
 (* The usage string sums up all the commands... *)
 let usage () =
   let l =
@@ -147,7 +147,7 @@ let usage () =
   in
     List.fold_left
       (fun s (k, (h, u, _)) -> s ^ (Printf.sprintf "\r\n| %s" u)) "" l
-  
+
 (** {1 Handling of a client} *)
 (** The very-builtin commands *)
 let () =
@@ -188,7 +188,7 @@ let () =
                        (Printf.sprintf "%s : %s" (to_string k) v) :: s)
                     namespaces []))
             ()))
-  
+
 let exec s =
   let (s, args) =
     try
@@ -206,7 +206,7 @@ let exec s =
         "ERROR: unknown command, type \"help\" to get a \
                       list of commands."
     | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
-  
+
 let handle_client socket =
   let on_error e =
     match e with
@@ -258,7 +258,7 @@ let handle_client socket =
           Tutils.scheduler ~string: "Bye!\r\n" socket
     in Duppy.Monad.run ~return: run ~raise: raise process
   in run ()
-  
+
 (* {1 The server} *)
 let start_socket () =
   let socket_path = Configure.subst_vars conf_socket_path#get in
@@ -309,7 +309,7 @@ let start_socket () =
          events = [ `Read sock ];
          handler = incoming;
        })
-  
+
 let start_telnet () =
   let port = conf_telnet_port#get in
   let bind_addr_inet = inet_addr_of_string conf_telnet_bind_addr#get in
@@ -346,7 +346,7 @@ let start_telnet () =
             events = [ `Read sock ];
             handler = incoming;
           }))
-  
+
 let start () =
   let telnet = conf_telnet#get in
   let socket = conf_socket#get
@@ -357,10 +357,8 @@ let start () =
        if telnet then start_telnet () else ();
        if socket then start_socket () else ())
     else ()
-  
+
 let () = ignore (Dtools.Init.at_start start)
-  
+
 (* Re-wrap exec for external use *)
 let exec s = try exec s with | Exit -> "ERROR: Attempt to exit!"
-  
-
