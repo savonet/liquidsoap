@@ -73,7 +73,7 @@ else
     BINDING()_requires=
     if test -r ${with_[]binding()_dir}/META >/dev/null 2>&1; then
       # Grab version
-      BINDING()_version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"'`
+      BINDING()_version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"' | head -n 1`
       AC_OCAML_COMPARE_VERSION([${[]BINDING()_version}],[$2])
       if test -z "${VERSION_OK}"; then
         AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()version}.])
