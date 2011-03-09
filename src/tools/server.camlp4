@@ -253,8 +253,8 @@ let handle_client socket =
           handler  = h }
     in
     duppy_do
-      duppy_write 
-       "BEGIN\r\n";
+      duppy_write
+       (* "BEGIN\r\n"; *)
        ans ;
        "\r\nEND\r\n"
       with
