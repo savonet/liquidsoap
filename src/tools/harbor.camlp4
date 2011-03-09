@@ -1,3 +1,4 @@
+(* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
