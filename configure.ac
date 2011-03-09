@@ -300,7 +300,7 @@ AC_ARG_WITH([opal-include],
    AC_HELP_STRING(
       [--with-opal-include=path],
       [look for opal headers in path (defaults to /usr/include/opal)]))
-AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],["don't use opal"]))
+AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],[don't use opal]))
 
 W_OPAL=""
 w_OPAL=no
@@ -506,7 +506,7 @@ AC_CHECK_OCAML_BINDING([taglib])
 # OSS
 #
 
-AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],["don't use OSS"]))
+AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],[don't use OSS]))
 
 if test "x$enable_oss" != "xno" ; then
   AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
@@ -544,7 +544,7 @@ fi
 
 AC_ARG_ENABLE([camomile],
   AC_HELP_STRING([--disable-camomile],
-                 ["don't use camomile (no charset detection and conversion)"]))
+                 [don't use camomile (no charset detection and conversion)]))
 
 AC_CHECK_OCAML_BINDING([camomile])
 
@@ -708,7 +708,7 @@ fi
 #
 
 AC_ARG_ENABLE([gui],
-       AC_HELP_STRING([--disable-gui],["don't use the controller GUI"]))
+       AC_HELP_STRING([--disable-gui],[don't use the controller GUI]))
 w_PYTHON=no
 if test "x$enable_gui" != "xno" ; then
 AC_PATH_PROG(PYTHON,python,no)
