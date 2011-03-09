@@ -236,7 +236,7 @@ let auth_check ?args ~login uri headers = (* 401 error model *)
              | Some args ->
                  (* ICY updates are done with
                        * password sent in GET args
-                       * and user being valid_user 
+                       * and user being valid_user
                        * or user, if given. *)
                  let user =
                    (try Hashtbl.find args "user"
@@ -524,7 +524,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                (fun s -> (* Authentication can be blocking *)
                                   Duppy.Monad.Io.exec
                                     ~priority:
-                                      (* ICY = true means that authentication has already 
+                                      (* ICY = true means that authentication has already
                      * hapenned *)
                                       Tutils.Maybe_blocking
                                     h
