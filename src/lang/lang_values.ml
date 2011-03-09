@@ -75,8 +75,7 @@ let source_t ?pos ?level k =
     (T.Constr { T.name = "source" ; T.params = [T.Invariant,k] })
 let of_source_t t = match (T.deref t).T.descr with
   | T.Constr { T.name = "source" ; T.params = [_,t] } -> t
-  | _ -> Printf.eprintf "Not a source_t: %s\n" (T.print (T.deref t)) ;
-         assert false
+  | _ -> assert false
 
 let request_t ?pos ?level k =
   T.make ?pos ?level
@@ -322,7 +321,7 @@ struct
         Printf.sprintf "ref(%s)" (print_value !a)
     | Product (a,b) ->
         Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
-    | Fun (_,_,_,x) when is_ground x -> "{"^print_term x^"}"
+    | Fun (p,_,_,x) when p = [] && is_ground x -> "{"^print_term x^"}"
     | Fun _ | FFI _ -> "<fun>"
 
   let map_env f env = List.map (fun (s,(g,v)) -> s, (g, f v)) env
@@ -585,7 +584,10 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         l.gen <- generalized ;
         if print_toplevel then
           (add_task (fun () ->
-             Printf.printf "%s \t: %s\n%!" name (T.print ~generalized def.t))) ;
+             Format.printf "@[<2>%s :@ %a@]@."
+               (let l = String.length name and max = 5 in
+                  if l >= max then name else name ^ String.make (max-l) ' ')
+               (T.pp_type_generalized generalized) def.t)) ;
         check ~print_toplevel ~level:(level+1) ~env body ;
         e.t >: body.t
 
@@ -824,7 +826,7 @@ let toplevel_add (doc,params) x ~generalized v =
              | Not_found -> `Unknown, pvalues
          in
          let item = Doc.trivial (if descr="" then "(no doc)" else descr) in
-           item#add_subsection "type" (Doc.trivial (T.print ~generalized t)) ;
+           item#add_subsection "type" (T.doc_of_type ~generalized t) ;
            item#add_subsection "default"
              (Doc.trivial (match default with
                              | `Unknown -> "???"
@@ -841,7 +843,7 @@ let toplevel_add (doc,params) x ~generalized v =
       (fun (s,_) ->
          Printf.eprintf "WARNING: Unused @param %S for %s!\n" s x)
       params ;
-    doc#add_subsection "_type" (Doc.trivial (T.print ~generalized v.V.t)) ;
+    doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t) ;
     builtins#register ~doc x (generalized,v)
 
 let rec eval_toplevel ?(interactive=false) t =
@@ -856,8 +858,10 @@ let rec eval_toplevel ?(interactive=false) t =
             Printf.eprintf "Added toplevel %s : %s\n"
               name (T.print ~generalized def.V.t) ;
           if interactive then
-            Printf.printf "%s : %s = %s\n"
-              name (T.print ~generalized def.V.t) (V.print_value def) ;
+            Format.printf "@[<2>%s :@ %a =@ %s@]@."
+              name
+              (T.pp_type_generalized generalized) def.V.t
+              (V.print_value def) ;
           eval_toplevel ~interactive body
     | Seq (a,b) ->
         check_unit_like
@@ -867,5 +871,7 @@ let rec eval_toplevel ?(interactive=false) t =
     | _ ->
         let v = eval ~env:builtins#get_all t in
           if interactive && t.term <> Unit then
-            Printf.printf "- : %s = %s\n" (T.print v.V.t) (V.print_value v) ;
+            Format.printf "- : %a = %s@."
+              T.pp_type v.V.t
+              (V.print_value v) ;
           v

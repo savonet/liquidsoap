@@ -274,7 +274,7 @@ type proto = (string*t*value option*string option) list
 let doc_of_prototype_item ~generalized t d doc =
   let doc = match doc with None -> "(no doc)" | Some d -> d in
   let item = new Doc.item doc in
-    item#add_subsection "type" (Doc.trivial (T.print ~generalized t)) ;
+    item#add_subsection "type" (T.doc_of_type ~generalized t) ;
     item#add_subsection "default"
       (match d with
          | None -> Doc.trivial "None"
@@ -296,7 +296,7 @@ let to_doc category flags main_doc proto return_t =
   let t = builtin_type proto return_t in
   let generalized = T.filter_vars (fun _ -> true) t in
     item#add_subsection "_category" (Doc.trivial category) ;
-    item#add_subsection "_type" (Doc.trivial (T.print ~generalized t)) ;
+    item#add_subsection "_type" (T.doc_of_type ~generalized t) ;
     List.iter
       (fun f -> item#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
       flags;
@@ -327,7 +327,7 @@ let add_builtin_base ~category ~descr ?(flags=[]) name value t =
   let value = { t = t ; value = value } in
   let generalized = T.filter_vars (fun _ -> true) t in
     doc#add_subsection "_category" (Doc.trivial category) ;
-    doc#add_subsection "_type" (Doc.trivial (T.print ~generalized t)) ;
+    doc#add_subsection "_type" (T.doc_of_type ~generalized t) ;
     List.iter
       (fun f -> doc#add_subsection "_flag" (Doc.trivial (string_of_flag f)))
       flags;
@@ -553,16 +553,16 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
   let print_error error =
     flush_all () ;
     let start = lexbuf.Lexing.lex_curr_p in
-      Printf.printf "%sine %d, char %d"
+      Format.printf "%sine %d, char %d"
         (if start.Lexing.pos_fname="" then "L" else
-           Printf.sprintf "File %S, l" start.Lexing.pos_fname)
+           Format.sprintf "File %S, l" start.Lexing.pos_fname)
         start.Lexing.pos_lnum
         (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
       if Lexing.lexeme lexbuf = "" then
-        Printf.printf ": %s\n" error
+        Format.printf ": %s@." error
       else
-        Printf.printf
-          " before %S: %s.\n" (Lexing.lexeme lexbuf) error
+        Format.printf
+          " before %S: %s@." (Lexing.lexeme lexbuf) error
   in
     assert (lexbuf.Lexing.lex_start_p = lexbuf.Lexing.lex_curr_p) ;
     begin match ns with
@@ -584,9 +584,10 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
       | Parsing.Parse_error -> print_error "Parse error" ; exit 1
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
-            Printf.printf
-              (* "%s: unbound symbol %s.\n" pos s ; *)
-              "%s: the variable %s is used but was not previously defined.\n" pos s ;
+            Format.printf
+              "@[%s: the variable %s@ \
+               is used@ but was not previously defined.@]@."
+            pos s ;
             exit 1
       | T.Type_Error explain ->
           flush_all () ;
@@ -598,44 +599,45 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
           in
           let pos_x = T.print_pos (Utils.get_some x.Term.t.T.pos) in
             flush_all () ;
-            Printf.printf
-              "%s: cannot apply that parameter because the function (%s) "
+            Format.printf
+              "@[%s:@ cannot apply@ that parameter@ \
+               because@ the function (%s)@ "
               pos_x pos_f ;
-            Printf.printf
-              "has %s %s!\n"
+            Format.printf
+              "has %s@ %s!@]@."
               (if first then "no" else "no more")
               (if lbl="" then "unlabeled argument" else
-                 Printf.sprintf "argument labeled %S" lbl) ;
+                 Format.sprintf "argument labeled %S" lbl) ;
             exit 1
       | Invalid_value (v,msg) ->
-          Printf.printf
-            "%s: %s.\n"
+          Format.printf
+            "@[<2>%s:@ %s.@]@."
             (T.print_pos ~prefix:"Invalid value at "
                (Utils.get_some v.t.T.pos))
             msg ;
           exit 1
       | Lang_encoders.Error (v,s) ->
-          Printf.printf
-            "%s: %s.\n"
+          Format.printf
+            "@[<2>%s:@ %s.@]@."
             (T.print_pos ~prefix:"Error in encoding format at "
                (Utils.get_some v.Lang_values.t.T.pos))
             s ;
           exit 1
       | Failure s ->
-          Printf.printf "Error: %s!\n" s ;
+          Format.printf "Error: %s!@." s ;
           exit 1
       | Clock_conflict (pos,a,b) ->
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
-          Printf.printf
-            "%s: a source cannot belong to two clocks (%s, %s).\n"
+          Format.printf
+            "%s: a source cannot belong to two clocks (%s, %s).@."
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
           exit 1
       | Clock_loop (pos,a,b) ->
-          Printf.printf
-            "%s: cannot unify two nested clocks: %s, %s.\n"
+          Format.printf
+            "%s: cannot unify two nested clocks: %s, %s.@."
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
@@ -668,19 +670,19 @@ let from_in_channel ?parse_only x =
   from_in_channel ?parse_only ~ns:None x
 
 let interactive () =
-  Printf.printf
+  Format.printf
     "\nWelcome to the EXPERIMENTAL liquidsoap interactive loop.\n\n\
      You may enter any sequence of expressions, terminated by \";;\".\n\
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), \
-     output startup (forces default clock).\n\n" ;
+     output startup (forces default clock).\n@." ;
   if Dtools.Log.conf_file#get then
-    Printf.printf
-      "Logs can be found in %S.\n\n"
+    Format.printf
+      "Logs can be found in %S.\n@."
       Dtools.Log.conf_file_path#get ;
   let lexbuf = Lexing.from_channel stdin in
   let rec loop () =
-    Printf.printf "# %!" ;
+    Format.printf "# %!" ;
     if
       try
         let tokenizer = Lang_pp.token (Unix.getcwd ()) in
@@ -695,10 +697,10 @@ let interactive () =
           true
       with
         | End_of_file ->
-            Printf.printf "Bye bye!\n" ;
+            Format.printf "Bye bye!@." ;
             false
         | e ->
-            Printf.printf "Exception: %s!\n" (Utils.error_message e) ;
+            Format.printf "Exception: %s!@." (Utils.error_message e) ;
             true
     then
       loop ()

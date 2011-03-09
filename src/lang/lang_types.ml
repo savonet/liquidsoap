@@ -237,16 +237,15 @@ let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
 module DS =
   Set.Make(struct type t = (string*constraints) let compare = compare end)
 
-(** Convert a type to a string.
+(** Print a type representation.
   * Unless in debug mode, variable identifiers are not shown,
   * and variable names are generated.
   * Names are only meaningful over one printing, as they are re-used. *)
-let print_repr t =
-  (** Compute the string representation of a type.
-    * Attaches the list of variables that occur in the type.
+let print_repr f t =
+  (** Display the type and return the list of variables that occur in it.
     * The [par] params tells whether (..)->.. should be surrounded by
     * parenthesis or not. *)
-  let rec print ~par vars = function
+  let rec print ~par vars : repr -> DS.t = function
     | `Constr (name,params) ->
         (* Let's assume that stream_kind occurs only inside a source
          * or format type -- this should be pretty much true with the
@@ -256,101 +255,108 @@ let print_repr t =
         if name = "stream_kind" then
           match params with
             | [_,a;_,v;_,m] ->
-                let ellipsis,vars = print ~par:false vars `Range_Ellipsis in
-                let has_ellipsis,l,vars =
+                let first,has_ellipsis,vars =
                   List.fold_left
-                    (fun (has_ellipsis,l,vars) (lbl,t) ->
-                       if t=`Ellipsis then true,l,vars else
-                         let t,vars = print ~par:false vars t in
-                           has_ellipsis,
-                           (lbl ^ "=" ^ t) :: l,
-                           vars)
-                    (false,[],vars)
+                    (fun (first,has_ellipsis,vars) (lbl,t) ->
+                       if t=`Ellipsis then false,true,vars else begin
+                         if not first then Format.fprintf f "," ;
+                         Format.fprintf f "%s=" lbl ;
+                         let vars = print ~par:false vars t in
+                           false,has_ellipsis,vars
+                       end)
+                    (true,false,vars)
                     ["audio",a;"video",v;"midi",m]
                 in
-                let l = if has_ellipsis then ellipsis :: l else l in
-                let l = List.rev l in
-                  String.concat "," l,
-                  vars
+                  if not has_ellipsis then vars else begin
+                    if not first then Format.fprintf f ",@," ;
+                    print ~par:false vars `Range_Ellipsis
+                  end
             | _ -> assert false
-        else
-          let l,vars = print_list vars [] params in
-            Printf.sprintf "%s(%s)" name (String.concat "," l),
+        else begin
+          Format.open_box (1 + String.length name) ;
+          Format.fprintf f "%s(" name ;
+          let vars = print_list vars params in
+            Format.fprintf f ")" ;
+            Format.close_box () ;
             vars
-    | `Ground g -> print_ground g, vars
+        end
+    | `Ground g -> Format.fprintf f "%s" (print_ground g) ; vars
     | `Product (a,b) ->
-        let a,vars = print ~par:true vars a in
-        let b,vars = print ~par:true vars b in
-          Printf.sprintf "(%s*%s)" a b,
-          vars
+        Format.fprintf f "@[<1>(" ;
+        let vars = print ~par:true vars a in
+        Format.fprintf f "*@," ;
+        let vars = print ~par:true vars b in
+        Format.fprintf f ")@]" ;
+        vars
     | `List t ->
-        let t,vars = print ~par:false vars t in
-          Printf.sprintf "[%s]" t,
-          vars
-    | `Variable -> "*", vars
+        Format.fprintf f "@[<1>[" ;
+        let vars = print ~par:false vars t in
+        Format.fprintf f "]@]" ;
+        vars
+    | `Variable ->
+        Format.fprintf f "*" ;
+        vars
     | `Zero | `Succ _ as t ->
         let rec aux n = function
           | `Succ t -> aux (n+1) t
-          | `Zero -> string_of_int n, vars
+          | `Zero -> Format.fprintf f "%d" n ; vars
           | t ->
-              if t = `Ellipsis then
-                let s,vars = print ~par vars t in
-                  Printf.sprintf "%d+%s" n s, vars
-              else
-                let s,vars = print ~par vars t in
-                  Printf.sprintf "%s+%d" s n, vars
+              if t = `Ellipsis then begin
+                Format.fprintf f "%d+" n ;
+                print ~par vars t
+              end else
+                let vars = print ~par vars t in
+                  Format.fprintf f "+%d" n ;
+                  vars
         in
           aux 0 t
     | `EVar (name,c) | `UVar (name,c) ->
-        name,
-        (if c<>[] then DS.add (name,c) vars else vars)
+        Format.fprintf f "%s" name ;
+        if c<>[] then DS.add (name,c) vars else vars
     | `Arrow (p,t) ->
-        let params,vars =
+        if par then
+          Format.fprintf f "@[<hov 1>("
+        else
+          Format.fprintf f "@[<hov 0>" ;
+        Format.fprintf f "@[<1>(" ;
+        let _,vars =
           List.fold_left
-            (fun (params,vars) (opt,lbl,kind) ->
-               let kind,vars = print ~par:true vars kind in
-               let full =
-                 (if opt then "?" else "") ^
-                 (if lbl <> "" then lbl ^ ":" else "") ^
-                 kind
-               in
-                 full::params, vars)
-            ([],vars)
+            (fun (first,vars) (opt,lbl,kind) ->
+               if not first then Format.fprintf f ",@," ;
+               if opt then Format.fprintf f "?" ;
+               if lbl <> "" then Format.fprintf f "%s:" lbl ;
+               let vars = print ~par:true vars kind in
+                 false, vars)
+            (true,vars)
             p
         in
-        let params = List.rev params in
-        let t,vars = print ~par:false vars t in
-        let print =
-          if par then
-            Printf.sprintf "((%s)->%s)"
-          else
-            Printf.sprintf "(%s)->%s"
-        in
-          print
-            (String.concat "," params)
-            t,
-          vars
-    | `Ellipsis -> "_", vars
-    | `Range_Ellipsis -> "...", vars
-  and print_list vars acc = function
-    | [] -> List.rev acc, vars
+        Format.fprintf f ")@]->@," ;
+        let vars = print ~par:false vars t in
+        if par then Format.fprintf f ")@]" else Format.fprintf f "@]" ;
+        vars
+    | `Ellipsis -> Format.fprintf f "_" ; vars
+    | `Range_Ellipsis -> Format.fprintf f "..." ; vars
+  and print_list ?(first=true) ?(acc=[]) vars = function
+    | [] -> vars
     | (_,x)::l ->
-        let x,vars = print ~par:false vars x in
-          print_list vars (x::acc) l
+        if not first then Format.fprintf f "," ;
+        let vars = print ~par:false vars x in
+          print_list ~first:false ~acc:(x::acc) vars l
   in
-    match t with
+    Format.fprintf f "@[" ;
+    begin match t with
       (* We're only printing a variable: ignore its [repr]esentation. *)
       | `EVar (i,c) when c <> [] ->
-          Printf.sprintf "something that is %s"
+          Format.fprintf f "something that is %s"
             (String.concat " and " (List.map print_constr c))
       | `UVar (i,c) when c <> [] ->
-          Printf.sprintf "anything that is %s"
+          Format.fprintf f "anything that is %s"
             (String.concat " and " (List.map print_constr c))
       (* Print the full thing, then display constraints *)
       | _ ->
-          let repr,constraints = print ~par:false DS.empty t in
+          let constraints = print ~par:false DS.empty t in
           let constraints = DS.elements constraints in
-            if constraints = [] then repr else
+            if constraints <> [] then
               let constraints =
                 List.map
                   (fun (name,c) ->
@@ -375,12 +381,17 @@ let print_repr t =
               let constraints = group constraints in
               let constraints =
                 List.map
-                  (fun (ids,c) ->
-                     Printf.sprintf "%s is %s" (String.concat ", " ids) c)
+                  (fun (ids,c) -> (String.concat ", " ids) ^ " is " ^ c)
                   constraints
               in
-                repr ^ " where " ^
-                (String.concat ", " constraints)
+                Format.fprintf f "@ @[<2>where@ " ;
+                Format.fprintf f "%s" (List.hd constraints) ;
+                List.iter
+                  (fun s -> Format.fprintf f ",@ %s" s)
+                  (List.tl constraints) ;
+                Format.fprintf f "@]"
+    end ;
+    Format.fprintf f "@]"
 
 let fresh_evar =
   let fresh_id =
@@ -538,35 +549,49 @@ exception Error of (repr*repr)
 type explanation = bool*t*t*repr*repr
 exception Type_Error of explanation
 
+let pp_type f t = print_repr f (repr t)
+let pp_type_generalized generalized f t = print_repr f (repr ~generalized t)
+
+let print ?generalized t : string =
+  print_repr Format.str_formatter (repr ?generalized t) ;
+  Format.fprintf Format.str_formatter "@?" ;
+  Format.flush_str_formatter ()
+
 let print_type_error (flipped,ta,tb,a,b) =
   let infered_pos a =
     let dpos = (deref a).pos in
       if a.pos = dpos then "" else
         match dpos with
           | None -> ""
-          | Some p -> "\n    (infered at " ^ print_pos ~prefix:"" p ^ ")"
+          | Some p -> " (infered at " ^ print_pos ~prefix:"" p ^ ")"
   in
   let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
-    Printf.printf
-      "%s:\n  this value has type\n    %s%s\n"
+    Format.printf
+      "@[<hv 2>%s:@ this value has type@;<1 2>%a%s@ "
       (match ta.pos with
          | None -> "At unknown position"
          | Some p -> print_pos p)
-      (print_repr a)
+      print_repr a
       (infered_pos ta) ;
-    Printf.printf
-      "  but it should be a %stype of%s\n    %s%s\n%!"
+    Format.printf
+      "but it should be a %stype of%s@;<1 2>%a%s@]@."
       (if flipped then "super" else "sub")
       (match tb.pos with
          | None -> ""
          | Some p ->
              Printf.sprintf " (the type of the value at %s)"
                (print_pos ~prefix:"" p))
-      (print_repr b)
+      print_repr b
       (infered_pos tb)
 
-let print ?generalized t =
-  print_repr (repr ?generalized t)
+let doc_of_type ~generalized t =
+  let margin = Format.pp_get_margin Format.str_formatter () in
+    Format.pp_set_margin Format.str_formatter 58 ;
+    Format.fprintf
+      Format.str_formatter
+      "%a@?" (pp_type_generalized generalized) t ;
+    Format.pp_set_margin Format.str_formatter margin ;
+    Doc.trivial (Format.flush_str_formatter ())
 
 (* I'd like to add subtyping on unions of scalar types, but for now the only
  * non-trivial thing is the arrow.
