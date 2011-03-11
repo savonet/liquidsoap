@@ -52,6 +52,7 @@ h4@specific. Specific tutorials
 * "Normalization and replay gain":replay_gain.html normalize audio data.
 * "Requests-based sources":request_sources.html create advanced sources using requests.
 * "Shoutcast output":shoutcast.html output to shoutcast.
+* "Dynamic source creation":dynamic_sources.html dynamically create sources using server requests.
 * "Smart crossfading":smartcrossfade.html define custom crossfade transitions.
 * "Secure command server":secure_server_access.html secure authenticated access to the command server.
 * "Using in production":in_production.html integrate liquidsoap scripts in a production environment
