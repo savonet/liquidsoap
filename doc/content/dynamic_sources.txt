@@ -34,17 +34,17 @@ out = output.icecast(%mp3,
 # Now we write a function to create 
 # a playlist source and output it.
 def create_playlist(uri) =
-  # The playlist source 
+  # The playlist source 
   s = playlist(uri)
 
   # The output
   output = out(s)
 
-  # Register output is the list of sources
+  # We register both source and output 
+  # in the list of sources
   dyn_sources := 
-      list.append( [(uri,output)], 
+      list.append( [(uri,s),(uri,output)],
                     !dyn_sources )
-
   "Done!"
 end
 
@@ -93,17 +93,10 @@ def destroy_playlist(uri) =
   if list.length(matching_sources) == 0 then
     "Error: no matching sources!"
   else
-    # If more than one source matched, we return a warning
-    msg = 
-      if list.length(matching_sources) > 1 then
-        "Warning: more than one source matched the given uri!\n"
-      else
-        ""
-      end
-    # Now we stop all sources
+    # We stop all sources
     list.iter(source.shutdown, matching_sources)
     # And return
-    "#{msg}Done!"
+    "Done!"
   end
 end
 
