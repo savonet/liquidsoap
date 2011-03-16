@@ -165,12 +165,12 @@ let () =
   let add = add ~ns:[] in
     add "exit" ~descr:"Close current server session." (fun args -> raise Exit) ;
     add "quit" ~descr:"Close current server session." (fun args -> raise Exit) ;
-    add "help" ~usage:"help [<command>]" 
-               ~descr:"Get information on available commands." 
-      (fun args -> 
+    add "help" ~usage:"help [<command>]"
+               ~descr:"Get information on available commands."
+      (fun args ->
          try
-            let args = 
-              Pcre.substitute ~pat:"\\s*" 
+            let args =
+              Pcre.substitute ~pat:"\\s*"
                               ~subst:(fun _ -> "") args
             in
             let (_,us,d) = Tutils.mutexify lock (Hashtbl.find commands) args in
@@ -182,8 +182,8 @@ let () =
               (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
                ^ "Available commands:" ^ (usage ()) ^ "\r\n\r\n"
                ^ "Type \"help <command>\" for more information.") ;
-    add "list" 
-        ~descr:"Get the list of available operators with their interfaces." 
+    add "list"
+        ~descr:"Get the list of available operators with their interfaces."
                (fun _ ->
                   Tutils.mutexify lock
                     (fun () ->
@@ -232,17 +232,17 @@ let handle_client socket =
        on_error  = on_error }
   in
   (* Read and process lines *)
-  let process = 
-    duppy req = 
-      duppy_read 
+  let process =
+    duppy req =
+      duppy_read
         Duppy.Io.Split "[\r\n]+"
       with
         { priority = Tutils.Non_blocking ;
           handler  = h }
     in
-    duppy ans = 
+    duppy ans =
       duppy_exec
-       begin 
+       begin
         try
           duppy_return (exec req)
         with
@@ -263,14 +263,14 @@ let handle_client socket =
       duppy_return ()
     done
   in
-  let close () = 
+  let close () =
     try
       Unix.close socket
     with
       | _ -> ()
   in
-  let rec run () = 
-    let raise () = 
+  let rec run () =
+    let raise () =
          let on_error e =
              on_error e ;
              close ()
@@ -279,7 +279,7 @@ let handle_client socket =
                         ~exec:close Tutils.scheduler ~string:"Bye!\r\n"
                         socket
     in
-    duppy_run 
+    duppy_run
       process
     with
       { return = run ;
