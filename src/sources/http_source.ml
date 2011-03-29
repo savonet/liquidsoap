@@ -517,9 +517,7 @@ let () =
       Some "Run in debugging mode, not catching some exceptions." ;
 
       "user_agent", Lang.string_t,
-      Some (Lang.string
-          (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
-              Configure.version Sys.os_type Sys.ocaml_version)),
+      Some (Lang.string Http.user_agent),
       Some "User agent." ;
 
       "", Lang.string_t, None,

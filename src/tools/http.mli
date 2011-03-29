@@ -8,6 +8,9 @@ val string_of_error : error -> string
 (** A connection with an http server. *)
 type connection = Unix.file_descr
 
+(** User-agent for liquidsoap *)
+val user_agent : string
+
 (** Decode an url. *)
 val url_decode : ?plus:bool -> string -> string
 

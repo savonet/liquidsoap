@@ -150,9 +150,7 @@ let () =
         "max", Lang.float_t, Some (Lang.float 25.),
         Some "Maximum duration of the buffered data." ;
        "user_agent", Lang.string_t,
-        Some (Lang.string
-            (Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
-                Configure.version Sys.os_type Sys.ocaml_version)),
+        Some (Lang.string Http.user_agent),
         Some "User agent." ;
         "user", Lang.string_t, None, Some "Lastfm user." ;
         "password", Lang.string_t, None, Some "Lastfm password." ;

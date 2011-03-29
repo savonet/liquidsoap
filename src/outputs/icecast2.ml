@@ -141,10 +141,8 @@ open M
 let no_mount = "Use [name] with .ogg extension if relevant"
 let no_name = "Use [mount]"
 
-let user_agent =
-  Printf.sprintf "Liquidsoap %s" Configure.version
 let user_agent = Lang.product (Lang.string "User-Agent")
-                              (Lang.string user_agent)
+                              (Lang.string Http.user_agent)
 
 let proto kind =
   Output.proto @

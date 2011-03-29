@@ -26,11 +26,8 @@ open Lang_builtins
 let log = Dtools.Log.make ["icy";"update_metadata"]
 
 let () =
-  let user_agent =
-    Printf.sprintf "liquidsoap %s" Configure.version
-  in
   let user_agent = Lang.product (Lang.string "User-Agent")
-                                (Lang.string user_agent)
+                                (Lang.string Http.user_agent)
   in
   add_builtin "icy.update_metadata" ~cat:Interaction ~descr:"Update metata on an icecast mountpoint \
                                                        using the ICY protocol."
