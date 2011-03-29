@@ -36,29 +36,8 @@ object (self)
 
   val queue = Rqueue.create ()
 
-  method get_next_request =
-    try
-      let r = Rqueue.shift queue in
-      Request.add_log r "Entering the primary queue." ;
-      Request.set_root_metadata r "queue" "primary" ;
-      Some r
-    with
-      | Rqueue.Not_found ->  None
-
-  val mutable ns = []
-
-  method copy_queue_init q =
-    Rqueue.fold
-      (fun l r -> r::l)
-      q
-      queue
-
-  method copy_queue = self#copy_queue_init super#copy_queue
-
-  method wake_up activation =
-    super#wake_up activation ;
-    if ns = [] then
-      ns <- Server.register [self#id] "editable" ;
+  initializer
+    ns_kind <- "editable" ;
     let make_n_add f req =
       let req = self#create_request req in
         f req ;
@@ -73,26 +52,26 @@ object (self)
            (fun r -> string_of_int (Request.get_id r))
            (List.rev q))
     in
-      Server.add ~ns "push" ~usage:"push <uri>"
+      self#register_command "push" ~usage:"push <uri>"
                  ~descr:"Push a new request in the queue."
         (make_n_add (Rqueue.push queue)) ;
-      Server.add ~ns "queue"
+      self#register_command "queue"
         ~descr:"Display current queue content for \
                 both primary and secondary queues."
         (fun _ -> print_queue self#copy_queue) ;
-      Server.add ~ns "primary_queue"
+      self#register_command "primary_queue"
         ~descr:"Display current queue content for the primary queue."
         (fun _ -> print_queue super#copy_queue) ;
-      Server.add ~ns "secondary_queue"
+      self#register_command "secondary_queue"
         ~descr:"Display current queue content for the secondary queue."
         (fun _ -> print_queue (self#copy_queue_init [])) ;
       (* Since the queue command gives not only the pending queue,
        * it can be useful to have the size of our queue *)
-      Server.add ~ns "pending_length"
+      self#register_command "pending_length"
         ~descr:"Return the length of the secondary queue."
         (fun _ ->
            string_of_int (Rqueue.length queue)) ;
-      Server.add ~ns "insert" ~usage:"insert <pos> <uri>"
+      self#register_command "insert" ~usage:"insert <pos> <uri>"
         ~descr:"Insert <uri> at position <pos> in the secondary queue."
         (fun a ->
            if Str.string_match insert_re a 0 then
@@ -101,7 +80,7 @@ object (self)
                make_n_add (Rqueue.insert queue pos) uri
            else
              "Usage: insert <pos> <uri>") ;
-      Server.add ~ns "remove" ~usage:"remove <rid>"
+      self#register_command "remove" ~usage:"remove <rid>"
         ~descr:"Remove request <rid> from the secondary queue."
         (fun a ->
            let id = int_of_string a in
@@ -113,7 +92,7 @@ object (self)
                  "OK"
              with
              | Rqueue.Not_found -> "No such request in my queue") ;
-      Server.add ~ns "move" ~usage:"move <rid> <pos>"
+      self#register_command "move" ~usage:"move <rid> <pos>"
         ~descr:"Move request <rid> in the secondary queue."
         (fun a ->
            if Str.string_match move_re a 0 then
@@ -134,6 +113,23 @@ object (self)
                | Rqueue.Not_found -> "No such request in my queue"
            else
              "Usage: move <rid> <pos>")
+
+  method get_next_request =
+    try
+      let r = Rqueue.shift queue in
+      Request.add_log r "Entering the primary queue." ;
+      Request.set_root_metadata r "queue" "primary" ;
+      Some r
+    with
+      | Rqueue.Not_found ->  None
+
+  method copy_queue_init q =
+    Rqueue.fold
+      (fun l r -> r::l)
+      q
+      queue
+
+  method copy_queue = self#copy_queue_init super#copy_queue
 
   method private sleep =
     super#sleep ;

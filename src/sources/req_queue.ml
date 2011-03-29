@@ -40,6 +40,73 @@ object (self)
   inherit Request_source.queued ~kind ~name:"request.queue"
             ~length ~default_duration ~timeout ~conservative () as queued
 
+  initializer
+    if interactive then begin
+      self#set_id ~definitive:false "queue" ;
+      ns_kind <- "queue" ;
+      self#register_command "push" ~usage:"push <uri>"
+        ~descr:"Push a new request in the queue."
+        (fun req ->
+           let req = self#create_request req in
+           let id = Request.get_id req in
+             Request.set_root_metadata req "source_id"
+               (string_of_int (Oo.id self)) ;
+             self#push_request req ;
+             string_of_int id) ;
+      let print_queue q =
+        String.concat " "
+          (List.map
+             (fun r -> string_of_int (Request.get_id r))
+             (List.rev q))
+      in
+      self#register_command "queue"
+        ~descr:"Display current queue content for both primary and \
+                secondary queue."
+        (fun _ -> print_queue self#copy_queue) ;
+      self#register_command "primary_queue"
+        ~descr:"Display current queue content for the primary queue."
+        (fun _ -> print_queue queued#copy_queue) ;
+      self#register_command "secondary_queue"
+        ~descr:"Display current queue content for the seconary queue."
+        (fun _ -> print_queue (self#copy_queue_init [])) ;
+      self#register_command "ignore" ~usage:"ignore <rid>"
+        ~descr:"Indicate that request <rid> should not be played \
+                (set the \"skip\" metadata to true)."
+        (fun s ->
+           let id = int_of_string s in
+             match Request.from_id id with
+               | None -> "No such request!"
+               | Some r ->
+                   if Request.get_root_metadata r "source_id" <>
+                        Some (string_of_int (Oo.id self)) then
+                     "That request doesn't belong to me!"
+                   else if Request.get_metadata r "queue" = Some "primary" then begin
+                     self#expire (fun r' -> Request.get_id r = Request.get_id r') ;
+                     "OK"
+                   end else begin
+                     Request.set_root_metadata r "skip" "true" ;
+                     "OK"
+                   end) ;
+      self#register_command "consider" ~usage:"consider <rid>"
+        ~descr:"Cancel the effect of ignore on a request."
+        (fun s ->
+           let id = int_of_string s in
+             match Request.from_id id with
+               | None -> "No such request!"
+               | Some r ->
+                   if Request.get_root_metadata r "source_id" <>
+                        Some (string_of_int (Oo.id self)) then
+                     "That request doesn't belong to me!"
+                   else if Request.get_metadata r "queue" = Some "primary" then begin
+                     "Error: cannot un-ignore in the primary queue."
+                   end else begin
+                     Request.set_root_metadata r "skip" "false" ;
+                     "OK"
+                   end)
+      end
+
+
+
   val reqlock = Mutex.create ()
 
   method get_next_request =
@@ -92,77 +159,6 @@ object (self)
 
   (** Get a copy of the resolved (primary) and unresolved (secondary) queues. *)
   method copy_queue = self#copy_queue_init queued#copy_queue
-
-  val mutable ns = []
-
-  method wake_up activation =
-    queued#wake_up activation ;
-    if interactive then begin
-    self#set_id ~definitive:false "queue" ;
-    if ns = [] then
-      ns <- Server.register [self#id] "queue" ;
-    self#set_id (Server.to_string ns) ;
-    Server.add ~ns "push" ~usage:"push <uri>"
-      ~descr:"Push a new request in the queue."
-      (fun req ->
-         let req = self#create_request req in
-         let id = Request.get_id req in
-           Request.set_root_metadata req "source_id"
-             (string_of_int (Oo.id self)) ;
-           self#push_request req ;
-           string_of_int id) ;
-    let print_queue q =
-      String.concat " "
-        (List.map
-           (fun r -> string_of_int (Request.get_id r))
-           (List.rev q))
-    in
-    Server.add ~ns "queue"
-      ~descr:"Display current queue content for both primary and \
-              secondary queue."
-      (fun _ -> print_queue self#copy_queue) ;
-    Server.add ~ns "primary_queue"
-      ~descr:"Display current queue content for the primary queue."
-      (fun _ -> print_queue queued#copy_queue) ;
-    Server.add ~ns "secondary_queue"
-      ~descr:"Display current queue content for the seconary queue."
-      (fun _ -> print_queue (self#copy_queue_init [])) ;
-
-    Server.add ~ns "ignore" ~usage:"ignore <rid>"
-      ~descr:"Indicate that request <rid> should not be played \
-              (set the \"skip\" metadata to true)."
-      (fun s ->
-         let id = int_of_string s in
-           match Request.from_id id with
-             | None -> "No such request!"
-             | Some r ->
-                 if Request.get_root_metadata r "source_id" <>
-                      Some (string_of_int (Oo.id self)) then
-                   "That request doesn't belong to me!"
-                 else if Request.get_metadata r "queue" = Some "primary" then begin
-                   self#expire (fun r' -> Request.get_id r = Request.get_id r') ;
-                   "OK"
-                 end else begin
-                   Request.set_root_metadata r "skip" "true" ;
-                   "OK"
-                 end) ;
-    Server.add ~ns "consider" ~usage:"consider <rid>"
-      ~descr:"Cancel the effect of ignore on a request."
-      (fun s ->
-         let id = int_of_string s in
-           match Request.from_id id with
-             | None -> "No such request!"
-             | Some r ->
-                 if Request.get_root_metadata r "source_id" <>
-                      Some (string_of_int (Oo.id self)) then
-                   "That request doesn't belong to me!"
-                 else if Request.get_metadata r "queue" = Some "primary" then begin
-                   "Error: cannot un-ignore in the primary queue."
-                 end else begin
-                   Request.set_root_metadata r "skip" "false" ;
-                   "OK"
-                 end)
-    end
 
   method private sleep =
     queued#sleep ;

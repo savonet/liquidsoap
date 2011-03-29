@@ -31,12 +31,9 @@ object (self)
 
   val metadata_q = Queue.create ()
 
-  val mutable ns = []
-  method private wake_up activation =
-    if ns = [] then ns <- Server.register [self#id] "store_metadata" ;
-    self#set_id (Server.to_string ns) ;
-    super#wake_up activation ;
-    Server.add ~ns "get" ~descr:"Print the stored metadata."
+  initializer
+    ns_kind <- "store_metadata" ;
+    self#register_command "get" ~descr:"Print the stored metadata."
       (fun _ ->
          let q = metadata_q in
            (fst (Queue.fold

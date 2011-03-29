@@ -45,12 +45,37 @@ object (self)
             ~empty_on_abort:false ~bufferize as generated
 
   val mutable relay_socket = None
-  val mutable ns = []
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
 
   val mutable dump = None
   val mutable logf = None
+
+  initializer 
+    ns_kind <- "input.harbor" ;
+    let stop _ =
+      if relay_socket <> None then (self#disconnect ; "Done")
+      else "No source client connected"
+    in
+    self#register_command
+      "stop" ~descr:"Stop current source client, if connected." stop ;
+    self#register_command
+      "kick" ~descr:"Kick current source client, if connected." stop ;
+    self#register_command
+      "status" ~descr:"Display current status."
+      (fun _ ->
+         match relay_socket with
+           | Some s ->
+               Printf.sprintf "source client connected from %s"
+                  (Utils.name_of_sockaddr ~rev_dns:Harbor.conf_revdns#get
+                                         (Unix.getpeername s))
+           | None ->
+               "no source client connected") ;
+    self#register_command 
+               "buffer_length" ~usage:"buffer_length"
+               ~descr:"Get the buffer's length, in seconds."
+       (fun _ -> Printf.sprintf "%.2f"
+             (Frame.seconds_of_audio self#length))
 
   method login : string*(string -> string -> bool) = login
 
@@ -136,32 +161,7 @@ object (self)
                       mountpointpoint '%s' and port %i." mountpoint port))
     end ;
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s" ;
-    if ns = [] then
-      ns <- Server.register [self#id] "input.harbor" ;
-    self#set_id (Server.to_string ns) ;
-    let stop _ =
-      if relay_socket <> None then (self#disconnect ; "Done")
-      else "No source client connected"
-    in
-    Server.add
-      ~ns "stop" ~descr:"Stop current source client, if connected." stop ;
-    Server.add
-      ~ns "kick" ~descr:"Kick current source client, if connected." stop ;
-    Server.add
-      ~ns "status" ~descr:"Display current status."
-      (fun _ ->
-         match relay_socket with
-           | Some s -> 
-               Printf.sprintf "source client connected from %s" 
-                  (Utils.name_of_sockaddr ~rev_dns:Harbor.conf_revdns#get 
-                                         (Unix.getpeername s))
-           | None ->
-               "no source client connected") ;
-    Server.add ~ns "buffer_length" ~usage:"buffer_length"
-               ~descr:"Get the buffer's length, in seconds."
-       (fun _ -> Printf.sprintf "%.2f"
-             (Frame.seconds_of_audio self#length))
+    log_ref := self#log#f 3 "%s"
 
   method private sleep =
     if relay_socket <> None then self#disconnect ;

@@ -38,25 +38,18 @@ object (self)
   val mutable request_stop  = false     (* Ask for termination *)
   val mutable autostart = autostart     (* Start as soon as possible *)
 
-  method is_active = is_started
+  method virtual register_command : descr:string ->
+                                    ?usage:string -> string ->
+                                    (string->string) -> unit
+  val virtual mutable ns_kind : string
 
-  val mutable ns = []
-
-  method private wake_up (activation : Source.source list) =
-    (* {Server commands}
-     * We prefer [name] as an ID over the default,
-     * but do not overwrite user-defined ID.
-     * Then we get a unique Server identifier,
-     * and finally set the ID to be the same. *)
-    if name <> "" then self#set_id ~definitive:false name ;
-    if ns = [] then
-      ns <- Server.register [self#id] source_kind ;
-    self#set_id (Server.to_string ns) ;
+  initializer
+    ns_kind <- source_kind ;
     (* TODO self#log#f 4
       "Content kind is %s."
-      (Frame.string_of_content_kind content_kind) ; *)
-    Server.add ~ns "autostart" ~descr:"Enable/disable autostart."
-      (fun s ->
+      (Frame.string_of_content_kind content_kind) ; *) 
+    self#register_command "autostart" ~descr:"Enable/disable autostart."
+      (fun s -> 
          if s <> "" then begin
            let update = s = "on" || s = "yes" || s = "y" in
              (* Update request_start when:
@@ -71,9 +64,9 @@ object (self)
              end
          end ;
          if autostart then "on" else "off") ;
-    Server.add ~ns "start" ~descr:"Start."
+    self#register_command "start" ~descr:"Start."
       (fun _ -> request_start <- true ; self#notify ; "OK") ;
-    Server.add ~ns "stop" ~descr:"Stop and disable autostart."
+    self#register_command "stop" ~descr:"Stop and disable autostart."
       (fun _ ->
          if autostart then begin
            autostart <- false ;
@@ -82,14 +75,20 @@ object (self)
          request_stop <- true ;
          self#notify ;
          "OK") ;
-    Server.add ~ns "status" ~descr:"Get status."
+    self#register_command "status" ~descr:"Get status."
       (fun _ -> if is_started then "on" else "off")
 
-  method private notify = ()
+  method is_active = is_started
 
-  method private sleep =
-    Server.unregister ns ;
-    ns <- []
+  method private wake_up (activation : Source.source list) =
+    (* {Server commands}
+     * We prefer [name] as an ID over the default,
+     * but do not overwrite user-defined ID.
+     * Then we get a unique Server identifier,
+     * and finally set the ID to be the same. *)
+    if name <> "" then self#set_id ~definitive:false name 
+
+  method private notify = ()
 
   method private may_start =
     if request_start then self#do_start

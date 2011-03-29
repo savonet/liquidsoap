@@ -39,6 +39,55 @@ object (self)
 
   val tmp = Frame.create kind
 
+  initializer
+    (* Server commands *)
+    ns_kind <- "mixer" ;
+    self#register_command "skip"
+      ~descr:"Skip current track on all enabled sources."
+      (fun a ->
+         source.(int_of_string a)#abort_track ;
+         "OK") ;
+    self#register_command 
+               "volume" ~descr:"Set volume for a given source."
+               ~usage:"volume <source nb> <vol%>"
+      (fun a ->
+         if Str.string_match (Str.regexp "\\([0-9]+\\) \\([0-9]+\\)") a 0 then
+           let i = int_of_string (Str.matched_group 1 a) in
+           let v = int_of_string (Str.matched_group 2 a) in
+             vol.(i) <- (float v)/.100. ;
+             self#status i
+         else
+           "Usage: volume <source nb> <vol%>") ;
+    self#register_command 
+               "select" ~descr:"Enable/disable a source."
+               ~usage:"select <source nb> <true|false>"
+      (fun a ->
+         if Str.string_match
+              (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0 then
+           let i = int_of_string (Str.matched_group 1 a) in
+           let v = Str.matched_group 2 a in
+             sel.(i) <- v = "true" ;
+             self#status i
+         else
+           "Usage: select <source nb> <true|false>") ;
+    self#register_command "single"
+      ~descr:"Enable/disable automatic stop at the end of track."
+      ~usage:"single <source nb> <true|false>"
+      (fun a ->
+         if Str.string_match
+              (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0 then
+           let i = int_of_string (Str.matched_group 1 a) in
+           let v = Str.matched_group 2 a in
+             single.(i) <- v = "true" ;
+             self#status i
+         else
+           "Usage: single <source nb> <true|false>") ;
+    self#register_command "status" ~descr:"Display current status."
+      (fun a -> self#status (int_of_string a)) ;
+    self#register_command "inputs" ~descr:"Print the list of input sources."
+      (fun _ -> Array.fold_left (fun e s -> e^" "^s#id) "" source)
+
+
   method private get_frame buf =
     let p = AFrame.position buf in
     let r = AFrame.size () - p in
@@ -79,54 +128,6 @@ object (self)
       (let r = source.(i)#remaining in
          if r = -1 then "(undef)" else
            Printf.sprintf "%.2f" (Frame.seconds_of_master r))
-
-  val mutable ns = []
-  method private wake_up activation =
-    super#wake_up activation ;
-    (* Server commands *)
-    if ns = [] then ns <- Server.register [self#id] "mixer" ;
-    Server.add ~ns "skip"
-      ~descr:"Skip current track on all enabled sources."
-      (fun a ->
-         source.(int_of_string a)#abort_track ;
-         "OK") ;
-    Server.add ~ns "volume" ~descr:"Set volume for a given source."
-               ~usage:"volume <source nb> <vol%>"
-      (fun a ->
-         if Str.string_match (Str.regexp "\\([0-9]+\\) \\([0-9]+\\)") a 0 then
-           let i = int_of_string (Str.matched_group 1 a) in
-           let v = int_of_string (Str.matched_group 2 a) in
-             vol.(i) <- (float v)/.100. ;
-             self#status i
-         else
-           "Usage: volume <source nb> <vol%>") ;
-    Server.add ~ns "select" ~descr:"Enable/disable a source."
-               ~usage:"select <source nb> <true|false>"
-      (fun a ->
-         if Str.string_match
-              (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0 then
-           let i = int_of_string (Str.matched_group 1 a) in
-           let v = Str.matched_group 2 a in
-             sel.(i) <- v = "true" ;
-             self#status i
-         else
-           "Usage: select <source nb> <true|false>") ;
-    Server.add ~ns "single"
-      ~descr:"Enable/disable automatic stop at the end of track."
-      ~usage:"single <source nb> <true|false>"
-      (fun a ->
-         if Str.string_match
-              (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0 then
-           let i = int_of_string (Str.matched_group 1 a) in
-           let v = Str.matched_group 2 a in
-             single.(i) <- v = "true" ;
-             self#status i
-         else
-           "Usage: single <source nb> <true|false>") ;
-    Server.add ~ns "status" ~descr:"Display current status."
-      (fun a -> self#status (int_of_string a)) ;
-    Server.add ~ns "inputs" ~descr:"Print the list of input sources."
-      (fun _ -> Array.fold_left (fun e s -> e^" "^s#id) "" source)
 
 end
 

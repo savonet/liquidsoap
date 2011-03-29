@@ -85,6 +85,31 @@ object (self)
 
   method stype = source#stype
 
+  initializer
+    (* Add a few more server controls *)
+    self#register_command 
+               "skip" (fun _ -> self#skip ; "Done")
+               ~descr:"Skip current song.";
+    self#register_command 
+               "metadata" ~descr:"Print current metadata."
+      (fun _ ->
+         let q = self#metadata_queue in
+           (fst (Queue.fold
+                   (fun (s,i) m ->
+                      let s = s^
+                              (if s = "" then "--- " else "\n--- ")^
+                              (string_of_int i)^" ---\n"^
+                              (Request.string_of_metadata m) in
+                        s,(i-1))
+                   ("",(Queue.length q)) q))) ;
+    self#register_command 
+               "remaining" ~descr:"Display estimated remaining time."
+      (fun _ ->
+         let r = source#remaining in
+           if r < 0 then "(undef)" else
+             let t = Frame.seconds_of_master r in
+               Printf.sprintf "%.2f" t)
+
   method is_ready =
     if infallible then begin
       assert (source#is_ready) ;
@@ -99,26 +124,6 @@ object (self)
 
   method private wake_up activation =
     start_stop#wake_up activation ;
-    (* Add a few more server controls *)
-    Server.add ~ns "skip" (fun _ -> self#skip ; "Done") 
-               ~descr:"Skip current song.";
-    Server.add ~ns "metadata" ~descr:"Print current metadata."
-      (fun _ ->
-         let q = self#metadata_queue in
-           (fst (Queue.fold
-                   (fun (s,i) m ->
-                      let s = s^
-                              (if s = "" then "--- " else "\n--- ")^
-                              (string_of_int i)^" ---\n"^
-                              (Request.string_of_metadata m) in
-                        s,(i-1))
-                   ("",(Queue.length q)) q))) ;
-    Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
-      (fun _ ->
-         let r = source#remaining in
-           if r < 0 then "(undef)" else
-             let t = Frame.seconds_of_master r in
-               Printf.sprintf "%.2f" t) ;
     (* Get our source ready.
      * This can take a while (preparing playlists, etc). *)
     source#get_ready ((self:>operator)::activation) ;
@@ -135,8 +140,7 @@ object (self)
 
   method private sleep =
     self#do_stop ;
-    source#leave (self:>operator) ;
-    start_stop#sleep
+    source#leave (self:>operator)
 
   (* Metadata stuff: keep track of what was streamed. *)
 

@@ -318,6 +318,13 @@ object (self)
   val mutable dynamic_activations : operator list list = []
   val mutable static_activations  : operator list list = []
 
+  (* contains: (ns,descr,usage,name,f) *)
+  val mutable commands = []
+  val mutable ns_kind = "unknown"
+  val mutable ns = []
+  method register_command ~descr ?usage name f = 
+    commands <- (descr,usage,name,f) :: commands
+
   method private update_caching_mode =
     let string_of activations =
       String.concat ", "
@@ -359,7 +366,17 @@ object (self)
     if log == source_log then self#create_log ;
     if static_activations = [] && dynamic_activations = [] then begin
       source_log#f 4 "Source %s gets up." id ;
-      self#wake_up activation
+      self#wake_up activation ;
+      if commands <> [] then
+       begin
+        assert(ns = []);
+        ns <- Server.register [self#id] ns_kind ;
+        self#set_id (Server.to_string ns) ;
+        List.iter 
+         (fun (descr,usage,name,f) ->
+               Server.add ~ns ~descr ?usage name f)
+         commands
+       end ;
     end ;
     if dynamic then
       dynamic_activations <- activation::dynamic_activations
@@ -386,7 +403,13 @@ object (self)
       self#update_caching_mode ;
       if static_activations = [] && dynamic_activations = [] then begin
         source_log#f 4 "Source %s gets down." id ;
-        self#sleep
+        self#sleep ;
+        List.iter
+          (fun (_,_,name,_) ->
+                 Server.remove ~ns name)
+          commands ;
+        if ns <> [] then
+          Server.unregister ns ;
       end
 
   (** Two methods called for initialization and shutdown of the source *)

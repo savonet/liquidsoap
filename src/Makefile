@@ -161,9 +161,10 @@ builtins = lang/lang_builtins.ml \
 	$(if $(W_CRY),lang/builtins_cry.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	decoder/decoder.ml request.ml source.ml clock.ml tools/rutils.ml \
+	decoder/decoder.ml request.ml tools/server.ml \
+        source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
-	tools/server.ml tools/server_builtins.ml \
+	tools/server_builtins.ml \
 	$(if $(W_SDL),tools/sdl_utils.ml) \
 	$(if $(W_LASTFM),tools/liqfm.ml) \
 	$(if $(W_ALSA), alsa_settings.ml) \

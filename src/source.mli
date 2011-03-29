@@ -47,6 +47,11 @@ object
 
   (** {1 Init/shutdown} *)
 
+  (** Registered server commands for the source *)
+  val mutable ns_kind : string
+  method register_command : descr:string -> ?usage:string -> string -> 
+                            (string->string) -> unit
+
   (** The clock under which the source will run, initially unknown. *)
   method clock : clock_variable
 

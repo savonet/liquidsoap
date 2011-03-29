@@ -201,6 +201,26 @@ object (self)
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
 
+  initializer
+    ns_kind <- "input.http" ;
+    self#register_command "start" ~usage:"start"
+                          ~descr:"Start the source, if needed."
+      (fun _ -> relaying <- true ; "Done") ;
+    self#register_command "stop" ~usage:"stop"
+                          ~descr:"Stop the source if streaming."
+      (fun _ -> relaying <- false ; "Done") ;
+    self#register_command "url" ~usage:"url [url]"
+      ~descr:"Get or set the stream's HTTP URL. \
+              Setting a new URL will not affect an ongoing connection."
+      (fun u ->
+        if u = "" then url else begin
+          url <- u ;
+          "Done"
+        end) ;
+    self#register_command "buffer_length" ~usage:"buffer_length"
+                          ~descr:"Get the buffer's length, in seconds."
+      (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
+
   (* Insert metadata *)
   method insert_metadata m =
     self#log#f 3
@@ -430,8 +450,6 @@ object (self)
       self#poll (should_stop,has_stopped)
     end
 
-  val mutable ns = []
-
   method wake_up _ =
     (* Now we can create the log function *)
     log_ref := (fun s -> self#log#f 3 "%s" s) ;
@@ -445,25 +463,7 @@ object (self)
       let kill,wait = Tutils.stoppable_thread self#poll "http polling" in
         kill_polling <- Some kill ;
         wait_polling <- Some wait
-    end ;
-    if ns = [] then
-      ns <- Server.register [self#id] "input.http" ;
-    self#set_id (Server.to_string ns) ;
-    Server.add ~ns "start" ~usage:"start" ~descr:"Start the source, if needed."
-      (fun _ -> relaying <- true ; "Done") ;
-    Server.add ~ns "stop" ~usage:"stop" ~descr:"Stop the source if streaming."
-      (fun _ -> relaying <- false ; "Done") ;
-    Server.add ~ns "url" ~usage:"url [url]"
-      ~descr:"Get or set the stream's HTTP URL. \
-              Setting a new URL will not affect an ongoing connection."
-      (fun u ->
-        if u = "" then url else begin
-          url <- u ;
-          "Done"
-        end) ;
-    Server.add ~ns "buffer_length" ~usage:"buffer_length"
-               ~descr:"Get the buffer's length, in seconds."
-      (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
+    end
 
   method sleep =
     (Utils.get_some kill_polling) () ;

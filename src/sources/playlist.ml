@@ -70,6 +70,49 @@ let rec list_files (log : Log.t) dir =
 class virtual vplaylist ~mime ~reload ~random ~timeout ~prefix playlist_uri =
 object (self)
 
+  method virtual register_command : descr:string ->
+                                    ?usage:string -> string ->
+                                    (string->string) -> unit
+
+  val mutable virtual ns_kind : string
+
+  initializer
+    ns_kind <- "playlist" ;
+    self#register_command "reload"
+      ~descr:"Reload the playlist, unless already being loaded."
+      (fun s -> self#reload_playlist () ; "OK") ;
+    self#register_command "uri"
+               ~descr:"print playlist's URI if called without an \
+                       argument, set a new playlist URI, and load it otherwise."
+               ~usage:"uri [<URI>]"
+      (fun s ->
+         if s = "" then
+           playlist_uri
+         else
+           (self#reload_playlist ~new_playlist_uri:s () ; "OK")) ;
+    self#register_command "next" ~descr:"Return up to 10 next URIs to be played."
+      (* We cannot return request IDs because we create requests at the last
+       * moment. For those requests already created by the Request_source
+       * parent class, we also display the status. *)
+      (fun s ->
+         let n =
+           try int_of_string s with _ -> 10
+         in
+           Array.fold_left
+             (fun s uri -> s^uri^"\n")
+             (List.fold_left
+                (fun s r ->
+                   let get s =
+                     match Request.get_metadata r s with
+                       | Some s -> s | None -> "?"
+                   in
+                     (Printf.sprintf "[%s] %s\n"
+                        (get "status") (get "initial_uri"))
+                     ^ s)
+                "" self#copy_queue)
+             (self#get_next n))
+
+
   method virtual is_valid : string -> bool
   method virtual stype : Source.source_t
   method virtual id : string
@@ -305,7 +348,6 @@ object (self)
         Mutex.unlock mylock ;
         Some (self#create_request uri)
 
-  val mutable ns = []
   method playlist_wake_up =
     let base_name =
       let x = Filename.basename playlist_uri in
@@ -325,42 +367,7 @@ object (self)
         | _ -> base_name
     in
     self#set_id ~definitive:false id ;
-    self#reload_playlist_nobg () ;
-    if ns = [] then
-      ns <- Server.register [self#id] "playlist" ;
-    Server.add ~ns "reload"
-      ~descr:"Reload the playlist, unless already being loaded."
-      (fun s -> self#reload_playlist () ; "OK") ;
-    Server.add ~ns "uri" 
-               ~descr:"print playlist's URI if called without an \
-                       argument, set a new playlist URI, and load it otherwise."
-               ~usage:"uri [<URI>]"
-      (fun s -> 
-         if s = "" then
-           playlist_uri
-         else
-           (self#reload_playlist ~new_playlist_uri:s () ; "OK")) ;
-    Server.add ~ns "next" ~descr:"Return up to 10 next URIs to be played."
-      (* We cannot return request IDs because we create requests at the last
-       * moment. For those requests already created by the Request_source
-       * parent class, we also display the status. *)
-      (fun s ->
-         let n =
-           try int_of_string s with _ -> 10
-         in
-           Array.fold_left
-             (fun s uri -> s^uri^"\n")
-             (List.fold_left
-                (fun s r ->
-                   let get s =
-                     match Request.get_metadata r s with
-                       | Some s -> s | None -> "?"
-                   in
-                     (Printf.sprintf "[%s] %s\n"
-                        (get "status") (get "initial_uri"))
-                     ^ s)
-                "" self#copy_queue)
-             (self#get_next n))
+    self#reload_playlist_nobg ()
 
   (* Give the next [n] URIs, if guessing is easy. *)
   method get_next = Tutils.mutexify mylock (fun n ->
