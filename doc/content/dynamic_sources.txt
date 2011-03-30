@@ -25,7 +25,7 @@ New here's the code:
 dyn_sources = ref []
 
 # This is our icecast output.
-# It is a partial function: the source needs to be given!
+# It is a partial application: the source needs to be given!
 out = output.icecast(%mp3,
                      host="test",
                      password="hackme",

@@ -1,7 +1,5 @@
 title: External streams
 
-**External streams are currently unavailable in the SVN trunk. This page will be updated when they are available again.**
-
 h3. Introduction 
 
 You can use an external program to create a source that will read data coming out 
