@@ -51,15 +51,23 @@ Here are liquidsoap's dependencies (all OCaml libraries are distributed by Savon
 * ocaml-duppy (>= 0.1.2)
 * "ocaml-pcre":http://www.ocaml.info/home/ocaml_sources.html
 
-And also optional dependencies:
+And also optional dependencies. For most of these, you also need
+the associated C/C++ library, which is usually provided by your distribution's
+packaging system.
 
-* ocaml-ogg
-* ocaml-vorbis
-* ocaml-shout
+* ocaml-ogg for ogg audio and video formats
+* ocaml-vorbis for ogg/vorbis audio encoding and decoding
+* ocaml-cry for Icecast/Shoutcast streaming
 * ocaml-mad for mp3 decoding
 * ocaml-lame for mp3 encoding
 * ocaml-faac for AAC encoding
 * ocaml-faad for AAC stream decoding
+* ocaml-aacplus for AAC+ encoding
+* ocaml-flac for native flac and ogg/flac encoding/decoding
+* ocaml-theora for ogg/theora encoding/decoding
+* ocaml-schroedinger for ogg/dirac video encoding/decoding
+* ocaml-gavl for video conversion
+* ocaml-samplerate for audio samplerate conversion
 * ocaml-taglib for MP3 audio tag reading
 * ocaml-magic for file type detection. This library is very useful for reading mp3 files. If not enabled, liquidsoap may accept as mp3 files that do not contains mp3 data, such as jpeg pictures.
 * ocaml-xmlplaylist for XML-based playlist formats
@@ -71,7 +79,7 @@ And also optional dependencies:
 * ocaml-portaudio for Portaudio I/O
 * ocaml-bjack for Jack output/input
 * ocaml-ladspa for LADSPA plugins
-* "ocaml-xmllight":http://tech.motion-twin.com/xmllight.html
+* "xmlm":http://erratique.ch/software/xmlm
 
 Runtime dependencies include:
 * "wget":http://www.gnu.org/software/wget/ for downloading remote files (http, https, ftp)
