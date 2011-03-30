@@ -45,7 +45,7 @@ video_converters = \
 
 decoders = \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
-	decoder/external_decoder.ml \
+	$(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml) \
 	$(if $(W_FLAC),decoder/flac_decoder.ml) \
 	$(if $(W_FAAD),decoder/aac_decoder.ml) \
 	$(if $(W_OGG),decoder/ogg_decoder.ml) \
@@ -76,7 +76,7 @@ sources = \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_LASTFM),sources/lastfm_input.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
-	sources/external_input.ml \
+	$(if ($(OS_TYPE):Win32=),sources/external_input.ml) \
 	tools/liqMM.ml
 
 operators = \
@@ -112,7 +112,7 @@ analyze = analyze/analyze_rms.ml
 
 encoders = \
 	encoder/wav_encoder.ml \
-	encoder/external_encoder.ml \
+	$(if ($(OS_TYPE):Win32=),encoder/external_encoder.ml) \
 	$(if $(W_LAME),encoder/lame_encoder.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
 	$(if $(W_AACPLUS),encoder/aacplus_encoder.ml) \

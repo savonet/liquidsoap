@@ -9,37 +9,43 @@ my_get_mime = get_mime
 get_mime = my_get_mime
 
 %ifdef add_decoder
-if test_process("which flac") then
-  log(level=3,"Found flac binary: enabling flac external decoder.")
-  flac_p = "flac -d -c - 2>/dev/null"
-  def test_flac(file) =
-    if test_process("which metaflac") then
-      channels = list.hd(get_process_lines("metaflac \
-                                            --show-channels #{quote(file)} \
-                                            2>/dev/null"))
-      # If the value is not an int, this returns 0 and we are ok :)
-      int_of_string(channels)
-    else
-      # Try to detect using mime test..
-      mime = get_mime(file)
-      if string.match(pattern="flac",file) then
-        # We do not know the number of audio channels
-        # so setting to -1
-        (-1)
+# Enable external FLAC decoders. Requires flac binary
+# in the path for audio decoding and metaflac binary for 
+# metadata. Does not work on Win32. Default: disabled.
+# Please note that built-in support for FLAC is available
+# in liquidsoap if compiled and should be preferred over
+# the external decoder.
+# @category Liquidsoap
+def enable_external_flac_decoder() = 
+  if test_process("which flac") then
+    log(level=3,"Found flac binary: enabling flac external decoder.")
+    flac_p = "flac -d -c - 2>/dev/null"
+    def test_flac(file) =
+      if test_process("which metaflac") then
+        channels = list.hd(get_process_lines("metaflac \
+                                              --show-channels #{quote(file)} \
+                                              2>/dev/null"))
+        # If the value is not an int, this returns 0 and we are ok :)
+        int_of_string(channels)
       else
-        # All tests failed: no audio decodable using flac..
-        0
+        # Try to detect using mime test..
+        mime = get_mime(file)
+        if string.match(pattern="flac",file) then
+          # We do not know the number of audio channels
+          # so setting to -1
+          (-1)
+        else
+          # All tests failed: no audio decodable using flac..
+          0
+        end
       end
     end
+    add_decoder(name="FLAC",description="Decode files using the flac \
+                decoder binary.", test=test_flac,flac_p)
+  else
+    log(level=3,"Did not find flac binary: flac decoder disabled.")
   end
-  add_decoder(name="FLAC",description="Decode files using the flac \
-              decoder binary.", test=test_flac,flac_p)
-else
-  log(level=3,"Did not find flac binary: flac decoder disabled.")
-end
-%endif
 
-if os.type != "Win32" then
   if test_process("which metaflac") then
    log(level=3,"Found metaflac binary: enabling flac external metadata \
                 resolver.")
@@ -55,49 +61,59 @@ if os.type != "Win32" then
          if list.length(l) >= 1 then
            list.append([(list.hd(l),"")],l')
          else
-           l'
-         end
+         l'
        end
      end
-     list.fold(f,[],ret)
+   end
+   list.fold(f,[],ret)
    end
    add_metadata_resolver("FLAC",flac_meta)
   else
-   log(level=3,"Did not find metaflac binary: flac metadata resolver disabled.")
+    log(level=3,"Did not find metaflac binary: flac metadata resolver disabled.")
   end
 end
+%endif
 
-# A list of know extensions and content-type for AAC.
-# Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding 
-# TODO: can we register a setting for that ??
-aac_mimes =
-  ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
-   "audio/MP4A-LATM", "audio/mpeg4-generic", "audio/x-hx-aac-adts"]
-aac_filexts = ["m4a", "m4b", "m4p", "m4v",
-               "m4r", "3gp", "mp4", "aac"]
+%ifdef add_oblivious_decoder
+# Enable or disable external FAAD (AAC/AAC+/M4A) decoders. 
+# Requires faad binary in the path for audio decoding and 
+# metaflac binary for metadata. Does not work on Win32.
+# Please note that built-in support for faad is available
+# in liquidsoap if compiled and should be preferred over
+# the external decoder.
+# @category Liquidsoap
+def enable_external_faad_decoder() =
 
-# Faad is not very selective so
-# We are checking only file that
-# end with a known extension or mime type
-def faad_test(file) = 
-  # Get the file's mime
-  mime = get_mime(file)
-  # Test mime
-  if list.mem(mime,aac_mimes) then
-    true
-  else
-    # Otherwise test file extension
-    ret = string.extract(pattern='\.(.+)$',file)
+  # A list of know extensions and content-type for AAC.
+  # Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding 
+  # TODO: can we register a setting for that ??
+  aac_mimes =
+    ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
+     "audio/MP4A-LATM", "audio/mpeg4-generic", "audio/x-hx-aac-adts"]
+  aac_filexts = ["m4a", "m4b", "m4p", "m4v",
+                 "m4r", "3gp", "mp4", "aac"]
+
+  # Faad is not very selective so
+  # We are checking only file that
+  # end with a known extension or mime type
+  def faad_test(file) = 
+    # Get the file's mime
+    mime = get_mime(file)
+    # Test mime
+    if list.mem(mime,aac_mimes) then
+      true
+    else
+      # Otherwise test file extension
+      ret = string.extract(pattern='\.(.+)$',file)
       if list.length(ret) != 0 then
-        ext = ret["1"]
-        list.mem(ext,aac_filexts)
-      else
-        false
-      end
+         ext = ret["1"]
+         list.mem(ext,aac_filexts)
+       else
+         false
+       end
+    end
   end
-end
 
-if os.type != "Win32" then
   if test_process("which faad") then
     log(level=3,"Found faad binary: enabling external faad decoder and \
                  metadata resolver.")
@@ -120,15 +136,13 @@ if os.type != "Win32" then
         0
       end
     end
-%ifdef add_oblivious_decoder
     add_oblivious_decoder(name="FAAD",description="Decode files using \
                           the faad binary.", test=test_faad, faad_p)
-%endif
     def faad_meta(file) =
       if faad_test(file) then
         ret = get_process_lines("faad -i \
                      #{quote(file)} 2>&1")
-        # Yea, this is tuff programming (again) !
+        # Yea, this is ugly programming (again) !
         def get_meta(l,s)=
           ret = string.extract(pattern="^(\w+):\s(.+)$",s)
           if list.length(ret) > 0 then
@@ -147,6 +161,7 @@ if os.type != "Win32" then
     log(level=3,"Did not find faad binary: faad decoder disabled.")
   end
 end
+%endif
 
 # Standard function for displaying metadata.
 # Shows artist and title, using "Unknown" when a field is empty.
@@ -189,3 +204,22 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
        ^ ' -t #{time} #{quote(title)} '
   on_metadata(fun (m) -> system(send^quote(display(m))),s)
 end
+
+%ifdef input.external
+# Stream data from mplayer
+# @category Source / Input
+# @param s data URI.
+# @param ~restart restart on exit.
+# @param ~restart_on_error restart on exit with error.
+# @param ~buffer Duration of the pre-buffered data.
+# @param ~max Maximum duration of the buffered data.
+def input.mplayer(~id="input.mplayer",
+         ~restart=true,~restart_on_error=false,
+         ~buffer=0.2,~max=10.,s) =
+  input.external(id=id,restart=restart,
+                 restart_on_error=restart_on_error,
+                 buffer=buffer,max=max,
+                 "mplayer -really-quiet -ao pcm:file=/dev/stdout \
+                    -vc null -vo null #{quote(s)} 2>/dev/null")
+end
+%endif
