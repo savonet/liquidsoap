@@ -408,8 +408,10 @@ object (self)
           (fun (_,_,name,_) ->
                  Server.remove ~ns name)
           commands ;
-        if ns <> [] then
+        if ns <> [] then begin
           Server.unregister ns ;
+          ns <- []
+        end
       end
 
   (** Two methods called for initialization and shutdown of the source *)
