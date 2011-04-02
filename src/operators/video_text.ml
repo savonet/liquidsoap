@@ -49,7 +49,7 @@ object (self)
   val mutable cur_text = text ()
 
   method private render_text text =
-    let font = Utils.get_some font in
+    let font = self#get_font in
     let text = if text = "" then " " else text in
     let ts =
       Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white
@@ -72,25 +72,37 @@ object (self)
       done;
       text_frame <- Some tf
 
-  initializer
-    let f =
-      try
-        Sdlttf.open_font (Lang.to_string ttf) ttf_size
-      with
-        | Sdlttf.SDLttf_exception s ->
-            raise (Lang.Invalid_value (ttf, s))
-        | e ->
-            raise (Lang.Invalid_value (ttf, Utils.error_message e))
-    in
-      font <- Some f;
-      self#render_text cur_text
+  method get_font = 
+    match font with
+      | Some f -> f
+      | None ->
+         let f = 
+           try 
+             Sdlttf.open_font (Lang.to_string ttf) 
+                              ttf_size
+           with
+             | Sdlttf.SDLttf_exception s ->
+                 raise (Lang.Invalid_value (ttf, s))
+             | e ->
+                 raise (Lang.Invalid_value 
+                          (ttf, Utils.error_message e))
+         in
+         font <- Some f;
+         f
+
+  method get_text_frame =
+    match text_frame with
+      | Some tf -> tf
+      | None -> 
+         self#render_text cur_text;
+         Utils.get_some text_frame
 
   method private get_frame ab =
     match VFrame.get_content ab source with
       | None -> ()
       | Some (rgb,off,len) ->
           let rgb = rgb.(0) in
-          let tf = Utils.get_some text_frame in
+          let tf = self#get_text_frame in
           let tfw = Img.width tf in
           let text =
             match meta with
@@ -175,4 +187,5 @@ let () =
        in
        let speed = speed / (Lazy.force Frame.video_rate) in
        let meta = if meta = "" then None else Some meta in
-         new text ~kind ttf ttf_size color x y speed cycle meta txt source)
+         ((new text ~kind ttf ttf_size color x y speed 
+                    cycle meta txt source):>Source.source))
