@@ -53,7 +53,7 @@ object(self)
 
 end
 
-class on_blank ~kind ~length ~threshold ~on_blank ~on_noise source =
+class on_blank ~kind ~length ~threshold ~ignore_tracks ~on_blank ~on_noise source =
 object (self)
   inherit operator kind [source]
   inherit base ~length ~threshold as base
@@ -72,7 +72,7 @@ object (self)
   method private get_frame ab =
     let p0 = AFrame.position ab in
       source#get ab ;
-      if AFrame.is_partial ab || p0 > 0 then blank_len <- 0 else begin
+      if (not ignore_tracks) && (AFrame.is_partial ab || p0 > 0) then blank_len <- 0 else begin
         self#check_blank ab p0 ;
         if blank_len <= length then begin
           if in_blank then begin
@@ -122,7 +122,7 @@ object (self)
 
   val mutable stripping = false
 
-  initializer 
+  initializer
     ns_kind <- "strip_blank" ;
     let status _ = string_of_bool stripping in
     self#register_command
@@ -239,13 +239,17 @@ let () =
      ("on_noise",Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
       Some "Handler called when noise is detected.")::
+     ("ignore_tracks",Lang.bool_t,
+      Some (Lang.bool false),
+      Some "Don't reset blank counter at each track.")::
      proto)
     (fun p kind ->
        let on_blank = Lang.assoc "" 1 p in
        let on_noise = Lang.assoc "on_noise" 1 p in
+       let ignore_tracks = Lang.to_bool (Lang.assoc "ignore_tracks" 1 p) in
        let p = List.remove_assoc "" p in
        let length,threshold,s = extract p in
-         new on_blank ~kind ~length ~threshold ~on_blank ~on_noise s) ;
+         new on_blank ~kind ~length ~threshold ~ignore_tracks ~on_blank ~on_noise s) ;
   Lang.add_operator "skip_blank"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
