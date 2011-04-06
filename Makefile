@@ -1,8 +1,9 @@
 
-SUBDIRS= src examples doc gui scripts m4
+SUBDIRS= src examples doc gui scripts
 DISTFILES = CHANGES COPYING INSTALL README \
 	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh
+DISTDIRS = m4
 
 top_srcdir=.
 include $(top_srcdir)/Makefile.rules

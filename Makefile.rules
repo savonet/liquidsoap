@@ -155,7 +155,7 @@ ifdef DISTFILES
 	cp $(DISTFILES) $(DDIR)
 endif
 ifdef DISTDIRS
-	cp -rf $(DISTDIRS) $(DDIR)
+	cp -rfL $(DISTDIRS) $(DDIR)
 endif
 	find $(DDIR) -name .svn | while read i; do rm -rf "$$i"; done
 

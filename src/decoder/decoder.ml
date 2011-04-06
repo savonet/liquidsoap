@@ -186,7 +186,7 @@ let test_file ?(log=log) ~mimes ~extensions fname =
     in
     let mime_ok,mime =
       match Configure.file_mime with
-        | None -> false, None
+        | None -> true, None
         | Some mime_type ->
             let mime = mime_type fname in
               List.mem mime mimes, Some mime

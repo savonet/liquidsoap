@@ -493,9 +493,11 @@ let () =
     (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
      * for this: we want Unix EPIPE error and not SIGPIPE, which
      * crashes the program.. *)
-    Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
     if Sys.os_type <> "Win32" then
-      ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]);
+     begin
+      Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+      ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe])
+     end;
     (* On Windows we need to initiate shutdown ourselves by catching INT
      * since dtools doesn't do it. *)
     if Sys.os_type = "Win32" then

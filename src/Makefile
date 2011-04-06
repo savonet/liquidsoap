@@ -61,7 +61,8 @@ playlists = \
 	playlists/playlist_basic.ml $(if $(W_XMLPLAYLIST),playlists/playlist_xml.ml)
 
 protocols = \
-	protocols/say.ml protocols/annotate.ml \
+	$(if ($(OS_TYPE):Win32=),protocols/say.ml) \
+	protocols/annotate.ml \
 	protocols/mpd.ml \
 	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml) \
 	$(if $(W_LASTFM),protocols/lastfm_req.ml)

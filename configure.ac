@@ -138,53 +138,7 @@ fi
 #
 ###############################################################################
 
-AC_PATH_PROG(OCAMLDEP,ocamldep,no)
-if test "$OCAMLDEP" = no ; then
-	AC_MSG_ERROR(Cannot find ocamldep.)
-fi
-
-AC_PATH_PROG(OCAMLFIND,ocamlfind,no)
-if test "$OCAMLFIND" = no ; then
-	AC_MSG_ERROR(Cannot find ocamlfind.)
-fi
-
-AC_PATH_PROG(OCAMLLEX,ocamllex,no)
-if test "$OCAMLLEX" = no ; then
-	AC_MSG_ERROR(Cannot find ocamllex.)
-fi
-
-AC_PATH_PROG(OCAMLYACC,ocamlyacc,no)
-if test "$OCAMLYACC" = no ; then
-	AC_MSG_ERROR(Cannot find ocamlyacc.)
-fi
-
-AC_ARG_ENABLE([profiling],
-   AC_HELP_STRING(
-      [--enable-profiling],
-      [compile to generate profiling infomation]))
-
-AC_ARG_ENABLE([debugging],
-   AC_HELP_STRING(
-      [--enable-debugging],
-      [compile with debugging information (backtrace printing in particular)]))
-
-AC_ARG_ENABLE([nativecode],
-   AC_HELP_STRING(
-      [--disable-nativecode],
-      [compile in bytecode]))
-
-AC_ARG_ENABLE([custom],
-   AC_HELP_STRING(
-      [--disable-custom],
-      [disable custom mode for bytecode compilation (use if you know what you are doing)]))
-
-AC_PATH_PROG(OCAMLOPT,ocamlopt,no)
-if test "$OCAMLOPT" = no ; then
-    enable_nativecode=no
-fi
-
-# check for camlp4o
-AC_PATH_PROG([CAMLP4O],[camlp4o],[])
+AC_CHECK_OCAML_COMPILERS()
 
 # Check for OS
 OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
@@ -360,13 +314,13 @@ AC_CHECK_OCAML_BINDING([dtools],[],[],[1])
 AC_CHECK_OCAML_BINDING([duppy],[0.4.0],[],[1])
 # Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
-  if test -n "${CAMLP4O}" ; then
+  if test "${CAMLP4O}" != "no" ; then
     with_duppy_syntax_dir=${with_duppy_dir}
   fi
 fi
 AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.0],[],[],[],[ ])
 if test -n "${w_DUPPY_SYNTAX}"; then
-  if test -n "${CAMLP4O}"; then
+  if test "${CAMLP4O}" != "no"; then
     CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
   fi
 fi
@@ -757,15 +711,8 @@ cat >> src/configure.ml <<__BLAH__
 let libs_versions = "$LIBS_VERSIONS"
 __BLAH__
 
-AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLCOMP)
 AC_SUBST(NO_CUSTOM)
-AC_SUBST(OCAMLMKLIB)
-AC_SUBST(OCAMLDEP)
-AC_SUBST(OCAMLLEX)
-AC_SUBST(OCAMLYACC)
-AC_SUBST(OCAMLFIND)
-AC_SUBST(CAMLP4O)
 AC_SUBST(_DEP_OPTS)
 AC_SUBST(ocamlcflags)
 AC_SUBST(ocamllflags)
@@ -794,7 +741,7 @@ if test "$BYTE" = "yes"; then
   fi
 fi
 
-if test -n "$CAMLP4O"; then
+if test "$CAMLP4O" != "no"; then
     CAMLP4O_COMP="CAMLP4O        : $CAMLP4O
 "
 fi
