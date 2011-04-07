@@ -186,7 +186,9 @@ let test_file ?(log=log) ~mimes ~extensions fname =
     in
     let mime_ok,mime =
       match Configure.file_mime with
-        | None -> true, None
+        (* If no mime detection is available
+         * set the same result as file extension.. *)
+        | None -> ext_ok, None
         | Some mime_type ->
             let mime = mime_type fname in
               List.mem mime mimes, Some mime
@@ -194,7 +196,7 @@ let test_file ?(log=log) ~mimes ~extensions fname =
       if ext_ok || mime_ok then
         true
       else begin
-        if not mime_ok then
+        if not mime_ok && mime <> None then
           log#f 4 "Invalid MIME type for %S: %s!" fname (Utils.get_some mime) ;
         if not ext_ok then
           log#f 4 "Invalid file extension for %S!" fname ;
