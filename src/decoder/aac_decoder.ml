@@ -58,27 +58,30 @@ let log = Log.make ["decoder";"aac"]
 
 module Make (Generator:Generator.S_Asio) =
 struct
-
 let create_decoder input =
   let resampler = Rutils.create_audio () in
   let dec = Faad.create () in
-  let aacbuflen = 1024 in
-  let (aacbuf,len) = input aacbuflen in
+  (* 1024 bytes seems usually enough to 
+   * initiate the decoder.. *)
+  let (aacbuf,len) = input 1024 in
   let offset, sample_freq, chans =
      Faad.init dec aacbuf 0 len 
   in
+  let aacbuflen = Faad.min_bytes_per_channel * chans in
   let input,drop = buffered_input input aacbuf offset (len-offset) in
     Decoder.Decoder (fun gen ->
         let aacbuf,len = input aacbuflen in
-        let pos,data = Faad.decode dec aacbuf 0 len in
-        drop pos ;
-        let content,length =
-          resampler ~audio_src_rate:(float sample_freq) data
-        in
-          (* TODO assert (Array.length content.(0) = length) ? *)
-          Generator.set_mode gen `Audio ;
-          Generator.put_audio gen content 0 (Array.length content.(0)))
-
+        if len = aacbuflen then
+         begin
+          let pos,data = Faad.decode dec aacbuf 0 len in
+          drop pos ;
+          let content,length =
+            resampler ~audio_src_rate:(float sample_freq) data
+          in
+            (* TODO assert (Array.length content.(0) = length) ? *)
+            Generator.set_mode gen `Audio ;
+            Generator.put_audio gen content 0 (Array.length content.(0))
+         end)
 end
 
 module G = Generator.From_audio_video
