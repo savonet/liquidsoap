@@ -5,9 +5,17 @@ exception Error of error
 
 let string_of_error e = 
   match e with
-    | Socket -> "error while communicating to socket"
-    | Response -> "invalid answer to request"
-    | UrlDecoding -> "URL decoding failed"
+    | Socket -> "Http: error while communicating to socket"
+    | Response -> "Http: invalid answer to request"
+    | UrlDecoding -> "Http: URL decoding failed"
+
+(** Error translator *)
+let error_translator e =
+   match e with
+     | Error e -> raise (Utils.Translation (string_of_error e))
+     | _ -> ()
+
+let () = Utils.register_error_translator error_translator
 
 let raise e = raise (Error e)
 

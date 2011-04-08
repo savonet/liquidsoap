@@ -81,6 +81,12 @@ let buffer_drop buffer len =
       Buffer.reset buffer ;
       Buffer.add_string buffer tmp
 
+(* Exception translation and backtrace printing.
+ * We provide first a default implementation
+ * and override it with Printexc's implementation
+ * if present.. *)
+
+(* Exception translation *)
 exception Translation of string
 
 let error_translators = Queue.create ()
@@ -97,12 +103,47 @@ let unix_translator =
 
 let () = register_error_translator unix_translator
 
-let error_message e =
+let exception_printer e =
  try
    Queue.iter (fun f -> f e) error_translators ;
-   Printexc.to_string e
+   None
  with
-   | Translation x -> x
+   | Translation x -> Some x
+
+let register_printer _ = 
+    raise Not_found
+
+(* Exception backtrace printing.
+ * This is used in Threads where 
+ * the backtrace seems to be lost
+ * otherwise. *)
+
+(* Default implementation when Printexc does
+ * not implement it. *)
+let get_backtrace () = 
+  "Liquidsoap not compiled with ocaml >= 3.11, \
+   cannot print stack backtrace"
+
+(* Open Printexc, which overrides register_printer 
+ * and get_backtrace. *)
+open Printexc
+
+let get_backtrace = get_backtrace
+
+let printexc_has_register = 
+  try
+    register_printer exception_printer ;
+    true
+  with
+    | Not_found -> false
+
+let error_message e = 
+  if printexc_has_register then
+    Printexc.to_string e
+  else
+    match exception_printer e with
+      | Some s -> s
+      | None   -> Printexc.to_string e
 
 (** Perfect Fisher-Yates shuffle
   * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)

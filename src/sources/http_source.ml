@@ -23,6 +23,15 @@
 exception Internal
 exception Read_error
 
+(** Error translator *)
+let error_translator e =
+   match e with
+     | Internal -> raise (Utils.Translation "Internal http error.")
+     | Read_error -> raise (Utils.Translation "Error while reading http stream.")
+     | _ -> ()
+
+let () = Utils.register_error_translator error_translator
+
 (** Types for playlist handling *)
 type playlist_mode =  Random | First | Randomize | Normal
 

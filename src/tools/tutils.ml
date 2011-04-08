@@ -154,6 +154,11 @@ let create ~wait f x s =
                      log#f 1 "Thread %S aborts with exception %s!"
                               s (Utils.error_message e)
                end ;
+               if e <> Exit then
+                begin
+                 let l = Pcre.split ~pat:"\n" (Utils.get_backtrace ()) in
+                 List.iter (log#f 3 "%s") l 
+                end ;
                if wait then all := Set.remove (s,(Thread.self ())) !all ;
                uncaught := Some e ;
                Condition.signal no_problem ;
