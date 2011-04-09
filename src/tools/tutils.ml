@@ -145,6 +145,7 @@ let create ~wait f x s =
                  log#f 3 "Thread %S terminated." s
              with e ->
                Mutex.lock lock ;
+               let backtrace = Utils.get_backtrace () in
                begin match e with
                  | Exit ->
                      log#f 3 "Thread %S exited." s
@@ -156,7 +157,7 @@ let create ~wait f x s =
                end ;
                if e <> Exit then
                 begin
-                 let l = Pcre.split ~pat:"\n" (Utils.get_backtrace ()) in
+                 let l = Pcre.split ~pat:"\n" backtrace in
                  List.iter (log#f 3 "%s") l 
                 end ;
                if wait then all := Set.remove (s,(Thread.self ())) !all ;
