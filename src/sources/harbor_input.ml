@@ -25,6 +25,17 @@ open Unix
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
+exception Disconnected
+
+(** Error translator *)
+let error_translator e =
+   match e with
+     | Disconnected ->
+       raise (Utils.Translation "Source client disconnected")
+     | _ -> ()
+
+let () = Utils.register_error_translator error_translator
+
 (* {1 Input handling} *)
 
 class http_input_server ~kind ~dumpfile ~logfile
@@ -47,6 +58,15 @@ object (self)
   val mutable relay_socket = None
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
+
+  (** [kill_polling] is for requesting that the feeding thread stops;
+    * it is called on #disconnect. *)
+  val mutable kill_polling = None
+
+  (** [wait_polling] is to make sure that the thread did stop;
+    * it is only called in #relay before creating a new thread,
+    * so that #disconnect is instantaneous. *)
+  val mutable wait_polling = None
 
   val mutable dump = None
   val mutable logf = None
@@ -98,20 +118,22 @@ object (self)
 
   method get_mime_type = mime_type
 
-  method feed socket =
+  method feed socket (should_stop,has_stopped) =
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
       let buf = String.make len ' ' in
       let () =
         let rec wait n =
+          if should_stop () then
+            raise Disconnected ;
           let l,_,_ = Unix.select [socket] [] [] 1. in
             if l=[] then begin
               self#log#f 4 "No network activity for %d second(s)." n ;
               if float n >= Harbor.conf_timeout#get then
                begin
                 self#log#f 4 "Network activity timeout! Disconnecting source." ;
-                self#disconnect
+                raise Disconnected ;
                end
               else
                wait (n+1)
@@ -135,6 +157,8 @@ object (self)
       try
         let Decoder.Decoder decoder = create_decoder read in
         while true do
+          if should_stop () then
+            raise Disconnected ;
           if relay_socket = None then failwith "relaying stopped" ;
           decoder generator
         done
@@ -143,8 +167,14 @@ object (self)
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
-            if debug then raise e ;
-            self#disconnect
+            (* exception Disconnected is raised when
+             * the thread is being killed, which only
+             * happends in self#disconnect. No need to
+             * call it then.. *)
+            if e <> Disconnected then
+              self#disconnect ;
+            has_stopped () ;
+            if debug then raise e 
 
   method private wake_up _ =
      begin
@@ -196,9 +226,21 @@ object (self)
           end
       | None -> ()
     end ;
-    ignore (Tutils.create
-              (fun () -> self#feed socket) ()
-              "harbor source feeding")
+    (* Wait for the old feeding thread to return, then create a new one. *)
+    assert (kill_polling = None) ;
+    begin match wait_polling with
+      | None -> ()
+      | Some f -> f () ; wait_polling <- None
+    end ;
+    begin
+      let kill,wait = 
+         Tutils.stoppable_thread 
+              (self#feed socket) 
+              "harbor source feeding" 
+      in
+        kill_polling <- Some kill ;
+        wait_polling <- Some wait
+    end
 
   method disconnect =
     match relay_socket with
@@ -216,6 +258,8 @@ object (self)
            Unix.close s
           with _ -> ()
          end;
+         (Utils.get_some kill_polling) () ;
+         kill_polling <- None ;
          relay_socket <- None
       | None ->
          (** TODO #disconnect might be called when relay_socket is None,
