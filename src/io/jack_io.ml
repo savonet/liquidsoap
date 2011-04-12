@@ -337,8 +337,7 @@ let rec get_default_ports name n =
     (get_default_ports name (n-1))
 
 let get_default_ports name =
-  Lang.list Lang.string_t
-    (List.rev (get_default_ports name (Lazy.force Frame.audio_channels)))
+  (List.rev (get_default_ports name (Lazy.force Frame.audio_channels)))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
@@ -351,11 +350,17 @@ let () =
       "clock_safe",
         Lang.bool_t, Some (Lang.bool true),
         Some "Force the use of the dedicated Jack clock" ;
-      "ports", Lang.list_t Lang.string_t, Some (get_default_ports "input"),
+      "ports", Lang.list_t Lang.string_t, Some (Lang.list Lang.string_t []),
         Some "Port names." ;
     ]
     (fun p kind ->
        let ports = Lang.to_list (List.assoc "ports" p) in
+       let ports =
+         if ports = [] then
+           get_default_ports "input"
+         else
+           ports
+       in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
        let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
@@ -373,12 +378,18 @@ let () =
       "clock_safe",
         Lang.bool_t, Some (Lang.bool true),
         Some "Force the use of the dedicated Jack clock" ;
-      "ports", Lang.list_t Lang.string_t, Some (get_default_ports "output"),
+      "ports", Lang.list_t Lang.string_t, Some (Lang.list Lang.string_t []),
         Some "Port names." ;
       "", Lang.source_t k, None, None
     ]
     (fun p kind ->
        let ports = Lang.to_list (List.assoc "ports" p) in
+       let ports =
+         if ports = [] then
+           get_default_ports "input"
+         else
+           ports
+       in
        let ports = List.map Lang.to_string ports in
        let ports = Array.of_list ports in
        let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
