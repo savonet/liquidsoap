@@ -56,13 +56,11 @@ class virtual source ~kind =
 object(self)
   inherit Source.source kind
 
-  method virtual relay : (string*string) list -> Unix.file_descr -> unit
+  method virtual relay : string -> (string*string) list -> Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string*(string -> string -> bool))
-  method virtual is_taken : bool
   method virtual icy_charset : string option
   method virtual meta_charset : string option
-  method virtual register_decoder : string -> unit
   method virtual get_mime_type : string option
 
 end
@@ -306,11 +304,8 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                       -> "audio/mpeg"
           | Not_found -> raise Unknown_codec
        in
-       if s#is_taken then
-         raise Mount_taken ;
-       s#register_decoder stype ;
+       s#relay stype headers h.Duppy.Monad.Io.socket ;
        log#f 4 "Adding source on mountpoint %S with type %S." uri stype ;
-       s#relay headers h.Duppy.Monad.Io.socket ;
        relayed "HTTP/1.0 200 OK\r\n\r\n"
     with
       | Mount_taken ->
