@@ -31,6 +31,22 @@ let flac_mime = "audio/x-flac"
 
 type icecast_protocol = Http | Icy
 
+let base_proto kind = 
+    [("protocol", Lang.string_t, (Some (Lang.string "http")),
+      Some "Protocol of the streaming server: \
+           'http' for Icecast, 'icy' for shoutcast.") ;
+      "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
+      Some "Send new metadata using the ICY protocol. \
+            One of: \"guess\", \"true\", \"false\"";
+     "encoding", Lang.string_t, Some (Lang.string ""),
+      Some "Encoding used to send metadata. If empty, defaults to UTF-8 \
+            for \"http\" protocol and ISO-8859-1 for \"icy\" \ 
+            protocol." ;
+     ("format", Lang.string_t, Some (Lang.string ""),
+      Some "Format, e.g. \"audio/ogg\". \
+      When empty, the encoder is used to guess.") ;
+      "", Lang.format_t kind, None, Some "Encoding format."]
+
 module type Icecast_t =
 sig
   type protocol

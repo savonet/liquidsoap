@@ -368,11 +368,19 @@ exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
 
 let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
+   let compare (x,_,_,_) (y,_,_,_) =
+     match x,y with
+       | "","" -> 0
+       | _,"" -> -1
+       | "",_ -> 1
+       | x,y -> compare x y
+  in
   let proto =
     let t = T.make (T.Ground T.String) in
       ("id", t,
        Some { t = t ; value = String "" },
-       Some "Force the value of the source ID.")::proto
+       Some "Force the value of the source ID.")::
+       (List.stable_sort compare proto)
   in
   let f env t =
     let kind_t = Term.of_source_t t in
