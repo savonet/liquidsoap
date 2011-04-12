@@ -53,7 +53,7 @@ object(self)
 
 end
 
-class on_blank ~kind ~length ~threshold ~ignore_tracks ~on_blank ~on_noise source =
+class on_blank ~kind ~length ~threshold ~track_sensitive ~on_blank ~on_noise source =
 object (self)
   inherit operator kind [source]
   inherit base ~length ~threshold as base
@@ -72,7 +72,7 @@ object (self)
   method private get_frame ab =
     let p0 = AFrame.position ab in
       source#get ab ;
-      if (not ignore_tracks) && (AFrame.is_partial ab || p0 > 0) then blank_len <- 0 else begin
+      if track_sensitive && (AFrame.is_partial ab || p0 > 0) then blank_len <- 0 else begin
         self#check_blank ab p0 ;
         if blank_len <= length then begin
           if in_blank then begin
@@ -89,7 +89,7 @@ end
 
 let log = Dtools.Log.make ["noblank"]
 
-class skip ~kind ~length ~threshold source =
+class skip ~kind ~length ~threshold ~track_sensitive source =
 object (self)
   inherit operator kind [source]
   inherit base ~length ~threshold as base
@@ -106,7 +106,7 @@ object (self)
   method private get_frame ab =
     let p0 = AFrame.position ab in
       source#get ab ;
-      if AFrame.is_partial ab || p0 > 0 then blank_len <- 0 else begin
+      if track_sensitive && (AFrame.is_partial ab || p0 > 0) then blank_len <- 0 else begin
         self#check_blank ab p0 ;
         if blank_len > length then begin
           source#abort_track ;
@@ -115,7 +115,7 @@ object (self)
       end
 end
 
-class strip ~kind ~length ~threshold source =
+class strip ~kind ~length ~threshold ~track_sensitive source =
 object (self)
   inherit active_operator kind [source]
   inherit base ~length ~threshold as base
@@ -142,7 +142,7 @@ object (self)
     let p0 = AFrame.position ab in
     let b0 = AFrame.breaks ab in
       source#get ab ;
-      if AFrame.is_partial ab || p0 > 0 then begin
+      if track_sensitive && (AFrame.is_partial ab || p0 > 0) then begin
         blank_len <- 0 ;
         stripping <- false
       end else begin
@@ -161,7 +161,7 @@ object (self)
   method is_active = true
 end
 
-class eat ~kind ~at_beginning ~length ~threshold source =
+class eat ~kind ~at_beginning ~length ~threshold ~track_sensitive source =
 object (self)
   inherit operator kind [source] as super
   inherit base ~length ~threshold as base
@@ -190,7 +190,7 @@ object (self)
         first := false;
         let p0 = AFrame.position ab in
           source#get ab ;
-          if AFrame.is_partial ab then
+          if track_sensitive && AFrame.is_partial ab then
             (
               blank_len <- 0 ;
               stripping <- false ;
@@ -211,6 +211,8 @@ let proto =
     Some "Power in decibels under which the stream is considered silent." ;
     "length", Lang.float_t, Some (Lang.float 20.),
     Some "Maximum silence length allowed, in seconds." ;
+    "track_sensitive", Lang.bool_t, Some (Lang.bool true),
+    Some "Reset blank counter at each track.";
     "", Lang.source_t kind, None, None ]
 
 let extract p =
@@ -227,7 +229,8 @@ let extract p =
         raise (Lang.Invalid_value (v,"threshold should be negative")) ;
       Audio.lin_of_dB t
   in
-    length,threshold,s
+  let ts = Lang.to_bool (f "track_sensitive") in
+  length,threshold,ts,s
 
 let () =
   Lang.add_operator "on_blank"
@@ -239,33 +242,29 @@ let () =
      ("on_noise",Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
       Some "Handler called when noise is detected.")::
-     ("ignore_tracks",Lang.bool_t,
-      Some (Lang.bool false),
-      Some "Don't reset blank counter at each track.")::
      proto)
     (fun p kind ->
        let on_blank = Lang.assoc "" 1 p in
        let on_noise = Lang.assoc "on_noise" 1 p in
-       let ignore_tracks = Lang.to_bool (Lang.assoc "ignore_tracks" 1 p) in
        let p = List.remove_assoc "" p in
-       let length,threshold,s = extract p in
-         new on_blank ~kind ~length ~threshold ~ignore_tracks ~on_blank ~on_noise s) ;
+       let length,threshold,track_sensitive,s = extract p in
+         new on_blank ~kind ~length ~threshold ~track_sensitive ~on_blank ~on_noise s) ;
   Lang.add_operator "skip_blank"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Skip track when detecting a blank."
     proto
     (fun p kind ->
-       let length,threshold,s = extract p in
-         new skip ~kind ~length ~threshold s) ;
+       let length,threshold,track_sensitive,s = extract p in
+         new skip ~kind ~length ~threshold ~track_sensitive s) ;
   Lang.add_operator "strip_blank"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank."
     proto
     (fun p kind ->
-       let length,threshold,s = extract p in
-         ((new strip ~kind ~length ~threshold s):>source));
+       let length,threshold,track_sensitive,s = extract p in
+         ((new strip ~kind ~length ~threshold ~track_sensitive s):>source));
   Lang.add_operator "eat_blank"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
@@ -275,5 +274,5 @@ let () =
       Some "Only eat at the beginning of a track.")::proto)
     (fun p kind ->
        let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
-       let length,threshold,s = extract p in
-         new eat ~kind ~at_beginning ~length ~threshold s)
+       let length,threshold,track_sensitive,s = extract p in
+         new eat ~kind ~at_beginning ~length ~threshold ~track_sensitive s)
