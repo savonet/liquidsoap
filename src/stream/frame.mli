@@ -105,6 +105,12 @@ val string_of_content_type : content_type -> string
   * cannot be infered / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
+(* This variable prevents forcing
+ * the value of a lazy configuration
+ * value before the user gets a chance to
+ * override the default. *)
+val allow_lazy_config_eval : unit -> unit
+
 val audio_channels : int Lazy.t
 val video_channels : int Lazy.t
 val midi_channels : int Lazy.t

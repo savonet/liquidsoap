@@ -62,6 +62,8 @@ object (self)
     let tr, tg, tb = Image.RGB8.Color.of_int color in
       if dy < 0 then
         pos_y <- video_height + dy - h;
+      if dx < 0 then
+        pos_x <- video_width + dx - w;
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
@@ -138,8 +140,8 @@ let () =
       "color", Lang.int_t, Some (Lang.int 0xffffff),
       Some "Text color (in 0xRRGGBB format).";
 
-      "x", Lang.int_t, Some (Lang.int (Lazy.force Frame.video_width)),
-      Some "x offset.";
+      "x", Lang.int_t, Some (Lang.int (-1)),
+      Some "x offset (negative means from right)";
       "y", Lang.int_t, Some (Lang.int (-5)),
       Some "y offset (negative means from bottom).";
 

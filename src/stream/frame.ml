@@ -85,25 +85,37 @@ let conf_midi_channels =
  * Since Dtools doesn't allow that, below is a trick to read the settings
  * only once. Later changes will never be taken into account. *)
 
-let delayed = Lazy.lazy_from_fun
+(* This variable prevents forcing 
+ * the value of a lazy configuration
+ * value before the user gets a chance to 
+ * override the default. *)
+let lazy_config_eval = ref false
+let allow_lazy_config_eval () = lazy_config_eval := true
+
+let delayed f = Lazy.lazy_from_fun f
+let delayed_conf x =
+  delayed 
+    (fun () -> 
+      assert !lazy_config_eval ;
+      x#get)
 let (!!) = Lazy.force
 
 (** The channel numbers are only defaults, used when channel numbers
   * cannot be infered / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
-let audio_channels = delayed (fun () -> conf_audio_channels#get)
-let video_channels = delayed (fun () -> conf_video_channels#get)
-let midi_channels = delayed (fun () -> conf_midi_channels#get)
+let audio_channels = delayed_conf conf_audio_channels
+let video_channels = delayed_conf conf_video_channels
+let midi_channels = delayed_conf conf_midi_channels
 
-let video_width = delayed (fun () -> conf_video_width#get)
-let video_height = delayed (fun () -> conf_video_height#get)
+let video_width = delayed_conf conf_video_width
+let video_height = delayed_conf conf_video_height
 
-let audio_rate = delayed (fun () -> conf_audio_samplerate#get)
-let video_rate = delayed (fun () -> conf_video_samplerate#get)
+let audio_rate = delayed_conf conf_audio_samplerate
+let video_rate = delayed_conf conf_video_samplerate
 (* TODO: midi rate is assumed to be the same as audio,
  *   so we should not have two different values *)
-let midi_rate = delayed (fun () -> conf_audio_samplerate#get)
+let midi_rate = delayed_conf conf_audio_samplerate
 
 (** Greatest common divisor. *)
 let rec gcd a b =

@@ -449,6 +449,10 @@ let () =
   Init.conf_daemon_pidfile#set_d (Some true) ;
   Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid") ;
 
+  (* We only allow evaluation of
+   * lazy configuration keys now. *)
+  Frame.allow_lazy_config_eval ();
+
   (* Parse command-line, and notably load scripts. *)
   parse Shebang.argv options (fun s -> eval (`Expr_or_File s)) usage
 
