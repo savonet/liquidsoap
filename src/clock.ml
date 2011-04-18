@@ -174,11 +174,23 @@ object (self)
            | `Error s -> `Error s
            | `Woken_up (s:active_source) ->
                try s#output_get_ready ; `Started s with
-                 | e when !started = `Yes ->
+                 | e ->
                      log#f 2 "Error when starting output %s: %s!"
                        s#id (Utils.error_message e) ;
-                     s#leave (s:>source) ;
-                     `Error s)
+                     begin try
+                       s#leave (s:>source)
+                     with e ->
+                       log#f 2 "Error when leaving output %s: %s!"
+                         s#id (Utils.error_message e)
+                     end ;
+                     (* If liquidsoap has already started this 
+                      * activation is a dynamic source activation
+                      * and we return `Error s. Otherwise, we
+                      * re-raise the exception to trigger shutdown *)
+                     if !started = `Yes then
+                       `Error s
+                     else
+                       raise e)
         to_start
     in
     (* Now mark the started sources as `Active,
