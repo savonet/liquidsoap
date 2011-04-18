@@ -538,9 +538,12 @@ EOCONF
     fi
     cat >> src/configure.ml <<EOCONF
 module C = $camencoding
+
+exception Unknown_encoding of string
+
 let enc_of_name s =
   try C.of_name s with
-    | Not_found -> failwith (Printf.sprintf "Unknown encoding %S!" s)
+    | Not_found -> raise (Unknown_encoding s)
 
 let conf_tag =
   Dtools.Conf.void ~p:(conf#plug "tag") "Settings related to metadata tags"
@@ -564,27 +567,50 @@ let get_encoding () =
 
 let camolog = Dtools.Log.make [["camomile"]]
 
+exception Input_encoding of string
+exception Output_encoding of string
+
 let recode_tag ?in_enc ?out_enc s =
-  let in_enc =
-    match in_enc with
-      | Some e -> enc_of_name e
-      | None -> get_encoding ()
-  in
-  let out_enc =
-    match out_enc with
-      | Some e -> enc_of_name e
-      | None -> C.utf8
-  in
-    try C.recode_string ~in_enc ~out_enc s with e ->
-      let in_enc =
-        if in_enc == get_encoding () then
-          Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
-        else
-          C.name_of in_enc
-      in
-      camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
-        s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
-      s
+  try
+    let in_enc =
+      try
+       match in_enc with
+         | Some e -> enc_of_name e
+         | None -> get_encoding ()
+      with Unknown_encoding s -> 
+             raise (Input_encoding s)
+    in
+    let out_enc =
+      try
+       match out_enc with
+         | Some e -> enc_of_name e
+         | None -> C.utf8
+      with Unknown_encoding s ->
+             raise (Output_encoding s)
+    in
+      try C.recode_string ~in_enc ~out_enc s with e ->
+        let in_enc =
+          if in_enc == get_encoding () then
+            Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
+          else
+            C.name_of in_enc
+        in
+        camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
+          s in_enc (C.name_of out_enc) (Utils.error_message e) ;
+        s
+  with
+    | Unknown_encoding e ->
+          camolog#f 3 "Failed to convert %S: unknown encoding %s"
+              s e ; s
+    | Input_encoding e -> 
+          camolog#f 3 "Failed to convert %S: unknown input encoding %s"
+              s e ; s
+    | Output_encoding e ->        
+          camolog#f 3 "Failed to convert %S: unknown output encoding %s"
+              s e ; s
+    | e ->
+          camolog#f 3 "Failed to convert %S: unknown error %s"
+              s (Utils.error_message e) ; s
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then
