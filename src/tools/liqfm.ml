@@ -37,17 +37,13 @@ module Liq_http =
                           (Unix.error_message e) x y))
       | e -> raise (Http (Utils.error_message e))
 
+  (* This in unused for now.. *)
   let default_timeout = ref 5.
   let request ?timeout ?headers ?(port=80) 
               ~host ~url ~request () =
    let connection = 
     try
-     let timeout =
-       match timeout with
-         | Some x -> x
-         | None   -> !default_timeout
-     in
-     Http.connect ~timeout host port
+     Http.connect host port
     with e -> exc_of_exc e
    in
    try
@@ -120,9 +116,6 @@ exception Duration
 let conf_liqfm =
   Dtools.Conf.void ~p:(Configure.conf#plug "audioscrobbler")
 	    "Audioscrobbler configuration."
-let conf_timeout =
-  Dtools.Conf.float ~p:(conf_liqfm#plug "timeout") ~d:5.
-    "Default timeout for HTTP requests."
 
 let client = { client = "lsp"; version = "0.1" }
 
@@ -131,7 +124,6 @@ let init host =
  let submissions = Queue.create () in
  (* A mutex to manage thread concurrency *)
  let submit_m = Mutex.create () in
- Liq_http.default_timeout := conf_timeout#get ;
  let reason = log#f 3 "Lastfm Submission failed: %s" in
  (* Define a new task *)
  let rec do_submit () =

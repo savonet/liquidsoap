@@ -28,7 +28,7 @@ class lastfm ~kind ~autostart ~poll_delay ~track_on_meta
  let playlist_mode = Http_source.First in
  let bufferize_time = Frame.master_of_seconds bufferize in
 object (self)
-  inherit Http_source.http ~kind ~playlist_mode ~poll_delay ~timeout 
+  inherit Http_source.http ~kind ~playlist_mode ~poll_delay 
                            ~autostart ~bind_address ~bufferize 
                            ~max ~track_on_meta 
                            ~debug ~user_agent uri as http
