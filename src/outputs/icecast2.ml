@@ -446,8 +446,8 @@ object (self)
               raise e
         end ;
         self#log#f 3 "Connection setup was successful." ;
-        let sock = Cry.get_socket connection in
-        let () = Liq_sockets.set_tcp_nodelay sock true in
+        let c = Cry.get_connection_data connection in
+        let () = Liq_sockets.set_tcp_nodelay c.Cry.data_socket true in
         (* Execute on_connect hook. *)
         on_connect () ;
       with
