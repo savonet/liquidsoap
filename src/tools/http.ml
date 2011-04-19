@@ -118,16 +118,8 @@ let http_sanitize url =
 
 (** HTTP functions. *)
 
-let connect ?bind_address ?timeout host port =
+let connect ?bind_address host port =
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-  begin
-    match timeout with
-      | None -> ()
-      | Some t ->
-         (* Add some timeout *)
-         Unix.setsockopt_float socket Unix.SO_RCVTIMEO t ;
-         Unix.setsockopt_float socket Unix.SO_SNDTIMEO t 
-  end ;
   begin
     match bind_address with
       | None -> ()
@@ -144,11 +136,13 @@ let connect ?bind_address ?timeout host port =
       socket
     with
       | e ->
+          Unix.shutdown socket Unix.SHUTDOWN_ALL ;
           Unix.close socket;
           raise Socket
 
 let disconnect socket = 
   try
+   Unix.shutdown socket Unix.SHUTDOWN_ALL ;
    Unix.close socket
   with
     | _ -> ()

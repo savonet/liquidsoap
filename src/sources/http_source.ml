@@ -174,7 +174,7 @@ module Generated = Generated.Make(Generator)
 exception Redirection of string
 
 class http ~kind
-        ~playlist_mode ~poll_delay ~timeout ~track_on_meta ?(force_mime=None)
+        ~playlist_mode ~poll_delay ~track_on_meta ?(force_mime=None)
         ~bind_address ~autostart ~bufferize ~max
         ~debug ?(logfile=None)
         ~user_agent url =
@@ -315,7 +315,7 @@ object (self)
       self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
       try
         let socket =
-          Http.connect ?bind_address ~timeout host port
+          Http.connect ?bind_address host port
         in
           try
             let (_, status, status_msg), fields = Http.request socket request in
@@ -497,9 +497,6 @@ let () =
       "buffer", Lang.float_t, Some (Lang.float 2.),
       Some "Duration of the pre-buffered data." ;
 
-      "timeout", Lang.float_t, Some (Lang.float 10.),
-      Some "Timeout for http connection." ;
-
       "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
       Some "Treat new metadata as new track." ;
 
@@ -571,14 +568,13 @@ let () =
            | s  -> Some s
        in
        let bufferize = Lang.to_float (List.assoc "buffer" p) in
-       let timeout = Lang.to_float (List.assoc "timeout" p) in
        let max = Lang.to_float (List.assoc "max" p) in
        if bufferize >= max then
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
                    "Maximum buffering inferior to pre-buffered data"));
        let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
-         ((new http ~kind ~playlist_mode ~timeout ~autostart ~track_on_meta
+         ((new http ~kind ~playlist_mode ~autostart ~track_on_meta
                     ~force_mime ~bind_address ~poll_delay
                     ~bufferize ~max ~debug ~logfile ~user_agent url)
             :> Source.source))

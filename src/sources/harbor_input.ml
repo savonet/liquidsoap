@@ -302,6 +302,7 @@ object (self)
            end ;
            begin 
              try
+               Unix.shutdown s Unix.SHUTDOWN_ALL ;
                Unix.close s
              with _ -> ()
            end;

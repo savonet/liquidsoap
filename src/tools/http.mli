@@ -25,7 +25,7 @@ val http_sanitize : string -> string
 val args_split : string -> (string, string) Hashtbl.t
 
 (** Connect to an http server given an host and a port. *)
-val connect : ?bind_address:string -> ?timeout:float -> string -> int -> connection
+val connect : ?bind_address:string -> string -> int -> connection
 
 (** Disconnect from an http server. *)
 val disconnect : connection -> unit

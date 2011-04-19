@@ -651,6 +651,7 @@ let open_port ~icy port =
            let reply r =
                let close () =
                  try
+                   Unix.shutdown socket Unix.SHUTDOWN_ALL ;
                    Unix.close socket
                  with
                    | _ -> ()

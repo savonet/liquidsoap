@@ -148,6 +148,7 @@ object (self)
               (* Closing the socket is slightly overkill but
                * we need to recreate the decoder anyway, which
                * might loose some data too. *)
+              Unix.shutdown socket Unix.SHUTDOWN_ALL ;
               Unix.close socket ;
               begin match e with
                 | Failure s ->

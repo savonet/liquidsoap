@@ -470,6 +470,7 @@ object (self)
     end ;
     let close () =
       try
+        Unix.shutdown s Unix.SHUTDOWN_ALL ;
         Unix.close s
       with
         | _ -> ()
