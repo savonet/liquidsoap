@@ -627,7 +627,11 @@ let open_port ~icy port =
                   on_error = on_error;
                 } in
               let reply r =
-                let close () = try Unix.close socket with | _ -> () in
+                let close () =
+                  try
+                    (Unix.shutdown socket Unix.SHUTDOWN_ALL;
+                     Unix.close socket)
+                  with | _ -> () in
                 let (s, exec) =
                   match r with
                   | Reply s -> (s, (fun () -> ()))

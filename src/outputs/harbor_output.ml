@@ -611,8 +611,12 @@ class output ~kind p =
                                                                    let close 
                                                                     () =
                                                                     try
+                                                                    (Unix.
+                                                                    shutdown
+                                                                    s Unix.
+                                                                    SHUTDOWN_ALL;
                                                                     Unix.
-                                                                    close s
+                                                                    close s)
                                                                     with
                                                                     | 
                                                                     _ -> () in

@@ -327,7 +327,7 @@ let start_socket () =
     ignore (Dtools.Init.at_stop
               (fun () ->
                  log#f 3 "Closing %s" socket_name ;
-                 Unix.shutdown socket Unix.SHUTDOWN_ALL ;
+                 Unix.shutdown sock Unix.SHUTDOWN_ALL ;
                  Unix.close sock ;
                  Unix.unlink socket_path)) ;
     chmod socket_path rights ;

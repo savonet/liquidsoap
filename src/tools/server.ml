@@ -246,7 +246,9 @@ let handle_client socket =
                           Duppy.Monad.Io.write ~priority: Tutils.Non_blocking
                             h "\r\nEND\r\n"))
                     (fun () -> Duppy.Monad.return ()))) in
-  let close () = try Unix.close socket with | _ -> () in
+  let close () =
+    try (Unix.shutdown socket Unix.SHUTDOWN_ALL; Unix.close socket)
+    with | _ -> () in
   let rec run () =
     let raise () =
       let on_error e = (on_error e; close ())
@@ -296,6 +298,7 @@ let start_socket () =
        (Dtools.Init.at_stop
           (fun () ->
              (log#f 3 "Closing %s" socket_name;
+              Unix.shutdown sock Unix.SHUTDOWN_ALL;
               Unix.close sock;
               Unix.unlink socket_path)));
      chmod socket_path rights;
