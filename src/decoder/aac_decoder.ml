@@ -84,6 +84,16 @@ let create_decoder input =
          end)
 end
 
+let aac_mime_types =
+  Conf.list ~p:(Decoder.conf_mime_types#plug "aac")
+    "Mime-types used for guessing AAC format"
+    ~d:["audio/aac"; "audio/aacp"; "audio/x-hx-aac-adts"]
+
+let aac_file_extensions =
+  Conf.list ~p:(Decoder.conf_file_extensions#plug "aac")
+    "File extensions used for guessing AAC format"
+    ~d:["aac"]
+
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
 module Aac = Make(G)
@@ -113,7 +123,7 @@ let get_type filename =
 
 let () =
   Decoder.file_decoders#register
-  "AAC/LIBFAAD"
+  "AAC"
   ~sdoc:"Use libfaad to decode AAC if MIME type or file extension \
          is appropriate."
   (fun ~metadata filename kind ->
@@ -123,7 +133,9 @@ let () =
   if kind.Frame.audio = Frame.Zero ||
      not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
           Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
-     not (Decoder.test_aac ~log filename)
+     not (Decoder.test_file ~mimes:aac_mime_types#get
+                            ~extensions:aac_file_extensions#get
+                            ~log filename)
   then
     None
   else
@@ -139,11 +151,11 @@ module D_stream = Make(Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register
-    "AAC/LIBFAAD"
+    "AAC"
     ~sdoc:"Use libfaad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime Decoder.aac_mime_types#get &&
+          if List.mem mime aac_mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
@@ -245,9 +257,20 @@ let get_type filename =
              video = 0 ;
              midi  = 0 })
 
+let mp4_mime_types =
+  Conf.list ~p:(Decoder.conf_mime_types#plug "mp4")
+    "Mime-types used for guessing MP4 format"
+    ~d:["audio/mp4"; "application/mp4"]
+
+let mp4_file_extensions =
+  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp4")
+    "File extensions used for guessing MP4 format"
+    ~d:["m4a"; "m4b"; "m4p"; "m4v";
+        "m4r"; "3gp"; "mp4"]
+
 let () =
   Decoder.file_decoders#register
-  "MP4/libfaad"
+  "MP4"
   ~sdoc:"Use libfaad to decode MP4 if MIME type or file extension \
          is appropriate."
   (fun ~metadata filename kind ->
@@ -257,7 +280,9 @@ let () =
   if kind.Frame.audio = Frame.Zero ||
      not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
           Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
-     not (Decoder.test_mp4 ~log filename)
+     not (Decoder.test_file ~mimes:mp4_mime_types#get
+                            ~extensions:mp4_file_extensions#get
+                            ~log filename)
   then
     None
   else
@@ -269,7 +294,13 @@ let () =
     else
     None)
 
+let log = Dtools.Log.make ["metadata";"mp4"]
+
 let get_tags file =
+  if not (Decoder.test_file ~mimes:mp4_mime_types#get
+                            ~extensions:mp4_file_extensions#get
+                            ~log file) then
+    raise Not_found ;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   Tutils.finalize ~k:(fun () -> Unix.close fd)
     (fun () -> 

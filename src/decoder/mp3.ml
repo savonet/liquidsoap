@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(** Decode and read metadata from mp3 files. *)
+(** Decode mp3 files. *)
 
 open Dtools
 
@@ -47,10 +47,20 @@ module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
 module D = Make(G)
 
+(** Configuration keys for mp3. *)
+let mime_types =
+  Conf.list ~p:(Decoder.conf_mime_types#plug "mp3")
+    "Mime-types used for guessing MP3 format"
+    ~d:["audio/mpeg"]
+
+let file_extensions =
+  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp3")
+    "File extensions used for guessing MP3 format"
+    ~d:["mp3"]
+
 let create_file_decoder filename kind =
   let generator = G.create `Audio in
     Buffered.file_decoder filename kind D.create_decoder generator
-
 
 (* Get the number of channels of audio in an MP3 file.
  * This is done by decoding a first chunk of data, thus checking
@@ -71,7 +81,7 @@ let get_type filename =
 
 let () =
   Decoder.file_decoders#register
-  "MP3/libmad"
+  "MP3"
   ~sdoc:"Use libmad to decode any file \
          if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
@@ -81,7 +91,9 @@ let () =
      if kind.Frame.audio = Frame.Zero ||
         not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
              Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
-        not (Decoder.test_mp3 ~log filename)
+        not (Decoder.test_file ~mimes:mime_types#get
+                               ~extensions:file_extensions#get 
+                               ~log filename)
      then
        None
      else
@@ -104,11 +116,11 @@ module D_stream = Make(Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register
-    "MP3/libmad"
+    "MP3"
     ~sdoc:"Use libmad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime Decoder.mp3_mime_types#get &&
+          if List.mem mime mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
@@ -127,7 +139,7 @@ let () =
 
 let check filename =
   match Configure.file_mime with
-    | Some f -> List.mem (f filename) Decoder.mp3_mime_types#get
+    | Some f -> List.mem (f filename) mime_types#get
     | None -> (try ignore (get_type filename) ; true with _ -> false)
 
 let duration file =

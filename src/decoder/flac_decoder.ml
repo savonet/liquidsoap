@@ -62,6 +62,17 @@ let create_decoder input =
 
 end
 
+(** Configuration keys for flac. *)
+let mime_types =
+  Conf.list ~p:(Decoder.conf_mime_types#plug "flac")
+    "Mime-types used for guessing FLAC format"
+    ~d:["audio/x-flac"]
+
+let file_extensions =
+  Conf.list ~p:(Decoder.conf_file_extensions#plug "flac")
+    "File extensions used for guessing FLAC format"
+    ~d:["flac"]
+
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
 module D = Make(G)
@@ -96,11 +107,13 @@ let get_type filename =
 
 let () =
   Decoder.file_decoders#register
-  "FLAC/libflac"
+  "FLAC"
   ~sdoc:"Use libflac to decode any file \
          if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
-     if not (Decoder.test_flac ~log filename) then
+     if not (Decoder.test_file ~mimes:mime_types#get 
+                               ~extensions:file_extensions#get
+                               ~log filename) then
        None
      else
        if kind.Frame.audio = Frame.Variable ||
@@ -125,7 +138,7 @@ let () =
     ~sdoc:"Use libflac to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime Decoder.flac_mime_types#get &&
+          if List.mem mime mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
@@ -142,7 +155,13 @@ let () =
           else
             None)
 
+let log = Dtools.Log.make ["metadata";"flac"]
+
 let get_tags file =
+  if not (Decoder.test_file ~mimes:mime_types#get
+                            ~extensions:file_extensions#get
+                            ~log file) then
+    raise Not_found ;
   let fd =
     Unix.openfile file [Unix.O_RDONLY] 0o640
   in
@@ -158,7 +177,7 @@ let () = Request.mresolvers#register "FLAC" get_tags
 
 let check filename =
   match Configure.file_mime with
-    | Some f -> List.mem (f filename) Decoder.flac_mime_types#get
+    | Some f -> List.mem (f filename) mime_types#get
     | None -> (try ignore (get_type filename) ; true with _ -> false)
 
 let duration file =

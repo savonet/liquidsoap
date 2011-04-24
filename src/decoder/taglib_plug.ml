@@ -22,21 +22,29 @@
 
 open Taglib
 
-(** Force the type for formats we know about.. *)
-let taglib_format fname =
-  if Decoder.test_mp3 fname then
-    Some Taglib.Mpeg
-  else
-    (* For now, we force taglib on mp3 only...
-    if Decoder.test_mp4 fname then
-      Some Taglib.Mp4
-    else *)
-    None
+let log = Dtools.Log.make ["decoder";"taglib"]
 
+(** Configuration keys for taglib. *)
+let mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "taglib")
+    "Mime-types used for decoding metadata using TAGLIB"
+    ~d:["audio/mpeg"]
+
+let file_extensions =
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "taglib")
+    "File extensions used for decoding metadata using TAGLIB"
+    ~d:["mp3"]
+
+(** We used to force the format. However,
+  * now that we check extensions, taglib's
+  * automatic format detection should work. *)
 let get_tags fname =
+  if not (Decoder.test_file ~mimes:mime_types#get 
+                            ~extensions:file_extensions#get 
+                            ~log fname) then
+    raise Not_found ;
   try
-    let file_type = taglib_format fname in
-    let f = open_file ?file_type fname in
+    let f = open_file fname in
     Tutils.finalize ~k:(fun () -> close_file f)
     (fun () -> 
       let gt l (n, t) =
@@ -61,4 +69,4 @@ let get_tags fname =
   with
     | _ -> raise Not_found
 
-let () = Request.mresolvers#register "MP3" get_tags 
+let () = Request.mresolvers#register "TAGLIB" get_tags 

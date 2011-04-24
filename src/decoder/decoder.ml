@@ -48,7 +48,7 @@
   * the stream interface (sink) to an input function and a THREAD-SAFE
   * generator.
   *
-  * In MAD, we used openfile and openstream, but unifying doesn't change
+  * In MP3, we used openfile and openstream, but unifying doesn't change
   * the performance.
   *
   * Estimating the remaining time can be done externally, based on the
@@ -90,6 +90,34 @@ type file_decoder = {
 (** Plugins might define various decoders. In order to be accessed,
   * they should also register methods for choosing decoders. *)
 
+let conf_decoder =
+  Dtools.Conf.void ~p:(Configure.conf#plug "decoder")
+    "Decoder settings"
+
+let conf_file_decoders = 
+  Dtools.Conf.list 
+    ~p:(conf_decoder#plug "file_decoders") ~d:[]
+    "Decoders and order used to decode files."
+
+let conf_stream_decoders =
+  Dtools.Conf.list 
+    ~p:(conf_decoder#plug "stream_decoders") ~d:[]
+    "Decoders and order used to decode streams."
+
+let f c v = 
+  match c#get_d with
+    | None -> c#set_d (Some [v])
+    | Some d -> c#set_d (Some (d@[v]))
+
+let get_decoders conf decoders =
+  let f cur name =
+    match decoders#get name with
+      | Some p -> (name,p)::cur
+      | None   -> log#f 2 "Cannot find decoder %s" name;
+                  cur
+  in
+  List.fold_left f [] (List.rev conf#get)
+
 (** For a given file, once a decoder is chosen it can be used several
   * times. This is at least useful to separate the actual opening of
   * the file from checking that it is a valid media file. *)
@@ -97,17 +125,15 @@ let file_decoders :
       (metadata:Frame.metadata -> file -> Frame.content_kind ->
          (unit -> file_decoder) option)
       Plug.plug =
-  Plug.create
+  Plug.create 
+    ~register_hook:(fun (name,_) -> f conf_file_decoders name)
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
 
 let stream_decoders :
       (stream -> Frame.content_kind -> stream_decoder option) Plug.plug =
   Plug.create
+    ~register_hook:(fun (name,_) -> f conf_stream_decoders name)
     ~doc:"Stream decoding methods." ~insensitive:true "stream decoding"
-
-let conf_decoder =
-  Dtools.Conf.void ~p:(Configure.conf#plug "decoder")
-    "Decoder settings"
 
 let conf_debug =
   Dtools.Conf.bool ~p:(conf_decoder#plug "debug") ~d:false
@@ -127,51 +153,6 @@ let conf_mime_types =
 let conf_file_extensions =
   Dtools.Conf.void ~p:(conf_decoder#plug "file_extensions")
     "File extensions used for guessing audio formats"
-
-(** Configuration keys for mp3. *)
-let mp3_mime_types =
-  Conf.list ~p:(conf_mime_types#plug "mp3")
-    "Mime-types used for guessing MP3 format"
-    ~d:["audio/mpeg";"application/octet-stream";"video/x-unknown"]
-
-let mp3_file_extensions =
-  Conf.list ~p:(conf_file_extensions#plug "mp3")
-    "File extensions used for guessing MP3 format"
-    ~d:["mp3"]
-
-(** Configuration keys for flac. *)
-let flac_mime_types =
-  Conf.list ~p:(conf_mime_types#plug "flac")
-    "Mime-types used for guessing FLAC format"
-    ~d:["audio/x-flac"]
-
-let flac_file_extensions =
-  Conf.list ~p:(conf_file_extensions#plug "flac")
-    "File extensions used for guessing FLAC format"
-    ~d:["flac"]
-
-(** Configuration keys for aac/mp4. *)
-let aac_mime_types =
-  Conf.list ~p:(conf_mime_types#plug "aac")
-    "Mime-types used for guessing AAC format"
-    ~d:["audio/aac"; "audio/aacp"; "audio/x-hx-aac-adts"]
-
-let aac_file_extensions =
-  Conf.list ~p:(conf_file_extensions#plug "aac")
-    "File extensions used for guessing AAC format"
-    ~d:["aac"]
-
-let mp4_mime_types =
-  Conf.list ~p:(conf_mime_types#plug "mp4")
-    "Mime-types used for guessing MP4 format"
-    ~d:["audio/mp4"; "application/mp4"]
-
-let mp4_file_extensions =
-  Conf.list ~p:(conf_file_extensions#plug "mp4")
-    "File extensions used for guessing MP4 format"
-    ~d:["m4a"; "m4b"; "m4p"; "m4v"; 
-        "m4r"; "3gp"; "mp4"]
-
 
 let test_file ?(log=log) ~mimes ~extensions fname =
   if not (Sys.file_exists fname) then begin
@@ -203,19 +184,6 @@ let test_file ?(log=log) ~mimes ~extensions fname =
         false
       end
 
-let test_mp3 = test_file ~mimes:mp3_mime_types#get 
-                         ~extensions:mp3_file_extensions#get
-
-let test_flac = test_file ~mimes:flac_mime_types#get
-                         ~extensions:flac_file_extensions#get
-
-let test_aac = test_file ~mimes:aac_mime_types#get
-                         ~extensions:aac_file_extensions#get
-
-let test_mp4 = test_file ~mimes:mp4_mime_types#get
-                         ~extensions:mp4_file_extensions#get
- 
-
 let dummy =
   { fill = (fun b ->
       Frame.add_break b (Frame.position b) ;
@@ -227,8 +195,8 @@ exception Exit of (string * (unit -> file_decoder))
 (** Get a valid decoder creator for [filename]. *)
 let get_file_decoder ~metadata filename kind =
   try
-    file_decoders#iter ~rev:true 
-      (fun name decoder ->
+    List.iter
+      (fun (name,decoder) ->
          log#f 4 "Trying method %S for %S..." name filename ;
          match
            try decoder ~metadata filename kind with
@@ -241,7 +209,8 @@ let get_file_decoder ~metadata filename kind =
            | Some f ->
                log#f 3 "Method %S accepted %S." name filename ;
                raise (Exit (name,f))
-           | None -> ()) ;
+           | None -> ()) (get_decoders conf_file_decoders 
+                                       file_decoders) ;
     log#f 3
       "Unable to decode %S as %s!"
       filename (Frame.string_of_content_kind kind) ;
@@ -258,14 +227,15 @@ exception Exit of stream_decoder
 
 let get_stream_decoder mime kind =
   try
-    stream_decoders#iter
-      (fun name decoder ->
+    List.iter
+      (fun (name,decoder) ->
          log#f 4 "Trying method %S for %S..." name mime ;
          match try decoder mime kind with _ -> None with
            | Some f ->
                log#f 3 "Method %S accepted %S." name mime ;
                raise (Exit f)
-           | None -> ()) ;
+           | None -> ()) (get_decoders conf_stream_decoders
+                                       stream_decoders);
     log#f 3 "Unable to decode stream of type %S!" mime ;
     None
   with

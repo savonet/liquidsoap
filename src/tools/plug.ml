@@ -23,7 +23,8 @@
 (** A [plug] is something where plug-ins plug.
   We build [plug] on the top of [Doc.item]. *)
 
-class ['a] plug name doc insensitive duplicates =
+class ['a] plug name ?(register_hook=fun _ -> ()) doc insensitive 
+                     duplicates =
 object (self)
   inherit Doc.item doc
 
@@ -43,7 +44,8 @@ object (self)
         subsections <-
           (plugin,doc)::(List.filter (fun (k,_) -> k<>plugin) subsections) ;
         plugins <- (plugin,v)::(List.filter (fun (k,_) -> k<>plugin) plugins)
-      end
+      end ;
+      register_hook (plugin,v)
 
   method is_registered a = List.mem_assoc a plugins
   method keys = List.fold_left (fun l (k,v) -> k::l) [] plugins
@@ -69,10 +71,10 @@ end
 
 let plugs = new Doc.item "All the plugs"
 
-let create ?(duplicates=true) ?insensitive ?doc plugname =
+let create ?(duplicates=true) ?register_hook ?insensitive ?doc plugname =
   let insensitive = match insensitive with Some true -> true | _ -> false in
   let doc = match doc with None -> "(no doc)" | Some d -> d in
-  let plug = new plug plugname doc insensitive duplicates in
+  let plug = new plug ?register_hook plugname doc insensitive duplicates in
     plugs#add_subsection plugname (plug:>Doc.item) ;
     plug
 

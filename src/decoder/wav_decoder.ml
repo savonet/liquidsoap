@@ -144,12 +144,26 @@ let create_file_decoder filename kind =
   let generator = Generator.create `Audio in
     Buffered.file_decoder filename kind (D.create ?header:None) generator
 
+
+let mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "wav")
+    "Mime-types used for guessing WAV format"
+    ~d:["audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
+let file_extensions = 
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "wav")
+    "File extensions used for guessing WAV format"
+    ~d:["wav"]
+
 let () =
   Decoder.file_decoders#register "WAV"
     ~sdoc:"Decode as WAV any file with a correct header."
     (fun ~metadata filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
-       if kind.Frame.audio = Frame.Zero then None else
+       if kind.Frame.audio = Frame.Zero ||
+        not (Decoder.test_file ~mimes:mime_types#get
+                               ~extensions:file_extensions#get
+                               ~log filename) then None 
+       else
        let file_type = get_type filename in
          if Frame.type_has_kind file_type kind then
            Some (fun () -> create_file_decoder filename kind)
@@ -174,11 +188,6 @@ let () =
 
 (* Stream decoding *)
 
-let conf_mime_types =
-  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "wav")
-    "Mime-types used for guessing WAV format"
-    ~d:["audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
-
 module D_stream = Make(Generator_plus)
 
 let () =
@@ -187,7 +196,7 @@ let () =
     ~sdoc:"Decode a WAV stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime conf_mime_types#get &&
+          if List.mem mime mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
@@ -204,13 +213,18 @@ let () =
           else
             None)
 
+let mime_types_basic =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "basic")
+    "Mime-types used for guessing PCM/BASIC format"
+    ~d:["audio/basic"]
+
 let () =
   Decoder.stream_decoders#register
-    "WAV"
+    "PCM/BASIC"
     ~sdoc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if mime = "audio/basic" &&
+          if List.mem mime mime_types_basic#get &&
              (* Check that it is okay to have zero video and midi,
               * and two audio channels. *)
              Frame.Zero <: kind.Frame.video &&

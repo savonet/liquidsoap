@@ -254,10 +254,31 @@ let rec pop_indicator t =
     t.decoder <- None ;
     if repop then pop_indicator t
 
+let conf_metadata_decoders =
+  Dtools.Conf.list
+    ~p:(conf#plug "metadata_decoders") ~d:[]
+    "Decoders and order used to decode files' metadata."
+
+let f c v =
+  match c#get_d with
+    | None -> c#set_d (Some [v])
+    | Some d -> c#set_d (Some (d@[v]))
+
+let get_decoders conf decoders =
+  let f cur name =
+    match decoders#get name with
+      | Some p -> (name,p)::cur
+      | None   -> log#f 2 "Cannot find decoder %s" name;
+                  cur
+  in
+  List.fold_left f [] (List.rev conf#get)
+
 let mresolvers_doc =
   "Methods to extract metadata from a file."
 let mresolvers =
-  Plug.create ~doc:mresolvers_doc ~insensitive:true "metadata formats"
+  Plug.create 
+    ~register_hook:(fun (name,_) -> f conf_metadata_decoders name)
+    ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
 let local_check t =
   let check_decodable kind = try
@@ -269,8 +290,8 @@ let local_check t =
           | Some (decoder_name,f) ->
               t.decoder <- Some f ;
               set_root_metadata t "decoder" decoder_name ;
-              mresolvers#iter
-                (fun _ resolver ->
+              List.iter
+                (fun (_,resolver) ->
                    try
                      let ans = resolver name in
                        List.iter
@@ -280,7 +301,8 @@ let local_check t =
                               (String.lowercase k) (cleanup v))
                          ans;
                    with
-                     | _ -> ()) ;
+                     | _ -> ()) (get_decoders conf_metadata_decoders
+                                     mresolvers) ;
               t.status <- Ready
           | None -> pop_indicator t
       done

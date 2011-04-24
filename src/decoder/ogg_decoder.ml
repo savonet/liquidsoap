@@ -61,7 +61,13 @@ let video_convert () =
     let height = Lazy.force Frame.video_height in
     let rgb = Img.create width height in
     let frame = Gen.of_RGBA32 rgb in
-    let sframe = Image.YUV420.make buf.Ogg_demuxer.width buf.Ogg_demuxer.height buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride in
+    let sframe = 
+      Image.YUV420.make 
+        buf.Ogg_demuxer.width buf.Ogg_demuxer.height 
+        buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride 
+        buf.Ogg_demuxer.u buf.Ogg_demuxer.v 
+        buf.Ogg_demuxer.uv_stride 
+   in
     converter
       (Gen.of_YUV420 sframe)
       frame;
@@ -257,36 +263,47 @@ let get_type filename =
              video = video ;
              midi  = 0 })
 
+let mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ogg")
+    ~d:["application/ogg";"application/x-ogg";
+        "audio/x-ogg";"audio/ogg";"video/ogg"] 
+  "Mime-types used for guessing OGG format."
+let file_extensions =
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ogg")
+    "File extensions used for guessing OGG format"
+    ~d:["ogv";"oga";"ogx";"ogg"]
+
 let () =
   Decoder.file_decoders#register "OGG"
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
     (fun ~metadata filename kind ->
-       let content_type = get_type filename in
-       let content_type =
-         (* If the kind doesn't allow audio, or video,
-          * pretend that we don't have any: it will be dropped
-          * anyway.
-          * A more fine-grained approach might or might not
-          * be possible, based on the number of channels. *)
-         if kind.Frame.video = Frame.Zero then
-           { content_type with Frame.video = 0 }
-         else if kind.Frame.audio = Frame.Zero then
-           { content_type with Frame.audio = 0 }
-         else
+        (* First, test file extension and mime *)
+        if Decoder.test_file ~mimes:mime_types#get
+                               ~extensions:file_extensions#get
+                               ~log filename then
+         begin
+          let content_type = get_type filename in
+          let content_type =
+            (* If the kind doesn't allow audio, or video,
+             * pretend that we don't have any: it will be dropped
+             * anyway.
+             * A more fine-grained approach might or might not
+             * be possible, based on the number of channels. *)
+            if kind.Frame.video = Frame.Zero then
+              { content_type with Frame.video = 0 }
+            else if kind.Frame.audio = Frame.Zero then
+              { content_type with Frame.audio = 0 }
+            else
            content_type
-       in
-         if Frame.type_has_kind content_type kind then
+          in
+          if Frame.type_has_kind content_type kind then
            Some (fun () -> create_file_decoder filename content_type kind)
-         else
-           None)
+          else
+            None
+         end
+        else None)
 
 (** Stream decoder *)
-
-let mimes = ["application/ogg";"application/x-ogg";
-             "audio/x-ogg";"audio/ogg";"video/ogg"]
-let mime_types =
-  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ogg")
-    ~d:mimes "Mime types associated to Ogg container"
 
 module D_stream = Make(Generator.From_audio_video_plus)
 
@@ -311,7 +328,13 @@ let () =
 
 exception Metadata of (string*string) list
 
+let log = Dtools.Log.make ["metadata";"ogg"]
+
 let get_tags file =
+  if not (Decoder.test_file ~mimes:mime_types#get
+                            ~extensions:file_extensions#get
+                            file) then
+    raise Not_found ;
   let sync,fd = Ogg.Sync.create_from_file file in
   Tutils.finalize ~k:(fun () -> Unix.close fd)
   (fun () ->
