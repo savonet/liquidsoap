@@ -74,6 +74,7 @@ struct
     function
       | Encoder.MP3 _ -> Some mpeg
       | Encoder.AACPlus _ -> Some aacplus
+      | Encoder.VoAacEnc _ -> Some aac
       | Encoder.External _ -> None
       | Encoder.Flac _ -> Some flac
       | Encoder.WAV _ -> Some wav

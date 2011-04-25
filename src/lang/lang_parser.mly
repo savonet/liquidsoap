@@ -153,7 +153,7 @@
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
-%token WAV AACPLUS MP3 EXTERNAL
+%token WAV VOAACENC AACPLUS MP3 EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD
 %token <Doc.item * (string*string) list> DEF
@@ -248,6 +248,7 @@ expr:
   | expr SET expr                    { mk (Set ($1,$3)) }
   | MP3 app_opt                      { mk_mp3 $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
+  | VOAACENC app_opt                  { mk_voaacenc $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
@@ -325,6 +326,7 @@ cexpr:
   | MP3 app_opt                      { mk_mp3 $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
+  | VOAACENC app_opt                  { mk_voaacenc $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }

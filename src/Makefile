@@ -117,7 +117,7 @@ encoders = \
 	$(if $(W_LAME),encoder/lame_encoder.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
 	$(if $(W_AACPLUS),encoder/aacplus_encoder.ml) \
-	# $(if $(W_FAAC),outputs/faac_encoded.ml)
+	$(if $(W_VOAACENC),encoder/voaacenc_encoder.ml)
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
 	outputs/pipe_output.ml $(if $(W_CRY),outputs/icecast2.ml) \

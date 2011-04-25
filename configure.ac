@@ -403,6 +403,12 @@ AC_CHECK_OCAML_BINDING([gstreamer])
 AC_CHECK_OCAML_BINDING([aacplus],[0.2.0])
 
 #
+# Voaacenc
+#
+
+AC_CHECK_OCAML_BINDING([voaacenc])
+
+#
 # Theora
 #
 
@@ -623,7 +629,6 @@ fi
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad])
-AC_CHECK_OCAML_BINDING([faac])
 AC_CHECK_OCAML_BINDING([soundtouch])
 AC_CHECK_OCAML_BINDING([portaudio])
 AC_CHECK_OCAML_BINDING([pulseaudio])
@@ -814,7 +819,7 @@ cat <<EOMSG
  * Supported output formats
    - Vorbis            : $w_VORBIS
    - MP3               : $w_LAME
-   - AAC               : $w_FAAC
+   - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
    - SPEEX             : $w_SPEEX
    - Theora            : $w_THEORA

@@ -162,6 +162,35 @@ let mk_aacplus params =
   in
     mk (Encoder (Encoder.AACPlus aacplus))
 
+let mk_voaacenc params =
+  let defaults =
+    { Encoder.VoAacEnc.
+        channels = 2 ;
+        samplerate = 44100 ;
+        bitrate = 64 ;
+        adts = true }
+  in
+  let voaacenc =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.VoAacEnc.channels = i }
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.VoAacEnc.samplerate = i }
+          | ("bitrate",{ term = Int i }) ->
+              { f with Encoder.VoAacEnc.bitrate = i }
+          | ("adts",{ term = Bool i }) ->
+              { f with Encoder.VoAacEnc.adts = i }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.VoAacEnc.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.VoAacEnc.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    mk (Encoder (Encoder.VoAacEnc voaacenc))
+
 let mk_flac_gen params =
   let defaults =
     { Encoder.Flac.

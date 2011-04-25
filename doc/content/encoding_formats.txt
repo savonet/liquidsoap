@@ -102,6 +102,13 @@ The parameters are:
 
 @compression@ ranges from 0 to 8 and @bits_per_sample@ should be one of: @8@, @16@ or @32@.
 
+h4. AAC
+
+The syntax for the internal AAC encoder is:
+%%
+%aac(channels=2, samplerate=44100, bitrate=64, adts=true)
+%%
+
 h4. AAC+
 
 The syntax for the internal AAC+ encoder is:

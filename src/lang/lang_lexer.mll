@@ -143,6 +143,7 @@ rule token = parse
   | "%mp3" { MP3 }
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
+  | "%aac" { VOAACENC }
 
   | '[' { LBRA }
   | ']' { RBRA }
