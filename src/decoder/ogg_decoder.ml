@@ -175,7 +175,7 @@ let create_decoder source mode input =
            | _   , true, `Video ->
                Ogg_demuxer.drop_track Ogg_demuxer.Audio_track decoder
            | _  ->
-                failwith "Ogg stream does no contain required data"
+                failwith "Ogg stream does not contain required data"
        end ;
       initial_decoding := false ;
       let add_meta meta =
