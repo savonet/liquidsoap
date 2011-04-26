@@ -63,7 +63,6 @@ module Liq_http =
                          with status (%s,%d,%s)" x y z))
     end ;
       let ret = Http.read_crlf ~max:max_int connection in
-      Unix.shutdown connection Unix.SHUTDOWN_ALL ;
       Unix.close connection ;
       Pcre.substitute 
         ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret
@@ -71,7 +70,6 @@ module Liq_http =
      | e -> 
          begin
           try
-           Unix.shutdown connection Unix.SHUTDOWN_ALL ;
            Unix.close connection
           with _ -> ()
          end ;

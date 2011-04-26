@@ -38,10 +38,6 @@ let conf_harbor_max_conn =
   Conf.int ~p: (conf_harbor#plug "max_connections") ~d: 2
     "Maximun of pending source requests per port."
   
-let conf_timeout =
-  Conf.float ~p: (conf_harbor#plug "timeout") ~d: 30.
-    "Timeout for source connections."
-  
 let conf_pass_verbose =
   Conf.bool ~p: (conf_harbor#plug "verbose") ~d: false
     "Display passwords, for debugging."
@@ -593,22 +589,13 @@ let open_port ~icy port =
    log#f 4 "Opening port %d with icy = %b" port icy;
    let rec incoming ~port ~icy sock out_s e =
      if List.mem (`Read out_s) e
-     then
-       (try
-          (Unix.shutdown sock Unix.SHUTDOWN_ALL;
-           Unix.close sock;
-           Unix.close out_s;
-           [])
-        with | _ -> [])
+     then (try (Unix.close sock; Unix.close out_s; []) with | _ -> [])
      else
        ((try
            let (socket, caller) = accept sock in
            let ip = Utils.name_of_sockaddr ~rev_dns: conf_revdns#get caller
            in
-             (* Add timeout *)
              (log#f 4 "New client on port %i: %s" port ip;
-              Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get;
-              Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get;
               Liq_sockets.set_tcp_nodelay sock true;
               let on_error e =
                 ((match e with
@@ -627,11 +614,7 @@ let open_port ~icy port =
                   on_error = on_error;
                 } in
               let reply r =
-                let close () =
-                  try
-                    (Unix.shutdown socket Unix.SHUTDOWN_ALL;
-                     Unix.close socket)
-                  with | _ -> () in
+                let close () = try Unix.close socket with | _ -> () in
                 let (s, exec) =
                   match r with
                   | Reply s -> (s, (fun () -> ()))
@@ -659,11 +642,8 @@ let open_port ~icy port =
      let sock = socket PF_INET SOCK_STREAM 0
      in
        (* Set TCP_NODELAY on the socket *)
-       (* Add timeout *)
        (setsockopt sock SO_REUSEADDR true;
         Liq_sockets.set_tcp_nodelay sock true;
-        Unix.setsockopt_float sock Unix.SO_RCVTIMEO conf_timeout#get;
-        Unix.setsockopt_float sock Unix.SO_SNDTIMEO conf_timeout#get;
         (try bind sock bind_addr
          with
          | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
