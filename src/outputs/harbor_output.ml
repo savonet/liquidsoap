@@ -895,6 +895,16 @@ class output ~kind p =
                                                                     Queue.
                                                                     create ()
                                                                     in
+                                                                    ((
+                                                                    match dump
+                                                                    with
+                                                                    | 
+                                                                    Some s ->
+                                                                    output_string
+                                                                    s b
+                                                                    | 
+                                                                    None ->
+                                                                    ());
                                                                     Tutils.
                                                                     mutexify
                                                                     clients_m
@@ -1009,7 +1019,7 @@ class output ~kind p =
                                                                     clients
                                                                     <-
                                                                     new_clients))
-                                                                    ())))
+                                                                    ()))))
                                                                   else ()
                                                               
                                                             method output_start =
