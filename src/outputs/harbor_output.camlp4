@@ -579,6 +579,11 @@ object (self)
       burst_data <- data ;
       burst_pos <- pos ; 
       let new_clients = Queue.create () in
+      begin
+        match dump with
+          | Some s -> output_string s b
+          | None -> ()
+      end ;
       Tutils.mutexify clients_m 
         (fun () ->
           Queue.iter (fun c ->
