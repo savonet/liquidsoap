@@ -53,19 +53,20 @@ type decoders =
     | Audio of audio decoder
     | Unknown
 
-type stream = Ogg.Stream.t*(bool ref)*decoders
+type stream = Ogg.Stream.t*decoders
 type t =
 {
-  sync        : Ogg.Sync.t;
-  mutable eos : bool;
-  streams     : (nativeint,stream) Hashtbl.t;
+  sync             : Ogg.Sync.t;
+  mutable started  : bool;
+  streams          : (nativeint,stream) Hashtbl.t;
+  finished_streams : (nativeint,stream) Hashtbl.t 
 }
 
 type track = Audio_track | Video_track
 
 exception Internal of Ogg.Page.t
 exception Exit of nativeint*Ogg.Stream.t*decoders
-exception Track of ((bool ref)*(decoders))
+exception Track of (bool*nativeint*decoders)
 exception Invalid_stream
 exception End_of_stream
 
@@ -74,8 +75,13 @@ let ogg_decoders : ((Ogg.Stream.packet -> bool)*
   Plug.plug =
     Plug.create ~doc:"Methods for decoding ogg streams." "ogg formats"
 
-let eos dec = 
-  dec.eos
+(* End of stream is declared only when 
+ * all logical stream have ended (dec.streams == 0)
+ * _and_ all their data has been consumed (dec.finished_streams == 0) *)
+let eos dec =
+  dec.started && 
+  Hashtbl.length dec.streams == 0 &&
+  Hashtbl.length dec.finished_streams == 0
 
 let test page = 
   let serial = Ogg.Page.serialno page in
@@ -103,16 +109,16 @@ let test page =
 let feed_page decoder page =
   let serial = Ogg.Page.serialno page in
   try
-    let (os,eos,dec) = Hashtbl.find decoder.streams serial in
+    let (os,dec) = Hashtbl.find decoder.streams serial in
     if dec <> Unknown then
       Ogg.Stream.put_page os page ;
     if Ogg.Page.eos page then
       begin
         log#f 5 "Reached last page of logical stream %nx" serial;
         Hashtbl.remove decoder.streams serial;
-        eos := true;
-        if Hashtbl.length decoder.streams = 0 then
-          decoder.eos <- true
+        if dec <> Unknown then
+          (* Moving finished stream to decoder.finished_streams *)
+          Hashtbl.add decoder.finished_streams serial (os,dec) ;
       end
     with
       | Not_found ->
@@ -120,13 +126,13 @@ let feed_page decoder page =
           raise Invalid_stream
 
 let feed decoder =
-  if decoder.eos then
+  if eos decoder then
     raise End_of_stream ; 
   let page = Ogg.Sync.read decoder.sync in
   feed_page decoder page 
 
 let parse dec =
-    assert(not dec.eos);
+    assert(not (eos dec));
     let rec parse () = 
       try
         (** Get First page *)
@@ -137,22 +143,30 @@ let parse dec =
         (* Should not happen *)
         if (Hashtbl.mem dec.streams serial) then
           raise Invalid_stream;
-        Hashtbl.add dec.streams serial (os,ref false,decoder);
+        Hashtbl.add dec.streams serial (os,decoder);
         parse () 
       with
         | Internal p ->
             feed_page dec p 
     in
     parse ();
+    dec.started <- true;
     dec
 
 let init sync = 
   let streams = Hashtbl.create 2 in
-  parse { sync = sync; eos = false; streams = streams }
+  let finished_streams = Hashtbl.create 2 in
+  parse { sync = sync; started = false ;
+          streams = streams; 
+          finished_streams = finished_streams }
 
 let reset dec = 
+  if (Hashtbl.length dec.streams > 0 ||
+      Hashtbl.length dec.finished_streams > 0) then
+  log#f 5 "Reseting a stream that has not ended!" ;
   Hashtbl.clear dec.streams;
-  dec.eos <- false;
+  Hashtbl.clear dec.finished_streams;
+  dec.started <- false;
   ignore(parse dec)
 
 let frame_meta_of_meta v =
@@ -168,15 +182,18 @@ let frame_meta_of_meta v =
 
 let get_track dtype dec =
   (* Only decode first audio track for now.. *)
-  let test _ (_,eos,decoder) =
+  let test ended id (_,decoder) =
     (* We only support one audio track for now.. *) 
     match decoder with
-      | Audio d when dtype = Audio_track -> raise (Track (eos,Audio d))
-      | Video d when dtype = Video_track -> raise (Track (eos,Video d))
+      | Audio d when dtype = Audio_track -> raise (Track (ended,id,Audio d))
+      | Video d when dtype = Video_track -> raise (Track (ended,id,Video d))
       | _ -> ()
   in
   try
-    Hashtbl.iter test dec.streams;
+    (* First check active streams *)
+    Hashtbl.iter (test false) dec.streams;
+    (* Now check finished streams *)
+    Hashtbl.iter (test true) dec.finished_streams;
     raise Not_found
   with
     | Track t -> t
@@ -190,10 +207,10 @@ let has_track dtype dec =
 
 let drop_track dtype dec = 
   (* Remove all track of this type *)
-  let rec get_tracks a (x,y,decoder) l = 
+  let rec get_tracks a (x,decoder) l = 
     match decoder with
-      | Audio d when dtype = Audio_track -> (a,x,y)::l
-      | Video d when dtype = Video_track -> (a,x,y)::l
+      | Audio d when dtype = Audio_track -> (a,x)::l
+      | Video d when dtype = Video_track -> (a,x)::l
       | _ -> l
   in
   let tracks = Hashtbl.fold get_tracks dec.streams [] in
@@ -202,14 +219,14 @@ let drop_track dtype dec =
       | Audio_track -> "audio" 
       | Video_track -> "video"
   in
-  let f (a,x,y) = 
+  let f (a,x) = 
     log#f 5 "Dropping %s track with serial %nx." stype a ;
-    Hashtbl.replace dec.streams a (x,y,Unknown)
+    Hashtbl.replace dec.streams a (x,Unknown)
   in
   List.iter f tracks  
 
 let decode_audio dec f = 
-  let (eos,d) = get_track Audio_track dec in
+  let (ended,id,d) = get_track Audio_track dec in
   try
     let f (x,y) = 
       f (x,frame_meta_of_meta y)
@@ -219,12 +236,17 @@ let decode_audio dec f =
       | _ -> assert false
   with
     | Ogg.Not_enough_data -> 
-        if !eos then
+        if ended then
+         begin
+          log#f 5 "All data from stream %nx has been decoded" id;
+          Hashtbl.remove dec.finished_streams id
+         end;
+        if eos dec then
           raise End_of_stream ;
         raise Ogg.Not_enough_data
 
 let decode_video dec f =
-  let (eos,d) = get_track Video_track dec in
+  let (ended,id,d) = get_track Video_track dec in
   try
     let f (x,y) =
       f (x,frame_meta_of_meta y)
@@ -234,7 +256,13 @@ let decode_video dec f =
       | _ -> assert false
   with
     | Ogg.Not_enough_data -> 
-        if !eos then
+        if ended then
+         begin
+          log#f 5 "All data from stream %nx has been decoded: \
+                   droping stream." id;
+          Hashtbl.remove dec.finished_streams id
+         end;
+        if eos dec then
           raise End_of_stream ;
         raise Ogg.Not_enough_data
 

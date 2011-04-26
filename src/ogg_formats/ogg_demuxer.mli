@@ -64,7 +64,13 @@ val ogg_decoders : ((Ogg.Stream.packet -> bool)*
 (** Initiate a decoder with the given ogg sync structure. *)
 val init : Ogg.Sync.t -> t 
 
-(** [true] if the decoder reached the end of all streams. *)
+(** [true] if the decoder has reached the end of each
+  * logical streams and all data has been decoded.
+  *
+  * If you do not plan on decoding some data, 
+  * you should use [drop_track] to indicate it
+  * to the decoder. Otherwise, [eos] will return
+  * [false] until you have decoded all data. *)
 val eos : t -> bool
 
 (** Reset encoder, try to parse a new sequentialized stream.
@@ -93,7 +99,7 @@ val feed : t -> unit
   * Raises [Ogg.Not_enough_data] if more data could be added 
   * you should call [feed] in this case. 
   *
-  * Raises [End_of_stream] is the stream has ended.
+  * Raises [End_of_stream] if all stream have ended.
   * In this case, you can try [reset] to see if there is a
   * new sequentialized stream. *)
 val decode_audio : t -> (audio * Frame.metadata option -> unit) -> unit
@@ -103,7 +109,7 @@ val decode_audio : t -> (audio * Frame.metadata option -> unit) -> unit
   * This function implicitely calls [feed] if not enough data 
   * are available.
   * 
-  * Raises [End_of_stream] is the stream has ended.
+  * Raises [End_of_stream] if all stream have ended.
   * In this case, you can try [reset] to see if there is a
   * new sequentialized stream. *)
 val decode_audio_rec : t -> (audio * Frame.metadata option -> unit) -> unit
@@ -113,7 +119,7 @@ val decode_audio_rec : t -> (audio * Frame.metadata option -> unit) -> unit
   * Raises [Ogg.Not_enough_data] if more data could be added
   * you should call [feed] in this case.
   *
-  * Raises [End_of_stream] is the stream has ended.
+  * Raises [End_of_stream] if all streams have ended.
   * In this case, you can try [reset] to see if there is a
   * new sequentialized stream. *)
 val decode_video : t -> (video * Frame.metadata option -> unit) -> unit 
@@ -123,7 +129,7 @@ val decode_video : t -> (video * Frame.metadata option -> unit) -> unit
   * This function implicitely calls [feed] if not enough data
   * are available. 
   * 
-  * Raises [End_of_stream] is the stream has ended.
+  * Raises [End_of_stream] if all stream have ended.
   * In this case, you can try [reset] to see if there is a
   * new sequentialized stream. *)
 val decode_video_rec : t -> (video * Frame.metadata option -> unit) -> unit
