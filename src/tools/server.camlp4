@@ -273,7 +273,6 @@ let handle_client socket =
   in
   let close () =
     try
-      Unix.shutdown socket Unix.SHUTDOWN_ALL ;
       Unix.close socket
     with
       | _ -> ()
@@ -335,7 +334,6 @@ let start_socket () =
     ignore (Dtools.Init.at_stop
               (fun () ->
                  log#f 3 "Closing %s" socket_name ;
-                 Unix.shutdown sock Unix.SHUTDOWN_ALL ;
                  Unix.close sock ;
                  Unix.unlink socket_path)) ;
     chmod socket_path rights ;

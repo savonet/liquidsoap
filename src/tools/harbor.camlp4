@@ -34,9 +34,6 @@ let conf_harbor_bind_addr =
 let conf_harbor_max_conn =
   Conf.int ~p:(conf_harbor#plug "max_connections") ~d:2
     "Maximun of pending source requests per port."
-let conf_timeout =
-  Conf.float ~p:(conf_harbor#plug "timeout") ~d:30.
-    "Timeout for source connections."
 let conf_pass_verbose =
   Conf.bool ~p:(conf_harbor#plug "verbose") ~d:false
     "Display passwords, for debugging."
@@ -608,7 +605,6 @@ let open_port ~icy port =
       if List.mem (`Read out_s) e then
        begin
         try
-         Unix.shutdown sock Unix.SHUTDOWN_ALL ;
          Unix.close sock;
          Unix.close out_s;
          []
@@ -623,9 +619,6 @@ let open_port ~icy port =
              Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller
            in
            log#f 4 "New client on port %i: %s" port ip ;
-           (* Add timeout *)
-           Unix.setsockopt_float socket Unix.SO_RCVTIMEO conf_timeout#get ;
-           Unix.setsockopt_float socket Unix.SO_SNDTIMEO conf_timeout#get ;
            Liq_sockets.set_tcp_nodelay sock true;
            let on_error e =
              begin
@@ -651,7 +644,6 @@ let open_port ~icy port =
            let reply r =
                let close () =
                  try
-                   Unix.shutdown socket Unix.SHUTDOWN_ALL ;
                    Unix.close socket
                  with
                    | _ -> ()
@@ -693,9 +685,6 @@ let open_port ~icy port =
     setsockopt sock SO_REUSEADDR true ;
     (* Set TCP_NODELAY on the socket *)
     Liq_sockets.set_tcp_nodelay sock true ;
-    (* Add timeout *)
-    Unix.setsockopt_float sock Unix.SO_RCVTIMEO conf_timeout#get ;
-    Unix.setsockopt_float sock Unix.SO_SNDTIMEO conf_timeout#get ;
     begin try bind sock bind_addr with
       | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
           failwith (Printf.sprintf "port %d already taken" port)

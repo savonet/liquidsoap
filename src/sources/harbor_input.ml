@@ -45,7 +45,7 @@ class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max ~icy ~port
                         ~meta_charset ~icy_charset
                         ~mountpoint ~on_connect ~on_disconnect
-                        ~login ~debug p =
+                        ~login ~debug ~timeout p =
   let max_ticks = Frame.master_of_seconds max in
   (* We need a temporary log until
    * the source has an id *)
@@ -140,7 +140,7 @@ object (self)
           let l,_,_ = Unix.select [socket] [] [] 1. in
             if l=[] then begin
               self#log#f 4 "No network activity for %d second(s)." n ;
-              if float n >= Harbor.conf_timeout#get then
+              if float n >= timeout then
                begin
                 self#log#f 4 "Network activity timeout! Disconnecting source." ;
                 raise Disconnected ;
@@ -302,7 +302,6 @@ object (self)
            end ;
            begin 
              try
-               Unix.shutdown s Unix.SHUTDOWN_ALL ;
                Unix.close s
              with _ -> ()
            end;
@@ -329,6 +328,9 @@ let () =
 
         "max", Lang.float_t, Some (Lang.float 10.),
         Some "Maximum duration of the buffered data.";
+
+        "timeout", Lang.float_t, Some (Lang.float 30.),
+        Some "Timeout for source connectionn.";
 
         "on_connect",
         Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
@@ -412,6 +414,7 @@ let () =
            Lang.to_string (List.assoc "password" p) 
          in
          let debug = Lang.to_bool (List.assoc "debug" p) in
+         let timeout = Lang.to_float (List.assoc "timeout" p) in
          let icy = Lang.to_bool (List.assoc "icy" p) in
          let icy_charset = 
            match Lang.to_string (List.assoc "icy_metadata_charset" p) with
@@ -489,7 +492,7 @@ let () =
            ignore
              (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
          in
-         (new http_input_server ~kind
+         (new http_input_server ~kind ~timeout
                    ~bufferize ~max ~login ~mountpoint
                    ~dumpfile ~logfile ~icy ~port 
                    ~icy_charset ~meta_charset

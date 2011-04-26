@@ -136,13 +136,11 @@ let connect ?bind_address host port =
       socket
     with
       | e ->
-          Unix.shutdown socket Unix.SHUTDOWN_ALL ;
           Unix.close socket;
           raise Socket
 
 let disconnect socket = 
   try
-   Unix.shutdown socket Unix.SHUTDOWN_ALL ;
    Unix.close socket
   with
     | _ -> ()
