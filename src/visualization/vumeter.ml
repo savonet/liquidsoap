@@ -62,6 +62,43 @@ object
         Printf.printf "\r%s%!" vol
 end
 
+class rms ~kind source =
+object (self)
+  inherit operator kind [source] as super
+
+  method stype = source#stype
+  method is_ready = source#is_ready
+  method remaining = source#remaining
+  method abort_track = source#abort_track
+
+  val mutable volume = 0.
+
+  val m = Mutex.create ()
+
+  initializer
+  let rms _ =
+    Mutex.lock m;
+    let ans = string_of_float volume in
+    Mutex.unlock m;
+    ans
+  in
+  ns_kind <- "rms";
+  self#register_command "rms" ~descr:"Retrieve the current RMS volume of the source." rms
+
+  method private get_frame buf =
+    let offset = AFrame.position buf in
+    source#get buf;
+    let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
+    let channels = Array.length rms in
+    Mutex.lock m;
+    volume <- 0.;
+    for i = 0 to channels - 1 do
+      volume <- volume +. rms.(i)
+    done;
+    volume <- volume /. (float channels);
+    Mutex.unlock m
+end
+
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "vumeter"
@@ -76,4 +113,15 @@ let () =
          Lang.to_bool (f "scroll"),
          Lang.to_source (f "")
        in
-         new vumeter ~kind src scroll)
+         new vumeter ~kind src scroll);
+  Lang.add_operator "rms"
+    [ "", Lang.source_t k, None, None ]
+    ~kind:(Lang.Unconstrained k)
+    ~category:Lang.Visualization
+    ~descr:"Add a telnet rms command to retrieve the current RMS volume of the source."
+    (fun p kind ->
+       let f v = List.assoc v p in
+       let src =
+         Lang.to_source (f "")
+       in
+         new rms ~kind src)
