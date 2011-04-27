@@ -143,7 +143,7 @@ let add_meta c data =
        try
          Some (Hashtbl.find (Utils.get_some meta) x)
        with
-         | Not_found -> None
+         | _ -> None
      in
      let meta_info =
        match f "artist",f "title" with

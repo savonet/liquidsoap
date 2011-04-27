@@ -139,8 +139,7 @@ type client =
 let add_meta c data =
   let get_meta meta =
     let f x =
-      try Some (Hashtbl.find (Utils.get_some meta) x)
-      with | Not_found -> None in
+      try Some (Hashtbl.find (Utils.get_some meta) x) with | _ -> None in
     let meta_info =
       match ((f "artist"), (f "title")) with
       | (Some a, Some t) -> Some (Printf.sprintf "%s - %s" a t)
