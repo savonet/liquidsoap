@@ -110,9 +110,7 @@ end
 
 let () =
   let kind =
-    Lang.Constrained { Frame.audio = Lang.Any_fixed 1 ;
-                             video = Lang.Any_fixed 0 ;
-                             midi  = Lang.Any_fixed 0 }
+    Lang.any_fixed_with ~audio:1 ()
   in
   let kind = Lang.kind_type_of_kind_format ~fresh:1 kind in
   Lang.add_operator "output.ao"
