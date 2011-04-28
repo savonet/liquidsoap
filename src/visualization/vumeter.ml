@@ -54,8 +54,8 @@ object
     let vol = Array.map (vol channels) rms in
     let vol = Array.fold_left (fun ans s -> ans ^ "  " ^ s) "" vol in
     let vol =
-      if channels = 0 then "vumeter: no audio channel!" else
-        String.sub vol 2 (String.length vol - 2) in
+      String.sub vol 2 (String.length vol - 2) 
+    in
       if scroll then
         Printf.printf "%s\n%!" vol
       else
@@ -75,38 +75,35 @@ object (self)
 
   val m = Mutex.create ()
 
-  initializer
-  let rms _ =
-    Mutex.lock m;
-    let ans = string_of_float volume in
-    Mutex.unlock m;
-    ans
-  in
-  ns_kind <- "rms";
-  self#register_command "rms" ~descr:"Retrieve the current RMS volume of the source." rms
+  method rms =
+    Tutils.mutexify m
+      (fun () -> volume) ()
 
   method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
     let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
     let channels = Array.length rms in
-    Mutex.lock m;
-    volume <- 0.;
-    for i = 0 to channels - 1 do
-      volume <- volume +. rms.(i)
-    done;
-    volume <- volume /. (float channels);
-    Mutex.unlock m
+    Tutils.mutexify m
+      (fun () ->
+        volume <- 0.;
+        for i = 0 to channels - 1 do
+          volume <- volume +. rms.(i)
+        done;
+        volume <- volume /. (float channels)) ()
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let format =
+    Lang.any_fixed_with ~audio:1 ()  
+  in
+  let k = Lang.kind_type_of_kind_format ~fresh:1 format in
   Lang.add_operator "vumeter"
     [ "scroll", Lang.bool_t, Some (Lang.bool false), Some "Scroll.";
       "", Lang.source_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Visualization
-    ~descr:"VU meter (display the volume)."
+    ~descr:"VU meter (display the audio volume)."
     (fun p kind ->
        let f v = List.assoc v p in
        let scroll, src =
@@ -114,14 +111,35 @@ let () =
          Lang.to_source (f "")
        in
          new vumeter ~kind src scroll);
-  Lang.add_operator "rms"
-    [ "", Lang.source_t k, None, None ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Visualization
-    ~descr:"Add a telnet rms command to retrieve the current RMS volume of the source."
-    (fun p kind ->
+  let return_t =
+    Lang.product_t
+     (Lang.fun_t [] Lang.float_t)
+     (Lang.source_t k)
+  in
+  Lang.add_builtin "rms"
+    ~category:(Lang.string_of_category Lang.Visualization)
+    ~descr:"Get current audio RMS volume of the source. \
+            Returns a pair @(f,s)@ where s is a new source and \
+            @f@ is a function of type @() -> float@ and \
+            returns the current RMS of the source."
+    [ "id",Lang.string_t,Some (Lang.string ""),
+      Some "Force the value of the source ID.";
+      "", Lang.source_t k, None, None ] return_t
+    (fun p t ->
        let f v = List.assoc v p in
        let src =
          Lang.to_source (f "")
        in
-         new rms ~kind src)
+       let id = Lang.to_string (f "id") in
+       let (_,t) = Lang.of_product_t t in
+       let kind =
+         Lang.frame_kind_of_kind_type
+          (Lang.of_source_t t)
+       in
+       let s = new rms ~kind src in
+       if id <> "" then s#set_id id ;
+       let f =
+         Lang.val_fun [] ~ret_t:Lang.float_t
+                      (fun p t -> Lang.float s#rms)
+       in
+       Lang.product f (Lang.source (s :> Source.source)))

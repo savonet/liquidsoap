@@ -300,6 +300,25 @@ def server.insert_metadata(~id="",s) =
   s
 end
 
+# Register a command that outputs the RMS of the returned source.
+# @category Source / Visualization
+# @param ~id Force the value of the source ID.
+def server.rms(~id="",s) =
+  x = rms(id=id,s)
+  rms = fst(x)
+  s = snd(x)
+  id = source.id(s)
+  def rms(_) =
+    rms = rms()
+    "#{rms}"
+  end
+  server.register(namespace="#{id}",
+                  description="Return the current RMS of the source.",
+                  usage="rms",
+                  "rms",rms)
+  s
+end
+
 # Get the base name of a path.
 # Implemented using the corresponding shell command.
 # @category System
