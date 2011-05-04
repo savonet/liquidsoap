@@ -24,6 +24,8 @@ open Unix
   
 open Dtools
   
+let log = Dtools.Log.make [ "server" ]
+  
 let conf =
   Conf.void ~p: (Configure.conf#plug "server") "Server configuration"
     ~comments:
@@ -115,7 +117,17 @@ let add ~ns ?usage ~descr cmd handler =
   in
     Tutils.mutexify lock
       (fun () ->
-         Hashtbl.add commands (prefix_ns cmd ns) (handler, usage, descr))
+         let name = prefix_ns cmd ns
+         in
+           (if Hashtbl.mem commands name
+            then
+              log#f 2
+                "Server command %s already registered! Previous definition \
+                    replaced.."
+                name
+            else ();
+            Hashtbl.replace commands (prefix_ns cmd ns)
+              (handler, usage, descr)))
       ()
   
 (* ... maybe remove them *)
@@ -144,6 +156,7 @@ let usage () =
   let l =
     Tutils.mutexify lock
       (fun () -> Hashtbl.fold (fun k v l -> (k, v) :: l) commands []) () in
+  let compare (x, _) (y, _) = compare x y in
   let l = List.sort compare l
   in
     List.fold_left
