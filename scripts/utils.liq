@@ -479,59 +479,88 @@ def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
 end
 
 # Custom playlist source written using the script language.
-# Will read directory or playlist, play all files and stop
+# Will read directory or playlist, play all files and stop.
+# Returns a pair @(reload,source)@ where @reload@ is a function
+# of type @(?uri:string)->unit@ used to reload the source and @source@
+# is the actual source. The reload function can optionally be called
+# with a new playlist URI. Otherwise, it reloads the previous URI.
 # @category Source / Input
+# @param ~id Force the value of the source ID.
 # @param ~random Randomize playlist content
 # @param ~on_done Function to execute when the playlist is finished
 # @param uri Playlist URI
-def playlist.once(~random=false,~on_done={()},uri)
-  x = ref 0
-  def playlist.custom(files)
-    length = list.length(files)
-    if length == 0 then
-      log("Empty playlist..")
-      fail ()
-    else
-      files =
-        if random then
-          list.sort(fun (x,y) -> int_of_float(random.float()), files)
-        else
-          files
-        end
-      def next () =
-        state = !x
-        file =
-        if state < length then
-          x := state + 1
-          list.nth(files,state)
-        else
-          # Playlist finished
-          on_done ()
-          ""
-        end
-        request.create(file)
+def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
+  # A reference to the playlist
+  playlist = ref []
+  # A reference to the uri
+  playlist_uri = ref uri
+  # The next function
+  def next () =
+    file =
+      if list.length(!playlist) > 0 then
+        ret = list.hd(!playlist)
+        playlist := list.tl(!playlist)
+        ret
+      else
+        # Playlist finished
+        on_done ()
+        ""
       end
-      request.dynamic(next)
+    request.create(file)
+  end
+  # Instanciate the source
+  source = request.dynamic(id=id,next)
+  # Get its id.
+  id = source.id(source)
+  # The load function
+  def load_playlist () = 
+    files = 
+      if test_process("test -d #{quote(!playlist_uri)}") then
+        log(label=id,"playlist is a directory.")
+        get_process_lines("find #{quote(!playlist_uri)} -type f | sort")
+      else
+        playlist = request.create.raw(!playlist_uri)
+        result =
+          if request.resolve(playlist) then
+            playlist = request.filename(playlist)
+            files = playlist.parse(playlist)
+            list.map(snd,files)
+          else
+            log(label=id,"Couldn't read playlist: request resolution failed.")
+            []
+          end
+        request.destroy(playlist)
+        result
+      end
+    if random then
+      playlist := list.sort(fun (x,y) -> int_of_float(random.float()), files)
+    else
+      playlist := files
     end
   end
-  if test_process("test -d #{quote(uri)}") then
-    files = get_process_lines("find #{quote(uri)} -type f | sort")
-    playlist.custom(files)
-  else
-    playlist = request.create.raw(uri)
-    result =
-      if request.resolve(playlist) then
-        playlist = request.filename(playlist)
-        files = playlist.parse(playlist)
-        files = list.map(snd,files)
-        playlist.custom(files)
-      else
-        log("Couldn't read playlist: request resolution failed.")
-        fail ()
-      end
-    request.destroy(playlist)
-    result
+  # The reload function
+  def reload(~uri="") =
+    if uri != "" then
+      playlist_uri := uri
+    end
+    log(label=id,"Reloading playlist with URI #{!playlist_uri}")
+    load_playlist()
   end
+  # Load the playlist
+  load_playlist()
+  # Return
+  (reload,source)
+end
+
+# Custom playlist source written using the script language.
+# Will read directory or playlist, play all files and stop
+# @category Source / Input
+# @param ~id Force the value of the source ID. 
+# @param ~random Randomize playlist content
+# @param ~on_done Function to execute when the playlist is finished
+# @param uri Playlist URI
+def playlist.once(~id="",~random=false,~on_done={()},uri)
+  snd(playlist.reloadable(id=id,random=random,on_done=on_done,uri))
 end
 
 # Mixes two streams, with faded transitions between the state when only the
