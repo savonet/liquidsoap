@@ -494,6 +494,9 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
   playlist = ref []
   # A reference to the uri
   playlist_uri = ref uri
+  # A reference to know if the source
+  # has been stopped
+  has_stopped = ref false
   # The next function
   def next () =
     file =
@@ -503,7 +506,10 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
         ret
       else
         # Playlist finished
-        on_done ()
+        if not !has_stopped then
+          on_done ()
+        end
+        has_stopped := true
         ""
       end
     request.create(file)
@@ -544,6 +550,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
       playlist_uri := uri
     end
     log(label=id,"Reloading playlist with URI #{!playlist_uri}")
+    has_stopped := false
     load_playlist()
   end
   # Load the playlist
