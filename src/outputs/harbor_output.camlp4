@@ -665,7 +665,12 @@ object (self)
           (fun c ->
              Tutils.mutexify c.mutex
                (fun () ->
-                 c.state <- Done) ())
+                 c.state <- Done;
+                 duppy_run
+                    duppy_broadcast duppy_c
+                 with
+                  { raise = (fun () -> ()) ;
+                    return = (fun () -> ()) }) ())
           clients ;
         clients <- new_clients) () ;
     match dump with

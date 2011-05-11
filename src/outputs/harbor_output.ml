@@ -270,13 +270,13 @@ class output ~kind p =
                           (if chunk > buflen
                            then
                              raise
-                               (Lang.Invalid_value ((List.assoc "buffer" p),
+                               (Lang.Invalid_value (List.assoc "buffer" p,
                                   "Maximum buffering inferior to chunk length"))
                            else ();
                            if burst > buflen
                            then
                              raise
-                               (Lang.Invalid_value ((List.assoc "buffer" p),
+                               (Lang.Invalid_value (List.assoc "buffer" p,
                                   "Maximum buffering inferior to burst length"))
                            else ())
                         in let source = Lang.assoc "" 2 p
@@ -1140,8 +1140,21 @@ class output ~kind p =
                                                                     c.mutex
                                                                     (fun ()
                                                                     ->
-                                                                    c.state
-                                                                    <- Done)
+                                                                    (c.state
+                                                                    <- Done;
+                                                                    Duppy.
+                                                                    Monad.run
+                                                                    ~return:
+                                                                    (fun ()
+                                                                    -> ())
+                                                                    ~raise:
+                                                                    (fun ()
+                                                                    -> ())
+                                                                    (Duppy.
+                                                                    Monad.
+                                                                    Condition.
+                                                                    broadcast
+                                                                    duppy_c)))
                                                                     ())
                                                                     clients;
                                                                     clients
