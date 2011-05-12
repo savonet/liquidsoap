@@ -288,12 +288,18 @@ AC_SUBST(W_OPAL)
 #
 ###############################################################################
 
-# 
+#
 # Graphics
 #
 
 # ocamlfind query graphics is not enough, but linking seems okay
 AC_CHECK_OCAML_BINDING([graphics],[],[],[],[],[],[${OCAMLFIND} ocamlc -linkpkg -package graphics -o /dev/null])
+
+AC_ARG_ENABLE([graphics],AC_HELP_STRING([--disable-graphics],[don't use the graphics library]))
+if test "x$enable_graphics" = "xno" ; then
+   W_GRAPHICS=""
+   w_GRAPHICS="no"
+fi
 
 #
 # PCRE
