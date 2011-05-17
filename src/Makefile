@@ -113,10 +113,14 @@ analyze = analyze/analyze_rms.ml
 
 encoders = \
 	encoder/wav_encoder.ml \
+	encoder/lame_encoder.ml \
 	$(if ($(OS_TYPE):Win32=),encoder/external_encoder.ml) \
-	$(if $(W_LAME),encoder/lame_encoder.ml) \
+	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
+	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
 	$(if $(W_FLAC),encoder/flac_encoder.ml) \
-	$(if $(W_AACPLUS),encoder/aacplus_encoder.ml) \
+	encoder/aacplus_encoder.ml \
+	$(if $(W_AACPLUS),encoder/aacplus_encoder_builtin.ml) \
+	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml) \
 	$(if $(W_VOAACENC),encoder/voaacenc_encoder.ml)
 
 outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
@@ -139,6 +143,8 @@ io = \
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml \
+	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
+	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/liq_sockets.ml \
 	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
 	tools/tutils.ml tools/http.ml tools/pool.ml

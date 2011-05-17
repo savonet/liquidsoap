@@ -25,73 +25,86 @@
 open Encoder
 open Encoder.AACPlus
 
+module type Aacplus_t =
+sig
+  exception Invalid_data
+  exception Invalid_config
+  type t
+  val create : channels:int -> samplerate:int -> bitrate:int -> unit -> t
+  val frame_size : t -> int
+  val encode : t -> float array array -> string
+end
+
 module G = Generator.Generator
 
-let create_encoder ~samplerate ~bitrate ~channels =
-  let bitrate = bitrate*1000 in
-  Aacplus.create ~channels ~samplerate ~bitrate ()
-
-let encoder aacplus =
-  let channels = aacplus.channels in
-  let enc = create_encoder ~samplerate:aacplus.samplerate 
-                         ~bitrate:aacplus.bitrate 
-                         ~channels 
-  in
-  let samplerate_converter =
-    Audio_converter.Samplerate.create channels
-  in
-  let has_encoded = ref false in
-  let samplerate = aacplus.samplerate in
-  let src_freq = float (Frame.audio_of_seconds 1.) in
-  let dst_freq = float samplerate in
-  (* Aacplus accepts data of a fixed length.. *)
-  let samples = Aacplus.frame_size enc in
-  let data = Audio.create channels samples in
-  let buf = G.create () in
-  let encode frame start len =
-    let start = Frame.audio_of_master start in
-    let b = AFrame.content_of_type ~channels frame start in
-    let len = Frame.audio_of_master len in
-    let b,start,len =
-      if src_freq <> dst_freq then
-        let b = Audio_converter.Samplerate.resample
-          samplerate_converter (dst_freq /. src_freq)
-          b start len
-        in
-        b,0,Array.length b.(0)
-      else
-        Audio.copy b,start,len
+module Register(Aacplus:Aacplus_t) = 
+struct
+  let register_encoder name = 
+    let create_encoder ~samplerate ~bitrate ~channels =
+      let bitrate = bitrate*1000 in
+      Aacplus.create ~channels ~samplerate ~bitrate ()
     in
-    G.put buf b start len ;
-    if (G.length buf > samples) then
-     begin
-      let l = G.get buf samples in
-      let f (b,o,o',l) = 
-        Audio.blit b o data o' l
+    let encoder aacplus =
+      let channels = aacplus.channels in
+      let enc = create_encoder ~samplerate:aacplus.samplerate 
+                               ~bitrate:aacplus.bitrate 
+                               ~channels 
       in
-      List.iter f l ;
-      has_encoded := true;
-      Aacplus.encode enc data
-     end
-    else "" 
-  in
-  (* There is a bug in libaacplus when closing 
-   * an encoder tht has not yet encoded any data.
-   * Thus, we force it to happen before closing.. *)
-  let stop () = 
-    if not !has_encoded then
-      ignore(Aacplus.encode enc data) ;
-    ""
-  in
-    {
-      insert_metadata = (fun m -> ()) ;
-      header = None ;
-      encode = encode ;
-      stop = stop
-    }
-
-let () =
-  Encoder.plug#register "AAC+"
-    (function
-       | Encoder.AACPlus m -> Some (fun _ _ -> encoder m)
-       | _ -> None)
+      let samplerate_converter =
+        Audio_converter.Samplerate.create channels
+      in
+      let has_encoded = ref false in
+      let samplerate = aacplus.samplerate in
+      let src_freq = float (Frame.audio_of_seconds 1.) in
+      let dst_freq = float samplerate in
+      (* Aacplus accepts data of a fixed length.. *)
+      let samples = Aacplus.frame_size enc in
+      let data = Audio.create channels samples in
+      let buf = G.create () in
+      let encode frame start len =
+        let start = Frame.audio_of_master start in
+        let b = AFrame.content_of_type ~channels frame start in
+        let len = Frame.audio_of_master len in
+        let b,start,len =
+          if src_freq <> dst_freq then
+            let b = Audio_converter.Samplerate.resample
+              samplerate_converter (dst_freq /. src_freq)
+              b start len
+            in
+            b,0,Array.length b.(0)
+          else
+            Audio.copy b,start,len
+        in
+        G.put buf b start len ;
+        if (G.length buf > samples) then
+         begin
+          let l = G.get buf samples in
+          let f (b,o,o',l) = 
+            Audio.blit b o data o' l
+          in
+          List.iter f l ;
+          has_encoded := true;
+          Aacplus.encode enc data
+         end
+        else "" 
+      in
+      (* There is a bug in libaacplus when closing 
+       * an encoder that has not yet encoded any data.
+       * Thus, we force it to happen before closing.. *)
+      let stop () = 
+        if not !has_encoded then
+          ignore(Aacplus.encode enc data) ;
+        ""
+      in
+        {
+          insert_metadata = (fun m -> ()) ;
+          header = None ;
+          encode = encode ;
+          stop = stop
+        }
+    in
+    Encoder.plug#register name
+      (function
+         | Encoder.AACPlus m -> Some (fun _ _ -> encoder m)
+         | _ -> None)
+end

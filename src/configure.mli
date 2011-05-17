@@ -13,6 +13,9 @@ val subst_vars : string -> string
 (** Where to look for standard .liq scripts to include *)
 val libs_dir : string
 
+(** Directories where to search for libraries.. *)
+val findlib_path : string list
+
 (** Command line entry for dynamic loading of plugins *)
 val dynliq_option : (string list * Arg.spec * string) list
 

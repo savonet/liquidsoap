@@ -149,11 +149,20 @@ if test "$OS_TYPE" \!= "Win32" ; then
   CFLAGS="$CFLAGS -fPIC"
 fi
 
+OCAML_WHERE="`ocamlc -where`"
+# Beurk!
+FINDLIB_PATH="`ocamlfind printconf path | tr \\\\n \\; | sed -e 's#;$##' | sed -e 's#;#";"#g'`"
+if test -n "${FINDLIB_PATH}"; then
+  FINDLIB_PATH="\"${FINDLIB_PATH}\""
+fi
 # Add -I`ocamlc -where` to CFLAGS for 
 # user with locally installed headers.
 if test "$OS_TYPE" \!= "Win32" ; then
-  CFLAGS="$CFLAGS -I`ocamlc -where`"
+  CFLAGS="$CFLAGS -I${OCAML_WHERE}"
 fi
+cat >> src/configure.ml <<__BLAH__
+let findlib_path = [[${FINDLIB_PATH}]]
+__BLAH__
 
 # Optimize for local machine
 AC_ARG_ENABLE([optimize],
@@ -168,6 +177,10 @@ fi
 ocamlcflags="-ccopt \"\$(CFLAGS)\""
 ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
 requires="unix threads str"
+if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+  ocamllflags="$ocamllflags -package dynlink"
+  requires="$requires dynlink"
+fi
 if test "$enable_nativecode" \!= "no" ; then
     BYTE=
     OCAMLCOMP=OCAMLOPT
@@ -337,7 +350,6 @@ fi
 
 AC_CHECK_OCAML_BINDING([cry],[0.1.2])
 
-#
 # ocaml-mm
 #
 
@@ -395,6 +407,13 @@ AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
 #
 
 AC_CHECK_OCAML_BINDING([lame])
+if test -z "${W_LAME}"; then
+  if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+     W_LAME_DYN=yes
+     w_LAME="detected at runtime"
+  fi
+fi
+AC_SUBST(W_LAME_DYN)
 
 #
 # Gstreamer
@@ -407,6 +426,13 @@ AC_CHECK_OCAML_BINDING([gstreamer])
 #
 
 AC_CHECK_OCAML_BINDING([aacplus],[0.2.0])
+if test -z "${W_AACPLUS}"; then
+  if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+     W_AACPLUS_DYN=yes
+     w_AACPLUS="detected at runtime"
+  fi
+fi
+AC_SUBST(W_AACPLUS_DYN)
 
 #
 # Voaacenc
