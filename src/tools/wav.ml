@@ -83,28 +83,25 @@ let read_header read_ops ic =
   let read_short ic =
     read_int_num_bytes ic 2
   in
-  let buff = "riffwaveFMT?" in
-    (* verify it has a right header *)
-    really_input ic buff 0 4;
-    ignore (input_byte ic);   (* size *)
-    ignore (input_byte ic);   (*  of  *)
-    ignore (input_byte ic);   (* the  *)
-    ignore (input_byte ic);   (* file *)
-    really_input ic buff 4 8;
+  let read_string ic n =
+    let ans = String.create n in
+    really_input ic ans 0 n;
+    ans
+  in
 
-    if buff <> "RIFFWAVEfmt " then
-      raise
-        (
-          Not_a_wav_file
-            "Bad header : string \"RIFF\", \"WAVE\" or \"fmt \" not found"
-        );
+    if read_string ic 4 <> "RIFF" then
+      raise (Not_a_wav_file "Bad header: \"RIFF\" expected");
+    ignore (read_int ic); (* size of the file *)
+    if read_string ic 4 <> "WAVE" then
+      raise (Not_a_wav_file "Bad header: \"WAVE\" expected");
+    if read_string ic 4 <> "fmt " then
+      raise (Not_a_wav_file "Bad header: \"fmt \" expected");
 
-    ignore (input_byte ic); (* always 0x10 *)
-    ignore (input_byte ic); (* always 0x00 *)
-    ignore (input_byte ic); (* always 0x00 *)
-    ignore (input_byte ic); (* always 0x00 *)
-    ignore (input_byte ic); (* always 0x01 *)
-    ignore (input_byte ic); (* always 0x00 *)
+    let fmt_len = read_int ic in
+    if fmt_len <> 0x10 then
+      raise (Not_a_wav_file "Bad header: invalid \"fmt \" length");
+    if read_short ic <> 1 then
+      raise (Not_a_wav_file "Bad header: unhandled codec");
 
     let chan_num = read_short ic in
     let samp_hz = read_int ic in
@@ -112,14 +109,13 @@ let read_header read_ops ic =
     let byt_per_samp= read_short ic in
     let bit_per_samp= read_short ic in
 
-      really_input ic buff 0 4;
-
-      if buff <> "dataWAVEfmt " then
-        (
-          if buff = "INFOWAVEfmt " then
-            raise (Not_a_wav_file "Valid wav file but unread");
-          raise (Not_a_wav_file "Bad header : string \"data\" not found")
-        );
+    let header = ref (read_string ic 4) in
+      (* Skip unhandled chunks. *)
+      while !header <> "data" do
+        let len = read_int ic in
+        ignore (read_string ic len);
+        header := read_string ic 4
+      done;
 
       let len_dat = read_int ic in
         {
