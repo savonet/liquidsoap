@@ -277,8 +277,7 @@ object (self)
               | Some f -> close_out f ; logf <- None
               | None -> ()
             end ;
-            Http.disconnect socket ;
-            if debug then raise e
+            Http.disconnect socket
 
   (** This method gets overriden by superclasses (see Lastfm_input)
     * but #private_connect should not be changed.

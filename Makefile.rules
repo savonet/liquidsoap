@@ -90,7 +90,7 @@ ifdef $(PROG)_c_files
   ifeq ($(BYTE),yes)
     ifeq ($(NO_CUSTOM),yes)
         c_objs=dll$(PROG).so $($(PROG)_c_files:.c=.o)
-        c_link=-dllib dll$(PROG).so $($(PROG)_c_files:.c=.o)
+        c_link=-dllib dll$(PROG).so
     else
       c_objs=$($(PROG)_c_files:.c=.o)
       c_link=-custom $($(PROG)_c_files:.c=.o)
