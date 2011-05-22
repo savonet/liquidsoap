@@ -7,65 +7,109 @@ DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
 ocaml_progs= liquidsoap
 
-liquidsoap_c_files = \
-	$(if $(W_OSS),io/oss_io_c.c) \
-	$(if $(NEED_TCP_NODELAY), tools/socket_stubs.c) \
-	$(if $(W_OPAL),io/opal_io_c.c)
+top_srcdir=..
+include $(top_srcdir)/Makefile.defs
 
+# Liquidsoap source files work as follows.
+# Each file has to be either added to liquidsoap's files if compiled builtin
+# or to the corresponding plugin if built as a plugin.
+# For this purpose, we define the make function
+# conditional_compilation, which redirects each of those files to
+# the correct make variable. Its parameters are:
+# $1: name of the make variable where the file should go if compiled builtin.
+# $2: the $W_FOO variable
+# $3: path to the file
+# $4: type of source: empty for .ml sources,
+#                     c_ for c sources and camlp4_ for camlp4 sources.
+#                     (Camlp4 sources are not supported yet..)
+#
+# For now, the old style Makefile has been converted to
+# this new style by replacing $(if $(W_FOO),..) by
+# $(call conditional_compilation,..). However, this may
+# cause some trouble as the order of declaration is important
+# both for the builtin case and plugin case.. See for instance
+# SDL files, whose declaration have been moved at the end.
+conditional_compilation = \
+  $(if $(2),\
+    $(if $(2:yes=),\
+      $(eval $(2)_$(4)sources += $(3)),\
+      $(eval $(1) += $(3))))
+
+liquidsoap_c_files = \
+	tools/locale_c.c \
+	$(if $(NEED_TCP_NODELAY),tools/socket_stubs.c)
+
+# Add conditional files..
+$(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)
+$(call conditional_compilation,liquidsoap_c_files,$(W_OPAL),io/opal_io_c.c,c_)
+
+# Camlp4 compilation works as follow:
+# both .camlp4 and .ml files are present in the
+# source tree.
+# If camlp4o is detected, then a .camlp4.ml target
+# is executed for each .camlp4. This target creates a .camlp4.ml
+# file that is not used and regenerate the .ml files used for compilation.
 liquidsoap_camlp4_files = \
 	$(if $(W_DUPPY_SYNTAX),outputs/harbor_output.camlp4) \
 	$(if $(W_DUPPY_SYNTAX),tools/server.camlp4) \
 	$(if $(W_DUPPY_SYNTAX),tools/harbor.camlp4)
 
-ogg_demuxer = \
-	$(if $(W_OGG),ogg_formats/ogg_demuxer.ml) \
-	$(if $(W_SPEEX),ogg_formats/speex_decoder.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_decoder.ml) \
-	$(if $(W_THEORA),ogg_formats/theora_decoder.ml) \
-	$(if $(W_FLAC_OGG),ogg_formats/ogg_flac_decoder.ml) \
-	$(if $(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
+# This variable contains only conditional files..
+ogg_demuxer =
 
-ogg_muxer = \
-	$(if $(W_OGG),ogg_formats/ogg_muxer.ml) \
-	$(if $(W_OGG), encoder/ogg_encoder.ml) \
-	$(if $(W_SPEEX),ogg_formats/speex_encoder.ml) \
-	$(if $(W_VORBIS),ogg_formats/vorbis_encoder.ml) \
-	$(if $(W_THEORA),ogg_formats/theora_encoder.ml) \
-	$(if $(W_FLAC_OGG),ogg_formats/ogg_flac_encoder.ml) \
-	$(if $(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_OGG),ogg_formats/ogg_demuxer.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_SPEEX),ogg_formats/speex_decoder.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_VORBIS),ogg_formats/vorbis_decoder.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_THEORA),ogg_formats/theora_decoder.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_FLAC_OGG),ogg_formats/ogg_flac_decoder.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
+
+# This variable contains only conditional files..
+ogg_muxer =
+
+$(call conditional_compilation,ogg_muxer,$(W_OGG),ogg_formats/ogg_muxer.ml)
+$(call conditional_compilation,ogg_muxer,$(W_OGG), encoder/ogg_encoder.ml)
+$(call conditional_compilation,ogg_muxer,$(W_SPEEX),ogg_formats/speex_encoder.ml)
+$(call conditional_compilation,ogg_muxer,$(W_VORBIS),ogg_formats/vorbis_encoder.ml)
+$(call conditional_compilation,ogg_muxer,$(W_THEORA),ogg_formats/theora_encoder.ml)
+$(call conditional_compilation,ogg_muxer,$(W_FLAC_OGG),ogg_formats/ogg_flac_encoder.ml)
+$(call conditional_compilation,ogg_muxer,$(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
-	audio_converters/native_audio_converter.ml \
-	$(if $(W_SAMPLERATE),audio_converters/libsamplerate_converter.ml)
+	audio_converters/native_audio_converter.ml
+
+$(call conditional_compilation,audio_converters,$(W_SAMPLERATE),audio_converters/libsamplerate_converter.ml)
 
 video_converters = \
 	video_converter.ml \
-	video_converters/native_video_converter.ml \
-	$(if $(W_GAVL),video_converters/gavl_converter.ml)
+	video_converters/native_video_converter.ml
+
+$(call conditional_compilation,video_converters,$(W_GAVL),video_converters/gavl_converter.ml)
 
 decoders = \
+	decoder/metadata_decoder.ml \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
-	$(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml) \
-	$(if $(W_FLAC),decoder/flac_decoder.ml) \
-	$(if $(W_FAAD),decoder/aac_decoder.ml) \
-	$(if $(W_OGG),decoder/ogg_decoder.ml) \
-	$(if $(W_MAD),decoder/mp3.ml) \
-	$(if $(W_VORBIS),decoder/vorbisduration.ml) \
-	$(if $(W_FLAC),decoder/flacduration.ml) \
-	$(if $(W_FLAC_OGG),decoder/ogg_flac_duration.ml) \
-	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
-	$(if $(W_SDL),decoder/sdlimage_decoder.ml) \
-	decoder/metadata_decoder.ml
+	$(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml)
+
+$(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
+$(call conditional_compilation,decoders,$(W_FAAD),decoder/aac_decoder.ml)
+$(call conditional_compilation,decoders,$(W_OGG),decoder/ogg_decoder.ml)
+$(call conditional_compilation,decoders,$(W_MAD),decoder/mp3.ml)
+$(call conditional_compilation,decoders,$(W_VORBIS),decoder/vorbisduration.ml)
+$(call conditional_compilation,decoders,$(W_FLAC),decoder/flacduration.ml)
+$(call conditional_compilation,decoders,$(W_FLAC_OGG),decoder/ogg_flac_duration.ml)
+$(call conditional_compilation,decoders,$(W_TAGLIB),decoder/taglib_plug.ml)
 
 playlists = \
-	playlists/playlist_basic.ml $(if $(W_XMLPLAYLIST),playlists/playlist_xml.ml)
+	playlists/playlist_basic.ml
+
+$(call conditional_compilation,playlists,$(W_XMLPLAYLIST),playlists/playlist_xml.ml)
 
 protocols = \
 	$(if ($(OS_TYPE):Win32=),protocols/say.ml) \
 	protocols/annotate.ml \
 	protocols/mpd.ml \
-	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml) \
-	$(if $(W_LASTFM),protocols/lastfm_req.ml)
+	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml)
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
@@ -73,12 +117,11 @@ sources = \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
-	$(if $(W_ALSA),sources/alsa_in.ml) \
-	$(if $(W_BJACK),sources/bjack_in.ml) \
-	$(if $(W_LASTFM),sources/lastfm_input.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
 	$(if ($(OS_TYPE):Win32=),sources/external_input.ml) \
 	tools/liqMM.ml
+
+$(call conditional_compilation,sources,$(W_BJACK),sources/bjack_in.ml)
 
 operators = \
 	operators/insert_metadata.ml operators/map_metadata.ml \
@@ -93,17 +136,16 @@ operators = \
 	operators/compress.ml operators/clip.ml operators/filter.ml \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
-	operators/dyn_op.ml \
-	$(if $(W_SOUNDTOUCH),operators/soundtouch_op.ml) \
-	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
-	operators/video_effects.ml operators/video_fade.ml \
-	$(if $(W_SDL),operators/video_text.ml) \
-	$(if $(W_LADSPA),operators/ladspa_op.ml) \
+	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/video_image.ml operators/chord.ml
+
+$(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/soundtouch_op.ml)
+$(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/st_bpm.ml)
+$(call conditional_compilation,operators,$(W_LADSPA),operators/ladspa_op.ml)
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
@@ -114,67 +156,87 @@ analyze = analyze/analyze_rms.ml
 encoders = \
 	encoder/wav_encoder.ml \
 	encoder/lame_encoder.ml \
-	$(if ($(OS_TYPE):Win32=),encoder/external_encoder.ml) \
-	$(if $(W_LAME),encoder/lame_encoder_builtin.ml) \
-	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
-	$(if $(W_FLAC),encoder/flac_encoder.ml) \
 	encoder/aacplus_encoder.ml \
-	$(if $(W_AACPLUS),encoder/aacplus_encoder_builtin.ml) \
-	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml) \
-	$(if $(W_VOAACENC),encoder/voaacenc_encoder.ml)
+	$(if ($(OS_TYPE):Win32=),encoder/external_encoder.ml) \
+	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
+	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml)
 
-outputs = outputs/output.ml $(if $(W_AO),outputs/ao_out.ml) \
-	outputs/pipe_output.ml $(if $(W_CRY),outputs/icecast2.ml) \
-	outputs/harbor_output.ml \
-	$(if $(W_SDL),outputs/sdl_out.ml) \
-	$(if $(W_GRAPHICS),outputs/graphics_out.ml) \
-	$(if $(W_ALSA),outputs/alsa_out.ml) \
-	$(if $(W_BJACK),outputs/bjack_out.ml)
+$(call conditional_compilation,encoders,$(W_LAME),encoder/lame_encoder_builtin.ml)
+$(call conditional_compilation,encoders,$(W_FLAC),encoder/flac_encoder.ml)
+$(call conditional_compilation,encoders,$(W_AACPLUS),encoder/aacplus_encoder_builtin.ml)
+$(call conditional_compilation,encoders,$(W_VOAACENC),encoder/voaacenc_encoder.ml)
 
-io = \
-        $(if $(W_ALSA),io/alsa_io.ml) \
-	$(if $(W_OSS),io/oss_io.ml) \
-	$(if $(W_PULSEAUDIO),io/pulseaudio_io.ml) \
-	$(if $(W_PORTAUDIO),io/portaudio_io.ml) \
-	$(if $(W_JACK),io/jack_io.ml) \
-	$(if $(W_OPAL),io/opal_io.ml) \
-	$(if $(W_GSTREAMER),io/gstreamer_io.ml) \
-	io/udp_io.ml
+outputs = outputs/output.ml \
+	outputs/pipe_output.ml \
+	outputs/harbor_output.ml
+
+$(call conditional_compilation,outputs,$(W_AO),outputs/ao_out.ml)
+$(call conditional_compilation,outputs,$(W_CRY),outputs/icecast2.ml)
+$(call conditional_compilation,outputs,$(W_GRAPHICS),outputs/graphics_out.ml)
+$(call conditional_compilation,outputs,$(W_BJACK),outputs/bjack_out.ml)
+
+io = io/udp_io.ml
+
+$(call conditional_compilation,io,$(W_OSS),io/oss_io.ml)
+$(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
+$(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
+$(call conditional_compilation,io,$(W_JACK),io/jack_io.ml)
+$(call conditional_compilation,io,$(W_OPAL),io/opal_io.ml)
+$(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/liq_sockets.ml \
-	tools/wav.ml $(if $(BYTE),tools/dynliq.ml) configure.ml \
+	tools/wav.ml configure.ml \
 	tools/tutils.ml tools/http.ml tools/pool.ml
 
 stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml
 
 visualization = visualization/vumeter.ml \
-	$(if $(W_GRAPHICS),visualization/vis_volume.ml) \
 	visualization/midimeter.ml \
 	visualization/video_volume.ml
 
-synth = synth/keyboard.ml synth/synth_op.ml \
-	$(if $(W_SDL),synth/keyboard_sdl.ml) \
-	$(if $(W_DSSI),synth/dssi_op.ml)
+$(call conditional_compilation,visualization,$(W_GRAPHICS),visualization/vis_volume.ml)
 
-builtins = lang/lang_builtins.ml \
-	$(if $(W_LO),lang/builtins_lo.ml) \
-	$(if $(W_MAGIC),lang/builtins_magic.ml) \
-	$(if $(W_LASTFM),lang/builtins_lastfm.ml) \
-	$(if $(W_CRY),lang/builtins_cry.ml)
+synth = synth/keyboard.ml synth/synth_op.ml
+
+$(call conditional_compilation,synth,$(W_DSSI),synth/dssi_op.ml)
+
+builtins = lang/lang_builtins.ml
+
+$(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
+$(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)
+$(call conditional_compilation,builtins,$(W_CRY),lang/builtins_cry.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
-	tools/server_builtins.ml \
-	$(if $(W_SDL),tools/sdl_utils.ml) \
-	$(if $(W_LASTFM),tools/liqfm.ml) \
-	$(if $(W_ALSA), alsa_settings.ml) \
+	tools/server_builtins.ml
+
+# Include SDL now. Order matters so we group them all here..
+$(call conditional_compilation,liquidsoap_sources,$(W_SDL),tools/sdl_utils.ml)
+$(call conditional_compilation,synth,$(W_SDL),synth/keyboard_sdl.ml)
+$(call conditional_compilation,decoders,$(W_SDL),decoder/sdlimage_decoder.ml)
+$(call conditional_compilation,operators,$(W_SDL),operators/video_text.ml)
+$(call conditional_compilation,outputs,$(W_SDL),outputs/sdl_out.ml)
+
+# Same for lastfm..
+$(call conditional_compilation,liquidsoap_sources,$(W_LASTFM),tools/liqfm.ml)
+$(call conditional_compilation,protocols,$(W_LASTFM),protocols/lastfm_req.ml)
+$(call conditional_compilation,sources,$(W_LASTFM),sources/lastfm_input.ml)
+$(call conditional_compilation,builtins,$(W_LASTFM),lang/builtins_lastfm.ml)
+
+# Same for alsa..
+$(call conditional_compilation,liquidsoap_sources,$(W_ALSA), alsa_settings.ml)
+$(call conditional_compilation,sources,$(W_ALSA),sources/alsa_in.ml)
+$(call conditional_compilation,outputs,$(W_ALSA),outputs/alsa_out.ml)
+$(call conditional_compilation,io,$(W_ALSA),io/alsa_io.ml)
+
+liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
@@ -185,8 +247,10 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
 	shebang.ml $(builtins) main.ml
 
+include $(top_srcdir)/Makefile.rules
+
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
-OCAML_LFLAGS= $(if $(BYTE),dynlink.cma) $(if $(W_OPAL),-cclib -lopal)
+OCAML_LFLAGS= $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
 liquidsoap_doc_sources= \
@@ -201,9 +265,6 @@ liquidsoap_doc_sources= \
 	stream/frame.ml stream/aFrame.ml \
 	stream/vFrame.ml audio_converter.ml \
 	stream/mFrame.ml stream/generator.ml
-
-top_srcdir=..
-include $(top_srcdir)/Makefile.rules
 
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
@@ -224,9 +285,24 @@ SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	  echo "let rev = \"\"" > SVN.ml ; \
 	fi
 
-install-local: all-auto
+install-plugin-%:
+	$(INSTALL_DATA) plugins/$*.$(s) $(libdir)/liquidsoap/$(libs_dir_version)/plugins
+
+install_plugins=\
+$(eval INSTALL_PLUGINS+=install-plugin-$(1))
+$(foreach plugin,$(liquidsoap_PLUGINS),$(call install_plugins,$(plugin)))
+
+install-plugin-dir:
+	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)/plugins
+
+install-local: all-auto install-plugin-dir $(INSTALL_PLUGINS)
 	$(INSTALL) -d $(bindir)
 	$(INSTALL_PROGRAM) liquidsoap $(bindir)
+ifneq ($(BYTE),)
+  ifneq ($(NO_CUSTOM),)
+	$(OCAMLFIND) install liquidsoap META dllliquidsoap.so plugins/dll*.so
+  endif
+endif
 
 # Dirty hack since ocamlcp does not play nicely with include
 profile:
@@ -251,3 +327,4 @@ liquidsoap.$(a): $(libliq_objects:.c=.o) Makefile
 	ocamlmklib $(OCAML_CFLAGS:-threads:) -linkall $(OCAML_LFLAGS) \
 	  -o liquidsoap \
 	  $(libliq_objects:.c=.o)
+

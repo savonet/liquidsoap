@@ -149,9 +149,9 @@ if test "$OS_TYPE" \!= "Win32" ; then
   CFLAGS="$CFLAGS -fPIC"
 fi
 
-OCAML_WHERE="`ocamlc -where`"
+OCAML_WHERE="`$OCAMLFIND ocamlc -where`"
 # Beurk!
-FINDLIB_PATH="`ocamlfind printconf path | tr \\\\n \\; | sed -e 's#;$##' | sed -e 's#;#";"#g'`"
+FINDLIB_PATH="`$OCAMLFIND printconf path | tr \\\\n \\; | sed -e 's#;$##' | sed -e 's#;#";"#g'`"
 if test -n "${FINDLIB_PATH}"; then
   FINDLIB_PATH="\"${FINDLIB_PATH}\""
 fi
@@ -174,8 +174,8 @@ if test "x$enable_optimize" = "xyes" ; then
   CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
 fi
 
-ocamlcflags="-ccopt \"\$(CFLAGS)\""
-ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
+liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
+liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray -package dynlink"
 requires="unix threads str"
 if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
   ocamllflags="$ocamllflags -package dynlink"
@@ -187,33 +187,34 @@ if test "$enable_nativecode" \!= "no" ; then
     cma=cmxa
     cmo=cmx
     cmi=cmi
-    ocamlcflags="$ocamlcflags"
+    cmxs=cmxs
+    shared_flag=-shared
+    liquidsoap_ocamlcflags="$liquidsoap_ocamlcflags"
     if test "x$enable_profiling" = "xyes" ; then
-        ocamlcflags="-p $ocamlcflags"
+        liquidsoap_ocamlcflags="-p $liquidsoap_ocamlcflags"
     fi
     if test "x$enable_debugging" = "xyes" ; then
         CFLAGS="$CFLAGS -g"
-        ocamlcflags="-g -annot $ocamlcflags"
-        ocamllflags="-g $ocamllflags"
+        liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+        liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
     fi
     AC_MSG_CHECKING(whether ocamlopt accepts -ffast-math)
     if [ `$OCAMLFIND ocamlopt -ffast-math 2>/dev/null` ]; then
         AC_MSG_RESULT(yes)
-        ocamlcflags="-ffast-math $ocamlcflags"
+        liquidsoap_ocamlcflags="-ffast-math $liquidsoap_ocamlcflags"
     else
         AC_MSG_RESULT(no)
     fi
     OCAMLC="$OCAMLFIND ocamlopt"
     _DEP_OPTS="-native"
-    cat >> src/configure.ml <<__BLAH__
-let dynliq_option = [[]]
-__BLAH__
 else
     BYTE=yes
     OCAMLCOMP=OCAMLC
     cma=cma
     cmo=cmo
     cmi=cmi
+    cmxs=cma
+    shared_flag=-a
     if test "$enable_custom" = "no" ; then
       NO_CUSTOM=yes ;
       AC_PATH_PROG(OCAMLMKLIB,ocamlmklib,no)
@@ -223,7 +224,7 @@ else
     fi
     if test "x$enable_debugging" = "xyes" ; then
         CFLAGS="$CFLAGS -g"
-        ocamlcflags="$ocamlcflags -g"
+        liquidsoap_ocamlcflags="$liquidsoap_ocamlcflags -g"
     fi
     if test "x$enable_profiling" = "xyes" ; then
         OCAMLC="$OCAMLFIND ocamlcp"
@@ -231,11 +232,6 @@ else
         OCAMLC="$OCAMLFIND ocamlc"
     fi
     _DEP_OPTS=""
-    cat >> src/configure.ml <<__BLAH__
-let dynliq_option = [[["-m";"--load-module"],
-                     Arg.String Dynliq.load,
-                     "Load a bytecode plugin."]]
-__BLAH__
 fi
 
 OCAML_VERSION="`$OCAMLC -version`"
@@ -500,16 +496,27 @@ AC_CHECK_OCAML_BINDING([taglib])
 
 AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],[don't use OSS]))
 
+AC_ARG_ENABLE([oss-plugin],
+   AC_HELP_STRING(
+      [--enable-oss-plugin],
+      [Compile oss as an optional plugin.]))
+
 if test "x$enable_oss" != "xno" ; then
   AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
 fi
 
-AC_SUBST(W_OSS)
 if test "a$W_OSS" = "ayes" ; then
+  if test "x$enable_oss_plugin" = "xyes"; then
+        W_OSS=oss
+        w_OSS=plugin
+        PLUGINS="$PLUGINS oss"
+  else
         w_OSS=yes
+  fi
 else
         w_OSS=no
 fi
+AC_SUBST(W_OSS)
 
 #
 # Magic
@@ -777,12 +784,16 @@ __BLAH__
 AC_SUBST(OCAMLCOMP)
 AC_SUBST(NO_CUSTOM)
 AC_SUBST(_DEP_OPTS)
-AC_SUBST(ocamlcflags)
-AC_SUBST(ocamllflags)
+AC_SUBST(liquidsoap_ocamlcflags)
+AC_SUBST(liquidsoap_ocamllflags)
 AC_SUBST(requires)
 AC_SUBST(cma)
 AC_SUBST(cmo)
 AC_SUBST(cmi)
+AC_SUBST(cmxs)
+AC_SUBST(shared_flag)
+AC_SUBST(PLUGINS)
+AC_SUBST(PLUGINS_DATA)
 
 echo
 
@@ -816,8 +827,9 @@ cat <<EOMSG
  Compiler       : $OCAMLC
  Version        : $OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION
  OS             : $OS_TYPE
- OCAML_CFLAGS   : $ocamlcflags
- OCAML_LFLAGS   : $ocamllflags
+ PLugins        :$PLUGINS
+ OCAML_CFLAGS   : $liquidsoap_ocamlcflags
+ OCAML_LFLAGS   : $liquidsoap_ocamllflags
  CFLAGS         : $CFLAGS
  LDFLAGS        : $LDFLAGS
  ${BYTE_COMP}${CAMLP4O_COMP}

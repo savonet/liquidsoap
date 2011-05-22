@@ -22,6 +22,12 @@
 
 let get_some = function Some x -> x | None -> assert false
 
+(* Force locale to C *)
+external force_locale : unit -> unit = "liquidsoap_set_locale"
+
+let () = 
+  force_locale ()
+
 (* Several list utilities *)
 
 let rec make_list n v = if n = 0 then [] else v::(make_list (n-1) v)

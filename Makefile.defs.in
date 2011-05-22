@@ -30,8 +30,8 @@ OS_TYPE = @OS_TYPE@
 EXEEXT = @EXEEXT@
 CAMLP4O = @CAMLP4O@
 
-_OCAML_CFLAGS= @ocamlcflags@
-_OCAML_LFLAGS= @ocamllflags@ -cclib "$(LDFLAGS)"
+liquidsoap_ocamlcflags= @liquidsoap_ocamlcflags@
+liquidsoap_ocamllflags= @liquidsoap_ocamllflags@  -cclib "$(LDFLAGS)"
 _DEP_OPTS= @_DEP_OPTS@
 
 # Make the building quiet
@@ -40,6 +40,8 @@ V=@
 o=@cmo@
 a=@cma@
 i=@cmi@
+s=@cmxs@
+shared_flag=@shared_flag@
 BUILD_TESTS=
 
 BYTE=@BYTE@
@@ -50,11 +52,16 @@ OCAMLLEX=@OCAMLLEX@
 OCAMLYACC=@OCAMLYACC@
 OCAMLMKLIB=@OCAMLMKLIB@
 NO_CUSTOM=@NO_CUSTOM@
+OCAMLFIND=@OCAMLFIND@
 OCAML_MAJOR=@OCAML_MAJOR@
 OCAML_MINOR=@OCAML_MINOR@
 OCAML_REVISION=@OCAML_REVISION@
 OCAML_HAS_FIRST_CLASS_MODULES=@OCAML_HAS_FIRST_CLASS_MODULES@
 NEED_TCP_NODELAY=@NEED_TCP_NODELAY@
+
+liquidsoap_PLUGINS=@PLUGINS@
+
+@PLUGINS_DATA@
 
 W_MM=@W_MM@
 W_CRY=@W_CRY@

@@ -16,8 +16,8 @@ val libs_dir : string
 (** Directories where to search for libraries.. *)
 val findlib_path : string list
 
-(** Command line entry for dynamic loading of plugins *)
-val dynliq_option : (string list * Arg.spec * string) list
+(** Where to look for dynamically loadable modules (cmxs). *)
+val plugins_dir : string list ref
 
 (** Function to reencode tags into utf8. *)
 val recode_tag : ?in_enc:string -> ?out_enc:string -> string -> string
