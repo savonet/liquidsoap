@@ -426,7 +426,7 @@ let () =
        "or to join the #savonet IRC channel on Freenode.";
        "";
        "Please send any bug report or feature request";
-       "using our trac <http://savonet.rastageeks.org>.";
+       "at <http://dev.sourcefabric.org/browse/LS>.";
        "";
        "We hope you enjoy this snapshot build of Liquidsoap!";
        ""]
