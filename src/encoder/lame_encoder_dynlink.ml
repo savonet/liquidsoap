@@ -22,8 +22,6 @@
 
 (** Dynamic Lame encoder *)
 
-let log = Dtools.Log.make ["encoder";"lame";"dynlink"]
-
 let path =
   try
     [Sys.getenv "LAME_DYN_PATH"]
@@ -35,37 +33,18 @@ let path =
 
 open Lame_dynlink
 
-exception Done of string
-
 let () =
-  let file_ext = 
-    if Dynlink.is_native then
-      "cmxs"
-    else
-      "cma"
+  let load () = 
+    match handler.lame_module with
+      | Some m ->
+          let module Lame = (val m : Lame_dynlink.Lame_t) in
+          let module Register = Lame_encoder.Register(Lame) in
+          Register.register_encoder "MP3/liblame/dynlink"
+      | None   -> assert false
   in
-  begin
-   try 
-    List.iter (fun path ->
-     try
-      if Sys.file_exists (path ^ "/lame." ^ file_ext) &&
-         Sys.file_exists (path ^ "/lame_loader." ^ file_ext) then
-       begin
-        Dynlink.loadfile (path ^ "/lame." ^ file_ext);
-        Dynlink.loadfile (path ^ "/lame_loader." ^ file_ext);
-        raise (Done path)
-       end
-     with
-       | Dynlink.Error e ->
-           log#f 3 "Error while loading dynamic lame encoder at %s" path;
-           log#f 4 "%s" (Dynlink.error_message e)) path;
-    log#f 3 "Could not find dynamic module for lame encoder."
-   with 
-     | Done path -> log#f 3 "Loaded dynamic lame encoder from %s" path
-  end;
-  match handler.lame_module with
-    | Some m ->
-        let module Lame = (val m : Lame_dynlink.Lame_t) in
-        let module Register = Lame_encoder.Register(Lame) in
-        Register.register_encoder "MP3/liblame/dynlink"
-    | None   -> ()
+  Hashtbl.add Utils.dynlink_list
+     "lame encoder"
+     { Utils.
+        path = path;
+        files = ["lame";"lame_loader"];
+        load = load }

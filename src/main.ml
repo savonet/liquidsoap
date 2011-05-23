@@ -277,72 +277,6 @@ let format_doc s =
 
 let log = Log.make ["main"]
 
-let load_plugins_dir d =
-  let suffix = 
-    if Dynlink.is_native then
-      ".cmxs"
-    else
-      ".cma"
-  in
-  (* We need to allow unsafe modules 
-   * for plugins to work in liquidsoap.
-   * Otherwise, plugins that load C stubs
-   * will not be available.. Additionaly,
-   * this function does nothing in native mode.. *)
-  Dynlink.allow_unsafe_modules true;
-  try
-    let dir = Unix.opendir d in
-    let rec files cur =
-      try
-        let f = Unix.readdir dir in
-        let f = Printf.sprintf "%s/%s" d f in
-        if Filename.check_suffix f suffix then
-           files (f :: cur)
-        else
-           files cur
-      with
-        | End_of_file -> cur
-    in
-    let files = files [] in
-    Unix.closedir dir;
-    (* Brute force dependency method:
-     * Try to load plugins in any order
-     * and stop when the list does not shrink.. *)
-    let load ~report cur file = 
-     try
-       Dynlink.loadfile file;
-       log#f 2 "Loaded plugin file %s." file;
-       cur
-      with
-        | Dynlink.Error e when report -> 
-            log#f 2 "Could not load plugin file %s: %s." 
-             file (Dynlink.error_message e);
-            cur
-        | e -> 
-             if report then
-              begin
-                log#f 2 "Unknown error while loading plugin file %s: %s" 
-                  file (Utils.error_message e) ;
-                cur
-              end
-             else
-              file :: cur
-    in
-    let rec try_load files = 
-      let new_files = 
-        List.fold_left (load ~report:false) [] files
-      in
-      if List.length new_files = List.length files then
-        (* Run a last time to report errors.. *)
-        ignore(List.fold_left (load ~report:true) [] files)
-      else
-        (* List has shrinked, run again.. *)
-        try_load new_files
-    in
-    try_load files
-  with
-    | _ -> log#f 2 "Could not load plugins in directory %s." d
-
 let options =
   List.fold_left
     (fun l (la,b,c) ->
@@ -435,8 +369,7 @@ let options =
 
       ["--plugins-dir"],
        Arg.String (fun d ->
-         Configure.plugins_dir := d :: !Configure.plugins_dir;
-         load_plugins_dir d
+         Configure.plugins_dir := d :: !Configure.plugins_dir
        ),
        "Directory where to look for plugins.";
 
@@ -512,10 +445,12 @@ let absolute s =
   else
     s
 
-(* Load plugins: these should be loaded as early as possible since we want to be
-   able to use them in scripts... *)
+(* Load plugins and dynamic loaded libraries: 
+ * these should be loaded as early as possible since we want to be
+ * able to use them in scripts... *)
 let () =
-  List.iter load_plugins_dir !Configure.plugins_dir
+  Utils.load_dynlinks ();
+  List.iter Utils.load_plugins_dir !Configure.plugins_dir
 
 (* Startup *)
 let () =
