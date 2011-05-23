@@ -369,7 +369,7 @@ let options =
 
       ["--plugins-dir"],
        Arg.String (fun d ->
-         Configure.plugins_dir := d :: !Configure.plugins_dir
+         Utils.load_plugins_dir d
        ),
        "Directory where to look for plugins.";
 
@@ -450,7 +450,7 @@ let absolute s =
  * able to use them in scripts... *)
 let () =
   Utils.load_dynlinks ();
-  List.iter Utils.load_plugins_dir !Configure.plugins_dir
+  Utils.load_plugins_dir Configure.plugins_dir
 
 (* Startup *)
 let () =

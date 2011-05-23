@@ -17,7 +17,7 @@ val libs_dir : string
 val findlib_path : string list
 
 (** Where to look for dynamically loadable modules (cmxs). *)
-val plugins_dir : string list ref
+val plugins_dir : string
 
 (** Function to reencode tags into utf8. *)
 val recode_tag : ?in_enc:string -> ?out_enc:string -> string -> string
