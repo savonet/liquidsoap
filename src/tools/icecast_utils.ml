@@ -39,8 +39,8 @@ let base_proto kind =
       Some "Send new metadata using the ICY protocol. \
             One of: \"guess\", \"true\", \"false\"";
      "encoding", Lang.string_t, Some (Lang.string ""),
-      Some "Encoding used to send metadata. If empty, defaults to UTF-8 \
-            for \"http\" protocol and ISO-8859-1 for \"icy\" \ 
+      Some "Encoding used to send metadata. If empty, defaults to UTF-8 \
+            for \"http\" protocol and ISO-8859-1 for \"icy\" \
             protocol." ;
      ("format", Lang.string_t, Some (Lang.string ""),
       Some "Format, e.g. \"audio/ogg\". \

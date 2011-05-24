@@ -336,6 +336,9 @@ fi
 AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.0],[],[],[],[ ])
 if test -n "${w_DUPPY_SYNTAX}"; then
   if test "${CAMLP4O}" != "no"; then
+    if test -z "${DUPPY_SYNTAX_path}"; then
+      DUPPY_SYNTAX_path=`${OCAMLFIND} query duppy`
+    fi
     CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
   fi
 fi
