@@ -141,7 +141,7 @@ $(foreach plug,$($(PROG)_PLUGINS),$(call plug_deps,$(plug)))
 # Compute plugins dependencies that are not already
 # linked with liquidsoap
 plug_packages = \
-  $(if $(findstring $(2),$($(PROG)_ocamllflags)),$(eval $(1)_dontlink += $(2)),$(eval $(1)_ocamllflags += -package $(2)))
+  $(if $(findstring $(2),$($(PROG)_ocamllflags) $($(PROG)_ocamlcflags)),$(eval $(1)_dontlink += $(2)),$(eval $(1)_ocamllflags += -package $(2)))
 $(foreach plug,$($(PROG)_PLUGINS),\
     $(foreach package,$($(plug)_packages),$(call plug_packages,$(plug),$(package))))
 
@@ -153,7 +153,7 @@ speex_dontlink += ogg
 theora_dontlink += ogg
 schroedinger_dontlink += ogg
 flac_dontlink += ogg
-flac_ogg_dontlink += ogg
+flac_ogg_dontlink += ogg flac
 lastfm_dontlink += xmlm xmlplaylist
 
 # Here is how compilation of .ml files work:
