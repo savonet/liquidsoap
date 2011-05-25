@@ -138,18 +138,37 @@ plug_deps = \
 $(eval plugins/$(1).$$(s): $$($(1)_sources:.ml=.$$(o)) $$($(1)_c_objs))
 $(foreach plug,$($(PROG)_PLUGINS),$(call plug_deps,$(plug)))
 
+# Compute plugins dependencies that are not already
+# linked with liquidsoap
+plug_packages = \
+  $(if $(findstring $(2),$($(PROG)_ocamllflags)),$(eval $(1)_dontlink += $(2)),$(eval $(1)_ocamllflags += -package $(2)))
+$(foreach plug,$($(PROG)_PLUGINS),\
+    $(foreach package,$($(plug)_packages),$(call plug_packages,$(plug),$(package))))
+
+# In order to avoid loading multiple times
+# the same module, we need to avoid the following
+# link:
+vorbis_dontlink += ogg
+speex_dontlink += ogg
+theora_dontlink += ogg
+schroedinger_dontlink += ogg
+flac_dontlink += ogg
+flac_ogg_dontlink += ogg
+lastfm_dontlink += xmlm xmlplaylist
+
 # Here is how compilation of .ml files work:
-# We concatenate all {C,}FLAGS for .ml compilation.
+# We concatenate all {C,L}FLAGS for .ml compilation.
 # However, when linking the final objects, we seperate them back.
 _OCAML_ALL_CFLAGS=$(_OCAML_CFLAGS)
 _OCAML_ALL_LFLAGS=$(_OCAML_LFLAGS)
 $(foreach plug,$($(PROG)_PLUGINS),$(eval _OCAML_ALL_CFLAGS+=$($(plug)_ocamlcflags)))
+$(foreach plug,$($(PROG)_PLUGINS),$(eval _OCAML_ALL_CFLAGS+=$($(plug)_packages:%=-package %)))
 $(foreach plug,$($(PROG)_PLUGINS),$(eval _OCAML_ALL_LFLAGS+=$($(plug)_ocamllflags)))
 
 plugins/%.$(s):
 	$(V)echo $(OCAMLCOMP) ${shared_flag} $@
-	$(V)$(OCAMLC) ${shared_flag} $($*_ocamlcflags) $($*_ocamllflags) \
-		$($*_clink) $($*_sources:.ml=.$(o)) -o $@
+	$(V)$(OCAMLC) ${shared_flag} -linkpkg $($*_ocamlcflags) $($*_ocamllflags) \
+		$($*_clink) $($*_sources:.ml=.$(o)) -dontlink "$($*_dontlink)" -o $@
 
 plugins/dllliquidsoap_%.so:
 	$(V)echo OCAMLMKLIB -o plugins/dllliquidsoap_$*.so
