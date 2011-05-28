@@ -65,7 +65,7 @@ liqi/liqi: all-subdirs
 
 content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
 ifeq ($(PERL_DOM),yes)
-	CAML_LD_LIBRARY_PATH=../src ../src/liquidsoap --plugins-dir ../src/plugins \
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --plugins-dir ../src/plugins \
 	  --no-pervasives ../scripts/utils.liq --list-plugins-xml | \
 	  ./reference_to_liqi.pl > $(@)
 else
@@ -75,7 +75,7 @@ else
 endif
 
 content/settings.txt: settings_to_liqi.pl ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src ../src/liquidsoap --plugins-dir ../src/plugins \
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --plugins-dir ../src/plugins \
 	--conf-descr |  ./settings_to_liqi.pl > $(@)
 
 VERSION="`../src/liquidsoap --version | head -n 1`"
