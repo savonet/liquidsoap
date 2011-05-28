@@ -176,10 +176,10 @@ fi
 
 liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray -package dynlink"
-requires="unix threads str"
-if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
-  ocamllflags="$ocamllflags -package dynlink"
-  requires="$requires dynlink"
+requires="unix threads str dynlink"
+# Disable nativecode if ocamlopt is not present
+if test "$OCAMLOPT" = "no"; then 
+  enable_nativecode="no"
 fi
 if test "$enable_nativecode" \!= "no" ; then
     BYTE=
