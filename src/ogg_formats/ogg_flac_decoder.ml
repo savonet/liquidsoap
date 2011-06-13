@@ -20,57 +20,5 @@
 
  *****************************************************************************)
 
-let check = Ogg_flac.Decoder.check_packet
-
-let buflen = 1024
-
-let decoder os =
-  let ogg_dec = ref None in
-  let packet = ref None in
-  let decoder = ref None in
-  let meta = ref None in 
-  let dummy_c  = 
-    Ogg_flac.Decoder.get_callbacks (fun _ -> ()) 
-  in
-  let fill feed = 
-    (* Decoder is created upon first decoding..*)
-    let decoder,sample_freq = 
-      match !decoder with
-        | None -> 
-           let packet =
-             match !packet with
-               | None ->
-                  let p = Ogg.Stream.get_packet os in
-                  packet := Some p; p
-               | Some p -> p
-           in
-           let ogg_dec = 
-             match !ogg_dec with
-               | None ->
-                   let dec = Ogg_flac.Decoder.create packet os dummy_c in
-                   ogg_dec := Some dec ;
-                   dec
-               | Some dec -> dec
-           in
-           let dec,info,m = 
-             Flac.Decoder.init ogg_dec dummy_c 
-           in
-           meta := m;
-           let samplerate = info.Flac.Decoder.sample_rate in
-           decoder := Some (dec,samplerate);
-           dec,samplerate
-        | Some d -> d
-    in
-    let c = 
-      Ogg_flac.Decoder.get_callbacks 
-       (fun ret ->     
-          let m = !meta in
-          meta := None ; 
-          feed ((ret,sample_freq),m)) 
-    in
-    Flac.Decoder.process decoder c
-  in
-  Ogg_demuxer.Audio fill
-
-let () = Ogg_demuxer.ogg_decoders#register "flac" (check,decoder)
+let () = Ogg_demuxer_flac_decoder.register () 
 

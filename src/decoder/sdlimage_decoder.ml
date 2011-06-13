@@ -80,7 +80,10 @@ let create_decoder metadata img =
         Frame.master_of_video !duration
       end
   in
-    { Decoder. fill = fill ; close = close }
+    { Decoder. 
+        fill = fill ;
+        fseek = (fun _ -> 0); 
+        close = close }
 
 let () =
   Decoder.file_decoders#register "SDL/image"

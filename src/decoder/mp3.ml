@@ -26,20 +26,107 @@ open Dtools
 
 let log = Log.make ["decoder";"mp3"]
 
+let init input = 
+  let index = Hashtbl.create 10 in
+  let time_offset = ref 0 in
+  let dec = ref (Mad.openstream input.Decoder.read) in
+  (* Skip id3 tags if possible. *)
+  begin
+   match input.Decoder.lseek, input.Decoder.tell with
+     | Some seek, Some tell ->
+          Mad.skip_id3tags ~read:input.Decoder.read
+                           ~seek ~tell
+     | _,_ -> ()
+  end ;
+  let get_index time = 
+    Hashtbl.find index time
+  in
+  let update_index () =
+    match input.Decoder.tell with
+      | None -> ()
+      | Some f -> 
+          let time =
+            !time_offset + Mad.get_current_time !dec Mad.Seconds
+          in
+          if not (Hashtbl.mem index time) then
+             Hashtbl.add index time (f())
+  in
+  (** Add an initial index. *)
+  update_index ();
+  let get_data () = 
+    let data = Mad.decode_frame_float !dec in
+    update_index ();
+    data
+  in
+  let get_time () = 
+    (float !time_offset) +. 
+    (float (Mad.get_current_time !dec Mad.Centiseconds) /. 100.)
+  in
+  let seek ticks =
+    if ticks < 0 && input.Decoder.lseek = None then
+      0
+    else
+     begin
+      let time = Frame.seconds_of_master ticks in
+      let cur_time = get_time () in
+      let seek_time =
+        cur_time +. time
+      in
+      let seek_time = 
+        if seek_time < 0. then 0. else seek_time
+      in
+      if time < 0. then
+       begin
+        try
+          let seek_time = int_of_float (floor seek_time) in
+          let seek_pos = 
+            if seek_time > 0 then
+              get_index seek_time 
+            else
+              0
+          in
+          ignore((Utils.get_some input.Decoder.lseek) seek_pos); 
+          dec := Mad.openstream input.Decoder.read;
+          (* We have to assume here that new_pos = seek_pos.. *)
+          time_offset := seek_time
+        with _ -> () 
+       end;
+      let rec f pos =
+        if pos < seek_time then
+         begin
+           Mad.skip_frame !dec;
+           update_index ();
+           f (get_time ())
+         end
+      in
+      f (get_time ());
+      let new_time = get_time () in
+      Frame.master_of_seconds (new_time-.cur_time)
+     end
+  in
+  let get_info () = 
+    Mad.get_output_format !dec
+  in
+  get_info,get_data,seek
+
 module Make (Generator:Generator.S_Asio) =
 struct
 
 let create_decoder input =
   let resampler = Rutils.create_audio () in
-  let fd = Mad.openstream input in
-    Decoder.Decoder (fun gen ->
-      let data = Mad.decode_frame_float fd in
-      let sample_freq,channels,_ = Mad.get_output_format fd in
-      let content,length =
-        resampler ~audio_src_rate:(float sample_freq) data
-      in
-        Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 (Array.length content.(0)))
+  let get_info,get_data,seek = init input in
+  { Decoder.
+     seek = seek;
+     decode = 
+       (fun gen ->
+         let data = get_data () in
+         let sample_freq,channels,_ = get_info () in 
+         let content,length =
+           resampler ~audio_src_rate:(float sample_freq) data
+         in
+         Generator.set_mode gen `Audio ;
+          Generator.put_audio gen content 0 
+               (Array.length content.(0))) }
 
 end
 

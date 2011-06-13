@@ -55,7 +55,7 @@
   * file description. This is equivalent to what is done currently,
   * except in WAV.
   *
-  * The WAV decoder doesn't fit the approx duration computation.
+  * The WAV decoder doesn't fit the approx duration computation. (Toots: is that true?)
   * The MIDI decoder doesn't use a buffer. TODO look at this carefully. *)
 
 open Dtools
@@ -68,9 +68,19 @@ type file = string
 (** A stream is identified by a MIME type. *)
 type stream = string
 
-type 'a decoder = Decoder of ('a -> unit)
+type 'a decoder = 
+  { decode : 'a -> unit;
+    (* [seek x]: Skip [x] master ticks.
+     * Returns the number of ticks atcually skiped. *)
+    seek : int -> int }
 
-type input = int -> string * int
+type input = 
+  { read : int -> string * int;
+    (* Seek to an absolute position in bytes. 
+     * Returns the current position after seeking. *)
+    lseek : (int -> int) option ;
+    tell  : (unit -> int) option ;
+    length : (unit -> int) option }
 
 (** A stream decoder does not "own" any file descriptor,
   * and is generally assumed to not allocate resources (in the sense
@@ -84,6 +94,7 @@ type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
   * In most cases, file decoders are wrapped stream decoders. *)
 type file_decoder = {
   fill : Frame.t -> int ; (* Return remaining ticks. *)
+  fseek : int -> int; (* There is a record name clash here.. *)
   close : unit -> unit ;
 }
 
@@ -188,6 +199,7 @@ let dummy =
   { fill = (fun b ->
       Frame.add_break b (Frame.position b) ;
       0) ;
+    fseek = (fun _ -> 0);
     close = (fun _ -> ()) }
 
 exception Exit of (string * (unit -> file_decoder))
@@ -269,14 +281,29 @@ struct
     in
     let file_size = (Unix.stat filename).Unix.st_size in
     let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
-    let input len =
+    let proc_bytes = ref 0 in
+    let read len =
       try
         let s = String.create len in
         let i = Unix.read fd s 0 len in
+        proc_bytes := !proc_bytes + i;
           s, i
       with _ -> "", 0
     in
-    let Decoder decoder = create_decoder input in
+    let tell () = 
+      Unix.lseek fd 0 Unix.SEEK_CUR
+    in
+    let length () = (Unix.fstat fd).Unix.st_size in 
+    let lseek len = 
+      Unix.lseek fd len Unix.SEEK_SET
+    in
+    let input = 
+      { read = read;
+        tell = Some tell;
+        length = Some length;
+        lseek = Some lseek }
+    in
+    let decoder = create_decoder input in
     let out_ticks = ref 0 in
     let decoding_done = ref false in
     let fill frame =
@@ -291,7 +318,7 @@ struct
       if (not !decoding_done) then
         begin try
           while Generator.length gen < prebuf do
-            decoder gen
+            decoder.decode gen
           done
         with
           | e ->
@@ -341,13 +368,13 @@ struct
             Frame.add_break frame offset ;
             0
         end else
-          let in_bytes = Unix.lseek fd 0 Unix.SEEK_CUR in
+          let in_bytes = tell () in
           let gen_len = Generator.length gen in
             out_ticks := !out_ticks + Frame.position frame - offset ;
             (* Compute an estimated number of remaining ticks. *)
-            if in_bytes = 0 then -1 else
+            if !proc_bytes = 0 then -1 else
               let compression =
-                (float (!out_ticks+gen_len)) /. (float in_bytes)
+                (float (!out_ticks+gen_len)) /. (float !proc_bytes)
               in
               let remaining_ticks =
                 (float gen_len) +.
@@ -355,7 +382,26 @@ struct
               in
                 int_of_float remaining_ticks
     in
+    let fseek len = 
+      let gen_len = Generator.length gen in
+      if len < 0 then
+       begin
+        Generator.clear gen;
+        decoder.seek len
+       end
+      else if len > gen_len then 
+        begin
+         Generator.clear gen;
+         gen_len + decoder.seek (len-gen_len)
+        end
+       else
+        begin
+         Generator.remove gen len;
+         len
+        end
+    in
       { fill = fill ;
+        fseek = fseek;
         close = fun () -> Unix.close fd }
 
 end

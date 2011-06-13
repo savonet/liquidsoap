@@ -164,8 +164,15 @@ object (self)
       end ;
       buf,input
     in
+    let input =
+      { Decoder.
+         read = read ;
+         tell = None;
+         length = None;
+         lseek = None }
+    in
       try
-        let Decoder.Decoder decoder = create_decoder read in
+        let decoder = create_decoder input in
         while true do
           if should_stop () then
             raise Disconnected ;
@@ -173,7 +180,7 @@ object (self)
             (fun () ->
                if relay_socket = None then 
                  failwith "relaying stopped") () ;
-          decoder generator
+          decoder.Decoder.decode generator
         done
       with
         | e ->

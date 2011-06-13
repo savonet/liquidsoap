@@ -254,13 +254,20 @@ object (self)
                   Printf.fprintf f "%f %d\n%!" time self#length ;
                   ret
     in
+    let input = 
+      { Decoder.
+         read = read ;
+         tell = None;
+         length = None;
+         lseek = None }
+    in
       try
-        let Decoder.Decoder decoder = create_decoder read in
+        let decoder = create_decoder input in
         while true do
           if should_fail then failwith "end of track" ;
           if should_stop () || (not relaying) then 
             failwith "source stopped" ;
-          decoder generator
+          decoder.Decoder.decode generator
         done
       with
         | e ->

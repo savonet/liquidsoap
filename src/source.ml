@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2010 Savonet team
+  Copyright 2003-2011 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -436,6 +436,13 @@ object (self)
   (* Number of frames left in the current track:
    * -1 means Infinity, time unit is the frame. *)
   method virtual remaining : int
+
+  (* [self#seek x] skips [x] master ticks.
+   * returns the number of ticks actually skipped.
+   * By default it always returns 0, refusing to seek at all. *)
+  method seek (len:int) = 
+    self#log#f 3 "Seek not implemented!";
+    0
 
   (* Is there some data available for the next [get]?
    * Must always be true while playing a track, i.e. all tracks

@@ -20,7 +20,12 @@
 
  *****************************************************************************)
 
-class virtual source ?name kind duration =
+(* For some synthetized function (e.g. noise, blank, sine),
+ * we can pretend we support seek by doing nothing. However, for
+ * other, seek should be disabled. Thus, if [seek] is [true],
+ * the seek function is [fun x -> x] otherwise it is
+ * [fun _ -> 0] *)
+class virtual source ?name ~seek kind duration =
   let track_size =
     if duration <= 0. then None else Some (Frame.master_of_seconds duration)
   in
@@ -29,6 +34,8 @@ object (self)
 
   method stype = Source.Infallible
   method is_ready = true
+  method seek x = 
+    if seek then x else 0
 
   val mutable remaining = track_size
   method remaining =

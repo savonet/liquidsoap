@@ -52,7 +52,10 @@ let decoder ~channels file =
     MFrame.add_break buf r;
     0
   in
-  { Decoder.fill = fill ; Decoder.close = close }
+  { Decoder.
+      fill = fill ; 
+      fseek = (fun _ -> 0);
+      close = close }
 
 let () =
   Decoder.file_decoders#register "MIDI"

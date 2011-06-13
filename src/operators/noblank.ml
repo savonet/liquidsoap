@@ -184,9 +184,9 @@ object (self)
 
   method private get_frame ab =
     let first = ref true in
-    let breaks = ref (AFrame.breaks ab) in
+    let breaks = AFrame.breaks ab in
       while !first || stripping do
-        if not !first then AFrame.set_breaks ab !breaks;
+        if not !first then AFrame.set_breaks ab breaks;
         first := false;
         let p0 = AFrame.position ab in
           source#get ab ;

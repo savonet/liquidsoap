@@ -27,6 +27,7 @@ sig
   val remaining : t -> int (* ticks *)
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
+  val remove : t -> int -> unit
   val add_metadata : t -> Frame.metadata -> unit
 end
 

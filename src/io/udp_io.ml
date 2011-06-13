@@ -135,12 +135,19 @@ object (self)
         let n,_ = Unix.recvfrom socket msg 0 len [] in
           msg,n
       in
+      let input =
+        { Decoder.
+           read = read ;
+           tell = None;
+           length = None;
+           lseek = None }
+      in
         try
           (* Feeding loop. *)
-          let Decoder.Decoder decoder = decoder_factory read in
+          let decoder = decoder_factory input in
             while true do
               if should_stop () then failwith "stop" ;
-              decoder generator
+              decoder.Decoder.decode generator
             done
         with
           | e ->

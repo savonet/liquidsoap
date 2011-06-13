@@ -57,7 +57,6 @@ liquidsoap_camlp4_files = \
 # This variable contains only conditional files..
 ogg_demuxer =
 
-$(call conditional_compilation,ogg_demuxer,$(W_OGG),ogg_formats/ogg_demuxer.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_SPEEX),ogg_formats/speex_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_VORBIS),ogg_formats/vorbis_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_THEORA),ogg_formats/theora_decoder.ml)
@@ -131,7 +130,7 @@ operators = \
 	operators/sequence.ml operators/cross.ml operators/smartcross.ml \
 	operators/compress_exp.ml operators/pitch.ml \
 	operators/fir_filter.ml operators/iir_filter.ml \
-	operators/biquad_filter.ml \
+	operators/biquad_filter.ml operators/cuepoint.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
 	operators/compress.ml operators/clip.ml operators/filter.ml \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \

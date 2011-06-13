@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2010 Savonet team
+  Copyright 2003-2011 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -77,6 +77,13 @@ object
 
   (** Number of frames left in the current track. Defaults to -1=infinity. *)
   method virtual remaining : int
+
+  (* [self#seek_ticks x] skips [x] master ticks.
+   * returns the number of ticks actually skipped.
+   * By default it always returns 0, refusing to seek at all.
+   * That method may be called from any thread, concurrently
+   * with [#get], so they should not interfer. *)
+  method seek : int -> int
 
   (** [is_ready] tells you if [get] can be called. *)
   method virtual is_ready : bool

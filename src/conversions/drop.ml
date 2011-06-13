@@ -28,6 +28,7 @@ object
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method seek = source#seek
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -81,6 +82,7 @@ object
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method seek = source#seek
 
   method private get_frame frame =
     let start = Frame.position frame in
@@ -135,6 +137,7 @@ object
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method seek = source#seek
 
   method private get_frame frame =
     let start = Frame.position frame in

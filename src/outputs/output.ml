@@ -119,6 +119,7 @@ object (self)
 
   method remaining = source#remaining
   method abort_track = source#abort_track
+  method seek len = source#seek len
 
   (* Operator startup *)
 

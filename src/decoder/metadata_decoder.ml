@@ -86,7 +86,10 @@ let file_deco filename =
       t := !t +. Frame.seconds_of_master (Frame.position frame - pos) ;
       -1 (* TODO remaining time *)
   in
-    { Decoder. fill = fill ; close = ignore }
+    { Decoder.
+        fill = fill ; 
+        fseek = (fun _ -> 0);
+        close = ignore }
 
 let () =
   Decoder.file_decoders#register "META"

@@ -76,7 +76,7 @@ let external_input process input =
       (* If we are done with the current string,
        * try to get a new one from the original input. *)
       if len = 0 then
-        let s,read = input buf_size in
+        let s,read = input.Decoder.read buf_size in
         s,0,read
       else
         rem,ofs,len
@@ -109,10 +109,15 @@ let external_input process input =
           handler  = task ("",0,0)
       } ;
     (* Now the new input, which reads the process's output *)
-    (fun inlen ->
-       let tmpbuf = String.create inlen in
-       let read = Unix.read pull_e tmpbuf 0 inlen in
-         tmpbuf, read),
+    { Decoder.
+        read = 
+         (fun inlen ->
+           let tmpbuf = String.create inlen in
+           let read = Unix.read pull_e tmpbuf 0 inlen in
+             tmpbuf, read);
+         tell = None;
+         length = None;
+         lseek = None },
     (* And a function to close the process *)
     (fun () -> 
       (* We grab the task's mutex. *)
@@ -212,7 +217,7 @@ let external_input_oblivious process filename prebuf =
       process_done := true
      end
   in
-  let input len = 
+  let read len = 
     if not !process_done then
       let ret = String.create len in
       let read = Unix.read pull_e ret 0 len in
@@ -221,14 +226,21 @@ let external_input_oblivious process filename prebuf =
     else
       "",0
   in
+  let input = 
+    { Decoder.
+        read = read;
+        tell = None;
+        length = None;
+        lseek = None }
+  in
   let gen = Generator.create `Audio in
   let prebuf = Frame.master_of_seconds prebuf in
-  let Decoder.Decoder decoder = Wav_decoder.D.create input in
+  let decoder = Wav_decoder.D.create input in
   let fill frame = 
      if not !process_done then
        begin try
          while Generator.length gen < prebuf && (not !process_done) do
-           decoder gen
+           decoder.Decoder.decode gen
          done
        with
          | e ->
@@ -242,6 +254,7 @@ let external_input_oblivious process filename prebuf =
   in 
   { Decoder.
      fill = fill ;
+     fseek = decoder.Decoder.seek;
      close = close }
 
 let register_oblivious name sdoc test process prebuf =

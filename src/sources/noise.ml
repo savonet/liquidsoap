@@ -27,7 +27,8 @@ class noise ~kind duration =
   let () = assert (ctype.Frame.midi = 0) in
 object
 
-  inherit Synthesized.source ~name:"noise" kind duration
+  inherit Synthesized.source ~seek:true 
+                             ~name:"noise" kind duration
 
   method private synthesize frame off len =
     let content = Frame.content_of_type frame off ctype in

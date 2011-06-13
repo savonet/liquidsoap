@@ -1602,6 +1602,19 @@ let () =
     (fun p -> (Lang.to_source (List.assoc "" p))#abort_track ; Lang.unit)
 
 let () =
+  add_builtin "source.seek" ~cat:Liq 
+    ~descr:"Seek forward, in seconds. \
+            Returns the amount of time effectively seeked."
+    [ "",Lang.source_t (Lang.univ_t 1),None,None;
+      "",Lang.float_t,None,None ] Lang.float_t
+    (fun p -> 
+       let s = Lang.to_source (Lang.assoc "" 1 p) in
+       let time = Lang.to_float (Lang.assoc "" 2 p) in
+       let len = Frame.master_of_seconds time in
+       let ret = s#seek len in
+       Lang.float (Frame.seconds_of_master ret))
+
+let () =
   add_builtin "source.id" ~cat:Liq ~descr:"Get one source's identifier."
     [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)

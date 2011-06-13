@@ -23,6 +23,12 @@
 open Source
 open Dtools
 
+type handler = 
+  { req : Request.t;
+    fill : Frame.t -> unit;
+    seek : int -> int;
+    close : unit -> unit }
+
 (** Class [unqueued] plays the file given by method [get_next_file]
   * as a request which is ready, i.e. has been resolved.
   * On the top of it we define [queued], which manages a queue of files, feed
@@ -48,8 +54,8 @@ object (self)
     Mutex.lock plock ;
     begin match current with
         | None -> ()
-        | Some (request,_,close) ->
-            begin match Request.get_filename request with
+        | Some cur ->
+            begin match Request.get_filename cur.req with
               | None ->
                   self#log#f 1
                     "Finished with a non-existent file?! \
@@ -57,8 +63,8 @@ object (self)
                      during decoding. It is VERY dangerous, avoid it!"
               | Some f -> self#log#f 3 "Finished with %S." f
             end ;
-            close () ;
-            Request.destroy request
+            cur.close () ;
+            Request.destroy cur.req
     end ;
     current <- None ;
     remaining <- 0 ;
@@ -83,10 +89,18 @@ object (self)
           let file = Utils.get_some (Request.get_filename req) in
           let decoder = Utils.get_some (Request.get_decoder req) in
             self#log#f 3 "Prepared %S (RID %d)." file (Request.get_id req) ;
+            (* We use this mutex to avoid seeking and filling at
+             * the same time.. *)
+            let m = Mutex.create () in
             current <-
-              Some (req,
-                    (fun buf -> (remaining <- decoder.Decoder.fill buf)),
-                    decoder.Decoder.close) ;
+              Some 
+               { req = req;
+                 fill = Tutils.mutexify m 
+                         (fun buf -> 
+                            (remaining <- decoder.Decoder.fill buf));
+                 seek = Tutils.mutexify m 
+                           (fun len -> decoder.Decoder.fseek len);
+                 close = decoder.Decoder.close } ;
             remaining <- (-1) ;
             send_metadata <- true ;
             true
@@ -119,18 +133,23 @@ object (self)
           | None ->
               (* We're supposed to be ready so this shouldn't be reached. *)
               assert false
-          | Some (req,get_frame,_) ->
+          | Some cur ->
               if send_metadata then begin
-                Request.on_air req ;
-                let m = Request.get_all_metadata req in
+                Request.on_air cur.req ;
+                let m = Request.get_all_metadata cur.req in
                 Frame.set_metadata buf (Frame.position buf) m;
                 send_metadata <- false
               end ;
-              get_frame buf
+              cur.fill buf
       in
         Tutils.mutexify plock try_get () ;
         if Frame.is_partial buf then self#end_track
     end
+
+  method seek x = 
+    match current with
+      | None -> 0
+      | Some cur -> cur.seek x
 
   method abort_track =
     self#end_track ;
@@ -141,7 +160,7 @@ object (self)
   method copy_queue =
     match current with
     | None -> []
-    | Some (r,_,_) -> [r]
+    | Some cur -> [cur.req]
 
 end
 
@@ -431,7 +450,7 @@ object (self)
     let q =
       match current with
       | None -> []
-      | Some (r,_,_) -> [r]
+      | Some cur -> [cur.req]
     in
     let q =
       match resolving with

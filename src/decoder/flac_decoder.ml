@@ -33,32 +33,84 @@ struct
 
 let create_decoder input =
   let resampler = Rutils.create_audio () in
+  let read = input.Decoder.read in
+  let seek = 
+    match input.Decoder.lseek with
+      | Some f -> Some (fun len -> ignore(f (Int64.to_int len)))
+      | None -> None
+  in
+  let tell =
+    match input.Decoder.tell with
+      | Some f -> Some (fun () -> (Int64.of_int (f ())))
+      | None -> None
+  in
+  let length =
+    match input.Decoder.length with
+      | Some f -> Some (fun () -> (Int64.of_int (f ())))
+      | None -> None
+  in
   let dummy_c = 
-    Flac.Decoder.get_callbacks input 
-             (fun _ -> ()) 
+    Flac.Decoder.get_callbacks 
+        ?seek ?tell ?length read (fun _ -> ()) 
   in 
   let decoder = Flac.Decoder.create dummy_c in
   let decoder,info,_ = Flac.Decoder.init decoder dummy_c in
   let sample_freq,channels = info.Flac.Decoder.sample_rate,
                              info.Flac.Decoder.channels
   in
-    Decoder.Decoder (fun gen ->
-      let c = 
-       Flac.Decoder.get_callbacks input
-        (fun data -> 
-           let content,length =
-             resampler ~audio_src_rate:(float sample_freq) data
-           in
-           Generator.set_mode gen `Audio ;
-           Generator.put_audio gen content 0 (Array.length content.(0)))
-      in
-      match Flac.Decoder.state decoder c with
-        | `Search_for_metadata
-        | `Read_metadata
-        | `Search_for_frame_sync
-        | `Read_frame ->
-              Flac.Decoder.process decoder c
-        | _ -> raise End_of_stream)
+  let processed = ref Int64.zero in
+  { Decoder.
+     seek = 
+      (fun ticks ->
+         let duration = Frame.seconds_of_master ticks in
+         let samples = 
+           Int64.of_float (duration *. (float sample_freq)) 
+         in
+         let pos = Int64.add !processed samples in
+         let c = 
+           Flac.Decoder.get_callbacks
+             ?seek ?tell ?length read (fun _ -> ())
+         in
+         let ret = Flac.Decoder.seek decoder c pos in
+         if ret = true then
+          begin
+           processed := pos;
+           ticks
+          end
+         else
+           match Flac.Decoder.state decoder c with
+             | `Seek_error ->
+                if Flac.Decoder.flush decoder c then
+                  0
+                else 
+                (* Flushing failed, we are in an unknown state.. *)
+                  raise End_of_stream
+             | _ -> 0);
+     decode = 
+      (fun gen ->
+        let c = 
+         Flac.Decoder.get_callbacks ?seek ?tell ?length read
+          (fun data -> 
+             let len = 
+               try
+                 Array.length data.(0)
+               with
+                 | _ -> 0
+             in
+             processed := Int64.add !processed (Int64.of_int len);
+             let content,length =
+               resampler ~audio_src_rate:(float sample_freq) data
+             in
+             Generator.set_mode gen `Audio ;
+             Generator.put_audio gen content 0 (Array.length content.(0)))
+        in
+        match Flac.Decoder.state decoder c with
+          | `Search_for_metadata
+          | `Read_metadata
+          | `Search_for_frame_sync
+          | `Read_frame ->
+                Flac.Decoder.process decoder c
+          | _ -> raise End_of_stream) }
 
 end
 

@@ -38,6 +38,8 @@ object (self)
   val mutable remaining = ticks
   method remaining = remaining
 
+  method seek x = x
+
   method abort_track = remaining <- 0
 
   method get_frame ab =

@@ -69,10 +69,11 @@ struct
  * for decoding stream (in http and harbor) as an in_channel. *)
 let create ?header input =
   let decoder = ref (fun gen -> assert false) in
+  let header = ref header in
 
   let main_decoder converter gen =
     let bytes_to_get = 1024*64 in
-    let data,bytes = input bytes_to_get in
+    let data,bytes = input.Decoder.read bytes_to_get in
       if bytes=0 then raise End_of_stream ;
       let content,length = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
@@ -80,10 +81,12 @@ let create ?header input =
   in
 
   let read_header () =
-    let header = Wav.read_header input_ops input in
-    let samplesize = Wav.sample_size header in
-    let channels = Wav.channels header in
-    let samplerate = Wav.sample_rate header in
+    let wav_header = 
+      Wav.read_header input_ops input.Decoder.read 
+    in
+    let samplesize = Wav.sample_size wav_header in
+    let channels = Wav.channels wav_header in
+    let samplerate = Wav.sample_rate wav_header in
     let converter =
         Rutils.create_from_wav
           ~samplesize ~channels ()
@@ -93,10 +96,11 @@ let create ?header input =
       log#f 4
         "WAV header read (%dHz, %dbits), starting decoding..."
         samplerate samplesize ;
+      header := Some (samplesize,channels,(float samplerate));
       decoder := main_decoder converter
 
   in
-    begin match header with
+    begin match !header with
       | None -> decoder := (fun _ -> read_header ())
       | Some (samplesize,channels,audio_src_rate) ->
           let converter =
@@ -104,8 +108,27 @@ let create ?header input =
           in
             decoder := main_decoder converter
     end ;
-    Decoder.Decoder (fun gen -> !decoder gen)
-
+  let seek ticks = 
+    match input.Decoder.lseek,input.Decoder.tell,!header with
+      | Some seek, Some tell, Some (samplesize,channels,samplerate) ->
+         (* seek is in absolute position *)
+         let duration = Frame.seconds_of_master ticks in
+         let samples = int_of_float (duration *. samplerate) in
+         let bytes = samples * samplesize * channels / 8 in
+         begin 
+          try
+           let pos = tell () in
+           let ret = seek (pos + bytes) in
+           let samples = 8 * (ret-pos) / (samplesize * channels) in
+           let duration = (float samples) /. samplerate in
+           Frame.master_of_seconds duration
+          with _ -> 0
+         end
+      | _,_,_ -> 0
+  in
+    { Decoder. 
+        decode = (fun gen -> !decoder gen) ;
+        seek = seek }
 end
 
 module Generator_plus = Generator.From_audio_video_plus

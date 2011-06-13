@@ -26,18 +26,34 @@ struct
 (* Reads data from an audio buffer generator.
  * A thread safe generator should be used if it has to be fed concurrently.
  * Store [bufferize] seconds before declaring itself as ready. *)
-class virtual source ~bufferize ~empty_on_abort gen =
+class virtual source ?(seek=false) ~bufferize ~empty_on_abort gen =
   let bufferize = Frame.master_of_seconds bufferize in
 object (self)
 
-  (** This allows heriting classes to access the generator. *)
+  (** We keep the generator in an instance variable so that derived
+    * classes can access it. There are concurrency issues, though:
+    *  - In classes such as http_source, the generator is fed concurrently
+    *    with its consumption. But in that case a thread-safe implementation
+    *    of Generator is used.
+    *  - In any case there is always concurrency in this class, with #get
+    *    on one hand and #is_ready, #abort_track and #seek that can be
+    *    called from other threads. We use the generator_lock to avoid
+    *    the only bad interference, ie. #get_frame vs #seek. *)
   val generator = gen
+  val generator_lock = Mutex.create ()
 
   val mutable buffering = true
 
   val mutable should_fail = false
 
   method virtual private log : Dtools.Log.t
+
+  method seek len =
+    if not seek || len <= 0 then 0 else
+      Tutils.mutexify generator_lock (fun () ->
+        let len = min len (Generator.remaining generator) in
+          Generator.remove generator len ;
+          len) ()
 
   method abort_track = should_fail <- true
 
@@ -62,11 +78,11 @@ object (self)
 
   method remaining =
     if should_fail then 0 else
-      let r = self#length in
-        let l = Generator.remaining generator in
-          if buffering && r <= bufferize then 0 else l
+      if buffering && self#length <= bufferize then 0 else
+        Generator.remaining generator
 
   method private get_frame ab =
+    Tutils.mutexify generator_lock (fun () ->
     buffering <- false ;
     if should_fail then begin
       self#log#f 4 "Performing skip." ;
@@ -88,7 +104,7 @@ object (self)
         self#log#f 4 "Buffer emptied, buffering needed." ;
         buffering <- true
       end
-    end
+    end) ()
 
 end
 

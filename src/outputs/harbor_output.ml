@@ -52,15 +52,22 @@ let max_title = 3852
 let max_url = 200
   
 let proto kind =
-  Output.proto @ (Icecast_utils.base_proto kind) @
+  Output.proto @
     [ ("mount", Lang.string_t, None, None);
+      ("protocol", Lang.string_t, (Some (Lang.string "http")),
+       (Some
+          "Protocol of the streaming server: \
+           'http' for Icecast, 'icy' for shoutcast."));
       ("port", Lang.int_t, (Some (Lang.int 8000)), None);
       ("user", Lang.string_t, (Some (Lang.string "")),
        (Some "User for client connection, disabled if empty."));
       ("password", Lang.string_t, (Some (Lang.string "hackme")), None);
       ("url", Lang.string_t, (Some (Lang.string "")), None);
       ("metaint", Lang.int_t, (Some (Lang.int 16000)),
-       (Some "Interval used to send ICY metadata"));
+       (Some "Interval \
+    used to send ICY metadata"));
+      ("encoding", Lang.string_t, (Some (Lang.string "")),
+       (Some "Encoding used to send metadata, default (UTF-8) if empty."));
       ("auth",
        (Lang.fun_t [ (false, "", Lang.string_t); (false, "", Lang.string_t) ]
           Lang.bool_t),
@@ -101,8 +108,17 @@ let proto kind =
       ("headers", Lang.metadata_t,
        (Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])),
        (Some "Additional headers."));
+      ("icy_metadata", Lang.string_t, (Some (Lang.string "guess")),
+       (Some
+          "Send new metadata using the ICY protocol. \
+          One of: \"guess\", \"true\", \"false\""));
+      ("format", Lang.string_t, (Some (Lang.string "")),
+       (Some
+          "Format, e.g. \"audio/ogg\". \
+           When empty, the encoder is used to guess."));
       ("dumpfile", Lang.string_t, (Some (Lang.string "")),
        (Some "Dump stream to file, for debugging purpose. Disabled if empty."));
+      ("", (Lang.format_t kind), None, (Some "Encoding format."));
       ("", (Lang.source_t kind), None, None) ]
   
 type client_state = | Hello | Sending | Done
@@ -253,13 +269,13 @@ class output ~kind p =
                           (if chunk > buflen
                            then
                              raise
-                               (Lang.Invalid_value (List.assoc "buffer" p,
+                               (Lang.Invalid_value ((List.assoc "buffer" p),
                                   "Maximum buffering inferior to chunk length"))
                            else ();
                            if burst > buflen
                            then
                              raise
-                               (Lang.Invalid_value (List.assoc "buffer" p,
+                               (Lang.Invalid_value ((List.assoc "buffer" p),
                                   "Maximum buffering inferior to burst length"))
                            else ())
                         in let source = Lang.assoc "" 2 p
