@@ -53,73 +53,61 @@ let max_url = 200
   
 let proto kind =
   Output.proto @
-    [ ("mount", Lang.string_t, None, None);
-      ("protocol", Lang.string_t, (Some (Lang.string "http")),
-       (Some
-          "Protocol of the streaming server: \
-           'http' for Icecast, 'icy' for shoutcast."));
-      ("port", Lang.int_t, (Some (Lang.int 8000)), None);
-      ("user", Lang.string_t, (Some (Lang.string "")),
-       (Some "User for client connection, disabled if empty."));
-      ("password", Lang.string_t, (Some (Lang.string "hackme")), None);
-      ("url", Lang.string_t, (Some (Lang.string "")), None);
-      ("metaint", Lang.int_t, (Some (Lang.int 16000)),
-       (Some "Interval \
-    used to send ICY metadata"));
-      ("encoding", Lang.string_t, (Some (Lang.string "")),
-       (Some "Encoding used to send metadata, default (UTF-8) if empty."));
-      ("auth",
-       (Lang.fun_t [ (false, "", Lang.string_t); (false, "", Lang.string_t) ]
-          Lang.bool_t),
-       (Some
-          (Lang.val_cst_fun
-             [ ("", Lang.string_t, None); ("", Lang.string_t, None) ]
-             (Lang.bool false))),
-       (Some
-          "Authentication function. \
+    ((Icecast_utils.base_proto kind) @
+       [ ("mount", Lang.string_t, None, None);
+         ("port", Lang.int_t, (Some (Lang.int 8000)), None);
+         ("user", Lang.string_t, (Some (Lang.string "")),
+          (Some "User for client connection, disabled if empty."));
+         ("password", Lang.string_t, (Some (Lang.string "hackme")), None);
+         ("url", Lang.string_t, (Some (Lang.string "")), None);
+         ("metaint", Lang.int_t, (Some (Lang.int 16000)),
+          (Some "Interval used to send ICY metadata"));
+         ("auth",
+          (Lang.fun_t
+             [ (false, "", Lang.string_t); (false, "", Lang.string_t) ] Lang.
+             bool_t),
+          (Some
+             (Lang.val_cst_fun
+                [ ("", Lang.string_t, None); ("", Lang.string_t, None) ]
+                (Lang.bool false))),
+          (Some
+             "Authentication function. \
             <code>f(login,password)</code> returns <code>true</code> \
             if the user should be granted access for this login. \
             Override any other method if used."));
-      ("buffer", Lang.int_t, (Some (Lang.int (5 * 65535))),
-       (Some "Maximun buffer per-client."));
-      ("burst", Lang.int_t, (Some (Lang.int 65534)),
-       (Some "Initial burst of data sent to the client."));
-      ("chunk", Lang.int_t, (Some (Lang.int 1024)),
-       (Some
-          "Send data to clients using chunks of at \
+         ("buffer", Lang.int_t, (Some (Lang.int (5 * 65535))),
+          (Some "Maximun buffer per-client."));
+         ("burst", Lang.int_t, (Some (Lang.int 65534)),
+          (Some "Initial burst of data sent to the client."));
+         ("chunk", Lang.int_t, (Some (Lang.int 1024)),
+          (Some
+             "Send data to clients using chunks of at \
           least this length."));
-      ("on_connect",
-       (Lang.fun_t
-          [ (false, "headers", Lang.metadata_t);
-            (false, "uri", Lang.string_t);
-            (false, "protocol", Lang.string_t); (false, "", Lang.string_t) ]
-          Lang.unit_t),
-       (Some
-          (Lang.val_cst_fun
-             [ ("headers", Lang.metadata_t, None);
-               ("uri", Lang.string_t, None);
-               ("protocol", Lang.string_t, None); ("", Lang.string_t, None) ]
-             Lang.unit)),
-       (Some "Callback executed when connection is established."));
-      ("on_disconnect",
-       (Lang.fun_t [ (false, "", Lang.string_t) ] Lang.unit_t),
-       (Some (Lang.val_cst_fun [ ("", Lang.string_t, None) ] Lang.unit)),
-       (Some "Callback executed when connection stops."));
-      ("headers", Lang.metadata_t,
-       (Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])),
-       (Some "Additional headers."));
-      ("icy_metadata", Lang.string_t, (Some (Lang.string "guess")),
-       (Some
-          "Send new metadata using the ICY protocol. \
-          One of: \"guess\", \"true\", \"false\""));
-      ("format", Lang.string_t, (Some (Lang.string "")),
-       (Some
-          "Format, e.g. \"audio/ogg\". \
-           When empty, the encoder is used to guess."));
-      ("dumpfile", Lang.string_t, (Some (Lang.string "")),
-       (Some "Dump stream to file, for debugging purpose. Disabled if empty."));
-      ("", (Lang.format_t kind), None, (Some "Encoding format."));
-      ("", (Lang.source_t kind), None, None) ]
+         ("on_connect",
+          (Lang.fun_t
+             [ (false, "headers", Lang.metadata_t);
+               (false, "uri", Lang.string_t);
+               (false, "protocol", Lang.string_t); (false, "", Lang.string_t) ]
+             Lang.unit_t),
+          (Some
+             (Lang.val_cst_fun
+                [ ("headers", Lang.metadata_t, None);
+                  ("uri", Lang.string_t, None);
+                  ("protocol", Lang.string_t, None);
+                  ("", Lang.string_t, None) ]
+                Lang.unit)),
+          (Some "Callback executed when connection is established."));
+         ("on_disconnect",
+          (Lang.fun_t [ (false, "", Lang.string_t) ] Lang.unit_t),
+          (Some (Lang.val_cst_fun [ ("", Lang.string_t, None) ] Lang.unit)),
+          (Some "Callback executed when connection stops."));
+         ("headers", Lang.metadata_t,
+          (Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])),
+          (Some "Additional headers."));
+         ("dumpfile", Lang.string_t, (Some (Lang.string "")),
+          (Some
+             "Dump stream to file, for debugging purpose. Disabled if empty."));
+         ("", (Lang.source_t kind), None, None) ])
   
 type client_state = | Hello | Sending | Done
 
