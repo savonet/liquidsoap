@@ -499,9 +499,9 @@ AC_CHECK_OCAML_BINDING([taglib])
 
 AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],[don't use OSS]))
 
-AC_ARG_ENABLE([oss-plugin],
+AC_ARG_ENABLE([oss-dynamic-plugin],
    AC_HELP_STRING(
-      [--enable-oss-plugin],
+      [--enable-oss-dynamic-plugin],
       [Compile oss as an optional plugin.]))
 
 if test "x$enable_oss" != "xno" ; then
@@ -509,7 +509,7 @@ if test "x$enable_oss" != "xno" ; then
 fi
 
 if test "a$W_OSS" = "ayes" ; then
-  if test "x$enable_oss_plugin" = "xyes"; then
+  if test "x$enable_oss_dynamic_plugin" = "xyes"; then
         W_OSS=oss
         w_OSS=plugin
         PLUGINS="$PLUGINS oss"

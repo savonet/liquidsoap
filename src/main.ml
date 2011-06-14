@@ -367,7 +367,7 @@ let options =
         "List all plugins (builtin scripting values, \
          supported formats and protocols)." ;
 
-      ["--plugins-dir"],
+      ["--dynamic-plugins-dir"],
        Arg.String (fun d ->
          Utils.load_plugins_dir d
        ),
