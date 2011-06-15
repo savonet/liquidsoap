@@ -643,7 +643,8 @@ def exec_at(~freq=1.,~pred,f)
   add_timeout(freq,check)
 end
 
-# Register the replaygain protocol
+# Register the replaygain protocol.
+# @category Liquidsoap
 def replaygain_protocol(arg,delay)
  # The extraction program
  extract_replaygain = "#{configure.libdir}/extract-replaygain"
