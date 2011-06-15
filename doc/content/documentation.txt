@@ -29,6 +29,7 @@ h4@reference. Reference
 * "Script language":language.html: A more detailed presentation.
 * "Encoding formats":encoding_formats.html: The available formats for encoding outputs.
 * "JSON export":json.html: Exporting language values in JSON.
+* "LADSPA plugins":ladspa.html: Using LADSPA plugins.
 
 h4@core. Core
 
