@@ -164,7 +164,6 @@ object (self)
           let new_pos = Frame.position buf in
           let extra = Int64.to_int (elapsed -- t) in
             if not (Frame.is_partial buf) then self#abort_track ;
-            assert (extra < new_pos - pos) ;
             Frame.set_breaks buf
               (Utils.remove_one ((=) new_pos) (Frame.breaks buf)) ;
             Frame.add_break buf (pos + extra) ;
