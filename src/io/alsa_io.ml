@@ -38,7 +38,6 @@ class virtual base ~kind dev mode =
 object (self)
 
   method virtual log : Dtools.Log.t
-  method virtual clock : Clock.clock_variable
 
   val mutable alsa_rate = -1
 
@@ -50,7 +49,7 @@ object (self)
   val mutable read =
     (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
 
-  method output_get_ready =
+  method open_device =
     self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
     try
       let dev =
@@ -164,49 +163,51 @@ object (self)
     with
       | Unknown_error _ as e -> raise (Error (string_of_error e))
 
-  method output_reset = ()
-  method is_active = true
+  method close_device =
+    match pcm with
+      | Some d ->
+          Pcm.close d ;
+          pcm <- None
+      | None -> ()
+
+  method output_reset = 
+    self#close_device ;
+    self#open_device
 end
 
-class output ~kind ~clock_safe dev val_source =
-  let source = Lang.to_source val_source in
+class output ~kind ~clock_safe ~start ~infallible
+             ~on_stop ~on_start dev val_source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
+  let name = Printf.sprintf "alsa_out(%s)" dev in
 object (self)
 
-  initializer
-    self#set_id (Printf.sprintf "alsa_out(%s)" dev) ;
-    (* We need the source to be infallible, and this has to be checked
-     * before we are registered as an active source (inherit active_op). *)
-    if source#stype <> Source.Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
-
-  inherit Source.active_operator kind [source] as super
+  inherit
+    Output.output
+      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~name ~output_kind:"output.alsa" val_source start
+    as super
   inherit base ~kind dev [Pcm.Playback]
 
   method set_clock =
     super#set_clock ;
-    if clock_safe then begin
+    if clock_safe then
       Clock.unify self#clock
-        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock)) ;
-      (* TODO in the future we should use the Output class to have
-       * a start/stop behavior; until then we register once for all,
-       * which is a quick but dirty solution. *)
-      (Alsa_settings.get_clock ())#register_blocking_source
-    end
+        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
   val samplerate_converter = Audio_converter.Samplerate.create channels
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = source#remaining
-  method get_frame buf = source#get buf
-  method abort_track = source#abort_track
+  method output_start =
+    if clock_safe then
+      (Alsa_settings.get_clock ())#register_blocking_source ;
+    self#open_device
 
-  method output =
-    while Frame.is_partial memo do
-      source#get memo
-    done ;
+  method output_stop =
+    if clock_safe then
+      (Alsa_settings.get_clock ())#unregister_blocking_source ;
+    self#close_device
+
+  method output_send memo =
     let pcm = Utils.get_some pcm in
     let buf = AFrame.content memo 0 in
     let buf =
@@ -246,33 +247,37 @@ object (self)
           else raise e
 end
 
-class input ~kind ~clock_safe dev =
+class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_frame = AFrame.size () in
 object (self)
-  inherit Source.active_source kind as super
   inherit base ~kind dev [Pcm.Capture]
+  inherit
+    Start_stop.input
+      ~content_kind:kind
+      ~source_kind:"alsa"
+      ~name:(Printf.sprintf "alsa_in(%s)" dev)
+      ~on_start ~on_stop ~fallible ~autostart:start
+    as super
 
   method set_clock =
     super#set_clock ;
-    if clock_safe then begin
+    if clock_safe then
       Clock.unify self#clock
-        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock)) ;
-      (* TODO in the future we should use the Output class to have
-       * a start/stop behavior; until then we register once for all,
-       * which is a quick but dirty solution. *)
-      (Alsa_settings.get_clock ())#register_blocking_source
-    end
+        (Clock.create_known ((Alsa_settings.get_clock ()):>Clock.clock))
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = -1
-  method abort_track = ()
-  method output = if AFrame.is_partial memo then self#get_frame memo
+  method private start =
+    if clock_safe then
+      (Alsa_settings.get_clock ())#register_blocking_source ;
+    self#open_device
+
+  method private stop =
+    if clock_safe then
+      (Alsa_settings.get_clock ())#unregister_blocking_source ;
+    self#close_device
 
   (* TODO: convert samplerate *)
-  method get_frame frame =
-    assert (0 = AFrame.position frame) ;
+  method private input frame =
     let pcm = Utils.get_some pcm in
     let buf = AFrame.content_of_type ~channels frame 0 in
       try
@@ -310,7 +315,7 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
   Lang.add_operator "output.alsa"
-    [ "bufferize",
+    (Output.proto @ [ "bufferize",
         Lang.bool_t, Some (Lang.bool true),
         Some "Bufferize output";
       "clock_safe",
@@ -319,7 +324,7 @@ let () =
       "device",
         Lang.string_t, Some (Lang.string "default"),
         Some "Alsa device to use" ;
-      "", Lang.source_t k, None, None ]
+      "", Lang.source_t k, None, None ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to an ALSA output device."
@@ -329,17 +334,28 @@ let () =
        let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let start = Lang.to_bool (List.assoc "start" p) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
          if bufferize then
-           (* TODO: add a parameter for autostart? *)
-           ((new Alsa_out.output ~kind ~clock_safe device true source)
-              :>Source.source)
+           ((new Alsa_out.output ~kind ~clock_safe ~start ~on_start ~on_stop 
+                                 ~infallible device source):>Source.source)
          else
-           ((new output ~kind ~clock_safe device source):>Source.source))
+           ((new output ~kind ~clock_safe ~infallible 
+                        ~start ~on_start ~on_stop device source):>Source.source))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.alsa"
-    [ "bufferize",
+    (Start_stop.input_proto @ [
+      "bufferize",
         Lang.bool_t, Some (Lang.bool true),
         Some "Bufferize input";
       "clock_safe",
@@ -347,7 +363,7 @@ let () =
         Some "Force the use of the dedicated ALSA clock" ;
       "device",
         Lang.string_t, Some (Lang.string "default"),
-        Some "Alsa device to use" ]
+        Some "Alsa device to use" ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from an ALSA input device."
@@ -356,7 +372,18 @@ let () =
        let bufferize = e Lang.to_bool "bufferize" in
        let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string  "device" in
+       let start = Lang.to_bool (List.assoc "start" p) in
+       let fallible = Lang.to_bool (List.assoc "fallible" p) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
          if bufferize then
            ((new Alsa_in.mic ~kind ~clock_safe device):>Source.source)
          else
-           ((new input ~kind ~clock_safe device):>Source.source))
+           ((new input ~kind ~clock_safe
+               ~on_start ~on_stop ~fallible ~start device):>Source.source))

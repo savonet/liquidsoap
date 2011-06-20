@@ -52,84 +52,96 @@ object (self)
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
 end
 
-class output ~kind ~clock_safe buflen val_source =
-  let source = Lang.to_source val_source in
+class output ~kind ~clock_safe ~start ~on_start 
+             ~on_stop ~infallible buflen val_source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
 
-  initializer
-    (* We need the source to be infallible. *)
-    if source#stype <> Source.Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
-
-  inherit Source.active_operator kind [source] as super
   inherit base
+  inherit
+    Output.output
+      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source start
+    as super
 
   method set_clock =
     super#set_clock ;
     if clock_safe then
-      let clock = get_clock () in
-        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
-        (* TODO in the future we should use the Output class to have
-         * a start/stop behavior; until then we register once for all,
-         * which is a quick but dirty solution. *)
-        clock#register_blocking_source
+      Clock.unify self#clock
+        (Clock.create_known ((get_clock ()):>Clock.clock))
 
   val mutable stream = None
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = source#remaining
-  method get_frame buf = source#get buf
-  method abort_track = source#abort_track
-
-  method output_get_ready =
+  method private open_device =
     self#handle
       "open_default_stream"
       (fun () ->
          stream <- Some (Portaudio.open_default_stream 0 channels samples_per_second buflen));
       self#handle "start_stream" (fun () -> Portaudio.start_stream (Utils.get_some stream))
 
-  method output_reset = ()
-  method is_active = true
+  method private close_device = 
+    match stream with
+      | None -> ()
+      | Some s -> 
+          Portaudio.close_stream s ;
+          stream <- None
 
-  method output =
-    while Frame.is_partial memo do
-      source#get memo
-    done;
+  method output_start =
+    if clock_safe then
+      (get_clock ())#register_blocking_source ;
+    self#open_device
+
+  method output_stop =
+    if clock_safe then
+      (get_clock ())#unregister_blocking_source ;
+    self#close_device
+
+  method output_reset = 
+    self#close_device ;
+    self#open_device
+
+  method output_send memo =
     let stream = Utils.get_some stream in
     let buf = AFrame.content memo 0 in
-      self#handle "write_stream" (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0)))
+      self#handle "write_stream"
+        (fun () -> Portaudio.write_stream stream buf 0 (Array.length buf.(0)))
+
 end
 
-class input ~kind ~clock_safe buflen =
+class input ~kind ~clock_safe ~start ~on_start ~on_stop ~fallible buflen =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
 
-  inherit Source.active_source kind as super
   inherit base
+  inherit
+    Start_stop.input
+      ~content_kind:kind
+      ~source_kind:"portaudio"
+      ~name:"portaudio_in"
+      ~on_start ~on_stop
+      ~fallible ~autostart:start
+    as super
 
   method set_clock =
     super#set_clock ;
     if clock_safe then
-      let clock = get_clock () in
-        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
-        (* TODO in the future we should use the Output class to have
-         * a start/stop behavior; until then we register once for all,
-         * which is a quick but dirty solution. *)
-        clock#register_blocking_source
+      Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
+
+  method private start =
+    if clock_safe then
+      (get_clock ())#register_blocking_source ;
+    self#open_device
+
+  method private stop =
+    if clock_safe then
+      (get_clock ())#unregister_blocking_source ;
+    self#close_device
 
   val mutable stream = None
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = -1
-  method abort_track = ()
-  method output = if AFrame.is_partial memo then self#get_frame memo
-
-  method output_get_ready =
+  method private open_device =
     self#handle
       "open_default_stream"
       (fun () ->
@@ -140,10 +152,15 @@ object (self)
       "start_stream"
       (fun () -> Portaudio.start_stream (Utils.get_some stream))
 
-  method output_reset = ()
-  method is_active = true
+  method private close_device = 
+    Portaudio.close_stream (Utils.get_some stream) ;
+    stream <- None
 
-  method get_frame frame =
+  method output_reset =
+    self#close_device ;
+    self#open_device
+
+  method input frame =
     assert (0 = AFrame.position frame) ;
     let stream = Utils.get_some stream in
     let buf = AFrame.content_of_type ~channels frame 0 in
@@ -151,6 +168,7 @@ object (self)
         "read_stream"
         (fun () -> Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
       AFrame.add_break frame (AFrame.size ())
+
 end
 
 let () =
@@ -158,30 +176,41 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
   Lang.add_operator "output.portaudio"
-    [
+    (Output.proto @ [
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
-        Some "Force teh use of the dedicated Portaudio clock." ;
+        Some "Force the use of the dedicated Portaudio clock." ;
       "buflen", Lang.int_t, Some (Lang.int 256),
         Some "Length of a buffer in samples.";
       "", Lang.source_t k, None, None
-    ]
+    ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
        let buflen = e Lang.to_int "buflen" in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let start = Lang.to_bool (List.assoc "start" p) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
        let source = List.assoc "" p in
        let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-         ((new output ~kind ~clock_safe buflen source):>Source.source)) ;
+         ((new output ~kind ~start ~on_start ~on_stop ~infallible 
+                      ~clock_safe buflen source):>Source.source)) ;
 
   Lang.add_operator "input.portaudio"
-    [
+    (Start_stop.input_proto @ [
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
-        Some "Force teh use of the dedicated Portaudio clock." ;
+        Some "Force the use of the dedicated Portaudio clock." ;
       "buflen", Lang.int_t, Some (Lang.int 256),
         Some "Length of a buffer in samples.";
-    ]
+    ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from a portaudio input device."
@@ -189,4 +218,15 @@ let () =
        let e f v = f (List.assoc v p) in
        let buflen = e Lang.to_int "buflen" in
        let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-         ((new input ~kind ~clock_safe buflen):>Source.source))
+       let start = Lang.to_bool (List.assoc "start" p) in
+       let fallible = Lang.to_bool (List.assoc "fallible" p) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+         ((new input ~kind ~clock_safe
+             ~start ~on_start ~on_stop ~fallible buflen):>Source.source))

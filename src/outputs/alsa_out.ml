@@ -25,26 +25,23 @@
 open Alsa
 open Dtools
 
-(** ALSA should be quiet *)
-let () = no_stderr_report ()
-
-class output ~kind ~clock_safe dev start source =
+class output ~kind ~clock_safe ~infallible
+             ~on_stop ~on_start ~start dev source =
   let buffer_length = AFrame.size () in
   let buffer_chans = (Frame.type_of_kind kind).Frame.audio in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
-  let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
+  let blank () =
+    Array.init buffer_chans (fun _ -> Array.make buffer_length 0.)
+  in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
-  (* Force these parameters for now. *)
-  let infallible = true in
-  let on_stop () = () in
-  let on_start () = () in
+  let name = Printf.sprintf "alsa_out(%s)" dev in
 object (self)
   inherit
     Output.output
       ~infallible ~on_stop ~on_start ~content_kind:kind
-      ~name:"output.alsa" ~output_kind:"output.alsa" source start
+      ~name ~output_kind:"output.alsa" source start
     as super
   inherit [float array array] IoRing.output ~nb_blocks ~blank as ioring
 
@@ -162,7 +159,9 @@ object (self)
     in
     ioring#put_block f
 
-  method output_reset = ()
+  method output_reset = 
+    self#close ;
+    ignore(self#get_device)
 end
 
 (* It is registered in Alsa_io. *)

@@ -282,7 +282,7 @@ object (self)
       if sync then
         log#f 3 "Streaming loop starts, synchronized with wallclock."
       else
-        log#f 3 "Streaming loop starts, no sync." ;
+        log#f 3 "Streaming loop starts, synchronized by active sources." ;
       let rec loop () =
         (* Stop running if there is no output. *)
         if outputs = [] then () else

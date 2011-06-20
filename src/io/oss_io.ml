@@ -26,98 +26,121 @@ external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 
+(** Wrapper for calling set_* functions and checking that the desired
+  * value has been accepted. If not, the current behavior is a bit
+  * too violent. *)
+let force f fd x =
+  let x' = f fd x in
+    if x <> x' then failwith "cannot obtain desired OSS settings"
+
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "OSS")
 
-class output ~kind ~clock_safe dev val_source =
-  let source = Lang.to_source val_source in
+class output ~kind ~clock_safe ~on_start ~on_stop 
+             ~infallible ~start dev val_source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
+  let name = Printf.sprintf "oss_out(%s)" dev in
 object (self)
 
-  initializer
-    (* We need the source to be infallible. *)
-    if source#stype <> Source.Infallible then
-      raise (Lang.Invalid_value (val_source, "That source is fallible"))
-
-  inherit Source.active_operator kind [source] as super
+  inherit
+    Output.output
+      ~infallible ~on_stop ~on_start ~content_kind:kind
+      ~name ~output_kind:"output.oss" val_source start
+    as super
 
   method set_clock =
     super#set_clock ;
     if clock_safe then
-      let clock = get_clock () in
-        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
-        (* TODO in the future we should use the Output class to have
-         * a start/stop behavior; until then we register once for all,
-         * which is a quick but dirty solution. *)
-        clock#register_blocking_source
+      Clock.unify self#clock
+        (Clock.create_known ((get_clock ()):>Clock.clock))
 
   val mutable fd = None
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = source#remaining
-  method get_frame buf = source#get buf
-  method abort_track = source#abort_track
+  method open_device =
+    let descr = Unix.openfile dev [Unix.O_WRONLY] 0o200 in
+      fd <- Some descr ;
+      force set_format descr 16 ;
+      force set_channels descr channels ;
+      force set_rate descr samples_per_second
 
-  method output_get_ready =
-    fd <- Some (Unix.openfile dev [Unix.O_WRONLY] 0o200);
-    let fd = Utils.get_some fd in
-      assert (set_format fd 16 = 16);
-      assert (set_channels fd channels = channels);
-      assert (set_rate fd samples_per_second = samples_per_second)
+  method close_device = 
+    match fd with
+      | None -> ()
+      | Some x -> 
+          Unix.close x ;
+          fd <- None
 
-  method output_reset = ()
-  method is_active = true
+  method output_start =
+    if clock_safe then
+      (get_clock ())#register_blocking_source ;
+    self#open_device
 
-  method output =
-    while Frame.is_partial memo do
-      source#get memo
-    done;
+  method output_stop =
+    if clock_safe then
+      (get_clock ())#unregister_blocking_source ;
+    self#close_device
+
+  method output_reset = 
+    self#close_device ;
+    self#open_device
+
+  method output_send memo =
     let fd = Utils.get_some fd in
     let buf = AFrame.content memo 0 in
     let r = Audio.S16LE.length (Audio.channels buf) (Audio.duration buf) in
     let s = String.create r in
     Audio.S16LE.of_audio buf 0 s 0 (Audio.duration buf);
     assert (Unix.write fd s 0 r = r)
+
 end
 
-class input ~kind ~clock_safe dev =
+class input ~kind ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samples_per_second = Lazy.force Frame.audio_rate in
 object (self)
 
-  inherit Source.active_source kind as super
+  inherit
+    Start_stop.input
+      ~content_kind:kind
+      ~source_kind:"oss"
+      ~name:(Printf.sprintf "oss_in(%s)" dev)
+      ~on_start ~on_stop ~fallible ~autostart:start
+    as super
 
   method set_clock =
     super#set_clock ;
     if clock_safe then
-      let clock = get_clock () in
-        Clock.unify self#clock (Clock.create_known (clock:>Clock.clock)) ;
-        (* TODO in the future we should use the Output class to have
-         * a start/stop behavior; until then we register once for all,
-         * which is a quick but dirty solution. *)
-        clock#register_blocking_source
+      Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))
 
   val mutable fd = None
 
-  method stype = Source.Infallible
-  method is_ready = true
-  method remaining = -1
-  method abort_track = ()
-  method output = if AFrame.is_partial memo then self#get_frame memo
+  method private start =
+    if clock_safe then
+      (get_clock ())#register_blocking_source ;
+    self#open_device
 
-  method output_get_ready =
-    fd <- Some (Unix.openfile dev [Unix.O_RDONLY] 0o400);
-    let fd = Utils.get_some fd in
-      assert (set_format fd 16 = 16);
-      assert (set_channels fd channels = channels);
-      assert (set_rate fd samples_per_second = samples_per_second)
+  method private open_device =
+    let descr = Unix.openfile dev [Unix.O_RDONLY] 0o400 in
+      fd <- Some descr ;
+      force set_format descr 16 ;
+      force set_channels descr channels ;
+      force set_rate descr samples_per_second
 
-  method output_reset = ()
-  method is_active = true
+  method private stop =
+    if clock_safe then
+      (get_clock ())#unregister_blocking_source ;
+    self#close_device
 
-  method get_frame frame =
+  method private close_device =
+    Unix.close (Utils.get_some fd) ;
+    fd <- None
+
+  method output_reset =
+    self#close_device ;
+    self#open_device
+
+  method input frame =
     assert (0 = AFrame.position frame) ;
     let fd = Utils.get_some fd in
     let buf = AFrame.content_of_type ~channels frame 0 in
@@ -128,6 +151,7 @@ object (self)
       assert (len = r) ;
       Audio.S16LE.to_audio s 0 buf 0 (Audio.duration buf);
       AFrame.add_break frame (AFrame.size ())
+
 end
 
 let () =
@@ -135,31 +159,42 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
   Lang.add_operator "output.oss"
-    [
+    (Output.proto @ [
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
         Some "Force the use of the dedicated OSS clock." ;
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
       Some "OSS device to use.";
       "", Lang.source_t k, None, None
-    ]
+    ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to an OSS output device."
     (fun p kind ->
        let e f v = f (List.assoc v p) in
+       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+       let start = Lang.to_bool (List.assoc "start" p) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
        let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
        let source = List.assoc "" p in
-         ((new output ~kind ~clock_safe device source):>Source.source)
+         ((new output ~start ~on_start ~on_stop ~infallible 
+                      ~kind ~clock_safe device source):>Source.source)
     );
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "input.oss"
-    [
+    (Start_stop.input_proto @ [
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
         Some "Force the use of the dedicated OSS clock." ;
       "device", Lang.string_t, Some (Lang.string "/dev/dsp"),
-      Some "OSS device to use.";
-    ]
+        Some "OSS device to use."
+    ])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~descr:"Stream from an OSS input device."
@@ -167,5 +202,15 @@ let () =
        let e f v = f (List.assoc v p) in
        let clock_safe = e Lang.to_bool "clock_safe" in
        let device = e Lang.to_string "device" in
-         ((new input ~kind ~clock_safe device):>Source.source)
-    )
+       let start = Lang.to_bool (List.assoc "start" p) in
+       let fallible = Lang.to_bool (List.assoc "fallible" p) in
+       let on_start =
+         let f = List.assoc "on_start" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+       let on_stop =
+         let f = List.assoc "on_stop" p in
+           fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+       in
+         ((new input ~kind ~start ~on_start ~on_stop
+             ~fallible ~clock_safe device):>Source.source))

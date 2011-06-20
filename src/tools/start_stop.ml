@@ -22,7 +22,7 @@
 
 (** Base class for sources with start/stop methods and server commands.
   * That class provides #may/do_start/stop but does not hook them anywhere. *)
-class virtual base ?(name="") ~source_kind
+class virtual base ~name ~source_kind ~interactive
   ~(on_start:unit->unit) ~(on_stop:unit->unit) ~autostart =
 object (self)
 
@@ -44,48 +44,45 @@ object (self)
   val virtual mutable ns_kind : string
 
   initializer
-    ns_kind <- source_kind ;
-    (* TODO self#log#f 4
-      "Content kind is %s."
-      (Frame.string_of_content_kind content_kind) ; *) 
-    self#register_command "autostart" ~descr:"Enable/disable autostart."
-      (fun s -> 
-         if s <> "" then begin
-           let update = s = "on" || s = "yes" || s = "y" in
-             (* Update request_start when:
-              *  - autostart becomes true (we now wait to start asap)
-              *  - autostart becomes false too (stop ongoing waiting)
-              * But not when it is unchanged. For example, this prevents
-              * cancelling a manually-ordered start. *)
-             if update <> autostart then begin
-               request_start <- update ;
-               autostart <- update ;
-               self#notify
-             end
-         end ;
-         if autostart then "on" else "off") ;
-    self#register_command "start" ~descr:"Start."
-      (fun _ -> request_start <- true ; self#notify ; "OK") ;
-    self#register_command "stop" ~descr:"Stop and disable autostart."
-      (fun _ ->
-         if autostart then begin
-           autostart <- false ;
-           request_start <- false
-         end ;
-         request_stop <- true ;
-         self#notify ;
-         "OK") ;
-    self#register_command "status" ~descr:"Get status."
-      (fun _ -> if is_started then "on" else "off")
+    if interactive then begin
+      ns_kind <- source_kind ;
+      self#register_command "autostart" ~descr:"Enable/disable autostart."
+        (fun s -> 
+           if s <> "" then begin
+             let update = s = "on" || s = "yes" || s = "y" in
+               (* Update request_start when:
+                *  - autostart becomes true (we now wait to start asap)
+                *  - autostart becomes false too (stop ongoing waiting)
+                * But not when it is unchanged. For example, this prevents
+                * cancelling a manually-ordered start. *)
+               if update <> autostart then begin
+                 request_start <- update ;
+                 autostart <- update ;
+                 self#notify
+               end
+           end ;
+           if autostart then "on" else "off") ;
+      self#register_command "start" ~descr:"Start."
+        (fun _ -> request_start <- true ; self#notify ; "OK") ;
+      self#register_command "stop" ~descr:"Stop and disable autostart."
+        (fun _ ->
+           if autostart then begin
+             autostart <- false ;
+             request_start <- false
+           end ;
+           request_stop <- true ;
+           self#notify ;
+           "OK") ;
+      self#register_command "status" ~descr:"Get status."
+        (fun _ -> if is_started then "on" else "off")
+    end
 
   method is_active = is_started
 
   method private wake_up (activation : Source.source list) =
-    (* {Server commands}
-     * We prefer [name] as an ID over the default,
+    (* We prefer [name] as an ID over the default,
      * but do not overwrite user-defined ID.
-     * Then we get a unique Server identifier,
-     * and finally set the ID to be the same. *)
+     * Our ID will be used for the server interface. *)
     if name <> "" then self#set_id ~definitive:false name 
 
   method private notify = ()
@@ -115,12 +112,17 @@ object (self)
 end
 
 (* Takes care of calling #start/#stop in a well-parenthesized way,
- * but they may be called from any thread. *)
-class virtual async ?name ~source_kind
+ * but they may be called from any thread.
+ * It is suitable for inactive inputs, where the #start/stop methods
+ * should start some sort of feeding thread. *)
+class virtual async ~name ~source_kind
   ~(on_start:unit->unit) ~(on_stop:unit->unit) ~autostart =
 object (self)
 
-  inherit base ?name ~source_kind ~on_start ~on_stop ~autostart as super
+  inherit
+    base ~name ~source_kind ~interactive:true
+         ~on_start ~on_stop ~autostart
+    as super
 
   method private wake_up activation =
     super#wake_up activation ;
@@ -135,3 +137,88 @@ object (self)
     self#may_start
 
 end
+
+(** The [input] class should be used for defining active inputs.
+  * It only requires #start, #stop and #input methods,
+  * and provides start/stop server commands.
+  * Currently the start/stop mechanism is always enabled, so the input
+  * is fallible.
+  * The code is similar to Output.output, with #may_(start/stop) called
+  * from the #output method. *)
+class virtual input ~name ~source_kind ~content_kind
+  ~(on_start:unit->unit) ~(on_stop:unit->unit) ~fallible ~autostart =
+object (self)
+
+  inherit Source.active_source content_kind
+  inherit
+    base ~name ~source_kind ~interactive:fallible
+         ~on_start ~on_stop ~autostart
+    as super
+
+  method stype = if fallible then Source.Fallible else Source.Infallible
+
+  method output_get_ready =
+    if fallible then self#may_start else self#do_start
+
+  method private wake_up activation =
+    super#wake_up activation ;
+    if fallible then self#may_start else self#do_start
+
+  method private sleep =
+    self#do_stop
+
+  method is_ready =
+    if fallible then self#is_active else begin
+      assert (self#is_active) ;
+      true
+    end
+
+  method remaining = if self#is_active then -1 else 0
+  method abort_track = ()
+
+  method private output =
+    self#may_start ;
+    if is_started && AFrame.is_partial memo then self#get_frame memo ;
+    if fallible then self#may_stop
+
+  method private get_frame frame =
+    (* Because we're an active source, the frame will actually be our memo.
+     * Hence we'll always start filling it at position 0, and we'll fill
+     * it completely. *)
+    assert (0 = AFrame.position frame) ;
+    if not is_started then
+      Frame.add_break frame (Frame.position frame)
+    else
+      self#input frame
+
+  method private virtual input : Frame.t -> unit
+
+end
+
+let input_proto =
+ [
+
+  "fallible",
+  Lang.bool_t,
+  Some (Lang.bool false),
+  Some "Allow the input to stop. \
+        When false, the source will be infallible but \
+        the stop command won't have any effect." ;
+
+  "on_start",
+  Lang.fun_t [] Lang.unit_t,
+  Some (Lang.val_cst_fun [] Lang.unit),
+  Some "Callback executed when input starts." ;
+
+  "on_stop",
+  Lang.fun_t [] Lang.unit_t,
+  Some (Lang.val_cst_fun [] Lang.unit),
+  Some "Callback executed when input stops."  ;
+
+  "start",
+  Lang.bool_t,
+  Some (Lang.bool true),
+  Some "Start input as soon as it is created. \
+    Disabling it is only taken into account for a fallible input."
+
+ ]

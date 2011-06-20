@@ -26,7 +26,8 @@
  * These I/O operators are deprecated and the code has several problems.
  * The global initialization doesn't support on-the-fly creation/deletion
  * of inputs/outputs. It also has several scary comments.
- * I'm not sure whether this module should remain in liquidsoap 1.0. *)
+ * The only reason to keep this code around is that some people may still
+ * use it... should we force the migration to bjack, and when? *)
 
 (** Dedicated Jack clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "jack")
@@ -344,7 +345,7 @@ let () =
   Lang.add_operator "input.jack.legacy"
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
-    ~flags:[Lang.Deprecated]
+    ~flags:[Lang.Deprecated;Lang.Hidden]
     ~descr:"Deprecated jack input."
     [
       "clock_safe",
@@ -372,7 +373,7 @@ let () =
   Lang.add_operator "output.jack.legacy"
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
-    ~flags:[Lang.Deprecated]
+    ~flags:[Lang.Deprecated;Lang.Hidden]
     ~descr:"Deprecated jack output."
     [
       "clock_safe",

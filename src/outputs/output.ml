@@ -72,7 +72,7 @@ object (self)
 
   inherit active_operator ~name:output_kind content_kind [source] as super
 
-  inherit Start_stop.base ~name ~source_kind:output_kind
+  inherit Start_stop.base ~name ~source_kind:output_kind ~interactive:true
                           ~on_start ~on_stop ~autostart as start_stop
 
   (* Eventually we can simply rename them... *)
