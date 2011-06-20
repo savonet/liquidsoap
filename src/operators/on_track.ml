@@ -28,6 +28,7 @@ object
   method is_ready = s#is_ready
   method abort_track = s#abort_track
   method remaining = s#remaining
+  method seek n = s#seek n
 
   val mutable called = false
 

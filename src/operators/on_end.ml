@@ -32,6 +32,7 @@ object (self)
   method is_ready = s#is_ready
   method remaining = s#remaining
   method abort_track = s#abort_track
+  method seek n = s#seek n
 
   method private get_frame ab =
     s#get ab ;

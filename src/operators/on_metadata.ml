@@ -28,6 +28,7 @@ object (self)
   method is_ready = s#is_ready
   method abort_track = s#abort_track
   method remaining = s#remaining
+  method seek n = s#seek n
 
   method private get_frame ab =
     let p = Frame.position ab in
