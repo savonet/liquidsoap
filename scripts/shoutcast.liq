@@ -24,7 +24,7 @@ def output.shoutcast(
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://savonet.sf.net/",
-  ~name="OCaml Radio!",~public=true, ~format="",
+  ~name="Liquidsoap Radio!",~public=true, ~format="",
   ~dumpfile="", ~icy_metadata="guess",
   ~on_connect={()}, ~on_disconnect={()},
   ~aim="",~icq="",~irc="",~icy_reset=true,
