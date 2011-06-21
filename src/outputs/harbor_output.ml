@@ -693,8 +693,7 @@ class output ~kind p =
                                                                     Done;
                                                                     Buffer.
                                                                     reset
-                                                                    buffer;
-                                                                    close ()))
+                                                                    buffer))
                                                                     ();
                                                                     on_disconnect
                                                                     ip;

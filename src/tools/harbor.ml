@@ -596,7 +596,7 @@ let open_port ~icy port =
            let ip = Utils.name_of_sockaddr ~rev_dns: conf_revdns#get caller
            in
              (log#f 4 "New client on port %i: %s" port ip;
-              Liq_sockets.set_tcp_nodelay sock true;
+              Liq_sockets.set_tcp_nodelay socket true;
               let on_error e =
                 ((match e with
                   | Duppy.Io.Io_error -> log#f 4 "Client disconnected"
@@ -605,7 +605,7 @@ let open_port ~icy port =
                         (Utils.error_message (Unix.Unix_error (c, p, m)))
                   | Duppy.Io.Unknown e ->
                       log#f 4 "%s" (Utils.error_message e));
-                 Close "Network Error !") in
+                 Close "") in
               let h =
                 {
                   Duppy.Monad.Io.scheduler = Tutils.scheduler;
@@ -619,7 +619,13 @@ let open_port ~icy port =
                   match r with
                   | Reply s -> (s, (fun () -> ()))
                   | Close s -> (s, close) in
-                let on_error e = (ignore (on_error e); close ())
+                let on_error e =
+                  (ignore (on_error e);
+                   (* We close on_error only if
+                  * the reply is Close. In case of Reply, 
+                  * we cannot close now has there might
+                  * be another task actually using the socket. *)
+                   exec ())
                 in
                   Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
                     ~string: s ~exec Tutils.scheduler socket

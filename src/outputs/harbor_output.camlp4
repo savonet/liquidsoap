@@ -499,8 +499,7 @@ object (self)
                 Tutils.mutexify client.mutex
                   (fun () ->
                     client.state <- Done ;
-                    Buffer.reset buffer ;
-                    close ()) () ;
+                    Buffer.reset buffer) () ;
                 on_disconnect ip ;
                 Harbor.Close "")
         }
