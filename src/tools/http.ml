@@ -164,6 +164,8 @@ let read socket buflen =
 
 type status = string * int * string
 
+type headers = (string*string) list
+
 (* An ugly code to read until we see [\r]?\n[\r]?\n. *)
 let read_crlf ?(max=4096) socket = 
   (* We read until we see [\r]?\n[\r]?\n *)
@@ -242,8 +244,11 @@ let http_req ?(post="") ?(headers=[]) socket host port file =
     Printf.sprintf "%sHost: %s\r\n" req host
   in
   let req =
-    Printf.sprintf "%sUser-Agent: liquidsoap/%s (%s; ocaml %s)\r\n"
-      req Configure.version Sys.os_type Sys.ocaml_version
+    if not (List.mem_assoc "User-Agent" headers) then
+      Printf.sprintf "%sUser-Agent: %s\r\n"
+        req user_agent
+    else
+      req
   in
   let req =
     List.fold_left
@@ -261,7 +266,28 @@ let get ?(headers=[]) socket host port file =
   let req = http_req ~headers:headers socket host port file in
      request socket req
 
-
 let post ?(headers=[]) data socket host port file =
   let req = http_req ~post:data ~headers:headers socket host port file in
      request socket req
+
+type request = Get | Post of string
+
+let full_request ?headers ?(port=80)
+            ~host ~url ~request () =
+ let connection =
+   connect host port
+ in
+ Tutils.finalize ~k:(fun () -> Unix.close connection)
+  (fun () -> 
+    (* We raise an error if the statuses are not correct. *)
+    let status,headers =
+      match request with
+        | Get ->
+           get ?headers connection host port url
+        | Post data ->
+           post ?headers data connection host port url
+    in
+    let ret = read_crlf ~max:max_int connection in
+    status,headers,
+       Pcre.substitute
+          ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret)

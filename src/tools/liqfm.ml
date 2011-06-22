@@ -30,50 +30,30 @@ module Liq_http =
 
   exception Http of string
 
-  let exc_of_exc e = 
-    match e with
-      | Unix.Unix_error (e,x,y) -> 
-          raise (Http (Printf.sprintf "Unix error: %s,%s,%s"  
-                          (Unix.error_message e) x y))
-      | e -> raise (Http (Utils.error_message e))
+  let exc_of_exc = 
+    function
+      | Http s -> Http s
+      | e -> Http (Utils.error_message e)
 
   (* This in unused for now.. *)
   let default_timeout = ref 5.
-  let request ?timeout ?headers ?(port=80) 
+  let request ?timeout ?headers ?port 
               ~host ~url ~request () =
-   let connection = 
-    try
-     Http.connect host port
-    with e -> exc_of_exc e
-   in
-   try
-    (* We raise an error if the statuses are not correct. *)
-    let status,headers = 
+  try
+    let request = 
       match request with
-        | Get -> 
-           Http.get ?headers connection host port url
-        | Post data -> 
-           Http.post ?headers data connection host port url 
+        | Get -> Http.Get
+        | Post s -> Http.Post s
     in
-    begin
-      match status with
-        | _, 200, _ -> () 
-        | x,y,z -> 
-          raise (Http (Printf.sprintf "Http connection failed \
-                         with status (%s,%d,%s)" x y z))
-    end ;
-      let ret = Http.read_crlf ~max:max_int connection in
-      Unix.close connection ;
-      Pcre.substitute 
-        ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret
-   with 
-     | e -> 
-         begin
-          try
-           Unix.close connection
-          with _ -> ()
-         end ;
-         exc_of_exc e
+    let (x,code,y),_,data = 
+          Http.full_request ?headers ?port
+                 ~host ~url ~request ()
+    in
+    if code <> 200 then 
+      raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));
+    data
+  with
+    | e -> raise (exc_of_exc e)
  end
 
 module Audioscrobbler = Lastfm_generic.Audioscrobbler_generic(Liq_http)

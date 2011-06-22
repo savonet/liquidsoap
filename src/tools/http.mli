@@ -34,6 +34,9 @@ val disconnect : connection -> unit
   * version of the HTTP protocol, status number and status message. *)
 type status = string * int * string
 
+(** Type for headers data. *)
+type headers = (string*string) list
+
 (* An ugly code to read until we see [\r]?\n[\r]?\n. *)
 val read_crlf : ?max:int -> connection -> string
 
@@ -41,14 +44,23 @@ val request : connection -> string -> (status * (string * string) list)
 
 (** [get ?headers socket host port file] makes a GET request.
   * Returns the status and the headers. *)
-val get : ?headers:((string*string) list) -> connection
+val get : ?headers:headers -> connection
   -> string -> int -> string -> (status * (string * string) list)
 
 (** [post ?headers data socket host port file] makes a POST request.
   * Returns the status and the headers. *)
-val post : ?headers:((string*string) list) -> string
+val post : ?headers:headers -> string
   -> connection -> string -> int -> string -> (status * (string * string) list)
 
 (** [read len] reads [len] bytes of data
   * or all available data if [len] is [None]. *)
 val read : connection -> int option -> string
+
+(** Type for full Http request. *)
+type request = Get | Post of string
+
+(** Perform a full Http request and return the response status,headers
+  * and data. *)
+val full_request : ?headers:headers -> ?port:int ->
+                   host:string -> url:string ->
+                   request:request -> unit -> status*headers*string 

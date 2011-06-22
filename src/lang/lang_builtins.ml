@@ -1966,3 +1966,76 @@ let () =
        let v = if nl then v^"\n" else v in
          print_string v ; flush stdout ;
          Lang.unit)
+
+type request = Get | Post
+
+let add_http_request name descr request =
+  let header_t = 
+    Lang.product_t Lang.string_t Lang.string_t
+  in
+  let headers_t = Lang.list_t header_t in
+  let status_t = 
+    Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t
+  in
+  let request_return_t = 
+    Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t
+  in
+  let params = 
+    ["headers",headers_t, Some (Lang.list ~t:header_t []), 
+     Some "Additional headers." ;
+     "port", Lang.int_t, Some (Lang.int 80), None;
+     "host", Lang.string_t, None, Some "Server host, e.g. \"google.com\"";
+     "url", Lang.string_t, None, Some "Requested URI, e.g. \"/index.html\""]
+  in
+  let params = 
+    if request = Get then 
+      params
+    else
+      params @ ["data", Lang.string_t, Some (Lang.string ""), 
+                Some "Http POST data."]
+  in
+  add_builtin name ~cat:Interaction ~descr
+    params 
+    request_return_t
+    (fun p ->
+      let headers = List.assoc "headers" p in
+      let headers = Lang.to_list headers in
+      let headers = List.map Lang.to_product headers in
+      let headers = List.map (fun (x,y) -> (Lang.to_string x, Lang.to_string y)) headers in
+      let port = Lang.to_int (List.assoc "port" p) in
+      let host = Lang.to_string (List.assoc "host" p) in
+      let url = Lang.to_string (List.assoc "url" p) in
+      let request = 
+        if request = Get then
+           Http.Get
+        else
+          begin
+            let data = Lang.to_string (List.assoc "data" p) in
+            Http.Post data
+          end
+      in
+      let ((x,y,z),headers,data) = 
+        Http.full_request ~headers ~port ~host ~url ~request () 
+      in
+      let status = 
+        Lang.product
+          (Lang.product (Lang.string x) (Lang.int y))
+          (Lang.string z)
+      in
+      let headers = 
+        List.map (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) headers
+      in
+      let headers = Lang.list ~t:header_t headers in
+      Lang.product 
+        (Lang.product status headers)
+        (Lang.string data))
+
+let () = 
+  add_http_request 
+    "http.get" 
+    "Perform a full Http GET request and return (status,headers),data" 
+    Get;
+  add_http_request 
+    "http.post" 
+    "Perform a full Http POST request and return (status,headers),data" 
+    Post
