@@ -2014,8 +2014,15 @@ let add_http_request name descr request =
             Http.Post data
           end
       in
-      let ((x,y,z),headers,data) = 
-        Http.full_request ~headers ~port ~host ~url ~request () 
+      let ((x,y,z),headers,data) =
+        try 
+          Http.full_request ~headers ~port ~host ~url ~request () 
+        with
+          | e -> 
+             (* Here we return a fake code.. *)
+             ("Internal error",999,"Internal error"),[],
+              (Printf.sprintf "Error while processing request: %s"
+                  (Utils.error_message e))
       in
       let status = 
         Lang.product
