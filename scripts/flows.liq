@@ -9,7 +9,7 @@
 # @param description Description of the radio.
 # @param genre Genre of the radio (rock or rap or etc.).
 # @param streams List of streams for the radio described by a pair of strings consisting of the format of the stream and the url of the stream. The format should be of the form "ogg/128k" consisting of the codec and the bitrate, separated by "/".
-def register_flow(~host="",~port=80,~user="default",~password="default",~radio,~website,~description,~genre,~streams,s)
+def register_flow(~host="",~port=80,~user="default",~password="default",~email="",~radio,~website,~description,~genre,~streams,s)
 
   # If the server is "", we get the server from sf.net
   server =
@@ -35,8 +35,9 @@ def register_flow(~host="",~port=80,~user="default",~password="default",~radio,~
   # and set request function.
   base_params = [("v", "0.0"),
                  ("user",user),
-                 ("radio",radio),
-                 ("password",password)]
+                 ("password",password),
+                 ("email",email),
+                 ("radio",radio)]
   def request(~cmd,~params) =
     log = log(label=radio)
     log(level=4,"Processing command #{cmd} with arguments:")
