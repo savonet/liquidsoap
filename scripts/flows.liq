@@ -2,7 +2,13 @@
 # - Check for errors
 # - Unregister radio and streams
 
-# streams is a list of string * string : format * url
+# Register a radio on Liquidsoap Flows.
+# @category Liquidsoap
+# @param radio Name of the radio.
+# @param website url of the website of the radio.
+# @param description Description of the radio.
+# @param genre Genre of the radio (rock or rap or etc.).
+# @param streams List of streams for the radio described by a pair of strings consisting of the format of the stream and the url of the stream. The format should be of the form "ogg/128k" consisting of the codec and the bitrate, separated by "/".
 def register_flow(~host="",~port=80,~user="default",~password="default",~radio,~website,~description,~genre,~streams,s)
 
   # If the server is "", we get the server from sf.net
