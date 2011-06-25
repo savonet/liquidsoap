@@ -30,6 +30,7 @@ object (self)
   method is_ready = source#is_ready
   method remaining = source#remaining
   method abort_track = source#abort_track
+  method seek n = source#seek n
 
   method private rewrite m =
     let m' = Lang.apply ~t:Lang.metadata_t rewrite_f ["",Lang.metadata m] in
