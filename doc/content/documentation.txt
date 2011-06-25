@@ -20,7 +20,7 @@ h4@general. General tutorials
 * "Advanced":advanced.html: overview of more advanced features for serious usage.
 * "How to find help":help.html about operators, settings, server commands, etc.
 * "Cookbook":cookbook.html: contains lots of idiomatic examples.
-* "Frequently Asked Questions, Troubleshouting":faq.html
+* "Frequently Asked Questions, Troubleshooting":faq.html
 
 h4@reference. Reference
 

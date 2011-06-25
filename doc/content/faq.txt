@@ -88,7 +88,7 @@ In any case, once that kind of error happens, there is no way for the
 user to prevent liquidsoap from crashing. Those exceptions cannot be
 caught or handled in any way at the level of liquidsoap scripts.
 
-h4. Troubleshouting
+h4. Troubleshooting
 
 h5. Pulseaudio
 
