@@ -2,3 +2,4 @@
 %include "externals.liq"
 %include "shoutcast.liq"
 %include "lastfm.liq"
+%include "flows.liq"
