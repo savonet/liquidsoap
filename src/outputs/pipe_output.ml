@@ -87,7 +87,7 @@ object (self)
   inherit
     Output.encoded
       ~infallible ~on_start ~on_stop ~autostart
-      ~output_kind:"to_file" ~name
+      ~output_kind:"output.file" ~name
       ~content_kind:kind source
 
   val mutable encoder = None

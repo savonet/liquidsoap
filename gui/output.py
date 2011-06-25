@@ -24,14 +24,14 @@ class LiqOutput(gtk.VBox):
     self.tel = LiqClient(host,port)
 
     # Fast metadata view: short metadata, right click to see more (TODO)
-    a=self.tel.metadata(self.op+".metadatas")
+    a=self.tel.metadata(self.op+".metadata")
     self.list = View([['rid'        , 40],
                       ['artist'     ,'120'],
                       ['title'      ,'120'],
                       # Right-align URI because the end is more informative
                       # than the beginning
-                      ['uri'        ,'300', {'xalign':1.0}],
-                      ['on_air_date','50']], a)
+                      ['initial_uri','300', {'xalign':1.0}],
+                      ['on_air','50']], a)
     scroll = gtk.ScrolledWindow()
     scroll.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
     scroll.add(self.list)
@@ -71,7 +71,7 @@ class LiqOutput(gtk.VBox):
                                (remaining/60,remaining%60))
     else:
       self.remaining.set_label("Remaining: (undef)")
-    self.list.setModel(self.tel.metadata(self.op+".metadatas"))
+    self.list.setModel(self.tel.metadata(self.op+".metadata"))
     if self.tel.command(self.op+".status")=="on":
       if not self.onoff.get_active():
         self.onoff.set_active(True)

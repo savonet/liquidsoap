@@ -24,13 +24,13 @@ class LiqQueue(gtk.VPaned):
 
     # Fast metadata view: short metadata, right click to see more (TODO)
     self.list = View([['rid'        , 40],
-                      ['2nd_queue_pos', 10],
+                      ['2nd_queue_pos', 80],
                       ['skip'       , False],
                       ['artist'     ,'120'],
                       ['title'      ,'120'],
                       # Right-align URI because the end is more informative
                       # than the beginning
-                      ['initial_uri'        ,'300', {'xalign':1.0}]],
+                      ['initial_uri','250', {'xalign':1.0}]],
                       self.queue())
     self.list.drag_dest_set(gtk.DEST_DEFAULT_ALL,
                             [('text/uri-list',0,0)],
@@ -40,9 +40,22 @@ class LiqQueue(gtk.VPaned):
     scroll = gtk.ScrolledWindow()
     scroll.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
     scroll.add(self.list)
-    scroll.show()
+
+    # The list is ready, pack it to the top region
+    # together with a help label
+    box = gtk.VBox()
+    lbl = gtk.Label()
+    lbl.set_markup("\
+<b>Enqueue</b> files by drag-n-dropping from your file manager or \
+using the file chooser below.\n\
+<b>Remove/restore</b> scheduled files by double-clicking.")
+    box.pack_start(scroll,fill=True,expand=True)
+    box.pack_start(lbl,fill=True,expand=False)
+    self.pack1(box,resize=True)
+    lbl.show()
     self.list.show()
-    self.pack1(scroll,resize=True)
+    scroll.show()
+    box.show()
 
     fsel = gtk.FileChooserWidget()
     fsel.connect("file_activated", lambda s: self.selected(s))
@@ -74,7 +87,7 @@ class LiqQueue(gtk.VPaned):
   def queue(self):
     a = filter(lambda x: x!='',
           re.compile('(\d+)\s*').split(self.tel.command(self.op+".queue")))
-    a = [ self.tel.metadata('metadata '+e)[0] for e in a ]
+    a = [ self.tel.metadata('request.metadata '+e)[0] for e in a ]
     return a
 
   def update(self):

@@ -30,7 +30,7 @@ class LiqEditable(gtk.VPaned):
                       ['title'      ,'120'],
                       # Right-align URI because the end is more informative
                       # than the beginning
-                      ['uri'        ,'300', {'xalign':1.0}]], [])
+                      ['initial_uri','300', {'xalign':1.0}]], [])
     self.update()
 
     # Popup menu for requests
@@ -82,7 +82,7 @@ class LiqEditable(gtk.VPaned):
         if data and data.format == 8:
           for e in data.data.split('\r\n')[:-1]:
             self.tel.command(self.op+".push "+urllib.unquote(e))
-            context.finish(gtk.True, gtk.False, time)
+            context.finish(True, False, time)
 
     self.list.connect("drag_data_received",dnd_receive)
 
@@ -103,7 +103,20 @@ class LiqEditable(gtk.VPaned):
     scroll.add(self.list)
     scroll.show()
     self.list.show()
-    self.pack1(scroll,resize=True)
+
+    # Pack this to self, with a doc label
+    box = gtk.VBox()
+    lbl = gtk.Label()
+    lbl.set_markup("\
+<b>Enqueue</b> files by drag-n-dropping from your file manager or \
+using the file chooser below.\n\
+<b>Re-order</b> the queue by drag-n-dropping.\n\
+<b>Remove</b> scheduled requests by right-clicking.")
+    box.pack_start(scroll,fill=True,expand=True)
+    box.pack_start(lbl,fill=True,expand=False)
+    self.pack1(box,resize=True)
+    lbl.show()
+    box.show()
 
     # A file selector in the other side of the pane
     fsel = gtk.FileChooserWidget()
@@ -123,7 +136,7 @@ class LiqEditable(gtk.VPaned):
   def queue(self):
     a = filter(lambda x: x!='',
           re.compile('(\d+)\s*').split(self.tel.command(self.op+".queue")))
-    a = [ self.tel.metadata('metadata '+e)[0] for e in a ]
+    a = [ self.tel.metadata('request.metadata '+e)[0] for e in a ]
     return a
 
   def update(self):

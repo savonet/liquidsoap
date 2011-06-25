@@ -5,10 +5,9 @@ pygtk.require('2.0')
 import gtk
 import gobject
 
-import threading, socket, sys, os, time, re
+import socket, sys, os, time, re
+from subprocess import Popen, PIPE
 import getopt
-
-import tempfile
 
 from client import LiqClient
 from widgets import View
@@ -54,7 +53,7 @@ behaviour is hard-coded in the liquidsoap script. You can just see what will be
 played next. (Actually, more could be coming soon, like changing random mode 
 and playlist file...)
 
-Liquidsoap and liguidsoap are copyright (c) 2003,2004,2005,2006,2007 Savonet Team.
+Liquidsoap and liguidsoap are copyright (c) 2003-2011 Savonet Team.
 This is free software, released under the terms of GPL version 2 or higher.
 """)
     box.pack_start(lbl)
@@ -87,18 +86,25 @@ This is free software, released under the terms of GPL version 2 or higher.
       self.remove_page(w.n) # TODO cleanup contents (especially telnet)
     c.connect('clicked',clicked)
     self.set_show_tabs(True)
-    self.append_page(
-        {'queue'   : lambda x: LiqQueue(self.host,self.port,x),
-         'editable': lambda x: LiqEditable(self.host,self.port,x),
-         'playlist': lambda x: LiqPlaylist(self.host,self.port,x),
-         'mixer'   : lambda x: LiqMix(self.host,self.port,x),
-         'output.icecast': lambda x: LiqOutput(self.host,self.port,x),
-         'output.file'   : lambda x: LiqOutput(self.host,self.port,x),
-         'output.oss'    : lambda x: LiqOutput(self.host,self.port,x),
-         'output.ao'     : lambda x: LiqOutput(self.host,self.port,x),
-         'output.alsa'   : lambda x: LiqOutput(self.host,self.port,x),
-         'output.dummy'  : lambda x: LiqOutput(self.host,self.port,x)
-        }[type](name),b)
+    # This is a dirty workaround, we should not show this item
+    # in the first place!
+    if type=='interactive':
+      print("Unsupported item...")
+    else:
+      self.append_page(
+          {'queue'   : lambda x: LiqQueue(self.host,self.port,x),
+           'editable': lambda x: LiqEditable(self.host,self.port,x),
+           'playlist': lambda x: LiqPlaylist(self.host,self.port,x),
+           'mixer'   : lambda x: LiqMix(self.host,self.port,x),
+           'output.icecast': lambda x: LiqOutput(self.host,self.port,x),
+           'output.file'   : lambda x: LiqOutput(self.host,self.port,x),
+           'output.oss'    : lambda x: LiqOutput(self.host,self.port,x),
+           'output.ao'     : lambda x: LiqOutput(self.host,self.port,x),
+           'output.alsa'   : lambda x: LiqOutput(self.host,self.port,x),
+           'output.portaudio': lambda x: LiqOutput(self.host,self.port,x),
+           'output.pulseaudio': lambda x: LiqOutput(self.host,self.port,x),
+           'output.dummy'  : lambda x: LiqOutput(self.host,self.port,x),
+          }[type](name),b)
 
 # Now is the big deal: how to start liguidsoap,
 # configuration dialog and automatic liquidsoap launch.
@@ -106,7 +112,7 @@ This is free software, released under the terms of GPL version 2 or higher.
 # liquidsoap runs liquidsoap with a fixed script
 # a few parameters are available
 def liquidsoap(
-    scriptfile,
+    enable_mic=False,
     host='localhost',port=1234,mount='emission.ogg',
     backup=''):
   if backup=='':
@@ -114,33 +120,46 @@ def liquidsoap(
   else:
     addbackup=';"backup"'
 
-  os.system("""cat > %s <<__EOL__
+  enable_mic_str = "false"
+  if enable_mic:
+    enable_mic_str = "true"
+
+  script = """
+set("log.file",true)
 set("log.file.path","/tmp/lig.<pid>.log")
 set("log.stdout",true)
 set("server.telnet",true)
 
-bg = request.equeue (id="bed")
-music = request.equeue (id="music")
-sfx = request.equeue (id="sfx")
-# Disabling input.alsa until it is more stable..
-# Currently its initialization can freeze liquidsoap,
-# and it won't run correctly on most systems.
-mixer = mix(id="mixer",[
-                         in(),
-                         music,bg,sfx])
+bg = request.equeue(id="bed")
+music = request.equeue(id="music")
+sfx = request.equeue(id="sfx")
 
-# This is output.alsa if available, ao or dummy otherwise.
+enable_mic = %s
+sources =
+  if enable_mic then [in(id="microphone"),music,bg,sfx] else [music,bg,sfx] end
+mixer = mix(id="mixer",sources)
+
 output.prefered(id="speaker",mixer)
-output.icecast.vorbis(
+output.icecast(%%vorbis,
   id="broadcast",
   host="%s",port=%d,mount="%s",start=false,mixer)
-output.file.vorbis(id="backup",start=false,"%s",mixer)
-""" % (scriptfile, host, port, mount, backup))
+output.file(%%vorbis,id="backup",start=false,"%s",mixer)
+""" % (enable_mic_str, host, port, mount, backup)
+
+  binary = Popen("which liquidsoap",
+             stdout=PIPE,shell=True).stdout.read()[0:-1]
+  if binary=="":
+    print "Cannot find liquidsoap binary in $PATH!"
+    exit(1)
+
+  print "Excuting %s with the following script:" % binary
+  print "=== BEGIN ==="
+  print script
+  print "=== END ==="
   pid = os.fork()
   if pid==0:
-    os.execlp("liquidsoap","liquidsoap",scriptfile)
+    os.execl(binary,"liquidsoap",script)
   else:
-    print "Running liquidsoap..."
     return pid
 
 # liguidsoap is the toplevel call, starts everything
@@ -165,11 +184,10 @@ def liguidsoap():
   ehost=eport=erun=dialog=None
   icehost=iceport=icemount=backup=None
 
-  def exit(pid, scriptfile):
+  def exit(pid):
     if pid!=None:
       os.kill(pid,15)
       os.waitpid(pid,0)
-    os.remove(scriptfile)
     gtk.main_quit()
 
   # This startup function can be used to start the GUI directly
@@ -177,21 +195,19 @@ def liguidsoap():
   def start(response=None):
     # Dialog stuff
     liquid_pid=None
-    scriptfile=None
     if response!=None:
       if response!=gtk.RESPONSE_ACCEPT:
         sys.exit()
       if erun.get_active():
         host,port = 'localhost',1234
-        __unused, scriptfile = tempfile.mkstemp('.liq', 'liquidsoap')
         liquid_pid=liquidsoap(
-            scriptfile,
+            enable_mic=enable_mic.get_active(),
             host=icehost.get_text(),
             port=iceport.get_value(),
             mount=icemount.get_text(),
             backup=backup.get_text())
-        print "Waiting for liquidsoap to start..."
-	# Seems this can take more time...
+	# This could be tighter...
+        print "Waiting 3 seconds for liquidsoap to start..."
         time.sleep(3)
       else:
         host=ehost.get_text()
@@ -202,7 +218,7 @@ def liguidsoap():
     win = gtk.Window()
     win.set_border_width(10)
     win.connect("delete_event", lambda w,e: False)
-    win.connect("destroy", lambda osb: exit(liquid_pid,scriptfile))
+    win.connect("destroy", lambda osb: exit(liquid_pid))
     win.set_title('Liquidsoap on '+host+':'+str(port))
     win.resize(700,300)
     try:
@@ -247,15 +263,20 @@ def liguidsoap():
     table.attach(eport,1,2,1,2)
 
     # Settings for automatic liquidsoap run
-    erunconf = gtk.Table(2,6)
+    erunconf = gtk.Table(2,7)
+
+    enable_mic = gtk.CheckButton("Use microphone input (may not be functional)")
+    enable_mic.show()
+    erunconf.attach(enable_mic,0,2,0,1)
+
     lbl = gtk.Label("Icecast settings")
-    erunconf.attach(lbl,0,2,0,1) ; lbl.show()
+    erunconf.attach(lbl,0,2,1,2) ; lbl.show()
 
     icehost = gtk.Entry()
     icehost.set_text('localhost')
     lbl = gtk.Label("Host: ")
-    erunconf.attach(lbl,0,1,1,2)
-    erunconf.attach(icehost,1,2,1,2)
+    erunconf.attach(lbl,0,1,2,3)
+    erunconf.attach(icehost,1,2,2,3)
     lbl.show() ; icehost.show()
 
     iceport = gtk.SpinButton()
@@ -265,24 +286,24 @@ def liguidsoap():
     iceport.show()
     lbl = gtk.Label("Port: ")
     lbl.show()
-    erunconf.attach(lbl,0,1,2,3)
-    erunconf.attach(iceport,1,2,2,3)
+    erunconf.attach(lbl,0,1,3,4)
+    erunconf.attach(iceport,1,2,3,4)
 
     icemount = gtk.Entry()
     icemount.set_text('emission.ogg')
     lbl = gtk.Label("Mount: ")
-    erunconf.attach(lbl,0,1,3,4)
-    erunconf.attach(icemount,1,2,3,4)
+    erunconf.attach(lbl,0,1,4,5)
+    erunconf.attach(icemount,1,2,4,5)
     lbl.show() ; icemount.show()
 
     lbl = gtk.Label("Local backup OGG file")
-    erunconf.attach(lbl,0,2,4,5)
+    erunconf.attach(lbl,0,2,5,6)
     backup = gtk.Entry()
     backup.set_text('/tmp/emission.ogg')
-    erunconf.attach(backup,0,2,5,6)
+    erunconf.attach(backup,0,2,6,7)
     backup.show() ; lbl.show()
 
-    erun = gtk.CheckButton("Run liquidsoap automatically.")
+    erun = gtk.CheckButton("Run liquidsoap automatically")
     erun.show()
     dialog.vbox.pack_start(erun)
     dialog.vbox.pack_start(erunconf)

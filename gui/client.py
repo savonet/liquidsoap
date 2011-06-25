@@ -11,8 +11,8 @@ class LiqClient:
   def command(self,s):
     self.tel.write(s+"\n")
     ans = self.tel.read_until("END")
-    ans = re.sub("\nEND$","",ans)
-    ans = re.sub("^\n","",ans)
+    ans = re.sub("[\r\n]*END$","",ans)
+    ans = re.sub("^[\r\n]*","",ans)
     return ans
 
   def metadata(self,s):
@@ -43,4 +43,4 @@ class LiqClient:
 if __name__ == "__main__":
   c = LiqClient('localhost',1234)
   print "Has been running for "+c.command("uptime")
-  print c.metadata("root.metadatas")
+  print c.metadata("root.metadata")
