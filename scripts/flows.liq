@@ -36,7 +36,6 @@ def register_flow(~host="",~port=80,~user="default",~password="default",~email="
   host = fst(server)
   port = snd(server)
   log(level=4,"Flows server: #{host}:#{port}")
-  shutdown()
 
   # Initial variables
   url = "/liqflows.py"
