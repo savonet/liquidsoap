@@ -3,7 +3,7 @@
 type error = Socket | Response | UrlDecoding
 exception Error of error
 
-let string_of_error e = 
+let string_of_error e =
   match e with
     | Socket -> "Http: error while communicating to socket"
     | Response -> "Http: invalid answer to request"
@@ -21,11 +21,11 @@ let raise e = raise (Error e)
 
 type connection = Unix.file_descr
 
-let user_agent = 
-  Printf.sprintf "liquidsoap/%s (%s; ocaml %s)"
+let user_agent =
+  Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)"
               Configure.version Sys.os_type Sys.ocaml_version
 
-(* URL encoding/decoging according to RFC 1738, RFC 1630.
+(* URL encoding/decoding according to RFC 1738, RFC 1630.
  * Borrowed from ocamlnet. *)
 
 (** Converts k to a 2-digit hexadecimal string. *)
@@ -72,9 +72,9 @@ let url_decode ?(plus = true) s =
               end)
     s
 
-let args_split s = 
+let args_split s =
   let args = Hashtbl.create 2 in
-  let fill_arg arg = 
+  let fill_arg arg =
     let arg = url_decode arg in
     match Pcre.split ~pat:"=" arg with
       | e :: l -> (List.iter (Hashtbl.replace args e) l) (* There should be only arg=value *)
@@ -83,19 +83,43 @@ let args_split s =
   List.iter fill_arg (Pcre.split ~pat:"&" s) ;
   args
 
-let http_sanitize url = 
+(* exception Invalid_url *)
+
+let url_split_host_port url =
+  let basic_rex = Pcre.regexp "^http://([^/:]+)(:[0-9]+)?(/.*)$" in
+  let sub =
+    try
+      Pcre.exec ~rex:basic_rex url
+    with
+      | Not_found ->
+        (* raise Invalid_url *)
+        failwith "Invalid URL."
+  in
+  let host,uri = Pcre.get_substring sub 1,Pcre.get_substring sub 3 in
+  let port =
+    try
+      let port = Pcre.get_substring sub 2 in
+      let port = String.sub port 1 (String.length port - 1) in
+      let port = int_of_string port in
+      Some port
+    with
+      | Not_found -> None
+  in
+  host,port,uri
+
+let http_sanitize url =
   try
     let basic_rex = Pcre.regexp "^http://([^/]+)/(.*)$" in
     let path_rex = Pcre.regexp "^([^?]+)\\?(.+)$" in
     let sub = Pcre.exec ~rex:basic_rex url in
     let host,path = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
-    let encode path = 
+    let encode path =
       let path = Pcre.split ~pat:"/" path in
       (* We decode the path, in case it was already encoded. *)
       let path = List.map (fun x -> url_encode ~plus:false (url_decode x)) path in
       List.fold_left (Printf.sprintf "%s/%s") "" path
     in
-    try 
+    try
       let sub = Pcre.exec ~rex:path_rex path in
       let path,options = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
       (* args_split also decodes the arguments if
@@ -103,7 +127,7 @@ let http_sanitize url =
       let options = args_split options in
       let args = Hashtbl.create 2 in
       Hashtbl.iter (fun a b -> Hashtbl.replace args (url_encode a) (url_encode b)) options ;
-      let merge a b c = 
+      let merge a b c =
         match c with
           | "" -> Printf.sprintf "%s=%s" a b
           | _ -> Printf.sprintf "%s=%s&%s" a b c
@@ -139,7 +163,7 @@ let connect ?bind_address host port =
           Unix.close socket;
           raise Socket
 
-let disconnect socket = 
+let disconnect socket =
   try
    Unix.close socket
   with
@@ -167,7 +191,7 @@ type status = string * int * string
 type headers = (string*string) list
 
 (* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-let read_crlf ?(max=4096) socket = 
+let read_crlf ?(max=4096) socket =
   (* We read until we see [\r]?\n[\r]?\n *)
   let ans = Buffer.create 10 in
   let n = ref 0 in
@@ -177,7 +201,7 @@ let read_crlf ?(max=4096) socket =
     (* We need to parse char by char because
      * we want to make sure we stop at the exact
      * end of [\r]?\n[\r]?\n in order to pass a socket
-     * which is placed at the exact char after it. 
+     * which is placed at the exact char after it.
      * The maximal length is a security but it may
      * be lifted.. *)
     while !loop && !n < max do
@@ -204,7 +228,7 @@ let request socket request =
     raise Socket ;
   let header = read_crlf socket in
   let header = Pcre.split ~pat:"[\r]?\n" header in
-  let response,header = 
+  let response,header =
      match header with
       | e::tl -> e,tl
       | [] -> raise Response
@@ -230,12 +254,12 @@ let request socket request =
   in
     (response_http_version, response_status, response_msg), (List.rev fields)
 
-let http_req ?(post="") ?(headers=[]) socket host port file = 
-  let action = 
-    if post <> "" then 
-      "POST" 
-    else 
-      "GET" 
+let http_req ?(post="") ?(headers=[]) socket host port file =
+  let action =
+    if post <> "" then
+      "POST"
+    else
+      "GET"
   in
   let req =
     Printf.sprintf "%s %s HTTP/1.0\r\n" action file
@@ -278,7 +302,7 @@ let full_request ?headers ?(port=80)
    connect host port
  in
  Tutils.finalize ~k:(fun () -> Unix.close connection)
-  (fun () -> 
+  (fun () ->
     (* We raise an error if the statuses are not correct. *)
     let status,headers =
       match request with

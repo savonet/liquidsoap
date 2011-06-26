@@ -17,6 +17,9 @@ val url_decode : ?plus:bool -> string -> string
 (** Encode an url. *)
 val url_encode : ?plus:bool -> string -> string
 
+(** Split an URL to return host, port and URI. *)
+val url_split_host_port : string -> string * int option * string
+
 (** [http_sanitize url] encodes the relevant parts of a url
  *  (path and arguments, without their seperators). *)
 val http_sanitize : string -> string

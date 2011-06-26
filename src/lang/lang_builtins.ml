@@ -1970,42 +1970,34 @@ let () =
 type request = Get | Post
 
 let add_http_request name descr request =
-  let header_t = 
-    Lang.product_t Lang.string_t Lang.string_t
-  in
+  let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
-  let status_t = 
-    Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t
-  in
-  let request_return_t = 
-    Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t
-  in
-  let params = 
-    ["headers",headers_t, Some (Lang.list ~t:header_t []), 
-     Some "Additional headers." ;
-     "port", Lang.int_t, Some (Lang.int 80), None;
-     "host", Lang.string_t, None, Some "Server host, e.g. \"google.com\"";
-     "url", Lang.string_t, None, Some "Requested URI, e.g. \"/index.html\""]
-  in
-  let params = 
-    if request = Get then 
-      params
+  let status_t = Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t in
+  let request_return_t = Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t in
+  let params =
+    if request = Get then
+      []
     else
-      params @ ["data", Lang.string_t, Some (Lang.string ""), 
-                Some "Http POST data."]
+      ["data", Lang.string_t, Some (Lang.string ""), Some "Http POST data."]
+  in
+  let params = params @
+    [
+      "headers",headers_t, Some (Lang.list ~t:header_t []),Some "Additional headers.";
+      "", Lang.string_t, None, Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
+    ]
   in
   add_builtin name ~cat:Interaction ~descr
-    params 
+    params
     request_return_t
     (fun p ->
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
       let headers = List.map Lang.to_product headers in
       let headers = List.map (fun (x,y) -> (Lang.to_string x, Lang.to_string y)) headers in
-      let port = Lang.to_int (List.assoc "port" p) in
-      let host = Lang.to_string (List.assoc "host" p) in
-      let url = Lang.to_string (List.assoc "url" p) in
-      let request = 
+      let url = Lang.to_string (List.assoc "" p) in
+      let host, port, url = Http.url_split_host_port url in
+      let port = match port with Some p -> p | None -> 80 in
+      let request =
         if request = Get then
            Http.Get
         else
@@ -2015,34 +2007,34 @@ let add_http_request name descr request =
           end
       in
       let ((x,y,z),headers,data) =
-        try 
-          Http.full_request ~headers ~port ~host ~url ~request () 
+        try
+          Http.full_request ~headers ~port ~host ~url ~request ()
         with
-          | e -> 
+          | e ->
              (* Here we return a fake code.. *)
              ("Internal error",999,"Internal error"),[],
               (Printf.sprintf "Error while processing request: %s"
                   (Utils.error_message e))
       in
-      let status = 
+      let status =
         Lang.product
           (Lang.product (Lang.string x) (Lang.int y))
           (Lang.string z)
       in
-      let headers = 
+      let headers =
         List.map (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) headers
       in
       let headers = Lang.list ~t:header_t headers in
-      Lang.product 
+      Lang.product
         (Lang.product status headers)
         (Lang.string data))
 
-let () = 
-  add_http_request 
-    "http.get" 
-    "Perform a full Http GET request and return (status,headers),data" 
+let () =
+  add_http_request
+    "http.get"
+    "Perform a full Http GET request and return (status,headers),data."
     Get;
-  add_http_request 
-    "http.post" 
-    "Perform a full Http POST request and return (status,headers),data" 
+  add_http_request
+    "http.post"
+    "Perform a full Http POST request and return (status,headers),data."
     Post

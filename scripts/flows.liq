@@ -13,32 +13,25 @@
 #                 and the url of the stream. The format should be \
 #                 of the form "ogg/128k" consisting of the codec and \
 #                 the bitrate, separated by "/".
-def register_flow(~host="",~port=80,~user="default",~password="default",~email="",~radio,~website,~description,~genre,~streams,s)
+def register_flow(~server="",~user="default",~password="default",~email="",~radio,~website,~description,~genre,~streams,s)
 
   # If the server is "", we get the server from sf.net
   server =
-    if host == "" then
-      server = http.get(host="savonet.sourceforge.net",port=80,url="/flows_server")
+    if server == "" then
+      server = http.get("http://savonet.sourceforge.net/flows_server")
       html_status = snd(fst(fst(fst(server))))
       if html_status == 200 then
-        server = snd(server)
-        server = string.split(separator=":",server)
-        host = list.nth(server,0)
-        port = int_of_string(list.nth(server,1))
-        (host,port)
+        snd(server)
       else
         # If sf is down, we use the hardcoded server
-        ("savonet.rastageeks.org",80)
+        "http://savonet.rastageeks.org/liqflows.py"
       end
     else
-      (host,port)
+      server
     end
-  host = fst(server)
-  port = snd(server)
-  log(level=4,"Flows server: #{host}:#{port}")
+  log(level=4,"Flows server: #{server}")
 
   # Initial variables
-  url = "/liqflows.py"
   ping_period = 600. # Pinging period in seconds
 
   # Fix default parameters
@@ -66,10 +59,10 @@ def register_flow(~host="",~port=80,~user="default",~password="default",~email="
       "#{x}=#{y}"
     end
     params = string.concat(separator="&",list.map(f,params))
-    url = "#{url}?cmd=#{cmd}&#{params}"
+    url = "#{server}?cmd=#{cmd}&#{params}"
 
     # TODO: do something with errors!
-    answer = http.get(host=host,port=port,url=url)
+    answer = http.get(url)
     x = fst(answer)
     status = fst(x)
     y = fst(status)
