@@ -216,7 +216,10 @@ liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	playlist_parser.ml encoder/encoder.ml \
 	tools/server_builtins.ml
 
-# Include SDL now. Order matters so we group them all here..
+# Some for camlimages
+$(call conditional_compilation,decoders,$(W_CAMLIMAGES),decoder/camlimages_decoder.ml)
+
+# Include SDL now. Order matters so we group them all here..
 $(call conditional_compilation,liquidsoap_sources,$(W_SDL),tools/sdl_utils.ml)
 $(call conditional_compilation,synth,$(W_SDL),synth/keyboard_sdl.ml)
 $(call conditional_compilation,decoders,$(W_SDL),decoder/sdlimage_decoder.ml)
