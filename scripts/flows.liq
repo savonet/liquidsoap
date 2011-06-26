@@ -13,7 +13,9 @@
 #                 and the url of the stream. The format should be \
 #                 of the form "ogg/128k" consisting of the codec and \
 #                 the bitrate, separated by "/".
-def register_flow(~server="",~user="default",~password="default",~email="",~radio,~website,~description,~genre,~streams,s)
+def register_flow(~server="",~user="default",~password="default",
+                  ~email="",~radio,~website,~description,~genre,
+                  ~streams,s)
 
   # If the server is "", we get the server from sf.net
   server =
