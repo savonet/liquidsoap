@@ -19,17 +19,24 @@ def register_flow(~host="",~port=80,~user="default",~password="default",~email="
   server =
     if host == "" then
       server = http.get(host="savonet.sourceforge.net",port=80,url="/flows_server")
-      server = snd(server)
-      server = string.split(separator=":",server)
-      host = list.nth(server,0)
-      port = int_of_string(list.nth(server,1))
-      (host,port)
+      html_status = snd(fst(fst(fst(server))))
+      if html_status == 200 then
+        server = snd(server)
+        server = string.split(separator=":",server)
+        host = list.nth(server,0)
+        port = int_of_string(list.nth(server,1))
+        (host,port)
+      else
+        # If sf is down, we use the hardcoded server
+        ("savonet.rastageeks.org",80)
+      end
     else
       (host,port)
     end
   host = fst(server)
   port = snd(server)
   log(level=4,"Flows server: #{host}:#{port}")
+  shutdown()
 
   # Initial variables
   url = "/liqflows.py"
