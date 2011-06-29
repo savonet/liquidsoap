@@ -27,14 +27,32 @@ let log = Dtools.Log.make ["decoder";"camlimages"]
 
 (* TODO: find something more efficient? *)
 let load_image filename =
-  let cimg = OImages.rgba32 (OImages.load filename []) in
-  (* let img = Img.of_RGB24_string cimg#dump cimg#width in *)
-  let img = Img.create cimg#width cimg#height in
-  for j = 0 to cimg#height - 1 do
-    for i = 0 to cimg#width - 1 do
-      let p = cimg#get i j in
+  let img = OImages.load filename [] in
+  let width, height = img#width, img#height in
+  let p =
+    let rgba32_p img i j =
+      let p = img#get i j in
       let c = p.Color.color in
-      Img.set_pixel img i j (c.Color.r, c.Color.g, c.Color.b, p.Color.alpha)
+      c.Color.r, c.Color.g, c.Color.b, p.Color.alpha
+    in
+    match OImages.tag img with
+      | OImages.Rgba32 img ->
+        rgba32_p img
+      | OImages.Rgb24 img ->
+        (fun i j ->
+          let p = img#get i j in
+          p.Color.r, p.Color.g, p.Color.b, 0xff)
+      | OImages.Index8 img ->
+        rgba32_p (img#to_rgba32)
+      | OImages.Index16 img ->
+        rgba32_p (img#to_rgba32)
+      | OImages.Cmyk32 _ ->
+        failwith "CMYK32 images are not supported for now."
+  in
+  let img = Img.create width height in
+  for j = 0 to height - 1 do
+    for i = 0 to width - 1 do
+      Img.set_pixel img i j (p i j)
     done
   done;
   let convert =
@@ -43,10 +61,9 @@ let load_image filename =
       (P.RGB P.RGBA32)
   in
   let frame = Img.create (Lazy.force Frame.video_width)
-                         (Lazy.force Frame.video_height)
+    (Lazy.force Frame.video_height)
   in
-  convert (Image.Generic.of_RGBA32 img)
-          (Image.Generic.of_RGBA32 frame) ;
+  convert (Image.Generic.of_RGBA32 img) (Image.Generic.of_RGBA32 frame);
   frame
 
 (* TODO: share code with sdlimage_decoder? *)
