@@ -76,7 +76,7 @@ end
 
 %ifdef add_oblivious_decoder
 # Enable or disable external FAAD (AAC/AAC+/M4A) decoders. 
-# Requires faad binary in the path for audio decoding and 
+# Requires faad binary in the path for audio decoding and 
 # metaflac binary for metadata. Does not work on Win32.
 # Please note that built-in support for faad is available
 # in liquidsoap if compiled and should be preferred over

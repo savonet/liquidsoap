@@ -66,7 +66,7 @@ liqi/liqi: all-subdirs
 content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
 ifeq ($(PERL_DOM),yes)
 	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --dynamic-plugins-dir ../src/plugins \
-	  --no-pervasives ../scripts/utils.liq --list-plugins-xml | \
+	  --no-pervasives ../scripts/pervasives.liq --list-plugins-xml | \
 	  ./reference_to_liqi.pl > $(@)
 else
 	@echo "-> You don't seem to have perl XML::DOM module installed."

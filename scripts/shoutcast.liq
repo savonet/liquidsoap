@@ -14,7 +14,7 @@
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~on_connect Callback executed when connection starts.
 # @param ~on_disconnect Callback executed when connection stops.
-# @param ~icy_metadata Send new metadata using the ICY protocol. One of: "guess", "true", "false"
+# @param ~icy_metadata Send new metadata using the ICY protocol. One of: "guess", "true", "false"
 # @param ~format Format, e.g. "audio/ogg". When empty, the encoder is used to guess.
 # @param e Endoding format. For shoutcast, should be mp3 or AAC(+).
 # @param s The source to output
