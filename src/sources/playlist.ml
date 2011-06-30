@@ -484,11 +484,6 @@ let () =
             or for resolution through a particular protocol, such \
             as replaygain." ;
 
-      "timeout",
-      Lang.float_t,
-      Some (Lang.float 20.),
-      Some "Timeout (in seconds) for a single download." ;
-
       "",
       Lang.string_t,
       None,
