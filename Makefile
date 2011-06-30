@@ -32,13 +32,13 @@ ifneq ($(OS_TYPE),Win32)
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
 	@echo let plugins_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)/plugins\" >> src/configure.ml
-	@echo let display_types = ref false >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
 	@echo let tts_program = \"liquidtts\" >> src/configure.ml
 	@echo let rundir = \"run\" >> src/configure.ml
 	@echo let logdir = \"logs\" >> src/configure.ml
+	@echo let plugins_dir = \"plugins\" >> src/configure.ml
 	@echo let libs_dir = \"libs\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
