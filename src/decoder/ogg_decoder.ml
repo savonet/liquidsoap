@@ -121,7 +121,15 @@ let demuxer_log x = log#f 5 "%s" x
 module Make (Generator:Generator.S_Asio) =
 struct
 
-let create_decoder source mode input =
+(* Note: the following code is still
+ * written as if there was a case where 
+ * we decode only the first logical track.
+ * In fact, both file and stream decoding 
+ * do decode all tracks. However, this may 
+ * change in the future so the possibility
+ * is left. *)
+
+let create_decoder ?(merge_tracks=false) source mode input =
   let decoder =
       let callbacks = 
         { Ogg_demuxer.
@@ -137,21 +145,24 @@ let create_decoder source mode input =
   let decode_video = mode = `Both || mode = `Video in
   let started = ref false in
   let tracks = Ogg_demuxer.get_standard_tracks decoder in
+  let first_meta = ref true in
   let init ~reset buffer =
     if reset then
      begin
-      assert (source = `Stream);
       Ogg_demuxer.reset decoder;
       Ogg_demuxer.update_standard_tracks decoder tracks ;
       (* We enforce that all contents end together, otherwise there will
        * be a lag between different content types in the next track. *)
-      Generator.add_break ~sync:`Drop buffer ;
+      if not merge_tracks then
+        Generator.add_break ~sync:`Drop buffer ;
      end ;
     Generator.set_mode buffer mode ;
     let add_meta f t =
-      (* Metadata in files are handled
-       * seperatly. *)
-      if source = `Stream then
+      (* Initial metadata in files are handled
+       * seperatly.. *)
+      if source = `Stream ||
+         (merge_tracks && (not !first_meta))
+      then
        begin
         let _,(v,m) = f decoder t in
         let metas = Hashtbl.create 10 in
@@ -161,7 +172,8 @@ let create_decoder source mode input =
             m;
         Hashtbl.add metas "vendor" v;
         Generator.add_metadata buffer metas
-       end
+       end ;
+      first_meta := false
     in
     let drop_track d t = 
       match t with
@@ -193,7 +205,8 @@ let create_decoder source mode input =
         started := true
        end;
       if Ogg_demuxer.eos decoder then
-        if source = `Stream then
+        if merge_tracks ||
+           (source = `Stream) then
           init ~reset:true buffer
         else
           raise Ogg.End_of_stream ;
@@ -234,14 +247,14 @@ let create_decoder source mode input =
           Ogg_demuxer.decode_video decoder track (video_feed track)
          end;
       with
-           (* We catch [Ogg.End_of_stream] only if the
-            * source is a stream. In this case, we try
-            * to reset the decoder to see if there could
-            * be another sequentialized logical stream
+           (* We catch [Ogg.End_of_stream] only if asked to
+            * to merge logical tracks or with a stream source. 
+            * In this case, we try to reset the decoder to see if 
+            * there could be another sequentialized logical stream
             * starting. Actual reset is handled in the
             * decoding function since we need the actual
             * buffer to add metadata etc. *)
-        | Ogg.End_of_stream when source = `Stream -> ()
+        | Ogg.End_of_stream when merge_tracks || (source = `Stream) -> ()
            (* We catch Ogg.Out_of_sync only in
             * stream mode. Ogg/theora streams, for instance,
             * in icecast contain the header (packet 0) and
@@ -285,7 +298,10 @@ let create_file_decoder filename content_type kind =
       | _, _ -> `Both
   in
   let generator = G.create mode in
-    Buffered.file_decoder filename kind (D.create_decoder `File mode) generator
+    Buffered.file_decoder 
+        filename kind 
+        (D.create_decoder ~merge_tracks:true `File mode) 
+        generator
 
 let get_type filename =
   let decoder,fd = 
