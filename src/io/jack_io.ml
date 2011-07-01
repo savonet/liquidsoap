@@ -170,7 +170,7 @@ object (self)
   inherit Source.active_source kind as super
   inherit base ~kind port_names `Input
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       let clock = get_clock () in
@@ -288,7 +288,7 @@ object (self)
   inherit Source.active_operator kind [source] as super
   inherit base ~kind port_names `Output
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       let clock = get_clock () in

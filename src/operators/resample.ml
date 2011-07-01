@@ -47,7 +47,7 @@ object (self)
 
   (* Clock setting: we need total control on our source's flow. *)
 
-  method set_clock =
+  method private set_clock =
     let c = Clock.create_known (new Clock.clock self#id) in
       Clock.unify
         self#clock (Clock.create_unknown ~sources:[] ~sub_clocks:[c]) ;

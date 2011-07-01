@@ -41,7 +41,7 @@ object (self)
           as super
   inherit [string] IoRing.output ~nb_blocks ~blank as ioring
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock

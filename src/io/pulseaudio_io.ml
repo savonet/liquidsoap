@@ -64,7 +64,7 @@ object (self)
       ~name ~output_kind:"output.pulseaudio" val_source start
     as super
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock
@@ -142,7 +142,7 @@ object (self)
     as super
   inherit base ~client ~device
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))

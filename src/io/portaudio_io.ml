@@ -65,7 +65,7 @@ object (self)
       ~name:"output.portaudio" ~output_kind:"output.portaudio" val_source start
     as super
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock
@@ -126,7 +126,7 @@ object (self)
       ~fallible ~autostart:start
     as super
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock (Clock.create_known ((get_clock ()):>Clock.clock))

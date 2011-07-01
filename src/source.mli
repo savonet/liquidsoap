@@ -57,7 +57,7 @@ object
 
   (** Choose your clock, by adjusting to your children source,
     * or anything custom. *)
-  method set_clock : unit
+  method private set_clock : unit
 
   (** The operator says to the source that he will ask it frames. *)
   method get_ready : ?dynamic:bool -> source list -> unit

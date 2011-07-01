@@ -48,7 +48,7 @@ object (self)
   inherit Source.active_source kind as active_source
   inherit [I.t array] IoRing.input ~nb_blocks ~blank as ioring
 
-  method set_clock =
+  method private set_clock =
     active_source#set_clock ;
     if clock_safe then
       Clock.unify self#clock

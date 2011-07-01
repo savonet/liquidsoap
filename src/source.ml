@@ -279,7 +279,7 @@ object (self)
 
   method clock = clock
 
-  method set_clock =
+  method private set_clock =
     List.iter (fun s -> unify self#clock s#clock) sources
 
   initializer self#set_clock

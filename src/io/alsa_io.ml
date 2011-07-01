@@ -192,7 +192,7 @@ object (self)
     as super
   inherit base ~kind dev [Pcm.Playback]
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock
@@ -264,7 +264,7 @@ object (self)
       ~on_start ~on_stop ~fallible ~autostart:start
     as super
 
-  method set_clock =
+  method private set_clock =
     super#set_clock ;
     if clock_safe then
       Clock.unify self#clock

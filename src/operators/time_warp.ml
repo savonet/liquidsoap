@@ -28,7 +28,7 @@
 class clock ~kind ~sync ~id source =
 object (self)
   inherit Id.id ~name:"clock" ~kind source
-  method set_clock =
+  method private set_clock =
     let id = if id = "" then string_of_int (Oo.id self) else id in
     let my_clock = new Clock.wallclock ~sync id in
     let my_clock = Clock.create_known my_clock in

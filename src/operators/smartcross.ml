@@ -93,7 +93,7 @@ object (self)
 
   (** See cross.ml for the details of clock management. *)
 
-  method set_clock =
+  method private set_clock =
     let slave_clock = Clock.create_known (new Clock.clock self#id) in
     (* Our external clock should stricly contain the slave clock. *)
     Clock.unify
