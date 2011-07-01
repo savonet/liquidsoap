@@ -1,3 +1,155 @@
+1.0.0 beta2 (07-??-2011)
+========================
+[Preliminary summary of changes
+   from liquidsoap-1.0.0-beta1 (1337:7c51ae329419) to 2300:df7e03c9fec6]
+
+Highlights:
+ Plugin support, seek support (decoders, operators), OSC, Flows, lig
+ As usual, lots of polishing and cleanup, better logs, errors
+ clock.assign_new() TODO
+
+Decoders:
+ - New support for seeking and fast computation of durations in most formats
+ - New decoders: FLAC (native & Ogg) and images using Camlimages
+ - Fixes in Ogg decoding: LS-515 (loss of data) and LS-537 (segfault).
+ - Fix LS-337: periodical failures when decoding AAC(+) streams
+ - AAC(+): use new ocaml-faad with builtin mp4ff, easier to build
+ - New detection mechanism mixing extensions and MIME types (when available), 
+   with corresponding settings "decoder.file_extensions.<format>" and
+   "decoder.mime_types.<format>".
+ - Decoder order can be user-defined thanks to new settings 
+   "decoder.file_decoders", "decoder.stream_decoders" and 
+   "decoder.metadata_decoders".
+ - Indicate which decoder is used in the "decoder" metadata [2b71f4485f34]
+ - More helpful log for various errors
+Encoders:
+ - New FLAC encoders %flac (native) and %ogg(%flac)
+ - New AAC+ 2.0 and vo-aacenc
+ - Added setting to theora, files are not absurdly huge anymore [6d6437702cb5]
+ - New settings for WAV encoding: headerless, samplesize.
+ - Enhancement LS-441: filter metadata before encoding,
+   based on the "encoder.metadata.export" setting.
+ - Rework infrastructure of encoded outputs to fit all formats, outputs
+   and styles of metadata handling, file reopening (#386)
+ - Fix segfaults with ocaml-aacplus [89bd9829c344]
+Harbor:
+ - New: output.harbor() which acts as a mini icecast server,
+   accepting listeners directly. Encoding is shared among users,
+   and is only performed when needed.
+ - New: ability to register HTTP handlers to create simpler
+   web services, using harbor.http.register/remove().
+   Both GET and POST methods are supported.
+ - Make all settings local: port, user and password can be set independently
+   for each input.harbor() source
+ - New: "metadata_charset" and "icy_metadata_charset" in input.harbor()
+ - Fix: race condition possibly leading to abusive "source taken" (LS-500)
+Icecast:
+ - Add support for streaming native flac, only works when streaming to
+   input.harbor(), not supported by actual Icecast servers
+ - Fix bugs in ICY protocol support (header parsing, user name)
+ - Use ICY metadata updates when streaming AAC(+)
+ - New: "encoding" parameter for output.icecast(), used for recoding metadata
+   Defaults to "latin1" with shoutcast servers
+ - New: icy.update_metadata() function for manual updates
+ - Enhance default "song" metadata, avoiding " - " when unnecessary (#467)
+Input/output:
+ - New input.v4l/v4l2() for webcams (experimental)
+ - New input/output.udp() for unchecked UDP streaming, available
+   with most formats (beware of glitches when MP3 chunks are dropped
+   or duplicated)
+ - New output.external(), replacing output.pipe.external() from
+   before the first beta
+ - New parameters for most outputs and inputs (start, on_start,
+   on_stop, fallible); cleanup and uniformize implementations (LS-365)
+ - New ALSA settings alsa.alsa_buffer, alsa.buffer_length and alsa.periods
+   Setting periods=0 allows to not attempt to set the number periods,
+   which is impossible on some devices
+Operators:
+ - New: support for cue points with cue_cut()
+ - Change insert.metadata() which is now more script friendly,
+   returning an insertion function rather than register a server
+   command. The old functionality is available as server.insert_metadata().
+ - New: rms() operator for getting RMS of a stream, and server.rms() which
+   makes this information available as a server command.
+ - New: track_sensitive mode for blank detection operators
+ - New: playlist.reloadable() for playing a list once, with a command
+   for restarting it.
+ - Remove id.*() which can be replaced by type annotations
+Scripting API:
+ - New: OSC support through osc.bool(), osc.float() and osc.float_pair()
+ - New: JSON export json_of()
+ - New: http.get() and http.post()
+ - New: url.encode/decode(), base64.encode/decode()
+ - New: string.recode() for charset conversions using camomile
+ - New: notify_metadata() and osd_metadata(), suitable for use with
+   on_track() and on_metadata()
+ - New: request.metadata() for getting a request's metadata
+ - New: string.length()
+ - Enhance log_clocks() with parameter for delaying startup
+ - Enhance get_clock_status() with "uptime" reference time
+Server interface:
+ - Print the playlist's URI when calling <playlist>.uri without an
+   argument.
+ - Ehance <queue>.ignore now works also in the primary queue
+ - New command for changing the URL of an input.http(), ref #466. The
+   command is <id>.url and it needs a restart (<id>.stop, then start)
+   to take effect.
+ - Fixed double registration of server commands which resulted in broken
+   "help" command (LS-521)
+Script language:
+ - Option "-i" doesn't show types for pervasives anymore
+ - Pretty printing of types (LS-474) with indentation, also used
+   in the documentation
+ - Enhanced type errors (LS-459): no more traces, only the relevant
+   part of types is displayed, plus a few special friendly messages.
+General:
+ - Do not attempt to install "daemon" files if user/group have not been
+   set -- can be overriden with "make INSTALL_DAEMON= install".
+ - Fix several core "source protocol" bugs, causing assert failures and
+   other crashes: LS-460 (source becomes not ready without operator knowing)
+   #403 (information about being ready is not precise enough)
+ - Fix incorrect image accesses (LS-430) by introducing a safer VFrame API
+   Applies to most video operators (video.fade(), video.text(), effects...)
+ - Cleanup resource (de)allocation, which is becoming critical with dynamic
+   reconfigurations (e.g., dynamic output creation, source.dynamic())
+   Enforce that server commands are always deallocated (LS-495)
+   Attempt to stop sources when initialization fails, so they cleanup as
+   much as possible (LS-503)
+   Avoid deadlocks upon crashes in IoRing-based operators
+   Share code for stoppable feeding threads, use it in input.harbor()
+ - Dynamic loading of lame and aacplus libraries, making it possible to
+   ship them as separate binary packages. This is particularly useless
+   for non-free libraries and for those that depend on X (e.g., SDL)
+   which is often undesirable on servers
+ - Support for separate compilation of most optional features as plugins
+   Use --enable-<feature>-dynamic-plugin in ./configure and
+   --dynamic-plugins-dir in liquidsoap
+ - Better Win32 support, more version checks, separate compilation of
+   C files and compliance with Debian's OCaml standards
+ - Externalize many audio and video functions in the new ocaml-mm library
+   Factorize and optimize various conversions
+ - Rewrite harbor and server code using the new Duppy monad,
+   introducing camlp4 into the build system
+ - New regression tests (make test)
+SDL:
+ - Cleaner treatment of font object in video.text()
+ - Fullscreen mode for output.sdl()
+ - Fix segfault with SdlImage image decoder
+ - Avoid that SDL is initialized uselessly, which would prevent running
+   outside of X
+Miscellaneous:
+ - Update liguidsoap, make microphone input optional (LS-496)
+ - More user-friendly exception printing
+ - Avoid problems preventing backtrace printing
+ - Do not crash upon charset-recoding failures [LS-473,a7a3ad762100]
+ - Fix in source.dynamic(): missing source re-selection [LS-354,eed32621494c]
+ - Avoid deadlock on startup in daemon mode [LS-229,42ea194fdacd,1859ee9c68e4]
+ - Fixes in LADSPA and SDL causing early freezing of Frame parameters.
+ - Fix: SIGPIPE used to cause crashes (LS-53,LS-287)
+ - Fix: video.volume() could crash upon some end-of-track situationos
+ - Fix: properly escape filenames in external file duration methods
+ - Rework timeout management for various sockets (notably icecast & harbor)
+   Set nodelay, remove TCP_-TIMEOUT [LS-508,LS-509,26a77827f66b,663edfba92fd]
 
 1.0.0 beta1 (06-09-2010)
 ========================
