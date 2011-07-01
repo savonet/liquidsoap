@@ -27,7 +27,7 @@ val audio_conf : Dtools.Conf.ut
 
 val converter_conf : Dtools.Conf.ut
 
-module Samplerate : 
+module Samplerate :
 sig
 
 
@@ -43,13 +43,13 @@ sig
 
   val converters : converter_plug Plug.plug
 
-  (** [create chan_numbers]: create a converter. *) 
-  val create : int -> t 
+  (** [create chan_numbers]: create a converter. *)
+  val create : int -> t
 
   (** [resample converter ratio data offset length]: converts input data
-    * at given ratio. 
+    * at given ratio.
     * raises [Invalid_data] if number of channels do not match
     * the number passed at [create]. *)
   val resample : t -> float -> float array array -> int -> int -> float array array
-end  
+end
 

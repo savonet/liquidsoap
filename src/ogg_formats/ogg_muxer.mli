@@ -36,23 +36,23 @@ type audio = float array array
 type video = Video.buffer
 
 (** A data unit *)
-type 'a data = 
-  { 
+type 'a data =
+  {
     data   : 'a;
     offset : int;
     length : int
   }
 
 (** A track data is a data unit of either audio or video. *)
-type track_data = 
+type track_data =
   | Audio_data of audio data
   | Video_data of video data
 
-(** A track encoder takes the track data, 
+(** A track encoder takes the track data,
   * the ogg logical stream, and fills the stream.
-  * If the encoding process outputs ogg pages, then 
-  * the encoder should use the last argument to add its pages 
-  * to the stream. *) 
+  * If the encoding process outputs ogg pages, then
+  * the encoder should use the last argument to add its pages
+  * to the stream. *)
 type 'a track_encoder = 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
 
 (** Returns the first page of the stream,
@@ -65,9 +65,9 @@ type position = Unknown | Time of float
 (** Type for a function returning a page's ending time. *)
 type page_end_time = Ogg.Page.t -> position
 
-(** Returns an optional fisbone packet, which 
-  * will contain the data for this stream to 
-  * put in the ogg skeleton, if enabled in 
+(** Returns an optional fisbone packet, which
+  * will contain the data for this stream to
+  * put in the ogg skeleton, if enabled in
   * the encoder. *)
 type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
 
@@ -78,13 +78,13 @@ type stream_start = Ogg.Stream.t -> Ogg.Page.t list
 type end_of_stream = Ogg.Stream.t -> unit
 
 (** A data encoder is an encoder for either a audio or a video track. *)
-type data_encoder = 
+type data_encoder =
   | Audio_encoder of audio track_encoder
   | Video_encoder of video track_encoder
 
 (** The full stream encoder type. *)
-type stream_encoder = 
-  { 
+type stream_encoder =
+  {
     header_encoder : header_encoder;
     fisbone_packet : fisbone_packet;
     stream_start   : stream_start;
@@ -102,10 +102,10 @@ type state = Eos | Streaming | Bos
 
  (** {2 API} *)
 
- (** Usage: 
+ (** Usage:
    *
-   * Encoding: 
-   * 
+   * Encoding:
+   *
    * - [create ~skeleton name] : create a new encoder
    * - [register_track encoder stream_encoder] : register a new track
    * - ibid
@@ -119,16 +119,16 @@ type state = Eos | Streaming | Bos
    * - (...)
    * - [end_of_stream encoder]: ends all tracks as well as the encoder. Set Eos state on the encoder.
    * - [register_track encoder stream_encoder] : register a new track, starts a new sequentialized stream
-   * - And so on.. 
+   * - And so on..
    *
    * You get encoded data by calling [get_data], [peek_data].
    *
-   * See: http://xiph.org/ogg/doc/oggstream.html for more details on the 
+   * See: http://xiph.org/ogg/doc/oggstream.html for more details on the
    * specifications of an ogg stream. This API reflects exactly what is recomended to do. *)
 
-(** Create a new encoder. 
-  * Add an ogg skeleton if [skeleton] is [true]. *) 
-val create : skeleton:bool -> string -> t 
+(** Create a new encoder.
+  * Add an ogg skeleton if [skeleton] is [true]. *)
+val create : skeleton:bool -> string -> t
 
 (** Get the state of an encoder. *)
 val state : t -> state
@@ -143,8 +143,8 @@ val get_header : t -> string
 val peek_data : t -> string
 
 (** Register a new track to the stream.
-  * The state needs to be [Bos] or [Eos]. 
-  * Returns the serial number of the registered ogg 
+  * The state needs to be [Bos] or [Eos].
+  * Returns the serial number of the registered ogg
   * stream. *)
 val register_track : t -> stream_encoder -> nativeint
 
@@ -159,7 +159,7 @@ val encode : t -> nativeint -> track_data -> unit
   * no such track exists. *)
 val end_of_track : t -> nativeint -> unit
 
-(** Ends all tracks, flush remaining encoded data. 
+(** Ends all tracks, flush remaining encoded data.
   * Set state to [Eos]. *)
 val end_of_stream : t -> unit
 

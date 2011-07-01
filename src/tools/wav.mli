@@ -26,8 +26,8 @@ type 'a t
 
 exception Not_a_wav_file of string
 
-type 'a read_ops = 
-  { 
+type 'a read_ops =
+  {
     really_input : 'a -> string -> int -> int -> unit ;
     input_byte   : 'a -> int ;
     input        : 'a -> string -> int -> int -> int ;
@@ -79,7 +79,6 @@ val close : 'a t -> unit
 val header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
              unit -> string
 
-(** Returns the duration of the WAV data. 
-    Warning: value may not be accurate for 
-    streams. *)
+(** Returns the duration of the WAV data.
+    Warning: value may not be accurate for streams. *)
 val duration : 'a t -> float

@@ -37,15 +37,13 @@ object (self)
   method private get_frame ab =
     s#get ab ;
     let compare x y = - (compare x y) in
-    let l = 
-      List.sort compare (Frame.get_all_metadata ab) 
-    in
+    let l = List.sort compare (Frame.get_all_metadata ab) in
     if List.length l > 0 then
       latest_metadata <- Some (snd (List.hd l));
     let rem = Frame.seconds_of_master s#remaining in
     if rem <= delay && not executed then
     begin
-      let m = 
+      let m =
         match latest_metadata with
           | Some m -> m
           | None -> Hashtbl.create 0
@@ -79,7 +77,7 @@ let () =
             a given amount of time remaining before then end of track."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let delay = Lang.to_float (List.assoc "delay" p) in 
+       let delay = Lang.to_float (List.assoc "delay" p) in
        let f = Lang.assoc "" 1 p in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
          new on_end ~kind ~delay f s)

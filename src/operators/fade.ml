@@ -152,7 +152,7 @@ end
 let proto,kind =
   (* TODO check about sharing for the kind variables *)
   let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  [ "duration", Lang.float_t, Some (Lang.float 3.), 
+  [ "duration", Lang.float_t, Some (Lang.float 3.),
      Some "Duration of the fading. \
            This value can be set on a per-file basis using the metadata field \
            passed as override." ;
@@ -196,9 +196,9 @@ let extract p =
   ),
   Lang.to_source (List.assoc "" p)
 
-let override_doc = 
+let override_doc =
   Some "Metadata field which, if present and containing a float, \
-        overrides the 'duration' parameter for current track." 
+        overrides the 'duration' parameter for current track."
 
 let () =
   Lang.add_operator
@@ -220,9 +220,9 @@ let () =
     (fun p kind ->
        let d,f,s = extract p in
          new fade_in ~kind ~initial:true d f s) ;
-  Lang.add_operator 
-    "fade.out" (("override", Lang.string_t, Some (Lang.string "liq_fade_out"),
-               override_doc) :: proto) 
+  Lang.add_operator "fade.out"
+    (("override", Lang.string_t, Some (Lang.string "liq_fade_out"),
+      override_doc) :: proto)
     ~category:Lang.SoundProcessing
     ~descr:"Fade the end of tracks. A special override metadata field \
             can be used to set the duration for a specific track \

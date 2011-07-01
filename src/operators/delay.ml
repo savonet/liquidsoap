@@ -50,7 +50,7 @@ object (self)
 
 end
 
-let () = 
+let () =
   let kind = Lang.univ_t 1 in
   Lang.add_operator "delay"
     [ "", Lang.float_t, None,

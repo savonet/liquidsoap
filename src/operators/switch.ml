@@ -337,7 +337,7 @@ end
 let () =
   let kind = Lang.univ_t 1 in
   let pred_t = Lang.fun_t [] Lang.bool_t in
-  let proto = 
+  let proto =
     [ "single", Lang.list_t Lang.bool_t, Some (Lang.list Lang.bool_t []),
       Some "Forbid the selection of a branch for two tracks in a row. \
             The empty list stands for <code>[false,...,false]</code>." ;

@@ -254,7 +254,7 @@ object (self)
                   Printf.fprintf f "%f %d\n%!" time self#length ;
                   ret
     in
-    let input = 
+    let input =
       { Decoder.
          read = read ;
          tell = None;
@@ -265,7 +265,7 @@ object (self)
         let decoder = create_decoder input in
         while true do
           if should_fail then failwith "end of track" ;
-          if should_stop () || (not relaying) then 
+          if should_stop () || (not relaying) then
             failwith "source stopped" ;
           decoder.Decoder.decode generator
         done

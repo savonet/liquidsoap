@@ -69,9 +69,9 @@ val register : namespace -> string -> namespace
 (** Release a namespace, deleting all associated commands. *)
 val unregister : namespace -> unit
 
-(** [add ~ns ~descr command f] adds a new command [command] in a given namespace ~ns. 
+(** [add ~ns ~descr command f] adds a new command [command] in a given namespace ~ns.
   * When the command is called, the function [f] is executed with the argument of
-  * the command as parameter. The return value of [f] is then displayed. ~descr is 
+  * the command as parameter. The return value of [f] is then displayed. ~descr is
   * the command description. *)
 val add : ns:namespace -> ?usage:string -> descr:string ->
           string -> (string -> string) -> unit

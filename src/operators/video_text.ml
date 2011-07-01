@@ -72,19 +72,18 @@ object (self)
       done;
       text_frame <- Some tf
 
-  method get_font = 
+  method get_font =
     match font with
       | Some f -> f
       | None ->
-         let f = 
-           try 
-             Sdlttf.open_font (Lang.to_string ttf) 
-                              ttf_size
+         let f =
+           try
+             Sdlttf.open_font (Lang.to_string ttf) ttf_size
            with
              | Sdlttf.SDLttf_exception s ->
                  raise (Lang.Invalid_value (ttf, s))
              | e ->
-                 raise (Lang.Invalid_value 
+                 raise (Lang.Invalid_value
                           (ttf, Utils.error_message e))
          in
          font <- Some f;
@@ -93,7 +92,7 @@ object (self)
   method get_text_frame =
     match text_frame with
       | Some tf -> tf
-      | None -> 
+      | None ->
          self#render_text cur_text;
          Utils.get_some text_frame
 
@@ -187,5 +186,5 @@ let () =
        in
        let speed = speed / (Lazy.force Frame.video_rate) in
        let meta = if meta = "" then None else Some meta in
-         ((new text ~kind ttf ttf_size color x y speed 
+         ((new text ~kind ttf ttf_size color x y speed
                     cycle meta txt source):>Source.source))

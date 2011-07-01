@@ -85,19 +85,17 @@ let conf_midi_channels =
  * Since Dtools doesn't allow that, below is a trick to read the settings
  * only once. Later changes will never be taken into account. *)
 
-(* This variable prevents forcing 
- * the value of a lazy configuration
- * value before the user gets a chance to 
- * override the default. *)
+(* This variable prevents forcing the value of a lazy configuration
+ * item before the user gets a chance to override the default. *)
 let lazy_config_eval = ref false
 let allow_lazy_config_eval () = lazy_config_eval := true
 
 let delayed f = Lazy.lazy_from_fun f
 let delayed_conf x =
-  delayed 
-    (fun () -> 
-      assert !lazy_config_eval ;
-      x#get)
+  delayed
+    (fun () ->
+       assert !lazy_config_eval ;
+       x#get)
 let (!!) = Lazy.force
 
 (** The channel numbers are only defaults, used when channel numbers

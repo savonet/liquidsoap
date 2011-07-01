@@ -41,12 +41,12 @@ type t
   * into a stream of the expected kind. *)
 val create :
   kind:Frame.content_kind ->
-  ?metadata:((string*string) list) -> 
+  ?metadata:((string*string) list) ->
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->
   t
 val create_raw :
-  ?metadata:((string*string) list) -> 
+  ?metadata:((string*string) list) ->
   ?persistent:bool ->
   ?indicators:(indicator list) -> string ->
   t

@@ -37,7 +37,7 @@ object
 end
 
 class virtual queued : kind:Frame.content_kind -> name:string ->
-  ?length:float -> ?default_duration:float -> ?conservative:bool -> 
+  ?length:float -> ?default_duration:float -> ?conservative:bool ->
   ?timeout:float -> unit ->
 object
   method copy_queue : Request.t list

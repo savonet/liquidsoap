@@ -49,7 +49,7 @@ object
 
   (** Registered server commands for the source *)
   val mutable ns_kind : string
-  method register_command : descr:string -> ?usage:string -> string -> 
+  method register_command : descr:string -> ?usage:string -> string ->
                             (string->string) -> unit
 
   (** The clock under which the source will run, initially unknown. *)
@@ -88,7 +88,7 @@ object
   (** [is_ready] tells you if [get] can be called. *)
   method virtual is_ready : bool
 
-  (** [get buf] asks the source to fill the buffer [buf] if possible. 
+  (** [get buf] asks the source to fill the buffer [buf] if possible.
     * The [get] call is partial when the buffer is not completely filled.
     * [get] should never be called with a full buffer,
     * and without checking that the source is ready. *)

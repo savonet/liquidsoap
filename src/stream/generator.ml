@@ -502,7 +502,7 @@ struct
   }
 
   let create ?(lock=Mutex.create()) ?overfull ~kind ~log mode =
-    { lock = lock ; kind = kind ; error = false ; overfull = overfull ; 
+    { lock = lock ; kind = kind ; error = false ; overfull = overfull ;
       log = log   ; gen = Super.create mode }
 
   let mode t = Tutils.mutexify t.lock Super.mode t.gen
@@ -545,8 +545,8 @@ struct
       | Some (`Drop_old len) when Super.length t.gen + extra > len ->
           let len = Super.length t.gen + extra - len in
           let len_time = Frame.seconds_of_master len in
-          t.log 
-            (Printf.sprintf "Buffer overrun: Dropping %.2fs." len_time); 
+          t.log
+            (Printf.sprintf "Buffer overrun: Dropping %.2fs." len_time);
           Super.remove t.gen len
       | _ -> ()
 

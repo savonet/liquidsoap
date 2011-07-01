@@ -29,22 +29,22 @@ class fir ~kind (source:source) freq beta numcoeffs =
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
   inherit operator kind [source] as super
-  
+
   (* Needed to compute RC *)
   val f1 = (1. -. beta) *. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
   val f2 = (1. +. beta) *. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
   val tau = 0.5 /. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
-  
+
   (* Misc *)
   val mutable nzeros = numcoeffs - 1
   val mutable gain = 0.
   val mutable xv = Array.make_matrix channels (numcoeffs) 0.
-  
+
   (* Coefficients *)
   val mutable xcoeffs = Array.make numcoeffs 0.
   val mutable circle = [||]
   val mutable temp = Array.make 2048 {re = 0. ; im = 0.}
-  
+
   initializer
     self#log#f 4
       "Init: alpha=%+.013f beta=%+.013f \

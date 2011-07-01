@@ -37,7 +37,7 @@ object (self)
   val lock_m = Mutex.create ()
   val mutable ns = []
 
-  method insert_metadata m = 
+  method insert_metadata m =
     Mutex.lock lock_m ;
     metadata <- Some m ;
     Mutex.unlock lock_m
@@ -47,7 +47,7 @@ object (self)
       source#get buf ;
       Mutex.lock lock_m ;
       Tutils.finalize ~k:(fun () -> Mutex.unlock lock_m)
-      (fun () -> 
+      (fun () ->
         match metadata with
           | Some m ->
               Frame.set_metadata buf p m ;
@@ -58,12 +58,12 @@ end
 
 let () =
   let kind = Lang.univ_t 1 in
-  let return_t = 
-    Lang.product_t 
+  let return_t =
+    Lang.product_t
      (Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t)
      (Lang.source_t kind)
   in
-  Lang.add_builtin "insert_metadata" 
+  Lang.add_builtin "insert_metadata"
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:"Dynamically insert metadata in a stream. \
             Returns a pair (f,s) where s is a new source and \
@@ -72,21 +72,20 @@ let () =
     [ "id",Lang.string_t,Some (Lang.string ""),
       Some "Force the value of the source ID.";
       "",Lang.source_t kind,None,None ] return_t
-    (fun p t -> 
+    (fun p t ->
        let s = Lang.to_source (List.assoc "" p) in
        let id = Lang.to_string (List.assoc "id" p) in
        let (_,t) = Lang.of_product_t t in
-       let kind = 
-         Lang.frame_kind_of_kind_type 
-          (Lang.of_source_t t)
-       in 
+       let kind =
+         Lang.frame_kind_of_kind_type (Lang.of_source_t t)
+       in
        let s = new insert_metadata ~kind s in
-       if id <> "" then s#set_id id ; 
-       let f = 
+       if id <> "" then s#set_id id ;
+       let f =
          Lang.val_fun ["","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
-                      (fun p t -> 
-                         s#insert_metadata 
-                          (Lang.to_metadata (List.assoc "" p));
+                      (fun p t ->
+                         s#insert_metadata
+                           (Lang.to_metadata (List.assoc "" p));
                          Lang.unit)
        in
        Lang.product f (Lang.source (s :> Source.source)))

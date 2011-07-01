@@ -41,8 +41,8 @@ type 'a decoder =
      * Returns the number of ticks atcually skiped. *)
     seek : int -> int }
 type stream_decoder = input -> Generator.From_audio_video_plus.t decoder
-type file_decoder = 
-  { fill : Frame.t -> int; 
+type file_decoder =
+  { fill : Frame.t -> int;
     fseek : int -> int;
     close : unit -> unit; }
 
@@ -56,10 +56,9 @@ val stream_decoders :
 val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
 
-(** Test file extension and mime 
-  * if available *)
+(** Test file extension and mime if available *)
 val test_file : ?log:Dtools.Log.t ->
-                mimes:string list -> 
+                mimes:string list ->
                 extensions:string list ->
                 string -> bool
 

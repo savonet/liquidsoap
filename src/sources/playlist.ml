@@ -283,7 +283,7 @@ object (self)
             []) }
 
   method reload_playlist_internal new_playlist_uri =
-    
+
     assert (Tutils.seems_locked reloading) ;
 
     self#load_playlist ?uri:new_playlist_uri true ;

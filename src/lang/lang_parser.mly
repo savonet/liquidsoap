@@ -89,8 +89,8 @@
 
   (** Give the duration of a data-as-list.
    * For example, the duration of Xs is 1, Xm 60, XhYm 60, etc. *)
-  let duration d = time_units.(Array.length time_units - 1 - 
-                               last_index (List.rev d))
+  let duration d =
+    time_units.(Array.length time_units - 1 - last_index (List.rev d))
 
   let between d1 d2 =
     let p1 = precision d1 in

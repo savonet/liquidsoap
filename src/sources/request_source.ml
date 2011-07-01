@@ -23,7 +23,7 @@
 open Source
 open Dtools
 
-type handler = 
+type handler =
   { req : Request.t;
     fill : Frame.t -> unit;
     seek : int -> int;
@@ -93,12 +93,12 @@ object (self)
              * the same time.. *)
             let m = Mutex.create () in
             current <-
-              Some 
+              Some
                { req = req;
-                 fill = Tutils.mutexify m 
-                         (fun buf -> 
+                 fill = Tutils.mutexify m
+                         (fun buf ->
                             (remaining <- decoder.Decoder.fill buf));
-                 seek = Tutils.mutexify m 
+                 seek = Tutils.mutexify m
                            (fun len -> decoder.Decoder.fseek len);
                  close = decoder.Decoder.close } ;
             remaining <- (-1) ;
@@ -146,7 +146,7 @@ object (self)
         if Frame.is_partial buf then self#end_track
     end
 
-  method seek x = 
+  method seek x =
     match current with
       | None -> 0
       | Some cur -> cur.seek x

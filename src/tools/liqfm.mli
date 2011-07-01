@@ -33,6 +33,6 @@ type task
 val init : string*int -> task
 
 (** Performs a sumbission to audioscrobbler *)
-val submit : string*string -> 
-             task -> bool -> 
+val submit : string*string ->
+             task -> bool ->
              source -> submission -> Frame.metadata list -> unit

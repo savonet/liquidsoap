@@ -47,9 +47,9 @@ object (self)
       (fun a ->
          source.(int_of_string a)#abort_track ;
          "OK") ;
-    self#register_command 
-               "volume" ~descr:"Set volume for a given source."
-               ~usage:"volume <source nb> <vol%>"
+    self#register_command "volume"
+      ~descr:"Set volume for a given source."
+      ~usage:"volume <source nb> <vol%>"
       (fun a ->
          if Str.string_match (Str.regexp "\\([0-9]+\\) \\([0-9]+\\)") a 0 then
            let i = int_of_string (Str.matched_group 1 a) in
@@ -58,9 +58,9 @@ object (self)
              self#status i
          else
            "Usage: volume <source nb> <vol%>") ;
-    self#register_command 
-               "select" ~descr:"Enable/disable a source."
-               ~usage:"select <source nb> <true|false>"
+    self#register_command "select"
+      ~descr:"Enable/disable a source."
+      ~usage:"select <source nb> <true|false>"
       (fun a ->
          if Str.string_match
               (Str.regexp "\\([0-9]+\\) \\(true\\|false\\)") a 0 then

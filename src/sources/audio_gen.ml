@@ -53,17 +53,17 @@ let add name g =
          (Lang.to_float (List.assoc "duration" p))
          (Lang.to_float (List.assoc "amplitude" p)) :> source))
 
-let sine f volume = 
-   new Audio.Generator.of_mono 
-         (new Audio.Mono.Generator.sine 
+let sine f volume =
+   new Audio.Generator.of_mono
+         (new Audio.Mono.Generator.sine
              (Lazy.force Frame.audio_rate) ~volume f)
-let square f volume = 
-   new Audio.Generator.of_mono 
-         (new Audio.Mono.Generator.square 
+let square f volume =
+   new Audio.Generator.of_mono
+         (new Audio.Mono.Generator.square
            (Lazy.force Frame.audio_rate) ~volume f)
-let saw f volume = 
-   new Audio.Generator.of_mono 
-         (new Audio.Mono.Generator.saw 
+let saw f volume =
+   new Audio.Generator.of_mono
+         (new Audio.Mono.Generator.saw
             (Lazy.force Frame.audio_rate) ~volume f)
 
 let () =

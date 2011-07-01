@@ -130,7 +130,7 @@ sig
     * drop old data, keeping at most [len] ticks. *)
   type overfull = [ `Drop_old of int ]
 
-  val create : ?lock:Mutex.t -> ?overfull:overfull -> 
+  val create : ?lock:Mutex.t -> ?overfull:overfull ->
                kind:Frame.content_kind ->
                log:(string -> unit) -> mode -> t
 

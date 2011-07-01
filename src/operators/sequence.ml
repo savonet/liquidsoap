@@ -93,7 +93,7 @@ object (self)
 
 end
 
-let () = 
+let () =
   let k = Lang.univ_t 1 in
   Lang.add_operator "sequence"
     [ "merge", Lang.bool_t, Some (Lang.bool false), None ;

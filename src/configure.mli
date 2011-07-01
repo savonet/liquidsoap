@@ -47,6 +47,5 @@ val conf : Dtools.Conf.ut
 (** Is the architecture big endian? *)
 val big_endian : bool
 
-(** String containing all 
-  * enabled binding's version. *)
+(** String containing versions of all enabled bindings. *)
 val libs_versions : string

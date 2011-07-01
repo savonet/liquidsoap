@@ -34,7 +34,7 @@ object (self)
 
   method stype = Source.Infallible
   method is_ready = true
-  method seek x = 
+  method seek x =
     if seek then x else 0
 
   val mutable remaining = track_size
