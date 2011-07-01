@@ -30,7 +30,8 @@ let error_translator e =
    match e with
      | Pulseaudio.Error n ->
        raise (Utils.Translation
-         (Printf.sprintf "Pulseaudio error: %s" (Pulseaudio.string_of_error n)))
+         (Printf.sprintf
+            "Pulseaudio error: %s" (Pulseaudio.string_of_error n)))
      | _ -> ()
 
 let () = Utils.register_error_translator error_translator

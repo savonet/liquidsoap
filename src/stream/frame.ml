@@ -346,9 +346,11 @@ let create_content content_type =
         (fun _ -> Array.create (audio_of_master !!size) 0.) ;
     video =
       Array.init content_type.video
-        (fun _ -> Video.make (video_of_master !!size) !!video_width !!video_height);
+        (fun _ ->
+           Video.make (video_of_master !!size) !!video_width !!video_height);
     midi =
-      Array.init content_type.midi (fun _ -> MIDI.create (midi_of_master !!size))
+      Array.init content_type.midi
+        (fun _ -> MIDI.create (midi_of_master !!size))
   }
 
 

@@ -534,7 +534,7 @@ let rec bind a0 b =
         * When a value is passed to a FFI, its type is bound to a type without
         * any location.
         * If it doesn't break sharing, we set the parsing position of
-        * that occurence of the variable as the position of the infered type. *)
+        * that variable occurrence to the position of the infered type. *)
       if b.pos = None && match b.descr with EVar _ -> false | _ -> true
       then
         a.descr <- Link { a0 with descr = b.descr }

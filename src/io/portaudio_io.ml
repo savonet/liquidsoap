@@ -77,8 +77,10 @@ object (self)
     self#handle
       "open_default_stream"
       (fun () ->
-         stream <- Some (Portaudio.open_default_stream 0 channels samples_per_second buflen));
-      self#handle "start_stream" (fun () -> Portaudio.start_stream (Utils.get_some stream))
+         stream <- Some (Portaudio.open_default_stream
+                           0 channels samples_per_second buflen));
+    self#handle "start_stream"
+      (fun () -> Portaudio.start_stream (Utils.get_some stream))
 
   method private close_device = 
     match stream with

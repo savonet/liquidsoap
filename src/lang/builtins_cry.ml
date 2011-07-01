@@ -29,8 +29,10 @@ let () =
   let user_agent = Lang.product (Lang.string "User-Agent")
                                 (Lang.string Http.user_agent)
   in
-  add_builtin "icy.update_metadata" ~cat:Interaction ~descr:"Update metata on an icecast mountpoint \
-                                                       using the ICY protocol."
+  add_builtin "icy.update_metadata"
+    ~cat:Interaction
+    ~descr:"Update metata on an icecast mountpoint \
+            using the ICY protocol."
     ["host", Lang.string_t, Some (Lang.string "localhost"), None;
      "port", Lang.int_t, Some (Lang.int 8000), None;
      "user", Lang.string_t, Some (Lang.string "source"), None;
@@ -41,7 +43,7 @@ let () =
      "encoding", Lang.string_t, Some (Lang.string ""),
      Some "Encoding used to send metadata, default (UTF-8) if empty." ;
      "headers", Lang.metadata_t,
-     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
+     Some (Lang.list Lang.metadata_t [user_agent]),
      Some "Additional headers." ;
      "",Lang.metadata_t,None,None ] Lang.unit_t
     (fun p ->
@@ -92,6 +94,9 @@ let () =
            ~user ~password
            ~mount ~headers metas
        with
-         | e -> log#f 2 "Manual metadata update failed: %s" (Utils.error_message e)
+         | e ->
+             log#f 2
+               "Manual metadata update failed: %s"
+               (Utils.error_message e)
       end ;
       Lang.unit)

@@ -150,10 +150,10 @@ struct
                     x = ogg_audio ||
                     x = ogg_video -> false
         | _, Guess ->
-             raise (Lang.Invalid_value (List.assoc "icy_metadata" p,
-                                                   "Could not guess icy_metadata \
-                                                    for this format, please specify \
-                                                    either 'true' or 'false'."))
+             raise (Lang.Invalid_value
+                      (List.assoc "icy_metadata" p,
+                       "Could not guess icy_metadata for this format, \
+                        please specify either 'true' or 'false'."))
     in
     let out_enc =
       match Lang.to_string (List.assoc "encoding" p) with

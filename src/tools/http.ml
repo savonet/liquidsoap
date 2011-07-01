@@ -77,7 +77,9 @@ let args_split s =
   let fill_arg arg =
     let arg = url_decode arg in
     match Pcre.split ~pat:"=" arg with
-      | e :: l -> (List.iter (Hashtbl.replace args e) l) (* There should be only arg=value *)
+      | e :: l ->
+          (* There should be only arg=value *)
+          List.iter (Hashtbl.replace args e) l
       | [] -> ()
   in
   List.iter fill_arg (Pcre.split ~pat:"&" s) ;
@@ -116,7 +118,9 @@ let http_sanitize url =
     let encode path =
       let path = Pcre.split ~pat:"/" path in
       (* We decode the path, in case it was already encoded. *)
-      let path = List.map (fun x -> url_encode ~plus:false (url_decode x)) path in
+      let path =
+        List.map (fun x -> url_encode ~plus:false (url_decode x)) path
+      in
       List.fold_left (Printf.sprintf "%s/%s") "" path
     in
     try
@@ -126,7 +130,9 @@ let http_sanitize url =
        * they were already encoded. *)
       let options = args_split options in
       let args = Hashtbl.create 2 in
-      Hashtbl.iter (fun a b -> Hashtbl.replace args (url_encode a) (url_encode b)) options ;
+      Hashtbl.iter
+        (fun a b -> Hashtbl.replace args (url_encode a) (url_encode b))
+        options ;
       let merge a b c =
         match c with
           | "" -> Printf.sprintf "%s=%s" a b

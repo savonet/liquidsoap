@@ -100,7 +100,8 @@ object (self)
                                (fun _ -> String.create (2 * len))
                            in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.of_audio [|buf.(c)|] ofs sbuf.(c) 0 len
+                             Audio.S16LE.of_audio
+                               [|buf.(c)|] ofs sbuf.(c) 0 len
                            done;
                            Pcm.writen pcm sbuf 0 len
                         );
@@ -113,7 +114,8 @@ object (self)
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
                            for c = 0 to Audio.channels buf - 1 do
-                             Audio.S16LE.to_audio sbuf.(c) 0 [|buf.(c)|] ofs len
+                             Audio.S16LE.to_audio
+                               sbuf.(c) 0 [|buf.(c)|] ofs len
                            done;
                            r
                         )
@@ -122,7 +124,8 @@ object (self)
         handle "channels"
           (Pcm.set_channels dev params) channels ;
         let rate =
-          handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
+          handle "rate"
+            (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
         let bufsize =
           handle "buffer size"
@@ -235,7 +238,8 @@ object (self)
            match e with
              | Buffer_xrun -> 
                  self#log#f 2
-                   "Underrun! You may minimize them by increasing the buffer size."
+                   "Underrun! \
+                    You may minimize them by increasing the buffer size."
              | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
           end ;
           if e = Buffer_xrun || e = Suspended || e = Interrupted then
@@ -297,7 +301,8 @@ object (self)
            match e with
              | Buffer_xrun ->
                  self#log#f 2
-                   "Overrun! You may minimize them by increasing the buffer size."
+                   "Overrun! \
+                    You may minimize them by increasing the buffer size."
              | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
           end ;
           if e = Buffer_xrun || e = Suspended || e = Interrupted then
@@ -349,7 +354,7 @@ let () =
                                  ~infallible device source):>Source.source)
          else
            ((new output ~kind ~clock_safe ~infallible 
-                        ~start ~on_start ~on_stop device source):>Source.source))
+               ~start ~on_start ~on_stop device source):>Source.source))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in

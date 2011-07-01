@@ -37,7 +37,8 @@ let () =
         Some (Lang.int !(Liqfm.Audioscrobbler.base_port)),
         Some "Port for audioscrobbling submissions.";
         "length",Lang.bool_t,Some (Lang.bool false),
-        Some "Try to submit length information. This operation can be CPU intensive. \
+        Some "Try to submit length information. \
+              This operation can be CPU intensive. \
               Value forced to true when used with the \"user\" source type.";
         "",Lang.metadata_t,None,None ]
     in

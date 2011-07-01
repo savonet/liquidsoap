@@ -71,7 +71,9 @@ object (self)
             List.iter
               (fun c ->
                 try
-                  let sub = Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c in
+                  let sub =
+                    Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c
+                  in
                   let n = Pcre.get_substring sub 1 in
                   let n = note_of_string n in
                   let m = Pcre.get_substring sub 2 in
@@ -88,7 +90,9 @@ object (self)
       notes_on <- n @ notes_on
     in
     let mute t =
-      List.iter (fun n -> MIDI.insert m.(chan) (t,MIDI.Note_off (n,1.))) notes_on;
+      List.iter
+        (fun n -> MIDI.insert m.(chan) (t,MIDI.Note_off (n,1.)))
+        notes_on;
       notes_on <- []
     in
       List.iter
@@ -119,10 +123,13 @@ end
 let () =
   (* TODO: is this really the type we want to give to it? *)
   let in_k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let out_k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ()) in
+  let out_k =
+    Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~midi:1 ())
+  in
   Lang.add_operator "midi.chord"
     [
-      "metadata", Lang.string_t, Some (Lang.string "chord"), Some "Name of the metadata containing the chords.";
+      "metadata", Lang.string_t, Some (Lang.string "chord"),
+        Some "Name of the metadata containing the chords.";
       "", Lang.source_t in_k, None, None
     ]
     ~kind:(Lang.Unconstrained out_k)

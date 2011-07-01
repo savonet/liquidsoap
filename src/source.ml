@@ -458,8 +458,9 @@ object (self)
   val memo = Frame.create content_kind
 
   (* [#get buf] completes the frame with the next data in the stream.
-   * Depending whether caching is enabled or not, it calls [#get_frame] directly
-   * or tries to get data from the cache frame, filling it if needed.
+   * Depending on whether caching is enabled or not,
+   * it calls [#get_frame] directly or tries to get data from the cache frame,
+   * filling it if needed.
    * Any source calling [other_source#get should] thus take care of clearing
    * the cache of the other source ([#advance]) at the end of the output
    * round ([#after_output]). *)

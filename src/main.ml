@@ -232,7 +232,9 @@ struct
       exit 0
     with
       | Dtools.Conf.Unbound _ ->
-          Printf.eprintf "The key '%s' is not a valid configuration key.\n%!" p;
+          Printf.eprintf
+            "The key '%s' is not a valid configuration key.\n%!"
+            p ;
           exit 1
 
   let args t =
@@ -401,7 +403,9 @@ let options =
 
       ["--"],
       Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
-      "Stop parsing the command-line and pass subsequent items to the script." ]
+      "Stop parsing the command-line and pass subsequent items to the script."
+
+      ]
 
      in opts@LiqConf.args Configure.conf)
 

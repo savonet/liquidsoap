@@ -415,8 +415,8 @@ let add_task, pop_tasks =
  * abstractions. *)
 let rec check ?(print_toplevel=false) ~level ~env e =
   (** The role of this function is not only to type-check but also to assign
-    * meaningful levels to type variables, and unify the types of all occurences
-    * of the same variable, since the parser does not do that (anymore). *)
+    * meaningful levels to type variables, and unify the types of
+    * all occurrences of the same variable, since the parser does not do it. *)
   assert (e.t.T.level = -1) ;
   e.t.T.level <- level ;
   (** The toplevel position of the (un-dereferenced) type
@@ -738,7 +738,9 @@ let rec eval ~env tm =
           check_unit_like (eval ~env a) ;
           eval ~env b
       | App (f,l) ->
-          apply ~t:tm.t (eval ~env f) (List.map (fun (l,t) -> l, eval ~env t) l)
+          apply ~t:tm.t
+            (eval ~env f)
+            (List.map (fun (l,t) -> l, eval ~env t) l)
 
 and apply ~t f l =
   let mk v = { V.t = t ; V.value = v } in

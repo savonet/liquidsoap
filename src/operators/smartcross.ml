@@ -291,7 +291,8 @@ object (self)
              after#set_id (self#id ^ "_after")
            in
            let metadata = function
-             | None -> Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
+             | None ->
+                 Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
              | Some m -> Lang.metadata m
            in
            let f a b =

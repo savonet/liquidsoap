@@ -259,7 +259,8 @@ expr:
   | VAR                              { mk (Var $1) }
   | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
   | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),
-                                           ["",$2;"",mk ~pos:(1,1) (Var $1)])) }
+                                           ["",$2;
+                                            "",mk ~pos:(1,1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr
                                      { mk_fun $3 $6 }
@@ -336,7 +337,8 @@ cexpr:
   | VAR                              { mk (Var $1) }
   | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
   | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),
-                                           ["",$2;"",mk ~pos:(1,1) (Var $1)])) }
+                                           ["",$2;
+                                            "",mk ~pos:(1,1) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr
                                      { mk_fun $3 $6 }

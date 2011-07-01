@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2010 Savonet team
+  Copyright 2003-2011 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,7 +53,8 @@ class virtual source ~kind =
 object(self)
   inherit Source.source kind
 
-  method virtual relay : string -> (string*string) list -> Unix.file_descr -> unit
+  method virtual relay :
+    string -> (string*string) list -> Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string*(string -> string -> bool))
   method virtual icy_charset : string option
@@ -189,9 +190,13 @@ let parse_headers headers =
   let f x = String.uppercase x in
   let headers = List.fold_right split_header headers [] in
   let display_headers =
-    List.filter (fun (x,_) -> conf_pass_verbose#get || (f x) <> "AUTHORIZATION") headers
+    List.filter
+      (fun (x,_) -> conf_pass_verbose#get || (f x) <> "AUTHORIZATION")
+      headers
   in
-  List.iter (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v) display_headers ;
+  List.iter
+    (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v)
+    display_headers ;
   headers
 
 let auth_check ?args ~login uri headers =
@@ -672,7 +677,9 @@ let open_port ~icy port =
                raise  = reply }
          with
            | e ->
-               log#f 2 "Failed to accept new client: %s" (Utils.error_message e)) ;
+               log#f 2
+                 "Failed to accept new client: %s"
+                 (Utils.error_message e)) ;
         [{ Duppy.Task.
             priority = Tutils.Non_blocking ;
             events = [`Read sock; `Read out_s] ;

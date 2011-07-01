@@ -904,7 +904,8 @@ let () =
  * if the list does not have the required element! *)
 let () =
   add_builtin "list.nth" ~cat:List 
-    ~descr:"Get the n-th element of a list (the first element is at position 0)."
+    ~descr:"Get the n-th element of a list \
+            (the first element is at position 0)."
     [ "",Lang.list_t (Lang.univ_t 1),None,None ;
       "",Lang.int_t,None,None ]
     (Lang.univ_t 1)
@@ -1202,7 +1203,8 @@ let () =
   add_builtin "gettimeofday" ~cat:Sys
     []
     Lang.float_t
-    ~descr:"Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
+    ~descr:"Return the current time since \
+            00:00:00 GMT, Jan. 1, 1970, in seconds."
     (fun p ->
        Lang.float (Unix.gettimeofday ()))
 
@@ -1255,8 +1257,8 @@ let () =
          Lang.unit)
 
 let () =
-  (** Cheap implementation of "getopt" which does not really deserve its name as
-    * it has little to do with the standards that getopt(3) implements.
+  (** Cheap implementation of "getopt" which does not really deserve its name
+    * since it has little to do with the standards that getopt(3) implements.
     * A complete rework of argv() and getopt() should eventually be done. *)
   let argv = Shebang.argv in
   let offset =
@@ -1559,9 +1561,13 @@ let rec to_json_pp f v =
                Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
         end
     | Lang.Product (p,q) -> 
-       Format.fprintf f "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]" to_json_pp p to_json_pp q
+       Format.fprintf f
+         "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]"
+         to_json_pp p to_json_pp q
     | Lang.Ref v -> 
-       Format.fprintf  f "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]" to_json_pp !v
+       Format.fprintf  f
+         "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
+         to_json_pp !v
     | _ -> Format.fprintf f "%s" (to_json_compact v)
 
 let to_json_pp v =
@@ -1972,8 +1978,12 @@ type request = Get | Post
 let add_http_request name descr request =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
-  let status_t = Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t in
-  let request_return_t = Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t in
+  let status_t =
+    Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t
+  in
+  let request_return_t =
+    Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t
+  in
   let params =
     if request = Get then
       []
@@ -1982,8 +1992,10 @@ let add_http_request name descr request =
   in
   let params = params @
     [
-      "headers",headers_t, Some (Lang.list ~t:header_t []),Some "Additional headers.";
-      "", Lang.string_t, None, Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
+      "headers",headers_t, Some (Lang.list ~t:header_t []),
+        Some "Additional headers.";
+      "", Lang.string_t, None,
+        Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
     ]
   in
   add_builtin name ~cat:Interaction ~descr
@@ -1993,7 +2005,9 @@ let add_http_request name descr request =
       let headers = List.assoc "headers" p in
       let headers = Lang.to_list headers in
       let headers = List.map Lang.to_product headers in
-      let headers = List.map (fun (x,y) -> (Lang.to_string x, Lang.to_string y)) headers in
+      let headers =
+        List.map (fun (x,y) -> (Lang.to_string x, Lang.to_string y)) headers
+      in
       let url = Lang.to_string (List.assoc "" p) in
       let host, port, url = Http.url_split_host_port url in
       let port = match port with Some p -> p | None -> 80 in
@@ -2022,7 +2036,9 @@ let add_http_request name descr request =
           (Lang.string z)
       in
       let headers =
-        List.map (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) headers
+        List.map
+          (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+          headers
       in
       let headers = Lang.list ~t:header_t headers in
       Lang.product
