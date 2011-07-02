@@ -71,6 +71,21 @@ produce a clean script and back it up into a file, independently of
 its output to icecast (which again is sensitive to network lags).
 For more details on those techniques, read about "clocks":clocks.html.
 
+h5. Unable to decode "file" as @{audio=2;video=0;midi=0}@!
+
+This log message informs you that liquidsoap failed to decode a file, not 
+necessarily because it cannot handle the file, but also possibly because
+the file does not contain the expected media type. For example, if video
+is expected, an audio file will be rejected.
+
+The case of mono files is often surprising. Since liquidsoap does not
+implicitly convert between media formats, input files must be stereo
+if the output expects stereo data. As a result, people often get this
+error message on files which they expected to play correctly. The
+simple way to fix this is to use the @audio_to_stereo()@ operator
+to allow any kind of audio on its input, and produce stereo as expected
+on its output.
+
 h5. Exceptions
 
 Liquidsoap dies with messages such as these by the end of the log:
