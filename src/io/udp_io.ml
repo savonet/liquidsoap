@@ -175,7 +175,7 @@ let () =
     Lang.add_operator "output.udp"
       ~descr:"Output encoded data to UDP, without any control whatsoever."
       ~category:Lang.Output
-      ~flags:[Lang.Experimental;Lang.Hidden]
+      ~flags:[Lang.Experimental]
       (Output.proto @
        [ ("port", Lang.int_t, None, None) ;
          ("host", Lang.string_t, None, None) ;
@@ -214,7 +214,7 @@ let () =
     Lang.add_operator "input.udp"
       ~descr:"Input encoded data from UDP, without any control whatsoever."
       ~category:Lang.Input
-      ~flags:[Lang.Experimental;Lang.Hidden]
+      ~flags:[Lang.Experimental]
       [ ("port", Lang.int_t, None, None) ;
         ("host", Lang.string_t, None, None) ;
         ("buffer", Lang.float_t, Some (Lang.float 1.),
