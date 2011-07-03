@@ -677,7 +677,7 @@ AC_CHECK_OCAML_BINDING([pulseaudio])
 AC_CHECK_OCAML_BINDING([ladspa])
 AC_CHECK_OCAML_BINDING([dssi])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage],[sdlmixer sdlttf])
-AC_CHECK_OCAML_BINDING([camlimages])
+AC_CHECK_OCAML_BINDING([camlimages.all_formats],[4.0.0])
 AC_CHECK_OCAML_BINDING([lo])
 
 #
