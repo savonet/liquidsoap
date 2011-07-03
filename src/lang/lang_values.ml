@@ -27,6 +27,8 @@ let debug =
   with
     | Not_found -> false
 
+let errors_as_warnings = ref false
+
 (** {1 Kinds}
   *
   * In a sense this could move to Lang_types, but I like to keep that
@@ -70,11 +72,13 @@ let format_t ?pos ?level k =
     (T.Constr { T.name = "format" ; T.params = [T.Covariant,k] })
 
 (** Type of sources carrying frames of a given kind. *)
-let source_t ?pos ?level k =
-  T.make ?pos ?level
-    (T.Constr { T.name = "source" ; T.params = [T.Invariant,k] })
+let source_t ?(active=false) ?pos ?level k =
+  let name = if active then "active_source" else "source" in
+    T.make ?pos ?level
+      (T.Constr { T.name = name ; T.params = [T.Invariant,k] })
 let of_source_t t = match (T.deref t).T.descr with
   | T.Constr { T.name = "source" ; T.params = [_,t] } -> t
+  | T.Constr { T.name = "active_source" ; T.params = [_,t] } -> t
   | _ -> assert false
 
 let request_t ?pos ?level k =
@@ -205,6 +209,88 @@ let free_vars ?bound body =
     | None -> free_vars body
     | Some s ->
         List.fold_left (fun v x -> Vars.remove x v) (free_vars body) s
+
+let can_ignore t =
+  match (T.deref t).T.descr with
+    | T.Ground T.Unit | T.Constr {T.name="active_source"} -> true
+    | _ -> false
+
+let is_fun t =
+  match (T.deref t).T.descr with
+    | T.Arrow _ -> true | _ -> false
+
+let is_source t =
+  match (T.deref t).T.descr with
+    | T.Constr {T.name="source"} -> true | _ -> false
+
+(** Check that all let-bound variables are used.
+  * No check is performed for variable arguments.
+  * This cannot be done at parse-time (as for the computatin of the
+  * free variables of functions) because we need types, as well as
+  * the ability to distinguish toplevel and inner let-in terms. *)
+
+exception Unused_variable of (string*Lexing.position)
+
+let rec check_unused ~lib tm =
+  let rec check ?(toplevel=false) v tm = match tm.term with
+    | Var s -> Vars.remove s v
+    | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
+    | Ref r -> check v r
+    | Get r -> check v r
+    | Product (a,b) | Set (a,b) -> check (check v a) b
+    | Seq (a,b) -> check ~toplevel (check v a) b
+    | List l -> List.fold_left check v l
+    | App (hd,l) ->
+        let v = check v hd in
+          List.fold_left (fun v (lbl,t) -> check v t) v l
+    | Fun (fv,p,body) ->
+        let v =
+          List.fold_left
+            (fun v -> function
+               | (_,_,_,Some default) -> check v default
+               | _ -> v)
+            v p
+        in
+        let masked,v =
+          let v0 = v in
+            List.fold_left
+              (fun (masked,v) (_,var,_,_) ->
+                 if Vars.mem var v0 then
+                   Vars.add var masked, v
+                 else
+                   masked, Vars.add var v)
+              (Vars.empty, v) p
+        in
+        let v = check v body in
+          (* Restore masked variables
+           * The masking variables have been used but it does not count
+           * for the ones they masked. *)
+          Vars.union masked v
+    | Let { var = s ; def = def ; body = body } ->
+        let v = check v def in
+        let mask = Vars.mem s v in
+        let v = Vars.add s v in
+        let v = check ~toplevel v body in
+          begin
+            (* Do not check for anything at toplevel in libraries *)
+            if not (toplevel && lib) then
+            (* Do we have an unused definition? *)
+            if Vars.mem s v then
+            (* There are exceptions: unit, active_source
+             * and functions when at toplevel (sort of a lib situation...) *)
+            if not (can_ignore def.t || (toplevel && is_fun def.t)) then
+              let start_pos = fst (Utils.get_some tm.t.T.pos) in
+                if !errors_as_warnings then
+                  Printf.printf
+                    "Warning: unused variable %s at %s.\n%!"
+                    s (T.print_single_pos start_pos)
+                else
+                  raise (Unused_variable (s,start_pos))
+          end ;
+          if mask then Vars.add s v else v
+  in
+    (* Unused free variables may remain *)
+    ignore (check ~toplevel:true Vars.empty tm)
 
 (** Maps a function on all types occurring in a term.
   * Ignores variable generalizations. *)
@@ -393,6 +479,15 @@ let rec value_restriction t = match t.term with
   | _ -> false
 
 exception Unbound of T.pos option * string
+exception Ignored of term
+
+let raise_ignored e =
+  if !errors_as_warnings then
+    Printf.printf
+      "Warning: ignored expression at %s.\n%!"
+      (T.print_pos ~prefix:"" (Utils.get_some e.t.T.pos))
+  else
+    raise (Ignored e)
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
   * passed to the function [f] because the latter has no label [lbl].
@@ -463,14 +558,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       e.t >: mkg T.Unit
   | Seq (a,b) ->
       check ~env ~level a ;
-      begin match (T.deref a.t).T.descr with
-        (* Maybe it's not an active source, but at least it's a source. *)
-        | T.Ground T.Unit | T.Constr {T.name="source"} -> ()
-        | _ ->
-            Printf.printf "%s: %s\n%!"
-              (T.print_pos (Utils.get_some a.t.T.pos))
-              "this value should be a source, or unit."
-      end ;
+      if not (can_ignore a.t) then raise_ignored a ;
       check ~print_toplevel ~level ~env b ;
       e.t >: b.t
   | App (a,l) ->
@@ -592,10 +680,11 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         e.t >: body.t
 
 (* The simple definition for external use. *)
-let check e =
+let check ?(ignored=false) e =
   let print_toplevel = !Configure.display_types in
     try
       check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e ;
+      if ignored && not (can_ignore e.t) then raise_ignored e ;
       pop_tasks ()
     with
       | e -> pop_tasks () ; raise e
@@ -616,15 +705,6 @@ let get_name f =
     "<ff>"
   with
     | F s -> s
-
-(** This check could be done completely during type analysis,
-  * if it were possible to distinguish active sources at this point.. *)
-let check_unit_like a = match a.V.value with
-  | V.Unit -> () | V.Source s when s#is_output -> ()
-  | _ ->
-      Printf.printf "%s: %s\n%!"
-        (T.print_pos (Utils.get_some a.V.t.T.pos))
-        "this value should be an active source, or unit."
 
 (** [remove_first f l] removes the first element [e] of [l] such that [f e],
   * and returns [e,l'] where [l'] is the list without [e].
@@ -735,7 +815,7 @@ let rec eval ~env tm =
       | Var var ->
           lookup env var tm.t
       | Seq (a,b) ->
-          check_unit_like (eval ~env a) ;
+          ignore (eval ~env a) ;
           eval ~env b
       | App (f,l) ->
           apply ~t:tm.t
@@ -866,7 +946,7 @@ let rec eval_toplevel ?(interactive=false) t =
               (V.print_value def) ;
           eval_toplevel ~interactive body
     | Seq (a,b) ->
-        check_unit_like
+        ignore
           (let v = eval_toplevel a in
              if v.V.t.T.pos = None then { v with V.t = a.t } else v) ;
         eval_toplevel ~interactive b

@@ -319,7 +319,7 @@ let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
-  Lang.add_operator "output.alsa"
+  Lang.add_operator "output.alsa" ~active:true
     (Output.proto @ [ "bufferize",
         Lang.bool_t, Some (Lang.bool true),
         Some "Bufferize output";
@@ -358,7 +358,7 @@ let () =
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-  Lang.add_operator "input.alsa"
+  Lang.add_operator "input.alsa" ~active:true
     (Start_stop.input_proto @ [
       "bufferize",
         Lang.bool_t, Some (Lang.bool true),

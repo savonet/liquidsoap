@@ -342,7 +342,7 @@ let get_default_ports name =
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-  Lang.add_operator "input.jack.legacy"
+  Lang.add_operator "input.jack.legacy" ~active:true
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[Lang.Deprecated;Lang.Hidden]
@@ -370,7 +370,7 @@ let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
-  Lang.add_operator "output.jack.legacy"
+  Lang.add_operator "output.jack.legacy" ~active:true
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~flags:[Lang.Deprecated;Lang.Hidden]

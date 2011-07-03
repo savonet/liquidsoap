@@ -283,7 +283,7 @@ Rock = channel_radiopilote("Rock")
 
 # Group those sources in a seperate
 # clock (good for multithreading/multicore)
-ignore(clock(add([jazz,That70Sound,metal,reggae])))
+clock.assign_new([jazz,That70Sound,metal,reggae])
 
 # === Mixing live ===
 

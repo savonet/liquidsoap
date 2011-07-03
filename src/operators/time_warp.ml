@@ -20,22 +20,6 @@
 
  *****************************************************************************)
 
-(** Creates an autonomous local clock.
-  * As an operator it is an identity, but it triggers the creation of a
-  * clock that will animate independently the subgraph.
-  * This should usually be used in conjunction with a buffer interfacing
-  * this clock with another. *)
-class clock ~kind ~sync ~id source =
-object (self)
-  inherit Id.id ~name:"clock" ~kind source
-  method private set_clock =
-    let id = if id = "" then string_of_int (Oo.id self) else id in
-    let my_clock = new Clock.wallclock ~sync id in
-    let my_clock = Clock.create_known my_clock in
-      Clock.unify source#clock my_clock ;
-      Clock.unify self#clock my_clock
-end
-
 (** Create a buffer between two clocks.
   *
   * This creates an active operator in the inner clock (the action consists
@@ -149,24 +133,6 @@ end
 
 let () =
   let k = Lang.univ_t 1 in
-    Lang.add_operator "clock"
-      [("sync", Lang.bool_t, Some (Lang.bool true),
-        Some "Do not synchronize the clock on regular wallclock time, \
-              but try to run as fast as possible (CPU burning mode).") ;
-       ("", Lang.source_t k, None, None)]
-      ~kind:(Lang.Unconstrained k)
-      ~category:Lang.Output (* Whatever... TODO create categories *)
-      ~descr:"Forces a source and other time-dependent sources to belong \
-              to a new clock that runs indepently of others."
-      (fun p kind ->
-         let s = List.assoc "" p in
-         let sync = Lang.to_bool (List.assoc "sync" p) in
-         let id = Lang.to_string (List.assoc "id" p) in
-         let src = Lang.to_source s in
-           new clock ~kind ~sync ~id src)
-
-let () =
-  let k = Lang.univ_t 1 in
     Lang.add_operator "buffer"
       (Output.proto @
        ["buffer", Lang.float_t, Some (Lang.float 1.),
@@ -175,7 +141,7 @@ let () =
           Some "Maximum amount of buffered data, in seconds." ;
         "", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
-      ~category:Lang.Output (* Whatever... TODO create categories *)
+      ~category:Lang.Liquidsoap
       ~descr:"Create a buffer between two different clocks."
       (fun p kind ->
          let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

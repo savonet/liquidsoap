@@ -197,7 +197,7 @@ end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-  Lang.add_operator "input.voip"
+  Lang.add_operator "input.voip" ~active:true
     [
     ]
     ~kind:(Lang.Unconstrained k)

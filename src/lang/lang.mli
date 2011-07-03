@@ -97,8 +97,9 @@ type category =
   | SoundProcessing (** Operations on sound (e.g. compression, etc.). *)
   | VideoProcessing (** Operations on video. *)
   | MIDIProcessing (** Operations on MIDI. *)
-  | Visualization (** Visializations of the sound. *)
+  | Visualization (** Visualizations of the sound. *)
   | SoundSynthesis (** Synthesis. *)
+  | Liquidsoap (** Liquidsoap. *)
 
 (** Get a string representation of a[ category]. *)
 val string_of_category : category -> string
@@ -137,6 +138,7 @@ val add_operator :
   category:category ->
   descr:string ->
   ?flags:doc_flag list ->
+  ?active:bool ->
   string ->
   proto ->
   kind:lang_kind_formats ->
@@ -242,19 +244,24 @@ val metadata : Frame.metadata -> value
 
 exception Invalid_value of value * string
 
+(** More informative version of clocks exceptions from Source,
+  * used for re-raising and displaying better error messages *)
+exception Clock_conflict of (Lang_types.pos option * string * string)
+exception Clock_loop of (Lang_types.pos option * string * string)
+
 (** {2 Main script evaluation} *)
 
 (** Load the external libraries. *)
 val load_libs       : ?parse_only:bool -> unit -> unit
 
 (** Evaluate a script from an [in_channel]. *)
-val from_in_channel : ?parse_only:bool -> in_channel -> unit
+val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
 
 (** Evaluate a script from a file. *)
-val from_file       : ?parse_only:bool -> string -> unit
+val from_file       : ?parse_only:bool -> lib:bool -> string -> unit
 
 (** Evaluate a script from a string. *)
-val from_string     : ?parse_only:bool -> string -> unit
+val from_string     : ?parse_only:bool -> lib:bool -> string -> unit
 
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit

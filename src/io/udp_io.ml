@@ -172,7 +172,7 @@ end
 
 let () =
   let k = Lang.univ_t 1 in
-    Lang.add_operator "output.udp"
+    Lang.add_operator "output.udp" ~active:true
       ~descr:"Output encoded data to UDP, without any control whatsoever."
       ~category:Lang.Output
       ~flags:[Lang.Experimental]
@@ -211,7 +211,7 @@ let () =
 
 let () =
   let k = Lang.univ_t 1 in
-    Lang.add_operator "input.udp"
+    Lang.add_operator "input.udp" ~active:true
       ~descr:"Input encoded data from UDP, without any control whatsoever."
       ~category:Lang.Input
       ~flags:[Lang.Experimental]

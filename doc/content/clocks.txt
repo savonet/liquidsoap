@@ -167,18 +167,21 @@ h4. The clock API
 
 There are only a couple of operations dealing explicitly with clocks.
 
-Calling <code>clock(s)</code> creates a new clock and assigns it
-to the source <code>s</code>. For convenience (?) it returns the source
-itself. The new clock will follow (the computer's idea of) real time,
-unless <code>sync=false</code> is passed, in which case it will run
-as fast as possible.
+The function <code>clock.assign_new(l)</code> creates a new clock
+and assigns it to all sources from the list <code>l</code>.
+For convenience, we also provide a wrapper, <code>clock(s)</code>
+which does the same with a single source instead of a list,
+and returns that source.
+With both functions, the new clock will follow (the computer's idea of)
+real time, unless <code>sync=false</code> is passed, in which case
+it will run as fast as possible.
 
 The old (pre-1.0.0) setting <code>root.sync</code> is superseeded
-by <code>clock</code>.
+by <code>clock.assign_new()</code>.
 If you want to run an output as fast as your CPU allows,
 just attach it to a new clock without synchronization:
 %%
-clock(sync=false,output.file(%vorbis,"audio.ogg",source))
+clock.assign_new(sync=false,[output.file(%vorbis,"audio.ogg",source)])
 %%
 This will automatically attach the appropriate sources to that clock.
 However, you may need to do it for other operators if they are totally
@@ -236,9 +239,9 @@ high quality wanted):
 <pre>
 input = input.oss()
 
-clock(id="icecast",
-  output.icecast(%mp3,mount="blah",restart=true,
-    mksafe(buffer(input))))
+clock.assign_new(id="icecast",
+  [output.icecast(%mp3,mount="blah",restart=true,
+     mksafe(buffer(input)))])
 
 output.file(
   %mp3,"record-%Y-%m-%d-%H-%M-%S.mp3",
@@ -284,8 +287,8 @@ twice. You should run it as <code>liquidsoap EXPR -- FILE</code>
 and observe that it fully exploits two cores:
 <pre>
 def one()
-  clock(sync=false,
-        output.file(%mp3,"/dev/null",single(argv(1))))
+  clock.assign_new(sync=false,
+        [output.file(%mp3,"/dev/null",single(argv(1)))])
 end
 one()
 one()

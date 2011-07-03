@@ -339,6 +339,7 @@ type category =
   | Input | Output | Conversions
   | TrackProcessing | SoundProcessing | VideoProcessing | MIDIProcessing
   | Visualization | SoundSynthesis
+  | Liquidsoap
 
 let string_of_category x = "Source / " ^ match x with
   | Input -> "Input"
@@ -350,6 +351,7 @@ let string_of_category x = "Source / " ^ match x with
   | MIDIProcessing -> "MIDI Processing"
   | SoundSynthesis -> "Sound Synthesis"
   | Visualization -> "Visualization"
+  | Liquidsoap -> "Liquidsoap"
 
 (** An operator is a builtin function that builds a source.
   * It is registered using the wrapper [add_operator].
@@ -367,7 +369,9 @@ let string_of_category x = "Source / " ^ match x with
 exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
 
-let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
+let add_operator
+      ~category ~descr ?(flags=[])
+      ?(active=false) name proto ~kind f =
    let compare (x,_,_,_) (y,_,_,_) =
      match x,y with
        | "","" -> 0
@@ -404,7 +408,7 @@ let add_operator ~category ~descr ?(flags=[]) name proto ~kind f =
   in
   let fresh = (* TODO *) 1 in
   let kind_type = kind_type_of_kind_format ~fresh kind in
-  let return_t = Term.source_t kind_type in
+  let return_t = Term.source_t ~active kind_type in
   let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f
 
@@ -545,10 +549,13 @@ let rec assoc label n = function
 
 (** {1 Parsing} *)
 
-let type_and_run ast =
+let type_and_run ~lib ast =
   Clock.collect_after
     (fun () ->
-       Term.check ast ;
+       (* Type checking *)
+       Term.check ~ignored:true ast ;
+       (* Check for unused variables, relies on types *)
+       Term.check_unused ~lib ast ;
        ignore (Term.eval_toplevel ast))
 
 (** The Parsing module is not thread safe, it has global variables
@@ -556,7 +563,7 @@ let type_and_run ast =
   * parsing at a time. *)
 let parse_lock = Mutex.create ()
 
-let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
+let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
   let lexbuf = Lexing.from_channel in_chan in
   let print_error error =
     flush_all () ;
@@ -586,15 +593,15 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
       let program =
         Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
       in
-        if not parse_only then type_and_run program
+        if not parse_only then type_and_run ~lib program
     with
       | Failure "lexing: empty token" -> print_error "Empty token" ; exit 1
       | Parsing.Parse_error -> print_error "Parse error" ; exit 1
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Format.printf
-              "@[%s: the variable %s@ \
-               is used@ but was not previously defined.@]@."
+              "@[<2>%s:@ the variable %s@ used here@ has not been@ \
+                 previously@ defined.@]@."
             pos s ;
             exit 1
       | T.Type_Error explain ->
@@ -608,8 +615,8 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
           let pos_x = T.print_pos (Utils.get_some x.Term.t.T.pos) in
             flush_all () ;
             Format.printf
-              "@[%s:@ cannot apply@ that parameter@ \
-               because@ the function (%s)@ "
+              "@[<2>%s:@ cannot apply@ that parameter@ \
+               because@ the function@ (%s)@ "
               pos_x pos_f ;
             Format.printf
               "has %s@ %s!@]@."
@@ -617,6 +624,48 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
               (if lbl="" then "unlabeled argument" else
                  Format.sprintf "argument labeled %S" lbl) ;
             exit 1
+      | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
+          flush_all () ;
+          Format.printf
+            "@[<2>%s:@ This term@ will evaluate to@ a function@ \
+               which@ will then be dropped.@ \
+               This is usually@ the sign@ of@ an unintended@ \
+               partial application:@ some arguments@ may \
+               be@ missing.@]@."
+            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
+          exit 1
+      | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
+          flush_all () ;
+          Format.printf
+            "@[<2>%s:@ This term@ will evaluate to@ a (passive) source@ \
+               which@ will then be dropped.@ \
+               This is@ usually@ the sign of@ a@ misunderstanding:@ \
+               only active@ sources@ are animated@ on their own;@ \
+               dangling@ passive sources@ are just dead code.@]@."
+            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
+          exit 1
+      | Term.Ignored tm ->
+          flush_all () ;
+          Format.printf
+            "@[<2>%s:@ The result of@ evaluating this term@ \
+               will be@ dropped,@ but@ it does not@ have type@ \
+               unit or active_source.@ Use ignore(...)@ if you meant@ to@ \
+               drop it,@ \
+               otherwise@ this is a sign@ that@ \
+               your script@ does not do@ what you intend.@]@."
+            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
+          exit 1
+      | Term.Unused_variable (s,pos) ->
+          flush_all () ;
+          Format.printf
+            "@[<2>At %s:@ The variable@ %s@ defined here\
+               @ is not used@ anywhere@ in@ its scope.@ \
+               Use ignore(...)@ instead of@ %s = ...@ if@ you meant@ \
+               to not use it.@ \
+               Otherwise,@ this may be a typo@ or a sign that@ your script@ \
+               does not do@ what you intend.@]@."
+            (T.print_single_pos pos) s s ;
+          exit 1
       | Invalid_value (v,msg) ->
           Format.printf
             "@[<2>%s:@ %s.@]@."
@@ -626,8 +675,8 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
           exit 1
       | Lang_encoders.Error (v,s) ->
           Format.printf
-            "@[<2>%s:@ %s.@]@."
-            (T.print_pos ~prefix:"Error in encoding format at "
+            "@[<2>Error in encoding format at@ %s:@ %s.@]@."
+            (T.print_pos ~prefix:""
                (Utils.get_some v.Lang_values.t.T.pos))
             s ;
           exit 1
@@ -638,44 +687,44 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns in_chan =
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
           Format.printf
-            "%s: a source cannot belong to two clocks (%s, %s).@."
+            "@[<2>%s:@ a source cannot@ belong to@ two clocks@ (%s,@ %s).@]@."
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
           exit 1
       | Clock_loop (pos,a,b) ->
           Format.printf
-            "%s: cannot unify two nested clocks: %s, %s.@."
+            "@[<2>%s:@ cannot unify@ two@ nested clocks@ (%s,@ %s).@]@."
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
           exit 1
       | e -> print_error "Unknown error" ; raise e
 
-let from_file ?parse_only ~ns filename =
+let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
-    from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ic ;
+    from_in_channel ~dir:(Filename.dirname filename) ?parse_only ~ns ~lib ic ;
     close_in ic
 
 let load_libs ?parse_only () =
   let dir = Configure.libs_dir in
   let file = Filename.concat dir "pervasives.liq" in
     if Sys.file_exists file then
-      from_file ?parse_only ~ns:(Some file) file
+      from_file ?parse_only ~ns:(Some file) ~lib:true file
 
 let from_file = from_file ~ns:None
 
-let from_string ?parse_only expr =
+let from_string ?parse_only ~lib expr =
   let i,o = Unix.pipe () in
   let i = Unix.in_channel_of_descr i in
   let o = Unix.out_channel_of_descr o in
     output_string o expr ;
     close_out o ;
-    from_in_channel ?parse_only ~ns:None i ;
+    from_in_channel ?parse_only ~ns:None ~lib i ;
     close_in i
 
-let from_in_channel ?parse_only x =
-  from_in_channel ?parse_only ~ns:None x
+let from_in_channel ?parse_only ~lib x =
+  from_in_channel ?parse_only ~ns:None ~lib x
 
 let interactive () =
   Format.printf
@@ -698,7 +747,8 @@ let interactive () =
           Tutils.mutexify parse_lock
             (Lang_parser.interactive tokenizer) lexbuf
         in
-          Term.check expr ;
+          Term.check ~ignored:false expr ;
+          Term.check_unused ~lib:true expr ;
           Clock.collect_after
             (fun () ->
                ignore (Term.eval_toplevel ~interactive:true expr)) ;

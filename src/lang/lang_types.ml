@@ -47,10 +47,13 @@ let debug =
 
 type pos = (Lexing.position*Lexing.position)
 
-let print_single_pos (l,_) =
-  let file = if l.Lexing.pos_fname="" then "" else l.Lexing.pos_fname^"/" in
+let print_single_pos l =
+  let file =
+    if l.Lexing.pos_fname="" then "" else
+      Printf.sprintf "file %s, " l.Lexing.pos_fname
+  in
   let line,col = l.Lexing.pos_lnum, (l.Lexing.pos_cnum-l.Lexing.pos_bol) in
-    Printf.sprintf "%sL%dC%d" file line (col+1)
+    Printf.sprintf "%sline %d, character %d" file line (col+1)
 
 let print_pos ?(prefix="At ") (start,stop) =
   let prefix =
@@ -609,12 +612,18 @@ let doc_of_type ~generalized t =
  * optional argument; whereas with a mandatory argument it is expected to wait
  * for it. *)
 
+let constr_sub x y =
+  match x,y with
+    | _,_ when x=y -> true
+    | "active_source", "source" -> true
+    | _ -> false
+
 (** Ensure that a<:b, perform unification if needed.
   * In case of error, generate an explaination. *)
 let rec (<:) a b =
   if debug then Printf.eprintf "%s <: %s\n" (print a) (print b) ;
   match (deref a).descr, (deref b).descr with
-    | Constr c1, Constr c2 when c1.name=c2.name ->
+    | Constr c1, Constr c2 when constr_sub c1.name c2.name ->
         let rec aux pre p1 p2 =
           match p1,p2 with
             | (v,h1)::t1,(_,h2)::t2 ->

@@ -257,13 +257,13 @@ class output ~kind p =
                           (if chunk > buflen
                            then
                              raise
-                               (Lang.Invalid_value ((List.assoc "buffer" p),
+                               (Lang.Invalid_value (List.assoc "buffer" p,
                                   "Maximum buffering inferior to chunk length"))
                            else ();
                            if burst > buflen
                            then
                              raise
-                               (Lang.Invalid_value ((List.assoc "buffer" p),
+                               (Lang.Invalid_value (List.assoc "buffer" p,
                                   "Maximum buffering inferior to burst length"))
                            else ())
                         in let source = Lang.assoc "" 2 p
@@ -1172,7 +1172,7 @@ class output ~kind p =
 let () =
   let k = Lang.univ_t 1
   in
-    Lang.add_operator "output.harbor" ~category: Lang.Output
+    Lang.add_operator "output.harbor" ~category: Lang.Output ~active: true
       ~descr: "Encode and output the stream using the harbor server."
       (proto k) ~kind: (Lang.Unconstrained k)
       (fun p kind -> (new output kind p :> Source.source))

@@ -205,7 +205,7 @@ let () =
         Some (Lang.bool true),
         Some "Force the use of the dedicated Pulseaudio clock." ])
   in
-  Lang.add_operator "output.pulseaudio"
+  Lang.add_operator "output.pulseaudio" ~active:true
     (proto @ ["", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
@@ -223,7 +223,7 @@ let () =
        in
          ((new output ~infallible ~on_start ~on_stop ~start 
                       ~kind p):>Source.source)) ;
-  Lang.add_operator "input.pulseaudio"
+  Lang.add_operator "input.pulseaudio" ~active:true
     (Start_stop.input_proto @ proto)
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input

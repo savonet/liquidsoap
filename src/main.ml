@@ -48,10 +48,10 @@ let secondary_task = ref false
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false
 
-(** [check_pervasives] should be called before loading a script or looking up
+(** [load_libs] should be called before loading a script or looking up
   * the documentation, to make sure that pervasive libraries have been loaded,
   * unless the user explicitly opposed to it. *)
-let check_pervasives =
+let load_libs =
   let loaded = ref false in
     fun () ->
       if !pervasives && not !loaded then begin
@@ -62,9 +62,52 @@ let check_pervasives =
           Configure.display_types := save
       end
 
+(** Evaluate a script or expression.
+  * This used to be done immediately, which made it possible to
+  * write things like "liquidsoap myscript.liq -h myop" and get
+  * some doc on an operator.
+  * Now, we delay each evaluation because the last item has to be treated
+  * as a non-library, ie. all defined variables should be used.
+  * By default the last item is (the only one) not treated as a library,
+  * for better diagnosis, but this can be disabled (which is useful
+  * when --checking a lib). *)
+
+let last_item_lib = ref false
+
+let do_eval, eval =
+  let delayed = ref None in
+  let eval src ~lib =
+    load_libs () ;
+    match src with
+      | `StdIn ->
+          Log.conf_stdout#set_d (Some true) ;
+          Log.conf_file#set_d (Some false) ;
+          Lang.from_in_channel ~lib ~parse_only:!parse_only stdin
+      | `Expr_or_File expr when (not (Sys.file_exists expr)) ->
+          Log.conf_stdout#set_d (Some true) ;
+          Log.conf_file#set_d (Some false) ;
+          Lang.from_string ~lib ~parse_only:!parse_only expr
+      | `Expr_or_File f ->
+          let basename = Filename.basename f in
+          let basename =
+            try Filename.chop_extension basename with _ -> basename
+          in
+            Configure.var_script := basename ;
+            Lang.from_file ~lib ~parse_only:!parse_only f
+  in
+  let force ~lib =
+    match !delayed with Some f -> f ~lib ; delayed := None | None -> ()
+  in
+    force,
+    (fun src -> force ~lib:true ; delayed := Some (eval src))
+
+let load_libs () =
+  do_eval ~lib:true ;
+  load_libs ()
+
 let plugin_doc name =
   secondary_task := true ;
-  check_pervasives () ;
+  load_libs () ;
   let found = ref false in
     List.iter
       (fun (lbl, i) ->
@@ -86,27 +129,8 @@ let plugin_doc name =
     if not !found then
       Printf.printf "Plugin not found!\n%!"
 
-let eval src =
-  check_pervasives () ;
-  match src with
-    | `StdIn ->
-        Log.conf_stdout#set_d (Some true) ;
-        Log.conf_file#set_d (Some false) ;
-        Lang.from_in_channel ~parse_only:!parse_only stdin
-    | `Expr_or_File expr when (not (Sys.file_exists expr)) ->
-        Log.conf_stdout#set_d (Some true) ;
-        Log.conf_file#set_d (Some false) ;
-        Lang.from_string ~parse_only:!parse_only expr
-    | `Expr_or_File f ->
-        let basename = Filename.basename f in
-        let basename =
-          try Filename.chop_extension basename with _ -> basename
-        in
-          Configure.var_script := basename ;
-          Lang.from_file ~parse_only:!parse_only f
-
 let process_request s =
-  check_pervasives () ;
+  load_libs () ;
   secondary_task := true ;
   let kind =
     { Frame.audio = Frame.Variable ;
@@ -309,6 +333,14 @@ let options =
                   dont_run := true),
       "Check and evaluate scripts but do not perform any streaming." ;
 
+      ["-cl";"--check-lib"],
+      Arg.Unit (fun () ->
+                  last_item_lib := true ;
+                  secondary_task := true ;
+                  dont_run := true),
+      "Like --check but treats all scripts and expressions as libraries, \
+       so that unused toplevel variables are not reported." ;
+
       ["-p";"--parse-only"],
       Arg.Unit (fun () ->
                   secondary_task := true ;
@@ -325,7 +357,13 @@ let options =
 
       ["--debug"],
       Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
-      "Print debugging log messages." ]
+      "Print debugging log messages." ;
+    
+      ["--errors-as-warnings"],
+      Arg.Set Lang_values.errors_as_warnings,
+      "Issue warnings instead of fatal errors for unused variables \
+       and ignored expressions. If you are not sure about it, it is better \
+       to not use it." ]
       @
       (* Unix.fork is not implemented in Win32. *) 
       (if Sys.os_type <> "Win32" then
@@ -353,7 +391,7 @@ let options =
       ["--list-plugins-xml"],
       Arg.Unit (fun () ->
                   secondary_task := true ;
-                  check_pervasives () ;
+                  load_libs () ;
                   Doc.print_xml (Plug.plugs:Doc.item)),
       Printf.sprintf
         "List all plugins (builtin scripting values, \
@@ -363,7 +401,7 @@ let options =
       ["--list-plugins"],
       Arg.Unit (fun () ->
                   secondary_task := true ;
-                  check_pervasives () ;
+                  load_libs () ;
                   Doc.print (Plug.plugs:Doc.item)),
       Printf.sprintf
         "List all plugins (builtin scripting values, \
@@ -471,7 +509,8 @@ let () =
   Frame.allow_lazy_config_eval ();
 
   (* Parse command-line, and notably load scripts. *)
-  parse Shebang.argv options (fun s -> eval (`Expr_or_File s)) usage
+  parse Shebang.argv options (fun s -> eval (`Expr_or_File s)) usage ;
+  do_eval ~lib:!last_item_lib
 
 (* When the log/pid paths have their definitive values,
  * expand substitutions and check directories.

@@ -266,7 +266,7 @@ let file_proto kind =
 
 let () =
   let kind = Lang.univ_t 1 in
-  Lang.add_operator "output.file" (file_proto kind)
+  Lang.add_operator "output.file" (file_proto kind) ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
     ~descr:"Output the source stream to a file."
@@ -293,7 +293,8 @@ end
 
 let () =
   let kind = Lang.univ_t 1 in
-  Lang.add_operator "output.external" (chan_proto kind "Process to pipe data to.")
+  Lang.add_operator "output.external" ~active:true
+    (chan_proto kind "Process to pipe data to.")
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
     ~descr:"Send the stream to a process' standard input."

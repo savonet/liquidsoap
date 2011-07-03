@@ -209,7 +209,7 @@ end
 
 let () =
   let kind = Lang.univ_t 1 in
-  Lang.add_operator "output.dummy"
+  Lang.add_operator "output.dummy" ~active:true
     (proto @ ["", Lang.source_t kind, None, None])
     ~category:Lang.Output
     ~descr:"Dummy output for debugging purposes."

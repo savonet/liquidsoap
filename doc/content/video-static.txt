@@ -17,7 +17,7 @@ convert /path/to/image.jpeg /path/to/image.ppn
 %%
 and have the mp3 or ogg file in an other place...
 
-We also disable synchronization (<code>clock(sync=false,..)</code> 
+We also disable synchronization (<code>clock.assign_new(sync=false,..)</code> 
 operator) so that liquidsoap runs as fast as possible,
 instead of decoding the music at a normal rate.
 
@@ -41,7 +41,7 @@ Here is the code:
  # Create a video source with the image for video track
  video = single(video_file)
  # Disable real-time processing, to process with the maximun speed
- clock(sync=false,video)
+ clock.assign_new(sync=false,[video])
 
  # Mux audio and video
  source = mux_audio(audio=audio,video)

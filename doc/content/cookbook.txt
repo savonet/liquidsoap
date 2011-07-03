@@ -90,9 +90,8 @@ output = "/tmp/output.ogg"
 # A source that plays the file once
 source = once(single(input))
 
-# We use disable sync for the 
-# source's clock
-clock(sync=false,source)
+# We use a clock with disabled synchronization
+clock.assign_new(sync=false,[source])
 
 # Finally, we output the source to an
 # ogg/vorbis file

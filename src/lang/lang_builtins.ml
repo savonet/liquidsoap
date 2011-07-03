@@ -158,6 +158,41 @@ let () =
              | _ -> assert false)
 
 let () =
+  add_builtin "clock.assign_new" ~cat:Liq
+    ~descr:"Create a new clock and assign it to a list of sources."
+    [ ("id", Lang.string_t, Some (Lang.string ""),
+       Some "Identifier for the new clock. The default empty string means \
+             that the identifier of the first source will be used.") ;
+      ("sync", Lang.bool_t, Some (Lang.bool true),
+        Some "Do not synchronize the clock on regular wallclock time, \
+              but try to run as fast as possible (CPU burning mode).") ;
+      ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,
+       Some "List of sources to which the new clock will be assigned") ]
+    Lang.unit_t
+    (fun p ->
+       match Lang.to_list (List.assoc "" p) with
+         | [] -> Lang.unit
+         | (hd::_) as sources ->
+             let sync = Lang.to_bool (List.assoc "sync" p) in
+             let id = Lang.to_string (List.assoc "id" p) in
+             let id =  if id = "" then (Lang.to_source hd)#id else id in
+             let clock = new Clock.wallclock ~sync id in
+               List.iter
+                 (fun s ->
+                    try
+                      let s = Lang.to_source s in
+                        Clock.unify s#clock (Clock.create_known clock)
+                    with
+                      | Source.Clock_conflict (a,b) ->
+                          raise (Lang.Clock_conflict
+                                   (s.Lang.t.Lang_types.pos,a,b))
+                      | Source.Clock_loop (a,b) ->
+                          raise (Lang.Clock_loop
+                                   (s.Lang.t.Lang_types.pos,a,b)))
+                 sources ;
+               Lang.unit)
+
+let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
     add_builtin "get_clock_status" ~cat:Liq
       ~descr:"Get the current time for all allocated clocks."

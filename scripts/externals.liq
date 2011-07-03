@@ -28,8 +28,6 @@ def enable_external_flac_decoder() =
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
-        # Try to detect using mime test..
-        mime = get_mime(file)
         if string.match(pattern="flac",file) then
           # We do not know the number of audio channels
           # so setting to -1

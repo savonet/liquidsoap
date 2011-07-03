@@ -105,7 +105,7 @@ end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-  Lang.add_operator "output.jack"
+  Lang.add_operator "output.jack" ~active:true
    ( Output.proto @
     [ "clock_safe",
         Lang.bool_t, Some (Lang.bool true),

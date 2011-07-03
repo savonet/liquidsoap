@@ -384,6 +384,11 @@ def read(~hide=false)
   s
 end
 
+file.mime_default = fun (_) -> ""
+%ifdef file.mime
+file.mime_default = file.mime
+%endif
+
 # Generic mime test. First try to use file.mime if it exist.
 # Otherwise try to get the value using the file binary.
 # Returns "" (empty string) if no value can be find.
@@ -398,15 +403,8 @@ def get_mime(file) =
       ""
     end
   end
-  def mime_method(file) =
-    ret = ""
-    %ifdef file.mime
-      ret = file.mime(file)
-    %endif
-    ret
-  end
   # First try mime method
-  ret = mime_method(file)
+  ret = file.mime_default(file)
   if ret != "" then
     ret 
   else
@@ -697,6 +695,17 @@ def enable_replaygain_metadata(
     end
   end
   add_metadata_resolver("replay_gain", replaygain_metadata)
+end
+
+# Assign a new clock to the given source (and to other time-dependent
+# sources) and return the source. It is a conveniency wrapper around
+# clock.assign_new(), allowing more concise scripts in some cases.
+# @category Liquidsoap
+# @param ~sync Do not synchronize the clock on regular wallclock time, \
+#              but try to run as fast as possible (CPU burning mode).
+def clock(~sync=true,~id="",s)
+  clock.assign_new(sync=sync,id=id,[s])
+  s
 end
 
 # Create a log of clock times for all the clocks initially present.

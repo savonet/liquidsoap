@@ -676,7 +676,7 @@ end
 
 let () =
   let k = Lang.univ_t 1 in
-  Lang.add_operator "output.harbor" ~category:Lang.Output
+  Lang.add_operator "output.harbor" ~category:Lang.Output ~active:true
     ~descr:"Encode and output the stream using the harbor server."
     (proto k)
     ~kind:(Lang.Unconstrained k)

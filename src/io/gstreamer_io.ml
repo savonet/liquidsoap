@@ -144,7 +144,7 @@ let add ~descr ~name ~version =
            video = Lang.Fixed 1 ;
            midi = Lang.Fixed 0 })
   in
-  Lang.add_operator name proto
+  Lang.add_operator name proto ~active:true
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[]
