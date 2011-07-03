@@ -1,13 +1,12 @@
-1.0.0 beta2 (07-??-2011)
+1.0.0 beta2 (??-07-2011)
 ========================
-[Preliminary summary of changes
-   from liquidsoap-1.0.0-beta1 (1337:7c51ae329419) to 2300:df7e03c9fec6]
-
-Highlights:
- Plugin support, seek support (decoders, operators), OSC, Flows, lig
- As usual, lots of polishing and cleanup, better logs, errors
- clock.assign_new() TODO
-
+This release introduces lots of fixes and cleanup, but also some new features.
+Major novelties: support for fast seeking and cue points, FLAC and improved
+  AAC+ support, introduction of the liquidsoap yellowpages "flows",
+  plugin support and improved messages for scripting errors
+Compatibility warning: insert_metadata has changed, and clock.assign_new()
+  should be used instead of clock() to avoid some of the new static checks
+========================
 Decoders:
  - New support for seeking and fast computation of durations in most formats
  - New decoders: FLAC (native & Ogg) and images using Camlimages
@@ -20,25 +19,25 @@ Decoders:
  - Decoder order can be user-defined thanks to new settings 
    "decoder.file_decoders", "decoder.stream_decoders" and 
    "decoder.metadata_decoders".
- - Indicate which decoder is used in the "decoder" metadata [2b71f4485f34]
+ - Indicate which decoder is used in the "decoder" metadata
  - More helpful log for various errors
+ - Fix segfault with SdlImage image decoder
 Encoders:
  - New FLAC encoders %flac (native) and %ogg(%flac)
  - New AAC+ 2.0 and vo-aacenc
- - Added setting to theora, files are not absurdly huge anymore [6d6437702cb5]
+ - New settings to theora: keyframes make files much smaller!
  - New settings for WAV encoding: headerless, samplesize.
+ - Fix segfaults with ocaml-aacplus
  - Enhancement LS-441: filter metadata before encoding,
    based on the "encoder.metadata.export" setting.
  - Rework infrastructure of encoded outputs to fit all formats, outputs
    and styles of metadata handling, file reopening (#386)
- - Fix segfaults with ocaml-aacplus [89bd9829c344]
 Harbor:
  - New: output.harbor() which acts as a mini icecast server,
    accepting listeners directly. Encoding is shared among users,
    and is only performed when needed.
- - New: ability to register HTTP handlers to create simpler
+ - New: ability to register HTTP GET/POST handlers to create simpler
    web services, using harbor.http.register/remove().
-   Both GET and POST methods are supported.
  - Make all settings local: port, user and password can be set independently
    for each input.harbor() source
  - New: "metadata_charset" and "icy_metadata_charset" in input.harbor()
@@ -53,17 +52,17 @@ Icecast:
  - New: icy.update_metadata() function for manual updates
  - Enhance default "song" metadata, avoiding " - " when unnecessary (#467)
 Input/output:
- - New input.v4l/v4l2() for webcams (experimental)
- - New input/output.udp() for unchecked UDP streaming, available
-   with most formats (beware of glitches when MP3 chunks are dropped
-   or duplicated)
- - New output.external(), replacing output.pipe.external() from
-   before the first beta
+ - New experimental input.v4l/v4l2() for webcams
+ - New experimental input/output.udp() for unchecked UDP streaming,
+   available with most formats (at your own risk)
+ - Restore output.pipe.external(), now called output.external()
  - New parameters for most outputs and inputs (start, on_start,
    on_stop, fallible); cleanup and uniformize implementations (LS-365)
  - New ALSA settings alsa.alsa_buffer, alsa.buffer_length and alsa.periods
    Setting periods=0 allows to not attempt to set the number periods,
    which is impossible on some devices
+ - New preference order in input/output.prefered(): pulseaudio, portaudio,
+   oss, alsa, ao, dummy
 Operators:
  - New: support for cue points with cue_cut()
  - Change insert.metadata() which is now more script friendly,
@@ -102,9 +101,14 @@ Script language:
    in the documentation
  - Enhanced type errors (LS-459): no more traces, only the relevant
    part of types is displayed, plus a few special friendly messages.
+ - Enhanced static checks (LS-123) thanks to the introduction of the
+   active_source subtype, for unused variables and ignored values
+   This should avoid common errors, help troubleshooting
+   If needed, advanced users can work around errors using --check-lib
+   and --errors-as-warnings
 General:
  - Do not attempt to install "daemon" files if user/group have not been
-   set -- can be overriden with "make INSTALL_DAEMON= install".
+   set, unless forced using "make INSTALL_DAEMON= install"
  - Fix several core "source protocol" bugs, causing assert failures and
    other crashes: LS-460 (source becomes not ready without operator knowing)
    #403 (information about being ready is not precise enough)
@@ -117,6 +121,7 @@ General:
    much as possible (LS-503)
    Avoid deadlocks upon crashes in IoRing-based operators
    Share code for stoppable feeding threads, use it in input.harbor()
+   Avoid useless initialization of SDL systems
  - Dynamic loading of lame and aacplus libraries, making it possible to
    ship them as separate binary packages. This is particularly useless
    for non-free libraries and for those that depend on X (e.g., SDL)
@@ -131,20 +136,15 @@ General:
  - Rewrite harbor and server code using the new Duppy monad,
    introducing camlp4 into the build system
  - New regression tests (make test)
-SDL:
- - Cleaner treatment of font object in video.text()
- - Fullscreen mode for output.sdl()
- - Fix segfault with SdlImage image decoder
- - Avoid that SDL is initialized uselessly, which would prevent running
-   outside of X
-Miscellaneous:
- - Update liguidsoap, make microphone input optional (LS-496)
  - More user-friendly exception printing
  - Avoid problems preventing backtrace printing
+Miscellaneous:
+ - Update liguidsoap, make microphone input optional (LS-496)
  - Do not crash upon charset-recoding failures [LS-473,a7a3ad762100]
  - Fix in source.dynamic(): missing source re-selection [LS-354,eed32621494c]
  - Avoid deadlock on startup in daemon mode [LS-229,42ea194fdacd,1859ee9c68e4]
  - Fixes in LADSPA and SDL causing early freezing of Frame parameters.
+ - Fullscreen mode for output.sdl()
  - Fix: SIGPIPE used to cause crashes (LS-53,LS-287)
  - Fix: video.volume() could crash upon some end-of-track situationos
  - Fix: properly escape filenames in external file duration methods
