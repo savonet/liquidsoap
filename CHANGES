@@ -1,4 +1,4 @@
-1.0.0 beta2 (??-07-2011)
+1.0.0 beta2 (04-07-2011)
 ========================
 This release introduces lots of fixes and cleanup, but also some new features.
 Major novelties: support for fast seeking and cue points, FLAC and improved
@@ -140,16 +140,16 @@ General:
  - Avoid problems preventing backtrace printing
 Miscellaneous:
  - Update liguidsoap, make microphone input optional (LS-496)
- - Do not crash upon charset-recoding failures [LS-473,a7a3ad762100]
- - Fix in source.dynamic(): missing source re-selection [LS-354,eed32621494c]
- - Avoid deadlock on startup in daemon mode [LS-229,42ea194fdacd,1859ee9c68e4]
+ - Do not crash upon charset-recoding failures [LS-473]
+ - Fix in source.dynamic(): missing source re-selection [LS-354]
+ - Avoid deadlock on startup in daemon mode [LS-229]
  - Fixes in LADSPA and SDL causing early freezing of Frame parameters.
  - Fullscreen mode for output.sdl()
  - Fix: SIGPIPE used to cause crashes (LS-53,LS-287)
  - Fix: video.volume() could crash upon some end-of-track situationos
  - Fix: properly escape filenames in external file duration methods
  - Rework timeout management for various sockets (notably icecast & harbor)
-   Set nodelay, remove TCP_-TIMEOUT [LS-508,LS-509,26a77827f66b,663edfba92fd]
+   Set nodelay, remove TCP_*TIMEOUT [LS-508,LS-509]
 
 1.0.0 beta1 (06-09-2010)
 ========================

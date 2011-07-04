@@ -1,48 +1,57 @@
 
- Liquidsoap 1.0.0 beta
- ---------------------
+ Liquidsoap 1.0.0 beta2
+ ----------------------
+
+ Below is a list of dependencies, mostly OCaml libraries. Except for 
+ ocaml-pcre, all of those libraries are developed by the Savonet project
+ and are bundled in the liquidsoap-<version>-full.tar.bz2 tarballs,
+ in addition to traditional distribution channels.
 
  Mandatory dependencies :
 
-   ocaml-dtools>=0.2.0
-   ocaml-duppy>=0.3.2
+   ocaml-dtools>=0.2.2
+   ocaml-duppy>=0.4.0
+   ocaml-mm>=0.1.0
    ocaml-pcre
+
+ Recommended dependencies :
+
+   camomile                 for charset recoding in metadata
+   ocaml-magic>=0.6         for file type detection
+   festival, sox, normalize for speech synthesis
 
  Optional dependencies :
 
-   ocaml-cry>=0.1.5         for sending to Shoutcast & Icecast
-   ocaml-ogg>=0.4.1         for Ogg data
-   ocaml-vorbis>=0.5.1      for Ogg/Vorbis data
-   ocaml-theora>=0.2.0      for Ogg/Theora data
-   ocaml-speex>=0.1.2       for Ogg/Speex data
-   ocaml-mad>=0.4.0         for MP3 decoding
-   ocaml-lame>=0.2.4        for MP3 encoding
-   ocaml-taglib>=0.1.3      for MP3ID3 metadata access
-   ocaml-faac>=0.1.2        for AAC encoding
-   ocaml-faad>=0.1.3        for AAC stream decoding
-   ocaml-gavl>=0.1.3        for video conversion using the gavl library
-   ocaml-pulseaudio>=0.1.1  for PulseAudio I/O
-   ocaml-samplerate>=0.1.1  for libsamplerate audio conversion
-   ocaml-lastfm>=0.2.0      for lastfm protocol support
-   ocaml-magic>=0.6         for file type detection
-   ocaml-xmlplaylist>=0.1.2 for XML-based playlist formats
-   ocaml-soundtouch>=0.1.5  for libsoundtouch's audio effects
-   ocaml-ao>=0.1.9          for output via libao
-   ocaml-alsa>=0.2.0        for ALSA I/O
-   ocaml-portaudio>=0.1.3   for Portaudio I/O
-   ocaml-bjack>=0.1.3       for Jack support
-   ocaml-ladspa>=0.1.2      for LADSPA plugins
-   camomile                 for charset recoding in metadata
-   ocaml-jack>=0.1.0        for old Jack support (DEPRECATED)
-   libopal                  for receiving VOIP calls (EXPERIMENTAL)
-
-   Other optional dependencies can be found in the download
-   section of the project. All of them should be included in
-   the -full tarball
+   ocaml-cry>=0.2.0          for sending to Shoutcast & Icecast
+   ocaml-ogg>=0.4.2          for Ogg codecs
+   ocaml-vorbis>=0.6.0       for Ogg/Vorbis codec
+   ocaml-theora>=0.3.0       for Ogg/Theora codec
+   ocaml-speex>=0.2.0        for Ogg/Speex codec
+   ocaml-flac>=0.1.0         for Flac and Ogg/Flac codec
+   ocaml-schroedinger>=0.1.0 for Ogg/Schroedinger codec
+   ocaml-mad>=0.4.2          for MP3 decoding
+   ocaml-lame>=0.3.0         for MP3 encoding
+   ocaml-taglib>=0.1.4       for MP3ID3 metadata access
+   ocaml-faad>=0.3.3         for AAC stream decoding
+   ocaml-aacplus>=0.2.0      for AAC(+) encoding
+   ocaml-voaacenc>=0.2.0     for AAC(+) encoding
+   ocaml-gavl>=0.1.4         for video conversion using the gavl library
+   ocaml-samplerate>=0.1.1   for libsamplerate audio conversion
+   ocaml-lastfm>=0.3.0       for lastfm protocol support
+   ocaml-xmlplaylist>=0.1.3  for XML-based playlist formats
+   ocaml-dssi>=0.1.0         for DSSI sound synthesis
+   ocaml-lo>=0.1.0           for OSC (Open Sound Control) support
+   ocaml-ladspa>=0.1.3       for LADSPA plugins
+   ocaml-soundtouch>=0.1.6   for libsoundtouch's audio effects
+   ocaml-ao>=0.2.0           for output via libao
+   ocaml-alsa>=0.2.1         for ALSA I/O
+   ocaml-portaudio>=0.2.0    for Portaudio I/O
+   ocaml-pulseaudio>=0.1.1   for PulseAudio I/O
+   ocaml-bjack>=0.1.3        for Jack support
+   ocaml-jack [unreleased]   for old Jack support (DEPRECATED)
 
  Runtime optional dependencies :
 
-   festival, sox, normalize for speech synthesis
    wget for http/https/ftp support
    ufetch (from ocaml-fetch) for smb support
 
@@ -65,7 +74,12 @@
  Now you can start the build configuration:
    % ./configure
 
- And then build the software:
+ If you want a complete installation of liquidsoap, enabling a production
+ use of liquidsoap as a daemon, you should pass --with-user=<login> and
+ --with-group=<group> options to indicate which user/group you have
+ created for liquidsoap.
+
+ Then, build the software:
    % make
 
  You can also generate the documentation for liquidsoap:
@@ -82,6 +96,11 @@
 
    % make install (as root if needed)
 
+ This will not install files such as /var/log/liquidsoap unless you have
+ provided a user/group under which liquidsoap should be ran. This behavior
+ can be overridden by passing INSTALL_DAEMON="yes" (useful for preparing
+ binary packages).
+
  For installing developers documentation, run:
 
    % make api-doc-install
@@ -92,4 +111,4 @@
 
    % make (service|gentoo)-install
 
- See /doc for understanding radio programming. I hope you'll have fun.
+ See /doc for understanding liquidsoap scripting. Have fun!
