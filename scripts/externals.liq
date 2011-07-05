@@ -1,13 +1,5 @@
 # Decoders, enabled when the binary is detected and the os is not Win32.
 
-# Get_mime is not always defined
-# so we define a default in this case..
-my_get_mime = fun (_) -> ""
-%ifdef get_mime
-my_get_mime = get_mime
-%endif
-get_mime = my_get_mime
-
 %ifdef add_decoder
 # Enable external FLAC decoders. Requires flac binary
 # in the path for audio decoding and metaflac binary for 
@@ -164,6 +156,7 @@ end
 # Standard function for displaying metadata.
 # Shows artist and title, using "Unknown" when a field is empty.
 # @param m Metadata packet to be displayed.
+# @category String
 def string_of_metadata(m)
   artist = m["artist"]
   title  = m["title"]
@@ -177,6 +170,7 @@ end
 # @param ~position Position of the text (top|middle|bottom).
 # @param ~font     Font used (xfontsel is your friend...)
 # @param ~display  Function used to display a metadata packet.
+# @category Source / Track Processing
 def osd_metadata(~color="green",~position="top",
         ~font="-*-courier-*-r-*-*-*-240-*-*-*-*-*-*",
         ~display=string_of_metadata,
@@ -195,6 +189,7 @@ end
 # @param ~time    Timeout in milliseconds.
 # @param ~display Function used to display a metadata packet.
 # @param ~title   Title of the notification message.
+# @category Source / Track Processing
 def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
            ~display=string_of_metadata,
            ~title="Liquidsoap: new track",s)
@@ -211,6 +206,7 @@ end
 # @param ~restart_on_error restart on exit with error.
 # @param ~buffer Duration of the pre-buffered data.
 # @param ~max Maximum duration of the buffered data.
+# @category Source / Input
 def input.mplayer(~id="input.mplayer",
          ~restart=true,~restart_on_error=false,
          ~buffer=0.2,~max=10.,s) =

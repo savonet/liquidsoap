@@ -384,9 +384,17 @@ def read(~hide=false)
   s
 end
 
-file.mime_default = fun (_) -> ""
+# Dummy implementation of file.mime
+# @category System
+def file.mime_default(_)
+  ""
+end
 %ifdef file.mime
-file.mime_default = file.mime
+# Alias of file.mime (because it is available)
+# @category System
+def file.mime_default(file)
+ file.mime(file)
+end
 %endif
 
 # Generic mime test. First try to use file.mime if it exist.
