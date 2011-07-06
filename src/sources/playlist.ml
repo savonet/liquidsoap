@@ -67,6 +67,8 @@ let rec list_files (log : Log.t) dir =
   let files = List.sort compare files in
     files@(List.concat (List.map (fun d -> list_files log d) dirs))
 
+(** The [timeout] (and [mime]) parameters apply to the playlist request,
+  * i.e. the playlist_uri, not the media files from the playlist. *)
 class virtual vplaylist ~mime ~reload ~random ~timeout ~prefix playlist_uri =
 object (self)
 
@@ -90,7 +92,8 @@ object (self)
            playlist_uri
          else
            (self#reload_playlist ~new_playlist_uri:s () ; "OK")) ;
-    self#register_command "next" ~descr:"Return up to 10 next URIs to be played."
+    self#register_command "next"
+      ~descr:"Return up to 10 next URIs to be played."
       (* We cannot return request IDs because we create requests at the last
        * moment. For those requests already created by the Request_source
        * parent class, we also display the status. *)
@@ -391,6 +394,8 @@ class playlist ~kind
   uri =
 object
 
+  (* Some day it might be useful to set distinct timeout parameters
+   * for the playlist and media requests... or maybe not. *)
   inherit vplaylist ~mime ~reload ~random ~timeout ~prefix uri as pl
   inherit Request_source.queued ~kind ~name:"playlist"
             ~length ~default_duration ~timeout ~conservative () as super
@@ -413,10 +418,11 @@ end
 (** Safe playlist, without queue and playing only local files,
   * which never fails. *)
 class safe_playlist ~kind
-  ~mime ~reload ~random ~timeout ~prefix local_playlist =
+  ~mime ~reload ~random ~prefix local_playlist =
 object (self)
 
-  inherit vplaylist ~mime ~reload ~random ~timeout ~prefix local_playlist as pl
+  inherit vplaylist
+    ~mime ~reload ~random ~timeout:10. ~prefix local_playlist as pl
   inherit Request_source.unqueued ~kind ~name:"playlist.safe" as super
 
   method wake_up =
@@ -457,7 +463,8 @@ let () =
       Some "Play the files in the playlist either in the order (\"normal\" \
             mode), or shuffle the playlist each time it is loaded, \
             and play it in this order for a whole round (\"randomize\" mode), \
-            or pick a random file in the playlist each time (\"random\" mode)." ;
+            or pick a random file in the playlist each time \
+            (\"random\" mode)." ;
 
       "reload",
       Lang.int_t,
@@ -545,14 +552,13 @@ let () =
       proto
       ~kind:(Lang.Unconstrained (Lang.univ_t 1))
       (fun params kind ->
-          let reload,random,timeout,mime,uri,prefix =
+          let reload,random,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
              (random_of (e "mode")),
-             (Lang.to_float (e "timeout")),
              (Lang.to_string (e "mime_type")),
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
            ((new safe_playlist ~kind ~mime ~reload ~prefix
-                               ~random ~timeout uri):>source))
+                               ~random uri):>source))
