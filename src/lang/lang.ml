@@ -568,16 +568,16 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
   let print_error error =
     flush_all () ;
     let start = lexbuf.Lexing.lex_curr_p in
-      Format.printf "%sine %d, char %d"
+      Printf.printf "%sine %d, char %d"
         (if start.Lexing.pos_fname="" then "L" else
-           Format.sprintf "File %S, l" start.Lexing.pos_fname)
+           Printf.sprintf "File %S, l" start.Lexing.pos_fname)
         start.Lexing.pos_lnum
         (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
       if Lexing.lexeme lexbuf = "" then
-        Format.printf ": %s@." error
+        Printf.printf ": %s!\n" error
       else
-        Format.printf
-          " before %S: %s@." (Lexing.lexeme lexbuf) error
+        Printf.printf
+          " before %S: %s!\n" (Lexing.lexeme lexbuf) error
   in
     assert (lexbuf.Lexing.lex_start_p = lexbuf.Lexing.lex_curr_p) ;
     begin match ns with
