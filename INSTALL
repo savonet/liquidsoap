@@ -1,6 +1,6 @@
 
- Liquidsoap 1.0.0 beta2
- ----------------------
+ Liquidsoap 1.0.0 beta2.1
+ ------------------------
 
  Below is a list of dependencies, mostly OCaml libraries. Except for 
  ocaml-pcre, all of those libraries are developed by the Savonet project

@@ -1,3 +1,9 @@
+1.0.0 beta2.1 (07-07-2011)
+==========================
+- Fix: playlist.safe() was unusable in beta2, as a side effect of removing
+  duplicate "timeout" parameter in playlist().
+- Minor enhancements to documentation, settings and reference.
+
 1.0.0 beta2 (04-07-2011)
 ========================
 This release introduces lots of fixes and cleanup, but also some new features.
