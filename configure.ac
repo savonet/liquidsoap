@@ -8,7 +8,7 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +svn and set svn_snapshot to false
 # before releasing
 AC_INIT([liquidsoap],[1.0.0-beta2.1])
-svn_snapshot=false
+svn_snapshot=true
 version=1.0.0-beta2.1
 
 if test $svn_snapshot != "false"; then
