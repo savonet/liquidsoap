@@ -83,6 +83,8 @@ let conf_telnet_revdns =
   
 let log = Log.make [ "server" ]
   
+exception Duppy of Duppy.Io.failure
+  
 (* {1 Manage available commands and namespaces}
  *
  * This needs to be thread safe: (un)registering is done in wakeup/sleep
@@ -223,11 +225,12 @@ let exec s =
   
 let handle_client socket =
   let on_error e =
-    match e with
-    | Duppy.Io.Io_error -> log#f 3 "Client disconnected"
-    | Duppy.Io.Unix (c, p, m) ->
-        log#f 3 "%s" (Utils.error_message (Unix.Unix_error (c, p, m)))
-    | Duppy.Io.Unknown e -> log#f 3 "%s" (Utils.error_message e) in
+    ((match e with
+      | Duppy.Io.Io_error -> ()
+      | Duppy.Io.Unix (c, p, m) ->
+          log#f 4 "%s" (Utils.error_message (Unix.Unix_error (c, p, m)))
+      | Duppy.Io.Unknown e -> log#f 3 "%s" (Utils.error_message e));
+     Duppy e) in
   let h =
     {
       Duppy.Monad.Io.scheduler = Tutils.scheduler;
@@ -246,7 +249,7 @@ let handle_client socket =
            let __pa_duppy_0 =
              Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
                (try Duppy.Monad.return (exec req)
-                with | _ -> Duppy.Monad.raise ())
+                with | e -> Duppy.Monad.raise e)
            in
              Duppy.Monad.bind __pa_duppy_0
                (fun ans ->
@@ -261,11 +264,19 @@ let handle_client socket =
                     (fun () -> Duppy.Monad.return ()))) in
   let close () = try Unix.close socket with | _ -> () in
   let rec run () =
-    let raise () =
-      let on_error e = (on_error e; close ())
-      in
-        Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error ~exec: close
-          Tutils.scheduler ~string: "Bye!\r\n" socket
+    let raise =
+      function
+      | Exit ->
+          let on_error e =
+            (ignore (on_error e);
+             log#f 3 "Client disconnected while saying goodbye..!";
+             close ())
+          in
+            (Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
+               ~exec: close Tutils.scheduler ~string: "Bye!\r\n" socket;
+             log#f 3 "Client disconnected.")
+      | _ ->
+          (log#f 3 "Client disconnected without saying goodbye..!"; close ())
     in Duppy.Monad.run ~return: run ~raise: raise process
   in run ()
   

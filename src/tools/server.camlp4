@@ -84,6 +84,8 @@ let conf_telnet_revdns =
 
 let log = Log.make ["server"]
 
+exception Duppy of Duppy.Io.failure
+
 (* {1 Manage available commands and namespaces}
  *
  * This needs to be thread safe: (un)registering is done in wakeup/sleep
@@ -226,15 +228,17 @@ let exec s =
 
 let handle_client socket =
   let on_error e =
+     begin
       match e with
-        | Duppy.Io.Io_error ->
-             log#f 3 "Client disconnected"
+        | Duppy.Io.Io_error -> ()
         | Duppy.Io.Unix (c,p,m) ->
-             log#f 3 "%s"
+             log#f 4 "%s"
                  (Utils.error_message
                     (Unix.Unix_error (c,p,m)))
         | Duppy.Io.Unknown e ->
                  log#f 3 "%s" (Utils.error_message e)
+     end;
+     Duppy e
   in
   let h =
     { Duppy.Monad.Io.
@@ -258,7 +262,7 @@ let handle_client socket =
         try
           duppy_return (exec req)
         with
-          | _ -> duppy_raise ()
+          | e -> duppy_raise e
        end
       with
         { priority = Tutils.Maybe_blocking ;
@@ -282,14 +286,21 @@ let handle_client socket =
       | _ -> ()
   in
   let rec run () =
-    let raise () =
-         let on_error e =
-             on_error e ;
-             close ()
-         in
-         Duppy.Io.write ~priority:Tutils.Non_blocking ~on_error
-                        ~exec:close Tutils.scheduler ~string:"Bye!\r\n"
-                        socket
+    let raise =
+      function
+        | Exit ->
+           let on_error e =
+               ignore(on_error e);
+               log#f 3 "Client disconnected while saying goodbye..!";
+               close ()
+           in
+           Duppy.Io.write ~priority:Tutils.Non_blocking ~on_error
+                          ~exec:close Tutils.scheduler ~string:"Bye!\r\n"
+                          socket;
+           log#f 3 "Client disconnected."
+       | _ ->
+           log#f 3 "Client disconnected without saying goodbye..!";
+           close ()
     in
     duppy_run
       process
