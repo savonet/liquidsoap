@@ -15,8 +15,13 @@ CAMLprim value liquidsoap_set_locale(value unit)
   /* This will prevent further
    * call to setlocale to override
    * "C" */
+#ifdef WIN32
+  putenv("LANG=C");
+  putenv("LC_ALL=C");
+#else
   setenv("LANG","C",1);
   setenv("LC_ALL","C",1);
+#endif
   /* This set the locale to "C". */
   setlocale (LC_ALL, "C");
   return Val_unit;
