@@ -32,6 +32,10 @@ let conf =
       [ "The server is an abstract text-command-based communication protocol, ";
         "which can be used through several interfaces." ]
   
+let conf_timeout =
+  Conf.float ~p: (conf#plug "timeout") ~d: 30.
+    "Timeout for read/write operations."
+  
 let conf_socket =
   Conf.bool ~p: (conf#plug "socket") ~d: false
     "Support for communication via a UNIX domain socket interface"
@@ -223,10 +227,15 @@ let exec s =
                       list of commands."
     | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
   
-let handle_client socket =
+let handle_client socket ip =
   let on_error e =
     ((match e with
       | Duppy.Io.Io_error -> ()
+      | Duppy.Io.Timeout ->
+          log#f 4
+            "Timeout reached while communicating to \
+                      client %s."
+            ip
       | Duppy.Io.Unix (c, p, m) ->
           log#f 4 "%s" (Utils.error_message (Unix.Unix_error (c, p, m)))
       | Duppy.Io.Unknown e -> log#f 3 "%s" (Utils.error_message e));
@@ -241,8 +250,8 @@ let handle_client socket =
   (* Read and process lines *)
   let process =
     let __pa_duppy_0 =
-      Duppy.Monad.Io.read ~priority: Tutils.Non_blocking
-        ~marker: (Duppy.Io.Split "[\r\n]+") h
+      Duppy.Monad.Io.read ?timeout: (Some conf_timeout#get)
+        ~priority: Tutils.Non_blocking ~marker: (Duppy.Io.Split "[\r\n]+") h
     in
       Duppy.Monad.bind __pa_duppy_0
         (fun req ->
@@ -256,27 +265,35 @@ let handle_client socket =
                   Duppy.Monad.bind
                     (Duppy.Monad.bind
                        (Duppy.Monad.Io.write
-                          ~priority: (* "BEGIN\r\n"; *) Tutils.Non_blocking h
-                          ans)
+                          ?timeout:
+                            (Some (* "BEGIN\r\n"; *) conf_timeout#get)
+                          ~priority: Tutils.Non_blocking h ans)
                        (fun () ->
-                          Duppy.Monad.Io.write ~priority: Tutils.Non_blocking
-                            h "\r\nEND\r\n"))
+                          Duppy.Monad.Io.write
+                            ?timeout: (Some conf_timeout#get)
+                            ~priority: Tutils.Non_blocking h "\r\nEND\r\n"))
                     (fun () -> Duppy.Monad.return ()))) in
   let close () = try Unix.close socket with | _ -> () in
   let rec run () =
     let raise =
       function
-      | Exit ->
+      | (Exit | Duppy Duppy.Io.Timeout as e) ->
           let on_error e =
             (ignore (on_error e);
-             log#f 3 "Client disconnected while saying goodbye..!";
-             close ())
+             log#f 3 "Client %s disconnected while saying goodbye..!" ip;
+             close ()) in
+          let msg =
+            (match e with
+             | Exit -> "Bye!\r\n"
+             | Duppy Duppy.Io.Timeout -> "Connection timed out.. Bye!\r\n") in
+          let exec () = (log#f 3 "Client %s disconnected." ip; close ())
           in
-            (Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
-               ~exec: close Tutils.scheduler ~string: "Bye!\r\n" socket;
-             log#f 3 "Client disconnected.")
+            Duppy.Io.write ~timeout: conf_timeout#get
+              ~priority: Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
+              ~string: msg socket
       | _ ->
-          (log#f 3 "Client disconnected without saying goodbye..!"; close ())
+          (log#f 3 "Client %s disconnected without saying goodbye..!" ip;
+           close ())
     in Duppy.Monad.run ~return: run ~raise: raise process
   in run ()
   
@@ -291,8 +308,9 @@ let start_socket () =
   let sock = socket PF_UNIX SOCK_STREAM 0 in
   let rec incoming _ =
     ((try
-        let (socket, caller) = accept sock
-        in (log#f 3 "New client on %s" socket_name; handle_client socket)
+        let (socket, caller) = accept sock in
+        let ip = Utils.name_of_sockaddr caller
+        in (log#f 3 "New client %s" ip; handle_client socket ip)
       with
       | e ->
           log#f 2 "Failed to accept new client: %S" (Utils.error_message e));
@@ -344,7 +362,7 @@ let start_telnet () =
        ((try
            let (socket, caller) = accept sock in
            let ip = Utils.name_of_sockaddr caller
-           in (log#f 3 "New client: %s" ip; handle_client socket)
+           in (log#f 3 "New client: %s" ip; handle_client socket ip)
          with
          | e ->
              log#f 2 "Failed to accept new client: %S"

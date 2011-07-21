@@ -59,6 +59,8 @@ let proto kind =
          ("user", Lang.string_t, (Some (Lang.string "")),
           (Some "User for client connection, disabled if empty."));
          ("password", Lang.string_t, (Some (Lang.string "hackme")), None);
+         ("timeout", Lang.float_t, (Some (Lang.float 30.)),
+          (Some "Timeout for network operations."));
          ("url", Lang.string_t, (Some (Lang.string "")), None);
          ("metaint", Lang.int_t, (Some (Lang.int 16000)),
           (Some "Interval used to send ICY metadata"));
@@ -118,9 +120,9 @@ type metadata =
 type client =
   { mutable buffer : Buffer.t; condition : Duppy.Monad.Condition.condition;
     condition_m : Duppy.Monad.Mutex.mutex; mutex : Mutex.t; meta : metadata;
-    mutable latest_meta : string; metaint : int; url : string option;
-    mutable metapos : int; chunk : int; mutable state : client_state;
-    close : unit -> unit;
+    mutable latest_meta : string; metaint : int; timeout : float;
+    url : string option; mutable metapos : int; chunk : int;
+    mutable state : client_state; close : unit -> unit;
     handler : (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler
   }
 
@@ -204,8 +206,8 @@ let rec client_task c =
                        (Duppy.Monad.Condition.wait c.condition c.condition_m)
                        (fun () -> Duppy.Monad.Mutex.unlock c.condition_m))
             | Some s ->
-                Duppy.Monad.Io.write ~priority: Tutils.Non_blocking c.handler
-                  s)
+                Duppy.Monad.Io.write ?timeout: (Some c.timeout)
+                  ~priority: Tutils.Non_blocking c.handler s)
            (fun () ->
               let __pa_duppy_0 =
                 Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking
@@ -249,241 +251,261 @@ class output ~kind p =
                 let (_, encoder_factory, format, icecast_info, icy_metadata,
                      ogg, out_enc) =
                   encoder_data p
-                in let buflen = Lang.to_int (List.assoc "buffer" p)
-                  in let burst = Lang.to_int (List.assoc "burst" p)
-                    in let chunk = Lang.to_int (List.assoc "chunk" p)
-                      in
-                        let () =
-                          (if chunk > buflen
-                           then
-                             raise
-                               (Lang.Invalid_value (List.assoc "buffer" p,
-                                  "Maximum buffering inferior to chunk length"))
-                           else ();
-                           if burst > buflen
-                           then
-                             raise
-                               (Lang.Invalid_value (List.assoc "buffer" p,
-                                  "Maximum buffering inferior to burst length"))
-                           else ())
-                        in let source = Lang.assoc "" 2 p
-                          in let mount = s "mount"
-                            in
-                              let uri =
-                                match mount.[0] with
-                                | '/' -> mount
-                                | _ -> Printf.sprintf "%c%s" '/' mount
+                in let timeout = Lang.to_float (List.assoc "timeout" p)
+                  in let buflen = Lang.to_int (List.assoc "buffer" p)
+                    in let burst = Lang.to_int (List.assoc "burst" p)
+                      in let chunk = Lang.to_int (List.assoc "chunk" p)
+                        in
+                          let () =
+                            (if chunk > buflen
+                             then
+                               raise
+                                 (Lang.Invalid_value
+                                    ((List.assoc "buffer" p),
+                                    "Maximum buffering inferior to chunk length"))
+                             else ();
+                             if burst > buflen
+                             then
+                               raise
+                                 (Lang.Invalid_value
+                                    ((List.assoc "buffer" p),
+                                    "Maximum buffering inferior to burst length"))
+                             else ())
+                          in let source = Lang.assoc "" 2 p
+                            in let mount = s "mount"
                               in
-                                let autostart =
-                                  Lang.to_bool (List.assoc "start" p)
+                                let uri =
+                                  match mount.[0] with
+                                  | '/' -> mount
+                                  | _ -> Printf.sprintf "%c%s" '/' mount
                                 in
-                                  let infallible =
-                                    not
-                                      (Lang.to_bool (List.assoc "fallible" p))
+                                  let autostart =
+                                    Lang.to_bool (List.assoc "start" p)
                                   in
-                                    let on_start =
-                                      let f = List.assoc "on_start" p
-                                      in
-                                        fun () ->
-                                          ignore
-                                            (Lang.apply ~t: Lang.unit_t f [])
+                                    let infallible =
+                                      not
+                                        (Lang.to_bool
+                                           (List.assoc "fallible" p))
                                     in
-                                      let on_stop =
-                                        let f = List.assoc "on_stop" p
+                                      let on_start =
+                                        let f = List.assoc "on_start" p
                                         in
                                           fun () ->
                                             ignore
                                               (Lang.apply ~t: Lang.unit_t f
                                                  [])
                                       in
-                                        let url =
-                                          match s "url" with
-                                          | "" -> None
-                                          | x -> Some x
-                                        in let port = e Lang.to_int "port"
-                                          in let default_user = s "user"
-                                            in
-                                              let default_password =
-                                                s "password"
+                                        let on_stop =
+                                          let f = List.assoc "on_stop" p
+                                          in
+                                            fun () ->
+                                              ignore
+                                                (Lang.apply ~t: Lang.unit_t f
+                                                   [])
+                                        in
+                                          let url =
+                                            match s "url" with
+                                            | "" -> None
+                                            | x -> Some x
+                                          in let port = e Lang.to_int "port"
+                                            in let default_user = s "user"
                                               in
-                                                (* Cf sources/harbor_input.ml *)
-                                                let trivially_false =
-                                                  function
-                                                  | {
-                                                      Lang.value =
-                                                        Lang.Fun (_, _, _,
-                                                          {
-                                                            Lang_values.
-                                                              term =
-                                                              Lang_values.
-                                                                Bool false
-                                                          })
-                                                      } -> true
-                                                  | _ -> false
+                                                let default_password 
+                                                  = s "password"
                                                 in
-                                                  let auth_function =
-                                                    List.assoc "auth" p
+                                                  (* Cf sources/harbor_input.ml *)
+                                                  let trivially_false 
+                                                    =
+                                                    function
+                                                    | {
+                                                        Lang.value =
+                                                          Lang.Fun (_, _, _,
+                                                            {
+                                                              Lang_values.
+                                                                term =
+                                                                Lang_values.
+                                                                  Bool false
+                                                            })
+                                                        } -> true
+                                                    | _ -> false
                                                   in
-                                                    let login user password =
-                                                      let (user, password) 
-                                                        =
-                                                        let f = Configure.
-                                                          recode_tag
+                                                    let auth_function 
+                                                      = List.assoc "auth" p
+                                                    in
+                                                      let login user password
+                                                                =
+                                                        let (user, password) 
+                                                          =
+                                                          let f = Configure.
+                                                            recode_tag
+                                                          in
+                                                            ((f user),
+                                                             (f password)) in
+                                                        let default_login 
+                                                          =
+                                                          (user =
+                                                             default_user)
+                                                            &&
+                                                            (password =
+                                                               default_password)
                                                         in
-                                                          ((f user),
-                                                           (f password)) in
-                                                      let default_login 
-                                                        =
-                                                        (user = default_user)
-                                                          &&
-                                                          (password =
-                                                             default_password)
-                                                      in
-                                                        if
-                                                          not
-                                                            (trivially_false
-                                                               auth_function)
-                                                        then
-                                                          Lang.to_bool
-                                                            (Lang.apply
-                                                               ~t: Lang.
-                                                                 bool_t
-                                                               auth_function
-                                                               [ ("",
-                                                                  (Lang.
+                                                          if
+                                                            not
+                                                              (trivially_false
+                                                                 auth_function)
+                                                          then
+                                                            Lang.to_bool
+                                                              (Lang.apply
+                                                                 ~t: Lang.
+                                                                   bool_t
+                                                                 auth_function
+                                                                 [ ("",
+                                                                    (
+                                                                    Lang.
                                                                     string
                                                                     user));
-                                                                 ("",
-                                                                  (Lang.
+                                                                   ("",
+                                                                    (
+                                                                    Lang.
                                                                     string
                                                                     password)) ])
-                                                        else default_login
-                                                    in
-                                                      let dumpfile =
-                                                        match s "dumpfile"
-                                                        with
-                                                        | "" -> None
-                                                        | s -> Some s
+                                                          else default_login
                                                       in
-                                                        let extra_headers 
+                                                        let dumpfile 
                                                           =
-                                                          List.map
-                                                            (fun v ->
-                                                               let f 
-                                                                 (x, y) =
-                                                                 ((Lang.
+                                                          match s "dumpfile"
+                                                          with
+                                                          | "" -> None
+                                                          | s -> Some s
+                                                        in
+                                                          let extra_headers 
+                                                            =
+                                                            List.map
+                                                              (fun v ->
+                                                                 let f 
+                                                                   (x, y) =
+                                                                   ((
+                                                                    Lang.
                                                                     to_string
                                                                     x),
-                                                                  (Lang.
+                                                                    (
+                                                                    Lang.
                                                                     to_string
                                                                     y))
-                                                               in
-                                                                 f
-                                                                   (Lang.
+                                                                 in
+                                                                   f
+                                                                    (Lang.
                                                                     to_product
                                                                     v))
-                                                            (Lang.to_list
-                                                               (List.assoc
-                                                                  "headers" p))
-                                                        in
-                                                          object (self)
-                                                            inherit
-                                                              Output.encoded
-                                                                ~content_kind:
-                                                                  kind
-                                                                ~output_kind:
-                                                                  "output.harbor"
-                                                                ~infallible
-                                                                ~autostart
-                                                                ~on_start
-                                                                ~on_stop
-                                                                ~name: mount
-                                                                source
-                                                              
-                                                            (** File descriptor where to dump. *)
-                                                            val mutable
-                                                              dump = None
-                                                              
-                                                            val mutable
-                                                              encoder = None
-                                                              
-                                                            val mutable
-                                                              clients =
-                                                              Queue.create ()
-                                                              
-                                                            val clients_m =
-                                                              Mutex.create ()
-                                                              
-                                                            val duppy_c =
-                                                              Duppy.Monad.
-                                                                Condition.
-                                                                create
-                                                                ~priority:
-                                                                  Tutils.
-                                                                  Non_blocking
-                                                                Tutils.
-                                                                scheduler
-                                                              
-                                                            val duppy_m =
-                                                              Duppy.Monad.
+                                                              (Lang.to_list
+                                                                 (List.assoc
+                                                                    "headers"
+                                                                    p))
+                                                          in
+                                                            object (self)
+                                                              inherit
+                                                                Output.
+                                                                  encoded
+                                                                  ~content_kind:
+                                                                    kind
+                                                                  ~output_kind:
+                                                                    "output.harbor"
+                                                                  ~infallible
+                                                                  ~autostart
+                                                                  ~on_start
+                                                                  ~on_stop
+                                                                  ~name:
+                                                                    mount
+                                                                  source
+                                                                
+                                                              (** File descriptor where to dump. *)
+                                                              val mutable
+                                                                dump = None
+                                                                
+                                                              val mutable
+                                                                encoder =
+                                                                None
+                                                                
+                                                              val mutable
+                                                                clients =
+                                                                Queue.create
+                                                                  ()
+                                                                
+                                                              val clients_m =
                                                                 Mutex.create
-                                                                ~priority:
+                                                                  ()
+                                                                
+                                                              val duppy_c =
+                                                                Duppy.Monad.
+                                                                  Condition.
+                                                                  create
+                                                                  ~priority:
+                                                                    Tutils.
+                                                                    Non_blocking
                                                                   Tutils.
-                                                                  Non_blocking
-                                                                Tutils.
-                                                                scheduler
-                                                              
-                                                            val mutable
-                                                              chunk_len = 0
-                                                              
-                                                            val mutable
-                                                              burst_data = []
-                                                              
-                                                            val mutable
-                                                              burst_pos = 0
-                                                              
-                                                            val metadata =
-                                                              {
-                                                                metadata =
-                                                                  None;
-                                                                metadata_m =
+                                                                  scheduler
+                                                                
+                                                              val duppy_m =
+                                                                Duppy.Monad.
                                                                   Mutex.
+                                                                  create
+                                                                  ~priority:
+                                                                    Tutils.
+                                                                    Non_blocking
+                                                                  Tutils.
+                                                                  scheduler
+                                                                
+                                                              val mutable
+                                                                chunk_len = 0
+                                                                
+                                                              val mutable
+                                                                burst_data =
+                                                                []
+                                                                
+                                                              val mutable
+                                                                burst_pos = 0
+                                                                
+                                                              val metadata =
+                                                                {
+                                                                  metadata =
+                                                                    None;
+                                                                  metadata_m =
+                                                                    Mutex.
                                                                     create ();
-                                                              }
-                                                              
-                                                            method encode =
-                                                              fun frame ofs
-                                                                len ->
-                                                                (Utils.
-                                                                   get_some
-                                                                   encoder).
-                                                                  Encoder.
-                                                                  encode
-                                                                  frame ofs
-                                                                  len
-                                                              
-                                                            method insert_metadata =
-                                                              fun m ->
-                                                                let m 
-                                                                  =
-                                                                  Encoder.
+                                                                }
+                                                                
+                                                              method encode =
+                                                                fun frame ofs
+                                                                  len ->
+                                                                  (Utils.
+                                                                    get_some
+                                                                    encoder).
+                                                                    Encoder.
+                                                                    encode
+                                                                    frame ofs
+                                                                    len
+                                                                
+                                                              method insert_metadata =
+                                                                fun m ->
+                                                                  let m 
+                                                                    =
+                                                                    Encoder.
                                                                     Meta.
                                                                     to_metadata
                                                                     m in
-                                                                let meta 
-                                                                  =
-                                                                  Hashtbl.
-                                                                    create
-                                                                    (
+                                                                  let meta 
+                                                                    =
                                                                     Hashtbl.
+                                                                    create
+                                                                    (Hashtbl.
                                                                     length m) in
-                                                                let f 
-                                                                  =
-                                                                  Configure.
+                                                                  let f 
+                                                                    =
+                                                                    Configure.
                                                                     recode_tag
                                                                     ?out_enc
-                                                                in
-                                                                  (Hashtbl.
+                                                                  in
+                                                                    (Hashtbl.
                                                                     iter
                                                                     (fun a b
                                                                     ->
@@ -491,9 +513,9 @@ class output ~kind p =
                                                                     add meta
                                                                     a (
                                                                     f b)) m;
-                                                                   if
+                                                                    if
                                                                     icy_metadata
-                                                                   then
+                                                                    then
                                                                     Tutils.
                                                                     mutexify
                                                                     metadata.
@@ -505,7 +527,7 @@ class output ~kind p =
                                                                     <-
                                                                     Some meta)
                                                                     ()
-                                                                   else
+                                                                    else
                                                                     (Utils.
                                                                     get_some
                                                                     encoder).
@@ -515,27 +537,28 @@ class output ~kind p =
                                                                     Meta.
                                                                     export_metadata
                                                                     meta))
-                                                              
-                                                            method add_client =
-                                                              fun ~protocol
-                                                                ~headers ~uri
-                                                                ~args s ->
-                                                                let ip 
-                                                                  =
-                                                                  (* Show port = true to catch different clients from same
+                                                                
+                                                              method add_client =
+                                                                fun ~protocol
+                                                                  ~headers
+                                                                  ~uri ~args
+                                                                  s ->
+                                                                  let ip 
+                                                                    =
+                                                                    (* Show port = true to catch different clients from same
        * ip *)
-                                                                  Utils.
+                                                                    Utils.
                                                                     name_of_sockaddr
                                                                     ~show_port:
                                                                     true
-                                                                    (
-                                                                    Unix.
+                                                                    (Unix.
                                                                     getpeername
                                                                     s) in
-                                                                let (metaint,
+                                                                  let 
+                                                                    (metaint,
                                                                     icyheader) 
-                                                                  =
-                                                                  try
+                                                                    =
+                                                                    try
                                                                     (assert
                                                                     (((List.
                                                                     assoc
@@ -548,16 +571,16 @@ class output ~kind p =
                                                                     sprintf
                                                                     "icy-metaint: %d\r\n"
                                                                     metaint)))
-                                                                  with
-                                                                  | _ ->
+                                                                    with
+                                                                    | 
+                                                                    _ ->
                                                                     ((-1),
                                                                     "") in
-                                                                let extra_headers 
-                                                                  =
-                                                                  String.
+                                                                  let extra_headers 
+                                                                    =
+                                                                    String.
                                                                     concat ""
-                                                                    (
-                                                                    List.map
+                                                                    (List.map
                                                                     (fun
                                                                     (x, y) ->
                                                                     Printf.
@@ -565,22 +588,23 @@ class output ~kind p =
                                                                     "%s: %s\r\n"
                                                                     x y)
                                                                     extra_headers) in
-                                                                let reply 
-                                                                  =
-                                                                  Printf.
+                                                                  let reply 
+                                                                    =
+                                                                    Printf.
                                                                     sprintf
                                                                     "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n"
                                                                     protocol
                                                                     format
                                                                     icyheader
                                                                     extra_headers in
-                                                                let buffer 
-                                                                  =
-                                                                  Buffer.
+                                                                  let buffer 
+                                                                    =
+                                                                    Buffer.
                                                                     create
                                                                     buflen
-                                                                in
-                                                                  ((match 
+                                                                  in
+                                                                    ((
+                                                                    match 
                                                                     (Utils.
                                                                     get_some
                                                                     encoder).
@@ -595,7 +619,7 @@ class output ~kind p =
                                                                     | 
                                                                     None ->
                                                                     ());
-                                                                   let close 
+                                                                    let close 
                                                                     () =
                                                                     try
                                                                     Unix.
@@ -603,7 +627,7 @@ class output ~kind p =
                                                                     with
                                                                     | 
                                                                     _ -> () in
-                                                                   let rec
+                                                                    let rec
                                                                     client 
                                                                     =
                                                                     {
@@ -622,6 +646,8 @@ class output ~kind p =
                                                                     metapos =
                                                                     0;
                                                                     url = url;
+                                                                    timeout =
+                                                                    timeout;
                                                                     mutex =
                                                                     Mutex.
                                                                     create ();
@@ -634,7 +660,7 @@ class output ~kind p =
                                                                     handler =
                                                                     handler;
                                                                     }
-                                                                   and
+                                                                    and
                                                                     handler 
                                                                     =
                                                                     {
@@ -651,6 +677,13 @@ class output ~kind p =
                                                                     ((
                                                                     match e
                                                                     with
+                                                                    | 
+                                                                    Duppy.Io.
+                                                                    Timeout
+                                                                    ->
+                                                                    self#log#
+                                                                    f 5
+                                                                    "Timeout error"
                                                                     | 
                                                                     Duppy.Io.
                                                                     Io_error
@@ -700,7 +733,7 @@ class output ~kind p =
                                                                     Harbor.
                                                                     Close ""));
                                                                     }
-                                                                   in
+                                                                    in
                                                                     Duppy.
                                                                     Monad.
                                                                     bind
@@ -804,16 +837,17 @@ class output ~kind p =
                                                                     Harbor.
                                                                     relayed
                                                                     reply)))
-                                                              
-                                                            method send =
-                                                              fun b ->
-                                                                let slen 
-                                                                  =
-                                                                  String.
+                                                                
+                                                              method send =
+                                                                fun b ->
+                                                                  let slen 
+                                                                    =
+                                                                    String.
                                                                     length b
-                                                                in
-                                                                  if slen > 0
-                                                                  then
+                                                                  in
+                                                                    if
+                                                                    slen > 0
+                                                                    then
                                                                     (chunk_len
                                                                     <-
                                                                     chunk_len
@@ -1006,24 +1040,25 @@ class output ~kind p =
                                                                     <-
                                                                     new_clients))
                                                                     ()))))
-                                                                  else ()
-                                                              
-                                                            method output_start =
-                                                              (assert
-                                                                 (encoder =
+                                                                    else ()
+                                                                
+                                                              method output_start =
+                                                                (assert
+                                                                   (encoder =
                                                                     None);
-                                                               let enc 
-                                                                 =
-                                                                 encoder_factory
-                                                                   self#id
-                                                               in
-                                                                 (encoder <-
+                                                                 let enc 
+                                                                   =
+                                                                   encoder_factory
+                                                                    self#id
+                                                                 in
+                                                                   (encoder
+                                                                    <-
                                                                     Some
                                                                     (enc
                                                                     Encoder.
                                                                     Meta.
                                                                     empty_metadata);
-                                                                  let handler 
+                                                                    let handler 
                                                                     ~http_method
                                                                     ~protocol
                                                                     ~data
@@ -1083,7 +1118,7 @@ class output ~kind p =
                                                                     ~uri
                                                                     ~args
                                                                     socket)
-                                                                  in
+                                                                    in
                                                                     (Harbor.
                                                                     add_http_handler
                                                                     ~port
@@ -1100,30 +1135,30 @@ class output ~kind p =
                                                                     | 
                                                                     None ->
                                                                     ())))
-                                                              
-                                                            method output_stop =
-                                                              (ignore
-                                                                 ((Utils.
+                                                                
+                                                              method output_stop =
+                                                                (ignore
+                                                                   ((Utils.
                                                                     get_some
                                                                     encoder).
                                                                     Encoder.
                                                                     stop ());
-                                                               encoder <-
-                                                                 None;
-                                                               Harbor.
-                                                                 remove_http_handler
-                                                                 ~port ~uri
-                                                                 ();
-                                                               let new_clients 
-                                                                 =
-                                                                 Queue.create
-                                                                   ()
-                                                               in
-                                                                 (Tutils.
+                                                                 encoder <-
+                                                                   None;
+                                                                 Harbor.
+                                                                   remove_http_handler
+                                                                   ~port ~uri
+                                                                   ();
+                                                                 let new_clients 
+                                                                   =
+                                                                   Queue.
+                                                                    create ()
+                                                                 in
+                                                                   (Tutils.
                                                                     mutexify
                                                                     clients_m
-                                                                    (
-                                                                    fun () ->
+                                                                    (fun ()
+                                                                    ->
                                                                     (Queue.
                                                                     iter
                                                                     (fun c ->
@@ -1153,21 +1188,23 @@ class output ~kind p =
                                                                     <-
                                                                     new_clients))
                                                                     ();
-                                                                  match dump
-                                                                  with
-                                                                  | Some f ->
+                                                                    match dump
+                                                                    with
+                                                                    | 
+                                                                    Some f ->
                                                                     close_out
                                                                     f
-                                                                  | None ->
+                                                                    | 
+                                                                    None ->
                                                                     ()))
-                                                              
-                                                            method output_reset =
-                                                              (self#
-                                                                 output_stop;
-                                                               self#
-                                                                 output_start)
-                                                              
-                                                          end
+                                                                
+                                                              method output_reset =
+                                                                (self#
+                                                                   output_stop;
+                                                                 self#
+                                                                   output_start)
+                                                                
+                                                            end
   
 let () =
   let k = Lang.univ_t 1

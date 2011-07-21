@@ -53,6 +53,11 @@ let conf_icy_metadata =
         "audio/wave"; "audio/x-flac" ]
     "Content-type (mime) of formats which allow shout metadata update."
   
+(* 300 sec timeout is the default value in Apache.. *)
+let conf_timeout =
+  Conf.float ~p: (conf_harbor#plug "timeout") ~d: 300.
+    "Timeout for network operations."
+  
 let log = Log.make [ "harbor" ]
   
 (* Define what we need as a source *)
@@ -471,7 +476,8 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
   
 let handle_client ~port ~icy h = (* Read and process lines *)
   let __pa_duppy_0 =
-    Duppy.Monad.Io.read ~priority: Tutils.Non_blocking
+    Duppy.Monad.Io.read ?timeout: (Some conf_timeout#get)
+      ~priority: Tutils.Non_blocking
       ~marker:
         (match icy with
          | true -> Duppy.Io.Split "[\r]?\n"
@@ -550,6 +556,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                         (fun len ->
                            let __pa_duppy_0 =
                              Duppy.Monad.Io.read
+                               ?timeout: (Some conf_timeout#get)
                                ~priority: Tutils.Non_blocking
                                ~marker: (Duppy.Io.Length len) h
                            in
@@ -561,11 +568,14 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                       ~data ~port h huri headers))
                 | Shout when icy ->
                     Duppy.Monad.bind
-                      (Duppy.Monad.Io.write ~priority: Tutils.Non_blocking h
+                      (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
+                         ~priority: Tutils.Non_blocking h
                          "OK2\r\nicy-caps:11\r\n\r\n")
                       (fun () -> (* Now parsing headers *)
                          let __pa_duppy_0 =
-                           Duppy.Monad.Io.read ~priority: Tutils.Non_blocking
+                           Duppy.Monad.Io.read
+                             ?timeout: (Some conf_timeout#get)
+                             ~priority: Tutils.Non_blocking
                              ~marker: (Duppy.Io.Split "[\r]?\n[\r]?\n") h
                          in
                            Duppy.Monad.bind __pa_duppy_0
@@ -599,13 +609,25 @@ let open_port ~icy port =
               Liq_sockets.set_tcp_nodelay socket true;
               let on_error e =
                 ((match e with
-                  | Duppy.Io.Io_error -> log#f 4 "Client disconnected"
+                  | Duppy.Io.Io_error -> log#f 4 "Client %s disconnected" ip
+                  | Duppy.Io.Timeout ->
+                      log#f 4
+                        "Timeout while communicating \
+                              with client %s."
+                        ip
                   | Duppy.Io.Unix (c, p, m) ->
                       log#f 4 "%s"
                         (Utils.error_message (Unix.Unix_error (c, p, m)))
                   | Duppy.Io.Unknown e ->
                       log#f 4 "%s" (Utils.error_message e));
-                 Close "") in
+                 (* Sending an HTTP response in case of timeout
+              * even though ICY connections are not HTTP.. *)
+                 if e = Duppy.Io.Timeout
+                 then
+                   Close
+                     (http_error_page 408 "Request Time-out"
+                        "The server timed out waiting for the request.")
+                 else Close "") in
               let h =
                 {
                   Duppy.Monad.Io.scheduler = Tutils.scheduler;
@@ -627,8 +649,9 @@ let open_port ~icy port =
                   * be another task actually using the socket. *)
                    exec ())
                 in
-                  Duppy.Io.write ~priority: Tutils.Non_blocking ~on_error
-                    ~string: s ~exec Tutils.scheduler socket
+                  Duppy.Io.write ~timeout: conf_timeout#get
+                    ~priority: Tutils.Non_blocking ~on_error ~string: s ~exec
+                    Tutils.scheduler socket
               in
                 Duppy.Monad.run ~return: reply ~raise: reply
                   (handle_client ~port ~icy h))

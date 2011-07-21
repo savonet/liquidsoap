@@ -45,6 +45,10 @@ let conf_icy_metadata =
   ~d:["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac";
       "audio/wav"; "audio/wave"; "audio/x-flac"]
   "Content-type (mime) of formats which allow shout metadata update."
+(* 300 sec timeout is the default value in Apache.. *)
+let conf_timeout =
+  Conf.float ~p:(conf_harbor#plug "timeout") ~d:300.
+    "Timeout for network operations."
 
 let log = Log.make ["harbor"]
 
@@ -504,7 +508,8 @@ let handle_client ~port ~icy h =
         | false -> Duppy.Io.Split "[\r]?\n[\r]?\n"
     with
       { priority = Tutils.Non_blocking ;
-        handler  = h }
+        handler  = h ;
+        timeout  = conf_timeout#get }
   in
   let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
   let headers = parse_headers (List.tl lines) in
@@ -566,7 +571,8 @@ let handle_client ~port ~icy h =
             Duppy.Io.Length len
           with
             { priority = Tutils.Non_blocking ;
-              handler  = h }
+              handler  = h ;
+              timeout  = conf_timeout#get }
         in
         let data = Some data in
         handle_http_request ~hmethod ~hprotocol
@@ -578,14 +584,16 @@ let handle_client ~port ~icy h =
               "OK2\r\nicy-caps:11\r\n\r\n"
            with
              { priority = Tutils.Non_blocking ;
-               handler  = h } ;
+               handler  = h ;
+               timeout  = conf_timeout#get } ;
           (* Now parsing headers *)
           duppy s =
             duppy_read
               Duppy.Io.Split "[\r]?\n[\r]?\n"
             with
               { priority = Tutils.Non_blocking ;
-                handler  = h }
+                handler  = h ;
+                timeout  = conf_timeout#get }
           in
           let lines =
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s
@@ -629,7 +637,10 @@ let open_port ~icy port =
              begin
               match e with
                 | Duppy.Io.Io_error ->
-                     log#f 4 "Client disconnected"
+                     log#f 4 "Client %s disconnected" ip
+                | Duppy.Io.Timeout ->
+                     log#f 4 "Timeout while communicating \
+                              with client %s." ip
                 | Duppy.Io.Unix (c,p,m) ->
                      log#f 4 "%s"
                        (Utils.error_message
@@ -637,7 +648,13 @@ let open_port ~icy port =
                 | Duppy.Io.Unknown e ->
                       log#f 4 "%s" (Utils.error_message e)
              end ;
-             Close ""
+             (* Sending an HTTP response in case of timeout
+              * even though ICY connections are not HTTP.. *)
+             if e = Duppy.Io.Timeout then
+               Close (http_error_page 408 "Request Time-out"
+                        "The server timed out waiting for the request.") 
+             else
+               Close ""
            in
            let h =
              { Duppy.Monad.Io.
@@ -666,7 +683,8 @@ let open_port ~icy port =
                   * be another task actually using the socket. *)
                  exec ()
                in
-               Duppy.Io.write ~priority:Tutils.Non_blocking
+               Duppy.Io.write ~timeout:conf_timeout#get 
+                              ~priority:Tutils.Non_blocking
                               ~on_error ~string:s ~exec
                               Tutils.scheduler socket
            in

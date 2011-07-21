@@ -34,6 +34,10 @@ let conf =
       "which can be used through several interfaces."
     ]
 
+let conf_timeout =
+  Conf.float ~p:(conf#plug "timeout") ~d:30.
+    "Timeout for read/write operations."
+
 let conf_socket =
   Conf.bool ~p:(conf#plug "socket") ~d:false
     "Support for communication via a UNIX domain socket interface"
@@ -226,11 +230,14 @@ let exec s =
                       list of commands."
       | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
 
-let handle_client socket =
+let handle_client socket ip =
   let on_error e =
      begin
       match e with
         | Duppy.Io.Io_error -> ()
+        | Duppy.Io.Timeout ->
+             log#f 4 "Timeout reached while communicating to \
+                      client %s." ip
         | Duppy.Io.Unix (c,p,m) ->
              log#f 4 "%s"
                  (Utils.error_message
@@ -250,11 +257,12 @@ let handle_client socket =
   (* Read and process lines *)
   let process =
     duppy req =
-      duppy_read
-        Duppy.Io.Split "[\r\n]+"
-      with
-        { priority = Tutils.Non_blocking ;
-          handler  = h }
+     duppy_read
+      Duppy.Io.Split "[\r\n]+"
+     with
+       { priority = Tutils.Non_blocking ;
+         handler  = h ;
+         timeout = conf_timeout#get }
     in
     duppy ans =
       duppy_exec
@@ -275,7 +283,8 @@ let handle_client socket =
        "\r\nEND\r\n"
       with
         { priority = Tutils.Non_blocking ;
-          handler  = h } ;
+          handler  = h ;
+          timeout  = conf_timeout#get } ;
       duppy_return ()
     done
   in
@@ -288,18 +297,29 @@ let handle_client socket =
   let rec run () =
     let raise =
       function
-        | Exit ->
+        | Exit 
+        | Duppy Duppy.Io.Timeout as e ->
            let on_error e =
                ignore(on_error e);
-               log#f 3 "Client disconnected while saying goodbye..!";
+               log#f 3 "Client %s disconnected while saying goodbye..!" ip;
                close ()
            in
-           Duppy.Io.write ~priority:Tutils.Non_blocking ~on_error
-                          ~exec:close Tutils.scheduler ~string:"Bye!\r\n"
-                          socket;
-           log#f 3 "Client disconnected."
+           let msg = 
+             match e with
+               | Exit -> "Bye!\r\n"
+               | Duppy Duppy.Io.Timeout ->
+                   "Connection timed out.. Bye!\r\n"
+           in
+           let exec () = 
+             log#f 3 "Client %s disconnected." ip;
+             close ()
+           in
+           Duppy.Io.write ~timeout:conf_timeout#get 
+                          ~priority:Tutils.Non_blocking ~on_error
+                          ~exec Tutils.scheduler ~string:msg
+                          socket
        | _ ->
-           log#f 3 "Client disconnected without saying goodbye..!";
+           log#f 3 "Client %s disconnected without saying goodbye..!" ip;
            close ()
     in
     duppy_run
@@ -324,8 +344,11 @@ let start_socket () =
     begin
       try
         let (socket,caller) = accept sock in
-          log#f 3 "New client on %s" socket_name ;
-          handle_client socket
+          let ip =
+            Utils.name_of_sockaddr caller
+          in
+          log#f 3 "New client %s" ip;
+          handle_client socket ip
       with e ->
         log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
     end ;
@@ -377,7 +400,7 @@ let start_telnet () =
            Utils.name_of_sockaddr caller
         in
         log#f 3 "New client: %s" ip ;
-        handle_client socket;
+        handle_client socket ip
       with e ->
       log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
     end ;

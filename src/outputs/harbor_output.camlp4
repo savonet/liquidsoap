@@ -59,6 +59,8 @@ let proto kind =
     "user", Lang.string_t, Some (Lang.string ""),
      Some "User for client connection, disabled if empty.";
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
+    "timeout", Lang.float_t, Some (Lang.float 30.), 
+    Some "Timeout for network operations." ;
     "url", Lang.string_t, Some (Lang.string ""), None ;
     "metaint", Lang.int_t, Some (Lang.int 16000), 
      Some "Interval used to send ICY metadata";
@@ -117,6 +119,7 @@ type client =
     meta                : metadata ;
     mutable latest_meta : string ;
     metaint             : int ;
+    timeout             : float ;
     url                 : string option ;
     mutable metapos     : int ;
     chunk               : int ; 
@@ -238,7 +241,8 @@ let rec client_task c =
            s
          with
           { priority = Tutils.Non_blocking ;
-            handler  = c.handler }
+            handler  = c.handler ;
+            timeout  = c.timeout }
    end ;
    duppy state = 
     duppy_exec
@@ -294,6 +298,7 @@ class output ~kind p =
     encoder_data p
   in
 
+  let timeout = Lang.to_float (List.assoc "timeout" p) in
   let buflen = Lang.to_int (List.assoc "buffer" p) in
   let burst = Lang.to_int (List.assoc "burst" p) in
   let chunk = Lang.to_int (List.assoc "chunk" p) in
@@ -471,6 +476,7 @@ object (self)
           latest_meta   = "\000" ;
           metapos       = 0 ;
           url           = url ;
+          timeout       = timeout ;
           mutex         = Mutex.create () ;
           state         = Hello ;
           chunk         = chunk ;
@@ -486,6 +492,8 @@ object (self)
              (fun e ->
                 begin
                  match e with
+                   | Duppy.Io.Timeout ->
+                        self#log#f 5 "Timeout error"
                    | Duppy.Io.Io_error -> 
                         self#log#f 5 "I/O error"
                    | Duppy.Io.Unix (c,p,m) ->
