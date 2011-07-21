@@ -78,6 +78,31 @@ let really_read fd buf ofs len =
     done;
     !l
 
+(* Read all data from a given filename.
+ * We cannot use really_input with the 
+ * reported length of the file because
+ * some OSes such as windows may do implicit
+ * conversions (file opened in text mode in 
+ * win32), thus making the actual number of 
+ * characters that can be read from the file
+ * different than its reported length.. *)
+let read_all filename =
+  let channel = open_in filename in
+  let buflen = 1024 in
+  let tmp = String.create 1024 in
+  let contents = Buffer.create buflen in
+  let rec read () =
+    let ret = input channel tmp 0 1024 in
+    if ret > 0 then
+     begin
+      Buffer.add_substring contents tmp 0 ret ;
+      read ()
+     end
+  in
+  read () ;
+  close_in channel ;
+  Buffer.contents contents
+
 (* Drop all but then [len] last bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in

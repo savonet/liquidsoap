@@ -1834,12 +1834,8 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
        let f = Utils.home_unrelate f in
-       let channel = open_in f in
-       let length = in_channel_length channel in
-       let content = String.create length in
+       let content = Utils.read_all f in
        let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
-         really_input channel content 0 length ;
-         close_in channel ;
          try
            let _,l = Playlist_parser.search_valid content in
            let process m =

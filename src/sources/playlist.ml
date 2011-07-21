@@ -169,14 +169,9 @@ object (self)
           list_files self#log filename
         end else
           try
-            (* TODO This is quite inefficient:
-             *   reading the whole file as a string before parsing it... *)
-            let channel = open_in filename in
-            let length = in_channel_length channel in
-            let content = String.create length in
-              really_input channel content 0 length;
-              (* Close the file now, I don't need it anymore.. *)
-              close_in channel ;
+             (* TODO This is quite inefficient:
+              *   reading the whole file as a string before parsing it... *)
+            let content = Utils.read_all filename in
               let (format,playlist) =
                 match mime with
                   | "" ->
