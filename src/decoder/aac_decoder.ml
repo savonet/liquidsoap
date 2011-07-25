@@ -33,6 +33,8 @@ let error_translator =
 
 let () = Utils.register_error_translator error_translator
 
+exception End_of_stream
+
 (** Buffered input device where
   * the buffer initially contains [String.sub buf offset len]. *)
 let buffered_input input buf offset len =
@@ -66,6 +68,7 @@ let buffered_input input buf offset len =
     let len = 
       if size >= len then len else
         let data,read = input.Decoder.read (len-size) in
+        if read = 0 then raise End_of_stream ;
           Buffer.add_substring buffer data 0 read ;
           size+read
     in
