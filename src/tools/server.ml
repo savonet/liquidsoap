@@ -285,7 +285,8 @@ let handle_client socket ip =
           let msg =
             (match e with
              | Exit -> "Bye!\r\n"
-             | Duppy Duppy.Io.Timeout -> "Connection timed out.. Bye!\r\n") in
+             | Duppy Duppy.Io.Timeout -> "Connection timed out.. Bye!\r\n"
+             | _ -> assert false) in
           let exec () = (log#f 3 "Client %s disconnected." ip; close ())
           in
             Duppy.Io.write ~timeout: conf_timeout#get

@@ -309,6 +309,7 @@ let handle_client socket ip =
                | Exit -> "Bye!\r\n"
                | Duppy Duppy.Io.Timeout ->
                    "Connection timed out.. Bye!\r\n"
+               | _ -> assert false
            in
            let exec () = 
              log#f 3 "Client %s disconnected." ip;
@@ -318,9 +319,9 @@ let handle_client socket ip =
                           ~priority:Tutils.Non_blocking ~on_error
                           ~exec Tutils.scheduler ~string:msg
                           socket
-       | _ ->
-           log#f 3 "Client %s disconnected without saying goodbye..!" ip;
-           close ()
+         | _ ->
+             log#f 3 "Client %s disconnected without saying goodbye..!" ip;
+             close ()
     in
     duppy_run
       process
