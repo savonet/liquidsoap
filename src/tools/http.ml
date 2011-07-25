@@ -175,7 +175,8 @@ let disconnect socket =
   with
     | _ -> ()
 
-let read socket buflen =
+let read ?(log=fun _ -> ()) ~timeout socket buflen =
+  Utils.wait_for ~log `Read socket timeout;
   match buflen with
     | Some buflen ->
         let buf = String.create buflen in
@@ -197,7 +198,7 @@ type status = string * int * string
 type headers = (string*string) list
 
 (* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-let read_crlf ?(max=4096) socket =
+let read_crlf ?(log=fun _ -> ()) ?(max=4096) ~timeout socket =
   (* We read until we see [\r]?\n[\r]?\n *)
   let ans = Buffer.create 10 in
   let n = ref 0 in
@@ -211,6 +212,10 @@ let read_crlf ?(max=4096) socket =
      * The maximal length is a security but it may
      * be lifted.. *)
     while !loop && !n < max do
+      (* This is quite ridiculous but we have 
+       * no way to know how much data is available
+       * in the socket.. *)
+      Utils.wait_for ~log `Read socket timeout;
       let h = Unix.read socket c 0 1 in
         if h < 1 then
           loop := false
@@ -226,13 +231,14 @@ let read_crlf ?(max=4096) socket =
     done;
     Buffer.contents ans
 
-let request socket request =
+let request ?(log=fun _ -> ()) ~timeout socket request =
   if
     let len = String.length request in
+      Utils.wait_for ~log `Write socket timeout;
       Unix.write socket request 0 len < len
   then
     raise Socket ;
-  let header = read_crlf socket in
+  let header = read_crlf ~log ~timeout socket in
   let header = Pcre.split ~pat:"[\r]?\n" header in
   let response,header =
      match header with
@@ -271,7 +277,10 @@ let http_req ?(post="") ?(headers=[]) socket host port file =
     Printf.sprintf "%s %s HTTP/1.0\r\n" action file
   in
   let req =
-    Printf.sprintf "%sHost: %s\r\n" req host
+    if port = 80 then 
+      Printf.sprintf "%sHost: %s\r\n" req host
+    else
+      Printf.sprintf "%sHost: %s:%d\r\n" req host port
   in
   let req =
     if not (List.mem_assoc "User-Agent" headers) then
@@ -292,18 +301,18 @@ let http_req ?(post="") ?(headers=[]) socket host port file =
   else
     Printf.sprintf "%s\r\n" req
 
-let get ?(headers=[]) socket host port file =
+let get ?(headers=[]) ?log ~timeout socket host port file =
   let req = http_req ~headers:headers socket host port file in
-     request socket req
+     request ?log ~timeout socket req
 
-let post ?(headers=[]) data socket host port file =
+let post ?(headers=[]) ?log ~timeout data socket host port file =
   let req = http_req ~post:data ~headers:headers socket host port file in
-     request socket req
+     request ?log ~timeout socket req
 
 type request = Get | Post of string
 
-let full_request ?headers ?(port=80)
-            ~host ~url ~request () =
+let full_request ?headers ?(port=80) ?(log=fun _ -> ()) 
+                 ~timeout ~host ~url ~request () =
  let connection =
    connect host port
  in
@@ -313,11 +322,11 @@ let full_request ?headers ?(port=80)
     let status,headers =
       match request with
         | Get ->
-           get ?headers connection host port url
+           get ?headers ~log ~timeout connection host port url
         | Post data ->
-           post ?headers data connection host port url
+           post ?headers ~log ~timeout data connection host port url
     in
-    let ret = read_crlf ~max:max_int connection in
+    let ret = read_crlf ~log ~timeout ~max:max_int connection in
     status,headers,
        Pcre.substitute
           ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret)

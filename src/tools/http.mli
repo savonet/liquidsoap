@@ -41,29 +41,51 @@ type status = string * int * string
 type headers = (string*string) list
 
 (* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-val read_crlf : ?max:int -> connection -> string
+val read_crlf : ?log:(string -> unit) -> ?max:int -> 
+                timeout:float -> connection -> string
 
-val request : connection -> string -> (status * (string * string) list)
+val request : ?log:(string -> unit) ->
+              timeout:float ->
+              connection ->
+              string -> (string * int * string) * (string * string) list
 
-(** [get ?headers socket host port file] makes a GET request.
+(** [get ?log ?headers ~timeout socket host port file] makes a GET request.
   * Returns the status and the headers. *)
-val get : ?headers:headers -> connection
-  -> string -> int -> string -> (status * (string * string) list)
+val get : ?headers:(string * string) list ->
+          ?log:(string -> unit) ->
+          timeout:float ->
+          connection ->
+          string ->
+          int -> string -> (string * int * string) * (string * string) list
 
-(** [post ?headers data socket host port file] makes a POST request.
+
+(** [post ?log ?headers ~timeout data socket host port file] makes a POST request.
   * Returns the status and the headers. *)
-val post : ?headers:headers -> string
-  -> connection -> string -> int -> string -> (status * (string * string) list)
+val post : ?headers:(string * string) list ->
+           ?log:(string -> unit) ->
+           timeout:float ->
+           string ->
+           connection ->
+           string ->
+           int -> string -> (string * int * string) * (string * string) list
 
-(** [read len] reads [len] bytes of data
+(** [read ?log ~timeout len] reads [len] bytes of data
   * or all available data if [len] is [None]. *)
-val read : connection -> int option -> string
+val read : ?log:(string -> unit) ->
+           timeout:float -> connection -> int option -> string
 
 (** Type for full Http request. *)
 type request = Get | Post of string
 
 (** Perform a full Http request and return the response status,headers
   * and data. *)
-val full_request : ?headers:headers -> ?port:int ->
-                   host:string -> url:string ->
-                   request:request -> unit -> status*headers*string
+val full_request :
+           ?headers:(string * string) list ->
+           ?port:int ->
+           ?log:(string -> unit) ->
+           timeout:float ->
+           host:string ->
+           url:string ->
+           request:request ->
+           unit -> (string * int * string) * (string * string) list * string
+

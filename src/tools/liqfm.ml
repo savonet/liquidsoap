@@ -22,6 +22,8 @@
 
 open Duppy
 
+let log = Dtools.Log.make ["liqfm"]
+
 (* A custom implementation of HTTP 
  * requests. *)
 module Liq_http =
@@ -40,14 +42,21 @@ module Liq_http =
   let request ?timeout ?headers ?port 
               ~host ~url ~request () =
   try
+    let log = log#f 4 "%s" in
+    let timeout = 
+      match timeout with
+        | None -> !default_timeout
+        | Some t -> t
+    in
     let request = 
       match request with
         | Get -> Http.Get
         | Post s -> Http.Post s
     in
     let (x,code,y),_,data = 
-          Http.full_request ?headers ?port
-                 ~host ~url ~request ()
+          Http.full_request ?headers ?port ~log
+                            ~timeout ~host ~url 
+                            ~request ()
     in
     if code <> 200 then 
       raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));

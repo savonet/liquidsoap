@@ -2007,6 +2007,7 @@ let () =
 type request = Get | Post
 
 let add_http_request name descr request =
+  let log = Dtools.Log.make [name] in
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let status_t =
@@ -2025,6 +2026,8 @@ let add_http_request name descr request =
     [
       "headers",headers_t, Some (Lang.list ~t:header_t []),
         Some "Additional headers.";
+      "timeout",Lang.float_t, Some (Lang.float 10.),
+        Some "Timeout for network operations.";
       "", Lang.string_t, None,
         Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
     ]
@@ -2039,6 +2042,7 @@ let add_http_request name descr request =
       let headers =
         List.map (fun (x,y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
+      let timeout = Lang.to_float (List.assoc "timeout" p) in
       let url = Lang.to_string (List.assoc "" p) in
       let host, port, url = Http.url_split_host_port url in
       let port = match port with Some p -> p | None -> 80 in
@@ -2051,9 +2055,11 @@ let add_http_request name descr request =
             Http.Post data
           end
       in
+      let log = log#f 4 "%s" in
       let ((x,y,z),headers,data) =
         try
-          Http.full_request ~headers ~port ~host ~url ~request ()
+          Http.full_request ~log ~timeout ~headers 
+                            ~port ~host ~url ~request ()
         with
           | e ->
              (* Here we return a fake code.. *)
