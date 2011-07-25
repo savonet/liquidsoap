@@ -22,6 +22,7 @@
 
 exception Internal
 exception Read_error
+exception Disconnected
 
 (** Error translator *)
 let error_translator e =
@@ -175,7 +176,7 @@ exception Redirection of string
 
 class http ~kind
         ~playlist_mode ~poll_delay ~track_on_meta ?(force_mime=None)
-        ~bind_address ~autostart ~bufferize ~max
+        ~bind_address ~autostart ~bufferize ~max ~timeout
         ~debug ?(logfile=None)
         ~user_agent url =
   let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
@@ -243,6 +244,11 @@ object (self)
                  create_decoder socket chunked metaint =
     connected <- true ;
     let read = read_stream socket chunked metaint self#insert_metadata in
+    let read len = 
+      let log = self#log#f 4 "%s" in
+      Utils.wait_for ~log `Read socket timeout;
+      read len
+    in
     let read =
       match logf with
         | None -> read
@@ -324,7 +330,10 @@ object (self)
           Http.connect ?bind_address host port
         in
           try
-            let (_, status, status_msg), fields = Http.request socket request in
+            let log = self#log#f 4 "%s" in
+            let (_, status, status_msg), fields = 
+               Http.request ~log ~timeout socket request 
+            in
             let content_type =
               match force_mime with
                 | Some s -> s
@@ -388,7 +397,7 @@ object (self)
                   | Failure hd -> raise Not_found
               in
               let test_playlist parser =
-                let content = Http.read socket None in
+                let content = Http.read ~timeout socket None in
                 let playlist = parser content in
                   match playlist with
                     | [] -> raise Not_found
@@ -503,6 +512,9 @@ let () =
       "buffer", Lang.float_t, Some (Lang.float 2.),
       Some "Duration of the pre-buffered data." ;
 
+      "timeout", Lang.float_t, Some (Lang.float 30.),
+      Some "Timeout for source connectionn.";
+
       "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
       Some "Treat new metadata as new track." ;
 
@@ -554,6 +566,7 @@ let () =
        let autostart = Lang.to_bool (List.assoc "autostart" p) in
        let bind_address = Lang.to_string (List.assoc "bind_address" p) in
        let user_agent = Lang.to_string (List.assoc "user_agent" p) in
+       let timeout = Lang.to_float (List.assoc "timeout" p) in
        let track_on_meta =
          Lang.to_bool (List.assoc "new_track_on_metadata" p)
        in
@@ -581,6 +594,6 @@ let () =
                    "Maximum buffering inferior to pre-buffered data"));
        let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          ((new http ~kind ~playlist_mode ~autostart ~track_on_meta
-                    ~force_mime ~bind_address ~poll_delay
+                    ~force_mime ~bind_address ~poll_delay ~timeout
                     ~bufferize ~max ~debug ~logfile ~user_agent url)
             :> Source.source))

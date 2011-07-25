@@ -30,7 +30,7 @@ class lastfm ~kind ~autostart ~poll_delay ~track_on_meta
 object (self)
   inherit Http_source.http ~kind ~playlist_mode ~poll_delay 
                            ~autostart ~bind_address ~bufferize 
-                           ~max ~track_on_meta 
+                           ~max ~track_on_meta ~timeout 
                            ~debug ~user_agent uri as http
 
   val mutable session = None

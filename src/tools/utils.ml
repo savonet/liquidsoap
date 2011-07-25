@@ -103,6 +103,35 @@ let read_all filename =
   close_in channel ;
   Buffer.contents contents
 
+exception Timeout
+
+(* Wait for [`Read], [`Write] or [`Both] for
+ * at most [timeout] seconds on the
+ * given [socket]. Raises [Timeout] 
+ * if timeout is reached. *)
+let wait_for ?(log=fun _ -> ()) event socket timeout = 
+  let max_time = Unix.gettimeofday () +. timeout in
+  let r, w = 
+    match event with
+      | `Read -> [socket],[]
+      | `Write -> [],[socket]
+      | `Both -> [socket],[socket]
+  in
+  let rec wait t =
+    let l,l',_ = Unix.select r w [] t in
+    if l=[] && l'=[] then begin
+      log (Printf.sprintf "No network activity for %.02f second(s)." t);
+      let current_time = Unix.gettimeofday () in
+      if current_time >= max_time then
+       begin
+        log "Network activity timeout! Disconnecting source." ;
+        raise Timeout 
+       end
+      else
+        wait (min 1. (max_time -. current_time))
+    end
+  in wait (min 1. timeout)
+
 (* Drop all but then [len] last bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in

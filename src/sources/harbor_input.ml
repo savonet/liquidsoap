@@ -134,24 +134,11 @@ object (self)
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
+      (* Wait for `Read event on socket. *)
+      let log = self#log#f 4 "%s" in
+      Utils.wait_for ~log `Read socket timeout;
+      (* Now read. *)
       let buf = String.make len ' ' in
-      let () =
-        let rec wait n =
-          if should_stop () then
-            raise Disconnected ;
-          let l,_,_ = Unix.select [socket] [] [] 1. in
-            if l=[] then begin
-              self#log#f 4 "No network activity for %d second(s)." n ;
-              if float n >= timeout then
-               begin
-                self#log#f 4 "Network activity timeout! Disconnecting source." ;
-                raise Disconnected ;
-               end
-              else
-               wait (n+1)
-            end
-        in wait 1
-      in
       let input = Unix.read socket buf 0 len in
       if input<=0 then raise End_of_file ;
       begin match dump with
