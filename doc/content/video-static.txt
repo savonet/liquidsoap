@@ -11,46 +11,57 @@ After briefly digging for a simple software to do that,
 which I could not find, I said "hey, why not doing it with liquidsoap"?
 Well, that is fairly easy!
 
-All you have to do is to prepare a PPN version of the picture, using 
-%%
-convert /path/to/image.jpeg /path/to/image.ppn 
-%%
-and have the mp3 or ogg file in an other place...
-
-We also disable synchronization (<code>clock.assign_new(sync=false,..)</code> 
-operator) so that liquidsoap runs as fast as possible,
-instead of decoding the music at a normal rate.
-
 Here is the code:
 
 %%(video_static.liq)
  # Log to stdout
  set("log.file",false)
  set("log.stdout",true)
- set("log.level",5)
+ set("log.level",4)
  # Enable video
- set("frame.video.width",320)
- set("frame.video.height",240)
+ set("frame.video.width",640)
+ set("frame.video.height",480)
 
  audio_file = "/tmp/bla.mp3"
- video_file = "/tmp/bla.ppm"
+ video_file = "/tmp/bla.jpg"
+
+ # Grab file's title
+ r = request.create(audio_file)
+ title = 
+   if request.resolve(r) then
+     meta = request.metadata(r)
+     meta["title"]
+   else
+     # File not readable
+     log("Error: cannot decode audio file!")
+     shutdown () 
+     ""
+   end
+ title = 
+   if title == "" then
+      "Unknow title"
+   else
+      title
+   end
 
  # The audio song.
- audio = once(single(audio_file))
+ audio = request.queue(interactive=false,queue=[r])
 
  # Create a video source with the image for video track
  video = single(video_file)
- # Disable real-time processing, to process with the maximun speed
- clock.assign_new(sync=false,[video])
 
  # Mux audio and video
- source = mux_audio(audio=audio,video)
+ #source = mux_audio(audio=audio,video)
+ source = mux_video(video=video,audio)
+
+ # Disable real-time processing, to process with the maximun speed
+ source = clock(sync=false,source)
 
  # Output to a theora file, shutdown on stop
  output.file(%ogg(%vorbis,%theora),
              id="youtube",fallible=true,
-             on_stop=shutdown,
-             "/tmp/$(title).ogv",
+             on_stop=shutdown,reopen_on_metadata=true,
+             "/tmp/#{title}.ogv",
              source)
 %%
 
