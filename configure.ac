@@ -679,6 +679,7 @@ AC_CHECK_OCAML_BINDING([dssi])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage],[sdlmixer sdlttf])
 AC_CHECK_OCAML_BINDING([camlimages.all_formats],[4.0.0])
 AC_CHECK_OCAML_BINDING([lo])
+AC_CHECK_OCAML_BINDING([json-wheel])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -908,6 +909,7 @@ cat <<EOMSG
  * Additional libraries
    - magic             : $w_MAGIC
    - lo                : $w_LO
+   - json-wheel        : $w_JSON_WHEEL
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
