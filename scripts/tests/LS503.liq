@@ -7,6 +7,8 @@
 # disable printing expected exception
 reopen.stderr("/dev/null")
 
+on_shutdown({ print("if this terminates, then TEST PASSED") })
+
 p = input.http("http://localhost:8000/nonexistent")
 o = output.icecast(%wav,fallible=true,host="nonexistent",
                     mount="test",p)
