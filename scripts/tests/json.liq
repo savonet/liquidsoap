@@ -2,7 +2,8 @@
 success = ref true
 
 def test(d,x) = 
-  if of_json(default=d,json_of(x)) == d then
+  y = of_json(default=d,json_of(x))
+  if y == d or y != x then
     success := false
   end
 end
