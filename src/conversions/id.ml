@@ -39,7 +39,7 @@ let () =
   let kind = Lang.univ_t 1 in
   Lang.add_operator "id"
     ["", Lang.source_t kind, None, None]
-    ~category:Lang.SoundProcessing
+    ~category:Lang.Conversions
     ~descr:"Does not do anything, simply forwards its input stream."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
