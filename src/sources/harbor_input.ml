@@ -60,7 +60,6 @@ object (self)
 
   val mutable relay_socket = None
   val relay_m = Mutex.create ()
-  val mutable stopped = false
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
 
@@ -82,7 +81,10 @@ object (self)
       Tutils.mutexify relay_m
         (fun _ ->
           if relay_socket <> None then 
-            (self#disconnect ; "Done")
+            begin
+             self#disconnect ~lock:false; 
+             "Done"
+            end
           else 
             "No source client connected")
     in
@@ -194,7 +196,7 @@ object (self)
               match e with
                 | Stopped
                 | Disconnected -> e
-                | _ when stopped -> Stopped
+                | _ when relay_socket = None -> Stopped
                 | _ -> e
             in 
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
@@ -203,7 +205,7 @@ object (self)
              * happends in self#disconnect. No need to
              * call it then.. *)
             if e <> Disconnected && e <> Stopped then
-              self#disconnect ;
+              self#disconnect ~lock:true;
             has_stopped () ;
             if debug then raise e 
 
@@ -227,11 +229,8 @@ object (self)
   method private sleep =
     Tutils.mutexify relay_m
      (fun () ->
-       (* Setting stopped to true
-        * avoids deadlock with self#disconnect *)
-       stopped <- true ;
        if relay_socket <> None then 
-         self#disconnect) () ;
+         self#disconnect ~lock:false) () ;
     Harbor.remove_source ~port ~mountpoint () 
 
   method register_decoder mime =
@@ -245,8 +244,6 @@ object (self)
   method relay stype (headers:(string*string) list) socket =
     Tutils.mutexify relay_m
       (fun () ->
-        if stopped then
-          raise Stopped ;
         if relay_socket <> None then
           raise Harbor.Mount_taken ;
         self#register_decoder stype ;
@@ -292,11 +289,10 @@ object (self)
          wait_polling <- Some wait
         end) ()
 
-  method disconnect =
+  method disconnect ~lock =
     let f () = 
       match relay_socket with
         | Some s -> 
-           on_disconnect () ;
            begin match dump with
              | Some f -> 
                  close_out f ; dump <- None
@@ -314,10 +310,11 @@ object (self)
            end;
            (Utils.get_some kill_polling) () ;
            kill_polling <- None ;
-           relay_socket <- None
+           relay_socket <- None ;
+           on_disconnect ()
         | None -> assert false
     in
-    if not stopped then
+    if lock then
       Tutils.mutexify relay_m f ()
     else
       f ()
