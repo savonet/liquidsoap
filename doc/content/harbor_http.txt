@@ -105,7 +105,7 @@ using the "JSON export function":json.html @json_of@:
 %%(get_json_metadata.liq)
 meta = ref []
 
-s = (..some source..)
+# s = some source
 
 # Update current metadata
 # converted in UTF8
@@ -159,7 +159,8 @@ h4. Set metadata
 Using @insert_metadata@, you can register a GET handler that
 updates the metadata of a given source. For instance:
 %%(set_json_metadata.liq)
-s = (..some source..)
+
+# s = some source
 
 # x is of type ((metadata)->unit)*source
 # first part is a function used to update
