@@ -118,9 +118,6 @@ The syntax for the internal AAC+ encoder is:
 %aacplus(channels=2, samplerate=44100, bitrate=64)
 %%
 
-This encoder is quite experimental so you should try it before 
-you put it in production.
-
 h4. External encoders
 
 For a detailed presentation of external encoders, see "this page":external_encoders.html.
