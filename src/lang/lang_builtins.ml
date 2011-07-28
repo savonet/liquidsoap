@@ -916,13 +916,19 @@ let () =
 
 let () =
   add_builtin "list.fold" ~cat:List
-    ~descr:"Fold a function on every element of a list."
+    ~descr:"Fold a function on every element of a list: \
+            list.fold(f,x1,[e1,..,en]) is f(...f(f(x1,e1),e2)...,en)."
     [ "",
       Lang.fun_t
         [false, "", Lang.univ_t 1; false, "", Lang.univ_t 2]
         (Lang.univ_t 1),
-      None, None ;
-      "", Lang.univ_t 1, None, None ;
+      None,
+      Some "Function f for which \
+            f(x,e) which will be called on every element e with \
+            the current value of x, returning the new value of x.";
+      "", Lang.univ_t 1, None,
+      Some "Initial value x1, \
+            to be updated by successive calls of f(x,e)." ;
       "", Lang.list_t (Lang.univ_t 2), None, None
     ]
     (Lang.univ_t 1)
