@@ -36,7 +36,11 @@ let rec of_json t j =
   match j with
     | Json_type.Null when f Lang.unit_t -> Lang.unit
     | Json_type.Bool b when f Lang.bool_t -> Lang.bool b
-    | Json_type.Int i when f Lang.int_t -> Lang.int i
+    (* JSON specs do not differenciate between ints
+     * and floats. Therefore, we should parse int as 
+     * floats when required.. *)
+    | Json_type.Int i when f Lang.int_t ||
+                           f Lang.float_t -> Lang.int i
     | Json_type.String s when f Lang.string_t -> Lang.string s
     | Json_type.Float x when f Lang.float_t -> Lang.float x
     | Json_type.Array l ->
