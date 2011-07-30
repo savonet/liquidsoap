@@ -26,10 +26,10 @@ let log = Dtools.Log.make ["lang";"json"]
  * the parsed json value and return if they match..
  * This comes with json_of in Lang_builtins.. *)
 let rec of_json t j =
-  let compare = Lang_types.( <: ) in
-  let f x = 
+  let (<:) = Lang_types.(<:) in
+  let f x =
     try
-      ignore(compare t x);
+      ignore (x <: t) ;
       true
      with _ -> false
   in
@@ -37,15 +37,15 @@ let rec of_json t j =
     | Json_type.Null when f Lang.unit_t -> Lang.unit
     | Json_type.Bool b when f Lang.bool_t -> Lang.bool b
     (* JSON specs do not differenciate between ints
-     * and floats. Therefore, we should parse int as 
+     * and floats. Therefore, we should parse int as
      * floats when required.. *)
-    | Json_type.Int i when f Lang.int_t ||
-                           f Lang.float_t -> Lang.int i
+    | Json_type.Int i when f Lang.int_t -> Lang.int i
+    | Json_type.Int i when f Lang.float_t -> Lang.float (float_of_int i)
     | Json_type.String s when f Lang.string_t -> Lang.string s
     | Json_type.Float x when f Lang.float_t -> Lang.float x
     | Json_type.Array l ->
        (* First, try to parse as a list. *)
-       begin 
+       begin
         try
          let t = Lang.of_list_t t in
          let l = List.map (of_json t) l in
@@ -56,17 +56,21 @@ let rec of_json t j =
           match l with
             | [j;j'] ->
                 let (t,t') = Lang.of_product_t t in
-                Lang.product (of_json t j) 
-                             (of_json t' j') 
+                Lang.product (of_json t j)
+                             (of_json t' j')
             | _ -> failwith "could not parse JSON string."
          end
        end
     | Json_type.Object l ->
+        (* Try to convert the object to a list of pairs of strings
+         * This requires the target type to be [(string*string)],
+         * currently it won't work if it is [?T] which would be
+         * obtained with of_json(default=[],...). *)
         let lt = Lang.of_list_t t in
         let (t,t') = Lang.of_product_t lt in
-        ignore(compare t Lang.string_t);
-        let l = 
-          List.map 
+        ignore (Lang.string_t <: t) ;
+        let l =
+          List.map
             (fun (x,y) -> Lang.product (Lang.string x)
                                        (of_json t' y))
             l
@@ -74,10 +78,10 @@ let rec of_json t j =
         Lang.list ~t:lt l
     | _ -> failwith "could not parse JSON string."
 
-let () = 
+let () =
   let t = Lang.univ_t 1 in
-  Lang_builtins.add_builtin 
-   ~cat:Lang_builtins.String 
+  Lang_builtins.add_builtin
+   ~cat:Lang_builtins.String
    ~descr:"Parse a json string into a liquidsoap value."
    "of_json"
    ["default", t, None, Some "Default value if string cannot \
@@ -87,11 +91,11 @@ let () =
      let default = List.assoc "default" p in
      let s = Lang.to_string (List.assoc "" p) in
      try
-       let json = 
-         Json_io.json_of_string ~allow_comments:true ~recursive:true s 
+       let json =
+         Json_io.json_of_string ~allow_comments:true ~recursive:true s
        in
-       of_json default.Lang.t json       
-     with 
-       | e -> 
+       of_json default.Lang.t json
+     with
+       | e ->
           log#f 4 "JSON parsing failed: %s" (Utils.error_message e);
-          default)   
+          default)
