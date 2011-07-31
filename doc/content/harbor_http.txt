@@ -26,12 +26,11 @@ where:
 The @handler@ function returns HTTP and HTML data to be sent to the client,
 for instance:
 %%
-HTTP/1.1 200 OK\r\n
-Content-type: text/html\r\n
-Content-Length: 35\r\n
-\r\n
-<html><body>It works!</body></html>\r\n
-\r\n
+HTTP/1.1 200 OK\r\n\
+Content-type: text/html\r\n\
+Content-Length: 35\r\n\
+\r\n\
+<html><body>It works!</body></html>
 %%
 (@\r\n@ should always be used for line return
 in HTTP content)
