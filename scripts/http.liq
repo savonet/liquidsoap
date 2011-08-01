@@ -26,8 +26,17 @@ def http_response(~protocol="HTTP/1.1",
     end
   headers = list.map(fun (x) -> "#{fst(x)}: #{snd(x)}",headers)
   headers = string.concat(separator="\r\n",headers)
+  # If no headers are provided, we should avoid
+  # having an empty line for them. Therefore, we also
+  # conditionally add the final \r\n here.
+  headers =
+    if headers != "" then
+      "#{headers}\r\n"
+    else
+      headers
+    end
   "#{protocol} #{code} #{status}\r\n\
-   #{headers}\r\n\
+   #{headers}\
    \r\n\
    #{data}"
 end
