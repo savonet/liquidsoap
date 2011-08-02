@@ -6,7 +6,8 @@ include $(top_srcdir)/Makefile.rules
 
 test:
 	@for i in $(wildcard *.liq) ; do \
-	  echo -n "$$i... " ; $(top_srcdir)/src/liquidsoap -q ../pervasives.liq - < ./$$i | head -n 1 ; \
+	  echo -n "$$i... " ; $(top_srcdir)/src/liquidsoap -q ../pervasives.liq - < ./$$i | \
+		tee /dev/null - | head -n 1 ; \
 	done
 	@echo -n "type_errors.pl... " ; \
 	  if (./type_errors.pl > /dev/null 2> /dev/null) ; then \
