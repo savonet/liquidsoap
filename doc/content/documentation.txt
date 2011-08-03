@@ -42,6 +42,7 @@ h4@specific. Specific tutorials
 
 * "Blank detection":blank.html
 * "Customize metadata":metadata.html
+* "Seek and cue support":seek.html: seek and set cue-in and cue-out points in sources.
 * "External decoders":external_decoders.html: use an external program for decoding audio files.
 * "External streams":external_streams.html: use an external program for streaming audio data.
 * "External encoders":external_encoders.html: use an external audio encoding program.
