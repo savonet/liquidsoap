@@ -42,9 +42,9 @@ let () =
         Register.register_encoder "AAC+/libaacplus/dynlink"
       | None   -> assert false
   in
-  Hashtbl.add Utils.dynlink_list
+  Hashtbl.add Dyntools.dynlink_list
      "aacplus encoder"
-     { Utils.
+     { Dyntools.
         path = path;
         files = ["aacplus";"aacplus_loader"];
         load = load }

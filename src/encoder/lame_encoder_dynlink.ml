@@ -42,9 +42,9 @@ let () =
           Register.register_encoder "MP3/liblame/dynlink"
       | None   -> assert false
   in
-  Hashtbl.add Utils.dynlink_list
+  Hashtbl.add Dyntools.dynlink_list
      "lame encoder"
-     { Utils.
+     { Dyntools.
         path = path;
         files = ["lame";"lame_loader"];
         load = load }

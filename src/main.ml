@@ -409,7 +409,7 @@ let options =
 
       ["--dynamic-plugins-dir"],
        Arg.String (fun d ->
-         Utils.load_plugins_dir d
+         Configure.load_plugins_dir d
        ),
        "Directory where to look for plugins.";
 
@@ -491,8 +491,8 @@ let absolute s =
  * these should be loaded as early as possible since we want to be
  * able to use them in scripts... *)
 let () =
-  Utils.load_dynlinks ();
-  Utils.load_plugins_dir Configure.plugins_dir
+  Configure.load_dynlinks ();
+  Configure.load_plugins_dir Configure.plugins_dir
 
 (* Startup *)
 let () =

@@ -175,8 +175,8 @@ if test "x$enable_optimize" = "xyes" ; then
 fi
 
 liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
-liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray -package dynlink"
-requires="unix threads str dynlink"
+liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
+requires="unix threads str"
 # Disable nativecode if ocamlopt is not present
 if test "$OCAMLOPT" = "no"; then 
   enable_nativecode="no"
@@ -402,14 +402,34 @@ fi
 AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
 
 #
+# Dynlink
+#
+
+AC_CHECK_OCAML_BINDING([dynlink])
+if test -z "${W_DYNLINK}"; then
+  AC_WARN([all],[dynlink module not found: liquidsoap will not be able to load dynamic plugins!])
+  cat >> src/configure.ml <<EOCONF
+let load_dynlinks _ = ()
+let load_plugins_dir _ = ()
+EOCONF
+else
+  cat >> src/configure.ml <<EOCONF
+let load_dynlinks = Dyntools.load_dynlinks
+let load_plugins_dir = Dyntools.load_plugins_dir
+EOCONF
+fi
+
+#
 # Lame
 #
 
 AC_CHECK_OCAML_BINDING([lame])
 if test -z "${W_LAME}"; then
-  if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
-     W_LAME_DYN=yes
-     w_LAME="detected at runtime"
+  if test -n "${W_DYNLINK}"; then
+    if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+       W_LAME_DYN=yes
+       w_LAME="detected at runtime"
+    fi
   fi
 fi
 AC_SUBST(W_LAME_DYN)
@@ -426,9 +446,11 @@ AC_CHECK_OCAML_BINDING([gstreamer])
 
 AC_CHECK_OCAML_BINDING([aacplus],[0.2.0])
 if test -z "${W_AACPLUS}"; then
-  if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
-     W_AACPLUS_DYN=yes
-     w_AACPLUS="detected at runtime"
+  if test -n "${W_DYNLINK}"; then
+    if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+       W_AACPLUS_DYN=yes
+       w_AACPLUS="detected at runtime"
+    fi
   fi
 fi
 AC_SUBST(W_AACPLUS_DYN)
@@ -907,6 +929,7 @@ cat <<EOMSG
    - SDL               : $w_SDL
 
  * Additional libraries
+   - dynlink           : $w_DYNLINK
    - magic             : $w_MAGIC
    - lo                : $w_LO
    - json-wheel        : $w_JSON_WHEEL

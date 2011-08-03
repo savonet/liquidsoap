@@ -184,6 +184,7 @@ $(call conditional_compilation,io,$(W_OPAL),io/opal_io.ml)
 $(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
+	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
