@@ -156,10 +156,30 @@ object (self)
         ()
     in
     fun () ->
+    let rollback x =
+      match x with
+        (* Erroneous sources are also put to
+         * sleep here: the leave operation
+         * below will not apply (an exception
+         * will be raised before) and we want
+         * to be absolutely sure all processed
+         * sources have been put to sleep. 
+         * TODO: make sure source#leave is idempotent? *)
+        | `Error    (s:active_source)
+        | `Woken_up (s:active_source)
+        | `Started  (s:active_source) ->
+             begin 
+              try
+               s#leave (s:>source)
+              with e ->
+                 log#f 2 "Error when leaving output %s: %s!"
+                          s#id (Utils.error_message e)
+             end
+    in
     let to_start =
       if to_start <> [] then
         log#f 4 "Starting %d sources..." (List.length to_start) ;
-      List.map
+      Utils.map_rollback ~rollback
         (fun (s:active_source) ->
            try s#get_ready [(s:>source)] ; `Woken_up s with
              | e when !started = `Yes ->
@@ -169,7 +189,7 @@ object (self)
         to_start
     in
     let to_start =
-      List.map
+      Utils.map_rollback ~rollback
         (function
            | `Error s -> `Error s
            | `Woken_up (s:active_source) ->
