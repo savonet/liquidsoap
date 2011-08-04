@@ -33,8 +33,17 @@ let encoder wav =
     (float sample_rate) /. (float (Lazy.force Frame.audio_rate))
   in
   let converter = Audio_converter.Samplerate.create channels in
+  let len = 
+    match wav.duration with
+      | None -> None
+      | Some d -> 
+          Some (
+            int_of_float (d *. (float channels) *. 
+                               (float sample_rate) *.
+                               (float sample_size) /. 8.))
+  in
   let header =
-    Wav.header ~channels ~sample_rate ~sample_size ()
+    Wav.header ?len ~channels ~sample_rate ~sample_size ()
   in
   let need_header = ref wav.header in
   let encode frame start len =

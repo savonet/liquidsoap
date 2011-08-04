@@ -68,12 +68,18 @@ struct
   type t = { samplerate : int;
              samplesize : int;
              channels   : int;
+             duration   : float option;
              header     : bool }
 
   let to_string w =
+    let duration = 
+      match w.duration with
+        | None -> ""
+        | Some d -> Printf.sprintf ",duration=%f" d
+    in
     Printf.sprintf
-      "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b)"
-      w.samplerate w.channels w.samplesize w.header
+      "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
+      w.samplerate w.channels w.samplesize w.header duration
 
 end
 

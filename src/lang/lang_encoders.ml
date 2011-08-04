@@ -62,6 +62,7 @@ let mk_wav params =
                     channels   = 2 ;
                     samplesize = 16;
                     header = true;
+                    duration = None;
                     samplerate = 44100 } in
   let wav =
     List.fold_left
@@ -77,6 +78,8 @@ let mk_wav params =
               { f with Encoder.WAV.channels = 1 }
           | ("channels",{ term = Int c }) ->
               { f with Encoder.WAV.channels = c }
+          | ("duration",{ term = Float d }) ->
+              { f with Encoder.WAV.duration = Some d }
           | ("samplerate",{ term = Int i }) ->
               { f with Encoder.WAV.samplerate = i }
           | ("samplesize",({ term = Int i } as t)) ->

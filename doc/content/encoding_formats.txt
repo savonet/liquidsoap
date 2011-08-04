@@ -29,8 +29,17 @@ h4. MP3
 h4. WAV
 
 %%
-%wav(stereo=true)
+%wav(stereo=true, channels=2, samplesize=16, header=true, duration=10.)
 %%
+
+If @header@ is @false@, the encoder outputs raw PCM. @duration@ is optional
+and is used to set the WAV length header.
+
+Because Liquidsoap encodes a possibly infinite stream, there
+is no way to know in advance the duration of encoded data. Since WAV header
+has to be written first, by default its length is set to the maximun possible 
+value. If you know the expected duration of the encoded data and you actually 
+care about the WAV length header then you should use this parameter.
 
 h4. Ogg
 
