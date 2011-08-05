@@ -1831,6 +1831,22 @@ let () =
          Lang.float (try Request.duration f with Not_found -> -1.))
 
 let () =
+  add_builtin "file.exists" ~cat:Liq
+    ["",Lang.string_t,None,None] Lang.bool_t
+    ~descr:"Returns true is the file or directory exists."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+         Lang.bool (Sys.file_exists f))
+
+let () =
+  add_builtin "is_directory" ~cat:Liq
+    ["",Lang.string_t,None,None] Lang.bool_t
+    ~descr:"Returns true is the directory exists."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+         Lang.bool (Sys.is_directory f))
+
+let () =
   add_builtin "playlist.parse" ~cat:Liq
     ["", Lang.string_t,None,None]
     (Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t))
