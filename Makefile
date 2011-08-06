@@ -13,8 +13,6 @@ distclean: clean
 	       src/configure.ml Makefile.defs scripts/liquidsoap.initd \
 	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
 	       scripts/liquidtts gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
-tild-clean:
-	find . -name '*~' -exec rm \{\} \;
 
 test:
 	$(MAKE) -C scripts/tests test

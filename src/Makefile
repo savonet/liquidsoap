@@ -304,7 +304,7 @@ install-local: all-auto install-plugin-dir $(INSTALL_PLUGINS)
 	$(INSTALL_PROGRAM) liquidsoap $(bindir)
 ifneq ($(BYTE),)
   ifneq ($(NO_CUSTOM),)
-	$(OCAMLFIND) install liquidsoap META dllliquidsoap.so $(widlcard plugins/dll*.so)
+	$(OCAMLFIND) install liquidsoap META dllliquidsoap.so $(wildcard plugins/dll*.so)
   else
 	$(OCAMLFIND) install liquidsoap META $(wildcard plugins/dll*.so)
   endif

@@ -9,6 +9,7 @@
  [] Check files in liquidsoap_doc_sources in the Makefile.
  [] Update dependencies in INSTALL.
  [] Fill-in CHANGES, with the release date.
+ [] make clean
  [] make tarball
 
 At least on one configuration (preferably all-yes)
