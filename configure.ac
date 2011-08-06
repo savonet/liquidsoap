@@ -301,8 +301,7 @@ AC_SUBST(W_OPAL)
 # Graphics
 #
 
-# ocamlfind query graphics is not enough, but linking seems okay
-AC_CHECK_OCAML_BINDING([graphics],[],[],[],[],[],[${OCAMLFIND} ocamlc -linkpkg -package graphics -o /dev/null])
+AC_CHECK_OCAML_BINDING([graphics])
 
 AC_ARG_ENABLE([graphics],AC_HELP_STRING([--disable-graphics],[don't use the graphics library]))
 if test "x$enable_graphics" = "xno" ; then
@@ -314,26 +313,27 @@ fi
 # PCRE
 #
 
-AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
+AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
 
 #
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[],[],[1],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.4.1],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[0.4.1],[],[1],[],[1])
+
 # Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
   if test "${CAMLP4O}" != "no" ; then
     with_duppy_syntax_dir=${with_duppy_dir}
   fi
 fi
-AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.1],[],[],[],[ ])
+AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.1],[],[],[],[1],[duppy])
 if test -n "${w_DUPPY_SYNTAX}"; then
   if test "${CAMLP4O}" != "no"; then
     if test -z "${DUPPY_SYNTAX_path}"; then
@@ -352,7 +352,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.1.2])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[],[],[1],[],[1])
 
 #
 # xmlplaylist
@@ -399,21 +399,43 @@ AC_CHECK_OCAML_BINDING([flac])
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
-AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[],[flac])
 
 #
 # Dynlink
 #
 
-AC_CHECK_OCAML_BINDING([dynlink])
+AC_CHECK_OCAML_BINDING([dynlink],[],[],[],[],[1])
+# Dynlink may be for bytecode only..
+AC_MSG_CHECKING([whether ocaml compiler supports dynlink])
+if test -n "${W_DYNLINK}"; then
+  DYN_TEST_FILE=`mktemp XXXX.ml`
+  trap "rm -f $DYN_TEST_FILE; exit" SIGHUP SIGINT SIGTERM
+  echo "module Foo = Dynlink" > $DYN_TEST_FILE
+  if ! $OCAMLC -linkpkg -package dynlink -o /dev/null $DYN_TEST_FILE >/dev/null 2>&1; then
+    AC_MSG_RESULT([no])
+    AC_WARN([Dynlink module is installed but not available])
+    AC_WARN([Are you compiling to native code with ocaml < 3.11 ?])
+    AC_WARN([If your version of ocaml is >= 3.11, you may want to])
+    AC_WARN([report that issue to your distribution.])
+    W_DYNLINK=""
+    w_DYNLINK="no (not available)"
+  else
+    AC_MSG_RESULT([yes])
+  fi
+  rm -f $DYN_TEST_FILE
+fi
+
 if test -z "${W_DYNLINK}"; then
-  AC_WARN([all],[dynlink module not found: liquidsoap will not be able to load dynamic plugins!])
+  AC_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
   cat >> src/configure.ml <<EOCONF
+let dynlink = false
 let load_dynlinks _ = ()
 let load_plugins_dir _ = ()
 EOCONF
 else
   cat >> src/configure.ml <<EOCONF
+let dynlink = true
 let load_dynlinks = Dyntools.load_dynlinks
 let load_plugins_dir = Dyntools.load_plugins_dir
 EOCONF
@@ -698,10 +720,10 @@ AC_CHECK_OCAML_BINDING([portaudio])
 AC_CHECK_OCAML_BINDING([pulseaudio])
 AC_CHECK_OCAML_BINDING([ladspa])
 AC_CHECK_OCAML_BINDING([dssi])
-AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage],[sdlmixer sdlttf])
+AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 AC_CHECK_OCAML_BINDING([lo])
-AC_CHECK_OCAML_BINDING([json-wheel])
+AC_CHECK_OCAML_BINDING([json-wheel],[],[],[],[],[1])
 
 #
 # Tuning (See INSTALL to understand these features)

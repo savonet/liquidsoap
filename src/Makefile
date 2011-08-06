@@ -205,12 +205,12 @@ synth = synth/keyboard.ml synth/synth_op.ml
 
 $(call conditional_compilation,synth,$(W_DSSI),synth/dssi_op.ml)
 
-builtins = lang/lang_builtins.ml
+builtins = lang/lang_builtins.ml \
+	$(if $(W_JSON_WHEEL),lang/builtins_json.ml)
 
 $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)
 $(call conditional_compilation,builtins,$(W_CRY),lang/builtins_cry.ml)
-$(call conditional_compilation,builtins,$(W_JSON_WHEEL),lang/builtins_json.ml)
 
 liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \

@@ -357,9 +357,17 @@ let options =
 
       ["--debug"],
       Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
-      "Print debugging log messages." ;
-    
-      ["--errors-as-warnings"],
+      "Print debugging log messages." ]
+      @
+      (if Configure.dynlink then
+          [["--dynamic-plugins-dir"],
+              Arg.String (fun d ->
+              Dyntools.load_plugins_dir d),
+           "Directory where to look for plugins."]
+        else
+          [])
+      @ 
+      [["--errors-as-warnings"],
       Arg.Set Lang_values.errors_as_warnings,
       "Issue warnings instead of fatal errors for unused variables \
        and ignored expressions. If you are not sure about it, it is better \
@@ -407,12 +415,6 @@ let options =
         "List all plugins (builtin scripting values, \
          supported formats and protocols)." ;
 
-      ["--dynamic-plugins-dir"],
-       Arg.String (fun d ->
-         Configure.load_plugins_dir d
-       ),
-       "Directory where to look for plugins.";
-
       ["--no-pervasives"],
       Arg.Clear pervasives,
       Printf.sprintf
@@ -445,6 +447,9 @@ let options =
 
       ]
 
+     in 
+     let opts = 
+       List.sort (fun (x,_,_) (y,_,_) -> compare x y) opts
      in opts@LiqConf.args Configure.conf)
 
 let () = 
