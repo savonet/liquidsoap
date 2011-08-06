@@ -1,3 +1,20 @@
+1.0.0 beta3 (05-08-2011)
+========================
+- Feature: Added of_json to parse json data. Depends
+  on json-wheel.
+- Feature: Added file.exists and is_directory.
+- Feature: Added timeout options for:
+    telnet, harbor (server), input.icecast
+- Enhancement: finer-grained timeout detection
+  for input.harbor and input.http
+- Fix: deadlock when disconnecting harbor users
+  through server/telnet command.
+- Fix: dynlink detection in native mode with old
+  versions of ocaml
+- Fix: deadlock when an exception is raised during
+  startup while the clock is owned by a source
+  (e.g. input.alsa). See LS-527 for more details.
+
 1.0.0 beta2.1 (07-07-2011)
 ==========================
 - Fix: playlist.safe() was unusable in beta2, as a side effect of removing

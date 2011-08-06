@@ -1,5 +1,5 @@
 
- Liquidsoap 1.0.0 beta2.1
+ Liquidsoap 1.0.0 beta3
  ------------------------
 
  Below is a list of dependencies, mostly OCaml libraries.
@@ -18,7 +18,7 @@
  Mandatory dependencies :
 
    ocaml-dtools>=0.2.2
-   ocaml-duppy>=0.4.0
+   ocaml-duppy>=0.4.1
    ocaml-mm>=0.1.0
    ocaml-pcre
 
@@ -30,7 +30,7 @@
 
  Optional dependencies :
 
-   ocaml-cry>=0.2.0          for sending to Shoutcast & Icecast
+   ocaml-cry>=0.2.1          for sending to Shoutcast & Icecast
    ocaml-ogg>=0.4.2          for Ogg codecs
    ocaml-vorbis>=0.6.0       for Ogg/Vorbis codec
    ocaml-theora>=0.3.0       for Ogg/Theora codec

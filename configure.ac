@@ -7,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 
 # Remove +svn and set svn_snapshot to false
 # before releasing
-AC_INIT([liquidsoap],[1.0.0-beta2.1])
-svn_snapshot=true
-version=1.0.0-beta2.1
+AC_INIT([liquidsoap],[1.0.0-beta3])
+svn_snapshot=false
+version=1.0.0-beta3
 
 if test $svn_snapshot != "false"; then
   version="$version+svn"
@@ -875,7 +875,7 @@ cat <<EOMSG
  Compiler       : $OCAMLC
  Version        : $OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION
  OS             : $OS_TYPE
- PLugins        :$PLUGINS
+ Plugins        :$PLUGINS
  OCAML_CFLAGS   : $liquidsoap_ocamlcflags
  OCAML_LFLAGS   : $liquidsoap_ocamllflags
  CFLAGS         : $CFLAGS
