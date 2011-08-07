@@ -1831,7 +1831,7 @@ let () =
          Lang.float (try Request.duration f with Not_found -> -1.))
 
 let () =
-  add_builtin "file.exists" ~cat:Liq
+  add_builtin "file.exists" ~cat:System
     ["",Lang.string_t,None,None] Lang.bool_t
     ~descr:"Returns true is the file or directory exists."
     (fun p ->
@@ -1839,7 +1839,7 @@ let () =
          Lang.bool (Sys.file_exists f))
 
 let () =
-  add_builtin "is_directory" ~cat:Liq
+  add_builtin "is_directory" ~cat:System
     ["",Lang.string_t,None,None] Lang.bool_t
     ~descr:"Returns true is the directory exists."
     (fun p ->

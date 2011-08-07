@@ -95,6 +95,12 @@ test: html
 	@echo ""
 	@find html/scripts | grep '\.pl' | sort | ./scripts/test_snippets "perl -c"
 
+spell-check: $(CONTENT:.txt=.txt.spell)
+
+content/%.txt.spell: content/%.txt
+	-aspell -d en_US-w_accents -c $(<)
+	touch $(@)
+
 doc-install: $(HTML)
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
 	cp -rf html/* $(datadir)/doc/$(DISTDIR)/html
@@ -102,7 +108,7 @@ doc-install: $(HTML)
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
 
 clean-local:
-	rm -rf html $(TEX) content/reference.txt content/settings.txt
+	rm -rf html $(TEX) content/reference.txt content/settings.txt content/*.txt.spell
 
 RCP=rsync -rLtCP --include="*.exe" --exclude="*.swp" --exclude="*.svn" \
 	--delete --stats

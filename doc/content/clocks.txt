@@ -176,7 +176,7 @@ With both functions, the new clock will follow (the computer's idea of)
 real time, unless <code>sync=false</code> is passed, in which case
 it will run as fast as possible.
 
-The old (pre-1.0.0) setting <code>root.sync</code> is superseeded
+The old (pre-1.0.0) setting <code>root.sync</code> is superseded
 by <code>clock.assign_new()</code>.
 If you want to run an output as fast as your CPU allows,
 just attach it to a new clock without synchronization:

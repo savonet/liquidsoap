@@ -73,7 +73,7 @@ packaging system.
 * ocaml-xmlplaylist for XML-based playlist formats
 * ocaml-soundtouch for soundtouch audio effects
 * ocaml-lastfm and ocaml-xmllight for lastfm protocol support
-* "camomile":http://camomile.sourceforge.net/ for detecting metadata encodings and re-encoding them to utf8
+* "camomile":http://camomile.sourceforge.net/ for detecting metadata encoding and re-encoding them to utf8
 * ocaml-alsa for ALSA input/output
 * ocaml-ao for AO I/O
 * ocaml-portaudio for Portaudio I/O
