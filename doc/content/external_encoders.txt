@@ -15,7 +15,7 @@ The main operators that can be used with external encoders are:
 * @output.icecast@
 
 In order to use external encoders with these operators, you have to use the 
-@%external@ "encoding format":encoding_formats.txt.
+@%external@ "encoding format":encoding_formats.html.
 Its syntax is:
 
 %%
