@@ -70,6 +70,18 @@ let () =
 let log = Dtools.Log.make ["lang"]
 
 let () =
+  add_builtin ~cat:Liq "eval"
+    ~descr:"Evaluate a string as an expression in the toplevel environment."
+    ~flags:[Lang.Hidden]
+    ["",Lang.string_t,None,None]
+    Lang.string_t
+    (fun p ->
+       let s = Lang.to_string (Lang.assoc "" 1 p) in
+         match Lang.eval s with
+           | None -> Lang.string ""
+           | Some v -> Lang.string (Lang.print_value v))
+
+let () =
   let set cast path v =
     try
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v

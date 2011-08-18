@@ -723,6 +723,23 @@ let from_string ?parse_only ~lib expr =
     from_in_channel ?parse_only ~ns:None ~lib i ;
     close_in i
 
+let eval s =
+  try
+    let lexbuf = Lexing.from_string s in
+    let tokenizer = Lang_pp.token "/nonexistent" in
+    let expr =
+      Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
+    in
+      Clock.collect_after
+        (fun () ->
+           Term.check ~ignored:false expr ;
+           Some (Term.eval ~env:Term.builtins#get_all expr))
+  with e ->
+    Printf.eprintf
+      "Evaluating %S failed: %s!"
+      s (Printexc.to_string e) ;
+    None
+
 let from_in_channel ?parse_only ~lib x =
   from_in_channel ?parse_only ~ns:None ~lib x
 

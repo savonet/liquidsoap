@@ -265,3 +265,6 @@ val from_string     : ?parse_only:bool -> lib:bool -> string -> unit
 
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit
+
+(** Evaluate a string *)
+val eval : string -> value option
