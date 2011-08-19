@@ -152,16 +152,10 @@ object (self)
   (** Lock for avoiding multiple reloads at the same time. *)
   val reloading = Mutex.create ()
 
-  (** Randomly exchange files in the playlist.
-    * Must be called within mylock critical section. *)
-  method randomize_playlist =
-    assert (Tutils.seems_locked mylock) ;
-    Utils.randomize !playlist
-
   (** (re-)read playlist_file and update datas.
     [reload] should be true except on first load, in that case playlist
     resolution failures won't result in emptying the current playlist.*)
-  method load_playlist ?(uri=playlist_uri) reload =
+  method load_playlist ?(uri=playlist_uri) is_reload =
     let _playlist =
       let read_playlist filename =
         if is_dir filename then begin
@@ -227,14 +221,17 @@ object (self)
         (List.filter self#is_valid _playlist)
     in
       (* TODO distinguish error and empty if fallible *)
-      if _playlist = [] && reload then
+      if _playlist = [] && is_reload then
         self#log#f 3 "Got an empty list: keeping the old one."
       else begin
         (* Don't worry if a reload fails,
          * otherwise, the source type must be aware of the failure *)
-        Mutex.lock mylock ;
         assert (not (self#stype = Infallible && _playlist = [])) ;
-        playlist := Array.of_list _playlist ;
+        let array_playlist = Array.of_list _playlist in
+        Utils.randomize array_playlist ;
+
+        Mutex.lock mylock ;
+        playlist := array_playlist ;
         playlist_uri <- uri ;
         (* Even in Normal playing mode (no randomization) it doesn't
          * necessarily make sense to keep the old index. It would if the
@@ -244,7 +241,13 @@ object (self)
          * to avoid useless reloading. *)
         index_played <- -1 ;
         self#expire (fun _ -> true) ;
+        begin match reload with
+          | Never -> ()
+          | Every_N_rounds n -> round_c <- n
+          | Every_N_seconds n -> reload_t <- Unix.time ()
+        end ;
         Mutex.unlock mylock ;
+
         self#log#f 3
           "Successfully loaded a playlist of %d tracks."
           (Array.length !playlist)
@@ -262,12 +265,11 @@ object (self)
       end else
         Mutex.try_lock reloading
     then begin
-      self#reload_playlist_internal new_playlist_uri ;
+      self#load_playlist ?uri:new_playlist_uri true ;
       Mutex.unlock reloading
     end
 
-  (** Schedule a reloading of the playlist, unless it's already
-    * being reloaded. *)
+  (** Schedule a reloading of the playlist, unless it's already being reloaded. *)
   method reload_playlist ?new_playlist_uri () =
     (* Do not attempt to lock the [reloading] mutex before scheduling
      * a task: this would create an inter-thread lock/unlock,
@@ -279,22 +281,6 @@ object (self)
           handler  = (fun _ ->
             self#reload_playlist_nobg ?new_playlist_uri () ;
             []) }
-
-  method reload_playlist_internal new_playlist_uri =
-
-    assert (Tutils.seems_locked reloading) ;
-
-    self#load_playlist ?uri:new_playlist_uri true ;
-
-    Mutex.lock mylock ;
-    if Randomize = random then
-      self#randomize_playlist ;
-    begin match reload with
-      | Never -> ()
-      | Every_N_rounds n -> round_c <- n
-      | Every_N_seconds n -> reload_t <- Unix.time ()
-    end ;
-    Mutex.unlock mylock
 
   method reload_update round_done =
     (* Must be called by somebody who owns [mylock] *)
@@ -323,7 +309,7 @@ object (self)
               let round =
                 if index_played >= Array.length !playlist
                 then ( index_played <- 0 ;
-                       self#randomize_playlist ;
+                       Utils.randomize !playlist ;
                        true )
                 else false
               in
@@ -395,8 +381,8 @@ object
   inherit Request_source.queued ~kind ~name:"playlist"
             ~length ~default_duration ~timeout ~conservative () as super
 
-  method reload_playlist_internal new_uri =
-    pl#reload_playlist_internal new_uri ;
+  method load_playlist ?uri is_reload =
+    pl#load_playlist ?uri is_reload ;
     super#notify_new_request
 
   method wake_up activation =
