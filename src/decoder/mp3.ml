@@ -157,12 +157,18 @@ let get_type filename =
     Tutils.finalize ~k:(fun () -> Mad.close fd)
       (fun () ->
          ignore(Mad.decode_frame_float fd);
-         let rate,channels,_ = Mad.get_output_format fd in
+         let f = Mad.get_frame_format fd in
+           let layer = 
+             match f.Mad.layer with
+               | Mad.Layer_I   -> "I"
+               | Mad.Layer_II  -> "II"
+               | Mad.Layer_III -> "III"
+           in
            log#f 4
-             "Libmad recognizes %S as MP3 (%dHz,%d channels)."
-             filename rate channels ;
+             "Libmad recognizes %S as MP3 (layer %s,%ikbps,%dHz,%d channels)."
+             filename layer (f.Mad.bitrate/1000) f.Mad.samplerate f.Mad.channels ;
            { Frame.
-             audio = channels ;
+             audio = f.Mad.channels ;
              video = 0 ;
              midi  = 0 })
 
