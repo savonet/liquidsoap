@@ -1,6 +1,8 @@
 # List of HTTP codes. Stolen from en.wikipedia.org..
 
-http_codes = [
+# List of HTTP response codes and statuses.
+# @category Interaction
+def http_codes = [
 ("100","Continue"),
 #This means that the server has received the request headers, and that the client
 #should proceed to send the request body (in the case of a request for which a
@@ -299,3 +301,4 @@ http_codes = [
 ("510","Not Extended")
 #Further extensions to the request are required for the server to fulfill it.
 ]
+end

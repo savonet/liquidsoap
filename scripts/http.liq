@@ -3,6 +3,7 @@
 %include "http_codes.liq"
 
 # Create a HTTP response string
+# @category Interaction
 # @param ~protocol HTTP protocol used.
 # @param ~code Response code.
 # @param ~headers Response headers.

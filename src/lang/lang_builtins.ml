@@ -1845,7 +1845,7 @@ let () =
 let () =
   add_builtin "file.exists" ~cat:Sys
     ["",Lang.string_t,None,None] Lang.bool_t
-    ~descr:"Returns true is the file or directory exists."
+    ~descr:"Returns true if the file or directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.bool (Sys.file_exists f))
@@ -1853,7 +1853,7 @@ let () =
 let () =
   add_builtin "is_directory" ~cat:Sys
     ["",Lang.string_t,None,None] Lang.bool_t
-    ~descr:"Returns true is the directory exists."
+    ~descr:"Returns true if the directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.bool (Sys.is_directory f))
