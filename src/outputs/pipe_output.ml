@@ -213,9 +213,15 @@ class file_output p =
   let append = Lang.to_bool (List.assoc "append" p) in
   let perm = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
+  let on_close = List.assoc "on_close" p in
+  let on_close s =
+    Lang.to_unit (Lang.apply ~t:Lang.unit_t on_close ["",Lang.string s])
+  in
 object (self)
   inherit piped_output p 
   inherit chan_output p
+
+  val mutable current_filename = None
 
   method open_chan =
     let mode =
@@ -233,11 +239,15 @@ object (self)
     let filename = self#interpolate ~subst filename in
     Utils.mkdir ~perm:dir_perm (Filename.dirname filename) ;
     let fd = open_out_gen mode perm filename in
+    current_filename <- Some filename ;
     set_binary_mode_out fd true ;
     fd
 
   method close_chan chan =
-    close_out chan
+    close_out chan ;
+    on_close (Utils.get_some current_filename) ;
+    current_filename <- None
+
 end
 
 let file_proto kind = 
@@ -260,7 +270,13 @@ let file_proto kind =
     Some "Permission of the directories if some have to be created, \
           up to umask. Although you can enter values in octal notation \
           (0oXXX) they will be displayed in decimal (for instance, \
-          0o777 = 7*8^2 + 7*8 + 7 = 511)." ] @
+          0o777 = 7*8^2 + 7*8 + 7 = 511)." ;
+   
+    "on_close",
+     Lang.fun_t [false,"",Lang.string_t] Lang.unit_t,
+     Some (Lang.val_cst_fun ["",Lang.string_t,None] Lang.unit),
+     Some "This function will be called for each file, after that it is \
+           finished and closed. The filename will be passed as argument."] @
   (chan_proto kind "Filename where to output the stream.")
 
 

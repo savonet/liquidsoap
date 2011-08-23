@@ -466,6 +466,10 @@ let apply f p ~t =
 
 (** {1 High-level manipulation of values} *)
 
+let to_unit t = match t.value with
+  | Unit -> ()
+  | _ -> assert false
+
 let to_bool t = match t.value with
   | Bool b -> b
   | _ -> assert false

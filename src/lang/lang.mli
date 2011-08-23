@@ -147,6 +147,7 @@ val add_operator :
 
 (** {2 Manipulation of values} *)
 
+val to_unit : value -> unit
 val to_bool : value -> bool
 val to_string : value -> string
 val to_string_getter : value -> unit -> string
