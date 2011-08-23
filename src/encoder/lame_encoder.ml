@@ -52,6 +52,8 @@ end
 
 module Register(Lame : Lame_t) = 
 struct
+  type id3v2 = Waiting | Rendered of string | Done
+
   let register_encoder name =
     let create_encoder ~samplerate ~bitrate ~stereo =
       let enc = Lame.create_encoder () in
@@ -77,17 +79,35 @@ struct
                                ~bitrate:mp3.bitrate 
                                ~stereo:mp3.stereo 
       in
+      let id3v2 = ref Waiting in
       let encode frame start len =
         let start = Frame.audio_of_master start in
         let b = AFrame.content_of_type ~channels frame start in
         let len = Frame.audio_of_master len in
-        if channels = 1 then
-          Lame.encode_buffer_float_part enc b.(0) b.(0) start len
-        else
-          Lame.encode_buffer_float_part enc b.(0) b.(1) start len
+        let encoded = 
+          if channels = 1 then
+            Lame.encode_buffer_float_part enc b.(0) b.(0) start len
+          else
+            Lame.encode_buffer_float_part enc b.(0) b.(1) start len
+        in
+        match !id3v2 with
+          | Rendered s ->
+              id3v2 := Done; 
+              (Printf.sprintf "%s%s" s encoded)
+          | _ -> encoded
+      in
+      let insert_metadata = 
+        match mp3.id3v2 with
+          | Some f -> 
+             (* Only insert metadata at the beginning.. *)
+             (fun m ->
+               match !id3v2 with
+                 | Waiting -> id3v2 := Rendered (f m)
+                 | _ -> ())
+          | None -> (fun _ -> ())
       in
         {
-          insert_metadata = (fun m -> ()) ;
+          insert_metadata = insert_metadata ;
           encode = encode ;
           header = None ;
           stop = (fun () -> "")

@@ -23,8 +23,11 @@ the number of channels (whether is is passed as an integer or a boolean).
 h4. MP3
 
 %%
-%mp3(stereo=true, samplerate=44100, bitrate=128, quality=5)
+%mp3(stereo=true, samplerate=44100, bitrate=128, quality=5, id3v2=false)
 %%
+
+* Only one of @bitrate@ or @quality@ should be specified.
+* @id3v2=true@ is only valid if liquidsoap has been compiled with taglib support.
 
 h4. WAV
 

@@ -44,8 +44,8 @@ let get_tags fname =
                             ~log fname) then
     raise Not_found ;
   try
-    let f = open_file fname in
-    Tutils.finalize ~k:(fun () -> close_file f)
+    let f = File.open_file fname in
+    Tutils.finalize ~k:(fun () -> File.close_file f)
     (fun () -> 
       let gt l (n, t) =
         try
@@ -58,13 +58,13 @@ let get_tags fname =
       in
       List.fold_left gt []
         [
-          "Title", tag_title;
-          "Artist", tag_artist;
-          "Album", tag_album;
-          "Track", (fun x -> string_of_int (tag_track x));
-          "Year", (fun x -> string_of_int (tag_year x));
-          "Genre", tag_genre;
-          "Comment", tag_comment;
+          "title", tag_title;
+          "artist", tag_artist;
+          "album", tag_album;
+          "tracknumber", (fun x -> string_of_int (tag_track x));
+          "year", (fun x -> string_of_int (tag_year x));
+          "genre", tag_genre;
+          "comment", tag_comment;
         ])
   with
     | _ -> raise Not_found

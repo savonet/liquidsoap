@@ -23,7 +23,6 @@ doc-local: all
 .PHONY: system-install gentoo-install debian-install finish-configure
 
 finish-configure:
-	@echo Creating src/configure.ml
 ifneq ($(OS_TYPE),Win32)
 	@echo let tts_program = \"$(libdir)/liquidsoap/$(libs_dir_version)/liquidtts\" >> src/configure.ml
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
@@ -45,6 +44,9 @@ endif
 	@echo "(* Enable backtrace printing if possible, does nothing on ocaml<3.11 *)" >> src/configure.ml
 	@echo "let record_backtrace _ = ()" >> src/configure.ml
 	@echo "open Printexc" >> src/configure.ml
+	@echo "let vendor = \
+                  Printf.sprintf \"Liquidsoap/%s (%s; OCaml %s)\" \
+                     version Sys.os_type Sys.ocaml_version" >> src/configure.ml
 	@echo "let () = record_backtrace true" >> src/configure.ml
 	@echo Creating scripts/liquidsoap.logrotate
 	@cat scripts/liquidsoap.logrotate.in | \

@@ -98,7 +98,8 @@ let mk_mp3 params =
     { Encoder.MP3.
         stereo = true ;
         samplerate = 44100 ;
-        bitrate = Encoder.MP3.Bitrate 128 }
+        bitrate = Encoder.MP3.Bitrate 128;
+        id3v2 = None }
   in
   let mp3 =
     List.fold_left
@@ -128,7 +129,12 @@ let mk_mp3 params =
                 raise (Error (t,"quality should be in [0..9]")) ;
               { f with Encoder.MP3.bitrate =
                        Encoder.MP3.Quality q }
-
+          | ("id3v2",({ term = Bool true } as t)) ->
+              (match !Encoder.MP3.id3v2_export with
+                 | None -> raise (Error(t,"No id3v2 support available for the mp3 encoder!"))
+                 | Some g -> { f with Encoder.MP3.id3v2 = Some g })
+          | ("id3v2",{ term = Bool false }) ->
+              { f with Encoder.MP3.id3v2 = None }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.MP3.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->

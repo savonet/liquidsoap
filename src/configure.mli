@@ -6,6 +6,9 @@ val version : string
 (** Is this build a SVN snapshot ? *)
 val svn_snapshot : bool
 
+(** String describing the software. *)
+val vendor : string
+
 (** Substitution of configured variables *)
 val var_script : string ref
 val subst_vars : string -> string

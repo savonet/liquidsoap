@@ -34,7 +34,7 @@ let conf_meta =
 let conf_export_metadata =
   Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
     ~d:["artist";"title";"album";"genre";"date";"tracknumber";
-        "comment"]
+        "comment";"track"]
     ~comments:["The list of labels of exported metadata."]
 
 (* This is because I am too lazy to write encoder.mli.. *)
@@ -124,11 +124,16 @@ struct
 
   type bitrate_control = Quality of int | Bitrate of int
 
+  type id3v2_export = Meta.export_metadata -> string
+
   type t = {
     stereo     : bool ;
     bitrate    : bitrate_control ;
     samplerate : int ;
+    id3v2      : id3v2_export option
   }
+
+  let id3v2_export : id3v2_export option ref = ref None
 
   let string_of_bitrate_control x =
     match x with
@@ -136,10 +141,11 @@ struct
       | Bitrate x -> Printf.sprintf "bitrate=%i" x
 
   let to_string m =
-    Printf.sprintf "%%mp3(%s,%s,samplerate=%d)"
+    Printf.sprintf "%%mp3(%s,%s,samplerate=%d,id3v2=%b)"
       (string_of_stereo m.stereo)
       (string_of_bitrate_control m.bitrate)
       m.samplerate
+      (m.id3v2 <> None)
 
 end
 

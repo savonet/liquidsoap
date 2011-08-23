@@ -21,9 +21,7 @@ let raise e = raise (Error e)
 
 type connection = Unix.file_descr
 
-let user_agent =
-  Printf.sprintf "Liquidsoap/%s (%s; OCaml %s)"
-              Configure.version Sys.os_type Sys.ocaml_version
+let user_agent = Configure.vendor
 
 (* URL encoding/decoding according to RFC 1738, RFC 1630.
  * Borrowed from ocamlnet. *)
