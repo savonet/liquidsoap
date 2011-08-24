@@ -44,7 +44,7 @@ let get_tags fname =
                             ~log fname) then
     raise Not_found ;
   try
-    let f = File.open_file fname in
+    let f = File.open_file `Autodetect fname in
     Tutils.finalize ~k:(fun () -> File.close_file f)
     (fun () -> 
       let gt l (n, t) =
