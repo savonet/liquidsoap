@@ -209,7 +209,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
            (source = `Stream) then
           init ~reset:true buffer
         else
-          raise Ogg.End_of_stream ;
+          raise Ogg_demuxer.End_of_stream ;
       let audio_feed track buf =
         let info,_ = 
            Ogg_demuxer.audio_info 
@@ -247,14 +247,14 @@ let create_decoder ?(merge_tracks=false) source mode input =
           Ogg_demuxer.decode_video decoder track (video_feed track)
          end;
       with
-           (* We catch [Ogg.End_of_stream] only if asked to
+           (* We catch [Ogg_demuxer.End_of_stream] only if asked to
             * to merge logical tracks or with a stream source. 
             * In this case, we try to reset the decoder to see if 
             * there could be another sequentialized logical stream
             * starting. Actual reset is handled in the
             * decoding function since we need the actual
             * buffer to add metadata etc. *)
-        | Ogg.End_of_stream when merge_tracks || (source = `Stream) -> ()
+        | Ogg_demuxer.End_of_stream when merge_tracks || (source = `Stream) -> ()
            (* We catch Ogg.Out_of_sync only in
             * stream mode. Ogg/theora streams, for instance,
             * in icecast contain the header (packet 0) and
@@ -274,6 +274,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
       in
       Frame.master_of_seconds new_time
     with
+      | Ogg_demuxer.End_of_stream
       | Ogg.End_of_stream ->
           log#f 4 "End of track reached while seeking!" ;
           0
