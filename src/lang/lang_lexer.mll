@@ -117,6 +117,7 @@ rule token = parse
   | "%include" [' ' '\t']* '<' ([^ '"' '>' '\n']* as file) '>'
                { PP_INCLUDE (Filename.concat Configure.libs_dir file) }
 
+  | '#' [^'\n']* eof { EOF }
   | eof { EOF }
 
   | "def"    { PP_DEF }
