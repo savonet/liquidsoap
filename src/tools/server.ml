@@ -185,9 +185,7 @@ let () =
               Pcre.substitute ~pat: "\\s*" ~subst: (fun _ -> "") args in
             let (_, us, d) =
               Tutils.mutexify lock (Hashtbl.find commands) args
-            in
-              Printf.sprintf
-                "\r\nHelp for command %s.\r\n\nUsage: %s\r\n  %s" args us d
+            in Printf.sprintf "Usage: %s\r\n  %s" us d
           with
           | Not_found ->
               (if args <> ""

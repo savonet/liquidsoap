@@ -84,7 +84,7 @@ object (self)
       ~descr:"Reload the playlist, unless already being loaded."
       (fun s -> self#reload_playlist () ; "OK") ;
     self#register_command "uri"
-               ~descr:"print playlist's URI if called without an \
+               ~descr:"Print playlist's URI if called without an \
                        argument, set a new playlist URI, and load it otherwise."
                ~usage:"uri [<URI>]"
       (fun s ->
