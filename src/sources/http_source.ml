@@ -207,7 +207,7 @@ object (self)
   (** Log file for the timestamps of read events. *)
   val mutable logf = None
 
-  val mutable connected = false
+  val mutable connected = None
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
 
@@ -228,12 +228,13 @@ object (self)
             | Failure _ -> "Invalid URL") ;
     self#register_command "status" ~usage:"status"
       ~descr:"Return the current status of the source, \
-              either stopped (the source isn't trying to relay the HTTP stream), \
-              polling (attempting to connect to the HTTP stream) \
-              or connected (connected, buffering or playing back the stream)."
+              either \"stopped\" (the source isn't trying to relay the HTTP stream), \
+              \"polling\" (attempting to connect to the HTTP stream) \
+              or \"connected <url>\" (connected to <url>, buffering or playing back the stream)."
       (fun _ ->
-         if connected then "connected" else
-           if relaying then "polling" else "stopped") ;
+         match connected with
+           | Some s -> "connected " ^ s
+           | None -> if relaying then "polling" else "stopped") ;
     self#register_command "buffer_length" ~usage:"buffer_length"
                           ~descr:"Get the buffer's length, in seconds."
       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
@@ -249,7 +250,6 @@ object (self)
 
   method feeding should_stop ?(newstream=true)
                  create_decoder socket chunked metaint =
-    connected <- true ;
     let read = read_stream socket chunked metaint self#insert_metadata in
     let read len = 
       let log = self#log#f 4 "%s" in
@@ -297,6 +297,7 @@ object (self)
               | Some f -> close_out f ; logf <- None
               | None -> ()
             end ;
+            connected <- None ;
             Http.disconnect socket
 
   (** This method gets overriden by superclasses (see Lastfm_input)
@@ -452,6 +453,7 @@ object (self)
                             | None -> ()
                           end ;
                           self#log#f 3 "Decoding..." ;
+                          connected <- Some url ;
                           self#feeding
                             poll_should_stop dec socket chunked metaint
                       end
