@@ -223,10 +223,17 @@ object (self)
       ~descr:"Get or set the stream's HTTP URL. \
               Setting a new URL will not affect an ongoing connection."
       (fun u ->
-        if u = "" then url else begin
-          url <- u ;
-          "Done"
-        end) ;
+        if u = "" then url else
+          try ignore (parse_url u) ; url <- u ; "Done" with
+            | Failure _ -> "Invalid URL") ;
+    self#register_command "status" ~usage:"status"
+      ~descr:"Return the current status of the source, \
+              either stopped (the source isn't trying to relay the HTTP stream), \
+              polling (attempting to connect to the HTTP stream) \
+              or connected (connected, buffering or playing back the stream)."
+      (fun _ ->
+         if connected then "connected" else
+           if relaying then "polling" else "stopped") ;
     self#register_command "buffer_length" ~usage:"buffer_length"
                           ~descr:"Get the buffer's length, in seconds."
       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
@@ -563,6 +570,10 @@ let () =
                         'normal' and 'first'"))
        in
        let url = Lang.to_string (List.assoc "" p) in
+       let () =
+         try ignore (parse_url url) with
+           | Failure _ -> raise (Lang.Invalid_value (List.assoc "" p, "invalid URL"))
+       in
        let autostart = Lang.to_bool (List.assoc "autostart" p) in
        let bind_address = Lang.to_string (List.assoc "bind_address" p) in
        let user_agent = Lang.to_string (List.assoc "user_agent" p) in
