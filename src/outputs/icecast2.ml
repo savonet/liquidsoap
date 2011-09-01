@@ -67,9 +67,10 @@ struct
     function
         | Encoder.MP3 m ->
             let quality,bitrate = 
-              match m.Encoder.MP3.bitrate with
-                | Encoder.MP3.Bitrate x -> None,(Some x)
-                | Encoder.MP3.Quality x -> (Some (string_of_int x)),None
+              match m.Encoder.MP3.bitrate_control with
+                | Encoder.MP3.CBR x -> None,(Some x)
+                | Encoder.MP3.ABR x -> None,(Some x.Encoder.MP3.mean_bitrate)
+                | Encoder.MP3.VBR q -> (Some (string_of_int q)),None
             in
             { quality = quality ;
               bitrate = bitrate ;

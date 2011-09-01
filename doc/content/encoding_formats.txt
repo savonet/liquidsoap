@@ -22,12 +22,35 @@ the number of channels (whether is is passed as an integer or a boolean).
 
 h4. MP3
 
-%%
-%mp3(stereo=true, samplerate=44100, bitrate=128, quality=5, id3v2=false)
-%%
+Mp3 encoder comes in 3 flavors:
 
-* Only one of @bitrate@ or @quality@ should be specified.
-* @id3v2=true@ is only valid if liquidsoap has been compiled with taglib support.
+* @%mp3@ or @%mp3.cbr@: Constant bitrate encoding
+* @%mp3.vbr@: Variable bitrate, quality-based encoding.
+* @%mp3.abr@: Average bitrate based encoding.
+
+Parameters common to each flavor are:
+
+* @stereo=true/false@, @mono=true/false@: Encode stereo or mono data (default: @stereo@).
+* @samplerate=44100@: Encoded data samplerate (default: @44100@)
+* @id3v2=true@: Add an @id3v2@ tag to encoded data (default: @false@). This option is only valid if liquidsoap has been compiled with taglib support.   
+
+Parameters for @%mp3@ are:
+* @bitrate@: Encoded data fixed bitrate
+
+Parameters for @%mp3.vbr@ are:
+* @quality@: Quality of encoded data; ranges from @0@ (highest quality) to @9@ (worst quality).
+
+Parameters for @%mp3.abr@ are:
+* @bitrate@: Average bitrate
+* @min_bitrate@: Minimun bitrate
+* @max_bitrate@: Maximun bitrate
+* @hard_min@: Enforce minimal bitrate
+
+Examples:
+
+* Contstant @128@ kbps bitrate encoding: @%mp3(bitrate=128)@
+* Variable bitrate with quality @6@ and samplerate of @22050@ Hz: @%mp3.vbr(quality=7,samplerate=22050)@
+* Average bitrate with mean of @128@ kbps, maximun bitrate @192@ kbps and @id3v2@ tags: @%mp3.abr(bitrate=128,max_bitrate=192,id3v2=true)@
 
 h4. WAV
 

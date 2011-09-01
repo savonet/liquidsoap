@@ -32,7 +32,18 @@ sig
   val set_in_samplerate : encoder -> int -> unit
   val set_num_channels : encoder -> int -> unit
   val set_out_samplerate : encoder -> int -> unit
-  val set_quality : encoder -> int -> unit
+  type vbr_mode =
+    | Vbr_off (** constant bitrate *)
+    | Vbr_rh
+    | Vbr_abr
+    | Vbr_mtrh
+    | Vbr_max_indicator (* don't use this (it's for sanity checks) *)
+  val set_vbr_mode : encoder -> vbr_mode -> unit
+  val set_vbr_quality : encoder -> int -> unit
+  val set_vbr_mean_bitrate : encoder -> int -> unit
+  val set_vbr_min_bitrate : encoder -> int -> unit
+  val set_vbr_max_bitrate : encoder -> int -> unit
+  val set_vbr_hard_min : encoder -> bool -> unit
   type mode =
     | Stereo (** stereo, channels encoded independely *)
     | Joint_stereo (** stereo, channels encoded together *)
@@ -55,46 +66,58 @@ struct
   type id3v2 = Waiting | Rendered of string | Done
 
   let register_encoder name =
-    let create_encoder ~samplerate ~bitrate ~stereo =
+    let create_encoder mp3 =
       let enc = Lame.create_encoder () in
       (* Input settings *)
       Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
-      Lame.set_num_channels enc (if stereo then 2 else 1) ;
+      Lame.set_num_channels enc (if mp3.Encoder.MP3.stereo then 2 else 1) ;
       (* Output settings *)
-      Lame.set_mode enc (if stereo then Lame.Stereo else Lame.Mono);
+      Lame.set_mode enc (if mp3.Encoder.MP3.stereo then Lame.Stereo else Lame.Mono);
       begin                  
-        match bitrate with
-          | Encoder.MP3.Quality quality ->
-               Lame.set_quality enc quality
-          | Encoder.MP3.Bitrate bitrate ->
-               Lame.set_brate enc bitrate
+        match mp3.Encoder.MP3.bitrate_control with
+          | Encoder.MP3.VBR quality ->
+               Lame.set_vbr_mode enc Lame.Vbr_mtrh ;
+               Lame.set_vbr_quality enc quality
+          | Encoder.MP3.CBR br ->
+               Lame.set_brate enc br
+          | Encoder.MP3.ABR abr ->
+               Lame.set_vbr_mode enc Lame.Vbr_abr ;
+               Lame.set_vbr_mean_bitrate enc abr.Encoder.MP3.mean_bitrate ;
+               Lame.set_vbr_hard_min enc abr.Encoder.MP3.hard_min ;
+               (match abr.Encoder.MP3.min_bitrate with
+                  | Some br -> 
+                      Lame.set_vbr_min_bitrate enc br
+                  | None -> ()) ;
+               (match abr.Encoder.MP3.max_bitrate with
+                  | Some br ->
+                      Lame.set_vbr_max_bitrate enc br
+                  | None -> ()) ;
       end;
-      Lame.set_out_samplerate enc samplerate ;
+      Lame.set_out_samplerate enc mp3.Encoder.MP3.samplerate ;
       Lame.init_params enc;
       enc
     in
     let mp3_encoder mp3 = 
-      let channels = if mp3.stereo then 2 else 1 in
-      let enc = create_encoder ~samplerate:mp3.samplerate 
-                               ~bitrate:mp3.bitrate 
-                               ~stereo:mp3.stereo 
-      in
+      let enc = create_encoder mp3 in 
       let id3v2 = ref Waiting in
+      let has_started = ref false in
+      let channels = if mp3.Encoder.MP3.stereo then 2 else 1 in
       let encode frame start len =
         let start = Frame.audio_of_master start in
         let b = AFrame.content_of_type ~channels frame start in
         let len = Frame.audio_of_master len in
-        let encoded = 
+        let encoded () = 
+          has_started := true;
           if channels = 1 then
             Lame.encode_buffer_float_part enc b.(0) b.(0) start len
           else
             Lame.encode_buffer_float_part enc b.(0) b.(1) start len
         in
         match !id3v2 with
-          | Rendered s ->
+          | Rendered s when not !has_started ->
               id3v2 := Done; 
-              (Printf.sprintf "%s%s" s encoded)
-          | _ -> encoded
+              (Printf.sprintf "%s%s" s (encoded ()))
+          | _ -> encoded ()
       in
       let insert_metadata = 
         match mp3.id3v2 with

@@ -93,54 +93,147 @@ let mk_wav params =
   in
     mk (Encoder (Encoder.WAV wav))
 
-let mk_mp3 params =
+let mp3_base f =
+  function
+    | ("stereo",{ term = Bool b }) ->
+        { f with Encoder.MP3.stereo = b }
+    | ("mono",{ term = Bool b }) ->
+        { f with Encoder.MP3.stereo = not b }
+    | ("samplerate",({ term = Int i } as t)) ->
+        let allowed =
+          [8000;11025;12000;16000;22050;24000;32000;44100;48000]
+        in
+        if not (List.mem i allowed) then
+          raise (Error (t,"invalid samplerate value")) ;
+        { f with Encoder.MP3.samplerate = i }
+    | ("id3v2",({ term = Bool true } as t)) ->
+        (match !Encoder.MP3.id3v2_export with
+           | None -> raise (Error(t,"No id3v2 support available for the mp3 encoder!"))
+           | Some g -> { f with Encoder.MP3.id3v2 = Some g })
+    | ("id3v2",{ term = Bool false }) ->
+        { f with Encoder.MP3.id3v2 = None }
+    | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+        { f with Encoder.MP3.stereo = false }
+    | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+        { f with Encoder.MP3.stereo = true }
+    | (_,t) -> raise (generic_error t)
+
+let mk_mp3_cbr params =
   let defaults =
     { Encoder.MP3.
         stereo = true ;
         samplerate = 44100 ;
-        bitrate = Encoder.MP3.Bitrate 128;
+        bitrate_control = Encoder.MP3.CBR 128 ;
         id3v2 = None }
   in
-  let mp3 =
+  let set_bitrate f b = 
+    match f.Encoder.MP3.bitrate_control with
+      | Encoder.MP3.CBR br -> 
+          { f with Encoder.MP3.bitrate_control = 
+                Encoder.MP3.CBR br }
+      | _ -> assert false
+  in
+  let mp3 = 
     List.fold_left
       (fun f ->
         function
-          | ("stereo",{ term = Bool b }) ->
-              { f with Encoder.MP3.stereo = b }
-          | ("mono",{ term = Bool b }) ->
-              { f with Encoder.MP3.stereo = not b }
-          | ("samplerate",({ term = Int i } as t)) ->
-              let allowed =
-                [8000;11025;12000;16000;22050;24000;32000;44100;48000]
-              in
-              if not (List.mem i allowed) then
-                raise (Error (t,"invalid samplerate value")) ;
-              { f with Encoder.MP3.samplerate = i }
           | ("bitrate",({ term = Int i } as t)) ->
               let allowed =
                 [8;16;24;32;40;48;56;64;80;96;112;128;144;160;192;224;256;320]
               in
               if not (List.mem i allowed) then
                 raise (Error (t,"invalid bitrate value")) ;
-              { f with Encoder.MP3.bitrate =
-                       Encoder.MP3.Bitrate i }
+              set_bitrate f i
+          | x -> mp3_base f x)
+      defaults params
+  in
+    mk (Encoder (Encoder.MP3 mp3))
+
+let mk_mp3_abr params =
+  let defaults =
+    { Encoder.MP3.
+        stereo = true ;
+        samplerate = 44100 ;
+        bitrate_control =
+         Encoder.MP3.ABR
+           { Encoder.MP3.
+              min_bitrate = None ;
+              mean_bitrate = 128 ;
+              max_bitrate = None ;
+              hard_min = false };
+        id3v2 = None }
+  in
+  let set_min_bitrate f b =
+    match f.Encoder.MP3.bitrate_control with
+      | Encoder.MP3.ABR abr ->
+          { f with Encoder.MP3.bitrate_control =
+                Encoder.MP3.ABR
+                  { abr with Encoder.MP3.min_bitrate = Some b }}
+      | _ -> assert false
+  in
+  let set_max_bitrate f b =
+    match f.Encoder.MP3.bitrate_control with
+      | Encoder.MP3.ABR abr ->
+          { f with Encoder.MP3.bitrate_control =
+                Encoder.MP3.ABR
+                  { abr with Encoder.MP3.max_bitrate = Some b }}
+      | _ -> assert false
+  in
+  let set_mean_bitrate f b =
+    match f.Encoder.MP3.bitrate_control with
+      | Encoder.MP3.ABR abr ->
+          { f with Encoder.MP3.bitrate_control =
+                Encoder.MP3.ABR
+                  { abr with Encoder.MP3.mean_bitrate = b }}
+      | _ -> assert false
+  in
+  let mp3 =
+    List.fold_left
+      (fun f ->
+        function
+          | ("bitrate",({ term = Int i } as t)) ->
+              let allowed =
+                [8;16;24;32;40;48;56;64;80;96;112;128;144;160;192;224;256;320]
+              in
+              if not (List.mem i allowed) then
+                raise (Error (t,"invalid bitrate value")) ;
+              set_mean_bitrate f i
+          | ("min_bitrate",({ term = Int i } as t)) ->
+              let allowed =
+                [8;16;24;32;40;48;56;64;80;96;112;128;144;160;192;224;256;320]
+              in
+              if not (List.mem i allowed) then
+                raise (Error (t,"invalid bitrate value")) ;
+              set_min_bitrate f i
+          | ("max_bitrate",({ term = Int i } as t)) ->
+              let allowed =
+                [8;16;24;32;40;48;56;64;80;96;112;128;144;160;192;224;256;320]
+              in
+              if not (List.mem i allowed) then
+                raise (Error (t,"invalid bitrate value")) ;
+              set_max_bitrate f i
+          | x -> mp3_base f x)
+      defaults params
+  in
+    mk (Encoder (Encoder.MP3 mp3))
+
+let mk_mp3_vbr params =
+  let defaults =
+    { Encoder.MP3.
+        stereo = true ;
+        samplerate = 44100 ;
+        bitrate_control = Encoder.MP3.VBR 4;
+        id3v2 = None }
+  in
+  let mp3 =
+    List.fold_left
+      (fun f ->
+        function
           | ("quality",({ term = Int q } as t)) ->
               if q<0 || q>9 then
                 raise (Error (t,"quality should be in [0..9]")) ;
-              { f with Encoder.MP3.bitrate =
-                       Encoder.MP3.Quality q }
-          | ("id3v2",({ term = Bool true } as t)) ->
-              (match !Encoder.MP3.id3v2_export with
-                 | None -> raise (Error(t,"No id3v2 support available for the mp3 encoder!"))
-                 | Some g -> { f with Encoder.MP3.id3v2 = Some g })
-          | ("id3v2",{ term = Bool false }) ->
-              { f with Encoder.MP3.id3v2 = None }
-          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
-              { f with Encoder.MP3.stereo = false }
-          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
-              { f with Encoder.MP3.stereo = true }
-
-          | (_,t) -> raise (generic_error t))
+              { f with Encoder.MP3.bitrate_control = Encoder.MP3.VBR q }
+          | x -> mp3_base f x)
       defaults params
   in
     mk (Encoder (Encoder.MP3 mp3))

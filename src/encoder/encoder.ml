@@ -101,19 +101,21 @@ struct
 
   let string_of_mode = function
     | ABR (min,avg,max) ->
-        let f x =
+        let f v x =
           match x with
-            | Some x -> Printf.sprintf "%i" x
-            | None   -> "unset"
+            | Some x -> Printf.sprintf "%s=%d," v x
+            | None   -> ""
         in
-        Printf.sprintf "ABR(%s,%s,%s)" (f min) (f avg) (f max)
+        Printf.sprintf ".abr(%s%s%s" (f "min_bitrate" min)
+                                     (f "bitrate" avg)
+                                     (f "max_bitrate" max)
     | CBR bitrate ->
-        Printf.sprintf "CBR(%d)" bitrate
+        Printf.sprintf ".cbr(bitrate=%d" bitrate
     | VBR q ->
-        Printf.sprintf "quality=%.2f" q
+        Printf.sprintf "(quality=%.2f" q
 
   let to_string v =
-    Printf.sprintf "%%vorbis(%s,%d channels,samplerate=%d)"
+    Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)"
       (string_of_mode v.mode)
       v.channels
       v.samplerate
@@ -121,29 +123,54 @@ end
 
 module MP3 =
 struct
+  type abr =   
+    { min_bitrate  : int option ;
+      mean_bitrate : int ;
+      max_bitrate  : int option ;
+      hard_min     : bool }
 
-  type bitrate_control = Quality of int | Bitrate of int
+  let string_of_abr x = 
+    let f v x = 
+      match x with
+        | Some x -> Printf.sprintf "%s=%i," v x
+        | None   -> ""
+    in
+    Printf.sprintf "bitrate=%d,%s%shard_min=%b"
+      x.mean_bitrate
+      (f "min_bitrate" x.min_bitrate)
+      (f "max_bitrate" x.max_bitrate)
+      x.hard_min
+
+  type bitrate_control = ABR of abr | VBR of int | CBR of int
+
+  let string_of_bitrate_control =
+    function
+       | ABR abr -> string_of_abr abr
+       | VBR q   -> Printf.sprintf "quality=%d" q
+       | CBR br  -> Printf.sprintf "bitrate=%d" br
 
   type id3v2_export = Meta.export_metadata -> string
 
   type t = {
-    stereo     : bool ;
-    bitrate    : bitrate_control ;
-    samplerate : int ;
-    id3v2      : id3v2_export option
+    stereo          : bool ;
+    bitrate_control : bitrate_control ;
+    samplerate      : int ;
+    id3v2           : id3v2_export option
   }
 
   let id3v2_export : id3v2_export option ref = ref None
 
-  let string_of_bitrate_control x =
-    match x with
-      | Quality x -> Printf.sprintf "quality=%i" x
-      | Bitrate x -> Printf.sprintf "bitrate=%i" x
-
   let to_string m =
-    Printf.sprintf "%%mp3(%s,%s,samplerate=%d,id3v2=%b)"
+    let name = 
+    match m.bitrate_control with
+      | VBR _ -> "%mp3.vbr"
+      | ABR _ -> "%mp3.abr"    
+      | CBR _ -> "%mp3"
+    in
+    Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%b)"
+      name
       (string_of_stereo m.stereo)
-      (string_of_bitrate_control m.bitrate)
+      (string_of_bitrate_control m.bitrate_control)
       m.samplerate
       (m.id3v2 <> None)
 
