@@ -723,7 +723,7 @@ AC_CHECK_OCAML_BINDING([dssi])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 AC_CHECK_OCAML_BINDING([lo])
-AC_CHECK_OCAML_BINDING([json-wheel],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -954,7 +954,7 @@ cat <<EOMSG
    - dynlink           : $w_DYNLINK
    - magic             : $w_MAGIC
    - lo                : $w_LO
-   - json-wheel        : $w_JSON_WHEEL
+   - yojson            : $w_YOJSON
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON

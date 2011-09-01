@@ -34,16 +34,16 @@ let rec of_json t j =
      with _ -> false
   in
   match j with
-    | Json_type.Null when f Lang.unit_t -> Lang.unit
-    | Json_type.Bool b when f Lang.bool_t -> Lang.bool b
+    | `Null when f Lang.unit_t -> Lang.unit
+    | `Bool b when f Lang.bool_t -> Lang.bool b
     (* JSON specs do not differenciate between ints
      * and floats. Therefore, we should parse int as
      * floats when required.. *)
-    | Json_type.Int i when f Lang.int_t -> Lang.int i
-    | Json_type.Int i when f Lang.float_t -> Lang.float (float_of_int i)
-    | Json_type.String s when f Lang.string_t -> Lang.string s
-    | Json_type.Float x when f Lang.float_t -> Lang.float x
-    | Json_type.Array l ->
+    | `Int i when f Lang.int_t -> Lang.int i
+    | `Int i when f Lang.float_t -> Lang.float (float_of_int i)
+    | `String s when f Lang.string_t -> Lang.string s
+    | `Float x when f Lang.float_t -> Lang.float x
+    | `List l ->
        (* First, try to parse as a list. *)
        begin
         try
@@ -61,7 +61,7 @@ let rec of_json t j =
             | _ -> failwith "could not parse JSON string."
          end
        end
-    | Json_type.Object l ->
+    | `Assoc l ->
         (* Try to convert the object to a list of pairs of strings
          * This requires the target type to be [(string*string)],
          * currently it won't work if it is [?T] which would be
@@ -92,7 +92,7 @@ let () =
      let s = Lang.to_string (List.assoc "" p) in
      try
        let json =
-         Json_io.json_of_string ~allow_comments:true ~recursive:true s
+         Yojson.Safe.from_string s
        in
        of_json default.Lang.t json
      with
