@@ -12,7 +12,7 @@
  for easier builds.
 
  Libraries not developed by Savonet are:
-   ocaml-pcre, camomile, ocaml-magic, json-wheel
+   ocaml-pcre, camomile, ocaml-magic, json-wheel, camlimages, ocaml-sdl
 
 
  Mandatory dependencies :
@@ -43,6 +43,8 @@
    ocaml-faad>=0.3.3         for AAC stream decoding
    ocaml-aacplus>=0.2.0      for AAC(+) encoding
    ocaml-voaacenc>=0.2.0     for AAC(+) encoding
+   camlimages>=4.0.0         for image decoding
+   ocaml-sdl                 for display, font & image support
    ocaml-gavl>=0.1.4         for video conversion using the gavl library
    ocaml-samplerate>=0.1.1   for libsamplerate audio conversion
    ocaml-lastfm>=0.3.0       for lastfm protocol support

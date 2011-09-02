@@ -44,7 +44,10 @@ make install
 
 h4. Dependencies
 
-Here are liquidsoap's dependencies (all OCaml libraries are distributed by Savonet, except when linked):
+Here are liquidsoap's dependencies.
+All OCaml libraries are distributed by Savonet, except when linked.
+You may refer to the liquidsoap INSTALL file for required versions of the 
+libraries:
 
 * "ocamlfind":http://www.ocaml-programming.de/programming/findlib.html
 * ocaml-dtools
@@ -80,6 +83,8 @@ packaging system.
 * ocaml-bjack for Jack output/input
 * ocaml-ladspa for LADSPA plugins
 * "xmlm":http://erratique.ch/software/xmlm
+* "camlimages":http://pauillac.inria.fr/camlimages/ for image decoding
+* "ocaml-sdl":http://ocamlsdl.sourceforge.net/home.html for display, font & image support
 
 Runtime dependencies include:
 * "wget":http://www.gnu.org/software/wget/ for downloading remote files (http, https, ftp)
