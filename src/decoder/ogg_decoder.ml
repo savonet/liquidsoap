@@ -404,7 +404,7 @@ let log = Dtools.Log.make ["metadata";"ogg"]
 let get_tags file =
   if not (Decoder.test_file ~mimes:mime_types#get
                             ~extensions:file_extensions#get
-                            file) then
+                            ~log file) then
     raise Not_found ;
   let decoder,fd = 
     Ogg_demuxer.init_from_file ~log:demuxer_log 

@@ -148,7 +148,13 @@ let stream_decoders :
 
 let conf_debug =
   Dtools.Conf.bool ~p:(conf_decoder#plug "debug") ~d:false
-    "Set debugging mode."
+    "Maximum debugging information (dev only)"
+    ~comments:[
+      "WARNING: Do not enable unless a developer instructed you to do so!";
+      "The debugging mode makes it easier to understand why decoding fails,";
+      "but as a side effect it will crash liquidsoap at the end of every";
+      "track."]
+
 
 let conf_mime_types =
   Dtools.Conf.void ~p:(conf_decoder#plug "mime_types")

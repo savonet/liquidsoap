@@ -27,7 +27,7 @@ exception Invalid_header
 
 exception Invalid_data
 
-let log = Dtools.Log.make ["format";"midi"]
+let log = Dtools.Log.make ["decoder";"midi"]
 
 let decoder ~channels file =
   log#f 4 "Decoding %S..." file;
