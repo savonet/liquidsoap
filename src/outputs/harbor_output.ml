@@ -40,6 +40,20 @@ module M = Icecast_utils.Icecast_v(Icecast)
   
 open M
   
+module Mutex_control =
+  struct
+    type priority = Tutils.priority
+    
+    let scheduler = Tutils.scheduler
+      
+    let priority = Tutils.Non_blocking
+      
+  end
+  
+module Duppy_m = Duppy.Monad.Mutex.Factory(Mutex_control)
+  
+module Duppy_c = Duppy.Monad.Condition.Factory(Duppy_m)
+  
 (* Max total length for ICY metadata is 255*16 
  * Format is: "StreamTitle='%s';StreamUrl='%s'" 
  * "StreamTitle='';"; is 15 chars long, "StreamUrl='';"
@@ -118,8 +132,8 @@ type metadata =
   }
 
 type client =
-  { mutable buffer : Buffer.t; condition : Duppy.Monad.Condition.condition;
-    condition_m : Duppy.Monad.Mutex.mutex; mutex : Mutex.t; meta : metadata;
+  { mutable buffer : Buffer.t; condition : Duppy_c.condition;
+    condition_m : Duppy_m.mutex; mutex : Mutex.t; meta : metadata;
     mutable latest_meta : string; metaint : int; timeout : float;
     url : string option; mutable metapos : int; chunk : int;
     mutable state : client_state; close : unit -> unit;
@@ -200,11 +214,11 @@ let rec client_task c =
          Duppy.Monad.bind
            (match data with
             | None ->
-                Duppy.Monad.bind (Duppy.Monad.Mutex.lock c.condition_m)
+                Duppy.Monad.bind (Duppy_m.lock c.condition_m)
                   (fun () ->
                      Duppy.Monad.bind
-                       (Duppy.Monad.Condition.wait c.condition c.condition_m)
-                       (fun () -> Duppy.Monad.Mutex.unlock c.condition_m))
+                       (Duppy_c.wait c.condition c.condition_m)
+                       (fun () -> Duppy_m.unlock c.condition_m))
             | Some s ->
                 Duppy.Monad.Io.write ?timeout: (Some c.timeout)
                   ~priority: Tutils.Non_blocking c.handler s)
@@ -436,24 +450,12 @@ class output ~kind p =
                                                                   ()
                                                                 
                                                               val duppy_c =
-                                                                Duppy.Monad.
-                                                                  Condition.
-                                                                  create
-                                                                  ~priority:
-                                                                    Tutils.
-                                                                    Non_blocking
-                                                                  Tutils.
-                                                                  scheduler
+                                                                Duppy_c.
+                                                                  create ()
                                                                 
                                                               val duppy_m =
-                                                                Duppy.Monad.
-                                                                  Mutex.
-                                                                  create
-                                                                  ~priority:
-                                                                    Tutils.
-                                                                    Non_blocking
-                                                                  Tutils.
-                                                                  scheduler
+                                                                Duppy_m.
+                                                                  create ()
                                                                 
                                                               val mutable
                                                                 chunk_len = 0
@@ -1030,9 +1032,7 @@ class output ~kind p =
                                                                     ~raise:
                                                                     (fun ()
                                                                     -> ())
-                                                                    (Duppy.
-                                                                    Monad.
-                                                                    Condition.
+                                                                    (Duppy_c.
                                                                     broadcast
                                                                     duppy_c)
                                                                     else ();
@@ -1177,9 +1177,7 @@ class output ~kind p =
                                                                     ~raise:
                                                                     (fun ()
                                                                     -> ())
-                                                                    (Duppy.
-                                                                    Monad.
-                                                                    Condition.
+                                                                    (Duppy_c.
                                                                     broadcast
                                                                     duppy_c)))
                                                                     ())

@@ -42,6 +42,16 @@ module M = Icecast_utils.Icecast_v(Icecast)
 
 open M
 
+module Mutex_control =
+struct
+  type priority = Tutils.priority
+  let scheduler = Tutils.scheduler
+  let priority  = Tutils.Non_blocking
+end
+module Duppy_m = Duppy.Monad.Mutex.Factory(Mutex_control)
+module Duppy_c = Duppy.Monad.Condition.Factory(Duppy_m)
+
+
 (* Max total length for ICY metadata is 255*16 
  * Format is: "StreamTitle='%s';StreamUrl='%s'" 
  * "StreamTitle='';"; is 15 chars long, "StreamUrl='';"
@@ -113,8 +123,8 @@ type metadata =
 type client =
   {
     mutable buffer      : Buffer.t ;
-    condition           : Duppy.Monad.Condition.condition ;
-    condition_m         : Duppy.Monad.Mutex.mutex ;
+    condition           : Duppy_c.condition ;
+    condition_m         : Duppy_m.mutex ;
     mutex               : Mutex.t ;
     meta                : metadata ;
     mutable latest_meta : string ;
@@ -232,9 +242,9 @@ let rec client_task c =
     match data with
       | None ->
          duppy_do
-           duppy_lock c.condition_m ;
-           duppy_wait c.condition c.condition_m ;
-           duppy_unlock c.condition_m
+           Duppy_m.lock c.condition_m ;
+           Duppy_c.wait c.condition c.condition_m ;
+           Duppy_m.unlock c.condition_m
          done
       | Some s ->
          duppy_write
@@ -400,12 +410,9 @@ object (self)
 
   val mutable clients = Queue.create ()
   val clients_m = Mutex.create ()
-  val duppy_c = duppy_condition
-                     ~priority:Tutils.Non_blocking
-                     Tutils.scheduler
-  val duppy_m = duppy_mutex
-                     ~priority:Tutils.Non_blocking
-                     Tutils.scheduler
+
+  val duppy_c = Duppy_c.create ()
+  val duppy_m = Duppy_m.create ()
   val mutable chunk_len = 0
 
   val mutable burst_data = []
@@ -616,7 +623,7 @@ object (self)
                   raise  = c.close }) clients ;
           if wake_up && Queue.length new_clients > 0 then
             duppy_run
-              duppy_broadcast duppy_c
+              Duppy_c.broadcast duppy_c
             with
               { raise = (fun () -> ()) ;
                 return = (fun () -> ()) } ;
@@ -666,7 +673,7 @@ object (self)
                (fun () ->
                  c.state <- Done;
                  duppy_run
-                    duppy_broadcast duppy_c
+                    Duppy_c.broadcast duppy_c
                  with
                   { raise = (fun () -> ()) ;
                     return = (fun () -> ()) }) ())
