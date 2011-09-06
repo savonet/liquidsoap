@@ -128,9 +128,9 @@ let mk_mp3_cbr params =
   in
   let set_bitrate f b = 
     match f.Encoder.MP3.bitrate_control with
-      | Encoder.MP3.CBR br -> 
+      | Encoder.MP3.CBR br ->
           { f with Encoder.MP3.bitrate_control = 
-                Encoder.MP3.CBR br }
+                Encoder.MP3.CBR b }
       | _ -> assert false
   in
   let mp3 = 
