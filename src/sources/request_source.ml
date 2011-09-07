@@ -425,7 +425,7 @@ object (self)
     Mutex.lock qlock ;
     Queue.iter
       (fun r ->
-         if test r.request then begin
+         if test r.request && not r.expired then begin
            r.expired <- true ;
            queue_length <- queue_length - r.duration
          end)
