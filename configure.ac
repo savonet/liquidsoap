@@ -487,7 +487,7 @@ AC_CHECK_OCAML_BINDING([voaacenc])
 # Theora
 #
 
-AC_CHECK_OCAML_BINDING([theora],[0.2.0],[ogg])
+AC_CHECK_OCAML_BINDING([theora],[0.3.0],[ogg])
 
 #
 # Schroedinger
