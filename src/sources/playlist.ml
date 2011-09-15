@@ -228,7 +228,7 @@ object (self)
          * otherwise, the source type must be aware of the failure *)
         assert (not (self#stype = Infallible && _playlist = [])) ;
         let array_playlist = Array.of_list _playlist in
-        Utils.randomize array_playlist ;
+        if random = Randomize then Utils.randomize array_playlist ;
 
         Mutex.lock mylock ;
         playlist := array_playlist ;
