@@ -140,7 +140,8 @@ operators = \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml \
 	operators/time_warp.ml operators/resample.ml \
-	operators/video_image.ml operators/chord.ml
+	operators/video_image.ml operators/chord.ml \
+	operators/video_text.ml
 
 $(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/soundtouch_op.ml)
 $(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/st_bpm.ml)
@@ -226,7 +227,7 @@ $(call conditional_compilation,decoders,$(W_CAMLIMAGES),decoder/camlimages_decod
 $(call conditional_compilation,liquidsoap_sources,$(W_SDL),tools/sdl_utils.ml)
 $(call conditional_compilation,synth,$(W_SDL),synth/keyboard_sdl.ml)
 $(call conditional_compilation,decoders,$(W_SDL),decoder/sdlimage_decoder.ml)
-$(call conditional_compilation,operators,$(W_SDL),operators/video_text.ml)
+$(call conditional_compilation,operators,$(W_SDL),operators/video_text_sdl.ml)
 $(call conditional_compilation,outputs,$(W_SDL),outputs/sdl_out.ml)
 
 # Same for lastfm..
@@ -240,6 +241,9 @@ $(call conditional_compilation,liquidsoap_sources,$(W_ALSA), alsa_settings.ml)
 $(call conditional_compilation,sources,$(W_ALSA),sources/alsa_in.ml)
 $(call conditional_compilation,outputs,$(W_ALSA),outputs/alsa_out.ml)
 $(call conditional_compilation,io,$(W_ALSA),io/alsa_io.ml)
+
+# Same for GD..
+$(call conditional_compilation,operators,$(W_GD),operators/video_text_gd.ml)
 
 liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \

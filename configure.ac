@@ -724,6 +724,7 @@ AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 AC_CHECK_OCAML_BINDING([lo])
 AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([gd],[],[],[],[],[1])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -949,6 +950,7 @@ cat <<EOMSG
  * Visualization
    - Graphics          : $w_GRAPHICS
    - SDL               : $w_SDL
+   - GD                : $w_GD
 
  * Additional libraries
    - dynlink           : $w_DYNLINK

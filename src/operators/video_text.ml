@@ -25,11 +25,10 @@ open Source
 module Img = Image.RGBA32
 
 class text ~kind
-  ttf ttf_size color dx dy speed cycle meta text (source:source) =
+  init render_text ttf ttf_size color dx dy speed cycle meta text (source:source) =
+  let () = init () in
   let video_height = Lazy.force Frame.video_height in
   let video_width = Lazy.force Frame.video_width in
-  let () = Sdl_utils.init [] in
-  let () = Sdl_utils.ttf_init () in
 object (self)
   inherit operator kind [source] as super
 
@@ -49,15 +48,7 @@ object (self)
   val mutable cur_text = text ()
 
   method private render_text text =
-    let font = self#get_font in
-    let text = if text = "" then " " else text in
-    let ts =
-      Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white
-    in
-    let w, h =
-      let si = Sdlvideo.surface_info ts in
-        si.Sdlvideo.w, si.Sdlvideo.h
-    in
+    let w, h, get_pixel = render_text ~font:ttf ~size:ttf_size text in
     let tf = Img.create w h in
     let tr, tg, tb = Image.RGB8.Color.of_int color in
       if dy < 0 then
@@ -66,28 +57,11 @@ object (self)
         pos_x <- video_width + dx - w;
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
-          let r, g, b = Sdlvideo.get_pixel_color ts ~x ~y in
-            Img.set_pixel tf x y (tr, tg, tb, r)
+          let a = get_pixel x y in
+            Img.set_pixel tf x y (tr, tg, tb, a)
         done
       done;
       text_frame <- Some tf
-
-  method get_font =
-    match font with
-      | Some f -> f
-      | None ->
-         let f =
-           try
-             Sdlttf.open_font (Lang.to_string ttf) ttf_size
-           with
-             | Sdlttf.SDLttf_exception s ->
-                 raise (Lang.Invalid_value (ttf, s))
-             | e ->
-                 raise (Lang.Invalid_value
-                          (ttf, Utils.error_message e))
-         in
-         font <- Some f;
-         f
 
   method get_text_frame =
     match text_frame with
@@ -135,11 +109,11 @@ object (self)
 
 end
 
-let () =
+let register name init render_text =
   let k =
     Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ())
   in
-  Lang.add_operator "video.add_text"
+  Lang.add_operator ("video.add_text."^name)
     [
       "font", Lang.string_t,
       Some (Lang.string "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf"),
@@ -169,11 +143,11 @@ let () =
     ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.VideoProcessing
-    ~descr:"Display a text."
+    ~descr:"Display a text (using the SDL library)."
     (fun p kind ->
        let f v = List.assoc v p in
        let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
-         f "font",
+         Lang.to_string (f "font"),
          Lang.to_int (f "size"),
          Lang.to_int (f "color"),
          Lang.to_int (f "x"),
@@ -186,5 +160,5 @@ let () =
        in
        let speed = speed / (Lazy.force Frame.video_rate) in
        let meta = if meta = "" then None else Some meta in
-         ((new text ~kind ttf ttf_size color x y speed
+         ((new text ~kind init render_text ttf ttf_size color x y speed
                     cycle meta txt source):>Source.source))

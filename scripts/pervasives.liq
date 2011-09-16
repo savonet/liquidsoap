@@ -4,3 +4,4 @@
 %include "lastfm.liq"
 %include "flows.liq"
 %include "http.liq"
+%include "video_text.liq"
