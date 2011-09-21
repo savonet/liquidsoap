@@ -119,7 +119,7 @@ object (self)
         with
           | Descriptor.Not_implemented ->
               for i = 0 to (if chan = None then all_chans else 1) - 1 do
-                Descriptor.run_synth descr inst.(i) len evs.(i)
+                Descriptor.run_synth ~adding:true descr inst.(i) len evs.(i)
               done
       )
 end
