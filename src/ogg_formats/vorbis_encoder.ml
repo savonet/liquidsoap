@@ -21,7 +21,8 @@
  *****************************************************************************)
 
 let create_gen enc freq m = 
-  let p1,p2,p3 = Vorbis.Encoder.headerout_packetout enc m in
+  let encoder = Configure.vendor in
+  let p1,p2,p3 = Vorbis.Encoder.headerout_packetout ~encoder enc m in
   let started  = ref false in
   let header_encoder os = 
     Ogg.Stream.put_packet os p1;

@@ -93,12 +93,25 @@ let mk_wav params =
   in
     mk (Encoder (Encoder.WAV wav))
 
+let mp3_base_defaults = 
+    { Encoder.MP3.
+        stereo = true ;
+        samplerate = 44100 ;
+        bitrate_control = Encoder.MP3.CBR 128 ;
+        id3v2 = None ;
+        msg_interval = 0.1 ;
+        msg = Configure.vendor }
+
 let mp3_base f =
   function
     | ("stereo",{ term = Bool b }) ->
         { f with Encoder.MP3.stereo = b }
     | ("mono",{ term = Bool b }) ->
         { f with Encoder.MP3.stereo = not b }
+    | ("msg_interval",{ term = Float i }) ->
+        { f with Encoder.MP3.msg_interval = i }
+    | ("msg",{ term = String m }) ->
+        { f with Encoder.MP3.msg = m }
     | ("samplerate",({ term = Int i } as t)) ->
         let allowed =
           [8000;11025;12000;16000;22050;24000;32000;44100;48000]
@@ -120,16 +133,14 @@ let mp3_base f =
 
 let mk_mp3_cbr params =
   let defaults =
-    { Encoder.MP3.
-        stereo = true ;
-        samplerate = 44100 ;
-        bitrate_control = Encoder.MP3.CBR 128 ;
-        id3v2 = None }
+    { mp3_base_defaults with
+       Encoder.MP3.
+        bitrate_control = Encoder.MP3.CBR 128 }
   in
   let set_bitrate f b = 
     match f.Encoder.MP3.bitrate_control with
-      | Encoder.MP3.CBR br ->
-          { f with Encoder.MP3.bitrate_control = 
+      | Encoder.MP3.CBR br -> 
+          { f with Encoder.MP3.bitrate_control =
                 Encoder.MP3.CBR b }
       | _ -> assert false
   in
@@ -151,17 +162,15 @@ let mk_mp3_cbr params =
 
 let mk_mp3_abr params =
   let defaults =
-    { Encoder.MP3.
-        stereo = true ;
-        samplerate = 44100 ;
+    { mp3_base_defaults with
+       Encoder.MP3.
         bitrate_control =
          Encoder.MP3.ABR
            { Encoder.MP3.
               min_bitrate = None ;
               mean_bitrate = 128 ;
               max_bitrate = None ;
-              hard_min = false };
-        id3v2 = None }
+              hard_min = false } }
   in
   let set_min_bitrate f b =
     match f.Encoder.MP3.bitrate_control with
@@ -219,11 +228,9 @@ let mk_mp3_abr params =
 
 let mk_mp3_vbr params =
   let defaults =
-    { Encoder.MP3.
-        stereo = true ;
-        samplerate = 44100 ;
-        bitrate_control = Encoder.MP3.VBR 4;
-        id3v2 = None }
+    { mp3_base_defaults with
+       Encoder.MP3.
+        bitrate_control = Encoder.MP3.VBR 4 }
   in
   let mp3 =
     List.fold_left

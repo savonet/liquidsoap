@@ -52,6 +52,10 @@ Examples:
 * Variable bitrate with quality @6@ and samplerate of @22050@ Hz: @%mp3.vbr(quality=7,samplerate=22050)@
 * Average bitrate with mean of @128@ kbps, maximun bitrate @192@ kbps and @id3v2@ tags: @%mp3.abr(bitrate=128,max_bitrate=192,id3v2=true)@
 
+Additionaly, liquidsoap inserts a message within mp3 data. Currently, this message is: @"Liquidsoap/1.0.0-beta3 (Unix; OCaml 3.12.0)"@. 
+We plan on using this data for flows and other services involving liquidsoap. You can set its value using the @msg@ parameter.
+Setting it to @""@ disables this feature.
+
 h4. WAV
 
 %%

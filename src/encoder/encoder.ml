@@ -155,7 +155,9 @@ struct
     stereo          : bool ;
     bitrate_control : bitrate_control ;
     samplerate      : int ;
-    id3v2           : id3v2_export option
+    id3v2           : id3v2_export option ;
+    msg_interval    : float ;
+    msg             : string
   }
 
   let id3v2_export : id3v2_export option ref = ref None
