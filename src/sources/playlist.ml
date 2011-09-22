@@ -91,7 +91,7 @@ object (self)
          if s = "" then
            playlist_uri
          else
-           (self#reload_playlist ~new_playlist_uri:s () ; "OK")) ;
+           (self#reload_playlist ~uri:s () ; "OK")) ;
     self#register_command "next"
       ~descr:"Return up to 10 next URIs to be played."
       (* We cannot return request IDs because we create requests at the last
@@ -148,9 +148,6 @@ object (self)
 
   (** Lock for the previous variables. *)
   val mylock = Mutex.create ()
-
-  (** Lock for avoiding multiple reloads at the same time. *)
-  val reloading = Mutex.create ()
 
   (** (re-)read playlist_file and update datas.
     [reload] should be true except on first load, in that case playlist
@@ -241,11 +238,6 @@ object (self)
          * to avoid useless reloading. *)
         index_played <- -1 ;
         self#expire (fun _ -> true) ;
-        begin match reload with
-          | Never -> ()
-          | Every_N_rounds n -> round_c <- n
-          | Every_N_seconds n -> reload_t <- Unix.time ()
-        end ;
         Mutex.unlock mylock ;
 
         self#log#f 3
@@ -253,52 +245,55 @@ object (self)
           (Array.length !playlist)
       end
 
-  (** Reload the playlist, only if it's not being reloaded already.
-    * If a new playlist is passed, it is reloaded and will be used
-    * in the future; in that case a reloading always takes place,
-    * to ensure that the new URI is not forgotten.
-    * This is a blocking, potentially long computation. *)
-  method reload_playlist_nobg ?new_playlist_uri () =
-    if
-      if new_playlist_uri<>None then begin
-        Mutex.lock reloading ; true
-      end else
-        Mutex.try_lock reloading
-    then begin
-      self#load_playlist ?uri:new_playlist_uri true ;
-      Mutex.unlock reloading
-    end
-
-  (** Schedule a reloading of the playlist, unless it's already being reloaded. *)
-  method reload_playlist ?new_playlist_uri () =
-    (* Do not attempt to lock the [reloading] mutex before scheduling
-     * a task: this would create an inter-thread lock/unlock,
-     * forbidden e.g. on BSD. *)
+  (** Schedule playlist reloading as a duppy task.
+    * No guarantee is provided concerning the relative execution
+    * order of multiple reloading tasks.
+    * Several calls to #load_playlist may even overlap, which
+    * means that an automatic reload triggered in the middle of
+    * the user-requested loading of a new playlist URI may end up
+    * restoring the old URI.
+    * This is bad but we prefer to not block the Duppy scheduler
+    * with mutexes, waiting for a fully satisfying solution using
+    * Duppy mutexes -- and perhaps support for blocking server commands
+    * enabling a synchronous reload command. *)
+  method reload_playlist ?uri () =
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Maybe_blocking ;
           events   = [`Delay 0.] ;
           handler  = (fun _ ->
-            self#reload_playlist_nobg ?new_playlist_uri () ;
+            self#load_playlist ?uri true ;
             []) }
 
-  method reload_update round_done =
-    (* Must be called by somebody who owns [mylock] *)
+  (** Schedule reloading if necessary.
+    * The reload parameters round_c/reload_t are updated
+    * immediately to avoid most multiple reloads.
+    * They can still occur, eg. if actual reloading time is longer than
+    * the reloading period set by the user. The current code is just
+    * a cheap and reasonably good solution until we implement a fully
+    * satisfying system (cf. #reload_playlist's comment) that not
+    * only prevents multiple automatic reloads but completely gets
+    * rid of reload overlaps, which requires more duppy synchronization. *)
+  method private may_autoreload round_done =
     assert (Tutils.seems_locked mylock) ;
     match reload with
       | Never -> ()
       | Every_N_seconds n ->
-          if Unix.time () -. reload_t > n then
+          if Unix.time () -. reload_t > n then begin
+            reload_t <- Unix.time () ;
             self#reload_playlist ()
+          end
       | Every_N_rounds n ->
           if round_done then round_c <- round_c - 1 ;
-          if round_c <= 0 then
+          if round_c <= 0 then begin
+            round_c <- n ;
             self#reload_playlist ()
+          end
 
   method get_next_request : Request.t option =
     Mutex.lock mylock ;
     if !playlist = [||] then begin
-      self#reload_update true ;
+      self#may_autoreload true ;
       Mutex.unlock mylock ;
       None
     end else
@@ -313,11 +308,11 @@ object (self)
                        true )
                 else false
               in
-                self#reload_update round ;
+                self#may_autoreload round ;
                 !playlist.(index_played)
           | Random ->
               index_played <- Random.int (Array.length !playlist) ;
-              self#reload_update false ;
+              self#may_autoreload false ;
               !playlist.(index_played)
           | Normal ->
               index_played <- index_played + 1 ;
@@ -326,7 +321,7 @@ object (self)
                 then ( index_played <- 0 ; true )
                 else false
               in
-                self#reload_update round ;
+                self#may_autoreload round ;
                 !playlist.(index_played)
       in
         Mutex.unlock mylock ;
@@ -351,9 +346,25 @@ object (self)
         | _ -> base_name
     in
     self#set_id ~definitive:false id ;
-    self#reload_playlist_nobg ()
+    (* Proceed to initial playlist loading.
+     * It is important that this is done before initialization
+     * of the queued request source, which could trigger a concurrent
+     * reload. We initialize reload parameter to avoid an automatic
+     * reload immediately after this one.
+     * It would be possible to not force initial loading like we do,
+     * and let the rest of the system to trigger it when needed.
+     * However, in case of playlist.safe() this delays the critical
+     * check for playlist safety, making things messy. *)
+    Mutex.lock mylock ;
+    begin match reload with
+      | Never -> ()
+      | Every_N_rounds n -> round_c <- n
+      | Every_N_seconds _ -> reload_t <- Unix.time ()
+    end ;
+    Mutex.unlock mylock ;
+    self#load_playlist true
 
-  (* Give the next [n] URIs, if guessing is easy. *)
+  (** Give the next [n] URIs, if guessing is easy. *)
   method get_next = Tutils.mutexify mylock (fun n ->
     match random with
     | Normal ->
@@ -386,10 +397,8 @@ object
     super#notify_new_request
 
   method wake_up activation =
-    (* The queued request source should be prepared first,
-     * because the loading of the playlist triggers a notification to it. *)
-    super#wake_up activation ;
-    pl#playlist_wake_up
+    pl#playlist_wake_up ;
+    super#wake_up activation
 
   (** Assume that every URI is valid, it will be checked on queuing. *)
   method is_valid file = true
