@@ -317,7 +317,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
       | Mount_taken ->
          log#f 4 "Returned 403: Mount taken" ;
          reply (http_error_page 403
-                  "Unauthorized\r\n\
+                  "Mountpoint already taken\r\n\
                    WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
                   "Mountpoint in use")
      | Not_found ->

@@ -64,20 +64,13 @@ let log = Log.make [ "harbor" ]
 class virtual source ~kind =
   object (self)
     inherit Source.source kind
-      
     method virtual relay :
       string -> (string * string) list -> Unix.file_descr -> unit
-      
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
-      
     method virtual login : (string * (string -> string -> bool))
-      
     method virtual icy_charset : string option
-      
     method virtual meta_charset : string option
-      
     method virtual get_mime_type : string option
-      
   end
   
 type sources = (string, source) Hashtbl.t
@@ -307,7 +300,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                   (log#f 4 "Returned 403: Mount taken";
                    reply
                      (http_error_page 403
-                        "Unauthorized\r\n\
+                        "Mountpoint already taken\r\n\
                    WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
                         "Mountpoint in use"))
               | Not_found ->
