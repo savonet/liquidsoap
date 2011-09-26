@@ -71,7 +71,7 @@ produce a clean script and back it up into a file, independently of
 its output to icecast (which again is sensitive to network lags).
 For more details on those techniques, read about "clocks":clocks.html.
 
-h5. Unable to decode "file" as @{audio=2;video=0;midi=0}@!
+h5. Unable to decode "file" as {audio=2;video=0;midi=0}!
 
 This log message informs you that liquidsoap failed to decode a file, not 
 necessarily because it cannot handle the file, but also possibly because
