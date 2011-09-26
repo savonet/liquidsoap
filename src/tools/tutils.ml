@@ -42,7 +42,7 @@ let conf_scheduler =
     ]
 
 let generic_queues =
-  Conf.int ~p:(conf_scheduler#plug "generic_queues") ~d:1
+  Conf.int ~p:(conf_scheduler#plug "generic_queues") ~d:2
     "Generic queues"
     ~comments:[
       "Number of event queues accepting any kind of task." ;
