@@ -360,7 +360,8 @@ object (self)
           | Cry.Connected _ ->
               (try 
                  Cry.update_metadata connection m 
-               with e -> self#log#f 3 "Metadata update failed: %s" 
+               with e -> self#log#f 3 "Metadata update may have failed with \
+                                       error: %s" 
                              (Utils.error_message e))
           | Cry.Disconnected -> ()
               (* Do nothing if shout connection isn't available *)
