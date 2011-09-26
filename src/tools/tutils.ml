@@ -190,12 +190,18 @@ let scheduler_log n =
     fun _ -> ()
 
 let new_queue ?priorities ~name () =
-   let log = scheduler_log name in
+   let qlog = scheduler_log name in
    let queue () =
-     match priorities with
-       | None -> Duppy.queue scheduler ~log name
-       | Some priorities ->
-           Duppy.queue scheduler ~log ~priorities name
+     try
+       match priorities with
+         | None -> Duppy.queue scheduler ~log:qlog name
+         | Some priorities ->
+             Duppy.queue scheduler ~log:qlog ~priorities name
+     with Duppy.Panic e ->
+       log#f 2 "Queue %s crashed with exception %s" name (Utils.error_message e) ;
+       log#f 1 "PANIC: Liquidsoap has crashed, exiting.." ;
+       log#f 1 "Please report at: savonet-users@lists.sf.net" ;
+       exit 1
    in
    ignore (create ~wait:false queue () name)
 
