@@ -163,8 +163,10 @@ let proto kind =
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
+    "connection_timeout", Lang.float_t, Some (Lang.float 5.),
+    Some "Timeout for establishing network connections (disabled is negative).";
     "timeout", Lang.float_t, Some (Lang.float 30.),
-    Some "Timeout for network operations.";
+    Some "Timeout for network read and write.";
     ("user", Lang.string_t, Some (Lang.string "source"),
      Some "User for shout source connection. \
            Useful only in special cases, like with per-mountpoint users.") ;
@@ -249,6 +251,13 @@ class output ~kind p =
   let genre = s "genre" in
   let url = s "url" in
   let timeout = e Lang.to_float "timeout" in
+  let connection_timeout = 
+    let v = e Lang.to_float "connection_timeout" in
+    if v > 0. then
+      Some v
+    else 
+      None
+  in
   let dumpfile = 
     match s "dumpfile" with
       | "" -> None
@@ -264,7 +273,7 @@ class output ~kind p =
                 f (Lang.to_product v))
              (Lang.to_list (List.assoc "headers" p))
   in
-  let connection = Cry.create ~timeout () in
+  let connection = Cry.create ~timeout ?connection_timeout () in
 
 object (self)
 
