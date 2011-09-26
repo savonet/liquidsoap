@@ -61,7 +61,7 @@ object (self)
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))
         content.Frame.video;
       Frame.add_break ab (position+length) ;
-      if remaining = 0 then
+      if Frame.is_partial ab then
         remaining <- ticks
       else if remaining > 0 then
         remaining <- remaining - length
