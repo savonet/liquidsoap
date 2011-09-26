@@ -25,7 +25,7 @@
 
 open Source
 
-class delay ~kind (source:source) delay =
+class delay ~kind ~initial (source:source) delay =
 object (self)
   inherit operator kind [source] as super
 
@@ -33,7 +33,7 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val mutable last = 0.
+  val mutable last = if initial then Unix.time () else 0.
   val mutable in_track = false
 
   method private delay_ok = (Unix.time ()) -. last >= delay
@@ -53,7 +53,9 @@ end
 let () =
   let kind = Lang.univ_t 1 in
   Lang.add_operator "delay"
-    [ "", Lang.float_t, None,
+    [ "initial", Lang.bool_t, Some (Lang.bool false),
+      Some "Start in unavailable state, as if a track had just finished." ;
+      "", Lang.float_t, None,
       Some "The source won't be ready less than this amount of seconds \
             after any end of track" ;
       "", Lang.source_t kind, None, None
@@ -66,4 +68,5 @@ let () =
        let f n = Lang.assoc "" n p in
        let d = Lang.to_float (f 1) in
        let s = Lang.to_source (f 2) in
-         new delay ~kind s d)
+       let initial = Lang.to_bool (List.assoc "initial" p) in
+         new delay ~kind ~initial s d)
