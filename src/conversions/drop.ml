@@ -54,18 +54,9 @@ object
 end
 
 let () =
-  let input =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
-  in
-  let output =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:Lang.zero_t
-      ~midi:(Lang.univ_t 3)
-  in
+  let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let {Frame.audio=audio;video=video;midi=midi} = Lang.of_frame_kind_t input in
+  let output = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
   Lang.add_operator "drop_video"
     ~category:Lang.Conversions
     ~descr:"Drop all video channels of a stream."
@@ -109,18 +100,9 @@ object
 end
 
 let () =
-  let input =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
-  in
-  let output =
-    Lang.frame_kind_t
-      ~audio:Lang.zero_t
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
-  in
+  let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let {Frame.audio=audio;video=video;midi=midi} = Lang.of_frame_kind_t input in
+  let output = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
   Lang.add_operator "drop_audio"
     ~category:Lang.Conversions
     ~descr:"Drop all audio channels of a stream."
@@ -165,18 +147,9 @@ object
 end
 
 let () =
-  let input =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:(Lang.univ_t 2)
-      ~midi:(Lang.univ_t 3)
-  in
-  let output =
-    Lang.frame_kind_t
-      ~audio:(Lang.univ_t 1)
-      ~video:(Lang.univ_t 2)
-      ~midi:Lang.zero_t
-  in
+  let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let {Frame.audio=audio;video=video;midi=midi} = Lang.of_frame_kind_t input in
+  let output = Lang.frame_kind_t ~audio ~video ~midi:Lang.zero_t in
   Lang.add_operator "drop_midi"
     ~category:Lang.Conversions
     ~descr:"Drop all midi channels of a stream."
