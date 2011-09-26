@@ -27,28 +27,40 @@ fi
 
 case "$1" in
   stop)
-    echo -n "Stopping channels: "
+    echo -n "Stopping liquidsoap channels: "
     cd $rundir
+    has_channels=
     for liq in *.pid ; do
       if test $liq != '*.pid' ; then
+        has_channels=1
         echo -n "$liq "
         start-stop-daemon --stop --quiet --pidfile $liq --retry 4
       fi
     done
-    echo "OK"
+    if test -n "$has_channels"; then
+      echo "OK"
+    else
+      echo "no script found in $confdir"
+    fi
     ;;
 
   start)
-    echo -n "Starting channels: "
+    echo -n "Starting liquidsoap channels: "
     cd $confdir
+    has_channels=
     for liq in *.liq ; do
       if test $liq != '*.liq' ; then
+        has_channels=1
         echo -n "$liq "
         start-stop-daemon --start --quiet --pidfile $rundir/${liq%.liq}.pid \
           --chuid $user:$group --exec $liquidsoap -- -d $confdir/$liq
       fi
     done
-    echo "OK"
+    if test -n "$has_channels"; then
+      echo "OK"
+    else
+      echo "no script found in $confdir"
+    fi
     ;;
 
   restart|force-reload)
