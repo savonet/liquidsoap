@@ -166,7 +166,7 @@ end
 
 type queue_item = {
   request : Request.t ;
-  duration : int ;
+  duration : float ; (* in seconds *)
   mutable expired : bool
 }
 
@@ -193,10 +193,10 @@ object (self)
   method virtual get_next_request : Request.t option
 
   (** Management of the queue of files waiting to be played. *)
-  val min_queue_length = Frame.master_of_seconds length
+  val min_queue_length = length
   val qlock = Mutex.create ()
   val retrieved : queue_item Queue.t = Queue.create ()
-  val mutable queue_length = 0 (* Ticks *)
+  val mutable queue_length = 0. (* Seconds *)
   val mutable resolving = None
 
   (** [available_length] is the length of the queue plus the remaining
@@ -215,12 +215,11 @@ object (self)
     else
       let remaining = self#remaining in
         if remaining < 0 then
-          (* There is a track available,
-           * but we don't know its duration
+          (* There is a track available but we don't know its duration
            * at this point. Hence, using default_duration. *)
-          queue_length + (Frame.master_of_seconds default_duration)
+          queue_length +. default_duration
         else
-          queue_length + remaining
+          queue_length +. Frame.seconds_of_master remaining
 
   (** State should be `Sleeping on awakening, and is then turned to `Running.
     * Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
@@ -362,7 +361,6 @@ object (self)
                         (try float_of_string f with _ -> default_duration)
                     | None -> default_duration
                 in
-                let len = Frame.master_of_seconds len in
                 let rec remove_expired n =
                   if n = 0 then () else
                     let r = Queue.take retrieved in
@@ -379,9 +377,10 @@ object (self)
                     { request = req ; duration = len ; expired = false }
                     retrieved ;
                   self#log#f 4
-                    "Remaining: %d, queued: %d, adding: %d (RID %d)"
-                    self#remaining queue_length len (Request.get_id req) ;
-                  queue_length <- queue_length + len ;
+                    "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
+                    (Frame.seconds_of_master self#remaining)
+                    queue_length len (Request.get_id req) ;
+                  queue_length <- queue_length +. len ;
                   Mutex.unlock qlock ;
                   resolving <- None ;
                   Finished
@@ -399,9 +398,10 @@ object (self)
       try
         let r = Queue.take retrieved in
           self#log#f 4
-            "Remaining: %d, queued: %d, taking: %d"
-            self#remaining queue_length r.duration ;
-          if not r.expired then queue_length <- queue_length - r.duration ;
+            "Remaining: %.1fs, queued: %.1fs, taking: %.1fs"
+            (Frame.seconds_of_master self#remaining)
+            queue_length r.duration ;
+          if not r.expired then queue_length <- queue_length -. r.duration ;
           Some r.request
       with
         | Queue.Empty ->
@@ -427,7 +427,7 @@ object (self)
       (fun r ->
          if test r.request && not r.expired then begin
            r.expired <- true ;
-           queue_length <- queue_length - r.duration
+           queue_length <- queue_length -. r.duration
          end)
       retrieved ;
     Mutex.unlock qlock ;
