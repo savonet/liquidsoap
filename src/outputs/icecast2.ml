@@ -154,8 +154,8 @@ let user_agent = Lang.product (Lang.string "User-Agent")
 let proto kind =
   Output.proto @ (Icecast_utils.base_proto kind) @
   [ ("restart", Lang.bool_t, Some (Lang.bool false),
-     Some "Restart output after a failure. By default, liquidsoap will stop \
-           if the output failed.") ;
+     Some "Keep trying to reconnect after a disconnection. \
+           By default, the output only attempts to reconnect once.") ;
     ("restart_delay", Lang.int_t, Some (Lang.int 3),
      Some "Delay, in seconds, before attempting new connection, if restart \
            is enabled.") ;
@@ -379,7 +379,6 @@ object (self)
             self#icecast_start
           end
       | Cry.Connected _ ->
-          (* TODO think about some limitation of shout restarting *)
           begin try
             Cry.send connection b;
             match dump with
