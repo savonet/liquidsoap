@@ -247,6 +247,7 @@ object (self)
   method set_id ?(definitive=true) s =
     (* ID musn't contain "." *)
     let s = Pcre.substitute ~pat:"\\." ~subst:(fun _ -> "(dot)") s in
+    let s = Pcre.substitute ~pat:"[ \t\n]" ~subst:(fun _ -> "_") s in
     if not definitive_id then ( id <- s ; definitive_id <- definitive ) ;
     (* Sometimes the ID is changed during initialization,
      * in order to make it equal to the server name,
