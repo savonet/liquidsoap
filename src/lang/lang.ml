@@ -567,8 +567,11 @@ let type_and_run ~lib ast =
   * parsing at a time. *)
 let parse_lock = Mutex.create ()
 
-let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
-  let lexbuf = Lexing.from_channel in_chan in
+(** Exception raised by report_error after an error has been displayed.
+  * Unknown errors are re-raised, so that their content is not totally lost. *)
+exception Error
+
+let report_error lexbuf f =
   let print_error error =
     flush_all () ;
     let start = lexbuf.Lexing.lex_curr_p in
@@ -577,41 +580,26 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
            Printf.sprintf "File %S, l" start.Lexing.pos_fname)
         start.Lexing.pos_lnum
         (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
-      if Lexing.lexeme lexbuf = "" then
+      if lexbuf.Lexing.lex_curr_pos - lexbuf.Lexing.lex_start_pos <= 0 then
         Printf.printf ": %s!\n" error
       else
         Printf.printf
           " before %S: %s!\n" (Lexing.lexeme lexbuf) error
   in
-    assert (lexbuf.Lexing.lex_start_p = lexbuf.Lexing.lex_curr_p) ;
-    begin match ns with
-      | Some ns ->
-          lexbuf.Lexing.lex_start_p <- { lexbuf.Lexing.lex_start_p with
-                                             Lexing.pos_fname = ns } ;
-          lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
-                                             Lexing.pos_fname = ns }
-      | None -> ()
-    end ;
-    try
-      let tokenizer = Lang_pp.token dir in
-      let program =
-        Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
-      in
-        if not parse_only then type_and_run ~lib program
-    with
-      | Failure "lexing: empty token" -> print_error "Empty token" ; exit 1
-      | Parsing.Parse_error -> print_error "Parse error" ; exit 1
+    try f () with
+      | Failure "lexing: empty token" -> print_error "Empty token" ; raise Error
+      | Parsing.Parse_error -> print_error "Parse error" ; raise Error
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Format.printf
               "@[<2>%s:@ the variable %s@ used here@ has not been@ \
                  previously@ defined.@]@."
             pos s ;
-            exit 1
+            raise Error
       | T.Type_Error explain ->
           flush_all () ;
           T.print_type_error explain ;
-          exit 1
+          raise Error
       | Term.No_label (f,lbl,first,x) ->
           let pos_f =
             T.print_pos ~prefix:"at " (Utils.get_some f.Term.t.T.pos)
@@ -627,7 +615,7 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
               (if first then "no" else "no more")
               (if lbl="" then "unlabeled argument" else
                  Format.sprintf "argument labeled %S" lbl) ;
-            exit 1
+            raise Error
       | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
           flush_all () ;
           Format.printf
@@ -637,7 +625,7 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
                partial application:@ some arguments@ may \
                be@ missing.@]@."
             (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          exit 1
+          raise Error
       | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
           flush_all () ;
           Format.printf
@@ -647,7 +635,7 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
                only active@ sources@ are animated@ on their own;@ \
                dangling@ passive sources@ are just dead code.@]@."
             (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          exit 1
+          raise Error
       | Term.Ignored tm ->
           flush_all () ;
           Format.printf
@@ -658,7 +646,7 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
                otherwise@ this is a sign@ that@ \
                your script@ does not do@ what you intend.@]@."
             (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          exit 1
+          raise Error
       | Term.Unused_variable (s,pos) ->
           flush_all () ;
           Format.printf
@@ -669,24 +657,24 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
                Otherwise,@ this may be a typo@ or a sign that@ your script@ \
                does not do@ what you intend.@]@."
             (T.print_single_pos pos) s s ;
-          exit 1
+          raise Error
       | Invalid_value (v,msg) ->
           Format.printf
             "@[<2>%s:@ %s.@]@."
             (T.print_pos ~prefix:"Invalid value at "
                (Utils.get_some v.t.T.pos))
             msg ;
-          exit 1
+          raise Error
       | Lang_encoders.Error (v,s) ->
           Format.printf
             "@[<2>Error in encoding format at@ %s:@ %s.@]@."
             (T.print_pos ~prefix:""
                (Utils.get_some v.Lang_values.t.T.pos))
             s ;
-          exit 1
+          raise Error
       | Failure s ->
           Format.printf "Error: %s!@." s ;
-          exit 1
+          raise Error
       | Clock_conflict (pos,a,b) ->
           (* TODO better printing of clock errors: we don't have position
            *   information, use the source's ID *)
@@ -695,15 +683,34 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
-          exit 1
+          raise Error
       | Clock_loop (pos,a,b) ->
           Format.printf
             "@[<2>%s:@ cannot unify@ two@ nested clocks@ (%s,@ %s).@]@."
             (T.print_pos ~prefix:"Error when initializing source at "
                (Utils.get_some pos))
             a b ;
-          exit 1
+          raise Error
       | e -> print_error "Unknown error" ; raise e
+
+let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
+  let lexbuf = Lexing.from_channel in_chan in
+    assert (lexbuf.Lexing.lex_start_p = lexbuf.Lexing.lex_curr_p) ;
+    begin match ns with
+      | Some ns ->
+          lexbuf.Lexing.lex_start_p <- { lexbuf.Lexing.lex_start_p with
+                                             Lexing.pos_fname = ns } ;
+          lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
+                                             Lexing.pos_fname = ns }
+      | None -> ()
+    end ;
+    try report_error lexbuf (fun () ->
+      let tokenizer = Lang_pp.token dir in
+      let program =
+        Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
+      in
+        if not parse_only then type_and_run ~lib program)
+    with Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -763,21 +770,27 @@ let interactive () =
     Format.printf "# %!" ;
     if
       try
+        report_error lexbuf (fun () ->
         let tokenizer = Lang_pp.token (Unix.getcwd ()) in
         let expr =
-          Tutils.mutexify parse_lock
-            (Lang_parser.interactive tokenizer) lexbuf
+          Tutils.finalize
+            ~k:(fun () -> Lexing.flush_input lexbuf)
+            (fun () ->
+               Tutils.mutexify parse_lock
+                 (Lang_parser.interactive tokenizer) lexbuf)
         in
           Term.check ~ignored:false expr ;
           Term.check_unused ~lib:true expr ;
           Clock.collect_after
             (fun () ->
                ignore (Term.eval_toplevel ~interactive:true expr)) ;
-          true
+          true)
       with
         | End_of_file ->
             Format.printf "Bye bye!@." ;
             false
+        | Error ->
+            true
         | e ->
             Format.printf "Exception: %s!@." (Utils.error_message e) ;
             true
