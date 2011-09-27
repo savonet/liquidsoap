@@ -20,7 +20,7 @@ fi
 AC_SUBST(version)
 AC_SUBST(libs_dir_version)
 
-AC_PREREQ(2.57)
+AC_PREREQ(2.61)
 AC_CONFIG_SRCDIR([src/main.ml])
 AC_PROG_INSTALL
 
@@ -82,9 +82,9 @@ fi
 # user is assumed to have access to the group.
 
 AC_ARG_WITH([user],
-            AC_HELP_STRING([--with-user],[sets the owner of installed files]))
+            AS_HELP_STRING([--with-user],[sets the owner of installed files]))
 AC_ARG_WITH([group],
-            AC_HELP_STRING([--with-group],[sets the group of installed files]))
+            AS_HELP_STRING([--with-group],[sets the group of installed files]))
 if test -z "$with_user" ; then
   install_user=liquidsoap
 else
@@ -166,9 +166,7 @@ __BLAH__
 
 # Optimize for local machine
 AC_ARG_ENABLE([optimize],
-   AC_HELP_STRING(
-      [--enable-optimize],
-      [optimize for local machine (adds "-03 -march=native -mtune=native" to CFLAGS)]))
+   AS_HELP_STRING([--enable-optimize],[optimize for local machine (adds "-03 -march=native -mtune=native" to CFLAGS)]))
 
 if test "x$enable_optimize" = "xyes" ; then
   CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
@@ -260,10 +258,8 @@ AC_SUBST(BYTE)
 # opal
 
 AC_ARG_WITH([opal-include],
-   AC_HELP_STRING(
-      [--with-opal-include=path],
-      [look for opal headers in path (defaults to /usr/include/opal)]))
-AC_ARG_ENABLE([opal],AC_HELP_STRING([--disable-opal],[don't use opal]))
+   AS_HELP_STRING([--with-opal-include=path],[look for opal headers in path (defaults to /usr/include/opal)]))
+AC_ARG_ENABLE([opal],AS_HELP_STRING([--disable-opal],[don't use opal]))
 
 W_OPAL=""
 w_OPAL=no
@@ -301,7 +297,7 @@ AC_SUBST(W_OPAL)
 # Graphics
 #
 
-AC_ARG_ENABLE([graphics],AC_HELP_STRING([--disable-graphics],[don't use the graphics library]))
+AC_ARG_ENABLE([graphics],AS_HELP_STRING([--disable-graphics],[don't use the graphics library]))
 if test "x$enable_graphics" = "xno" ; then
    W_GRAPHICS=""
    w_GRAPHICS="no"
@@ -414,10 +410,10 @@ if test -n "${W_DYNLINK}"; then
   echo "module Foo = Dynlink" > $DYN_TEST_FILE
   if ! $OCAMLC -linkpkg -package dynlink -o /dev/null $DYN_TEST_FILE >/dev/null 2>&1; then
     AC_MSG_RESULT([no])
-    AC_WARN([Dynlink module is installed but not available])
-    AC_WARN([Are you compiling to native code with ocaml < 3.11 ?])
-    AC_WARN([If your version of ocaml is >= 3.11, you may want to])
-    AC_WARN([report that issue to your distribution.])
+    AC_MSG_WARN([Dynlink module is installed but not available])
+    AC_MSG_WARN([Are you compiling to native code with ocaml < 3.11 ?])
+    AC_MSG_WARN([If your version of ocaml is >= 3.11, you may want to])
+    AC_MSG_WARN([report that issue to your distribution.])
     W_DYNLINK=""
     w_DYNLINK="no (not available)"
   else
@@ -427,7 +423,7 @@ if test -n "${W_DYNLINK}"; then
 fi
 
 if test -z "${W_DYNLINK}"; then
-  AC_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
+  AC_MSG_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
   cat >> src/configure.ml <<EOCONF
 let dynlink = false
 let load_dynlinks _ = ()
@@ -541,12 +537,10 @@ AC_CHECK_OCAML_BINDING([taglib],[0.2.0])
 # OSS
 #
 
-AC_ARG_ENABLE([oss],AC_HELP_STRING([--disable-oss],[don't use OSS]))
+AC_ARG_ENABLE([oss],AS_HELP_STRING([--disable-oss],[don't use OSS]))
 
 AC_ARG_ENABLE([oss-dynamic-plugin],
-   AC_HELP_STRING(
-      [--enable-oss-dynamic-plugin],
-      [Compile oss as an optional plugin.]))
+   AS_HELP_STRING([--enable-oss-dynamic-plugin],[Compile oss as an optional plugin.]))
 
 if test "x$enable_oss" != "xno" ; then
   AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
@@ -589,8 +583,7 @@ fi
 #
 
 AC_ARG_ENABLE([camomile],
-  AC_HELP_STRING([--disable-camomile],
-                 [don't use camomile (no charset detection and conversion)]))
+  AS_HELP_STRING([--disable-camomile],[don't use camomile (no charset detection and conversion)]))
 
 AC_CHECK_OCAML_BINDING([camomile])
 
@@ -781,7 +774,7 @@ fi
 #
 
 AC_ARG_ENABLE([gui],
-       AC_HELP_STRING([--disable-gui],[don't use the controller GUI]))
+       AS_HELP_STRING([--disable-gui],[don't use the controller GUI]))
 w_PYTHON=no
 if test "x$enable_gui" != "xno" ; then
 AC_PATH_PROG(PYTHON,python,no)
