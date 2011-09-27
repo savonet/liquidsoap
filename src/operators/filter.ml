@@ -42,32 +42,41 @@ object (self)
   val mutable band = Array.make channels 0.
   val mutable notch = Array.make channels 0.
 
+  (* State vartiable filter, see
+     http://www.musicdsp.org/archive.php?classid=3#23
+
+     TODO: the problem with this filter is that it only handles freq <= rate/4,
+     we have to find something better. See
+     http://www.musicdsp.org/showArchiveComment.php?ArchiveID=23
+
+     Maybe should we implement Chamberlin's version instead, which handles freq
+     <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
   method private get_frame buf =
     let offset = AFrame.position buf in
-      source#get buf ;
-      let b = AFrame.content buf offset in
-      let position = AFrame.position buf in
-      let freq = freq () in
-      let q = q () in
-      let wet = wet () in
-      let f = sin (2. *. pi *. freq /. rate) in
-        for c = 0 to Array.length b - 1 do
-          let b_c = b.(c) in
-            for i = offset to position - 1 do
-              low.(c) <- low.(c) +. f *. band.(c);
-              high.(c) <- q *. b_c.(i) -. low.(c) -. q *. band.(c);
-              band.(c) <- f *. high.(c) +. band.(c);
-              notch.(c) <- high.(c) +. low.(c);
-              b_c.(i) <-
-              wet *.
-              (match mode with
-                 | Low_pass -> low.(c)
-                 | High_pass -> high.(c)
-                 | Band_pass -> band.(c)
-                 | Notch -> notch.(c)
-              ) +. (1. -. wet) *. b_c.(i)
-            done
-        done
+    source#get buf ;
+    let b = AFrame.content buf offset in
+    let position = AFrame.position buf in
+    let freq = freq () in
+    let q = q () in
+    let wet = wet () in
+    let f = 2. *. sin (pi *. freq /. rate) in
+    for c = 0 to Array.length b - 1 do
+      let b_c = b.(c) in
+      for i = offset to position - 1 do
+        low.(c) <- low.(c) +. f *. band.(c);
+        high.(c) <- q *. b_c.(i) -. low.(c) -. q *. band.(c);
+        band.(c) <- f *. high.(c) +. band.(c);
+        notch.(c) <- high.(c) +. low.(c);
+        b_c.(i) <-
+          wet *.
+          (match mode with
+            | Low_pass -> low.(c)
+            | High_pass -> high.(c)
+            | Band_pass -> band.(c)
+            | Notch -> notch.(c)
+          ) +. (1. -. wet) *. b_c.(i)
+      done
+    done
 end
 
 let () =
@@ -89,21 +98,21 @@ let () =
     ~category:Lang.SoundProcessing
     ~descr:"Perform several kinds of filtering on the signal"
     (fun p kind ->
-       let f v = List.assoc v p in
-       let freq, q, wet, mode, src =
-         Lang.to_float_getter (f "freq"),
-         Lang.to_float_getter (f "q"),
-         Lang.to_float_getter (f "wetness"),
-         f "mode",
-         Lang.to_source (f "") in
-       let mode =
-         match Lang.to_string mode with
-           | "low" -> Low_pass
-           | "high" -> High_pass
-           | "band" -> Band_pass
-           | "notch" -> Notch
-           | _ -> raise (Lang.Invalid_value
-                           (mode,
-                            "valid values are low|high|band|notch"))
-       in
-         new filter ~kind src freq q wet mode)
+      let f v = List.assoc v p in
+      let freq, q, wet, mode, src =
+        Lang.to_float_getter (f "freq"),
+        Lang.to_float_getter (f "q"),
+        Lang.to_float_getter (f "wetness"),
+        f "mode",
+        Lang.to_source (f "") in
+      let mode =
+        match Lang.to_string mode with
+          | "low" -> Low_pass
+          | "high" -> High_pass
+          | "band" -> Band_pass
+          | "notch" -> Notch
+          | _ -> raise (Lang.Invalid_value
+                          (mode,
+                           "valid values are low|high|band|notch"))
+      in
+      new filter ~kind src freq q wet mode)
