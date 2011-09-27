@@ -26,7 +26,7 @@ open Dtools
 
 let log = Log.make ["decoder";"mp3"]
 
-let init input = 
+let init input =
   let index = Hashtbl.create 10 in
   let time_offset = ref 0 in
   let dec = ref (Mad.openstream input.Decoder.read) in
@@ -38,13 +38,13 @@ let init input =
                            ~seek ~tell
      | _,_ -> ()
   end ;
-  let get_index time = 
+  let get_index time =
     Hashtbl.find index time
   in
   let update_index () =
     match input.Decoder.tell with
       | None -> ()
-      | Some f -> 
+      | Some f ->
           let time =
             !time_offset + Mad.get_current_time !dec Mad.Seconds
           in
@@ -53,13 +53,13 @@ let init input =
   in
   (** Add an initial index. *)
   update_index ();
-  let get_data () = 
+  let get_data () =
     let data = Mad.decode_frame_float !dec in
     update_index ();
     data
   in
-  let get_time () = 
-    (float !time_offset) +. 
+  let get_time () =
+    (float !time_offset) +.
     (float (Mad.get_current_time !dec Mad.Centiseconds) /. 100.)
   in
   let seek ticks =
@@ -72,24 +72,24 @@ let init input =
       let seek_time =
         cur_time +. time
       in
-      let seek_time = 
+      let seek_time =
         if seek_time < 0. then 0. else seek_time
       in
       if time < 0. then
        begin
         try
           let seek_time = int_of_float (floor seek_time) in
-          let seek_pos = 
+          let seek_pos =
             if seek_time > 0 then
-              get_index seek_time 
+              get_index seek_time
             else
               0
           in
-          ignore((Utils.get_some input.Decoder.lseek) seek_pos); 
+          ignore((Utils.get_some input.Decoder.lseek) seek_pos);
           dec := Mad.openstream input.Decoder.read;
           (* We have to assume here that new_pos = seek_pos.. *)
           time_offset := seek_time
-        with _ -> () 
+        with _ -> ()
        end;
       let rec f pos =
         if pos < seek_time then
@@ -104,7 +104,7 @@ let init input =
       Frame.master_of_seconds (new_time-.cur_time)
      end
   in
-  let get_info () = 
+  let get_info () =
     Mad.get_output_format !dec
   in
   get_info,get_data,seek
@@ -117,15 +117,15 @@ let create_decoder input =
   let get_info,get_data,seek = init input in
   { Decoder.
      seek = seek;
-     decode = 
+     decode =
        (fun gen ->
          let data = get_data () in
-         let sample_freq,channels,_ = get_info () in 
+         let sample_freq,channels,_ = get_info () in
          let content,length =
            resampler ~audio_src_rate:(float sample_freq) data
          in
          Generator.set_mode gen `Audio ;
-          Generator.put_audio gen content 0 
+          Generator.put_audio gen content 0
                (Array.length content.(0))) }
 
 end
@@ -158,15 +158,17 @@ let get_type filename =
       (fun () ->
          ignore(Mad.decode_frame_float fd);
          let f = Mad.get_frame_format fd in
-           let layer = 
+           let layer =
              match f.Mad.layer with
                | Mad.Layer_I   -> "I"
                | Mad.Layer_II  -> "II"
                | Mad.Layer_III -> "III"
            in
            log#f 4
-             "Libmad recognizes %S as MP3 (layer %s,%ikbps,%dHz,%d channels)."
-             filename layer (f.Mad.bitrate/1000) f.Mad.samplerate f.Mad.channels ;
+             "Libmad recognizes %S as MP3 \
+              (layer %s, %ikbps, %dHz, %d channels)."
+             filename
+             layer (f.Mad.bitrate/1000) f.Mad.samplerate f.Mad.channels ;
            { Frame.
              audio = f.Mad.channels ;
              video = 0 ;
@@ -185,7 +187,7 @@ let () =
         not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
              Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
         not (Decoder.test_file ~mimes:mime_types#get
-                               ~extensions:file_extensions#get 
+                               ~extensions:file_extensions#get
                                ~log filename)
      then
        None

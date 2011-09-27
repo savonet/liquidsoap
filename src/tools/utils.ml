@@ -541,7 +541,7 @@ let get_ext s =
 
 let name_of_sockaddr ?(rev_dns=true) ?(show_port=false) a =
   match a with
-    | Unix.ADDR_UNIX s -> Printf.sprintf "unix socket %s" s
+    | Unix.ADDR_UNIX s -> Printf.sprintf "unix socket %S" s
     | Unix.ADDR_INET (x,p) ->
          let host = 
             try

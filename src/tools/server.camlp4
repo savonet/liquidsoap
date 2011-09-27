@@ -352,7 +352,7 @@ let start_socket () =
           let ip =
             Utils.name_of_sockaddr caller
           in
-          log#f 3 "New client %s" ip;
+          log#f 3 "New client %s." ip;
           handle_client socket ip
       with e ->
         log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
@@ -404,7 +404,7 @@ let start_telnet () =
         let ip =
            Utils.name_of_sockaddr caller
         in
-        log#f 3 "New client: %s" ip ;
+        log#f 3 "New client: %s." ip ;
         handle_client socket ip
       with e ->
       log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
