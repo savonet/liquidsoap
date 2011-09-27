@@ -38,6 +38,10 @@ let conf_timeout =
   Conf.float ~p:(conf#plug "timeout") ~d:30.
     "Timeout for read/write operations."
 
+let get_timeout () =
+  let t = conf_timeout#get in
+    if t < 0. then infinity else t
+
 let conf_socket =
   Conf.bool ~p:(conf#plug "socket") ~d:false
     "Support for communication via a UNIX domain socket interface"
@@ -262,7 +266,7 @@ let handle_client socket ip =
      with
        { priority = Tutils.Non_blocking ;
          handler  = h ;
-         timeout = conf_timeout#get }
+         timeout = get_timeout () }
     in
     duppy ans =
       duppy_exec
@@ -284,7 +288,7 @@ let handle_client socket ip =
       with
         { priority = Tutils.Non_blocking ;
           handler  = h ;
-          timeout  = conf_timeout#get } ;
+          timeout  = get_timeout () } ;
       duppy_return ()
     done
   in
@@ -315,7 +319,7 @@ let handle_client socket ip =
              log#f 3 "Client %s disconnected." ip;
              close ()
            in
-           Duppy.Io.write ~timeout:conf_timeout#get 
+           Duppy.Io.write ~timeout:(get_timeout ())
                           ~priority:Tutils.Non_blocking ~on_error
                           ~exec Tutils.scheduler ~string:msg
                           socket

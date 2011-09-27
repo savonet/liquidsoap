@@ -34,7 +34,11 @@ let conf =
   
 let conf_timeout =
   Conf.float ~p: (conf#plug "timeout") ~d: 30.
-    "Timeout for read/write operations."
+    "Timeout for read/write operations"
+    ~comments:[ "Set it to -1 to disable timeout." ]
+  
+let get_timeout () =
+  let t = conf_timeout#get in if t < 0. then infinity else t
   
 let conf_socket =
   Conf.bool ~p: (conf#plug "socket") ~d: false
@@ -248,7 +252,7 @@ let handle_client socket ip =
   (* Read and process lines *)
   let process =
     let __pa_duppy_0 =
-      Duppy.Monad.Io.read ?timeout: (Some conf_timeout#get)
+      Duppy.Monad.Io.read ?timeout: (Some (get_timeout ()))
         ~priority: Tutils.Non_blocking ~marker: (Duppy.Io.Split "[\r\n]+") h
     in
       Duppy.Monad.bind __pa_duppy_0
@@ -264,11 +268,11 @@ let handle_client socket ip =
                     (Duppy.Monad.bind
                        (Duppy.Monad.Io.write
                           ?timeout:
-                            (Some (* "BEGIN\r\n"; *) conf_timeout#get)
+                            (Some (* "BEGIN\r\n"; *) (get_timeout ()))
                           ~priority: Tutils.Non_blocking h ans)
                        (fun () ->
                           Duppy.Monad.Io.write
-                            ?timeout: (Some conf_timeout#get)
+                            ?timeout: (Some (get_timeout ()))
                             ~priority: Tutils.Non_blocking h "\r\nEND\r\n"))
                     (fun () -> Duppy.Monad.return ()))) in
   let close () = try Unix.close socket with | _ -> () in
@@ -287,7 +291,7 @@ let handle_client socket ip =
              | _ -> assert false) in
           let exec () = (log#f 3 "Client %s disconnected." ip; close ())
           in
-            Duppy.Io.write ~timeout: conf_timeout#get
+            Duppy.Io.write ~timeout: (get_timeout ())
               ~priority: Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
               ~string: msg socket
       | _ ->
