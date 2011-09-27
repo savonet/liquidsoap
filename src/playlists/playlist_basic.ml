@@ -22,7 +22,7 @@
 
 open Unix
 
-let log = Dtools.Log.make ["parser";"http"]
+let log = Dtools.Log.make ["playlist";"basic"]
 
 let split_lines buf =
   Pcre.split ~pat:"[\r\n]+" buf
@@ -70,6 +70,9 @@ let parse_scpls string =
   List.map (fun t -> [],t) urls
 
 let () =
-  Playlist_parser.parsers#register "audio/x-scpls" { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls } ;
-  Playlist_parser.parsers#register "audio/x-mpegurl" { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
-  Playlist_parser.parsers#register "audio/mpegurl" { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
+  Playlist_parser.parsers#register "audio/x-scpls"
+    { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls } ;
+  Playlist_parser.parsers#register "audio/x-mpegurl"
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
+  Playlist_parser.parsers#register "audio/mpegurl"
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }

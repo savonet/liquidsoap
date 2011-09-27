@@ -22,7 +22,7 @@
 
 open Unix
 
-let log = Dtools.Log.make ["parser";"xml"]
+let log = Dtools.Log.make ["playlist";"xml"]
 
 let conf_xml =
   Dtools.Conf.list ~p:(Playlist_parser.conf_mime_types#plug "xml")
