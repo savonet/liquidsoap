@@ -50,7 +50,7 @@ object (self)
       let freq = freq () in
       let q = q () in
       let wet = wet () in
-      let f = 2. *. sin (pi *. freq /. rate) in
+      let f = sin (2. *. pi *. freq /. rate) in
         for c = 0 to Array.length b - 1 do
           let b_c = b.(c) in
             for i = offset to position - 1 do
