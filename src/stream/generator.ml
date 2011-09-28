@@ -495,7 +495,13 @@ struct
 
   type t = {
     lock : Mutex.t ;
-    kind : Frame.content_kind ; mutable error : bool ;
+    (* The generator knows what content kind it is expected to produce
+     * Because of the async put_audio/video calls, we only detect the
+     * error upon [fill]. When an error is detected, the error flag is
+     * set, which makes put_audio/video fail and hence kills the feeding
+     * process. *)
+    kind : Frame.content_kind ;
+    mutable error : bool ;
     overfull : overfull option ;
     gen : Super.t ;
     log : string -> unit
@@ -523,16 +529,16 @@ struct
     Tutils.mutexify t.lock
       (fun () ->
          let p = Frame.position frame in
+         let breaks = Frame.breaks frame in
            Super.fill t.gen frame ;
            let _,c = Frame.content frame p in
              if not (Frame.type_has_kind (Frame.type_of_content c) t.kind) then
                begin
-                 if not t.error then begin
-                   t.log "Incorrect stream type!" ;
-                   t.error <- true
-                 end ;
+                 t.log "Incorrect stream type!" ;
+                 t.error <- true ;
+                 Super.clear t.gen ;
                  Frame.clear_from frame p ;
-                 Frame.add_break frame p
+                 Frame.set_breaks frame (p::breaks)
                end)
         ()
 

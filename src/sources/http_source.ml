@@ -289,9 +289,9 @@ object (self)
             Generator.add_break ~sync:`Drop generator ;
             begin match e with
               | Failure s ->
-                  self#log#f 2 "Feeding stopped: %s." s
+                  self#log#f 2 "Feeding stopped: %s" s
               | e ->
-                  self#log#f 2 "Feeding stopped: %s." (Utils.error_message e)
+                  self#log#f 2 "Feeding stopped: %s" (Utils.error_message e)
             end ;
             begin match logf with
               | Some f -> close_out f ; logf <- None
