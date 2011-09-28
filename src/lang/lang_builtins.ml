@@ -1703,6 +1703,27 @@ let () =
         Lang.unit)
 
 let () =
+  let s_t =
+    let v = Lang.variable_t in
+      Lang.source_t (Lang.frame_kind_t ~audio:v ~video:v ~midi:v)
+  in
+  add_builtin "source.init" ~cat:Liq
+    ~descr:"Simultaneously initialize sources, \
+            return the sublist of sources that failed to initialized."
+    [ "", Lang.list_t s_t, None, None ] (Lang.list_t s_t)
+    (fun p ->
+       let l = Lang.to_list (List.assoc "" p) in
+       let l = List.map Lang.to_source l in
+       let l =
+         (* TODO this whole function should be about active sources,
+          *   just like source.shutdown() but the language has no runtime
+          *   difference between sources and active sources, so we use
+          *   this trick to compare active sources and passive ones... *)
+         Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
+       in
+         Lang.list s_t (List.map (fun x -> Lang.source (x:>Source.source)) l))
+
+let () =
   add_builtin "request.create.raw" ~cat:Liq
     ~descr:"Create a raw request, i.e. for files that should not be decoded \
             for streaming. Creation may fail if there is no available RID, \

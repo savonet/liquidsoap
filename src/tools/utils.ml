@@ -69,36 +69,6 @@ let rec may_map f = function
       end
   | [] -> []
 
-(* Perform the same operation
- * on all elements of a list and
- * rollback all processed elements
- * with the same function if anything
- * failed. Also catch all exceptions
- * raised during rollback to make sure
- * that all elements are processed during
- * that phase. 
- * Nothing is done against the element that
- * raised the original exception, so this should
- * be taken care of during [process]. *)
-let map_rollback ~rollback map l =
-  let rollback x = 
-    try
-      rollback x 
-    with e -> ()
-  in
-  let rec f cur ret =
-    match cur with
-      | [] -> ret
-      | x :: l ->
-        try
-          f l (map x :: ret)
-        with
-          | e -> 
-               List.iter rollback ret;
-               raise e
-  in
-  f l []
-
 let really_read fd buf ofs len =
   let l = ref 0 in
   let r = ref (-1) in

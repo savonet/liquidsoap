@@ -34,6 +34,7 @@ end
 val running : unit -> bool
 
 val collect_after : (unit -> 'a) -> 'a
+val force_init : (Source.active_source -> bool) -> Source.active_source list
 val start : unit -> unit
 val stop : unit -> unit
 

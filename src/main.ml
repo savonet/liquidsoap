@@ -33,8 +33,17 @@ let () =
   Configure.conf#plug "init" Init.conf ;
   Configure.conf#plug "log" Log.conf
 
-(* Should we not_run the outputs? *)
+(* Should we not run the active sources? *)
 let dont_run = ref false
+
+(* Should we start even without active sources? *)
+let force_start =
+  Dtools.Conf.bool
+    ~p:(Dtools.Init.conf#plug "force_start") ~d:false
+    "Start liquidsoap even without any active source"
+    ~comments:[
+      "This should be reserved for advanced dynamic uses of liquidsoap."
+    ]
 
 (* Do not run, don't even check the scripts. *)
 let parse_only = ref false
@@ -355,6 +364,11 @@ let options =
       Arg.Unit (fun () -> Log.conf_stdout#set true),
       "Print log messages on standard output." ;
 
+      ["-f";"--force-start"],
+      Arg.Unit (fun () -> force_start#set true),
+      "For advanced dynamic uses: force liquidsoap to start \
+       even when no active source is initially defined." ;
+
       ["--debug"],
       Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
       "Print debugging log messages." ]
@@ -587,7 +601,7 @@ let () =
       check_directories () ;
       ignore (Thread.create Lang.interactive ()) ;
       Init.init main
-    end else if Source.has_outputs () then
+    end else if Source.has_outputs () || force_start#get then
       if not !dont_run then begin
         check_directories () ;
         Init.init ~prohibit_root:true main
