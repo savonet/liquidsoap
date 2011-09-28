@@ -77,7 +77,10 @@ let allow_streaming_errors =
 let leave (s:active_source) =
   try s#leave (s:>source) with e ->
     log#f 2 "Error when leaving output %s: %s!"
-      s#id (Utils.error_message e)
+      s#id (Utils.error_message e) ;
+    List.iter
+      (log#f 3 "%s")
+      (Pcre.split ~pat:"\n" (Utils.get_backtrace ()))
 
 (** Base clock class *)
 
@@ -155,7 +158,10 @@ object (self)
                | exn ->
                    log#f 2
                      "Source %s failed while streaming: %s!"
-                     s#id (Printexc.to_string exn) ;
+                     s#id (Utils.error_message exn) ;
+                   List.iter
+                     (log#f 3 "%s")
+                     (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
                    leave s ;
                    s::e,a)
           ([],[])
@@ -211,6 +217,9 @@ object (self)
              | e ->
                  log#f 2 "Error when starting %s: %s!"
                    s#id (Utils.error_message e) ;
+                 List.iter
+                  (log#f 3 "%s")
+                  (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
                  leave s ;
                  `Error s)
         to_start
@@ -224,6 +233,9 @@ object (self)
                  | e ->
                      log#f 2 "Error when starting output %s: %s!"
                        s#id (Utils.error_message e) ;
+                     List.iter
+                       (log#f 3 "%s")
+                       (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
                      leave s ;
                      `Error s)
         to_start
