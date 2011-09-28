@@ -38,6 +38,7 @@
 type mode = Master | Auxiliary | Symmetric
 
 class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
+  let dest_type = Frame.type_of_kind kind in
 object (self)
 
   inherit Source.operator ~name:"mux" kind [master;aux]
@@ -58,42 +59,54 @@ object (self)
   method private get_frame frame =
     match mode with
       | Symmetric ->
-          (* We get as much info from one source, save the content,
+          (* We get as much info as possible from one source, save the content,
            * repeat the operation for the other, then merge the contents.
-           * TODO A more fine-grained loop could minimize dropping
-           *
-           * We forcibly re-use channels from the current content type,
-           * which will trivialize blit in most cases (inside a track,
-           * the content doesn't change). *)
+           * If one source produces more than the other, extra data is dropped.
+           * This could be avoided if we could get sample by sample, or know in
+           * advance how many samples each source can produce. *)
           let pos = Frame.position frame in
-          let _,content = Frame.content frame pos in
+          (* Immediately get the final destination frame.
+           * It will be used to obtain data from aux and master sources
+           * directly at the right place, so that muxing only consists
+           * in putting channels together, without the need for blitting.
+           * It remains possible that one of our sources ends up writing
+           * in another content layer than the expected one. So we call
+           * blit just in case; it doesn't cost anything when the array
+           * are already identical. *)
+          let dest = Frame.content_of_type frame pos dest_type in
           let get adapt_layer s =
             let breaks = Frame.breaks frame in
-              (* Commenting out the following line suffices to disable
-               * the optimization. *)
-              Frame.set_content_unsafe frame pos (adapt_layer content) ;
+            let inicon = adapt_layer dest in
+            let inicon =
+              Frame.content_of_type ~force:inicon
+                frame pos (Frame.type_of_content inicon)
+            in
               while s#is_ready && Frame.is_partial frame do
                 s#get frame
               done ;
               let p,c = Frame.content frame pos in
               let end_pos = Frame.position frame in
-                assert (p >= Frame.position frame) ;
+                if inicon != c then
+                  self#log#f 4 "Copy-avoiding optimization isn't working!" ;
                 Frame.set_breaks frame breaks ;
                 c, end_pos
           in
+          (* Hiding contents to avoid the following.
+           * If the master layer is present in the frame, it may be used by one
+           * of the sources. For example, master is stereo, we call the aux source
+           * with a mono layer (half of the stereo one) but that source is a
+           * mean so its sub-source will write on the underlying stereo layer
+           * (before computing the mean in the mono layer) overwriting the
+           * data written before by the master source.
+           * For similar reasons we hide what the master has written
+           * before the aux source gets the frame. *)
+          let restore = Frame.hide_contents frame in
           let master,end_master = get master_layer master in
+          let _ = Frame.hide_contents frame in
           let aux,end_aux = get aux_layer aux in
           let end_pos = min end_master end_aux in
           let new_content = mux_content master aux in
-          let dest =
-            (* The hope here is that the initial content had the right
-             * type so it will be re-used and the blit will be trivial.
-             * Otherwise, if the old content didn't reflect the actual
-             * content type of our sources, we'll get a new layer and
-             * the blit will have an effect. This should rarely happen,
-             * so we don't bother to optimize that case too. *)
-            Frame.content_of_type frame pos (Frame.type_of_content new_content)
-          in
+            restore () ;
             Frame.blit_content new_content pos dest pos (end_pos-pos) ;
             Frame.add_break frame end_pos
       | _ ->
@@ -150,6 +163,45 @@ let () =
          let aux_layer c = { c with Frame.video = [||] ; midi = [||] } in
          let mux_content master aux =
            { master with Frame.audio = aux.Frame.audio }
+         in
+         let mode = Symmetric in
+           new mux ~kind ~mode
+             ~master ~aux ~master_layer ~aux_layer mux_content)
+
+let () =
+  let master_t = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
+  let aux_t =
+    Lang.frame_kind_t ~audio:(Lang.succ_t Lang.zero_t)
+                      ~video:Lang.zero_t ~midi:Lang.zero_t
+  in
+  let { Frame. audio = audio ; video = video ; midi = midi } =
+    Lang.of_frame_kind_t master_t
+  in
+  let out_t = Lang.frame_kind_t ~audio:(Lang.succ_t audio) ~video ~midi in
+    Lang.add_operator "mux_mono"
+      ~category:Lang.Conversions
+      ~descr:"Add audio channnels to a stream."
+      ~kind:(Lang.Unconstrained out_t)
+      [
+        "mono", Lang.source_t aux_t, None, None ;
+        "", Lang.source_t master_t, None, None ;
+      ]
+      (fun p kind ->
+         let master = Lang.to_source (List.assoc "" p) in
+         let aux = Lang.to_source (List.assoc "mono" p) in
+         let master_layer c =
+           { c with Frame.audio =
+                 Array.sub c.Frame.audio 1 (Array.length c.Frame.audio - 1) }
+         in
+         let aux_layer c =
+           { Frame.audio = [|c.Frame.audio.(0)|] ; video = [||] ; midi = [||] }
+         in
+         let mux_content master aux =
+           let audio =
+             Array.init (1 + Array.length master.Frame.audio)
+               (function 0 -> aux.Frame.audio.(0) | n -> master.Frame.audio.(n-1))
+           in
+             { master with Frame.audio = audio }
          in
          let mode = Symmetric in
            new mux ~kind ~mode

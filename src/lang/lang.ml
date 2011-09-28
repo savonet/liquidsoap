@@ -53,7 +53,7 @@ let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
 let variable_t = Term.variable_t
-let type_of_int n = Term.type_of_int n
+let type_of_int = Term.type_of_int
 
 (** In order to keep the old way of declaring the type of builtins,
   * we have to do a little work. Keeping the same style avoids rewriting

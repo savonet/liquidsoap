@@ -299,7 +299,11 @@ ty:
   | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
   | INT                       { Lang_values.type_of_int $1 }
   | TIMES                     { Lang_values.variable_t }
-  /* | TIMES PLUS INT            { Lang_values.variable_t + type_of_int $2 } */
+  | TIMES BIN2 INT            { if $2 <> "+" then raise Parsing.Parse_error else
+                                  let mul = Frame.mul_of_int $3 in
+                                  let mul = Frame.add_mul Frame.Variable mul in
+                                    Lang_values.type_of_mul
+                                      ~pos:None ~level:(-1) mul }
 
 ty_args:
   |                      { [] }

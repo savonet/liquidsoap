@@ -91,7 +91,7 @@ let of_request_t t = match (T.deref t).T.descr with
 let rec type_of_mul ~pos ~level m =
   T.make ~pos ~level
     (match m with
-       | Frame.Variable -> assert false
+       | Frame.Variable -> T.Variable
        | Frame.Zero -> T.Zero
        | Frame.Succ m -> T.Succ (type_of_mul ~pos ~level m))
 

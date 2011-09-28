@@ -285,6 +285,11 @@ let type_of_kind k =
 
 let rec mul_of_int x = if x<=0 then Zero else Succ (mul_of_int (x-1))
 
+let rec add_mul x = function
+  | Zero -> x
+  | Succ y -> Succ (add_mul y x)
+  | Variable -> if x = Variable then x else add_mul Variable x
+
 let string_of_mul m =
   let rec aux acc = function
     | Succ m -> aux (acc+1) m
@@ -462,7 +467,7 @@ let content frame pos =
   * if the current content type at the given position is not the required
   * one. Hence, the caller of this function should always assume the
   * invalidation of all data after the given position. *)
-let content_of_type frame pos content_type =
+let content_of_type ?force frame pos content_type =
   (* [acc] contains the previous layers in reverse order,
    * [start_pos] is the starting position of the first layer in [acc],
    * and we're walking through the next layers. *)
@@ -474,6 +479,7 @@ let content_of_type frame pos content_type =
           if content_has_type content content_type then begin
             if l=[] then assert (end_pos = !!size) else
               frame.contents <- List.rev ((!!size,content)::acc) ;
+            assert (match force with Some c -> c = content | None -> true) ;
             content
           end else begin
             if pos=start_pos then
@@ -483,37 +489,47 @@ let content_of_type frame pos content_type =
                   when content_has_type content content_type ->
                     (* We must re-use the previous layer. *)
                     frame.contents <- List.rev ((!!size, content)::acc) ;
+                    assert (match force with Some c -> c = content | None -> true) ;
                     content
                 | _ ->
-                    let content = create_content content_type in
+                    let content =
+                      match force with
+                        | None -> create_content content_type
+                        | Some c -> c
+                    in
                       frame.contents <- List.rev ((!!size, content)::acc) ;
                       content
             else
               let acc = (pos,content)::acc in
-              let content = create_content content_type in
+              let content =
+                match force with
+                  | None -> create_content content_type
+                  | Some c -> c
+              in
                 frame.contents <- List.rev ((!!size, content)::acc) ;
                 content
           end
   in
     aux 0 [] frame.contents
 
-(** Directly set content layer for a given position.
-  * This is an unsafe operation, in particular if the current content
-  * has the same type as the new one.
-  * Use this only for optimizations when you know what you're doing. *)
-let set_content_unsafe frame pos new_content =
-  let rec aux acc = function
-    | [] -> assert false
-    | (end_pos,content)::l ->
-        if end_pos<=pos then aux ((end_pos,content)::acc) l else
-          (* We possibly leave an empty-duration content, if it started
-           * exactly where our new layer starts.
-           * This is to allow re-using it in content_of_type even even
-           * in that case. *)
-          frame.contents <-
-            List.rev ((!!size,new_content)::(pos,content)::l)
+(** [hide_contents frame] removes all content layers from the frame,
+  * and returns a function that restores them in their current state.
+  * Hiding content layers avoids that they are used in any way, which
+  * is often needed in optimized content conversions. *)
+let hide_contents =
+  fun frame ->
+    let save = frame.contents in
+      frame.contents <- [!!size, {audio=[||];video=[||];midi=[||]}] ;
+      (fun () -> frame.contents <- save)
+
+type content_layer = { content : content ; start : int ; length : int }
+let get_content_layers frame =
+  let rec aux pos = function
+    | [] -> []
+    | (endpos,c)::l ->
+        { content = c ; start = pos ; length = endpos-pos } :: aux endpos l
   in
-    aux [] frame.contents
+    aux 0 frame.contents
 
 let blit_content src src_pos dst dst_pos len =
   Utils.array_iter2 src.audio dst.audio

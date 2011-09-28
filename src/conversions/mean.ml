@@ -23,6 +23,14 @@
 open Source
 
 class mean ~kind source =
+  let dst_type = Frame.type_of_kind kind in
+  let src_type = Frame.type_of_kind source#kind in
+  let channels = src_type.Frame.audio in
+  let tmp_audio =
+    Array.init channels
+      (fun _ -> Array.create (Frame.audio_of_master (Lazy.force Frame.size)) 0.)
+  in
+  let channels = float channels in
 object (self)
   inherit operator kind [source] as super
 
@@ -34,40 +42,42 @@ object (self)
 
   method private get_frame frame =
     let start = Frame.position frame in
+    (** Get the final (mono) content layer first.
+      * Doing it now (instead of after the source#get) avoids loosing
+      * optimizations where we're supposed to write to a specific layer.
+      * It's also useful to perform our own copy-avoiding optimization. *)
+    let dst = Frame.content_of_type frame start dst_type in
     let src =
+      (* Insert a special content layer with N audio channels
+       * but the same video and midi channels, so that those do not
+       * necessarily have to be copied -- the blit below will be
+       * trivial if source#get does write to our special content layer. *)
+      let content = { dst with Frame.audio = tmp_audio } in
+      let restore = Frame.hide_contents frame in
+      let _ = Frame.content_of_type ~force:content frame start src_type in
       source#get frame ;
       let layer_end,src = Frame.content frame start in
         assert (layer_end = Lazy.force Frame.size) ;
+        restore () ;
+        if src != content then
+          self#log#f 4 "Copy-avoiding optimization isn't working!" ;
         src
     in
     let len = Frame.position frame - start in
-    let src_type = Frame.type_of_content src in
-    let dst_type = { src_type with Frame.audio = 1 } in
-    let dst = Frame.content_of_type frame start dst_type in
-      (* Copy midi and video channels. This should be avoided eventually. *)
-      for i = 0 to Array.length src.Frame.video - 1 do
-        let (!) = Frame.video_of_master in
-          for j = 0 to !len-1 do
-            Image.RGBA32.blit
-              src.Frame.video.(i).(!start+j)
-              dst.Frame.video.(i).(!start+j)
-          done
+    let (!) = Frame.audio_of_master in
+      (* Compute the mean of audio channels *)
+      for i = !start to !(start+len) - 1 do
+        dst.Frame.audio.(0).(i) <-
+        Array.fold_left (fun m b -> m +. b.(i)) 0. src.Frame.audio
+        /. channels
       done ;
-      for i = 0 to Array.length src.Frame.midi - 1 do
-        MIDI.blit
-          src.Frame.midi.(i) start
-          dst.Frame.midi.(i) start
-          len
-      done ;
-      (* Fill the unique audio channel. *)
-      let (!) = Frame.audio_of_master in
-      let channels = float (Array.length dst.Frame.audio) in
-        if channels>0. then
-          for i = !start to !(start+len) - 1 do
-            dst.Frame.audio.(0).(i) <-
-              Array.fold_left (fun m b -> m +. b.(i)) 0. src.Frame.audio
-              /. channels
-          done
+      (* Finally, blit in case src_mono.Frame.midi/video is not already
+       * the same as dst.Frame.midi/video. *)
+      Frame.blit_content
+        { src with Frame.audio = dst.Frame.audio } start
+        dst start
+        len
+
 end
 
 let () =

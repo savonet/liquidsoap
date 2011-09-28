@@ -31,7 +31,8 @@
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic ~kind source =
-object
+object (self)
+
   inherit Source.operator kind [source]
 
   method stype = source#stype
@@ -44,40 +45,25 @@ object
 
   method private get_frame frame =
     let start = Frame.position frame in
-    let stop  = source#get frame ; Frame.position frame in
-    let len   = stop-start in
-    let _,src = Frame.content frame start in
-      assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
-      match src.Frame.audio with
-        | [||] -> assert false
-        | [|src|] ->
-            (** TODO Here we know that getting a content_of_type
-              * will trigger the creation of a new layer, and it would
-              * be faster that we create the layer rather than copy
-              * data to it. *)
-            let dst = Frame.content_of_type frame start stereo in
-            let (!) = Frame.audio_of_master in
-              Array.blit
-                src !start
-                dst.Frame.audio.(0) !start
-                !len ;
-              Array.blit
-                src !start
-                dst.Frame.audio.(1) !start
-                !len
-        | [|_;_|] -> ()
-        | src ->
-            (* We have more than two channels: drop the last ones. *)
-            let dst = Frame.content_of_type frame start stereo in
-            let (!) = Frame.audio_of_master in
-              Array.blit
-                src.(0) !start
-                dst.Frame.audio.(0) !start
-                !len ;
-              Array.blit
-                src.(1) !start
-                dst.Frame.audio.(1) !start
-                !len
+    let layers = source#get frame ; Frame.get_content_layers frame in
+    (** Install the final stereo layer, and copy everything to it *)
+    let dst = Frame.content_of_type frame start stereo in
+    let rec aux { Frame. content = src ; start = pos ; length = l } =
+      if pos >= start then begin
+        assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
+        match src.Frame.audio with
+          | [||] -> assert false
+          | [|chan|] ->
+              let content = { src with Frame.audio = [|chan;chan|] } in
+                Frame.blit_content content pos dst pos l
+          | [|_;_|] ->
+              Frame.blit_content src pos dst pos l
+          | audio ->
+              let content = { src with Frame.audio = Array.sub audio 0 2 } in
+                Frame.blit_content content pos dst pos l
+      end
+    in
+      List.iter aux layers
 
 end
 

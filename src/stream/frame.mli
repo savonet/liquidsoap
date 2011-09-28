@@ -77,8 +77,11 @@ val get_past_metadata : t -> metadata option
 (** {2 Content operations} *)
 
 val content : t -> int -> int * content
-val content_of_type : t -> int -> content_type -> content
-val set_content_unsafe : t -> int -> content -> unit
+val content_of_type : ?force:content -> t -> int -> content_type -> content
+
+val hide_contents : t -> (unit -> unit)
+type content_layer = { content : content ; start : int ; length : int }
+val get_content_layers : t -> content_layer list
 
 exception No_chunk
 val get_chunk : t -> t -> unit
@@ -95,6 +98,7 @@ val type_of_content : content -> content_type
 val type_of_kind : content_kind -> content_type
 
 val mul_of_int : int -> multiplicity
+val add_mul : multiplicity -> multiplicity -> multiplicity
 
 val string_of_content_kind : content_kind -> string
 val string_of_content_type : content_type -> string
