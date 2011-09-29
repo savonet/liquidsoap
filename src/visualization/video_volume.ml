@@ -69,7 +69,7 @@ object (self)
     let len = source#get frame ; Frame.position frame - offset in
     (* If the data has duration=0 don't do anything as there might
      * not even be a content layer of the right type to look at. *)
-    if len > offset then
+    if len > 0 then
       (* Add a video channel to the frame contents. *)
       let _,src = Frame.content frame offset in
       let src_type = Frame.type_of_content src in
