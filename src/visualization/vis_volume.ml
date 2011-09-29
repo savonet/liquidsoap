@@ -41,6 +41,7 @@ object (self)
   val graph =
     let graph = Graphics.open_graph "" in
       Graphics.set_window_title "Liquidsoap's volume";
+      Graphics.auto_synchronize false;
       graph
 
   (* Ringbuffer for previous values, with its current position *)
@@ -67,7 +68,8 @@ object (self)
 
   method get_frame buf =
     let offset = AFrame.position buf in
-    source#get buf;
+    let end_pos = source#get buf ; AFrame.position buf in
+    if offset < end_pos then
     let content = AFrame.content buf offset in
     for i = offset to AFrame.position buf - 1 do
       self#add_vol (Array.map (fun c -> let x = c.(i) in x*.x) content)
@@ -93,7 +95,8 @@ object (self)
             (int_of_float (volwidth *. float i))
             (chan_height + int_of_float (volheight *. vol.((i+pos) mod backpoints)))
         done
-      done
+      done ;
+      Graphics.synchronize ()
 
 end
 
