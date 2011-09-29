@@ -171,6 +171,10 @@ let proto kind =
      Some "User for shout source connection. \
            Useful only in special cases, like with per-mountpoint users.") ;
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
+    "encoding", Lang.string_t, Some (Lang.string ""),
+     Some "Encoding used to send metadata. If empty, defaults to \"UTF-8\" \
+           for \"http\" protocol and \"ISO-8859-1\" for \"icy\" \
+           protocol." ;
     "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
     ("description", Lang.string_t,
@@ -204,9 +208,19 @@ class output ~kind p =
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
 
   let protocol,encoder_factory, 
-      format,icecast_info,icy_metadata,
-      ogg,out_enc =
+      format,icecast_info,
+      icy_metadata,ogg =
     encoder_data p
+  in
+
+  let out_enc =
+    match Lang.to_string (List.assoc "encoding" p) with
+      | "" ->
+         if protocol = Cry.Icy then
+           "ISO-8859-1"
+         else
+           "UTF-8"
+      | s -> String.uppercase s
   in
 
   let source = Lang.assoc "" 2 p in
@@ -349,7 +363,7 @@ object (self)
                              (* for Shoutcast *)
                              (getd m "song" default_song []))))))))
       in
-      let f = Configure.recode_tag ?out_enc in
+      let f = Configure.recode_tag ~out_enc in
       let a = Array.map (fun (x,y) -> (x, f y)) a in
       let m =
         let ret = Hashtbl.create 10 in
@@ -359,7 +373,7 @@ object (self)
         match Cry.get_status connection with
           | Cry.Connected _ ->
               (try 
-                 Cry.update_metadata connection m 
+                 Cry.update_metadata ~charset:out_enc connection m 
                with e -> self#log#f 3 "Metadata update may have failed with \
                                        error: %s" 
                              (Utils.error_message e))

@@ -71,6 +71,9 @@ let proto kind =
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
     "timeout", Lang.float_t, Some (Lang.float 30.), 
     Some "Timeout for network operations." ;
+    "encoding", Lang.string_t, Some (Lang.string ""),
+     Some "Encoding used to send metadata. If empty, defaults to \
+           \"ISO-8859-1\" for non-ogg formats and \"UTF-8\" otherwise.";
     "url", Lang.string_t, Some (Lang.string ""), None ;
     "metaint", Lang.int_t, Some (Lang.int 16000), 
      Some "Interval used to send ICY metadata";
@@ -304,8 +307,18 @@ class output ~kind p =
 
   let _,encoder_factory, 
       format,icecast_info,icy_metadata,
-      ogg,out_enc =
+      ogg =
     encoder_data p
+  in
+
+  let out_enc =
+    match Lang.to_string (List.assoc "encoding" p) with
+      | "" ->
+         if icy_metadata then
+           "ISO-8859-1"
+         else
+           "UTF-8"
+      | s -> String.uppercase s
   in
 
   let timeout = Lang.to_float (List.assoc "timeout" p) in
@@ -430,7 +443,7 @@ object (self)
   method insert_metadata m = 
     let m = Encoder.Meta.to_metadata m in
     let meta = Hashtbl.create (Hashtbl.length m) in
-    let f = Configure.recode_tag ?out_enc in
+    let f = Configure.recode_tag ~out_enc in
     Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m ;
     if icy_metadata then
       Tutils.mutexify metadata.metadata_m

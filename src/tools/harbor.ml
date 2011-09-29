@@ -390,7 +390,17 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                                    (Hashtbl.remove args "mount";
                                     Hashtbl.remove args "mode";
                                     let in_enc =
-                                      try Some (Hashtbl.find args "charset")
+                                      try
+                                        let enc =
+                                          match String.uppercase
+                                                  (Hashtbl.find args
+                                                     "charset")
+                                          with
+                                          | "LATIN1" -> "ISO-8859-1"
+                                          | s -> s
+                                        in
+                                          (Hashtbl.remove args "charset";
+                                           Some enc)
                                       with
                                       | Not_found ->
                                           if icy

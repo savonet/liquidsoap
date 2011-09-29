@@ -38,10 +38,6 @@ let base_proto kind =
       "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
       Some "Send new metadata using the ICY protocol. \
             One of: \"guess\", \"true\", \"false\"";
-     "encoding", Lang.string_t, Some (Lang.string ""),
-      Some "Encoding used to send metadata. If empty, defaults to UTF-8 \
-            for \"http\" protocol and ISO-8859-1 for \"icy\" \
-            protocol." ;
      ("format", Lang.string_t, Some (Lang.string ""),
       Some "Format, e.g. \"audio/ogg\". \
       When empty, the encoder is used to guess.") ;
@@ -155,19 +151,10 @@ struct
                        "Could not guess icy_metadata for this format, \
                         please specify either 'true' or 'false'."))
     in
-    let out_enc =
-      match Lang.to_string (List.assoc "encoding" p) with
-        | "" ->
-           if protocol = Icy then
-             Some "ISO-8859-1"
-           else
-             None
-        | s -> Some s
-    in
     let ogg = is_ogg enc in
     (M.protocol_of_icecast_protocol protocol),
-    encoder_factory, format, info, icy_metadata, 
-    ogg, out_enc
+    encoder_factory, format, info,
+    icy_metadata, ogg
 
 end
 
