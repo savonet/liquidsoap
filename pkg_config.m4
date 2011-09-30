@@ -54,7 +54,7 @@ else
 fi
 AC_MSG_CHECKING([whether pkg-config knows about $1${PKGCONFIG_CHECK_VERSION}])
 if ! $PKG_CONFIG --exists $1; then
-  AC_MSG_ERROR([$1 not found])
+  AC_MSG_ERROR([$1.pc not found.. Do you need to set PKG_CONFIG_PATH?])
 else
   if test -n "$2"; then
     if ! $PKG_CONFIG --atleast-version=$2 $1; then
