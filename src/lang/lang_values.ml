@@ -213,6 +213,7 @@ let free_vars ?bound body =
 let can_ignore t =
   match (T.deref t).T.descr with
     | T.Ground T.Unit | T.Constr {T.name="active_source"} -> true
+    | T.EVar _ -> true
     | _ -> false
 
 let is_fun t =
