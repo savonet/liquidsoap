@@ -183,9 +183,8 @@
 %left BIN3 TIMES
 %nonassoc GET          /* (!x)+2 */
 
-/* When in doubt, take LPAR as the beginning of an application (app_opt).
- * It's scary to give a precendence to LPAR but the hope is that there's
- * no ambiguity around it except for optional applications after %formats. */
+
+/* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg */
 %nonassoc no_app
 %nonassoc LPAR
 
@@ -207,16 +206,48 @@ interactive:
 s: | {} | SEQ  {}
 g: | {} | GETS {}
 
-/* A sequence of (concatenable) expressions and bindings,
- * separated by optional semicolon */
+/* We have expr and cexpr, the latter stands for concatenable expressions,
+ * and essentially cannot start with the unary MINUS. They are useful
+ * in sequences where the SEQ symbol is omitted. We can write:
+ *   f(x)
+ *   (-2)
+ * That should be parsed as a sequence, unlike f(x)-2.
+ * (And f(x)(-2) is two applications in a row, but that's another
+ *  story involving the preprocessor...)
+ *
+ * On top of that we build exprs and cexprs which are sequences
+ * of expressions and bindings (let-in). The cexprs has to start
+ * with a cexpr. And general exprs may only start when non-ambiguous,
+ * eg. after SEQ. */
 exprs:
-  | cexpr s                  { $1 }
-  | cexpr s exprs            { mk (Seq ($1,$3)) }
+  | expr s                   { $1 }
+  | expr cexprs              { mk (Seq ($1,$2)) }
+  | expr SEQ exprs           { mk (Seq ($1,$3)) }
   | binding s                { let doc,name,def = $1 in
                                  mk (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
                                            body = mk Unit }) }
-  | binding s exprs          { let doc,name,def = $1 in
+  | binding cexprs           { let doc,name,def = $1 in
+                                 mk (Let { doc=doc ; var=name ;
+                                           gen = [] ; def=def ;
+                                           body = $2 }) }
+  | binding SEQ exprs        { let doc,name,def = $1 in
+                                 mk (Let { doc=doc ; var=name ;
+                                           gen = [] ; def=def ;
+                                           body = $3 }) }
+cexprs:
+  | cexpr s                  { $1 }
+  | cexpr cexprs             { mk (Seq ($1,$2)) }
+  | cexpr SEQ exprs          { mk (Seq ($1,$3)) }
+  | binding s                { let doc,name,def = $1 in
+                                 mk (Let { doc=doc ; var=name ;
+                                           gen = [] ; def=def ;
+                                           body = mk Unit }) }
+  | binding cexprs           { let doc,name,def = $1 in
+                                 mk (Let { doc=doc ; var=name ;
+                                           gen = [] ; def=def ;
+                                           body = $2 }) }
+  | binding SEQ exprs        { let doc,name,def = $1 in
                                  mk (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
                                            body = $3 }) }
@@ -228,13 +259,10 @@ exprs:
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ;
                                        $2 }
-  /* The next three rules create reduce/reduce conflicts (98 currently).
-   * Ocamlyacc doesn't let us solve it with precedence, only the
-   * relative order of the rules matter (and we get a warning). */
   | MINUS FLOAT                      { mk (Float (-. $2)) }
   | MINUS INT                        { mk (Int (- $2)) }
-  | MINUS expr                       { mk (App (mk ~pos:(1,1) (Var "~-"),
-                                                ["", $2])) }
+  | MINUS LPAR expr RPAR             { mk (App (mk ~pos:(1,1) (Var "~-"),
+                                                ["", $3])) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk (Int $1) }
   | NOT expr                         { mk (App (mk ~pos:(1,1) (Var "not"),
