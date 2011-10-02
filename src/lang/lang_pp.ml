@@ -214,7 +214,6 @@ let expand tokenizer =
 
 let parse_comments tokenizer =
   let documented_def doc =
-    (* TODO multi-line @param comments *)
     let doc =
       List.map (Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "")) doc
     in

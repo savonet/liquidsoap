@@ -126,7 +126,7 @@ let register name init render_text =
       Some "Text color (in 0xRRGGBB format).";
 
       "x", Lang.int_t, Some (Lang.int (-1)),
-      Some "x offset (negative means from right)";
+      Some "x offset (negative means from right).";
       "y", Lang.int_t, Some (Lang.int (-5)),
       Some "y offset (negative means from bottom).";
 
