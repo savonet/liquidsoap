@@ -27,8 +27,7 @@ open Dtools
 let error_translator =
   function
     | Cry.Error _ as e ->
-       raise (Utils.Translation 
-         (Printf.sprintf "Cry error: %s" (Cry.string_of_error e)))
+       raise (Utils.Translation (Cry.string_of_error e))
     | _ -> ()
 
 let () = Utils.register_error_translator error_translator
@@ -153,13 +152,7 @@ let user_agent = Lang.product (Lang.string "User-Agent")
 
 let proto kind =
   Output.proto @ (Icecast_utils.base_proto kind) @
-  [ ("restart", Lang.bool_t, Some (Lang.bool false),
-     Some "Keep trying to reconnect after a disconnection. \
-           By default, the output only attempts to reconnect once.") ;
-    ("restart_delay", Lang.int_t, Some (Lang.int 3),
-     Some "Delay, in seconds, before attempting new connection, if restart \
-           is enabled.") ;
-    "mount", Lang.string_t, Some (Lang.string no_mount), None ;
+  [ "mount", Lang.string_t, Some (Lang.string no_mount), None ;
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
@@ -187,6 +180,12 @@ let proto kind =
     Lang.fun_t [] Lang.unit_t,
     Some (Lang.val_cst_fun [] Lang.unit),
     Some "Callback executed when connection stops."  ;
+    "on_error",
+    Lang.fun_t [false, "", Lang.string_t] Lang.float_t,
+    Some (Lang.val_cst_fun ["", Lang.string_t, None] (Lang.float 3.)),
+    Some "Callback executed when an error happens. If returned value is \
+          positive, connection will be tried again after this amount of time \
+          (in seconds)." ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
@@ -204,8 +203,12 @@ class output ~kind p =
 
   let on_connect = List.assoc "on_connect" p in
   let on_disconnect = List.assoc "on_disconnect" p in
+  let on_error = List.assoc "on_error" p in
   let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
+  let on_error err = 
+    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string err]) 
+  in
 
   let protocol,encoder_factory, 
       format,icecast_info,
@@ -256,8 +259,6 @@ class output ~kind p =
       fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
   in
 
-  let restart = e Lang.to_bool "restart" in
-  let restart_delay = float_of_int (e Lang.to_int "restart_delay") in
   let host = s "host" in
   let port = e Lang.to_int "port" in
   let user = s "user" in
@@ -307,8 +308,8 @@ object (self)
     * going, and the sending will keep being attempted, which
     * will at some point trigger a restart. *)
 
-  (** When is the last time we tried to connect. *)
-  val mutable last_attempt = 0.
+  (** Time after which we should attempt to connect. *)
+  val mutable restart_time = 0.
 
   (** File descriptor where to dump. *)
   val mutable dump = None
@@ -389,7 +390,7 @@ object (self)
   method send b =
     match Cry.get_status connection with
       | Cry.Disconnected ->
-          if Unix.time () > restart_delay +. last_attempt then begin
+          if Unix.time () > restart_time then begin
             self#icecast_start
           end
       | Cry.Connected _ ->
@@ -399,14 +400,21 @@ object (self)
               | Some s -> output_string s b
               | None -> () 
           with
-            | Cry.Error _ as e ->
-                self#log#f 2 "Cry socket error: %s!" (Cry.string_of_error e) ;
-                (* Ask for a restart after last_attempt. *)
-                self#icecast_stop ;
-                last_attempt <- Unix.time () ;
-                self#log#f 3
-                  "Will try to reconnect in %.f seconds."
-                  restart_delay
+            | e ->
+                let msg = Utils.error_message e in
+                self#log#f 2 "Error while sending data: %s!" msg ;
+                let delay = on_error msg in
+                if delay >= 0. then
+                 begin
+                  (* Ask for a restart after [restart_time]. *)
+                  self#icecast_stop ;
+                  restart_time <- Unix.time () +. delay ;
+                  self#log#f 3
+                    "Will try to reconnect in %.02f seconds."
+                    delay
+                 end
+                else
+                  raise e
             end
 
   (** It there's too much latency, we'll stop trying to catchup.
@@ -460,15 +468,7 @@ object (self)
                         Hashtbl.add source.Cry.headers x y) headers;
 
       try
-        begin try
-          Cry.connect connection source
-        with
-          | Cry.Error _ as e ->
-              self#log#f 2
-                "Connection failed: %s!"
-                (Cry.string_of_error e) ;
-              raise e
-        end ;
+        Cry.connect connection source ;
         self#log#f 3 "Connection setup was successful." ;
         let c = Cry.get_connection_data connection in
         let () = Liq_sockets.set_tcp_nodelay c.Cry.data_socket true in
@@ -477,13 +477,20 @@ object (self)
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
-        | Cry.Error _ ->
-            if not restart then raise Tutils.Exit ;
-            self#log#f 3
-              "Connection failed, will try again in %.f sec."
-              restart_delay ;
-            self#icecast_stop ;
-            last_attempt <- Unix.time ()
+        | e ->
+            let msg = Utils.error_message e in
+            self#log#f 2 "Connection failed: %s" msg ;
+            let delay = on_error msg in
+            if delay >= 0. then
+             begin
+              self#log#f 3
+                "Will try again in %.02f sec."
+                delay ;
+              self#icecast_stop ;
+              restart_time <- Unix.time () +. delay
+             end
+            else
+              raise e
 
   method icecast_stop =
     (* In some cases it might be possible to output the remaining data,

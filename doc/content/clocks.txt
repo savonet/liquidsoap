@@ -240,8 +240,7 @@ high quality wanted):
 input = input.oss()
 
 clock.assign_new(id="icecast",
-  [output.icecast(%mp3,mount="blah",restart=true,
-     mksafe(buffer(input)))])
+  [output.icecast(%mp3,mount="blah",mksafe(buffer(input)))])
 
 output.file(
   %mp3,"record-%Y-%m-%d-%H-%M-%S.mp3",

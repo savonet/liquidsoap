@@ -408,7 +408,8 @@ struct
         Printf.sprintf "ref(%s)" (print_value !a)
     | Product (a,b) ->
         Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
-    | Fun (p,_,_,x) when p = [] && is_ground x -> "{"^print_term x^"}"
+    | Fun ([],_,_,x) when is_ground x -> "{"^print_term x^"}"
+    | Fun (["",_,None],_,_,x) when is_ground x -> "fun(_)->"^print_term x
     | Fun _ | FFI _ -> "<fun>"
 
   let map_env f env = List.map (fun (s,(g,v)) -> s, (g, f v)) env

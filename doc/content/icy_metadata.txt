@@ -19,7 +19,7 @@ h4. Enable/disable ICY metadata updates
 
 You can enable or disable icy metadata update in @output.icecast@
 by setting the @icy_metadata@ parameter to either @"true"@
-or @"false"@. The default value is @"auto"@ and does the following:
+or @"false"@. The default value is @"guess"@ and does the following:
 * Set @"true"@ for: mp3, aac, aac+, wav
 * Set @"false"@ for any format using the ogg container
 

@@ -90,7 +90,7 @@ live =
 
 # This source relays the live data, when available,
 # to the other streamer, in uncompressed format (WAV)
-output.icecast(%wav, restart=true, host=stream,
+output.icecast(%wav, host=stream,
                port=8005, password=pass,
                mount="live.ogg", fallible=true,
                live)
@@ -98,7 +98,7 @@ output.icecast(%wav, restart=true, host=stream,
 # This source relays the live source to "live.ogg". This 
 # is used for debugging purposes, to see what is sent
 # to the harbor source.
-output.icecast(%vorbis, restart=true, host="127.0.0.1",
+output.icecast(%vorbis, host="127.0.0.1",
                port=8080, password=pass, 
                mount="live.ogg", fallible=true,
                live)
@@ -116,7 +116,7 @@ output.file(%vorbis, reopen_on_metadata=true,
 # === Channels ===
 
 # Specialize the output functions by partial application
-output.icecast = output.icecast(restart=true,description=descr, url=url)
+output.icecast = output.icecast(description=descr, url=url)
 out = output.icecast(host=ice_host,port=8080,password=pass,fallible=true)
 out_aac32 = out(%aacplus(bitrate=32))
 out_aac = out(%aacplus(bitrate=64))

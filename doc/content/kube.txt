@@ -68,20 +68,15 @@ radio=mksafe(radio)
 #################
 # ICECAST MOUNTS
 output.icecast(%mp3,radio,mount="kube",id="kubeMP3",name="KUBE Radio HIGH bandwidth",quality=8,bitrate=128,
-                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc,
-                    restart=true)
+                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc)
 output.icecast(%mp3,radio,mount="kube-low",id="kubeMP3Low",name="KUBE Radio LOW bandwidth",quality=5,bitrate=64,
-                host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc,
-                restart=true)
+                host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc)
 output.icecast(%vorbis, radio,mount="kube-low.ogg",id="kubeOggLow",name="KUBE Radio LOW bandwidth",quality=2.,
-                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc,
-                    restart=true)
+                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc)
 output.icecast(%vorbis, radio,mount="kube.ogg",id="kubeOggHigh",name="KUBE Radio HIGH bandwidth",quality=8.,
-                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc,
-                    restart=true)
+                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc)
 output.icecast(%vorbis, radio,mount="kube-archive.ogg",id="kubeOggLow",name="KUBE Radio Archive stream",quality=10.,public=false,
-                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc,
-                    restart=true)
+                    host=kubeHost,port=kubePort,user=kubeUser,password=kubePassword,genre=kubeGenre,url=kubeUrl,description=kubeDesc)
 #################
 
 output.alsa(id="officeOutput",bufferize=false,device="hw:0")
