@@ -124,7 +124,7 @@ else
       BINDING()_version=`cat "${with_[]binding()_dir}/META" | grep version | cut -d'=' -f 2 | tr -d ' ' | tr -d '"' | head -n 1`
       AC_OCAML_COMPARE_VERSION([${[]BINDING()_version}],[$2])
       if test -z "${VERSION_OK}"; then
-        AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()version}.])
+        AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()_version}.])
         BINDING()_STOP_CHECK=yes
       fi
       BINDING()_requires=`cat "${with_[]binding()_dir}/META" | grep 'requires' | cut -d '=' -f 2 | tr -d '"'`
@@ -136,7 +136,7 @@ else
         BINDING()_STOP_CHECK=yes
       fi
     fi
-    if test -z "${STOP_CHECK}"; then
+    if test -z "${BINDING()_STOP_CHECK}"; then
       BINDING()_PACKAGES="`${OCAMLFIND} query -r -separator " " -format "-package %p" $BINGING_PKGS 2>/dev/null`"
       echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
           || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
