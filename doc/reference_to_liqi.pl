@@ -93,7 +93,9 @@ sub print_operator {
 
   return if grep { "hidden" eq $_ } @flags ;
 
-  $cat{$category} .= "h5. ${label}\n<pre>" . $type . "</pre>\n";
+  my $anchor = $label;
+  $anchor =~ s/[^\w]/_/g;
+  $cat{$category} .= "h5@${anchor}. ${label}\n<pre>" . $type . "</pre>\n";
 
   $cat{$category} .= "WARNING: This is only EXPERIMENTAL!\n"
     if grep { "experimental" eq $_ } @flags ;
@@ -171,7 +173,7 @@ HEADER
 # Print table of categories with links
 foreach my $key (sort { compare($a,$b) } (keys %cat)) {
   my $anchor = $key;
-  $anchor =~ s/[^\w]//g;
+  $anchor =~ s/[^\w]/_/g;
   print "* \"$key\":#$anchor\n";
 }
 print "\n";
@@ -179,7 +181,7 @@ print "\n";
 # Print content of each category
 foreach my $key (sort { compare($a,$b) } (keys %cat)) {
   my $anchor = $key;
-  $anchor =~ s/[^\w]//g;
+  $anchor =~ s/[^\w]/_/g;
   print <<DOC ;
 
 h3\@$anchor. $key
