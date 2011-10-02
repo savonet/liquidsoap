@@ -1,5 +1,5 @@
 (*
- * Copyright 2003-2010 Savonet team
+ * Copyright 2003-2011 Savonet team
  *
  * This file is part of Ocaml-aacplus.
  *
