@@ -38,11 +38,14 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val graph =
-    let graph = Graphics.open_graph "" in
-      Graphics.set_window_title "Liquidsoap's volume";
-      Graphics.auto_synchronize false;
-      graph
+  method private wake_up act =
+    super#wake_up act ;
+    Graphics.open_graph "" ;
+    Graphics.set_window_title "Liquidsoap's volume";
+    Graphics.auto_synchronize false
+
+  method private sleep =
+    Graphics.close_graph ()
 
   (* Ringbuffer for previous values, with its current position *)
   val vol = Array.init channels (fun _ -> Array.make backpoints 0.)
@@ -53,7 +56,7 @@ object (self)
   val mutable cur_rms = Array.make channels 0.
   val mutable group = 0
 
-  method add_vol v =
+  method private add_vol v =
     for c = 0 to channels-1 do
       cur_rms.(c) <- cur_rms.(c)+.v.(c)
     done ;
@@ -66,7 +69,7 @@ object (self)
       pos <- (pos+1) mod backpoints
     end
 
-  method get_frame buf =
+  method private get_frame buf =
     let offset = AFrame.position buf in
     let end_pos = source#get buf ; AFrame.position buf in
     if offset < end_pos then
@@ -112,4 +115,4 @@ let () =
        let src =
          Lang.to_source (f "")
        in
-         ((new vumeter ~kind src):>Source.source))
+         new vumeter ~kind src)
