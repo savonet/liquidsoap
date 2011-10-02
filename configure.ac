@@ -740,33 +740,15 @@ EOCONF
 # Speech
 #
 
-AC_PATH_PROG(CP,cp,false)
-AC_PATH_PROG(RM,rm,false)
-
-if test "$RM" = false ; then
-  AC_MSG_ERROR(Cannot find rm)
-fi
-if test "$CP" = false ; then
-  AC_MSG_ERROR(Cannot find cp)
-fi
-
 if test $OS_TYPE != "Win32"; then
   AC_PATH_PROG(TEXT2WAVE,text2wave,false)
   AC_PATH_PROG(SOX,sox,false)
-  AC_PATH_PROG(NORMALIZE,normalize,false)
 fi
 
-if test "$TEXT2WAVE" = false ; then
-   w_TTS="liquidtts will use \"false\" as a synthetizer,
-                         but you can edit it later."
+if test "$TEXT2WAVE" = false -o "$SOX" = false ; then
+   w_TTS="requires text2wave (festival) and sox at runtime"
 else
-   w_TTS="yes, using $TEXT2WAVE"
-fi
-
-if test "$SOX" = false ; then
-   SOX=${CP}' $2.tmp.wav $2'
-else
-   SOX=${SOX}' $2.tmp.wav -t wav -c 2 -r 44100 $2'
+   w_TTS="yes"
 fi
 
 #
@@ -840,7 +822,6 @@ AC_SUBST(PLUGINS_DATA)
 echo
 
 AC_CONFIG_FILES([Makefile.defs],[chmod a-w Makefile.defs])
-AC_CONFIG_FILES([scripts/liquidtts],[chmod 555 scripts/liquidtts])
 AC_CONFIG_FILES([scripts/liquidsoap.initd],[chmod a-w scripts/liquidsoap.initd])
 AC_CONFIG_FILES([scripts/liquidsoap.gentoo.initd],
                 [chmod a-w scripts/liquidsoap.gentoo.initd])

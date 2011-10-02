@@ -4,8 +4,7 @@
 # for "say:voice/text" URIs.
 # Usage: liquidtts text output_file voice
 
-echo $1 | @TEXT2WAVE@ -f 44100 > $2.tmp.wav && @SOX@ 2> /dev/null > /dev/null
+echo $1 | text2wave -scale 1.9 > $2.tmp.wav && sox $2.tmp.wav -c 2 $2
 return=$?
-@RM@ $2.tmp.wav
-@NORMALIZE@ $2 2> /dev/null > /dev/null
+rm $2.tmp.wav
 exit $return

@@ -20,7 +20,7 @@ test:
 # Build liquidsoap as it will be used for building the doc
 doc-local: all
 
-.PHONY: system-install gentoo-install debian-install finish-configure
+.PHONY: system-install gentoo-install finish-configure
 
 finish-configure:
 ifneq ($(OS_TYPE),Win32)
