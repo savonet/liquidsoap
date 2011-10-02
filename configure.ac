@@ -100,18 +100,21 @@ AC_SUBST(install_group)
 
 AC_MSG_CHECKING(whether user $install_user exists)
 if ! id $install_user >/dev/null 2>&1 ; then
-  AC_MSG_RESULT(not found: will not install daemon files)
+  AC_MSG_RESULT(no)
   INSTALL_DAEMON=""
 else
   AC_MSG_RESULT(ok)
   AC_MSG_CHECKING(if user $install_user belongs to group $install_group)
   if ! groups $install_user | grep $install_group >/dev/null 2>&1 ; then
-    AC_MSG_RESULT(no: will not install daemon files)
+    AC_MSG_RESULT(no)
     INSTALL_DAEMON=""
   else
     AC_MSG_RESULT(ok)
     INSTALL_DAEMON="yes"
   fi
+fi
+if test "$INSTALL_DAEMON" != "yes" ; then
+  AC_MSG_WARN([Won't be able to install log and PID directories!])
 fi
 AC_SUBST(INSTALL_DAEMON)
 
@@ -937,13 +940,27 @@ cat <<EOMSG
 
  -----------------------------------------------------------------------------
 
- The Savonet Team thanks you for using liquidsoap...
+ You may now compile liquidsoap by running "$MAKE".
+ In case of significant library update, "$MAKE clean" is needed first.
 
- Now, run
-   $MAKE
- to compile, and as root
-   $MAKE install
- to install, and...
-   Have fun!
+ Then, perform installation by running "$MAKE install" as root.
+
+ And... have fun!
 
 EOMSG
+
+if test "$INSTALL_DAEMON" != "yes" ; then
+  cat <<EOMSG
+<WARNING>
+
+ The specified user/group ($with_user/$with_group) for running liquidsoap as a daemon
+ do not exist, so I won't install log and PID directories.
+
+ For a fully functional liquidsoap installation, please configure again
+ with existing user/group. You may use --with-user=<user> --with-group=<group> 
+ to override the default.
+
+</WARNING>
+
+EOMSG
+fi
