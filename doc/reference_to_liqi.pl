@@ -95,7 +95,7 @@ sub print_operator {
 
   my $anchor = $label;
   $anchor =~ s/[^\w]/_/g;
-  $cat{$category} .= "h5@${anchor}. ${label}\n<pre>" . $type . "</pre>\n";
+  $cat{$category} .= "h5@" . $anchor . ". ${label}\n<pre>" . $type . "</pre>\n";
 
   $cat{$category} .= "WARNING: This is only EXPERIMENTAL!\n"
     if grep { "experimental" eq $_ } @flags ;
