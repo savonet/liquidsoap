@@ -7,8 +7,8 @@ etc.) you can build using <code>./bootstrap</code>, <code>./configure</code>,
 <code>make</code> and optionally install using <code>make install</code>.
 
 If you are using the <code>liquidsoap-full</code> tarball,
-or the
-"SVN trunk":https://savonet.svn.sourceforge.net/svnroot/savonet/trunk,
+or the latest source code from our
+"mercurial repository":http://sourceforge.net/scm/?type=hg&group_id=89802,
 there is also a fast procedure for building liquidsoap
 that doesn't require installing the libraries provided by Savonet.
 The steps to follow are simple.
@@ -25,7 +25,7 @@ sub-project's directories:
 %%
 # Edit PACKAGES to choose which feature you want
 
-# In the SVN tree you should bootstrap first.
+# In the development tree you should bootstrap first.
 # No need with the tarballs.
 ./bootstrap
 

@@ -17,4 +17,6 @@ add_protocol(
 
 You could then have an IRC bot which accepts queries like play "Alabama song" and transforms it into the URI <code>bubble:title="Alabama song"</code> before queueing it in a liquidsoap instance. The bubble protocol in liquidsoap will call the @bubble-query@ script which will translate the query from Bubble to SQLite and return a list of ten random matches, which liquidsoap will try.
 
-Although it has been used for months as distributed on the SVN (located under <code>trunk/bubble</code>), bubble is also a proof-of-concept tool. It is very concise and can be tailored to custom needs.
+Although it has been used for months as distributed on our old "SVN 
+repository":http://savonet.svn.sourceforge.net/viewvc/savonet/oldies/bubble/src/,
+bubble is mostly a proof-of-concept tool. It is very concise and can be tailored to custom needs.
