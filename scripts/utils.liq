@@ -257,7 +257,7 @@ def test_process(command)
 end
 
 # Split an url of the form foo?arg=bar&arg2=bar2
-# into ("foo",[("arg","bar"),("arg2","bar2")]
+# into ("foo",[("arg","bar"),("arg2","bar2")]).
 # @category String
 # @param uri Url to split
 def url.split(uri) = 
@@ -278,11 +278,11 @@ def url.split(uri) =
 end
 
 # Register a server/telnet command to 
-# update a source's metadata. Returns 
+# update a source's metadata. Returns
 # a new source, which will receive the 
-# updated metadata. Semantics is the 
-# same as pre 1.0 insert_metadata operator, 
-# i.e. @insert key1="val1",key2="val2",..@
+# updated metadata. It behaves just like
+# the pre-1.0 insert_metadata() operator, 
+# i.e. insert key1="val1",key2="val2",...
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 def server.insert_metadata(~id="",s) = 
@@ -686,9 +686,9 @@ end
 add_protocol("replay_gain", replaygain_protocol)
 
 # Enable replay gain metadata resolver. This resolver will
-# process any file decoded by liquidsoap and add a @replay_gain@
+# process any file decoded by liquidsoap and add a replay_gain
 # metadata when this value could be computed. For a finer-grained
-# replay gain processing, use the @replay_gain@ protocol.
+# replay gain processing, use the replay_gain protocol.
 # @category Liquidsoap
 # @param ~extract_replaygain The extraction program
 def enable_replaygain_metadata(

@@ -67,7 +67,7 @@ let () =
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:"Dynamically insert metadata in a stream. \
             Returns a pair (f,s) where s is a new source and \
-            f is a function of type @(metadata) -> unit@, used to \
+            f is a function of type (metadata)->unit, used to \
             insert metadata in s."
     [ "id",Lang.string_t,Some (Lang.string ""),
       Some "Force the value of the source ID.";

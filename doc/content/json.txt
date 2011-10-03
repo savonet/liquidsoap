@@ -2,8 +2,7 @@ title: JSON export
 
 h3. Exporting values using JSON.
 
-Liquidsoap can export any language value in JSON using
-@json_of@.
+Liquidsoap can export any language value in JSON using @json_of@.
 
 The format is the following :
 * @() : unit@ -> @null@
@@ -12,16 +11,16 @@ The format is the following :
 * @23 : int@ -> @23@
 * @2.0 : float@ -> @2.0@
 * @[2,3,4] : [int]@ -> @[2,3,4]@
-* @[("f",1),("b",4)] : [(string*int)]@ -> @{"f": 1, "b": 4}@
+* @[("f",1),("b",4)] : [(string*int)]@ -> @{ "f": 1, "b": 4 }@
 * @("foo",123) : string*int@ -> @[ "foo", 123 ]@
 * @s : source@ -> @"<source>"@
-* @r : int ref@ -> @{"reference": 4}@
-* @%mp3 : encoder@ -> @"%mp3(stereo,bitrate=128,samplerate=44100)" }@
-* @r : request@ -> @"<request>"@
-* @f : 'a -> 'b@ -> @"<fun>"@
+* @r : ref(int)@ -> @{ "reference":4 }@
+* @%mp3 : format(...)@ -> @"%mp3(stereo,bitrate=128,samplerate=44100)"@
+* @r : request(...)@ -> @"<request>"@
+* @f : (...)->_@ -> @"<fun>"@
 The two particular cases are:
-* Products are exported as lists
-* Lists of type @string*'a@ are exported as object of the form @{"key": value}@ 
+* Products are exported as lists.
+* Lists of type @[(string*'a)]@ are exported as objects of the form @{"key": value}@.
 
 Output format is pretty printed by default. A compact output can
 be obtained by using the optional argument: @compact=true@.

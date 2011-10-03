@@ -821,7 +821,7 @@ let () =
 
 let () =
   add_builtin "url.decode" ~cat:String
-    ~descr:"Decode an encoded url (e.g. @%20 -> \" \"@)."
+    ~descr:"Decode an encoded url (e.g. \"%20\" becomes \" \")."
     [ "plus", Lang.bool_t, Some (Lang.bool true),None;
       "", Lang.string_t, None, None ]
     Lang.string_t
@@ -832,7 +832,7 @@ let () =
 
 let () =
   add_builtin "url.encode" ~cat:String
-    ~descr:"Encode an url (e.g. @\" \" -> %20@)."
+    ~descr:"Encode an url (e.g. \" \" becomes \"%20\")."
     [ "plus", Lang.bool_t, Some (Lang.bool true),None;
       "", Lang.string_t, None, None ]
     Lang.string_t
@@ -876,8 +876,8 @@ let () =
   (* TODO It would be good to generalize this one but we'd need a way to handle
    *      errors. *)
   add_builtin "_[_]" ~cat:List
-    ~descr:"<code>l[k]</code> returns the first <code>v</code> such that \
-            <code>(k,v)</code> is in the list <code>l</code>."
+    ~descr:"l[k] returns the first v such that \
+            (k,v) is in the list l."
     ["",Lang.string_t,None,None ;
      "",Lang.metadata_t,None,None]
     Lang.string_t
