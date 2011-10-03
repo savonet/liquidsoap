@@ -58,7 +58,6 @@
    ocaml-portaudio>=0.2.0    for Portaudio I/O
    ocaml-pulseaudio>=0.1.1   for PulseAudio I/O
    ocaml-bjack>=0.1.3        for Jack support
-   ocaml-jack [unreleased]   for old Jack support (DEPRECATED)
    json-wheel                for parsing JSON data (of_json function)
 
  Runtime optional dependencies :

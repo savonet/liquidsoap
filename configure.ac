@@ -474,12 +474,6 @@ AC_CHECK_OCAML_BINDING([gavl])
 AC_CHECK_OCAML_BINDING([bjack])
 
 #
-# Old Jack
-#
-
-AC_CHECK_OCAML_BINDING([jack])
-
-#
 # Alsa
 #
 
@@ -875,7 +869,6 @@ cat <<EOMSG
    - Portaudio         : $w_PORTAUDIO
    - Pulseaudio        : $w_PULSEAUDIO
    - JACK              : $w_BJACK
-   - Old JACK          : $w_JACK
    - GStreamer         : $w_GSTREAMER
 
  * Audio manipulation

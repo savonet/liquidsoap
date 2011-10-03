@@ -180,7 +180,6 @@ io = io/udp_io.ml
 $(call conditional_compilation,io,$(W_OSS),io/oss_io.ml)
 $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
-$(call conditional_compilation,io,$(W_JACK),io/jack_io.ml)
 $(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
