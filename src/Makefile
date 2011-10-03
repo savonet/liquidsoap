@@ -41,7 +41,6 @@ liquidsoap_c_files = \
 
 # Add conditional files..
 $(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)
-$(call conditional_compilation,liquidsoap_c_files,$(W_OPAL),io/opal_io_c.c,c_)
 
 # Camlp4 compilation works as follow:
 # both .camlp4 and .ml files are present in the
@@ -182,7 +181,6 @@ $(call conditional_compilation,io,$(W_OSS),io/oss_io.ml)
 $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 $(call conditional_compilation,io,$(W_JACK),io/jack_io.ml)
-$(call conditional_compilation,io,$(W_OPAL),io/opal_io.ml)
 $(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/doc.ml tools/plug.ml tools/utils.ml \
@@ -259,7 +257,6 @@ liquidsoap_sources += \
 include $(top_srcdir)/Makefile.rules
 
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
-OCAML_LFLAGS= $(if $(W_OPAL),-cclib -lopal)
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
 liquidsoap_doc_sources= \

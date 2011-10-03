@@ -258,39 +258,6 @@ AC_SUBST(TCP_NODELAY_VALUE)
 
 AC_SUBST(BYTE)
 
-# opal
-
-AC_ARG_WITH([opal-include],
-   AS_HELP_STRING([--with-opal-include=path],[look for opal headers in path (defaults to /usr/include/opal)]))
-AC_ARG_ENABLE([opal],AS_HELP_STRING([--disable-opal],[don't use opal]))
-
-W_OPAL=""
-w_OPAL=no
-if test "x$enable_opal" != "xno" ; then
-  AC_MSG_CHECKING(for libopal)
-
-  if test -z "$with_opal_include" ; then
-    OPAL_INCLUDE=$default_prefix/include
-  else
-    OPAL_INCLUDE=$with_opal_include
-  fi
-
-  if test \! -f ${OPAL_INCLUDE}/opal/opal.h ; then
-    AC_MSG_RESULT(Header not found: ${OPAL_INCLUDE}/opal/opal.h)
-    W_OPAL=""
-    w_OPAL=no
-  else
-    W_OPAL=yes
-    w_OPAL=yes
-    CFLAGS="$CFLAGS -I$OPAL_INCLUDE"
-    AC_MSG_RESULT(ok)
-  fi
-else
-  AC_MSG_RESULT(no)
-fi
-
-AC_SUBST(W_OPAL)
-
 #
 # Libs
 #
@@ -909,7 +876,6 @@ cat <<EOMSG
    - Pulseaudio        : $w_PULSEAUDIO
    - JACK              : $w_BJACK
    - Old JACK          : $w_JACK
-   - opal              : $w_OPAL
    - GStreamer         : $w_GSTREAMER
 
  * Audio manipulation
