@@ -186,7 +186,7 @@ Then you'll be able to run it like this:
 ./myscript.liq
 </pre>
 
-Usually, the path of the liquidsoap executable is <code>#/usr/bin/liquidsoap</code>, and we'll use this in the following.
+Usually, the path of the liquidsoap executable is <code>/usr/bin/liquidsoap</code>, and we'll use this in the following.
 
 h4. A simple radio
 

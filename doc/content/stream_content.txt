@@ -89,7 +89,7 @@ to fix it. Often, it suffices to perform a few explicit conversions.
 
 Consider another example involving the SDL output, where we also try
 to use AO to output the audio content of a video:
-<code>output.ao(output.sdl(single("file.ogv")))/<code>.
+<code>output.ao(output.sdl(single("file.ogv")))</code>.
 This won't work, because the SDL output expects a pure video stream,
 but AO wants some audio. The solution is to split the stream in
 two, dropping the irrelevant content:
@@ -133,7 +133,7 @@ and consequently the ALSA I/O will be initialized with two channels.
 If you want to use a different number of channels,
 for example mono, you can explicitly specify it using:
 %%
-(output.alsa(input.alsa()):source(1,0,0))
+output.alsa((input.alsa():source(1,0,0)))
 %%
 
 h4. Guessing stream contents

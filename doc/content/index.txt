@@ -23,12 +23,11 @@ understanding of the concepts of "source":sources.html and
 We discuss below what liquidsoap is and what it is not.
 If you already know that and want to get started with liquidsoap,
 just jump to the "documentation index":documentation.html.
-It guide you through these pages,
+It guides you through these pages,
 starting with the "quickstart tour":quick_start.html.
 
-Liquidsoap is open-source,
-written in "OCaml":http://caml.inria.fr
-and is part of the "Savonet":http://savonet.sf.net project.
+Liquidsoap is an open-source sofware
+from the "Savonet":http://savonet.sf.net project.
 
 h3. Features
 
