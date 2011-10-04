@@ -5,11 +5,12 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-# Remove +svn and set svn_snapshot to false
-# before releasing
-AC_INIT([liquidsoap],[1.0.0-beta3])
-svn_snapshot=true
-version=1.0.0-beta3
+# Remove +svn and set svn_snapshot to false before releasing
+# Do not use $version below (and don't write AC_1N1T) before the next
+# line, since we grep for the literal version there
+AC_INIT([liquidsoap],[1.0.0])
+svn_snapshot=false
+version=1.0.0
 
 if test $svn_snapshot != "false"; then
   version="$version+svn"

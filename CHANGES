@@ -1,28 +1,29 @@
 1.0.0 (??-10-2011)
 ==================
 Fixes:
-- LS-542: race condition in playlist*() breaking randomness
-- Avoid multiple simultaneous reloading in playlist*()
-- Pass charset information to icecast server to avoid encoding bugs
-- LS-559: permanent stop after disconnection on Ogg streams
-- LS-442: allow comments not terminated by newline at end of file
-- LS-489: double expiration lead to illegal queue length and freeze of 
-  request-based sources
 - LS-532,527: avoid freeze after errors in streaming threads or source 
   initialization routines
+- LS-542: race condition in playlist*() breaking randomness
+- LS-489: double expiration lead to illegal queue length and freeze of 
+  request-based sources
+- Avoid multiple simultaneous reloading in playlist*()
+- Pass charset information to icecast server to avoid encoding bugs
+- LS-555: timeout for icecast connection attempts
+- LS-559: permanent stop after disconnection on Ogg streams
 - LS-565: efficient and crash-free error handling in input.http/harbor()
   when the input stream has an invalid number of channels
+- LS-431: proper handling of duration in blank() avoids abusive empty tracks
 - LS-556: rework conversion operators, optimizations used to be unsafe & broken
 - LS-574: silent MIDI synthesis operators
-- LS-431: proper handling of duration in blank() avoids abusive empty tracks
-- LS-555: timeout for icecast connection attempts
 - LS-396: drop*()'s types reflect that they don't support variable arities
+- LS-442: allow comments not terminated by newline at end of file
 New:
 - output.icecast() on_error (hg diff -c f6eedb66027b)
-- More technical MP3 information from MAD decoder
-- Use special bits in MP3 header frames to mark streams
-- output.file(): new on_close parameter, may be used to write exact duration.
+- New msg param in %mp3 for marking frame headers, defaults to version string
+- output.file(): new on_close parameter, may be used to write exact duration
 - %mp3.vbr/abr for variable bitrate MP3, %mp3 is now a synonym of %mp3.cbr
+- MP3 encoders now support ID3v2 tags
+- input.http(): new "status" command
 - LS-556: mux_mono() for adding a single audio channel into a stream
 - video.add_text() using libgd (gd4o) for environments without X
   Dependency on graphics can be disabled (to work around erreneous detection)
@@ -32,19 +33,17 @@ New:
   plus settings "clock.allow_streaming_errors" and "init.force_stat" (or
   --force-start on the command line) for easing dynamic uses of liquidsoap
 Enhancements:
-- Panic mode crash to avoid frozen liquidsoap after duppy crashes
+- Panic crash to avoid frozen liquidsoap after duppy crashes
 - Text-to-speech: festival and sox are now only runtime dependencies
-- LS-475,516: better support for dynamic URL change in input.http(),
-  new "status" command
+- LS-475,516: better support for dynamic URL change in input.http()
+- LS-484: display user-friendly error messages in interactive mode
 - LS-308: use seconds internally in request sources, avoid overflow and 
   display more user-friendly debug messages
-- LS-484: display user-friendly error messages in interactive mode
 - Cleanup visu.volume() and video.vis_volume()
-- Id3v2 support through Taglib
 - LS-573: replace " " by "_" in identifiers to make them valid in the server
 - Script syntax: unary minus now usable without parenthesis after semicolon
-- Two generic queues to avoid deadlocks in advanced situations
-- Documentation, build & install system
+- Two generic queues by default, to avoid deadlocks in advanced situations
+- Documentation, build & install system, etc.
 
 1.0.0 beta3 (05-08-2011)
 ========================
