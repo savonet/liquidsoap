@@ -12,7 +12,7 @@
 # @param ~y        y offset (negative means from bottom).
 # @param text      Text to display.
 def video.add_text(~id="",~color=16777215,~cycle=true,
-                   ~font="/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf",
+                   ~font=configure.default_font,
                    ~metadata="",~size=18,~speed=70,~x=-1,~y=-5,
                    text,source)
   video.add_text.gd(id=id,color=color,cycle=cycle,font=font,metadata=metadata,
@@ -34,7 +34,7 @@ end
 # @param ~y        y offset (negative means from bottom).
 # @param text      Text to display.
 def video.add_text(~id="",~color=16777215,~cycle=true,
-                   ~font="/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf",
+                   ~font=configure.default_font,
                    ~metadata="",~size=18,~speed=70,~x=-1,~y=-5,
                    text,source)
   video.add_text.sdl(id=id,color=color,cycle=cycle,font=font,metadata=metadata,

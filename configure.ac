@@ -716,6 +716,24 @@ else
 fi
 
 #
+# Font for video.add_text*()
+#
+
+AC_ARG_WITH([default-font],
+            AS_HELP_STRING([--with-default-font],
+                           [sets the default TTF font for video.add_text()]))
+if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
+  if test -z "$with_default_font" ; then
+    DEFAULT_FONT=/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf
+  else
+    DEFAULT_FONT=$with_default_font
+  fi
+fi
+cat >> src/configure.ml <<__BLAH__
+let default_font = "$DEFAULT_FONT"
+__BLAH__
+
+#
 # GUI
 #
 
@@ -921,5 +939,20 @@ if test "$INSTALL_DAEMON" != "yes" ; then
 
 </WARNING>
 
+EOMSG
+fi
+
+if ! test -f $DEFAULT_FONT ; then
+  cat <<EOMSG
+<WARNING>
+
+  The specified default font does not exist. If it is not installed before
+  running liquidsoap, the video.add_text*() operators won't work with their 
+  default setting.
+
+  The current value is $DEFAULT_FONT.
+  You may use --with-default-font=<font> to override it.
+
+</WARNING>
 EOMSG
 fi

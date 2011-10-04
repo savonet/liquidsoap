@@ -116,7 +116,7 @@ let register name init render_text =
   Lang.add_operator ("video.add_text."^name)
     [
       "font", Lang.string_t,
-      Some (Lang.string "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf"),
+      Some (Lang.string Configure.default_font),
       Some "Path to ttf font file.";
 
       "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";

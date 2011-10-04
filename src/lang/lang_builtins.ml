@@ -49,13 +49,14 @@ let () =
     (fun (name,kind,str) ->
        Lang.add_builtin_base
          ~category:(string_of_category Liq)
-         ~descr:(Printf.sprintf "Liquidsoap's %s directory." kind)
+         ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
          ("configure."^name)
          (Lang.String str)
          Lang.string_t)
-    [ ("libdir", "library", Configure.libs_dir) ;
-      ("rundir", "PID file", Configure.rundir) ;
-      ("logdir", "logging", Configure.logdir) ]
+    [ ("libdir", "library directory", Configure.libs_dir) ;
+      ("rundir", "PID file directory", Configure.rundir) ;
+      ("logdir", "logging directory", Configure.logdir) ;
+      ("default_font", "default font file", Configure.default_font) ]
 
 let () =
   Lang.add_builtin_base

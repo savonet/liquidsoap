@@ -31,6 +31,9 @@ val load_dynlinks : unit -> unit
 (** Helper to load dynamic plugins. *)
 val load_plugins_dir : string -> unit
 
+(** Default font file *)
+val default_font : string
+
 (** Function to reencode tags into utf8. *)
 val recode_tag : ?in_enc:string -> ?out_enc:string -> string -> string
 
