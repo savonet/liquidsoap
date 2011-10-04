@@ -41,7 +41,7 @@ html/scripts/index.txt: $(PRE_HTML)
 
 html/%.html: content/%.txt $(LIQI_DEPS)
 	@echo Converting $(<) to $(@)...
-	@test -d html || (mkdir -p html/scripts ; cp -rf orig/* html)
+	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
 	@#Has to be called from html to put scripts in the right place
 	@$(LIQI) -i ../$(<) -o ../$(@)
 
@@ -103,7 +103,7 @@ content/%.txt.spell: content/%.txt
 
 doc-install: $(HTML)
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
-	cp -rf html/* $(datadir)/doc/$(DISTDIR)/html
+	cp -RfL html/* $(datadir)/doc/$(DISTDIR)/html
 	$(INSTALL) -d $(mandir)/man1
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
 
