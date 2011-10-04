@@ -156,6 +156,8 @@ let proto kind =
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
+    "connection_timeout", Lang.float_t, Some (Lang.float 5.),
+    Some "Timeout for establishing network connections (disabled is negative).";
     "timeout", Lang.float_t, Some (Lang.float 30.),
     Some "Timeout for network read and write.";
     ("user", Lang.string_t, Some (Lang.string "source"),
@@ -190,11 +192,7 @@ let proto kind =
      Some "Additional headers.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
-    "", Lang.source_t kind, None, None ] @
-    (if Sys.os_type <> "Win32" then 
-      ["connection_timeout", Lang.float_t, Some (Lang.float 5.),
-        Some "Timeout for establishing network connections (disabled is negative)."] 
-     else [])
+    "", Lang.source_t kind, None, None ]
 
 (** Sending encoded data to a shout-compatible server.
   * It directly takes the Lang param list and extracts stuff from it. *)
@@ -268,14 +266,12 @@ class output ~kind p =
   let genre = s "genre" in
   let url = s "url" in
   let timeout = e Lang.to_float "timeout" in
-  let connection_timeout =
-    if Sys.os_type <> "Win32" then 
-      let v = e Lang.to_float "connection_timeout" in
-      if v > 0. then
-        Some v
-      else 
-        None
-    else None
+  let connection_timeout = 
+    let v = e Lang.to_float "connection_timeout" in
+    if v > 0. then
+      Some v
+    else 
+      None
   in
   let dumpfile = 
     match s "dumpfile" with
