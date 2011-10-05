@@ -1,16 +1,17 @@
 1.0.0 (??-10-2011)
 ==================
 Finally, the 1.0.0 release! It brings several important fixes, but 
-also some nice noveties.
+also some nice novelties.
 The most outstanding difference concerns output.icecast(): its restart 
 and restart_delay parameters are gone, replaced by a new on_stop handler 
 which is called on every error (failed connection or disconnection) and 
 returns the new restart delay. The on_error handler receives a string 
-describing the error which enables user-friendly reporting, among other 
-things.
+describing the error which enables user-friendly reporting, adaptative
+delays, etc.
 Note that on_error defaults to fun(_)->3. which is equivalent to having
 restart=true, restart_delay=3. in previous versions, NOT the same as the 
-former restart=false default.
+former restart=false default. As a result, liquidsoap won't fail to startup
+if an initial connection attempt fails.
 ==================
 Fixes:
 - LS-532,527: avoid freeze after errors in streaming threads or source
