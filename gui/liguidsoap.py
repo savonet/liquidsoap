@@ -136,7 +136,11 @@ sfx = request.equeue(id="sfx")
 
 enable_mic = %s
 sources =
-  if enable_mic then [in(id="microphone"),music,bg,sfx] else [music,bg,sfx] end
+  if enable_mic then
+    [(in(id="microphone"):source),music,bg,sfx]
+  else
+    [music,bg,sfx]
+  end
 mixer = mix(id="mixer",sources)
 
 output.prefered(id="speaker",mixer)
