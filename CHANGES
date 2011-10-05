@@ -1,10 +1,22 @@
 1.0.0 (??-10-2011)
 ==================
+Finally, the 1.0.0 release! It brings several important fixes, but 
+also some nice noveties.
+The most outstanding difference concerns output.icecast(): its restart 
+and restart_delay parameters are gone, replaced by a new on_stop handler 
+which is called on every error (failed connection or disconnection) and 
+returns the new restart delay. The on_error handler receives a string 
+describing the error which enables user-friendly reporting, among other 
+things.
+Note that on_error defaults to fun(_)->3. which is equivalent to having
+restart=true, restart_delay=3. in previous versions, NOT the same as the 
+former restart=false default.
+==================
 Fixes:
-- LS-532,527: avoid freeze after errors in streaming threads or source 
+- LS-532,527: avoid freeze after errors in streaming threads or source
   initialization routines
 - LS-542: race condition in playlist*() breaking randomness
-- LS-489: double expiration lead to illegal queue length and freeze of 
+- LS-489: double expiration lead to illegal queue length and freeze of
   request-based sources
 - Avoid multiple simultaneous reloading in playlist*()
 - Pass charset information to icecast server to avoid encoding bugs
@@ -18,7 +30,7 @@ Fixes:
 - LS-396: drop*()'s types reflect that they don't support variable arities
 - LS-442: allow comments not terminated by newline at end of file
 New:
-- output.icecast() on_error (hg diff -c f6eedb66027b)
+- on_error handler in output.icecast(), see above
 - New msg param in %mp3 for marking frame headers, defaults to version string
 - output.file(): new on_close parameter, may be used to write exact duration
 - %mp3.vbr/abr for variable bitrate MP3, %mp3 is now a synonym of %mp3.cbr

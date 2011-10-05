@@ -286,13 +286,13 @@ AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[0.2.2],[],[1],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.4.1],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[0.4.2],[],[1],[],[1])
 
 # Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
@@ -300,7 +300,7 @@ if test -z "${with_duppy_syntax_dir}"; then
     with_duppy_syntax_dir=${with_duppy_dir}
   fi
 fi
-AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.1],[],[],[],[1],[duppy])
+AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.2],[],[],[],[1],[duppy])
 if test -n "${w_DUPPY_SYNTAX}"; then
   if test "${CAMLP4O}" != "no"; then
     if test -z "${DUPPY_SYNTAX_path}"; then
@@ -319,13 +319,13 @@ AC_CHECK_OCAML_BINDING([cry],[0.2.2])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.2.0],[],[1],[],[1])
 
 #
 # xmlplaylist
 #
 
-AC_CHECK_OCAML_BINDING([xmlplaylist])
+AC_CHECK_OCAML_BINDING([xmlplaylist],[0.1.3])
 
 #
 # Lastfm
@@ -337,31 +337,31 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.4.2])
+AC_CHECK_OCAML_BINDING([ogg],[0.4.3])
 
 #
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.5.0],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[0.6.1],[ogg])
 
 #
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[0.2.0],[ogg])
 
 #
 # Mad
 #
 
-AC_CHECK_OCAML_BINDING([mad],[0.4.3])
+AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 
 #
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac])
+AC_CHECK_OCAML_BINDING([flac],[0.1.0])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
@@ -412,7 +412,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame])
+AC_CHECK_OCAML_BINDING([lame],[0.3.1])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -427,7 +427,7 @@ AC_SUBST(W_LAME_DYN)
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer])
+AC_CHECK_OCAML_BINDING([gstreamer],[0.1.0])
 
 #
 # Aacplus
@@ -448,7 +448,7 @@ AC_SUBST(W_AACPLUS_DYN)
 # Voaacenc
 #
 
-AC_CHECK_OCAML_BINDING([voaacenc])
+AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
 
 #
 # Theora
@@ -460,25 +460,25 @@ AC_CHECK_OCAML_BINDING([theora],[0.3.0],[ogg])
 # Schroedinger
 #
 
-AC_CHECK_OCAML_BINDING([schroedinger],[],[ogg])
+AC_CHECK_OCAML_BINDING([schroedinger],[0.1.0],[ogg])
 
 #
 # Gavl
 #
 
-AC_CHECK_OCAML_BINDING([gavl])
+AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 
 #
 # Jack
 #
 
-AC_CHECK_OCAML_BINDING([bjack])
+AC_CHECK_OCAML_BINDING([bjack],[0.1.3])
 
 #
 # Alsa
 #
 
-AC_CHECK_OCAML_BINDING([alsa],[0.2.0])
+AC_CHECK_OCAML_BINDING([alsa],[0.2.1])
 
 #
 # LibAO
@@ -490,7 +490,7 @@ AC_CHECK_OCAML_BINDING([ao],[0.2.0])
 # Samplerate
 #
 
-AC_CHECK_OCAML_BINDING([samplerate])
+AC_CHECK_OCAML_BINDING([samplerate],[0.1.1])
 
 #
 # Taglib
@@ -672,15 +672,15 @@ fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad])
-AC_CHECK_OCAML_BINDING([soundtouch])
-AC_CHECK_OCAML_BINDING([portaudio])
-AC_CHECK_OCAML_BINDING([pulseaudio])
-AC_CHECK_OCAML_BINDING([ladspa])
-AC_CHECK_OCAML_BINDING([dssi])
+AC_CHECK_OCAML_BINDING([faad],[0.3.0])
+AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
+AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
+AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
+AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
+AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
-AC_CHECK_OCAML_BINDING([lo])
+AC_CHECK_OCAML_BINDING([lo],[0.1.0])
 AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
 AC_CHECK_OCAML_BINDING([gd],[],[],[],[],[1])
 
