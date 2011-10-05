@@ -125,7 +125,7 @@ object (self)
         if should_stop () then begin
           failwith "stop"
         end ;
-        let l,_,_ = Unix.select [socket] [] [] 1. in
+        let l,_,_ = Utils.select [socket] [] [] 1. in
           if l = [] then wait ()
       in
       (* Read data from the network. *)

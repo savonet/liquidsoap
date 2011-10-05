@@ -78,6 +78,29 @@ let really_read fd buf ofs len =
     done;
     !l
 
+(* There seems to be an issue under win32 where 
+ * some sockets are left in non-blocking mode
+ * after Unix.select. See: http://caml.inria.fr/mantis/view.php?id=5328
+ * 
+ * Since we do not use non-blocking mode at all
+ * in liquidsoap, this wrapper ensures that all socket are set back to
+ * blocking mode after a call to select under win32.. *)
+let select r w e t =
+  let ret = Unix.select r w e t in
+  if Sys.os_type <> "Win32" then
+    ret
+  else
+   begin
+    let f x =
+       try
+        Unix.clear_nonblock x
+       with _ -> ()
+    in
+    let f = List.iter f in
+    f r; f w; f e;
+    ret
+   end
+
 (* Read all data from a given filename.
  * We cannot use really_input with the 
  * reported length of the file because
@@ -118,7 +141,7 @@ let wait_for ?(log=fun _ -> ()) event socket timeout =
       | `Both -> [socket],[socket]
   in
   let rec wait t =
-    let l,l',_ = Unix.select r w [] t in
+    let l,l',_ = select r w [] t in
     if l=[] && l'=[] then begin
       log (Printf.sprintf "No network activity for %.02f second(s)." t);
       let current_time = Unix.gettimeofday () in
@@ -363,11 +386,6 @@ let which =
     fun s ->
       if Sys.file_exists s then s else
         List.find Sys.file_exists (List.map (fun d -> d^"/"^s) path)
-
-(** Uninterruptible select *)
-let rec select x y z t =
-  try Unix.select x y z t with
-    | Unix.Unix_error (Unix.EINTR,_,_) -> select x y z t
 
 (** Very partial strftime clone *)
 let strftime str : string =
