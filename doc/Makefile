@@ -101,9 +101,11 @@ content/%.txt.spell: content/%.txt
 	-aspell -d en_US-w_accents -c $(<)
 	touch $(@)
 
-doc-install: $(HTML)
+doc-install:
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
-	cp -RfL html/* $(datadir)/doc/$(DISTDIR)/html
+	if [ -f html/index.html ] ; then \
+	  cp -RfL html/* $(datadir)/doc/$(DISTDIR)/html ; \
+        fi
 	$(INSTALL) -d $(mandir)/man1
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
 
