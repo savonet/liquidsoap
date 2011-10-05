@@ -34,8 +34,8 @@ let conf =
   
 let conf_timeout =
   Conf.float ~p: (conf#plug "timeout") ~d: 30.
-    "Timeout for read/write operations"
-    ~comments:[ "Set it to -1 to disable timeout." ]
+    "Timeout for read/write operations."
+    ~comments: [ "A negative value disables timeout." ]
   
 let get_timeout () =
   let t = conf_timeout#get in if t < 0. then infinity else t
@@ -313,7 +313,7 @@ let start_socket () =
     ((try
         let (socket, caller) = accept sock in
         let ip = Utils.name_of_sockaddr caller
-        in (log#f 3 "New client %s" ip; handle_client socket ip)
+        in (log#f 3 "New client %s." ip; handle_client socket ip)
       with
       | e ->
           log#f 2 "Failed to accept new client: %S" (Utils.error_message e));
@@ -365,7 +365,7 @@ let start_telnet () =
        ((try
            let (socket, caller) = accept sock in
            let ip = Utils.name_of_sockaddr caller
-           in (log#f 3 "New client: %s" ip; handle_client socket ip)
+           in (log#f 3 "New client: %s." ip; handle_client socket ip)
          with
          | e ->
              log#f 2 "Failed to accept new client: %S"
