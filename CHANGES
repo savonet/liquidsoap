@@ -41,6 +41,7 @@ New:
 - LS-556: mux_mono() for adding a single audio channel into a stream
 - video.add_text() using libgd (gd4o) for environments without X
   Dependency on graphics can be disabled (to work around erreneous detection)
+- script language: add infix operator mod (patch by Fabio Costa)
 - delay() now has an "initial" parameter
 - LS-557: "server.timeout" setting can now be disabled by setting it to -1
 - LS-532: source.init() for selective init with a way to handle errors,
