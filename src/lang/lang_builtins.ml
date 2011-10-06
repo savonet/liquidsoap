@@ -60,7 +60,7 @@ let () =
 
 let () =
   Lang.add_builtin_base
-    ~category:(string_of_category Liq)
+    ~category:(string_of_category Sys)
     ~descr:"Type of OS running liquidsoap."
     "os.type"
     (Lang.String Sys.os_type)
@@ -1891,6 +1891,31 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.bool (Sys.is_directory f))
+
+let () =
+  add_builtin "basename" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.string_t
+    ~descr:"Get the base name of a path."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+         Lang.string (Filename.basename f))
+
+let () =
+  add_builtin "dirname" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.string_t
+    ~descr:"Get the directory name of a path."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+         Lang.string (Filename.dirname f))
+
+let () =
+  add_builtin "path.concat" ~cat:Sys
+    ["",Lang.string_t,None,None; "",Lang.string_t,None,None;] Lang.string_t
+    ~descr:"Concatenate two paths, using the appropriate directory separator."
+    (fun p ->
+       let f = Lang.to_string (Lang.assoc "" 1 p) in
+       let s = Lang.to_string (Lang.assoc "" 2 p) in
+         Lang.string (Filename.concat f s))
 
 let () =
   add_builtin "playlist.parse" ~cat:Liq

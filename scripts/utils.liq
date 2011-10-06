@@ -341,34 +341,6 @@ def server.rms(~id="",s) =
   s
 end
 
-# Get the base name of a path.
-# Implemented using the corresponding shell command.
-# @category System
-# @param s Path
-def basename(s)
-  lines = get_process_lines("basename #{quote(s)}")
-  if list.length(lines) > 0 then
-    list.hd(lines)
-  else
-    # Don't know what to do.. output s
-    s
-  end
-end
-
-# Get the directory name of a path.
-# Implemented using the corresponding shell command.
-# @category System
-# @param s Path
-# @param ~default Value returned in case of error.
-def dirname(~default="/nonexistent",s)
-  lines = get_process_lines("dirname #{quote(s)}")
-  if list.length(lines) > 0 then
-    list.hd(lines)
-  else
-    default
-  end
-end
-
 # Read some value from standard input (console).
 # @category System
 # @param ~hide Hide typed characters (for passwords).
