@@ -1416,7 +1416,7 @@ let () =
          Lang.unit)
 
 let () =
-  add_builtin "harbor.http.register" ~cat:Sys
+  add_builtin "harbor.http.register" ~cat:Liq
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
            the full requested uri (e.g. \"foo?var=bar\"), \
@@ -1469,7 +1469,7 @@ let () =
        Lang.unit)
 
 let () =
-  add_builtin "harbor.http.remove" ~cat:Sys
+  add_builtin "harbor.http.remove" ~cat:Liq
     ~descr:"Remove a registered HTTP handler on the harbor."
     [ "port",Lang.int_t,None,Some "Port to server.";
       "",Lang.string_t,None,Some "URI to serve." ]
