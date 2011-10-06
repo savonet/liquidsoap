@@ -206,8 +206,13 @@ class output ~kind p =
   let on_error = List.assoc "on_error" p in
   let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
-  let on_error err = 
-    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string err]) 
+  let on_error connection error =
+    let msg =
+      Printf.sprintf "{ \"connection\": %s,\n\"error\": %S }"
+                       (Cry.string_of_connection connection)
+                       (Utils.error_message error)
+    in 
+    Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg]) 
   in
 
   let protocol,encoder_factory, 
@@ -393,7 +398,7 @@ object (self)
           if Unix.time () > restart_time then begin
             self#icecast_start
           end
-      | Cry.Connected _ ->
+      | Cry.Connected c ->
           begin try
             Cry.send connection b;
             match dump with
@@ -401,9 +406,8 @@ object (self)
               | None -> () 
           with
             | e ->
-                let msg = Utils.error_message e in
-                self#log#f 2 "Error while sending data: %s!" msg ;
-                let delay = on_error msg in
+                self#log#f 2 "Error while sending data: %s!" (Utils.error_message e) ;
+                let delay = on_error c.Cry.connection e in
                 if delay >= 0. then
                  begin
                   (* Ask for a restart after [restart_time]. *)
@@ -478,9 +482,8 @@ object (self)
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
         | e ->
-            let msg = Utils.error_message e in
-            self#log#f 2 "Connection failed: %s" msg ;
-            let delay = on_error msg in
+            self#log#f 2 "Connection failed: %s" (Utils.error_message e) ;
+            let delay = on_error source e in
             if delay >= 0. then
              begin
               self#log#f 3
