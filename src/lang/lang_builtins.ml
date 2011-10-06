@@ -406,6 +406,18 @@ let () =
 (** Math *)
 
 let () =
+  let t = Lang.int_t in
+    add_builtin "mod" ~cat:Math
+      ~descr:"Integer remainder. If y is not zero, x == (x / y) * y + x mod y, \
+              and abs(x mod y) <= abs(y)-1."
+      ["",t,None,None;"",t,None,None] t
+      (fun p ->
+         match p with
+           | ["",{Lang.value=Lang.Int a};"",{Lang.value=Lang.Int b}] ->
+               Lang.int (a mod b)
+           | _ -> assert false)
+
+let () =
   let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
     add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
       ["",t,None,None] t

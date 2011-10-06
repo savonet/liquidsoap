@@ -167,6 +167,7 @@ rule token = parse
   | "==" | "<" | "<=" | ">" | ">=" { BIN1 (Lexing.lexeme lexbuf) }
   | "+" | "%" | "^" | "+." | "-."  { BIN2 (Lexing.lexeme lexbuf) }
   | "/" | "*." | "/."              { BIN3 (Lexing.lexeme lexbuf) }
+  | "mod"                          { BIN3 (Lexing.lexeme lexbuf) }
   | "*"                            { TIMES }
 
   | "ref" { REF }
