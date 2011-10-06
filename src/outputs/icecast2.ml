@@ -183,9 +183,10 @@ let proto kind =
     "on_error",
     Lang.fun_t [false, "", Lang.string_t] Lang.float_t,
     Some (Lang.val_cst_fun ["", Lang.string_t, None] (Lang.float 3.)),
-    Some "Callback executed when an error happens. If returned value is \
-          positive, connection will be tried again after this amount of time \
-          (in seconds)." ;
+    Some "Callback executed when an error happens. The callback receives a JSON \
+          string representation of the connection and error that occured and \
+          returns a float. If returned value is positive, connection will be \
+          tried again after this amount of time (in seconds)." ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
