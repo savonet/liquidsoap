@@ -19,7 +19,8 @@ Fixes:
 - LS-542: race condition in playlist*() breaking randomness
 - LS-489: double expiration lead to illegal queue length and freeze of
   request-based sources
-- Avoid multiple simultaneous reloading in playlist*()
+- Avoid multiple simultaneous reloading in playlist*(),
+  thanks to Fabio Costa for his help on this one!
 - Pass charset information to icecast server to avoid encoding bugs
 - LS-555: timeout for icecast connection attempts
 - LS-559: permanent stop after disconnection on Ogg streams

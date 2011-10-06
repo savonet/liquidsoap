@@ -921,6 +921,8 @@ cat <<EOMSG
  You may now compile liquidsoap by running "$MAKE".
  In case of significant library update, "$MAKE clean" is needed first.
 
+ If you want a local version of the documentation, run "$MAKE doc".
+
  Then, perform installation by running "$MAKE install" as root.
 
  And... have fun!

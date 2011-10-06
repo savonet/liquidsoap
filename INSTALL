@@ -103,11 +103,8 @@
  is not available it only generate a stub reference and issue a warning.
 
  Then, you may proceed to the installation. You may need to be root for that.
- Also, user and group liquidsoap should be created prior to installation.
- If you want to use other user/groups, please edit Makefile.defs -- unless
- you prefer to re-run the configure script with the proper --with-user/group.
 
-   % make install (as root if needed)
+   % make install
 
  This will not install files such as /var/log/liquidsoap unless you have
  provided a user/group under which liquidsoap should be ran. This behavior
