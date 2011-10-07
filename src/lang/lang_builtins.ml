@@ -1155,16 +1155,7 @@ let () =
       Lang.list Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
   in
   add_builtin "server.execute"
-    ~cat ~descr params return_t execute ;
-  add_builtin "execute" ~cat ~flags:[Lang.Deprecated]
-    ~descr:(descr ^
-            "\nThis operator is deprecated, in favor of 'server.execute'.")
-    params return_t
-    (fun p ->
-      log#f 1 "WARNING: 'execute' is DEPRECATED and will be \
-               removed in future releases. You can use \
-               'server.execute' instead." ;
-       execute p)
+    ~cat ~descr params return_t execute
 
 let () =
   Lang.add_builtin "if"
@@ -1240,7 +1231,7 @@ let () =
          Lang.unit)
 
 let () =
-  add_builtin "garbage_collect" ~cat:Sys
+  add_builtin "garbage_collect" ~cat:Liq
     ~descr:"Trigger full major garbage collection."
     [] Lang.unit_t
     (fun p ->
@@ -1310,7 +1301,7 @@ let () =
          Lang.list Lang.string_t (List.map Lang.string l))
 
 let () =
-  add_builtin "log" ~cat:Sys ~descr:"Log a message."
+  add_builtin "log" ~cat:Liq ~descr:"Log a message."
     [ "label",Lang.string_t,Some (Lang.string "lang"),None ;
       "level",Lang.int_t,Some (Lang.int 3),None ;
       "",Lang.string_t,None,None ]

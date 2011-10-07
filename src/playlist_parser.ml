@@ -31,7 +31,7 @@ let conf_playlists =
     "Playlist formats"
 let conf_mime_types =
   Conf.void ~p:(conf_playlists#plug "mime_types")
-    "Mime-types used for guessing formats"
+    "Mime-types used for guessing playlist formats."
     ~comments:[
       "When a mime-type is available (e.g. with input.http), it can be used";
       "to guess which playlist format to use.";
