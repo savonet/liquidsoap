@@ -1,7 +1,7 @@
 .PHONY: doc upload reference all-subdirs
 
 SUBDIRS = content liqi
-DISTFILES = liquidsoap.1 Makefile reference_to_liqi.pl settings_to_liqi.pl no-ref.txt \
+DISTFILES = liquidsoap.1 Makefile reference_to_liqi.pl no-ref.txt \
 	    template.html snippet.html
 DISTDIRS = orig
 PERL_DOM = $(shell perl -MXML::DOM -e1 > /dev/null 2>&1 && echo yes)
@@ -74,9 +74,9 @@ else
 	@cp no-ref.txt content/reference.txt
 endif
 
-content/settings.txt: settings_to_liqi.pl ../src/liquidsoap
+content/settings.txt: ../src/liquidsoap
 	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --dynamic-plugins-dir ../src/plugins \
-	--conf-descr |  ./settings_to_liqi.pl > $(@)
+	--conf-descr-liqi > $(@)
 
 VERSION="`../src/liquidsoap --version | head -n 1`"
 

@@ -229,35 +229,48 @@ struct
     in
       aux (string_of_path prefix) (t#path prefix)
 
-  let descr ?(prefix=[]) t =
-    let rec aux prefix t =
+  let descr ?(liqi=false) ?(prefix=[]) t =
+    let rec aux level prefix t =
       let p s = if prefix = "" then s else prefix ^ "." ^ s in
       let subs =
-        List.map (function s -> aux (p s) (t#path [s])) t#subs
+        List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs
+      in
+      let title,default,set,comment = 
+        if liqi then
+          Printf.sprintf "h%d. %s\n",
+          Printf.sprintf "Default: @%s@\n",
+          Printf.sprintf "%%%%\n\
+                          set(%S,%s)\n\
+                          %%%%\n",
+          (fun l -> String.concat ""
+                     (List.map (fun s -> Printf.sprintf "%s\n" s) l)) 
+        else
+          (fun level -> Printf.sprintf "%s:\n"),
+          Printf.sprintf " Default: %s\n",
+          Printf.sprintf " set(%S,%s)\n",
+          (fun l -> Printf.sprintf " Comment:\n%s\n"
+                  (String.concat ""
+                    (List.map (fun s -> Printf.sprintf "  %s\n" s) l)))
       in
         begin match t#kind, get_string t with
-        | None, None -> Printf.sprintf "### %s\n\n" t#descr
+        | None, None -> title level t#descr
         | Some _, Some p ->
-            Printf.sprintf "## %s\n"
-            t#descr ^
+            title level t#descr ^
             begin match get_d_string t with
               | None -> ""
-              | Some d -> Printf.sprintf "# Default: %s\n" d
+              | Some d -> default d
             end ^
-            Printf.sprintf "set(%S,%s)\n" prefix p ^
+            set prefix p ^
             begin match t#comments with
               | [] -> ""
-              | l ->
-                  "# Comments:\n" ^
-                  String.concat ""
-                    (List.map (fun s -> Printf.sprintf "#  %s\n" s) l)
+              | l -> comment l
             end ^
             "\n"
         | _ -> ""
         end ^
         String.concat "" subs
     in
-      aux (string_of_path prefix) (t#path prefix)
+      aux 2 (string_of_path prefix) (t#path prefix)
 
   let descr_key t p =
     try
@@ -279,6 +292,10 @@ struct
       Arg.Unit (fun () ->
         print_string (descr t); exit 0),
       "Display a described table of the configuration keys.";
+      ["--conf-descr-liqi"],
+      Arg.Unit (fun () ->
+        print_string (descr ~liqi:true t); exit 0),
+      "Display a described table of the configuration keys in liqi (documentation wiki) format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
         print_string (dump t); exit 0),
