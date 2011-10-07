@@ -409,7 +409,18 @@ struct
     | Product (a,b) ->
         Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
     | Fun ([],_,_,x) when is_ground x -> "{"^print_term x^"}"
-    | Fun (["",_,None],_,_,x) when is_ground x -> "fun(_)->"^print_term x
+    | Fun (l,_,_,x) when is_ground x -> 
+        let f (label,_,value) =
+          match label, value with
+            | "",    None -> "_"
+            | "",    Some v -> Printf.sprintf "_=%s" (print_value v)
+            | label, Some v -> 
+                Printf.sprintf "~%s=%s" label (print_value v)
+            | label, None ->
+                Printf.sprintf "~%s" label
+        in
+        let args = List.map f l in
+        Printf.sprintf "fun (%s) -> %s" (String.concat "," args) (print_term x)
     | Fun _ | FFI _ -> "<fun>"
 
   let map_env f env = List.map (fun (s,(g,v)) -> s, (g, f v)) env
