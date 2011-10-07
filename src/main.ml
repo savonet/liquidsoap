@@ -245,10 +245,14 @@ struct
           (fun l -> String.concat ""
                      (List.map (fun s -> Printf.sprintf "%s\n" s) l)) 
         else
-          (fun level -> Printf.sprintf "### %s:\n"),
+          (fun _ ->
+             if t#kind = None then
+               Printf.sprintf "### %s\n\n"
+             else
+               Printf.sprintf "## %s\n"),
           Printf.sprintf "# Default: %s\n",
           Printf.sprintf "set(%S,%s)\n",
-          (fun l -> Printf.sprintf "# Comment:\n%s\n"
+          (fun l -> Printf.sprintf "# Comments:\n%s"
                   (String.concat ""
                     (List.map (fun s -> Printf.sprintf "#  %s\n" s) l)))
       in
