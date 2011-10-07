@@ -42,79 +42,103 @@ If the parameter is not a file it will be treated as an expression which will
 be executed. It is a convenient way to test simple one-line scripts. In that 
 case, the default is to have log messages on standard output and to disable the 
 telnet server.
-
 .\"
 .SH OPTIONS
 .TP
-.BI \-h " NAME"
-Print the description of plugins of the given name
-(operators from the scripting API,
- but also protocols, stream, file and metadata formats).
+.BR \- 
+ Read script from standard input.
 .TP
-.B \-c, \-\-check
-Only check the syntax of the script.
-It actually does a bit more, e.g. creating the sources, which includes
-checking a few URIs.
+.BR \-\- 
+Stop parsing the command-line and pass subsequent items to the
+script.
 .TP
-.B \-q, \-\-quiet
-Do not print log messages on standard output.
-.TP
-.B \-v, \-\-verbose
-Print log messages on standard output.
-.TP
-.B \-\-debug
+.BR \-\-debug 
 Print debugging log messages.
 .TP
-.B \-d, \-\-daemon
-Run in daemon mode, i.e. detach and write a PID file.
+\fB \-\-dynamic\-plugins\-dir \fIpath\fR 
+Directory where to look for plugins.
 .TP
-.B \-\-interactive
-Launch an interactive read-eval-print loop for executing scripting
-expressions.
+.BR \-\-errors\-as\-warnings 
+Issue warnings instead of fatal errors for unused variables and
+ignored expressions. If you are not sure about it, it is better to not use it.
 .TP
-.B \-t, \-\-enable-telnet
-Enable the telnet server interface.
+.BR \-\-interactive 
+Start an interactive interpreter.
 .TP
-.B \-T, \-\-disable-telnet
-Disable the telnet server interface.
+.BR \-\-list\-plugins 
+List all plugins (builtin scripting values, supported formats and
+protocols).
 .TP
-.B \-u, \-\-enable-unix-socket
-Enable the UNIX socket server interface.
+.BR \-\-list\-plugins\-xml 
+List all plugins (builtin scripting values, supported formats and
+protocols), output as XML.
 .TP
-.B \-U, \-\-disable-unix-socket
-Disable the UNIX socket server interface.
+.BR \-\-no\-pervasives 
+Do not load pervasives script libraries (i.e.,
+/Users/toots/tmp/lib/liquidsoap/svn/*.liq).
 .TP
-.B \-
-Read script on standard input.
+.BR \-\-version 
+Display liquidsoap's version.
 .TP
-.BI \-r " FILENAME"
-Process a request: resolve it, attempt to decode it, display its metadata
-and duration. This is useful to test how liquidsoap sees your files.
+.BR \-T ", " \-\-disable\-telnet 
+Disable the telnet server.
 .TP
-.B \-\-list\-plugins
-Human-readable List of all protocols, operators formats, metadata resolvers, outputs.
+.BR \-U ", " \-\-disable\-unix\-socket 
+Disable the unix socket.
 .TP
-.B \-\-list\-plugins\-xml
-XML list of all protocols, operators formats, metadata resolvers, outputs.
+.BR \-c ", " \-\-check 
+Check and evaluate scripts but do not perform any streaming.
 .TP
-.B \-\-no\-pervasives
-Do not load pervasives script libraries.
+.BR \-cl ", " \-\-check\-lib 
+Like \-\-check but treats all scripts and expressions as libraries, so
+that unused toplevel variables are not reported.
 .TP
-.B \-\-help
-Show summary of options.
+.BR \-d ", " \-\-daemon 
+Run in daemon mode.
 .TP
-.B \-\-conf\-descr\-key
+.BR \-f ", " \-\-force\-start 
+For advanced dynamic uses: force liquidsoap to start even when no
+active source is initially defined.
+.TP
+\fB \-h \fIplugin\fR
+Print the description of a plugin.
+.TP
+.BR \-i 
+Display infered types.
+.TP
+.BR \-p ", " \-\-parse\-only 
+Parse scripts but do not type-check and run them.
+.TP
+.BR \-q ", " \-\-quiet 
+Do not print log messages on standard output.
+.TP
+\fB \-r \fIfilename\fR
+Process a request.
+.TP
+.BR \-t ", " \-\-enable\-telnet 
+Enable the telnet server.
+.TP
+.BR \-u ", " \-\-enable\-unix\-socket 
+Enable the unix socket.
+.TP
+.BR \-v ", " \-\-verbose 
+Print log messages on standard output.
+.TP
+\fB \-\-conf\-descr\-key \fIkey\fR
 Describe a configuration key.
 .TP
-.B \-\-conf\-descr
+.BR \-\-conf\-descr 
 Display a described table of the configuration keys.
 .TP
-.B \-\-conf\-dump
+.BR \-\-conf\-descr\-liqi 
+Display a described table of the configuration keys in liqi
+(documentation wiki) format.
+.TP
+.BR \-\-conf\-dump 
 Dump the configuration state
 .TP
-.B \-p, \-\-parse-only
-Parse scripts but do not type-check and run them.
-
+.BR \-help ", " \-\-help
+Display this list of options
 .\"
 .SH SEE ALSO
 Our website
@@ -122,4 +146,4 @@ Our website
 and the HTML documentation coming with your distribution of liquidsoap.
 .\"
 .SH AUTHOR
-David Baelde for Savonet <savonet-users@lists.sourceforge.net>
+David Baelde and Romain Beauxis for Savonet <savonet-users@lists.sourceforge.net>
