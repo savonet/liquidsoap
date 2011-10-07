@@ -340,9 +340,7 @@ let start_socket () =
      ignore
        (Dtools.Init.at_stop
           (fun () ->
-             (log#f 3 "Closing %s" socket_name;
-              Unix.close sock;
-              Unix.unlink socket_path)));
+             (log#f 3 "Unlink %s" socket_name; Unix.unlink socket_path)));
      chmod socket_path rights;
      listen sock max_conn;
      Duppy.Task.add Tutils.scheduler
