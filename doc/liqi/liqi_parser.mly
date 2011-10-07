@@ -32,7 +32,8 @@
 %token <string> WORD
 %token <string> TITLE
 %token <string> ANTIQUOTE
-%token SPACE MANY_NEWLINES NEWLINE LI LEM REM LBF RBF EOF
+%token <int> LI
+%token SPACE MANY_NEWLINES NEWLINE LEM REM LBF RBF EOF
 
 %start doc_title
 %type <string option * Liqi.doc> doc_title
@@ -68,7 +69,7 @@ paragraph:
   | indentation line { [$1,$2] }
 
 indentation:
-  | LI indentation { 1 + $2 }
+  | LI indentation { $1 + $2 }
   | spaces { 0 }
 spaces:
   | { () } | SPACE spaces { () }

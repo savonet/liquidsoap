@@ -32,6 +32,11 @@
           pos_bol = lexbuf.lex_curr_p.pos_cnum ;
           pos_lnum = 1 + lexbuf.lex_curr_p.pos_lnum })
       (lexeme lexbuf)
+
+  let bol lexbuf =
+    let p = Lexing.lexeme_start_p lexbuf in
+      p.Lexing.pos_cnum = p.Lexing.pos_bol
+
 }
 
 (* Yes, we need an unicode lexer.. *)
@@ -47,7 +52,13 @@ let quotes = [ '"' '\'' ]
 let markup = ['*''_']*
 
 rule token = parse
-  | '*'                  { LI }
+  | [' ''\t']* ('*'+ as indent) ' ' {
+      (* This is an emergency fix to support * in normal text...
+       * We differentiate * at the beginning of line and inside a line.
+       * This requires to consume the initial spaces together with the star.
+       * We also need to require a space after the star, otherwise there is
+       * a conflict in the lexer with markup, eg. this is **bold**. *)
+      if bol lexbuf then LI (String.length indent) else WORD (Lexing.lexeme lexbuf) }
   | '\n'                 { incrline lexbuf ; NEWLINE }
   | '\n' eof             { incrline lexbuf ; EOF }
   | '\n' '\n'+           { incrline lexbuf ;
