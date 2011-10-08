@@ -14,6 +14,9 @@ distclean: clean
 	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
 	       scripts/liquidtts gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
 
+clean-local:
+	rm -f src/configure.ml
+
 test:
 	$(MAKE) -C scripts/tests test
 

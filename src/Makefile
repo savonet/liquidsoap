@@ -290,6 +290,9 @@ SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	  echo "let rev = \"\"" > SVN.ml ; \
 	fi
 
+clean-local:
+	rm -f SVN.ml
+
 install-plugin-%:
 	$(INSTALL_DATA) plugins/$*.$(s) $(libdir)/liquidsoap/$(libs_dir_version)/plugins
 

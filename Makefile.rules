@@ -234,8 +234,7 @@ dist:
 configure: configure.ac install-sh
 	./bootstrap
 
-# TODO don't put generated .ml in the tarball
-tarball: configure dist
+tarball: configure clean dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
 	rm -rf $(DISTDIR)
 
