@@ -183,10 +183,10 @@ let proto kind =
     "on_error",
     Lang.fun_t [false, "", Lang.string_t] Lang.float_t,
     Some (Lang.val_cst_fun ["", Lang.string_t, None] (Lang.float 3.)),
-    Some "Callback executed when an error happens. The callback receives a JSON \
-          string representation of the connection and error that occured and \
-          returns a float. If returned value is positive, connection will be \
-          tried again after this amount of time (in seconds)." ;
+    Some "Callback executed when an error happens. The callback receives a \
+          string representation of the error that occured and returns a float. \
+          If returned value is positive, connection will be tried again after \
+          this amount of time (in seconds)." ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
@@ -207,12 +207,8 @@ class output ~kind p =
   let on_error = List.assoc "on_error" p in
   let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
-  let on_error connection error =
-    let msg =
-      Printf.sprintf "{ \"connection\": %s,\n\"error\": %S }"
-                       (Cry.string_of_connection connection)
-                       (Utils.error_message error)
-    in 
+  let on_error error =
+    let msg = Utils.error_message error in
     Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg]) 
   in
 
@@ -399,7 +395,7 @@ object (self)
           if Unix.time () > restart_time then begin
             self#icecast_start
           end
-      | Cry.Connected c ->
+      | Cry.Connected _ ->
           begin try
             Cry.send connection b;
             match dump with
@@ -408,7 +404,7 @@ object (self)
           with
             | e ->
                 self#log#f 2 "Error while sending data: %s!" (Utils.error_message e) ;
-                let delay = on_error c.Cry.connection e in
+                let delay = on_error e in
                 if delay >= 0. then
                  begin
                   (* Ask for a restart after [restart_time]. *)
@@ -484,7 +480,7 @@ object (self)
          * The output will just try to reconnect later. *)
         | e ->
             self#log#f 2 "Connection failed: %s" (Utils.error_message e) ;
-            let delay = on_error source e in
+            let delay = on_error e in
             if delay >= 0. then
              begin
               self#log#f 3
