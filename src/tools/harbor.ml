@@ -64,13 +64,20 @@ let log = Log.make [ "harbor" ]
 class virtual source ~kind =
   object (self)
     inherit Source.source kind
+      
     method virtual relay :
       string -> (string * string) list -> Unix.file_descr -> unit
+      
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      
     method virtual login : (string * (string -> string -> bool))
+      
     method virtual icy_charset : string option
+      
     method virtual meta_charset : string option
+      
     method virtual get_mime_type : string option
+      
   end
   
 type sources = (string, source) Hashtbl.t
