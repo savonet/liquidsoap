@@ -8,14 +8,13 @@ DISTDIRS = m4
 top_srcdir=.
 include $(top_srcdir)/Makefile.rules
 
-distclean: clean
+distclean: pre-distclean
+	rm -f Makefile.defs
+pre-distclean: clean
 	rm -rf config.log config.status config.h autom4te.cache \
-	       src/configure.ml Makefile.defs scripts/liquidsoap.initd \
+	       src/configure.ml scripts/liquidsoap.initd \
 	       scripts/liquidsoap.gentoo.initd scripts/liquidsoap.logrotate \
-	       scripts/liquidtts gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
-
-clean-local:
-	rm -f src/configure.ml
+	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
 	$(MAKE) -C scripts/tests test

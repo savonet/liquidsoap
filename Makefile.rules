@@ -234,7 +234,7 @@ dist:
 configure: configure.ac install-sh
 	./bootstrap
 
-tarball: configure clean dist
+tarball: configure pre-distclean dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
 	rm -rf $(DISTDIR)
 
