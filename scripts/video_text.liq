@@ -1,5 +1,6 @@
 %ifdef video.add_text.gd
 # Add a scrolling line of text on video frames.
+# @category Source / Video Processing
 # @param ~id       Force the value of the source ID.
 # @param ~color    Text color (in 0xRRGGBB format).
 # @param ~cycle    Cycle text.
@@ -22,6 +23,7 @@ end
 
 %ifdef video.add_text.sdl
 # Add a scrolling line of text on video frames.
+# @category Source / Video Processing
 # @param ~id       Force the value of the source ID.
 # @param ~color    Text color (in 0xRRGGBB format).
 # @param ~cycle    Cycle text.

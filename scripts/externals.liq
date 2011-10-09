@@ -4,6 +4,7 @@
 # Enable external Musepack decoder. Requires the 
 # mpcdec binary in the path. Does not work on 
 # Win32.
+# @category Liquidsoap
 def enable_external_mpc_decoder() =
   # A list of know extensions and content-type for Musepack.
   # Values from http://en.wikipedia.org/wiki/Musepack 
