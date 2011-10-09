@@ -682,7 +682,7 @@ AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 AC_CHECK_OCAML_BINDING([lo],[0.1.0])
 AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
-AC_CHECK_OCAML_BINDING([gd],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([gd])
 
 #
 # Tuning (See INSTALL to understand these features)
