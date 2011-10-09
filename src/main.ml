@@ -490,7 +490,7 @@ let options =
 let () = 
   log#f 3 "Liquidsoap %s%s" Configure.version SVN.rev ;
   log#f 3 "Using:%s" Configure.libs_versions ;
-  if Configure.svn_snapshot then
+  if Configure.scm_snapshot then
     List.iter (log#f 2 "%s")
       ["";
        "DISCLAIMER: This version of Liquidsoap has been";

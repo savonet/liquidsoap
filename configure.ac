@@ -5,16 +5,16 @@ dnl as well as the "version" variable below AND the "libs_dir_version",
 dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
-# Remove +svn and set svn_snapshot to false before releasing
+# Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.0.0])
-svn_snapshot=false
+AC_INIT([liquidsoap],[1.0.0+scm])
+scm_snapshot=true
 version=1.0.0
 
-if test $svn_snapshot != "false"; then
-  version="$version+svn"
-  libs_dir_version="svn"
+if test $scm_snapshot != "false"; then
+  version="$version+scm"
+  libs_dir_version="scm"
 else
   libs_dir_version="$version"
 fi
@@ -50,7 +50,7 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 
 cat > src/configure.ml << _BLAH_
 let version = "$version"
-let svn_snapshot = $svn_snapshot
+let scm_snapshot = $scm_snapshot
 let conf = Dtools.Conf.void "Liquidsoap configuration"
 let var_script = ref "default"
 let substs = ref

@@ -4,7 +4,7 @@
 val version : string
 
 (** Is this build a SVN snapshot ? *)
-val svn_snapshot : bool
+val scm_snapshot : bool
 
 (** String describing the software. *)
 val vendor : string
