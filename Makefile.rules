@@ -156,6 +156,10 @@ flac_dontlink += ogg
 flac_ogg_dontlink += ogg flac
 lastfm_dontlink += xmlm xmlplaylist
 
+# Lo name is too generic for the above test to pass
+lo_dontlink =
+lo_ocamllflags += -package lo
+
 # Here is how compilation of .ml files work:
 # We concatenate all {C,L}FLAGS for .ml compilation.
 # However, when linking the final objects, we seperate them back.
