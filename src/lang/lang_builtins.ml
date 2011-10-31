@@ -1301,6 +1301,46 @@ let () =
          Lang.list Lang.string_t (List.map Lang.string l))
 
 let () =
+  let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
+  add_builtin "environment" ~cat:Sys
+    ~descr:"Return the process environment."
+    [] ret_t
+    (fun p ->
+      let l = Unix.environment () in
+      (* Split at first occurence of '='. Return v,"" if
+       * no '=' could be found. *)
+      let split s = 
+        try
+          let pos = String.index s '=' in
+          String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
+        with _ -> s,""
+      in
+      let l = Array.to_list l in
+      let l = List.map split l in
+      let l = List.map (fun (x,y) -> (Lang.string x, Lang.string y)) l in
+      let l = List.map (fun (x,y) -> Lang.product x y) l in
+      Lang.list ret_t l)
+
+let () =
+  add_builtin "getenv" ~cat:Sys
+    ~descr:"Get the value associated to a variable in the process environment. Returns \"\" if variable \
+            is not set."
+    ["",Lang.string_t,None,None] Lang.string_t
+    (fun p ->
+      Lang.string (Unix.getenv (Lang.to_string (List.assoc "" p))))
+
+let () =
+  add_builtin "setenv" ~cat:Sys
+    ~descr:"Set the value associated to a variable in the process environment."
+    ["",Lang.string_t,None,Some "Variable to be set.";
+     "",Lang.string_t,None,Some "Value to set."] Lang.unit_t
+    (fun p ->
+      let label = Lang.to_string (Lang.assoc "" 1 p) in
+      let value = Lang.to_string (Lang.assoc "" 2 p) in
+      Unix.putenv label value;
+      Lang.unit)
+
+let () =
   add_builtin "log" ~cat:Liq ~descr:"Log a message."
     [ "label",Lang.string_t,Some (Lang.string "lang"),None ;
       "level",Lang.int_t,Some (Lang.int 3),None ;
