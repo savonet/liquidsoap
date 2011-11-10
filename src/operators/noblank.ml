@@ -263,10 +263,7 @@ let () =
     (fun p kind ->
        let length,threshold,track_sensitive,s = extract p in
          new skip ~kind ~length ~threshold ~track_sensitive s) ;
-  Lang.add_operator "strip_blank"
-    (* TODO make it active again when it doesn't hurt type
-     *   inference as much, cf. LS-551.
-     * ~active:true *)
+  Lang.add_operator "strip_blank" ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank."
