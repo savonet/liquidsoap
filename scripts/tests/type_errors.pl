@@ -27,6 +27,11 @@ sub correct {
   print "\n";
 }
 
+section("LISTS");
+incorrect('ignore([4,"x"])');
+correct('ignore([input.oss(), sine()])');
+correct('ignore([sine(), input.oss()])');
+
 section("BASIC");
 incorrect('[1]==["1"]');
 incorrect('1==["1"]');

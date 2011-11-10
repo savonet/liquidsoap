@@ -543,18 +543,20 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
   | List l ->
       List.iter (check ~level ~env) l ;
-      let pos =
-        (* Attach the position of the first item in the list
-         * to the type of the list items. It gives more info with type errors
-         * when the items in the list are not compatible.
-         * WARNING This will become weird with real subtyping in the inference,
-         * because the type of elements will only be _a supertype_ of the type
-         * of the first item. *)
-        match l with e::_ -> e.t.T.pos | [] -> e.t.T.pos
+      let tsup =
+        List.fold_left
+          (fun sup e ->
+            try
+              sup <: e.t;
+              e.t
+            with
+              | T.Type_Error _ ->
+                sup >: e.t;
+                sup
+          ) (T.fresh_evar ~level ~pos) l
       in
-      let v = T.fresh_evar ~level ~pos in
-        e.t >: mk (T.List v) ;
-        List.iter (fun item -> item.t <: v) l
+        e.t >: mk (T.List tsup) ;
+        List.iter (fun item -> item.t <: tsup) l
   | Product (a,b) ->
       check ~level ~env a ; check ~level ~env b ;
       e.t >: mk (T.Product (a.t,b.t))
