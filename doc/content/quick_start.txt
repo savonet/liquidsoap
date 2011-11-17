@@ -65,7 +65,7 @@ will probably prefer to <code>fallback</code> on an infallible
 "security" source:
 
 %%
-fallback([your_infallible_source_here, single("failure.ogg")])
+fallback([your_fallible_source_here, single("failure.ogg")])
 %%
 
 Finally, if you do not care about failures, you can pass the parameter
