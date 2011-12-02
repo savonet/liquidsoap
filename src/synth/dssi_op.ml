@@ -169,7 +169,7 @@ let register_descr plugin_name descr_n descr outputs =
            new dssi ~kind plugin_name descr_n outputs params source
       )
 
-let register_plugin pname =
+let register_plugin ?(log_errors=false) pname =
   try
     let p = Plugin.load pname in
     let descr = Descriptor.descriptors p in
@@ -179,12 +179,21 @@ let register_plugin pname =
            let i, o = Ladspa_op.get_audio_ports ladspa_descr in
              (* TODO: we should handle inputs too someday *)
              if Array.length i = 0 then
-               register_descr pname n d o
+               (
+                 register_descr pname n d o;
+                 if log_errors then
+                   log#f 3 "Registered DSSI plugin: %s." (Ladspa.Descriptor.label ladspa_descr)
+               )
+             else
+               if log_errors then
+                 log#f 3 "Plugin %s has inputs, don't know how to handle them for now." (Ladspa.Descriptor.label ladspa_descr)
         ) descr
       (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
       (* Plugin.unload p *)
   with
-    | Plugin.Not_a_plugin -> ()
+    | Plugin.Not_a_plugin ->
+      if log_errors then
+        log#f 3 "File \"%s\" is not a plugin!" pname
 
 let register_plugins () =
   let plugins =
@@ -235,6 +244,6 @@ let () =
     (fun p _ ->
       dssi_init ();
       let fname = Lang.to_string (List.assoc "" p) in
-      register_plugin fname;
+      register_plugin ~log_errors:true fname;
       Lang.unit
     )
