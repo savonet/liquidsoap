@@ -210,9 +210,31 @@ let register_plugins () =
   in
     List.iter register_plugin plugins
 
+let dssi_init =
+  let inited = ref false in
+  fun () ->
+    if !inited then () else
+      (
+        Dssi.init ();
+        inited := true
+      )
+
 let () =
   if dssi_enable then
     (
-      Dssi.init ();
+      dssi_init ();
       register_plugins ()
+    )
+
+let () =
+  Lang.add_builtin "dssi.register"
+    ~category:(Lang.string_of_category Lang.SoundSynthesis)
+    ~descr:"Resgister a DSSI plugin."
+    ["", Lang.string_t, None, Some "Path of the DSSI plugin file."]
+    Lang.unit_t
+    (fun p _ ->
+      dssi_init ();
+      let fname = Lang.to_string (List.assoc "" p) in
+      register_plugin fname;
+      Lang.unit
     )
