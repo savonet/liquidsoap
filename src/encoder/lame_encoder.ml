@@ -32,6 +32,7 @@ sig
   val set_in_samplerate : encoder -> int -> unit
   val set_num_channels : encoder -> int -> unit
   val set_out_samplerate : encoder -> int -> unit
+  val set_quality : encoder -> int -> unit
   type vbr_mode =
     | Vbr_off (** constant bitrate *)
     | Vbr_rh
@@ -122,8 +123,18 @@ struct
       (* Input settings *)
       Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
       Lame.set_num_channels enc (if mp3.Encoder.MP3.stereo then 2 else 1) ;
+      (* Internal quality *)
+      Lame.set_quality enc mp3.Encoder.MP3.internal_quality ;
       (* Output settings *)
-      Lame.set_mode enc (if mp3.Encoder.MP3.stereo then Lame.Stereo else Lame.Mono);
+      begin
+        if not mp3.Encoder.MP3.stereo then
+          Lame.set_mode enc Lame.Mono
+        else
+          match mp3.Encoder.MP3.stereo_mode with
+            | Encoder.MP3.Default -> ()
+            | Encoder.MP3.Stereo -> Lame.set_mode enc Lame.Stereo
+            | Encoder.MP3.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo
+      end;
       begin                  
         match mp3.Encoder.MP3.bitrate_control with
           | Encoder.MP3.VBR quality ->

@@ -123,6 +123,11 @@ end
 
 module MP3 =
 struct
+  type stereo_mode = 
+    | Default
+    | Stereo
+    | Joint_stereo
+
   type abr =   
     { min_bitrate  : int option ;
       mean_bitrate : int ;
@@ -152,12 +157,14 @@ struct
   type id3v2_export = Meta.export_metadata -> string
 
   type t = {
-    stereo          : bool ;
-    bitrate_control : bitrate_control ;
-    samplerate      : int ;
-    id3v2           : id3v2_export option ;
-    msg_interval    : float ;
-    msg             : string
+    stereo           : bool ;
+    stereo_mode      : stereo_mode ;
+    bitrate_control  : bitrate_control ;
+    internal_quality : int ;
+    samplerate       : int ;
+    id3v2            : id3v2_export option ;
+    msg_interval     : float ;
+    msg              : string
   }
 
   let id3v2_export : id3v2_export option ref = ref None

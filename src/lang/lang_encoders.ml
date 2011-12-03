@@ -96,8 +96,10 @@ let mk_wav params =
 let mp3_base_defaults = 
     { Encoder.MP3.
         stereo = true ;
+        stereo_mode = Encoder.MP3.Joint_stereo ;
         samplerate = 44100 ;
         bitrate_control = Encoder.MP3.CBR 128 ;
+        internal_quality = 2;
         id3v2 = None ;
         msg_interval = 0.1 ;
         msg = Configure.vendor }
@@ -108,6 +110,19 @@ let mp3_base f =
         { f with Encoder.MP3.stereo = b }
     | ("mono",{ term = Bool b }) ->
         { f with Encoder.MP3.stereo = not b }
+    | ("stereo_mode",({ term = String m } as t)) ->
+        let mode =
+          match m with
+            | "default" -> Encoder.MP3.Default
+            | "joint_stereo" -> Encoder.MP3.Joint_stereo
+            | "stereo" -> Encoder.MP3.Stereo
+            | _ -> raise (Error(t,"Invalid stereo mode!"))
+        in
+        { f with Encoder.MP3.stereo_mode = mode }
+    | ("internal_quality",({ term = Int q } as t)) ->
+        if q > 0 || q > 9 then
+          raise (Error(t,"Internal quality must be a value between 0 and 9!"));
+        { f with Encoder.MP3.internal_quality = q }
     | ("msg_interval",{ term = Float i }) ->
         { f with Encoder.MP3.msg_interval = i }
     | ("msg",{ term = String m }) ->
