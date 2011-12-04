@@ -33,6 +33,13 @@ let dssi_enable =
   with
     | Not_found -> true
 
+let dssi_load =
+  try
+    let venv = Unix.getenv "LIQ_DSSI_LOAD" in
+    Pcre.split ~pat:":" venv
+  with
+    | Not_found -> []
+
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_DSSI_PATH" in
@@ -233,7 +240,8 @@ let () =
     (
       dssi_init ();
       register_plugins ()
-    )
+    );
+  List.iter (register_plugin ~log_errors:true) dssi_load
 
 let () =
   Lang.add_builtin "dssi.register"
