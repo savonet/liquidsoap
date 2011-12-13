@@ -25,7 +25,7 @@
 %}
 
 %token <string> CODE
-%token <string option * string> SNIPPET
+%token <string option * string * string option> SNIPPET
 %token <string * string> IMAGE
 %token <string*string> HREF
 %token <int*string option*string> HEADER

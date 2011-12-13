@@ -23,7 +23,7 @@
 type ditem =
   | Header    of (int * string option * string)
   | Paragraph of ((int * (pitem list)) list)
-  | Snippet   of (string option * string)
+  | Snippet   of (string option * string * string option)
   | Antiquote of string
   | Image     of (string * string)
 

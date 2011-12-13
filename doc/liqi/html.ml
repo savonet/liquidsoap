@@ -172,6 +172,11 @@ let print_doc ?snippet_template ~subst ~basedir f =
       print_line = print_line;
     }
   in
+  let extract_suffix s =
+    try
+      (Pcre.extract ~rex:(Pcre.regexp "\\.(.+)$") s).(1)
+    with _ -> ""
+  in
     fun doc -> List.iter
       (function
          | Header (n,None,s) -> fprintf f "<h%d>%s</h%d>\n" n !s n
@@ -181,7 +186,7 @@ let print_doc ?snippet_template ~subst ~basedir f =
          | Image (title,url) ->
              fprintf f "<img alt=%S src=\"%s%s\" />" title basedir url
          | Antiquote aq -> fprintf f "%s" aq
-         | Snippet (Some title,body) ->
+         | Snippet (Some title,body, language) ->
              add_snippet title ;
              begin
                let script = open_out ("scripts/"^title) in
@@ -196,15 +201,25 @@ let print_doc ?snippet_template ~subst ~basedir f =
                      close_out script
                | None -> ()
              end ;
-             fprintf f "<pre>%s</pre>\n" !!body ;
+             let klass = 
+               match language with
+                 | None -> extract_suffix title
+                 | Some x -> x
+             in
+             fprintf f "<pre class=\"syntax %s\">%s</pre>\n" klass !!body;
              fprintf f "<div align=\"right\">\n\
                         <a href=\"scripts/%s\">\n\
                           <img class=\"grab\" src=\"%simages/grab.png\" \
                                alt=\"Grab the code!\">\n\
                         </a>\n\
                         </div></p>\n" title basedir
-         | Snippet (None, body) ->
-             fprintf f "<pre>%s</pre>\n" !!body)
+         | Snippet (None, body, language) ->
+             let klass =
+               match language with
+                 | None -> ""
+                 | Some x -> x
+             in
+             fprintf f "<pre class=\"syntax %s\">%s</pre>\n" klass !!body)
       doc ;
     regenerate_snippet_index ()
 
