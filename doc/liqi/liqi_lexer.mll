@@ -73,7 +73,7 @@ rule token = parse
     "." ' '* ([^'\n']+ as t) '\n'
                          { incrline lexbuf ; HEADER (int_of_string n,anchor,t) }
   | '\n'*
-  "%%" ('(' ([^')']+ as title) ')')?('@' ([^'\n'' ']+ as language))? '\n'
+  "%%" ('(' ([^')']+ as title) ')')?([^'\n'' ']+ as language)? '\n'
     (([^'%']|'%'[^'%'])* '\n' as body)
     "%%"                 { incrline lexbuf ;
                            SNIPPET (title, body, language) }
