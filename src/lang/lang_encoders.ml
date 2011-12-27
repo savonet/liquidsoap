@@ -120,7 +120,7 @@ let mp3_base f =
         in
         { f with Encoder.MP3.stereo_mode = mode }
     | ("internal_quality",({ term = Int q } as t)) ->
-        if q > 0 || q > 9 then
+        if q < 0 || q > 9 then
           raise (Error(t,"Internal quality must be a value between 0 and 9!"));
         { f with Encoder.MP3.internal_quality = q }
     | ("msg_interval",{ term = Float i }) ->
