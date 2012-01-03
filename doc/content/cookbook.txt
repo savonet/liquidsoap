@@ -234,6 +234,35 @@ end
 add_skip_command(s)
 %%
 
+h4. Dump a stream in segemented files
+
+It is sometimes useful (or even legally necessary) to keep a backup of an audio
+stream. Storing all the stream in one file can be very impractical. In order, to
+save a file per hour in wav format, the following script can be used:
+
+%%(rotated_dump.liq)
+# A source to dump
+# s = ...
+
+# Dump the stream
+output.file(
+    %wav(stereo=true),
+    "/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.wav",
+    on_close=fun(s)->system("qwavheaderdump -F #{s}"),
+    reopen_when={0m0s},
+    s
+)
+%%
+
+In order to use it, you must install first the @qwavheaderdump@ program which
+can be found in the "quelcom package":http://packages.ubuntu.com/quelcom in
+Ubuntu, which is necessary in order to fix the headers of the generated wav
+files once the data has been dumped.
+
+The script can easily be adapted to other formats, most of which (ogg, mp3, ...)
+don't need to have their headers fixed (i.e. no need for the @on_close@
+parameter).
+
 h4. Manually dump a stream
 
 You may want to dump the content of 
