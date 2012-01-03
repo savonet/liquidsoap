@@ -56,7 +56,9 @@ libraries:
 
 And also optional dependencies. For most of these, you also need
 the associated C/C++ library, which is usually provided by your distribution's
-packaging system.
+packaging system. You may as well need additional dependencies, such as @g++@, used
+for building bindings built on top of C++ libraries, as marked below and possibly
+also @libtool@.
 
 * ocaml-ogg for ogg audio and video formats
 * ocaml-vorbis for ogg/vorbis audio encoding and decoding
@@ -71,10 +73,10 @@ packaging system.
 * ocaml-schroedinger for ogg/dirac video encoding/decoding
 * ocaml-gavl for video conversion
 * ocaml-samplerate for audio samplerate conversion
-* ocaml-taglib for MP3 audio tag reading
+* ocaml-taglib for MP3 audio tag reading (needs @g++@)
 * ocaml-magic for file type detection. This library is very useful for reading mp3 files. If not enabled, liquidsoap may accept as mp3 files that do not contains mp3 data, such as jpeg pictures.
 * ocaml-xmlplaylist for XML-based playlist formats
-* ocaml-soundtouch for soundtouch audio effects
+* ocaml-soundtouch for soundtouch audio effects (need @g++@)
 * ocaml-lastfm and ocaml-xmllight for lastfm protocol support
 * "camomile":http://camomile.sourceforge.net/ for detecting metadata encoding and re-encoding them to utf8
 * ocaml-alsa for ALSA input/output
