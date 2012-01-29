@@ -727,3 +727,7 @@ def log_clocks(~delay=0.,~interval=1.,logfile)
     add_timeout(delay,{add_timeout(interval,report) (-1.)})
   end
 end
+
+def skip_blank(~id="",s)
+  on_blank({source.skip(s)},s)
+end
