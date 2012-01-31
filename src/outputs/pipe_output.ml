@@ -173,7 +173,7 @@ end
   * it. *)
 
 let chan_proto kind arg_doc =
-  ["flush", Lang.int_t, Some (Lang.bool false),
+  ["flush", Lang.bool_t, Some (Lang.bool false),
    Some "Perform a flush after each write."] @
   (pipe_proto kind arg_doc)
 
