@@ -47,11 +47,13 @@ object (self)
         | `Idle ->
             let duration =
               match AFrame.get_metadata ab p1 with
-                | None -> duration
-                | Some m ->
+                | Some m when not initial ->
+                   begin
                     match Utils.hashtbl_get m meta with
                       | Some d -> (try float_of_string d with _ -> duration)
                       | None -> duration
+                   end
+                | _ -> duration
             in
             let length = Frame.audio_of_seconds duration in
               fader length,
@@ -115,11 +117,13 @@ object (self)
               (* Set the length at the beginning of a track *)
               let duration =
                 match AFrame.get_metadata ab offset1 with
-                  | None -> duration
-                  | Some m ->
+                  | Some m when not final ->
+                     begin
                       match Utils.hashtbl_get m meta with
                         | None -> duration
                         | Some d -> (try float_of_string d with _ -> duration)
+                     end
+                  | _ -> duration
               in
               let l = Frame.audio_of_seconds duration in
               let f = fader l in
