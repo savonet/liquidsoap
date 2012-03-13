@@ -1045,13 +1045,10 @@ let () =
        let l = Lang.assoc "" 2 p in
        let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
-       let rec remove a l l' =
-         match l with
-           | x :: l'' when x = a -> l' @ l''
-           | x :: l'' -> remove a l'' (l' @ [x])
-           | [] -> l'
+       let l = List.fold_left (fun l' x ->
+         if compare_value x a = 0 then l' else x::l') [] l
        in
-         Lang.list ~t (remove a l []))
+         Lang.list ~t l)
 
 let () =
   add_builtin "list.rev" ~cat:List
