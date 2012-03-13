@@ -30,6 +30,21 @@ let mime_types =
     "Mime-types used for decoding metadata using TAGLIB"
     ~d:["audio/mpeg"]
 
+let conf_taglib =
+  Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "taglib")
+    "Taglib settings"
+
+let conf_force_mp3 =
+  Dtools.Conf.bool ~p:(conf_taglib#plug "force_mp3") ~d:false
+    "Taglib mp3 files autodetection may fail if using files whose \
+     reported mime type is not \"audio/mpeg\". If you set this configuration \
+     key to true, then all files decoded by taglib will be considered as mp3. \
+     In this case, taglib configuration keys for file extension \
+     (\"decoder.file_extensions.taglib\") and mime types (\"decoder.mime_types.taglib\") \
+     are not used and mp3 configuration keys for file extension \
+     (\"decoder.file_extensions.mp3\") and mime types (\"decoder.mime_types.mp3\") \
+     are used instead."
+
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "taglib")
     "File extensions used for decoding metadata using TAGLIB"
@@ -39,12 +54,18 @@ let file_extensions =
   * now that we check extensions, taglib's
   * automatic format detection should work. *)
 let get_tags fname =
+  let mime_types, file_extensions, ftype =
+    if conf_force_mp3#get then
+      Mp3.mime_types, Mp3.file_extensions, `Mpeg
+    else
+      mime_types, file_extensions, `Autodetect
+  in
   if not (Decoder.test_file ~mimes:mime_types#get 
                             ~extensions:file_extensions#get 
                             ~log fname) then
     raise Not_found ;
   try
-    let f = File.open_file `Autodetect fname in
+    let f = File.open_file ftype fname in
     Tutils.finalize ~k:(fun () -> File.close_file f)
     (fun () -> 
       let gt l (n, t) =
