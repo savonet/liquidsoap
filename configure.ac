@@ -126,6 +126,7 @@ if test -z `which pkg-config 2>/dev/null` ; then
 fi
 
 # Check for FD_CLOEXEC and related functions vailability
+AC_CHECK_FUNCS([sysconf])
 AC_CHECK_HEADERS([sys/ndir.h sys/dir.h ndir.h])
 AC_CHECK_DECL([FD_CLOEXEC],
   AC_DEFINE([HAVE_FCNTL_CLOEXEC], [1], [Use FD_CLOEXEC fcntl]),

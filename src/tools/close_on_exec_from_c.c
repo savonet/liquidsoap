@@ -9,10 +9,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <unistd.h>
 # ifdef HAVE_SYS_NDIR_H
 #  include <sys/ndir.h>
