@@ -35,7 +35,7 @@ let buf_size = 1024
   * the available output. *)
 let external_input process input =
   (** Open the external process, get its stdin/stdout *)
-  let pull,push = Unix.open_process process in
+  let pull,push = Utils.open_process process in
   (** We operate on the Unix descriptors of 
     * the processe's stdio. *)
   let push_e = Unix.descr_of_out_channel push in
@@ -138,7 +138,7 @@ let external_input process input =
       ignore(Unix.close_process (pull,push)))
 
 let duration process = 
-  let pull = Unix.open_process_in process in
+  let pull = Utils.open_process_in process in
   let w = Wav.in_chan_read_header pull in
   let ret = Wav.duration w in
   ignore(Unix.close_process_in pull) ;
@@ -208,7 +208,7 @@ let log = Dtools.Log.make ["decoder";"external";"oblivious"]
 let external_input_oblivious process filename prebuf = 
   let process = process filename in
   let process_done = ref false in
-  let pull = Unix.open_process_in process in
+  let pull = Utils.open_process_in process in
   let pull_e = Unix.descr_of_in_channel pull in
   let close () =
     if not !process_done then

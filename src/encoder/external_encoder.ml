@@ -118,7 +118,7 @@ let encoder id ext =
     let process = h.params.process in 
     (* output_start must be called with encode = None. *)
     assert(h.encoder = None);
-    let (in_e,out_e as enc) = Unix.open_process process in
+    let (in_e,out_e as enc) = Utils.open_process process in
     h.encoder <- Some enc;
     if h.params.header then
       begin

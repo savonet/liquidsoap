@@ -1268,7 +1268,7 @@ let () =
     [ "",Lang.string_t,None,None] Lang.string_t
     (fun p ->
        let chan =
-         Unix.open_process_in (Lang.to_string (List.assoc "" p))
+         Utils.open_process_in (Lang.to_string (List.assoc "" p))
        in
        let rec aux s =
          let more = String.make 128 '?' in
@@ -1285,7 +1285,7 @@ let () =
     ~descr:"Perform a shell call and return the list of its output lines."
     [ "",Lang.string_t,None,None] (Lang.list_t Lang.string_t)
     (fun p ->
-       let chan = Unix.open_process_in (Lang.to_string (List.assoc "" p)) in
+       let chan = Utils.open_process_in (Lang.to_string (List.assoc "" p)) in
        let rec aux () =
          match
            try Some (input_line chan) with End_of_file -> None

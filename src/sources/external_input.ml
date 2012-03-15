@@ -55,7 +55,7 @@ object (self)
     log_ref := self#log#f 3 "%s" ;
     self#log#f 2 "Starting process.";
     let create () =
-      let in_e = Unix.open_process_in command in
+      let in_e = Utils.open_process_in command in
       in_e,Unix.descr_of_in_channel in_e
     in
     let (in_e,in_d) as x = create () in

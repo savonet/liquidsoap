@@ -37,6 +37,7 @@ conditional_compilation = \
 
 liquidsoap_c_files = \
 	tools/locale_c.c \
+	tools/close_on_exec_from_c.c \
 	$(if $(NEED_TCP_NODELAY),tools/socket_stubs.c)
 
 # Add conditional files..

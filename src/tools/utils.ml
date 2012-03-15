@@ -25,6 +25,18 @@ let get_some = function Some x -> x | None -> assert false
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale"
 
+(* Closefrom emulation *)
+external close_on_exec_from : int -> unit = "liquidsoap_close_on_exec_from"
+
+(* Wrap open_process to make sure all fd > 3 are closed-on-exec *)
+let wrap_open_process fn = fun (process) -> 
+  close_on_exec_from 3;
+  fn process
+
+let open_process     = wrap_open_process Unix.open_process
+let open_process_in  = wrap_open_process Unix.open_process_in
+let open_process_out = wrap_open_process Unix.open_process_out
+
 let () = 
   force_locale ()
 

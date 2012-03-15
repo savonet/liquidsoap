@@ -301,7 +301,7 @@ object (self)
 
   method open_chan =
     let process = self#interpolate process in
-    Unix.open_process_out process
+    Utils.open_process_out process
 
   method close_chan chan =
     ignore(Unix.close_process_out chan)
