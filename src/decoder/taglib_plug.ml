@@ -56,7 +56,7 @@ let file_extensions =
 let get_tags fname =
   let mime_types, file_extensions, ftype =
     if conf_force_mp3#get then
-      Mp3.mime_types, Mp3.file_extensions, `Mpeg
+      Mad_decoder.mime_types, Mad_decoder.file_extensions, `Mpeg
     else
       mime_types, file_extensions, `Autodetect
   in

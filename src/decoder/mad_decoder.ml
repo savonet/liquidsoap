@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
-(** Decode mp3 files. *)
+(** Decode mpeg audio files using libmad. *)
 
 open Dtools
 
-let log = Log.make ["decoder";"mp3"]
+let log = Log.make ["decoder";"mad"]
 
 let init input =
   let index = Hashtbl.create 10 in
@@ -134,22 +134,35 @@ module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
 module D = Make(G)
 
-(** Configuration keys for mp3. *)
+(** Configuration keys for mad. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mp3")
-    "Mime-types used for guessing MP3 format"
-    ~d:["audio/mpeg"]
+  Conf.list ~p:(Decoder.conf_mime_types#plug "mad")
+    "Mime-types used for guessing mpeg audio format"
+    ~d:["audio/mpeg"; "audio/MPA"]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp3")
-    "File extensions used for guessing MP3 format"
-    ~d:["mp3"]
+  Conf.list ~p:(Decoder.conf_file_extensions#plug "mad")
+    "File extensions used for guessing mpeg audio format"
+    ~d:["mp3"; "mp2"; "mp1"]
+
+(* Backward-compatibility keys.. *)
+let () = 
+  ignore( 
+    mime_types#alias
+      ~descr:"Mime-types used for guessing MP3 format \
+              (DEPRECATED, use *.mad configuration keys!)"
+      (Decoder.conf_mime_types#plug "mp3"));
+  ignore(
+    file_extensions#alias
+      ~descr:"File extensions used for guessing MP3 format \
+              (DEPRECATED, use *.mad configuration keys!)"
+      (Decoder.conf_file_extensions#plug "mp3"))
 
 let create_file_decoder filename kind =
   let generator = G.create `Audio in
     Buffered.file_decoder filename kind D.create_decoder generator
 
-(* Get the number of channels of audio in an MP3 file.
+(* Get the number of channels of audio in a mpeg audio file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
 let get_type filename =
@@ -165,7 +178,7 @@ let get_type filename =
                | Mad.Layer_III -> "III"
            in
            log#f 4
-             "Libmad recognizes %S as MP3 \
+             "Libmad recognizes %S as mpeg audio \
               (layer %s, %ikbps, %dHz, %d channels)."
              filename
              layer (f.Mad.bitrate/1000) f.Mad.samplerate f.Mad.channels ;
@@ -176,13 +189,14 @@ let get_type filename =
 
 let () =
   Decoder.file_decoders#register
-  "MP3"
+  "MAD"
+  ~plugin_aliases:["MP3"; "MP2"; "MP1"]
   ~sdoc:"Use libmad to decode any file \
          if its MIME type or file extension is appropriate."
   (fun ~metadata filename kind ->
      (* Before doing anything, check that we are allowed to produce
       * audio, and don't have to produce midi or video. Only then
-      * check that the file seems relevant for MP3 decoding. *)
+      * check that the file seems relevant for decoding. *)
      if kind.Frame.audio = Frame.Zero ||
         not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
              Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
@@ -211,7 +225,8 @@ module D_stream = Make(Generator.From_audio_video_plus)
 
 let () =
   Decoder.stream_decoders#register
-    "MP3"
+    "MAD"
+    ~plugin_aliases:["MP3"; "MP2"; "MP1"]
     ~sdoc:"Use libmad to decode any stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
@@ -223,7 +238,7 @@ let () =
              kind.Frame.audio <> Frame.Zero
           then
             (* In fact we can't be sure that we'll satisfy the content
-             * kind, because the MP3 stream might be mono or stereo.
+             * kind, because the stream might be mono or stereo.
              * For now, we let this problem result in an error at
              * decoding-time. Failing early would only be an advantage
              * if there was possibly another plugin for decoding
@@ -245,4 +260,4 @@ let duration file =
     | _ -> ans
 
 let () =
-  Request.dresolvers#register "MP3" duration
+  Request.dresolvers#register "MAD" duration

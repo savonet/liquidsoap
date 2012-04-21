@@ -92,7 +92,7 @@ decoders = \
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_FAAD),decoder/aac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_OGG),decoder/ogg_decoder.ml)
-$(call conditional_compilation,decoders,$(W_MAD),decoder/mp3.ml)
+$(call conditional_compilation,decoders,$(W_MAD),decoder/mad_decoder.ml)
 $(call conditional_compilation,decoders,$(W_VORBIS),decoder/vorbisduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flacduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC_OGG),decoder/ogg_flac_duration.ml)
