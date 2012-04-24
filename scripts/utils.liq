@@ -21,10 +21,14 @@ end
 # @param a Key to look for
 # @param l List of pairs (key,value)
 def list.mem_assoc(a,l)
-  v = list.assoc(a,l)
-  # We check for existence, since "" may indicate
-  # either a binding (a,"") or no binding..
-  list.mem((a,v),l)
+  def f(cur, el) =
+    if not cur then
+      fst(el) == a
+    else
+      cur
+    end
+  end
+  list.fold(f, false, l)
 end
 
 # Remove a pair from an associative list
