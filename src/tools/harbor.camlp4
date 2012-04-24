@@ -113,6 +113,10 @@ type request_type =
   | Xaudiocast
   | Get
   | Post
+  | Put
+  | Delete
+  | Head
+  | Options
   | Shout
 
 type protocol =
@@ -161,9 +165,13 @@ let parse_http_request_line r =
    let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") r in
    let protocol =
      match (String.uppercase (List.nth data 0)) with
-       | "SOURCE" -> Source
-       | "GET" -> Get
-       | "POST" -> Post
+       | "SOURCE"  -> Source
+       | "GET"     -> Get
+       | "POST"    -> Post
+       | "PUT"     -> Put
+       | "DELETE"  -> Delete
+       | "HEAD"    -> Head
+       | "OPTIONS" -> Options
        | _ -> raise Not_found
    in
    duppy_return
@@ -448,10 +456,19 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
   with
     | Not_found -> uri,""
   in
-  let smethod,data =
+  let data = 
+    match data with
+      | None      -> ""
+      | Some data -> data
+  in
+  let smethod =
     match hmethod with
-      | Get -> "GET",""
-      | Post -> "POST",Utils.get_some data
+      | Get     -> "GET"
+      | Delete  -> "DELETE"
+      | Post    -> "POST"
+      | Put     -> "PUT"
+      | Head    -> "HEAD"
+      | Options -> "OPTIONS"
       | _ -> assert false
   in
   let protocol =

@@ -4,8 +4,7 @@ h3. Harbor as HTTP server
 
 The harbor server can be used as a HTTP server. You 
 can use the function @harbor.http.register@ to register
-HTTP handlers for GET and POST requests. Its parameters
-are are follow:
+HTTP handlers. Its parameters are are follow:
 
 @harbor.http.register(port=8080,uri,handler)@ where:
 * @port@ is the port where to receive incoming connections
@@ -18,7 +17,7 @@ are are follow:
  ~headers:[(string*string)], string)->string))->unit
 %%
 where:
-* @method@ is the HTTP method used by the client. Currently, one of @"POST"@ or @"GET"@
+* @method@ is the HTTP method used by the client. Currently, one of @"POST"@, @"GET"@, @"PUT"@, @"DELETE"@, @"OPTIONS"@ and @"HEAD"@
 * @protocol@ is the HTTP protocol used by the client. Currently, one of @"HTTP/1.0"@ or @"HTTP/1.1"@
 * @data@ is the data passed during a POST request
 * @headers@ is the list of HTTP headers sent by the client

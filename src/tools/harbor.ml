@@ -64,20 +64,13 @@ let log = Log.make [ "harbor" ]
 class virtual source ~kind =
   object (self)
     inherit Source.source kind
-      
     method virtual relay :
       string -> (string * string) list -> Unix.file_descr -> unit
-      
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
-      
     method virtual login : (string * (string -> string -> bool))
-      
     method virtual icy_charset : string option
-      
     method virtual meta_charset : string option
-      
     method virtual get_mime_type : string option
-      
   end
   
 type sources = (string, source) Hashtbl.t
@@ -125,7 +118,8 @@ exception Mount_taken
   
 exception Registered
   
-type request_type = | Source | Xaudiocast | Get | Post | Shout
+type request_type =
+  | Source | Xaudiocast | Get | Post | Put | Delete | Head | Options | Shout
 
 type protocol = | Http_10 | Http_11 | Ice_10 | Icy | Xaudiocast_uri of string
 
@@ -171,6 +165,10 @@ let parse_http_request_line r =
       | "SOURCE" -> Source
       | "GET" -> Get
       | "POST" -> Post
+      | "PUT" -> Put
+      | "DELETE" -> Delete
+      | "HEAD" -> Head
+      | "OPTIONS" -> Options
       | _ -> raise Not_found
     in
       Duppy.Monad.return
@@ -434,10 +432,15 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
       let sub = Pcre.exec ~rex: rex uri
       in ((Pcre.get_substring sub 1), (Pcre.get_substring sub 2))
     with | Not_found -> (uri, "") in
-  let (smethod, data) =
+  let data = match data with | None -> "" | Some data -> data in
+  let smethod =
     match hmethod with
-    | Get -> ("GET", "")
-    | Post -> ("POST", (Utils.get_some data))
+    | Get -> "GET"
+    | Delete -> "DELETE"
+    | Post -> "POST"
+    | Put -> "PUT"
+    | Head -> "HEAD"
+    | Options -> "OPTIONS"
     | _ -> assert false in
   let protocol =
     match hprotocol with
