@@ -46,6 +46,7 @@ module Meta :
     val export_metadata : Frame.metadata -> export_metadata
     val to_metadata : export_metadata -> Frame.metadata
     val empty_metadata : export_metadata
+    val is_empty : export_metadata -> bool
   end = 
   struct
     type export_metadata = Frame.metadata
@@ -57,6 +58,7 @@ module Meta :
     ret
     let to_metadata m = m
     let empty_metadata = Hashtbl.create 0
+    let is_empty m = Hashtbl.length m == 0
   end
 
 let string_of_stereo s =

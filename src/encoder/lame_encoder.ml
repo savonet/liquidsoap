@@ -159,7 +159,7 @@ struct
       Lame.init_params enc;
       enc
     in
-    let mp3_encoder mp3 = 
+    let mp3_encoder mp3 metadata = 
       let enc = create_encoder mp3 in 
       let id3v2 = ref Waiting in
       let has_started = ref false in
@@ -208,10 +208,14 @@ struct
              (* Only insert metadata at the beginning.. *)
              (fun m ->
                match !id3v2 with
-                 | Waiting -> id3v2 := Rendered (f m)
+                 | Waiting ->
+                     if not (Encoder.Meta.is_empty m) then 
+                       id3v2 := Rendered (f m)
                  | _ -> ())
           | None -> (fun _ -> ())
       in
+      (* Try to insert initial metadata now.. *)
+      insert_metadata metadata;
         {
           insert_metadata = insert_metadata ;
           encode = encode ;
@@ -221,6 +225,6 @@ struct
     in
     Encoder.plug#register name
       (function
-         | Encoder.MP3 m -> Some (fun _ _ -> mp3_encoder m)
+         | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
          | _ -> None)
 end
