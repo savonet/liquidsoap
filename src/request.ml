@@ -280,6 +280,11 @@ let mresolvers =
     ~register_hook:(fun (name,_) -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
+let conf_override_metadata =
+  Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
+      "Allow metadata resolvers to override metadata already \
+       set through annotate: or playlist resolution for instance."
+
 let local_check t =
   let check_decodable kind = try
     while t.decoder = None && Sys.file_exists (peek_indicator t).string do
@@ -296,9 +301,10 @@ let local_check t =
                      let ans = resolver name in
                        List.iter
                          (fun (k,v) ->
-                            (* XXX Policy ? Never/always overwrite ? *)
-                            Hashtbl.replace indicator.metadata
-                              (String.lowercase k) (cleanup v))
+                           let k = String.lowercase k in
+                           if conf_override_metadata#get || not (Hashtbl.mem indicator.metadata k) then
+                             Hashtbl.replace indicator.metadata
+                              k (cleanup v))
                          ans;
                    with
                      | _ -> ()) (get_decoders conf_metadata_decoders
