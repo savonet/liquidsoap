@@ -1720,6 +1720,13 @@ let () =
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
 
 let () =
+  add_builtin "source.fallible" ~cat:Liq 
+    ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
+    [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.bool_t
+    (fun p -> 
+      Lang.bool ((Lang.to_source (List.assoc "" p))#stype == Source.Fallible))
+
+let () =
   add_builtin "source.is_ready" ~cat:Liq
     ~descr:"Indicate if a source is ready to stream, or currently streaming."
     [ "", Lang.source_t (Lang.univ_t 1), None, None ] Lang.bool_t
