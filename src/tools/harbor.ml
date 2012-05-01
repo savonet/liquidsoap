@@ -551,27 +551,24 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                         (fun (auth, huri, protocol) ->
                            handle_source_request ~port ~auth ~protocol
                              hprotocol h huri headers)
-                | Get when not icy ->
-                    handle_http_request ~hmethod ~hprotocol ~data: None ~port
-                      h huri headers
-                | Post when not icy ->
+                | Get | Post | Put | Delete | Options | Head when not icy ->
                     let __pa_duppy_0 =
                       (try
                          let length =
                            assoc_uppercase "CONTENT-LENGTH" headers
                          in Duppy.Monad.return (int_of_string length)
-                       with
-                       | e ->
-                           (log#f 4 "Failed: %s" (Utils.error_message e);
-                            reply "Wrong data!"))
+                       with | e -> Duppy.Monad.return 0)
                     in
                       Duppy.Monad.bind __pa_duppy_0
                         (fun len ->
                            let __pa_duppy_0 =
-                             Duppy.Monad.Io.read
-                               ?timeout: (Some conf_timeout#get)
-                               ~priority: Tutils.Non_blocking
-                               ~marker: (Duppy.Io.Length len) h
+                             if len > 0
+                             then
+                               Duppy.Monad.Io.read
+                                 ?timeout: (Some conf_timeout#get)
+                                 ~priority: Tutils.Non_blocking
+                                 ~marker: (Duppy.Io.Length len) h
+                             else Duppy.Monad.return ""
                            in
                              Duppy.Monad.bind __pa_duppy_0
                                (fun data ->

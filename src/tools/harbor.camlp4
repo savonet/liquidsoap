@@ -576,26 +576,29 @@ let handle_client ~port ~icy h =
             | _ -> duppy_return (false,huri,Source)
         in
         handle_source_request ~port ~auth ~protocol hprotocol h huri headers
-    | Get when not icy ->
-        handle_http_request ~hmethod ~hprotocol ~data:None
-                             ~port h huri headers
-    | Post when not icy ->
+    | Get     
+    | Post   
+    | Put     
+    | Delete  
+    | Options 
+    | Head    when not icy -> 
         duppy len =
           try
            let length = assoc_uppercase "CONTENT-LENGTH" headers in
              duppy_return (int_of_string length)
            with
-             | e ->
-                log#f 4 "Failed: %s" (Utils.error_message e) ;
-                reply "Wrong data!"
+             | e -> duppy_return 0
         in
         duppy data =
-          duppy_read
-            Duppy.Io.Length len
-          with
-            { priority = Tutils.Non_blocking ;
-              handler  = h ;
-              timeout  = conf_timeout#get }
+          if len > 0 then
+            duppy_read
+              Duppy.Io.Length len
+            with
+              { priority = Tutils.Non_blocking ;
+                handler  = h ;
+                timeout  = conf_timeout#get }
+          else
+            duppy_return ""
         in
         let data = Some data in
         handle_http_request ~hmethod ~hprotocol
