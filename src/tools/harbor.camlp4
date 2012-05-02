@@ -456,11 +456,6 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
   with
     | Not_found -> uri,""
   in
-  let data = 
-    match data with
-      | None      -> ""
-      | Some data -> data
-  in
   let smethod =
     match hmethod with
       | Get     -> "GET"
@@ -582,12 +577,11 @@ let handle_client ~port ~icy h =
     | Delete  
     | Options 
     | Head    when not icy -> 
-        duppy len =
+        let len =
           try
-           let length = assoc_uppercase "CONTENT-LENGTH" headers in
-             duppy_return (int_of_string length)
-           with
-             | e -> duppy_return 0
+           int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
+         with
+           | e -> 0
         in
         duppy data =
           if len > 0 then
@@ -600,7 +594,6 @@ let handle_client ~port ~icy h =
           else
             duppy_return ""
         in
-        let data = Some data in
         handle_http_request ~hmethod ~hprotocol
                                      ~data ~port
                                      h huri headers

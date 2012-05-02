@@ -432,7 +432,6 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
       let sub = Pcre.exec ~rex: rex uri
       in ((Pcre.get_substring sub 1), (Pcre.get_substring sub 2))
     with | Not_found -> (uri, "") in
-  let data = match data with | None -> "" | Some data -> data in
   let smethod =
     match hmethod with
     | Get -> "GET"
@@ -552,30 +551,23 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                            handle_source_request ~port ~auth ~protocol
                              hprotocol h huri headers)
                 | Get | Post | Put | Delete | Options | Head when not icy ->
-                    let __pa_duppy_0 =
+                    let len =
                       (try
-                         let length =
-                           assoc_uppercase "CONTENT-LENGTH" headers
-                         in Duppy.Monad.return (int_of_string length)
-                       with | e -> Duppy.Monad.return 0)
+                         int_of_string
+                           (assoc_uppercase "CONTENT-LENGTH" headers)
+                       with | e -> 0) in
+                    let __pa_duppy_0 =
+                      if len > 0
+                      then
+                        Duppy.Monad.Io.read ?timeout: (Some conf_timeout#get)
+                          ~priority: Tutils.Non_blocking
+                          ~marker: (Duppy.Io.Length len) h
+                      else Duppy.Monad.return ""
                     in
                       Duppy.Monad.bind __pa_duppy_0
-                        (fun len ->
-                           let __pa_duppy_0 =
-                             if len > 0
-                             then
-                               Duppy.Monad.Io.read
-                                 ?timeout: (Some conf_timeout#get)
-                                 ~priority: Tutils.Non_blocking
-                                 ~marker: (Duppy.Io.Length len) h
-                             else Duppy.Monad.return ""
-                           in
-                             Duppy.Monad.bind __pa_duppy_0
-                               (fun data ->
-                                  let data = Some data
-                                  in
-                                    handle_http_request ~hmethod ~hprotocol
-                                      ~data ~port h huri headers))
+                        (fun data ->
+                           handle_http_request ~hmethod ~hprotocol ~data
+                             ~port h huri headers)
                 | Shout when icy ->
                     Duppy.Monad.bind
                       (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
