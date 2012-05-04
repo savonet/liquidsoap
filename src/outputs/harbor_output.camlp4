@@ -648,27 +648,21 @@ object (self)
     let enc = encoder_factory self#id in
     encoder <- 
        Some (enc (Encoder.Meta.empty_metadata)) ;
-    let handler ~http_method ~protocol
-                ~data        ~headers
-                ~socket      uri =
-      if http_method <> "GET" then
-       Harbor.reply (Harbor.http_error_page 405 "Method Not Allowed" "Method not allowed!")
-      else
-       begin
-        let rex = Pcre.regexp "^(.+)\\?(.+)$" in
-        let base_uri,args =
-        try
-          let sub = Pcre.exec ~rex:rex uri in
-          Pcre.get_substring sub 1,
-          Pcre.get_substring sub 2
-        with
-          | Not_found -> uri,""
-        in
-        let args = Http.args_split args in
-        self#add_client ~protocol ~headers ~uri ~args socket
-       end
+    let handler ~protocol ~data ~headers ~socket
+                uri =
+      let rex = Pcre.regexp "^(.+)\\?(.+)$" in
+      let base_uri,args =
+      try
+        let sub = Pcre.exec ~rex:rex uri in
+        Pcre.get_substring sub 1,
+        Pcre.get_substring sub 2
+      with
+        | Not_found -> uri,""
+      in
+      let args = Http.args_split args in
+      self#add_client ~protocol ~headers ~uri ~args socket
     in 
-    Harbor.add_http_handler ~port ~uri handler ;
+    Harbor.add_http_handler ~port ~verb:`Get ~uri handler ;
     match dumpfile with
       | Some f -> dump <- Some (open_out_bin f)
       | None -> ()
@@ -676,7 +670,7 @@ object (self)
   method output_stop =
     ignore ((Utils.get_some encoder).Encoder.stop ()) ;
     encoder <- None ;
-    Harbor.remove_http_handler ~port ~uri () ;
+    Harbor.remove_http_handler ~port ~verb:`Get ~uri () ;
     let new_clients = Queue.create () in
     Tutils.mutexify clients_m 
       (fun () ->

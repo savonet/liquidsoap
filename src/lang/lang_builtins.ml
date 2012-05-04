@@ -1448,16 +1448,16 @@ let () =
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
            the full requested uri (e.g. \"foo?var=bar\"), \
-           method type, http protocol version, possible input data \
+           http protocol version, possible input data \
            and the list of HTTP headers \
            and returns the answer sent to the client, including HTTP headers. \
            Registered uri can be regular expressions \
            (e.g. \".+\\.php\") and can override default \
            metadata handlers."
     [ "port",Lang.int_t,None,Some "Port to server.";
+      "method", Lang.string_t, None, Some "Accepted method";
       "",Lang.string_t,None,Some "URI to serve." ;
-      "",Lang.fun_t [(false,"method",Lang.string_t);
-                     (false,"protocol",Lang.string_t);
+      "",Lang.fun_t [(false,"protocol",Lang.string_t);
                      (false,"data",Lang.string_t);
                      (false,"headers",Lang.list_t
                                  (Lang.product_t Lang.string_t
@@ -1474,9 +1474,12 @@ let () =
     Lang.unit_t
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
+       let verb = 
+         Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) 
+       in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f ~http_method ~protocol ~data ~headers ~socket uri =
+       let f ~protocol ~data ~headers ~socket uri =
          let l =
             List.map 
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
@@ -1490,22 +1493,25 @@ let () =
              (Lang.apply ~t:Lang.string_t 
                          f [("",Lang.string uri);("headers",l);
                             ("data",Lang.string data);
-                            ("protocol",Lang.string protocol);
-                            ("method",Lang.string http_method)]))
+                            ("protocol",Lang.string protocol)]))
        in
-       Harbor.add_http_handler ~port ~uri f;
+       Harbor.add_http_handler ~port ~verb ~uri f;
        Lang.unit)
 
 let () =
   add_builtin "harbor.http.remove" ~cat:Liq
     ~descr:"Remove a registered HTTP handler on the harbor."
-    [ "port",Lang.int_t,None,Some "Port to server.";
-      "",Lang.string_t,None,Some "URI to serve." ]
+    ["method",Lang.string_t,None,Some "Method served.";
+     "port",Lang.int_t,None,Some "Port to server.";
+      "",Lang.string_t,None,Some "URI served." ]
     Lang.unit_t
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
-       Harbor.remove_http_handler ~port ~uri () ;
+       let verb = 
+         Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
+       in
+       Harbor.remove_http_handler ~port ~verb ~uri () ;
        Lang.unit)
 
 (** Data conversions. *)

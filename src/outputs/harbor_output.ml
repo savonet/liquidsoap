@@ -1064,25 +1064,12 @@ class output ~kind p =
                                                                     Meta.
                                                                     empty_metadata);
                                                                     let handler 
-                                                                    ~http_method
                                                                     ~protocol
                                                                     ~data
                                                                     ~headers
                                                                     ~socket
                                                                     uri =
-                                                                    if
-                                                                    http_method
-                                                                    <> "GET"
-                                                                    then
-                                                                    Harbor.
-                                                                    reply
-                                                                    (Harbor.
-                                                                    http_error_page
-                                                                    405
-                                                                    "Method Not Allowed"
-                                                                    "Method not allowed!")
-                                                                    else
-                                                                    (let rex 
+                                                                    let rex 
                                                                     =
                                                                     Pcre.
                                                                     regexp
@@ -1122,12 +1109,13 @@ class output ~kind p =
                                                                     ~headers
                                                                     ~uri
                                                                     ~args
-                                                                    socket)
+                                                                    socket
                                                                     in
                                                                     (Harbor.
                                                                     add_http_handler
                                                                     ~port
-                                                                    ~uri
+                                                                    ~verb:
+                                                                    `Get ~uri
                                                                     handler;
                                                                     match dumpfile
                                                                     with
@@ -1152,7 +1140,9 @@ class output ~kind p =
                                                                    Harbor.
                                                                     remove_http_handler
                                                                     ~port
-                                                                    ~uri ();
+                                                                    ~verb:
+                                                                    `Get ~uri
+                                                                    ();
                                                                    let new_clients 
                                                                     =
                                                                     Queue.

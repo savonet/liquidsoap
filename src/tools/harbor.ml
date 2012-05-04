@@ -75,6 +75,38 @@ class virtual source ~kind =
   
 type sources = (string, source) Hashtbl.t
 
+type http_verb = [ | `Get | `Post | `Put | `Delete | `Head | `Options ]
+
+type source_type = [ | `Source | `Xaudiocast | `Shout ]
+
+type verb =
+  [ | `Get | `Post | `Put | `Delete | `Head | `Options | `Source | `Shout
+  ]
+
+let verb_of_string s =
+  match String.uppercase s with
+  | "GET" -> `Get
+  | "POST" -> `Post
+  | "PUT" -> `Put
+  | "DELETE" -> `Delete
+  | "HEAD" -> `Head
+  | "OPTIONS" -> `Options
+  | _ -> raise Not_found
+  
+let string_of_verb =
+  function
+  | `Get -> "GET"
+  | `Post -> "POST"
+  | `Put -> "PUT"
+  | `Delete -> "DELETE"
+  | `Head -> "HEAD"
+  | `Options -> "OPTIONS"
+  | _ -> assert false
+  
+type protocol =
+  [ | `Http_10 | `Http_11 | `Ice_10 | `Icy | `Xaudiocast_uri of string
+  ]
+
 type reply = | Close of string | Reply of string
 
 let reply s = Duppy.Monad.raise (Close s)
@@ -82,22 +114,23 @@ let reply s = Duppy.Monad.raise (Close s)
 let relayed s = Duppy.Monad.raise (Reply s)
   
 type http_handler =
-  http_method: string ->
-    protocol: string ->
-      data: string ->
-        headers: ((string * string) list) ->
-          socket: Unix.file_descr -> string -> (reply, reply) Duppy.Monad.t
+  protocol: string ->
+    data: string ->
+      headers: ((string * string) list) ->
+        socket: Unix.file_descr -> string -> (reply, reply) Duppy.Monad.t
 
-type http_handlers = (string, http_handler) Hashtbl.t
+type http_handlers = ((http_verb * string), http_handler) Hashtbl.t
 
-type open_port = (sources * http_handlers * (Unix.file_descr list))
+type handler = { sources : sources; http : http_handlers }
+
+type open_port = (handler * (Unix.file_descr list))
 
 let opened_ports : (int, open_port) Hashtbl.t = Hashtbl.create 1
   
-let find_handlers port =
-  let (s, h, _) = Hashtbl.find opened_ports port in (s, h)
+let find_handler = Hashtbl.find opened_ports
   
-let find_source mount port = Hashtbl.find (fst (find_handlers port)) mount
+let find_source mount port =
+  Hashtbl.find (fst (find_handler port)).sources mount
   
 exception Assoc of string
   
@@ -118,11 +151,6 @@ exception Mount_taken
   
 exception Registered
   
-type request_type =
-  | Source | Xaudiocast | Get | Post | Put | Delete | Head | Options | Shout
-
-type protocol = | Http_10 | Http_11 | Ice_10 | Icy | Xaudiocast_uri of string
-
 let http_error_page code status msg =
   "HTTP/1.0 " ^
     ((string_of_int code) ^
@@ -152,7 +180,7 @@ let parse_icy_request_line ~port h r =
            (let (user, auth_f) = s#login
             in
               if auth_f user r
-              then Duppy.Monad.return (Shout, "/", Icy)
+              then Duppy.Monad.return (`Shout, "/", `Icy)
               else
                 (log#f 4 "ICY error: invalid password";
                  reply "Invalid password\r\n\r\n")))
@@ -160,24 +188,15 @@ let parse_icy_request_line ~port h r =
 let parse_http_request_line r =
   try
     let data = Pcre.split ~rex: (Pcre.regexp "[ \t]+") r in
-    let protocol =
-      match String.uppercase (List.nth data 0) with
-      | "SOURCE" -> Source
-      | "GET" -> Get
-      | "POST" -> Post
-      | "PUT" -> Put
-      | "DELETE" -> Delete
-      | "HEAD" -> Head
-      | "OPTIONS" -> Options
-      | _ -> raise Not_found
+    let protocol = verb_of_string (List.nth data 0)
     in
       Duppy.Monad.return
         (protocol, (List.nth data 1),
          (match String.uppercase (List.nth data 2) with
-          | "HTTP/1.0" -> Http_10
-          | "HTTP/1.1" -> Http_11
-          | "ICE/1.0" -> Ice_10
-          | s when protocol = Source -> Xaudiocast_uri s
+          | "HTTP/1.0" -> `Http_10
+          | "HTTP/1.1" -> `Http_11
+          | "ICE/1.0" -> `Ice_10
+          | s when protocol = `Source -> `Xaudiocast_uri s
           | _ -> raise Not_found))
   with
   | e ->
@@ -261,7 +280,7 @@ let auth_check ?args ~login h uri headers =
   
 let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
   (* ICY request are on port+1 *)
-  let source_port = if protocol = Shout then port - 1 else port in
+  let source_port = if protocol = `Shout then port - 1 else port in
   let __pa_duppy_0 =
     try Duppy.Monad.return (find_source uri source_port)
     with
@@ -282,9 +301,9 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
               try
                 let sproto =
                   match protocol with
-                  | Shout -> "ICY"
-                  | Source -> "SOURCE"
-                  | Xaudiocast -> "X-AUDIOCAST"
+                  | `Shout -> "ICY"
+                  | `Source -> "SOURCE"
+                  | `Xaudiocast -> "X-AUDIOCAST"
                   | _ -> assert false
                 in
                   (log#f 4 "%s request on %s." sproto uri;
@@ -292,7 +311,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      try assoc_uppercase "CONTENT-TYPE" headers
                      with
                      | Not_found when
-                         (protocol = Shout) || (protocol = Xaudiocast) ->
+                         (protocol = `Shout) || (protocol = `Xaudiocast) ->
                          "audio/mpeg"
                      | Not_found -> raise Unknown_codec
                    in
@@ -432,19 +451,11 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
       let sub = Pcre.exec ~rex: rex uri
       in ((Pcre.get_substring sub 1), (Pcre.get_substring sub 2))
     with | Not_found -> (uri, "") in
-  let smethod =
-    match hmethod with
-    | Get -> "GET"
-    | Delete -> "DELETE"
-    | Post -> "POST"
-    | Put -> "PUT"
-    | Head -> "HEAD"
-    | Options -> "OPTIONS"
-    | _ -> assert false in
+  let smethod = string_of_verb hmethod in
   let protocol =
     match hprotocol with
-    | Http_10 -> "HTTP/1.0"
-    | Http_11 -> "HTTP/1.1"
+    | `Http_10 -> "HTTP/1.0"
+    | `Http_11 -> "HTTP/1.1"
     | _ -> assert false
   in
     (log#f 4 "HTTP %s request on %s." smethod base_uri;
@@ -459,18 +470,19 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
        (Hashtbl.iter (fun h v -> log#f 4 "HTTP Arg: %s, value: %s." h v)
           log_args;
         (* First, try with a registered handler. *)
-        let (_, handlers, _) = Hashtbl.find opened_ports port in
-        let f reg_uri handler =
+        let (handler, _) = find_handler port in
+        let f (verb, reg_uri) handler =
           let rex = Pcre.regexp reg_uri
           in
-            if Pcre.pmatch ~rex uri
+            if ((verb :> verb) = hmethod) && (Pcre.pmatch ~rex uri)
             then
-              (log#f 4 "Found handler '%s' on port %d." reg_uri port;
+              (log#f 4 "Found handler '%s %s' on port %d." smethod reg_uri
+                 port;
                raise (Handled handler))
             else ()
         in
           try
-            (Hashtbl.iter f handlers;
+            (Hashtbl.iter f handler.http;
              (* Otherwise, try with a standard handler. *)
              match base_uri with
              | (* Icecast *) "/admin/metadata" -> admin ~icy: false args
@@ -479,7 +491,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
           with
           | Handled handler ->
               Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-                (handler ~http_method: smethod ~protocol ~data ~headers
+                (handler ~protocol ~data ~headers
                    ~socket: h.Duppy.Monad.Io.socket uri)
           | e ->
               (log#f 4 "HTTP %s request on uri '%s' failed: %s" smethod
@@ -510,12 +522,12 @@ let handle_client ~port ~icy h = (* Read and process lines *)
            Duppy.Monad.bind __pa_duppy_0
              (fun (hmethod, huri, hprotocol) ->
                 match hmethod with
-                | Source when not icy ->
+                | `Source when not icy ->
                     let __pa_duppy_0 =
                       (* X-audiocast sends lines of the form:
            * [SOURCE password path] *)
                       (match hprotocol with
-                       | Xaudiocast_uri uri ->
+                       | `Xaudiocast_uri uri ->
                            let password = huri in
                            (* We check authentication here *)
                            let __pa_duppy_0 =
@@ -543,14 +555,15 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                        then reply "Invalid password!"
                                        else
                                          Duppy.Monad.return
-                                           (true, uri, Xaudiocast)))
-                       | _ -> Duppy.Monad.return (false, huri, Source))
+                                           (true, uri, `Xaudiocast)))
+                       | _ -> Duppy.Monad.return (false, huri, `Source))
                     in
                       Duppy.Monad.bind __pa_duppy_0
                         (fun (auth, huri, protocol) ->
                            handle_source_request ~port ~auth ~protocol
                              hprotocol h huri headers)
-                | Get | Post | Put | Delete | Options | Head when not icy ->
+                | `Get | `Post | `Put | `Delete | `Options | `Head when
+                    not icy ->
                     let len =
                       (try
                          int_of_string
@@ -568,7 +581,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                         (fun data ->
                            handle_http_request ~hmethod ~hprotocol ~data
                              ~port h huri headers)
-                | Shout when icy ->
+                | `Shout when icy ->
                     Duppy.Monad.bind
                       (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
                          ~priority: Tutils.Non_blocking h
@@ -587,7 +600,8 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                 let headers = parse_headers (List.tl lines)
                                 in
                                   handle_source_request ~port ~auth: true
-                                    ~protocol: Shout hprotocol h huri headers))
+                                    ~protocol: `Shout hprotocol h huri
+                                    headers))
                 | _ ->
                     (log#f 4 "Returned 501: not implemented";
                      reply
@@ -694,47 +708,50 @@ let open_port ~icy port =
   
 (* This, contrary to the find_xx functions
  * creates the handlers when they are missing. *)
-let get_handlers ~icy port =
+let get_handler ~icy port =
   try
-    let (s, h, socks) = Hashtbl.find opened_ports port
+    let (h, socks) = Hashtbl.find opened_ports port
     in
       (* If we have only one socket and icy=true,
      * we need to open a second one. *)
       (if ((List.length socks) = 1) && icy
        then
          (let socks = (open_port ~icy (port + 1)) :: socks
-          in Hashtbl.replace opened_ports port (s, h, socks))
+          in Hashtbl.replace opened_ports port (h, socks))
        else ();
-       (s, h))
+       h)
   with
   | Not_found -> (* First the port without icy *)
       let socks = [ open_port ~icy: false port ] in
       (* Now the port with icy, is requested.*)
       let socks =
         if icy then (open_port ~icy (port + 1)) :: socks else socks in
-      let s = Hashtbl.create 1 in
-      let h = Hashtbl.create 1
-      in (Hashtbl.add opened_ports port (s, h, socks); (s, h))
+      let h = { sources = Hashtbl.create 1; http = Hashtbl.create 1; }
+      in (Hashtbl.add opened_ports port (h, socks); h)
   
 (* Add sources... *)
 let add_source ~port ~mountpoint ~icy source =
   let sources =
-    let (sources, _) = get_handlers ~icy port
+    let handler = get_handler ~icy port
     in
-      (if Hashtbl.mem sources mountpoint then raise Registered else ();
-       sources)
+      (if Hashtbl.mem handler.sources mountpoint
+       then raise Registered
+       else ();
+       handler.sources)
   in
     (log#f 3 "Adding mountpoint '%s' on port %i" mountpoint port;
      Hashtbl.add sources mountpoint source)
   
 (* Remove source. *)
 let remove_source ~port ~mountpoint () =
-  let (sources, handlers, socks) = Hashtbl.find opened_ports port
+  let (handler, socks) = Hashtbl.find opened_ports port
   in
-    (assert (Hashtbl.mem sources mountpoint);
+    (assert (Hashtbl.mem handler.sources mountpoint);
      log#f 3 "Removing mountpoint '%s' on port %i" mountpoint port;
-     Hashtbl.remove sources mountpoint;
-     if ((Hashtbl.length sources) = 0) && ((Hashtbl.length handlers) = 0)
+     Hashtbl.remove handler.sources mountpoint;
+     if
+       ((Hashtbl.length handler.sources) = 0) &&
+         ((Hashtbl.length handler.http) = 0)
      then
        (log#f 3 "Nothing more on port %i: closing sockets." port;
         (let f in_s = (ignore (Unix.write in_s " " 0 1); Unix.close in_s)
@@ -742,22 +759,28 @@ let remove_source ~port ~mountpoint () =
      else ())
   
 (* Add http_handler... *)
-let add_http_handler ~port ~uri handler =
-  let handlers =
-    let (_, handlers) = get_handlers ~icy: false port
-    in (if Hashtbl.mem handlers uri then raise Registered else (); handlers)
+let add_http_handler ~port ~verb ~uri h =
+  let handler =
+    let handler = get_handler ~icy: false port
+    in
+      (if Hashtbl.mem handler.http (verb, uri) then raise Registered else ();
+       handler)
   in
-    (log#f 3 "Adding HTTP handler for '%s' on port %i" uri port;
-     Hashtbl.add handlers uri handler)
+    (log#f 3 "Adding HTTP handler for '%s %s' on port %i"
+       (string_of_verb verb) uri port;
+     Hashtbl.add handler.http (verb, uri) h)
   
 (* Remove http_handler. *)
-let remove_http_handler ~port ~uri () =
-  let (sources, handlers, socks) = Hashtbl.find opened_ports port
+let remove_http_handler ~port ~verb ~uri () =
+  let (handler, socks) = Hashtbl.find opened_ports port
   in
-    (assert (Hashtbl.mem handlers uri);
-     log#f 3 "Removing HTTP handler for '%s' on port %i" uri port;
-     Hashtbl.remove handlers uri;
-     if ((Hashtbl.length sources) = 0) && ((Hashtbl.length handlers) = 0)
+    (assert (Hashtbl.mem handler.http (verb, uri));
+     log#f 3 "Removing HTTP handler for '%s %s' on port %i"
+       (string_of_verb verb) uri port;
+     Hashtbl.remove handler.http (verb, uri);
+     if
+       ((Hashtbl.length handler.sources) = 0) &&
+         ((Hashtbl.length handler.http) = 0)
      then
        (log#f 4 "Nothing more on port %i: closing sockets." port;
         (let f in_s = (ignore (Unix.write in_s " " 0 1); Unix.close in_s)

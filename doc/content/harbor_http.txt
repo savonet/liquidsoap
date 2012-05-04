@@ -6,18 +6,19 @@ The harbor server can be used as a HTTP server. You
 can use the function @harbor.http.register@ to register
 HTTP handlers. Its parameters are are follow:
 
-@harbor.http.register(port=8080,uri,handler)@ where:
+@harbor.http.register(port=8080,method="GET",uri,handler)@ where:
 * @port@ is the port where to receive incoming connections
+* @method@ is for the http method (or verb), one of: @"GET"@, @"PUT"@, @"POST"@, @"DELETE"@, @"OPTIONS"@ and @"HEAD"@
 * @uri@ is used to match requested uri. Perl regular expressions are accepted.
+
 * @handler@ is the function used to process requests.
 
 @handler@ function has type:
 %%
-(~method:string, ~protocol:string, ~data:string, 
+(~protocol:string, ~data:string, 
  ~headers:[(string*string)], string)->string))->unit
 %%
 where:
-* @method@ is the HTTP method used by the client. Currently, one of @"POST"@, @"GET"@, @"PUT"@, @"DELETE"@, @"OPTIONS"@ and @"HEAD"@
 * @protocol@ is the HTTP protocol used by the client. Currently, one of @"HTTP/1.0"@ or @"HTTP/1.1"@
 * @data@ is the data passed during a POST request
 * @headers@ is the list of HTTP headers sent by the client
@@ -59,7 +60,7 @@ In this case, you can register the following handler:
 # Redirect all files other
 # than /admin.* to icecast,
 # located at localhost:8000
-def redirect_icecast(~method,~protocol,~data,~headers,uri) =
+def redirect_icecast(~protocol,~data,~headers,uri) =
    http_response(
      protocol=protocol,
      code=301,
@@ -70,7 +71,8 @@ end
 # Register this handler at port 8005
 # (provided harbor sources are also served
 #  from this port).
-harbor.http.register(port=8005,"^/(?!admin)",
+harbor.http.register(port=8005,method="GET",
+                     "^/(?!admin)",
                      redirect_icecast)
 %%
 
@@ -80,7 +82,7 @@ directly fetch the page's content from the Icecast server:
 # Serve all files other
 # than /admin.* by fetching data
 # from Icecast, located at localhost:8000
-def proxy_icecast(~method,~protocol,~data,~headers,uri) =
+def proxy_icecast(~protocol,~data,~headers,uri) =
   def f(x) =
     # Replace Host
     if string.capitalize(fst(x)) == "HOST" then
@@ -101,7 +103,8 @@ end
 # Register this handler at port 8005
 # (provided harbor sources are also served
 #  from this port).
-harbor.http.register(port=8005,"^/(?!admin)",
+harbor.http.register(port=8005,method="GET",
+                     "^/(?!admin)",
                      proxy_icecast)
 %%
 
@@ -139,7 +142,7 @@ s = on_metadata(update_meta,s)
 
 # Return the json content
 # of meta
-def get_meta(~method,~protocol,~data,~headers,uri) =
+def get_meta(~protocol,~data,~headers,uri) =
   m = !meta
   http_response(
     protocol=protocol,
@@ -150,7 +153,7 @@ def get_meta(~method,~protocol,~data,~headers,uri) =
 end
 
 # Register get_meta at port 700
-harbor.http.register(port=7000,"/getmeta",get_meta)
+harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 %%
 
 Once the script is running, 
@@ -192,7 +195,7 @@ insert = fst(x)
 s = snd(x)
 
 # The handler
-def set_meta(~method,~protocol,~data,~headers,uri) =
+def set_meta(~protocol,~data,~headers,uri) =
   # Split uri of the form request?foo=bar&...
   # into (request,[("foo","bar"),..])
   x = url.split(uri)
@@ -219,7 +222,7 @@ def set_meta(~method,~protocol,~data,~headers,uri) =
 end
 
 # Register handler on port 700
-harbor.http.register(port=7000,"/setmeta",set_meta)
+harbor.http.register(port=7000,method="GET","/setmeta",set_meta)
 %%
 
 Now, a request of the form @http://server:7000/setmeta?title=foo@
