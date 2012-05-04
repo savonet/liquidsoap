@@ -760,15 +760,15 @@ let remove_source ~port ~mountpoint () =
   
 (* Add http_handler... *)
 let add_http_handler ~port ~verb ~uri h =
-  let handler =
-    let handler = get_handler ~icy: false port
-    in
-      (if Hashtbl.mem handler.http (verb, uri) then raise Registered else ();
-       handler)
+  let handler = get_handler ~icy: false port
   in
     (log#f 3 "Adding HTTP handler for '%s %s' on port %i"
        (string_of_verb verb) uri port;
-     Hashtbl.add handler.http (verb, uri) h)
+     if Hashtbl.mem handler.http (verb, uri)
+     then
+       log#f 3 "WARNING: HTTP handler already registered, old one removed!"
+     else ();
+     Hashtbl.replace handler.http (verb, uri) h)
   
 (* Remove http_handler. *)
 let remove_http_handler ~port ~verb ~uri () =
