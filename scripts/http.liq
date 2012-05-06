@@ -13,18 +13,12 @@ def http_response(~protocol="HTTP/1.1",
                   ~headers=[],
                   ~data="") = 
   status = http_codes[string_of(code)]
-  # Set content-length if needed and not set by the
-  # user.
+  # Set content-length and connection: close
   headers = 
-    if data != "" and 
-       not list.mem_assoc("Content-Length",headers) 
-    then
-      list.append([("Content-Length",
-                    "#{string.length(data)}")],
-                  headers)
-    else
-      headers
-    end
+    list.append(headers, 
+                [("Content-Length", "#{string.length(data)}"),
+                 ("Connection", "close")])
+
   headers = list.map(fun (x) -> "#{fst(x)}: #{snd(x)}",headers)
   headers = string.concat(separator="\r\n",headers)
   # If no headers are provided, we should avoid
