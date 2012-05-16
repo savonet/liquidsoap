@@ -163,12 +163,13 @@ object (self)
              (* TODO This is quite inefficient:
               *   reading the whole file as a string before parsing it... *)
             let content = Utils.read_all filename in
+            let pwd     = Filename.dirname filename in
               let (format,playlist) =
                 match mime with
                   | "" ->
                       self#log#f 3
                         "No mime type specified, trying autodetection." ;
-                      Playlist_parser.search_valid content
+                      Playlist_parser.search_valid ~pwd content
                   | x ->
                       begin match Playlist_parser.parsers#get x with
                         | Some plugin ->

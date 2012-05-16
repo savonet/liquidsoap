@@ -51,6 +51,65 @@ let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None
 
+(** Unescapt a string. *)
+let unescape s =
+  try
+    Scanf.sscanf s "%S" (fun u -> u)
+  with
+    | _ -> s
+
+(* Unescape a given char in a string, i.e. \\c -> c *)
+let unescape_char c s =
+  let len = String.length s in
+  let rec f ~escaped cur pos =
+    if pos >= len then
+      (if escaped then Printf.sprintf "%s\\" cur else cur)
+    else
+      let c   = s.[pos] in
+      let pos = pos + 1 in
+      match c with
+        | '\\' when not escaped ->
+            f ~escaped:true cur pos
+        | x    when x = c ->
+            f ~escaped:false (Printf.sprintf "%s%c" cur c) pos
+        | x    when escaped -> 
+            f ~escaped:false (Printf.sprintf "%s\\%c" cur x) pos
+        | x ->
+            f ~escaped:false (Printf.sprintf "%s%c" cur x) pos
+  in
+  f ~escaped:false "" 0
+
+(** Parse strings of the form foo <sep> bar,
+ *  trying to be clever on escaping <sep> in foo
+ *  and bar.. *)
+let split ~sep s = 
+  let rec split cur s =
+    let len = String.length s in
+    let rec get_index escaped pos =
+      if pos == len then
+        pos
+      else
+        match s.[pos] with
+          | '\\' when not escaped -> get_index true  (pos+1)
+          | x    when x == sep && not escaped -> pos
+          | _                     -> get_index false (pos+1) 
+    in
+    let pos = get_index false 0 in
+    if pos == len then
+      s :: cur
+     else
+       if pos == len -1 then
+         String.sub s 0 pos :: cur
+       else
+         split (String.sub s 0 pos :: cur ) (String.sub s (pos+1) (len-pos-1))
+  in
+  List.map (unescape_char sep) (List.rev (split [] s))
+
+(** Remove trailing and leading spaces. *)
+let trim s =
+  Pcre.replace ~rex:(Pcre.regexp "\\s+$")
+    (Pcre.replace ~rex:(Pcre.regexp "^\\s+") s)
+
 (** Remove the first element satisfying a predicate, raising Not_found
   * if none is found. *)
 let remove_one f l =
@@ -347,6 +406,7 @@ let interpolate =
   let var    = "\\$(\\([^()$]+\\))" in
   let re_if  =
     (* Groups              1           2 (3 4)   5       6 (7 8)      *)
+    (* TODO: use unescape above? *)
     Str.regexp ("\\$(if +"^var^" *, *"^quoted^"\\( *, *"^quoted^"\\)?)")
   in
   let unescape = Str.global_replace (Str.regexp "\\\\\\(.\\)") "\\1" in

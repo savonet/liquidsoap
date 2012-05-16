@@ -1969,9 +1969,10 @@ let () =
        let f = Lang.to_string (List.assoc "" p) in
        let f = Utils.home_unrelate f in
        let content = Utils.read_all f in
+       let pwd     = Filename.dirname f in
        let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
          try
-           let _,l = Playlist_parser.search_valid content in
+           let _,l = Playlist_parser.search_valid ~pwd content in
            let process m =
              let f (n,v) =
                Lang.product (Lang.string n) (Lang.string v)

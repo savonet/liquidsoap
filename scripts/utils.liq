@@ -553,7 +553,18 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
           if request.resolve(playlist) then
             playlist = request.filename(playlist)
             files = playlist.parse(playlist)
-            list.map(snd,files)
+            def file_request(el) =
+              meta = fst(el)
+              file = snd(el)
+              s = list.fold(fun (cur, el) ->
+                "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
+              if s == "" then
+                file
+              else
+                "annotate:#{s}:#{file}"
+              end
+            end
+            list.map(file_request,files)
           else
             log(label=id,"Couldn't read playlist: request resolution failed.")
             []
