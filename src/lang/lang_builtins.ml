@@ -2179,20 +2179,20 @@ let add_http_request name descr request =
       in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let url = Lang.to_string (List.assoc "" p) in
-      let host, port, url = Http.url_split_host_port url in
-      let port = match port with Some p -> p | None -> 80 in
-      let request =
-        if request = Get then
-           Http.Get
-        else
-          begin
-            let data = Lang.to_string (List.assoc "data" p) in
-            Http.Post data
-          end
-      in
-      let log = log#f 4 "%s" in
       let ((x,y,z),headers,data) =
         try
+          let host, port, url = Http.url_split_host_port url in
+          let port = match port with Some p -> p | None -> 80 in
+          let request =
+            if request = Get then
+              Http.Get
+            else
+             begin
+              let data = Lang.to_string (List.assoc "data" p) in
+              Http.Post data
+            end
+          in
+          let log = log#f 4 "%s" in
           Http.full_request ~log ~timeout ~headers 
                             ~port ~host ~url ~request ()
         with
