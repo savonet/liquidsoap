@@ -15,7 +15,7 @@ They are invoked the following way:
 
 h4. add_decoder
 
-%%@liq
+%%
 add_decoder(name="my_decoder",description="My custom decoder",
             test,decoder)
 %%
@@ -38,7 +38,7 @@ Decoders registered using this operator do not have a reliable estimation of the
 time. You should use @add_oblivious_decoder@ only if your decoding program is not able
 to read the encoded data from its standard input.
 
-%%@liq
+%%
 add_oblivious_decoder(name="my_decoder",description="My custom decoder",
                       buffer=5., test,decoder)
 %%
