@@ -302,7 +302,7 @@ let local_check t =
                        List.iter
                          (fun (k,v) ->
                            let k = String.lowercase k in
-                           if conf_override_metadata#get || not (Hashtbl.mem indicator.metadata k) then
+                           if conf_override_metadata#get || get_metadata t k = None then
                              Hashtbl.replace indicator.metadata
                               k (cleanup v))
                          ans;
