@@ -160,6 +160,7 @@ rule token = parse
   | ';' { SEQ }
   | ";;" { SEQSEQ }
   | "~" { TILD }
+  | "?" { QUESTION }
   | "-" { MINUS }
   | "not" { NOT }
   | "and" | "or"                   { BIN0 (Lexing.lexeme lexbuf) }

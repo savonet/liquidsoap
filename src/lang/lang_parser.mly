@@ -155,7 +155,7 @@
 %token OGG FLAC VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
 %token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR EXTERNAL
 %token EOF
-%token BEGIN END GETS TILD
+%token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON
@@ -278,7 +278,7 @@ expr:
   | MP3_VBR app_opt                  { mk_mp3_vbr $2 }
   | MP3_ABR app_opt                  { mk_mp3_abr $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
-  | VOAACENC app_opt                  { mk_voaacenc $2 }
+  | VOAACENC app_opt                 { mk_voaacenc $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
@@ -332,6 +332,8 @@ ty:
                                   let mul = Frame.add_mul Frame.Variable mul in
                                     Lang_values.type_of_mul
                                       ~pos:None ~level:(-1) mul }
+  | LPAR argsty RPAR YIELDS ty
+                              { Lang_types.make (Lang_types.Arrow ($2,$5)) }
 
 ty_args:
   |                      { [] }
@@ -341,6 +343,16 @@ ty_args:
 ty_arg:
   | ty { "",$1 }
   | VAR GETS ty { $1,$3 }
+
+argty:
+  | ty                    { false,"",$1 }
+  | VAR COLON ty          { false,$1,$3 }
+  | QUESTION VAR COLON ty { true,$2,$4 }
+
+argsty:
+  |                    { [] }
+  | argty              { [$1] }
+  | argty COMMA argsty { $1::$3 }
 
 /* An expression,
  * in a restricted form that can be concenated without ambiguity */
@@ -363,7 +375,7 @@ cexpr:
   | MP3_ABR app_opt                  { mk_mp3_abr $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
-  | VOAACENC app_opt                  { mk_voaacenc $2 }
+  | VOAACENC app_opt                 { mk_voaacenc $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
