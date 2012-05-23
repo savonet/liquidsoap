@@ -611,6 +611,7 @@ let () =
   in
     ignore (Init.at_stop cleanup) ;
     if !interactive then begin
+      load_libs () ;
       Log.conf_stdout#set_d (Some false) ;
       Log.conf_file#set_d (Some true) ;
       let default_log =
