@@ -43,7 +43,7 @@ let add name g =
     ~descr:("Generate a " ^ name ^ " wave.")
     ~kind:Lang.audio_any
     [
-      "duration", Lang.float_t, Some (Lang.float 0.), None;
+      "duration", Lang.float_t, Some (Lang.float 0.), Some "Duration in seconds (0. means infinite).";
       "amplitude", Lang.float_t, Some (Lang.float 1.), Some "Maximal value of the waveform.";
       "", Lang.float_t, Some (Lang.float 440.), Some ("Frequency of the " ^ name ^ ".")
     ]
