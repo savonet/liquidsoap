@@ -93,6 +93,9 @@ let verb_of_string s =
   | "OPTIONS" -> `Options
   | _ -> raise Not_found
   
+let verb_or_source_of_string s =
+  match String.uppercase s with | "SOURCE" -> `Source | _ -> verb_of_string s
+  
 let string_of_verb =
   function
   | `Get -> "GET"
@@ -188,7 +191,7 @@ let parse_icy_request_line ~port h r =
 let parse_http_request_line r =
   try
     let data = Pcre.split ~rex: (Pcre.regexp "[ \t]+") r in
-    let protocol = verb_of_string (List.nth data 0)
+    let protocol = verb_or_source_of_string (List.nth data 0)
     in
       Duppy.Monad.return
         (protocol, (List.nth data 1),
