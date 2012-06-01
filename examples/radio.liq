@@ -1,4 +1,7 @@
-#!/usr/bin/liquidsoap
+#
+# A simple radio script to get started
+# Filenames need to be edited in playlist() and single() sources
+#
 
 message =
   "The Savonet team thanks you for using liquidsoap, " ^
@@ -6,7 +9,7 @@ message =
 
 # Then we setup our icecast output function.
 # Possible options and values are bitrate=64, samplerate=11025, ...
-out = output.icecast.vorbis(host="localhost")
+out = output.icecast(%vorbis,host="localhost")
 
 out(mount="demo.ogg",
   # The scheduler plays a randomized playlist, or the .ogg file

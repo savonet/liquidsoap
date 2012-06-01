@@ -1,4 +1,7 @@
-#!/usr/local/bin/liquidsoap
+#
+# A more complex example,
+# showing what the historical Geek Radio of ENS Lyon used to be
+#
 
 # User requests can be pushed in a queue(),
 # we add speech-synthetized metadata information at the end of tracks.
@@ -38,8 +41,8 @@ def fullscheduler
 end
 
 # Partial application of icecast output to specialize it for a given host
-out = output.icecast.vorbis(host="sci4")
+out = output.icecast(host="sci4")
 # Now we add the outputs
-out(mount="geek.pure.ogg",scheduler)
-out(mount="geek.modem.ogg",quality=1.,samplerate=22050,fullscheduler)
-out(mount="geek.ogg",fullscheduler)
+out(mount="geek.pure.ogg",%vorbis,scheduler)
+out(mount="geek.modem.ogg",%vorbis(quality=1.,samplerate=22050),fullscheduler)
+out(mount="geek.ogg",%vorbis,fullscheduler)

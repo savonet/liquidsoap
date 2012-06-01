@@ -1,6 +1,7 @@
-
+#
 # This is an example of script which is fallible,
-# because telnet and the playlist in the afternoon are not trusted.
+# because the request queue and the afternoon playlist are not trusted.
+#
 
 # Try running: liquidsoap -c fallible.liq
 
@@ -11,4 +12,4 @@ radio = fallback([ request.queue(),
                    switch([ ({0h-12h}, morning),
                             ({12h-24h}, afternoon) ]) ])
 
-output.file.vorbis("/tmp/radio.ogg",radio)
+output.file(%vorbis,"/tmp/radio.ogg",radio)
