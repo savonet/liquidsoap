@@ -619,8 +619,8 @@ let report_error lexbuf f =
       | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
           flush_all () ;
           Format.printf
-            "@[<2>%s:@ This term@ will evaluate to@ a function@ \
-               which@ will then be dropped.@ \
+            "@[<2>%s:@ This term@ would evaluate to@ a function@ \
+               which@ would then be dropped.@ \
                This is usually@ the sign@ of@ an unintended@ \
                partial application:@ some arguments@ may \
                be@ missing.@]@."
@@ -629,8 +629,8 @@ let report_error lexbuf f =
       | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
           flush_all () ;
           Format.printf
-            "@[<2>%s:@ This term@ will evaluate to@ a (passive) source@ \
-               which@ will then be dropped.@ \
+            "@[<2>%s:@ This term@ would evaluate to@ a (passive) source@ \
+               which@ would then be dropped.@ \
                This is@ usually@ the sign of@ a@ misunderstanding:@ \
                only active@ sources@ are animated@ on their own;@ \
                dangling@ passive sources@ are just dead code.@]@."
@@ -640,7 +640,7 @@ let report_error lexbuf f =
           flush_all () ;
           Format.printf
             "@[<2>%s:@ The result of@ evaluating this term@ \
-               will be@ dropped,@ but@ it does not@ have type@ \
+               would be@ dropped,@ but@ it does not@ have type@ \
                unit or active_source.@ Use ignore(...)@ if you meant@ to@ \
                drop it,@ \
                otherwise@ this is a sign@ that@ \

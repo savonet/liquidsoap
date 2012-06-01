@@ -697,6 +697,9 @@ let check ?(ignored=false) e =
   let print_toplevel = !Configure.display_types in
     try
       check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e ;
+      if print_toplevel && (T.deref e.t).T.descr <> T.Ground T.Unit then
+        add_task (fun () ->
+          Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t) ;
       if ignored && not (can_ignore e.t) then raise_ignored e ;
       pop_tasks ()
     with
