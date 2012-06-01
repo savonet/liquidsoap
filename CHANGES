@@ -1,3 +1,32 @@
+1.0.1 (xx-06-2012)
+==================
+This version brings bug fixes and minor enhancements over 1.0.0.
+[[[
+Generated from the full log from previous release:
+  hg log . --style changelog -r 'tag("liquidsoap-1.0.0")::default' | less
+for finalizing the changelog, check the remaining part:
+  hg log . --style changelog -r '926f2a5a26e4::default' | less
+and REMOVE THIS block of course!
+]]]
+==================
+Fixes:
+- correct type for the "flush" parameter in output.external()
+- fix bug where MP3 encoder would discard initial ID3v2 rendering
+- load libraries in --interactive [LS-618]
+- update examples, notably the installed radio.liq
+New:
+- new values for metadata fields does not override old one anymore;
+  use setting "request.metadata_decoders.override" to restore old behavior
+- stereo_mode and internal_quality parameters for %mp3 encoder
+- enable mad decoder for MP1 and MP2 in addition to MP3, create aliased
+  configuration keys "decoder.file_extensions/mime_types.mad"
+- support for CUE sheet playlists and metadata in M3U
+- setting "decoder.taglib.force_mpeg" to force taglib to consider files as MPEG
+- scripting builtins getenv(), setenv() and environment()
+- scripting builtin source.fallible()
+- harbor is now verb-oriented, supporting GET, POST, PUT, HEAD, DELETE, OPTIONS
+- load DSSI plugins from environment variables and using dssi.register()
+
 1.0.0 (08-10-2011)
 ==================
 Finally, the 1.0.0 release! It brings several important fixes, but 
