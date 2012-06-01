@@ -7,9 +7,9 @@ h3. Supported formats
 
 Most supported playlists format are _strict_, which means that the decoder can be sure
 that is has found a correct playlist for that format. Some other format, such as @m3u@,
-however, may cause _false positives_ detections.
+however, may cause _false positive_ detections.
 
-All formats are identified by their _mime-type_ or _content-type_. Supported format are the following:
+All formats are identified by their _mime-type_ or _content-type_. Supported formats are the following:
 ** Text formats:
 **** @audio/x-scpls@: "PLS format":http://en.wikipedia.org/wiki/PLS_%28file_format%29, **strict**
 **** @application/x-cue@: "CUE format":http://en.wikipedia.org/wiki/.cue, **strict**. This format's usage is described below.
@@ -22,11 +22,11 @@ All formats are identified by their _mime-type_ or _content-type_. Supported for
 
 h3. Usage
 
-Playlists files are parsed automatically when used in a @playlist@ or @input.http@ operator. Each of 
-these two operators have specific options to specify how to pick up a track from the playlist, _e.g._
-pick a random track, the first one etc..
+Playlist files are parsed automatically when used in a @playlist@ or @input.http@ operator. Each of 
+these two operators has specific options to specify how to pick up a track from the playlist, _e.g._
+pick a random track, the first one etc.
 
-Additionally, you can also manually parsed and process a playlist using @request.create@ and @request.resolve@
+Additionally, you can also manually parse and process a playlist using @request.create@ and @request.resolve@
 and some programming magic. You can check the code source for @playlist.reloadable@ in our standard library 
 for a detailed example.
 
@@ -40,13 +40,13 @@ parser will add metadata from cue-in and cue-out points for each track described
 you can then pass to @cue_cut@ to play each track of the playlist. Something like:
 
 %%
-cue_cue(playlist("/path/to/file.cue"))
+cue_cut(playlist("/path/to/file.cue"))
 %%
 
 You can find an example of using @cue_cut@ with cue sheets "here":split-cue.html and a throughout
 explanation of how seeking in liquidsoap works "there":seek.html.
 
-The metadata added for cue-in and cue-out position can be customized using the following
+The metadata added for cue-in and cue-out positions can be customized using the following
 configuration keys:
 
 %%
