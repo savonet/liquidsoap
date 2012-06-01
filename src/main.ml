@@ -114,29 +114,13 @@ let load_libs () =
   do_eval ~lib:true ;
   load_libs ()
 
-let plugin_doc name =
+let lang_doc name =
   secondary_task := true ;
   load_libs () ;
-  let found = ref false in
-    List.iter
-      (fun (lbl, i) ->
-         match
-           try Some (i#get_subsection name) with Not_found -> None
-         with
-           | None -> ()
-           | Some s ->
-               found := true ;
-               Printf.printf "*** One entry in %s:\n" lbl ;
-               let print =
-                 if lbl="scripting values" then
-                   Doc.print_lang
-                 else
-                   Doc.print
-               in
-                 print s)
-      Plug.plugs#get_subsections ;
-    if not !found then
-      Printf.printf "Plugin not found!\n%!"
+  try
+    Doc.print_lang (Lang_values.builtins#get_subsection name)
+  with
+    | Not_found -> Printf.printf "Plugin not found!\n%!"
 
 let process_request s =
   load_libs () ;
@@ -354,8 +338,9 @@ let options =
       "Process a request." ;
 
       ["-h"],
-      Arg.String plugin_doc,
-      "Print the description of a plugin.";
+      Arg.String lang_doc,
+      "Get help about a scripting value: \
+       source, operator, builtin or library function, etc.";
 
       ["-c";"--check"],
       Arg.Unit (fun () ->

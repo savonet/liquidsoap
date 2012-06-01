@@ -168,8 +168,7 @@ def out(s)
   output.prefered(mksafe(s))
 end
 
-# Special track insensitive fallback that
-# always skip current song before switching.
+# Special track insensitive fallback that always skips current song before switching.
 # @category Source / Track Processing
 # @param ~input The input source
 # @param f The fallback source
@@ -246,8 +245,7 @@ def helium(s)
 end
 %endif
 
-# Return true if process exited with 0 code.
-# Command should return quickly.
+# Return true if process exited with 0 code. Command should return quickly.
 # @category System
 # @param command    Command to test
 def test_process(command)
@@ -281,12 +279,9 @@ def url.split(uri) =
   end
 end
 
-# Register a server/telnet command to 
-# update a source's metadata. Returns
-# a new source, which will receive the 
-# updated metadata. It behaves just like
-# the pre-1.0 insert_metadata() operator, 
-# i.e. insert key1="val1",key2="val2",...
+# Register a server/telnet command to update a source's metadata. Returns
+# a new source, which will receive the updated metadata. The command has
+# the following format: insert key1="val1",key2="val2",...
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 def server.insert_metadata(~id="",s) = 

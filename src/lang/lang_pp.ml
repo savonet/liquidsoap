@@ -268,7 +268,18 @@ let parse_comments tokenizer =
     in
     let main,special,params = parse_doc ([],[],[]) doc in
     let main = List.rev main and params = List.rev params in
-    let main = String.concat "\n" main in
+    let rec smart_concat = function
+      | [] -> ""
+      | [line] -> line
+      | line::lines ->
+          if line = "" || line.[String.length line - 1] = '.' then
+            line ^ "\n" ^ smart_concat lines
+          else if line.[String.length line - 1] = ' ' then
+            line ^ smart_concat lines
+          else
+            line ^ " " ^ smart_concat lines
+    in
+    let main = smart_concat main in
     let doc =
       let sort = false in
         if main = "" then Doc.none ~sort () else Doc.trivial ~sort main
