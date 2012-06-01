@@ -34,28 +34,27 @@ let conf_taglib =
   Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "taglib")
     "Taglib settings"
 
-let conf_force_mp3 =
-  Dtools.Conf.bool ~p:(conf_taglib#plug "force_mp3") ~d:false
-    "Taglib mp3 files autodetection may fail if using files whose \
-     reported mime type is not \"audio/mpeg\". If you set this configuration \
-     key to true, then all files decoded by taglib will be considered as mp3. \
-     In this case, taglib configuration keys for file extension \
-     (\"decoder.file_extensions.taglib\") and mime types (\"decoder.mime_types.taglib\") \
-     are not used and mp3 configuration keys for file extension \
-     (\"decoder.file_extensions.mp3\") and mime types (\"decoder.mime_types.mp3\") \
-     are used instead."
+let conf_force_mpeg =
+  Dtools.Conf.bool ~p:(conf_taglib#plug "force_mpeg") ~d:false
+    "By default, taglib will only attempt reading metadata from files that it \
+     detects as valid. This may fail, for example if the reported mime type isn't \
+     \"audio/mpeg\". If you set this configuration key to true, then all files \
+     successfully recognized by liquidsoap will be considered as MPEG by taglib. \
+     In this case, taglib configuration keys for file extensions and mime types \
+     (\"decoder.file_extensions.taglib\" and \"decoder.mime_types.taglib\") \
+     are not used, and file detection is only done based on the corresponding \
+     settings from the MAD MPEG decoder."
 
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "taglib")
     "File extensions used for decoding metadata using TAGLIB"
     ~d:["mp3"]
 
-(** We used to force the format. However,
-  * now that we check extensions, taglib's
+(** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
 let get_tags fname =
   let mime_types, file_extensions, ftype =
-    if conf_force_mp3#get then
+    if conf_force_mpeg#get then
       Mad_decoder.mime_types, Mad_decoder.file_extensions, `Mpeg
     else
       mime_types, file_extensions, `Autodetect
