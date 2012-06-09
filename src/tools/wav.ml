@@ -59,11 +59,7 @@ let () = Utils.register_error_translator error_translator
 
 (* open file and verify it has the right format *)  
 
-let debug =
-  try
-    ignore (Sys.getenv "LIQUIDSOAP_DEBUG_WAV") ; true
-  with
-    | Not_found -> false
+let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_WAV" <> None
 
 let read_header read_ops ic =
   let really_input = read_ops.really_input in

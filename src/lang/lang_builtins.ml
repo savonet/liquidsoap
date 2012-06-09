@@ -1324,7 +1324,7 @@ let () =
             is not set."
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
-      Lang.string (Unix.getenv (Lang.to_string (List.assoc "" p))))
+      Lang.string (Utils.getenv ~default:"" (Lang.to_string (List.assoc "" p))))
 
 let () =
   add_builtin "setenv" ~cat:Sys

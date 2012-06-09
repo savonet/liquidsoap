@@ -20,12 +20,7 @@
 
  *****************************************************************************)
 
-let debug =
-  try
-    ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG") ;
-    true
-  with
-    | Not_found -> false
+let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None
 
 (* Type information comes attached to the AST from the parsing,
  * with appropriate sharing of the type variables. Then the type inference

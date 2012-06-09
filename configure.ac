@@ -259,6 +259,30 @@ AC_SUBST(TCP_NODELAY_VALUE)
 
 AC_SUBST(BYTE)
 
+AC_ARG_ENABLE([custom-path],
+   AS_HELP_STRING([--enable-custom-path],[Enable custom path support for loading liquidsoap's dependencies (always enable for win32 builds).]))
+
+if test "$OS_TYPE" = "Win32" -o "x$enable_custom_path" = "xyes"; then
+  W_CUSTOM_PATH="yes"
+  w_CUSTOM_PATH="ok"
+cat >> src/configure.ml <<__BLAH__
+let get_dir d = 
+  let dir =
+    Utils.resolve_path (Filename.dirname Sys.executable_name)
+  in
+  let cwd =
+    match Utils.getenv_opt "LIQUIDSOAP_BASE_DIR" with
+      | None      -> dir
+      | Some path -> Utils.resolve_path ~cwd:dir path
+  in 
+  Utils.resolve_path ~cwd d
+__BLAH__
+else
+  W_CUSTOM_PATH="no"
+  w_CUSTOM_PATH=""
+fi
+AC_SUBST(W_CUSTOM_PATH)
+
 #
 # Libs
 #
@@ -536,11 +560,25 @@ let file_mime = None
 let data_mime = None
 EOCONF
 else
+  if text =z "$w_CUSTOM_PATH"; then
     cat >> src/configure.ml <<EOCONF
 let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[]]
 let file_mime = Some (Magic.file magic_cookie)
 let data_mime = Some (Magic.buffer magic_cookie)
 EOCONF
+  else
+    cat >> src/configure.ml <<EOCONF
+let magic_file  =
+  let cwd = Filename.dirname Sys.executable_name in
+  let magic = 
+    Utils.getenv ~default:(get_dir "magic/magic.mgc") "MAGIC"
+  in
+  Utils.resolve_path ~cwd magic
+let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[magic_file]]
+let file_mime = Some (Magic.file magic_cookie)
+let data_mime = Some (Magic.buffer magic_cookie)
+EOCONF
+  fi
 fi
 
 #
@@ -565,23 +603,24 @@ else
     # Use Camomile with environment variables if
     # available
     if test -f $camdir/camomileLibraryDyn.cmi ; then
-      if test "$OS_TYPE" \!= "Win32" ; then
+      if test -z "$w_CUSTOM_PATH"; then
         camencoding=CamomileLibraryDyn.$camencoding
       else
-        # For win32, we use the functorial version 
-        # with our own config.
         camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
         cat >> src/configure.ml <<EOCONF
 module CamomileConfig = 
 struct
-  let datadir = Filename.concat "camomile" "database"
-  let localedir = Filename.concat "camomile" "locales"
-  let charmapdir = Filename.concat "camomile" "charmaps"
-  let unimapdir = Filename.concat "camomile" "mappings"
+  let datadir = Filename.concat (get_dir "camomile") "database"
+  let localedir = Filename.concat (get_dir "camomile") "locales"
+  let charmapdir = Filename.concat (get_dir "camomile") "charmaps"
+  let unimapdir = Filename.concat (get_dir "camomile") "mappings"
 end
 EOCONF
       fi
     else
+      if test -n "$w_CUSTOM_PATH"; then
+        AC_MSG_ERROR([Your camomile module is too old to support loading from a custom path.. Please upgrade it or disable custom path loading.])
+      fi
       if test -f $camdir/camomileLibrary.cmi ; then
         camencoding=CamomileLibrary.Default.$camencoding
       fi
@@ -834,6 +873,7 @@ cat <<EOMSG
  Version        : $OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION
  OS             : $OS_TYPE
  Plugins        :$PLUGINS
+ Custom path    : $W_CUSTOM_PATH
  OCAML_CFLAGS   : $liquidsoap_ocamlcflags
  OCAML_LFLAGS   : $liquidsoap_ocamllflags
  CFLAGS         : $CFLAGS

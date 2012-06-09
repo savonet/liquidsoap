@@ -28,6 +28,34 @@ external force_locale : unit -> unit = "liquidsoap_set_locale"
 let () = 
   force_locale ()
 
+(* Resolve a path. *)
+let resolve_path ?cwd path =
+  let cwd = 
+    match cwd with
+      | None     -> Sys.getcwd()
+      | Some cwd -> cwd
+  in
+  if Filename.is_relative path then
+   begin
+     Filename.concat cwd path
+   end
+  else
+    path
+
+(* Getenv with default value. *)
+let getenv ~default value =
+  try
+    Sys.getenv value
+  with
+    | Not_found -> default
+
+(* Getenv with option result. *)
+let getenv_opt value =
+  try
+    Some (Sys.getenv value)
+  with
+    | Not_found -> None
+
 (* Several list utilities *)
 
 let rec make_list n v = if n = 0 then [] else v::(make_list (n-1) v)
@@ -483,9 +511,7 @@ let rec mkdir ~perm dir =
 
 (** Expand ~ notation in filenames. *)
 let home_unrelate =
-  let home =
-    try Some (Sys.getenv "HOME") with Not_found -> None
-  in
+  let home = getenv_opt "HOME" in
   let unrel s =
     let len = String.length s in
       if len < 2 then
@@ -511,9 +537,9 @@ let home_unrelate =
 
 let get_tempdir () =
   if Sys.os_type = "Win32" then
-    (try Sys.getenv "TEMP" with Not_found -> "C:\temp")
+    getenv ~default:"C:\\temp" "TEMP"
   else
-    (try Sys.getenv "TMPDIR" with Not_found -> "/tmp")
+    getenv ~default:"/tmp" "TMPDIR"
 
 (** Decode Base64-encoded data *)
 let decode64 s =

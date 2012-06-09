@@ -25,7 +25,7 @@ doc-local: all
 .PHONY: system-install gentoo-install finish-configure
 
 finish-configure:
-ifneq ($(OS_TYPE),Win32)
+ifneq ($(CUSTOM_PATH),yes)
 	@echo let tts_program = \"$(libdir)/liquidsoap/$(libs_dir_version)/liquidtts\" >> src/configure.ml
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
@@ -34,11 +34,11 @@ ifneq ($(OS_TYPE),Win32)
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
-	@echo let tts_program = \"liquidtts\" >> src/configure.ml
-	@echo let rundir = \"run\" >> src/configure.ml
-	@echo let logdir = \"logs\" >> src/configure.ml
-	@echo let plugins_dir = \"plugins\" >> src/configure.ml
-	@echo let libs_dir = \"libs\" >> src/configure.ml
+	@echo let tts_program = get_dir \"liquidtts\" >> src/configure.ml
+	@echo let rundir = get_dir \"run\" >> src/configure.ml
+	@echo let logdir = get_dir \"logs\" >> src/configure.ml
+	@echo let plugins_dir = get_dir \"plugins\" >> src/configure.ml
+	@echo let libs_dir = get_dir \"libs\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
 endif

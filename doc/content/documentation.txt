@@ -13,6 +13,9 @@ just browse the "reference":reference.html and compose your dream stream.
 If you downloaded a source tarball of liquidsoap, you may first read the
 "build instructions":build.html.
 
+If you are looking for a way to build a distribution-independant bundle of
+liquidsoap, you may want to read the "custom path":custom-path.html page.
+
 h4@general. General tutorials
 
 * "Quickstart":quick_start.html: where anyone should start.
