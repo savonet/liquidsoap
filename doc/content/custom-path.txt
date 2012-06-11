@@ -6,6 +6,7 @@ Starting with version @1.0.1@, it is possible to build a liquidsoap binary that 
 all its dependencies from any arbitrary path. This is very useful to distribute a liquidsoap
 bundled binary, independent of the distribution used.
 
+You can enable custom path at configure time, by passing the @--enable-custom-path@ configuration option.
 A custom loading path is a directory that contains the following file/directories:
 * @./camomile@: Camomile shared data. They are usually located in @/usr/(local/)share/camomile@
 * @./libs@: pervasive scripts. Their are located in @liquidsoap/scripts@ in liquidsoap's sources
