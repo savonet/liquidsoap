@@ -285,12 +285,33 @@ let conf_override_metadata =
       "Allow metadata resolvers to override metadata already \
        set through annotate: or playlist resolution for instance."
 
+(** Sys.file_exists doesn't make a difference between existing files
+  * and files without enough permissions to list their attributes,
+  * for example when they are in a directory without x permission.
+  * The two following functions allow a more precise diagnostic.
+  * We do not use them everywhere in this file, but only when splitting
+  * existence and readability checks yields better logs. *)
+
+let file_exists name =
+  try Unix.access name [Unix.F_OK] ; true with
+    | Unix.Unix_error (Unix.EACCES,_,_) -> true
+    | Unix.Unix_error _ -> false
+
+let file_is_readable name =
+  try Unix.access name [Unix.R_OK] ; true with
+    | Unix.Unix_error _ -> false
+
 let local_check t =
   let check_decodable kind = try
-    while t.decoder = None && Sys.file_exists (peek_indicator t).string do
+    while t.decoder = None && file_exists (peek_indicator t).string do
       let indicator = peek_indicator t in
       let name = indicator.string in
       let metadata = get_all_metadata t in
+        if not (file_is_readable name) then begin
+          log#f 3 "Read permission denied for %S!" name ;
+          add_log t "Read permission denied!" ;
+          pop_indicator t
+        end else
         match Decoder.get_file_decoder ~metadata name kind with
           | Some (decoder_name,f) ->
               t.decoder <- Some f ;
@@ -537,7 +558,7 @@ let resolve t timeout =
     (* If the file is local we only need to check that it's valid,
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)
-    if Sys.file_exists i.string then local_check t else
+    if file_exists i.string then local_check t else
       match parse_uri i.string with
         | Some (proto,arg) ->
             begin match protocols#get proto with
