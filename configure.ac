@@ -560,7 +560,7 @@ let file_mime = None
 let data_mime = None
 EOCONF
 else
-  if text =z "$w_CUSTOM_PATH"; then
+  if test -z "$w_CUSTOM_PATH"; then
     cat >> src/configure.ml <<EOCONF
 let magic_cookie = Magic.create ~flags:[[Magic.Mime; Magic.Symlink]] [[]]
 let file_mime = Some (Magic.file magic_cookie)
