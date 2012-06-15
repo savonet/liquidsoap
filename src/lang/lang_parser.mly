@@ -108,6 +108,12 @@
     let args = List.map (fun x -> "", mk (Int x)) [a;b;c] in
       mk (App (mk (Var "time_in_mod"), args))
 
+  let mk_var_mult bin mul =
+    if bin <> "+" then raise Parsing.Parse_error else
+      let mul = Frame.mul_of_int mul in
+      let mul = Frame.add_mul Frame.Variable mul in
+      Lang_values.type_of_mul ~pos:None ~level:(-1) mul
+
   let mk_ty name args =
     match name with
       | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
@@ -328,11 +334,8 @@ ty:
   | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
   | INT                       { Lang_values.type_of_int $1 }
   | TIMES                     { Lang_values.variable_t }
-  | TIMES BIN2 INT            { if $2 <> "+" then raise Parsing.Parse_error else
-                                  let mul = Frame.mul_of_int $3 in
-                                  let mul = Frame.add_mul Frame.Variable mul in
-                                    Lang_values.type_of_mul
-                                      ~pos:None ~level:(-1) mul }
+  | TIMES BIN2 INT            { mk_var_mult $2 $3 }
+  | INT BIN2 TIMES            { mk_var_mult $2 $1 }
   | LPAR argsty RPAR YIELDS ty
                               { Lang_types.make (Lang_types.Arrow ($2,$5)) }
 
