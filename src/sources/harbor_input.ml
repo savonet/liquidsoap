@@ -308,184 +308,183 @@ object (self)
 end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-    Lang.add_operator "input.harbor"
-      ~kind:(Lang.Unconstrained kind)
-      ~category:Lang.Input
-      ~descr:("Retrieves the given http stream from the harbor.")
-      [
-        "buffer", Lang.float_t, Some (Lang.float 2.),
-         Some "Duration of the pre-buffered data." ;
+  Lang.add_operator "input.harbor"
+    ~kind:Lang.audio_video_any
+    ~category:Lang.Input
+    ~descr:("Retrieves the given http stream from the harbor.")
+    [
+      "buffer", Lang.float_t, Some (Lang.float 2.),
+       Some "Duration of the pre-buffered data." ;
 
-        "max", Lang.float_t, Some (Lang.float 10.),
-        Some "Maximum duration of the buffered data.";
+      "max", Lang.float_t, Some (Lang.float 10.),
+      Some "Maximum duration of the buffered data.";
 
-        "timeout", Lang.float_t, Some (Lang.float 30.),
-        Some "Timeout for source connectionn.";
+      "timeout", Lang.float_t, Some (Lang.float 30.),
+      Some "Timeout for source connectionn.";
 
-        "on_connect",
-        Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
-        Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
-        Some "Function to execute when a source is connected. \
-              Its receives the list of headers, of the form: \
-              (<label>,<value>). All labels are lowercase.";
+      "on_connect",
+      Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+      Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
+      Some "Function to execute when a source is connected. \
+            Its receives the list of headers, of the form: \
+            (<label>,<value>). All labels are lowercase.";
 
-        "on_disconnect",Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Functions to excecute when a source is disconnected";
+      "on_disconnect",Lang.fun_t [] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Functions to excecute when a source is disconnected";
 
-        "user",Lang.string_t,
-        Some (Lang.string "source"),
-        Some "Source user.";
+      "user",Lang.string_t,
+      Some (Lang.string "source"),
+      Some "Source user.";
 
-        "password",Lang.string_t,
-        Some (Lang.string "hackme"),
-        Some "Source password.";
+      "password",Lang.string_t,
+      Some (Lang.string "hackme"),
+      Some "Source password.";
 
-        "port", Lang.int_t,
-        Some (Lang.int 8005),
-        Some "Port used to connect to the source.";
+      "port", Lang.int_t,
+      Some (Lang.int 8005),
+      Some "Port used to connect to the source.";
 
-        "icy", Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Enable ICY (shoutcast) protocol.";
+      "icy", Lang.bool_t,
+      Some (Lang.bool false),
+      Some "Enable ICY (shoutcast) protocol.";
 
-        "icy_metadata_charset", Lang.string_t,
-        Some (Lang.string ""),
-        Some "ICY (shoutcast) metadata charset. \
-              Guessed if empty. Default for shoutcast is ISO-8859-1. \
-              Set to that value if all your clients send metadata using this \
-              charset and automatic detection is not working for you.";
+      "icy_metadata_charset", Lang.string_t,
+      Some (Lang.string ""),
+      Some "ICY (shoutcast) metadata charset. \
+            Guessed if empty. Default for shoutcast is ISO-8859-1. \
+            Set to that value if all your clients send metadata using this \
+            charset and automatic detection is not working for you.";
 
-        "metadata_charset", Lang.string_t,
-        Some (Lang.string ""),
-        Some "Metadata charset for non-ICY (shoutcast) source protocols. \
-              Guessed if empty.";
+      "metadata_charset", Lang.string_t,
+      Some (Lang.string ""),
+      Some "Metadata charset for non-ICY (shoutcast) source protocols. \
+            Guessed if empty.";
 
-        "auth",
-        Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
-        Some
-          (Lang.val_cst_fun
-             ["",Lang.string_t,None;"",Lang.string_t,None]
-             (Lang.bool false)),
-        Some "Authentication function. \
-              <code>f(login,password)</code> returns <code>true</code> \
-              if the user should be granted access for this login. \
-              Override any other method if used.";
+      "auth",
+      Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
+      Some
+        (Lang.val_cst_fun
+           ["",Lang.string_t,None;"",Lang.string_t,None]
+           (Lang.bool false)),
+      Some "Authentication function. \
+            <code>f(login,password)</code> returns <code>true</code> \
+            if the user should be granted access for this login. \
+            Override any other method if used.";
 
-        "dumpfile", Lang.string_t, Some (Lang.string ""),
-        Some "Dump stream to file, for debugging purpose. Disabled if empty.";
+      "dumpfile", Lang.string_t, Some (Lang.string ""),
+      Some "Dump stream to file, for debugging purpose. Disabled if empty.";
 
-        "logfile", Lang.string_t, Some (Lang.string ""),
-        Some "Log buffer status to file, for debugging purpose. \
-              Disabled if empty.";
+      "logfile", Lang.string_t, Some (Lang.string ""),
+      Some "Log buffer status to file, for debugging purpose. \
+            Disabled if empty.";
 
-        "debug", Lang.bool_t, Some (Lang.bool false),
-        Some "Run in debugging mode by not catching some exceptions.";
+      "debug", Lang.bool_t, Some (Lang.bool false),
+      Some "Run in debugging mode by not catching some exceptions.";
 
-        "", Lang.string_t, None,
-        Some "Mountpoint to look for." ]
-      (fun p kind ->
-         let mountpoint = Lang.to_string (List.assoc "" p) in
-         let mountpoint =
-           if mountpoint<>"" && mountpoint.[0]='/' then mountpoint else
-             Printf.sprintf "/%s" mountpoint
+      "", Lang.string_t, None,
+      Some "Mountpoint to look for." ]
+    (fun p kind ->
+       let mountpoint = Lang.to_string (List.assoc "" p) in
+       let mountpoint =
+         if mountpoint<>"" && mountpoint.[0]='/' then mountpoint else
+           Printf.sprintf "/%s" mountpoint
+       in
+       let trivially_false = function
+         | { Lang.value =
+               Lang.Fun (_,_,_,
+                         { Lang_values.term = Lang_values.Bool false }) }
+             -> true
+         | _ -> false
+       in
+       let default_user = 
+         Lang.to_string (List.assoc "user" p) 
+       in
+       let default_password = 
+         Lang.to_string (List.assoc "password" p) 
+       in
+       let debug = Lang.to_bool (List.assoc "debug" p) in
+       let timeout = Lang.to_float (List.assoc "timeout" p) in
+       let icy = Lang.to_bool (List.assoc "icy" p) in
+       let icy_charset = 
+         match Lang.to_string (List.assoc "icy_metadata_charset" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let meta_charset =
+         match Lang.to_string (List.assoc "metadata_charset" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let port = Lang.to_int (List.assoc "port" p) in
+       let auth_function = List.assoc "auth" p in
+       let login user password =
+         (** We try to decode user & password here. 
+           * Idealy, it would be better to decode them
+           * in tools/harbor.ml in order to use any
+           * possible charset information there.
+           * However: 
+           * - ICY password are given raw, without
+           *   any charset information
+           * - HTTP password are encoded in Base64 and 
+           *   passed through the HTTP headers, where
+           *   there are no charset information concerning
+           *   the password. Note: Content-Type may contain
+           *   a charset information, but this refers to 
+           *   the charset of the HTML content.. *)
+         let user,password = 
+           let f = Configure.recode_tag in
+           f user, f password
          in
-         let trivially_false = function
-           | { Lang.value =
-                 Lang.Fun (_,_,_,
-                           { Lang_values.term = Lang_values.Bool false }) }
-               -> true
-           | _ -> false
+         let default_login =
+           user = default_user &&
+           password = default_password
          in
-         let default_user = 
-           Lang.to_string (List.assoc "user" p) 
+         if not (trivially_false auth_function) then
+           Lang.to_bool
+               (Lang.apply ~t:Lang.bool_t
+                  auth_function
+                  ["",Lang.string user;
+                   "",Lang.string password])
+           else
+             default_login
+       in
+       let login = (default_user, login) in
+       let dumpfile =
+         match Lang.to_string (List.assoc "dumpfile" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let logfile =
+         match Lang.to_string (List.assoc "logfile" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+       let max = Lang.to_float (List.assoc "max" p) in
+       if bufferize >= max then
+         raise (Lang.Invalid_value
+                  (List.assoc "max" p,
+                   "Maximun buffering inferior to pre-buffered data"));
+       let on_connect l =
+         let l = 
+           List.map 
+            (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+            l
          in
-         let default_password = 
-           Lang.to_string (List.assoc "password" p) 
+         let arg =
+           Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
          in
-         let debug = Lang.to_bool (List.assoc "debug" p) in
-         let timeout = Lang.to_float (List.assoc "timeout" p) in
-         let icy = Lang.to_bool (List.assoc "icy" p) in
-         let icy_charset = 
-           match Lang.to_string (List.assoc "icy_metadata_charset" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let meta_charset =
-           match Lang.to_string (List.assoc "metadata_charset" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let port = Lang.to_int (List.assoc "port" p) in
-         let auth_function = List.assoc "auth" p in
-         let login user password =
-           (** We try to decode user & password here. 
-             * Idealy, it would be better to decode them
-             * in tools/harbor.ml in order to use any
-             * possible charset information there.
-             * However: 
-             * - ICY password are given raw, without
-             *   any charset information
-             * - HTTP password are encoded in Base64 and 
-             *   passed through the HTTP headers, where
-             *   there are no charset information concerning
-             *   the password. Note: Content-Type may contain
-             *   a charset information, but this refers to 
-             *   the charset of the HTML content.. *)
-           let user,password = 
-              let f = Configure.recode_tag in
-              f user, f password
-           in
-           let default_login =
-             user = default_user &&
-             password = default_password
-           in
-             if not (trivially_false auth_function) then
-               Lang.to_bool
-                 (Lang.apply ~t:Lang.bool_t
-                    auth_function
-                    ["",Lang.string user;
-                     "",Lang.string password])
-             else
-               default_login
-         in
-         let login = (default_user, login) in
-         let dumpfile =
-           match Lang.to_string (List.assoc "dumpfile" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let logfile =
-           match Lang.to_string (List.assoc "logfile" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let bufferize = Lang.to_float (List.assoc "buffer" p) in
-         let max = Lang.to_float (List.assoc "max" p) in
-         if bufferize >= max then
-           raise (Lang.Invalid_value
-                    (List.assoc "max" p,
-                     "Maximun buffering inferior to pre-buffered data"));
-         let on_connect l =
-           let l = 
-             List.map 
-              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
-              l
-           in
-           let arg =
-             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
-           in
-           ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
-         in
-         let on_disconnect () =
-           ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
-         in
-         (new http_input_server ~kind ~timeout
-                   ~bufferize ~max ~login ~mountpoint
-                   ~dumpfile ~logfile ~icy ~port 
-                   ~icy_charset ~meta_charset
-                   ~on_connect ~on_disconnect ~debug 
-                   p :> Source.source))
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+       in
+       let on_disconnect () =
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+       in
+       (new http_input_server ~kind ~timeout
+                 ~bufferize ~max ~login ~mountpoint
+                 ~dumpfile ~logfile ~icy ~port 
+                 ~icy_charset ~meta_charset
+                 ~on_connect ~on_disconnect ~debug 
+                 p :> Source.source))
