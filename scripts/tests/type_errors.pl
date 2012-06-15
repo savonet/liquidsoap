@@ -45,6 +45,7 @@ correct('ignore(((blank():source(1,1,1)):source(*,*,*)))');
 incorrect('((blank():source(*,*,*)):source(1,1,1))');
 # Next one requires the inference of a subtype (fixed vs. variable arity)
 correct('ignore(audio_to_stereo(add([])))');
+correct('ignore((blank():source(audio=1,video=1,midi=1))');
 
 section("CONSTRAINTS");
 incorrect('"bl"+"a"');

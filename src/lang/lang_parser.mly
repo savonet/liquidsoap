@@ -122,7 +122,8 @@
           let audio,video,midi =
             match args with
               | ["",a;"",v;"",m] -> a,v,m
-              | _::_::_::_ -> failwith "invalid type parameters"
+              | l when List.length l > 3 -> 
+                  failwith "invalid type parameters"
               | l ->
                   List.iter
                     (fun (lbl,_) ->
