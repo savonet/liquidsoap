@@ -185,7 +185,7 @@ class http ~kind
   let log = (fun x -> !log_ref x) in
 object (self)
 
-  inherit Source.source kind
+  inherit Source.source ~name:"http" kind as super
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
@@ -483,7 +483,8 @@ object (self)
       self#poll (should_stop,has_stopped)
     end
 
-  method wake_up _ =
+  method wake_up act =
+    super#wake_up act ;
     (* Now we can create the log function *)
     log_ref := (fun s -> self#log#f 3 "%s" s) ;
     (* Wait for the old polling thread to return, then create a new one. *)
