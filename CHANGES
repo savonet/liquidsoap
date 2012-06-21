@@ -1,19 +1,15 @@
 1.0.1 (xx-06-2012)
 ==================
 This version brings bug fixes and minor enhancements over 1.0.0.
-[[[
-Generated from the full log from previous release:
-  hg log . --style changelog -r 'tag("liquidsoap-1.0.0")::default' | less
-for finalizing the changelog, check the remaining part:
-  hg log . --style changelog -r '926f2a5a26e4::default' | less
-and REMOVE THIS block of course!
-]]]
 ==================
 Fixes:
 - correct type for the "flush" parameter in output.external()
 - fix bug where MP3 encoder would discard initial ID3v2 rendering
 - load libraries in --interactive [LS-618]
 - update examples, notably the installed radio.liq
+- generalize the types of input.http() and input.harbor() to allow variable
+  content kinds, and also allow video for harbor [LS-601]
+- request.equeue() now allows to remove requests from the primary queue
 New:
 - new values for metadata fields does not override old one anymore;
   use setting "request.metadata_decoders.override" to restore old behavior
@@ -26,6 +22,9 @@ New:
 - scripting builtin source.fallible()
 - harbor is now verb-oriented, supporting GET, POST, PUT, HEAD, DELETE, OPTIONS
 - load DSSI plugins from environment variables and using dssi.register()
+- also display the type of the whole expression when -i is passed
+- generalized custom path support for facilitating standalone distributions
+- and as usual, various improvements in the code, log and error messages, etc.
 
 1.0.0 (08-10-2011)
 ==================
