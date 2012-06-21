@@ -75,17 +75,17 @@ object (self)
   val mutable dump = None
   val mutable logf = None
 
-  initializer 
+  initializer
     ns_kind <- "input.harbor" ;
     let stop =
       Tutils.mutexify relay_m
         (fun _ ->
-          if relay_socket <> None then 
+          if relay_socket <> None then
             begin
-             self#disconnect ~lock:false; 
+             self#disconnect ~lock:false;
              "Done"
             end
-          else 
+          else
             "No source client connected")
     in
     self#register_command
@@ -94,7 +94,7 @@ object (self)
       "kick" ~descr:"Kick current source client, if connected." stop ;
     self#register_command
       "status" ~descr:"Display current status."
-      (Tutils.mutexify relay_m 
+      (Tutils.mutexify relay_m
        (fun _ ->
          match relay_socket with
            | Some s ->
@@ -103,7 +103,7 @@ object (self)
                                          (Unix.getpeername s))
            | None ->
                "no source client connected")) ;
-    self#register_command 
+    self#register_command
                "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f"
@@ -165,9 +165,9 @@ object (self)
         while true do
           if should_stop () then
             raise Disconnected ;
-          Tutils.mutexify relay_m 
+          Tutils.mutexify relay_m
             (fun () ->
-               if relay_socket = None then 
+               if relay_socket = None then
                  failwith "relaying stopped") () ;
           decoder.Decoder.decode generator
         done
@@ -185,7 +185,7 @@ object (self)
                 | Disconnected -> e
                 | _ when relay_socket = None -> Stopped
                 | _ -> e
-            in 
+            in
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
             (* exception Disconnected is raised when
              * the thread is being killed, which only
@@ -194,7 +194,7 @@ object (self)
             if e <> Disconnected && e <> Stopped then
               self#disconnect ~lock:true;
             has_stopped () ;
-            if debug then raise e 
+            if debug then raise e
 
   method private wake_up act =
      super#wake_up act ;
@@ -217,9 +217,9 @@ object (self)
   method private sleep =
     Tutils.mutexify relay_m
      (fun () ->
-       if relay_socket <> None then 
+       if relay_socket <> None then
          self#disconnect ~lock:false) () ;
-    Harbor.remove_source ~port ~mountpoint () 
+    Harbor.remove_source ~port ~mountpoint ()
 
   method register_decoder mime =
     Generator.set_mode generator `Undefined ;
@@ -240,7 +240,7 @@ object (self)
         begin match dumpfile with
           | Some f ->
               begin try
-                dump <- Some (open_out_bin 
+                dump <- Some (open_out_bin
                                 (Utils.home_unrelate f))
               with e ->
                 self#log#f 2 "Could not open dump file: \
@@ -251,7 +251,7 @@ object (self)
         begin match logfile with
           | Some f ->
               begin try
-                logf <- Some (open_out_bin 
+                logf <- Some (open_out_bin
                                 (Utils.home_unrelate f))
               with e ->
                 self#log#f 2 "Could not open log file: \
@@ -259,39 +259,39 @@ object (self)
               end
           | None -> ()
         end ;
-        (* Wait for the old feeding thread to return, 
+        (* Wait for the old feeding thread to return,
          * then create a new one. *)
         assert (kill_polling = None) ;
         begin match wait_polling with
           | None -> ()
-          | Some f -> 
+          | Some f ->
               f () ; wait_polling <- None
         end ;
         begin
-         let kill,wait = 
-           Tutils.stoppable_thread 
-                (self#feed socket) 
-                "harbor source feeding" 
+         let kill,wait =
+           Tutils.stoppable_thread
+                (self#feed socket)
+                "harbor source feeding"
          in
          kill_polling <- Some kill ;
          wait_polling <- Some wait
         end) ()
 
   method disconnect ~lock =
-    let f () = 
+    let f () =
       match relay_socket with
-        | Some s -> 
+        | Some s ->
            begin match dump with
-             | Some f -> 
+             | Some f ->
                  close_out f ; dump <- None
              | None -> ()
            end ;
            begin match logf with
-             | Some f -> 
+             | Some f ->
                  close_out f ; logf <- None
              | None -> ()
            end ;
-           begin 
+           begin
              try
                Unix.close s
              with _ -> ()
@@ -398,16 +398,16 @@ let () =
              -> true
          | _ -> false
        in
-       let default_user = 
-         Lang.to_string (List.assoc "user" p) 
+       let default_user =
+         Lang.to_string (List.assoc "user" p)
        in
-       let default_password = 
-         Lang.to_string (List.assoc "password" p) 
+       let default_password =
+         Lang.to_string (List.assoc "password" p)
        in
        let debug = Lang.to_bool (List.assoc "debug" p) in
        let timeout = Lang.to_float (List.assoc "timeout" p) in
        let icy = Lang.to_bool (List.assoc "icy" p) in
-       let icy_charset = 
+       let icy_charset =
          match Lang.to_string (List.assoc "icy_metadata_charset" p) with
            | "" -> None
            | s -> Some s
@@ -420,20 +420,20 @@ let () =
        let port = Lang.to_int (List.assoc "port" p) in
        let auth_function = List.assoc "auth" p in
        let login user password =
-         (** We try to decode user & password here. 
+         (** We try to decode user & password here.
            * Idealy, it would be better to decode them
            * in tools/harbor.ml in order to use any
            * possible charset information there.
-           * However: 
+           * However:
            * - ICY password are given raw, without
            *   any charset information
-           * - HTTP password are encoded in Base64 and 
+           * - HTTP password are encoded in Base64 and
            *   passed through the HTTP headers, where
            *   there are no charset information concerning
            *   the password. Note: Content-Type may contain
-           *   a charset information, but this refers to 
+           *   a charset information, but this refers to
            *   the charset of the HTML content.. *)
-         let user,password = 
+         let user,password =
            let f = Configure.recode_tag in
            f user, f password
          in
@@ -468,8 +468,8 @@ let () =
                   (List.assoc "max" p,
                    "Maximun buffering inferior to pre-buffered data"));
        let on_connect l =
-         let l = 
-           List.map 
+         let l =
+           List.map
             (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
             l
          in
@@ -485,7 +485,7 @@ let () =
        in
        (new http_input_server ~kind ~timeout
                  ~bufferize ~max ~login ~mountpoint
-                 ~dumpfile ~logfile ~icy ~port 
+                 ~dumpfile ~logfile ~icy ~port
                  ~icy_charset ~meta_charset
-                 ~on_connect ~on_disconnect ~debug 
+                 ~on_connect ~on_disconnect ~debug
                  p :> Source.source))

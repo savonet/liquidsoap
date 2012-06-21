@@ -28,7 +28,8 @@ exception Disconnected
 let error_translator e =
    match e with
      | Internal -> raise (Utils.Translation "Internal http error.")
-     | Read_error -> raise (Utils.Translation "Error while reading http stream.")
+     | Read_error ->
+         raise (Utils.Translation "Error while reading http stream.")
      | _ -> ()
 
 let () = Utils.register_error_translator error_translator
@@ -228,9 +229,11 @@ object (self)
             | Failure _ -> "Invalid URL") ;
     self#register_command "status" ~usage:"status"
       ~descr:"Return the current status of the source, \
-              either \"stopped\" (the source isn't trying to relay the HTTP stream), \
+              either \"stopped\" (the source isn't trying to relay \
+              the HTTP stream), \
               \"polling\" (attempting to connect to the HTTP stream) \
-              or \"connected <url>\" (connected to <url>, buffering or playing back the stream)."
+              or \"connected <url>\" (connected to <url>, buffering or \
+              playing back the stream)."
       (fun _ ->
          match connected with
            | Some s -> "connected " ^ s
@@ -251,7 +254,7 @@ object (self)
   method feeding should_stop ?(newstream=true)
                  create_decoder socket chunked metaint =
     let read = read_stream socket chunked metaint self#insert_metadata in
-    let read len = 
+    let read len =
       let log = self#log#f 4 "%s" in
       Utils.wait_for ~log `Read socket timeout;
       read len
@@ -339,8 +342,8 @@ object (self)
         in
           try
             let log = self#log#f 4 "%s" in
-            let (_, status, status_msg), fields = 
-               Http.request ~log ~timeout socket request 
+            let (_, status, status_msg), fields =
+               Http.request ~log ~timeout socket request
             in
             let content_type =
               match force_mime with
@@ -575,7 +578,8 @@ let () =
        let url = Lang.to_string (List.assoc "" p) in
        let () =
          try ignore (parse_url url) with
-           | Failure _ -> raise (Lang.Invalid_value (List.assoc "" p, "invalid URL"))
+           | Failure _ ->
+               raise (Lang.Invalid_value (List.assoc "" p, "invalid URL"))
        in
        let autostart = Lang.to_bool (List.assoc "autostart" p) in
        let bind_address = Lang.to_string (List.assoc "bind_address" p) in

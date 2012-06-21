@@ -241,15 +241,15 @@ let () =
      * . x >= 1: audio with a fixed number (x) of channels. *)
    let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
    let test_arg =
-     "test",test_file_t,None, 
+     "test",test_file_t,None,
      Some "Function used to \
            determine if the file should \
            be decoded by the decoder. Returned values are: \
            0: no decodable audio, -1: decodable audio but \
            number of audio channels unknown, x: fixed number of decodable \
-           audio channels."                               
+           audio channels."
    in
-   let test_f f = 
+   let test_f f =
      (fun file ->
         Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
    in
@@ -299,20 +299,20 @@ let () =
          in
          let test = List.assoc "test" p in
          External_decoder.register_oblivious
-           name descr 
+           name descr
            (test_f test) process prebuf ;
          Lang.unit)
    end
 
-let () = 
-  add_builtin "metadata.export" ~cat:Liq 
+let () =
+  add_builtin "metadata.export" ~cat:Liq
    ~descr:"Filter-out internal metadata."
    ["",Lang.metadata_t,None,None] Lang.metadata_t
    (fun p ->
-     Lang.metadata 
+     Lang.metadata
       (Encoder.Meta.to_metadata
         (Encoder.Meta.export_metadata
-          (Lang.to_metadata 
+          (Lang.to_metadata
             (List.assoc "" p)))))
 
 let () =
@@ -570,9 +570,9 @@ let special_chars =
    * usual '"' and '\' *)
   escaped 0 ['"'; '\\'; '\x7F']
 
-let register_escape_fun ~name ~descr ~escape 
+let register_escape_fun ~name ~descr ~escape
                         ~escape_char =
-  let escape ~special_char ~escape_char s = 
+  let escape ~special_char ~escape_char s =
     let b = Buffer.create (String.length s) in
     let f = Format.formatter_of_buffer b in
     escape ~special_char ~escape_char f s ;
@@ -581,24 +581,24 @@ let register_escape_fun ~name ~descr ~escape
   in
   let special_chars =
     Lang.list Lang.string_t
-     (List.map Lang.string 
-      (List.map (String.make 1) 
+     (List.map Lang.string
+      (List.map (String.make 1)
         special_chars))
   in
   let escape_char p _ =
-    let v = List.assoc "" p in 
+    let v = List.assoc "" p in
     Lang.string
      (escape_char
        (Lang.to_string v).[0])
   in
-  let escape_char = 
-    Lang.val_fun 
+  let escape_char =
+    Lang.val_fun
      ["","",Lang.string_t,None]
      ~ret_t:Lang.string_t
      escape_char
   in
-  add_builtin name ~cat:String ~descr 
-    [ "special_chars", Lang.list_t Lang.string_t, 
+  add_builtin name ~cat:String ~descr
+    [ "special_chars", Lang.list_t Lang.string_t,
       Some (special_chars),
       Some ("List of characters that should be escaped. The first \
              character of each element in the list is considered.") ;
@@ -610,26 +610,26 @@ let register_escape_fun ~name ~descr ~escape
     Lang.string_t
     (fun p ->
        let s = Lang.to_string (List.assoc "" p) in
-       let special_chars = 
-         List.map 
+       let special_chars =
+         List.map
           (fun s -> s.[0])
             (List.map Lang.to_string
               (Lang.to_list (List.assoc "special_chars" p)))
        in
        let special_char c = List.mem c special_chars in
        let f = List.assoc "escape_char" p in
-       let escape_char c = 
+       let escape_char c =
          Lang.to_string
-          (Lang.apply f ~t:Lang.string_t 
+          (Lang.apply f ~t:Lang.string_t
              ["",Lang.string (String.make 1 c)])
        in
-       Lang.string (escape ~special_char ~escape_char s)) 
+       Lang.string (escape ~special_char ~escape_char s))
 
-let () = 
-  let escape ~special_char ~escape_char f s = 
+let () =
+  let escape ~special_char ~escape_char f s =
     Utils.escape ~special_char ~escape_char f s
   in
-  register_escape_fun ~name:"string.escape" 
+  register_escape_fun ~name:"string.escape"
                       ~descr:"Escape special charaters in a \
                               string. String is parsed char by char. \
                               See @string.utf8.escape@ for an UTF8-aware \
@@ -638,7 +638,7 @@ let () =
   let escape ~special_char ~escape_char f s =
     Utils.escape_utf8 ~special_char ~escape_char f s
   in
-  register_escape_fun ~name:"string.utf8.escape" 
+  register_escape_fun ~name:"string.utf8.escape"
                       ~descr:"Escape special charaters in an UTF8 \
                               string."
                       ~escape ~escape_char:Utils.escape_utf8_char
@@ -721,17 +721,17 @@ let () =
             is enabled."
     [ "in_enc", Lang.string_t, Some (Lang.string ""),
       Some "Input encoding. Autodetected if empty." ;
-      "out_enc", Lang.string_t, Some (Lang.string "UTF-8"), 
+      "out_enc", Lang.string_t, Some (Lang.string "UTF-8"),
       Some "Output encoding." ;
       "", Lang.string_t, None, None ]
     Lang.string_t
     (fun p ->
-       let in_enc = 
+       let in_enc =
          match Lang.to_string (List.assoc "in_enc" p) with
            | "" -> None
            | s  -> Some s
        in
-       let out_enc = 
+       let out_enc =
          Lang.to_string (List.assoc "out_enc" p)
        in
        let string = Lang.to_string (List.assoc "" p) in
@@ -966,10 +966,10 @@ let () =
        let l = Lang.to_list l in
          List.fold_left (fun x y -> Lang.apply ~t:x.Lang.t f ["",x; "",y]) x l)
 
-(* TODO: This will fail the whole script 
+(* TODO: This will fail the whole script
  * if the list does not have the required element! *)
 let () =
-  add_builtin "list.nth" ~cat:List 
+  add_builtin "list.nth" ~cat:List
     ~descr:"Get the n-th element of a list \
             (the first element is at position 0)."
     [ "",Lang.list_t (Lang.univ_t 1),None,None ;
@@ -1200,9 +1200,9 @@ let reopen_in inchan filename =
   Unix.dup2 fd2 fd1;
   Unix.close fd2
 
-let () = 
+let () =
   let reopen name descr f =
-    add_builtin name ~cat:Sys ~descr 
+    add_builtin name ~cat:Sys ~descr
       ["", Lang.string_t, None, None] Lang.unit_t
       (fun p ->
         let file = Lang.to_string (List.assoc "" p) in
@@ -1306,7 +1306,7 @@ let () =
       let l = Unix.environment () in
       (* Split at first occurence of '='. Return v,"" if
        * no '=' could be found. *)
-      let split s = 
+      let split s =
         try
           let pos = String.index s '=' in
           String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
@@ -1320,8 +1320,8 @@ let () =
 
 let () =
   add_builtin "getenv" ~cat:Sys
-    ~descr:"Get the value associated to a variable in the process environment. Returns \"\" if variable \
-            is not set."
+    ~descr:"Get the value associated to a variable in the process \
+            environment. Return \"\" if variable is not set."
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
       Lang.string (Utils.getenv ~default:"" (Lang.to_string (List.assoc "" p))))
@@ -1474,15 +1474,15 @@ let () =
     Lang.unit_t
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
-       let verb = 
-         Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) 
+       let verb =
+         Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
        in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
        let f ~protocol ~data ~headers ~socket uri =
          let l =
-            List.map 
-              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
+            List.map
+              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
               headers
          in
          let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
@@ -1490,7 +1490,7 @@ let () =
          in
          Harbor.reply
            (Lang.to_string
-             (Lang.apply ~t:Lang.string_t 
+             (Lang.apply ~t:Lang.string_t
                          f [("",Lang.string uri);("headers",l);
                             ("data",Lang.string data);
                             ("protocol",Lang.string protocol)]))
@@ -1508,7 +1508,7 @@ let () =
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
-       let verb = 
+       let verb =
          Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
        in
        Harbor.remove_http_handler ~port ~verb ~uri () ;
@@ -1589,27 +1589,27 @@ let rec to_json_compact v =
             s
     | Lang.List l ->
         (* Convert (string*'a) list to object *)
-        begin 
+        begin
          try
           let t = v.Lang.t in
           let t = Lang.of_list_t t in
           let (t,_) = Lang.of_product_t t in
           let compare = Lang_types.( <: ) in
           ignore(compare t Lang.string_t);
-          let l = 
+          let l =
             List.map (fun x ->
                         let (x,y) = Lang.to_product x in
-                        Printf.sprintf "%s:%s" 
+                        Printf.sprintf "%s:%s"
                           (to_json_compact x) (to_json_compact y))
                       l
           in
           Printf.sprintf "{%s}" (String.concat "," l)
          with _ ->
-               Printf.sprintf "[%s]" 
-                (String.concat "," 
+               Printf.sprintf "[%s]"
+                (String.concat ","
                   (List.map to_json_compact l))
         end
-    | Lang.Product (p,q) -> 
+    | Lang.Product (p,q) ->
        Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
@@ -1622,22 +1622,22 @@ let rec to_json_pp f v =
   match v.Lang.value with
     | Lang.List l ->
         (* Convert (string*'a) list to object *)
-        begin 
+        begin
          try
           let t = v.Lang.t in
           let t = Lang.of_list_t t in
           let (t,_) = Lang.of_product_t t in
             let compare = Lang_types.( <: ) in
             ignore(compare t Lang.string_t);
-            let print f l = 
+            let print f l =
               let len = List.length l in
               let f pos x =
                 let (x,y) = Lang.to_product x in
                 if pos != len - 1 then
-                  Format.fprintf f "%a: %a,@;<1 0>" 
+                  Format.fprintf f "%a: %a,@;<1 0>"
                     to_json_pp x to_json_pp y
                 else
-                  Format.fprintf f "%a: %a" 
+                  Format.fprintf f "%a: %a"
                     to_json_pp x to_json_pp y ;
                 pos+1
               in
@@ -1660,11 +1660,11 @@ let rec to_json_pp f v =
                in
                Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
         end
-    | Lang.Product (p,q) -> 
+    | Lang.Product (p,q) ->
        Format.fprintf f
          "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]"
          to_json_pp p to_json_pp q
-    | Lang.Ref v -> 
+    | Lang.Ref v ->
        Format.fprintf  f
          "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
          to_json_pp !v
@@ -1677,15 +1677,15 @@ let to_json_pp v =
   Format.pp_print_flush f ();
   Buffer.contents b
 
-let to_json ~compact v = 
-  if compact then 
+let to_json ~compact v =
+  if compact then
      to_json_compact v
   else
      to_json_pp v
 
 let () =
   add_builtin "json_of" ~cat:String
-    ~descr:"Convert a value to a json string." 
+    ~descr:"Convert a value to a json string."
      ["compact",Lang.bool_t,Some (Lang.bool false),
       Some "Output compact text.";
       "",Lang.univ_t 1,None,None] Lang.string_t
@@ -1708,12 +1708,12 @@ let () =
     (fun p -> (Lang.to_source (List.assoc "" p))#abort_track ; Lang.unit)
 
 let () =
-  add_builtin "source.seek" ~cat:Liq 
+  add_builtin "source.seek" ~cat:Liq
     ~descr:"Seek forward, in seconds. \
             Returns the amount of time effectively seeked."
     [ "",Lang.source_t (Lang.univ_t 1),None,None;
       "",Lang.float_t,None,None ] Lang.float_t
-    (fun p -> 
+    (fun p ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
        let time = Lang.to_float (Lang.assoc "" 2 p) in
        let len = Frame.master_of_seconds time in
@@ -1726,10 +1726,10 @@ let () =
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
 
 let () =
-  add_builtin "source.fallible" ~cat:Liq 
+  add_builtin "source.fallible" ~cat:Liq
     ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
     [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.bool_t
-    (fun p -> 
+    (fun p ->
       Lang.bool ((Lang.to_source (List.assoc "" p))#stype == Source.Fallible))
 
 let () =
@@ -2193,7 +2193,7 @@ let add_http_request name descr request =
             end
           in
           let log = log#f 4 "%s" in
-          Http.full_request ~log ~timeout ~headers 
+          Http.full_request ~log ~timeout ~headers
                             ~port ~host ~url ~request ()
         with
           | e ->
