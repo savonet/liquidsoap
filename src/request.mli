@@ -156,6 +156,9 @@ val get_log : t -> log
 (** Indicate that a request is currently being streamed. *)
 val on_air : t -> unit
 
+(** Query whether a request is currently being streamed. *)
+val is_on_air : t -> bool
+
 (** [duration filename] computes the duration of audio data contained in
   * [filename]. The computation may be expensive.
   * @raise Not_found if no duration computation method is found. *)
