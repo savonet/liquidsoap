@@ -84,14 +84,22 @@ object (self)
         ~descr:"Remove request <rid> from the secondary queue."
         (fun a ->
            let id = int_of_string a in
-             try
-               let req =
-                 Rqueue.remove_pred queue (fun _ r -> Request.get_id r = id)
-               in
-                 Request.destroy req ;
-                 "OK"
-             with
-             | Rqueue.Not_found -> "No such request in my queue") ;
+             match Request.from_id id with
+               | None -> "ERROR: Invalid RID!"
+               | Some r ->
+                   if Request.is_on_air r then
+                     "ERROR: Request already on air!"
+                   else if Request.get_metadata r "queue" = Some "primary"  then begin
+                     self#expire (fun r' -> Request.get_id r' = id) ;
+                     "OK"
+                   end else try
+                     Request.destroy
+                       (Rqueue.remove_pred
+                          queue
+                          (fun _ r -> Request.get_id r = id)) ;
+                     "OK"
+                   with
+                     | Rqueue.Not_found -> "ERROR: No such request in queue!") ;
       self#register_command "move" ~usage:"move <rid> <pos>"
         ~descr:"Move request <rid> in the secondary queue."
         (fun a ->
@@ -108,9 +116,9 @@ object (self)
                    with
                    | Rqueue.Not_found ->
                        Request.destroy req ;
-                       "Insertion failed, request lost"
+                       "ERROR: Insertion failed, request lost!"
                with
-               | Rqueue.Not_found -> "No such request in my queue"
+               | Rqueue.Not_found -> "ERROR: No such request in my queue!"
            else
              "Usage: move <rid> <pos>")
 
