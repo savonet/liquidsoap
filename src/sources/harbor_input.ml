@@ -309,9 +309,9 @@ end
 
 let () =
   Lang.add_operator "input.harbor"
-    ~kind:Lang.audio_video_any
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
     ~category:Lang.Input
-    ~descr:("Retrieves the given http stream from the harbor.")
+    ~descr:"Retrieves the given http stream from the harbor."
     [
       "buffer", Lang.float_t, Some (Lang.float 2.),
        Some "Duration of the pre-buffered data." ;

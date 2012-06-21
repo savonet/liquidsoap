@@ -506,6 +506,7 @@ end
 
 let () =
   Lang.add_operator "input.http"
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
     ~category:Lang.Input
     ~descr:"Forwards the given http stream. The relay can be \
             paused/resumed using the start/stop telnet commands."
@@ -555,7 +556,6 @@ let () =
 
       "", Lang.string_t, None,
       Some "URL of an http stream (default port is 80)." ]
-    ~kind:Lang.audio_video_any
     (fun p kind ->
        let playlist_mode =
          let s = List.assoc "playlist_mode" p in
