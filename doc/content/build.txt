@@ -50,7 +50,7 @@ You may refer to the liquidsoap INSTALL file for required versions of the
 libraries:
 
 * "ocamlfind":http://www.ocaml-programming.de/programming/findlib.html
-* ocaml-dtools
+* ocaml-dtools (>= 0.3.0)
 * ocaml-duppy (>= 0.1.2)
 * "ocaml-pcre":http://www.ocaml.info/home/ocaml_sources.html
 

@@ -8,9 +8,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.0.0+scm])
-scm_snapshot=true
-version=1.0.0
+AC_INIT([liquidsoap],[1.0.1])
+scm_snapshot=false
+version=1.0.1
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -310,7 +310,7 @@ AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.2.2],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
 
 #
 # Duppy

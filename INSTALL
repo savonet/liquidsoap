@@ -1,5 +1,5 @@
 
- Liquidsoap 1.0.0
+ Liquidsoap 1.0.1
  ----------------
 
  Below is a list of dependencies, mostly OCaml libraries.
@@ -18,7 +18,7 @@
 
  Mandatory dependencies :
 
-   ocaml-dtools>=0.2.2
+   ocaml-dtools>=0.3.0
    ocaml-duppy>=0.4.2
    ocaml-mm>=0.2.0
    ocaml-pcre
