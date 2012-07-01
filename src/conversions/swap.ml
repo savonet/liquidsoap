@@ -24,7 +24,7 @@ open Source
 
 class swap ~kind (source:source) =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator kind [source] ~name:"swap" as super
 
   method stype = source#stype
   method is_ready = source#is_ready

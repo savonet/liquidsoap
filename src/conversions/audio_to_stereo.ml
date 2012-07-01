@@ -33,7 +33,7 @@
 class basic ~kind source =
 object (self)
 
-  inherit Source.operator kind [source]
+  inherit Source.operator kind [source] ~name:"audio_to_stereo"
 
   method stype = source#stype
   method is_ready = source#is_ready

@@ -32,7 +32,7 @@ class mean ~kind source =
   in
   let channels = float channels in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator kind [source] ~name:"mean" as super
 
   method stype = source#stype
   method is_ready = source#is_ready

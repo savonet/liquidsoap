@@ -22,7 +22,7 @@
 
 class drop_video ~kind source =
 object
-  inherit Source.operator kind [source]
+  inherit Source.operator kind [source] ~name:"drop_video"
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -67,7 +67,7 @@ let () =
 
 class drop_audio ~kind source =
 object
-  inherit Source.operator kind [source]
+  inherit Source.operator kind [source] ~name:"drop_audio"
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -113,7 +113,7 @@ let () =
 
 class drop_midi ~kind source =
 object
-  inherit Source.operator kind [source]
+  inherit Source.operator kind [source] ~name:"drop_midi"
 
   method stype = source#stype
   method is_ready = source#is_ready
