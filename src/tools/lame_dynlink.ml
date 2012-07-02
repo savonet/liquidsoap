@@ -63,6 +63,12 @@ sig
   val set_vbr_hard_min : encoder -> bool -> unit
   val set_brate : encoder -> int -> unit
   val set_compression_ratio : encoder -> float -> unit
+  val set_private : encoder -> bool -> unit
+  val get_private : encoder -> bool
+  val set_copyright : encoder -> bool -> unit
+  val get_copyright : encoder -> bool
+  val set_original : encoder -> bool -> unit
+  val get_original : encoder -> bool
   exception Init_params_failed
   val init_params : encoder -> unit
   val init_bitstream : encoder -> unit
