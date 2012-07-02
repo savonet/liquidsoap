@@ -20,14 +20,15 @@
 
  *****************************************************************************)
 
-type category = Sys | Math | String | List | Bool | Liq | Control
-              | Interaction | Other
+type category = Sys | Math | String | List | Bool | Pair
+              | Liq | Control | Interaction | Other
 
 let string_of_category = function
   | Sys     -> "System"
   | Math    -> "Math"
   | String  -> "String"
   | List    -> "List"
+  | Pair    -> "Pair"
   | Bool    -> "Bool"
   | Liq     -> "Liquidsoap"
   | Control -> "Control"
@@ -1083,12 +1084,12 @@ let () =
 (** Operations on products. *)
 
 let () =
-  add_builtin "fst" ~cat:List (* TODO wrong category *)
+  add_builtin "fst" ~cat:Pair
     ~descr:"Get the first component of a pair."
     ["",Lang.product_t (Lang.univ_t 1) (Lang.univ_t 2),None,None]
     (Lang.univ_t 1)
     (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p))) ;
-  add_builtin "snd" ~cat:List (* TODO wrong category *)
+  add_builtin "snd" ~cat:Pair
     ~descr:"Get the second component of a pair."
     ["",Lang.product_t (Lang.univ_t 1) (Lang.univ_t 2),None,None]
     (Lang.univ_t 2)
