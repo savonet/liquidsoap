@@ -1,4 +1,4 @@
-1.0.1 (xx-06-2012)
+1.0.1 (xx-07-2012)
 ==================
 This version brings bug fixes and minor enhancements over 1.0.0.
 ==================
@@ -10,6 +10,7 @@ Fixes:
 - generalize the types of input.http() and input.harbor() to allow variable
   content kinds, and also allow video for harbor [LS-601]
 - request.equeue() now allows to remove requests from the primary queue
+- fix compilation of lame dynamic plugin.
 New:
 - new values for metadata fields does not override old one anymore;
   use setting "request.metadata_decoders.override" to restore old behavior

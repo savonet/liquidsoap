@@ -36,7 +36,7 @@
    ocaml-vorbis>=0.6.1       for Ogg/Vorbis codec
    ocaml-theora>=0.3.0       for Ogg/Theora codec
    ocaml-speex>=0.2.0        for Ogg/Speex codec
-   ocaml-flac>=0.1.0         for Flac and Ogg/Flac codec
+   ocaml-flac>=0.1.1         for Flac and Ogg/Flac codec
    ocaml-schroedinger>=0.1.0 for Ogg/Schroedinger codec
    ocaml-mad>=0.4.4          for MP3 decoding
    ocaml-lame>=0.3.1         for MP3 encoding
