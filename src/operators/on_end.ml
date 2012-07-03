@@ -22,7 +22,7 @@
 
 class on_end ~kind ~delay f s =
 object (self)
-  inherit Source.operator kind [s]
+  inherit Source.operator ~name:"on_end" kind [s]
 
   val mutable executed = false
 
@@ -41,7 +41,7 @@ object (self)
     if List.length l > 0 then
       latest_metadata <- Some (snd (List.hd l));
     let rem = Frame.seconds_of_master s#remaining in
-    if rem <= delay && not executed then
+    if (not executed) && ((0. <= rem && rem <= delay) || Frame.is_partial ab) then
     begin
       let m =
         match latest_metadata with
@@ -49,7 +49,7 @@ object (self)
           | None -> Hashtbl.create 0
       in
       ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.float rem;
-                           "",Lang.metadata m]) ;
+                                          "",Lang.metadata m]) ;
       executed <- true
     end ;
     if Frame.is_partial ab then
