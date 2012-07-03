@@ -434,7 +434,7 @@ end
 def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
                      ~default=(fun (a,b) -> sequence([a, b])),
                      ~high=-15., ~medium=-32., ~margin=4.,
-                     ~width=2.,~conservative=false,s)
+                     ~width=2.,~conservative=true,s)
   fade.out = fade.out(type="sin",duration=fade_out)
   fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])

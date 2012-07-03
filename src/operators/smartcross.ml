@@ -332,14 +332,19 @@ object (self)
   method remaining =
     match status with
       | `Idle | `After _ -> source#remaining
-      | `Limit -> 0
+      | `Limit -> 0 (* TODO -1? *)
       | `Before ->
           let rem = source#remaining in
             if rem<0 then -1 else
               source#remaining +
               Generator.length gen_before
 
-  method is_ready = source#is_ready
+  (** Contrary to cross.ml, the transition is only created (and stored in
+    * the source instance variable) after that status has moved from `Limit to
+    * `After. If is_ready becomes false at this point, source.ml will end the
+    * track before that the transition (or bare end of track) gets a chance
+    * to be played. *)
+  method is_ready = source#is_ready || status = `Limit
 
   method abort_track = source#abort_track
 

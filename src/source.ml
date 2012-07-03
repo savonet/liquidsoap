@@ -477,7 +477,10 @@ object (self)
          *   having to worry about availability.
          * So we add this branch, which makes the whole protocol a bit
          * sloppy because it removes any constraint tying #is_ready and
-         * #get. *)
+         * #get. It prevents the detection of "bad" calls of #get without
+         * having checked #is_ready. It also makes it really important
+         * to have #is_ready = true during tracks, otherwise this bit
+         * of code will forcefully end the track! *)
         Frame.add_break buf (Frame.position buf)
       else
       let b = Frame.breaks buf in
