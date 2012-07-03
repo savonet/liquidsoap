@@ -215,14 +215,17 @@ end
 # Simple crossfade.
 # @category Source / Track Processing
 # @param ~start_next Duration in seconds of the crossed end of track.
-# @param ~fade_in Duration of the fade in for next track
-# @param ~fade_out Duration of the fade out for previous track
-# @param s The source to use
-def crossfade(~id="",~start_next,~fade_in,~fade_out,s)
+# @param ~fade_in Duration of the fade in for next track.
+# @param ~fade_out Duration of the fade out for previous track.
+# @param ~conservative Always prepare for a premature end-of-track.
+# @param s The source to use.
+def crossfade(~id="",~conservative=true,
+              ~start_next=5.,~fade_in=3.,~fade_out=3.,
+              s)
   s = fade.in(duration=fade_in,s)
   s = fade.out(duration=fade_out,s)
   fader = fun (a,b) -> add(normalize=false,[b,a])
-  cross(id=id,conservative=true,duration=start_next,fader,s)
+  cross(id=id,conservative=conservative,duration=start_next,fader,s)
 end
 
 # Append speech-synthesized tracks reading the metadata.
@@ -423,8 +426,8 @@ end
 # @param ~conservative Always prepare for a premature end-of-track.
 # @param ~default      Transition used when no rule applies \
 #                      (default: sequence).
-# @param ~high         Value, in dB, for loud sound level
-# @param ~medium       Value, in dB, for medium sound level
+# @param ~high         Value, in dB, for loud sound level.
+# @param ~medium       Value, in dB, for medium sound level.
 # @param ~margin       Margin to detect sources that have too different \
 #                      sound level for crossing.
 # @param s             The input source.
