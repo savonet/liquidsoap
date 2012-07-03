@@ -37,7 +37,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
     String.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
-  inherit active_source kind as active_source
+  inherit active_source ~name:"input.jack" kind as active_source
   inherit [string] IoRing.input ~nb_blocks ~blank as ioring
 
   method set_clock =

@@ -36,7 +36,7 @@ let read_PPM ?alpha fname =
   * we handle any number of channels. *)
 class image kind fname duration width height x y alpha meta source =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.add_image" kind [source] as super
 
   method stype = source#stype
 

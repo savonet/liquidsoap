@@ -28,7 +28,7 @@ class biquad ~kind (source:source) filter_type freq fparam db_gain =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samplerate = Frame.audio_of_seconds 1. in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"biquad_filter" kind [source] as super
 
   val effect = new Audio.Effect.biquad_filter channels samplerate filter_type ~gain:db_gain freq fparam
 

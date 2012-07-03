@@ -33,7 +33,7 @@ class iir ~kind (source:source)
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Frame.audio_of_seconds 1.) in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"iir_filter" kind [source] as super
 
   (* Params *)
   val raw_alpha1 = freq1 /. rate

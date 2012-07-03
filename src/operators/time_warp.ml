@@ -51,7 +51,7 @@ struct
   (** The source which produces data by reading the buffer. *)
   class producer ~kind source c =
   object (self)
-    inherit Source.source kind
+    inherit Source.source kind ~name:"warp_prod"
 
     method stype = Source.Fallible
 

@@ -53,7 +53,7 @@ let all_chans = 16
 (* chan = None means synth all channels *)
 class dssi ~kind ?chan plugin descr outputs params source =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"dssi" kind [source] as super
 
   method stype = source#stype
 

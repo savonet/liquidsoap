@@ -22,7 +22,7 @@
 
 class on_track ~kind f s =
 object
-  inherit Source.operator kind [s]
+  inherit Source.operator ~name:"on_track" kind [s]
 
   method stype = s#stype
   method is_ready = s#is_ready

@@ -24,7 +24,7 @@ open Source
 
 class midimeter ~kind source =
 object
-  inherit operator kind [source] as super
+  inherit operator ~name:"midimeter" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready

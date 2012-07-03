@@ -26,7 +26,7 @@ exception Error
 
 class insert_metadata ~kind source =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"insert_metadata" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -94,7 +94,7 @@ let () =
   * Currently used by the switch classes. *)
 class replay ~kind meta src =
 object (self)
-  inherit operator kind [src]
+  inherit operator ~name:"replay_metadata" kind [src]
 
   val mutable first = true
 

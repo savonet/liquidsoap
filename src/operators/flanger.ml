@@ -28,7 +28,7 @@ class flanger ~kind (source:source) delay freq feedback phase =
   let past_len = Frame.audio_of_seconds delay in
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"flanger" kind [source] as super
 
   method stype = source#stype
 

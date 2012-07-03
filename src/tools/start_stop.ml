@@ -149,7 +149,7 @@ class virtual input ~name ~source_kind ~content_kind
   ~(on_start:unit->unit) ~(on_stop:unit->unit) ~fallible ~autostart =
 object (self)
 
-  inherit Source.active_source content_kind
+  inherit Source.active_source ~name:source_kind content_kind
   inherit
     base ~name ~source_kind ~interactive:fallible
          ~on_start ~on_stop ~autostart

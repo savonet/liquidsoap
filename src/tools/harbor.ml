@@ -63,7 +63,7 @@ let log = Log.make [ "harbor" ]
 (* Define what we need as a source *)
 class virtual source ~kind =
   object (self)
-    inherit Source.source kind
+    inherit Source.source ~name:"input.harbor" kind
     method virtual relay :
       string -> (string * string) list -> Unix.file_descr -> unit
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit

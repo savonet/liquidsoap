@@ -22,9 +22,9 @@
 
 open Source
 
-class virtual base ~kind (source:source) =
+class virtual base ~kind ~name (source:source) =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name kind [source] as super
 
   method stype = source#stype
 
@@ -37,7 +37,7 @@ end
 
 class merge ~kind (source:source) out =
 object (self)
-  inherit base ~kind (source)
+  inherit base ~kind (source) ~name:"midi.merge_all"
 
   method private get_frame buf =
     let offset = MFrame.position buf in
@@ -51,7 +51,7 @@ end
 
 class remove ~kind (source:source) t =
 object (self)
-  inherit base ~kind (source)
+  inherit base ~kind (source) ~name:"midi.remove"
 
   method private get_frame buf =
     let offset = MFrame.position buf in

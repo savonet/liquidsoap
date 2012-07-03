@@ -22,7 +22,7 @@
 
 class rms ~kind ~window_length ~update source =
 object (self)
-  inherit Source.operator kind [source]
+  inherit Source.operator ~name:"rms" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready

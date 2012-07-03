@@ -24,7 +24,7 @@ open Source
 
 class prepend ~kind ~merge source f =
 object (self)
-  inherit operator kind [source]
+  inherit operator ~name:"prepend" kind [source]
 
   val mutable state = `Idle
 

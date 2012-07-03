@@ -24,7 +24,7 @@ open Source
 
 class soundtouch ~kind (source:source) rate tempo pitch =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"soundtouch" kind [source] as super
 
   val st = Soundtouch.make ((Frame.type_of_kind kind).Frame.audio) (Lazy.force Frame.audio_rate)
 

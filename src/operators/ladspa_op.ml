@@ -50,7 +50,7 @@ let port_t d p =
 
 class virtual base ~kind source =
 object
-  inherit operator kind [source] as super
+  inherit operator ~name:"ladspa" kind [source] as super
 
   method stype = source#stype
 
@@ -63,7 +63,7 @@ end
 
 class virtual base_nosource ~kind =
 object
-  inherit source kind
+  inherit source ~name:"ladspa" kind
 
   method stype = Infallible
 

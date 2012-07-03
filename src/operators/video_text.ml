@@ -30,7 +30,7 @@ class text ~kind
   let video_height = Lazy.force Frame.video_height in
   let video_width = Lazy.force Frame.video_width in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.add_text" kind [source] as super
 
   method stype = source#stype
 

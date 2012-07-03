@@ -42,7 +42,7 @@ let get_again s buf =
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
 object (self)
-  inherit operator kind (List.map snd sources) as super
+  inherit operator ~name:"add" kind (List.map snd sources) as super
 
   (* We want the sources at the beginning of the list to
    * have their metadatas copied to the output stream, so direction

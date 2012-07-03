@@ -24,7 +24,7 @@ open Source
 
 class compress ~kind (source:source) mu =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"compress" kind [source] as super
 
   method stype = source#stype
 

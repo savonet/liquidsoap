@@ -61,7 +61,7 @@ class pitch ~kind every length freq_min freq_max (source:source) =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let length = Frame.audio_of_seconds length in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"pitch" kind [source] as super
 
   val ring = Ringbuffer.create channels (2 * length)
 

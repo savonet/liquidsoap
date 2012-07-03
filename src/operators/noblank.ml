@@ -56,7 +56,7 @@ end
 class on_blank ~kind ~length ~threshold
   ~track_sensitive ~on_blank ~on_noise source =
 object (self)
-  inherit operator kind [source]
+  inherit operator ~name:"on_blank" kind [source]
   inherit base ~length ~threshold as base
 
   val mutable in_blank = true
@@ -94,7 +94,7 @@ let log = Dtools.Log.make ["noblank"]
 
 class skip ~kind ~length ~threshold ~track_sensitive source =
 object (self)
-  inherit operator kind [source]
+  inherit operator ~name:"skip_blank" kind [source]
   inherit base ~length ~threshold as base
 
   method stype = source#stype
@@ -122,7 +122,7 @@ end
 
 class strip ~kind ~length ~threshold ~track_sensitive source =
 object (self)
-  inherit active_operator kind [source]
+  inherit active_operator ~name:"strip_blank" kind [source]
   inherit base ~length ~threshold as base
 
   val mutable stripping = false
@@ -168,7 +168,7 @@ end
 
 class eat ~kind ~at_beginning ~length ~threshold ~track_sensitive source =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"eat_blank" kind [source] as super
   inherit base ~length ~threshold as base
 
   val mutable stripping = false

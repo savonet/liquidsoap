@@ -31,7 +31,7 @@ class fade_in ~kind ?(meta="liq_video_fade_in") ?(initial=false) duration
               fader fadefun source =
 object (self)
 
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.fade.in" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -89,7 +89,7 @@ end
 class fade_out ~kind ?(meta="liq_video_fade_out") ?(final=false) duration fader fadefun source =
 object (self)
 
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.fade.out" kind [source] as super
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track

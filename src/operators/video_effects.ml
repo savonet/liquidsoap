@@ -26,7 +26,7 @@ module Img = Image.RGBA32
 
 class effect ~kind effect (source:source) =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.effect" kind [source] as super
 
   method stype = source#stype
 

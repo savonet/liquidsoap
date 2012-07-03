@@ -30,7 +30,7 @@ class filter ~kind (source:source) freq q wet mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Lazy.force Frame.audio_rate) in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"filter" kind [source] as super
 
   method stype = source#stype
   method remaining = source#remaining

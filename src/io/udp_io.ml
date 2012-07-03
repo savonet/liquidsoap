@@ -74,7 +74,7 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
   let log = (fun x -> !log_ref x) in
 object (self)
 
-  inherit Source.source kind
+  inherit Source.source ~name:"input.udp" kind
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)

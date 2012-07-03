@@ -26,7 +26,7 @@ let pi = 3.14159265358979323846
 
 class pan ~kind (source:source) phi phi_0 =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"pan" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready

@@ -27,7 +27,7 @@ open Source
 
 class delay ~kind ~initial (source:source) delay =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"delay" kind [source] as super
 
   method stype = Fallible
   method remaining = source#remaining

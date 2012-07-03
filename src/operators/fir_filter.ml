@@ -28,7 +28,7 @@ let pi = 3.14159265358979323846
 class fir ~kind (source:source) freq beta numcoeffs =
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"fir_filter" kind [source] as super
 
   (* Needed to compute RC *)
   val f1 = (1. -. beta) *. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))

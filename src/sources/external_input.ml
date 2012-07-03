@@ -43,7 +43,7 @@ class external_input ~kind ~restart ~bufferize ~channels
   let abg = Generator.create ~log ~kind `Audio in
   let priority = Tutils.Non_blocking in
 object (self)
-  inherit Source.source kind
+  inherit Source.source ~name:"input.external" kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
   val mutable should_stop = false

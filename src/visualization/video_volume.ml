@@ -35,7 +35,7 @@ class visu ~kind source =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.volume" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready

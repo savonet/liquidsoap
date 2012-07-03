@@ -22,7 +22,7 @@
 
 class on_metadata ~kind f s =
 object (self)
-  inherit Source.operator kind [s]
+  inherit Source.operator ~name:"on_metadata" kind [s]
 
   method stype = s#stype
   method is_ready = s#is_ready

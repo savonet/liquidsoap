@@ -24,7 +24,7 @@ open Source
 
 class synth ~kind (synth:Synth.synth) (source:source) chan volume =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"synth" kind [source] as super
 
   initializer
     synth#set_volume volume

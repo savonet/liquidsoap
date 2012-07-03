@@ -22,7 +22,7 @@
 
 class store ~kind n s =
 object (self)
-  inherit Source.operator kind [s] as super
+  inherit Source.operator ~name:"store_metadata" kind [s] as super
 
   method stype = s#stype
   method is_ready = s#is_ready

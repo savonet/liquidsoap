@@ -45,7 +45,7 @@ class v4l_input v4l_version p kind =
   in
   let vfps = Lazy.force Frame.video_rate in
 object (self)
-  inherit Source.active_source kind as active_source
+  inherit Source.active_source ~name:"input.v4l" kind as active_source
   inherit [I.t array] IoRing.input ~nb_blocks ~blank as ioring
 
   method private set_clock =

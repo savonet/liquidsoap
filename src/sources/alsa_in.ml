@@ -36,7 +36,7 @@ class mic ~kind ~clock_safe device =
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   let blank () = Array.init buffer_chans (fun _ -> Array.make buffer_length 0.) in
 object (self)
-  inherit active_source kind as active_source
+  inherit active_source ~name:"input.alsa" kind as active_source
   inherit [float array array] IoRing.input ~nb_blocks ~blank as ioring
 
   method private set_clock =

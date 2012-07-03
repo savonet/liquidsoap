@@ -26,7 +26,7 @@ type mode = Encode | Decode
 
 class msstereo ~kind (source:source) mode width =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"stereo.ms.encode" kind [source] as super
 
   method stype = source#stype
   method is_ready = source#is_ready

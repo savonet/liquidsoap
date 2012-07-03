@@ -33,7 +33,7 @@ class cross ~kind (s:source)
             ~conservative ~active transition =
   let channels = float (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit source kind as super
+  inherit source ~name:"smart_cross" kind as super
 
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype

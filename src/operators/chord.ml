@@ -43,7 +43,7 @@ let note_of_string s = note_of_string s - 12
 
 class chord ~kind metadata_name (source:source) =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"chord" kind [source] as super
 
   method stype = source#stype
 

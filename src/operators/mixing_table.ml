@@ -25,7 +25,7 @@ open Source
 class mixing ~kind source =
   let n = Array.length source in
 object (self)
-  inherit operator kind (Array.to_list source) as super
+  inherit operator ~name:"mix" kind (Array.to_list source) as super
 
   initializer assert (n>0)
 

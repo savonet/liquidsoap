@@ -24,7 +24,7 @@ open Source
 
 class append ~kind ~insert_missing ~merge source f =
 object (self)
-  inherit operator kind [source]
+  inherit operator ~name:"append" kind [source]
 
   val mutable state = `Idle
 
