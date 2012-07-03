@@ -1,12 +1,16 @@
-1.0.1 (xx-07-2012)
+1.0.1 (04-07-2012)
 ==================
 This version brings bug fixes and minor enhancements over 1.0.0.
 ==================
 Fixes:
 - correct type for the "flush" parameter in output.external()
+  thanks to Romaric Petion for pointing it out
 - fix bug where MP3 encoder would discard initial ID3v2 rendering
+- fix bug where smart_cross() would stop before the end of tracks,
+  thanks to Edward Kimber for raising the issue
 - load libraries in --interactive [LS-618]
 - update examples, notably the installed radio.liq
+  thanks to Emery Hemingway for noticing the problem
 - generalize the types of input.http() and input.harbor() to allow variable
   content kinds, and also allow video for harbor [LS-601]
 - request.equeue() now allows to remove requests from the primary queue
