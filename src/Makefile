@@ -10,6 +10,16 @@ ocaml_progs= liquidsoap
 top_srcdir=..
 include $(top_srcdir)/Makefile.defs
 
+configure.ml:
+	@echo
+	@echo " ERROR Missing src/configure.ml, Please run ./configure first!"
+	@if [ -f ../configure-with-options ] ; then \
+	  echo "       Note that you can source configure-with-options" ; \
+	  echo "       for running configure with the same options as last time." \
+	; fi
+	@echo
+	@exit 1
+
 # Liquidsoap source files work as follows.
 # Each file has to be either added to liquidsoap's files if compiled builtin
 # or to the corresponding plugin if built as a plugin.
@@ -336,4 +346,3 @@ liquidsoap.$(a): $(libliq_objects:.c=.o) Makefile
 	ocamlmklib $(OCAML_CFLAGS:-threads:) -linkall $(OCAML_LFLAGS) \
 	  -o liquidsoap \
 	  $(libliq_objects:.c=.o)
-
