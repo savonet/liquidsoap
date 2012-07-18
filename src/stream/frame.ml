@@ -222,7 +222,7 @@ type content_kind = (multiplicity,multiplicity,multiplicity) fields
 type content_type = (int,int,int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
-and audio_t = Audio.Mono.buffer
+and audio_t = ABuf.t
 and video_t = Video.buffer
 and midi_t  = MIDI.buffer
 
@@ -348,7 +348,7 @@ let create_content content_type =
   {
     audio =
       Array.init content_type.audio
-        (fun _ -> Array.create (audio_of_master !!size) 0.) ;
+        (fun _ -> ABuf.make (audio_of_master !!size)) ;
     video =
       Array.init content_type.video
         (fun _ ->
@@ -536,7 +536,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun a a' ->
        if a != a' then
          let (!) = audio_of_master in
-           Audio.Mono.blit a !src_pos a' !dst_pos !len) ;
+           ABuf.blit a !src_pos a' !dst_pos !len) ;
   Utils.array_iter2 src.video dst.video
     (fun v v' ->
        if v != v' then
@@ -619,6 +619,6 @@ let get_chunk ab from =
     aux 0 (List.rev from.breaks)
 
 let copy content =
-  { audio = Array.map Audio.Mono.copy content.audio ;
+  { audio = Array.map ABuf.copy content.audio ;
     video = Array.map Video.copy content.video ;
     midi = Array.map MIDI.copy content.midi }

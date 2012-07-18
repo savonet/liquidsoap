@@ -53,12 +53,12 @@ let create_audio () =
         let ret =
           Audio_converter.Samplerate.resample
             resampler (audio_dst_rate /. audio_src_rate)
-            [|buf|] 0 (Array.length buf)
+            [|buf|] 0 (ABuf.length buf)
         in
         ret.(0)
       in
       let ret = Array.mapi resample_chan audio_buf in
-      ret,Array.length ret.(0)
+      ret, ABuf.length ret.(0)
     in
     let audio_rate =
       match audio_src_rate with
@@ -72,7 +72,7 @@ type wav_converter =
     audio_src_rate:float ->
     string -> Frame.audio_t array * int
 
-let create_from_wav ~channels ~samplesize x =
+let create_from_wav ~channels ~samplesize () =
   let audio_dst_rate =
     float (Lazy.force Frame.audio_rate)
   in
@@ -86,14 +86,14 @@ let create_from_wav ~channels ~samplesize x =
      * Currently it always truncates which means that data is dropped:
      * a proper resampling would have to be stateful. *)
     let len_dst = 1 + int_of_float (float len_src *. ratio) in
-    let dst = Array.init channels (fun _ -> Array.make len_dst 0.) in
+    let dst = Array.init channels (fun _ -> ABuf.make len_dst) in
     let resample_wav
         src src_off len samplesize
         ratio dst dst_off =
       let f =
         match samplesize with
-          | 8  -> Audio.U8.convert_to_audio
-          | 16 -> Audio.S16LE.convert_to_audio
+          | 8  -> ABuf.of_u8
+          | 16 -> ABuf.of_s16le
           | _ -> failwith "unsuported sample size"
       in
       f src src_off len ~resample:ratio dst dst_off

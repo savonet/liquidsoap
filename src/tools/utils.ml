@@ -22,6 +22,8 @@
 
 let get_some = function Some x -> x | None -> assert false
 
+let pi = 4. *. atan 1.
+
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale"
 

@@ -362,7 +362,7 @@ struct
 
   (** Add some audio content. Offset and length are given in audio samples. *)
   let put_audio t content o l =
-    assert (content = [||] || Array.length content.(0) >= o+l) ;
+    assert (content = [||] || ABuf.length content.(0) >= o+l) ;
     let o = Frame.master_of_audio o in
     let l = Frame.master_of_audio l in
       Generator.put t.audio content o l ;
@@ -448,7 +448,7 @@ struct
                    (* Same as above, even if in practice everything
                     * will always be aligned on the audio side. *)
                    let l = !(apos'+l) - !apos' in
-                     Audio.Mono.blit a !apos a' !fpos l) ;
+                     ABuf.blit a !apos a' !fpos l) ;
               if al=vl then
                 blit audio video
               else if al>vl then

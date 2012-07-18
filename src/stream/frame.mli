@@ -30,7 +30,7 @@ type content_kind = (multiplicity, multiplicity, multiplicity) fields
 type content_type = (int, int, int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
-and audio_t = Audio.Mono.buffer
+and audio_t = ABuf.buffer
 and video_t = Video.buffer
 and midi_t = MIDI.buffer
 

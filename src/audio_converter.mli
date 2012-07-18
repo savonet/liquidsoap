@@ -33,7 +33,7 @@ sig
 
   exception Invalid_data
 
-  type converter = float -> float array -> int -> int -> float array
+  type converter = float -> Frame.audio_t -> int -> int -> Frame.audio_t
 
   type converter_plug = unit -> converter
 
@@ -50,6 +50,6 @@ sig
     * at given ratio.
     * raises [Invalid_data] if number of channels do not match
     * the number passed at [create]. *)
-  val resample : t -> float -> float array array -> int -> int -> float array array
+  val resample : t -> float -> Frame.audio_t array -> int -> int -> Frame.audio_t array
 end
 

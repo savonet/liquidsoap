@@ -53,9 +53,9 @@ object (self)
     let content = Frame.content_of_type ab position content_type in
     let video_pos = Frame.video_of_master position in
       (* Audio *)
-      Audio.clear content.Frame.audio
-        (Frame.audio_of_master position)
-        (Frame.audio_of_master length) ;
+      Array.iter
+        (fun b -> ABuf.clear b (Frame.audio_of_master position) (Frame.audio_of_master length))
+        content.Frame.audio;
       (* Video *)
       Array.iter
         (fun a -> Video.blank a video_pos (Frame.video_of_master length))

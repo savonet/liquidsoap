@@ -41,14 +41,8 @@ let content_of_type ~channels b pos =
 let to_s16le b =
   (* TODO: generalize this *)
   let fpcm = content b 0 in
-  assert (Audio.channels fpcm = 2);
-  (*
-  let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
-  let s = String.create slen in
-    assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
-    s
-  *)
-  Audio.S16LE.make fpcm 0 (Audio.duration fpcm)
+  assert (Array.length fpcm = 2);
+  ABuf.to_s16le fpcm
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
@@ -75,11 +69,24 @@ exception No_chunk
 let get_chunk = get_chunk
 
 let blankify b off len =
-  Audio.clear (content b off) off len
+  let b = content b off in
+  for i = 0 to Array.length b - 1 do
+    ABuf.clear b.(i) off len
+  done
 
-let multiply b off len c = Audio.amplify c (content b off) off len
+let multiply b off len c =
+  let b = content b off in
+  for i = 0 to Array.length b - 1 do
+    ABuf.amplify c b.(i) off len
+  done
 
 let add b1 off1 b2 off2 len =
-  Audio.add (content b1 off1) off1 (content b2 off2) off2 len
+  let b1 = content b1 off1 in
+  let b2 = content b2 off2 in
+  for i = 0 to Array.length b1 - 1 do
+    ABuf.add b1.(i) off1 b2.(i) off2 len
+  done
 
-let rms b off len = Audio.Analyze.rms (content b off) off len
+let rms b off len =
+  let b = content b off in
+  Array.init (Array.length b) (fun i -> ABuf.rms b.(i) off len)

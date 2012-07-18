@@ -22,6 +22,6 @@
 
   (** Native audio converters *)
 
-let samplerate_converter () = Audio.Mono.resample
+let samplerate_converter () = ABuf.resample
 
 let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter

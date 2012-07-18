@@ -38,7 +38,7 @@ struct
 
   exception Invalid_data
 
-  type converter = float -> float array -> int -> int -> float array
+  type converter = float -> Frame.audio_t -> int -> int -> Frame.audio_t
 
   type converter_plug = unit -> converter
 
@@ -74,11 +74,11 @@ struct
       raise Invalid_data;
     let convert i b =
       if ratio = 1. then
-        Array.sub b ofs len
+        ABuf.sub b ofs len
       else
         conv.(i) ratio b ofs len
     in
-    if Array.length data.(0) = 0 then
+    if ABuf.length data.(0) = 0 then
       data
     else
       Array.mapi convert data
