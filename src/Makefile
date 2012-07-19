@@ -258,11 +258,11 @@ ifndef W_FPU
 audio_converters := $(filter-out %/libsamplerate_converter.ml,$(audio_converters))
 sources := $(filter-out %/noise.ml %/audio_gen.ml %/bjack_in.ml %/alsa_in.ml,$(sources))
 conversions := $(filter-out %/mean.ml,$(conversions))
-outputs := $(filter-out %/ao_out.ml %/bjack_out.ml %/alsa_out.ml,$(outputs))
+outputs := $(filter-out %/bjack_out.ml %/alsa_out.ml,$(outputs))
 operators := $(filter-out %/smartcross.ml %/compress_exp.ml %/pitch.ml %/fir_filter.ml %/iir_filter.ml %/biquad_filter.ml %/map_op.ml %/flanger.ml %/comb.ml %/compress.ml %/clip.ml %/filter.ml %/normalize.ml %/echo.ml %/pan.ml %/ms_stereo.ml %/compand.ml %/prepend.ml %/soundtouch_op.ml %/st_bpm.ml %/ladspa_op.ml,$(operators))
 encoders :=
 ogg_muxer :=
-io := io/oss_io.ml
+io := $(filter-out %/pulseaudio_io.ml %/portaudio_io.ml io/alsa_io.ml,$(io))
 analyze :=
 visualization :=
 synth :=

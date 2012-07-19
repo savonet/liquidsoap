@@ -101,7 +101,8 @@ object (self)
       let push data =
         let pcm = AFrame.content wav 0 in
           assert (Array.length pcm = channels) ;
-          Audio.S16LE.of_audio pcm 0 data 0 (AFrame.size ())
+          let s = ABuf.to_s16le pcm in
+          String.blit s 0 data 0 (String.length s);
       in
         ioring#put_block push
 
