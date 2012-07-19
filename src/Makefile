@@ -1,4 +1,3 @@
-NOFPU = true
 
 SUBDIRS= tools decoder playlists encoder protocols plugins stream lang \
 		 ogg_formats video_converters audio_converters \
@@ -199,7 +198,7 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/liq_sockets.ml \
-	stream/aBuf_fpu.ml stream/aBuf.ml \
+	stream/aBuf_fpu.ml stream/aBuf_nofpu.ml stream/aBuf.ml \
 	tools/wav.ml configure.ml \
 	tools/tutils.ml tools/http.ml tools/pool.ml
 
@@ -255,30 +254,19 @@ $(call conditional_compilation,io,$(W_ALSA),io/alsa_io.ml)
 $(call conditional_compilation,operators,$(W_GD),operators/video_text_gd.ml)
 
 # Sources supporting fixed-point compilation
-ifdef NOFPU
-audio_converters =
-ogg_demuxer =
-protocols =
-sources = \
-	sources/synthesized.ml sources/blank.ml \
-	sources/request_source.ml \
-	sources/req_simple.ml sources/playlist.ml \
-	sources/req_queue.ml sources/req_equeue.ml \
-	sources/generated.ml sources/http_source.ml \
-	tools/harbor.ml sources/harbor_input.ml \
-	$(if ($(OS_TYPE):Win32=),sources/external_input.ml) \
-	tools/liqMM.ml
-conversions =
-outputs =
-operators =
-encoders =
-ogg_muxer =
-io =
-analyze =
-visualization =
-synth =
-decoders =
-builtins =
+ifndef W_FPU
+audio_converters := $(filter-out %/libsamplerate_converter.ml,$(audio_converters))
+sources := $(filter-out %/noise.ml %/audio_gen.ml %/bjack_in.ml %/alsa_in.ml,$(sources))
+conversions := $(filter-out %/mean.ml,$(conversions))
+outputs := $(filter-out %/ao_out.ml %/bjack_out.ml %/alsa_out.ml,$(outputs))
+operators := $(filter-out %/smartcross.ml %/compress_exp.ml %/pitch.ml %/fir_filter.ml %/iir_filter.ml %/biquad_filter.ml %/map_op.ml %/flanger.ml %/comb.ml %/compress.ml %/clip.ml %/filter.ml %/normalize.ml %/echo.ml %/pan.ml %/ms_stereo.ml %/compand.ml %/prepend.ml %/soundtouch_op.ml %/st_bpm.ml %/ladspa_op.ml,$(operators))
+encoders :=
+ogg_muxer :=
+io := io/oss_io.ml
+analyze :=
+visualization :=
+synth :=
+decoders := decoder/metadata_decoder.ml decoder/wav_decoder.ml decoder/midi_decoder.ml $(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml)
 endif
 
 liquidsoap_sources += \

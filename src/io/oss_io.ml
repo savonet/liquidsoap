@@ -88,9 +88,8 @@ object (self)
   method output_send memo =
     let fd = Utils.get_some fd in
     let buf = AFrame.content memo 0 in
-    let r = Audio.S16LE.length (Audio.channels buf) (Audio.duration buf) in
-    let s = String.create r in
-    Audio.S16LE.of_audio buf 0 s 0 (Audio.duration buf);
+    let s = ABuf.to_s16le buf in
+    let r = String.length s in
     assert (Unix.write fd s 0 r = r)
 
 end
@@ -144,12 +143,13 @@ object (self)
     assert (0 = AFrame.position frame) ;
     let fd = Utils.get_some fd in
     let buf = AFrame.content_of_type ~channels frame 0 in
-    let len = 2 * (Array.length buf) * (Array.length buf.(0)) in
+    let d = ABuf.length buf.(0) in
+    let len = 2 * (Array.length buf) * d in
     let s = String.create len in
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
-      assert (len = r) ;
-      Audio.S16LE.to_audio s 0 buf 0 (Audio.duration buf);
+      assert (len = r);
+      ignore (ABuf.of_s16le s 0 d buf 0);
       AFrame.add_break frame (AFrame.size ())
 
 end

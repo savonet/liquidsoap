@@ -66,7 +66,7 @@ object (self)
         for i=0 to min (p2-p1-1) (length-count-1) do
           let m = fade (count+i) in
             for c = 0 to Array.length pcm - 1 do
-              pcm.(c).(p1+i) <- m *. pcm.(c).(p1+i)
+              ABuf.gain_sample m pcm.(c) (p1+i)
             done
         done ;
       state <- (if not initial && AFrame.is_partial ab then
@@ -140,7 +140,7 @@ object (self)
                 for i=0 to offset2-offset1-1 do
                   let m = fade (n-i) in
                     for c=0 to Array.length buffer - 1 do
-                      buffer.(c).(offset1+i) <- m *. buffer.(c).(offset1+i)
+                      ABuf.gain_sample m buffer.(c) (offset1+i)
                     done
                 done
           | None -> ()

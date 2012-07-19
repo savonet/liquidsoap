@@ -40,11 +40,11 @@ object (self)
           buffer.(1) <- buffer.(2) ;
           buffer.(2) <- tmp
       else
-        for i = offset to AFrame.position buf -1 do
-          let tmp = buffer.(0).(i) in
-            buffer.(0).(i) <- buffer.(1).(i) ;
-            buffer.(1).(i) <- tmp
-        done
+        (* TODO: we might be a bit more efficient if we don't copy the whole buffer *)
+        let tmp = ABuf.copy buffer.(0) in
+        let len = AFrame.position buf - offset in
+        ABuf.blit buffer.(1) offset buffer.(0) offset len;
+        ABuf.blit tmp offset buffer.(1) offset len;
 end
 
 let () =

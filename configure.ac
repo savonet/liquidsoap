@@ -283,6 +283,28 @@ else
 fi
 AC_SUBST(W_CUSTOM_PATH)
 
+# Support for FPU
+
+AC_ARG_ENABLE([fpu],
+   AS_HELP_STRING([--disable-fpu],[disable support for processors with FPU]))
+
+if test "x$enable_fpu" != "xno" ; then
+  W_FPU="yes"
+  w_FPU="yes"
+  FPU_EXT="fpu"
+  FPU_AUDIO_BUFFER_TYPE="float array"
+else
+  W_FPU=""
+  w_FPU="no"
+  FPU_EXT="nofpu"
+  FPU_AUDIO_BUFFER_TYPE="string"
+fi
+AC_SUBST(W_FPU)
+AC_SUBST(FPU_EXT)
+AC_SUBST(FPU_AUDIO_BUFFER_TYPE)
+AC_CONFIG_FILES([src/stream/aBuf.ml],[chmod a-w src/stream/aBuf.ml])
+AC_CONFIG_FILES([src/stream/aBuf.mli],[chmod a-w src/stream/aBuf.mli])
+
 #
 # Libs
 #
@@ -872,6 +894,7 @@ cat <<EOMSG
  Compiler       : $OCAMLC
  Version        : $OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION
  OS             : $OS_TYPE
+ FPU            : $w_FPU
  Plugins        :$PLUGINS
  Custom path    : $W_CUSTOM_PATH
  OCAML_CFLAGS   : $liquidsoap_ocamlcflags

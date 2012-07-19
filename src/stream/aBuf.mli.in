@@ -1,4 +1,4 @@
-type buffer
+type buffer = @FPU_AUDIO_BUFFER_TYPE@
 type t = buffer
 
 (** Make a blank buffer. *)
@@ -17,7 +17,9 @@ val clear : t -> int -> int -> unit
 
 (** Effects *)
 
-val amplify : float -> t -> int -> int -> unit
+val gain_sample : float -> t -> int -> unit
+
+val gain : float -> t -> int -> int -> unit
 
 val add : t -> int -> t -> int -> int -> unit
 

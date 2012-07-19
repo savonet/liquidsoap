@@ -131,24 +131,22 @@ object (self)
 
              let already = Frame.position buffer in
                if c<>1. && renorm then
-                 Audio.amplify
-                   c
-                   (fixed_content buffer offset).Frame.audio
-                   (Frame.audio_of_master offset)
-                   (Frame.audio_of_master (already-offset));
+                 Array.iter
+                   (fun b -> ABuf.gain c b (Frame.audio_of_master offset) (Frame.audio_of_master (already-offset)))
+                   (fixed_content buffer offset).Frame.audio;
                if rank>0 then begin
                  (* The region grows, make sure it is clean before adding.
                   * TODO the same should be done for video. *)
                  if already>end_offset then
-                   Audio.clear
-                     (fixed_content buf already).Frame.audio
-                     (Frame.audio_of_master end_offset)
-                     (Frame.audio_of_master (already-end_offset)) ;
+                   Array.iter
+                     (fun b -> ABuf.clear b (Frame.audio_of_master end_offset) (Frame.audio_of_master (already-end_offset)))
+                     (fixed_content buf already).Frame.audio;
                  (* Add to the main buffer. *)
-                 Audio.add
-                   (fixed_content buf offset).Frame.audio offset
-                   (fixed_content tmp offset).Frame.audio offset
-                   (already-offset) ;
+                 let abuf = (fixed_content buf offset).Frame.audio in
+                 let atmp =(fixed_content tmp offset).Frame.audio in
+                 for i = 0 to Array.length abuf - 1 do
+                   ABuf.add abuf.(i) offset atmp.(i) offset (already-offset)
+                 done;
                  let vbuf = (fixed_content buf offset).Frame.video in
                  let vtmp = (fixed_content tmp offset).Frame.video in
                  let (!) = Frame.video_of_master in

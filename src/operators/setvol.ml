@@ -56,10 +56,9 @@ object (self)
       end ;
       let k = match override with Some o -> o | None -> coeff () in
         if k <> 1. then
-          Audio.amplify
-            k
-            (AFrame.content buf offset) offset
-            ((AFrame.position buf)-offset);
+          Array.iter
+            (fun b -> ABuf.gain k b offset ((AFrame.position buf)-offset))
+            (AFrame.content buf offset);
         if AFrame.is_partial buf && override <> None then begin
           self#log#f 3 "End of the current overriding." ;
           override <- None

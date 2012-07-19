@@ -77,7 +77,7 @@ let blankify b off len =
 let multiply b off len c =
   let b = content b off in
   for i = 0 to Array.length b - 1 do
-    ABuf.amplify c b.(i) off len
+    ABuf.gain c b.(i) off len
   done
 
 let add b1 off1 b2 off2 len =

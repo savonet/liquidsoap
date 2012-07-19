@@ -40,7 +40,7 @@ object
         let dst = Frame.content_of_type frame start new_type in
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
-            Audio.Mono.blit
+            ABuf.blit
               src.Frame.audio.(i) !start
               dst.Frame.audio.(i) !start
               !len
@@ -131,7 +131,7 @@ object
         let dst = Frame.content_of_type frame start new_type in
           for i = 0 to Array.length src.Frame.audio - 1 do
             let (!) = Frame.audio_of_master in
-              Audio.Mono.blit
+              ABuf.blit
                 src.Frame.audio.(i) !start
                 dst.Frame.audio.(i) !start
                 !len

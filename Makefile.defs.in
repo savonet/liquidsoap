@@ -64,6 +64,7 @@ liquidsoap_PLUGINS=@PLUGINS@
 
 @PLUGINS_DATA@
 
+W_FPU=@W_FPU@
 W_MM=@W_MM@
 W_CRY=@W_CRY@
 W_OGG=@W_OGG@

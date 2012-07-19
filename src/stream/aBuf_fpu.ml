@@ -1,5 +1,4 @@
 include Audio.Mono
-(* include Audio.S32 *)
 
 type t = buffer
 
@@ -10,6 +9,11 @@ let make = create
 include Analyze
 
 let sub = Array.sub
+
+let gain = amplify
+
+let gain_sample x b i =
+  b.(i) <- b.(i) *. x
 
 let to_s16le b =
   Audio.S16LE.make b 0 (duration b.(0))
