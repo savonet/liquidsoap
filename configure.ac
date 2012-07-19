@@ -304,6 +304,7 @@ AC_SUBST(FPU_EXT)
 AC_SUBST(FPU_AUDIO_BUFFER_TYPE)
 AC_CONFIG_FILES([src/stream/aBuf.ml],[chmod a-w src/stream/aBuf.ml])
 AC_CONFIG_FILES([src/stream/aBuf.mli],[chmod a-w src/stream/aBuf.mli])
+AC_CONFIG_FILES([src/decoder/aMad.ml],[chmod a-w src/decoder/aMad.ml])
 
 #
 # Libs

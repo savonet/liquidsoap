@@ -54,7 +54,7 @@ let init input =
   (** Add an initial index. *)
   update_index ();
   let get_data () =
-    let data = Mad.decode_frame_float !dec in
+    let data = AMad.decode_frame !dec in
     update_index ();
     data
   in
@@ -126,7 +126,7 @@ let create_decoder input =
          in
          Generator.set_mode gen `Audio ;
           Generator.put_audio gen content 0
-               (Array.length content.(0))) }
+               (ABuf.length content.(0))) }
 
 end
 
@@ -169,7 +169,7 @@ let get_type filename =
   let fd = Mad.openfile filename in
     Tutils.finalize ~k:(fun () -> Mad.close fd)
       (fun () ->
-         ignore(Mad.decode_frame_float fd);
+         ignore(AMad.decode_frame fd);
          let f = Mad.get_frame_format fd in
            let layer =
              match f.Mad.layer with

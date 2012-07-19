@@ -1,6 +1,8 @@
 type buffer = @FPU_AUDIO_BUFFER_TYPE@
 type t = buffer
 
+val create : int -> t
+
 (** Make a blank buffer. *)
 val make : int -> t
 

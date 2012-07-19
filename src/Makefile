@@ -102,7 +102,7 @@ decoders = \
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_FAAD),decoder/aac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_OGG),decoder/ogg_decoder.ml)
-$(call conditional_compilation,decoders,$(W_MAD),decoder/mad_decoder.ml)
+$(call conditional_compilation,decoders,$(W_MAD),decoder/aMad_fpu.ml decoder/aMad_nofpu.ml decoder/aMad.ml decoder/mad_decoder.ml)
 $(call conditional_compilation,decoders,$(W_VORBIS),decoder/vorbisduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flacduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC_OGG),decoder/ogg_flac_duration.ml)
@@ -266,7 +266,7 @@ io := io/oss_io.ml
 analyze :=
 visualization :=
 synth :=
-decoders := decoder/metadata_decoder.ml decoder/wav_decoder.ml decoder/midi_decoder.ml $(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml)
+decoders := $(filter-out %/flac_decoder.ml %/aac_decoder.ml %/ogg_decoder.ml,$(decoders))
 endif
 
 liquidsoap_sources += \
