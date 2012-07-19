@@ -31,8 +31,8 @@ val resample : float -> t -> int -> int -> t
 
 (** Conversion *)
 
-val to_s16le : t array -> string
+val to_s16le : t array -> int -> int -> string
 
-val of_u8 : string -> int -> int -> ?resample:float -> buffer array -> int -> int
+val of_u8 : string -> int -> int -> buffer array -> int -> unit
 
-val of_s16le : string -> int -> int -> ?resample:float -> buffer array -> int -> int
+val of_s16le : string -> int -> int -> buffer array -> int -> unit

@@ -76,31 +76,21 @@ let create_from_wav ~channels ~samplesize () =
   let audio_dst_rate =
     float (Lazy.force Frame.audio_rate)
   in
+  let samplerate_converter =
+    Audio_converter.Samplerate.create channels
+  in
   (fun ~audio_src_rate src ->
     let sample_bytes = samplesize / 8 in
     let ratio = audio_dst_rate /. audio_src_rate in
-    (* Compute the length in samples, in the source data,
-     * then in the destination format, adding 1 to prevent rounding bugs. *)
-    let len_src = (String.length src) / (sample_bytes*channels) in
-    (* Adding 1 just in case the resampler doesn't round like us.
-     * Currently it always truncates which means that data is dropped:
-     * a proper resampling would have to be stateful. *)
-    let len_dst = 1 + int_of_float (float len_src *. ratio) in
-    let dst = Array.init channels (fun _ -> ABuf.make len_dst) in
-    let resample_wav
-        src src_off len samplesize
-        ratio dst dst_off =
-      let f =
-        match samplesize with
-          | 8  -> ABuf.of_u8
-          | 16 -> ABuf.of_s16le
-          | _ -> failwith "unsuported sample size"
-      in
-      f src src_off len ~resample:ratio dst dst_off
+    let len = String.length src / (sample_bytes*channels) in
+    let conv =
+      match samplesize with
+      | 8  -> ABuf.of_u8
+      | 16 -> ABuf.of_s16le
+      | _ -> failwith "unsuported sample size"
     in
-    let len_dst =
-      resample_wav
-        src 0 len_src samplesize
-        ratio dst 0
-    in
+    let dst = Array.init channels (fun _ -> ABuf.create len) in
+    conv src 0 len dst 0;
+    let dst = Audio_converter.Samplerate.resample samplerate_converter ratio dst 0 len in
+    let len_dst = ABuf.length dst.(0) in
     dst, len_dst)

@@ -88,7 +88,7 @@ object (self)
   method output_send memo =
     let fd = Utils.get_some fd in
     let buf = AFrame.content memo 0 in
-    let s = ABuf.to_s16le buf in
+    let s = ABuf.to_s16le buf 0 (ABuf.length buf.(0)) in
     let r = String.length s in
     assert (Unix.write fd s 0 r = r)
 
@@ -149,7 +149,7 @@ object (self)
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
-      ignore (ABuf.of_s16le s 0 d buf 0);
+      ABuf.of_s16le s 0 d buf 0;
       AFrame.add_break frame (AFrame.size ())
 
 end

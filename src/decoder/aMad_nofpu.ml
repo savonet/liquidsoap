@@ -4,5 +4,5 @@ let decode_frame m =
   let c = f.Mad.channels in
   let len = String.length s / (2 * c) in
   let ans = Array.init c (fun _ -> ABuf.create len) in
-  ignore (ABuf.of_s16le s 0 len ans 0);
+  ABuf.of_s16le s 0 len ans 0;
   ans

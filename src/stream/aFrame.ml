@@ -42,7 +42,7 @@ let to_s16le b =
   (* TODO: generalize this *)
   let fpcm = content b 0 in
   assert (Array.length fpcm = 2);
-  ABuf.to_s16le fpcm
+  ABuf.to_s16le fpcm 0 (ABuf.length fpcm.(0))
 
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)

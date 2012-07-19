@@ -215,11 +215,9 @@ let encoder id ext =
           Audio_converter.Samplerate.resample
                  h.converter ratio b start len
         in
-        b,0,Array.length b.(0)
+        b,0,ABuf.length b.(0)
     in
-    let slen = 2 * len * Array.length b in
-    let sbuf = String.create slen in
-    Audio.S16LE.of_audio b start sbuf 0 len;
+    let sbuf = ABuf.to_s16le b start len in
     (** Wait for any possible creation.. *)
     Mutex.lock h.create_m;
     begin

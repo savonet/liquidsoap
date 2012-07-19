@@ -15,9 +15,8 @@ let gain = amplify
 let gain_sample x b i =
   b.(i) <- b.(i) *. x
 
-let to_s16le b =
-  Audio.S16LE.make b 0 (duration b.(0))
+let to_s16le b o l = Audio.S16LE.make b o l
 
-let of_u8 = Audio.U8.convert_to_audio
+let of_u8 b o l c off = ignore (Audio.U8.convert_to_audio ~resample:1. b o l c off)
 
-let of_s16le = Audio.S16LE.convert_to_audio
+let of_s16le b o l c off = ignore (Audio.S16LE.convert_to_audio ~resample:1. b o l c off)
