@@ -204,6 +204,23 @@ struct
 
 end
 
+module Shine =
+struct
+
+  type t = {
+    channels   : int ;
+    samplerate : int ;
+    bitrate    : int ;
+  }
+
+  let to_string m =
+    Printf.sprintf "%%mp3.fxp(channels=%d,samplerate=%d,bitrate=%d)"
+      m.channels
+      m.samplerate
+      m.bitrate
+
+end
+
 module AACPlus =
 struct
 
@@ -424,6 +441,7 @@ type format =
   | WAV of WAV.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
+  | Shine of Shine.t
   | Flac of Flac.t
   | AACPlus of AACPlus.t
   | VoAacEnc of VoAacEnc.t
@@ -435,6 +453,9 @@ let kind_of_format = function
         Frame.video = 0 ; Frame.midi = 0 }
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;
+        Frame.video = 0 ; Frame.midi = 0 }
+  | Shine m ->
+      { Frame.audio = m.Shine.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | Flac m ->
       { Frame.audio = m.Flac.channels ;
@@ -475,6 +496,7 @@ let string_of_format = function
   | WAV w -> WAV.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
+  | Shine w -> Shine.to_string w
   | Flac w -> Flac.to_string w
   | AACPlus w -> AACPlus.to_string w
   | VoAacEnc w -> VoAacEnc.to_string w

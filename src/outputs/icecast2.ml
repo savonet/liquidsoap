@@ -76,6 +76,12 @@ struct
               samplerate = Some m.Encoder.MP3.samplerate ;
               channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
             }
+        | Encoder.Shine m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.Shine.bitrate ;
+              samplerate = Some m.Encoder.Shine.samplerate ;
+              channels = Some m.Encoder.Shine.channels
+            }
         | Encoder.AACPlus m ->
             { quality = None ;
               bitrate = Some m.Encoder.AACPlus.bitrate ;

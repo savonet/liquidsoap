@@ -160,7 +160,7 @@
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
-%token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR EXTERNAL
+%token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR MP3_FXP EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -284,6 +284,7 @@ expr:
   | MP3 app_opt                      { mk_mp3_cbr $2 }
   | MP3_VBR app_opt                  { mk_mp3_vbr $2 }
   | MP3_ABR app_opt                  { mk_mp3_abr $2 }
+  | MP3_FXP app_opt                  { mk_shine $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | VOAACENC app_opt                 { mk_voaacenc $2 }
   | FLAC app_opt                     { mk_flac $2 }
@@ -377,6 +378,7 @@ cexpr:
   | MP3 app_opt                      { mk_mp3_cbr $2 }
   | MP3_VBR app_opt                  { mk_mp3_vbr $2 }
   | MP3_ABR app_opt                  { mk_mp3_abr $2 }
+  | MP3_FXP app_opt                  { mk_shine $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | VOAACENC app_opt                 { mk_voaacenc $2 }

@@ -448,6 +448,12 @@ fi
 AC_SUBST(W_LAME_DYN)
 
 #
+# Shine
+#
+
+AC_CHECK_OCAML_BINDING([shine],[0.1.0])
+
+#
 # Gstreamer
 #
 
@@ -909,6 +915,7 @@ cat <<EOMSG
  * Supported output formats
    - Vorbis            : $w_VORBIS
    - MP3               : $w_LAME
+   - MP3 (fixed-point) : $w_SHINE
    - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
    - SPEEX             : $w_SPEEX

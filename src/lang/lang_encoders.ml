@@ -260,6 +260,32 @@ let mk_mp3_vbr params =
   in
     mk (Encoder (Encoder.MP3 mp3))
 
+let mk_shine params =
+  let defaults =
+    { Encoder.Shine.
+        channels = 2 ;
+        samplerate = 44100 ;
+        bitrate = 128 }
+  in
+  let shine =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.Shine.channels = i }
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.Shine.samplerate = i }
+          | ("bitrate",{ term = Int i }) ->
+              { f with Encoder.Shine.bitrate = i }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.Shine.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Shine.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    mk (Encoder (Encoder.Shine shine))
+
 let mk_aacplus params =
   let defaults =
     { Encoder.AACPlus.

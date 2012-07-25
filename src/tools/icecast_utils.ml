@@ -85,7 +85,8 @@ struct
   let format_of_encoder =
     function
       | Encoder.MP3 _ -> Some mpeg
-      | Encoder.AACPlus _ -> Some aacplus
+      | Encoder.Shine _ -> Some mpeg
+      | Encoder.AACPlus _ -> Some aac
       | Encoder.VoAacEnc _ -> Some aac
       | Encoder.External _ -> None
       | Encoder.Flac _ -> Some flac

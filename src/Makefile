@@ -170,6 +170,7 @@ encoders = \
 	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml)
 
+$(call conditional_compilation,encoders,$(W_SHINE),encoder/shine_encoder.ml)
 $(call conditional_compilation,encoders,$(W_LAME),encoder/lame_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_FLAC),encoder/flac_encoder.ml)
 $(call conditional_compilation,encoders,$(W_AACPLUS),encoder/aacplus_encoder_builtin.ml)

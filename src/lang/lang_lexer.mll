@@ -141,10 +141,11 @@ rule token = parse
   | "%dirac"  { DIRAC  }
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
-  | "%mp3" { MP3 }
+  | "%mp3"     { MP3 }
   | "%mp3.cbr" { MP3 }
   | "%mp3.abr" { MP3_ABR }
   | "%mp3.vbr" { MP3_VBR }
+  | "%mp3.fxp" { MP3_FXP }
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
   | "%aac" { VOAACENC }
