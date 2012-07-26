@@ -48,6 +48,7 @@ let encoder shine =
   let samples = Shine.samples_per_frame in
   let data = Audio.create channels samples in
   let buf = G.create () in
+  let encoded = Buffer.create 1024 in
   let encode frame start len =
     let start = Frame.audio_of_master start in
     let b = AFrame.content_of_type ~channels frame start in
@@ -63,16 +64,17 @@ let encoder shine =
         Audio.copy b,start,len
     in
     G.put buf b start len ;
-    if (G.length buf > samples) then
-     begin
+    while (G.length buf > samples) do
       let l = G.get buf samples in
       let f (b,o,o',l) = 
         Audio.blit b o data o' l
       in
       List.iter f l ;
-      Shine.encode_buffer enc data
-     end
-    else "" 
+      Buffer.add_string encoded (Shine.encode_buffer enc data)
+    done ;
+    let ret = Buffer.contents encoded in
+    Buffer.reset encoded;
+    ret
   in
   let stop () = "" in
   { Encoder.
