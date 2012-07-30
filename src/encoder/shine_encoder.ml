@@ -76,7 +76,7 @@ let encoder shine =
     Buffer.reset encoded;
     ret
   in
-  let stop () = "" in
+  let stop () = Shine.flush enc in
   { Encoder.
      insert_metadata = (fun m -> ()) ;
      header = None ;
