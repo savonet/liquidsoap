@@ -117,7 +117,7 @@ object (self)
               (* Set the length at the beginning of a track *)
               let duration =
                 match AFrame.get_metadata ab offset1 with
-                  | Some m when not final ->
+                  | Some m ->
                      begin
                       match Utils.hashtbl_get m meta with
                         | None -> duration
@@ -236,10 +236,13 @@ let () =
        let d,f,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
          new fade_out ~kind ~meta d f s) ;
-  Lang.add_operator "fade.final" proto
+  Lang.add_operator "fade.final"
+    (("override", Lang.string_t, Some (Lang.string "liq_fade_final"),
+      override_doc) :: proto)
     ~category:Lang.SoundProcessing
     ~descr:"Fade a stream to silence."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
        let d,f,s = extract p in
-         new fade_out ~kind ~final:true d f s)
+       let meta = Lang.to_string (List.assoc "override" p) in
+         new fade_out ~kind ~meta ~final:true d f s)
