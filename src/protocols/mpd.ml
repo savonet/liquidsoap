@@ -71,7 +71,8 @@ let connect () =
   let write s =
     let len = String.length s in
       if debug then Printf.printf "W: %s%!" s;
-      assert (Unix.send socket s 0 len [] = len)
+      let l = Unix.send socket s 0 len [] in
+      assert (l = len)
   in
     Unix.connect socket sockaddr;
     socket, read, write

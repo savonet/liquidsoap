@@ -55,7 +55,8 @@ let say s ~log maxtime =
             try
               Sys.set_signal
                 Sys.sigalrm (Sys.Signal_handle (fun _ -> core_exit 2)) ;
-              assert (0 = Unix.alarm (int_of_float (maxtime -. time ()))) ;
+              let a = Unix.alarm (int_of_float (maxtime -. time ())) in
+              assert (a = 0) ;
               if voice <> "" then
                 execv cmd [| cmd;s;local;voice |]
               else
