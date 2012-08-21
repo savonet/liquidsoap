@@ -86,7 +86,8 @@ let create_from_wav ~channels ~samplesize =
       | 16 -> Audio.S16LE.convert_to_audio
       | _ -> failwith "unsuported sample size"
     in
-    convert_to_audio src 0 len dst 0;
+    let l = convert_to_audio src 0 len dst 0 in
+    assert (l = len);
     let dst =
       Audio_converter.Samplerate.resample
         samplerate_converter
