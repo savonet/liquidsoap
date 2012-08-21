@@ -89,7 +89,7 @@ let create ?header input =
     let samplerate = Wav.sample_rate wav_header in
     let converter =
         Rutils.create_from_wav
-          ~samplesize ~channels ()
+          ~samplesize ~channels
           ~audio_src_rate:(float samplerate)
     in
 
@@ -104,7 +104,7 @@ let create ?header input =
       | None -> decoder := (fun _ -> read_header ())
       | Some (samplesize,channels,audio_src_rate) ->
           let converter =
-            Rutils.create_from_wav ~samplesize ~channels ~audio_src_rate ()
+            Rutils.create_from_wav ~samplesize ~channels ~audio_src_rate
           in
             decoder := main_decoder converter
     end ;

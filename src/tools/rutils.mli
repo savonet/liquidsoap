@@ -42,6 +42,5 @@
   val create_from_wav :
            channels:int ->
            samplesize:int ->
-           unit ->
            wav_converter
 
