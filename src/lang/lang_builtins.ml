@@ -1413,7 +1413,14 @@ let () =
        let default = Lang.to_string (List.assoc "default" p) in
        let i = Lang.to_int (List.assoc "" p) in
        let opts = !opts in
-         if i < List.length opts then
+         if i = 0 then
+           (* Special case so that argv(0) returns the script name *)
+           let i = offset - 1 in
+           if 0 <= i && i < Array.length argv then
+             Lang.string argv.(i)
+           else
+             Lang.string default
+         else if i < List.length opts then
            Lang.string (List.nth opts i)
          else
            Lang.string default)
