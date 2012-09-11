@@ -71,9 +71,13 @@ let create ?header input =
   let decoder = ref (fun gen -> assert false) in
   let header = ref header in
 
-  let main_decoder converter gen =
+  let main_decoder remaining =
+    let remaining = ref remaining in
+    fun converter gen ->
     let bytes_to_get = 1024*64 in
+    let bytes_to_get = if !remaining = -1 then bytes_to_get else min !remaining bytes_to_get in
     let data,bytes = input.Decoder.read bytes_to_get in
+      if !remaining <> -1 then remaining := !remaining - bytes;
       if bytes=0 then raise End_of_stream ;
       let content,length = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
@@ -87,6 +91,8 @@ let create ?header input =
     let samplesize = Wav.sample_size wav_header in
     let channels = Wav.channels wav_header in
     let samplerate = Wav.sample_rate wav_header in
+    let datalen = Wav.data_length wav_header in
+    let datalen = if datalen = 0 then -1 else datalen in
     let converter =
         Rutils.create_from_wav
           ~samplesize ~channels
@@ -94,23 +100,23 @@ let create ?header input =
     in
 
       log#f 4
-        "WAV header read (%dHz, %dbits), starting decoding..."
-        samplerate samplesize ;
-      header := Some (samplesize,channels,(float samplerate));
-      decoder := main_decoder converter
+        "WAV header read (%dHz, %dbits, %dbytes), starting decoding..."
+        samplerate samplesize datalen;
+      header := Some (samplesize,channels,(float samplerate),datalen);
+      decoder := main_decoder datalen converter
 
   in
     begin match !header with
       | None -> decoder := (fun _ -> read_header ())
-      | Some (samplesize,channels,audio_src_rate) ->
+      | Some (samplesize,channels,audio_src_rate,datalen) ->
           let converter =
             Rutils.create_from_wav ~samplesize ~channels ~audio_src_rate
           in
-            decoder := main_decoder converter
+            decoder := main_decoder datalen converter
     end ;
   let seek ticks = 
     match input.Decoder.lseek,input.Decoder.tell,!header with
-      | Some seek, Some tell, Some (samplesize,channels,samplerate) ->
+      | Some seek, Some tell, Some (samplesize,channels,samplerate,datalen) ->
          (* seek is in absolute position *)
          let duration = Frame.seconds_of_master ticks in
          let samples = int_of_float (duration *. samplerate) in
@@ -254,6 +260,6 @@ let () =
              Frame.Zero <: kind.Frame.midi &&
              Frame.Succ (Frame.Succ Frame.Zero) <: kind.Frame.audio
           then
-            Some (D_stream.create ~header:(8,2,8000.))
+            Some (D_stream.create ~header:(8,2,8000.,-1))
           else
             None)

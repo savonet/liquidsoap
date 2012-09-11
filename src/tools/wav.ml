@@ -165,6 +165,9 @@ let info w =
 let channels w = w.channels_number
 let sample_rate w = w.sample_rate
 let sample_size w = w.bits_per_sample
+let data_length w = w.length_of_data_to_follow
+(** Length of the data in samples. *)
+let data_samples w = w.length_of_data_to_follow / ((sample_size w / 8) * channels w)
 
 let close w =
   w.read_ops.close w.ic

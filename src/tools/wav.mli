@@ -70,6 +70,7 @@ val info : 'a t -> string
 val channels : 'a t -> int
 val sample_rate : 'a t -> int
 val sample_size : 'a t -> int
+val data_length : 'a t -> int
 
 val close : 'a t -> unit
 (** [close w] close the wav descriptor [w] *)
