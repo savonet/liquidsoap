@@ -92,7 +92,7 @@ let create ?header input =
     let channels = Wav.channels wav_header in
     let samplerate = Wav.sample_rate wav_header in
     let datalen = Wav.data_length wav_header in
-    let datalen = if datalen = 0 then -1 else datalen in
+    let datalen = if datalen <= 0 then -1 else datalen in
     let converter =
         Rutils.create_from_wav
           ~samplesize ~channels
