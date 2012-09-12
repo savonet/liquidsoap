@@ -330,6 +330,72 @@ let strip_newlines tokenizer =
   in
     token
 
+(* Inline some statically known variables in encoders. *)
+let expand_encoder_vars tokenizer =
+  let last_var = ref "" in
+  let was_format = ref false in
+  let was_gets = ref false in
+  let env = ref [] in
+  let par = ref 0 in
+  let rec token lexbuf =
+    let t = tokenizer lexbuf in
+    let ans =
+      match t with
+      | Lang_parser.LPAR when !was_format || !par > 0 -> incr par; t
+      | Lang_parser.RPAR when !par > 0 -> decr par; t
+      | Lang_parser.VAR v when !par > 0 && !was_gets ->
+        (
+          try
+            List.assoc v !env
+          with
+          | Not_found -> t
+        )
+      | _ -> t
+    in
+    (
+      (* This is a very weak way of trying to gess declarations... *)
+      if !was_gets && !par = 0 then
+        match t with
+        | Lang_parser.INT _
+        | Lang_parser.FLOAT _
+        | Lang_parser.BOOL _
+        | Lang_parser.STRING _ ->
+          env := (!last_var, t) :: !env;
+          last_var := ""
+        | _ ->
+          env := List.filter (fun (v',_) -> v' <> !last_var) !env;
+          last_var := ""
+    );
+    (
+      match t with
+      | Lang_parser.VAR v -> last_var := v
+      | _ -> ()
+    );
+    (
+      match t with
+      | Lang_parser.MP3
+      | Lang_parser.MP3_VBR
+      | Lang_parser.MP3_ABR
+      | Lang_parser.MP3_FXP
+      | Lang_parser.AACPLUS
+      | Lang_parser.VOAACENC
+      | Lang_parser.FLAC
+      | Lang_parser.EXTERNAL
+      | Lang_parser.WAV
+      | Lang_parser.OGG
+      | Lang_parser.VORBIS
+      | Lang_parser.VORBIS_CBR
+      | Lang_parser.VORBIS_ABR
+      | Lang_parser.THEORA
+      | Lang_parser.DIRAC
+      | Lang_parser.SPEEX -> was_format := true; was_gets := false
+      | Lang_parser.GETS -> was_format := false; was_gets := true
+      | _ -> was_format := false; was_gets := false
+    );
+    ans
+  in
+  token
+
 (* Wrap the lexer with its extensions *)
 let token dir =
   let (+) a b = b a in
@@ -338,6 +404,7 @@ let token dir =
     + strip_newlines
     + preprocess
     + expand
+    + expand_encoder_vars
     (* The includer has to be the last, since it uses its input tokenizer
      * (which wouldn't get extended by further additions) on inclusions. *)
     + includer dir
