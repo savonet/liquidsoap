@@ -353,8 +353,8 @@ let expand_encoder_vars tokenizer =
       | _ -> t
     in
     (
-      (* This is a very weak way of trying to gess declarations... *)
-      if !was_gets && !par = 0 then
+      (* This is a weak way of trying to gess declarations... *)
+      if !was_gets && !par = 0 && !last_var <> "" then
         match t with
         | Lang_parser.INT _
         | Lang_parser.FLOAT _
@@ -365,11 +365,6 @@ let expand_encoder_vars tokenizer =
         | _ ->
           env := List.filter (fun (v',_) -> v' <> !last_var) !env;
           last_var := ""
-    );
-    (
-      match t with
-      | Lang_parser.VAR v -> last_var := v
-      | _ -> ()
     );
     (
       match t with
@@ -388,9 +383,10 @@ let expand_encoder_vars tokenizer =
       | Lang_parser.VORBIS_ABR
       | Lang_parser.THEORA
       | Lang_parser.DIRAC
-      | Lang_parser.SPEEX -> was_format := true; was_gets := false
+      | Lang_parser.SPEEX -> was_format := true; was_gets := false; last_var := ""
       | Lang_parser.GETS -> was_format := false; was_gets := true
-      | _ -> was_format := false; was_gets := false
+      | Lang_parser.VAR v -> was_format := false; was_gets := false; last_var := v
+      | _ -> was_format := false; was_gets := false; last_var := ""
     );
     ans
   in
