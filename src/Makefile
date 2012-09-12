@@ -10,6 +10,9 @@ ocaml_progs= liquidsoap
 top_srcdir=..
 include $(top_srcdir)/Makefile.defs
 
+default:
+	$(MAKE) -C ..
+
 configure.ml:
 	@echo
 	@echo " ERROR Missing src/configure.ml, Please run ./configure first!"
