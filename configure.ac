@@ -370,6 +370,12 @@ AC_CHECK_OCAML_BINDING([ogg],[0.4.3])
 AC_CHECK_OCAML_BINDING([vorbis],[0.6.1],[ogg])
 
 #
+# Opus
+#
+
+AC_CHECK_OCAML_BINDING([opus],[0.1.0],[ogg])
+
+#
 # Speex
 #
 
@@ -919,6 +925,7 @@ cat <<EOMSG
    - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
    - SPEEX             : $w_SPEEX
+   - Opus              : $w_OPUS
    - Theora            : $w_THEORA
    - Dirac             : $w_SCHROEDINGER
 
