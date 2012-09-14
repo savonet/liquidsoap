@@ -10,6 +10,9 @@ ocaml_progs= liquidsoap
 top_srcdir=..
 include $(top_srcdir)/Makefile.defs
 
+default:
+	$(MAKE) -C ..
+
 configure.ml:
 	@echo
 	@echo " ERROR Missing src/configure.ml, Please run ./configure first!"
@@ -68,6 +71,7 @@ ogg_demuxer =
 
 $(call conditional_compilation,ogg_demuxer,$(W_SPEEX),ogg_formats/speex_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_VORBIS),ogg_formats/vorbis_decoder.ml)
+$(call conditional_compilation,ogg_demuxer,$(W_OPUS),ogg_formats/opus_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_THEORA),ogg_formats/theora_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_FLAC_OGG),ogg_formats/ogg_flac_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
