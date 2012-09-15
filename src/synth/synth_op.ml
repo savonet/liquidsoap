@@ -39,12 +39,19 @@ object (self)
 
   method private get_frame buf =
     let offset = AFrame.position buf in
-    let evs = (MFrame.content buf (MFrame.position buf)).(chan) in
-    source#get buf;
-    let b = AFrame.content buf offset in
-    let position = AFrame.position buf in
-    let len = position - offset in
-    synth#play evs offset b offset len
+    let midi = MFrame.content buf (MFrame.position buf) in
+    if chan >= Array.length midi then
+      (
+        self#log#f 3 "Cannot read MIDI channel %d, stream only has %d channels." chan (Array.length midi);
+        source#get buf
+      )
+    else
+      let evs = midi.(chan) in
+      source#get buf;
+      let b = AFrame.content buf offset in
+      let position = AFrame.position buf in
+      let len = position - offset in
+      synth#play evs offset b offset len
 end
 
 let register obj name descr =
