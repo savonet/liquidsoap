@@ -57,7 +57,7 @@ object (self)
     let offset = MFrame.position buf in
     source#get buf;
     let m = MFrame.content buf offset in
-      List.iter (fun c -> MIDI.clear_all m.(c)) t
+      List.iter (fun c -> if c < Array.length m then MIDI.clear_all m.(c)) t
 end
 
 let () =
