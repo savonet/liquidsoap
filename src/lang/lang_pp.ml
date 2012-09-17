@@ -330,6 +330,34 @@ let strip_newlines tokenizer =
   in
     token
 
+(* Inline %define x = value. *)
+let expand_define tokenizer =
+  let defs = ref [] in
+  let rec token lexbuf =
+    match tokenizer lexbuf with
+    | Lang_parser.PP_DEFINE ->
+      (
+        match tokenizer lexbuf with
+        | Lang_parser.VAR x ->
+          if x <> String.uppercase x then raise Parsing.Parse_error;
+          (
+            match tokenizer lexbuf with
+            | Lang_parser.INT _
+            | Lang_parser.FLOAT _
+            | Lang_parser.STRING _
+            | Lang_parser.BOOL _ as v ->
+              defs := (x,v) :: !defs;
+              token lexbuf
+            | _ -> raise Parsing.Parse_error
+          )
+        | _ -> raise Parsing.Parse_error
+      )
+    | Lang_parser.VAR v as x ->
+      (try List.assoc v !defs with Not_found -> x)
+    | x -> x
+  in
+  token
+
 (* Wrap the lexer with its extensions *)
 let token dir =
   let (+) a b = b a in
@@ -338,6 +366,7 @@ let token dir =
     + strip_newlines
     + preprocess
     + expand
+    + expand_define
     (* The includer has to be the last, since it uses its input tokenizer
      * (which wouldn't get extended by further additions) on inclusions. *)
     + includer dir
