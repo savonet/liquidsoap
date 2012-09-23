@@ -24,9 +24,14 @@ open Gstreamer
 
 module I = Image.RGBA32
 
-(* TODO.... *)
-let () =
-  Gstreamer.init ()
+let gstreamer_init =
+  let inited = ref false in
+  fun () ->
+    if not !inited then
+      (
+        inited := true;
+        Gstreamer.init ()
+      )
 
 let v4l_clock =
   Tutils.lazy_cell (fun () -> new Clock.self_sync "v4l")
@@ -40,10 +45,9 @@ class v4l_input v4l_version p kind =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let size = VFrame.size () in
-  let blank () = Array.init size
-                            (fun _ -> I.create width height) 
-  in
+  let blank () = Array.init size (fun _ -> I.create width height) in
   let vfps = Lazy.force Frame.video_rate in
+  let () = gstreamer_init () in
 object (self)
   inherit Source.active_source ~name:"input.v4l" kind as active_source
   inherit [I.t array] IoRing.input ~nb_blocks ~blank as ioring
