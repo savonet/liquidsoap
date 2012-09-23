@@ -572,7 +572,9 @@ let () =
     log#f 3 "Waiting for threads to terminate..." ;
     Tutils.join_all () ;
     log#f 3 "Cleaning downloaded files..." ;
-    Request.clean ()
+    Request.clean () ;
+    log#f 3 "Freeing memory..." ;
+    Gc.full_major ()
   in
   let main () =
     (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
