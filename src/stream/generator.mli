@@ -23,11 +23,23 @@
 module type S =
 sig
   type t
-  val length : t -> int (* ticks *)
-  val remaining : t -> int (* ticks *)
+
+  (** Length of the generator in ticks. *)
+  val length : t -> int
+
+  (** Duration of data (in ticks) before the next break, -1 if there's none. *)
+  val remaining : t -> int
+
+  (** Clear the generator. *)
   val clear : t -> unit
+
+  (** Append a fram to the generator. *)
   val fill : t -> Frame.t -> unit
+
+  (** Forget a given duration (in ticks) of the generator. *)
   val remove : t -> int -> unit
+
+  (** Add metadata. *)
   val add_metadata : t -> Frame.metadata -> unit
 end
 
@@ -42,8 +54,7 @@ sig
   val get : 'a t -> int -> ('a * int * int * int) list
 end
 
-(** Generator that consumes frames (or frame content)
-  * and produces frames. *)
+(** A generator that consumes frames (or frame content) and produces frames. *)
 module From_frames :
 sig
   type t
@@ -55,25 +66,24 @@ sig
   val add_break : t -> unit
   val remove : t -> int -> unit
   val feed : t ->
-             ?copy:bool ->
-             ?breaks:(int list) -> ?metadata:((int*Frame.metadata) list) ->
-             Frame.content -> int -> int -> unit
+    ?copy:bool ->
+    ?breaks:(int list) -> ?metadata:((int*Frame.metadata) list) ->
+    Frame.content -> int -> int -> unit
   val feed_from_frame : t -> Frame.t -> unit
   val fill : t -> Frame.t -> unit
 end
 
-(** Generator that consumes audio and video asynchronously,
-  * and produces frames. *)
+(** Generator that consumes audio and video asynchronously, and produces
+    frames. *)
 module From_audio_video :
 sig
   type t
 
-  (** In [Audio] mode, only audio can be put in the buffer, and similarly
-    * for the [Video] mode. In [Both] mode, both types of content can
-    * be fed into the generator, asynchronously, and they exit the
-    * buffer synchronously.
-    * The [Undefined] forbids any feeding, it's useful to make sure
-    * a meaningful mode is assigned before any use. *)
+  (** In [`Audio] mode, only audio can be put in the buffer, and similarly for
+      the [`Video] mode. In [`Both] mode, both types of content can be fed into
+      the generator, asynchronously, and they exit the buffer synchronously.
+      [`Undefined] forbids any feeding, it's useful to make sure a meaningful
+      mode is assigned before any use. *)
   type mode = [ `Audio | `Video | `Both | `Undefined ]
 
   val create : mode -> t
@@ -106,6 +116,8 @@ module type S_Asio =
 sig
   type t
   val length : t -> int (* ticks *)
+  val audio_length : t -> int
+  val video_length : t -> int
   val remaining : t -> int (* ticks *)
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
@@ -116,9 +128,8 @@ sig
   val set_mode : t -> [ `Audio | `Video | `Both | `Undefined ] -> unit
 end
 
-(** Same as From_audio_video but with two extra features useful for
-  * streaming decoders: it is thread safe and supports overfull
-  * buffer management. *)
+(** Same as From_audio_video but with two extra features useful for streaming
+    decoders: it is thread safe and supports overfull buffer management. *)
 module From_audio_video_plus :
 sig
   type t

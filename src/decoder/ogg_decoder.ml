@@ -235,25 +235,36 @@ let create_decoder ?(merge_tracks=false) source mode input =
         in
         Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
       in
+      let decode_audio, decode_video =
+        if decode_audio && decode_video then
+          (* Only decode the one which is late, so that we don't have memory
+             problems. *)
+          if Generator.audio_length buffer < Generator.video_length buffer then
+            true, false
+          else
+            false, true
+        else
+          decode_audio, decode_video
+      in
       try
         if decode_audio then
-         begin
-          let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
-          Ogg_demuxer.decode_audio decoder track (audio_feed track) 
-         end ;
+          begin
+            let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
+            Ogg_demuxer.decode_audio decoder track (audio_feed track) 
+          end ;
         if decode_video then
-         begin
-          let track = Utils.get_some tracks.Ogg_demuxer.video_track in
-          Ogg_demuxer.decode_video decoder track (video_feed track)
-         end;
+          begin
+            let track = Utils.get_some tracks.Ogg_demuxer.video_track in
+            Ogg_demuxer.decode_video decoder track (video_feed track)
+          end;
       with
-           (* We catch [Ogg_demuxer.End_of_stream] only if asked to
-            * to merge logical tracks or with a stream source. 
-            * In this case, we try to reset the decoder to see if 
-            * there could be another sequentialized logical stream
-            * starting. Actual reset is handled in the
-            * decoding function since we need the actual
-            * buffer to add metadata etc. *)
+        (* We catch [Ogg_demuxer.End_of_stream] only if asked to
+         * to merge logical tracks or with a stream source. 
+         * In this case, we try to reset the decoder to see if 
+         * there could be another sequentialized logical stream
+         * starting. Actual reset is handled in the
+         * decoding function since we need the actual
+         * buffer to add metadata etc. *)
         | Ogg_demuxer.End_of_stream when merge_tracks || (source = `Stream) -> ()
            (* We catch Ogg.Out_of_sync only in
             * stream mode. Ogg/theora streams, for instance,
