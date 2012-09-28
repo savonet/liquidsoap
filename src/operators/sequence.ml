@@ -39,7 +39,9 @@ object (self)
   method private sleep =
     List.iter (fun s -> (s:>source)#leave (self:>source)) sources
 
-  method is_ready = List.exists (fun s -> s#is_ready) sources
+  val mutable head_ready = false
+
+  method is_ready = head_ready || List.exists (fun s -> s#is_ready) sources
 
   method remaining =
     if merge then
@@ -57,8 +59,6 @@ object (self)
             List.iter (fun (s:source) -> s#leave (self:>source)) tl
     end ;
     (List.hd sources)#abort_track
-
-  val mutable head_ready = false
 
   method private get_frame buf =
     if head_ready then begin
@@ -100,7 +100,9 @@ let () =
       "", Lang.list_t (Lang.source_t k), None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Play only one track of every successive source, \
-            except for the last one which is played as much as available."
+            except for the last one which is played as much as available. \
+            Sources are released after being used, allowing them to shutdown \
+            cleanly and free their resources."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        new sequence ~kind
