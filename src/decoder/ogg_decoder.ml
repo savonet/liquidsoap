@@ -353,7 +353,7 @@ let mime_types =
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ogg")
     "File extensions used for guessing OGG format"
-    ~d:["ogv";"oga";"ogx";"ogg"]
+    ~d:["ogv";"oga";"ogx";"ogg";"opus"]
 
 let () =
   Decoder.file_decoders#register "OGG"
