@@ -69,7 +69,7 @@ let () =
 
 (** Liquidsoap stuff *)
 
-let log = Dtools.Log.make ["lang"]
+let log = Lang.log
 
 let () =
   add_builtin ~cat:Liq "eval"

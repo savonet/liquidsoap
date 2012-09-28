@@ -27,6 +27,8 @@ module Vars = Term.Vars
 
 type t = T.t
 
+let log = Dtools.Log.make ["lang"]
+
 (** Type construction *)
 
 let ground_t x = T.make (T.Ground x)
@@ -412,6 +414,11 @@ let add_operator
   let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f
 
+exception Found
+
+(** List of references for which iter_sources had to give up --- see below. *)
+let static_analysis_failed = ref []
+
 let iter_sources f v =
   let rec iter_term env v = match v.Term.term with
     | Term.Unit | Term.Bool _ | Term.String _
@@ -434,11 +441,11 @@ let iter_sources f v =
         List.iter (fun (_,_,_,v) -> match v with
                      | Some v -> iter_term env v
                      | None -> ()) proto
+
   and iter_value v = match v.value with
     | Source s -> f s
     | Unit | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
     | List l -> List.iter iter_value l
-    | Ref a -> iter_value !a
     | Product (a,b) ->
         iter_value a ; iter_value b
     | Fun (proto,pe,env,body) ->
@@ -458,6 +465,38 @@ let iter_sources f v =
              | _,_,Some v -> iter_value v
              | _ -> ())
           proto
+    | Ref r ->
+        if List.memq r !static_analysis_failed then () else
+        (* Do not walk inside references, otherwise the list of "contained"
+         * sources may change from one time to the next, which makes it
+         * impossible to avoid ill-balanced activations.
+         * Not walking inside references does not break things more than they
+         * are already: detecting sharing in presence of references to sources
+         * cannot be done statically anyway.)
+         * Display a fat log message to warn about this risky situation,
+         * which probably won't prevent users to get biffled... *)
+        let may_have_source =
+          try
+            let has_var_neg,has_var_pos =
+              Lang_types.iter_constr
+                (fun pos c ->
+                   if pos &&
+                      match c with
+                        | { T.name = "source" } -> true | _ -> false
+                   then raise Found)
+                v.t
+            in
+              has_var_pos
+          with Found -> true
+        in
+          static_analysis_failed := r :: !static_analysis_failed ;
+          if may_have_source then
+            log#f 2 "WARNING! \
+                     Found a reference, potentially containing sources, \
+                     inside a dynamic source-producing function. \
+                     Static analysis cannot be performed: \
+                     make sure you are not sharing sources contained \
+                     in references!"
   in
     iter_value v
 

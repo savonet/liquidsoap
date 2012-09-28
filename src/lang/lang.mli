@@ -22,6 +22,8 @@
 
 (** Values and types of the liquidsoap language. *)
 
+val log : Dtools.Log.t
+
 (** The type of a value. *)
 type t = Lang_types.t
 
@@ -53,7 +55,9 @@ type env = (string*value) list
 (** Get a string representation of a value. *)
 val print_value : value -> string
 
-(** Iter a function over all sources contained in a value. *)
+(** Iter a function over all sources contained in a value.
+  * This only applies to statically referenced objects, ie.
+  * it does not explore inside reference cells. *)
 val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
