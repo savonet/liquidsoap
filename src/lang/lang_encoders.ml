@@ -415,6 +415,77 @@ let mk_external params =
       raise Encoder.External.No_process ;
     mk (Encoder (Encoder.External ext))
 
+let mk_opus params =
+  let defaults =
+    { Encoder.Opus.
+        application = None ;
+        complexity = None ;
+        max_bandwidth = None ;
+        mode = Encoder.Opus.VBR true ;
+        bitrate = `Auto ;
+        channels = 2 ;
+        samplerate = 44100 ;
+        signal = None ;
+    }
+  in
+  let opus =
+    List.fold_left
+      (fun f ->
+        function
+          | ("application",{ term = String "voip" }) ->
+              { f with Encoder.Opus.application = Some `Voip }
+          | ("application",{ term = String "audio" }) ->
+              { f with Encoder.Opus.application = Some `Audio }
+          | ("application",{ term = String "restricted_lowdelay" }) ->
+              { f with Encoder.Opus.application = Some `Restricted_lowdelay }
+          | ("complexity",({ term = Int c } as t)) ->
+              (* Doc say this should be from 0 to 10. *)
+              if c < 0 || c > 10 then
+                raise (Error (t,"Opus complexity should be in 0..10"));
+              { f with Encoder.Opus.complexity = Some c }
+          | ("max_bandwidth",{ term = String "narrow_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Narrow_band }
+          | ("max_bandwidth",{ term = String "medium_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Medium_band }
+          | ("max_bandwidth",{ term = String "wide_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Wide_band }
+          | ("max_bandwidth",{ term = String "super_wide_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Super_wide_band }
+          | ("max_bandwidth",{ term = String "full_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Full_band }
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.Opus.samplerate = i }
+          | ("bitrate",({ term = Int i } as t)) ->
+              let i = i*1000 in
+              (* Doc say this should be from 500 to 512000. *)
+              if i < 500 || i > 512000 then
+                raise (Error (t,"Opus bitrate should be in 5..512"));
+              { f with Encoder.Opus.bitrate = `Bitrate i }
+          | ("bitrate",{ term = String "auto" }) ->
+              { f with Encoder.Opus.bitrate = `Auto }
+          | ("bitrate",{ term = String "max" }) ->
+              { f with Encoder.Opus.bitrate = `Bitrate_max }
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.Opus.channels = i }
+          | ("vbr",{ term = String "none" }) ->
+              { f with Encoder.Opus.mode = Encoder.Opus.CBR }
+          | ("vbr",{ term = String "constrained" }) ->
+              { f with Encoder.Opus.mode = Encoder.Opus.VBR true }
+          | ("vbr",{ term = String "unconstrained" }) ->
+              { f with Encoder.Opus.mode = Encoder.Opus.VBR false }
+          | ("signal",{ term = String "voice" }) ->
+              { f with Encoder.Opus.signal = Some `Voice }
+          | ("signal",{ term = String "music" }) ->
+              { f with Encoder.Opus.signal = Some `Music }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.Opus.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Opus.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    Encoder.Ogg.Opus opus
+
 let mk_vorbis_cbr params =
   let defaults =
     { Encoder.Vorbis.

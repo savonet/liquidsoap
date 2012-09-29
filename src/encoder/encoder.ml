@@ -123,6 +123,90 @@ struct
       v.samplerate
 end
 
+module Opus =
+struct
+  type application = [
+    | `Voip
+    | `Audio
+    | `Restricted_lowdelay
+  ]
+
+  type bitrate = [
+    | `Auto
+    | `Bitrate_max
+    | `Bitrate of int
+  ]
+
+  type mode =
+    | VBR of bool        (* Variable bitrate, constrained or not. *)
+    | CBR                (* Constant bitrate. *)
+
+  type max_bandwidth = [
+    | `Narrow_band
+    | `Medium_band
+    | `Wide_band
+    | `Super_wide_band
+    | `Full_band 
+  ]
+
+  type signal = [
+    | `Auto
+    | `Voice
+    | `Music
+  ]
+
+  type t = {
+    application   : application option ;
+    bitrate       : bitrate ;
+    complexity    : int option ;
+    channels      : int ;
+    max_bandwidth : max_bandwidth option ;
+    mode          : mode ;
+    samplerate    : int ;
+    signal        : signal option ;
+  }
+
+  let string_of_bitrate = function
+    | `Auto -> "birate=\"auto\","
+    | `Bitrate_max -> "birate=\"max\","
+    | `Bitrate b -> Printf.sprintf "bitrate=%d," b
+
+  let string_of_mode = function
+    | CBR   -> "vbr=\"none\""
+    | VBR b -> Printf.sprintf "vbr=%S" (if b then "constrained" else "unconstrained")
+
+  let string_of_application = function
+    | None -> ""
+    | Some `Voip  -> "application=\"voip\","
+    | Some `Audio -> "application=\"audio\","
+    | Some `Restricted_lowdelay -> "application=\"restricted_lowdelay\","
+
+  let string_of_bandwidth = function
+    | None -> ""
+    | Some `Narrow_band -> "max_bandwidth=\"narrow_band\","
+    | Some `Medium_band -> "max_bandwidth=\"medium_band\","
+    | Some `Wide_band   -> "max_bandwidth=\"wide_band\","
+    | Some `Super_wide_band -> "max_bandwidth=\"super_wide_band\","
+    | Some `Full_band -> "max_bandwidth=\"full_band\","
+
+  let string_of_signal = function
+    | None -> ""
+    | Some `Auto -> "signal=\"auto\","
+    | Some `Voice -> "signal=\"voice\","
+    | Some `Music -> "signal=\"music\","
+
+  let to_string v =
+    Printf.sprintf "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d)"
+      (string_of_mode v.mode)
+      (string_of_bitrate v.bitrate)
+      v.channels
+      (string_of_application v.application)
+      (match v.complexity with None -> "" | Some i -> (Printf.sprintf "complexity=\"%d\"," i))
+      (string_of_bandwidth v.max_bandwidth)
+      (string_of_signal v.signal)
+      v.samplerate
+end
+
 module MP3 =
 struct
   type stereo_mode = 
@@ -421,6 +505,7 @@ struct
     | Flac of Flac.t
     | Theora of Theora.t
     | Dirac of Dirac.t
+    | Opus of Opus.t
   type t = item list
 
   let to_string l =
@@ -432,7 +517,8 @@ struct
                | Flac   v -> Flac.to_string v
                | Theora t -> Theora.to_string t
                | Speex  s -> Speex.to_string s
-               | Dirac  d -> Dirac.to_string d)
+               | Dirac  d -> Dirac.to_string d
+               | Opus   o -> Opus.to_string o)
             l))
 
 end
@@ -470,6 +556,8 @@ let kind_of_format = function
       List.fold_left
         (fun k -> function
            | Ogg.Vorbis { Vorbis.channels = n } ->
+               { k with Frame.audio = k.Frame.audio+n }
+           | Ogg.Opus { Opus.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Flac { Flac.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }

@@ -134,6 +134,7 @@ rule token = parse
 
   | "%ogg"    { OGG }
   | "%vorbis" { VORBIS }
+  | "%opus"   { OPUS }
   | "%flac"   { FLAC }
   | "%vorbis.cbr" { VORBIS_CBR }
   | "%vorbis.abr" { VORBIS_ABR }
