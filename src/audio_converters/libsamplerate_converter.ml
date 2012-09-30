@@ -29,7 +29,7 @@ let samplerate_conf =
 
 let quality_conf = 
   Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
-    "Resampling quality" ~d:"zero_order"
+    "Resampling quality" ~d:"fast"
     ~comments:["Resampling quality, one of: \
                 \"best\", \
                 \"medium\", \
