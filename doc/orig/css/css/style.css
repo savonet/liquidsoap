@@ -1,0 +1,266 @@
+body {
+	text-align: center; /* Required for pesky IE */
+	background: #FFF url('../images/design/background.png') repeat-x scroll top left;
+	padding: 0;
+	margin: 0;
+	font-family: Bitstream Vera Sans, Tahoma, Verdana, Helvetica, sans-serif;
+}
+
+#wrapper {
+	margin: 0 auto;
+	width: 600px;
+	text-align: left; /* Overrides the previously set center alignment that older IE versions reqd */
+	padding: 0;
+	background: #FFF url('../images/design/background_page.png') repeat-x scroll top left;
+}
+
+#header {
+	padding: 0;
+	margin: 0;
+}
+
+#logo {
+	background: #FFF url('../images/design/logo.png') no-repeat scroll top left;
+	width: 515px;
+	height: 106px;
+	margin-left: 2em;
+}
+
+h1 {
+	display: none;
+}
+
+h2 {
+	display: none;
+}
+
+#menu {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+	height: 18px;
+	position: relative;
+}
+
+#menu li {
+	list-style-type: none;
+	padding: 0;
+	margin: 0 1em 0 0;
+	height: 18px;
+	width: 83px;
+	text-indent: -9000px;
+	float: left;
+	background: transparent no-repeat scroll top left;
+	position: absolute;
+}
+
+#menu #menu-about {
+	background-image: url("../images/tabs/tab_about.png");
+	right: 344px;
+}
+
+#menu #menu-download {
+	background-image: url("../images/tabs/tab_install.png");
+	right: 258px;
+}
+
+/* This is for shipped documentation only.. */
+#menu #menu-doc-index {
+        background-image: url("../images/tabs/tab_docs.png");
+        right: 258px;
+}
+
+/* This is for shipped documentation only.. */
+#menu #menu-doc-api {
+        background-image: url("../images/tabs/tab_API.png");
+        right: 172px;
+}
+
+/* This is for shipped documentation only.. */
+#menu #menu-doc-snippets {
+        background-image: url("../images/tabs/tab_snippets.png");
+        right: 88px;
+}
+
+#menu #menu-support {
+	background-image: url("../images/tabs/tab_docs.png");
+	right: 172px;
+}
+
+/* This is for website only.. */
+#menu #menu-doc-api-www {
+        background-image: url("../images/tabs/tab_API.png");
+        right: 86px;
+}
+
+#menu #menu-developers {
+	background-image: url("../images/tabs/tab_developers.png");
+	right: 0px;
+}
+
+#menu li:hover, #menu li.active {
+	background-position: 0 -18px;
+}
+
+#menu li a {
+	display: block;
+}
+
+#index {
+        width: 390px;
+        padding: 3em 10px 0 20px;
+        position: relative;
+        float: left;
+        text-align: justify;
+        font-size: 10pt;
+}
+
+#content {
+	width: 560px;
+	padding: 3em 10px 0 20px;
+	position: relative;
+	float: left;
+        text-align: justify;
+        font-size: 10pt;
+}
+
+#sidebar {
+	width: 140px;
+	float: left;
+	font-size: 10pt;
+	padding: 3em 20px 0 10px;
+}
+
+#sidebar .box {
+	background: repeat-y scroll top left;
+	width: 150px;
+	padding-bottom: 47px;
+	position: relative;
+	margin: 0 15px 2em 0;
+}
+
+#sidebar .box h3 {
+	background: transparent no-repeat scroll top left;
+	width: 150px;
+	height: 19px;
+	text-indent: -9000px;
+	margin: 0;
+	padding: 0;
+}
+
+#sidebar .box .more {
+	text-align: right;
+	font-style: normal;
+	font-size: 8pt;
+	padding: 0 1em;
+}
+
+#sidebar .box .box-bottom {
+	background: transparent no-repeat scroll bottom left;
+	width: 150px;
+	height: 47px;
+	position: absolute;
+	bottom: 0;
+}
+
+#sidebar .box-say {
+	background-image: url("../images/boxes/box_blue_bg.png");
+	background-color: #CCF;
+}
+
+#sidebar .box-say h3 {
+	background-image: url("../images/boxes/box_blue_top.png");
+}
+
+#sidebar .box-say blockquote {
+	margin: 0;
+	padding: 0;
+}
+
+#sidebar .box-say blockquote p {
+	padding: 0 1em;
+	margin: 0 0 1em;
+	font-style: italic;
+	text-indent: 0.5em;
+}
+
+#sidebar .box-say .box-bottom {
+	background-image: url("../images/boxes/box_blue_say.png");
+}
+
+#sidebar .box-see {
+	background-image: url("../images/boxes/box_red_bg.png");
+	background-color: #FCC;
+}
+
+#sidebar .box-see h3 {
+	background-image: url("../images/boxes/box_red_top.png");
+}
+
+#sidebar .box-see .box-bottom {
+	background-image: url("../images/boxes/box_red_see.png");
+}
+
+#sidebar .box-hear {
+	background-image: url("../images/boxes/box_green_bg.png");
+	background-color: #FCC;
+}
+
+#sidebar .box-hear h3 {
+	background-image: url("../images/boxes/box_green_top.png");
+}
+
+#sidebar .box-hear p.content {
+	padding: 0 1em;
+	margin: 0;
+}
+
+#sidebar .box-hear p.content img {
+	margin-bottom: -5px;
+}
+
+#sidebar .box-hear .box-bottom {
+	background-image: url("../images/boxes/box_green_hear.png");
+}
+
+#footer {
+	border-top: 2px solid #C9F;
+	font-size: 8pt;
+	text-align: right;
+	padding: 0.3em 1em 5em;
+	color: #666;
+	clear: both;
+}
+
+img {
+	border: none;
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+}
+
+img.grab {
+       display: inline;
+}
+
+
+hr.invisible {
+	visibility: hidden;
+	clear: both;
+}
+
+
+pre {
+  padding-left: 10px ;
+  border-left: solid 1px ;
+  border-right: solid 1px ;
+  font: 1.1em monospace, fixed ;
+  white-space: pre ;
+  color: #444 ;
+  overflow: auto;
+}
+
+code {
+    background-color: #eee;
+    font: monospace, fixed;
+}
