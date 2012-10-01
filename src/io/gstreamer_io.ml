@@ -79,7 +79,7 @@ object (self)
   method pull_block block = 
     let sink = self#get_device in
     for i = 0 to size - 1 do 
-      let b = App_sink.pull_buffer (App_sink.of_element sink) in
+      let b = App_sink.pull_buffer sink in
       let img = I.make width height b in
       block.(i) <- img
     done
@@ -94,22 +94,19 @@ object (self)
       | None ->
       let pipeline =
         Printf.sprintf
-          "v4l%ssrc device=%s ! ffmpegcolorspace ! videoscale ! \
-           videorate ! video/x-raw-rgb,width=%d,height=%d,\
-           pixel-aspect-ratio=1/1,bpp=(int)32,depth=(int)24,\
-           endianness=(int)4321,red_mask=(int)0xff000000,\
-           green_mask=(int)0x00ff0000,blue_mask=(int)0x0000ff00,\
+          "v4l%ssrc device=%s ! videoconvert ! videoscale ! \
+           videorate ! video/x-raw,format=RGBA,width=%d,height=%d,\
            framerate=(fraction)%d/1 ! \
            appsink max-buffers=2 drop=%b name=sink"
           (if v4l_version = 1 then "" else "2")
           dev width height vfps drop
       in
       let bin = Pipeline.parse_launch pipeline in
-      let s = Bin.get_by_name (Bin.of_element bin) "sink" in
+      let s = Bin.get_by_name bin "sink" in
+      let s = App_sink.of_element s in
       device <- Some s;
-      Element.set_state bin State_playing;
+      ignore (Element.set_state bin Element.State_playing);
       s
-    
 
   method output = if AFrame.is_partial memo then self#get_frame memo
   method output_reset = ()
@@ -126,7 +123,7 @@ object (self)
     VFrame.add_break frame size;
 end
 
-let proto = 
+let proto =
     ["clock_safe",
       Lang.bool_t, Some (Lang.bool true),
       Some "Force the use of the dedicated v4l clock." ;
