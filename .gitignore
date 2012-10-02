@@ -1,0 +1,16 @@
+Makefile.defs
+aclocal.m4
+autom4te.cache/
+config.h
+config.h.in
+config.log
+config.status
+configure
+configure-with-options
+install-sh
+scripts/liquidsoap.gentoo.initd
+scripts/liquidsoap.initd
+scripts/liquidsoap.logrotate
+src/META
+src/configure.ml
+src/tools/liq_sockets.ml
