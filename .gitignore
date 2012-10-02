@@ -14,3 +14,14 @@ scripts/liquidsoap.logrotate
 src/META
 src/configure.ml
 src/tools/liq_sockets.ml
+*.cm*
+*.o
+src/SVN.ml
+src/auto_clean
+src/lang/lang_lexer.ml
+src/lang/lang_parser.ml
+src/lang/lang_parser.mli
+src/liquidsoap_depend
+src/outputs/harbor_output.camlp4.ml
+src/tools/harbor.camlp4.ml
+src/tools/server.camlp4.ml
