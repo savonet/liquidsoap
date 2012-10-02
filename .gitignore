@@ -32,3 +32,7 @@ doc/liqi/liqi_lexer.ml
 doc/liqi/liqi_parser.ml
 doc/liqi/liqi_parser.mli
 src/liquidsoap
+doc/html
+doc/content/reference.txt
+doc/content/settings.txt
+autodoc/
