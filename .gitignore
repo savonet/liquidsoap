@@ -25,3 +25,10 @@ src/liquidsoap_depend
 src/outputs/harbor_output.camlp4.ml
 src/tools/harbor.camlp4.ml
 src/tools/server.camlp4.ml
+doc/liqi/auto_clean
+doc/liqi/liqi
+doc/liqi/liqi_depend
+doc/liqi/liqi_lexer.ml
+doc/liqi/liqi_parser.ml
+doc/liqi/liqi_parser.mli
+src/liquidsoap
