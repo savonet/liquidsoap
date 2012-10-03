@@ -199,6 +199,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
            failwith "Ogg stream does not contain required data"
   in
   let decode buffer =
+    try
       if not !started then
        begin
         init ~reset:false buffer;
@@ -246,7 +247,6 @@ let create_decoder ?(merge_tracks=false) source mode input =
         else
           decode_audio, decode_video
       in
-      try
         if decode_audio then
           begin
             let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
@@ -257,7 +257,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
             let track = Utils.get_some tracks.Ogg_demuxer.video_track in
             Ogg_demuxer.decode_video decoder track (video_feed track)
           end;
-      with
+    with
         (* We catch [Ogg_demuxer.End_of_stream] only if asked to
          * to merge logical tracks or with a stream source. 
          * In this case, we try to reset the decoder to see if 
