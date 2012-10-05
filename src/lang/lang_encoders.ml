@@ -465,7 +465,10 @@ let mk_opus params =
               { f with Encoder.Opus.bitrate = `Auto }
           | ("bitrate",{ term = String "max" }) ->
               { f with Encoder.Opus.bitrate = `Bitrate_max }
-          | ("channels",{ term = Int i }) ->
+          | ("channels",({ term = Int i } as t)) ->
+              if i < 1 or i > 2 then
+                raise (Error (t,"Only mono and stereo streams are supported \
+                                 for now."));
               { f with Encoder.Opus.channels = i }
           | ("vbr",{ term = String "none" }) ->
               { f with Encoder.Opus.mode = Encoder.Opus.CBR }

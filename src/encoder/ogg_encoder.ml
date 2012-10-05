@@ -102,6 +102,19 @@ let encoder ogg name meta =
                     "%s: Could not find any vorbis encoder." name ;
                   raise Not_found          
            end
+        | Encoder.Ogg.Opus x ->
+           begin
+            try
+              let create_opus =
+                Hashtbl.find encoders "opus"
+              in
+              create_opus (Encoder.Ogg.Opus x) :: cur
+            with
+              | Not_found ->
+                  Ogg_muxer.log#f 3
+                    "%s: Could not find any opus encoder." name ;
+                  raise Not_found
+           end
         | Encoder.Ogg.Flac x ->
            begin
             try
