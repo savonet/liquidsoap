@@ -92,7 +92,10 @@ let create_encoder ~opus ~comments () =
         Array.mapi (fun i channel -> Array.append !pending.(i) channel) data
     in
     let ret = 
-      Opus.Encoder.encode_float enc data 0 (Array.length data.(0))
+      try
+        Opus.Encoder.encode_float enc data 0 (Array.length data.(0))
+      with
+        | Opus.Buffer_too_small -> Array.length data.(0)
     in
     if ret > 0 then
       pending := Array.map 
