@@ -94,9 +94,9 @@ object (self)
       | None ->
       let pipeline =
         Printf.sprintf
-          "v4l%ssrc device=%s ! videoconvert ! videoscale ! \
+          "v4l%ssrc device=%s ! videoconvert ! videoscale add-borders=true ! \
            videorate ! video/x-raw,format=RGBA,width=%d,height=%d,\
-           framerate=(fraction)%d/1 ! \
+           framerate=(fraction)%d/1,pixel-aspect-ratio=1/1 ! \
            appsink max-buffers=2 drop=%b name=sink"
           (if v4l_version = 1 then "" else "2")
           dev width height vfps drop

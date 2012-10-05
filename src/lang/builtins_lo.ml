@@ -28,12 +28,12 @@ let m = Mutex.create ()
 
 let log = Log.make ["osc"]
 
-let conf_oss =
+let conf_osc =
   Conf.void ~p:(Configure.conf#plug "osc")
     "Interactions through the OSC protocol."
 
 let conf_port =
-  Conf.int ~p:(conf_oss#plug "port") ~d:7777
+  Conf.int ~p:(conf_osc#plug "port") ~d:7777
     "Port for OSC server."
 
 let osc_bool = ref []
