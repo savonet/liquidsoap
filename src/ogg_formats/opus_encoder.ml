@@ -20,20 +20,9 @@
 
  *****************************************************************************)
 
-let samplerates = [8000.;12000.;16000.;24000.;48000.]
-
 let create_encoder ~opus ~comments () =
-  let samplerate = float opus.Encoder.Opus.samplerate in
-  let ratio, samplerate =
-    let rec f = function
-      | [] -> 48000. /. samplerate, 48000
-      | x :: l when x < samplerate -> f l
-      | x :: _ -> x /. samplerate, (int_of_float x)
-    in
-    f samplerates
-  in
+  let samplerate = opus.Encoder.Opus.samplerate in
   let channels = opus.Encoder.Opus.channels in
-  let converter = Audio_converter.Samplerate.create channels in
   let application = match opus.Encoder.Opus.application with
     | None -> `Audio
     | Some a -> a
@@ -82,8 +71,9 @@ let create_encoder ~opus ~comments () =
   let data_encoder data os _ =
     let enc = get_enc os in
     let data =
-      Audio_converter.Samplerate.resample converter ratio 
-        data.Ogg_muxer.data data.Ogg_muxer.offset data.Ogg_muxer.length
+      Array.map (fun buf ->
+        Array.sub buf data.Ogg_muxer.offset data.Ogg_muxer.length) 
+        data.Ogg_muxer.data
     in
     let data = 
       if Array.length !pending == 0 then

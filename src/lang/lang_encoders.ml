@@ -424,7 +424,7 @@ let mk_opus params =
         mode = Encoder.Opus.VBR true ;
         bitrate = `Auto ;
         channels = 2 ;
-        samplerate = 44100 ;
+        samplerate = 48000 ;
         signal = None ;
     }
   in
@@ -453,7 +453,11 @@ let mk_opus params =
               { f with Encoder.Opus.max_bandwidth = Some `Super_wide_band }
           | ("max_bandwidth",{ term = String "full_band" }) ->
               { f with Encoder.Opus.max_bandwidth = Some `Full_band }
-          | ("samplerate",{ term = Int i }) ->
+          | ("samplerate",({ term = Int i } as t)) ->
+              let samplerates = [8000;12000;16000;24000;48000] in
+              if not (List.mem i samplerates) then
+                raise (Error (t,"Opus samplerate should be one of \
+                                 8000, 12000,16000, 24000 or 48000"));
               { f with Encoder.Opus.samplerate = i }
           | ("bitrate",({ term = Int i } as t)) ->
               let i = i*1000 in
