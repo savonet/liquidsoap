@@ -51,7 +51,9 @@ let create_encoder ~opus ~comments () =
              | None -> ()
          in 
          maybe (fun (v) -> `Set_complexity v) opus.Encoder.Opus.complexity;
-         maybe (fun (v) -> `Set_max_bandwidth v) opus.Encoder.Opus.max_bandwidth;
+         maybe
+           (fun (v) -> `Set_max_bandwidth v)
+           opus.Encoder.Opus.max_bandwidth ;
          maybe (fun (v) -> `Set_signal v) opus.Encoder.Opus.signal;
          enc := Some x ;
          x
@@ -84,7 +86,8 @@ let create_encoder ~opus ~comments () =
     in
     let ret = 
       try
-        Opus.Encoder.encode_float ~frame_size enc data 0 (Array.length data.(0))
+        Opus.Encoder.encode_float
+          ~frame_size enc data 0 (Array.length data.(0))
       with
         | Opus.Buffer_too_small -> Array.length data.(0)
     in
