@@ -426,6 +426,7 @@ let mk_opus params =
         channels = 2 ;
         samplerate = 48000 ;
         signal = None ;
+        frame_size = 20.;
     }
   in
   let opus =
@@ -453,11 +454,17 @@ let mk_opus params =
               { f with Encoder.Opus.max_bandwidth = Some `Super_wide_band }
           | ("max_bandwidth",{ term = String "full_band" }) ->
               { f with Encoder.Opus.max_bandwidth = Some `Full_band }
+          | ( "frame_size", ({ term = Float size } as t)) ->
+              let frame_sizes = [2.5;5.;10.;20.;40.;60.] in
+              if not (List.mem size frame_sizes) then
+                raise (Error (t,"Opus frame size should be one of \
+                                 2.5, 5., 10., 20., 40. or 60."));
+              { f with Encoder.Opus.frame_size = size }
           | ("samplerate",({ term = Int i } as t)) ->
               let samplerates = [8000;12000;16000;24000;48000] in
               if not (List.mem i samplerates) then
                 raise (Error (t,"Opus samplerate should be one of \
-                                 8000, 12000,16000, 24000 or 48000"));
+                                 8000, 12000, 16000, 24000 or 48000"));
               { f with Encoder.Opus.samplerate = i }
           | ("bitrate",({ term = Int i } as t)) ->
               let i = i*1000 in

@@ -23,6 +23,7 @@
 let create_encoder ~opus ~comments () =
   let samplerate = opus.Encoder.Opus.samplerate in
   let channels = opus.Encoder.Opus.channels in
+  let frame_size = opus.Encoder.Opus.frame_size in
   let application = match opus.Encoder.Opus.application with
     | None -> `Audio
     | Some a -> a
@@ -83,7 +84,7 @@ let create_encoder ~opus ~comments () =
     in
     let ret = 
       try
-        Opus.Encoder.encode_float enc data 0 (Array.length data.(0))
+        Opus.Encoder.encode_float ~frame_size enc data 0 (Array.length data.(0))
       with
         | Opus.Buffer_too_small -> Array.length data.(0)
     in
