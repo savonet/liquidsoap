@@ -98,6 +98,7 @@ $(call conditional_compilation,decoders,$(W_VORBIS),decoder/vorbisduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flacduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC_OGG),decoder/ogg_flac_duration.ml)
 $(call conditional_compilation,decoders,$(W_TAGLIB),decoder/taglib_plug.ml)
+$(call conditional_compilation,decoders,$(W_GSTREAMER),decoder/gstreamer_decoder.ml)
 
 playlists = \
 	playlists/playlist_basic.ml
