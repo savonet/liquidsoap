@@ -158,8 +158,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
      end ;
     Generator.set_mode buffer mode ;
     let add_meta f t =
-      (* Initial metadata in files are handled
-       * seperatly.. *)
+      (* Initial metadata in files is handled separately. *)
       if source = `Stream ||
          (merge_tracks && (not !first_meta))
       then
@@ -407,10 +406,6 @@ let () =
           None)
 
 (** Metadata *)
-
-exception Metadata of (string*string) list
-
-let log = Dtools.Log.make ["metadata";"ogg"]
 
 let get_tags file =
   if not (Decoder.test_file ~mimes:mime_types#get
