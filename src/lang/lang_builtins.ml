@@ -207,6 +207,27 @@ let () =
                Lang.unit)
 
 let () =
+  add_builtin "clock.unify" ~cat:Liq
+    ~descr:"Enforce that a list of sources all belong to the same clock."
+    [ ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None, None) ]
+    Lang.unit_t
+    (fun p ->
+       let l = List.assoc "" p in
+         try
+           match Lang.to_source_list l with
+             | [] -> Lang.unit
+             | hd::tl ->
+                 List.iter (fun s -> Clock.unify hd#clock s#clock) tl ;
+                 Lang.unit
+         with
+           | Source.Clock_conflict (a,b) ->
+               raise (Lang.Clock_conflict
+                        (l.Lang.t.Lang_types.pos,a,b))
+           | Source.Clock_loop (a,b) ->
+               raise (Lang.Clock_loop
+                        (l.Lang.t.Lang_types.pos,a,b)))
+
+let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
     add_builtin "get_clock_status" ~cat:Liq
       ~descr:"Get the current time for all allocated clocks."

@@ -80,14 +80,13 @@ let create_from_wav ~channels ~samplesize =
     let ratio = audio_dst_rate /. audio_src_rate in
     let len = (String.length src) / (sample_bytes*channels) in
     let dst = Array.init channels (fun _ -> Array.make len 0.) in
-    let convert_to_audio =
+    let to_audio =
       match samplesize with
-      | 8 -> Audio.U8.convert_to_audio
-      | 16 -> Audio.S16LE.convert_to_audio
+      | 8 -> Audio.U8.to_audio
+      | 16 -> Audio.S16LE.to_audio
       | _ -> failwith "unsuported sample size"
     in
-    let l = convert_to_audio src 0 len dst 0 in
-    assert (l = len);
+    to_audio src 0 dst 0 len;
     let dst =
       Audio_converter.Samplerate.resample
         samplerate_converter

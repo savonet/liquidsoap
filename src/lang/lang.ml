@@ -513,6 +513,12 @@ let to_bool t = match t.value with
   | Bool b -> b
   | _ -> assert false
 
+let to_fun ~t f =
+  match f.value with
+  | Fun _  | FFI _ ->
+    (fun args -> apply ~t f args)
+  | _ -> assert false
+
 let to_string t = match t.value with
   | String s -> s
   | _ -> assert false

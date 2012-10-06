@@ -22,6 +22,7 @@
 
   (** Native audio converters *)
 
-let samplerate_converter () = Audio.Mono.resample
+(* TODO: setting to be able to choose linear resampling. *)
+let samplerate_converter () x = Audio.Mono.resample x
 
 let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter

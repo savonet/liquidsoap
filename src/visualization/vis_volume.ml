@@ -45,6 +45,7 @@ object (self)
     Graphics.auto_synchronize false
 
   method private sleep =
+    super#sleep ;
     Graphics.close_graph ()
 
   (* Ringbuffer for previous values, with its current position *)

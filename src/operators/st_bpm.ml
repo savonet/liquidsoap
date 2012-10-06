@@ -22,7 +22,8 @@
 
 open Source
 
-class bpm ~kind (source:source) every =
+class bpm ~kind (source:source) cb every =
+  let every = Frame.audio_of_seconds every in
 object (self)
   inherit operator ~name:"bpm" kind [source] as super
 
@@ -37,15 +38,16 @@ object (self)
 
   method private get_frame buf =
     let offset = AFrame.position buf in
-      source#get buf;
-      Soundtouch.BPM.put_samples_ni
-        bpm (AFrame.content buf offset) offset ((AFrame.position buf) - offset);
-      n <- n + 1;
-      if n >= every then
-        (
-          n <- 0;
-          self#log#f 1 "BPM: %.02f\n%!" (Soundtouch.BPM.get_bpm bpm)
-        )
+    source#get buf;
+    let len = AFrame.position buf - offset in
+    Soundtouch.BPM.put_samples_ni bpm (AFrame.content buf offset) offset len;
+    n <- n + len;
+    if n >= every then
+      (
+        n <- 0;
+        let bpm = Soundtouch.BPM.get_bpm bpm in
+        ignore (cb ["",Lang.float bpm])
+      )
 
 end
 
@@ -53,15 +55,17 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "bpm"
     [
-      "every", Lang.int_t, Some (Lang.int 500), None;
+      "every", Lang.float_t, Some (Lang.float 1.), Some "Interval at which BPM is computed (in second).";
+      "", Lang.fun_t [false,"",Lang.float_t] Lang.unit_t, None, Some "Callback function.";
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Detect the BPM."
-    ~flags:[Lang.Experimental]
+    ~flags:[]
     (fun p kind ->
        let f v = List.assoc v p in
-       let every = Lang.to_int (f "every") in
-       let s = Lang.to_source (f "") in
-         new bpm ~kind s every)
+       let every = Lang.to_float (f "every") in
+       let cb = Lang.to_fun (Lang.assoc "" 1 p) ~t:Lang.unit_t in
+       let s = Lang.to_source (Lang.assoc "" 2 p) in
+         new bpm ~kind s cb every)
