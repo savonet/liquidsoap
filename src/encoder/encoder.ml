@@ -160,6 +160,7 @@ struct
     bitrate       : bitrate ;
     complexity    : int option ;
     channels      : int ;
+    frame_size    : float ;
     max_bandwidth : max_bandwidth option ;
     mode          : mode ;
     samplerate    : int ;
@@ -196,7 +197,8 @@ struct
     | Some `Music -> "signal=\"music\","
 
   let to_string v =
-    Printf.sprintf "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d)"
+    Printf.sprintf
+    "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f)"
       (string_of_mode v.mode)
       (string_of_bitrate v.bitrate)
       v.channels
@@ -205,6 +207,7 @@ struct
       (string_of_bandwidth v.max_bandwidth)
       (string_of_signal v.signal)
       v.samplerate
+      v.frame_size
 end
 
 module MP3 =

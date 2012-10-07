@@ -94,6 +94,26 @@ h5. Vorbis
 Quality ranges from -0.2 to 1,
 but quality -0.2 is only available with the aotuv implementation of libvorbis.
 
+h5. Opus
+
+Opus is a lossy audio compression made especially suitable for interactive real-time applications 
+over the Internet. Liquidsoap supports Opus data encapsulated into Ogg streams.
+
+The encoder is named @%opus@ and its parameters are as follows. Please refer
+to the "Opus documentation":http://www.opus-codec.org/docs/ for information about
+their meanings and values.
+* @vbr@: one of @"none"@, @"constrained"@ or @"unconstrained"@
+* @application@: One of @"audio"@, @"voip"@ or @"restricted_lowdelay"@
+* @complexity@: Integer value between @0@ and @10@.
+* @max_bandwidth@: One of @"narrow_band"@, @"medium_band"@, @"wide_band"@, @"super_wide_band"@ or @"full_band"@
+* @samplerate@: input samplerate. Must be one of: @8000@, @12000@, @16000@, @24000@ or @48000@
+* @frame_size@: encoding frame size, in milliseconds. Must be one of: @2.5@, @5.@, @10.@, @20.@, @40.@ or @60.@. 
+* @bitrate@: encoding bitrate, in @kbps@. Must be a value between @5@ and @512@. You can also set it to @"auto"@.
+* @channels@: currently, only @1@ or @2@ channels are allowed.
+* @mono@, @stereo@: equivalent to @channels=1@ and @channels=2@.
+* @signal@: one of @"voice"@ or @"music"@
+
+
 h5. Theora
 
 %%
