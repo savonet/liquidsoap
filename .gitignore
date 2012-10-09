@@ -13,9 +13,9 @@ scripts/liquidsoap.initd
 scripts/liquidsoap.logrotate
 src/META
 src/configure.ml
-src/tools/liq_sockets.ml
 *.cm*
 *.o
+*~
 src/SVN.ml
 src/auto_clean
 src/lang/lang_lexer.ml

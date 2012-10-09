@@ -246,17 +246,6 @@ AC_SUBST(OCAML_REVISION)
 AC_MSG_CHECKING([for ocamlc version])
 AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
-# Variables for support of TCP_NODELAY:
-if test \( $OCAML_MAJOR -eq 3 -a $OCAML_MINOR -ge 11 \) -o $OCAML_MAJOR -gt 3 ; then
-  NEED_TCP_NODELAY=
-  TCP_NODELAY_VALUE='let set_tcp_nodelay fd v = Unix.setsockopt fd Unix.TCP_NODELAY v'
-else
-  NEED_TCP_NODELAY=yes
-  TCP_NODELAY_VALUE='external set_tcp_nodelay : Unix.file_descr -> bool -> unit = "stub_set_tcp_nodelay"'
-fi
-AC_SUBST(NEED_TCP_NODELAY)
-AC_SUBST(TCP_NODELAY_VALUE)
-
 AC_SUBST(BYTE)
 
 AC_ARG_ENABLE([custom-path],
@@ -860,7 +849,6 @@ AC_CONFIG_FILES([scripts/liquidsoap.initd],[chmod a-w scripts/liquidsoap.initd])
 AC_CONFIG_FILES([scripts/liquidsoap.gentoo.initd],
                 [chmod a-w scripts/liquidsoap.gentoo.initd])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
-AC_CONFIG_FILES([src/tools/liq_sockets.ml],[chmod a-w src/tools/liq_sockets.ml])
 AC_OUTPUT
 $MAKE finish-configure
 

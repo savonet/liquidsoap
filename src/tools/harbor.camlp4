@@ -675,7 +675,7 @@ let open_port ~icy port =
              Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller
            in
            log#f 4 "New client on port %i: %s" port ip ;
-           Liq_sockets.set_tcp_nodelay socket true;
+           Unix.setsockopt socket Unix.TCP_NODELAY true;
            let on_error e =
              begin
               match e with
@@ -756,7 +756,7 @@ let open_port ~icy port =
     let sock = socket PF_INET SOCK_STREAM 0 in
     setsockopt sock SO_REUSEADDR true ;
     (* Set TCP_NODELAY on the socket *)
-    Liq_sockets.set_tcp_nodelay sock true ;
+    Unix.setsockopt sock Unix.TCP_NODELAY true;
     begin try bind sock bind_addr with
       | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
           failwith (Printf.sprintf "port %d already taken" port)

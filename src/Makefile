@@ -36,8 +36,7 @@ conditional_compilation = \
       $(eval $(1) += $(3))))
 
 liquidsoap_c_files = \
-	tools/locale_c.c \
-	$(if $(NEED_TCP_NODELAY),tools/socket_stubs.c)
+	tools/locale_c.c
 
 # Add conditional files..
 $(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)
@@ -191,7 +190,6 @@ tools = tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
-	tools/liq_sockets.ml \
 	tools/wav.ml configure.ml \
 	tools/tutils.ml tools/http.ml tools/pool.ml
 

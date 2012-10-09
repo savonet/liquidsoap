@@ -478,7 +478,7 @@ object (self)
         Cry.connect connection source ;
         self#log#f 3 "Connection setup was successful." ;
         let c = Cry.get_connection_data connection in
-        let () = Liq_sockets.set_tcp_nodelay c.Cry.data_socket true in
+        Unix.setsockopt c.Cry.data_socket Unix.TCP_NODELAY true;
         (* Execute on_connect hook. *)
         on_connect () ;
       with

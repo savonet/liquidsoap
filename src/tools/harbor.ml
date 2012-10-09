@@ -625,7 +625,7 @@ let open_port ~icy port =
            let ip = Utils.name_of_sockaddr ~rev_dns: conf_revdns#get caller
            in
              (log#f 4 "New client on port %i: %s" port ip;
-              Liq_sockets.set_tcp_nodelay socket true;
+              Unix.setsockopt socket Unix.TCP_NODELAY true;
               let on_error e =
                 ((match e with
                   | Duppy.Io.Io_error -> log#f 4 "Client %s disconnected" ip
@@ -691,7 +691,7 @@ let open_port ~icy port =
      in
        (* Set TCP_NODELAY on the socket *)
        (setsockopt sock SO_REUSEADDR true;
-        Liq_sockets.set_tcp_nodelay sock true;
+        Unix.setsockopt sock Unix.TCP_NODELAY true;
         (try bind sock bind_addr
          with
          | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->

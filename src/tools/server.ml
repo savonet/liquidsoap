@@ -358,7 +358,7 @@ let start_telnet () =
   let sock = socket PF_INET SOCK_STREAM 0
   in
     (* Set TCP_NODELAY on the socket *)
-    (Liq_sockets.set_tcp_nodelay sock true;
+    (Unix.setsockopt sock Unix.TCP_NODELAY true;
      let rec incoming _ =
        ((try
            let (socket, caller) = accept sock in
