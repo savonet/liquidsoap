@@ -51,8 +51,12 @@ object (self)
     self#log#f 3 "Using soundtouch %s." (Soundtouch.get_version_string st)
 
   method stype       = source#stype
-  method is_ready    = source#is_ready
+
+  method is_ready    =
+    (Generator.length abg > 0) || source#is_ready
+
   method remaining   = Generator.remaining abg
+
   method abort_track =
     Generator.clear abg;
     source#abort_track
