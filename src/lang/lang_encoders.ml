@@ -102,7 +102,7 @@ let mp3_base_defaults =
         internal_quality = 2;
         id3v2 = None ;
         msg_interval = 0.1 ;
-        msg = Configure.vendor }
+        msg = "" }
 
 let mp3_base f =
   function
