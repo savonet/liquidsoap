@@ -25,4 +25,4 @@
 module Register = Aacplus_encoder.Register(Aacplus)
 
 let () =
-  Register.register_encoder "AAC+/libaaplus/builtin"
+  Register.register_encoder "AAC+/libaacplus/builtin"

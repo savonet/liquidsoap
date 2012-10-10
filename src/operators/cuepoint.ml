@@ -144,7 +144,8 @@ object (self)
                     let cue_in =
                       match cue_in with
                         | Some i when i <= 0L ->
-                            self#log#f 2 "Ignoring negative cue-in point." ;
+                            if i < 0L then
+                              self#log#f 2 "Ignoring negative cue-in point." ;
                             None
                         | i -> i
                     in
