@@ -457,6 +457,8 @@ object (self)
                           end ;
                           self#log#f 3 "Decoding..." ;
                           connected <- Some url ;
+                          Generator.set_rewrite_metadata generator
+                            (fun m -> Hashtbl.add m "source_url" url ; m) ;
                           self#feeding
                             poll_should_stop dec socket chunked metaint
                       end
