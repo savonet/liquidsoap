@@ -68,7 +68,7 @@ object (self)
     if clock_safe then
       (v4l_clock ())#unregister_blocking_source
 
-  method stype = Source.Infallible
+  method stype = Source.Fallible
   method remaining = -1
   method is_ready = true
 
@@ -76,13 +76,16 @@ object (self)
 
   val mutable device = None
 
-  method pull_block block = 
-    let sink = self#get_device in
-    for i = 0 to size - 1 do 
-      let b = App_sink.pull_buffer sink in
-      let img = I.make width height b in
-      block.(i) <- img
-    done
+  method pull_block block =
+    try
+      let sink = self#get_device in
+      for i = 0 to size - 1 do
+        let b = App_sink.pull_buffer sink in
+        let img = I.make width height b in
+        block.(i) <- img
+      done
+    with
+    | Gstreamer.End_of_stream -> ()
 
   (* ocaml-gstreamer does not have
    * a close API for now.. *)
