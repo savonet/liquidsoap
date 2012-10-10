@@ -153,6 +153,7 @@ sig
   val length : t -> int
   val remaining : t -> int
 
+  val set_rewrite_metadata : t -> (Frame.metadata -> Frame.metadata) -> unit
   val add_metadata : t -> Frame.metadata -> unit
   val add_break : ?sync:[`Strict|`Ignore|`Drop] -> t -> unit
 
