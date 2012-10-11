@@ -192,10 +192,9 @@ let create () =
                 let oy = (dst_h - src_h * dst_w / src_w) / 2 in
                 0,oy,dst_w,dst_h - 2 * oy
             in
-            Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) dst_rect
-          )
-        else
-          Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) (0,0,dst_w,dst_h);
+            Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) dst_rect;
+            Gavl.Video.reinit conv
+          );
         WH.add converters (proportional,src_f,dst_f) conv;
         conv
     in
