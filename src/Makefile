@@ -1,6 +1,6 @@
 
 SUBDIRS= tools decoder playlists encoder protocols plugins stream lang \
-		 ogg_formats video_converters audio_converters \
+		 ogg_formats converters converters/audio converters/video \
 		 operators sources conversions outputs io visualization analyze synth
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
@@ -75,15 +75,15 @@ $(call conditional_compilation,ogg_muxer,$(W_FLAC_OGG),ogg_formats/ogg_flac_enco
 $(call conditional_compilation,ogg_muxer,$(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
-	audio_converters/native_audio_converter.ml
+	converters/audio/native_audio_converter.ml
 
-$(call conditional_compilation,audio_converters,$(W_SAMPLERATE),audio_converters/libsamplerate_converter.ml)
+$(call conditional_compilation,converters/audio,$(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
 
 video_converters = \
-	video_converter.ml \
-	video_converters/native_video_converter.ml
+	converters/video_converter.ml \
+	converters/video/native_video_converter.ml
 
-$(call conditional_compilation,video_converters,$(W_GAVL),video_converters/gavl_converter.ml)
+$(call conditional_compilation,converters/video,$(W_GAVL),converters/video/gavl_converter.ml)
 
 decoders = \
 	decoder/metadata_decoder.ml \
@@ -213,7 +213,7 @@ $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)
 $(call conditional_compilation,builtins,$(W_CRY),lang/builtins_cry.ml)
 
-liquidsoap_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
+liquidsoap_sources= $(tools) SVN.ml converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
