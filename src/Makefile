@@ -77,13 +77,13 @@ $(call conditional_compilation,ogg_muxer,$(W_SCHROEDINGER),ogg_formats/dirac_enc
 audio_converters = \
 	converters/audio/native_audio_converter.ml
 
-$(call conditional_compilation,converters/audio,$(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
+$(call conditional_compilation,audio_converters,$(W_SAMPLERATE),converters/audio/libsamplerate_converter.ml)
 
 video_converters = \
 	converters/video_converter.ml \
 	converters/video/native_video_converter.ml
 
-$(call conditional_compilation,converters/video,$(W_GAVL),converters/video/gavl_converter.ml)
+$(call conditional_compilation,video_converters,$(W_GAVL),converters/video/gavl_converter.ml)
 
 decoders = \
 	decoder/metadata_decoder.ml \
