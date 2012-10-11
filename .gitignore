@@ -13,6 +13,7 @@ scripts/liquidsoap.initd
 scripts/liquidsoap.logrotate
 src/META
 src/configure.ml
+*.sw*
 *.cm*
 *.o
 *~
