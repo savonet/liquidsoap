@@ -509,12 +509,15 @@ struct
     mutable error : bool ;
     overfull : overfull option ;
     gen : Super.t ;
-    log : string -> unit
+    log : string -> unit ;
+    (* Metadata rewriting, in place modification allowed *)
+    mutable map_meta : Frame.metadata -> Frame.metadata
   }
 
   let create ?(lock=Mutex.create()) ?overfull ~kind ~log mode =
     { lock = lock ; kind = kind ; error = false ; overfull = overfull ;
-      log = log   ; gen = Super.create mode }
+      log = log   ; gen = Super.create mode ;
+      map_meta = fun x -> x }
 
   let mode t = Tutils.mutexify t.lock Super.mode t.gen
   let set_mode t mode = Tutils.mutexify t.lock (Super.set_mode t.gen) mode
@@ -524,8 +527,11 @@ struct
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
 
+  let set_rewrite_metadata t f = t.map_meta <- f
+
   let add_metadata t m =
-    Tutils.mutexify t.lock (Super.add_metadata t.gen) m
+    Tutils.mutexify t.lock (fun m -> Super.add_metadata t.gen (t.map_meta m)) m
+
   let add_break ?sync t = Tutils.mutexify t.lock (Super.add_break ?sync) t.gen
 
   let clear t = Tutils.mutexify t.lock Super.clear t.gen
