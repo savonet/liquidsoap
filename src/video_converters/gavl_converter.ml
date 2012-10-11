@@ -136,98 +136,71 @@ let gavl_frame_of img =
         frame_interlace_mode = Gavl.Video.No_interlace
       }
 
+module HT = struct
+  type t = (bool * Gavl.Video.format * Gavl.Video.format) * (Gavl.Video.t option)
+
+  let equal (fmt,_) (fmt',_) = fmt = fmt'
+
+  let hash (fmt,_) = Hashtbl.hash fmt
+end
+
+module WH = struct
+  include Weak.Make(HT)
+
+  (* Number of converters to always keep in memory. *)
+  let n = 2
+
+  let keep = Array.make n None
+
+  let add h fmt conv =
+    let conv = (fmt,Some conv) in
+    for i = 1 to n - 1 do
+      keep.(i-1) <- keep.(i)
+    done;
+    keep.(n-1) <- Some conv;
+    add h conv
+
+  let find h fmt =
+    Utils.get_some (snd (find h (fmt,None)))
+end
+
+(* Weak hashtable containing converters already created. *)
+let converters = WH.create 5
+
 let create () =
-  (* Instanciate with a default conversion type *)
-  let w = Lazy.force Frame.video_width in
-  let h = Lazy.force Frame.video_height in
-  let yuv =
-    {
-    Gavl.Video.
-      frame_width      = w;
-      frame_height     = h;
-      image_width      = w;
-      image_height     = h;
-      pixel_width      = 1;
-      pixel_height     = 1;
-      pixelformat      = Gavl.Video.Yuvj_420_p;
-      frame_duration   = 0;
-      timescale        = 0;
-      framerate_mode   = Gavl.Video.Still;
-      chroma_placement = Gavl.Video.Default;
-      interlace_mode   = Gavl.Video.No_interlace
-    }
-  in
-  let rgb =
-    {
-    Gavl.Video.
-      frame_width      = w;
-      frame_height     = h;
-      image_width      = w;
-      image_height     = h;
-      pixel_width      = 1;
-      pixel_height     = 1;
-      pixelformat      = Gavl.Video.Rgba_32;
-      frame_duration   = 0;
-      timescale        = 0;
-      framerate_mode   = Gavl.Video.Still;
-      chroma_placement = Gavl.Video.Default;
-      interlace_mode   = Gavl.Video.No_interlace
-    }
-  in
-  let conv = Gavl.Video.create_converter yuv rgb in
-  Gavl.Video.set_quality conv (conf_quality#get);
-  Gavl.Video.set_scale_mode conv (scale_mode_of_arg conf_scale_mode#get);
-  let was_p = ref false in
-  let init_c = ref false in
-  let reinit_c = ref false in
   let convert ~proportional src dst =
-    (* Check if we need to init/reinit the converter. *)
-    let old_f,new_f = Gavl.Video.get_formats conv in
     let src_f = video_format_of_frame src in
     let dst_f = video_format_of_frame dst in
-    let src_w = Img.width src in
-    let src_h = Img.height src in
-    let dst_w = Img.width dst in
-    let dst_h = Img.height dst in
-    if old_f <> src_f || new_f <> dst_f then
-     begin
-      init_c := true;
-      was_p := false
-     end;
-    if proportional && not !was_p then
-     begin
-      let dst_rect =
-        if dst_h * src_w < src_h * dst_w then
-          let ox = (dst_w - src_w * dst_h / src_h) / 2 in
-          ox,0,dst_w - 2 * ox , dst_h
+    (* Find or create a converter. *)
+    let conv =
+      try
+        WH.find converters (proportional,src_f,dst_f)
+      with
+      | Not_found ->
+        let src_w = Img.width src in
+        let src_h = Img.height src in
+        let dst_w = Img.width dst in
+        let dst_h = Img.height dst in
+        let conv = Gavl.Video.create_converter src_f dst_f in
+        if proportional then
+          (
+            let dst_rect =
+              if dst_h * src_w < src_h * dst_w then
+                let ox = (dst_w - src_w * dst_h / src_h) / 2 in
+                ox,0,dst_w - 2 * ox , dst_h
+              else
+                let oy = (dst_h - src_h * dst_w / src_w) / 2 in
+                0,oy,dst_w,dst_h - 2 * oy
+            in
+            Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) dst_rect
+          )
         else
-          let oy = (dst_h - src_h * dst_w / src_w) / 2 in
-          0,oy,dst_w,dst_h - 2 * oy
-      in
-      Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) dst_rect;
-      reinit_c := true;
-      was_p := true;
-     end;
-    if not proportional && !was_p then
-     begin
-       Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) (0,0,dst_w,dst_h);
-       reinit_c := true;
-       was_p := false
-     end;
-    if !init_c then
-     begin
-      Gavl.Video.init conv src_f dst_f;
-      init_c := false;
-      reinit_c := false
-     end;
-    if !reinit_c then
-     begin
-      Gavl.Video.reinit conv;
-      reinit_c := false
-     end;
+          Gavl.Video.set_rect conv (0.,0.,float src_w,float src_h) (0,0,dst_w,dst_h);
+        WH.add converters (proportional,src_f,dst_f) conv;
+        conv
+    in
     (* Now we convert *)
-    Gavl.Video.convert conv (gavl_frame_of src)
-                            (gavl_frame_of dst)
+    Gavl.Video.convert conv (gavl_frame_of src) (gavl_frame_of dst)
   in
   convert
 
