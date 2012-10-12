@@ -494,6 +494,12 @@ AC_CHECK_OCAML_BINDING([schroedinger],[0.1.0],[ogg])
 AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 
 #
+# FFMPEG
+#
+
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.1.0])
+
+#
 # Jack
 #
 
@@ -939,6 +945,7 @@ cat <<EOMSG
 
  * Video manipulation
    - Gavl              : $w_GAVL
+   - FFmpeg            : $w_FFMPEG
    - camlimages        : $w_CAMLIMAGES
 
  * MIDI manipulation

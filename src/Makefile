@@ -84,6 +84,7 @@ video_converters = \
 	converters/video/native_video_converter.ml
 
 $(call conditional_compilation,video_converters,$(W_GAVL),converters/video/gavl_converter.ml)
+$(call conditional_compilation,video_converters,$(W_FFMPEG),converters/video/ffmpeg_video_converter.ml)
 
 decoders = \
 	decoder/metadata_decoder.ml \
