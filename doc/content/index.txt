@@ -2,8 +2,8 @@ title: Liquidsoap
 
 h3. Liquidsoap
 
-Liquidsoap is a powerful tool for building complex audio stream generators,
-typically targetting internet radios. It consists of a simple script language,
+Liquidsoap is a powerful tool for building complex audio and video stream generators,
+typically targetting internet radios and webtvs. It consists of a simple script language,
 which has a first-class notion of source (basically a _stream_) and
 provides elementary source constructors and source compositions
 from which you can build the stream generator you want.
@@ -50,12 +50,13 @@ Here are a few things you can easily achieve using Liquidsoap:
 * Output to Icecast/Peercast/Shoutcast (MP3/Ogg) or a local file (WAV/MP3/Ogg/AAC).
 * Input/output via Jack, ALSA, OSS and PortAudio. Output via @libao@.
 * "Interactive control":advanced.html of many operators via Telnet or UNIX domain socket, and indirectly using scripts, graphical/web/IRC interfaces.
+* "Video streams":video.html generation.
 
 If you need something else, it's highly possible that you can have it -- at least by programming new sources/operators. Send us a mail, we'll be happy to discuss these questions.
 
 h3. Non-Features
 
-Liquidsoap is a flexible tool for processing audio streams, that's all. We have used it for several internet radio projects, and we know that this flexibility is useful. However, an internet radio usually requires more than just an audio stream, and the other components cannot easily be built from basic primitives as we do in liquidsoap for streams. We don't have any magic solution for these, although we sometimes have some nice tools which could be adapted to various uses.
+Liquidsoap is a flexible tool for processing audio and video streams, that's all. We have used it for several internet radio projects, and we know that this flexibility is useful. However, an internet radio usually requires more than just an audio stream, and the other components cannot easily be built from basic primitives as we do in liquidsoap for streams. We don't have any magic solution for these, although we sometimes have some nice tools which could be adapted to various uses.
 
 Liquidsoap itself doesn't have a nice GUI or any graphical programming 
 environment. You'll have to write the script by hand, and the only possible 
