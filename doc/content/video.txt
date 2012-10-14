@@ -139,6 +139,6 @@ If you are using @gavl@, you can change the scaling mode by
 set("video.converter.gavl.scale_mode", "quadratic")
 %%
 
-Several modes beside @quadradatic@ are available, use @liquidsoap --conf-descr@
+Several modes beside @quadratic@ are available, use @liquidsoap --conf-descr@
 to discover them. Keep in mind that you should keep a good balance between
 performance and quality!
