@@ -167,13 +167,12 @@ let () =
 let () =
   Lang.add_operator "video.scale"
     [
-      "coef", Lang.float_t, Some (Lang.float 1.),
+      "scale", Lang.float_t, Some (Lang.float 1.),
       Some "Scaling coefficient in both directions.";
-
-      "coef_x", Lang.float_t, Some (Lang.float 1.), Some "x scaling";
-      "coef_y", Lang.float_t, Some (Lang.float 1.), Some "y scaling";
-      "offset_x", Lang.int_t, Some (Lang.int 1), Some "x offset";
-      "offset_y", Lang.int_t, Some (Lang.int 1), Some "y offset";
+      "xscale", Lang.float_t, Some (Lang.float 1.), Some "x scaling.";
+      "yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.";
+      "x", Lang.int_t, Some (Lang.int 0), Some "x offset.";
+      "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
       "", Lang.source_t kind, None, None
     ]
     ~kind:(Lang.Unconstrained kind)
@@ -183,11 +182,11 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let c, cx, cy, ox, oy =
-         Lang.to_float (f "coef"),
-         Lang.to_float (f "coef_x"),
-         Lang.to_float (f "coef_y"),
-         Lang.to_int (f "offset_x"),
-         Lang.to_int (f "offset_y")
+         Lang.to_float (f "scale"),
+         Lang.to_float (f "xscale"),
+         Lang.to_float (f "yscale"),
+         Lang.to_int (f "x"),
+         Lang.to_int (f "y")
        in
          new effect ~kind
            (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
