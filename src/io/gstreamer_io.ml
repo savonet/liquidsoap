@@ -144,7 +144,8 @@ let add ~descr ~name ~version =
   let k =
     Lang.kind_type_of_kind_format ~fresh:1
       (Lang.Constrained
-         { Frame. audio = Lang.Any_fixed 0 ;
+         { Frame.
+           audio = Lang.Fixed 0 ;
            video = Lang.Fixed 1 ;
            midi = Lang.Fixed 0 })
   in
