@@ -175,7 +175,7 @@ This encoder is enabled when liquidsoap is compiled with @ocaml-voaacenc@ suppor
 
 h4. AAC+
 
-The syntax for the internal AAC+ encoder is:
+The syntax for the AAC+ encoder is:
 %%
 %aacplus(channels=2, samplerate=44100, bitrate=64)
 %%
