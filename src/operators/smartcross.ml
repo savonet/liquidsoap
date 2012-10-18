@@ -223,10 +223,9 @@ object (self)
         rmsi_before <- min rms_width (rmsi_before + 1)
     done ;
     (* Should we buffer more or are we done ? *)
-    if AFrame.is_partial buf_frame then begin
-      Generator.add_break gen_before ;
+    if AFrame.is_partial buf_frame then
       status <- `Limit
-    end else
+    else
       if n>0 then self#buffering (n - AFrame.position buf_frame)
 
   (* Analyze the beginning of a new track. *)

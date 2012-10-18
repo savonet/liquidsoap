@@ -76,7 +76,7 @@ let start_server () =
 
 let () =
   Lang.add_builtin "osc.float" ~category:"Interaction"
-    ["",Lang.string_t,None,None; "",Lang.float_t,None,None]
+    ["",Lang.string_t,None,Some "OSC path."; "",Lang.float_t,None,Some "Initial value."]
     (Lang.fun_t [] Lang.float_t)
     ~descr:"Read a float from an OSC path."
     (fun p _ ->
@@ -99,7 +99,7 @@ let () =
 let () =
   let t = Lang.product_t Lang.float_t Lang.float_t in
   Lang.add_builtin "osc.float_pair" ~category:"Interaction"
-    ["",Lang.string_t,None,None; "",t,None,None]
+    ["",Lang.string_t,None,Some "OSC path."; "",t,None,Some "Initial value."]
     (Lang.fun_t [] t)
     ~descr:"Read a float from an OSC path."
     (fun p _ ->
@@ -123,7 +123,7 @@ let () =
 
 let () =
   Lang.add_builtin "osc.bool" ~category:"Interaction"
-    ["",Lang.string_t,None,None; "",Lang.bool_t,None,None]
+    ["",Lang.string_t,None,Some "OSC path."; "",Lang.bool_t,None,Some "Initial value."]
     (Lang.fun_t [] Lang.bool_t)
     ~descr:"Read a boolean from an OSC path."
     (fun p _ ->

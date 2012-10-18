@@ -58,7 +58,7 @@ let load_plugins_dir d =
     let load ~report cur file =
      try
        Dynlink.loadfile file;
-       dyn_log#f 3 "Loaded plugin file %s." file;
+       dyn_log#f 2 "Loaded plugin file %s." file;
        cur
       with
         | Dynlink.Error e when report ->
@@ -130,9 +130,9 @@ let load_dynlinks () =
         end
       with
         | Dynlink.Error e ->
-            dyn_log#f 2 "Error while loading dynamic %s at %s" name path;
+            dyn_log#f 3 "Error while loading dynamic %s at %s" name path;
             dyn_log#f 4 "%s" (Dynlink.error_message e)) dynload.path;
-            dyn_log#f 2 "Could not find dynamic module for %s." name
+     dyn_log#f 3 "Could not find dynamic module for %s." name
     with
       | Done path ->
           dyn_log#f 3 "Loaded dynamic %s from %s" name path;

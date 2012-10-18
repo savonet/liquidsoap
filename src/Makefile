@@ -148,6 +148,7 @@ operators = \
 $(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/soundtouch_op.ml)
 $(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/st_bpm.ml)
 $(call conditional_compilation,operators,$(W_LADSPA),operators/ladspa_op.ml)
+$(call conditional_compilation,operators,$(W_FREI0R),operators/frei0r_op.ml)
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
@@ -186,7 +187,7 @@ $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 $(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/doc.ml tools/plug.ml tools/utils.ml \
+tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \

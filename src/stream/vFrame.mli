@@ -43,6 +43,8 @@ val is_partial : t -> bool
 (** Number of video frames. *)
 val size : 'a -> int
 
+val position : t -> int
+
 (** Position (in video samples) of the next video sample to fill-in. *)
 val next_sample_position : t -> int
 
