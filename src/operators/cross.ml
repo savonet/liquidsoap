@@ -255,10 +255,7 @@ object (self)
     Generator.feed buffer
       ~metadata:(Frame.get_all_metadata buf_frame)
       content start (stop-start) ;
-    if Frame.is_partial buf_frame then begin
-      (* Add a break to properly terminate the generator,
-       * so that remaining time info can be issued. *)
-      Generator.add_break buffer ;
+    if Frame.is_partial buf_frame then
       (* As for Switch's transitions, we avoid stacking compositions
        * because this would lead to huge sources, never simplified.
        * We compose the end of a track with the original source [s] instead of
@@ -296,7 +293,7 @@ object (self)
         source#leave (self:>source) ;
         source <- s ;
         status <- `After inhibit
-    end else
+    else
       if n>0 then self#buffering buffer (n - Frame.position buf_frame)
 
 end

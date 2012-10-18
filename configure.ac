@@ -455,6 +455,12 @@ AC_CHECK_OCAML_BINDING([shine],[0.1.0])
 AC_CHECK_OCAML_BINDING([gstreamer],[0.1.0])
 
 #
+# frei0r
+#
+
+AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
+
+#
 # Aacplus
 #
 
@@ -946,6 +952,7 @@ cat <<EOMSG
  * Video manipulation
    - Gavl              : $w_GAVL
    - FFmpeg            : $w_FFMPEG
+   - frei0r            : $w_FREI0R
    - camlimages        : $w_CAMLIMAGES
 
  * MIDI manipulation

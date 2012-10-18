@@ -18,7 +18,7 @@ All parameters are optional, and the parenthesis are not needed
 when no parameter is passed. In the following default values
 are shown.
 As a special case, the keywords @mono@ and @stereo@ can be used to indicate
-the number of channels (whether it is passed as an integer or a boolean).
+the number of channels (whether is is passed as an integer or a boolean).
 
 h4. MP3
 
@@ -84,7 +84,7 @@ h5. Vorbis
 %%
 # Variable bitrate
 %vorbis(samplerate=44100, channels=2, quality=0.3)
-# Average bitrate
+% Average bitrate
 %vorbis.abr(samplerate=44100, channels=2, bitrate=128, max_bitrate=192, min_bitrate=64)
 # Constant bitrate
 %vorbis.cbr(samplerate=44100, channels=2, bitrate=128)
@@ -166,21 +166,17 @@ The parameters are:
 
 h4. AAC
 
-The syntax for the AAC encoder is:
+The syntax for the internal AAC encoder is:
 %%
 %aac(channels=2, samplerate=44100, bitrate=64, adts=true)
 %%
 
-This encoder is enabled when liquidsoap is compiled with @ocaml-voaacenc@ support.
-
 h4. AAC+
 
-The syntax for the AAC+ encoder is:
+The syntax for the internal AAC+ encoder is:
 %%
 %aacplus(channels=2, samplerate=44100, bitrate=64)
 %%
-
-This encoder is enabled when liquidsoap is compiled with @ocaml-aacplus@ support.
 
 h4. External encoders
 
