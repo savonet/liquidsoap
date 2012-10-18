@@ -23,6 +23,7 @@
 (** Decode files and streams using GStreamer. *)
 
 open Dtools
+open Stdlib
 
 module Img = Image.RGBA32
 let log = Dtools.Log.make ["decoder";"gstreamer"]
@@ -61,7 +62,9 @@ type gst =
   {
     bin : Gstreamer.Element.t;
     src : Gstreamer.App_src.t;
-    sink : Gstreamer.App_sink.t;
+    src_mutex : Mutex.t; (** Mutex for feeding data. *)
+    audio_sink : Gstreamer.App_sink.t option;
+    video_sink : Gstreamer.App_sink.t option;
   }
 
 let pipeline_decode_audio ~channels =
@@ -100,51 +103,51 @@ module Make (Generator : Generator.S_Asio) = struct
 
     let gst_max_buffers = conf_max_buffers#get in
 
-    let gst_audio =
-      if decode_audio then
-        let src = "appsrc name=src" in
-        let pipeline =
-          Printf.sprintf "%s ! %s ! appsink name=sink drop=false sync=false"
-            src (pipeline_decode_audio ~channels) in
-        log#f 5 "Gstreamer pipeline: %s." pipeline;
-        let bin = Gstreamer.Pipeline.parse_launch pipeline in
-        let src =
-          Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "src")
-        in
-        let sink =
-          Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink")
-        in
-        let gst = { bin; src; sink } in
-        Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
-        Some gst
-      else
-        None
-    in
-    let width = Lazy.force Frame.video_width in
-    let height = Lazy.force Frame.video_height in
-    let gst_video =
-      if decode_video then
-        let src = "appsrc name=src" in
-        let pipeline =
+    let gst =
+      let audio_pipeline =
+        if decode_audio then
+          Printf.sprintf " t. ! queue ! %s ! appsink name=audio_sink drop=false sync=false"
+            (pipeline_decode_audio ~channels)
+        else
+          ""
+      in
+      let video_pipeline =
+        if decode_video then
           Printf.sprintf
-            "%s ! %s ! appsink name=sink drop=false sync=false"
-            src (pipeline_decode_video ())
-        in
-        log#f 5 "Gstreamer pipeline: %s." pipeline;
-        let bin = Gstreamer.Pipeline.parse_launch pipeline in
-        let src =
-          Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "src")
-        in
-        let sink =
-          Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink")
-        in
-        let gst = { bin; src; sink } in
-        Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
-        Some gst
-      else
-        None
+            " t. ! queue ! %s ! appsink name=video_sink drop=false sync=false"
+            (pipeline_decode_video ())
+        else
+          ""
+      in
+      let pipeline =
+        Printf.sprintf "appsrc name=src ! tee name=t%s%s"
+          audio_pipeline video_pipeline
+      in
+      log#f 5 "Gstreamer pipeline: %s." pipeline;
+      let bin = Gstreamer.Pipeline.parse_launch pipeline in
+      let src = Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "src") in
+      let audio_sink =
+        if decode_audio then
+          let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "audio_sink") in
+          Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
+          Some sink
+        else
+          None
+      in
+      let video_sink =
+        if decode_video then
+          let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "video_sink") in
+          Gstreamer.App_sink.set_max_buffers sink gst_max_buffers;
+          Some sink
+        else
+          None
+      in
+      let src_mutex = Mutex.create () in
+      { bin; src; src_mutex; audio_sink; video_sink }
     in
 
+    let width = Lazy.force Frame.video_width in
+    let height = Lazy.force Frame.video_height in
     let started = ref false in
 
     let init ~reset buffer =
@@ -155,49 +158,23 @@ module Make (Generator : Generator.S_Asio) = struct
           if not merge_tracks then Generator.add_break ~sync:`Drop buffer
         );
       Generator.set_mode buffer mode;
-      if decode_video then
-        (
-          let gst = Utils.get_some gst_video in
-          ignore (Gstreamer.Element.set_state
-                    gst.bin Gstreamer.Element.State_playing)
-        );
-      if decode_audio then
-        (
-          let gst = Utils.get_some gst_audio in
-          ignore (Gstreamer.Element.set_state
-                    gst.bin Gstreamer.Element.State_playing)
-        )
+      ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_playing)
     in
 
-    let mutex = Mutex.create () in
     let feed_data buflen =
-      Mutex.lock mutex;
+      Mutex.lock gst.src_mutex;
       let buf,buflen = input.Decoder.read buflen in
       let buf = String.sub buf 0 buflen in
-      let feed gst =
-        let gst = Utils.get_some gst in
-        if buflen = 0 then
-          (
-            log#f 5 "End of stream.";
-            Gstreamer.App_src.end_of_stream gst.src
-          )
-        else
-          Gstreamer.App_src.push_buffer_string gst.src buf
-      in
-      if decode_audio then feed gst_audio;
-      if decode_video then feed gst_video;
-      Mutex.unlock mutex
+      if buflen = 0 then
+        (
+          log#f 5 "End of stream.";
+          Gstreamer.App_src.end_of_stream gst.src
+        )
+      else
+        Gstreamer.App_src.push_buffer_string gst.src buf;
+      Mutex.unlock gst.src_mutex
     in
-    if decode_video then
-      (
-        let gst = Utils.get_some gst_video in
-        Gstreamer.App_src.on_need_data gst.src feed_data
-      );
-    if decode_audio then
-      (
-        let gst = Utils.get_some gst_audio in
-        Gstreamer.App_src.on_need_data gst.src feed_data
-      );
+    Gstreamer.App_src.on_need_data gst.src feed_data;
 
     let rec decode buffer =
       if not !started then
@@ -216,11 +193,10 @@ module Make (Generator : Generator.S_Asio) = struct
       in
       if decode_audio then
         (
-          let gst = Utils.get_some gst_audio in
           let _, state, _ = Gstreamer.Element.get_state gst.bin in
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
-          let b = Gstreamer.App_sink.pull_buffer_string gst.sink in
+          let b = Gstreamer.App_sink.pull_buffer_string (get_some gst.audio_sink) in
           let len = String.length b / (2*channels) in
           let buf = Audio.create channels len in
           Audio.S16LE.to_audio b 0 buf 0 len;
@@ -228,11 +204,10 @@ module Make (Generator : Generator.S_Asio) = struct
         );
       if decode_video then
         (
-          let gst = Utils.get_some gst_video in
           let _, state, _ = Gstreamer.Element.get_state gst.bin in
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
-          let b = Gstreamer.App_sink.pull_buffer gst.sink in
+          let b = Gstreamer.App_sink.pull_buffer (get_some gst.video_sink) in
           let img = Img.make width  height b in
           let stream = [|img|] in
           Generator.put_video buffer [|stream|] 0 (Array.length stream)
@@ -246,44 +221,16 @@ module Make (Generator : Generator.S_Asio) = struct
         let off =
           Int64.of_float (Frame.seconds_of_master off *. 1000000000.)
         in
-        let pos_audio =
-          if decode_audio then
-            let gst = Utils.get_some gst_audio in
-            let pos =
-              Gstreamer.Element.position gst.bin Gstreamer.Format.Time
-            in
-            Gstreamer.Element.seek_simple
-              gst.bin
-              Gstreamer.Format.Time
-              [Gstreamer.Event.Seek_flag_flush;
-               Gstreamer.Event.Seek_flag_key_unit;
-               Gstreamer.Event.Seek_flag_skip]
-              (Int64.add pos off);
-            Some (Gstreamer.Element.position gst.bin Gstreamer.Format.Time)
-          else
-            None
-        in
         let pos =
-          if decode_video then
-            let gst = Utils.get_some gst_video in
-            let pos =
-              Gstreamer.Element.position gst.bin Gstreamer.Format.Time
-            in
-            Gstreamer.Element.seek_simple
-              gst.bin
-              Gstreamer.Format.Time
-              [Gstreamer.Event.Seek_flag_flush;
-               Gstreamer.Event.Seek_flag_key_unit;
-               Gstreamer.Event.Seek_flag_skip]
-              (Int64.add pos off);
-            let pos =
-              Gstreamer.Element.position gst.bin Gstreamer.Format.Time
-            in
-            match pos_audio with
-            | Some pos -> pos
-            | None -> pos
-          else
-            Utils.get_some pos_audio
+          let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
+          Gstreamer.Element.seek_simple
+            gst.bin
+            Gstreamer.Format.Time
+            [Gstreamer.Event.Seek_flag_flush;
+             Gstreamer.Event.Seek_flag_key_unit;
+             Gstreamer.Event.Seek_flag_skip]
+            (Int64.add pos off);
+          Gstreamer.Element.position gst.bin Gstreamer.Format.Time
         in
         Frame.master_of_seconds (Int64.to_float pos /. 1000000000.)
       with

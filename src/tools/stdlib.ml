@@ -1,5 +1,9 @@
 let id x = x
 
+let get_some = function
+  | Some x -> x
+  | None -> assert false
+
 module List = struct
   include List
 
