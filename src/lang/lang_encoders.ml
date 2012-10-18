@@ -637,14 +637,14 @@ let mk_theora params =
           | ("width",({ term = Int i } as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
-                raise (Error (t,"invalid frame width value")) ;
+                raise (Error (t,"invalid frame width value (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
                     width = Lazy.lazy_from_val i;
                     picture_width = Lazy.lazy_from_val i }
           | ("height",({ term = Int i } as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
-                raise (Error (t,"invalid frame height value")) ;
+                raise (Error (t,"invalid frame height value (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
                     height = Lazy.lazy_from_val i;
                     picture_height = Lazy.lazy_from_val i }
