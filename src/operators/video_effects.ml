@@ -84,16 +84,16 @@ let () =
 let () =
   Lang.add_operator "video.opacity"
     [
-      "", Lang.float_t, None, Some "Coefficient to scale opacity with.";
+      "", Lang.float_getter_t 1, None, Some "Coefficient to scale opacity with.";
       "", Lang.source_t kind, None, None
     ]
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.VideoProcessing
     ~descr:"Scale opacity of video."
     (fun p kind ->
-       let a = Lang.to_float (Lang.assoc "" 1 p) in
+       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new effect ~kind (fun buf -> Img.Effect.Alpha.scale buf a) src)
+         new effect ~kind (fun buf -> Img.Effect.Alpha.scale buf (a ())) src)
 
 let () =
   Lang.add_operator "video.opacity.blur"
@@ -121,7 +121,7 @@ let () =
 let () =
   Lang.add_operator "video.transparent"
     [
-      "precision", Lang.float_t, Some (Lang.float 0.),
+      "precision", Lang.float_getter_t 1, Some (Lang.float 0.),
       Some "Precision in color matching (0. means match precisely the color \
             and 1. means match every color).";
 
@@ -136,13 +136,17 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let prec, color, src =
-         Lang.to_float (f "precision"),
+         Lang.to_float_getter (f "precision"),
          Lang.to_int (f "color"),
          Lang.to_source (f "")
        in
-       let prec = int_of_float (prec *. 255.) in
        let color = Image.RGB8.Color.of_int color in
-         new effect ~kind (fun buf -> Img.Effect.Alpha.of_color buf color prec) src)
+         new effect ~kind
+           (fun buf ->
+             let prec = int_of_float (prec () *. 255.) in
+             Img.Effect.Alpha.of_color buf color prec
+           )
+           src)
 
 let () =
   Lang.add_operator "video.fill"
@@ -167,10 +171,10 @@ let () =
 let () =
   Lang.add_operator "video.scale"
     [
-      "scale", Lang.float_t, Some (Lang.float 1.),
+      "scale", Lang.float_getter_t 1, Some (Lang.float 1.),
       Some "Scaling coefficient in both directions.";
-      "xscale", Lang.float_t, Some (Lang.float 1.), Some "x scaling.";
-      "yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.";
+      "xscale", Lang.float_getter_t 2, Some (Lang.float 1.), Some "x scaling.";
+      "yscale", Lang.float_getter_t 3, Some (Lang.float 1.), Some "y scaling.";
       "x", Lang.int_t, Some (Lang.int 0), Some "x offset.";
       "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
       "", Lang.source_t kind, None, None
@@ -182,14 +186,18 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let c, cx, cy, ox, oy =
-         Lang.to_float (f "scale"),
-         Lang.to_float (f "xscale"),
-         Lang.to_float (f "yscale"),
+         Lang.to_float_getter (f "scale"),
+         Lang.to_float_getter (f "xscale"),
+         Lang.to_float_getter (f "yscale"),
          Lang.to_int (f "x"),
          Lang.to_int (f "y")
        in
          new effect ~kind
-           (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
+           (fun buf ->
+             let c = c () in
+             let cx = cx () in
+             let cy = cy () in
+             Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
 
 let () =
   Lang.add_operator "video.rotate"
