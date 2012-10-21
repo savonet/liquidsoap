@@ -192,16 +192,12 @@ let () =
            (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
 
 let () =
-  let effect a da buf =
-    a := !a +. da;
-    Img.Effect.rotate buf !a
-  in
   Lang.add_operator "video.rotate"
     [
-      "angle", Lang.float_t, Some (Lang.float 0.),
+      "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
       Some "Initial angle in radians.";
 
-      "speed", Lang.float_t, Some (Lang.float 3.1416),
+      "speed", Lang.float_getter_t 2, Some (Lang.float 3.1416),
       Some "Rotation speed in radians per sec.";
 
       "", Lang.source_t kind, None, None
@@ -210,9 +206,25 @@ let () =
     ~category:Lang.VideoProcessing
     ~descr:"Rotate video."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-       let angle = ref (Lang.to_float (f "angle")) in
-       let speed = Lang.to_float (f "speed") in
-       let da = speed /. float (Lazy.force Frame.video_rate) in
-         new effect ~kind (effect angle da) src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let a = Lang.to_float_getter (f "angle") in
+      let speed = Lang.to_float_getter (f "speed") in
+      let da =
+        let fps = float (Lazy.force Frame.video_rate) in
+        fun () ->
+          speed () /. fps
+      in
+      let angle = ref (a ()) in
+      let a_old = ref (a ()) in
+      let effect buf =
+        if a () <> !a_old then
+          (
+            a_old := a ();
+            angle := !a_old
+          )
+        else
+          angle := !angle +. da ();
+        Img.Effect.rotate buf !angle
+      in
+      new effect ~kind effect src)
