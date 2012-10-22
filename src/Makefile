@@ -99,7 +99,6 @@ $(call conditional_compilation,decoders,$(W_VORBIS),decoder/vorbisduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flacduration.ml)
 $(call conditional_compilation,decoders,$(W_FLAC_OGG),decoder/ogg_flac_duration.ml)
 $(call conditional_compilation,decoders,$(W_TAGLIB),decoder/taglib_plug.ml)
-$(call conditional_compilation,decoders,$(W_GSTREAMER),decoder/gstreamer_decoder.ml)
 
 playlists = \
 	playlists/playlist_basic.ml
@@ -185,7 +184,6 @@ io = io/udp_io.ml
 $(call conditional_compilation,io,$(W_OSS),io/oss_io.ml)
 $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
-$(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
@@ -245,6 +243,12 @@ $(call conditional_compilation,io,$(W_ALSA),io/alsa_io.ml)
 
 # Same for GD..
 $(call conditional_compilation,operators,$(W_GD),operators/video_text_gd.ml)
+
+# GStreamer
+$(call conditional_compilation,stream,$(W_GSTREAMER),tools/gstreamer_utils.ml)
+$(call conditional_compilation,decoders,$(W_GSTREAMER),decoder/gstreamer_decoder.ml)
+$(call conditional_compilation,operators,$(W_GSTREAMER),operators/video_text_gstreamer.ml)
+$(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \

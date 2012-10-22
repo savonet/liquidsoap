@@ -130,6 +130,8 @@ val audio_n : int -> lang_kind_formats
 val audio_variable : lang_kind_formats
 
 val video_only : lang_kind_formats
+val video_n : int -> lang_kind_formats
+
 val midi_n : int -> lang_kind_formats
 val midi_only : lang_kind_formats
 

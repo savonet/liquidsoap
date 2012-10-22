@@ -96,7 +96,8 @@ object (self)
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:4 (Lang.any_fixed_with ~audio:1 ()) in
+  (* TODO: could we keep the video in some cases? *)
+  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
   Lang.add_operator "soundtouch"
     [
       "rate", Lang.float_getter_t 1, Some (Lang.float 1.0), None;
