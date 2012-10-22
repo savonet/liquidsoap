@@ -5,3 +5,4 @@
 %include "flows.liq"
 %include "http.liq"
 %include "video_text.liq"
+%include "gstreamer.liq"

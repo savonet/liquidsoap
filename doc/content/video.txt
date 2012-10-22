@@ -112,6 +112,144 @@ cam = video.transparent(color=0x0000ff,precision=0.2,cam)
 source = add([img,cam])
 %%
 
+h3. Detailed examples
+
+h4. The anonymizer
+
+Let's design an "anonymizer" effect: I want to blur my face and change my voice
+so that nobody will recognise me in the street after seeing the youtube
+video. Here is what we are going to achieve:
+
+`antiquotation`<center><iframe width="560" height="315" src="http://www.youtube.com/embed/E7Fb0wV3h5Q" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
+
+This video was produced thanks to the following script:
+
+%%
+# Input from webcam
+cam = input.v4l2()
+
+# Detect faces (this generates a white disk over faces)
+mask = video.frei0r.opencvfacedetect(cam)
+# Pixellize the video
+censored = video.frei0r.pixeliz0r(blocksizex=0.1,blocksizey=0.1,cam)
+# Generate a mask for video without the face
+unmask = video.frei0r.invert0r(mask)
+# Put the pixellized face over the video
+s = video.frei0r.addition(
+  video.frei0r.multiply(mask,censored),
+  video.frei0r.multiply(unmask,cam))
+# We have to bufferize the source because its clock it GStreamer's clock
+s = buffer(buffer=0.1,mksafe(s))
+
+# Input audio from microphone
+mic = input.pulseaudio(clock_safe=false)
+# Transpose sound to generate a funny voice
+mic = soundtouch(pitch=1.5,mic)
+# Add sound to video
+s = mux_audio(audio=mic,s)
+
+# Let's hear the sound
+output.pulseaudio(fallible=true,s)
+# Let's see the video
+output.sdl(fallible=true,drop_audio(s))
+
+s = mksafe(s)
+# Output the video/sound into a file in theora/vorbis format
+output.file(%ogg(%theora(quality=63),%vorbis), "anonymous.ogv", s)
+%%
+
+h4. Controlling with OSC
+
+%%
+set("osc.port",8000)
+
+s = input.v4l2_with_audio()
+s = mksafe(s)
+
+angle = osc.float("/1/fader3", 0.)
+angle = fun() -> angle() * 3.1416 * 2.
+s = video.rotate(speed=0.,angle=angle,s)
+s = video.frei0r.brightness(brightness=osc.float("/1/fader1",0.5),s)
+s = video.frei0r.contrast0r(contrast=osc.float("/1/fader2",0.5),s)
+
+s = buffer(s)
+
+output.pulseaudio(fallible=true,s)
+output.sdl(fallible=true,drop_audio(s))
+%%
+
+h4. Blue screen
+
+You want to show yourself in front of a video of a bunny, as in
+
+`antiquotation`<center><iframe width="640" height="360" src="http://www.youtube.com/embed/zHikXRNMQu4?feature=player_detailpage" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
+
+The idea is to film yourself in front of a blue screen, make this blue screen
+transparent and put the resulting video in front of the bunny video (actually, I
+don't have a blue screen at home, only a white wall but it still kinda works).
+
+%%
+# The video of the bunny
+s = single("big_buck_bunny_720p_stereo.ogg")
+# Input from the webcam
+cam = input.v4l2()
+# Flip the video around a vertical axis so that it is easier
+# to position yourself
+cam = video.frei0r.flippo(x_axis=true,cam)
+# Make the white background transparent
+# I had to tweak the precision parameter so that I will be seen
+# but not the wall
+cam = video.transparent(color=0xffffff,precision=0.64,cam)
+# Superpose the two videos
+s = add([s,cam])
+# Output to SDL
+output.sdl(fallible=true,drop_audio(s))
+%%
+
+h3. Frequently asked questions
+
+h4. audio=1+_
+
+When I try
+
+%%
+s = input.v4l2_with_audio()
+output.sdl(s)
+%%
+
+I get the error
+
+<pre>
+At line 2, char 13:
+  this value has type
+    active_source(audio=1+_,...) (infered at ../scripts/gstreamer.liq, line 20, char 30-121)
+  but it should be a subtype of
+    active_source(audio=0,...)
+</pre>
+
+This error means that the stream @s@ has an audio channel (as indicated by
+@audio=1+_@) whereas @output.sdl@ wants no audio channel. Namely, it's type is
+
+%%
+$ liquidsoap -h output.sdl
+
+Display a video using SDL.
+
+Type: (?id:string,?fallible:bool,?on_start:(()->unit),
+ ?on_stop:(()->unit),?start:bool,
+ source(audio=0,video=1,midi=0))->
+active_source(audio=0,video=1,midi=0)
+%%
+
+which means that it wants 0 audio channel, 1 video channel and 0 midi
+channel. The solution to correct the script is simply to remove the audio
+channel using the @drop_audio@ operator:
+
+%%
+s = input.v4l2_with_audio()
+output.sdl(drop_audio(s))
+%%
+
 h3. Advanced parameters
 
 h4. Default size for videos

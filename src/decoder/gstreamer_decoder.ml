@@ -25,38 +25,9 @@
 open Dtools
 open Stdlib
 
+module GU = Gstreamer_utils
 module Img = Image.RGBA32
 let log = Dtools.Log.make ["decoder";"gstreamer"]
-
-let conf_gstreamer =
-  Conf.void ~p:(Configure.conf#plug "gstreamer")
-    "Media decoding/endcoding through gstreamer."
-
-let conf_debug =
-  Conf.int ~p:(conf_gstreamer#plug "debug_level") ~d:0
-    "Debug level (bewteen 0 and 5)."
-
-let conf_max_buffers =
-  Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
-    "Maximal number of buffers."
-
-let conf_add_borders =
-  Conf.bool ~p:(conf_gstreamer#plug "add_borders") ~d:true
-    "Add borders in order to keep video aspect ratio."
-
-let gstreamer_init =
-  let inited = ref false in
-  fun () ->
-    let argv =
-      [| "--gst-debug-spew" ;
-         Printf.sprintf "--gst-debug-level=%d" conf_debug#get|]
-    in
-    if not !inited then
-      (
-        log#f 5 "Initializing GStreamer.";
-        inited := true;
-        Gstreamer.init ~argv ()
-      )
 
 type gst =
   {
@@ -67,33 +38,13 @@ type gst =
     video_sink : Gstreamer.App_sink.t option;
   }
 
-let pipeline_decode_audio ~channels =
-  let samplerate = Lazy.force Frame.audio_rate in
-  Printf.sprintf
-    "decodebin name=audio_decodebin ! \
-     audioconvert ! audioresample ! \
-     audio/x-raw,format=S16LE,channels=%d,rate=%d"
-    channels samplerate
-
-let pipeline_decode_video () =
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
-  let fps = Lazy.force Frame.video_rate in
-  let add_borders = conf_add_borders#get in
-  Printf.sprintf
-    "decodebin name=video_decodebin ! \
-     videoconvert ! videoscale add-borders=%B ! videorate ! \
-     video/x-raw,format=RGBA,width=%d,height=%d,\
-       framerate=%d/1,pixel-aspect-ratio=1/1"
-    add_borders width height fps
-
 (** Generic decoder. *)
 (* TODO: we should share some code with Ogg_decoder... *)
 module Make (Generator : Generator.S_Asio) = struct
 
   let create_decoder ?(merge_tracks=false) source ~channels mode input =
 
-    gstreamer_init ();
+    GU.init ();
 
     let decode_audio = mode = `Both || mode = `Audio in
     let decode_video = mode = `Both || mode = `Video in
@@ -101,21 +52,23 @@ module Make (Generator : Generator.S_Asio) = struct
     log#f 4 "Using %s." (Gstreamer.version_string ());
     log#f 5 "Decode A/V: %B/%B." decode_audio decode_video;
 
-    let gst_max_buffers = conf_max_buffers#get in
+    let gst_max_buffers = GU.max_buffers () in
 
     let gst =
       let audio_pipeline =
         if decode_audio then
-          Printf.sprintf " t. ! queue ! %s ! appsink name=audio_sink drop=false sync=false"
-            (pipeline_decode_audio ~channels)
+          Printf.sprintf " t. ! queue ! %s ! %s"
+            (GU.Pipeline.decode_audio ())
+            (GU.Pipeline.audio_sink ~channels "audio_sink")
         else
           ""
       in
       let video_pipeline =
         if decode_video then
           Printf.sprintf
-            " t. ! queue ! %s ! appsink name=video_sink drop=false sync=false"
-            (pipeline_decode_video ())
+            " t. ! queue ! %s ! %s"
+            (GU.Pipeline.decode_video ())
+            (GU.Pipeline.video_sink "video_sink")
         else
           ""
       in
@@ -277,13 +230,13 @@ let create_file_decoder filename content_type kind =
   * we always pretend that audio content has the expected number of
   * channels, which is passed as a parameter to get_type. *)
 let get_type ~channels filename =
-  gstreamer_init ();
+  GU.init ();
   let filesrc = Printf.sprintf "filesrc location=\"%s\"" filename in
   let audio =
     let pipeline =
       Printf.sprintf
         "%s ! %s ! fakesink"
-        filesrc (pipeline_decode_audio ~channels)
+        filesrc (GU.Pipeline.decode_audio ())
     in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
@@ -299,7 +252,7 @@ let get_type ~channels filename =
   in
   let video =
     let pipeline =
-      Printf.sprintf "%s ! %s ! fakesink" filesrc (pipeline_decode_video ())
+      Printf.sprintf "%s ! %s ! fakesink" filesrc (GU.Pipeline.decode_video ())
     in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
@@ -380,7 +333,7 @@ let get_tags file =
        ~extensions:file_extensions#get
        ~log file)
   then raise Not_found;
-  gstreamer_init ();
+  GU.init ();
   let pipeline =
     Printf.sprintf "filesrc location=\"%s\" ! decodebin ! fakesink" file
   in
