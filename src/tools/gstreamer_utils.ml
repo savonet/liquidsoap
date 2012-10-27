@@ -103,7 +103,7 @@ let render_image pipeline =
   let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink") in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing);
   ignore (Gstreamer.Element.get_state bin);
-  let buf = Gstreamer.App_sink.pull_buffer sink in
+  let buf = Gstreamer.App_sink.pull_buffer_data sink in
   let img = Img.make width height buf in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img

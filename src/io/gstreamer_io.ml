@@ -479,7 +479,7 @@ object (self)
     let i = ref 0 in
     try
       while !i < Array.length buf do
-        let b = App_sink.pull_buffer sink in
+        let b = App_sink.pull_buffer_data sink in
         let img = Img.make width height b in
         buf.(!i) <- img;
         incr i;
@@ -615,7 +615,7 @@ object (self)
 
   method fill_video =
     let audio_sink, video_sink = self#get_device in
-    let b = Gstreamer.App_sink.pull_buffer video_sink in
+    let b = Gstreamer.App_sink.pull_buffer_data video_sink in
     let img = Img.make width height b in
     let stream = [|img|] in
     Generator.put_video gen [|stream|] 0 (Array.length stream)
