@@ -422,6 +422,17 @@ struct
 
 end
 
+module GStreamer =
+struct
+  type t = {
+    (* TODO: ... *)
+    dummy : unit;
+  }
+
+  (* TODO *)
+  let to_string m = "%%gstreamer"
+end
+
 module Theora =
 struct
 
@@ -535,6 +546,7 @@ type format =
   | AACPlus of AACPlus.t
   | VoAacEnc of VoAacEnc.t
   | External of External.t
+  | GStreamer of GStreamer.t
 
 let kind_of_format = function
   | WAV w ->
@@ -576,6 +588,9 @@ let kind_of_format = function
   | External e ->
       { Frame.audio = e.External.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | GStreamer e ->
+    (* TODO: fill this! *)
+    { Frame.audio = 2; Frame.video = 1; Frame.midi = 0 }
 
 let kind_of_format f =
   let k = kind_of_format f in
@@ -592,6 +607,7 @@ let string_of_format = function
   | AACPlus w -> AACPlus.to_string w
   | VoAacEnc w -> VoAacEnc.to_string w
   | External w -> External.to_string w
+  | GStreamer w -> GStreamer.to_string w
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 

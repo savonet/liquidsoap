@@ -247,6 +247,7 @@ $(call conditional_compilation,operators,$(W_GD),operators/video_text_gd.ml)
 # GStreamer
 $(call conditional_compilation,stream,$(W_GSTREAMER),tools/gstreamer_utils.ml)
 $(call conditional_compilation,decoders,$(W_GSTREAMER),decoder/gstreamer_decoder.ml)
+$(call conditional_compilation,encoders,$(W_GSTREAMER),encoder/gstreamer_encoder.ml)
 $(call conditional_compilation,operators,$(W_GSTREAMER),operators/video_text_gstreamer.ml)
 $(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 

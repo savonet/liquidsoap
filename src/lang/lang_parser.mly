@@ -159,7 +159,7 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
+%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
 %token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR MP3_FXP EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
@@ -289,6 +289,7 @@ expr:
   | VOAACENC app_opt                 { mk_voaacenc $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
+  | GSTREAMER app_opt                { mk_gstreamer $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
