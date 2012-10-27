@@ -795,3 +795,11 @@ let mk_speex params =
       defaults params
   in
     Encoder.Ogg.Speex speex
+
+let mk_gstreamer params =
+  let defaults =
+    { Encoder.GStreamer.
+      dummy = ();
+    }
+  in
+   mk (Encoder (Encoder.GStreamer defaults))
