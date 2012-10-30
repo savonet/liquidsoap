@@ -291,36 +291,34 @@ object (self)
 
   method feed_audio n =
     let bin, audio_src, video_src = self#get_gst in
-    Mutex.lock audio_buffer_mutex;
-    while Queue.is_empty audio_buffer do
-      Condition.wait audio_buffer_condition audio_buffer_mutex
-    done;
-    let data = Queue.pop audio_buffer in
-    let len = String.length data in
-    let nanolen = Int64.of_float (Frame.seconds_of_audio (len / (2 * channels)) *. 1000000000.) in
-    let gstbuf = Gstreamer.Buffer.of_string data 0 len in
-    Gstreamer.Buffer.set_presentation_time gstbuf audio_now;
-    Gstreamer.Buffer.set_duration gstbuf nanolen;
-    Gstreamer.App_src.push_buffer audio_src gstbuf;
-    audio_now <- Int64.add audio_now nanolen;
-    Mutex.unlock audio_buffer_mutex
+    Tutils.mutexify audio_buffer_mutex (fun () ->
+      while Queue.is_empty audio_buffer do
+        Condition.wait audio_buffer_condition audio_buffer_mutex
+      done;
+      let data = Queue.pop audio_buffer in
+      let len = String.length data in
+      let nanolen = Int64.of_float (Frame.seconds_of_audio (len / (2 * channels)) *. 1000000000.) in
+      let gstbuf = Gstreamer.Buffer.of_string data 0 len in
+      Gstreamer.Buffer.set_presentation_time gstbuf audio_now;
+      Gstreamer.Buffer.set_duration gstbuf nanolen;
+      Gstreamer.App_src.push_buffer audio_src gstbuf;
+      audio_now <- Int64.add audio_now nanolen) ()
 
   method feed_video n =
     let bin, audio_src, video_src = self#get_gst in
-    Mutex.lock video_buffer_mutex;
-    while Queue.is_empty video_buffer do
-      Condition.wait video_buffer_condition video_buffer_mutex
-    done;
-    let img = Queue.pop video_buffer in
-    let data = Img.data img in
-    let len = Bigarray.Array1.dim data in
-    let nanolen = Int64.of_float (Frame.seconds_of_video 1 *. 1000000000.) in
-    let gstbuf = Gstreamer.Buffer.of_data data 0 len in
-    Gstreamer.Buffer.set_presentation_time gstbuf video_now;
-    Gstreamer.Buffer.set_duration gstbuf nanolen;
-    Gstreamer.App_src.push_buffer video_src gstbuf;
-    video_now <- Int64.add video_now nanolen;
-    Mutex.unlock video_buffer_mutex
+    Tutils.mutexify video_buffer_mutex (fun () ->
+      while Queue.is_empty video_buffer do
+        Condition.wait video_buffer_condition video_buffer_mutex
+      done;
+      let img = Queue.pop video_buffer in
+      let data = Img.data img in
+      let len = Bigarray.Array1.dim data in
+      let nanolen = Int64.of_float (Frame.seconds_of_video 1 *. 1000000000.) in
+      let gstbuf = Gstreamer.Buffer.of_data data 0 len in
+      Gstreamer.Buffer.set_presentation_time gstbuf video_now;
+      Gstreamer.Buffer.set_duration gstbuf nanolen;
+      Gstreamer.App_src.push_buffer video_src gstbuf;
+      video_now <- Int64.add video_now nanolen) ()
 
   method output_send frame =
     if not (Frame.is_partial frame) then
@@ -333,19 +331,17 @@ object (self)
       let len = Frame.audio_of_master len in
       let data = String.create (2*channels*len) in
       Audio.S16LE.of_audio pcm 0 data 0 len;
-      Mutex.lock audio_buffer_mutex;
-      Queue.push data audio_buffer;
-      Condition.signal audio_buffer_condition;
-      Mutex.unlock audio_buffer_mutex;
+      Tutils.mutexify audio_buffer_mutex (fun () ->
+        Queue.push data audio_buffer;
+        Condition.signal audio_buffer_condition) ();
 
       (* Read video. *)
       let buf = content.Frame.video.(0) in
-      Mutex.lock video_buffer_mutex;
-      for i = 0 to Array.length buf - 1 do
-        Queue.push buf.(i) video_buffer
-      done;
-      Condition.signal video_buffer_condition;
-      Mutex.unlock video_buffer_mutex
+      Tutils.mutexify video_buffer_mutex (fun () ->
+        for i = 0 to Array.length buf - 1 do
+          Queue.push buf.(i) video_buffer
+        done;
+        Condition.signal video_buffer_condition) ()
 
   method output_reset = ()
 end

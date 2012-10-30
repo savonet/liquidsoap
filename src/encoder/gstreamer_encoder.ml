@@ -41,18 +41,19 @@ let encoder id ext =
 
   let mutex = Mutex.create () in
   let samples = ref 0 in
-  let decr_samples () =
-    Mutex.lock mutex;
-    decr samples;
-    Mutex.unlock mutex;
+  let decr_samples =
+    Tutils.mutexify mutex (fun () ->
+      decr samples)
+  in
+  let incr_samples =
+    Tutils.mutexify mutex (fun () ->
+      incr samples)
   in
   let on_sample () =
     Printf.printf "Got sample!\n%!";
     (* Will we finally get there????....... *)
     exit (-1);
-    Mutex.lock mutex;
-    incr samples;
-    Mutex.unlock mutex
+    incr_samples();
   in
 
   let gst =
