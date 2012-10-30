@@ -74,8 +74,12 @@ let encoder id ext =
     in
     Printf.printf "pipeline: %s\n%!" pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
-    let audio_src = Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "audio_src") in
-    let video_src = Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "audio_src") in
+    let audio_src =
+      Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "audio_src")
+    in
+    let video_src =
+      Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "video_src")
+    in
     let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink") in
     Gstreamer.App_sink.on_new_sample sink on_sample;
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing);
