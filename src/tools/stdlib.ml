@@ -4,6 +4,14 @@ let get_some = function
   | Some x -> x
   | None -> assert false
 
+let maybe f = function
+  | Some x -> Some (f x)
+  | None   -> None
+
+let some_or none = function
+  | Some x -> x
+  | None   -> none
+
 module List = struct
   include List
 
