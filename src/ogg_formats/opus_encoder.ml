@@ -45,10 +45,11 @@ let create_encoder ~opus ~comments () =
                Opus.Encoder.apply_control (`Set_vbr true) x;
                Opus.Encoder.apply_control (`Set_vbr_constraint b) x
          end;
-         let maybe name value =
-           match value with
-             | Some value -> Opus.Encoder.apply_control (name value) x
-             | None -> ()
+         let maybe name = fun value ->
+           ignore
+             (Stdlib.maybe 
+               (fun value -> Opus.Encoder.apply_control (name value) x) 
+               value)
          in 
          maybe (fun (v) -> `Set_complexity v) opus.Encoder.Opus.complexity;
          maybe

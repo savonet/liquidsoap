@@ -160,20 +160,37 @@ output.file(%ogg(%theora(quality=63),%vorbis), "anonymous.ogv", s)
 
 h4. Controlling with OSC
 
+In this example we are going to use OSC integration in order to modify the
+parameters in realtime. There are many OSC clients around, for instance I used
+"TouchOSC":http://hexler.net/software/touchosc :
+
+`antiquotation`<center><iframe width="560" height="315" src="http://www.youtube.com/embed/EX1PTjiuuXY" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
+
+Here is how the video was made:
+
 %%
+# Set the OSC port to match TouchOSC's default port
 set("osc.port",8000)
 
+# Input from the webcam
 s = input.v4l2_with_audio()
 s = mksafe(s)
 
+# We get the angle from fader 3
 angle = osc.float("/1/fader3", 0.)
+# we rescale the position of fader 3 so that it corresponds to a 2π rotation
 angle = fun() -> angle() * 3.1416 * 2.
+# ...and we rotate the video according to the angle
 s = video.rotate(speed=0.,angle=angle,s)
+# Change brightness according to fader 1
 s = video.frei0r.brightness(brightness=osc.float("/1/fader1",0.5),s)
+# Change contrast according to fader 2
 s = video.frei0r.contrast0r(contrast=osc.float("/1/fader2",0.5),s)
 
+# We have to buffer here otherwise we get clocks problems
 s = buffer(s)
 
+# Output sound and video
 output.pulseaudio(fallible=true,s)
 output.sdl(fallible=true,drop_audio(s))
 %%
