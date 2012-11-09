@@ -100,6 +100,12 @@ struct
               samplerate = Some m.Encoder.External.samplerate ;
               channels = Some m.Encoder.External.channels
             }
+        | Encoder.GStreamer m ->
+            { quality    = None ;
+              bitrate    = None ;
+              samplerate = None ;
+              channels   = Some (Encoder.GStreamer.audio_channels m)
+            }
         | Encoder.Flac m ->
             { quality = Some (string_of_int m.Encoder.Flac.compression) ;
               bitrate = None ;

@@ -799,7 +799,27 @@ let mk_speex params =
 let mk_gstreamer params =
   let defaults =
     { Encoder.GStreamer.
-      dummy = ();
+       channels = 2;
+       audio_pipeline = Some "lamemp3enc";
+       video_pipeline = Some "x264enc"
     }
   in
-   mk (Encoder (Encoder.GStreamer defaults))
+  let gstreamer =
+    let perhaps = function
+      | "" -> None
+      | s  -> Some s
+    in
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.GStreamer.channels = i }
+          | ("audio_pipeline",{ term = String s }) ->
+              { f with Encoder.GStreamer.audio_pipeline = perhaps s }
+          | ("video_pipeline",{ term = String s }) ->
+              { f with Encoder.GStreamer.video_pipeline = perhaps s }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    mk (Encoder (Encoder.GStreamer gstreamer))
+

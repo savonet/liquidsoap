@@ -425,12 +425,36 @@ end
 module GStreamer =
 struct
   type t = {
-    (* TODO: ... *)
-    dummy : unit;
+    channels       : int;
+    audio_pipeline : string option;
+    video_pipeline : string option
   }
 
-  (* TODO *)
-  let to_string m = "%%gstreamer"
+  let audio_channels m =
+    if m.audio_pipeline = None then
+      0
+    else
+      m.channels
+
+  let video_channels m =
+    if m.video_pipeline = None then
+      0
+    else
+      1
+
+  let to_string m =
+    let pipeline l name value = 
+      Stdlib.some_or l
+        (Stdlib.maybe
+          (fun value -> (Printf.sprintf "%s=%S" name value)::l)
+            value)
+    in
+    Printf.sprintf "%%gstreamer(%s)"
+      (String.concat ","
+        (pipeline
+         (pipeline [Printf.sprintf "channels=%d" m.channels] 
+           "audio_pipeline" m.audio_pipeline)
+           "video_pipeline" m.video_pipeline))
 end
 
 module Theora =
@@ -589,8 +613,9 @@ let kind_of_format = function
       { Frame.audio = e.External.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | GStreamer e ->
-    (* TODO: fill this! *)
-    { Frame.audio = 2; Frame.video = 1; Frame.midi = 0 }
+    { Frame.audio = GStreamer.audio_channels e;
+      Frame.video = GStreamer.video_channels e;
+      Frame.midi = 0 }
 
 let kind_of_format f =
   let k = kind_of_format f in

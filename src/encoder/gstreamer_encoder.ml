@@ -37,8 +37,7 @@ type gst =
 
 let encoder id ext =
   GU.init ();
-  let channels = 2 in
-
+  let channels = ext.channels in
   let mutex = Mutex.create () in
   let samples = ref 0 in
   let decr_samples =
@@ -58,19 +57,23 @@ let encoder id ext =
 
   let gst =
     let audio_pipeline =
-      Printf.sprintf "%s ! queue ! %s ! lamemp3enc ! muxer."
-        (GU.Pipeline.audio_src ~channels ~block:false "audio_src")
-        (GU.Pipeline.convert_audio ())
+      Stdlib.maybe (fun pipeline ->
+        Printf.sprintf "%s ! queue ! %s ! %s ! muxer."
+          (GU.Pipeline.audio_src ~channels ~block:false "audio_src")
+          (GU.Pipeline.convert_audio ())
+          pipeline) ext.audio_pipeline
     in
     let video_pipeline =
-      Printf.sprintf "%s ! queue ! %s ! x264enc ! muxer."
-        (GU.Pipeline.video_src ~block:true "video_src")
-        (GU.Pipeline.convert_video ())
+      Stdlib.maybe (fun pipeline ->
+        Printf.sprintf "%s ! queue ! %s ! %s ! muxer."
+          (GU.Pipeline.video_src ~block:true "video_src")
+          (GU.Pipeline.convert_video ())
+          pipeline) ext.video_pipeline
     in
     let pipeline =
       Printf.sprintf "%s %s avimux name=muxer ! appsink name=sink sync=false emit-signals=true"
-        audio_pipeline
-        video_pipeline
+        (Stdlib.some_or "" audio_pipeline)
+        (Stdlib.some_or "" video_pipeline)
     in
     Printf.printf "pipeline: %s\n%!" pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
@@ -88,14 +91,13 @@ let encoder id ext =
 
   let stop gst () =
     let ans = ref "" in
-    (* TODO: send EOS on both appsrc *)
-    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_paused);
+    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
+    ignore (Gstreamer.Element.get_state gst.bin);
     while !samples > 0 do
       let b = Gstreamer.App_sink.pull_buffer_string gst.sink in
       decr_samples ();
       ans := !ans ^ b
     done;
-    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
     !ans
   in
 
