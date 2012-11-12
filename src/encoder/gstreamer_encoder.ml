@@ -125,11 +125,15 @@ let encoder id ext =
     (* Put video. *)
     let vbuf = content.Frame.video in
     let vbuf = vbuf.(0) in
+    let vlen = Int64.div nanolen (Int64.of_int (Array.length vbuf)) in
     for i = 0 to Array.length vbuf - 1 do
       let data = Img.data vbuf.(i) in
       let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
-      Gstreamer.Buffer.set_presentation_time gstbuf !now;
-      Gstreamer.Buffer.set_duration gstbuf nanolen;
+      let ptime =
+        Int64.add !now (Int64.mul (Int64.of_int i) vlen)
+      in
+      Gstreamer.Buffer.set_presentation_time gstbuf ptime;
+      Gstreamer.Buffer.set_duration gstbuf vlen;
       Gstreamer.App_src.push_buffer gst.video_src gstbuf;
     done;
     (* Return result. *)
