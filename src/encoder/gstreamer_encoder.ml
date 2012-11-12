@@ -37,7 +37,9 @@ type gst =
 
 let encoder id ext =
   GU.init ();
-  let channels = ext.channels in
+  let channels =
+    Encoder.GStreamer.audio_channels ext 
+  in
   let mutex = Mutex.create () in
   let samples = ref 0 in
   let decr_samples =
@@ -49,9 +51,6 @@ let encoder id ext =
       incr samples)
   in
   let on_sample () =
-    Printf.printf "Got sample!\n%!";
-    (* Will we finally get there????....... *)
-    exit (-1);
     incr_samples();
   in
 
@@ -75,7 +74,6 @@ let encoder id ext =
         (Stdlib.some_or "" audio_pipeline)
         (Stdlib.some_or "" video_pipeline)
     in
-    Printf.printf "pipeline: %s\n%!" pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     let audio_src =
       Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "audio_src")
@@ -109,21 +107,21 @@ let encoder id ext =
   let now = ref Int64.zero in
 
   let encode h frame start len =
-    Printf.printf "Encode@%Lu.\n%!" !now;
     let nanolen = Int64.of_float (Frame.seconds_of_master len *. 1000000000.) in
     let content = Frame.content_of_type frame start { Frame.audio = channels; video = 1; midi = 0 } in
-    (* Put audio. *)
-    let astart = Frame.audio_of_master start in
-    let alen = Frame.audio_of_master len in
-    let pcm = content.Frame.audio in
-    let data = String.create (2*channels*alen) in
-    Audio.S16LE.of_audio pcm astart data 0 alen;
-    let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
-    Gstreamer.Buffer.set_presentation_time gstbuf !now;
-    Gstreamer.Buffer.set_duration gstbuf nanolen;
-    Printf.printf "Put audio... %!";
-    Gstreamer.App_src.push_buffer gst.audio_src gstbuf;
-    Printf.printf "done.\n%!";
+    if channels > 0 then
+     begin
+      (* Put audio. *)
+      let astart = Frame.audio_of_master start in
+      let alen = Frame.audio_of_master len in
+      let pcm = content.Frame.audio in
+      let data = String.create (2*channels*alen) in
+      Audio.S16LE.of_audio pcm astart data 0 alen;
+      let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
+      Gstreamer.Buffer.set_presentation_time gstbuf !now;
+      Gstreamer.Buffer.set_duration gstbuf nanolen;
+      Gstreamer.App_src.push_buffer gst.audio_src gstbuf;
+     end;
     (* Put video. *)
     let vbuf = content.Frame.video in
     let vbuf = vbuf.(0) in
@@ -132,9 +130,7 @@ let encoder id ext =
       let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
       Gstreamer.Buffer.set_presentation_time gstbuf !now;
       Gstreamer.Buffer.set_duration gstbuf nanolen;
-      Printf.printf "Put video... %!";
       Gstreamer.App_src.push_buffer gst.video_src gstbuf;
-      Printf.printf "done.\n%!"
     done;
     (* Return result. *)
     now := Int64.add !now nanolen;
