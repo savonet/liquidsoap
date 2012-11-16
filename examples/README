@@ -7,4 +7,4 @@ they'll fail to startup with an "infallible source" error.
 * fallible.liq      example of fallible scheduler
 * transitions.liq   an example of custom transitions
 
-Find some more doc and examples on <http://savonet.sf.net>.
+Find some more doc and examples on <http://liquidsoap.fm>.

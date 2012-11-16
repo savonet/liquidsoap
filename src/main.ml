@@ -452,7 +452,7 @@ let options =
                      Copyright (c) 2003-2012 Savonet team\n\
                      Liquidsoap is open-source software, \
                      released under GNU General Public License.\n\
-                     See <http://savonet.sf.net> for more information.\n"
+                     See <http://liquidsoap.fm> for more information.\n"
                     Configure.version SVN.rev ;
                   exit 0),
       "Display liquidsoap's version." ;
