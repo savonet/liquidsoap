@@ -105,7 +105,7 @@ let encoder id ext =
   in
 
   let now = ref Int64.zero in
-  let nano = 1000000000. in
+  let nano = 1_000_000_000. in
   let vduration = Int64.of_float (Frame.seconds_of_video 1 *. nano) in
 
   let encode h frame start len =
