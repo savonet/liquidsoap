@@ -58,7 +58,7 @@ let encoder id ext =
     let audio_pipeline =
       Stdlib.maybe (fun pipeline ->
         Printf.sprintf "%s ! queue ! %s ! %s ! muxer."
-          (GU.Pipeline.audio_src ~channels ~block:false "audio_src")
+          (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
           (GU.Pipeline.convert_audio ())
           pipeline) ext.audio_pipeline
     in
@@ -105,9 +105,11 @@ let encoder id ext =
   in
 
   let now = ref Int64.zero in
+  let nano = 1000000000. in
+  let vduration = Int64.of_float (Frame.seconds_of_video 1 *. nano) in
 
   let encode h frame start len =
-    let nanolen = Int64.of_float (Frame.seconds_of_master len *. 1000000000.) in
+    let nanolen = Int64.of_float (Frame.seconds_of_master len *. nano) in
     let content = Frame.content_of_type frame start { Frame.audio = channels; video = 1; midi = 0 } in
     if channels > 0 then
      begin
@@ -125,17 +127,21 @@ let encoder id ext =
     (* Put video. *)
     let vbuf = content.Frame.video in
     let vbuf = vbuf.(0) in
-    let vlen = Int64.div nanolen (Int64.of_int (Array.length vbuf)) in
-    for i = 0 to Array.length vbuf - 1 do
-      let data = Img.data vbuf.(i) in
-      let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
-      let ptime =
-        Int64.add !now (Int64.mul (Int64.of_int i) vlen)
-      in
-      Gstreamer.Buffer.set_presentation_time gstbuf ptime;
-      Gstreamer.Buffer.set_duration gstbuf vlen;
-      Gstreamer.App_src.push_buffer gst.video_src gstbuf;
-    done;
+    let vstart = Frame.video_of_master start in
+    let vlen = Frame.video_of_master len in
+    if vlen > 0 then
+     begin
+      for i = vstart to vstart+vlen-1 do
+        let data = Img.data vbuf.(i) in
+        let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
+        let ptime =
+          Int64.add !now (Int64.mul (Int64.of_int i) vduration)
+        in
+        Gstreamer.Buffer.set_presentation_time gstbuf ptime;
+        Gstreamer.Buffer.set_duration gstbuf vduration;
+        Gstreamer.App_src.push_buffer gst.video_src gstbuf;
+      done;
+     end;
     (* Return result. *)
     now := Int64.add !now nanolen;
     if !samples = 0 then
