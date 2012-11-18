@@ -70,7 +70,7 @@ let encoder id ext =
           pipeline) ext.video_pipeline
     in
     let pipeline =
-      Printf.sprintf "%s %s avimux name=muxer ! appsink name=sink sync=false emit-signals=true"
+      Printf.sprintf "%s %s mpegtsmux name=muxer ! appsink name=sink sync=false emit-signals=true"
         (Stdlib.some_or "" audio_pipeline)
         (Stdlib.some_or "" video_pipeline)
     in
