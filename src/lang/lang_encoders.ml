@@ -800,8 +800,9 @@ let mk_gstreamer params =
   let defaults =
     { Encoder.GStreamer.
        channels = 2;
-       audio_pipeline = Some "lamemp3enc";
-       video_pipeline = Some "x264enc"
+       audio    = Some "lamemp3enc";
+       video    = Some "x264enc";
+       muxer    = Some "mpegtsmux"
     }
   in
   let gstreamer =
@@ -814,12 +815,27 @@ let mk_gstreamer params =
         function
           | ("channels",{ term = Int i }) ->
               { f with Encoder.GStreamer.channels = i }
-          | ("audio_pipeline",{ term = String s }) ->
-              { f with Encoder.GStreamer.audio_pipeline = perhaps s }
-          | ("video_pipeline",{ term = String s }) ->
-              { f with Encoder.GStreamer.video_pipeline = perhaps s }
+          | ("audio",{ term = String s }) ->
+              { f with Encoder.GStreamer.audio = perhaps s }
+          | ("video",{ term = String s }) ->
+              { f with Encoder.GStreamer.video = perhaps s }
+          | ("muxer",{ term = String s }) ->
+              { f with Encoder.GStreamer.muxer = perhaps s }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    mk (Encoder (Encoder.GStreamer gstreamer))
-
+  let ret = mk (Encoder (Encoder.GStreamer gstreamer)) in
+    if gstreamer.Encoder.GStreamer.audio <> None && 
+       gstreamer.Encoder.GStreamer.channels = 0
+    then
+      raise
+        (Error (ret, "Must have at least one audio channel when \
+                         passing an audio pipeline!"));
+    if gstreamer.Encoder.GStreamer.video <> None && 
+       gstreamer.Encoder.GStreamer.audio <> None && 
+       gstreamer.Encoder.GStreamer.muxer = None
+    then
+      raise
+        (Error (ret, "Must have a muxer when passing an audio and \
+                         a video pipeline!"));
+    ret

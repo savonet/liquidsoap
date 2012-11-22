@@ -55,24 +55,32 @@ let encoder id ext =
   in
 
   let gst =
+    let muxer = if ext.muxer <> None then "! muxer." else "" in
     let audio_pipeline =
       Stdlib.maybe (fun pipeline ->
-        Printf.sprintf "%s ! queue ! %s ! %s ! muxer."
+        Printf.sprintf "%s ! queue ! %s ! %s  %s"
           (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
           (GU.Pipeline.convert_audio ())
-          pipeline) ext.audio_pipeline
+          pipeline
+          muxer) ext.audio
     in
     let video_pipeline =
       Stdlib.maybe (fun pipeline ->
-        Printf.sprintf "%s ! queue ! %s ! %s ! muxer."
+        Printf.sprintf "%s ! queue ! %s ! %s %s"
           (GU.Pipeline.video_src ~block:true "video_src")
           (GU.Pipeline.convert_video ())
-          pipeline) ext.video_pipeline
+          pipeline
+          muxer) ext.video
+    in
+    let muxer_pipeline = match ext.muxer with
+      | Some muxer -> Printf.sprintf "%s name=muxer" muxer
+      | None       -> ""
     in
     let pipeline =
-      Printf.sprintf "%s %s mpegtsmux name=muxer ! appsink name=sink sync=false emit-signals=true"
+      Printf.sprintf "%s %s %s ! appsink name=sink sync=false emit-signals=true"
         (Stdlib.some_or "" audio_pipeline)
         (Stdlib.some_or "" video_pipeline)
+        muxer_pipeline
     in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     let audio_src =

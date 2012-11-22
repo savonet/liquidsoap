@@ -425,19 +425,20 @@ end
 module GStreamer =
 struct
   type t = {
-    channels       : int;
-    audio_pipeline : string option;
-    video_pipeline : string option
+    channels : int;
+    audio    : string option;
+    video    : string option;
+    muxer    : string option
   }
 
   let audio_channels m =
-    if m.audio_pipeline = None then
+    if m.audio = None then
       0
     else
       m.channels
 
   let video_channels m =
-    if m.video_pipeline = None then
+    if m.video = None then
       0
     else
       1
@@ -452,9 +453,11 @@ struct
     Printf.sprintf "%%gstreamer(%s)"
       (String.concat ","
         (pipeline
-         (pipeline [Printf.sprintf "channels=%d" m.channels] 
-           "audio_pipeline" m.audio_pipeline)
-           "video_pipeline" m.video_pipeline))
+         (pipeline
+           (pipeline [Printf.sprintf "channels=%d" m.channels] 
+             "audio" m.audio)
+             "video" m.video)
+             "muxer" m.muxer))
 end
 
 module Theora =
