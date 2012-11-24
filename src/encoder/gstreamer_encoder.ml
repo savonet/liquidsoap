@@ -30,8 +30,8 @@ module Img = Image.RGBA32
 type gst =
   {
     bin : Gstreamer.Pipeline.t;
-    audio_src : Gstreamer.App_src.t;
-    video_src : Gstreamer.App_src.t;
+    audio_src : Gstreamer.App_src.t option;
+    video_src : Gstreamer.App_src.t option;
     sink : Gstreamer.App_sink.t;
   }
 
@@ -55,39 +55,50 @@ let encoder id ext =
   in
 
   let gst =
-    let muxer = if ext.muxer <> None then "! muxer." else "" in
+    let muxer =
+      if ext.audio <> None && ext.video <> None then
+        "muxer."
+      else
+        ""
+    in
     let audio_pipeline =
-      Stdlib.maybe (fun pipeline ->
-        Printf.sprintf "%s ! queue ! %s ! %s  %s"
+      Utils.maybe (fun pipeline ->
+        Printf.sprintf "%s ! queue ! %s ! %s ! %s"
           (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
           (GU.Pipeline.convert_audio ())
           pipeline
           muxer) ext.audio
     in
     let video_pipeline =
-      Stdlib.maybe (fun pipeline ->
-        Printf.sprintf "%s ! queue ! %s ! %s %s"
+      Utils.maybe (fun pipeline ->
+        Printf.sprintf "%s ! queue ! %s ! %s ! %s"
           (GU.Pipeline.video_src ~block:true "video_src")
           (GU.Pipeline.convert_video ())
           pipeline
           muxer) ext.video
     in
     let muxer_pipeline = match ext.muxer with
-      | Some muxer -> Printf.sprintf "%s name=muxer" muxer
+      | Some muxer -> Printf.sprintf "%s name=muxer !" muxer
       | None       -> ""
     in
     let pipeline =
-      Printf.sprintf "%s %s %s ! appsink name=sink sync=false emit-signals=true"
-        (Stdlib.some_or "" audio_pipeline)
-        (Stdlib.some_or "" video_pipeline)
+      Printf.sprintf "%s %s %s appsink name=sink sync=false emit-signals=true"
+        (Utils.some_or "" audio_pipeline)
+        (Utils.some_or "" video_pipeline)
         muxer_pipeline
     in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     let audio_src =
-      Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "audio_src")
+      Utils.maybe (fun _ ->
+        Gstreamer.App_src.of_element
+          (Gstreamer.Bin.get_by_name bin "audio_src"))
+        audio_pipeline
     in
     let video_src =
-      Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "video_src")
+      Utils.maybe (fun _ ->
+        Gstreamer.App_src.of_element
+          (Gstreamer.Bin.get_by_name bin "video_src"))
+        video_pipeline
     in
     let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink") in
     Gstreamer.App_sink.on_new_sample sink on_sample;
@@ -118,7 +129,15 @@ let encoder id ext =
 
   let encode h frame start len =
     let nanolen = Int64.of_float (Frame.seconds_of_master len *. nano) in
-    let content = Frame.content_of_type frame start { Frame.audio = channels; video = 1; midi = 0 } in
+    let videochans = if gst.video_src <> None then 1 else 0 in
+    let content =
+      Frame.content_of_type frame start 
+        {Frame.
+          audio = channels;
+          video = videochans;
+          midi = 0 
+        } 
+    in
     if channels > 0 then
      begin
       (* Put audio. *)
@@ -130,15 +149,15 @@ let encoder id ext =
       let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
       Gstreamer.Buffer.set_presentation_time gstbuf !now;
       Gstreamer.Buffer.set_duration gstbuf nanolen;
-      Gstreamer.App_src.push_buffer gst.audio_src gstbuf;
+      Gstreamer.App_src.push_buffer (Utils.get_some gst.audio_src) gstbuf;
      end;
-    (* Put video. *)
-    let vbuf = content.Frame.video in
-    let vbuf = vbuf.(0) in
-    let vstart = Frame.video_of_master start in
-    let vlen = Frame.video_of_master len in
-    if vlen > 0 then
+    if videochans > 0 then
      begin
+      (* Put video. *)
+      let vbuf = content.Frame.video in
+      let vbuf = vbuf.(0) in
+      let vstart = Frame.video_of_master start in
+      let vlen = Frame.video_of_master len in
       for i = vstart to vstart+vlen-1 do
         let data = Img.data vbuf.(i) in
         let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
@@ -147,7 +166,7 @@ let encoder id ext =
         in
         Gstreamer.Buffer.set_presentation_time gstbuf ptime;
         Gstreamer.Buffer.set_duration gstbuf vduration;
-        Gstreamer.App_src.push_buffer gst.video_src gstbuf;
+        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) gstbuf;
       done;
      end;
     (* Return result. *)

@@ -445,8 +445,8 @@ struct
 
   let to_string m =
     let pipeline l name value = 
-      Stdlib.some_or l
-        (Stdlib.maybe
+      Utils.some_or l
+        (Utils.maybe
           (fun value -> (Printf.sprintf "%s=%S" name value)::l)
             value)
     in

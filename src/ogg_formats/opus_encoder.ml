@@ -47,7 +47,7 @@ let create_encoder ~opus ~comments () =
          end;
          let maybe name = fun value ->
            ignore
-             (Stdlib.maybe 
+             (Utils.maybe 
                (fun value -> Opus.Encoder.apply_control (name value) x) 
                value)
          in 

@@ -67,9 +67,9 @@ object (self)
   method output_stop =
     let bin,audio_src,video_src = self#get_gst in
     if has_audio then
-      App_src.end_of_stream (get_some audio_src);
+      App_src.end_of_stream (Utils.get_some audio_src);
     if has_video then
-      App_src.end_of_stream (get_some video_src);
+      App_src.end_of_stream (Utils.get_some video_src);
     ignore (Element.set_state bin Element.State_null);
     if clock_safe then (gst_clock ())#unregister_blocking_source
 
@@ -135,7 +135,7 @@ object (self)
           let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
           Gstreamer.Buffer.set_presentation_time gstbuf now;
           Gstreamer.Buffer.set_duration gstbuf nanolen;
-          Gstreamer.App_src.push_buffer (get_some audio_src) gstbuf
+          Gstreamer.App_src.push_buffer (Utils.get_some audio_src) gstbuf
         );
       if has_video then
         (
@@ -145,7 +145,7 @@ object (self)
             let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
             Gstreamer.Buffer.set_presentation_time gstbuf now;
             Gstreamer.Buffer.set_duration gstbuf nanolen;
-            Gstreamer.App_src.push_buffer (get_some video_src) gstbuf
+            Gstreamer.App_src.push_buffer (Utils.get_some video_src) gstbuf
           done;
         );
       now <- Int64.add now nanolen
@@ -583,7 +583,7 @@ object (self)
       in
       log#f 5 "GStreamer pipeline: %s" pipeline;
       bin <- Some (Pipeline.parse_launch pipeline);
-      let bin = get_some bin in
+      let bin = Utils.get_some bin in
       let audio_sink = App_sink.of_element (Bin.get_by_name bin "audio_sink") in
       let video_sink =
         if has_video then
