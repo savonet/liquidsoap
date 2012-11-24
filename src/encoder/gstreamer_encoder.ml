@@ -37,21 +37,21 @@ type gst =
 
 let encoder id ext =
   GU.init ();
-  let channels =
-    Encoder.GStreamer.audio_channels ext 
-  in
+  let channels = Encoder.GStreamer.audio_channels ext in
   let mutex = Mutex.create () in
+  (* Here "samples" are the number of buffers available in the GStreamer
+     appsink *)
   let samples = ref 0 in
   let decr_samples =
-    Tutils.mutexify mutex (fun () ->
-      decr samples)
+    Tutils.mutexify mutex
+      (fun () -> decr samples)
   in
   let incr_samples =
-    Tutils.mutexify mutex (fun () ->
-      incr samples)
+    Tutils.mutexify mutex
+      (fun () -> incr samples)
   in
   let on_sample () =
-    incr_samples();
+    incr_samples ()
   in
 
   let gst =
@@ -108,6 +108,8 @@ let encoder id ext =
 
   let stop gst () =
     let ans = ref "" in
+    Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
+    Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
     ignore (Gstreamer.Element.get_state gst.bin);
     while !samples > 0 do
@@ -131,12 +133,12 @@ let encoder id ext =
     let nanolen = Int64.of_float (Frame.seconds_of_master len *. nano) in
     let videochans = if gst.video_src <> None then 1 else 0 in
     let content =
-      Frame.content_of_type frame start 
+      Frame.content_of_type frame start
         {Frame.
           audio = channels;
           video = videochans;
-          midi = 0 
-        } 
+          midi = 0;
+        }
     in
     if channels > 0 then
      begin

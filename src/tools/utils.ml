@@ -28,6 +28,10 @@ let maybe f = function
   | Some x -> Some (f x)
   | None   -> None
 
+let maydo f = function
+  | Some x -> f x
+  | None -> ()
+
 let some_or none = function
   | Some x -> x
   | None   -> none
