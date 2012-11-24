@@ -4,7 +4,7 @@ Liquidsoap 1.0.1
 Copyright 2003-2012 Savonet team
 
 Email   : savonet-users@lists.sourceforge.net
-Homepage: http://savonet.sf.net/
+Homepage: http://liquidsoap.fm
 Trac    : http://dev.sourcefabric.org/browse/LS
 
 INSTALLATION
@@ -15,8 +15,8 @@ See the INSTALL file.
 DOCUMENTATION
 =============
 
-Some documentation is available on our website: 
-  http://savonet.sf.net/
+Some documentation is available on our website:
+  http://liquidsoap.fm
 You should find some HTML doc in the distribution:
   doc/html/index.html
 

@@ -912,7 +912,7 @@ let () =
    *      errors. *)
   add_builtin "_[_]" ~cat:List
     ~descr:"l[k] returns the first v such that \
-            (k,v) is in the list l."
+            (k,v) is in the list l (or \"\" if no such v exists)."
     ["",Lang.string_t,None,None ;
      "",Lang.metadata_t,None,None]
     Lang.string_t

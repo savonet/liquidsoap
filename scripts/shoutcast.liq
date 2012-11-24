@@ -21,7 +21,7 @@ def output.shoutcast(
   ~id="output.shoutcast",~start=true,
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
-  ~genre="Misc",~url="http://savonet.sf.net/",
+  ~genre="Misc",~url="http://liquidsoap.fm",
   ~name="Liquidsoap Radio!",~public=true, ~format="",
   ~dumpfile="", ~icy_metadata="guess",
   ~on_connect={()}, ~on_disconnect={()},
