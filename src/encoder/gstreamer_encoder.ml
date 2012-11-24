@@ -107,21 +107,23 @@ let encoder id ext =
   in
 
   let stop gst () =
-    let ans = ref "" in
     Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
     Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
+    let buf = Buffer.create 1024 in
+    begin
+     try
+      while true do
+        Buffer.add_string buf (Gstreamer.App_sink.pull_buffer_string gst.sink);
+        decr_samples ()
+      done
+     with
+       | Gstreamer.End_of_stream -> ()
+    end; 
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-    ignore (Gstreamer.Element.get_state gst.bin);
-    while !samples > 0 do
-      let b = Gstreamer.App_sink.pull_buffer_string gst.sink in
-      decr_samples ();
-      ans := !ans ^ b
-    done;
-    !ans
+    Buffer.contents buf
   in
 
   let insert_metadata gst _ =
-    (* TODO? *)
     ()
   in
 
@@ -184,7 +186,6 @@ let encoder id ext =
   {
     Encoder.
     insert_metadata = insert_metadata gst;
-    (* TODO: can we get a header? *)
     header = None;
     encode = encode gst;
     stop   = stop gst;
