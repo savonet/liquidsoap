@@ -130,8 +130,17 @@ let encoder id ext =
    ret
   in
 
-  let insert_metadata gst _ =
-    ()
+  let insert_metadata gst m =
+    let m = Encoder.Meta.to_metadata m in
+    try
+      let meta =
+        Gstreamer.Tag_setter.of_element (Gstreamer.Bin.get_by_name gst.bin "metadata")
+      in
+      Hashtbl.iter
+        (Gstreamer.Tag_setter.add_tag meta Gstreamer.Tag_setter.Replace)
+        m
+    with
+      | Not_found -> ()
   in
 
   let now = ref Int64.zero in
@@ -201,5 +210,11 @@ let encoder id ext =
 let () =
   Encoder.plug#register "GSTREAMER"
     (function
-    | Encoder.GStreamer m -> Some (fun s _ -> encoder s m)
+    | Encoder.GStreamer params ->
+        let f s m =
+          let encoder = encoder s params in
+          encoder.Encoder.insert_metadata m;
+          encoder
+        in
+        Some f
     | _ -> None)
