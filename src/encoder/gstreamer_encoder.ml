@@ -27,6 +27,8 @@ open Encoder.GStreamer
 module GU = Gstreamer_utils
 module Img = Image.RGBA32
 
+let log = Dtools.Log.make ["encoder"; "gstreamer"]
+
 type gst =
   {
     bin : Gstreamer.Pipeline.t;
@@ -55,50 +57,59 @@ let encoder id ext =
   in
 
   let gst =
-    let muxer =
-      if ext.audio <> None && ext.video <> None then
-        "muxer."
-      else
-        ""
-    in
-    let audio_pipeline =
-      Utils.maybe (fun pipeline ->
-        Printf.sprintf "%s ! queue ! %s ! %s ! %s"
-          (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
-          (GU.Pipeline.convert_audio ())
-          pipeline
-          muxer) ext.audio
-    in
-    let video_pipeline =
-      Utils.maybe (fun pipeline ->
-        Printf.sprintf "%s ! queue ! %s ! %s ! %s"
-          (GU.Pipeline.video_src ~block:true "video_src")
-          (GU.Pipeline.convert_video ())
-          pipeline
-          muxer) ext.video
-    in
-    let muxer_pipeline = match ext.muxer with
-      | Some muxer -> Printf.sprintf "%s name=muxer !" muxer
-      | None       -> ""
-    in
     let pipeline =
-      Printf.sprintf "%s %s %s appsink name=sink sync=false emit-signals=true"
-        (Utils.some_or "" audio_pipeline)
-        (Utils.some_or "" video_pipeline)
-        muxer_pipeline
+      match ext.pipeline with
+        | Some p -> p
+        | None ->
+          let muxer =
+            if ext.audio <> None && ext.video <> None then
+              "muxer."
+            else
+              ""
+          in
+          let audio_pipeline =
+            Utils.maybe (fun pipeline ->
+              Printf.sprintf "%s ! queue ! %s ! %s ! %s"
+                (GU.Pipeline.audio_src ~channels ~block:true "audio_src")
+                (GU.Pipeline.convert_audio ())
+                pipeline
+                muxer) ext.audio
+          in
+          let video_pipeline =
+            Utils.maybe (fun pipeline ->
+              Printf.sprintf "%s ! queue ! %s ! %s ! %s"
+                (GU.Pipeline.video_src ~block:true "video_src")
+                (GU.Pipeline.convert_video ())
+                pipeline
+                muxer) ext.video
+          in
+          let muxer_pipeline = match ext.muxer with
+            | Some muxer -> Printf.sprintf "%s name=muxer !" muxer
+            | None       -> ""
+          in
+          Printf.sprintf "%s %s %s appsink name=sink sync=false emit-signals=true"
+            (Utils.some_or "" audio_pipeline)
+            (Utils.some_or "" video_pipeline)
+            muxer_pipeline
     in
+    if ext.debug then
+      log#f 3 "Gstreamer encoder pipeline: %s" pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     let audio_src =
-      Utils.maybe (fun _ ->
-        Gstreamer.App_src.of_element
-          (Gstreamer.Bin.get_by_name bin "audio_src"))
-        audio_pipeline
+      try
+        Some
+          (Gstreamer.App_src.of_element
+            (Gstreamer.Bin.get_by_name bin "audio_src"))
+      with
+        | Not_found -> None
     in
     let video_src =
-      Utils.maybe (fun _ ->
-        Gstreamer.App_src.of_element
-          (Gstreamer.Bin.get_by_name bin "video_src"))
-        video_pipeline
+      try
+        Some
+          (Gstreamer.App_src.of_element
+            (Gstreamer.Bin.get_by_name bin "video_src"))
+      with
+        | Not_found -> None
     in
     let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink") in
     Gstreamer.App_sink.on_new_sample sink on_sample;
@@ -134,7 +145,8 @@ let encoder id ext =
     let m = Encoder.Meta.to_metadata m in
     try
       let meta =
-        Gstreamer.Tag_setter.of_element (Gstreamer.Bin.get_by_name gst.bin "metadata")
+        Gstreamer.Tag_setter.of_element
+          (Gstreamer.Bin.get_by_name gst.bin ext.metadata)
       in
       Hashtbl.iter
         (Gstreamer.Tag_setter.add_tag meta Gstreamer.Tag_setter.Replace)

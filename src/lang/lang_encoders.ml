@@ -799,10 +799,14 @@ let mk_speex params =
 let mk_gstreamer params =
   let defaults =
     { Encoder.GStreamer.
-       channels = 2;
-       audio    = Some "lamemp3enc";
-       video    = Some "x264enc";
-       muxer    = Some "mpegtsmux"
+       channels  = 2;
+       audio     = Some "lamemp3enc";
+       has_video = true;
+       video     = Some "x264enc";
+       muxer     = Some "mpegtsmux";
+       metadata  = "metadata";
+       debug     = false;
+       pipeline  = None
     }
   in
   let gstreamer =
@@ -817,21 +821,31 @@ let mk_gstreamer params =
               { f with Encoder.GStreamer.channels = i }
           | ("audio",{ term = String s }) ->
               { f with Encoder.GStreamer.audio = perhaps s }
+          | ("has_video",{ term = Bool b }) ->
+              { f with Encoder.GStreamer.has_video = b }
           | ("video",{ term = String s }) ->
               { f with Encoder.GStreamer.video = perhaps s }
           | ("muxer",{ term = String s }) ->
               { f with Encoder.GStreamer.muxer = perhaps s }
+          | ("metadata",{ term = String s }) ->
+              { f with Encoder.GStreamer.metadata = s }
+          | ("debug",{ term = Bool b }) ->
+              { f with Encoder.GStreamer.debug = b }
+          | ("pipeline",{ term = String s }) ->
+              { f with Encoder.GStreamer.pipeline = perhaps s }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
   let ret = mk (Encoder (Encoder.GStreamer gstreamer)) in
-    if gstreamer.Encoder.GStreamer.audio <> None && 
+    if gstreamer.Encoder.GStreamer.pipeline = None &&
+       gstreamer.Encoder.GStreamer.audio <> None && 
        gstreamer.Encoder.GStreamer.channels = 0
     then
       raise
         (Error (ret, "Must have at least one audio channel when \
                          passing an audio pipeline!"));
-    if gstreamer.Encoder.GStreamer.video <> None && 
+    if gstreamer.Encoder.GStreamer.pipeline = None &&
+       gstreamer.Encoder.GStreamer.video <> None && 
        gstreamer.Encoder.GStreamer.audio <> None && 
        gstreamer.Encoder.GStreamer.muxer = None
     then
