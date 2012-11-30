@@ -92,8 +92,7 @@ let encoder id ext =
             (Utils.some_or "" video_pipeline)
             muxer_pipeline
     in
-    if ext.debug then
-      log#f 3 "Gstreamer encoder pipeline: %s" pipeline;
+    log#f ext.log "Gstreamer encoder pipeline: %s" pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     let audio_src =
       try

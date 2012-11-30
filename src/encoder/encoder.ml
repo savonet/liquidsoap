@@ -432,7 +432,7 @@ struct
     muxer     : string option;
     metadata  : string;
     pipeline  : string option;
-    debug     : bool
+    log       : int
   }
 
   let audio_channels m =
@@ -454,7 +454,7 @@ struct
           (fun value -> (Printf.sprintf "%s=%S" name value)::l)
             value)
     in
-    Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%sdebug=%b)"
+    Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
       (String.concat ","
         (pipeline
          (pipeline
@@ -465,7 +465,7 @@ struct
       m.metadata
       m.has_video
       (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
-      m.debug
+      m.log
 end
 
 module Theora =

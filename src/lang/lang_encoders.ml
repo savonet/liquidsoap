@@ -805,7 +805,7 @@ let mk_gstreamer params =
        video     = Some "x264enc";
        muxer     = Some "mpegtsmux";
        metadata  = "metadata";
-       debug     = false;
+       log        = 5;
        pipeline  = None
     }
   in
@@ -829,8 +829,8 @@ let mk_gstreamer params =
               { f with Encoder.GStreamer.muxer = perhaps s }
           | ("metadata",{ term = String s }) ->
               { f with Encoder.GStreamer.metadata = s }
-          | ("debug",{ term = Bool b }) ->
-              { f with Encoder.GStreamer.debug = b }
+          | ("log",{ term = Int i }) ->
+              { f with Encoder.GStreamer.log = i }
           | ("pipeline",{ term = String s }) ->
               { f with Encoder.GStreamer.pipeline = perhaps s }
           | (_,t) -> raise (generic_error t))
