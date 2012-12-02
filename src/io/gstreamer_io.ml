@@ -135,7 +135,7 @@ object (self)
           let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
           Gstreamer.Buffer.set_presentation_time gstbuf now;
           Gstreamer.Buffer.set_duration gstbuf nanolen;
-          Gstreamer.App_src.push_buffer (get_some audio_src) gstbuf
+          Gstreamer.App_src.push_buffer_data (get_some audio_src) gstbuf
         );
       if has_video then
         (
@@ -145,7 +145,7 @@ object (self)
             let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
             Gstreamer.Buffer.set_presentation_time gstbuf now;
             Gstreamer.Buffer.set_duration gstbuf nanolen;
-            Gstreamer.App_src.push_buffer (get_some video_src) gstbuf
+            Gstreamer.App_src.push_buffer_data (get_some video_src) gstbuf
           done;
         );
       now <- Int64.add now nanolen
@@ -301,7 +301,7 @@ object (self)
     let gstbuf = Gstreamer.Buffer.of_string data 0 len in
     Gstreamer.Buffer.set_presentation_time gstbuf audio_now;
     Gstreamer.Buffer.set_duration gstbuf nanolen;
-    Gstreamer.App_src.push_buffer audio_src gstbuf;
+    Gstreamer.App_src.push_buffer_data audio_src gstbuf;
     audio_now <- Int64.add audio_now nanolen;
     Mutex.unlock audio_buffer_mutex
 
@@ -318,7 +318,7 @@ object (self)
     let gstbuf = Gstreamer.Buffer.of_data data 0 len in
     Gstreamer.Buffer.set_presentation_time gstbuf video_now;
     Gstreamer.Buffer.set_duration gstbuf nanolen;
-    Gstreamer.App_src.push_buffer video_src gstbuf;
+    Gstreamer.App_src.push_buffer_data video_src gstbuf;
     video_now <- Int64.add video_now nanolen;
     Mutex.unlock video_buffer_mutex
 
