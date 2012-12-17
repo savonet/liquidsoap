@@ -1,16 +1,51 @@
 title: Encoding formats
 
-Since after version 0.9.3, liquidsoap has decoding formats. These are
-special values describing how to encode raw data.
-Practically, this means that instead of writing:
+h3. Presentation
+
+Encoders are used to define formats into which raw sources should be encoded by 
+an output. Syntax for encoder is: @%encoder(parameters...)@ or, if you use
+default parameters, @%encoder@.
+
+h4. Formats determine the stream content
+
+In most liquidsoap scripts, the encoding format determines what
+kind of data is streamed.
+
+The type of an encoding format depends on its parameter.
+For example, @%mp3@ has type @format(audio=2,video=0,midi=0)@
+but @%mp3(mono)@ has type @format(audio=1,video=0,midi=0)@.
+
+The type of an output like @output.icecast@
+or @output.file@ is something like
+@(...,format('a),...,source('a))->source('a)@.
+This means that your source will have to have the same type as your format.
+
+For example if you write
+@output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))@
+then the playlist source will have to stream stereo audio.
+Thus it will reject mono and video files.
+
+Liquidsoap provides operators that can be used to convert sources 
+into a format acceptable for a given encoder. For instance, the @mean@
+operator transforms any audio source into a mono source and the @audio_to_stereo@
+operator transforms any audio source into a stereo source.
+
+h4. Format variables (or lack of, rather..)
+
+You can store an atomic format in a variable, it is a value like another:
+@fmt = %mp3@. However, an atomic format is an atomic constant despite its
+appearance. You cannot use a variable for one of its parameters: for
+example
 %%
-output.icecast.vorbis(quality=0.3,samplerate=44100,...)
+x = 44100
+%vorbis(samplerate=x)
 %%
-you shall now write:
-%%
-output.icecast(%vorbis(quality=0.3,samplerate=44100),etc)
-%%
-The same goes for @output.file@ and for other formats.
+is not allowed,
+you must write @%vorbis(samplerate=44100)@.
+
+If you really need to use variables in encoder, for instance if bitrate is given by 
+a user's configuration, you may alleviate that by generating a pre-defined list of possible
+encoders and include it on top of your script using the @%include@ directive.
 
 h3. List of formats and their syntax
 
@@ -216,42 +251,3 @@ Only one of @restart_on_new_track@ and @restart_after_delay@ should
 be passed. The delay is specified in seconds.
 The encoding process is mandatory, and can also be passed directly
 as a string, without @process=@.
-
-h3. Formats determine the stream content
-
-In most liquidsoap scripts, the encoding format determines what
-kind of data is streamed.
-
-The type of an encoding format depends on its parameter.
-For example, @%mp3@ has type @format(audio=2,video=0,midi=0)@
-but @%mp3(mono)@ has type @format(audio=1,video=0,midi=0)@.
-
-The type of an output like @output.icecast@
-or @output.file@ is something like
-@(...,format('a),...,source('a))->source('a)@.
-This means that your source will have to have the same type as your format.
-
-For example if you write
-@output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))@
-then the playlist source will have to stream stereo audio.
-Thus it will reject mono and video files.
-
-h3. Technical details
-
-You can store an atomic format in a variable, it is a value like another:
-@fmt = %mp3@. However, an atomic format is an atomic constant despite its
-appearance. You cannot use a variable for one of its parameters: for
-example 
-%%
-x = 44100
-%vorbis(samplerate=x)
-%%
-is not allowed,
-you must write @%vorbis(samplerate=44100)@.
-
-In programming languages like ML, the typing of @printf@ is a bit special.
-Alone, @printf@ has an esoteric type. Together with its parameter, it
-takes a meaningful type, for example @printf "An integer: %d\n"@ has type
-@int -> unit@. So, the format string @"An integer: %d\n"@ is not a string
-at all, it has a more complex type, and cannot be manipulated as a string.
-Our encoding formats have a similar role, hence the symbol @%@.
