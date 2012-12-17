@@ -4,8 +4,8 @@ h3. The Gstreamer encoder
 
 The @%gstreamer@ encoder can be used to encode streams using the @gstreamer@ multimedia framework.
 This encoder extends liquidsoap with all available GStreamer formats (provided they are 
-compatible with liquidsoap's model of streams, see Caveats section below), which includes most,
-if not all, formats available to your operating system.
+compatible with liquidsoap's model of streams, see Caveats section below), which includes a
+huge array of encoders.
 
 h4. Presentation
 
