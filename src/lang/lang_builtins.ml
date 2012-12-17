@@ -1031,6 +1031,23 @@ let () =
          (List.sort sort (Lang.to_list l)))
 
 let () =
+  add_builtin "list.filter" ~cat:List
+    ~descr:"Filter a list according to a filtering function."
+    ["",
+     Lang.fun_t [false,"",Lang.univ_t 1] Lang.bool_t,
+     None, None ;
+     "",Lang.list_t (Lang.univ_t 1),None,None] (Lang.list_t (Lang.univ_t 1))
+    (fun p ->
+       let f = Lang.assoc "" 1 p in
+       let filter x =
+         Lang.to_bool (Lang.apply ~t:Lang.bool_t f ["",x])
+       in
+       let l = Lang.assoc "" 2 p in
+       Lang.list
+         (Lang.of_list_t l.Lang.t)
+         (List.filter filter (Lang.to_list l)))
+
+let () =
   add_builtin "list.tl" ~cat:List
     ~descr:"Return the list without its first element."
     ["",Lang.list_t (Lang.univ_t 1),None,None]
