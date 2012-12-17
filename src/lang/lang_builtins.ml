@@ -1447,7 +1447,7 @@ let () =
            Lang.string default)
 
 let () =
-  add_builtin "server.register" ~cat:Sys
+  add_builtin "server.register" ~cat:Interaction
     ~descr:"Register a command. You can then execute this function \
             through the server, either telnet or socket."
     [ "namespace",Lang.string_t,Some (Lang.string ""),None ;
