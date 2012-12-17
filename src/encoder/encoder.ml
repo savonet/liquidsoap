@@ -422,6 +422,52 @@ struct
 
 end
 
+module GStreamer =
+struct
+  type t = {
+    channels  : int;
+    audio     : string option;
+    has_video : bool;
+    video     : string option;
+    muxer     : string option;
+    metadata  : string;
+    pipeline  : string option;
+    log       : int
+  }
+
+  let audio_channels m =
+    if m.audio = None then
+      0
+    else
+      m.channels
+
+  let video_channels m =
+    if m.video = None || not m.has_video then
+      0
+    else
+      1
+
+  let to_string m =
+    let pipeline l name value = 
+      Utils.some_or l
+        (Utils.maybe
+          (fun value -> (Printf.sprintf "%s=%S" name value)::l)
+            value)
+    in
+    Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
+      (String.concat ","
+        (pipeline
+         (pipeline
+           (pipeline [Printf.sprintf "channels=%d" m.channels] 
+             "audio" m.audio)
+             "video" m.video)
+             "muxer" m.muxer))
+      m.metadata
+      m.has_video
+      (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
+      m.log
+end
+
 module Theora =
 struct
 
@@ -535,6 +581,7 @@ type format =
   | AACPlus of AACPlus.t
   | VoAacEnc of VoAacEnc.t
   | External of External.t
+  | GStreamer of GStreamer.t
 
 let kind_of_format = function
   | WAV w ->
@@ -576,6 +623,10 @@ let kind_of_format = function
   | External e ->
       { Frame.audio = e.External.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | GStreamer e ->
+    { Frame.audio = GStreamer.audio_channels e;
+      Frame.video = GStreamer.video_channels e;
+      Frame.midi = 0 }
 
 let kind_of_format f =
   let k = kind_of_format f in
@@ -592,6 +643,7 @@ let string_of_format = function
   | AACPlus w -> AACPlus.to_string w
   | VoAacEnc w -> VoAacEnc.to_string w
   | External w -> External.to_string w
+  | GStreamer w -> GStreamer.to_string w
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 

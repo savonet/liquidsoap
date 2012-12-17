@@ -147,7 +147,7 @@ object (self)
          (Unix.gettimeofday () > reload_delay +. open_date &&
           (Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []))) then
           begin
-            self#log#f 3 "Re-opening output file..." ;
+            self#log#f 3 "Re-opening output pipe..." ;
             (* #output_stop can trigger #send,
              * the [reopening] flag avoids loops *)
             reopening <- true ;

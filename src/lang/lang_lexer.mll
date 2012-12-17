@@ -140,6 +140,7 @@ rule token = parse
   | "%vorbis.abr" { VORBIS_ABR }
   | "%theora" { THEORA }
   | "%external" { EXTERNAL }
+  | "%gstreamer" { GSTREAMER }
   | "%dirac"  { DIRAC  }
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
