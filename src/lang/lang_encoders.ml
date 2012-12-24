@@ -795,3 +795,61 @@ let mk_speex params =
       defaults params
   in
     Encoder.Ogg.Speex speex
+
+let mk_gstreamer params =
+  let defaults =
+    { Encoder.GStreamer.
+       channels  = 2;
+       audio     = Some "lamemp3enc";
+       has_video = true;
+       video     = Some "x264enc";
+       muxer     = Some "mpegtsmux";
+       metadata  = "metadata";
+       log        = 5;
+       pipeline  = None
+    }
+  in
+  let gstreamer =
+    let perhaps = function
+      | "" -> None
+      | s  -> Some s
+    in
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.GStreamer.channels = i }
+          | ("audio",{ term = String s }) ->
+              { f with Encoder.GStreamer.audio = perhaps s }
+          | ("has_video",{ term = Bool b }) ->
+              { f with Encoder.GStreamer.has_video = b }
+          | ("video",{ term = String s }) ->
+              { f with Encoder.GStreamer.video = perhaps s }
+          | ("muxer",{ term = String s }) ->
+              { f with Encoder.GStreamer.muxer = perhaps s }
+          | ("metadata",{ term = String s }) ->
+              { f with Encoder.GStreamer.metadata = s }
+          | ("log",{ term = Int i }) ->
+              { f with Encoder.GStreamer.log = i }
+          | ("pipeline",{ term = String s }) ->
+              { f with Encoder.GStreamer.pipeline = perhaps s }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+  let ret = mk (Encoder (Encoder.GStreamer gstreamer)) in
+    if gstreamer.Encoder.GStreamer.pipeline = None &&
+       gstreamer.Encoder.GStreamer.audio <> None && 
+       gstreamer.Encoder.GStreamer.channels = 0
+    then
+      raise
+        (Error (ret, "Must have at least one audio channel when \
+                         passing an audio pipeline!"));
+    if gstreamer.Encoder.GStreamer.pipeline = None &&
+       gstreamer.Encoder.GStreamer.video <> None && 
+       gstreamer.Encoder.GStreamer.audio <> None && 
+       gstreamer.Encoder.GStreamer.muxer = None
+    then
+      raise
+        (Error (ret, "Must have a muxer when passing an audio and \
+                         a video pipeline!"));
+    ret

@@ -213,6 +213,28 @@ The syntax for the internal AAC+ encoder is:
 %aacplus(channels=2, samplerate=44100, bitrate=64)
 %%
 
+h4. Gstreamer
+
+The @%gstreamer@ encoder can be used to encode streams using the @gstreamer@ multimedia framework.
+This encoder extends liquidsoap with all available GStreamer formats which includes most, if not all,
+formats available to your operating system.
+
+The encoder's parameters are as follows:
+
+%%
+%gstreamer(channels=2,
+           audio="lamemp3enc",
+           has_video=true,
+           video="x264enc",
+           muxer="mpegtsmux",
+           metadata="metadata",
+           log=5,
+           pipeline="")
+%%
+
+Please refer to the "Gstreamer encoder":gstreamer_encoder.html page for a detailed explanation
+of this encoder.
+
 h4. External encoders
 
 For a detailed presentation of external encoders, see "this page":external_encoders.html.

@@ -89,6 +89,7 @@ struct
       | Encoder.AACPlus _ -> Some aac
       | Encoder.VoAacEnc _ -> Some aac
       | Encoder.External _ -> None
+      | Encoder.GStreamer _ -> None
       | Encoder.Flac _ -> Some flac
       | Encoder.WAV _ -> Some wav
       | Encoder.Ogg _ -> Some ogg
