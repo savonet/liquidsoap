@@ -76,7 +76,7 @@ let get_tags fname =
         with
           | _ -> l
       in
-      List.fold_left gt []
+      let tags = List.fold_left gt []
         [
           "title", tag_title;
           "artist", tag_artist;
@@ -85,7 +85,15 @@ let get_tags fname =
           "year", (fun x -> string_of_int (tag_year x));
           "genre", tag_genre;
           "comment", tag_comment;
-        ])
+        ]
+      in
+      Hashtbl.fold (fun key values tags ->
+        (List.fold_left (fun tags value ->
+          if (not (List.mem_assoc key tags)) && value <> "" then
+           (key, value) :: tags
+          else
+            tags) tags values))
+         (tag_properties f) tags) 
   with
     | _ -> raise Not_found
 

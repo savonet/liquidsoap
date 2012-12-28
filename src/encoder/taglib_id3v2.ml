@@ -47,6 +47,12 @@ let render m =
     with
       | _ -> t
   in
+  let props = Hashtbl.create (Hashtbl.length m) in
+  Hashtbl.iter (fun k v ->
+    Hashtbl.add props k [v]) m;
+  let t =
+    Taglib.Inline.Id3v2.tag_set_properties t props
+  in
   let tags = 
     [("title", Taglib.Inline.Id3v2.tag_set_title);
      ("album", Taglib.Inline.Id3v2.tag_set_album);
