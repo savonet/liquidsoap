@@ -66,35 +66,19 @@ let get_tags fname =
   try
     let f = File.open_file ftype fname in
     Tutils.finalize ~k:(fun () -> File.close_file f)
-    (fun () -> 
-      let gt l (n, t) =
-        try
-          (* Do not pass empty strings.. *)
-          match t f with
-            | "" -> l 
-            | x  -> (n, x) :: l
-        with
-          | _ -> l
-      in
-      let tags = List.fold_left gt []
-        [
-          "title", tag_title;
-          "artist", tag_artist;
-          "album", tag_album;
-          "tracknumber", (fun x -> string_of_int (tag_track x));
-          "year", (fun x -> string_of_int (tag_year x));
-          "genre", tag_genre;
-          "comment", tag_comment;
-        ]
-      in
-      Hashtbl.fold (fun key values tags ->
-        (List.fold_left (fun tags value ->
-          if (not (List.mem_assoc key tags)) && value <> "" then
-           (key, value) :: tags
+    (fun () ->
+      Hashtbl.fold
+        (fun key (values:string list) tags ->
+          if values = [] then
+            tags
           else
-            tags) tags values))
-         (tag_properties f) tags) 
+            let v = List.hd values in
+            if v = "" then
+              tags
+            else
+              (key,v)::tags
+        ) (File.properties f) [])
   with
     | _ -> raise Not_found
 
-let () = Request.mresolvers#register "TAGLIB" get_tags 
+let () = Request.mresolvers#register "TAGLIB" get_tags
