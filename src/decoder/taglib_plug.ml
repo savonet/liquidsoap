@@ -77,7 +77,7 @@ let get_tags fname =
               tags
             else
               (key,v)::tags
-        ) (File.properties f) [])
+        ) (File.properties f) ["year", string_of_int (tag_year f)])
   with
     | _ -> raise Not_found
 
