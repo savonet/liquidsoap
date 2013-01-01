@@ -378,6 +378,12 @@ object (self)
                   with
                     | Not_found -> raise Internal
                 in
+                let location =
+                  if location <> "" && location.[0] = '/' then
+                    Printf.sprintf "http://%s:%d%s" host port location
+                  else
+                    location
+                in
                   self#log#f 4 "Redirected to %s" location;
                   raise (Redirection location)
               end ;
