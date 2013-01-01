@@ -175,6 +175,28 @@ let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   metadata = metadata
 }
 
+(** Length *)
+let dresolvers_doc =
+  "Methods to extract duration from a file."
+let dresolvers =
+  Plug.create ~doc:dresolvers_doc ~insensitive:true
+    "audio file formats (duration)"
+
+exception Duration of float
+let duration file =
+  try
+    dresolvers#iter
+      (fun name resolver ->
+        try
+          let ans = resolver file in
+          raise (Duration ans)
+        with
+        | Duration e -> raise (Duration e)
+        | _ -> ());
+    raise Not_found
+  with
+  | Duration d -> d
+
 (** Manage requests' metadata *)
 
 let toplevel_metadata t =
@@ -285,6 +307,13 @@ let conf_override_metadata =
       "Allow metadata resolvers to override metadata already \
        set through annotate: or playlist resolution for instance."
 
+let conf_duration =
+  Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
+    "Compute duration in the \"duration\" metadata, if the metadata is not \
+     already present. This can take a long time and the use of this option is \
+     not recommended: the proper way is to have a script precompute the \
+     \"duration\" metadata."
+
 (** Sys.file_exists doesn't make a difference between existing files
   * and files without enough permissions to list their attributes,
   * for example when they are in a directory without x permission.
@@ -327,6 +356,13 @@ let local_check t =
                              Hashtbl.replace indicator.metadata
                               k (cleanup v))
                          ans;
+                     if conf_duration#get && get_metadata t "duration" = None then
+                       (
+                         try
+                           Hashtbl.replace indicator.metadata "duration" (string_of_float (duration name))
+                         with
+                         | Not_found -> ()
+                       )
                    with
                      | _ -> ()) (get_decoders conf_metadata_decoders
                                      mresolvers) ;
@@ -364,29 +400,6 @@ let get_filename t =
     Some (List.hd (List.hd t.indicators)).string
   else
     None
-
-(** Length *)
-let dresolvers_doc =
-  "Methods to extract duration from a file."
-let dresolvers =
-  Plug.create ~doc:dresolvers_doc ~insensitive:true
-    "audio file formats (duration)"
-
-exception Duration of float
-let duration file =
-  try
-    dresolvers#iter
-      (fun name resolver ->
-        try
-         let ans = resolver file in
-         raise (Duration ans)
-        with 
-          | Duration e -> raise (Duration e) 
-          | _ -> () ) ; 
-      raise Not_found
-  with
-    | Duration d -> d
-
 
 let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
