@@ -1,5 +1,7 @@
 (* Some structured exceptions *)
 
+include Stdlib
+
 type error = Socket | Response | UrlDecoding
 exception Error of error
 
@@ -114,7 +116,10 @@ let http_sanitize url =
     let sub = Pcre.exec ~rex:basic_rex url in
     let host,path = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
     let encode path =
-      let path = Pcre.split ~pat:"/" path in
+      (* Pcre.split removes empty strings and thus removes trailing '/' which
+         can change the semantics of the URL... *)
+      (* let path = Pcre.split ~pat:"/" path in *)
+      let path = String.split_char '/' path in
       (* We decode the path, in case it was already encoded. *)
       let path =
         List.map (fun x -> url_encode ~plus:false (url_decode x)) path
