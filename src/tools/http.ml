@@ -118,7 +118,6 @@ let http_sanitize url =
     let encode path =
       (* Pcre.split removes empty strings and thus removes trailing '/' which
          can change the semantics of the URL... *)
-      (* let path = Pcre.split ~pat:"/" path in *)
       let path = String.split_char '/' path in
       (* We decode the path, in case it was already encoded. *)
       let path =

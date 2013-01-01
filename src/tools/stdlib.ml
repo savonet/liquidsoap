@@ -33,14 +33,14 @@ module String = struct
   include String
 
   let split_char c s =
-    let rec aux n =
+    let rec aux res n =
       try
         let n' = index_from s n c in
         let s0 = sub s n (n'-n) in
-        s0 :: (aux (n'+1))
+        aux (s0::res) (n'+1)
       with
       | Not_found ->
-        if n = 0 then [s] else [sub s n (length s - n)]
+        (if n = 0 then s else sub s n (length s - n)) :: res
     in
-    aux 0
+    List.rev (aux [] 0)
 end
