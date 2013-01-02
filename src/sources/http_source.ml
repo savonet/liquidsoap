@@ -169,6 +169,7 @@ let parse_url url =
     else
       host,80,mount,auth
 
+module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
@@ -293,6 +294,8 @@ object (self)
             begin match e with
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s" s
+              | G.Incorrect_stream_type ->
+                self#log#f 2 "Feeding stopped: the decoded stream was not of the right type. The typical situation is when you expect a stereo stream whereas the http stream is mono (in this case the situation can easily be solved by using the audio_to_stereo operator to convert the stream to a stereo one)."
               | e ->
                   self#log#f 2 "Feeding stopped: %s" (Utils.error_message e)
             end ;

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+exception Incorrect_stream_type
+
 module type S =
 sig
   type t
@@ -572,7 +574,7 @@ struct
       (fun () ->
          if t.error then begin
            Super.clear t.gen ; t.error <- false ;
-           failwith "Incorrect stream type!"
+           raise Incorrect_stream_type
          end else begin
            check_overfull t (Frame.master_of_audio len) ;
            Super.put_audio t.gen buf off len
@@ -583,7 +585,7 @@ struct
       (fun () ->
          if t.error then begin
            Super.clear t.gen ; t.error <- false ;
-           failwith "Incorrect stream type!"
+           raise Incorrect_stream_type
          end else begin
            check_overfull t (Frame.master_of_video len) ;
            Super.put_video t.gen buf off len

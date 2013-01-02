@@ -20,6 +20,10 @@
 
  *****************************************************************************)
 
+(** Raised when trying to feed a generator with data of incorrect type (wrong
+    number of audio channels, etc.). *)
+exception Incorrect_stream_type
+
 module type S =
 sig
   type t
