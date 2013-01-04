@@ -722,6 +722,19 @@ let recode_tag =
 EOCONF
 fi
 
+# Inotify
+
+AC_CHECK_OCAML_BINDING([inotify],[])
+if test -z "${W_INOTIFY}"; then
+  cat >> src/configure.ml <<EOCONF
+module File_watcher = File_watcher
+EOCONF
+else
+  cat >> src/configure.ml <<EOCONF
+module File_watcher = File_watcher_inotify
+EOCONF
+fi
+
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad],[0.3.0])
@@ -965,8 +978,9 @@ cat <<EOMSG
 
  * Additional libraries
    - dynlink           : $w_DYNLINK
-   - magic             : $w_MAGIC
+   - inotify           : $w_INOTIFY
    - lo                : $w_LO
+   - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
 
  * Graphical interfaces

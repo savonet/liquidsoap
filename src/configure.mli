@@ -64,3 +64,5 @@ val big_endian : bool
 
 (** String containing versions of all enabled bindings. *)
 val libs_versions : string
+
+module File_watcher : module type of File_watcher
