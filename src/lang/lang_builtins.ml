@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Stdlib
+
 type category = Sys | Math | String | List | Bool | Pair
               | Liq | Control | Interaction | Other
 
@@ -1970,6 +1972,22 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.bool (Sys.file_exists f))
+
+let () =
+  add_builtin "file.watch" ~cat:Sys
+    [
+      "",Lang.string_t,None,Some "File to watch.";
+      "",Lang.fun_t [] Lang.unit_t,None,Some "Handler function.";
+    ]
+    Lang.unit_t
+    ~descr:"Call a function when a file is modified."
+    (fun p ->
+       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
+       let f = List.assoc_nth "" 1 p in
+       let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
+       let module FW = Configure.File_watcher in
+       ignore (FW.watch FW.Modify fname f);
+       Lang.unit)
 
 let () =
   add_builtin "is_directory" ~cat:Sys
