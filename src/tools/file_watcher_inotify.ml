@@ -1,6 +1,4 @@
-type t = Inotify.wd
-
-type event = Modify
+type event = [`Modify]
 
 let fd = ref (None : Unix.file_descr option)
 let handlers = ref []
@@ -24,18 +22,21 @@ let rec watchdog () =
 
 let watch e file (f:unit -> unit) =
   if !fd = None then
-    (
+   begin
       fd := Some (Inotify.init ());
       Duppy.Task.add Tutils.scheduler (watchdog ())
-    );
+   end;
   let fd = Utils.get_some !fd in
   match e with
-  | Modify ->
-    let wd = Inotify.add_watch fd file [Inotify.S_Modify] in
-    handlers := (wd,f) :: !handlers;
-    wd
+    | Modify ->
+      let wd = Inotify.add_watch fd file [Inotify.S_Modify] in
+      handlers := (wd,f) :: !handlers;
+      let unwatch () =
+        let fd = Utils.get_some !fd in
+        Inotify.rm_watch fd wd;
+        handlers := List.remove_assoc wd !handlers
+      in
+      unwatch
 
-let unwatch wd =
-  let fd = Utils.get_some !fd in
-  Inotify.rm_watch fd wd;
-  handlers := List.remove_assoc wd !handlers
+let () =
+  Configure.watch.Configure.register <- watch

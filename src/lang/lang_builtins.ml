@@ -1986,8 +1986,9 @@ let () =
        let fname = Utils.home_unrelate fname in
        let f = List.assoc_nth "" 1 p in
        let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
-       let module FW = Configure.File_watcher in
-       ignore (FW.watch FW.Modify fname f);
+       let watch = Configure.watch.Configure.register in
+       let unwatch = watch `Modify fname f in
+       (* TODO: Return unwatch function. *)
        Lang.unit)
 
 let () =

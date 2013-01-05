@@ -68,8 +68,6 @@ let rec list_files (log : Log.t) dir =
   let files = List.sort compare files in
     files@(List.concat (List.map (fun d -> list_files log d) dirs))
 
-module FW = Configure.File_watcher
-
 (** The [timeout] (and [mime]) parameters apply to the playlist request,
   * i.e. the playlist_uri, not the media files from the playlist. *)
 class virtual vplaylist ~mime ~reload ~random ~timeout ~prefix playlist_uri =
@@ -407,19 +405,20 @@ object (self)
   (** Assume that every URI is valid, it will be checked on queuing. *)
   method is_valid file = true
 
-  val mutable watcher = None
+  val mutable unwatch = None
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
-    if reload = Watch then watcher <- Some (FW.watch FW.Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+    let watch = Configure.watch.Configure.register in
+    if reload = Watch then unwatch <- Some (watch `Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 
   method sleep =
-    (
-      match watcher with
-      | Some watcher -> FW.unwatch watcher
+   begin
+    match unwatch with
+      | Some fn -> fn()
       | None -> ()
-    );
-    super#sleep
+   end;
+   super#sleep
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -458,19 +457,20 @@ object (self)
   (** Nothing queued, hence nothing to expire. *)
   method private expire _ = ()
 
-  val mutable watcher = None
+  val mutable unwatch = None
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
-    if reload = Watch then watcher <- Some (FW.watch FW.Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+    let watch = Configure.watch.Configure.register in
+    if reload = Watch then unwatch <- Some (watch `Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 
   method sleep =
-    (
-      match watcher with
-      | Some watcher -> FW.unwatch watcher
+   begin
+    match unwatch with
+      | Some fn -> fn()
       | None -> ()
-    );
-    super#sleep
+   end;
+   super#sleep
 end
 
 

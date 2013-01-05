@@ -725,15 +725,15 @@ fi
 # Inotify
 
 AC_CHECK_OCAML_BINDING([inotify],[])
-if test -z "${W_INOTIFY}"; then
-  cat >> src/configure.ml <<EOCONF
-module File_watcher = File_watcher
+
+cat >> src/configure.ml <<EOCONF
+type event = [[ \`Modify ]]
+type unwatch = unit -> unit
+type watch = {
+  mutable register : event -> string -> (unit -> unit) -> unwatch
+}
+let watch = { register = File_watcher_mtime.watch }
 EOCONF
-else
-  cat >> src/configure.ml <<EOCONF
-module File_watcher = File_watcher_inotify
-EOCONF
-fi
 
 # OCaml bindings
 

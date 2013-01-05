@@ -65,4 +65,17 @@ val big_endian : bool
 (** String containing versions of all enabled bindings. *)
 val libs_versions : string
 
-module File_watcher : module type of File_watcher
+(** File watch utility. *)
+
+(** Event to watch. *)
+type event = [ `Modify ]
+
+(** Type for unwatching. *)
+type unwatch = unit -> unit
+
+(** Reference to main watch utility (inotify or mtime). *)
+type watch = {
+  mutable register : event -> string -> (unit -> unit) -> unwatch
+}
+
+val watch : watch

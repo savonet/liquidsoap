@@ -1,6 +1,4 @@
-type t = string
-
-type event = Modify
+type event = [`Modify]
 
 let launched = ref false
 
@@ -28,14 +26,14 @@ let rec watchdog () =
 
 let watch e file f =
   if not !launched then
-    (
+   begin
       launched := true;
       Duppy.Task.add Tutils.scheduler (watchdog ())
-    );
+   end;
   match e with
-  | Modify ->
-    watched := (file,file_mtime file,f) :: !watched;
-    file
-
-let unwatch file =
-  watched := List.filter (fun (fname,_,_) -> fname <> file) !watched
+    | `Modify ->
+      watched := (file,file_mtime file,f) :: !watched;
+      let unwatch () =
+        watched := List.filter (fun (fname,_,_) -> fname <> file) !watched
+      in
+      unwatch
