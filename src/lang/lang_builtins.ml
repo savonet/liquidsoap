@@ -1983,6 +1983,7 @@ let () =
     ~descr:"Call a function when a file is modified."
     (fun p ->
        let fname = Lang.to_string (List.assoc_nth "" 0 p) in
+       let fname = Utils.home_unrelate fname in
        let f = List.assoc_nth "" 1 p in
        let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
        let module FW = Configure.File_watcher in
