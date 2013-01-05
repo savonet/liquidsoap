@@ -40,7 +40,11 @@ type random_mode = Random | Randomize | Normal
  *                   (only defined for Normal and Randomize modes);
  * Watch: the playlist is reloaded whenever it is changed.
  *)
-type reload_mode = Never | Every_N_rounds of int | Every_N_seconds of float | Watch
+type reload_mode =
+  | Never
+  | Every_N_rounds of int
+  | Every_N_seconds of float
+  | Watch
 
 let is_dir f =
   try
@@ -410,7 +414,10 @@ object (self)
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
     let watch = Configure.watch.Configure.register in
-    if reload = Watch then unwatch <- Some (watch `Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+    if reload = Watch then
+      unwatch <- Some 
+        (watch `Modify (Utils.home_unrelate playlist_uri) 
+          (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 
   method sleep =
    begin
@@ -462,7 +469,9 @@ object (self)
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
     let watch = Configure.watch.Configure.register in
-    if reload = Watch then unwatch <- Some (watch `Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+    if reload = Watch then
+      unwatch <- Some (watch `Modify (Utils.home_unrelate playlist_uri)
+        (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 
   method sleep =
    begin
@@ -494,7 +503,8 @@ let () =
       "reload_mode",
       Lang.string_t,
       Some (Lang.string "seconds"),
-      Some "Unit of the reload parameter, either 'rounds', 'seconds' or 'watch' (reload the file whenever it is changed)." ;
+      Some "Unit of the reload parameter, either 'rounds', 'seconds' or \
+            'watch' (reload the file whenever it is changed)." ;
 
       "mime_type",
       Lang.string_t,
