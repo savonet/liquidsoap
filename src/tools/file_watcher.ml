@@ -1,4 +1,4 @@
-type t = unit
+type t = string
 
 type event = Modify
 
@@ -34,7 +34,8 @@ let watch e file f =
     );
   match e with
   | Modify ->
-    watched := (file,file_mtime file,f) :: !watched
+    watched := (file,file_mtime file,f) :: !watched;
+    file
 
-(* TODO *)
-let unwatch _ = ()
+let unwatch file =
+  watched := List.filter (fun (fname,_,_) -> fname <> file) !watched

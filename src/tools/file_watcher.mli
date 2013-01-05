@@ -1,3 +1,5 @@
+(** Utility to register a callback when a file is modified. *)
+
 (** A handle to the handler. *)
 type t
 
