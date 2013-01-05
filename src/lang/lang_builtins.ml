@@ -1979,8 +1979,8 @@ let () =
       "",Lang.string_t,None,Some "File to watch.";
       "",Lang.fun_t [] Lang.unit_t,None,Some "Handler function.";
     ]
-    Lang.unit_t
-    ~descr:"Call a function when a file is modified."
+    (Lang.fun_t [] Lang.unit_t)
+    ~descr:"Call a function when a file is modified. Returns unwatch function."
     (fun p ->
        let fname = Lang.to_string (List.assoc_nth "" 0 p) in
        let fname = Utils.home_unrelate fname in
@@ -1988,8 +1988,9 @@ let () =
        let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
        let watch = Configure.watch.Configure.register in
        let unwatch = watch `Modify fname f in
-       (* TODO: Return unwatch function. *)
-       Lang.unit)
+       Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
+         unwatch();
+         Lang.unit))
 
 let () =
   add_builtin "is_directory" ~cat:Sys
