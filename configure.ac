@@ -51,7 +51,7 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 cat > src/configure.ml << _BLAH_
 let version = "$version"
 let scm_snapshot = $scm_snapshot
-let conf = Dtools.Conf.void "Liquidsoap configuration"
+let conf = Utils.conf
 let var_script = ref "default"
 let substs = ref
     [[

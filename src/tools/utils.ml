@@ -39,6 +39,9 @@ let some_or none = function
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale"
 
+(** General configuration *)
+let conf = Dtools.Conf.void "Liquidsoap configuration"
+
 let () = 
   force_locale ()
 

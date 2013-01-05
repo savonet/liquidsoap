@@ -2,19 +2,15 @@ type t = unit
 
 type event = Modify
 
-let thread = ref (None : Thread.t option)
-
-let m = Mutex.create ()
+let launched = ref false
 
 let watched = ref []
 
 let file_mtime file =
   (Unix.stat file).Unix.st_mtime
 
-let watchdog () =
-  while true do
-    Unix.sleep 1;
-    Mutex.lock m;
+let rec watchdog () =
+  let handler _ =
     watched :=
       List.map
       (fun (file,mtime,f) ->
@@ -22,16 +18,23 @@ let watchdog () =
         if mtime' <> mtime then f ();
         file,mtime',f
       ) !watched;
-    Mutex.unlock m
-  done
+     [ watchdog () ]
+  in
+  { Duppy.Task.
+    priority = Tutils.Maybe_blocking;
+    events = [ `Delay 1. ];
+    handler;
+  }
 
 let watch e file f =
-  if !thread = None then thread := Some (Thread.create watchdog ());
+  if not !launched then
+    (
+      launched := true;
+      Duppy.Task.add Tutils.scheduler (watchdog ())
+    );
   match e with
   | Modify ->
-    Mutex.lock m;
-    watched := (file,file_mtime file,f) :: !watched;
-    Mutex.unlock m
+    watched := (file,file_mtime file,f) :: !watched
 
 (* TODO *)
 let unwatch _ = ()
