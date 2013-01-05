@@ -83,9 +83,6 @@ object (self)
 
   initializer
     ns_kind <- "playlist";
-    (* TODO: don't reload when not activated *)
-    if reload = Watch then
-      ignore (FW.watch FW.Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()));
     self#register_command "reload"
       ~descr:"Reload the playlist, unless already being loaded."
       (fun s -> self#reload_playlist () ; "OK") ;
@@ -391,7 +388,7 @@ class playlist ~kind
   ~mime ~reload ~random
   ~length ~default_duration ~timeout ~prefix ~conservative
   uri =
-object
+object (self)
 
   (* Some day it might be useful to set distinct timeout parameters
    * for the playlist and media requests... or maybe not. *)
@@ -410,6 +407,19 @@ object
   (** Assume that every URI is valid, it will be checked on queuing. *)
   method is_valid file = true
 
+  val mutable watcher = None
+
+  method get_ready ?dynamic sl =
+    super#get_ready ?dynamic sl;
+    if reload = Watch then watcher <- Some (FW.watch FW.Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+
+  method sleep =
+    (
+      match watcher with
+      | Some watcher -> FW.unwatch watcher
+      | None -> ()
+    );
+    super#sleep
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -448,11 +458,23 @@ object (self)
   (** Nothing queued, hence nothing to expire. *)
   method private expire _ = ()
 
+  val mutable watcher = None
+
+  method get_ready ?dynamic sl =
+    super#get_ready ?dynamic sl;
+    if reload = Watch then watcher <- Some (FW.watch FW.Modify (Utils.home_unrelate playlist_uri) (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+
+  method sleep =
+    (
+      match watcher with
+      | Some watcher -> FW.unwatch watcher
+      | None -> ()
+    );
+    super#sleep
 end
 
 
 let () =
-
   let proto =
     [ "mode",
       Lang.string_t,
