@@ -48,19 +48,19 @@ let rec watchdog () =
   }
 
 let watch : File_watcher.watch = fun e file f ->
-  if not !launched then
-    begin
-      launched := true;
-      Duppy.Task.add Tutils.scheduler (watchdog ())
-    end;
   if List.mem `Modify e then
-    (Tutils.mutexify m (fun () ->
+    Tutils.mutexify m (fun () ->
+      if not !launched then
+        begin
+          launched := true;
+          Duppy.Task.add Tutils.scheduler (watchdog ())
+        end;
       watched := (file,file_mtime file,f) :: !watched;
       let unwatch =
         Tutils.mutexify m (fun () ->
           watched := List.filter (fun (fname,_,_) -> fname <> file) !watched
         )
       in
-      unwatch)) ()
+      unwatch) ()
   else
     fun () -> ()
