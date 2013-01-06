@@ -395,10 +395,10 @@ AC_CHECK_OCAML_BINDING([dynlink],[],[],[],[],[1])
 # Dynlink may be for bytecode only..
 AC_MSG_CHECKING([whether ocaml compiler supports dynlink])
 if test -n "${W_DYNLINK}"; then
-  DYN_TEST_FILE=`mktemp XXXX.ml`
-  trap "rm -f $DYN_TEST_FILE; exit" SIGHUP SIGINT SIGTERM
-  echo "module Foo = Dynlink" > $DYN_TEST_FILE
-  if ! $OCAMLC -linkpkg -package dynlink -o /dev/null $DYN_TEST_FILE >/dev/null 2>&1; then
+  DYN_TEST_FILE_ML=`mktemp XXXX.ml`
+  trap "rm -f $DYN_TEST_FILE_ML; exit" SIGHUP SIGINT SIGTERM
+  echo "module Foo = Dynlink" > $DYN_TEST_FILE_ML
+  if ! $OCAMLC -linkpkg -package dynlink -o /dev/null $DYN_TEST_FILE_ML >/dev/null 2>&1; then
     AC_MSG_RESULT([no])
     AC_MSG_WARN([Dynlink module is installed but not available])
     AC_MSG_WARN([Are you compiling to native code with ocaml < 3.11 ?])
@@ -409,7 +409,8 @@ if test -n "${W_DYNLINK}"; then
   else
     AC_MSG_RESULT([yes])
   fi
-  rm -f $DYN_TEST_FILE
+  DYN_TEST_FILE=`basename $DYN_TEST_FILE_ML .ml`
+  rm -f $DYN_TEST_FILE_ML $DYN_TEST_FILE.cmx $DYN_TEST_FILE.cmo $DYN_TEST_FILE.cmi $DYN_TEST_FILE.o
 fi
 
 if test -z "${W_DYNLINK}"; then
