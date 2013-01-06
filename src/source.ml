@@ -397,9 +397,6 @@ object (self)
    * another thread than the Root one, as interleaving with #get is
    * forbidden. *)
   method leave ?(dynamic=false) src =
-    (Tutils.mutexify on_shutdown_m (fun () ->
-      List.iter (fun fn ->
-        try fn() with _ -> ()) on_shutdown)) ();
     let rec remove acc = function
       | [] ->
           self#log#f 1 "Got ill-balanced activations (from %s)!" src#id ;
@@ -414,6 +411,9 @@ object (self)
       self#update_caching_mode ;
       if static_activations = [] && dynamic_activations = [] then begin
         source_log#f 4 "Source %s gets down." id ;
+        (Tutils.mutexify on_shutdown_m (fun () ->
+          List.iter (fun fn ->
+            try fn() with _ -> ()) on_shutdown)) ();
         self#sleep ;
         List.iter
           (fun (_,_,name,_) ->
