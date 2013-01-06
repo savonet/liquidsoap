@@ -31,7 +31,7 @@ let watch e file (f:unit -> unit) =
    end;
   let fd = Utils.get_some !fd in
   match e with
-    | Modify ->
+    | `Modify ->
       (Tutils.mutexify m (fun () ->
         let wd = Inotify.add_watch fd file [Inotify.S_Modify] in
         handlers := (wd,f) :: !handlers;
