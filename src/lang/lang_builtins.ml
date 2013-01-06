@@ -2001,11 +2001,10 @@ let () =
        let fname = Utils.home_unrelate fname in
        let f = List.assoc_nth "" 1 p in
        let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
-       let watch = Configure.watch.Configure.register in
-       let unwatch = watch `Modify fname f in
-       Lang.val_fun [] ~ret_t:Lang.unit_t (fun _ _ ->
-         unwatch();
-         Lang.unit))
+       let watch = !Configure.file_watcher in
+       let unwatch = watch [`Modify] fname f in
+       Lang.val_fun [] ~ret_t:Lang.unit_t
+         (fun _ _ -> unwatch (); Lang.unit))
 
 let () =
   add_builtin "is_directory" ~cat:Sys

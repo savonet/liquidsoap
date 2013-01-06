@@ -727,12 +727,7 @@ fi
 AC_CHECK_OCAML_BINDING([inotify],[])
 
 cat >> src/configure.ml <<EOCONF
-type event = [[ \`Modify ]]
-type unwatch = unit -> unit
-type watch = {
-  mutable register : event -> string -> (unit -> unit) -> unwatch
-}
-let watch = { register = File_watcher_mtime.watch }
+let file_watcher = ref File_watcher_mtime.watch
 EOCONF
 
 # OCaml bindings

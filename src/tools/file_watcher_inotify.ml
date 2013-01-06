@@ -23,17 +23,18 @@ let rec watchdog () =
     handler;
   }
 
-let watch e file (f:unit -> unit) =
+let watch : File_watcher.watch = fun e file f ->
   if !fd = None then
     begin
       fd := Some (Inotify.init ());
       Duppy.Task.add Tutils.scheduler (watchdog ())
     end;
   let fd = Utils.get_some !fd in
-  match e with
-  | `Modify ->
+  let event_conv = function
+    | `Modify -> Inotify.S_Modify
+  in
     Tutils.mutexify m (fun () ->
-      let wd = Inotify.add_watch fd file [Inotify.S_Modify] in
+      let wd = Inotify.add_watch fd file (List.map event_conv e) in
       handlers := (wd,f) :: !handlers;
       let unwatch =
         Tutils.mutexify m (fun () ->
@@ -43,4 +44,4 @@ let watch e file (f:unit -> unit) =
       unwatch) ()
 
 let () =
-  Configure.watch.Configure.register <- watch
+  Configure.file_watcher := watch

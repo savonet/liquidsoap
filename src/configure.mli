@@ -66,16 +66,4 @@ val big_endian : bool
 val libs_versions : string
 
 (** File watch utility. *)
-
-(** Event to watch. *)
-type event = [ `Modify ]
-
-(** Type for unwatching. *)
-type unwatch = unit -> unit
-
-(** Reference to main watch utility (inotify or mtime). *)
-type watch = {
-  mutable register : event -> string -> (unit -> unit) -> unwatch
-}
-
-val watch : watch
+val file_watcher : File_watcher.watch ref

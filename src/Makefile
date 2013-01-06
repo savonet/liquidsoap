@@ -191,7 +191,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/wav.ml tools/tutils.ml \
-	tools/file_watcher_mtime.ml \
+	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	configure.ml \
 	tools/http.ml tools/pool.ml
 

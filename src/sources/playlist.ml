@@ -411,10 +411,10 @@ object (self)
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
-    let watch = Configure.watch.Configure.register in
+    let watch = !Configure.file_watcher in
     if reload = Watch then
       self#on_shutdown
-        (watch `Modify (Utils.home_unrelate playlist_uri) 
+        (watch [`Modify] (Utils.home_unrelate playlist_uri)
           (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 end
 
@@ -456,9 +456,9 @@ object (self)
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
-    let watch = Configure.watch.Configure.register in
+    let watch = !Configure.file_watcher in
     if reload = Watch then
-      self#on_shutdown (watch `Modify (Utils.home_unrelate playlist_uri)
+      self#on_shutdown (watch [`Modify] (Utils.home_unrelate playlist_uri)
         (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 end
 
