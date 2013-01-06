@@ -4,19 +4,22 @@ let launched = ref false
 
 let watched = ref []
 
+let m = Mutex.create ()
+
 let file_mtime file =
   (Unix.stat file).Unix.st_mtime
 
 let rec watchdog () =
-  let handler _ =
-    watched :=
-      List.map
-      (fun (file,mtime,f) ->
-        let mtime' = file_mtime file in
-        if mtime' <> mtime then f ();
-        file,mtime',f
-      ) !watched;
-     [ watchdog () ]
+  let handler =
+    Tutils.mutexify m (fun _ ->
+      watched :=
+        List.map
+        (fun (file,mtime,f) ->
+          let mtime' = file_mtime file in
+          if mtime' <> mtime then f ();
+          file,mtime',f
+        ) !watched;
+       [ watchdog () ])
   in
   { Duppy.Task.
     priority = Tutils.Maybe_blocking;
@@ -32,8 +35,11 @@ let watch e file f =
    end;
   match e with
     | `Modify ->
-      watched := (file,file_mtime file,f) :: !watched;
-      let unwatch () =
-        watched := List.filter (fun (fname,_,_) -> fname <> file) !watched
-      in
-      unwatch
+      (Tutils.mutexify m (fun () ->
+        watched := (file,file_mtime file,f) :: !watched;
+        let unwatch =
+          Tutils.mutexify m (fun () ->
+            watched := List.filter (fun (fname,_,_) -> fname <> file) !watched
+          )
+        in
+        unwatch)) ()
