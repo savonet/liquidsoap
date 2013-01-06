@@ -409,23 +409,13 @@ object (self)
   (** Assume that every URI is valid, it will be checked on queuing. *)
   method is_valid file = true
 
-  val mutable unwatch = None
-
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
     let watch = Configure.watch.Configure.register in
     if reload = Watch then
-      unwatch <- Some 
+      self#on_shutdown
         (watch `Modify (Utils.home_unrelate playlist_uri) 
           (fun () -> self#reload_playlist ~uri:playlist_uri ()))
-
-  method sleep =
-   begin
-    match unwatch with
-      | Some fn -> fn()
-      | None -> ()
-   end;
-   super#sleep
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -464,22 +454,12 @@ object (self)
   (** Nothing queued, hence nothing to expire. *)
   method private expire _ = ()
 
-  val mutable unwatch = None
-
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
     let watch = Configure.watch.Configure.register in
     if reload = Watch then
-      unwatch <- Some (watch `Modify (Utils.home_unrelate playlist_uri)
+      self#on_shutdown (watch `Modify (Utils.home_unrelate playlist_uri)
         (fun () -> self#reload_playlist ~uri:playlist_uri ()))
-
-  method sleep =
-   begin
-    match unwatch with
-      | Some fn -> fn()
-      | None -> ()
-   end;
-   super#sleep
 end
 
 

@@ -603,7 +603,10 @@ def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",uri)
   rs = playlist.reloadable(id=id,random=random,on_done=on_done,uri)
   reload = fst(rs)
   s = snd(rs)
-  if reload_mode == "watch" then file.watch(uri,fun () -> reload()) end
+  if reload_mode == "watch" then
+    unwatch = file.watch(uri,fun () -> reload())
+    source.on_shutdown(s,unwatch)
+  end
   s
 end
 
