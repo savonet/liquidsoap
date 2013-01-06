@@ -14,8 +14,8 @@ let rec watchdog () =
         (fun (wd,_,_,file) ->
           let f = List.assoc wd !handlers in
           f ()
-        ) events);
-    [ watchdog () ]
+        ) events;
+      [ watchdog () ])
   in
   { Duppy.Task.
     priority = Tutils.Maybe_blocking;
@@ -25,23 +25,22 @@ let rec watchdog () =
 
 let watch e file (f:unit -> unit) =
   if !fd = None then
-   begin
+    begin
       fd := Some (Inotify.init ());
       Duppy.Task.add Tutils.scheduler (watchdog ())
-   end;
+    end;
   let fd = Utils.get_some !fd in
   match e with
-    | `Modify ->
-      (Tutils.mutexify m (fun () ->
-        let wd = Inotify.add_watch fd file [Inotify.S_Modify] in
-        handlers := (wd,f) :: !handlers;
-        let unwatch =
-          Tutils.mutexify m (fun () ->
-            let fd = Utils.get_some !fd in
-            Inotify.rm_watch fd wd;
-            handlers := List.remove_assoc wd !handlers)
-        in
-        unwatch)) ()
+  | `Modify ->
+    Tutils.mutexify m (fun () ->
+      let wd = Inotify.add_watch fd file [Inotify.S_Modify] in
+      handlers := (wd,f) :: !handlers;
+      let unwatch =
+        Tutils.mutexify m (fun () ->
+          Inotify.rm_watch fd wd;
+          handlers := List.remove_assoc wd !handlers)
+      in
+      unwatch) ()
 
 let () =
   Configure.watch.Configure.register <- watch
