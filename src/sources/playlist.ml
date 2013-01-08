@@ -477,8 +477,8 @@ let () =
       "reload",
       Lang.int_t,
       Some (Lang.int 0),
-      Some "Amount of time (in seconds or rounds) before which \
-            the playlist is reloaded; 0 means never, excepting in watch mode." ;
+      Some "Amount of time (in seconds or rounds), when applicable, before which \
+            the playlist is reloaded; 0 means never." ;
 
       "reload_mode",
       Lang.string_t,

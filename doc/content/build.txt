@@ -87,6 +87,7 @@ also @libtool@.
 * "xmlm":http://erratique.ch/software/xmlm
 * "camlimages":http://pauillac.inria.fr/camlimages/ for image decoding
 * "ocaml-sdl":http://ocamlsdl.sourceforge.net/home.html for display, font & image support
+* "ocaml-inotify":http://projects.snarc.org/ocaml-inotify to monitor file changes, in particular with playlists.
 
 Runtime dependencies include:
 * "wget":http://www.gnu.org/software/wget/ for downloading remote files (http, https, ftp)
