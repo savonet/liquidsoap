@@ -594,12 +594,20 @@ end
 # Custom playlist source written using the script language.
 # Will read directory or playlist, play all files and stop
 # @category Source / Input
-# @param ~id Force the value of the source ID. 
+# @param ~id Force the value of the source ID.
 # @param ~random Randomize playlist content
 # @param ~on_done Function to execute when the playlist is finished
+# @param ~reload_mode If set to "watch", will be reloaded when the playlist is changed
 # @param uri Playlist URI
-def playlist.once(~id="",~random=false,~on_done={()},uri)
-  snd(playlist.reloadable(id=id,random=random,on_done=on_done,uri))
+def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",uri)
+  rs = playlist.reloadable(id=id,random=random,on_done=on_done,uri)
+  reload = fst(rs)
+  s = snd(rs)
+  if reload_mode == "watch" then
+    unwatch = file.watch(uri,fun () -> reload())
+    source.on_shutdown(s,unwatch)
+  end
+  s
 end
 
 # Mixes two streams, with faded transitions between the state when only the

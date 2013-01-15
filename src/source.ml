@@ -319,6 +319,13 @@ object (self)
   val mutable dynamic_activations : operator list list = []
   val mutable static_activations  : operator list list = []
 
+  (* List of callbacks executed when source shuts down. *)
+  val mutable on_shutdown = []
+  val on_shutdown_m = Mutex.create()
+  method on_shutdown fn =
+    (Tutils.mutexify on_shutdown_m (fun () ->
+      on_shutdown <- fn :: on_shutdown)) ()
+
   (* contains: (ns,descr,usage,name,f) *)
   val mutable commands = []
   val mutable ns_kind = "unknown"
@@ -404,6 +411,12 @@ object (self)
       self#update_caching_mode ;
       if static_activations = [] && dynamic_activations = [] then begin
         source_log#f 4 "Source %s gets down." id ;
+        (Tutils.mutexify on_shutdown_m
+           (fun () ->
+             List.iter (fun fn -> try fn() with _ -> ()) on_shutdown;
+             on_shutdown <- []
+           )
+        ) ();
         self#sleep ;
         List.iter
           (fun (_,_,name,_) ->

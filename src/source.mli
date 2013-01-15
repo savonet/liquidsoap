@@ -52,6 +52,9 @@ object
   method register_command : descr:string -> ?usage:string -> string ->
                             (string->string) -> unit
 
+  (** Register a callback, to be executed when source shuts down. *)
+  method on_shutdown : (unit -> unit) -> unit
+
   (** The clock under which the source will run, initially unknown. *)
   method clock : clock_variable
 
