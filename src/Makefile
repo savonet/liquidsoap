@@ -190,8 +190,12 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
-	tools/wav.ml configure.ml \
-	tools/tutils.ml tools/http.ml tools/pool.ml
+	tools/wav.ml tools/tutils.ml \
+	tools/file_watcher.mli tools/file_watcher_mtime.ml \
+	configure.ml \
+	tools/http.ml tools/pool.ml
+
+$(call conditional_compilation,tools,$(W_INOTIFY),tools/file_watcher_inotify.ml)
 
 stream =stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml

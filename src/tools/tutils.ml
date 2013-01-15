@@ -23,7 +23,7 @@
 open Dtools
 
 let conf_scheduler =
-  Conf.void ~p:(Configure.conf#plug "scheduler") "Internal scheduler"
+  Conf.void ~p:(Utils.conf#plug "scheduler") "Internal scheduler"
     ~comments:[
       "The scheduler is used to process various tasks in liquidsoap." ;
       "There are three kinds of tasks:" ;

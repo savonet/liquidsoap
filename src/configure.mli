@@ -64,3 +64,6 @@ val big_endian : bool
 
 (** String containing versions of all enabled bindings. *)
 val libs_versions : string
+
+(** File watch utility. *)
+val file_watcher : File_watcher.watch ref

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Stdlib
+
 type category = Sys | Math | String | List | Bool | Pair
               | Liq | Control | Interaction | Other
 
@@ -1267,6 +1269,21 @@ let () =
          Lang.unit)
 
 let () =
+  add_builtin "source.on_shutdown" ~cat:Sys
+    [ "", Lang.source_t (Lang.univ_t 1), None, None;
+      "", Lang.fun_t [] Lang.unit_t, None, None ]
+    Lang.unit_t
+    ~descr:"Register a function to be called when source shuts down."
+    (fun p ->
+       let s = Lang.to_source
+         (Lang.assoc "" 1 p)
+       in
+       let f = Lang.assoc "" 2 p in
+       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
+         s#on_shutdown wrap_f;
+         Lang.unit)
+
+let () =
   add_builtin "garbage_collect" ~cat:Liq
     ~descr:"Trigger full major garbage collection."
     [] Lang.unit_t
@@ -1970,6 +1987,24 @@ let () =
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.bool (Sys.file_exists f))
+
+let () =
+  add_builtin "file.watch" ~cat:Sys
+    [
+      "",Lang.string_t,None,Some "File to watch.";
+      "",Lang.fun_t [] Lang.unit_t,None,Some "Handler function.";
+    ]
+    (Lang.fun_t [] Lang.unit_t)
+    ~descr:"Call a function when a file is modified. Returns unwatch function."
+    (fun p ->
+       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
+       let fname = Utils.home_unrelate fname in
+       let f = List.assoc_nth "" 1 p in
+       let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
+       let watch = !Configure.file_watcher in
+       let unwatch = watch [`Modify] fname f in
+       Lang.val_fun [] ~ret_t:Lang.unit_t
+         (fun _ _ -> unwatch (); Lang.unit))
 
 let () =
   add_builtin "is_directory" ~cat:Sys

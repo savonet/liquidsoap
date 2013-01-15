@@ -51,7 +51,7 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 cat > src/configure.ml << _BLAH_
 let version = "$version"
 let scm_snapshot = $scm_snapshot
-let conf = Dtools.Conf.void "Liquidsoap configuration"
+let conf = Utils.conf
 let var_script = ref "default"
 let substs = ref
     [[
@@ -723,6 +723,14 @@ let recode_tag =
 EOCONF
 fi
 
+# Inotify
+
+AC_CHECK_OCAML_BINDING([inotify],[])
+
+cat >> src/configure.ml <<EOCONF
+let file_watcher = ref File_watcher_mtime.watch
+EOCONF
+
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad],[0.3.0])
@@ -966,8 +974,9 @@ cat <<EOMSG
 
  * Additional libraries
    - dynlink           : $w_DYNLINK
-   - magic             : $w_MAGIC
+   - inotify           : $w_INOTIFY
    - lo                : $w_LO
+   - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
 
  * Graphical interfaces
