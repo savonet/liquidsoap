@@ -411,9 +411,12 @@ object (self)
       self#update_caching_mode ;
       if static_activations = [] && dynamic_activations = [] then begin
         source_log#f 4 "Source %s gets down." id ;
-        (Tutils.mutexify on_shutdown_m (fun () ->
-          List.iter (fun fn ->
-            try fn() with _ -> ()) on_shutdown)) ();
+        (Tutils.mutexify on_shutdown_m
+           (fun () ->
+             List.iter (fun fn -> try fn() with _ -> ()) on_shutdown;
+             on_shutdown <- []
+           )
+        ) ();
         self#sleep ;
         List.iter
           (fun (_,_,name,_) ->
