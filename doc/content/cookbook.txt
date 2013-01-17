@@ -317,10 +317,15 @@ server.register(namespace="dump",
 
 h4. Lastfm input
 
-You can listen to "lastfm":http://www.last.fm/ radios using "Liquidsoap":index.html. The corresponding operator is <code>input.lastfm</code> and is used that way:
+You can listen to "lastfm":http://www.last.fm/ radios using 
+"Liquidsoap":index.html. The corresponding operator is 
+<code>input.lastfm</code> and is used in the following way:
 
 %%(lastfm.liq)
-lastfm_stream = input.lastfm("lastfm://artist/Wackies")
+lastfm_stream =
+  # Replace login info with yours!
+  input.lastfm(user="toots5446",password="hackme",
+               "lastfm://artist/Wackies")
 %%
 
 Lastfm's URIs start with <code>lastfm:</code>:
