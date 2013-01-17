@@ -248,7 +248,7 @@ struct
     let pos = ref 0 in
     let ended = ref false in
     let decode gen =
-      if !ended then raise End_of_track;
+      if !ended || !sample >= nb_samples || !sample < 0 then raise End_of_track;
       let data = Faad.Mp4.decode mp4 track !sample dec in
       incr sample;
       begin try
@@ -257,9 +257,8 @@ struct
       let content,length =
         resampler ~audio_src_rate:(float sample_freq) data
       in
-      Generator.set_mode gen `Audio ;
-      Generator.put_audio gen content 0
-               (Array.length content.(0))
+      Generator.set_mode gen `Audio;
+      Generator.put_audio gen content 0 (Array.length content.(0))
     in
     let seek ticks =
       try
