@@ -87,35 +87,30 @@ struct
 let create_decoder input =
   let resampler = Rutils.create_audio () in
   let dec = Faad.create () in
-  (* 1024 bytes seems usually enough to 
-   * initiate the decoder.. *)
+  (* 1024 bytes seems usually enough to initiate the decoder.. *)
   let (aacbuf,len) = input.Decoder.read 1024 in
-  let offset, sample_freq, chans =
-     Faad.init dec aacbuf 0 len 
-  in
+  let offset, sample_freq, chans = Faad.init dec aacbuf 0 len in
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
-  let input,drop,pos = 
-    buffered_input input aacbuf offset (len-offset) 
+  let input,drop,pos =
+    buffered_input input aacbuf offset (len-offset)
   in
   (* We approximate bitrate for seeking.. *)
-  let seek ticks = 
-    if !processed == 0 || 
+  let seek ticks =
+    if !processed == 0 ||
        !pos == 0 ||
        input.Decoder.lseek == None ||
        input.Decoder.tell == None then
       0
     else
      begin
-      let cur_time = 
-        (float !processed) /. (float sample_freq) 
-      in
+      let cur_time = (float !processed) /. (float sample_freq) in
       let rate = (float !pos) /. cur_time in
       let offset = Frame.seconds_of_master ticks in
       let bytes = int_of_float (rate *. offset) in
       try
         ignore(
-          (Utils.get_some input.Decoder.lseek) 
+          (Utils.get_some input.Decoder.lseek)
            ((Utils.get_some input.Decoder.tell) () + bytes));
         Faad.post_sync_reset dec;
         ticks
@@ -124,7 +119,7 @@ let create_decoder input =
   in
   { Decoder.
      seek = seek;
-     decode = 
+     decode =
       (fun gen ->
         let aacbuf,len = input.Decoder.read aacbuflen in
         if len = aacbuflen then
@@ -169,7 +164,7 @@ let get_type filename =
   let aacbuf = String.create aacbuflen in
     Tutils.finalize ~k:(fun () -> Unix.close fd)
       (fun () ->
-         let _,rate,channels = 
+         let _,rate,channels =
            Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
          in
            log#f 4
@@ -240,27 +235,21 @@ struct
   exception End_of_track
   let create_decoder input =
     let dec = Faad.create () in
-    let read len = 
-      let ret,len = 
-        input.Decoder.read len 
-      in
+    let read len =
+      let ret,len = input.Decoder.read len in
       ret,0,len
     in
-    let mp4 = 
-      Faad.Mp4.openfile ?seek:input.Decoder.lseek read 
-    in
+    let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in
     let track = Faad.Mp4.find_aac_track mp4 in
     let sample_freq, chans = Faad.Mp4.init mp4 dec track in
+    let nb_samples = Faad.Mp4.samples mp4 track in
     let sample = ref 0 in
     let pos = ref 0 in
     let ended = ref false in
-    let decode gen = 
-      if !ended then
-       raise End_of_track ;
-      let data = 
-        Faad.Mp4.decode mp4 track !sample dec 
-      in
+    let decode gen =
+      if !ended then raise End_of_track;
+      let data = Faad.Mp4.decode mp4 track !sample dec in
       incr sample;
       begin try
         pos := !pos + (Array.length data.(0))
@@ -275,18 +264,11 @@ struct
     let seek ticks =
       try
         let time = Frame.seconds_of_master ticks in
-        let audio_ticks = 
-          int_of_float 
-           (time *. (float sample_freq))
-        in 
+        let audio_ticks = int_of_float (time *. (float sample_freq)) in
         let offset = max (!pos + audio_ticks) 0 in
-        let new_sample,_ = 
-          Faad.Mp4.seek mp4 track offset
-        in
+        let new_sample,_ = Faad.Mp4.seek mp4 track offset in
         sample := new_sample;
-        let time = 
-          (float (offset-(!pos))) /. (float sample_freq)
-        in
+        let time = (float (offset-(!pos))) /. (float sample_freq) in
         pos := offset;
         Frame.master_of_seconds time
       with _ -> ended := true; 0
@@ -365,7 +347,7 @@ let get_tags file =
     raise Not_found ;
   let fd = Unix.openfile file [Unix.O_RDONLY] 0o644 in
   Tutils.finalize ~k:(fun () -> Unix.close fd)
-    (fun () -> 
+    (fun () ->
       let mp4 = Faad.Mp4.openfile_fd fd in
       Array.to_list (Faad.Mp4.metadata mp4))
 
