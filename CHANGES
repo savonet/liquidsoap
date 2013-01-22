@@ -1,3 +1,94 @@
+1.1 (unreleased)
+==================
+This version brings some new features as well as correcting bugs.
+==================
+
+New:
+
+- Add support for the shine encoder, which can efficiently work on architectures
+  without FPU.
+
+- Add support for opus decoding and encoding.
+
+- Add support for GStreamer decoding, processing and encoding (%gstreamer
+  format, v4l webcam input is now implemented using GStreamer).
+
+- Add support for frei0r video effects.
+
+- Allow %define'd variables in encoding formats [LS-634], e.g.
+  %define BITRATE 24
+  %define STEREO true
+  output.file(%mp3(bitrate = BITRATE, stereo = STEREO),"bla.mp3",s)
+
+- Add support for automatically computing the duration of tracks in the
+  "duration" metadata [LS-641]. It can be enabled with
+  set("request.metadata_decoders.duration",true)
+
+
+Enhancements:
+
+- Add file.watch to call a callback when a file is changed, with inotify support
+  when present.
+
+- Add a mode to automatically reload a playlist when the file was changed
+  [LS-363,LS-523]. For instance, s = playlist("~/Music",reload_mode="watch")
+
+- Add support for FFMpeg as video converter, which you can use with
+  set("video.converter.preferred", "ffmpeg")
+
+- Add back_time argument to blank operators [LS-609].
+
+- Add a metadata to override fade.final duration.
+
+- MIME is computed at most once when extracting replaygain.
+
+- Default samplerate converter is now "fast".
+
+- BPM detection (bpm) now uses a callback.
+
+- Add clock.unify to unify clocks of all sources from a list.
+
+- Add "source_url" metadata to input.http streams.
+
+- Improved error message when theora format is not supported.
+
+- Add list.filter function.
+
+- Taglib now reads all metadatas (even non-standard ones).
+
+
+Bugfixes:
+
+- Configure is now compatible with OCaml >= 4.0 and removed support for OCaml <
+  3.11 [LS-625].
+
+- Fix random memory access / memory leak when decoding AAC/MP4 files [LS-647].
+
+- Correct resampling of wav files.
+
+- Use the length for data indicated in header for wav files.
+
+- Argv.(0) now returns the script name [LS-605].
+
+- Liquidsoap should now operate fine when compiled with -noassert [LS-578].
+
+- Better handling of inexistent MIDI channels.
+
+- Video decoder now correctly handles videos from Icecast.
+
+- Avoid visu.volume freezing Liquidsoap on shutdown.
+
+- Fix a memory leak when decoding both audio and video in ogg [LS-636].
+
+- More efficient handling of video converters, also fixes some crashes [LS-623].
+
+- Have the soundtouch operator preserve tags [LS-621].
+
+- Fix remaining time estimation in cross and smart_cross.
+
+- Remove leftover files in configure [LS-567].
+
+
 1.0.1 (04-07-2012)
 ==================
 This version brings bug fixes and minor enhancements over 1.0.0.
