@@ -1,4 +1,5 @@
 %ifdef input.gstreamer.video
+
 # Stream from a video4linux 2 input device, such as a webcam.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -31,4 +32,15 @@ end
 def gstreamer.encode_mp3(fname, source)
   output.gstreamer.audio(pipeline="audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"", source)
 end
+
+# Broadcast a video in RTP. In order to play it, save the following in xxx.sdp
+# and use vlc xxx.sdp:
+# v=0
+# m=video 5000 RTP/AVP 96
+# c=IN IP4 127.0.0.1
+# a=rtpmap:96 MP4V-ES/90000
+def gstreamer.rtp.mpeg4(~host="127.0.0.1",~port=5000,source)
+  output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}", source)
+end
+
 %endif
