@@ -223,6 +223,28 @@ s = add([s,cam])
 output.sdl(fallible=true,drop_audio(s))
 %%
 
+h4. Streaming with GStreamer
+
+The usual way to stream a video is using icecast, as for audio. However, it can
+happen that you want to use weired formats or ways to to stream. In this case,
+using GStreamer might be a good idea. For instance, suppose that you want to
+stream mp4 video using RTP. This can be done as follows:
+
+%%
+s = single("test.mp4")
+output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=127.0.0.1 port=5000", s)
+%%
+
+The stream can then be read with vlc for instance using @vlc test.sdp@. Here,
+the contents of the file @test.sdp@ is
+
+%%
+v=0
+m=video 5000 RTP/AVP 96
+c=IN IP4 127.0.0.1
+a=rtpmap:96 MP4V-ES/90000
+%%
+
 h3. Frequently asked questions
 
 h4. audio=1+_
