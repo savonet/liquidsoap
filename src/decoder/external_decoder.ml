@@ -164,6 +164,14 @@ let create process kind filename =
           ~k:(fun () -> dec.Decoder.close ()) 
           !close) }
 
+let create_stream process input =
+  let input,close = external_input process input in
+  (* Put this here so that ret is not in its closure.. *)
+  let close _ = close () in
+  let ret = Wav_decoder.D_stream.create input in
+  Gc.finalise close ret;
+  ret
+
 let test_kind f filename = 
   (* 0 = file rejected,
    * n<0 = file accepted, unknown number of audio channels,
@@ -177,7 +185,7 @@ let test_kind f filename =
                       else
                         Frame.mul_of_int ret }
 
-let register_stdin name sdoc test process =
+let register_stdin name sdoc mimes test process =
   Decoder.file_decoders#register name ~sdoc
     (fun ~metadata filename kind ->
        match test_kind test filename with
@@ -194,7 +202,30 @@ let register_stdin name sdoc test process =
     in
     duration process
   in
-  Request.dresolvers#register name duration
+  Request.dresolvers#register name duration;
+  if mimes <> [] then
+    Decoder.stream_decoders#register name
+      ~sdoc:(Printf.sprintf 
+        "Use %s to decode any stream with an appropriate MIME type."
+        name)
+       (fun mime kind ->
+          let (<:) a b = Frame.mul_sub_mul a b in
+            if List.mem mime mimes &&
+               (* Check that it is okay to have zero video and midi,
+                * and at least one audio channel. *)
+               Frame.Zero <: kind.Frame.video &&
+               Frame.Zero <: kind.Frame.midi &&
+               kind.Frame.audio <> Frame.Zero
+            then
+              (* In fact we can't be sure that we'll satisfy the content
+               * kind, because the stream might be mono or stereo.
+               * For now, we let this problem result in an error at
+               * decoding-time. Failing early would only be an advantage
+               * if there was possibly another plugin for decoding
+               * correctly the stream (e.g. by performing conversions). *)
+              Some (create_stream process)
+            else
+              None)
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case

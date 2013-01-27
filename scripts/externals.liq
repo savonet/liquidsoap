@@ -80,7 +80,7 @@ def enable_external_flac_decoder() =
       end
     end
     add_decoder(name="EXTERNAL_FLAC",description="Decode files using the flac \
-                decoder binary.", test=test_flac,flac_p)
+                decoder binary.", mimes=["audio/x-flac"], test=test_flac,flac_p)
   else
     log(level=3,"Did not find flac binary: flac decoder disabled.")
   end
