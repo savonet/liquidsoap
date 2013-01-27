@@ -94,7 +94,7 @@ let read_header read_ops ic =
       raise (Not_a_wav_file "Bad header: \"fmt \" expected");
 
     let fmt_len = read_int ic in
-    if fmt_len <> 0x10 then
+    if fmt_len < 0x10 then
       raise (Not_a_wav_file "Bad header: invalid \"fmt \" length");
     if read_short ic <> 1 then
       raise (Not_a_wav_file "Bad header: unhandled codec");
@@ -104,6 +104,8 @@ let read_header read_ops ic =
     let byt_per_sec = read_int ic in
     let byt_per_samp= read_short ic in
     let bit_per_samp= read_short ic in
+    (* The fmt header can be padded *)
+    if fmt_len > 0x10 then ignore (read_int_num_bytes ic (fmt_len - 0x10));
 
     let header = ref (read_string ic 4) in
       (* Skip unhandled chunks. *)
