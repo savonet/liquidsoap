@@ -24,7 +24,7 @@
 
 let log = Dtools.Log.make ["decoder";"external"]
 
-let priority = Tutils.Non_blocking
+let priority = Tutils.Blocking
 let buf_size = 1024
 
 (** First, an external decoder that receives
@@ -61,10 +61,10 @@ let external_input process input =
       * lock, set is_task to false
       * and signal it to wake-up the main
       * thread waiting for the task to end.. *)
-    Mutex.lock task_m ;
-    is_task := false ;
-    Condition.signal task_c ;
-    Mutex.unlock task_m ;
+    Tutils.mutexify task_m (fun () ->
+      is_task := false ;
+      Condition.signal task_c) () ;
+    ignore(Unix.close_process (pull,push));
     (** Finally, tell duppy that we are done
       * by returning an empty list of new tasks. *)
     []
@@ -112,30 +112,32 @@ let external_input process input =
     { Decoder.
         read = 
          (fun inlen ->
-           let tmpbuf = String.create inlen in
-           let read = Unix.read pull_e tmpbuf 0 inlen in
-             tmpbuf, read);
+           Tutils.mutexify task_m (fun () ->
+             if !is_task then
+               let tmpbuf = String.create inlen in
+               let read = Unix.read pull_e tmpbuf 0 inlen in
+               tmpbuf, read
+              else
+                "", 0) ());
          tell = None;
          length = None;
          lseek = None },
     (* And a function to close the process *)
     (fun () -> 
       (* We grab the task's mutex. *)
-      Mutex.lock task_m ;
-      (* If the task has not yet ended, 
-       * we write a char in the close pipe 
-       * and wait for a signal from the task. *)
-      if !is_task then
-       begin
-        ignore(Unix.write push_p " " 0 1) ;
-        Condition.wait task_c task_m 
-       end ;
-      Mutex.unlock task_m ;
-      (* Now we can close our side of 
-       * the close pipe as well as the 
-       * encoding process. *)
-      Unix.close push_p ;
-      ignore(Unix.close_process (pull,push)))
+      Tutils.mutexify task_m (fun () ->
+        (* If the task has not yet ended, 
+         * we write a char in the close pipe 
+         * and wait for a signal from the task. *)
+        if !is_task then
+          begin
+            ignore(Unix.write push_p " " 0 1) ;
+            Condition.wait task_c task_m;
+          end;
+          (* Now we can close our side of 
+           * the close pipe as well as the 
+           * encoding process. *)
+          Unix.close push_p) ())
 
 let duration process = 
   let pull = Unix.open_process_in process in

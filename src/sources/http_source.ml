@@ -195,6 +195,9 @@ object (self)
 
   method stype = Source.Fallible
 
+  val mutable socket   = None
+  val mutable socket_m = Mutex.create()
+
   val mutable url = url
 
   (** [kill_polling] is for requesting that the feeding thread stops;
@@ -253,12 +256,16 @@ object (self)
     if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
   method feeding should_stop ?(newstream=true)
-                 create_decoder socket chunked metaint =
-    let read = read_stream socket chunked metaint self#insert_metadata in
+                 create_decoder chunked metaint =
     let read len =
       let log = self#log#f 4 "%s" in
-      Utils.wait_for ~log `Read socket timeout;
-      read len
+      Tutils.mutexify socket_m (fun () ->
+        match socket with
+          | None -> "",0
+          | Some socket ->
+            Utils.wait_for ~log `Read socket timeout;
+            read_stream socket chunked metaint self#insert_metadata len
+      ) ()
     in
     let read =
       match logf with
@@ -304,7 +311,13 @@ object (self)
               | None -> ()
             end ;
             connected <- None ;
-            Http.disconnect socket
+            self#disconnect
+
+  method private disconnect =
+    Tutils.mutexify socket_m (fun () ->
+      Utils.maydo (fun s ->
+        Http.disconnect s;
+        socket <- None) socket) ()
 
   (** This method gets overriden by superclasses (see Lastfm_input)
     * but #private_connect should not be changed.
@@ -316,6 +329,8 @@ object (self)
 
   (* Called when there's no decoding process, in order to create one. *)
   method private_connect ?(sanitize=true) poll_should_stop url =
+    if socket <> None then
+      failwith "Cannot connect while already connected..";
     let url =
       if sanitize then
         Http.http_sanitize url
@@ -340,13 +355,14 @@ object (self)
     in
       self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
       try
-        let socket =
+        let s =
           Http.connect ?bind_address host port
         in
+        socket <- Some s;
           try
             let log = self#log#f 4 "%s" in
             let (_, status, status_msg), fields =
-               Http.request ~log ~timeout socket request
+               Http.request ~log ~timeout s request
             in
             let content_type =
               match force_mime with
@@ -417,7 +433,7 @@ object (self)
                   | Failure hd -> raise Not_found
               in
               let test_playlist parser =
-                let content = Http.read ~timeout socket None in
+                let content = Http.read ~timeout s None in
                 let playlist = parser content in
                   match playlist with
                     | [] -> raise Not_found
@@ -469,11 +485,11 @@ object (self)
                           Generator.set_rewrite_metadata generator
                             (fun m -> Hashtbl.add m "source_url" url ; m) ;
                           self#feeding
-                            poll_should_stop dec socket chunked metaint
+                            poll_should_stop dec chunked metaint
                       end
           with
             | e ->
-                Http.disconnect socket;
+                self#disconnect;
                 raise e
       with
         | Redirection location ->

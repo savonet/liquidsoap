@@ -232,10 +232,13 @@ let read_all filename =
 
 exception Timeout
 
-(* Wait for [`Read], [`Write] or [`Both] for
- * at most [timeout] seconds on the
- * given [socket]. Raises [Timeout] 
- * if timeout is reached. *)
+(* Wait for [`Read], [`Write] or [`Both] for at most 
+ * [timeout] seconds on the given [socket]. Raises [Timeout] 
+ * if timeout is reached.
+ *
+ * WARNING: Make sure socket does not get closed while
+ * waiting here. You might need to thing of thread safety
+ * and mutexes.. *)
 let wait_for ?(log=fun _ -> ()) event socket timeout = 
   let max_time = Unix.gettimeofday () +. timeout in
   let r, w = 
@@ -251,7 +254,7 @@ let wait_for ?(log=fun _ -> ()) event socket timeout =
       let current_time = Unix.gettimeofday () in
       if current_time >= max_time then
        begin
-        log "Network activity timeout! Disconnecting source." ;
+        log "Network activity timeout!" ;
         raise Timeout 
        end
       else

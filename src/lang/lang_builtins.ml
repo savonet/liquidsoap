@@ -266,8 +266,7 @@ let () =
    let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
    let test_arg =
      "test",test_file_t,None,
-     Some "Function used to \
-           determine if the file should \
+     Some "Function used to determine if a file should \
            be decoded by the decoder. Returned values are: \
            0: no decodable audio, -1: decodable audio but \
            number of audio channels unknown, x: fixed number of decodable \
@@ -278,7 +277,7 @@ let () =
         Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
    in
     add_builtin "add_decoder" ~cat:Liq
-      ~descr:"Register an external file decoder. \
+      ~descr:"Register an external decoder. \
               The encoder should output in WAV format \
               to his standard output (stdout) and read \
               data from its standard input (stdin)."
