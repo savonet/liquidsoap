@@ -64,6 +64,7 @@ let external_input process input =
     Tutils.mutexify task_m (fun () ->
       is_task := false ;
       Condition.signal task_c) () ;
+    (* We can now close the process. *)
     ignore(Unix.close_process (pull,push));
     (** Finally, tell duppy that we are done
       * by returning an empty list of new tasks. *)
@@ -135,8 +136,7 @@ let external_input process input =
             Condition.wait task_c task_m;
           end;
           (* Now we can close our side of 
-           * the close pipe as well as the 
-           * encoding process. *)
+           * the close pipe. *)
           Unix.close push_p) ())
 
 let duration process = 
