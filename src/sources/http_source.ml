@@ -416,6 +416,7 @@ object (self)
           let metas = Hashtbl.create 2 in
           List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
           self#insert_metadata metas;
+          self#disconnect;
           self#private_connect poll_should_stop uri
       in
       let randomize playlist =
