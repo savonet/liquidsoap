@@ -736,6 +736,13 @@ def log_clocks(~delay=0.,~interval=1.,logfile)
   end
 end
 
-def skip_blank(~id="",s)
-  on_blank({source.skip(s)},s)
+# Skip track when detecting a blank.
+# @category Source / Track Processing
+# @param ~id Force the value of the source ID.
+# @param ~threshold Power in decibels under which the stream is considered silent.
+# @param ~max_blank Maximum silence length allowed, in seconds.
+# @param ~min_noise Minimum duration of noise required to end silence, in seconds.
+# @param ~track_sensitive Reset blank counter at each track.
+def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
+  on_blank({source.skip(s)},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
