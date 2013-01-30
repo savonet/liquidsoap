@@ -266,8 +266,7 @@ let () =
    let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
    let test_arg =
      "test",test_file_t,None,
-     Some "Function used to \
-           determine if the file should \
+     Some "Function used to determine if a file should \
            be decoded by the decoder. Returned values are: \
            0: no decodable audio, -1: decodable audio but \
            number of audio channels unknown, x: fixed number of decodable \
@@ -278,12 +277,16 @@ let () =
         Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
    in
     add_builtin "add_decoder" ~cat:Liq
-      ~descr:"Register an external file decoder. \
+      ~descr:"Register an external decoder. \
               The encoder should output in WAV format \
               to his standard output (stdout) and read \
               data from its standard input (stdin)."
       ["name",Lang.string_t,None,Some "Format/decoder's name." ;
        "description",Lang.string_t,None,Some "Description of the decoder.";
+       "mimes",Lang.list_t (Lang.string_t),
+       Some (Lang.list ~t:Lang.string_t []),
+       Some "List of mime types supported by this decoder \
+             for decoding streams."; 
        test_arg;
        "",Lang.string_t,None,Some "Process to start."]
       Lang.unit_t
@@ -291,8 +294,11 @@ let () =
          let process = Lang.to_string (Lang.assoc "" 1 p) in
          let name = Lang.to_string (List.assoc "name" p) in
          let descr = Lang.to_string (List.assoc "description" p) in
+         let mimes =
+           List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+         in
          let test = List.assoc "test" p in
-         External_decoder.register_stdin name descr (test_f test) process;
+         External_decoder.register_stdin name descr mimes (test_f test) process;
          Lang.unit) ;
 
     let process_t = Lang.fun_t [false,"",Lang.string_t] Lang.string_t in

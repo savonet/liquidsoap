@@ -130,28 +130,31 @@ object (self)
 
   method get_mime_type = mime_type
 
-  method feed socket (should_stop,has_stopped) =
+  method feed (should_stop,has_stopped) =
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
-      (* Wait for `Read event on socket. *)
-      let log = self#log#f 4 "%s" in
-      Utils.wait_for ~log `Read socket timeout;
-      (* Now read. *)
-      let buf = String.make len ' ' in
-      let input = Unix.read socket buf 0 len in
-      if input<=0 then raise End_of_file ;
-      begin match dump with
-        | Some b -> output_string b (String.sub buf 0 input)
-        | None -> ()
-      end ;
-      begin match logf with
-        | Some b ->
-            let time = (Unix.gettimeofday () -. t0) /. 60. in
-              Printf.fprintf b "%f %d\n%!" time self#length
-        | None -> ()
-      end ;
-      buf,input
+      Tutils.mutexify relay_m (fun () -> 
+        match relay_socket with
+          | None -> "", 0
+          | Some socket ->
+            (* Wait for `Read event on socket. *)
+            let log = self#log#f 4 "%s" in
+            Utils.wait_for ~log `Read socket timeout;
+            (* Now read. *)
+            let buf = String.make len ' ' in
+            let input = Unix.read socket buf 0 len in
+            begin match dump with
+              | Some b -> output_string b (String.sub buf 0 input)
+              | None -> ()
+            end ;
+            begin match logf with
+              | Some b ->
+                  let time = (Unix.gettimeofday () -. t0) /. 60. in
+                  Printf.fprintf b "%f %d\n%!" time self#length
+              | None -> ()
+            end ;
+            buf,input) ()
     in
     let input =
       { Decoder.
@@ -269,8 +272,7 @@ object (self)
         end ;
         begin
          let kill,wait =
-           Tutils.stoppable_thread
-                (self#feed socket)
+           Tutils.stoppable_thread self#feed
                 "harbor source feeding"
          in
          kill_polling <- Some kill ;
