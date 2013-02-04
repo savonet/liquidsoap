@@ -212,7 +212,6 @@ object (self)
   (** Log file for the timestamps of read events. *)
   val mutable logf = None
 
-  val mutable connected = None
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
 
@@ -239,9 +238,10 @@ object (self)
               or \"connected <url>\" (connected to <url>, buffering or \
               playing back the stream)."
       (fun _ ->
-         match connected with
-           | Some s -> "connected " ^ s
-           | None -> if relaying then "polling" else "stopped") ;
+         Tutils.mutexify socket_m (fun () ->
+           match socket with
+             | Some (_,_,url) -> "connected " ^ url
+             | None -> if relaying then "polling" else "stopped") ()) ;
     self#register_command "buffer_length" ~usage:"buffer_length"
                           ~descr:"Get the buffer's length, in seconds."
       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
@@ -256,15 +256,15 @@ object (self)
     if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
   method feeding should_stop ?(newstream=true)
-                 create_decoder chunked metaint =
+                 create_decoder =
     let read len =
       let log = self#log#f 4 "%s" in
       Tutils.mutexify socket_m (fun () ->
         match socket with
           | None -> "",0
-          | Some socket ->
+          | Some (socket,read,_) ->
             Utils.wait_for ~log `Read socket timeout;
-            read_stream socket chunked metaint self#insert_metadata len
+            read len
       ) ()
     in
     let read =
@@ -310,12 +310,11 @@ object (self)
               | Some f -> close_out f ; logf <- None
               | None -> ()
             end ;
-            connected <- None ;
             self#disconnect
 
   method private disconnect =
     Tutils.mutexify socket_m (fun () ->
-      Utils.maydo (fun s ->
+      Utils.maydo (fun (s,_,_) ->
         Http.disconnect s;
         socket <- None) socket) ()
 
@@ -352,18 +351,34 @@ object (self)
         req user_agent auth
     in
     try
-      let s =
+      let (_, status, status_msg), fields =
         Tutils.mutexify socket_m (fun () ->
           if socket <> None then
             failwith "Cannot connect while already connected..";
           self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
           let s = Http.connect ?bind_address host port in
-          socket <- Some s;
-          s) ()
-      in
-      let log = self#log#f 4 "%s" in
-      let (_, status, status_msg), fields =
-        Http.request ~log ~timeout s request
+          let log = self#log#f 4 "%s" in
+          let ((_, status, status_msg), fields as ret) =
+            Http.request ~log ~timeout s request
+          in
+          let metaint =
+            try
+              Some (int_of_string (List.assoc "icy-metaint" fields))
+            with _ -> None
+          in
+          let chunked =
+            try
+              List.assoc "transfer-encoding" fields = "chunked"
+            with _ -> false
+          in
+          if chunked then
+            self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+          (* read_stream has a state, so we must create it here.. *)
+          let read =
+            read_stream s chunked metaint self#insert_metadata
+          in
+          socket <- Some (s,read,url);
+          ret) ()
       in
       let content_type =
         match force_mime with
@@ -379,16 +394,7 @@ object (self)
              with
                | Not_found -> content_type
       in
-      let metaint =
-        try
-          Some (int_of_string (List.assoc "icy-metaint" fields))
-        with _ -> None
-      in
-      let chunked =
-        try
-          List.assoc "transfer-encoding" fields = "chunked"
-        with _ -> false
-      in
+      self#log#f 4 "Content-type %S." content_type ;
       if status = 301 || status = 302 || 
          status = 303 || status = 307
       then begin
@@ -435,11 +441,15 @@ object (self)
           | Failure hd -> raise Not_found
       in
       let test_playlist parser =
-        let content = Http.read ~timeout s None in
-        let playlist = parser content in
-          match playlist with
-            | [] -> raise Not_found
-            | _ -> playlist_process playlist
+        Tutils.mutexify socket_m (fun () ->
+          match socket with
+            | None -> failwith "not connected!"
+            | Some (s,_,_) ->
+              let content = Http.read ~timeout s None in
+              let playlist = parser content in
+                match playlist with
+                  | [] -> raise Not_found
+                  | _ -> playlist_process playlist) ()
         in
         try
           self#log#f 4
@@ -459,9 +469,6 @@ object (self)
                 with
                   | Not_found -> ()
               end else begin
-                self#log#f 4 "Content-type %S." content_type ;
-                if chunked then
-                  self#log#f 4 "Chunked HTTP/1.1 transfer" ;
                 Generator.set_mode generator `Undefined ;
                 let dec =
                   match
@@ -483,11 +490,10 @@ object (self)
                   | None -> ()
                 end ;
                 self#log#f 3 "Decoding..." ;
-                connected <- Some url ;
                 Generator.set_rewrite_metadata generator
                   (fun m -> Hashtbl.add m "source_url" url ; m) ;
                 self#feeding
-                  poll_should_stop dec chunked metaint
+                  poll_should_stop dec
             end
     with
       | Redirection location ->
