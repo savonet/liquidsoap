@@ -150,7 +150,7 @@ let () =
   let aux_t = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi:Lang.zero_t in
     Lang.add_operator "mux_audio"
       ~category:Lang.Conversions
-      ~descr:"Add audio channnels to a stream."
+      ~descr:"Mux an audio stream into an audio-free stream."
       ~kind:(Lang.Unconstrained out_t)
       [
         "audio", Lang.source_t aux_t, None, None ;
@@ -168,41 +168,51 @@ let () =
            new mux ~kind ~mode
              ~master ~aux ~master_layer ~aux_layer mux_content)
 
-let () =
+let add_audio_mux label n =
   let master_t = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   let aux_t =
-    Lang.frame_kind_t ~audio:(Lang.succ_t Lang.zero_t)
+    Lang.frame_kind_t ~audio:(Lang.type_of_int n)
                       ~video:Lang.zero_t ~midi:Lang.zero_t
   in
-  let { Frame. audio = audio ; video = video ; midi = midi } =
-    Lang.of_frame_kind_t master_t
+  let out_t =
+    let { Frame. audio ; video ; midi } = Lang.of_frame_kind_t master_t in
+      Lang.frame_kind_t ~audio:(Lang.add_t n audio) ~video ~midi
   in
-  let out_t = Lang.frame_kind_t ~audio:(Lang.succ_t audio) ~video ~midi in
-    Lang.add_operator "mux_mono"
+    Lang.add_operator ("mux_"^label)
       ~category:Lang.Conversions
-      ~descr:"Add audio channnels to a stream."
+      ~descr:("Mux a "^label^" audio stream into another stream.")
       ~kind:(Lang.Unconstrained out_t)
       [
-        "mono", Lang.source_t aux_t, None, None ;
+        label, Lang.source_t aux_t, None, None ;
         "", Lang.source_t master_t, None, None ;
       ]
       (fun p kind ->
          let master = Lang.to_source (List.assoc "" p) in
-         let aux = Lang.to_source (List.assoc "mono" p) in
+         let aux = Lang.to_source (List.assoc label p) in
          let master_layer c =
            { c with Frame.audio =
-                 Array.sub c.Frame.audio 1 (Array.length c.Frame.audio - 1) }
+                 Array.sub c.Frame.audio n (Array.length c.Frame.audio - n) }
          in
          let aux_layer c =
-           { Frame.audio = [|c.Frame.audio.(0)|] ; video = [||] ; midi = [||] }
+           { Frame.audio = Array.sub c.Frame.audio 0 n ;
+                   video = [||] ; midi = [||] }
          in
          let mux_content master aux =
            let audio =
-             Array.init (1 + Array.length master.Frame.audio)
-               (function 0 -> aux.Frame.audio.(0) | n -> master.Frame.audio.(n-1))
+             Array.init
+               (n + Array.length master.Frame.audio)
+               (fun i ->
+                  if i < n then
+                    aux.Frame.audio.(i)
+                  else
+                    master.Frame.audio.(i-n))
            in
              { master with Frame.audio = audio }
          in
          let mode = Symmetric in
            new mux ~kind ~mode
              ~master ~aux ~master_layer ~aux_layer mux_content)
+
+let () =
+  add_audio_mux "mono" 1 ;
+  add_audio_mux "stereo" 2

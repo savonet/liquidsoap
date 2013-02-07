@@ -44,7 +44,8 @@ let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
 let variable_t = T.make T.Variable
 
-let rec type_of_int n = if n=0 then zero_t else succ_t (type_of_int (n-1))
+let rec add_t n m = if n=0 then m else succ_t (add_t (n-1) m)
+let type_of_int n = add_t n zero_t
 
 (** A frame kind type is a purely abstract type representing a frame kind.
   * The parameters [audio,video,midi] are intended to be multiplicity types,

@@ -55,6 +55,7 @@ let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
 let variable_t = Term.variable_t
+let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 
 (** In order to keep the old way of declaring the type of builtins,
@@ -197,21 +198,12 @@ let kind_type_of_kind_format ~fresh fmt =
     | Constrained fields ->
         let aux fresh = function
           | Fixed i ->
-              let rec aux i =
-                if i = 0 then zero_t else succ_t (aux (i-1))
-              in
-                fresh, aux i
+              fresh, type_of_int i
           | Any_fixed i ->
-              let zero = univ_t ~constraints:[T.Arity_fixed] fresh in
-              let rec aux i =
-                if i = 0 then zero else succ_t (aux (i-1))
-              in
-                fresh+1, aux i
+              fresh+1,
+              Term.add_t i (univ_t ~constraints:[T.Arity_fixed] fresh)
           | Variable i ->
-              let rec aux i =
-                if i = 0 then variable_t else succ_t (aux (i-1))
-              in
-                fresh, aux i
+              fresh, Term.add_t i variable_t
         in
         let fresh,audio = aux fresh fields.Frame.audio in
         let fresh,video = aux fresh fields.Frame.video in
