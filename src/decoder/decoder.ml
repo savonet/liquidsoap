@@ -110,6 +110,11 @@ let conf_file_decoders =
     ~p:(conf_decoder#plug "file_decoders") ~d:[]
     "Decoders and order used to decode files."
 
+let conf_image_file_decoders =
+  Dtools.Conf.list
+    ~p:(conf_decoder#plug "image_file_decoders") ~d:[]
+    "Decoders and order used to decode image files."
+
 let conf_stream_decoders =
   Dtools.Conf.list 
     ~p:(conf_decoder#plug "stream_decoders") ~d:[]
@@ -139,6 +144,11 @@ let file_decoders :
   Plug.create 
     ~register_hook:(fun (name,_) -> f conf_file_decoders name)
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
+
+let image_file_decoders : (file -> Image.RGBA32.t option) Plug.plug =
+  Plug.create
+    ~register_hook:(fun (name,_) -> f conf_image_file_decoders name)
+    ~doc:"Image file decoding methods." ~insensitive:true "image file decoding"
 
 let stream_decoders :
       (stream -> Frame.content_kind -> stream_decoder option) Plug.plug =
@@ -240,6 +250,32 @@ let get_file_decoder ~metadata filename kind =
                 try f () with _ ->
                   log#f 2 "Decoder %S betrayed us on %S!" name filename ;
                   dummy)
+
+(** Get a valid image decoder creator for [filename]. *)
+let get_image_file_decoder filename =
+  let ans = ref None in
+  try
+    List.iter
+      (fun (name,decoder) ->
+        log#f 4 "Trying method %S for %S..." name filename;
+        match
+          try decoder filename with
+          | e ->
+            log#f 4
+              "Decoder %S failed on %S: %s!"
+              name filename (Utils.error_message e);
+            None
+        with
+        | Some img ->
+          log#f 3 "Method %S accepted %S." name filename;
+          ans := Some img;
+          raise Pervasives.Exit
+        | None -> ()
+      ) (get_decoders conf_image_file_decoders image_file_decoders);
+    log#f 3 "Unable to decode %S!" filename;
+    !ans
+  with
+  | Pervasives.Exit -> !ans
 
 exception Exit of stream_decoder
 
