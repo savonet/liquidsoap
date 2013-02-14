@@ -66,6 +66,13 @@ let load_image filename =
   convert (Image.Generic.of_RGBA32 img) (Image.Generic.of_RGBA32 frame);
   frame
 
+let () =
+  Decoder.image_file_decoders#register "camlimages"
+    ~sdoc:"Use camlimages library to decode images."
+    (fun filename ->
+      let img = load_image filename in
+      Some img)
+
 (* TODO: share code with sdlimage_decoder? *)
 
 let create_decoder metadata img =
