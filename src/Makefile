@@ -89,6 +89,7 @@ $(call conditional_compilation,video_converters,$(W_FFMPEG),converters/video/ffm
 decoders = \
 	decoder/metadata_decoder.ml \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
+	decoder/ppm_decoder.ml \
 	$(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml)
 
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)

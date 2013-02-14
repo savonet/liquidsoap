@@ -24,17 +24,9 @@ open Source
 
 module Img = Image.RGBA32
 
-let read_PPM ?alpha fname =
-  let ic = open_in_bin fname in
-  let len = in_channel_length ic in
-  let data = String.create len in
-  really_input ic data 0 len;
-  close_in ic;
-  Img.of_PPM ?alpha data
-
 (** The content kind should allow for pure video,
   * we handle any number of channels. *)
-class image kind fname duration width height x y alpha meta source =
+class image kind fname duration width height x y meta source =
 object (self)
   inherit operator ~name:"video.add_image" kind [source] as super
 
@@ -52,13 +44,9 @@ object (self)
   method private load fname =
     try
       let f =
-        (* TODO: Handle more formats. *)
-        read_PPM
-          ?alpha:(if alpha < 0 then
-                    None
-                  else
-                    Some (Image.RGB8.Color.of_int alpha))
-          fname
+        match Decoder.get_image_file_decoder fname with
+        | Some img -> img
+        | None -> failwith "Could not decode image file."
       in
       let fw, fh = Img.dimensions f in
       let w = if width < 0 then fw else width in
@@ -129,10 +117,6 @@ let () =
       "y", Lang.int_t, Some (Lang.int 0),
       Some "y position (negative means from bottom).";
 
-      "alpha", Lang.int_t, Some (Lang.int (-1)),
-      Some "Color to convert to alpha \
-            (in 0xRRGGBB format, negative means no alpha).";
-
       "duration", Lang.float_t, Some (Lang.float 0.), None;
 
       "file", Lang.string_t, Some (Lang.string ""),
@@ -145,7 +129,7 @@ let () =
     ]
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
-       let fname, duration, w, h, x, y, alpha, meta, source =
+       let fname, duration, w, h, x, y, meta, source =
          let f v = List.assoc v p in
            Lang.to_string (f "file"),
            Lang.to_float (f "duration"),
@@ -153,9 +137,8 @@ let () =
            Lang.to_int (f "height"),
            Lang.to_int (f "x"),
            Lang.to_int (f "y"),
-           Lang.to_int (f "alpha"),
            Lang.to_string (f "metadata"),
            Lang.to_source (f "")
        in
        let meta = if meta = "" then None else Some meta in
-         new image kind fname duration w h x y alpha meta source)
+         new image kind fname duration w h x y meta source)

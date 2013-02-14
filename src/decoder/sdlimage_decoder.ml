@@ -47,6 +47,13 @@ let load_image filename =
           (Image.Generic.of_RGBA32 frame) ;
   frame
 
+let () =
+  Decoder.image_file_decoders#register "SDL/image"
+    ~sdoc:"Use SDL to decode images."
+    (fun filename ->
+      let img = load_image filename in
+      Some img)
+
 let create_decoder metadata img =
   let duration =
     ref (try
