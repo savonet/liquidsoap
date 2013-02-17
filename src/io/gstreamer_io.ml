@@ -61,7 +61,13 @@ object (self)
 
   method output_start =
     let bin,_,_ = self#get_gst in
-    ignore (Element.set_state bin Element.State_playing);
+    begin
+     try
+      ignore (Element.set_state bin Element.State_playing)
+     with e ->
+       ignore (Element.set_state bin Element.State_null);
+       raise e
+    end;
     if clock_safe then (gst_clock ())#register_blocking_source
 
   method output_stop =
@@ -244,7 +250,14 @@ object (self)
 
   method output_start =
     let bin,_,_ = self#get_gst in
-    ignore (Element.set_state bin Element.State_playing);
+    begin
+     try
+      ignore (Element.set_state bin Element.State_playing)
+     with
+       | e ->
+           ignore (Element.set_state bin Element.State_null);
+           raise e
+    end;
     if clock_safe then (gst_clock ())#register_blocking_source
 
   method output_stop =
@@ -450,17 +463,22 @@ object (self)
     match gst with
       | Some gst -> gst
       | None ->
-      let pipeline =
-        Printf.sprintf
-          "%s ! %s ! %s"
-          pipeline (GU.Pipeline.decode_video ())
-          (GU.Pipeline.video_sink "sink")
-      in
-      let bin = Pipeline.parse_launch pipeline in
-      let sink = App_sink.of_element (Bin.get_by_name bin "sink") in
-      gst <- Some (bin,sink);
-      ignore (Element.set_state bin Element.State_playing);
-      self#get_gst
+        let pipeline =
+          Printf.sprintf
+            "%s ! %s ! %s"
+            pipeline (GU.Pipeline.decode_video ())
+            (GU.Pipeline.video_sink "sink")
+        in
+        let bin = Pipeline.parse_launch pipeline in
+        let sink = App_sink.of_element (Bin.get_by_name bin "sink") in
+        gst <- Some (bin,sink);
+        try
+          ignore (Element.set_state bin Element.State_playing);
+          bin,sink
+        with
+          |e ->
+              ignore (Element.set_state bin Element.State_null);
+              raise e
 
   method output = if AFrame.is_partial memo then self#get_frame memo
   method output_get_ready = ()
@@ -594,8 +612,13 @@ object (self)
       in
       let sinks = audio_sink, video_sink in
       gst <- Some sinks;
-      ignore (Element.set_state bin Element.State_playing);
-      sinks
+      try
+        ignore (Element.set_state bin Element.State_playing);
+        sinks
+      with
+        | e ->
+            ignore (Element.set_state bin Element.State_null);
+            raise e
 
   method output_get_ready = ()
   method output_reset = ()
