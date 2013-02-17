@@ -22,7 +22,6 @@
 
 exception Internal
 exception Read_error
-exception Disconnected
 
 (** Error translator *)
 let error_translator e =
@@ -195,8 +194,12 @@ object (self)
 
   method stype = Source.Fallible
 
-  val mutable socket   = None
-  val mutable socket_m = Mutex.create()
+  (** POSIX sucks. *)
+  val mutable socket       = None
+  (* Mutex to change the socket's state (open, close) *)
+  val mutable socket_m     = Mutex.create()
+  (* Mutex to grap the socket's state *)
+  val mutable get_socket_m = Mutex.create()
 
   val mutable url = url
 
@@ -237,11 +240,10 @@ object (self)
               \"polling\" (attempting to connect to the HTTP stream) \
               or \"connected <url>\" (connected to <url>, buffering or \
               playing back the stream)."
-      (fun _ ->
-         Tutils.mutexify socket_m (fun () ->
-           match socket with
-             | Some (_,_,url) -> "connected " ^ url
-             | None -> if relaying then "polling" else "stopped") ()) ;
+       (Tutils.mutexify get_socket_m (fun _ ->
+         match socket with
+           | Some (_,_,url) -> "connected " ^ url
+           | None -> if relaying then "polling" else "stopped")) ;
     self#register_command "buffer_length" ~usage:"buffer_length"
                           ~descr:"Get the buffer's length, in seconds."
       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
@@ -259,12 +261,13 @@ object (self)
                  create_decoder =
     let read len =
       let log = self#log#f 4 "%s" in
+      (* Socket can't be closed while waiting on it. *)
       Tutils.mutexify socket_m (fun () ->
-        match socket with
-          | None -> "",0
-          | Some (socket,read,_) ->
-            Utils.wait_for ~log `Read socket timeout;
-            read len
+          match socket with
+            | None -> "",0
+            | Some (socket,read,_) ->
+              Utils.wait_for ~log `Read socket timeout;
+              read len
       ) ()
     in
     let read =
@@ -313,10 +316,11 @@ object (self)
             self#disconnect
 
   method private disconnect =
-    Tutils.mutexify socket_m (fun () ->
-      Utils.maydo (fun (s,_,_) ->
-        Http.disconnect s;
-        socket <- None) socket) ()
+    Tutils.mutexify socket_m
+      (Tutils.mutexify get_socket_m (fun () ->
+        Utils.maydo (fun (s,_,_) ->
+          Http.disconnect s;
+          socket <- None) socket)) ()
 
   (** This method gets overriden by superclasses (see Lastfm_input)
     * but #private_connect should not be changed.
@@ -352,33 +356,34 @@ object (self)
     in
     try
       let (_, status, status_msg), fields =
-        Tutils.mutexify socket_m (fun () ->
-          if socket <> None then
-            failwith "Cannot connect while already connected..";
-          self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
-          let s = Http.connect ?bind_address host port in
-          let log = self#log#f 4 "%s" in
-          let ((_, status, status_msg), fields as ret) =
-            Http.request ~log ~timeout s request
-          in
-          let metaint =
-            try
-              Some (int_of_string (List.assoc "icy-metaint" fields))
-            with _ -> None
-          in
-          let chunked =
-            try
-              List.assoc "transfer-encoding" fields = "chunked"
-            with _ -> false
-          in
-          if chunked then
-            self#log#f 4 "Chunked HTTP/1.1 transfer" ;
-          (* read_stream has a state, so we must create it here.. *)
-          let read =
-            read_stream s chunked metaint self#insert_metadata
-          in
-          socket <- Some (s,read,url);
-          ret) ()
+        Tutils.mutexify socket_m
+          (Tutils.mutexify get_socket_m (fun () ->
+            if socket <> None then
+              failwith "Cannot connect while already connected..";
+            self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
+            let s = Http.connect ?bind_address host port in
+            let log = self#log#f 4 "%s" in
+            let ((_, status, status_msg), fields as ret) =
+              Http.request ~log ~timeout s request
+            in
+            let metaint =
+              try
+                Some (int_of_string (List.assoc "icy-metaint" fields))
+              with _ -> None
+            in
+            let chunked =
+              try
+                List.assoc "transfer-encoding" fields = "chunked"
+              with _ -> false
+            in
+            if chunked then
+              self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+            (* read_stream has a state, so we must create it here.. *)
+            let read =
+              read_stream s chunked metaint self#insert_metadata
+            in
+            socket <- Some (s,read,url);
+            ret)) ()
       in
       let content_type =
         match force_mime with
@@ -441,7 +446,7 @@ object (self)
           | Failure hd -> raise Not_found
       in
       let test_playlist parser =
-        Tutils.mutexify socket_m (fun () ->
+        Tutils.mutexify get_socket_m (fun () ->
           match socket with
             | None -> failwith "not connected!"
             | Some (s,_,_) ->
