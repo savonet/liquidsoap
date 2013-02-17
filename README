@@ -3,9 +3,9 @@ Liquidsoap 1.0.1
 
 Copyright 2003-2013 Savonet team
 
-Email   : savonet-users@lists.sourceforge.net
-Homepage: http://liquidsoap.fm
-Trac    : http://dev.sourcefabric.org/browse/LS
+Email     : savonet-users@lists.sourceforge.net
+Homepage  : http://liquidsoap.fm
+Bugreports: https://github.com/savonet/liquidsoap/issues
 
 INSTALLATION
 ============
