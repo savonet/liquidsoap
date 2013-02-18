@@ -291,8 +291,6 @@ object (self)
       gst <- Some (bin, audio_src, video_src);
       self#get_gst
 
-  method close = ()
-
   val mutable audio_now = Int64.zero
   val mutable video_now = Int64.zero
   val audio_buffer = Queue.create ()
@@ -415,129 +413,34 @@ let () =
 
 (***** Input *****)
 
-let input_proto =
-  [
-    "clock_safe",
-    Lang.bool_t, Some (Lang.bool true),
-    Some "Force the use of the dedicated GStreamer clock.";
-  ]
-
-(* Video *)
-
-class video_input p kind pipeline =
-  let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
-  let () = GU.init () in
-object (self)
-  inherit Source.active_source ~name:"input.gstreamer.video" kind as active_source
-
-  method private set_clock =
-    active_source#set_clock;
-    if clock_safe then
-      Clock.unify self#clock
-        (Clock.create_known ((gst_clock ()):>Clock.clock))
-
-  method private wake_up l =
-    active_source#wake_up l;
-    if clock_safe then (gst_clock ())#register_blocking_source
-
-  method private sleep =
-    if clock_safe then (gst_clock ())#unregister_blocking_source
-
-  method stype = Source.Fallible
-  method remaining = -1
-  val mutable ready = true
-  method is_ready = ready
-
-  method abort_track = ()
-
-  val mutable gst = None
-
-  method close =
-    match gst with
-    | Some (bin,sink) -> ignore (Element.set_state bin Element.State_null)
-    | None -> ()
-
-  method get_gst =
-    match gst with
-      | Some gst -> gst
-      | None ->
-        let pipeline =
-          Printf.sprintf
-            "%s ! %s ! %s"
-            pipeline (GU.Pipeline.decode_video ())
-            (GU.Pipeline.video_sink "sink")
-        in
-        let bin = Pipeline.parse_launch pipeline in
-        let sink = App_sink.of_element (Bin.get_by_name bin "sink") in
-        gst <- Some (bin,sink);
-        try
-          ignore (Element.set_state bin Element.State_playing);
-          bin,sink
-        with
-          |e ->
-              ignore (Element.set_state bin Element.State_null);
-              raise e
-
-  method output = if AFrame.is_partial memo then self#get_frame memo
-  method output_get_ready = ()
-  method output_reset = ()
-  method is_active = true
-
-  method get_frame frame =
-    let bin, sink = self#get_gst in
-    assert (0 = Frame.position frame);
-    let buf = VFrame.content_of_type ~channels:1 frame in
-    let buf = buf.(0) in
-    let i = ref 0 in
-    try
-      while !i < Array.length buf do
-        let b = App_sink.pull_buffer_data sink in
-        let img = Img.make width height b in
-        buf.(!i) <- img;
-        incr i;
-      done;
-      VFrame.add_break frame !i
-    with
-    | Gstreamer.End_of_stream ->
-      VFrame.add_break frame !i;
-      ready <- false
-end
-
-let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.video_n 1) in
-  let proto = input_proto@
-    [
-      "pipeline", Lang.string_t, Some (Lang.string "videotestsrc"),
-      Some "GStreamer pipeline to input from.";
-    ]
-  in
-  Lang.add_operator "input.gstreamer.video" proto ~active:true
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.Input
-    ~flags:[]
-    ~descr:"Stream video from GStreamer pipeline."
-    (fun p kind ->
-      let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      ((new video_input p kind pipeline):>Source.source))
-
 (* Audio + video. *)
 
 module Generator = Generator.From_audio_video_plus
 
+type 'a sink = {
+  pending : unit -> int;
+  pull    : unit -> 'a
+}
+
+type element = {
+  bin   : Gstreamer.Element.t;
+  audio : string sink option;
+  video : Gstreamer.data sink option
+}
+
 class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
-  let has_video, video_pipeline =
-    match video_pipeline with
-    | None -> false, ""
-    | Some video_pipeline -> true, video_pipeline
+  let content,has_audio,has_video =
+    match audio_pipeline, video_pipeline with
+     | Some _, Some _ -> `Both,true,true
+     | None,   Some _ -> `Video,false,true
+     | Some _, None   -> `Audio,true,false
+     | None,   None   -> failwith "There should be at least one audio or video pipeline!"
   in
-  let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
-  let gen = Generator.create ~log:(fun x -> !rlog x) ~kind (if has_video then `Both else `Audio) in
+  let gen = Generator.create ~log:(fun x -> !rlog x) ~kind content in
   let () = GU.init () in
 object (self)
   inherit Source.active_source ~name:"input.gstreamer.audio_video" kind as super
@@ -545,112 +448,147 @@ object (self)
   initializer
     rlog := (fun s -> self#log#f 3 "%s" s)
 
-  method private set_clock =
-    super#set_clock;
-    if clock_safe then
-      Clock.unify self#clock
-        (Clock.create_known ((gst_clock ()):>Clock.clock))
-
-  method private wake_up l =
-    super#wake_up l;
-    if clock_safe then
-      (gst_clock ())#register_blocking_source
-
-  method private sleep =
-    if clock_safe then
-      (gst_clock ())#unregister_blocking_source
-
   method stype = Source.Fallible
   method remaining = -1
+
+  (* Source is ready when ready = true
+   * and gst has some audio or some video. *)
   val mutable ready = true
-  method is_ready = ready
+  method is_ready =
+    let pending = function
+      | Some sink -> sink.pending() > 0
+      | None      -> false
+    in
+    ready && 
+    ((Generator.length gen > 0) ||
+     (pending self#get_device.audio) ||
+     (pending self#get_device.video))
 
   method abort_track = ()
 
   val mutable gst = None
 
-  val mutable bin = None
-
-  method close =
-    match bin with
-    | Some bin -> ignore (Element.set_state bin Element.State_null)
-    | None -> ()
+  method sleep =
+   begin
+    match gst with
+      | Some gst -> ignore (Element.set_state gst.bin Element.State_null)
+      | None -> ()
+   end;
+   super#sleep
 
   method get_device =
     match gst with
-    | Some gst -> gst
-    | None ->
-      let pipeline =
-        Printf.sprintf
-          "%s %s ! %s ! %s"
-          pipeline
-          audio_pipeline
-          (GU.Pipeline.decode_audio ())
-          (GU.Pipeline.audio_sink ~channels "audio_sink")
-      in
-      let pipeline =
-        if has_video then
-          Printf.sprintf
-            "%s %s ! %s ! %s"
+      | Some gst -> gst
+      | None ->
+        let pipeline =
+          if has_audio then
+            Printf.sprintf
+              "%s %s ! %s ! %s"
+              pipeline
+              (Utils.get_some audio_pipeline)
+              (GU.Pipeline.decode_audio ())
+              (GU.Pipeline.audio_sink ~channels "audio_sink")
+          else
             pipeline
-            video_pipeline
-            (GU.Pipeline.decode_video ())
-            (GU.Pipeline.video_sink "video_sink")
-        else
-          pipeline
-      in
-      log#f 5 "GStreamer pipeline: %s" pipeline;
-      bin <- Some (Pipeline.parse_launch pipeline);
-      let bin = Utils.get_some bin in
-      let audio_sink = App_sink.of_element (Bin.get_by_name bin "audio_sink") in
-      let video_sink =
-        if has_video then
-          App_sink.of_element (Bin.get_by_name bin "video_sink")
-        else
-          (* This is hacky... *)
-          audio_sink
-      in
-      let sinks = audio_sink, video_sink in
-      gst <- Some sinks;
-      try
-        ignore (Element.set_state bin Element.State_playing);
-        sinks
-      with
-        | e ->
-            ignore (Element.set_state bin Element.State_null);
-            raise e
+        in
+        let pipeline =
+          if has_video then
+            Printf.sprintf
+              "%s %s ! %s ! %s"
+              pipeline
+              (Utils.get_some video_pipeline)
+              (GU.Pipeline.decode_video ())
+              (GU.Pipeline.video_sink "video_sink")
+          else
+            pipeline
+        in
+        log#f 5 "GStreamer pipeline: %s" pipeline;
+        let bin =  Pipeline.parse_launch pipeline in
+        let wrap_sink sink pull =
+          let m = Mutex.create () in
+          let counter = ref 0 in
+          App_sink.emit_signals sink;
+          App_sink.on_new_sample sink (Tutils.mutexify m (fun () ->
+            incr counter));
+          let pending = Tutils.mutexify m (fun () ->
+            !counter)
+          in
+          let pull = Tutils.mutexify m (fun () ->
+            let b = pull sink in
+            decr counter;
+            b)
+          in
+          { pending = pending; pull = pull }
+        in
+        let audio_sink =
+          if has_audio then
+           begin
+            let sink = App_sink.of_element (Bin.get_by_name bin "audio_sink") in
+            Some (wrap_sink sink Gstreamer.App_sink.pull_buffer_string)
+           end
+          else
+            None
+        in
+        let video_sink =
+          if has_video then
+           begin
+            let sink = 
+              App_sink.of_element (Bin.get_by_name bin "video_sink")
+            in
+            Some (wrap_sink sink Gstreamer.App_sink.pull_buffer_data)
+           end
+          else
+            None
+        in
+        let element = {
+          bin   = bin;
+          audio = audio_sink;
+          video = video_sink }
+        in
+        gst <- Some element;
+        try
+          ignore (Element.set_state bin Element.State_playing);
+          element
+        with
+          | e ->
+              ignore (Element.set_state bin Element.State_null);
+              raise e
 
   method output_get_ready = ()
   method output_reset = ()
   method is_active = true
 
   method fill_audio =
-    let audio_sink, video_sink = self#get_device in
-    let b = Gstreamer.App_sink.pull_buffer_string audio_sink in
-    let len = String.length b / (2*channels) in
-    let buf = Audio.create channels len in
-    Audio.S16LE.to_audio b 0 buf 0 len;
-    Generator.put_audio gen buf 0 len
+    match self#get_device.audio with
+      | None -> ()
+      | Some audio ->
+         while audio.pending () > 0 do
+           let b = audio.pull() in
+           let len = String.length b / (2*channels) in
+           let buf = Audio.create channels len in
+           Audio.S16LE.to_audio b 0 buf 0 len;
+           Generator.put_audio gen buf 0 len
+         done
 
   method fill_video =
-    let audio_sink, video_sink = self#get_device in
-    let b = Gstreamer.App_sink.pull_buffer_data video_sink in
-    let img = Img.make width height b in
-    let stream = [|img|] in
-    Generator.put_video gen [|stream|] 0 (Array.length stream)
+    match self#get_device.video with
+      | None -> ()
+      | Some video ->
+         while video.pending () > 0 do
+           let b = video.pull () in
+           let img = Img.make width height b in
+           let stream = [|img|] in
+           Generator.put_video gen [|stream|] 0 (Array.length stream)
+         done
 
   method get_frame frame =
     try
-      while Generator.audio_length gen < AFrame.size () do
-        self#fill_audio
-      done;
-      if has_video then
-        while Generator.video_length gen < VFrame.size () do
-          self#fill_video
-        done;
+      self#fill_audio;
+      self#fill_video;
       Generator.fill gen frame
     with
-    | Gstreamer.End_of_stream -> ready <- false
+      | Gstreamer.End_of_stream ->
+         ready <- false
 
   method output = if AFrame.is_partial memo then self#get_frame memo
 end
@@ -665,7 +603,7 @@ let () =
            video = Lang.Fixed 1;
            midi = Lang.Fixed 0 })
   in
-  let proto = input_proto@
+  let proto = 
     [
       "pipeline", Lang.string_t, Some (Lang.string ""),
       Some "Main GStreamer pipeline.";
@@ -684,11 +622,11 @@ let () =
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
       let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
-      ((new audio_video_input p kind (pipeline,audio_pipeline,Some video_pipeline)):>Source.source))
+      ((new audio_video_input p kind (pipeline,Some audio_pipeline,Some video_pipeline)):>Source.source))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-  let proto = input_proto@
+  let proto = 
     [
       "pipeline", Lang.string_t, Some (Lang.string "audiotestsrc"),
       Some "GStreamer pipeline to input from.";
@@ -698,7 +636,24 @@ let () =
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[]
-    ~descr:"Stream video from GStreamer pipeline."
+    ~descr:"Stream audio from a GStreamer pipeline."
     (fun p kind ->
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      ((new audio_video_input p kind ("",pipeline,None)):>Source.source))
+      ((new audio_video_input p kind ("",Some pipeline,None)):>Source.source))
+
+let () =
+  let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.video_n 1) in
+  let proto = 
+    [
+      "pipeline", Lang.string_t, Some (Lang.string "videotestsrc"),
+      Some "GStreamer pipeline to input from.";
+    ]
+  in
+  Lang.add_operator "input.gstreamer.video" proto ~active:true
+    ~kind:(Lang.Unconstrained k)
+    ~category:Lang.Input
+    ~flags:[]
+    ~descr:"Stream video from a GStreamer pipeline."
+    (fun p kind ->
+      let pipeline = Lang.to_string (List.assoc "pipeline" p) in
+      ((new audio_video_input p kind ("",None,Some pipeline)):>Source.source))
