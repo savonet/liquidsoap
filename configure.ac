@@ -332,7 +332,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.2.2])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.2.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.2.1],[],[1],[],[1])
 
 #
 # xmlplaylist
@@ -453,7 +453,7 @@ AC_CHECK_OCAML_BINDING([shine],[0.1.0])
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.1.0])
+AC_CHECK_OCAML_BINDING([gstreamer],[0.2.0])
 
 #
 # frei0r
