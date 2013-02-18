@@ -459,10 +459,15 @@ object (self)
       | Some sink -> sink.pending() > 0
       | None      -> false
     in
-    ready && 
-    ((Generator.length gen > 0) ||
-     (pending self#get_device.audio) ||
-     (pending self#get_device.video))
+    try
+      ready &&
+        ((Generator.length gen > 0) ||
+         (pending self#get_device.audio) ||
+         (pending self#get_device.video))
+    with
+    | e ->
+      log#f 4 "Error when trying checking if ready: %s" (Printexc.to_string e);
+      false
 
   method abort_track = ()
 
