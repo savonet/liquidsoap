@@ -534,7 +534,7 @@ AC_CHECK_OCAML_BINDING([samplerate],[0.1.1])
 # Taglib
 #
 
-AC_CHECK_OCAML_BINDING([taglib],[0.2.0])
+AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
 
 #
 # OSS
