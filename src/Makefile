@@ -286,14 +286,17 @@ liquidsoap_doc_sources= \
 	source.ml clock.ml encoder/encoder.ml \
 	tools/plug.ml tools/http.ml \
 	decoder/decoder.ml request.ml outputs/output.ml \
-	lang/lang.ml tools/server.ml \
-	tools/tutils.ml playlist_parser.ml \
-	tools/doc.ml tools/wav.ml \
-	sources/request_source.ml operators/switch.ml \
-	configure.ml video_converter.ml \
+	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
+	tools/server.ml tools/tutils.ml playlist_parser.ml \
+	tools/doc.ml tools/wav.ml tools/ioRing.ml \
+	tools/dyntools.ml \
+	converters/audio_converter.ml converters/video_converter.ml \
+	ogg_formats/ogg_muxer.ml \
+	sources/generated.ml sources/request_source.ml sources/synthesized.ml \
+	operators/switch.ml \
+	configure.ml \
 	stream/frame.ml stream/aFrame.ml \
-	stream/vFrame.ml audio_converter.ml \
-	stream/mFrame.ml stream/generator.ml
+	stream/vFrame.ml stream/mFrame.ml stream/generator.ml
 
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)

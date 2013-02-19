@@ -43,7 +43,7 @@ sig
 
   val converters : converter_plug Plug.plug
 
-  (** [create chan_numbers]: create a converter. *)
+  (** [create chan_nb] creates a converter. *)
   val create : int -> t
 
   (** [resample converter ratio data offset length]: converts input data

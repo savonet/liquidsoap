@@ -64,10 +64,15 @@ val to_s16le : t -> string
 
 (** {2 Sound processing} *)
 
+(** [blankify frame off len] blanks the frame at offset [off] for length [len] (in samples). *)
 val blankify : t -> int -> int -> unit
 
+(** [multiply frame off len x] multiplies the audio data of the frame from
+    offset [off] during length [len] by coefficent [x]. *)
 val multiply : t -> int -> int -> float -> unit
 
+(** Add two portions of frames of same length. *)
 val add : t -> int -> t -> int -> int -> unit
 
+(** RMS (root mean square) of a portion of a frame. *)
 val rms : t -> int -> int -> float array
