@@ -5,13 +5,17 @@ This version brings some new features as well as correcting bugs.
 
 New:
 
-- Add support for the shine encoder, which can efficiently work on architectures
-  without FPU.
+- Add support for GStreamer decoding, processing and encoding (%gstreamer
+  format, v4l webcam input is now implemented using GStreamer).
 
 - Add support for opus decoding and encoding.
 
-- Add support for GStreamer decoding, processing and encoding (%gstreamer
-  format, v4l webcam input is now implemented using GStreamer).
+- Add support for the shine encoder, which can efficiently work on architectures
+  without FPU.
+
+- Add support for automatically computing the duration of tracks in the
+  "duration" metadata [LS-641]. It can be enabled with
+  set("request.metadata_decoders.duration",true)
 
 - Add support for frei0r video effects.
 
@@ -20,18 +24,15 @@ New:
   %define STEREO true
   output.file(%mp3(bitrate = BITRATE, stereo = STEREO),"bla.mp3",s)
 
-- Add support for automatically computing the duration of tracks in the
-  "duration" metadata [LS-641]. It can be enabled with
-  set("request.metadata_decoders.duration",true)
-
 
 Enhancements:
 
-- Add file.watch to call a callback when a file is changed, with inotify support
-  when present.
+- Taglib now reads all metadatas (even non-standard ones).
 
 - Add a mode to automatically reload a playlist when the file was changed
-  [LS-363,LS-523]. For instance, s = playlist("~/Music",reload_mode="watch")
+  [LS-363,LS-523]. For instance, s =
+  playlist("~/Music",reload_mode="watch"). Also, add file.watch to call a
+  callback when a file is changed, with inotify support when present.
 
 - Add support for FFMpeg as video converter, which you can use with
   set("video.converter.preferred", "ffmpeg")
@@ -53,8 +54,6 @@ Enhancements:
 - Improved error message when theora format is not supported.
 
 - Add list.filter function.
-
-- Taglib now reads all metadatas (even non-standard ones).
 
 - video.add_image can now take any image format as input.
 
