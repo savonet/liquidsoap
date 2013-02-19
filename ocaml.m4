@@ -97,6 +97,11 @@ AC_DEFUN([AC_PROG_OCAML],
   AC_CHECK_TOOL_STRICT([OCAMLDEP],[ocamldep],[no])
   if test "$OCAMLDEP" = "no"; then
     AC_MSG_ERROR(Cannot find ocamlmklib.)
+  else
+    AC_CHECK_TOOL_STRICT([OCAMLDEPOPT],[ocamldep.opt],[no])
+    if test "$OCAMLDEPOPT" != "no"; then
+      OCAMLDEP=$OCAMLDEPOPT
+    fi
   fi
 
   AC_SUBST([OCAMLDEP])
@@ -116,6 +121,12 @@ AC_DEFUN([AC_PROG_OCAML],
 
   # checking for ocamldoc
   AC_CHECK_TOOL([OCAMLDOC],[ocamldoc],[no])
+  if test "$OCAMLDOC" != "no"; then
+    AC_CHECK_TOOL([OCAMLDOCOPT],[ocamldoc.opt],[no])
+    if test "$OCAMLDOCOPT" != "no"; then
+      OCAMLDOC=$OCAMLDOCOPT
+    fi
+  fi
 
   AC_SUBST([OCAMLDOC])
 
