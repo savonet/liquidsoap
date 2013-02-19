@@ -443,7 +443,7 @@ class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
   let gen = Generator.create ~log:(fun x -> !rlog x) ~kind content in
   let () = GU.init () in
 object (self)
-  inherit Source.active_source ~name:"input.gstreamer.audio_video" kind as super
+  inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
 
   initializer
     rlog := (fun s -> self#log#f 3 "%s" s)
@@ -559,11 +559,9 @@ object (self)
               ignore (Element.set_state bin Element.State_null);
               raise e
 
-  method output_get_ready = ()
-  method output_reset = ()
   method is_active = true
 
-  method fill_audio =
+  method private fill_audio =
     match self#get_device.audio with
       | None -> ()
       | Some audio ->
@@ -575,7 +573,7 @@ object (self)
            Generator.put_audio gen buf 0 len
          done
 
-  method fill_video =
+  method private fill_video =
     match self#get_device.video with
       | None -> ()
       | Some video ->
@@ -594,8 +592,6 @@ object (self)
     with
       | Gstreamer.End_of_stream ->
          ready <- false
-
-  method output = if AFrame.is_partial memo then self#get_frame memo
 end
 
 let () =
@@ -618,7 +614,7 @@ let () =
       Some "Video pipeline to input from.";
     ]
   in
-  Lang.add_operator "input.gstreamer.audio_video" proto ~active:true
+  Lang.add_operator "input.gstreamer.audio_video" proto
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[]
@@ -637,7 +633,7 @@ let () =
       Some "GStreamer pipeline to input from.";
     ]
   in
-  Lang.add_operator "input.gstreamer.audio" proto ~active:true
+  Lang.add_operator "input.gstreamer.audio" proto
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[]
@@ -654,7 +650,7 @@ let () =
       Some "GStreamer pipeline to input from.";
     ]
   in
-  Lang.add_operator "input.gstreamer.video" proto ~active:true
+  Lang.add_operator "input.gstreamer.video" proto
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Input
     ~flags:[]
