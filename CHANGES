@@ -56,6 +56,14 @@ Enhancements:
 
 - Taglib now reads all metadatas (even non-standard ones).
 
+- video.add_image can now take any image format as input.
+
+- Add mux_stereo.
+
+- Support for external decoders in streams.
+
+- Move bugtracker to https://github.com/savonet/liquidsoap/issues
+
 
 Bugfixes:
 
@@ -86,7 +94,13 @@ Bugfixes:
 
 - Fix remaining time estimation in cross and smart_cross.
 
+- Avoid deadlocks in harbor and input.http.
+
 - Remove leftover files in configure [LS-567].
+
+- Handle wav files with padded fmt headers.
+
+- Handle end-of-stream when seeking mp3 with mad.
 
 
 1.0.1 (04-07-2012)
