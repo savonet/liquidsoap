@@ -11,7 +11,7 @@ humans, preferably on the mailing list <code>savonet-users@lists.sf.net</code>.
 h4. Scripting API
 
 When scripting in liquidsoap, one uses functions that are either _builtin_
-(_e.g._ @fallback@ or @output.icecast.vorbis@)
+(_e.g._ @fallback@ or @output.icecast@)
 or defined in the "script library":script_loading.html (_e.g_ @out@).
 All these functions come with a documentation, that you can access by
 executing @liquidsoap -h FUNCTION@ on the command-line. For example:
@@ -36,8 +36,8 @@ h4@server. Server commands
 
 The server (_cf._ the "server":server.html tutorial)
 offers some help about its commands.
-Once connected to it (either via a TCP or UNIX socket) the @help@ command will
-give you a list of available commands together with a short usage line.
+Once connected (either via a TCP or UNIX socket) the @help@ command
+gives you a list of available commands together with a short usage line.
 You can then get more detailed information about a specific command
 by typing @help COMMAND@:
 %%

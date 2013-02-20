@@ -8,27 +8,22 @@ etc.) you can build using <code>./bootstrap</code>, <code>./configure</code>,
 
 If you are using the <code>liquidsoap-full</code> tarball,
 or the latest source code from our
-"mercurial repository":http://sourceforge.net/scm/?type=hg&group_id=89802,
+"github repository":https://github.com/savonet/liquidsoap-full,
 there is also a fast procedure for building liquidsoap
 that doesn't require installing the libraries provided by Savonet.
 The steps to follow are simple.
 
-First,
-you should choose which features you want to enable when building liquidsoap.
+If you are using the git sources, you need to initialize all submodules
+by invoking @make init@, @make update@ and finally @./bootstrap@.
+
+You should now choose which features you want to enable when building liquidsoap.
 Each shipped feature can be enabled/disabled by editing the
 <code>PACKAGE</code> file.
 Depending on your version you might have to first copy 
 <code>PACKAGES.default</code> to <code>PACKAGES</code>.
 
-Then run the usual commands from the toplevel directory, _above_ the
-sub-project's directories:
+Then run the usual commands:
 %%
-# Edit PACKAGES to choose which feature you want
-
-# In the development tree you should bootstrap first.
-# No need with the tarballs.
-./bootstrap
-
 # Configure all libraries and packages.
 # You may pass extra options such as --enable-debugging,
 # --prefix, --sysconfdir, --localstatedir, etc.
@@ -38,7 +33,7 @@ sub-project's directories:
 make
 
 # To install liquidsoap,
-# you'll usually need to type the following as root
+# you usually need to type the following as root
 make install
 %%
 
@@ -51,7 +46,8 @@ libraries:
 
 * "ocamlfind":http://www.ocaml-programming.de/programming/findlib.html
 * ocaml-dtools (>= 0.3.0)
-* ocaml-duppy (>= 0.1.2)
+* ocaml-duppy (>= 0.4.2)
+* ocaml-mm (>= 0.2.1)
 * "ocaml-pcre":http://www.ocaml.info/home/ocaml_sources.html
 
 And also optional dependencies. For most of these, you also need
@@ -65,9 +61,10 @@ also @libtool@.
 * ocaml-cry for Icecast/Shoutcast streaming
 * ocaml-mad for mp3 decoding
 * ocaml-lame for mp3 encoding
+* ocaml-shine for fixed-point mp3 encoding
 * ocaml-faac for AAC encoding
-* ocaml-faad for AAC stream decoding
 * ocaml-aacplus for AAC+ encoding
+* ocaml-voaacplus for AAC decoding
 * ocaml-flac for native flac and ogg/flac encoding/decoding
 * ocaml-theora for ogg/theora encoding/decoding
 * ocaml-schroedinger for ogg/dirac video encoding/decoding
