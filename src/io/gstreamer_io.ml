@@ -29,6 +29,11 @@ module Img = Image.RGBA32
 let log = Dtools.Log.make ["io";"gstreamer"]
 let gst_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "gstreamer")
 
+let string_of_state_change = function
+  | Element.State_change_success    -> "success"
+  | Element.State_change_async      -> "asynchronous"
+  | Element.State_change_no_preroll -> "no pre-roll"
+
 (***** Output *****)
 
 (* Audio/video output *)
@@ -446,7 +451,19 @@ object (self)
   inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
 
   initializer
-    rlog := (fun s -> self#log#f 3 "%s" s)
+    rlog := (fun s -> self#log#f 3 "%s" s);
+    let change_state s _ =
+      try
+        Printf.sprintf "Done. State change returned: %s"
+          (string_of_state_change (Element.set_state self#get_device.bin s) )
+      with
+        | e ->
+            Printf.sprintf "Error while changing state: %s\n" (Utils.error_message e)
+    in
+    self#register_command
+      "pause" ~descr:"Set gstreamer pipeline state to paused" (change_state Element.State_paused);
+    self#register_command
+      "play" ~descr:"Set gstreamer pipeline state to playing" (change_state Element.State_playing)
 
   method stype = Source.Fallible
   method remaining = -1
