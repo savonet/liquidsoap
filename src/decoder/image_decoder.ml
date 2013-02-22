@@ -23,29 +23,32 @@
 module Img = Image.RGBA32
 
 let create_decoder metadata img =
+  let frame_w = Lazy.force Frame.video_width in
+  let frame_h = Lazy.force Frame.video_height in
   (* Dimensions. *)
-  let fw, fh = Img.dimensions img in
+  let img_w, img_h = Img.dimensions img in
   let width =
     try
       let w = int_of_string (Hashtbl.find metadata "width") in
-      if w < 0 then fw else w
+      if w = 0 then frame_w else if w < 0 then img_w else w
     with
-    | Not_found -> fw
+    | Not_found -> img_w
   in
   let height =
     try
       let h = int_of_string (Hashtbl.find metadata "height") in
-      if h < 0 then fh else h
+      if h = 0 then frame_h else if h < 0 then img_h else h
     with
-    | Not_found -> fh
+    | Not_found -> img_h
   in
   (* Offset. *)
   let off_x = try int_of_string (Hashtbl.find metadata "x") with Not_found -> 0 in
   let off_y = try int_of_string (Hashtbl.find metadata "y") with Not_found -> 0 in
   (* Negative offset means from the right. *)
-  let off_x = if off_x < 0 then fw - width + off_x else off_x in
-  let off_y = if off_y < 0 then fh - height + off_y else off_y in
-  if (width,height) <> (fw,fh) || (off_x,off_y) <> (0,0) then
+  let off_x = if off_x < 0 then frame_w - width + off_x else off_x in
+  let off_y = if off_y < 0 then frame_h - height + off_y else off_y in
+  Printf.printf "off_x: %d\n%!" off_x;
+  if (width,height) <> (img_w,img_h) || (off_x,off_y) <> (0,0) then
     (
       (* TODO: use Video_converter.find_converter *)
       let img' = Img.Scale.create img width height in
@@ -55,7 +58,7 @@ let create_decoder metadata img =
   let duration =
     try
       let seconds = float_of_string (Hashtbl.find metadata "duration") in
-      Frame.video_of_seconds seconds
+      if seconds < 0. then -1 else Frame.video_of_seconds seconds
     with
     | Not_found -> -1
   in

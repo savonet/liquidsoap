@@ -142,8 +142,7 @@ operators = \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml \
 	operators/time_warp.ml operators/resample.ml \
-	operators/video_image.ml operators/chord.ml \
-	operators/video_text.ml
+	operators/chord.ml operators/video_text.ml
 
 $(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/soundtouch_op.ml)
 $(call conditional_compilation,operators,$(W_SOUNDTOUCH),operators/st_bpm.ml)
