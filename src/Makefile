@@ -89,7 +89,7 @@ $(call conditional_compilation,video_converters,$(W_FFMPEG),converters/video/ffm
 decoders = \
 	decoder/metadata_decoder.ml \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
-	decoder/ppm_decoder.ml \
+	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	$(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml)
 
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
@@ -225,12 +225,12 @@ liquidsoap_sources= $(tools) SVN.ml converters/audio_converter.ml $(stream) \
 	tools/server_builtins.ml
 
 # Some for camlimages
-$(call conditional_compilation,decoders,$(W_CAMLIMAGES),decoder/camlimages_decoder.ml)
+$(call conditional_compilation,decoders,$(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml)
 
 # Include SDL now. Order matters so we group them all here..
 $(call conditional_compilation,liquidsoap_sources,$(W_SDL),tools/sdl_utils.ml)
 $(call conditional_compilation,synth,$(W_SDL),synth/keyboard_sdl.ml)
-$(call conditional_compilation,decoders,$(W_SDL),decoder/sdlimage_decoder.ml)
+$(call conditional_compilation,decoders,$(W_SDL),decoder/image/sdlimage_decoder.ml)
 $(call conditional_compilation,operators,$(W_SDL),operators/video_text_sdl.ml)
 $(call conditional_compilation,outputs,$(W_SDL),outputs/sdl_out.ml)
 
