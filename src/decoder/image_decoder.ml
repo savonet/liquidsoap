@@ -23,6 +23,35 @@
 module Img = Image.RGBA32
 
 let create_decoder metadata img =
+  (* Dimensions. *)
+  let fw, fh = Img.dimensions img in
+  let width =
+    try
+      let w = int_of_string (Hashtbl.find metadata "width") in
+      if w < 0 then fw else w
+    with
+    | Not_found -> fw
+  in
+  let height =
+    try
+      let h = int_of_string (Hashtbl.find metadata "height") in
+      if h < 0 then fh else h
+    with
+    | Not_found -> fh
+  in
+  (* Offset. *)
+  let off_x = try int_of_string (Hashtbl.find metadata "x") with Not_found -> 0 in
+  let off_y = try int_of_string (Hashtbl.find metadata "y") with Not_found -> 0 in
+  (* Negative offset means from the right. *)
+  let off_x = if off_x < 0 then fw - width + off_x else off_x in
+  let off_y = if off_y < 0 then fh - height + off_y else off_y in
+  if (width,height) <> (fw,fh) || (off_x,off_y) <> (0,0) then
+    (
+      (* TODO: use Video_converter.find_converter *)
+      let img' = Img.Scale.create img width height in
+      Img.blank_all img;
+      Img.add img' img ~x:off_x ~y:off_y
+    );
   let duration =
     try
       let seconds = float_of_string (Hashtbl.find metadata "duration") in

@@ -27,25 +27,12 @@ let log = Dtools.Log.make ["decoder";"sdlimage"]
 
 let load_image filename =
   let surface = Sdlloader.load_image filename in
-  let image =
-    log#f 4 "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface) ;
-    match Sdlvideo.surface_bpp surface with
-      | 8 -> Sdl_utils.from_8 surface
-      | 24 -> Sdl_utils.from_24 surface
-      | 32 -> Sdl_utils.from_32 surface
-      | _ -> failwith "unsupported pixel format"
-  in
-  let convert =
-    Video_converter.find_converter
-      (P.RGB P.RGBA32)
-      (P.RGB P.RGBA32)
-  in
-  let frame = Img.create (Lazy.force Frame.video_width)
-                         (Lazy.force Frame.video_height)
-  in
-  convert (Image.Generic.of_RGBA32 image)
-          (Image.Generic.of_RGBA32 frame) ;
-  frame
+  log#f 4 "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface);
+  match Sdlvideo.surface_bpp surface with
+  | 8 -> Sdl_utils.from_8 surface
+  | 24 -> Sdl_utils.from_24 surface
+  | 32 -> Sdl_utils.from_32 surface
+  | _ -> failwith "unsupported pixel format"
 
 let () =
   Decoder.image_file_decoders#register "SDL/image"

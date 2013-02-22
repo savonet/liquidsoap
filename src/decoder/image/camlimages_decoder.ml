@@ -55,16 +55,7 @@ let load_image filename =
       Img.set_pixel img i j (p i j)
     done
   done;
-  let convert =
-    Video_converter.find_converter
-      (P.RGB P.RGBA32)
-      (P.RGB P.RGBA32)
-  in
-  let frame = Img.create (Lazy.force Frame.video_width)
-    (Lazy.force Frame.video_height)
-  in
-  convert (Image.Generic.of_RGBA32 img) (Image.Generic.of_RGBA32 frame);
-  frame
+  img
 
 let () =
   Decoder.image_file_decoders#register "camlimages"
