@@ -161,9 +161,7 @@ if test -n "${FINDLIB_PATH}"; then
 fi
 # Add -I`ocamlc -where` to CFLAGS for 
 # user with locally installed headers.
-if test "$OS_TYPE" \!= "Win32" ; then
-  CFLAGS="$CFLAGS -I${OCAML_WHERE}"
-fi
+CFLAGS="$CFLAGS -I${OCAML_WHERE}"
 cat >> src/configure.ml <<__BLAH__
 let findlib_path = [[${FINDLIB_PATH}]]
 __BLAH__
