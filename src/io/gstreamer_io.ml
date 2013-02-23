@@ -434,6 +434,8 @@ type element = {
 }
 
 class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
+  let max = Lang.to_float (List.assoc "max" p) in
+  let max_ticks = Frame.master_of_seconds max in
   let content,has_audio,has_video =
     match audio_pipeline, video_pipeline with
      | Some _, Some _ -> `Both,true,true
@@ -445,7 +447,11 @@ class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let rlog = ref (fun _ -> ()) in
-  let gen = Generator.create ~log:(fun x -> !rlog x) ~kind content in
+  let gen =
+    Generator.create
+      ~log:(fun x -> !rlog x) ~kind
+      ~overfull:(`Drop_old max_ticks) content 
+  in
   let () = GU.init () in
 object (self)
   inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
@@ -611,6 +617,12 @@ object (self)
          ready <- false
 end
 
+let input_proto =
+  [
+    "max", Lang.float_t, Some (Lang.float 10.),
+    Some "Maximum duration of the buffered data." ;
+  ]
+
 let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:1
@@ -621,7 +633,7 @@ let () =
            video = Lang.Fixed 1;
            midi = Lang.Fixed 0 })
   in
-  let proto = 
+  let proto = input_proto @ 
     [
       "pipeline", Lang.string_t, Some (Lang.string ""),
       Some "Main GStreamer pipeline.";
@@ -644,7 +656,7 @@ let () =
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-  let proto = 
+  let proto = input_proto @ 
     [
       "pipeline", Lang.string_t, Some (Lang.string "audiotestsrc"),
       Some "GStreamer pipeline to input from.";
@@ -661,7 +673,7 @@ let () =
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.video_n 1) in
-  let proto = 
+  let proto = input_proto @ 
     [
       "pipeline", Lang.string_t, Some (Lang.string "videotestsrc"),
       Some "GStreamer pipeline to input from.";
