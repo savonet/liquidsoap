@@ -69,11 +69,6 @@ let resolve proto program command s ~log maxtime =
       end
 
 let extproto = [
-  "ufetch",
-  [ "smb"; "http"; "file" ],
-  (fun prog src dst ->
-     [|prog;"--quiet";src;"file://"^dst|]) ;
-
   "wget",
   [ "http";"https";"ftp" ],
   (fun prog src dst ->

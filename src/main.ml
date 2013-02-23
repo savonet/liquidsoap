@@ -493,7 +493,7 @@ let () =
        "or to join the #savonet IRC channel on Freenode.";
        "";
        "Please send any bug report or feature request";
-       "at <http://dev.sourcefabric.org/browse/LS>.";
+       "at <https://github.com/savonet/liquidsoap/issues>.";
        "";
        "We hope you enjoy this snapshot build of Liquidsoap!";
        ""]

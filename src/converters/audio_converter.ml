@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
- (** External audio conversion utilities *)
+(** External audio samplerate conversion utilities. *)
 
 let log = Dtools.Log.make ["audio";"converter"]
 
-(** TODO: is it the right place for this ? *)
+(* TODO: is it the right place for this ? *)
 let audio_conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "audio") "Audio settings"
     ~comments:["Options related to audio."]
@@ -38,6 +38,9 @@ struct
 
   exception Invalid_data
 
+  (** A converter takes a convertion ratio (output samplerate / input
+      samplerate), an audio buffer, an offset in the buffer, a duration in the
+      buffer and returns a resampled buffer. *)
   type converter = float -> float array -> int -> int -> float array
 
   type converter_plug = unit -> converter
@@ -61,9 +64,9 @@ struct
   let create channels =
     let preferred = preferred_conf#get in
     match converters#get preferred with
-      | Some v ->
-         Array.init channels (fun _ -> v ())
-      | None ->
+    | Some v ->
+      Array.init channels (fun _ -> v ())
+    | None ->
          (* List should never be empty, since at least
           * the native converter is available.. *)
          let (_,v) = List.hd converters#get_all in

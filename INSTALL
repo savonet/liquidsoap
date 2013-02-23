@@ -67,7 +67,6 @@
  Runtime optional dependencies :
 
    wget for http/https/ftp support
-   ufetch (from ocaml-fetch) for smb support
 
  How to install
  --------------

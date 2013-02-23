@@ -67,6 +67,11 @@ let get_tags fname =
     let f = File.open_file ftype fname in
     Tutils.finalize ~k:(fun () -> File.close_file f)
     (fun () ->
+      let tags =
+        try
+          ["year", string_of_int (tag_year f)]
+        with Not_found -> []
+      in
       Hashtbl.fold
         (fun key (values:string list) tags ->
           if values = [] then
@@ -77,7 +82,7 @@ let get_tags fname =
               tags
             else
               (key,v)::tags
-        ) (File.properties f) ["year", string_of_int (tag_year f)])
+        ) (File.properties f) tags)
   with
     | _ -> raise Not_found
 

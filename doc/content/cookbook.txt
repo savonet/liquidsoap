@@ -234,10 +234,10 @@ end
 add_skip_command(s)
 %%
 
-h4. Dump a stream in segemented files
+h4. Dump a stream into segmented files
 
 It is sometimes useful (or even legally necessary) to keep a backup of an audio
-stream. Storing all the stream in one file can be very impractical. In order, to
+stream. Storing all the stream in one file can be very impractical. In order to
 save a file per hour in wav format, the following script can be used:
 
 %%(rotated_dump.liq)
@@ -254,7 +254,7 @@ output.file(
 )
 %%
 
-In order to use it, you must install first the @qwavheaderdump@ program which
+To be able to use it, you must install first the @qwavheaderdump@ program which
 can be found in the "quelcom package":http://packages.ubuntu.com/quelcom in
 Ubuntu, which is necessary in order to fix the headers of the generated wav
 files once the data has been dumped.
@@ -336,7 +336,7 @@ Lastfm's URIs start with <code>lastfm:</code>:
 
 You can find more of them on the website, "last.fm":http://www.last.fm/.
 
-Another operator allows to generate <code>lastfm:</code> URIs, <code>lastfm.uri</code>. Its parameters are:
+The @lastfm.uri@ operator can be used to generate lastfm @URIs@. Its parameters are:
 
 * <code>~user</code>: Lastfm user
 * <code>~password</code>: Lastfm password

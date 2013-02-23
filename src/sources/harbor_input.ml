@@ -58,8 +58,12 @@ object (self)
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize as generated
 
+  (** POSIX sucks.. *)
   val mutable relay_socket = None
+  (* Mutex used to change socket's state (close) *)
   val relay_m = Mutex.create ()
+  (* Mutex used to grab socket's status (read only) *)
+  val get_relay_m = Mutex.create()
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
 
@@ -77,16 +81,9 @@ object (self)
 
   initializer
     ns_kind <- "input.harbor" ;
-    let stop =
-      Tutils.mutexify relay_m
-        (fun _ ->
-          if relay_socket <> None then
-            begin
-             self#disconnect ~lock:false;
-             "Done"
-            end
-          else
-            "No source client connected")
+    let stop _ =
+      self#disconnect;
+      "Done"
     in
     self#register_command
       "stop" ~descr:"Stop current source client, if connected." stop ;
@@ -94,7 +91,7 @@ object (self)
       "kick" ~descr:"Kick current source client, if connected." stop ;
     self#register_command
       "status" ~descr:"Display current status."
-      (Tutils.mutexify relay_m
+      (Tutils.mutexify get_relay_m
        (fun _ ->
          match relay_socket with
            | Some s ->
@@ -168,7 +165,7 @@ object (self)
         while true do
           if should_stop () then
             raise Disconnected ;
-          Tutils.mutexify relay_m
+          Tutils.mutexify get_relay_m
             (fun () ->
                if relay_socket = None then
                  failwith "relaying stopped") () ;
@@ -195,7 +192,7 @@ object (self)
              * happends in self#disconnect. No need to
              * call it then.. *)
             if e <> Disconnected && e <> Stopped then
-              self#disconnect ~lock:true;
+              self#disconnect;
             has_stopped () ;
             if debug then raise e
 
@@ -218,10 +215,7 @@ object (self)
     log_ref := self#log#f 3 "%s"
 
   method private sleep =
-    Tutils.mutexify relay_m
-     (fun () ->
-       if relay_socket <> None then
-         self#disconnect ~lock:false) () ;
+    self#disconnect;
     Harbor.remove_source ~port ~mountpoint ()
 
   method register_decoder mime =
@@ -234,80 +228,71 @@ object (self)
 
   method relay stype (headers:(string*string) list) socket =
     Tutils.mutexify relay_m
-      (fun () ->
-        if relay_socket <> None then
-          raise Harbor.Mount_taken ;
-        self#register_decoder stype ;
-        relay_socket <- Some socket ;
-        on_connect headers ;
-        begin match dumpfile with
-          | Some f ->
-              begin try
-                dump <- Some (open_out_bin
-                                (Utils.home_unrelate f))
-              with e ->
-                self#log#f 2 "Could not open dump file: \
-                                %s" (Utils.error_message e)
-              end
-          | None -> ()
-        end ;
-        begin match logfile with
-          | Some f ->
-              begin try
-                logf <- Some (open_out_bin
-                                (Utils.home_unrelate f))
-              with e ->
-                self#log#f 2 "Could not open log file: \
-                                %s" (Utils.error_message e)
-              end
-          | None -> ()
-        end ;
-        (* Wait for the old feeding thread to return,
-         * then create a new one. *)
-        assert (kill_polling = None) ;
-        begin match wait_polling with
-          | None -> ()
-          | Some f ->
-              f () ; wait_polling <- None
-        end ;
-        begin
-         let kill,wait =
-           Tutils.stoppable_thread self#feed
-                "harbor source feeding"
-         in
-         kill_polling <- Some kill ;
-         wait_polling <- Some wait
-        end) ()
-
-  method disconnect ~lock =
-    let f () =
-      match relay_socket with
-        | Some s ->
-           begin match dump with
-             | Some f ->
-                 close_out f ; dump <- None
-             | None -> ()
-           end ;
-           begin match logf with
-             | Some f ->
-                 close_out f ; logf <- None
-             | None -> ()
-           end ;
-           begin
-             try
-               Unix.close s
-             with _ -> ()
-           end;
-           (Utils.get_some kill_polling) () ;
-           kill_polling <- None ;
-           relay_socket <- None ;
-           on_disconnect ()
-        | None -> assert false
+      (Tutils.mutexify get_relay_m
+        (fun () ->
+          if relay_socket <> None then
+            raise Harbor.Mount_taken ;
+          self#register_decoder stype ;
+          relay_socket <- Some socket)) () ;
+    on_connect headers ;
+    begin match dumpfile with
+      | Some f ->
+          begin try
+            dump <- Some (open_out_bin
+                            (Utils.home_unrelate f))
+          with e ->
+            self#log#f 2 "Could not open dump file: \
+                            %s" (Utils.error_message e)
+          end
+      | None -> ()
+    end ;
+    begin match logfile with
+      | Some f ->
+          begin try
+            logf <- Some (open_out_bin
+                            (Utils.home_unrelate f))
+          with e ->
+            self#log#f 2 "Could not open log file: \
+                            %s" (Utils.error_message e)
+          end
+      | None -> ()
+    end ;
+    (* Wait for the old feeding thread to return,
+      * then create a new one. *)
+    assert (kill_polling = None) ;
+    begin match wait_polling with
+      | None -> ()
+      | Some f ->
+          f () ; wait_polling <- None
+    end ;
+    let kill,wait =
+      Tutils.stoppable_thread self#feed
+          "harbor source feeding"
     in
-    if lock then
-      Tutils.mutexify relay_m f ()
-    else
-      f ()
+    kill_polling <- Some kill ;
+    wait_polling <- Some wait
+
+  method disconnect =
+    Tutils.mutexify relay_m
+      (Tutils.mutexify get_relay_m (fun () ->
+        Utils.maydo (fun s ->
+          try
+            Unix.close s
+          with _ -> ()) relay_socket;
+        relay_socket <- None)) ();
+    begin match dump with
+       | Some f ->
+           close_out f ; dump <- None
+       | None -> ()
+    end ;
+    begin match logf with
+       | Some f ->
+           close_out f ; logf <- None
+       | None -> ()
+    end ;
+    Utils.maydo (fun f -> f()) kill_polling ;
+    kill_polling <- None ;
+    on_disconnect ()
 end
 
 let () =

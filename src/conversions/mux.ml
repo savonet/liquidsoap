@@ -175,7 +175,7 @@ let add_audio_mux label n =
                       ~video:Lang.zero_t ~midi:Lang.zero_t
   in
   let out_t =
-    let { Frame. audio ; video ; midi } = Lang.of_frame_kind_t master_t in
+    let { Frame. audio=audio ; video=video ; midi=midi } = Lang.of_frame_kind_t master_t in
       Lang.frame_kind_t ~audio:(Lang.add_t n audio) ~video ~midi
   in
     Lang.add_operator ("mux_"^label)

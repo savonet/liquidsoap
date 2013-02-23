@@ -30,7 +30,7 @@ let conf =
   Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 let grace_time =
   Conf.float ~p:(conf#plug "grace_time") ~d:600.
-    "Time after which a destroyed request cannot be accessed anymore."
+    "Time (in seconds) after which a destroyed request cannot be accessed anymore."
 
 let log = Log.make ["request"]
 
