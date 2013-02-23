@@ -25,44 +25,44 @@
  * is resolved into uri, and adds the bindings to the request metadata.
  * The values can be "strings", or directly integers, floats or identifiers. *)
 
-open Genlex
 exception Error
+
+let kwd = [':';',';'=']
+let rec lex s =
+  let rec aux o =
+    if o >= String.length s then [] else
+      if List.mem s.[o] kwd then
+        let k = `Kwd (String.make 1 s.[o]) in
+        if s.[o] = ':' then
+          [k; `Ident (String.sub s (o+1) (String.length s-o-1))]
+        else
+          k::(aux (o+1))
+      else
+        let n = ref 0 in
+        while o + !n < String.length s && not (List.mem s.[o + !n] kwd) do
+          incr n
+        done;
+        let i = `Ident (String.sub s o !n) in
+        i::(aux (o + !n))
+  in
+  aux 0
 
 let annotate s ~log maxtime =
   try
-    let l = String.length s in
-    let pos = ref 0 in
-    let str =
-      Stream.from (fun i ->
-                     pos := i ;
-                     if i<l then Some s.[i] else None)
+    let s = lex s in
+    let rec parse = function
+      | [`Kwd ":";`Ident file] -> [],file
+      | (`Kwd ",")::md -> parse md
+      | (`Ident key)::(`Kwd "=")::(`Ident value)::md ->
+        let md, file = parse md in
+        (key,value)::md, file
+      | _ -> raise Error
     in
-    let lexer = make_lexer [":";",";"="] str in
-    let rec parse metadata =
-      match Stream.next lexer with
-        | Kwd ":" -> metadata,(String.sub s !pos (l - !pos))
-        | Kwd "," -> parse metadata
-        | Ident key ->
-            if key<>"" && key.[0]=':' then
-              metadata,((String.sub key 1 (String.length key - 1))^
-                        (String.sub s !pos (l - !pos)))
-            else begin match Stream.next lexer with
-              | Kwd "=" -> begin match Stream.next lexer with
-                  | String s -> parse ((key,s)::metadata)
-                  | Int i -> parse ((key,string_of_int i)::metadata)
-                  | Float f -> parse ((key,string_of_float f)::metadata)
-                  | Ident k -> parse ((key,k)::metadata)
-                  | _ -> raise Error
-                end
-              | _ -> raise Error
-            end
-        | _ -> raise Error
-    in
-    let metadata,uri = parse [] in
-      [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
+    let metadata,uri = parse s in
+    [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
   with
-    | Error
-    | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
+  | Error
+  | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
 
 let () =
   Request.protocols#register "annotate"
