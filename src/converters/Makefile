@@ -1,3 +1,4 @@
+SUBDIRS = audio video
 DISTFILES = $(wildcard *.ml) $(wildcard *.mli) Makefile
 
 top_srcdir=../..

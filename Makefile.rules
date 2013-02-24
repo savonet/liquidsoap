@@ -1,5 +1,4 @@
-
-.PHONY: all all-subdirs all-local 
+.PHONY: all all-subdirs all-local
 .PHONY: all-auto all-auto-ocaml-prog clean-buildings
 .PHONY: clean clean-subdirs clean-local
 .PHONY: install install-subdirs install-local
