@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+(** Clocks indicate at which rate a source can be read, thus avoiding by typing
+    the need for infinite buffering. *)
+
 type clock_variable = Source.clock_variable
 type source = Source.source
 type active_source = Source.active_source
@@ -33,13 +36,14 @@ let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
 (** [started] indicates that the application has loaded and started
-  * its initial configuration; it is set after the first collect.
-  * It is mostly intended to allow different behaviors on error:
-  *  - for the initial conf, all errors are fatal
-  *  - after that (dynamic code execution, interactive mode) some errors
-  *    are not fatal anymore. *)
+    * its initial configuration; it is set after the first collect.
+    * It is mostly intended to allow different behaviors on error:
+    *  - for the initial conf, all errors are fatal
+    *  - after that (dynamic code execution, interactive mode) some errors
+    *    are not fatal anymore. *)
 let started : [ `Yes | `No | `Soon ] ref = ref `No
 
+(** Does the application have started to run? *)
 let running () = !started = `Yes
 
 (** We need to keep track of all used clocks, to have them (un)register
@@ -82,8 +86,7 @@ let leave (s:active_source) =
       (log#f 3 "%s")
       (Pcre.split ~pat:"\n" (Utils.get_backtrace ()))
 
-(** Base clock class *)
-
+(** Base clock class. *)
 class clock id =
 object (self)
 

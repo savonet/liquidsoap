@@ -175,9 +175,13 @@ val iterate_new_outputs : (active_source -> unit) -> unit
 
 class type clock =
 object
+  (** Identifier of the clock. *)
   method id : string
 
+  (** Attach an output source to the clock. *)
   method attach : active_source -> unit
+
+  (** Detach output sources which satisfy a given criterion from the source. *)
   method detach : (active_source -> bool) -> unit
 
   method attach_clock : clock_variable -> unit

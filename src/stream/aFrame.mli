@@ -15,10 +15,19 @@ val duration : unit -> float
   * Breaks are track limits.
   * Everything below is in samples. *)
 
+(** Size of an audio frame. *)
 val size       : unit -> int
+
+(** Current position in frame. *)
 val position   : t -> int
+
+(** Breaks in frame. *)
 val breaks     : t -> int list
+
+(** Add a break. *)
 val add_break  : t -> int -> unit
+
+(** Change all the breaks. *)
 val set_breaks : t -> int list -> unit
 
 (** Is it partially filled ? *)
