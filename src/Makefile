@@ -1,7 +1,6 @@
-
-SUBDIRS= tools decoder playlists encoder protocols plugins stream lang \
-		 ogg_formats converters converters/audio converters/video \
-		 operators sources conversions outputs io visualization analyze synth
+SUBDIRS=tools decoder playlists encoder protocols plugins stream lang \
+	ogg_formats converters operators sources conversions outputs io \
+	visualization analyze synth
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
