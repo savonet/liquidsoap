@@ -31,9 +31,11 @@ let render_text ?font ?size ?color text =
   init ();
   let font = Option.default "Helvetica" font in
   let size = Option.default 10 size in
+  let color = Option.default 0xffffffff color in
   let font = Printf.sprintf "%s %d" font size in
-  (* TODO: color *)
-  let pipeline = Printf.sprintf "videotestsrc pattern=black ! textoverlay font-desc=\"%s\" text=\"%s\" ypad=0" font text in
+  (* We have to hack because displaying text in front of a transparent
+     background doesn't show anything... *)
+  let pipeline = Printf.sprintf "videotestsrc pattern=green ! textoverlay font-desc=\"%s\" text=\"%s\" color=0x%x xpad=0 ypad=0 auto-resize=false ! alpha method=\"green\"" font text color in
   let img = GU.render_image pipeline in
   img
 
