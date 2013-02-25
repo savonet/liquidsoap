@@ -53,6 +53,6 @@ end
 # @param ~y y position (negative means from right).
 # @param ~duration duration (0 means infinite).
 # @param ~file Path to the image file.
-def video.add_image(~id="",~width=-1,~height=-1,~x=0,~y=0,~duration=-1.,~file,s)
+def video.add_image(~id="",~width=0,~height=0,~x=0,~y=0,~duration=-1.,~file,s)
   add([s,single(id=id,"annotate:width=#{width},height=#{height},x=#{x},y=#{y},duration=#{duration}:#{file}")])
 end
