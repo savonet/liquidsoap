@@ -895,16 +895,16 @@ let () =
      "",Lang.metadata_t,None,None]
     Lang.string_t
     (fun p ->
-                     let s = Lang.to_string (Lang.assoc "" 1 p) in
-                     let l =
-                       List.map
-                         (fun p ->
-                            let a,b = Lang.to_product p in
-                              Lang.to_string a, Lang.to_string b)
-                         (Lang.to_list (Lang.assoc "" 2 p))
-                     in
-                       Lang.string
-                         (Utils.interpolate (fun k -> List.assoc k l) s))
+      let s = Lang.to_string (Lang.assoc "" 1 p) in
+      let l =
+        List.map
+          (fun p ->
+            let a,b = Lang.to_product p in
+            Lang.to_string a, Lang.to_string b)
+          (Lang.to_list (Lang.assoc "" 2 p))
+      in
+      Lang.string
+        (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
   add_builtin "quote" ~cat:String ~descr:"Escape shell metacharacters."
