@@ -936,6 +936,23 @@ let () =
          Lang.string (try List.assoc k l with _ -> ""))
 
 let () =
+  Lang.add_builtin "list.add"
+    ~category:(string_of_category List)
+    ~descr:"Add an element at the top of a list."
+    ["",Lang.univ_t 1,None,None;
+     "",Lang.list_t (Lang.univ_t 1),None,None]
+    (Lang.list_t (Lang.univ_t 1))
+    (fun p t ->
+      let t = Lang.of_list_t t in
+      let x,l =
+        match p with
+        | ["",x;"",l] -> x,l
+        | _ -> assert false
+      in
+      let l = Lang.to_list l in
+      Lang.list ~t (x::l))
+
+let () =
   add_builtin "list.iter" ~cat:List
     ~descr:"Call a function on every element of a list."
     [ "", Lang.fun_t [false, "", Lang.univ_t 1] Lang.unit_t, None, None ;
