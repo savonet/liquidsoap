@@ -108,8 +108,7 @@ $(call conditional_compilation,playlists,$(W_XMLPLAYLIST),playlists/playlist_xml
 
 protocols = \
 	$(if ($(OS_TYPE):Win32=),protocols/say.ml) \
-	protocols/annotate.ml \
-	protocols/mpd.ml \
+	protocols/annotate.ml protocols/mpd.ml protocols/text_proto.ml \
 	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml)
 
 sources = \

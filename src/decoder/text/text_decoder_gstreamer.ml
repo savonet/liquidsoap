@@ -28,6 +28,7 @@ module GU = Gstreamer_utils
 let init () = GU.init ()
 
 let render_text ?font ?size ?color text =
+  init ();
   let font = Option.default "Helvetica" font in
   let size = Option.default 10 size in
   let font = Printf.sprintf "%s %d" font size in

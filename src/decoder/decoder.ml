@@ -157,7 +157,7 @@ let image_file_decoders : (file -> Image.RGBA32.t option) Plug.plug =
 
 let text_decoders : (?font:string -> ?size:int -> ?color:int -> string -> Image.RGBA32.t option) Plug.plug =
   Plug.create
-    ~register_hook:(fun (name,_) -> f conf_image_file_decoders name)
+    ~register_hook:(fun (name,_) -> f conf_text_decoders name)
     ~doc:"Text to image synthesis methods." ~insensitive:true "text decoding"
 
 let stream_decoders :
@@ -293,9 +293,10 @@ let get_text_decoder ?font ?size ?color s =
   try
     List.iter
       (fun (name,decoder) ->
+        Printf.printf "Trying method %S for %S..\n%!." name s;
         log#f 4 "Trying method %S for %S..." name s;
         match
-          try decoder  ?font ?size ?color s with
+          try decoder ?font ?size ?color s with
           | e ->
             log#f 4
               "Decoder %S failed on %S: %s!"
