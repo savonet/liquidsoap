@@ -20,24 +20,25 @@
 
  *****************************************************************************)
 
+open Stdlib
+
 module Img = Image.RGBA32
 module GU = Gstreamer_utils
 
 let init () = GU.init ()
 
-let render_text ~font ~size text =
-  (* Override default value... *)
-  let font = if font.[0] = '/' then "Helvetica" else font in
+let render_text ?font ?size ?color text =
+  let font = Option.default "Helvetica" font in
+  let size = Option.default 10 size in
   let font = Printf.sprintf "%s %d" font size in
+  (* TODO: color *)
   let pipeline = Printf.sprintf "videotestsrc pattern=black ! textoverlay font-desc=\"%s\" text=\"%s\" ypad=0" font text in
   let img = GU.render_image pipeline in
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
-  let get_pixel x y =
-    let z,_,_,_ = Img.get_pixel img x y in
-    z
-  in
-  width, height, get_pixel
+  img
 
 let () =
-  Video_text.register "gstreamer" init render_text
+  Decoder.text_decoders#register "GStreamer"
+    ~sdoc:"GStreamer syntesis of text."
+    (fun ?font ?size ?color s ->
+      let img = render_text ?font ?size ?color s in
+      Some img)

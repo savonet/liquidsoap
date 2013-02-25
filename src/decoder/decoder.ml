@@ -115,6 +115,11 @@ let conf_image_file_decoders =
     ~p:(conf_decoder#plug "image_file_decoders") ~d:[]
     "Decoders and order used to decode image files."
 
+let conf_text_decoders =
+  Dtools.Conf.list
+    ~p:(conf_decoder#plug "text_decoders") ~d:[]
+    "Decoders and order used to convert text to images."
+
 let conf_stream_decoders =
   Dtools.Conf.list 
     ~p:(conf_decoder#plug "stream_decoders") ~d:[]
@@ -149,6 +154,11 @@ let image_file_decoders : (file -> Image.RGBA32.t option) Plug.plug =
   Plug.create
     ~register_hook:(fun (name,_) -> f conf_image_file_decoders name)
     ~doc:"Image file decoding methods." ~insensitive:true "image file decoding"
+
+let text_decoders : (?font:string -> ?size:int -> ?color:int -> string -> Image.RGBA32.t option) Plug.plug =
+  Plug.create
+    ~register_hook:(fun (name,_) -> f conf_image_file_decoders name)
+    ~doc:"Text to image synthesis methods." ~insensitive:true "text decoding"
 
 let stream_decoders :
       (stream -> Frame.content_kind -> stream_decoder option) Plug.plug =
@@ -273,6 +283,32 @@ let get_image_file_decoder filename =
         | None -> ()
       ) (get_decoders conf_image_file_decoders image_file_decoders);
     log#f 3 "Unable to decode %S!" filename;
+    !ans
+  with
+  | Pervasives.Exit -> !ans
+
+(** Get a valid image decoder creator for [filename]. *)
+let get_text_decoder ?font ?size ?color s =
+  let ans = ref None in
+  try
+    List.iter
+      (fun (name,decoder) ->
+        log#f 4 "Trying method %S for %S..." name s;
+        match
+          try decoder  ?font ?size ?color s with
+          | e ->
+            log#f 4
+              "Decoder %S failed on %S: %s!"
+              name s (Utils.error_message e);
+            None
+        with
+        | Some img ->
+          log#f 3 "Method %S accepted %S." name s;
+          ans := Some img;
+          raise Pervasives.Exit
+        | None -> ()
+      ) (get_decoders conf_text_decoders text_decoders);
+    log#f 3 "Unable to decode %S!" s;
     !ans
   with
   | Pervasives.Exit -> !ans

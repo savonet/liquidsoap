@@ -51,6 +51,7 @@ val file_decoders :
      (unit -> file_decoder) option)
   Plug.plug
 val image_file_decoders : (file -> Image.RGBA32.t option) Plug.plug
+val text_decoders : (?font:string -> ?size:int -> ?color:int -> string -> Image.RGBA32.t option) Plug.plug
 val stream_decoders :
   (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
 
@@ -68,16 +69,19 @@ val get_file_decoder :
   metadata:Frame.metadata -> file -> Frame.content_kind ->
   (string * (unit -> file_decoder)) option
 val get_image_file_decoder : file -> Image.RGBA32.t option
+
+(** Retrieve a decoder which will synthesize a text into an image using given
+    font and font size (in points) and color (in ARGB format). *)
+val get_text_decoder : ?font:string -> ?size:int -> ?color:int -> string -> Image.RGBA32.t option
 val get_stream_decoder :
   file -> Frame.content_kind -> stream_decoder option
 
-module Buffered :
-  functor (Generator : Generator.S) ->
-    sig
-      val file_decoder :
-        file ->
-        Frame.content_kind ->
-        (input -> Generator.t decoder) ->
-        Generator.t ->
-        file_decoder
-    end
+module Buffered : functor (Generator : Generator.S) ->
+sig
+  val file_decoder :
+    file ->
+    Frame.content_kind ->
+    (input -> Generator.t decoder) ->
+    Generator.t ->
+    file_decoder
+end

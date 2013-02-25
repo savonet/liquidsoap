@@ -44,3 +44,9 @@ module String = struct
     in
     List.rev (aux [] 0)
 end
+
+module Option = struct
+  let default d = function
+    | Some x -> x
+    | None -> d
+end

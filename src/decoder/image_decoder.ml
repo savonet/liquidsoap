@@ -47,7 +47,6 @@ let create_decoder metadata img =
   (* Negative offset means from the right. *)
   let off_x = if off_x < 0 then frame_w - width + off_x else off_x in
   let off_y = if off_y < 0 then frame_h - height + off_y else off_y in
-  Printf.printf "off_x: %d\n%!" off_x;
   if (width,height) <> (img_w,img_h) || (off_x,off_y) <> (0,0) then
     (
       (* TODO: use Video_converter.find_converter *)
@@ -73,12 +72,11 @@ let create_decoder metadata img =
     in
     VFrame.add_break frame stop ;
     for i = start to stop-1 do
-      (* One could think of avoiding the creation of a blank
-       * video layer that will be overwritten immediately.
-       * However, in most cases an old layer will be re-used.
-       * In fact, we might even need to explicitly blankify
-       * because our image might be transparent and the
-       * current frame might contain random stuff. TODO *)
+      (* One could think of avoiding the creation of a blank video layer that
+       * will be overwritten immediately.  However, in most cases an old layer
+       * will be re-used.  In fact, we might even need to explicitly blankify
+       * because our image might be transparent and the current frame might
+       * contain random stuff. TODO *)
       Img.blit img video.(i)
     done ;
     if !duration = -1 then -1 else begin

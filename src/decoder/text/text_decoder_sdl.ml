@@ -20,6 +20,10 @@
 
  *****************************************************************************)
 
+open Stdlib
+
+module Img = Image.RGBA32
+
 let init () =
   Sdl_utils.init [];
   Sdl_utils.ttf_init ()
@@ -33,7 +37,10 @@ let get_font font size =
     | e ->
       raise (Lang.Invalid_value (Lang.string font, Utils.error_message e))
 
-let render_text ~font ~size text =
+let render_text ?font ?size ?color text =
+  let font = Option.default "" font in
+  let size = Option.default 10 size in
+  let color = Option.default 0xffffffff color in
   let text = if text = "" then " " else text in
   let font = get_font font size in
   let ts = Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
@@ -45,7 +52,20 @@ let render_text ~font ~size text =
     let r, _, _ = Sdlvideo.get_pixel_color ts ~x ~y in
     r
   in
-  w, h, get_pixel
+  let img = Img.create w h in
+  let tr, tg, tb = Image.RGB8.Color.of_int color in
+  (* TODO: handle opacity *)
+  for y = 0 to h - 1 do
+    for x = 0 to w - 1 do
+      let a = get_pixel x y in
+      Img.set_pixel img x y (tr, tg, tb, a)
+    done
+  done;
+  img
 
 let () =
-  Video_text.register "sdl" init render_text
+  Decoder.text_decoders#register "SDL"
+    ~sdoc:"SDL syntesis of text."
+    (fun ?font ?size ?color s ->
+      let img = render_text ?font ?size ?color s in
+      Some img)

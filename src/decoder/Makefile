@@ -1,4 +1,4 @@
-SUBDIRS = image
+SUBDIRS = image text
 DISTFILES = $(wildcard *.ml) $(wildcard *.mli) $(wildcard *.c) Makefile
 
 top_srcdir= ../..
