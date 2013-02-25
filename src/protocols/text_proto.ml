@@ -51,7 +51,6 @@ let text s ~log maxtime =
       | _ -> failwith "Bad text options."
     in
     let s = aux s in
-    Printf.printf "text: %s\n%!" s;
     let img = Decoder.get_text_decoder ?font:!font ?size:!size ?color:!color s in
     let img = match img with Some img -> img | None -> failwith "Could not find a text synthesizer" in
     let bmp = Img.to_BMP img in

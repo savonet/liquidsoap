@@ -293,7 +293,6 @@ let get_text_decoder ?font ?size ?color s =
   try
     List.iter
       (fun (name,decoder) ->
-        Printf.printf "Trying method %S for %S..\n%!." name s;
         log#f 4 "Trying method %S for %S..." name s;
         match
           try decoder ?font ?size ?color s with
