@@ -1156,8 +1156,8 @@ let () =
       "",Lang.fun_t [] Lang.float_t,None,None ]
     Lang.unit_t
     ~descr:"Call a function in N seconds. \
-        If the result of the function is positive or null, \
-        the task will be scheduled after this amount of time (in seconds.)"
+        If the result of the function is positive or null, the \
+        task will be scheduled again after this amount of time (in seconds)."
     (fun p ->
        let d = Lang.to_float (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
