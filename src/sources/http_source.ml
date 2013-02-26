@@ -259,16 +259,23 @@ object (self)
 
   method feeding should_stop ?(newstream=true)
                  create_decoder =
-    let read len =
+    let read =
       let log = self#log#f 4 "%s" in
       (* Socket can't be closed while waiting on it. *)
-      Tutils.mutexify socket_m (fun () ->
+      Tutils.mutexify socket_m (fun len ->
           match socket with
             | None -> "",0
             | Some (socket,read,_) ->
-              Utils.wait_for ~log `Read socket timeout;
-              read len
-      ) ()
+              begin
+               try
+                Utils.wait_for ~log `Read socket timeout;
+                read len
+               with e -> self#log#f 2 "Error while reading from socket: \
+                            %s" (Utils.error_message e);
+                         Tutils.mutexify get_socket_m (fun () ->
+                           self#disconnect_no_lock) ();
+                         "",0
+               end)
     in
     let read =
       match logf with
@@ -315,12 +322,17 @@ object (self)
             end ;
             self#disconnect
 
-  method private disconnect =
+  method private disconnect_no_lock =
+    Utils.maydo (fun (s,_,_) ->
+     try
+      Http.disconnect s
+     with _ -> ()) socket;
+    socket <- None
+
+  method disconnect =
     Tutils.mutexify socket_m
       (Tutils.mutexify get_socket_m (fun () ->
-        Utils.maydo (fun (s,_,_) ->
-          Http.disconnect s;
-          socket <- None) socket)) ()
+        self#disconnect_no_lock)) ()
 
   (** This method gets overriden by superclasses (see Lastfm_input)
     * but #private_connect should not be changed.
