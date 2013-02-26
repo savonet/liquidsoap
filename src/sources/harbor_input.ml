@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Unix
-
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
