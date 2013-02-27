@@ -199,6 +199,7 @@ let new_queue ?priorities ~name () =
              Duppy.queue scheduler ~log:qlog ~priorities name
      with e ->
        log#f 2 "Queue %s crashed with exception %s" name (Utils.error_message e) ;
+       log#f 2 "%s" (Utils.get_backtrace());
        log#f 1 "PANIC: Liquidsoap has crashed, exiting.." ;
        log#f 1 "Please report at: savonet-users@lists.sf.net" ;
        exit 1

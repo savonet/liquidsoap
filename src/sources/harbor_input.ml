@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Unix
-
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
@@ -29,8 +27,8 @@ exception Disconnected
 exception Stopped
 
 (** Error translator *)
-let error_translator e =
-   match e with
+let error_translator =
+   function
      | Disconnected ->
          raise (Utils.Translation "Source client disconnected")
      | Stopped ->
@@ -131,27 +129,42 @@ object (self)
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
-      Tutils.mutexify relay_m (fun () -> 
-        match relay_socket with
-          | None -> "", 0
-          | Some socket ->
-            (* Wait for `Read event on socket. *)
-            let log = self#log#f 4 "%s" in
-            Utils.wait_for ~log `Read socket timeout;
-            (* Now read. *)
-            let buf = String.make len ' ' in
-            let input = Unix.read socket buf 0 len in
-            begin match dump with
-              | Some b -> output_string b (String.sub buf 0 input)
-              | None -> ()
-            end ;
-            begin match logf with
-              | Some b ->
-                  let time = (Unix.gettimeofday () -. t0) /. 60. in
-                  Printf.fprintf b "%f %d\n%!" time self#length
-              | None -> ()
-            end ;
-            buf,input) ()
+      let buf,input =
+        Tutils.mutexify relay_m
+         (fun len -> 
+          match relay_socket with
+            | None -> "", 0
+            | Some socket ->
+               begin
+                try
+                 (* Wait for `Read event on socket. *)
+                 let log = self#log#f 4 "%s" in
+                 Utils.wait_for ~log `Read socket timeout;
+                 (* Now read. *)
+                 let buf = String.make len ' ' in
+                 let input = Unix.read socket buf 0 len in
+                 buf, input
+                with
+                  | e -> self#log#f 2 "Error while reading from client: \
+                            %s" (Utils.error_message e);
+                         Tutils.mutexify get_relay_m (fun () ->
+                           self#disconnect_no_lock) ();
+                         "",0
+               end) len;
+      in
+      begin
+        match dump with
+          | Some b -> output_string b (String.sub buf 0 input)
+          | None -> ()
+      end ;
+      begin
+        match logf with
+          | Some b ->
+             let time = (Unix.gettimeofday () -. t0) /. 60. in
+             Printf.fprintf b "%f %d\n%!" time self#length
+          | None -> ()
+      end ;
+      buf,input
     in
     let input =
       { Decoder.
@@ -272,14 +285,17 @@ object (self)
     kill_polling <- Some kill ;
     wait_polling <- Some wait
 
+  method private disconnect_no_lock =
+    Utils.maydo (fun s ->
+      try
+       Unix.close s
+      with _ -> ()) relay_socket;
+    relay_socket <- None
+
   method disconnect =
     Tutils.mutexify relay_m
       (Tutils.mutexify get_relay_m (fun () ->
-        Utils.maydo (fun s ->
-          try
-            Unix.close s
-          with _ -> ()) relay_socket;
-        relay_socket <- None)) ();
+        self#disconnect_no_lock)) ();
     begin match dump with
        | Some f ->
            close_out f ; dump <- None
