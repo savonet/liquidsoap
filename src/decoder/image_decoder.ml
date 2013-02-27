@@ -47,7 +47,6 @@ let create_decoder metadata img =
   (* Negative offset means from the right. *)
   let off_x = if off_x < 0 then frame_w - width + off_x else off_x in
   let off_y = if off_y < 0 then frame_h - height + off_y else off_y in
-  Printf.printf "off_x: %d\n%!" off_x;
   if (width,height) <> (img_w,img_h) || (off_x,off_y) <> (0,0) then
     (
       (* TODO: use Video_converter.find_converter *)
