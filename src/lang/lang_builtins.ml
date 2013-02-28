@@ -987,6 +987,18 @@ let () =
          Lang.list ~t l)
 
 let () =
+  let t = Lang.list_t (Lang.univ_t 1) in
+  Lang.add_builtin "list.randomize"
+    ~category:(string_of_category List)
+    ~descr:"Shuffle the content of a list."
+    ["", t, None, None ] t
+    (fun p t ->
+       let t = Lang.of_list_t t in
+       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
+       Utils.randomize l;
+       Lang.list ~t (Array.to_list l))
+
+let () =
   add_builtin "list.fold" ~cat:List
     ~descr:"Fold a function on every element of a list: \
             list.fold(f,x1,[e1,..,en]) is f(...f(f(x1,e1),e2)...,en)."
