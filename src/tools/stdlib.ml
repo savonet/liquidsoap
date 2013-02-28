@@ -19,6 +19,12 @@ module List = struct
       )
     | [] -> []
 
+  let may_assoc x l =
+    try
+      Some (List.assoc x l)
+    with
+    | Not_found -> None
+
   let rec assoc_nth l n = function
     | [] -> raise Not_found
     | (x,v)::t when x = l ->
@@ -49,4 +55,10 @@ module Option = struct
   let default d = function
     | Some x -> x
     | None -> d
+
+  (** Functor part of the option monad. *)
+  let funct f x =
+    match x with
+    | None -> None
+    | Some x -> Some (f x)
 end

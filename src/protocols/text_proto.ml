@@ -20,38 +20,24 @@
 
  *****************************************************************************)
 
+(** Protocol plugin for text synthesis *)
+
 module Img = Image.RGBA32
 
-(** Protocol plugin for speech synthesis *)
-
+open Stdlib
 open Dtools
+open Genlex
 
 let dlog = Log.make ["protocols";"text"]
 
 let text s ~log maxtime =
   let local = Filename.temp_file "text" ".bmp" in
   try
-    let s = Annotate.lex s in
-    let font = ref None in
-    let size = ref None in
-    let color = ref None in
-    let rec aux = function
-      | [`Kwd ":";`Ident s] -> s
-      | (`Kwd ",")::s -> aux s
-      | (`Ident key)::(`Kwd "=")::(`Ident value)::s ->
-        (
-          match key with
-          | "font" -> font := Some value
-          | "size" -> size := Some (int_of_string value)
-          | "color" -> color := Some (int_of_string value)
-          | _ -> ()
-        );
-        aux s
-      | [`Ident s] -> s
-      | _ -> failwith "Bad text options."
-    in
-    let s = aux s in
-    let img = Decoder.get_text_decoder ?font:!font ?size:!size ?color:!color s in
+    let md, s = Annotate.parse s in
+    let font = List.may_assoc "font" md in
+    let size = Option.funct int_of_string (List.may_assoc "size" md) in
+    let color = Option.funct int_of_string (List.may_assoc "color" md) in
+    let img = Decoder.get_text_decoder ?font ?size ?color s in
     let img = match img with Some img -> img | None -> failwith "Could not find a text synthesizer" in
     let bmp = Img.to_BMP img in
     let oc = open_out local in
