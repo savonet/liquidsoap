@@ -25,8 +25,6 @@ open Dtools
 
 let dlog = Log.make ["protocols";"external"]
 
-exception Missing of string
-
 let mktmp src =
   let file_ext =
     Printf.sprintf ".%s"
@@ -45,59 +43,62 @@ let resolve proto program command s ~log maxtime =
   let (iR,iW) = Unix.pipe () in
   let (xR,xW) = Unix.pipe () in
   let local = mktmp s in
-  try
-    let pid =
-      Unix.create_process program (command program s local)
-        iR xW Unix.stderr
-    in
-    dlog#f 4 "Executing %s %S %S" program s local;
-    let timeout () = max 0. (maxtime -. Unix.gettimeofday ()) in
-      Unix.close iR ;
-      let prog_stdout = ref "" in
-      let rec task () = 
-        let timeout = timeout () in
-        { Duppy.Task.
-          priority = Tutils.Non_blocking;
-          events   = [`Read xR; `Delay timeout];
-          handler  = fun l ->
-          if List.mem (`Delay timeout) l then
-           begin
-            Unix.kill pid 9;
-            []
-           end
-          else
-           begin
-            let s = String.create 1024 in
-            let ret = Unix.read xR s 0 1024 in
-            if ret > 0 then
-             begin
-               prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
-               [task ()]
-             end
-            else
-              []
-           end }
-      in
-      Duppy.Task.add Tutils.scheduler (task ());
-      let (p,code) = Unix.waitpid [] pid in
-        assert (p <> 0) ;
-        dlog#f 4 "Download process finished (%s)"
-          (match code with
-          | Unix.WSIGNALED _ -> "killed"
-          | Unix.WEXITED 0 -> "ok"
-          | _ -> "error") ;
-        Unix.close iW ;
-        Unix.close xW ;
-        if code = Unix.WEXITED 0 then
-          [Request.indicator ~temporary:true !prog_stdout]
-        else begin
-          log "Download failed: timeout, invalid URI ?" ;
-          ( try Unix.unlink !prog_stdout with _ -> () ) ;
+  let args,active =
+    match command program s local with
+      | `Active args  -> args,true
+      | `Passive args -> args, false 
+  in
+  let pid =
+    Unix.create_process program args iR xW Unix.stderr
+  in
+  dlog#f 4 "Executing %s %S %S" program s local;
+  let timeout () = max 0. (maxtime -. Unix.gettimeofday ()) in
+  Unix.close iR ;
+  let prog_stdout = ref "" in
+  let rec task () = 
+    let timeout = timeout () in
+    { Duppy.Task.
+      priority = Tutils.Non_blocking;
+      events   = [`Read xR; `Delay timeout];
+      handler  = fun l ->
+      if List.mem (`Delay timeout) l then
+       begin
+        Unix.kill pid 9;
+        []
+       end
+      else
+       begin
+        let s = String.create 1024 in
+        let ret = Unix.read xR s 0 1024 in
+        if ret > 0 then
+         begin
+           prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
+           [task ()]
+         end
+        else
           []
-        end
-  with Missing progname ->
-    dlog#f 2 "Could not find download program %s" progname;
+       end }
+  in
+  Duppy.Task.add Tutils.scheduler (task ());
+  let (p,code) = Unix.waitpid [] pid in
+  assert (p <> 0) ;
+  dlog#f 4 "Download process finished (%s)"
+    (match code with
+       | Unix.WSIGNALED _ -> "killed"
+       | Unix.WEXITED 0 -> "ok"
+       | _ -> "error") ;
+  Unix.close iW ;
+  Unix.close xW ;
+  let local =
+    if active then !prog_stdout else local
+  in
+  if code = Unix.WEXITED 0 then
+  [Request.indicator ~temporary:true local]
+  else begin
+    log "Download failed: timeout, invalid URI ?" ;
+    ( try Unix.unlink !prog_stdout with _ -> () ) ;
     []
+  end
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "extproto") "External protocol resolvers"
@@ -107,17 +108,23 @@ let conf_server_name =
   Dtools.Conf.bool ~p:(conf#plug "use_server_name") "Use server-provided name"
     ~d:false ~comments:["Use server-provided name."]
 
+let get_program, command =
+  try
+    Utils.which Configure.get_program,
+    (fun prog src dst ->
+      if conf_server_name#get then
+        (`Active [|prog;src;dst;"true"|])
+      else
+        (`Passive [|prog;src;dst|]))
+  with
+    | Not_found ->
+        "wget", (fun prog src dst ->
+          (`Passive [|prog;"-q";src;"-O";dst|]))
+
 let extproto = [
-  Configure.get_program,
+  get_program,
   [ "http";"https";"ftp" ],
-  (fun prog src dst ->
-    begin try
-      ignore(Utils.which "wget")
-    with Not_found -> raise (Missing "wget") end;
-    if conf_server_name#get then 
-      [|prog;src;dst;"true"|]
-    else
-      [|prog;src;dst|])
+  command
 ]
 
 let () =
@@ -129,6 +136,7 @@ let () =
     (fun (prog,protos,command) ->
        try
          let prog = Utils.which prog in
+           dlog#f 3 "Found %S." prog ;
            List.iter
              (fun proto ->
                 Request.protocols#register
