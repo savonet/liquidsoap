@@ -129,7 +129,6 @@ let () =
     (fun (prog,protos,command) ->
        try
          let prog = Utils.which prog in
-           dlog#f 3 "Found %S." prog ;
            List.iter
              (fun proto ->
                 Request.protocols#register
