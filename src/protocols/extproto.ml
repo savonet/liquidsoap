@@ -55,29 +55,41 @@ let resolve proto program command s ~log maxtime =
   let timeout () = max 0. (maxtime -. Unix.gettimeofday ()) in
   Unix.close iR ;
   let prog_stdout = ref "" in
+  (* Setup task.. *)
+  let after_task,task_done =
+    let m = Mutex.create () in
+    let c = Condition.create () in
+    let is_task = ref false in
+    Tutils.mutexify m (fun fn ->
+      if !is_task then
+        Condition.wait c m;
+      fn()),
+    Tutils.mutexify m (fun () ->
+      is_task := false;
+      Condition.signal c)
+  in
   let rec task () = 
     let timeout = timeout () in
     { Duppy.Task.
       priority = Tutils.Non_blocking;
       events   = [`Read xR; `Delay timeout];
       handler  = fun l ->
-      if List.mem (`Delay timeout) l then
-       begin
-        Unix.kill pid 9;
-        []
-       end
-      else
-       begin
-        let s = String.create 1024 in
-        let ret = Unix.read xR s 0 1024 in
-        if ret > 0 then
-         begin
-           prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
-           [task ()]
-         end
-        else
-          []
-       end }
+        let rem = 
+          if List.mem (`Delay timeout) l then
+           begin
+            Unix.kill pid 9;
+            []
+           end
+          else
+           begin
+            let s = String.create 1024 in
+            let ret = Unix.read xR s 0 1024 in
+            prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
+            if ret > 0 then [task()] else []
+           end
+        in
+        if rem = [] then task_done();
+        rem }
   in
   Duppy.Task.add Tutils.scheduler (task ());
   let (p,code) = Unix.waitpid [] pid in
@@ -89,16 +101,17 @@ let resolve proto program command s ~log maxtime =
        | _ -> "error") ;
   Unix.close iW ;
   Unix.close xW ;
-  let local =
-    if active then !prog_stdout else local
-  in
-  if code = Unix.WEXITED 0 then
-  [Request.indicator ~temporary:true local]
-  else begin
-    log "Download failed: timeout, invalid URI ?" ;
-    ( try Unix.unlink !prog_stdout with _ -> () ) ;
-    []
-  end
+  after_task (fun () ->
+    let local =
+      if active then !prog_stdout else local
+    in
+    if code = Unix.WEXITED 0 then
+    [Request.indicator ~temporary:true local]
+    else begin
+      log "Download failed: timeout, invalid URI ?" ;
+      ( try Unix.unlink !prog_stdout with _ -> () ) ;
+      []
+    end)
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "extproto") "External protocol resolvers"
