@@ -49,6 +49,9 @@ val requests_table_size : int
 (** Program used for text-to-speech. *)
 val tts_program : string
 
+(** Program used for grabbing files. *)
+val get_program : string
+
 (** Configured directories. Typically /var/(run|log)/liquidsoap. *)
 val rundir : string
 val logdir : string

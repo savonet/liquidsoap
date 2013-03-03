@@ -27,6 +27,7 @@ doc-local: all
 finish-configure:
 ifneq ($(CUSTOM_PATH),yes)
 	@echo let tts_program = \"$(libdir)/liquidsoap/$(libs_dir_version)/liquidtts\" >> src/configure.ml
+	@echo let get_program = \"$(libdir)/liquidsoap/$(libs_dir_version)/liquidget\" >> src/configure.ml
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
@@ -35,6 +36,7 @@ ifneq ($(CUSTOM_PATH),yes)
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
 	@echo let tts_program = get_dir \"liquidtts\" >> src/configure.ml
+	@echo let get_program = get_dir \"liquidget\" >> src/configure.ml
 	@echo let rundir = get_dir \"run\" >> src/configure.ml
 	@echo let logdir = get_dir \"logs\" >> src/configure.ml
 	@echo let plugins_dir = get_dir \"plugins\" >> src/configure.ml
@@ -76,7 +78,7 @@ ifeq ($(INSTALL_DAEMON),yes)
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_PROGRAM) scripts/liquidtts scripts/liquidget $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
 	for l in externals.liq lastfm.liq utils.liq shoutcast.liq flows.liq video_text.liq \
 		       http.liq http_codes.liq pervasives.liq gstreamer.liq ; \
