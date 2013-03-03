@@ -450,7 +450,7 @@ class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
   let gen =
     Generator.create
       ~log:(fun x -> !rlog x) ~kind
-      ~overfull:(`Drop_old max_ticks) content 
+      content 
   in
   let () = GU.init () in
 object (self)
@@ -584,11 +584,14 @@ object (self)
 
   method is_active = true
 
+  method private is_generator_at_max =
+    Generator.length gen >= max_ticks
+
   method private fill_audio =
     match self#get_device.audio with
       | None -> ()
       | Some audio ->
-         while audio.pending () > 0 do
+         while audio.pending () > 0 && not self#is_generator_at_max do
            let b = audio.pull() in
            let len = String.length b / (2*channels) in
            let buf = Audio.create channels len in
@@ -600,7 +603,7 @@ object (self)
     match self#get_device.video with
       | None -> ()
       | Some video ->
-         while video.pending () > 0 do
+         while video.pending () > 0 && not self#is_generator_at_max do
            let b = video.pull () in
            let img = Img.make width height b in
            let stream = [|img|] in
