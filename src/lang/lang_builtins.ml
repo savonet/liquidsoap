@@ -2240,6 +2240,26 @@ let () =
          Lang.val_fun [] ~ret_t:Lang.float_t (fun p _ -> Lang.float !v))
 
 let () =
+  add_builtin "interactive.bool" ~cat:Interaction
+    ~descr:"Read a boolean from an interactive input."
+    ["",Lang.string_t,None,None; "",Lang.bool_t,None,None ]
+    (Lang.fun_t [] Lang.bool_t)
+    (fun p ->
+       let name = Lang.to_string (Lang.assoc "" 1 p) in
+       let v = Lang.to_bool (Lang.assoc "" 2 p) in
+       let v = ref v in
+         Var.add
+           name
+           Lang.float_t
+           ~get:(fun () -> Printf.sprintf "%B" !v)
+           ~set:(fun s -> v := s = "true")
+           ~validate:
+           (fun s ->
+             if s <> "true" && s <> "false" then
+               raise (Var.Invalid_value (s ^ " is not a boolean")));
+         Lang.val_fun [] ~ret_t:Lang.bool_t (fun p _ -> Lang.bool !v))
+
+let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
     ["newline",Lang.bool_t,Some (Lang.bool true),
      Some "If true, a newline is added after displaying the value." ;
