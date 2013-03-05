@@ -16,7 +16,7 @@ Libraries not developed by Savonet are:
 Mandatory dependencies :
 
    ocaml-dtools>=0.3.0
-   ocaml-duppy>=0.4.2
+   ocaml-duppy>=0.5.0
    ocaml-mm>=0.2.1
    ocaml-pcre
 
@@ -29,25 +29,29 @@ Recommended dependencies :
 Optional dependencies :
 
    ocaml-cry>=0.2.2          for sending to Shoutcast & Icecast
-   ocaml-ogg>=0.4.3          for Ogg codecs
+   ocaml-ogg>=0.4.4          for Ogg codecs
    ocaml-vorbis>=0.6.1       for Ogg/Vorbis codec
+   ocaml-opus>=0.1.0         for Ogg/Opus codec
    ocaml-theora>=0.3.0       for Ogg/Theora codec
    ocaml-speex>=0.2.0        for Ogg/Speex codec
    ocaml-flac>=0.1.1         for Flac and Ogg/Flac codec
    ocaml-schroedinger>=0.1.0 for Ogg/Schroedinger codec
    ocaml-mad>=0.4.4          for MP3 decoding
    ocaml-lame>=0.3.1         for MP3 encoding
+   ocaml-shine>=0.1.0        for fixed-point MP3 encoding
    ocaml-taglib>=0.3.0       for MP3ID3 metadata access
-   ocaml-faad>=0.3.0         for AAC stream decoding
-   ocaml-aacplus>=0.2.0      for AAC(+) encoding
+   ocaml-faad>=0.3.2         for AAC stream decoding
+   ocaml-aacplus>=0.2.1      for AAC(+) encoding
    ocaml-voaacenc>=0.1.0     for AAC(+) encoding
    camlimages>=4.0.0         for image decoding
    ocaml-sdl                 for display, font & image support
-   ocaml-gavl>=0.1.4         for video conversion using the gavl library
-   ocaml-samplerate>=0.1.1   for libsamplerate audio conversion
+   ocaml-gavl>=0.1.5         for video conversion using the gavl library
+   ocaml-ffmpeg>=0.1.0       for video conversion using the ffmpeg library
+   ocaml-samplerate>=0.1.2   for libsamplerate audio conversion
    ocaml-lastfm>=0.3.0       for lastfm protocol support
    ocaml-xmlplaylist>=0.1.3  for XML-based playlist formats
-   ocaml-dssi>=0.1.0         for DSSI sound synthesis
+   ocaml-dssi>=0.1.1         for DSSI sound synthesis
+   ocaml-frei0r>=0.1.0       for frei0r plugins
    ocaml-lo>=0.1.0           for OSC (Open Sound Control) support
    ocaml-ladspa>=0.1.4       for LADSPA plugins
    ocaml-soundtouch>=0.1.7   for libsoundtouch's audio effects
@@ -55,8 +59,8 @@ Optional dependencies :
    ocaml-alsa>=0.2.1         for ALSA I/O
    ocaml-portaudio>=0.2.0    for Portaudio I/O
    ocaml-pulseaudio>=0.1.2   for PulseAudio I/O
-   ocaml-bjack>=0.1.3        for Jack support
-   ocaml-gstreamer>=0.2.0    for v4l2 (video for linux) input
+   ocaml-bjack>=0.1.4        for Jack support
+   ocaml-gstreamer>=0.2.0    for GStreamer input, output and encoding/decoding
    ocaml-inotify>=1.0        for reloading playlists when changed
    json-wheel                for parsing JSON data (of_json function)
    gd4o                      for video.add_text() on servers without X
