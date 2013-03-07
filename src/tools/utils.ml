@@ -276,9 +276,6 @@ let buffer_drop buffer len =
  * and override it with Printexc's implementation
  * if present.. *)
 
-(* Exception translation *)
-exception Translation of string
-
 let error_translators = Queue.create ()
 
 let register_error_translator x = Queue.push x error_translators
@@ -286,19 +283,16 @@ let register_error_translator x = Queue.push x error_translators
 let unix_translator = 
   function
     | Unix.Unix_error (code,name,param) ->
-      raise (Translation 
-          (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
-                                         name param))
-    | _ -> ()
+       Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
+                                           name param)
+    | _ -> None
 
 let () = register_error_translator unix_translator
 
 let exception_printer e =
- try
-   Queue.iter (fun f -> f e) error_translators ;
-   None
- with
-   | Translation x -> Some x
+  Queue.fold
+    (fun cur f -> if cur <> None then cur else f e)
+    None error_translators
 
 let register_printer _ = 
     raise Not_found

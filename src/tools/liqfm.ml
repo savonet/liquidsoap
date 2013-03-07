@@ -71,14 +71,13 @@ module Radio          = Lastfm_generic.Radio_generic(Liq_http)
 let error_translator =
   function
     | Audioscrobbler.Error x ->
-       raise (Utils.Translation
-          (Printf.sprintf "Audioscrobbler error: %s" 
-             (Audioscrobbler.string_of_error x)))
+        Some (Printf.sprintf "Audioscrobbler error: %s" 
+               (Audioscrobbler.string_of_error x))
     | Radio.Error x ->
-       raise (Utils.Translation
+        Some
           (Printf.sprintf "Lastfm radio error: %s"
-             (Radio.string_of_error x)))
-    | _ -> ()
+             (Radio.string_of_error x))
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

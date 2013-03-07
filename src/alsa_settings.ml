@@ -37,9 +37,8 @@ let error_translator e =
      | Alsa.Device_removed
      | Alsa.Interrupted
      | Alsa.Unknown_error _ ->
-       raise (Utils.Translation
-         (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e)))
-     | _ -> ()
+         Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

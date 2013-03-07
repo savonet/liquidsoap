@@ -27,9 +27,8 @@ open Dtools
 let error_translator =
   function
     | Faad.Error x ->
-       raise (Utils.Translation 
-          (Printf.sprintf "Faad error: %s" (Faad.error_message x)))
-    | _ -> ()
+        Some (Printf.sprintf "Faad error: %s" (Faad.error_message x))
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

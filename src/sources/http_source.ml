@@ -26,10 +26,10 @@ exception Read_error
 (** Error translator *)
 let error_translator e =
    match e with
-     | Internal -> raise (Utils.Translation "Internal http error.")
+     | Internal -> Some "Internal http error."
      | Read_error ->
-         raise (Utils.Translation "Error while reading http stream.")
-     | _ -> ()
+         Some "Error while reading http stream."
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

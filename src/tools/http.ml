@@ -14,8 +14,8 @@ let string_of_error e =
 (** Error translator *)
 let error_translator e =
    match e with
-     | Error e -> raise (Utils.Translation (string_of_error e))
-     | _ -> ()
+     | Error e -> Some (string_of_error e)
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
