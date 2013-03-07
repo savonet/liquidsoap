@@ -83,7 +83,9 @@ let resolve proto program command s ~log maxtime =
           else
            begin
             let s = String.create 1024 in
-            let ret = Unix.read xR s 0 1024 in
+            let ret =
+              try Unix.read xR s 0 1024 with _ -> 0
+            in
             prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
             if ret > 0 then [task()] else []
            end
@@ -121,9 +123,18 @@ let conf_server_name =
   Dtools.Conf.bool ~p:(conf#plug "use_server_name") "Use server-provided name"
     ~d:false ~comments:["Use server-provided name."]
 
+let which =
+  let which = Utils.which ~path:Configure.path in
+  if Sys.os_type <> "Win32" then
+    which
+  else
+    fun s ->
+      try which s with Not_found ->
+        which (Printf.sprintf "%s%s" s Configure.exe_ext)
+
 let get_program, command =
   try
-    Utils.which Configure.get_program,
+    which Configure.get_program,
     (fun prog src dst ->
       if conf_server_name#get then
         (`Active [|prog;src;dst;"true"|])
@@ -148,7 +159,7 @@ let () =
   List.iter
     (fun (prog,protos,command) ->
        try
-         let prog = Utils.which prog in
+         let prog = which prog in
            dlog#f 3 "Found %S." prog ;
            List.iter
              (fun proto ->

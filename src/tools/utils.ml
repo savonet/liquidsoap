@@ -481,13 +481,9 @@ let interpolate =
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
 let which =
-  let path =
-    let s = Sys.getenv "PATH" in
-      Str.split (Str.regexp_string ":") s
-  in
-    fun s ->
+    fun ~path s ->
       if Sys.file_exists s then s else
-        List.find Sys.file_exists (List.map (fun d -> d^"/"^s) path)
+        List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
 
 (** Very partial strftime clone *)
 let strftime str : string =

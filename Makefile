@@ -32,6 +32,7 @@ ifneq ($(CUSTOM_PATH),yes)
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
 	@echo let plugins_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)/plugins\" >> src/configure.ml
+	@echo let bin_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
@@ -41,10 +42,12 @@ else
 	@echo let logdir = get_dir \"logs\" >> src/configure.ml
 	@echo let plugins_dir = get_dir \"plugins\" >> src/configure.ml
 	@echo let libs_dir = get_dir \"libs\" >> src/configure.ml
+	@echo let bin_dir = get_dir \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
 endif
 	@echo let display_types = ref false >> src/configure.ml
+	@echo let exe_ext = \"$(EXEEXT)\" >> src/configure.ml
 	@echo "(* Enable backtrace printing if possible, does nothing on ocaml<3.11 *)" >> src/configure.ml
 	@echo "let record_backtrace _ = ()" >> src/configure.ml
 	@echo "open Printexc" >> src/configure.ml
@@ -52,6 +55,9 @@ endif
                   Printf.sprintf \"Liquidsoap/%s (%s; OCaml %s)\" \
                      version Sys.os_type Sys.ocaml_version" >> src/configure.ml
 	@echo "let () = record_backtrace true" >> src/configure.ml
+	@echo "let path = \
+          let s = try Sys.getenv \"PATH\" with Not_found -> \"\" in \
+          bin_dir :: (Str.split (Str.regexp_string \":\") s)" >> src/configure.ml
 	@echo Creating scripts/liquidsoap.logrotate
 	@cat scripts/liquidsoap.logrotate.in | \
 	  sed -e s:@localstatedir@:$(localstatedir): > scripts/liquidsoap.logrotate
