@@ -29,10 +29,9 @@ let get_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "pulse")
 let error_translator e =
    match e with
      | Pulseaudio.Error n ->
-       raise (Utils.Translation
-         (Printf.sprintf
-            "Pulseaudio error: %s" (Pulseaudio.string_of_error n)))
-     | _ -> ()
+        Some (Printf.sprintf
+                "Pulseaudio error: %s" (Pulseaudio.string_of_error n))
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

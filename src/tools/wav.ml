@@ -51,9 +51,8 @@ exception Not_a_wav_file of string
 let error_translator =
   function
     | Not_a_wav_file x ->
-       raise (Utils.Translation
-         (Printf.sprintf "Wave error: %s" x))
-    | _ -> ()
+       Some (Printf.sprintf "Wave error: %s" x)
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

@@ -1,4 +1,3 @@
-
 dnl BEFORE RELEASING
 dnl Make sure that you edit the version number on the next line
 dnl as well as the "version" variable below AND the "libs_dir_version",
@@ -8,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.0.1])
+AC_INIT([liquidsoap],[1.1.0])
 scm_snapshot=true
-version=1.0.1
+version=1.1.0
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -723,7 +722,7 @@ fi
 
 # Inotify
 
-AC_CHECK_OCAML_BINDING([inotify],[])
+AC_CHECK_OCAML_BINDING([inotify],[1.0])
 
 cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch

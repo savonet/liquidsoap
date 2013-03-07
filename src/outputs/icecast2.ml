@@ -27,8 +27,8 @@ open Dtools
 let error_translator =
   function
     | Cry.Error _ as e ->
-       raise (Utils.Translation (Cry.string_of_error e))
-    | _ -> ()
+       Some (Cry.string_of_error e)
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

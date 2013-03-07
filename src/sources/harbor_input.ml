@@ -30,10 +30,10 @@ exception Stopped
 let error_translator =
    function
      | Disconnected ->
-         raise (Utils.Translation "Source client disconnected")
+         Some "Source client disconnected"
      | Stopped ->
-         raise (Utils.Translation "Source stopped")
-     | _ -> ()
+         Some "Source stopped"
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

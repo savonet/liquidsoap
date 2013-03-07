@@ -299,7 +299,12 @@ liquidsoap_doc_sources= \
 
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
-	if test -d .svn && which svn > /dev/null ; then \
+	if test -e ../.git && which git > /dev/null ; then \
+	  url=`git remote -v | grep fetch | sed 's/origin[ \t]*//' | sed 's/[ \t]*(.*)//'` ; \
+	  head=`git rev-parse HEAD` ; \
+          date=`date +%Y%m%d:%H%M%S`; \
+	  echo "let rev = \" ($$url@$$head:$$date)\"" > SVN.ml ; \
+	elif test -d .svn && which svn > /dev/null ; then \
 	  url=`LC_ALL=C svn info | grep URL | \
 	       sed -e 's:.*svnroot/savonet/\(.*\)/src:\1:'`; \
 	  revision=`LC_ALL=C svn info | grep Revision | \
@@ -311,11 +316,6 @@ SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	       sed -e 's/changeset: *['0'-'9']*:\([^ ]*\).*/\1/'`; \
           date=`date +%Y%m%d:%H%M%S`; \
 	  echo "let rev = \" ($$branch@$$revision:$$date)\"" > SVN.ml ; \
-	elif test -e ../.git && which git > /dev/null ; then \
-	  url=`git remote -v | grep fetch | sed 's/origin[ \t]*//' | sed 's/[ \t]*(.*)//'` ; \
-	  head=`git rev-parse HEAD` ; \
-          date=`date +%Y%m%d:%H%M%S`; \
-	  echo "let rev = \" ($$url@$$head:$$date)\"" > SVN.ml ; \
 	else \
 	  echo "let rev = \"\"" > SVN.ml ; \
 	fi
