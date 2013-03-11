@@ -242,7 +242,7 @@ For a detailed presentation of external encoders, see "this page":external_encod
 %%
 %external(channels=2,samplerate=44100,header=true,
           restart_on_crash=false,
-          restart_on_new_track,
+          restart_on_metadata,
           restart_after_delay=<int>,
           process="")
 %%
