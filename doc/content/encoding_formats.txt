@@ -247,7 +247,7 @@ For a detailed presentation of external encoders, see "this page":external_encod
           process="")
 %%
 
-Only one of @restart_on_new_track@ and @restart_after_delay@ should
+Only one of @restart_on_metadata@ and @restart_after_delay@ should
 be passed. The delay is specified in seconds.
 The encoding process is mandatory, and can also be passed directly
 as a string, without @process=@.
