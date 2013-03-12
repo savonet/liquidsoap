@@ -80,7 +80,7 @@ object (self)
   initializer
     ns_kind <- "input.harbor" ;
     let stop _ =
-      self#disconnect;
+      self#disconnect ~lock:true;
       "Done"
     in
     self#register_command
@@ -148,7 +148,7 @@ object (self)
                   | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
                          Tutils.mutexify get_relay_m (fun () ->
-                           self#disconnect_no_lock) ();
+                           self#disconnect ~lock:false) ();
                          "",0
                end) len;
       in
@@ -205,7 +205,7 @@ object (self)
              * happends in self#disconnect. No need to
              * call it then.. *)
             if e <> Disconnected && e <> Stopped then
-              self#disconnect;
+              self#disconnect ~lock:true;
             has_stopped () ;
             if debug then raise e
 
@@ -228,7 +228,7 @@ object (self)
     log_ref := self#log#f 3 "%s"
 
   method private sleep =
-    self#disconnect;
+    self#disconnect ~lock:true;
     Harbor.remove_source ~port ~mountpoint ()
 
   method register_decoder mime =
@@ -292,10 +292,12 @@ object (self)
       with _ -> ()) relay_socket;
     relay_socket <- None
 
-  method disconnect =
+  method private disconnect_with_lock =
     Tutils.mutexify relay_m
       (Tutils.mutexify get_relay_m (fun () ->
         self#disconnect_no_lock)) ();
+
+  method private after_disconnect =
     begin match dump with
        | Some f ->
            close_out f ; dump <- None
@@ -309,6 +311,13 @@ object (self)
     Utils.maydo (fun f -> f()) kill_polling ;
     kill_polling <- None ;
     on_disconnect ()
+
+  method disconnect ~lock =
+    if lock then
+      self#disconnect_with_lock
+    else
+      self#disconnect_no_lock;
+    self#after_disconnect
 end
 
 let () =
