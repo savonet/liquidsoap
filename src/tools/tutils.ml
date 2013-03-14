@@ -301,9 +301,10 @@ let wait c m f =
     if l then Mutex.unlock m
 
 (** Wait for some thread to crash *)
-let run = ref true
-let main () =
-  wait no_problem lock (fun () -> not (!run && !uncaught=None))
+let run  = ref true
+let main stop =
+  wait no_problem lock (fun () ->
+    not (stop() || (!run && !uncaught=None)))
 let shutdown () = run := false; Condition.signal no_problem
 
 (** Thread-safe lazy cell. *)

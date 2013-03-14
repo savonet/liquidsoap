@@ -116,8 +116,8 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs) $($(PROG)_PLUGINS:%=plu
 		$(c_link)
 endif
 
-# Compute C dependencies
-# Apparently, dynamic modules cannot
+# Compute C dependencies
+# Apparently, dynamic modules cannot
 # use the custom mode..
 plug_c_link = \
 $(if $($(1)_c_sources),\

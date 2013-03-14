@@ -30,7 +30,7 @@
   the needed threads: that function will sleep until a thread
   raises an exception. *)
 val create : ('a -> unit) -> 'a -> string -> Thread.t
-val main : unit -> unit
+val main : (unit -> bool) -> unit
 val shutdown : unit -> unit
 
 (** Special exception allowed for "clean" termination of Tutils threads.

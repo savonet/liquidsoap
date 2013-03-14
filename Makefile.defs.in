@@ -110,5 +110,10 @@ W_YOJSON=@W_YOJSON@
 W_DYNLINK=@W_DYNLINK@
 W_GD=@W_GD@
 W_INOTIFY=@W_INOTIFY@
+W_WINSVC=@W_WINSVC@
 
 PYMDIR=@PYMDIR@
+
+# Windows runner
+liquidsoapService_ocamlcflags = $(liquidsoap_ocamlcflags)
+liquidsoapService_ocamllflags = $(liquidsoap_ocamllflags)

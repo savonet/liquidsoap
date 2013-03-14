@@ -304,7 +304,7 @@ AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
 
 AC_CHECK_OCAML_BINDING([duppy],[0.4.2],[],[1],[],[1])
 
-# Small hack..
+# Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
   if test "${CAMLP4O}" != "no" ; then
     with_duppy_syntax_dir=${with_duppy_dir}
@@ -378,7 +378,7 @@ AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 #
 
 AC_CHECK_OCAML_BINDING([flac],[0.1.1])
-# Small hack..
+# Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
@@ -742,6 +742,10 @@ AC_CHECK_OCAML_BINDING([lo],[0.1.0])
 AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
 AC_CHECK_OCAML_BINDING([gd])
 
+# Winsvc (to run as a service)
+
+AC_CHECK_OCAML_BINDING([winsvc],[0.0.1])
+
 #
 # Tuning (See INSTALL to understand these features)
 #
@@ -975,6 +979,7 @@ cat <<EOMSG
    - lo                : $w_LO
    - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
+   - win32 service     : $w_WINSVC
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
