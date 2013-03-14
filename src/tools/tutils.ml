@@ -304,7 +304,7 @@ let wait c m f =
 let run  = ref true
 let main stop =
   wait no_problem lock (fun () ->
-    not (stop() || (!run && !uncaught=None)))
+    stop() || not (!run && !uncaught=None))
 let shutdown () = run := false; Condition.signal no_problem
 
 (** Thread-safe lazy cell. *)
