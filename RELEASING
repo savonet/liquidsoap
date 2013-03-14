@@ -11,6 +11,7 @@
  [] Fill-in CHANGES, with the release date.
  [] make clean
  [] make tarball
+ [] In website: copy reference-VER.txt settings-VER.txt and contents-VER.
 
 At least on one configuration (preferably all-yes)
 -----------------------------
