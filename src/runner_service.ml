@@ -26,7 +26,6 @@ let name    = ref "Liquidsoap"
 let display = ref "Liquidsoap Streaming Service"
 let text    = ref "Powerful streaming service using Liquidsoap"
 let action  = ref `None
-let args    = ref []
 
 let split s = Str.split (Str.regexp " ") s
 
@@ -37,17 +36,14 @@ module Runner : Main.Runner_t =
           Arg.Unit (fun _ -> action := `Install),
           "Install windows service running.";
           ["--service-name"],
-          Arg.String (fun s -> name := s),
+          Arg.Set_string name,
           "Service name.";
           ["--service-title"],
-          Arg.String (fun s -> display := s),
+          Arg.Set_string display,
           "Service title (displayed in service list).";
           ["--service-description"],
-          Arg.String (fun s -> text := s),
+          Arg.Set_string text,
           "Service description.";
-          ["--service-arguments"],
-          Arg.String (fun s -> args := split s),
-          "Service arguments.";
           ["--remove-service"],
           Arg.Unit (fun _ -> action := `Remove),
           "Remove windows service." ;
@@ -63,12 +59,20 @@ let () =
   in
   Arg.parse options (fun _ -> ()) Main.usage;
   Arg.current := 0;
+  let args = 
+    List.map (fun s ->
+       if s <> "--install-service" then
+         s
+       else
+         "--run-service")
+      (List.tl (Array.to_list Sys.argv))
+  in
   let module S =
     struct
       let name      = !name
       let display   = !display
       let text      = !text
-      let arguments = ["--run-service"; "--service-name"; name] @ !args
+      let arguments = args
       let stop      = Tutils.shutdown
     end
   in
@@ -79,7 +83,7 @@ let () =
     | `Install -> 
         Svc.install ();
         Printf.printf "Installed %s service with arguments %s\n"
-          S.name (String.concat " " !args)
+          S.name (String.concat " " args)
     |  `Remove ->
         Svc.remove ();
         Printf.printf "Removed %s service\n" S.name
