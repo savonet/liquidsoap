@@ -24,15 +24,7 @@
 
 module Runner =
 struct
-  let usage =
-    "Usage : liquidsoap [OPTION, SCRIPT or EXPR]...\n\
-    \ - SCRIPT for evaluating a liquidsoap script file;\n\
-    \ - EXPR for evaluating a scripting expression;\n\
-    \ - OPTION is one of the options listed below:\n"
-
-  let stop () = false
-
-  let options = []
+  let options = Main.options
 end
 
-module Run = Main.Run(Runner)
+module Main = Main.Make(Runner)

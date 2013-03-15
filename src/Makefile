@@ -4,8 +4,7 @@ SUBDIRS=tools decoder playlists encoder protocols plugins stream lang \
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
-ocaml_progs= liquidsoap \
-  $(if $(W_WINSVC),liquidsoapService)
+ocaml_progs= liquidsoap
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.defs
@@ -263,10 +262,8 @@ liquidsoap_sources += \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
-	shebang.ml $(builtins) main.ml runner.ml
-
-liquidsoapService_sources = $(liquidsoap_sources:runner.ml=runner_service.ml)
-liquidsoapService_c_files = $(liquidsoap_c_files)
+	shebang.ml $(builtins) main.ml \
+        $(if $(W_WINSVC),runner_service.ml,runner.ml)
 
 include $(top_srcdir)/Makefile.rules
 

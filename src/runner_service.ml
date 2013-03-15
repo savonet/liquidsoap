@@ -22,55 +22,84 @@
 
 (** Windows service runner. *)
 
-module S = struct
-  let name    = "Liquidsoap"
-  let display = "Liquidsoap streaming service"
-  let text    = "Powerful and flexible streaming language"
-  let stop    = ref false
-end
+let name    = ref "Liquidsoap"
+let display = ref "Liquidsoap Streaming Service"
+let text    = ref "Powerful streaming service using Liquidsoap"
+let action  = ref `None
+let args    = ref []
 
-module Svc = Service.Make(S)
+let split s = Str.split (Str.regexp " ") s
 
-module Runner =
-struct
-  let usage =
-    "Usage : liquidsoap.exe --install-service | --remove-service\n\
-    \        liquidsoap.exe [OPTION, SCRIPT or EXPR]...\n\
-    \ - SCRIPT for evaluating a liquidsoap script file;\n\
-    \ - EXPR for evaluating a scripting expression;\n\
-    \ - OPTION is one of the options listed below:\n"
-
-  let stop () = !S.stop
-
-  let options = [
-        ["--install-service"],
-        Arg.Unit (fun _ -> ()),
-        "Install windows service." ;
-        ["--remove-service"],
-        Arg.Unit (fun _ -> ()),
-        "Remove windows service." ;
-  ]
+module Runner : Main.Runner_t =
+  struct
+    let options = [
+          ["--install-service"],
+          Arg.Unit (fun _ -> action := `Install),
+          "Install windows service running.";
+          ["--service-name"],
+          Arg.String (fun s -> name := s),
+          "Service name.";
+          ["--service-title"],
+          Arg.String (fun s -> display := s),
+          "Service title (displayed in service list).";
+          ["--service-description"],
+          Arg.String (fun s -> text := s),
+          "Service description.";
+          ["--service-arguments"],
+          Arg.String (fun s -> args := split s),
+          "Service arguments.";
+          ["--remove-service"],
+          Arg.Unit (fun _ -> action := `Remove),
+          "Remove windows service." ;
+          ["--run-service"],
+          Arg.Unit (fun _ -> action := `Run),
+          "Run windows service (only used by windows service manager)." ;
+  ] @ Main.options
 end
 
 let () =
-  match List.tl (Array.to_list Sys.argv) with
-    | ["--install-service"] ->
+  let options =
+    Main.expand_options Runner.options
+  in
+  Arg.parse options (fun _ -> ()) Main.usage;
+  Arg.current := 0;
+  let module S =
+    struct
+      let name      = !name
+      let display   = !display
+      let text      = !text
+      let arguments = ["--run-service"; "--service-name"; name] @ !args
+      let stop      = Tutils.shutdown
+    end
+  in
+  let module Svc =
+    Service.Make(S)
+  in
+  match !action with
+    | `Install -> 
         Svc.install ();
-        Printf.printf "Installed %s service\n" S.name
-    | ["--remove-service"] ->
+        Printf.printf "Installed %s service with arguments %s\n"
+          S.name (String.concat " " !args)
+    |  `Remove ->
         Svc.remove ();
         Printf.printf "Removed %s service\n" S.name
-    | _ ->
-      begin
-       let log = ref (fun _ -> ()) in
-       try
-        Svc.run (fun () ->
-          let module Runner =
-            Main.Run(Runner)
-          in
-          log := (Runner.log#f 2 "%s"))
-       with
-         | e ->
-             !log (Printf.sprintf "Error while running service: %s"
-                        (Utils.error_message e))
-      end
+    | `Run ->
+       Dtools.Log.conf_stdout#set false ;
+       Dtools.Log.conf_file#set   true ;
+       begin
+        try
+         Svc.run (fun () ->
+           let module Main =
+             Main.Make(Runner)
+           in
+           ())
+        with
+          | e ->
+              Main.log#f 2 "Error while running service: %s"
+                             (Utils.error_message e)
+       end
+    | `None ->
+       let module Main =
+         Main.Make(Runner)
+       in
+       ()
