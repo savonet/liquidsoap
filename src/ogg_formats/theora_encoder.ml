@@ -173,7 +173,7 @@ let create_theora =
          let enc =
            create_encoder ~theora ~metadata ()
          in
-         Ogg_muxer.register_track ogg_enc enc
+         Ogg_muxer.register_track ?fill:theora.Encoder.Theora.fill ogg_enc enc
        in
        { 
         Ogg_encoder.

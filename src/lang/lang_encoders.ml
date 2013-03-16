@@ -345,6 +345,7 @@ let mk_flac_gen params =
   let defaults =
     { Encoder.Flac.
         channels = 2 ;
+        fill = None;
         samplerate = 44100 ;
         bits_per_sample = 16;
         compression = 5 }
@@ -364,6 +365,8 @@ let mk_flac_gen params =
               if i <> 8 && i <> 16 && i <> 32 then
                 raise (Error (t,"invalid bits_per_sample value")) ;
               { f with Encoder.Flac.bits_per_sample = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Flac.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Flac.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -423,6 +426,7 @@ let mk_opus params =
         max_bandwidth = None ;
         mode = Encoder.Opus.VBR true ;
         bitrate = `Auto ;
+        fill = None;
         channels = 2 ;
         samplerate = 48000 ;
         signal = None ;
@@ -491,6 +495,8 @@ let mk_opus params =
               { f with Encoder.Opus.signal = Some `Voice }
           | ("signal",{ term = String "music" }) ->
               { f with Encoder.Opus.signal = Some `Music }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Opus.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Opus.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -505,6 +511,7 @@ let mk_vorbis_cbr params =
     { Encoder.Vorbis.
         mode = Encoder.Vorbis.CBR 128 ;
         channels = 2 ;
+        fill = None;
         samplerate = 44100 ;
     }
   in
@@ -518,6 +525,8 @@ let mk_vorbis_cbr params =
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR i }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Vorbis.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -532,6 +541,7 @@ let mk_vorbis_abr params =
     { Encoder.Vorbis.
         mode = Encoder.Vorbis.ABR (None,None,None) ;
         channels = 2 ;
+        fill = None ;
         samplerate = 44100 ;
     }
   in
@@ -557,6 +567,8 @@ let mk_vorbis_abr params =
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (Some i,x,y) }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Vorbis.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -571,6 +583,7 @@ let mk_vorbis params =
     { Encoder.Vorbis.
         mode = Encoder.Vorbis.VBR 0.3 ;
         channels = 2 ;
+        fill = None ;
         samplerate = 44100 ;
     }
   in
@@ -591,6 +604,8 @@ let mk_vorbis params =
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Vorbis.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -605,6 +620,7 @@ let mk_theora params =
     {
       Encoder.Theora.
        bitrate_control    = Encoder.Theora.Quality 40 ;
+       fill               = None ;
        width              = Frame.video_width ;
        height             = Frame.video_height ;
        picture_width      = Frame.video_width ;
@@ -698,6 +714,8 @@ let mk_theora params =
               { f with Encoder.Theora.buffer_delay = Some i }
           | ("speed",{ term = Int i }) ->
               { f with Encoder.Theora.speed = Some i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Theora.fill = Some i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
@@ -708,6 +726,7 @@ let mk_dirac params =
     {
       Encoder.Dirac.
        quality            = 35. ;
+       fill               = None ;
        width              = Frame.video_width ;
        height             = Frame.video_height ;
        aspect_numerator   = 1 ;
@@ -730,6 +749,8 @@ let mk_dirac params =
               { f with Encoder.Dirac.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Dirac.aspect_denominator = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Dirac.fill = Some i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
@@ -739,6 +760,7 @@ let mk_speex params =
   let defaults =
     { Encoder.Speex.
         stereo = false ;
+        fill = None ;
         samplerate = 44100 ;
         bitrate_control = Encoder.Speex.Quality 7;
         mode = Encoder.Speex.Narrowband ;
@@ -787,6 +809,8 @@ let mk_speex params =
               if i < 1 || i > 10 then
                 raise (Error (t,"Speex complexity should be in 1..10"));
               { f with Encoder.Speex.complexity = Some i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Speex.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->

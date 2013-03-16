@@ -149,7 +149,7 @@ let create_dirac =
          let enc =
            create_encoder ~metadata dirac
          in
-         Ogg_muxer.register_track ogg_enc enc
+         Ogg_muxer.register_track ?fill:dirac.Encoder.Dirac.fill ogg_enc enc
        in
        {
         Ogg_encoder.

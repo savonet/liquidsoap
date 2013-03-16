@@ -99,6 +99,7 @@ struct
     channels   : int ;
     mode       : mode ;
     samplerate : int ;
+    fill       : int option ;
   }
 
   let string_of_mode = function
@@ -165,6 +166,7 @@ struct
     mode          : mode ;
     samplerate    : int ;
     signal        : signal option ;
+    fill          : int option ;
   }
 
   let string_of_bitrate = function
@@ -282,6 +284,7 @@ struct
     bits_per_sample : int ;
     samplerate : int ;
     compression : int ;
+    fill : int option ;
   }
 
   let to_string m =
@@ -390,7 +393,8 @@ struct
     stereo            : bool ;
     mode              : mode ;
     frames_per_packet : int ;
-    complexity        : int option
+    complexity        : int option ;
+    fill              : int option ;
   }
 
   let string_of_br_ctl x =
@@ -489,6 +493,7 @@ struct
     soft_target        : bool ;
     buffer_delay       : int option ;
     speed              : int option ;
+    fill               : int option ;
   }
 
   let bit_ctl_to_string bit_ctl =
@@ -533,7 +538,8 @@ struct
     width              : int Lazy.t ;
     height             : int Lazy.t ;
     aspect_numerator   : int ;
-    aspect_denominator : int
+    aspect_denominator : int ;
+    fill               : int option ;
   }
 
   let to_string dr =
