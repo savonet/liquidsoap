@@ -348,7 +348,7 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
     Lang.add_operator ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d)) liq_params
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundProcessing
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr
       (fun p kind ->
          let f v = List.assoc v p in
