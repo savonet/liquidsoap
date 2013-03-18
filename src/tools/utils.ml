@@ -658,6 +658,7 @@ let normalize_parameter_string s =
   let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
+  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
   let s = String.lowercase s in
   (* Identifiers cannot begin with a digit. *)
   let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
