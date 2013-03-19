@@ -443,7 +443,7 @@ let options =
 
       ["-i"],
       Arg.Set Configure.display_types,
-      "Display infered types." ;
+      "Display inferred types." ;
 
       ["--version"],
       Arg.Unit (fun () ->

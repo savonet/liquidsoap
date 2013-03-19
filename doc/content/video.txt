@@ -261,7 +261,7 @@ I get the error
 <pre>
 At line 2, char 13:
   this value has type
-    active_source(audio=1+_,...) (infered at ../scripts/gstreamer.liq, line 20, char 30-121)
+    active_source(audio=1+_,...) (inferred at ../scripts/gstreamer.liq, line 20, char 30-121)
   but it should be a subtype of
     active_source(audio=0,...)
 </pre>

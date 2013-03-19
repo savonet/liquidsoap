@@ -54,7 +54,7 @@ list.iter(fun (f) -> log(string_of(f())), l1)
 # list.iter(fun (f) -> log(string_of(f(42))), l1)
 
 # Actually, this is forbidden too, but the reason is more complex...
-# The infered type for the function is ((int)->int)->unit,
+# The inferred type for the function is ((int)->int)->unit,
 # and (int)->int is not a subtype of (?int)->int.
 # There's no most general answer here since (?int)->int is not a 
 # subtype of (int)->int either.

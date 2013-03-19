@@ -103,7 +103,7 @@ let kind_type_of_frame_kind kind =
   let midi  = t_of_mul kind.Frame.midi in
     frame_kind_t ~audio ~video ~midi
 
-(** Given a Lang type that has been infered, convert it to a kind.
+(** Given a Lang type that has been inferred, convert it to a kind.
   * This might require to force some Any_fixed variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
@@ -360,7 +360,7 @@ let string_of_category x = "Source / " ^ match x with
   *    e.g. the parameter of a format type.
   * From this high-level description a type is created. Often it will
   * carry a type constraint.
-  * Once the type has been infered, the function might be executed,
+  * Once the type has been inferred, the function might be executed,
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 

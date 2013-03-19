@@ -53,7 +53,7 @@ val tts_program : string
 val rundir : string
 val logdir : string
 
-(** Display infered types. *)
+(** Display inferred types. *)
 val display_types : bool ref
 
 (** Liquidsoap configuration root *)

@@ -6,7 +6,7 @@ In liquidsoap, a stream may contain any number of audio, video and
 MIDI channels. As part of the type checking of your script,
 liquidsoap checks that you make a consistent use of stream contents,
 and also guesses what kind of stream your script is intended to
-work on. As with other infered parameters, you do not necessarily
+work on. As with other inferred parameters, you do not necessarily
 need to read about stream contents typing if you're still learning
 the ropes of liquidsoap, but you might eventually need to know a
 little about it.
