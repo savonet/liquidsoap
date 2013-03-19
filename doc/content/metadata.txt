@@ -3,30 +3,41 @@ title: Customize metadata
 
 h3. Customize metadata using liquidsoap
 
-Liquidsoap has several mechanism for manipulating the metadata attached to your stream. In this page we quickly detail and compare the different operators, see the "language reference":reference.html for full details about them.
+Liquidsoap has several mechanism for manipulating the metadata attached to your
+stream. In this page we quickly detail and compare the different operators, see
+the "language reference":reference.html for full details about them.
 
-**Warning**. The protocol used by Shoutcast and Icecast before version 2 does not support many fields. It mainly support one: <code>song</code>. So, if you need to customize the metadata displayed by these servers, you should customize only the <code>song</code> metadata.
+**Warning**. The protocol used by Shoutcast and Icecast before version 2 does
+  not support many fields. It mainly support one: <code>song</code>. So, if you
+  need to customize the metadata displayed by these servers, you should
+  customize only the <code>song</code> metadata.
 
 h4. Rewrite metadata
 
-<code>rewrite_metadata</code> rewrites metadata using a list of (target,rules). The semantic for the replacement rules is that of the <code>%</code> function. Namely, <code>(pattern % [...,(k,v),...])</code> changes in @pattern@ occurences of:
+<code>rewrite_metadata</code> rewrites metadata using a list of
+(target,rules). The semantic for the replacement rules is that of the
+<code>%</code> function. Namely, <code>(pattern % [...,(k,v),...])</code>
+changes in @pattern@ occurences of:
 
 * <code>'$(k)'</code> into <code>"v"</code>;
-* <code>'$(if $(k2),"a","b")'</code> into <code>"a"</code> if <code>k2</code> is found in the list, <code>"b"</code> otherwise.
+* <code>'$(if $(k2),"a","b")'</code> into <code>"a"</code> if <code>k2</code>
+  is found in the list, <code>"b"</code> otherwise.
 
 A sample code using this operator can be:
 %%(rewrite_metadata.liq)
 # The 'display_artist' field is passed using annotate.
-pattern = 
+pattern =
   '$(if $(display_artist),"$(display_artist)","$(artist)")'
 rewrite_metadata([("artist",pattern)],source)
 %%
 
-h4. Map_metadata 
+h4. Map metadata
 
-The <code>map_metadata</code> operator applies a specified function to transform each metadata chunk of a stream. It can be used to add or decorate metadata, but is also useful in more complex cases.
+The <code>map_metadata</code> operator applies a specified function to transform
+each metadata chunk of a stream. It can be used to add or decorate metadata, but
+is also useful in more complex cases.
 
-A simple example using it is:
+A simple example using it:
 
 %%(append_title.liq)
 # A function applied to each metadata chunk
@@ -42,14 +53,17 @@ end
 s = map_metadata(append_title, s)
 %%
 
-The effect of @map_metadata@ by default is to update the metadata with the returned values. 
-Hence in the function @append_title@ defined in the code above returns a new metadata for the 
-label @title@ and the other metadata remain untouched. You can change this by using the 
-@update@ option, and you can also remove any metadata (even empty one) using the @strip@ option.
+The effect of @map_metadata@ by default is to update the metadata with the
+returned values.  Hence in the function @append_title@ defined in the code above
+returns a new metadata for the label @title@ and the other metadata remain
+untouched. You can change this by using the @update@ option, and you can also
+remove any metadata (even empty one) using the @strip@ option.
 
 See the documentation on @map_metadata@ for more details.
 
-A more complex example is the <code>rewrite_metadata</code> operator, which is implemented using @map_metadata@ as follows:
+A more complex example is the <code>rewrite_metadata</code> operator, which is
+implemented using @map_metadata@ as follows:
+
 %%(lang_rewrite.liq)
 # Rewrite metadata on the fly using a list of (target,rule).
 # @category Source / Track Processing
@@ -90,5 +104,7 @@ end
 
 h4. Insert_metadata
 
-This operator is used for inserting metadata using a server command. If you have an @insert_metadata@ node named @ID@ in your configuration, you can connect to the server (either telnet or socket) and execute commands like: 
+This operator is used for inserting metadata using a server command. If you have
+an @insert_metadata@ node named @ID@ in your configuration, you can connect to
+the server (either telnet or socket) and execute commands like
 <pre>ID.insert key1="val1",key2="val2",...</pre>
