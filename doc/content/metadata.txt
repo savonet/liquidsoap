@@ -88,7 +88,7 @@ def rewrite_metadata(l,~insert_missing=true,s)
 end
 %%
 
-h4. Insert_medatata
+h4. Insert_metadata
 
 This operator is used for inserting metadata using a server command. If you have an @insert_metadata@ node named @ID@ in your configuration, you can connect to the server (either telnet or socket) and execute commands like: 
 <pre>ID.insert key1="val1",key2="val2",...</pre>
