@@ -79,6 +79,12 @@ let () =
   let module Svc =
     Service.Make(S)
   in
+  let main () =
+    let module Main =
+      Main.Make(Runner)
+    in
+    ()
+  in
   match !action with
     | `Install -> 
         Svc.install ();
@@ -92,18 +98,10 @@ let () =
        Dtools.Log.conf_file#set   true ;
        begin
         try
-         Svc.run (fun () ->
-           let module Main =
-             Main.Make(Runner)
-           in
-           ())
+         Svc.run main
         with
           | e ->
               Main.log#f 2 "Error while running service: %s"
                              (Utils.error_message e)
        end
-    | `None ->
-       let module Main =
-         Main.Make(Runner)
-       in
-       ()
+    | `None -> main ()
