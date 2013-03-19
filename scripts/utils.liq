@@ -1,4 +1,3 @@
-
 # Turn a source into an infaillible source.
 # by adding blank when the source is not available.
 # @param s the source to turn infaillible
@@ -89,13 +88,13 @@ def add_skip_command(s) =
                  "skip",skip)
 end
 
-# Removes all metadata coming from a source
+# Removes all metadata coming from a source.
 # @category Source / Track Processing
 def drop_metadata(s)
   map_metadata(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
-# Merge all tracks from a source, provided that it does not fail
+# Merge all tracks from a source.
 # @category Source / Track Processing
 def merge_tracks(s)
   sequence(merge=true,[s])
