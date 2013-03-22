@@ -2250,7 +2250,7 @@ let () =
        let v = ref v in
          Var.add
            name
-           Lang.float_t
+           Lang.bool_t
            ~get:(fun () -> Printf.sprintf "%B" !v)
            ~set:(fun s -> v := s = "true")
            ~validate:
