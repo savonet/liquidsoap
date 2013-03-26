@@ -498,6 +498,16 @@ let () =
          Lang.float (Random.float (max -. min) +. min))
 
 let () =
+  add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
+    ["min",Lang.float_t,Some (Lang.int min_int),None;
+     "max",Lang.float_t,Some (Lang.int max_int),None]
+    Lang.int_t
+    (fun p ->
+       let min = Lang.to_int (List.assoc "min" p) in
+       let max = Lang.to_int (List.assoc "max" p) in
+         Lang.int (Random.int (max - min) + min))
+
+let () =
   add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random value."
     [] Lang.bool_t
     (fun p -> Lang.bool (Random.bool ()))
