@@ -182,29 +182,6 @@ let really_read fd buf ofs len =
     done;
     !l
 
-(* There seems to be an issue under win32 where 
- * some sockets are left in non-blocking mode
- * after Unix.select. See: http://caml.inria.fr/mantis/view.php?id=5328
- * 
- * Since we do not use non-blocking mode at all
- * in liquidsoap, this wrapper ensures that all socket are set back to
- * blocking mode after a call to select under win32.. *)
-let select r w e t =
-  let ret = Unix.select r w e t in
-  if Sys.os_type <> "Win32" then
-    ret
-  else
-   begin
-    let f x =
-       try
-        Unix.clear_nonblock x
-       with _ -> ()
-    in
-    let f = List.iter f in
-    f r; f w; f e;
-    ret
-   end
-
 (* Read all data from a given filename.
  * We cannot use really_input with the 
  * reported length of the file because
@@ -229,38 +206,6 @@ let read_all filename =
   read () ;
   close_in channel ;
   Buffer.contents contents
-
-exception Timeout
-
-(* Wait for [`Read], [`Write] or [`Both] for at most 
- * [timeout] seconds on the given [socket]. Raises [Timeout] 
- * if timeout is reached.
- *
- * WARNING: Make sure socket does not get closed while
- * waiting here. You might need to thing of thread safety
- * and mutexes.. *)
-let wait_for ?(log=fun _ -> ()) event socket timeout = 
-  let max_time = Unix.gettimeofday () +. timeout in
-  let r, w = 
-    match event with
-      | `Read -> [socket],[]
-      | `Write -> [],[socket]
-      | `Both -> [socket],[socket]
-  in
-  let rec wait t =
-    let l,l',_ = select r w [] t in
-    if l=[] && l'=[] then begin
-      log (Printf.sprintf "No network activity for %.02f second(s)." t);
-      let current_time = Unix.gettimeofday () in
-      if current_time >= max_time then
-       begin
-        log "Network activity timeout!" ;
-        raise Timeout 
-       end
-      else
-        wait (min 1. (max_time -. current_time))
-    end
-  in wait (min 1. timeout)
 
 (* Drop all but then [len] last bytes. *)
 let buffer_drop buffer len =

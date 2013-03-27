@@ -58,10 +58,8 @@ object (self)
 
   (** POSIX sucks.. *)
   val mutable relay_socket = None
-  (* Mutex used to change socket's state (close) *)
+  (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
-  (* Mutex used to grab socket's status (read only) *)
-  val get_relay_m = Mutex.create()
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
 
@@ -89,7 +87,7 @@ object (self)
       "kick" ~descr:"Kick current source client, if connected." stop ;
     self#register_command
       "status" ~descr:"Display current status."
-      (Tutils.mutexify get_relay_m
+      (Tutils.mutexify relay_m
        (fun _ ->
          match relay_socket with
            | Some s ->
@@ -139,7 +137,7 @@ object (self)
                 try
                  (* Wait for `Read event on socket. *)
                  let log = self#log#f 4 "%s" in
-                 Utils.wait_for ~log `Read socket timeout;
+                 Tutils.wait_for ~mutex:relay_m ~log `Read socket timeout;
                  (* Now read. *)
                  let buf = String.make len ' ' in
                  let input = Unix.read socket buf 0 len in
@@ -147,8 +145,7 @@ object (self)
                 with
                   | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
-                         Tutils.mutexify get_relay_m (fun () ->
-                           self#disconnect ~lock:false) ();
+                           self#disconnect ~lock:false;
                          "",0
                end) len;
       in
@@ -178,7 +175,7 @@ object (self)
         while true do
           if should_stop () then
             raise Disconnected ;
-          Tutils.mutexify get_relay_m
+          Tutils.mutexify relay_m
             (fun () ->
                if relay_socket = None then
                  failwith "relaying stopped") () ;
@@ -240,13 +237,11 @@ object (self)
       | None -> raise Harbor.Unknown_codec
 
   method relay stype (headers:(string*string) list) socket =
-    Tutils.mutexify relay_m
-      (Tutils.mutexify get_relay_m
-        (fun () ->
-          if relay_socket <> None then
-            raise Harbor.Mount_taken ;
-          self#register_decoder stype ;
-          relay_socket <- Some socket)) () ;
+    Tutils.mutexify relay_m (fun () ->
+      if relay_socket <> None then
+        raise Harbor.Mount_taken ;
+      self#register_decoder stype ;
+      relay_socket <- Some socket) () ;
     on_connect headers ;
     begin match dumpfile with
       | Some f ->
@@ -285,9 +280,8 @@ object (self)
     relay_socket <- None
 
   method private disconnect_with_lock =
-    Tutils.mutexify relay_m
-      (Tutils.mutexify get_relay_m (fun () ->
-        self#disconnect_no_lock)) ();
+    Tutils.mutexify relay_m (fun () ->
+      self#disconnect_no_lock) ();
 
   method private after_disconnect =
     begin match dump with

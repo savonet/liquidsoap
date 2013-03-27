@@ -73,13 +73,19 @@ let scheduler_log =
   Conf.bool ~p:(conf_scheduler#plug "log") ~d:false
     "Log scheduler messages"
 
-let mutexify lock f =
+let mutexify ?(inverse=false) lock f =
+  let before, after =
+    if inverse then
+      Mutex.unlock, Mutex.lock
+    else
+      Mutex.lock, Mutex.unlock
+  in
   fun x ->
-    Mutex.lock lock ;
+    before lock ;
     try
-      let ans = f x in Mutex.unlock lock ; ans
+      let ans = f x in after lock ; ans
     with
-      | e -> Mutex.unlock lock ; raise e
+      | e -> after lock ; raise e
 
 let finalize ~k f =
   try let x = f () in k () ; x with e -> k () ; raise e
@@ -296,6 +302,42 @@ let () =
 let wait c m f =
   mutexify m (fun () ->
     while not (f ()) do Condition.wait c m done) ()
+
+exception Timeout
+
+(* Wait for [`Read], [`Write] or [`Both] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout]
+ * if timeout is reached.
+ * [mutex] is an optional mutex that will be unlocked before
+ * entering [select] and locked once leaving [select]. *)
+let wait_for ?mutex ?(log=fun _ -> ()) event socket timeout =
+  let max_time = Unix.gettimeofday () +. timeout in
+  let r, w =
+    match event with
+      | `Read -> [socket],[]
+      | `Write -> [],[socket]
+      | `Both -> [socket],[socket]
+  in
+  let rec wait t =
+    let l,l',_ = Unix.select r w [] t in
+    if l=[] && l'=[] then begin
+      log (Printf.sprintf "No network activity for %.02f second(s)." t);
+      let current_time = Unix.gettimeofday () in
+      if current_time >= max_time then
+       begin
+        log "Network activity timeout!" ;
+        raise Timeout
+       end
+      else
+        wait (min 1. (max_time -. current_time))
+    end
+  in
+  let wait =
+    match mutex with
+      | Some m -> mutexify ~inverse:true m wait
+      | None   -> wait
+   in
+   wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
 let run = ref true
