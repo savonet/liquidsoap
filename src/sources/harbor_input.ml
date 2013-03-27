@@ -23,17 +23,6 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
-exception Disconnected
-
-(** Error translator *)
-let error_translator =
-   function
-     | Disconnected ->
-         Some "Source client disconnected"
-     | _ -> None
-
-let () = Utils.register_error_translator error_translator
-
 (* {1 Input handling} *)
 
 class http_input_server ~kind ~dumpfile ~logfile
@@ -59,15 +48,6 @@ object (self)
   val relay_m = Mutex.create ()
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
-
-  (** [kill_polling] is for requesting that the feeding thread stops;
-    * it is called on #disconnect. *)
-  val mutable kill_polling = None
-
-  (** [wait_polling] is to make sure that the thread did stop;
-    * it is only called in #relay before creating a new thread,
-    * so that #disconnect is instantaneous. *)
-  val mutable wait_polling = None
 
   val mutable dump = None
   val mutable logf = None
@@ -120,7 +100,7 @@ object (self)
 
   method get_mime_type = mime_type
 
-  method feed (should_stop,has_stopped) =
+  method feed =
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
@@ -170,8 +150,6 @@ object (self)
       try
         let decoder = create_decoder input in
         while true do
-          if should_stop () then
-            raise Disconnected ;
           Tutils.mutexify relay_m
             (fun () ->
                if relay_socket = None then
@@ -184,7 +162,6 @@ object (self)
             Generator.add_break ~sync:`Drop generator ;
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
             self#disconnect ~lock:true;
-            has_stopped () ;
             if debug then raise e
 
   method private wake_up act =
@@ -246,12 +223,8 @@ object (self)
           end
       | None -> ()
     end ;
-    let kill,wait =
-      Tutils.stoppable_thread self#feed
-          "harbor source feeding"
-    in
-    kill_polling <- Some kill ;
-    wait_polling <- Some wait
+    ignore(Tutils.create (fun () -> self#feed) () "harbor source feeding";
+              "harbor source feeding")
 
   method private disconnect_no_lock =
     Utils.maydo (fun s ->
@@ -275,8 +248,6 @@ object (self)
            close_out f ; logf <- None
        | None -> ()
     end ;
-    Utils.maydo (fun f -> f()) kill_polling ;
-    kill_polling <- None ;
     on_disconnect ()
 
   method disconnect ~lock : unit =
