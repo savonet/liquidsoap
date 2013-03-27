@@ -292,13 +292,10 @@ let () =
       start_forwarding ()
     end))
 
-(** Waits for [f()] to become true on condition [c].
-  * The mutex [m] protecting data accessed by [f] is in the same state before
-  * and after the call. *)
+(** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  let l = Mutex.try_lock m in
-    while not (f ()) do Condition.wait c m done ;
-    if l then Mutex.unlock m
+  mutexify m (fun () ->
+    while not (f ()) do Condition.wait c m done) ()
 
 (** Wait for some thread to crash *)
 let run = ref true
