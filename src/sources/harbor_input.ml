@@ -270,14 +270,6 @@ object (self)
           end
       | None -> ()
     end ;
-    (* Wait for the old feeding thread to return,
-      * then create a new one. *)
-    assert (kill_polling = None) ;
-    begin match wait_polling with
-      | None -> ()
-      | Some f ->
-          f () ; wait_polling <- None
-    end ;
     let kill,wait =
       Tutils.stoppable_thread self#feed
           "harbor source feeding"
