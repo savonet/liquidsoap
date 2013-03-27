@@ -71,6 +71,8 @@ val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
  * and lock it afterward. Defaults to [false]. *)
 val mutexify : ?inverse:bool -> Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
+exception Timeout
+
 (* Wait for [`Read], [`Write] or [`Both] for at most
  * [timeout] seconds on the given [socket]. Raises [Timeout]
  * if timeout is reached.

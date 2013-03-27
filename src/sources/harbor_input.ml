@@ -24,15 +24,12 @@ module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
 exception Disconnected
-exception Stopped
 
 (** Error translator *)
 let error_translator =
    function
      | Disconnected ->
          Some "Source client disconnected"
-     | Stopped ->
-         Some "Source stopped"
      | _ -> None
 
 let () = Utils.register_error_translator error_translator
@@ -145,7 +142,7 @@ object (self)
                 with
                   | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
-                           self#disconnect ~lock:false;
+                         self#disconnect ~lock:false;
                          "",0
                end) len;
       in
@@ -185,24 +182,8 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            (* Do not show internal exception, e.g. Unix.read()
-             * exception if source has been stopped. The socket
-             * is closed when stopping so we expect this exception
-             * to happen.. *)
-            let e =
-              match e with
-                | Stopped
-                | Disconnected -> e
-                | _ when relay_socket = None -> Stopped
-                | _ -> e
-            in
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
-            (* exception Disconnected is raised when
-             * the thread is being killed, which only
-             * happends in self#disconnect. No need to
-             * call it then.. *)
-            if e <> Disconnected && e <> Stopped then
-              self#disconnect ~lock:true;
+            self#disconnect ~lock:true;
             has_stopped () ;
             if debug then raise e
 
@@ -298,7 +279,7 @@ object (self)
     kill_polling <- None ;
     on_disconnect ()
 
-  method disconnect ~lock =
+  method disconnect ~lock : unit =
     if lock then
       self#disconnect_with_lock
     else
