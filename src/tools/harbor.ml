@@ -110,11 +110,11 @@ type protocol =
   [ | `Http_10 | `Http_11 | `Ice_10 | `Icy | `Xaudiocast_uri of string
   ]
 
-type reply = | Close of string | Reply of string
+type reply = | Close of string | Relay of string * (unit -> unit)
 
 let reply s = Duppy.Monad.raise (Close s)
   
-let relayed s = Duppy.Monad.raise (Reply s)
+let relayed s f = Duppy.Monad.raise (Relay (s, f))
   
 type http_handler =
   protocol: string ->
@@ -316,12 +316,12 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      | Not_found when
                          (protocol = `Shout) || (protocol = `Xaudiocast) ->
                          "audio/mpeg"
-                     | Not_found -> raise Unknown_codec
+                     | Not_found -> raise Unknown_codec in
+                   let f () = s#relay stype headers h.Duppy.Monad.Io.socket
                    in
-                     (s#relay stype headers h.Duppy.Monad.Io.socket;
-                      log#f 4 "Adding source on mountpoint %S with type %S."
+                     (log#f 4 "Adding source on mountpoint %S with type %S."
                         uri stype;
-                      relayed "HTTP/1.0 200 OK\r\n\r\n"))
+                      relayed "HTTP/1.0 200 OK\r\n\r\n" f))
               with
               | Mount_taken ->
                   (log#f 4 "Returned 403: Mount taken";
@@ -658,15 +658,9 @@ let open_port ~icy port =
                 let close () = try Unix.close socket with | _ -> () in
                 let (s, exec) =
                   match r with
-                  | Reply s -> (s, (fun () -> ()))
+                  | Relay (s, exec) -> (s, exec)
                   | Close s -> (s, close) in
-                let on_error e =
-                  (ignore (on_error e);
-                   (* We close on_error only if
-                  * the reply is Close. In case of Reply, 
-                  * we cannot close now has there might
-                  * be another task actually using the socket. *)
-                   exec ())
+                let on_error e = (ignore (on_error e); close ())
                 in
                   Duppy.Io.write ~timeout: conf_timeout#get
                     ~priority: Tutils.Non_blocking ~on_error ~string: s ~exec
