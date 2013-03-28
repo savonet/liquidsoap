@@ -20,8 +20,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
-open Unix
-  
 open Dtools
   
 open Http_source
@@ -616,12 +614,13 @@ let handle_client ~port ~icy h = (* Read and process lines *)
 let open_port ~icy port =
   (Tutils.need_non_blocking_queue ();
    log#f 4 "Opening port %d with icy = %b" port icy;
+   let max_conn = conf_harbor_max_conn#get in
    let rec incoming ~port ~icy sock out_s e =
      if List.mem (`Read out_s) e
      then (try (Unix.close sock; Unix.close out_s; []) with | _ -> [])
      else
        ((try
-           let (socket, caller) = accept sock in
+           let (socket, caller) = Unix.accept sock in
            let ip = Utils.name_of_sockaddr ~rev_dns: conf_revdns#get caller
            in
              (log#f 4 "New client on port %i: %s" port ip;
@@ -674,23 +673,22 @@ let open_port ~icy port =
                (Utils.error_message e));
         [ {
             Duppy.Task.priority = Tutils.Non_blocking;
-            events = [ `Read sock; `Read out_s ];
+            events = [ `Accept (sock, max_conn); `Read out_s ];
             handler = incoming ~port ~icy sock out_s;
           } ]) in
    let open_socket port =
      let bind_addr = conf_harbor_bind_addr#get in
-     let bind_addr_inet = inet_addr_of_string bind_addr in
-     let bind_addr = ADDR_INET (bind_addr_inet, port) in
-     let sock = socket PF_INET SOCK_STREAM 0
+     let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
+     let bind_addr = Unix.ADDR_INET (bind_addr_inet, port) in
+     let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0
      in
        (* Set TCP_NODELAY on the socket *)
-       (setsockopt sock SO_REUSEADDR true;
+       (Unix.setsockopt sock Unix.SO_REUSEADDR true;
         Unix.setsockopt sock Unix.TCP_NODELAY true;
-        (try bind sock bind_addr
+        (try Unix.bind sock bind_addr
          with
          | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
              failwith (Printf.sprintf "port %d already taken" port));
-        listen sock conf_harbor_max_conn#get;
         sock) in
    let sock = open_socket port in
    let (in_s, out_s) = Unix.pipe ()
@@ -698,7 +696,7 @@ let open_port ~icy port =
      (Duppy.Task.add Tutils.scheduler
         {
           Duppy.Task.priority = Tutils.Non_blocking;
-          events = [ `Read sock; `Read in_s ];
+          events = [ `Accept (sock, max_conn); `Read in_s ];
           handler = incoming ~port ~icy sock in_s;
         };
       out_s))
