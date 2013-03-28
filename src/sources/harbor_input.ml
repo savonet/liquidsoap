@@ -223,8 +223,7 @@ object (self)
           end
       | None -> ()
     end ;
-    ignore(Tutils.create (fun () -> self#feed) () "harbor source feeding";
-              "harbor source feeding")
+    ignore(Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
   method private disconnect_no_lock =
     Utils.maydo (fun s ->
