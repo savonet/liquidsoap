@@ -66,10 +66,8 @@ val need_non_blocking_queue : unit -> unit
   * and after the call. *)
 val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 
-(** Make a function work in critical section, protected by a given lock. 
- * If [inverse] is [true], it will unlock the mutex before executing [f]
- * and lock it afterward. Defaults to [false]. *)
-val mutexify : ?inverse:bool -> Mutex.t -> ('a -> 'b) -> ('a -> 'b)
+(** Make a function work in critical section, protected by a given lock. *) 
+val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
 exception Timeout
 
