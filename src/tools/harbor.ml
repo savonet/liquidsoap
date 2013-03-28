@@ -673,7 +673,7 @@ let open_port ~icy port =
                (Utils.error_message e));
         [ {
             Duppy.Task.priority = Tutils.Non_blocking;
-            events = [ `Accept (sock, max_conn); `Read out_s ];
+            events = [ `Read sock; `Read out_s ];
             handler = incoming ~port ~icy sock out_s;
           } ]) in
    let open_socket port =
@@ -689,6 +689,7 @@ let open_port ~icy port =
          with
          | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
              failwith (Printf.sprintf "port %d already taken" port));
+        Unix.listen sock max_conn;
         sock) in
    let sock = open_socket port in
    let (in_s, out_s) = Unix.pipe ()
@@ -696,7 +697,7 @@ let open_port ~icy port =
      (Duppy.Task.add Tutils.scheduler
         {
           Duppy.Task.priority = Tutils.Non_blocking;
-          events = [ `Accept (sock, max_conn); `Read in_s ];
+          events = [ `Read sock; `Read in_s ];
           handler = incoming ~port ~icy sock in_s;
         };
       out_s))

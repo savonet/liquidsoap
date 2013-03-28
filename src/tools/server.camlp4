@@ -359,7 +359,7 @@ let start_socket () =
     end ;
     [{ Duppy.Task.
          priority = Tutils.Non_blocking ;
-         events = [`Accept (sock, max_conn)] ;
+         events = [`Read sock] ;
          handler = incoming }]
   in
     Unix.setsockopt sock Unix.SO_REUSEADDR true ;
@@ -368,12 +368,8 @@ let start_socket () =
       failwith
         (Printf.sprintf "Unknown directory for the socket: %s" socket_dir) ;
     if Sys.file_exists socket_path then Unix.unlink socket_path ;
-    begin try Unix.bind sock bind_addr with
-      | Unix.Unix_error(Unix.EACCES, "bind", "") ->
-          failwith (Printf.sprintf "access to socket %s denied" socket_path)
-      | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "socket %s already taken" socket_path)
-    end ;
+    Unix.bind sock bind_addr;
+    Unix.listen sock max_conn;
     ignore (Dtools.Init.at_stop
               (fun () ->
                  log#f 3 "Unlink %s" socket_name ;
@@ -382,7 +378,7 @@ let start_socket () =
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Non_blocking ;
-          events = [`Accept (sock, max_conn)] ;
+          events = [`Read sock] ;
           handler = incoming }
 
 let start_telnet () =
@@ -409,18 +405,16 @@ let start_telnet () =
     end ;
     [{ Duppy.Task.
          priority =Tutils.Non_blocking ;
-         events   = [`Accept (sock, max_conn)] ;
+         events   = [`Read sock] ;
          handler  = incoming }]
     in
     Unix.setsockopt sock Unix.SO_REUSEADDR true ;
-    begin try Unix.bind sock bind_addr with
-      | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "port %d already taken" port)
-    end ;
+    Unix.bind sock bind_addr;
+    Unix.listen sock max_conn;
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Non_blocking ;
-          events   = [`Accept (sock, max_conn)] ;
+          events   = [`Read sock] ;
           handler  = incoming }
 
 let start () =

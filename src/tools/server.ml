@@ -317,7 +317,7 @@ let start_socket () =
           log#f 2 "Failed to accept new client: %S" (Utils.error_message e));
      [ {
          Duppy.Task.priority = Tutils.Non_blocking;
-         events = [ `Accept (sock, max_conn) ];
+         events = [ `Read sock ];
          handler = incoming;
        } ])
   in
@@ -329,12 +329,8 @@ let start_socket () =
          (Printf.sprintf "Unknown directory for the socket: %s" socket_dir)
      else ();
      if Sys.file_exists socket_path then Unix.unlink socket_path else ();
-     (try Unix.bind sock bind_addr
-      with
-      | Unix.Unix_error (Unix.EACCES, "bind", "") ->
-          failwith (Printf.sprintf "access to socket %s denied" socket_path)
-      | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "socket %s already taken" socket_path));
+     Unix.bind sock bind_addr;
+     Unix.listen sock max_conn;
      ignore
        (Dtools.Init.at_stop
           (fun () ->
@@ -343,7 +339,7 @@ let start_socket () =
      Duppy.Task.add Tutils.scheduler
        {
          Duppy.Task.priority = Tutils.Non_blocking;
-         events = [ `Accept (sock, max_conn) ];
+         events = [ `Read sock ];
          handler = incoming;
        })
   
@@ -367,19 +363,17 @@ let start_telnet () =
                (Utils.error_message e));
         [ {
             Duppy.Task.priority = Tutils.Non_blocking;
-            events = [ `Accept (sock, max_conn) ];
+            events = [ `Read sock ];
             handler = incoming;
           } ])
      in
        (Unix.setsockopt sock Unix.SO_REUSEADDR true;
-        (try Unix.bind sock bind_addr
-         with
-         | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
-             failwith (Printf.sprintf "port %d already taken" port));
+        Unix.bind sock bind_addr;
+        Unix.listen sock max_conn;
         Duppy.Task.add Tutils.scheduler
           {
             Duppy.Task.priority = Tutils.Non_blocking;
-            events = [ `Accept (sock, max_conn) ];
+            events = [ `Read sock ];
             handler = incoming;
           }))
   
