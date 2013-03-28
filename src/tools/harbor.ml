@@ -685,10 +685,7 @@ let open_port ~icy port =
        (* Set TCP_NODELAY on the socket *)
        (Unix.setsockopt sock Unix.SO_REUSEADDR true;
         Unix.setsockopt sock Unix.TCP_NODELAY true;
-        (try Unix.bind sock bind_addr
-         with
-         | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
-             failwith (Printf.sprintf "port %d already taken" port));
+        Unix.bind sock bind_addr;
         Unix.listen sock max_conn;
         sock) in
    let sock = open_socket port in

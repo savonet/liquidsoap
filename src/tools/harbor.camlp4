@@ -755,10 +755,7 @@ let open_port ~icy port =
     Unix.setsockopt sock Unix.SO_REUSEADDR true ;
     (* Set TCP_NODELAY on the socket *)
     Unix.setsockopt sock Unix.TCP_NODELAY true;
-    begin try Unix.bind sock bind_addr with
-      | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "port %d already taken" port)
-    end ;
+    Unix.bind sock bind_addr;
     Unix.listen sock max_conn ;
     sock
   in
