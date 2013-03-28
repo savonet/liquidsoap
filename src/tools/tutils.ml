@@ -299,24 +299,33 @@ let wait c m f =
 
 exception Timeout
 
+let error_translator =
+  function
+    | Timeout ->
+        Some "Timeout while waiting on socket"
+    | _ ->
+        None
+
+let () = Utils.register_error_translator error_translator
+
 (* Wait for [`Read], [`Write] or [`Both] for at most
  * [timeout] seconds on the given [socket]. Raises [Timeout]
  * if timeout is reached.
  * [mutex] is an optional mutex that will be unlocked before
  * entering [select] and locked once leaving [select]. *)
 let wait_for ?mutex ?(log=fun _ -> ()) event socket timeout =
-  let is_done   = ref `False in
-  let m         = Mutex.create() in
-  let c         = Condition.create () in
-  let max_time  = Unix.gettimeofday () +. timeout in
+  let is_done  = ref `False in
+  let m        = Mutex.create() in
+  let c        = Condition.create () in
+  let max_time = Unix.gettimeofday () +. timeout in
+  let events =
+    match event with
+      | `Read ->  [`Read socket]
+      | `Write -> [`Write socket]
+      | `Both ->  [`Read socket; `Write socket]
+  in
   let events t =
-    let l =
-      match event with
-        | `Read ->  [`Read socket]
-        | `Write -> [`Write socket]
-        | `Both ->  [`Read socket; `Write socket]
-    in
-    (`Delay t) :: l
+    (`Delay t) :: events
   in
   let rec handler t l =
     if List.mem (`Delay t) l then
@@ -356,17 +365,9 @@ let wait_for ?mutex ?(log=fun _ -> ()) event socket timeout =
        events   = events timeout;
        handler  = handler timeout
     };
-  begin
-   match mutex with
-     | Some m -> Mutex.unlock m
-     | None   -> ()
-  end;
+  Utils.maydo Mutex.unlock mutex;
   wait c m (fun () -> !is_done <> `False);
-  begin
-   match mutex with
-     | Some m -> Mutex.lock m
-     | None   -> ()
-  end;
+  Utils.maydo Mutex.lock mutex;
   match !is_done with
     | `False   -> assert false
     | `Timeout -> raise Timeout
