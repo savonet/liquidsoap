@@ -25,6 +25,14 @@
 open Dtools
 open Unix
 
+let conf =
+  Conf.void ~p:(Configure.conf#plug "say")
+    "Parameters for the say protocol."
+let conf_program =
+  Conf.string ~p:(conf#plug "program") ~d:Configure.tts_program
+    "Program for syntesizing voices (takes as argument the text, \
+     the file to synthesize to, and optionnaly the voice to use)."
+
 let dlog = Log.make ["protocols";"say"]
 
 external core_exit : int -> 'a = "unix_exit"
@@ -45,7 +53,7 @@ let say s ~log maxtime =
   (* Note that if liquidsoap gets killed while resolving this URI,
    * the empty tempfile remains. It is only cleaned if a temporary
    * indicator is successfully created from it and added to the request. *)
-  let cmd = Configure.tts_program in
+  let cmd = conf_program#get in
   let voice,s = parse_arg s in
     try
       let pid,ret =
