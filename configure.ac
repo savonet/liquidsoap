@@ -979,7 +979,7 @@ cat <<EOMSG
    - lo                : $w_LO
    - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
-   - win32 service     : $w_WINSVC
+   - windows service   : $w_WINSVC
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON
