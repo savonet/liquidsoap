@@ -292,13 +292,86 @@ let () =
       start_forwarding ()
     end))
 
-(** Waits for [f()] to become true on condition [c].
-  * The mutex [m] protecting data accessed by [f] is in the same state before
-  * and after the call. *)
+(** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  let l = Mutex.try_lock m in
-    while not (f ()) do Condition.wait c m done ;
-    if l then Mutex.unlock m
+  mutexify m (fun () ->
+    while not (f ()) do Condition.wait c m done) ()
+
+exception Timeout
+
+let error_translator =
+  function
+    | Timeout ->
+        Some "Timeout while waiting on socket"
+    | _ ->
+        None
+
+let () = Utils.register_error_translator error_translator
+
+(* Wait for [`Read], [`Write] or [`Both] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout]
+ * if timeout is reached.
+ * [mutex] is an optional mutex that will be unlocked before
+ * entering [select] and locked once leaving [select]. *)
+let wait_for ?mutex ?(log=fun _ -> ()) event socket timeout =
+  let is_done  = ref `False in
+  let m        = Mutex.create() in
+  let c        = Condition.create () in
+  let max_time = Unix.gettimeofday () +. timeout in
+  let events =
+    match event with
+      | `Read ->  [`Read socket]
+      | `Write -> [`Write socket]
+      | `Both ->  [`Read socket; `Write socket]
+  in
+  let events t =
+    (`Delay t) :: events
+  in
+  let rec handler t l =
+    if List.mem (`Delay t) l then
+     begin
+      log (Printf.sprintf "No network activity for %.02f second(s)." t);
+      let current_time = Unix.gettimeofday () in
+      if current_time >= max_time then
+       begin
+        log "Network activity timeout!" ;
+        mutexify m (fun () ->
+          is_done := `Timeout;
+          Condition.signal c) ();
+        []
+       end
+      else
+       begin
+        let timeout = (min 1. (max_time -. current_time)) in
+        [{ Duppy.Task.
+            priority = Non_blocking;
+            events   = events timeout;
+            handler  = handler timeout
+        }]
+       end
+     end
+    else
+     begin
+      mutexify m (fun () ->
+        is_done := `True;
+        Condition.signal c) ();
+      []
+     end
+  in
+  let timeout = min 1. timeout in
+  Duppy.Task.add scheduler
+    { Duppy.Task.
+       priority = Non_blocking;
+       events   = events timeout;
+       handler  = handler timeout
+    };
+  Utils.maydo Mutex.unlock mutex;
+  wait c m (fun () -> !is_done <> `False);
+  Utils.maydo Mutex.lock mutex;
+  match !is_done with
+    | `False   -> assert false
+    | `Timeout -> raise Timeout
+    | `True    -> ()
 
 (** Wait for some thread to crash *)
 let run = ref true

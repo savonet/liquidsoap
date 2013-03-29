@@ -542,28 +542,25 @@ object (self)
         else
           duppy_return () 
       with
-        | Harbor.Reply _ -> assert false
+        | Harbor.Relay _ -> assert false
         | Harbor.Close s ->
              self#log#f 4 "Client %s failed to authenticate!" ip ;
              client.state <- Done ;
              Harbor.reply s
      end ;
-     begin
-       self#log#f 4 "Client %s connected" ip ;
-       duppy_exec
+     duppy_exec
+       Harbor.relayed reply (fun () ->
+         self#log#f 4 "Client %s connected" ip;
          Tutils.mutexify clients_m
             (fun () -> Queue.push client clients) ();
          let h_headers =
             Hashtbl.create (List.length headers)
          in
          List.iter (fun (x,y) -> Hashtbl.add h_headers x y) headers ;
-         on_connect ~protocol ~uri ~headers:h_headers ip ;
-         duppy_return ()
-       with
-         { priority = Tutils.Maybe_blocking ;
-           handler  = handler }
-      end ;
-     Harbor.relayed reply
+         on_connect ~protocol ~uri ~headers:h_headers ip)
+     with
+       { priority = Tutils.Maybe_blocking ;
+         handler  = handler }
     done
 
   method send b =

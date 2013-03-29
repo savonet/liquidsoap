@@ -346,7 +346,7 @@ let () =
   in
     Lang.add_operator "switch"
       ~category:Lang.TrackProcessing
-      ~descr:"At the beginning of a track, select the first source
+      ~descr:"At the beginning of a track, select the first source \
               whose predicate is true."
       (common kind @ proto)
       ~kind:(Lang.Unconstrained kind)

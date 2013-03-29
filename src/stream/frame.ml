@@ -99,7 +99,7 @@ let delayed_conf x =
 let (!!) = Lazy.force
 
 (** The channel numbers are only defaults, used when channel numbers
-  * cannot be infered / are not forced from the context.
+  * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
 let audio_channels = delayed_conf conf_audio_channels

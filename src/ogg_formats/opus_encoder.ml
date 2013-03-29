@@ -128,7 +128,7 @@ let create_opus =
          let enc =
            create_encoder ~opus ~comments ()
          in
-         Ogg_muxer.register_track ogg_enc enc
+         Ogg_muxer.register_track ?fill:opus.Encoder.Opus.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
        let dst_freq = float opus.Encoder.Opus.samplerate in

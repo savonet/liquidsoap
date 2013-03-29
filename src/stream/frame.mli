@@ -179,7 +179,7 @@ val string_of_content_type : content_type -> string
 (** {2 Format settings} *)
 
 (** The channel numbers are only defaults, used when channel numbers
-  * cannot be infered / are not forced from the context.
+  * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
 (** Prevent forcing the value of a lazy configuration value before the user gets

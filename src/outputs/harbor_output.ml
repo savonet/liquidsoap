@@ -361,8 +361,7 @@ class output ~kind p =
                                                         let login user
                                                                   password =
                                                           let (user,
-                                                               password) 
-                                                            =
+                                                               password) =
                                                             let f =
                                                               Configure.
                                                               recode_tag
@@ -565,8 +564,7 @@ class output ~kind p =
                                                                     s) in
                                                                     let 
                                                                     (metaint,
-                                                                    icyheader) 
-                                                                    =
+                                                                    icyheader) =
                                                                     try
                                                                     (assert
                                                                     (((List.
@@ -772,7 +770,7 @@ class output ~kind p =
                                                                     (function
                                                                     | 
                                                                     Harbor.
-                                                                    Reply _
+                                                                    Relay _
                                                                     ->
                                                                     assert
                                                                     false
@@ -792,20 +790,22 @@ class output ~kind p =
                                                                     (fun ()
                                                                     ->
                                                                     Duppy.
-                                                                    Monad.
-                                                                    bind
-                                                                    (self#log#
-                                                                    f 4
-                                                                    "Client %s connected"
-                                                                    ip;
-                                                                    Duppy.
                                                                     Monad.Io.
                                                                     exec
                                                                     ~priority:
                                                                     Tutils.
                                                                     Maybe_blocking
                                                                     handler
-                                                                    (Tutils.
+                                                                    (Harbor.
+                                                                    relayed
+                                                                    reply
+                                                                    (fun ()
+                                                                    ->
+                                                                    (self#log#
+                                                                    f 4
+                                                                    "Client %s connected"
+                                                                    ip;
+                                                                    Tutils.
                                                                     mutexify
                                                                     clients_m
                                                                     (fun ()
@@ -837,15 +837,7 @@ class output ~kind p =
                                                                     ~uri
                                                                     ~headers:
                                                                     h_headers
-                                                                    ip;
-                                                                    Duppy.
-                                                                    Monad.
-                                                                    return ())))
-                                                                    (fun ()
-                                                                    ->
-                                                                    Harbor.
-                                                                    relayed
-                                                                    reply)))
+                                                                    ip))))))
                                                                 method send =
                                                                   fun b ->
                                                                     let slen 
@@ -907,8 +899,7 @@ class output ~kind p =
                                                                     (acc, 0) in
                                                                     let 
                                                                     (data,
-                                                                    pos) 
-                                                                    =
+                                                                    pos) =
                                                                     f [] 0
                                                                     (b ::
                                                                     (List.rev
@@ -1076,8 +1067,7 @@ class output ~kind p =
                                                                     "^(.+)\\?(.+)$" in
                                                                     let 
                                                                     (base_uri,
-                                                                    args) 
-                                                                    =
+                                                                    args) =
                                                                     try
                                                                     let sub 
                                                                     =

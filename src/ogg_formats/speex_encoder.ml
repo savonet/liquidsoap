@@ -192,7 +192,7 @@ let create_speex =
         let enc =
           create speex ~metadata ()
         in
-        Ogg_muxer.register_track ogg_enc enc
+        Ogg_muxer.register_track ?fill:speex.Encoder.Speex.fill ogg_enc enc
       in
       let channels = if speex.Encoder.Speex.stereo then 2 else 1 in
       let src_freq = float (Frame.audio_of_seconds 1.) in

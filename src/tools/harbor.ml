@@ -20,8 +20,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
-open Unix
-  
 open Dtools
   
 open Http_source
@@ -110,11 +108,11 @@ type protocol =
   [ | `Http_10 | `Http_11 | `Ice_10 | `Icy | `Xaudiocast_uri of string
   ]
 
-type reply = | Close of string | Reply of string
+type reply = | Close of string | Relay of string * (unit -> unit)
 
 let reply s = Duppy.Monad.raise (Close s)
   
-let relayed s = Duppy.Monad.raise (Reply s)
+let relayed s f = Duppy.Monad.raise (Relay (s, f))
   
 type http_handler =
   protocol: string ->
@@ -316,12 +314,12 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      | Not_found when
                          (protocol = `Shout) || (protocol = `Xaudiocast) ->
                          "audio/mpeg"
-                     | Not_found -> raise Unknown_codec
+                     | Not_found -> raise Unknown_codec in
+                   let f () = s#relay stype headers h.Duppy.Monad.Io.socket
                    in
-                     (s#relay stype headers h.Duppy.Monad.Io.socket;
-                      log#f 4 "Adding source on mountpoint %S with type %S."
+                     (log#f 4 "Adding source on mountpoint %S with type %S."
                         uri stype;
-                      relayed "HTTP/1.0 200 OK\r\n\r\n"))
+                      relayed "HTTP/1.0 200 OK\r\n\r\n" f))
               with
               | Mount_taken ->
                   (log#f 4 "Returned 403: Mount taken";
@@ -616,12 +614,13 @@ let handle_client ~port ~icy h = (* Read and process lines *)
 let open_port ~icy port =
   (Tutils.need_non_blocking_queue ();
    log#f 4 "Opening port %d with icy = %b" port icy;
+   let max_conn = conf_harbor_max_conn#get in
    let rec incoming ~port ~icy sock out_s e =
      if List.mem (`Read out_s) e
      then (try (Unix.close sock; Unix.close out_s; []) with | _ -> [])
      else
        ((try
-           let (socket, caller) = accept sock in
+           let (socket, caller) = Unix.accept sock in
            let ip = Utils.name_of_sockaddr ~rev_dns: conf_revdns#get caller
            in
              (log#f 4 "New client on port %i: %s" port ip;
@@ -658,15 +657,9 @@ let open_port ~icy port =
                 let close () = try Unix.close socket with | _ -> () in
                 let (s, exec) =
                   match r with
-                  | Reply s -> (s, (fun () -> ()))
+                  | Relay (s, exec) -> (s, exec)
                   | Close s -> (s, close) in
-                let on_error e =
-                  (ignore (on_error e);
-                   (* We close on_error only if
-                  * the reply is Close. In case of Reply, 
-                  * we cannot close now has there might
-                  * be another task actually using the socket. *)
-                   exec ())
+                let on_error e = (ignore (on_error e); close ())
                 in
                   Duppy.Io.write ~timeout: conf_timeout#get
                     ~priority: Tutils.Non_blocking ~on_error ~string: s ~exec
@@ -685,18 +678,15 @@ let open_port ~icy port =
           } ]) in
    let open_socket port =
      let bind_addr = conf_harbor_bind_addr#get in
-     let bind_addr_inet = inet_addr_of_string bind_addr in
-     let bind_addr = ADDR_INET (bind_addr_inet, port) in
-     let sock = socket PF_INET SOCK_STREAM 0
+     let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
+     let bind_addr = Unix.ADDR_INET (bind_addr_inet, port) in
+     let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0
      in
        (* Set TCP_NODELAY on the socket *)
-       (setsockopt sock SO_REUSEADDR true;
+       (Unix.setsockopt sock Unix.SO_REUSEADDR true;
         Unix.setsockopt sock Unix.TCP_NODELAY true;
-        (try bind sock bind_addr
-         with
-         | Unix.Unix_error (Unix.EADDRINUSE, "bind", "") ->
-             failwith (Printf.sprintf "port %d already taken" port));
-        listen sock conf_harbor_max_conn#get;
+        Unix.bind sock bind_addr;
+        Unix.listen sock max_conn;
         sock) in
    let sock = open_socket port in
    let (in_s, out_s) = Unix.pipe ()

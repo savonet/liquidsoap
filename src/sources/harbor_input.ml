@@ -23,20 +23,6 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
-exception Disconnected
-exception Stopped
-
-(** Error translator *)
-let error_translator =
-   function
-     | Disconnected ->
-         Some "Source client disconnected"
-     | Stopped ->
-         Some "Source stopped"
-     | _ -> None
-
-let () = Utils.register_error_translator error_translator
-
 (* {1 Input handling} *)
 
 class http_input_server ~kind ~dumpfile ~logfile
@@ -58,21 +44,10 @@ object (self)
 
   (** POSIX sucks.. *)
   val mutable relay_socket = None
-  (* Mutex used to change socket's state (close) *)
+  (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
-  (* Mutex used to grab socket's status (read only) *)
-  val get_relay_m = Mutex.create()
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
-
-  (** [kill_polling] is for requesting that the feeding thread stops;
-    * it is called on #disconnect. *)
-  val mutable kill_polling = None
-
-  (** [wait_polling] is to make sure that the thread did stop;
-    * it is only called in #relay before creating a new thread,
-    * so that #disconnect is instantaneous. *)
-  val mutable wait_polling = None
 
   val mutable dump = None
   val mutable logf = None
@@ -89,7 +64,7 @@ object (self)
       "kick" ~descr:"Kick current source client, if connected." stop ;
     self#register_command
       "status" ~descr:"Display current status."
-      (Tutils.mutexify get_relay_m
+      (Tutils.mutexify relay_m
        (fun _ ->
          match relay_socket with
            | Some s ->
@@ -125,7 +100,7 @@ object (self)
 
   method get_mime_type = mime_type
 
-  method feed (should_stop,has_stopped) =
+  method feed =
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
@@ -139,7 +114,7 @@ object (self)
                 try
                  (* Wait for `Read event on socket. *)
                  let log = self#log#f 4 "%s" in
-                 Utils.wait_for ~log `Read socket timeout;
+                 Tutils.wait_for ~mutex:relay_m ~log `Read socket timeout;
                  (* Now read. *)
                  let buf = String.make len ' ' in
                  let input = Unix.read socket buf 0 len in
@@ -147,8 +122,7 @@ object (self)
                 with
                   | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
-                         Tutils.mutexify get_relay_m (fun () ->
-                           self#disconnect ~lock:false) ();
+                         self#disconnect ~lock:false;
                          "",0
                end) len;
       in
@@ -176,9 +150,7 @@ object (self)
       try
         let decoder = create_decoder input in
         while true do
-          if should_stop () then
-            raise Disconnected ;
-          Tutils.mutexify get_relay_m
+          Tutils.mutexify relay_m
             (fun () ->
                if relay_socket = None then
                  failwith "relaying stopped") () ;
@@ -188,25 +160,8 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            (* Do not show internal exception, e.g. Unix.read()
-             * exception if source has been stopped. The socket
-             * is closed when stopping so we expect this exception
-             * to happen.. *)
-            let e =
-              match e with
-                | Stopped
-                | Disconnected -> e
-                | _ when relay_socket = None -> Stopped
-                | _ -> e
-            in
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
-            (* exception Disconnected is raised when
-             * the thread is being killed, which only
-             * happends in self#disconnect. No need to
-             * call it then.. *)
-            if e <> Disconnected && e <> Stopped then
-              self#disconnect ~lock:true;
-            has_stopped () ;
+            self#disconnect ~lock:true;
             if debug then raise e
 
   method private wake_up act =
@@ -240,13 +195,11 @@ object (self)
       | None -> raise Harbor.Unknown_codec
 
   method relay stype (headers:(string*string) list) socket =
-    Tutils.mutexify relay_m
-      (Tutils.mutexify get_relay_m
-        (fun () ->
-          if relay_socket <> None then
-            raise Harbor.Mount_taken ;
-          self#register_decoder stype ;
-          relay_socket <- Some socket)) () ;
+    Tutils.mutexify relay_m (fun () ->
+      if relay_socket <> None then
+        raise Harbor.Mount_taken ;
+      self#register_decoder stype ;
+      relay_socket <- Some socket) () ;
     on_connect headers ;
     begin match dumpfile with
       | Some f ->
@@ -270,20 +223,7 @@ object (self)
           end
       | None -> ()
     end ;
-    (* Wait for the old feeding thread to return,
-      * then create a new one. *)
-    assert (kill_polling = None) ;
-    begin match wait_polling with
-      | None -> ()
-      | Some f ->
-          f () ; wait_polling <- None
-    end ;
-    let kill,wait =
-      Tutils.stoppable_thread self#feed
-          "harbor source feeding"
-    in
-    kill_polling <- Some kill ;
-    wait_polling <- Some wait
+    ignore(Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
   method private disconnect_no_lock =
     Utils.maydo (fun s ->
@@ -293,9 +233,8 @@ object (self)
     relay_socket <- None
 
   method private disconnect_with_lock =
-    Tutils.mutexify relay_m
-      (Tutils.mutexify get_relay_m (fun () ->
-        self#disconnect_no_lock)) ();
+    Tutils.mutexify relay_m (fun () ->
+      self#disconnect_no_lock) ();
 
   method private after_disconnect =
     begin match dump with
@@ -308,11 +247,9 @@ object (self)
            close_out f ; logf <- None
        | None -> ()
     end ;
-    Utils.maydo (fun f -> f()) kill_polling ;
-    kill_polling <- None ;
     on_disconnect ()
 
-  method disconnect ~lock =
+  method disconnect ~lock : unit =
     if lock then
       self#disconnect_with_lock
     else

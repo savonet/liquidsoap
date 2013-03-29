@@ -66,8 +66,17 @@ val need_non_blocking_queue : unit -> unit
   * and after the call. *)
 val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 
-(** Make a function work in critical section, protected by a given lock. *)
+(** Make a function work in critical section, protected by a given lock. *) 
 val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
+
+exception Timeout
+
+(* Wait for [`Read], [`Write] or [`Both] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout]
+ * if timeout is reached.
+ * [mutex] is an optional mutex that will be unlocked before
+ * entering [select] and locked once leaving [select]. *)
+val wait_for : ?mutex:Mutex.t -> ?log:(string -> unit) -> [`Read|`Write|`Both] -> Unix.file_descr -> float -> unit
 
 (** [finalize ~k f] calls [f] and returns it result,
   * and always executes [k], even when [f] raises an exception. *)

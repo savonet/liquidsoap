@@ -49,7 +49,7 @@ let resolve proto program command s ~log maxtime =
   let timeout = max 0. (maxtime -. Unix.gettimeofday ()) in
     Unix.close iR ;
     Unix.close xW ;
-    if Utils.select [xR] [] [] timeout = ([],[],[]) then
+    if Unix.select [xR] [] [] timeout = ([],[],[]) then
       Unix.kill pid 9 ;
     let (p,code) = Unix.waitpid [] pid in
       assert (p <> 0) ;
