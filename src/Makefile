@@ -14,7 +14,7 @@ include $(top_srcdir)/Makefile.defs
 # or to the corresponding plugin if built as a plugin.
 # For this purpose, we define the make function
 # conditional_compilation, which redirects each of those files to
-# the correct make variable. Its parameters are:
+# the correct make variable. Its parameters are:
 # $1: name of the make variable where the file should go if compiled builtin.
 # $2: the $W_FOO variable
 # $3: path to the file
@@ -25,7 +25,7 @@ include $(top_srcdir)/Makefile.defs
 # For now, the old style Makefile has been converted to
 # this new style by replacing $(if $(W_FOO),..) by
 # $(call conditional_compilation,..). However, this may
-# cause some trouble as the order of declaration is important
+# cause some trouble as the order of declaration is important
 # both for the builtin case and plugin case.. See for instance
 # SDL files, whose declaration have been moved at the end.
 conditional_compilation = \
@@ -34,15 +34,14 @@ conditional_compilation = \
       $(eval $(2)_$(4)sources += $(3)),\
       $(eval $(1) += $(3))))
 
-liquidsoap_c_files = \
-	tools/locale_c.c
+liquidsoap_c_files = tools/locale_c.c
 
 # Add conditional files..
 $(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)
 
 # Camlp4 compilation works as follow:
 # both .camlp4 and .ml files are present in the
-# source tree.
+# source tree.
 # If camlp4o is detected, then a .camlp4.ml target
 # is executed for each .camlp4. This target creates a .camlp4.ml
 # file that is not used and regenerate the .ml files used for compilation.
@@ -263,7 +262,8 @@ liquidsoap_sources += \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \
 	$(analyze) $(playlists) $(visualization) $(synth) $(decoders) \
-	shebang.ml $(builtins) main.ml
+	shebang.ml $(builtins) main.ml \
+        $(if $(W_WINSVC),runner_service.ml,runner.ml)
 
 include $(top_srcdir)/Makefile.rules
 
@@ -348,21 +348,3 @@ profile:
 	-$(MAKE)
 	cd lang; ocamlc -c -I .. -I ../tools lang_values.ml
 	$(MAKE)
-
-libliq_sources= $(tools) SVN.ml audio_converter.ml $(stream) \
-	shebang.ml alsa_settings.ml \
-	tools/server.ml tools/server_builtins.ml \
-	lang/lang_types.ml lang/lang_values.ml \
-	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang.ml \
-	$(liquidsoap_c_files) \
-	$(if $(W_SDL),tools/sdl_utils.ml) \
-	$(video_converters) $(audio_converters) \
-	$(ogg_utils) $(protocols) $(sources) $(operators) $(outputs) $(io) \
-	$(analyze) $(playlists) $(decoders) \
-	lang/lang_builtins.ml
-libliq_objects=$(libliq_sources:.ml=.$(o))
-liquidsoap.$(a): $(libliq_objects:.c=.o) Makefile
-	ocamlmklib $(OCAML_CFLAGS:-threads:) -linkall $(OCAML_LFLAGS) \
-	  -o liquidsoap \
-	  $(libliq_objects:.c=.o)

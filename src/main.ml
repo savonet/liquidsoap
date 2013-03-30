@@ -1,27 +1,33 @@
 (*****************************************************************************
-
+  
   Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2013 Savonet team
-
+  
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-
+  
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details, fully stated in the COPYING
   file at the root of the liquidsoap distribution.
-
+  
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
+  
  *****************************************************************************)
 
 open Dtools
 open Printf
+  
+(** Runner module signature. *)
+module type Runner_t =
+sig
+  val options : (string list * Arg.spec * string) list
+end
 
 let usage =
   "Usage : liquidsoap [OPTION, SCRIPT or EXPR]...\n\
@@ -219,7 +225,7 @@ struct
       let subs =
         List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs
       in
-      let title,default,set,comment = 
+      let title,default,set,comment =
         if liqi then
           Printf.sprintf "h%d. %s\n",
           Printf.sprintf "Default: @%s@\n",
@@ -227,7 +233,7 @@ struct
                           set(%S,%s)\n\
                           %%%%\n",
           (fun l -> String.concat ""
-                     (List.map (fun s -> Printf.sprintf "%s\n" s) l)) 
+                     (List.map (fun s -> Printf.sprintf "%s\n" s) l))
         else
           (fun _ ->
              if t#kind = None then
@@ -317,7 +323,149 @@ let format_doc s =
 
 let log = Log.make ["main"]
 
-let options =
+let options = [
+    ["-"],
+    Arg.Unit (fun () -> eval `StdIn),
+    "Read script from standard input." ;
+
+    ["-r"],
+    Arg.String process_request,
+    "Process a request." ;
+
+    ["-h"],
+    Arg.String lang_doc,
+    "Get help about a scripting value: \
+     source, operator, builtin or library function, etc.";
+
+    ["-c";"--check"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                dont_run := true),
+    "Check and evaluate scripts but do not perform any streaming." ;
+
+    ["-cl";"--check-lib"],
+    Arg.Unit (fun () ->
+                last_item_lib := true ;
+                secondary_task := true ;
+                dont_run := true),
+    "Like --check but treats all scripts and expressions as libraries, \
+     so that unused toplevel variables are not reported." ;
+
+    ["-p";"--parse-only"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                parse_only := true),
+    "Parse scripts but do not type-check and run them." ;
+
+    ["-q";"--quiet"],
+    Arg.Unit (fun () -> Log.conf_stdout#set false),
+    "Do not print log messages on standard output." ;
+
+    ["-v";"--verbose"],
+    Arg.Unit (fun () -> Log.conf_stdout#set true),
+    "Print log messages on standard output." ;
+
+    ["-f";"--force-start"],
+    Arg.Unit (fun () -> force_start#set true),
+    "For advanced dynamic uses: force liquidsoap to start \
+     even when no active source is initially defined." ;
+
+    ["--debug"],
+    Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
+    "Print debugging log messages." ]
+    @
+    (if Configure.dynlink then
+        [["--dynamic-plugins-dir"],
+            Arg.String (fun d ->
+            Dyntools.load_plugins_dir d),
+         "Directory where to look for plugins."]
+      else
+        [])
+    @
+    [["--errors-as-warnings"],
+    Arg.Set Lang_values.errors_as_warnings,
+    "Issue warnings instead of fatal errors for unused variables \
+     and ignored expressions. If you are not sure about it, it is better \
+     to not use it." ]
+    @
+    (* Unix.fork is not implemented in Win32. *)
+    (if Sys.os_type <> "Win32" then
+      [["-d";"--daemon"],
+       Arg.Unit (fun f -> Init.conf_daemon#set true),
+       "Run in daemon mode."]
+     else [])
+    @
+    [["-t";"--enable-telnet"],
+    Arg.Unit (fun _ -> Server.conf_telnet#set true),
+    "Enable the telnet server." ;
+
+    ["-T";"--disable-telnet"],
+    Arg.Unit (fun _ -> Server.conf_telnet#set false),
+    "Disable the telnet server." ;
+
+    ["-u";"--enable-unix-socket"],
+    Arg.Unit (fun _ -> Server.conf_socket#set true),
+    "Enable the unix socket." ;
+
+    ["-U";"--disable-unix-socket"],
+    Arg.Unit (fun _ -> Server.conf_socket#set false),
+    "Disable the unix socket." ;
+
+    ["--list-plugins-xml"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_xml (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "List all plugins (builtin scripting values, \
+       supported formats and protocols), \
+       output as XML." ;
+
+    ["--list-plugins"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "List all plugins (builtin scripting values, \
+       supported formats and protocols)." ;
+
+    ["--no-pervasives"],
+    Arg.Clear pervasives,
+    Printf.sprintf
+      "Do not load pervasives script libraries (i.e., %s/*.liq)."
+      Configure.libs_dir ;
+
+    ["-i"],
+    Arg.Set Configure.display_types,
+    "Display infered types." ;
+
+    ["--version"],
+    Arg.Unit (fun () ->
+                Printf.printf
+                  "Liquidsoap %s%s\n\
+                   Copyright (c) 2003-2013 Savonet team\n\
+                   Liquidsoap is open-source software, \
+                   released under GNU General Public License.\n\
+                   See <http://liquidsoap.fm> for more information.\n"
+                   Configure.version SVN.rev ;
+                exit 0),
+    "Display liquidsoap's version." ;
+
+    ["--interactive"],
+    Arg.Set interactive,
+    "Start an interactive interpreter." ;
+
+    ["--"],
+    Arg.Unit (fun () -> Arg.current := Array.length Sys.argv - 1),
+    "Stop parsing the command-line and pass subsequent items to the script."
+
+    ] @ (LiqConf.args Configure.conf)
+
+let expand_options options =
+  let options =
+    List.sort (fun (x,_,_) (y,_,_) -> compare x y)  options
+  in
   List.fold_left
     (fun l (la,b,c) ->
         let ta = List.hd (List.rev la) in
@@ -327,151 +475,10 @@ let options =
                        if a = ta then "\n" ^ format_doc c else ""))
             la
         in
-          l@expand) []
-    (let opts = [
-      ["-"],
-      Arg.Unit (fun () -> eval `StdIn),
-      "Read script from standard input." ;
+        l@expand) [] options
 
-      ["-r"],
-      Arg.String process_request,
-      "Process a request." ;
-
-      ["-h"],
-      Arg.String lang_doc,
-      "Get help about a scripting value: \
-       source, operator, builtin or library function, etc.";
-
-      ["-c";"--check"],
-      Arg.Unit (fun () ->
-                  secondary_task := true ;
-                  dont_run := true),
-      "Check and evaluate scripts but do not perform any streaming." ;
-
-      ["-cl";"--check-lib"],
-      Arg.Unit (fun () ->
-                  last_item_lib := true ;
-                  secondary_task := true ;
-                  dont_run := true),
-      "Like --check but treats all scripts and expressions as libraries, \
-       so that unused toplevel variables are not reported." ;
-
-      ["-p";"--parse-only"],
-      Arg.Unit (fun () ->
-                  secondary_task := true ;
-                  parse_only := true),
-      "Parse scripts but do not type-check and run them." ;
-
-      ["-q";"--quiet"],
-      Arg.Unit (fun () -> Log.conf_stdout#set false),
-      "Do not print log messages on standard output." ;
-
-      ["-v";"--verbose"],
-      Arg.Unit (fun () -> Log.conf_stdout#set true),
-      "Print log messages on standard output." ;
-
-      ["-f";"--force-start"],
-      Arg.Unit (fun () -> force_start#set true),
-      "For advanced dynamic uses: force liquidsoap to start \
-       even when no active source is initially defined." ;
-
-      ["--debug"],
-      Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
-      "Print debugging log messages." ]
-      @
-      (if Configure.dynlink then
-          [["--dynamic-plugins-dir"],
-              Arg.String (fun d ->
-              Dyntools.load_plugins_dir d),
-           "Directory where to look for plugins."]
-        else
-          [])
-      @ 
-      [["--errors-as-warnings"],
-      Arg.Set Lang_values.errors_as_warnings,
-      "Issue warnings instead of fatal errors for unused variables \
-       and ignored expressions. If you are not sure about it, it is better \
-       to not use it." ]
-      @
-      (* Unix.fork is not implemented in Win32. *) 
-      (if Sys.os_type <> "Win32" then
-        [["-d";"--daemon"],
-         Arg.Unit (fun f -> Init.conf_daemon#set true),
-         "Run in daemon mode."]
-       else [])
-      @
-      [["-t";"--enable-telnet"],
-      Arg.Unit (fun _ -> Server.conf_telnet#set true),
-      "Enable the telnet server." ;
-
-      ["-T";"--disable-telnet"],
-      Arg.Unit (fun _ -> Server.conf_telnet#set false),
-      "Disable the telnet server." ;
-
-      ["-u";"--enable-unix-socket"],
-      Arg.Unit (fun _ -> Server.conf_socket#set true),
-      "Enable the unix socket." ;
-
-      ["-U";"--disable-unix-socket"],
-      Arg.Unit (fun _ -> Server.conf_socket#set false),
-      "Disable the unix socket." ;
-
-      ["--list-plugins-xml"],
-      Arg.Unit (fun () ->
-                  secondary_task := true ;
-                  load_libs () ;
-                  Doc.print_xml (Plug.plugs:Doc.item)),
-      Printf.sprintf
-        "List all plugins (builtin scripting values, \
-         supported formats and protocols), \
-         output as XML." ;
-
-      ["--list-plugins"],
-      Arg.Unit (fun () ->
-                  secondary_task := true ;
-                  load_libs () ;
-                  Doc.print (Plug.plugs:Doc.item)),
-      Printf.sprintf
-        "List all plugins (builtin scripting values, \
-         supported formats and protocols)." ;
-
-      ["--no-pervasives"],
-      Arg.Clear pervasives,
-      Printf.sprintf
-        "Do not load pervasives script libraries (i.e., %s/*.liq)."
-        Configure.libs_dir ;
-
-      ["-i"],
-      Arg.Set Configure.display_types,
-      "Display inferred types." ;
-
-      ["--version"],
-      Arg.Unit (fun () ->
-                  Printf.printf
-                    "Liquidsoap %s%s\n\
-                     Copyright (c) 2003-2013 Savonet team\n\
-                     Liquidsoap is open-source software, \
-                     released under GNU General Public License.\n\
-                     See <http://liquidsoap.fm> for more information.\n"
-                    Configure.version SVN.rev ;
-                  exit 0),
-      "Display liquidsoap's version." ;
-
-      ["--interactive"],
-      Arg.Set interactive,
-      "Start an interactive interpreter." ;
-
-      ["--"],
-      Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
-      "Stop parsing the command-line and pass subsequent items to the script."
-
-      ]
-
-     in 
-     let opts = 
-       List.sort (fun (x,_,_) (y,_,_) -> compare x y) opts
-     in opts@LiqConf.args Configure.conf)
-
+module Make(Runner : Runner_t) =
+struct
 let () = 
   log#f 3 "Liquidsoap %s%s" Configure.version SVN.rev ;
   log#f 3 "Using:%s" Configure.libs_versions ;
@@ -521,32 +528,31 @@ let () =
 
 (* Startup *)
 let () =
-
   Random.self_init () ;
-
+  
   (* Set the default values. *)
   Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log") ;
   Init.conf_daemon_pidfile#set_d (Some true) ;
   Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid") ;
-
+  
   (* We only allow evaluation of
    * lazy configuration keys now. *)
   Frame.allow_lazy_config_eval ();
-
+  
   (* Parse command-line, and notably load scripts. *)
-  parse Shebang.argv options (fun s -> eval (`Expr_or_File s)) usage ;
+  parse Shebang.argv (expand_options Runner.options) (fun s -> eval (`Expr_or_File s)) usage ;
   do_eval ~lib:!last_item_lib
-
+  
 (* When the log/pid paths have their definitive values,
  * expand substitutions and check directories.
  * This should be ran just before Dtools init. *)
 let check_directories () =
-
+  
   (* Now that the paths have their definitive value, expand <shortcuts>. *)
   let subst conf = conf#set (Configure.subst_vars conf#get) in
   subst Log.conf_file_path ;
   subst Init.conf_daemon_pidfile_path ;
-
+  
   let check_dir conf_path kind =
     let path = conf_path#get in
     let dir = Filename.dirname path in
@@ -563,7 +569,7 @@ let check_directories () =
       check_dir Log.conf_file_path "Log" ;
     if Init.conf_daemon#get && Init.conf_daemon_pidfile#get then
       check_dir Init.conf_daemon_pidfile_path "PID"
-
+  
 (* Now that outputs have been defined, we can start the main loop. *)
 let () =
   let cleanup () =
@@ -621,3 +627,4 @@ let () =
        * warn the user that his scripts didn't define any output. *)
       if not !secondary_task then
         Printf.printf "No output defined, nothing to do.\n"
+end
