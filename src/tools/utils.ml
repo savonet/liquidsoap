@@ -608,3 +608,26 @@ let normalize_parameter_string s =
   (* Identifiers cannot begin with a digit. *)
   let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
   s
+
+(** A function to reopen a file descriptor
+  * Thanks to Xavier Leroy!
+  * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
+  *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
+  *)
+let reopen_out outchan filename =
+  flush outchan;
+  let fd1 = Unix.descr_of_out_channel outchan in
+  let fd2 =
+    Unix.openfile filename [Unix.O_WRONLY] 0o666
+  in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(** The same for inchan *)
+let reopen_in inchan filename =
+  let fd1 = Unix.descr_of_in_channel inchan in
+  let fd2 =
+    Unix.openfile filename [Unix.O_RDONLY] 0o666
+  in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
