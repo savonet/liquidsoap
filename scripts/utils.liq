@@ -539,8 +539,8 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
   # Get its id.
   id = source.id(source)
   # The load function
-  def load_playlist () = 
-    files = 
+  def load_playlist () =
+    files =
       if test_process("test -d #{quote(!playlist_uri)}") then
         log(label=id,"playlist is a directory.")
         get_process_lines("find #{quote(!playlist_uri)} -type f | sort")
@@ -607,6 +607,18 @@ def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",uri)
     source.on_shutdown(s,unwatch)
   end
   s
+end
+
+# Play the whole playlist as one track.
+# @param ~id Force the value of the source ID.
+# @param ~random Randomize playlist content
+# @param uri Playlist URI.
+def playlist.merge(~id="",~random=false,uri) =
+  pl = playlist.reloadable(id=id,random=random,uri)
+  reload = fst(pl)
+  s = snd(pl)
+  s = merge_tracks(s)
+  on_end(delay=0.,fun(_,_)->reload(),s)
 end
 
 # Mixes two streams, with faded transitions between the state when only the
