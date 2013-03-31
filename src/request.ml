@@ -597,7 +597,8 @@ let resolve t timeout =
                   pop_indicator t
             end
         | None ->
-            log#f 3 "Nonexistent file or ill-formed URI %S!" i.string ;
+            let log_level = if i.string = "" then 4 else 3 in
+            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
             add_log t "Nonexistent file or ill-formed URI!" ;
             pop_indicator t
   in
