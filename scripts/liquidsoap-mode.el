@@ -44,18 +44,25 @@
         (save-excursion
           (while not-indented
             (forward-line -1)
-            (if (looking-at "^[ \t]*\\(end\\|%endif\\)") ; indent as much as the last end
+            ; Indent as much as the last end
+            (if (looking-at "^[ \t]*\\(end\\|%endif\\)")
                 (progn
                   (setq cur-indent (current-indentation))
                   (setq not-indented nil))
               ; Increment if we find that we are in a block
-              (if (looking-at "^[ \t]*\\(def\\|if\\|then\\|elsif\\|%ifdef\\)")
+              (if (looking-at "^[ \t]*\\(def\\|if\\|then\\|elsif\\|%ifdef\\|.*=$\\)")
                   (progn
                     (setq cur-indent (+ (current-indentation) liquidsoap-tab-width))
                     (setq not-indented nil))
-                (if (bobp) ; Check for rule 5
-                    (setq not-indented nil)))))))
-      (if cur-indent (indent-line-to cur-indent) (indent-line-to 0)) ; If we didn't see an indentation hint, then allow no indentation
+                ; Same as previous line otherwise
+                (if (bobp) (setq not-indented nil))
+              )
+            )
+          )
+        )
+      )
+      ; If we didn't see an indentation hint, then allow no indentation
+      (if cur-indent (indent-line-to cur-indent) (indent-line-to 0))
     )
   )
 )
