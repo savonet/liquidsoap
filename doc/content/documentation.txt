@@ -2,13 +2,12 @@ title: Liquidsoap documentation
 
 h3. Documentation index
 
-**How to use**: Start with the "quickstart":quick_start.html and 
-make sure you learn "how to find help":help.html. Then it's as you like:
-go for another "general tutorial":#general, or a 
-"specific example":#specific,
-pick a "basic notion":#core, or some examples from the 
-"cookbook":cookbook.html. If you've understood all you need,
-just browse the "reference":reference.html and compose your dream stream.
+**How to use**: Start with the "quickstart":quick_start.html and make sure you
+learn "how to find help":help.html. Then it's as you like: go for another
+"general tutorial":#general, or a "specific example":#specific, pick a "basic
+notion":#core, or some examples from the "cookbook":cookbook.html. If you've
+understood all you need, just browse the "reference":reference.html and compose
+your dream stream.
 
 If you downloaded a source tarball of liquidsoap, you may first read the
 "build instructions":build.html.
@@ -19,6 +18,7 @@ liquidsoap, you may want to read the "custom path":custom-path.html page.
 h4@general. General tutorials
 
 * "Quickstart":quick_start.html: where anyone should start.
+* "ON2 tutorial":on2.html: a in-depth tutorial of Liquidsoap from scratch.
 * "Complete case analysis":complete_case.html: an example that is not a toy.
 * "Advanced":advanced.html: overview of more advanced features for serious usage.
 * "How to find help":help.html about operators, settings, server commands, etc.
@@ -42,7 +42,7 @@ h4@core. Core
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
 * "Execution phases":phases.html
 
-h4@specific. Specific tutorials 
+h4@specific. Specific tutorials
 
 * "Blank detection":blank.html
 * "Customize metadata":metadata.html
@@ -79,3 +79,9 @@ h4@users. User scripts
 h4. Code snippets
 
 * "Code example index":scripts/index.html
+
+h4. Behind the curtains
+
+* "Some presentations and publications":../publications.html explaining the theory underlying Liquidsoap
+* "OCaml modules":../modules.html used in Liquidsoap, that can be reused in other projects
+* "Documentation for previous versions":../previously.html
