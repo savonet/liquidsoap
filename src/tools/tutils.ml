@@ -61,12 +61,12 @@ let fast_queues =
        "such as last.fm submissions or slow <code>add_timeout</code> handlers."
      ]
 let non_blocking_queues =
-  Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:1
+  Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:2
      "Non-blocking queues"
      ~comments:[
        "Number of queues dedicated to internal non-blocking tasks." ;
        "These are only started if such tasks are needed." ;
-       "There should be at least two."
+       "There should be at least one."
      ]
 
 let scheduler_log =
