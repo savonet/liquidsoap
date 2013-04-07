@@ -66,7 +66,7 @@ let non_blocking_queues =
      ~comments:[
        "Number of queues dedicated to internal non-blocking tasks." ;
        "These are only started if such tasks are needed." ;
-       "There should be at least one. Having more is probably useless."
+       "There should be at least two."
      ]
 
 let scheduler_log =
@@ -254,15 +254,15 @@ let start_forwarding () =
       fun s -> log#f 3 "%s" s
   in
   let forward fd log =
-    let task f =
+    let task ~priority f =
       { Duppy.Task.
-         priority = Non_blocking ;
+         priority = priority ;
          events   = [`Read fd] ;
          handler  = f }
     in
+    let len = 1024 in
+    let buffer = String.create len in
     let rec f (acc:string list) _ =
-      let len = 10 in
-      let buffer = String.create len in
       let n = Unix.read fd buffer 0 len in
       let rec split acc i =
         match
@@ -272,14 +272,16 @@ let start_forwarding () =
               let line =
                 List.fold_left (fun s l -> l^s) (String.sub buffer i (j-i)) acc
               in
+                (* This _could_ be blocking! *)
                 log line ;
                 split [] (j+1)
           | _ ->
               String.sub buffer i (n-i) :: acc
       in
-        [ task (f (split acc 0)) ]
+        [ task ~priority:Non_blocking (f (split acc 0)) ]
     in
-      Duppy.Task.add scheduler (task (f []))
+      Duppy.Task.add scheduler 
+        (task ~priority:Maybe_blocking (f []))
   in
     forward in_stdout log_stdout ;
     forward in_stderr log_stderr
