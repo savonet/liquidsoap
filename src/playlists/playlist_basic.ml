@@ -285,4 +285,7 @@ let () =
   Playlist_parser.parsers#register "audio/x-mpegurl"
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
   Playlist_parser.parsers#register "audio/mpegurl"
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
+  Playlist_parser.parsers#register "application/x-mpegURL"
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
+
