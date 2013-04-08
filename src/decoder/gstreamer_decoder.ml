@@ -207,7 +207,7 @@ let mime_types =
     "Mime-types used for guessing format handled by GStreamer"
     ~d:["video/x-ms-asf";"video/x-msvideo";
         "video/mp4";"video/3gpp";"video/webm";
-        "video/x-matroska"]
+        "video/x-matroska";"video/MP2T"]
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "gstreamer")
     "File extensions used for guessing format handled by GStreamer"
