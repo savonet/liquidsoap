@@ -110,6 +110,7 @@ let create_decoder metadata img =
     let img =
       if (off_x,off_y) = (0,0) then img else
         let img' = Img.create (width+off_x) (height+off_y) in
+        Img.blank_all img';
         Img.add img img' ~x:off_x ~y:off_y;
         img'
     in
