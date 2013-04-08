@@ -1,28 +1,28 @@
 (*****************************************************************************
-  
+
   Liquidsoap, a programmable audio stream generator.
   Copyright 2003-2013 Savonet team
-  
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details, fully stated in the COPYING
   file at the root of the liquidsoap distribution.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  
+
  *****************************************************************************)
 
 open Dtools
 open Printf
-  
+
 (** Runner module signature. *)
 module type Runner_t =
 sig
@@ -479,7 +479,7 @@ let expand_options options =
 
 module Make(Runner : Runner_t) =
 struct
-  let () = 
+  let () =
     log#f 3 "Liquidsoap %s%s" Configure.version SVN.rev ;
     log#f 3 "Using:%s" Configure.libs_versions ;
     if Configure.scm_snapshot then
@@ -512,14 +512,14 @@ struct
     with
       | Arg.Bad msg -> Printf.eprintf "%s" msg ; exit 2
       | Arg.Help msg -> Printf.printf "%s" msg ; exit 0
-  
+
   let absolute s =
     if String.length s > 0 && s.[0] <> '/' then
       (Unix.getcwd ())^"/"^s
     else
       s
 
-  (* Load plugins and dynamic loaded libraries: 
+  (* Load plugins and dynamic loaded libraries:
    * these should be loaded as early as possible since we want to be
    * able to use them in scripts... *)
   let () =
@@ -529,30 +529,30 @@ struct
   (* Startup *)
   let () =
     Random.self_init () ;
-  
+
     (* Set the default values. *)
     Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log") ;
     Init.conf_daemon_pidfile#set_d (Some true) ;
     Init.conf_daemon_pidfile_path#set_d (Some "<sysrundir>/<script>.pid") ;
-  
+
     (* We only allow evaluation of
      * lazy configuration keys now. *)
     Frame.allow_lazy_config_eval ();
-  
+
     (* Parse command-line, and notably load scripts. *)
     parse Shebang.argv (expand_options Runner.options) (fun s -> eval (`Expr_or_File s)) usage ;
     do_eval ~lib:!last_item_lib
-  
+
   (* When the log/pid paths have their definitive values,
    * expand substitutions and check directories.
    * This should be ran just before Dtools init. *)
   let check_directories () =
-  
+
     (* Now that the paths have their definitive value, expand <shortcuts>. *)
     let subst conf = conf#set (Configure.subst_vars conf#get) in
     subst Log.conf_file_path ;
     subst Init.conf_daemon_pidfile_path ;
-  
+
     let check_dir conf_path kind =
       let path = conf_path#get in
       let dir = Filename.dirname path in
@@ -569,7 +569,7 @@ struct
         check_dir Log.conf_file_path "Log" ;
       if Init.conf_daemon#get && Init.conf_daemon_pidfile#get then
         check_dir Init.conf_daemon_pidfile_path "PID"
-  
+
   (* Now that outputs have been defined, we can start the main loop. *)
   let () =
     let cleanup () =
