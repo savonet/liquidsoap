@@ -458,16 +458,19 @@ object (self)
           | Failure hd -> raise Not_found
       in
       let test_playlist parser =
-        Tutils.mutexify socket_m (fun () ->
-          match socket with
+        let playlist =
+          Tutils.mutexify socket_m (fun () ->
+            match socket with
             | None -> failwith "not connected!"
             | Some (s,_,_) ->
               let content = Http.read ~timeout s None in
               let playlist = parser content in
-                match playlist with
-                  | [] -> raise Not_found
-                  | _ -> playlist_process playlist) ()
+              match playlist with
+              | [] -> raise Not_found
+              | _ -> playlist) ()
         in
+        playlist_process playlist
+      in
         try
           self#log#f 4
             "Trying playlist parser for mime %s" content_type ;
