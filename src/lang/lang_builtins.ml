@@ -512,6 +512,18 @@ let () =
     [] Lang.bool_t
     (fun p -> Lang.bool (Random.bool ()))
 
+let () =
+  add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
+    ~flags:[Lang.Hidden]
+    [] Lang.int_t
+    (fun _ -> Lang.int max_int)
+
+let () =
+  add_builtin "min_int" ~cat:Math ~descr:"Minimal representable integer."
+    ~flags:[Lang.Hidden]
+    [] Lang.int_t
+    (fun _ -> Lang.int min_int)
+
 (** Comparison and boolean connectives *)
 
 let compare_value a b =
