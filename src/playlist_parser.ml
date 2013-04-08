@@ -61,9 +61,9 @@ let conf_cue_out_metadata =
 type playlist = ((string * string) list * string) list
 
 (** A plugin is a boolean and a parsing function *)
-type plugin = { 
+type plugin = {
   strict : bool; (* true is the format can be detected *)
-  parser: ?pwd:string -> string -> playlist 
+  parser: ?pwd:string -> string -> playlist
     (* The parser is expected to respect the order
        of the files in the playlist. *)
 }
@@ -75,7 +75,7 @@ let parsers : plugin Plug.plug =
 
 let get_file ?pwd file =
   match pwd with
-    | Some pwd -> 
+    | Some pwd ->
         let f = Filename.concat pwd file in
         if Sys.file_exists f then f else file
     | None     -> file
@@ -93,7 +93,7 @@ let search_valid ?pwd string =
     (* Try strict plugins first *)
     let compare (_,a) (_,b) = compare b.strict a.strict in
     let plugins = List.sort compare plugins in
-    List.iter 
+    List.iter
       (fun (format,plugin) ->
            log#f 4 "Trying %s parser" format ;
 	   match try Some (plugin.parser ?pwd string) with _ -> None
@@ -105,4 +105,4 @@ let search_valid ?pwd string =
     raise Not_found
   with
     | Exit (format,d) -> format,d
-	    
+
