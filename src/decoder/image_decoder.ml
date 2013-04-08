@@ -21,6 +21,15 @@
  *****************************************************************************)
 
 module Img = Image.RGBA32
+module Gen = Image.Generic
+
+(** Converter used to resize images. *)
+let converter =
+  Lazy.lazy_from_fun
+    (fun () ->
+      Video_converter.find_converter
+        (Gen.Pixel.RGB Gen.Pixel.RGBA32)
+        (Gen.Pixel.RGB Gen.Pixel.RGBA32))
 
 (** Function to retrieve width an height from parameters. *)
 (* TODO: put this in some library as it can be used in many other places... *)
@@ -89,13 +98,23 @@ let create_decoder metadata img =
   let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
-  if (width,height) <> (img_w,img_h) || (off_x,off_y) <> (0,0) then
-    (
-      (* TODO: use Video_converter.find_converter *)
-      let img' = Img.Scale.create img width height in
-      Img.blank_all img;
-      Img.add img' img ~x:off_x ~y:off_y
-    );
+  let img =
+    let img =
+      if (width,height) = (img_w,img_h) then img else
+        (* Img.Scale.create img width height *)
+        let img' = Img.create width height in
+        let converter = Lazy.force converter in
+        converter (Gen.of_RGBA32 img) (Gen.of_RGBA32 img');
+        img'
+    in
+    let img =
+      if (off_x,off_y) = (0,0) then img else
+        let img' = Img.create (width+off_x) (height+off_y) in
+        Img.add img img' ~x:off_x ~y:off_y;
+        img'
+    in
+    img
+  in
   let duration =
     try
       let seconds = float_of_string (Hashtbl.find metadata "duration") in
