@@ -184,7 +184,6 @@ let params plugin info =
         try
           let info = Frei0r.param_info plugin i in
           let name = Utils.normalize_parameter_string info.Frei0r.param_name in
-          let name = Pcre.substitute ~pat:"\227\169" ~subst:(fun _ -> "é") name in
           let t, d =
             match info.Frei0r.param_type with
             | Frei0r.Bool ->
@@ -274,10 +273,18 @@ let params plugin info =
   liq_params, params
 
 exception Unhandled_number_of_inputs
+exception Blacklisted
 
 let register_plugin fname =
   let plugin = Frei0r.load fname in
   let info = Frei0r.info plugin in
+  let name = Utils.normalize_parameter_string info.Frei0r.name in
+  if List.mem name
+    [
+      "curves"; (* Bad characters in doc. *)
+      "keyspillm0pup"; (* idem *)
+    ]
+  then raise Blacklisted;
   let bgra = info.Frei0r.color_model = Frei0r.BGRA8888 in
   let inputs,outputs =
     match info.Frei0r.plugin_type with
@@ -315,7 +322,6 @@ let register_plugin fname =
     a
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
-  let name = Utils.normalize_parameter_string info.Frei0r.name in
   Lang.add_operator
     ("video.frei0r." ^ name)
     liq_params
@@ -349,6 +355,7 @@ let register_plugin plugin =
     register_plugin plugin
   with
   | Unhandled_number_of_inputs -> ()
+  | Blacklisted -> ()
   | e ->
     Printf.eprintf
       "Failed to register plugin %s: %s\n%!"
