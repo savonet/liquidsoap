@@ -19,6 +19,17 @@ def input.v4l2_with_audio(~id="",~device="/dev/video0")
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline)
 end
 
+# Play an http live stream.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param uri URI of the HSL stream index.
+def gstreamer.hsl(~id="",uri) =
+  pipeline = "souphttpsrc location=#{uri} ! tee name=t"
+  audio_pipeline = "t. ! queue"
+  video_pipeline = "t. ! queue"
+  input.gstreamer.audio_video(id=id, pipeline=pipeline, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline)
+end
+
 def gstreamer.encode_x264_avi(fname, source)
   output.gstreamer.video(pipeline="videoconvert ! x264enc ! avimux ! filesink location=\"#{fname}\"", source)
 end
