@@ -168,7 +168,6 @@ object (self)
              (* TODO This is quite inefficient:
               *   reading the whole file as a string before parsing it... *)
             let content = Utils.read_all filename in
-            Printf.printf "URI: %s\n%!" uri;
             let pwd =
               if Http.is_url uri then
                 Http.dirname uri
