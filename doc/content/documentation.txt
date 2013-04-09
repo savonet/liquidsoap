@@ -83,5 +83,6 @@ h4. Code snippets
 h4. Behind the curtains
 
 * "Some presentations and publications":../publications.html explaining the theory underlying Liquidsoap
-* "OCaml modules":../modules.html used in Liquidsoap, that can be reused in other projects
+* "OCaml libraries":../modules.html used in Liquidsoap, that can be reused in other projects
+* "Documentation of some internals":../modules/liquidsoap/index.html of Liquidsoap
 * "Documentation for previous versions":../previously.html
