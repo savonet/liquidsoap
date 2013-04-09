@@ -148,6 +148,9 @@ let http_sanitize url =
   with
     | _ -> url
 
+let is_url path =
+  Pcre.pmatch ~pat:"^http://.+" path
+
 let dirname url =
   let rex = Pcre.regexp "^(http://.+/)[^/]*$" in
   let s = Pcre.exec ~rex url in

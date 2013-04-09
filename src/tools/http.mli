@@ -24,6 +24,9 @@ val url_split_host_port : string -> string * int option * string
  *  (path and arguments, without their seperators). *)
 val http_sanitize : string -> string
 
+(** Basic detection of whether a path is an HTTP url. *)
+val is_url : string -> bool
+
 (** Url without the trailing filename. *)
 val dirname : string -> string
 

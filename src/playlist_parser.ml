@@ -74,10 +74,9 @@ let parsers : plugin Plug.plug =
     ~doc:"Method to parse playlist." "playlist formats"
 
 let get_file ?pwd file =
-  let is_url path = Pcre.pmatch ~pat:"^[a-zA-Z]+://" path in
   match pwd with
     | Some pwd ->
-      if is_url pwd && not (is_url file) then
+      if Http.is_url pwd && not (Http.is_url file) then
         pwd ^ file
       else
         let f = Filename.concat pwd file in
