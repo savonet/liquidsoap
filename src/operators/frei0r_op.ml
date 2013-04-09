@@ -184,6 +184,7 @@ let params plugin info =
         try
           let info = Frei0r.param_info plugin i in
           let name = Utils.normalize_parameter_string info.Frei0r.param_name in
+          let name = Pcre.substitute ~pat:"\227\169" ~subst:(fun _ -> "é") name in
           let t, d =
             match info.Frei0r.param_type with
             | Frei0r.Bool ->
