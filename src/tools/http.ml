@@ -148,6 +148,11 @@ let http_sanitize url =
   with
     | _ -> url
 
+let dirname url =
+  let rex = Pcre.regexp "^(http://.+/)[^/]*$" in
+  let s = Pcre.exec ~rex url in
+  Pcre.get_substring s 1
+
 (** HTTP functions. *)
 
 let connect ?bind_address host port =

@@ -477,7 +477,8 @@ object (self)
           match Playlist_parser.parsers#get content_type with
             | None -> raise Not_found
             | Some plugin ->
-                test_playlist plugin.Playlist_parser.parser
+              let pwd = Http.dirname url in
+              test_playlist (plugin.Playlist_parser.parser ~pwd)
         with
           | Not_found ->
               (* Trying playlist auto parsing in case
@@ -485,7 +486,7 @@ object (self)
               if content_type = "text/plain" then begin
                 try
                   test_playlist
-                    (fun x -> snd (Playlist_parser.search_valid x))
+                    (fun x -> snd (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
                 with
                   | Not_found -> ()
               end else begin
