@@ -22,8 +22,8 @@ end
 # Play an http live stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
-# @param uri URI of the HSL stream index.
-def gstreamer.hsl(~id="",uri) =
+# @param uri URI of the HLS stream index.
+def gstreamer.hls(~id="",uri) =
   pipeline = "souphttpsrc location=#{uri} ! tee name=t"
   audio_pipeline = "t. ! queue"
   video_pipeline = "t. ! queue"
