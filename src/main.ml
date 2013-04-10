@@ -457,7 +457,7 @@ let options = [
     "Start an interactive interpreter." ;
 
     ["--"],
-    Arg.Unit (fun () -> Arg.current := Array.length Sys.argv - 1),
+    Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
     "Stop parsing the command-line and pass subsequent items to the script."
 
     ] @ (LiqConf.args Configure.conf)
