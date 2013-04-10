@@ -104,17 +104,19 @@ object (self)
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
-      let buf,input =
-        Tutils.mutexify relay_m
-         (fun len -> 
-          match relay_socket with
-            | None -> "", 0
-            | Some socket ->
+      let buf,input = (fun len -> 
+        let socket =
+          Tutils.mutexify relay_m (fun () ->
+            relay_socket) ()
+         in
+         match socket with
+           | None -> "", 0
+           | Some socket ->
                begin
                 try
                  (* Wait for `Read event on socket. *)
                  let log = self#log#f 4 "%s" in
-                 Tutils.wait_for ~mutex:relay_m ~log `Read socket timeout;
+                 Tutils.wait_for ~log `Read socket timeout;
                  (* Now read. *)
                  let buf = String.make len ' ' in
                  let input = Unix.read socket buf 0 len in

@@ -73,10 +73,8 @@ exception Timeout
 
 (* Wait for [`Read], [`Write] or [`Both] for at most
  * [timeout] seconds on the given [socket]. Raises [Timeout]
- * if timeout is reached.
- * [mutex] is an optional mutex that will be unlocked before
- * entering [select] and locked once leaving [select]. *)
-val wait_for : ?mutex:Mutex.t -> ?log:(string -> unit) -> [`Read|`Write|`Both] -> Unix.file_descr -> float -> unit
+ * if timeout is reached. *)
+val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> Unix.file_descr -> float -> unit
 
 (** [finalize ~k f] calls [f] and returns it result,
   * and always executes [k], even when [f] raises an exception. *)

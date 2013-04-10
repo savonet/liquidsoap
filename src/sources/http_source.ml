@@ -260,13 +260,16 @@ object (self)
     let read =
       let log = self#log#f 4 "%s" in
       (* Socket can't be closed while waiting on it. *)
-      Tutils.mutexify socket_m (fun len ->
-          match socket with
-            | None -> "",0
-            | Some (socket,read,_) ->
+      (fun len ->
+        let socket = Tutils.mutexify socket_m (fun () ->
+          socket) ()
+        in
+        match socket with
+          | None -> "",0
+          | Some (socket,read,_) ->
               begin
                try
-                Tutils.wait_for ~mutex:socket_m ~log `Read socket timeout;
+                Tutils.wait_for ~log `Read socket timeout;
                 read len
                with e -> self#log#f 2 "Error while reading from socket: \
                             %s" (Utils.error_message e);
