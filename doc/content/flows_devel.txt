@@ -1,0 +1,54 @@
+title: Developping Flows
+
+h3. Developping Flows
+
+"Flows":flows.html is handled on the "Heroku":https://www.heroku.com/ platform.
+
+h4. Getting started
+
+You should first:
+* Create an account on "Heroku":https://www.heroku.com/.
+* Install the "Heroku utilities":https://toolbelt.heroku.com/.
+* Ask a Liquidsoap administrator to give you access to the repositories.
+
+The architecture is as follows:
+* @savonet-flows@ is the python handler to submit metadata.
+* @savonet-flows-socket@ is the node application to serve the webpage and client
+  stuff.
+
+h4. Where to develop
+
+The git repositories are as follows.
+
+The production version of @savonet-flows@:
+%%
+git clone git@heroku.com:savonet-liquidsoap.git -o heroku
+%%
+and the "corresponding webpage":http://savonet-flows-socket.herokuapp.com/.
+
+The test version of @savonet-flows@:
+%%
+git clone git@heroku.com:savonet-liquidsoap-test.git -o heroku
+%%
+and the "corresponding webpage":http://savonet-flows-socket-next.herokuapp.com/.
+
+The production version of @savonet-flows-socket@:
+%%
+git clone git@heroku.com:savonet-flows-socket.git -o heroku
+%%
+
+The test version of @savonet-flows-socket@:
+%%
+git clone git@heroku.com:savonet-flows-socket-next.git -o heroku
+%%
+
+h4. Useful commands
+
+Getting the environment variables:
+%%
+heroku config -s --app savonet-flows
+%%
+Seeing the logs of the socket application:
+%%
+heroku logs -t --app savonet-flows-socket
+%%
