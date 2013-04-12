@@ -24,23 +24,18 @@ The production version of @savonet-flows@:
 %%
 git clone git@heroku.com:savonet-liquidsoap.git -o heroku
 %%
-and the "corresponding webpage":http://savonet-flows-socket.herokuapp.com/.
-
-The test version of @savonet-flows@:
-%%
-git clone git@heroku.com:savonet-liquidsoap-test.git -o heroku
-%%
-and the "corresponding webpage":http://savonet-flows-socket-next.herokuapp.com/.
 
 The production version of @savonet-flows-socket@:
 %%
 git clone git@heroku.com:savonet-flows-socket.git -o heroku
 %%
+and the "corresponding webpage":http://savonet-flows-socket.herokuapp.com/.
 
 The test version of @savonet-flows-socket@:
 %%
 git clone git@heroku.com:savonet-flows-socket-next.git -o heroku
 %%
+and the "corresponding webpage":http://savonet-flows-socket-next.herokuapp.com/.
 
 h4. Useful commands
 
