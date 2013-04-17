@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>Lame Test</title>
+<script language="javascript" type="text/javascript">
+  var wsUri = "ws://localhost:1234/";
+  var websocket = new WebSocket(wsUri);
+  websocket.onopen = function(evt) { console.log("Connected."); };
+  websocket.onclose = function(evt) { console.log("Disconnected."); };
+  websocket.onmessage = function(evt) { console.log("Message: " + evt.data); };
+  websocket.onerror = function(evt) { console.log("Error: " + evt.data) };
+
+  var audioContext = new webkitAudioContext();
+
+  function onAudioProcess(e) {
+    var buf = e.inputBuffer.getChannelData(0);
+    console.log("Got buffer.");
+    websocket.send(message);
+  }
+
+  function onStream(stream) {
+    console.log("Got stream.");
+    var mediaStreamSource = audioContext.createMediaStreamSource(stream);
+    console.log("Created source.");
+
+    // Create buffer processor
+    var buflen = 4096;
+    var node = audioContext.createJavaScriptNode(buflen, 2, 2);
+    console.log("Created node.");
+
+    mediaStreamSource.connect(node);
+    node.onaudioprocess = onAudioProcess;
+    node.connect(audioContext.destination);
+    console.log("Connected.");
+  }
+
+  function init() {
+    console.log("Initializing.");
+    var recordAudio = document.getElementById('record-audio');
+
+    recordAudio.onclick = function () {
+      console.log("Clicked.");
+      navigator.webkitGetUserMedia({audio:true, video:false}, onStream);
+    };
+  }
+
+  window.addEventListener("load", init, false);
+</script>
+
+<h2>Lame Test</h2>
+<button id="record-audio">Record</button>
+<div id="output"></div>
+</html>
