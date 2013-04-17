@@ -1,3 +1,5 @@
+(* See http://tools.ietf.org/html/rfc6455 *)
+
 let port = 1234
 
 module List = struct
@@ -61,6 +63,101 @@ let wsa wsk =
 let () =
   Printf.printf "test WSA: %s\n%!" (wsa "x3JJHMbDL1EzLkh9GBhXDw==")
 
+let frame s =
+  let read_char () =
+    let c = String.create 1 in
+    assert (Unix.read s c 0 1 = 1);
+    c.[0]
+  in
+  let read_byte () =
+    let c = int_of_char (read_char ()) in
+    Printf.printf "byte: %d ('%c')\n%!" c (char_of_int c);
+    c
+  in
+  let read_short () =
+    let c1 = read_byte () in
+    let c2 = read_byte () in
+    c1 lsl 8 + c2
+  in
+  let read_long () =
+    let c1 = read_byte () in
+    let c2 = read_byte () in
+    let c3 = read_byte () in
+    let c4 = read_byte () in
+    c1 lsl 24 + c2 lsl 16 + c3 lsl 8 + c4
+  in
+  let msb c = c land 128 <> 0 in
+  let read_len () =
+    let len = ref 0 in
+    let loop = ref true in
+    while !loop do
+      let c = read_byte () in
+      len := !len * 128 + c land 127;
+      loop := msb c
+    done;
+    !len
+  in
+  (*
+    let t = read_byte () in
+    Printf.printf "type: %d\n%!" t;
+    Printf.printf "msb: %B\n%!" (msb t);
+  (* TODO: raw data otherwise *)
+    assert (msb t);
+    let len = read_len () in
+    Printf.printf "length: %d\n%!" len;
+    let buf = String.create len in
+    assert (Unix.read s buf 0 len = len);
+    Printf.printf "read: %s\n%!" buf
+  *)
+  let c = read_byte () in
+  let fin = c land 0b10000000 <> 0 in
+  let rsv1 = c land 0b1000000 <> 0 in
+  let rsv2 = c land 0b100000 <> 0 in
+  let rsv3 = c land 0b10000 <> 0 in
+  let opcode = c land 0b1111 in
+  Printf.printf "fin: %B\n%!" fin;
+  Printf.printf "rsv: %B %B %B\n%!" rsv1 rsv2 rsv3;
+  Printf.printf "op: 0x%x\n%!" opcode;
+  let c = read_byte () in
+  let mask = c land 0b10000000 <> 0 in
+  let length = c land 0b1111111 in
+  Printf.printf "mask: %B\n%!" mask;
+  let length =
+    if length = 126 then
+      read_short ()
+    else if length = 127 then
+      read_long()
+    else
+      length
+  in
+  Printf.printf "length: %d\n%!" length;
+  let masking_key =
+    if mask then
+      let key = String.create 4 in
+      for i = 0 to 3 do
+        key.[i] <- read_char()
+      done;
+      key
+    else
+      ""
+  in
+  let unmask key s =
+    if key <> "" then
+      for i = 0 to String.length s - 1 do
+        let c = int_of_char s.[i] in
+        let k = int_of_char key.[i mod 4] in
+        let c = c lxor k in
+        let c = char_of_int c in
+        s.[i] <- c
+      done
+  in
+  (* Printf.printf "masking key: %s\n%!" masking_key; *)
+  let data = String.create length in
+  assert (Unix.read s data 0 length = length);
+  unmask masking_key data;
+  Printf.printf "data: %s\n%!" data;
+  ()
+
 let handle s =
   let buflen = 1024 in
   let buf = String.create buflen in
@@ -86,10 +183,11 @@ let handle s =
   let wsa = wsa wsk in
   let ans = Printf.sprintf "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n" wsa in
   Printf.printf "answer:\n%s\n%!" ans;
-  let _ = Unix.write s ans 0 (String.length ans) in
+  assert (Unix.write s ans 0 (String.length ans) = String.length ans);
   while true do
-    let n = Unix.read s buf 0 buflen in
-    Printf.printf "Received:\n%s\n%!" (String.sub buf 0 buflen)
+    (* let n = Unix.read s buf 0 buflen in *)
+    (* Printf.printf "Received:\n%s\n%!" (String.sub buf 0 buflen) *)
+    frame s
   done
 
 let () =

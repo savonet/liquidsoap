@@ -21,43 +21,43 @@
 
  *****************************************************************************)
 open Dtools
-
+  
 open Http_source
-
+  
 let conf_harbor =
   Conf.void ~p: (Configure.conf#plug "harbor")
     "Harbor settings (Icecast/shoutcast stream receiver)."
-
+  
 let conf_harbor_bind_addr =
   Conf.string ~p: (conf_harbor#plug "bind_addr") ~d: "0.0.0.0"
     "IP address on which the harbor should listen."
-
+  
 let conf_harbor_max_conn =
   Conf.int ~p: (conf_harbor#plug "max_connections") ~d: 2
     "Maximun of pending source requests per port."
-
+  
 let conf_pass_verbose =
   Conf.bool ~p: (conf_harbor#plug "verbose") ~d: false
     "Display passwords, for debugging."
-
+  
 let conf_revdns =
   Conf.bool ~p: (conf_harbor#plug "reverse_dns") ~d: true
     "Perform reverse DNS lookup to get the client's hostname from its IP."
-
+  
 let conf_icy_metadata =
   Conf.list ~p: (conf_harbor#plug "icy_formats")
     ~d:
       [ "audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav";
         "audio/wave"; "audio/x-flac" ]
     "Content-type (mime) of formats which allow shout metadata update."
-
+  
 (* 300 sec timeout is the default value in Apache.. *)
 let conf_timeout =
   Conf.float ~p: (conf_harbor#plug "timeout") ~d: 300.
     "Timeout for network operations."
-
+  
 let log = Log.make [ "harbor" ]
-
+  
 (* Define what we need as a source *)
 class virtual source ~kind =
   object (self)
@@ -70,12 +70,12 @@ class virtual source ~kind =
     method virtual meta_charset : string option
     method virtual get_mime_type : string option
   end
-
+  
 type sources = (string, source) Hashtbl.t
 
 type http_verb = [ | `Get | `Post | `Put | `Delete | `Head | `Options ]
 
-type source_type = [ | `Source | `Xaudiocast | `Shout ]
+type source_type = [ | `Source | `Xaudiocast | `Shout | `Websocket ]
 
 type verb =
   [ | `Get | `Post | `Put | `Delete | `Head | `Options | `Source | `Shout
@@ -90,10 +90,10 @@ let verb_of_string s =
   | "HEAD" -> `Head
   | "OPTIONS" -> `Options
   | _ -> raise Not_found
-
+  
 let verb_or_source_of_string s =
   match String.uppercase s with | "SOURCE" -> `Source | _ -> verb_of_string s
-
+  
 let string_of_verb =
   function
   | `Get -> "GET"
@@ -103,7 +103,7 @@ let string_of_verb =
   | `Head -> "HEAD"
   | `Options -> "OPTIONS"
   | _ -> assert false
-
+  
 type protocol =
   [ | `Http_10 | `Http_11 | `Ice_10 | `Icy | `Xaudiocast_uri of string
   ]
@@ -111,9 +111,9 @@ type protocol =
 type reply = | Close of string | Relay of string * (unit -> unit)
 
 let reply s = Duppy.Monad.raise (Close s)
-
+  
 let relayed s f = Duppy.Monad.raise (Relay (s, f))
-
+  
 type http_handler =
   protocol: string ->
     data: string ->
@@ -127,14 +127,14 @@ type handler = { sources : sources; http : http_handlers }
 type open_port = (handler * (Unix.file_descr list))
 
 let opened_ports : (int, open_port) Hashtbl.t = Hashtbl.create 1
-
+  
 let find_handler = Hashtbl.find opened_ports
-
+  
 let find_source mount port =
   Hashtbl.find (fst (find_handler port)).sources mount
-
+  
 exception Assoc of string
-
+  
 let assoc_uppercase x y =
   try
     (List.iter
@@ -143,15 +143,15 @@ let assoc_uppercase x y =
        y;
      raise Not_found)
   with | Assoc s -> s
-
+  
 exception Not_authenticated
-
+  
 exception Unknown_codec
-
+  
 exception Mount_taken
-
+  
 exception Registered
-
+  
 let http_error_page code status msg =
   "HTTP/1.0 " ^
     ((string_of_int code) ^
@@ -166,7 +166,7 @@ let http_error_page code status msg =
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>"
                 ^ (msg ^ "</p></body></html>")))))
-
+  
 let parse_icy_request_line ~port h r =
   let __pa_duppy_0 =
     try Duppy.Monad.return (find_source "/" (port - 1))
@@ -185,7 +185,7 @@ let parse_icy_request_line ~port h r =
               else
                 (log#f 4 "ICY error: invalid password";
                  reply "Invalid password\r\n\r\n")))
-
+  
 let parse_http_request_line r =
   try
     let data = Pcre.split ~rex: (Pcre.regexp "[ \t]+") r in
@@ -203,7 +203,7 @@ let parse_http_request_line r =
   | e ->
       (log#f 4 "Invalid request line %s: %s" r (Utils.error_message e);
        reply "HTTP 500 Invalid request\r\n\r\n")
-
+  
 let parse_headers headers =
   let split_header h l =
     try
@@ -221,7 +221,7 @@ let parse_headers headers =
     (List.iter (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v)
        display_headers;
      headers)
-
+  
 let auth_check ?args ~login uri headers = (* 401 error model *)
   let http_reply s =
     reply
@@ -274,11 +274,11 @@ let auth_check ?args ~login uri headers = (* 401 error model *)
     | Not_found ->
         (log#f 4 "Returned 401: bad authentication.";
          http_reply "No login / password supplied.")
-
+  
 let auth_check ?args ~login h uri headers =
   Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
     (auth_check ?args ~login uri headers)
-
+  
 let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
   (* ICY request are on port+1 *)
   let source_port = if protocol = `Shout then port - 1 else port in
@@ -344,9 +344,9 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                    reply
                      (http_error_page 500 "Internal Server Error"
                         "The server could not handle your request."))))
-
+  
 exception Handled of http_handler
-
+  
 let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
   let ans_404 () =
     (log#f 4 "Returned 404 for '%s'." uri;
@@ -498,7 +498,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
               (log#f 4 "HTTP %s request on uri '%s' failed: %s" smethod
                  (Utils.error_message e) uri;
                ans_500 ())))
-
+  
 let handle_client ~port ~icy h = (* Read and process lines *)
   let __pa_duppy_0 =
     Duppy.Monad.Io.read ?timeout: (Some conf_timeout#get)
@@ -608,7 +608,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                      reply
                        (http_error_page 501 "Not Implemented"
                           "The server did not understand your request."))))
-
+  
 (* {1 The server} *)
 (* Open a port and listen to it. *)
 let open_port ~icy port =
@@ -698,7 +698,7 @@ let open_port ~icy port =
           handler = incoming ~port ~icy sock in_s;
         };
       out_s))
-
+  
 (* This, contrary to the find_xx functions
  * creates the handlers when they are missing. *)
 let get_handler ~icy port =
@@ -721,7 +721,7 @@ let get_handler ~icy port =
         if icy then (open_port ~icy (port + 1)) :: socks else socks in
       let h = { sources = Hashtbl.create 1; http = Hashtbl.create 1; }
       in (Hashtbl.add opened_ports port (h, socks); h)
-
+  
 (* Add sources... *)
 let add_source ~port ~mountpoint ~icy source =
   let sources =
@@ -734,7 +734,7 @@ let add_source ~port ~mountpoint ~icy source =
   in
     (log#f 3 "Adding mountpoint '%s' on port %i" mountpoint port;
      Hashtbl.add sources mountpoint source)
-
+  
 (* Remove source. *)
 let remove_source ~port ~mountpoint () =
   let (handler, socks) = Hashtbl.find opened_ports port
@@ -750,7 +750,7 @@ let remove_source ~port ~mountpoint () =
         (let f in_s = (ignore (Unix.write in_s " " 0 1); Unix.close in_s)
          in (List.iter f socks; Hashtbl.remove opened_ports port)))
      else ())
-
+  
 (* Add http_handler... *)
 let add_http_handler ~port ~verb ~uri h =
   let handler = get_handler ~icy: false port
@@ -762,7 +762,7 @@ let add_http_handler ~port ~verb ~uri h =
        log#f 3 "WARNING: HTTP handler already registered, old one removed!"
      else ();
      Hashtbl.replace handler.http (verb, uri) h)
-
+  
 (* Remove http_handler. *)
 let remove_http_handler ~port ~verb ~uri () =
   let (handler, socks) = Hashtbl.find opened_ports port
@@ -779,5 +779,5 @@ let remove_http_handler ~port ~verb ~uri () =
         (let f in_s = (ignore (Unix.write in_s " " 0 1); Unix.close in_s)
          in (List.iter f socks; Hashtbl.remove opened_ports port)))
      else ())
-
+  
 
