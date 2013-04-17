@@ -81,6 +81,7 @@ type source_type = [
   | `Source
   | `Xaudiocast
   | `Shout
+  | `Websocket
 ]
 
 type verb = [
