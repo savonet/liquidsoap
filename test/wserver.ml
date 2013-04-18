@@ -71,7 +71,7 @@ let frame s =
   in
   let read_byte () =
     let c = int_of_char (read_char ()) in
-    Printf.printf "byte: %d ('%c')\n%!" c (char_of_int c);
+    (* Printf.printf "byte: %d ('%c')\n%!" c (char_of_int c); *)
     c
   in
   let read_short () =
@@ -155,8 +155,8 @@ let frame s =
   let data = String.create length in
   assert (Unix.read s data 0 length = length);
   unmask masking_key data;
-  Printf.printf "data: %s\n%!" data;
-  ()
+  (* Printf.printf "data: %s\n%!" data; *)
+  data
 
 let handle s =
   let buflen = 1024 in
@@ -184,10 +184,14 @@ let handle s =
   let ans = Printf.sprintf "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n" wsa in
   Printf.printf "answer:\n%s\n%!" ans;
   assert (Unix.write s ans 0 (String.length ans) = String.length ans);
+  let oc = open_out "wserver.dump" in
   while true do
     (* let n = Unix.read s buf 0 buflen in *)
     (* Printf.printf "Received:\n%s\n%!" (String.sub buf 0 buflen) *)
-    frame s
+    let data = frame s in
+    Printf.printf "data len: %d\n%!" (String.length data);
+    output_string oc data;
+    flush oc
   done
 
 let () =
