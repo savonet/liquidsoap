@@ -1,3 +1,5 @@
+## -*- mode: makefile -*-
+
 # @configure_input@
 
 DISTDIR=liquidsoap-@version@

@@ -1,3 +1,5 @@
+## -*- mode: makefile -*-
+
 .PHONY: all all-subdirs all-local
 .PHONY: all-auto all-auto-ocaml-prog clean-buildings
 .PHONY: clean clean-subdirs clean-local
@@ -225,6 +227,7 @@ ifdef DISTDIRS
 	cp -rfL $(DISTDIRS) $(DDIR)
 endif
 	find $(DDIR) -name .svn | while read i; do rm -rf "$$i"; done
+	find $(DDIR) -name .git | while read i; do rm -rf "$$i"; done
 
 dist:
 	@a=`cd $(top_srcdir) ; pwd ` ; b=`pwd` ; [ "eq$$a" = "eq$$b" ] \
