@@ -347,7 +347,7 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
+AC_CHECK_OCAML_BINDING([ogg],[0.4.5])
 
 #
 # Vorbis
