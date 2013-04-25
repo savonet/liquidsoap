@@ -431,6 +431,7 @@ let mk_opus params =
         samplerate = 48000 ;
         signal = None ;
         frame_size = 20.;
+        dtx = false;
     }
   in
   let opus =
@@ -497,6 +498,8 @@ let mk_opus params =
               { f with Encoder.Opus.signal = Some `Music }
           | ("bytes_per_page",{ term = Int i }) ->
               { f with Encoder.Opus.fill = Some i }
+          | ("dtx",{ term = Bool b }) ->
+              { f with Encoder.Opus.dtx = b }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Opus.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
