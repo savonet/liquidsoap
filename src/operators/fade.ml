@@ -209,8 +209,8 @@ let override_proto duration_name = proto @ [
    Some "Metadata field which, if present and containing a float, \
          overrides the 'duration' parameter for current track.";
   "override_type", Lang.string_t, Some (Lang.string "liq_fade_type"),
-   Some "Metadata field which, if present and containing a float, \
-         overrides the 'duration' parameter for current track." ]
+   Some "Metadata field which, if present and correct, overrides the \
+         'type' parameter for current track." ]
 
 
 let extract p =
