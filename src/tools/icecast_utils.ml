@@ -88,6 +88,7 @@ struct
       | Encoder.Shine _ -> Some mpeg
       | Encoder.AACPlus _ -> Some aac
       | Encoder.VoAacEnc _ -> Some aac
+      | Encoder.FdkAacEnc _ -> Some aac
       | Encoder.External _ -> None
       | Encoder.GStreamer _ -> None
       | Encoder.Flac _ -> Some flac

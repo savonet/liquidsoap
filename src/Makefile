@@ -166,6 +166,7 @@ $(call conditional_compilation,encoders,$(W_LAME),encoder/lame_encoder_builtin.m
 $(call conditional_compilation,encoders,$(W_FLAC),encoder/flac_encoder.ml)
 $(call conditional_compilation,encoders,$(W_AACPLUS),encoder/aacplus_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_VOAACENC),encoder/voaacenc_encoder.ml)
+$(call conditional_compilation,encoders,$(W_FDKAAC),encoder/fdkaac_encoder.ml)
 $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 
 outputs = outputs/output.ml \

@@ -151,7 +151,8 @@ rule token = parse
   | "%mp3.fxp" { MP3_FXP }
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
-  | "%aac" { VOAACENC }
+  | "%voaac" { VOAACENC }
+  | "%aac" { FDKAAC }
 
   | '[' { LBRA }
   | ']' { RBRA }
