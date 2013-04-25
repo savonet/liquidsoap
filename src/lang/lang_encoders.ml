@@ -765,7 +765,8 @@ let mk_speex params =
         bitrate_control = Encoder.Speex.Quality 7;
         mode = Encoder.Speex.Narrowband ;
         frames_per_packet = 1 ;
-        complexity = None
+        complexity = None ;
+        dtx = false
     }
   in
   let speex =
@@ -811,6 +812,8 @@ let mk_speex params =
               { f with Encoder.Speex.complexity = Some i }
           | ("bytes_per_page",{ term = Int i }) ->
               { f with Encoder.Speex.fill = Some i }
+          | ("dtx", { term = Bool b }) ->
+              { f with Encoder.Speex.dtx = b }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
