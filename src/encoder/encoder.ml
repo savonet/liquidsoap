@@ -398,6 +398,7 @@ struct
     complexity        : int option ;
     fill              : int option ;
     dtx               : bool ;
+    vad               : bool ;
   }
 
   let string_of_br_ctl x =
@@ -419,7 +420,7 @@ struct
 
   let to_string m =
     Printf.sprintf
-      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B)"
+      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
       (string_of_stereo m.stereo)
       (string_of_br_ctl m.bitrate_control)
       m.samplerate
@@ -427,6 +428,7 @@ struct
       m.frames_per_packet
       (string_of_complexity m.complexity)
       m.dtx
+      m.vad
 
 end
 

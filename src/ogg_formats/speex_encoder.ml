@@ -61,6 +61,7 @@ let create speex ~metadata () =
       | _ -> ()
   end ;
   if speex.Encoder.Speex.dtx then Speex.Encoder.set enc Speex.SPEEX_SET_DTX 1;
+  if speex.Encoder.Speex.vad then Speex.Encoder.set enc Speex.SPEEX_SET_VAD 1;
   Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
   let p1,p2 = Speex.Header.encode_header_packetout header metadata in

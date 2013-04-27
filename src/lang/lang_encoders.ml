@@ -769,7 +769,8 @@ let mk_speex params =
         mode = Encoder.Speex.Narrowband ;
         frames_per_packet = 1 ;
         complexity = None ;
-        dtx = false
+        dtx = false ;
+        vad = false
     }
   in
   let speex =
@@ -817,6 +818,8 @@ let mk_speex params =
               { f with Encoder.Speex.fill = Some i }
           | ("dtx", { term = Bool b }) ->
               { f with Encoder.Speex.dtx = b }
+          | ("vad", { term = Bool b }) ->
+              { f with Encoder.Speex.vad = b }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
