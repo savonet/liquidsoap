@@ -167,6 +167,7 @@ struct
     samplerate    : int ;
     signal        : signal option ;
     fill          : int option ;
+    dtx           : bool ;
   }
 
   let string_of_bitrate = function
@@ -200,7 +201,7 @@ struct
 
   let to_string v =
     Printf.sprintf
-    "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f)"
+    "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f,dtx=%B)"
       (string_of_mode v.mode)
       (string_of_bitrate v.bitrate)
       v.channels
@@ -210,6 +211,7 @@ struct
       (string_of_signal v.signal)
       v.samplerate
       v.frame_size
+      v.dtx
 end
 
 module MP3 =
@@ -395,6 +397,8 @@ struct
     frames_per_packet : int ;
     complexity        : int option ;
     fill              : int option ;
+    dtx               : bool ;
+    vad               : bool ;
   }
 
   let string_of_br_ctl x =
@@ -416,13 +420,15 @@ struct
 
   let to_string m =
     Printf.sprintf
-      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s)"
+      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
       (string_of_stereo m.stereo)
       (string_of_br_ctl m.bitrate_control)
       m.samplerate
       (string_of_mode m.mode)
       m.frames_per_packet
       (string_of_complexity m.complexity)
+      m.dtx
+      m.vad
 
 end
 
