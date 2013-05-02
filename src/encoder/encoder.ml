@@ -332,14 +332,44 @@ end
 
 module FdkAacEnc =
 struct
+  type mpeg2_aac =
+    [
+       | `AAC_LC
+       | `HE_AAC
+       | `HE_AAC_v2
+    ]
+
+  type mpeg4_aac =
+    [
+       | mpeg2_aac
+       | `AAC_LD
+       | `AAC_ELD
+    ]
+
+  type aot =
+    [
+       | `Mpeg_4 of mpeg4_aac
+       | `Mpeg_2 of mpeg2_aac
+    ]
+
+  type transmux =
+    [
+       | `Raw
+       | `Adif
+       | `Adts
+       | `Latm
+       | `Latm_out_of_band
+       | `Loas
+    ]
+
   type t = {
     afterburner    : bool;
-    aot            : Fdkaac.Encoder.aot;
+    aot            : aot;
     bitrate        : int;
     channels       : int;
     samplerate     : int;
     sbr_mode       : bool;
-    transmux       : Fdkaac.Encoder.transmux
+    transmux       : transmux
   }
 
   let string_of_aot = function
