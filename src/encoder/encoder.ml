@@ -334,8 +334,6 @@ struct
     afterburner    : bool;
     aot            : Fdkaac.Encoder.aot;
     bitrate        : int;
-    bitrate_mode   : Fdkaac.Encoder.bitrate_mode;
-    granule_length : int;
     channels       : int;
     samplerate     : int;
     sbr_mode       : bool;
@@ -363,15 +361,6 @@ struct
     | "mpeg2_he_aac_v2" -> `Mpeg_2 `HE_AAC_v2
     | _ -> raise Not_found
 
-  let string_of_bitrate_mode = function
-    | `Constant -> "constant"
-    | `Full_bitreservoir -> "full_bitreservoir"
-
-  let bitrate_mode_of_string = function
-    | "constant" -> `Constant
-    | "full_bitreservoir" -> `Full_bitreservoir
-    | _ -> raise Not_found
-
   let string_of_transmux = function
     | `Raw -> "raw"
     | `Adif -> "adif"
@@ -390,11 +379,9 @@ struct
     | _ -> raise Not_found
 
   let to_string m =
-    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,bitrate=%d,\
-                             bitrate_mode=%S,granule_length=%d,channels=%d,\
+    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,bitrate=%d,channels=%d,\
                              samplerate=%d,sbr_mode=%b,transmux=%S)"
-      m.afterburner (string_of_aot m.aot) m.bitrate
-      (string_of_bitrate_mode m.bitrate_mode) m.granule_length m.channels
+      m.afterburner (string_of_aot m.aot) m.bitrate m.channels
       m.samplerate m.sbr_mode (string_of_transmux m.transmux)
 end
 

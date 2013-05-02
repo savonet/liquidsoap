@@ -31,11 +31,11 @@ let create_encoder params =
   let params = [
     `Aot params.Encoder.FdkAacEnc.aot;
     `Bitrate (params.Encoder.FdkAacEnc.bitrate*1000);
-    `Bitrate_mode params.Encoder.FdkAacEnc.bitrate_mode;
-    `Granule_length params.Encoder.FdkAacEnc.granule_length;
     `Samplerate params.Encoder.FdkAacEnc.samplerate;
-    `Sbr_mode params.Encoder.FdkAacEnc.sbr_mode;
-    `Transmux params.Encoder.FdkAacEnc.transmux ]
+    `Transmux params.Encoder.FdkAacEnc.transmux ] @ (
+      if params.Encoder.FdkAacEnc.aot = `Mpeg_4 `AAC_ELD then
+        [`Sbr_mode params.Encoder.FdkAacEnc.sbr_mode]
+      else [])
   in
   List.iter (Fdkaac.Encoder.set encoder) params;
   encoder

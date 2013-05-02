@@ -345,10 +345,8 @@ let mk_fdkaac params =
   let defaults =
     { Encoder.FdkAacEnc.
         afterburner    = false;
-        aot            = `Mpeg_4 `HE_AAC;
+        aot            = `Mpeg_2 `HE_AAC_v2;
         bitrate        = 64;
-        bitrate_mode   = `Constant;
-        granule_length = 1024;
         channels       = 2;
         samplerate     = 44100;
         sbr_mode       = false;
@@ -357,9 +355,6 @@ let mk_fdkaac params =
   let valid_samplerates = [
     8000;  11025; 12000; 16000; 22050; 24000; 32000;
     44100; 48000; 64000; 88200; 96000 ]
-  in
-  let valid_granule_lengths = [
-    1024; 512; 480 ]
   in
   let fdkaac =
     List.fold_left
@@ -374,22 +369,6 @@ let mk_fdkaac params =
               { f with Encoder.FdkAacEnc.aot = aot }
           | ("bitrate",{ term = Int i }) ->
               { f with Encoder.FdkAacEnc.bitrate = i }
-          | ("bitrate_mode",({ term = String s } as t)) ->
-              let mode = try Encoder.FdkAacEnc.bitrate_mode_of_string s with
-                | Not_found -> raise (Error (t,"invalid bitrate_mode value"))
-              in
-              { f with Encoder.FdkAacEnc.bitrate_mode = mode }
-          | ("granule_length",({ term = Int i } as t)) ->
-              if not (List.mem i valid_granule_lengths) then
-               begin
-                let err =
-                  Printf.sprintf "invalid granule length value. Possible values: %s"
-                  (String.concat ", " 
-                    (List.map string_of_int valid_granule_lengths))
-                in
-                raise (Error (t,err));
-               end;
-              { f with Encoder.FdkAacEnc.granule_length = i }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.FdkAacEnc.channels = i }
           | ("samplerate",({ term = Int i } as t)) ->
@@ -421,13 +400,6 @@ let mk_fdkaac params =
     if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
       if fdkaac.Encoder.FdkAacEnc.channels <> 2 then
         failwith "HE-AAC v2 is only available with 2 channels.";
-    if fdkaac.Encoder.FdkAacEnc.sbr_mode then
-     begin
-      match aot with
-        | `Mpeg_4 `AAC_ELD -> ()
-        | _ ->
-          failwith "SBR mode = true is only valid with aac-eld"
-     end;
     mk (Encoder (Encoder.FdkAacEnc fdkaac))
 
 let mk_flac_gen params =
