@@ -207,7 +207,7 @@ let read_all filename =
   close_in channel ;
   Buffer.contents contents
 
-(* Drop all but then [len] last bytes. *)
+(* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
   assert (len <= size) ;

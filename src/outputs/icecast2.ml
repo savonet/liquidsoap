@@ -94,6 +94,12 @@ struct
               samplerate = Some m.Encoder.VoAacEnc.samplerate ;
               channels = Some m.Encoder.VoAacEnc.channels
             }
+        | Encoder.FdkAacEnc m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.FdkAacEnc.bitrate ;
+              samplerate = Some m.Encoder.FdkAacEnc.samplerate ;
+              channels = Some m.Encoder.FdkAacEnc.channels
+            }
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
