@@ -152,6 +152,7 @@ rule token = parse
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
   | "%aac" { VOAACENC }
+  | "%fdkaac" { FDKAAC }
 
   | '[' { LBRA }
   | ']' { RBRA }

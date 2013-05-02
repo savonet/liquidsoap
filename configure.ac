@@ -480,6 +480,12 @@ AC_SUBST(W_AACPLUS_DYN)
 AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
 
 #
+# Fdkaac
+#
+
+AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
+
+#
 # Theora
 #
 
@@ -934,6 +940,7 @@ cat <<EOMSG
    - MP3 (fixed-point) : $w_SHINE
    - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
+   - FDK-AAC           : $w_FDKAAC
    - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
    - Theora            : $w_THEORA
