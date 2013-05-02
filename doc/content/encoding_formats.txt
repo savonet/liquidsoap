@@ -220,6 +220,25 @@ The syntax for the internal AAC+ encoder is:
 %aacplus(channels=2, samplerate=44100, bitrate=64)
 %%
 
+h4. FDK-AAC
+
+This encoder can do both AAC and AAC+. It is projected to
+replace both encoders in a future release.
+
+Its syntax is:
+%%
+%fdkaac(channels=2, samplerate=44100, aot="mpeg2_he_aac_v2", transmux="adts", transmux=true, sbr_mode=false)
+%%
+
+Where @aot@ is one of: @"mpeg4_aac_lc"@, @"mpeg4_he_aac"@, @"mpeg4_he_aac_v2"@,
+@"mpeg4_aac_ld"@, @"mpeg4_aac_eld"@, @"mpeg2_aac_lc"@, @"mpeg2_he_aac"@ or
+@"mpeg2_he_aac_v2"@
+
+And @transmux@ is one of: @"raw"@, @"adif"@, @"adts"@, @"latm"@, @"latm_out_of_band"@ or
+@"loas"@.
+
+You can consult fdk-aac's "github repository":https://github.com/mstorsjo/fdk-aac for more details
+on configuration values and meanings.
 h4. Gstreamer
 
 The @%gstreamer@ encoder can be used to encode streams using the @gstreamer@ multimedia framework.
