@@ -176,7 +176,7 @@
 %token MINUS
 %token NOT
 %token REF GET SET
-%token PP_IFDEF PP_ENDIF PP_ENDL PP_DEF PP_DEFINE
+%token PP_IFDEF PP_IFDEF_ENCODER PP_ENDIF PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 
