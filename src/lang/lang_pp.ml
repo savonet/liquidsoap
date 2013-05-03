@@ -330,7 +330,7 @@ let strip_newlines tokenizer =
   in
     token
 
-(* Inline %define x = value. *)
+(* Inline %define x value. *)
 let expand_define tokenizer =
   let defs = ref [] in
   let rec token lexbuf =
