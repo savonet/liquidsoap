@@ -111,7 +111,7 @@ rule token = parse
           PP_COMMENT doc }
 
   | "%ifdef"   { PP_IFDEF }
-  | "%ifdef_encoder"   { PP_IFDEF_ENCODER }
+  | "%ifencoder"   { PP_IFENCODER }
   | "%endif"   { PP_ENDIF }
   | "%include" [' ' '\t']* '"' ([^ '"' '>' '\n']* as file) '"'
                { PP_INCLUDE file }

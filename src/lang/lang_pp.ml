@@ -79,7 +79,7 @@ let preprocess tokenizer =
                   skip ()
             | _ -> failwith "expected a variable after %ifdef"
           end
-      | Lang_parser.PP_IFDEF_ENCODER ->
+      | Lang_parser.PP_IFENCODER ->
         let fmt = get_encoder_format tokenizer lexbuf in
         let has_enc = try let _ = Encoder.get_factory fmt in true with Not_found -> false in
         if has_enc then go_on () else skip ()
