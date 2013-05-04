@@ -33,6 +33,9 @@ let get_encoder_format tokenizer lexbuf =
     | Lang_parser.FLAC -> Lang_encoders.mk_ogg_flac []
     | _ -> failwith "ogg format expected"
   in
+  let is_ogg_item token =
+    try let _ = ogg_item token in true with _ -> false
+  in
   let fmt =
     match tokenizer lexbuf with
     | Lang_parser.MP3 -> Lang_encoders.mk_mp3_cbr []
@@ -46,6 +49,10 @@ let get_encoder_format tokenizer lexbuf =
     | Lang_parser.EXTERNAL -> Lang_encoders.mk_external []
     | Lang_parser.GSTREAMER -> Lang_encoders.mk_gstreamer []
     | Lang_parser.WAV -> Lang_encoders.mk_wav []
+    | ogg when is_ogg_item ogg ->
+      let ogg = ogg_item ogg in
+      Lang_encoders.mk (Lang_values.Encoder (Encoder.Ogg [ogg]))
+    (* TODO *)
     (* | Lang_parser.OGG -> Lang_encoders.mk ... [] *)
     | _ -> failwith "encoder format expected"
   in
