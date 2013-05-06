@@ -4,7 +4,7 @@
 (defvar liquidsoap-font-lock-keywords
  '(
    ("#.*" . 'font-lock-comment-face)
-   ("^\\(%ifdef .*\\|%endif\\|%include\\)" . 'font-lock-preprocessor-face)
+   ("^\\(%ifdef .*\\|%ifencoder .*\\|%endif\\|%include\\)" . 'font-lock-preprocessor-face)
    ("\\<\\(fun\\|def\\|begin\\|end\\|if\\|then\\|else\\|elsif\\)\\>\\|->\\|;" . font-lock-keyword-face)
    ("\\<\\(and\\|or\\|not\\|mod\\|ref\\)\\>\\|:=" . font-lock-builtin-face)
    ("\\<\\(true\\|false\\)\\>" . font-lock-constant-face)

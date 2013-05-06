@@ -20,29 +20,76 @@
 
  *****************************************************************************)
 
+(* TODO: also parse optional arguments? *)
+let get_encoder_format tokenizer lexbuf =
+  let ogg_item = function
+    | Lang_parser.VORBIS -> Lang_encoders.mk_vorbis []
+    | Lang_parser.VORBIS_CBR -> Lang_encoders.mk_vorbis_cbr []
+    | Lang_parser.VORBIS_ABR -> Lang_encoders.mk_vorbis_abr []
+    | Lang_parser.THEORA -> Lang_encoders.mk_theora []
+    | Lang_parser.DIRAC -> Lang_encoders.mk_dirac []
+    | Lang_parser.SPEEX -> Lang_encoders.mk_speex []
+    | Lang_parser.OPUS -> Lang_encoders.mk_opus []
+    | Lang_parser.FLAC -> Lang_encoders.mk_ogg_flac []
+    | _ -> failwith "ogg format expected"
+  in
+  let is_ogg_item token =
+    try let _ = ogg_item token in true with _ -> false
+  in
+  let fmt =
+    match tokenizer lexbuf with
+    | Lang_parser.MP3 -> Lang_encoders.mk_mp3_cbr []
+    | Lang_parser.MP3_VBR -> Lang_encoders.mk_mp3_vbr []
+    | Lang_parser.MP3_ABR -> Lang_encoders.mk_mp3_vbr []
+    | Lang_parser.MP3_FXP -> Lang_encoders.mk_shine []
+    | Lang_parser.AACPLUS -> Lang_encoders.mk_aacplus []
+    | Lang_parser.VOAACENC -> Lang_encoders.mk_voaacenc []
+    | Lang_parser.FDKAAC -> Lang_encoders.mk_fdkaac []
+    | Lang_parser.FLAC -> Lang_encoders.mk_flac []
+    | Lang_parser.EXTERNAL -> Lang_encoders.mk_external []
+    | Lang_parser.GSTREAMER -> Lang_encoders.mk_gstreamer []
+    | Lang_parser.WAV -> Lang_encoders.mk_wav []
+    | ogg when is_ogg_item ogg ->
+      let ogg = ogg_item ogg in
+      Lang_encoders.mk (Lang_values.Encoder (Encoder.Ogg [ogg]))
+    (* TODO *)
+    (* | Lang_parser.OGG -> Lang_encoders.mk ... [] *)
+    | _ -> failwith "encoder format expected"
+  in
+  match fmt.Lang_values.term with
+  | Lang_values.Encoder fmt -> fmt
+  | _ -> assert false
+
 (* The Lang_lexer is not quite enough for our needs,
  * so we first define convenient layers between it and the parser.
  * First a pre-processor which evaluates %ifdefs. *)
 let preprocess tokenizer =
   let state = ref 0 in
   let rec token lexbuf =
+    let go_on () =
+      incr state ;
+      token lexbuf
+    in
+    let rec skip () =
+      match tokenizer lexbuf with
+      | Lang_parser.PP_ENDIF -> token lexbuf
+      | _ -> skip ()
+    in
     match tokenizer lexbuf with
       | Lang_parser.PP_IFDEF ->
           begin match tokenizer lexbuf with
             | Lang_parser.VAR v ->
                 (** XXX Less natural meaning than the original one. *)
-                if Lang_values.builtins#is_registered v then begin
-                  incr state ;
-                  token lexbuf
-                end else
-                  let rec skip () =
-                    match tokenizer lexbuf with
-                      | Lang_parser.PP_ENDIF -> token lexbuf
-                      | _ -> skip ()
-                  in
-                    skip ()
+                if Lang_values.builtins#is_registered v then
+                  go_on ()
+                else
+                  skip ()
             | _ -> failwith "expected a variable after %ifdef"
           end
+      | Lang_parser.PP_IFENCODER ->
+        let fmt = get_encoder_format tokenizer lexbuf in
+        let has_enc = try let _ = Encoder.get_factory fmt in true with Not_found -> false in
+        if has_enc then go_on () else skip ()
       | Lang_parser.PP_ENDIF ->
           if !state=0 then failwith "no %ifdef to end here" ;
           decr state ;
