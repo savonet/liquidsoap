@@ -3,13 +3,15 @@
 
 New:
 
-- There is now an emacs mode in scripts/liquidsoap-mode.el.
-
-- Liquidsoap can be used as a Windows service.
-
 - Add support for FDK-AAC, which seems to be the best AAC(+) encoder around for
   now.
 
+- Add %ifencoder to check whether Liquidsoap was compiled with support for a
+  particular encoding format.
+
+- There is now an emacs mode in scripts/liquidsoap-mode.el.
+
+- Liquidsoap can be used as a Windows service.
 
 Enhancements:
 
@@ -50,6 +52,7 @@ Bugfixes:
 - Handle relative URLs in http playlists.
 
 - portaudio is now an active source.
+
 
 
 1.1.0 (04-03-2013)
