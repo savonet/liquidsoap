@@ -1,3 +1,57 @@
+1.1.1 (UNRELEASED)
+==================
+
+New:
+
+- There is now an emacs mode in scripts/liquidsoap-mode.el.
+
+- Liquidsoap can be used as a Windows service.
+
+- Add support for FDK-AAC, which seems to be the best AAC(+) encoder around for
+  now.
+
+
+Enhancements:
+
+- Handle more OSC types (float, float_pair, bool, string, string_pair) and added
+  osc.on_*.
+
+- Better infrastructure for decoding images. add_image can now handle most image
+  file types.
+
+- Add random.int as well as min_int and max_int to standard library.
+
+- Add playlist.merge to play a whole playlist as one track.
+
+- Add gstreamer.hls to play http live streams (HLS).
+
+- Add say.program to specify text-to-speech program in scripts.
+
+- Add "random" transition type to video.fade.* in order to select a random
+  transition each time.
+
+- Add max parameter to drop data on buffer overrun with input.gstreamer.*.
+
+- Add bytes_per_page parameter to ogg encoders.
+
+- Add support for DTX in speex and opus, as well as VAD for speex.
+
+- Localize some more parsing errors in files.
+
+
+Bugfixes:
+
+- Avoid deadlocks in harbor.
+
+- Correctly flush lame encoder.
+
+- Correct sequence operator when there is only one source.
+
+- Handle relative URLs in http playlists.
+
+- portaudio is now an active source.
+
+
 1.1.0 (04-03-2013)
 ==================
 This version brings some new features as well as correcting bugs.
