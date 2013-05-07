@@ -7,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.1.0])
-scm_snapshot=true
-version=1.1.0
+AC_INIT([liquidsoap],[1.1.1])
+scm_snapshot=false
+version=1.1.1
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
