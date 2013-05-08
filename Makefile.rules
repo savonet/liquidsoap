@@ -239,6 +239,7 @@ dist:
 
 configure: configure.ac install-sh
 	./bootstrap
+	./configure-with-options || ./configure
 
 tarball: configure pre-distclean dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)

@@ -1,10 +1,10 @@
-1.1.1 (UNRELEASED)
+1.1.1 (08-05-2013)
 ==================
 
 New:
 
 - Add support for FDK-AAC, which seems to be the best AAC(+) encoder around for
-  now.
+  now. Replacement candidate for VO-AAC and AACPLUS
 
 - Add %ifencoder to check whether Liquidsoap was compiled with support for a
   particular encoding format.
