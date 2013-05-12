@@ -111,6 +111,7 @@ rule token = parse
           PP_COMMENT doc }
 
   | "%ifdef"   { PP_IFDEF }
+  | "%ifencoder"   { PP_IFENCODER }
   | "%endif"   { PP_ENDIF }
   | "%include" [' ' '\t']* '"' ([^ '"' '>' '\n']* as file) '"'
                { PP_INCLUDE file }
@@ -152,6 +153,7 @@ rule token = parse
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
   | "%aac" { VOAACENC }
+  | "%fdkaac" { FDKAAC }
 
   | '[' { LBRA }
   | ']' { RBRA }

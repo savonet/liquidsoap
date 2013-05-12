@@ -64,7 +64,8 @@ also @libtool@.
 * ocaml-shine for fixed-point mp3 encoding
 * ocaml-faac for AAC encoding
 * ocaml-aacplus for AAC+ encoding
-* ocaml-voaacplus for AAC decoding
+* ocaml-voaacenc for AAC decoding
+* ocaml-fdkaac for AAC(+) encoding. Replacement candidate for both voaac and aacplus
 * ocaml-flac for native flac and ogg/flac encoding/decoding
 * ocaml-theora for ogg/theora encoding/decoding
 * ocaml-schroedinger for ogg/dirac video encoding/decoding

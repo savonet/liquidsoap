@@ -61,12 +61,12 @@ let fast_queues =
        "such as last.fm submissions or slow <code>add_timeout</code> handlers."
      ]
 let non_blocking_queues =
-  Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:1
+  Conf.int ~p:(conf_scheduler#plug "non_blocking_queues") ~d:2
      "Non-blocking queues"
      ~comments:[
        "Number of queues dedicated to internal non-blocking tasks." ;
        "These are only started if such tasks are needed." ;
-       "There should be at least one. Having more is probably useless."
+       "There should be at least one."
      ]
 
 let scheduler_log =
@@ -254,15 +254,15 @@ let start_forwarding () =
       fun s -> log#f 3 "%s" s
   in
   let forward fd log =
-    let task f =
+    let task ~priority f =
       { Duppy.Task.
-         priority = Non_blocking ;
+         priority = priority ;
          events   = [`Read fd] ;
          handler  = f }
     in
+    let len = 1024 in
+    let buffer = String.create len in
     let rec f (acc:string list) _ =
-      let len = 10 in
-      let buffer = String.create len in
       let n = Unix.read fd buffer 0 len in
       let rec split acc i =
         match
@@ -272,14 +272,16 @@ let start_forwarding () =
               let line =
                 List.fold_left (fun s l -> l^s) (String.sub buffer i (j-i)) acc
               in
+                (* This _could_ be blocking! *)
                 log line ;
                 split [] (j+1)
           | _ ->
               String.sub buffer i (n-i) :: acc
       in
-        [ task (f (split acc 0)) ]
+        [ task ~priority:Non_blocking (f (split acc 0)) ]
     in
-      Duppy.Task.add scheduler (task (f []))
+      Duppy.Task.add scheduler 
+        (task ~priority:Maybe_blocking (f []))
   in
     forward in_stdout log_stdout ;
     forward in_stderr log_stderr
@@ -292,13 +294,47 @@ let () =
       start_forwarding ()
     end))
 
-(** Waits for [f()] to become true on condition [c].
-  * The mutex [m] protecting data accessed by [f] is in the same state before
-  * and after the call. *)
+(** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  let l = Mutex.try_lock m in
-    while not (f ()) do Condition.wait c m done ;
-    if l then Mutex.unlock m
+  mutexify m (fun () ->
+    while not (f ()) do Condition.wait c m done) ()
+
+exception Timeout
+
+let error_translator =
+  function
+    | Timeout ->
+        Some "Timeout while waiting on socket"
+    | _ ->
+        None
+
+let () = Utils.register_error_translator error_translator
+
+(* Wait for [`Read], [`Write] or [`Both] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout]
+ * if timeout is reached. *)
+let wait_for ?(log=fun _ -> ()) event socket timeout =
+  let max_time = Unix.gettimeofday () +. timeout in
+  let r, w = 
+    match event with
+      | `Read -> [socket],[]
+      | `Write -> [],[socket]
+      | `Both -> [socket],[socket]
+  in
+  let rec wait t =
+    let l,l',_ = Unix.select r w [] t in
+    if l=[] && l'=[] then begin
+      log (Printf.sprintf "No network activity for %.02f second(s)." t);
+      let current_time = Unix.gettimeofday () in
+      if current_time >= max_time then
+       begin
+        log "Network activity timeout!" ;
+        raise Timeout 
+       end
+      else
+        wait (min 1. (max_time -. current_time))
+    end
+  in wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
 let run = ref true

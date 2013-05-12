@@ -144,9 +144,14 @@ val peek_data : t -> string
 
 (** Register a new track to the stream.
   * The state needs to be [Bos] or [Eos].
+  *
+  * [fill] parameter is used to try to control ogg
+  * logical page's size. See [Ogg.get_page] for more
+  * details.
+  *
   * Returns the serial number of the registered ogg
   * stream. *)
-val register_track : t -> stream_encoder -> nativeint
+val register_track : ?fill:int -> t -> stream_encoder -> nativeint
 
 (** Start streams, set state to [Streaming]. *)
 val streams_start : t -> unit

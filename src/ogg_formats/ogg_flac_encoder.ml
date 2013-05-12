@@ -111,7 +111,7 @@ let create_flac =
          let enc =
            create_encoder ~flac ~comments ()
          in
-         Ogg_muxer.register_track ogg_enc enc
+         Ogg_muxer.register_track ?fill:flac.Encoder.Flac.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
        let dst_freq = float flac.Encoder.Flac.samplerate in

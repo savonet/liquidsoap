@@ -54,6 +54,7 @@ type 'a stream =
     os                : Ogg.Stream.t;
     encoder           : 'a track_encoder;
     end_pos           : page_end_time;
+    page_fill         : int option;
     available         : Ogg.Page.t Queue.t;
     mutable remaining : (float*Ogg.Page.t) option;
     fisbone_data      : fisbone_packet; 
@@ -196,7 +197,7 @@ let create ~skeleton id =
   encoder.skeleton <- skeleton encoder ;
   encoder
 
-let register_track encoder track_encoder =
+let register_track ?fill encoder track_encoder =
   if encoder.state = Streaming then
    begin
     log#f 4 "%s: Invalid new track: ogg stream already started.." encoder.id;
@@ -223,6 +224,7 @@ let register_track encoder track_encoder =
              os = os; 
              encoder = encoder;
              end_pos = track_encoder.end_of_page;
+             page_fill = fill;
              available = Queue.create ();
              remaining = None;
              fisbone_data = track_encoder.fisbone_packet;
@@ -235,6 +237,7 @@ let register_track encoder track_encoder =
              os = os; 
              encoder = encoder;
              end_pos = track_encoder.end_of_page;
+             page_fill = fill;
              available = Queue.create ();
              remaining = None;
              fisbone_data = track_encoder.fisbone_packet;
@@ -292,7 +295,7 @@ let is_empty x =
   Queue.length x.available = 0 &&
    begin
     try
-      let p = Ogg.Stream.get_page x.os in
+      let p = Ogg.Stream.get_page ?fill:x.page_fill x.os in
       Queue.add p x.available;
       false
     with
@@ -355,7 +358,7 @@ let add_available src encoder =
        try
          Queue.take src.available
        with
-         | Queue.Empty -> Ogg.Stream.get_page src.os 
+         | Queue.Empty -> Ogg.Stream.get_page ?fill:src.page_fill src.os 
      in
      let pos = src.end_pos p in
      begin

@@ -1,3 +1,5 @@
+## -*- mode: makefile -*-
+
 .PHONY: all all-subdirs all-local
 .PHONY: all-auto all-auto-ocaml-prog clean-buildings
 .PHONY: clean clean-subdirs clean-local
@@ -116,8 +118,8 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs) $($(PROG)_PLUGINS:%=plu
 		$(c_link)
 endif
 
-# Compute C dependencies
-# Apparently, dynamic modules cannot
+# Compute C dependencies
+# Apparently, dynamic modules cannot
 # use the custom mode..
 plug_c_link = \
 $(if $($(1)_c_sources),\
@@ -225,6 +227,7 @@ ifdef DISTDIRS
 	cp -rfL $(DISTDIRS) $(DDIR)
 endif
 	find $(DDIR) -name .svn | while read i; do rm -rf "$$i"; done
+	find $(DDIR) -name .git | while read i; do rm -rf "$$i"; done
 
 dist:
 	@a=`cd $(top_srcdir) ; pwd ` ; b=`pwd` ; [ "eq$$a" = "eq$$b" ] \
@@ -236,6 +239,7 @@ dist:
 
 configure: configure.ac install-sh
 	./bootstrap
+	./configure-with-options || ./configure
 
 tarball: configure pre-distclean dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)

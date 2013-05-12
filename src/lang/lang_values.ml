@@ -22,6 +22,9 @@
 
 (** Values in the Liquidsoap language. *)
 
+(** A parsing error. *)
+exception Parse_error of ((Lexing.position*Lexing.position)*string)
+
 (** Are we in debugging mode? *)
 let debug =
   try

@@ -159,7 +159,7 @@ let create_vorbis =
                 -> create ~channels ~samplerate 
                           ~quality ~metadata ()
         in
-        Ogg_muxer.register_track ogg_enc enc
+        Ogg_muxer.register_track ?fill:vorbis.Encoder.Vorbis.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float samplerate in

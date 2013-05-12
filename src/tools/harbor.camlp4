@@ -21,7 +21,6 @@
 
  *****************************************************************************)
 
-open Unix
 open Dtools
 open Http_source
 
@@ -128,11 +127,11 @@ type protocol = [
   | `Xaudiocast_uri of string
 ]
 
-type reply = | Close of string | Reply of string
+type reply = | Close of string | Relay of string * (unit -> unit)
 
 let reply s = Duppy.Monad.raise (Close s)
 
-let relayed s = Duppy.Monad.raise (Reply s)
+let relayed s f = Duppy.Monad.raise (Relay (s,f))
 
 type http_handler = protocol:string -> data:string ->
                     headers:((string*string) list) -> socket:Unix.file_descr ->
@@ -352,9 +351,11 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                       -> "audio/mpeg"
           | Not_found -> raise Unknown_codec
        in
-       s#relay stype headers h.Duppy.Monad.Io.socket ;
+       let f () = 
+         s#relay stype headers h.Duppy.Monad.Io.socket
+       in
        log#f 4 "Adding source on mountpoint %S with type %S." uri stype ;
-       relayed "HTTP/1.0 200 OK\r\n\r\n"
+       relayed "HTTP/1.0 200 OK\r\n\r\n" f
     with
       | Mount_taken ->
          log#f 4 "Returned 403: Mount taken" ;
@@ -657,6 +658,7 @@ let handle_client ~port ~icy h =
 let open_port ~icy port =
   Tutils.need_non_blocking_queue () ;
   log#f 4 "Opening port %d with icy = %b" port icy ;
+  let max_conn = conf_harbor_max_conn#get in
   let rec incoming ~port ~icy sock out_s e =
       if List.mem (`Read out_s) e then
        begin
@@ -670,7 +672,7 @@ let open_port ~icy port =
       else
        begin
         (try
-           let (socket,caller) = accept sock in
+           let (socket,caller) = Unix.accept sock in
            let ip =
              Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller
            in
@@ -715,16 +717,12 @@ let open_port ~icy port =
                in
                let s,exec =
                  match r with
-                   | Reply s -> s,fun () -> ()
+                   | Relay (s,exec) -> s,exec
                    | Close s -> s,close
                in
                let on_error e =
                  ignore(on_error e) ;
-                 (* We close on_error only if
-                  * the reply is Close. In case of Reply, 
-                  * we cannot close now has there might
-                  * be another task actually using the socket. *)
-                 exec ()
+                 close ()
                in
                Duppy.Io.write ~timeout:conf_timeout#get 
                               ~priority:Tutils.Non_blocking
@@ -750,18 +748,15 @@ let open_port ~icy port =
   let open_socket port =
     let bind_addr = conf_harbor_bind_addr#get in
     let bind_addr_inet =
-      inet_addr_of_string bind_addr
+      Unix.inet_addr_of_string bind_addr
     in
-    let bind_addr = ADDR_INET(bind_addr_inet, port) in
-    let sock = socket PF_INET SOCK_STREAM 0 in
-    setsockopt sock SO_REUSEADDR true ;
+    let bind_addr = Unix.ADDR_INET(bind_addr_inet, port) in
+    let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    Unix.setsockopt sock Unix.SO_REUSEADDR true ;
     (* Set TCP_NODELAY on the socket *)
     Unix.setsockopt sock Unix.TCP_NODELAY true;
-    begin try bind sock bind_addr with
-      | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "port %d already taken" port)
-    end ;
-    listen sock conf_harbor_max_conn#get ;
+    Unix.bind sock bind_addr;
+    Unix.listen sock max_conn ;
     sock
   in
   let sock = open_socket port in

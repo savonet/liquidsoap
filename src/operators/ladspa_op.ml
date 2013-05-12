@@ -294,7 +294,7 @@ let params_of_descr d =
                        | None -> ()
                      end ;
                      bounds :=
-                     !bounds ^ (Utils.normalize_parameter_string (Descriptor.port_name d p));
+                     !bounds ^ "<code>" ^ (Utils.normalize_parameter_string (Descriptor.port_name d p)) ^ "</code>";
                      begin match max with
                        | Some f ->
                            begin match t with
@@ -344,11 +344,13 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
   let liq_params =
     liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
   in
-  let descr = Printf.sprintf "%s by %s." (Descriptor.name d) (Descriptor.maker d) in
+  let maker = Descriptor.maker d in
+  let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
+  let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
     Lang.add_operator ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d)) liq_params
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundProcessing
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr
       (fun p kind ->
          let f v = List.assoc v p in

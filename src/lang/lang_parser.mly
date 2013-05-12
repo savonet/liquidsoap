@@ -58,7 +58,7 @@
     let to_int = function None -> 0 | Some i -> i in
     let rec aux = function
       | None::tl -> aux tl
-      | [] -> failwith "Invalid time"
+      | [] -> raise (Parse_error (curpos (), "Invalid time."))
       | l ->
           let a = Array.of_list l in
           let n = Array.length a in
@@ -97,7 +97,7 @@
     let p2 = precision d2 in
     let t1 = date d1 in
     let t2 = date d2 in
-      if p1<>p2 then failwith "Invalid time interval: precisions differ" ;
+      if p1<>p2 then raise (Parse_error (curpos (), "Invalid time interval: precisions differ."));
       (t1,t2,p1)
 
   let during d =
@@ -128,13 +128,13 @@
           let audio,video,midi =
             match args with
               | ["",a;"",v;"",m] -> a,v,m
-              | l when List.length l > 3 -> 
-                  failwith "invalid type parameters"
+              | l when List.length l > 3 ->
+                  raise (Parse_error (curpos (), "Invalid type parameters."))
               | l ->
                   List.iter
                     (fun (lbl,_) ->
                       if not (List.mem lbl ["audio";"video";"midi"]) then
-                        failwith "invalid type parameters")
+                        raise (Parse_error (curpos (), "Invalid type parameters.")))
                     l ;
                   let assoc x =
                     try List.assoc x l with
@@ -144,7 +144,7 @@
                     assoc "audio", assoc "video", assoc "midi"
           in
             Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
-      | _ -> failwith "unknown type constructor"
+      | _ -> raise (Parse_error (curpos (), "Unknown type constructor."))
 
   open Lang_encoders
 
@@ -160,7 +160,7 @@
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
-%token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR MP3_FXP EXTERNAL
+%token WAV FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR MP3_FXP EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -176,7 +176,7 @@
 %token MINUS
 %token NOT
 %token REF GET SET
-%token PP_IFDEF PP_ENDIF PP_ENDL PP_DEF PP_DEFINE
+%token PP_IFDEF PP_IFENCODER PP_ENDIF PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 
@@ -287,6 +287,7 @@ expr:
   | MP3_FXP app_opt                  { mk_shine $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | VOAACENC app_opt                 { mk_voaacenc $2 }
+  | FDKAAC app_opt                   { mk_fdkaac $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | GSTREAMER app_opt                { mk_gstreamer $2 }
@@ -383,6 +384,7 @@ cexpr:
   | FLAC app_opt                     { mk_flac $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | VOAACENC app_opt                 { mk_voaacenc $2 }
+  | FDKAAC app_opt                   { mk_fdkaac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }

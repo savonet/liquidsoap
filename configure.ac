@@ -7,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.1.0])
+AC_INIT([liquidsoap],[1.1.1])
 scm_snapshot=true
-version=1.1.0
+version=1.1.1
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -304,7 +304,7 @@ AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
 
 AC_CHECK_OCAML_BINDING([duppy],[0.4.2],[],[1],[],[1])
 
-# Small hack..
+# Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
   if test "${CAMLP4O}" != "no" ; then
     with_duppy_syntax_dir=${with_duppy_dir}
@@ -347,7 +347,7 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.4.3])
+AC_CHECK_OCAML_BINDING([ogg],[0.4.5])
 
 #
 # Vorbis
@@ -378,7 +378,7 @@ AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 #
 
 AC_CHECK_OCAML_BINDING([flac],[0.1.1])
-# Small hack..
+# Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
@@ -429,7 +429,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.1])
+AC_CHECK_OCAML_BINDING([lame],[0.3.2])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -478,6 +478,12 @@ AC_SUBST(W_AACPLUS_DYN)
 #
 
 AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
+
+#
+# Fdkaac
+#
+
+AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
 
 #
 # Theora
@@ -742,6 +748,10 @@ AC_CHECK_OCAML_BINDING([lo],[0.1.0])
 AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
 AC_CHECK_OCAML_BINDING([gd])
 
+# Winsvc (to run as a service)
+
+AC_CHECK_OCAML_BINDING([winsvc],[0.0.1])
+
 #
 # Tuning (See INSTALL to understand these features)
 #
@@ -915,6 +925,7 @@ cat <<EOMSG
    - MP3 (fixed-point) : $w_SHINE
    - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
+   - FDK-AAC           : $w_FDKAAC
    - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
    - Theora            : $w_THEORA
@@ -961,6 +972,7 @@ cat <<EOMSG
    - lo                : $w_LO
    - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
+   - windows service   : $w_WINSVC
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON

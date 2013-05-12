@@ -148,6 +148,14 @@ let http_sanitize url =
   with
     | _ -> url
 
+let is_url path =
+  Pcre.pmatch ~pat:"^http://.+" path
+
+let dirname url =
+  let rex = Pcre.regexp "^(http://.+/)[^/]*$" in
+  let s = Pcre.exec ~rex url in
+  Pcre.get_substring s 1
+
 (** HTTP functions. *)
 
 let connect ?bind_address host port =
@@ -178,7 +186,7 @@ let disconnect socket =
     | _ -> ()
 
 let read ?(log=fun _ -> ()) ~timeout socket buflen =
-  Utils.wait_for ~log `Read socket timeout;
+  Tutils.wait_for ~log `Read socket timeout;
   match buflen with
     | Some buflen ->
         let buf = String.create buflen in
@@ -217,7 +225,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ~timeout socket =
       (* This is quite ridiculous but we have 
        * no way to know how much data is available
        * in the socket.. *)
-      Utils.wait_for ~log `Read socket timeout;
+      Tutils.wait_for ~log `Read socket timeout;
       let h = Unix.read socket c 0 1 in
         if h < 1 then
           loop := false
@@ -236,7 +244,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ~timeout socket =
 let request ?(log=fun _ -> ()) ~timeout socket request =
   if
     let len = String.length request in
-      Utils.wait_for ~log `Write socket timeout;
+      Tutils.wait_for ~log `Write socket timeout;
       Unix.write socket request 0 len < len
   then
     raise Socket ;

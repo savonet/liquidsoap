@@ -532,7 +532,7 @@ let rec bind a0 b =
         * When a value is passed to a FFI, its type is bound to a type without
         * any location.
         * If it doesn't break sharing, we set the parsing position of
-        * that variable occurrence to the position of the infered type. *)
+        * that variable occurrence to the position of the inferred type. *)
       if b.pos = None && match b.descr with EVar _ -> false | _ -> true
       then
         a.descr <- Link { a0 with descr = b.descr }
@@ -556,12 +556,12 @@ let print ?generalized t : string =
   Format.flush_str_formatter ()
 
 let print_type_error (flipped,ta,tb,a,b) =
-  let infered_pos a =
+  let inferred_pos a =
     let dpos = (deref a).pos in
       if a.pos = dpos then "" else
         match dpos with
           | None -> ""
-          | Some p -> " (infered at " ^ print_pos ~prefix:"" p ^ ")"
+          | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")"
   in
   let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
     Format.printf
@@ -570,7 +570,7 @@ let print_type_error (flipped,ta,tb,a,b) =
          | None -> "At unknown position"
          | Some p -> print_pos p)
       print_repr a
-      (infered_pos ta) ;
+      (inferred_pos ta) ;
     Format.printf
       "but it should be a %stype of%s@;<1 2>%a%s@]@."
       (if flipped then "super" else "sub")
@@ -580,7 +580,7 @@ let print_type_error (flipped,ta,tb,a,b) =
              Printf.sprintf " (the type of the value at %s)"
                (print_pos ~prefix:"" p))
       print_repr b
-      (infered_pos tb)
+      (inferred_pos tb)
 
 let doc_of_type ~generalized t =
   let margin = Format.pp_get_margin Format.str_formatter () in

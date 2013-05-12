@@ -198,8 +198,6 @@ object (self)
   val mutable socket       = None
   (* Mutex to change the socket's state (open, close) *)
   val mutable socket_m     = Mutex.create()
-  (* Mutex to grap the socket's state *)
-  val mutable get_socket_m = Mutex.create()
 
   val mutable url = url
 
@@ -240,7 +238,7 @@ object (self)
               \"polling\" (attempting to connect to the HTTP stream) \
               or \"connected <url>\" (connected to <url>, buffering or \
               playing back the stream)."
-       (Tutils.mutexify get_socket_m (fun _ ->
+       (Tutils.mutexify socket_m (fun _ ->
          match socket with
            | Some (_,_,url) -> "connected " ^ url
            | None -> if relaying then "polling" else "stopped")) ;
@@ -262,18 +260,20 @@ object (self)
     let read =
       let log = self#log#f 4 "%s" in
       (* Socket can't be closed while waiting on it. *)
-      Tutils.mutexify socket_m (fun len ->
-          match socket with
-            | None -> "",0
-            | Some (socket,read,_) ->
+      (fun len ->
+        let socket = Tutils.mutexify socket_m (fun () ->
+          socket) ()
+        in
+        match socket with
+          | None -> "",0
+          | Some (socket,read,_) ->
               begin
                try
-                Utils.wait_for ~log `Read socket timeout;
+                Tutils.wait_for ~log `Read socket timeout;
                 read len
                with e -> self#log#f 2 "Error while reading from socket: \
                             %s" (Utils.error_message e);
-                         Tutils.mutexify get_socket_m (fun () ->
-                           self#disconnect_no_lock) ();
+                         self#disconnect_no_lock;
                          "",0
                end)
     in
@@ -312,7 +312,12 @@ object (self)
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s" s
               | G.Incorrect_stream_type ->
-                self#log#f 2 "Feeding stopped: the decoded stream was not of the right type. The typical situation is when you expect a stereo stream whereas the http stream is mono (in this case the situation can easily be solved by using the audio_to_stereo operator to convert the stream to a stereo one)."
+                self#log#f 2 "Feeding stopped: the decoded stream was not of \
+                              the right type. The typical situation is when \
+                              you expect a stereo stream whereas the http \
+                              stream is mono (in this case the situation can \
+                              easily be solved by using the audio_to_stereo \
+                              operator to convert the stream to a stereo one)."
               | e ->
                   self#log#f 2 "Feeding stopped: %s" (Utils.error_message e)
             end ;
@@ -330,9 +335,8 @@ object (self)
     socket <- None
 
   method disconnect =
-    Tutils.mutexify socket_m
-      (Tutils.mutexify get_socket_m (fun () ->
-        self#disconnect_no_lock)) ()
+    Tutils.mutexify socket_m (fun () ->
+      self#disconnect_no_lock) ()
 
   (** This method gets overriden by superclasses (see Lastfm_input)
     * but #private_connect should not be changed.
@@ -368,34 +372,33 @@ object (self)
     in
     try
       let (_, status, status_msg), fields =
-        Tutils.mutexify socket_m
-          (Tutils.mutexify get_socket_m (fun () ->
-            if socket <> None then
-              failwith "Cannot connect while already connected..";
-            self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
-            let s = Http.connect ?bind_address host port in
-            let log = self#log#f 4 "%s" in
-            let ((_, status, status_msg), fields as ret) =
-              Http.request ~log ~timeout s request
-            in
-            let metaint =
-              try
-                Some (int_of_string (List.assoc "icy-metaint" fields))
-              with _ -> None
-            in
-            let chunked =
-              try
-                List.assoc "transfer-encoding" fields = "chunked"
-              with _ -> false
-            in
-            if chunked then
-              self#log#f 4 "Chunked HTTP/1.1 transfer" ;
-            (* read_stream has a state, so we must create it here.. *)
-            let read =
-              read_stream s chunked metaint self#insert_metadata
-            in
-            socket <- Some (s,read,url);
-            ret)) ()
+        Tutils.mutexify socket_m (fun () ->
+          if socket <> None then
+            failwith "Cannot connect while already connected..";
+          self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
+          let s = Http.connect ?bind_address host port in
+          let log = self#log#f 4 "%s" in
+          let ((_, status, status_msg), fields as ret) =
+            Http.request ~log ~timeout s request
+          in
+          let metaint =
+            try
+              Some (int_of_string (List.assoc "icy-metaint" fields))
+            with _ -> None
+          in
+          let chunked =
+            try
+              List.assoc "transfer-encoding" fields = "chunked"
+            with _ -> false
+          in
+          if chunked then
+            self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+          (* read_stream has a state, so we must create it here.. *)
+          let read =
+            read_stream s chunked metaint self#insert_metadata
+          in
+          socket <- Some (s,read,url);
+          ret) ()
       in
       let content_type =
         match force_mime with
@@ -458,23 +461,27 @@ object (self)
           | Failure hd -> raise Not_found
       in
       let test_playlist parser =
-        Tutils.mutexify get_socket_m (fun () ->
-          match socket with
+        let playlist =
+          Tutils.mutexify socket_m (fun () ->
+            match socket with
             | None -> failwith "not connected!"
             | Some (s,_,_) ->
               let content = Http.read ~timeout s None in
               let playlist = parser content in
-                match playlist with
-                  | [] -> raise Not_found
-                  | _ -> playlist_process playlist) ()
+              match playlist with
+              | [] -> raise Not_found
+              | _ -> playlist) ()
         in
+        playlist_process playlist
+      in
         try
           self#log#f 4
             "Trying playlist parser for mime %s" content_type ;
           match Playlist_parser.parsers#get content_type with
             | None -> raise Not_found
             | Some plugin ->
-                test_playlist plugin.Playlist_parser.parser
+              let pwd = Http.dirname url in
+              test_playlist (plugin.Playlist_parser.parser ~pwd)
         with
           | Not_found ->
               (* Trying playlist auto parsing in case
@@ -482,7 +489,7 @@ object (self)
               if content_type = "text/plain" then begin
                 try
                   test_playlist
-                    (fun x -> snd (Playlist_parser.search_valid x))
+                    (fun x -> snd (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
                 with
                   | Not_found -> ()
               end else begin
