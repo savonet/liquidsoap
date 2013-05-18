@@ -770,21 +770,6 @@ let requests_table_size = $requests_table_size
 EOCONF
 
 #
-# Speech
-#
-
-if test $OS_TYPE != "Win32"; then
-  AC_PATH_PROG(TEXT2WAVE,text2wave,false)
-  AC_PATH_PROG(SOX,sox,false)
-fi
-
-if test "$TEXT2WAVE" = false -o "$SOX" = false ; then
-   w_TTS="requires text2wave (festival) and sox at runtime"
-else
-   w_TTS="yes"
-fi
-
-#
 # Font for video.add_text*()
 #
 
@@ -930,7 +915,7 @@ cat <<EOMSG
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - text-to-speech    : $w_TTS
+   - text-to-speech    : requires text2wave (festival) and sox at runtime
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LASTFM
 
@@ -981,6 +966,7 @@ cat <<EOMSG
    - GD                : $w_GD
 
  * Additional libraries
+   - wget URI resolver : requires wget at runtime
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lo                : $w_LO
