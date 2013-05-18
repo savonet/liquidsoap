@@ -156,9 +156,11 @@ analyze = analyze/analyze_rms.ml
 encoders = \
 	encoder/wav_encoder.ml \
 	encoder/lame_encoder.ml \
+	encoder/fdkaac_encoder.ml \
 	encoder/aacplus_encoder.ml \
 	$(if ($(OS_TYPE):Win32=),encoder/external_encoder.ml) \
 	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
+	$(if $(W_FDKAAC_DYN),encoder/fdkaac_encoder_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml)
 
 $(call conditional_compilation,encoders,$(W_SHINE),encoder/shine_encoder.ml)
@@ -166,7 +168,7 @@ $(call conditional_compilation,encoders,$(W_LAME),encoder/lame_encoder_builtin.m
 $(call conditional_compilation,encoders,$(W_FLAC),encoder/flac_encoder.ml)
 $(call conditional_compilation,encoders,$(W_AACPLUS),encoder/aacplus_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_VOAACENC),encoder/voaacenc_encoder.ml)
-$(call conditional_compilation,encoders,$(W_FDKAAC),encoder/fdkaac_encoder.ml)
+$(call conditional_compilation,encoders,$(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 
 outputs = outputs/output.ml \
@@ -188,6 +190,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
+	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/wav.ml tools/tutils.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \

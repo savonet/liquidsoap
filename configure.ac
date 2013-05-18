@@ -484,6 +484,15 @@ AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
 #
 
 AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
+if test -z "${W_FDKAAC}"; then
+  if test -n "${W_DYNLINK}"; then
+    if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+       W_FDKAAC_DYN=yes
+       w_FDKAAC="detected at runtime"
+    fi
+  fi
+fi
+AC_SUBST(W_FDKAAC_DYN)
 
 #
 # Theora
