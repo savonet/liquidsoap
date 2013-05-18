@@ -88,7 +88,7 @@ decoders = \
 	decoder/metadata_decoder.ml \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
-	$(if ($(OS_TYPE):Win32=),decoder/external_decoder.ml)
+	decoder/external_decoder.ml
 
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_FAAD),decoder/aac_decoder.ml)
@@ -105,10 +105,10 @@ playlists = \
 $(call conditional_compilation,playlists,$(W_XMLPLAYLIST),playlists/playlist_xml.ml)
 
 protocols = \
-	$(if ($(OS_TYPE):Win32=),protocols/say.ml) \
+	protocols/say.ml \
 	protocols/annotate.ml \
 	protocols/mpd.ml \
-	$(if ($(OS_TYPE):Win32=),protocols/extproto.ml)
+	protocols/extproto.ml
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
@@ -117,7 +117,7 @@ sources = \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
 	tools/harbor.ml sources/harbor_input.ml \
-	$(if ($(OS_TYPE):Win32=),sources/external_input.ml) \
+	sources/external_input.ml \
 	tools/liqMM.ml
 
 $(call conditional_compilation,sources,$(W_BJACK),sources/bjack_in.ml)
@@ -157,7 +157,7 @@ encoders = \
 	encoder/wav_encoder.ml \
 	encoder/lame_encoder.ml \
 	encoder/aacplus_encoder.ml \
-	$(if ($(OS_TYPE):Win32=),encoder/external_encoder.ml) \
+	encoder/external_encoder.ml \
 	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml)
 

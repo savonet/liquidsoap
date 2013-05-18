@@ -69,6 +69,14 @@ let () =
     (Lang.String Sys.os_type)
     Lang.string_t
 
+let () =
+  Lang.add_builtin_base
+    ~category:(string_of_category Sys)
+    ~descr:"Executable file extension."
+    "exe_ext"
+    (Lang.String Configure.exe_ext)
+    Lang.string_t
+
 (** Liquidsoap stuff *)
 
 let log = Lang.log

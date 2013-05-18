@@ -2,8 +2,7 @@
 
 %ifdef add_decoder
 # Enable external Musepack decoder. Requires the 
-# mpcdec binary in the path. Does not work on 
-# Win32.
+# mpcdec binary in the path.
 # @category Liquidsoap
 def enable_external_mpc_decoder() =
   # A list of know extensions and content-type for Musepack.
@@ -15,7 +14,7 @@ def enable_external_mpc_decoder() =
     def get_channels(file) =
       int_of_string(
         list.hd(
-          get_process_lines("mpcdec -i #{quote(file)} 2>&1 \
+          get_process_lines("mpcdec#{exe_ext} -i #{quote(file)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
     # Get the file's mime
@@ -52,7 +51,7 @@ end
 
 # Enable external FLAC decoders. Requires flac binary
 # in the path for audio decoding and metaflac binary for 
-# metadata. Does not work on Win32. Default: disabled.
+# metadata. Default: disabled.
 # Please note that built-in support for FLAC is available
 # in liquidsoap if compiled and should be preferred over
 # the external decoder.
@@ -63,7 +62,7 @@ def enable_external_flac_decoder() =
     flac_p = "flac -d -c - 2>/dev/null"
     def test_flac(file) =
       if test_process("which metaflac") then
-        channels = list.hd(get_process_lines("metaflac \
+        channels = list.hd(get_process_lines("metaflac#{exe_ext} \
                                               --show-channels #{quote(file)} \
                                               2>/dev/null"))
         # If the value is not an int, this returns 0 and we are ok :)
@@ -89,7 +88,7 @@ def enable_external_flac_decoder() =
    log(level=3,"Found metaflac binary: enabling flac external metadata \
                 resolver.")
    def flac_meta(file)
-     ret = get_process_lines("metaflac --export-tags-to=- \
+     ret = get_process_lines("metaflac#{exe_ext} --export-tags-to=- \
                   #{quote(file)} 2>/dev/null")
      ret = list.map(string.split(separator="="),ret)
      # Could be made better..
@@ -159,7 +158,7 @@ def enable_external_faad_decoder() =
     faad_p = (fun (f) -> "faad -w #{quote(f)} 2>/dev/null")
     def test_faad(file) =
       if faad_test(file) then
-        channels = list.hd(get_process_lines("faad -i #{quote(file)} 2>&1 | \
+        channels = list.hd(get_process_lines("faad#{exe_ext} -i #{quote(file)} 2>&1 | \
                                               grep 'ch,'"))
         ret = string.extract(pattern=", (\d) ch,",channels)
         ret = 
@@ -179,7 +178,7 @@ def enable_external_faad_decoder() =
                           the faad binary.", test=test_faad, faad_p)
     def faad_meta(file) =
       if faad_test(file) then
-        ret = get_process_lines("faad -i \
+        ret = get_process_lines("faad#{exe_ext} -i \
                      #{quote(file)} 2>&1")
         # Yea, this is ugly programming (again) !
         def get_meta(l,s)=
