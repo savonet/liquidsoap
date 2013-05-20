@@ -197,7 +197,7 @@ let () =
       "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
       Some "Initial angle in radians.";
 
-      "speed", Lang.float_getter_t 2, Some (Lang.float 3.1416),
+      "speed", Lang.float_getter_t 2, Some (Lang.float Utils.pi),
       Some "Rotation speed in radians per sec.";
 
       "", Lang.source_t kind, None, None

@@ -23,8 +23,6 @@
 open Source
 open Complex
 
-let pi = 3.14159265358979323846
-
 class fir ~kind (source:source) freq beta numcoeffs =
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
@@ -58,7 +56,7 @@ object (self)
         if n < 0 then [||]
         else
           begin
-            let theta = pi *. float_of_int n /. 1024. in
+            let theta = Utils.pi *. float_of_int n /. 1024. in
             Array.append (mkcircle (n - 1))
                          [|{re = cos(theta) ; im = sin(theta)}|]
           end
@@ -72,7 +70,7 @@ object (self)
           match (f <= f1, f <= f2) with
             | (true, x) -> 1.
             | (false, true) -> 0.5 *.
-                (1. +. cos((pi *. tau /. beta) *. (f -. f1)))
+                (1. +. cos((Utils.pi *. tau /. beta) *. (f -. f1)))
             | (false, false) -> 0.
       in
         for i = 0 to 1024 do

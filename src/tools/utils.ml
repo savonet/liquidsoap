@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let pi = 4. *. atan 1.
+
 let get_some = function
   | Some x -> x
   | None -> assert false
