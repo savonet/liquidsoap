@@ -11,8 +11,7 @@ AC_SUBST(OCAMLFIND_LDCONF)
 
 AC_PROG_OCAML()
 
-AC_CHECK_TOOL(CAMLIDL,camlidl,no)
-AC_SUBST(CAMLIDL)
+AC_PROG_CAMLIDL()
 
 AC_PROG_OCAMLLEX()
 
@@ -21,6 +20,8 @@ AC_PROG_OCAMLYACC()
 AC_PROG_CAMLP4()
 
 AC_PROG_FINDLIB()
+
+AC_CHECK_OCAML_STDLIB()
 
 # Check if caml/threads.h is present 
 AC_CHECK_HEADER([caml/threads.h],[CAML_THREADS=yes],[],[#include <caml/misc.h>])

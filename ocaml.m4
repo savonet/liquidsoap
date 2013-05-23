@@ -209,6 +209,11 @@ AC_DEFUN([AC_PROG_CAMLP4],
   AC_SUBST([CAMLP4RF])
 ])
 
+AC_DEFUN([AC_PROG_CAMLIDL],
+[dnl
+  AC_CHECK_TOOL(CAMLIDL,camlidl,no)
+  AC_SUBST(CAMLIDL)
+])
 
 AC_DEFUN([AC_PROG_FINDLIB],
 [dnl
@@ -219,6 +224,15 @@ AC_DEFUN([AC_PROG_FINDLIB],
   AC_SUBST([OCAMLFIND])
 ])
 
+AC_DEFUN([AC_CHECK_OCAML_STDLIB],
+[dnl
+  AC_REQUIRE([AC_PROG_FINDLIB])dnl
+
+  AC_MSG_CHECKING([for ocaml standard library path])
+  OCAML_STDLIB=`$OCAMLFIND printconf stdlib`
+  AC_SUBST(OCAML_STDLIB)
+  AC_MSG_RESULT([$OCAML_STDLIB])
+])
 
 dnl Thanks to Jim Meyering for working this next bit out for us.
 dnl XXX We should define AS_TR_SH if it's not defined already
