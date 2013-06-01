@@ -81,7 +81,9 @@ struct
       `Aot params.Encoder.FdkAacEnc.aot;
       `Bitrate (params.Encoder.FdkAacEnc.bitrate*1000);
       `Samplerate params.Encoder.FdkAacEnc.samplerate;
-      `Transmux params.Encoder.FdkAacEnc.transmux ] @ (
+      `Transmux params.Encoder.FdkAacEnc.transmux;
+      `Afterburner params.Encoder.FdkAacEnc.afterburner;
+    ] @ (
         if params.Encoder.FdkAacEnc.aot = `Mpeg_4 `AAC_ELD then
           [`Sbr_mode params.Encoder.FdkAacEnc.sbr_mode]
         else [])
