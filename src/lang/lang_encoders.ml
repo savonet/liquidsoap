@@ -345,7 +345,7 @@ let mk_fdkaac params =
   let defaults =
     { Encoder.FdkAacEnc.
         afterburner    = false;
-        aot            = `Mpeg_2 `HE_AAC_v2;
+        aot            = `Mpeg_4 `HE_AAC_v2;
         bitrate        = 64;
         channels       = 2;
         samplerate     = 44100;
