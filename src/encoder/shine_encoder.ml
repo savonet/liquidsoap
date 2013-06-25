@@ -45,7 +45,7 @@ let encoder shine =
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   (* Shine accepts data of a fixed length.. *)
-  let samples = Shine.samples_per_frame in
+  let samples = Shine.samples_per_pass enc in
   let data = Audio.create channels samples in
   let buf = G.create () in
   let encoded = Buffer.create 1024 in
