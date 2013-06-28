@@ -167,6 +167,7 @@ struct
     samplerate    : int ;
     signal        : signal option ;
     fill          : int option ;
+    dtx           : bool ;
   }
 
   let string_of_bitrate = function
@@ -200,7 +201,7 @@ struct
 
   let to_string v =
     Printf.sprintf
-    "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f)"
+    "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f,dtx=%B)"
       (string_of_mode v.mode)
       (string_of_bitrate v.bitrate)
       v.channels
@@ -210,6 +211,7 @@ struct
       (string_of_signal v.signal)
       v.samplerate
       v.frame_size
+      v.dtx
 end
 
 module MP3 =
@@ -328,6 +330,93 @@ struct
 
 end
 
+module FdkAacEnc =
+struct
+  type mpeg2_aac =
+    [
+       | `AAC_LC
+       | `HE_AAC
+       | `HE_AAC_v2
+    ]
+
+  type mpeg4_aac =
+    [
+       | mpeg2_aac
+       | `AAC_LD
+       | `AAC_ELD
+    ]
+
+  type aot =
+    [
+       | `Mpeg_4 of mpeg4_aac
+       | `Mpeg_2 of mpeg2_aac
+    ]
+
+  type transmux =
+    [
+       | `Raw
+       | `Adif
+       | `Adts
+       | `Latm
+       | `Latm_out_of_band
+       | `Loas
+    ]
+
+  type t = {
+    afterburner    : bool;
+    aot            : aot;
+    bitrate        : int;
+    channels       : int;
+    samplerate     : int;
+    sbr_mode       : bool;
+    transmux       : transmux
+  }
+
+  let string_of_aot = function
+    | `Mpeg_4 `AAC_LC -> "mpeg4_aac_lc"
+    | `Mpeg_4 `HE_AAC -> "mpeg4_he_aac"
+    | `Mpeg_4 `HE_AAC_v2 -> "mpeg4_he_aac_v2"
+    | `Mpeg_4 `AAC_LD -> "mpeg4_aac_ld"
+    | `Mpeg_4 `AAC_ELD -> "mpeg4_aac_eld"
+    | `Mpeg_2 `AAC_LC -> "mpeg2_aac_lc"
+    | `Mpeg_2 `HE_AAC -> "mpeg2_he_aac"
+    | `Mpeg_2 `HE_AAC_v2 -> "mpeg2_he_aac_v2"
+
+  let aot_of_string = function
+    | "mpeg4_aac_lc" -> `Mpeg_4 `AAC_LC
+    | "mpeg4_he_aac" -> `Mpeg_4 `HE_AAC 
+    | "mpeg4_he_aac_v2" -> `Mpeg_4 `HE_AAC_v2
+    | "mpeg4_aac_ld" -> `Mpeg_4 `AAC_LD
+    | "mpeg4_aac_eld" -> `Mpeg_4 `AAC_ELD
+    | "mpeg2_aac_lc" -> `Mpeg_2 `AAC_LC
+    | "mpeg2_he_aac" -> `Mpeg_2 `HE_AAC
+    | "mpeg2_he_aac_v2" -> `Mpeg_2 `HE_AAC_v2
+    | _ -> raise Not_found
+
+  let string_of_transmux = function
+    | `Raw -> "raw"
+    | `Adif -> "adif"
+    | `Adts -> "adts"
+    | `Latm -> "latm"
+    | `Latm_out_of_band -> "latm_out_of_band"
+    | `Loas -> "loas"
+
+  let transmux_of_string = function
+    | "raw" -> `Raw
+    | "adif" -> `Adif
+    | "adts" -> `Adts
+    | "latm" -> `Latm
+    | "latm_out_of_band" -> `Latm_out_of_band
+    | "loas" -> `Loas
+    | _ -> raise Not_found
+
+  let to_string m =
+    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,bitrate=%d,channels=%d,\
+                             samplerate=%d,sbr_mode=%b,transmux=%S)"
+      m.afterburner (string_of_aot m.aot) m.bitrate m.channels
+      m.samplerate m.sbr_mode (string_of_transmux m.transmux)
+end
+
 module VoAacEnc =
 struct
 
@@ -344,7 +433,6 @@ struct
       m.samplerate
       m.bitrate
       m.adts
-
 end
 
 module External =
@@ -395,6 +483,8 @@ struct
     frames_per_packet : int ;
     complexity        : int option ;
     fill              : int option ;
+    dtx               : bool ;
+    vad               : bool ;
   }
 
   let string_of_br_ctl x =
@@ -416,13 +506,15 @@ struct
 
   let to_string m =
     Printf.sprintf
-      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s)"
+      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
       (string_of_stereo m.stereo)
       (string_of_br_ctl m.bitrate_control)
       m.samplerate
       (string_of_mode m.mode)
       m.frames_per_packet
       (string_of_complexity m.complexity)
+      m.dtx
+      m.vad
 
 end
 
@@ -586,6 +678,7 @@ type format =
   | Flac of Flac.t
   | AACPlus of AACPlus.t
   | VoAacEnc of VoAacEnc.t
+  | FdkAacEnc of FdkAacEnc.t
   | External of External.t
   | GStreamer of GStreamer.t
 
@@ -607,6 +700,9 @@ let kind_of_format = function
         Frame.video = 0 ; Frame.midi = 0 }
   | VoAacEnc m ->
       { Frame.audio = m.VoAacEnc.channels ;
+        Frame.video = 0 ; Frame.midi = 0 }
+  | FdkAacEnc m ->
+      { Frame.audio = m.FdkAacEnc.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | Ogg l ->
       List.fold_left
@@ -648,6 +744,7 @@ let string_of_format = function
   | Flac w -> Flac.to_string w
   | AACPlus w -> AACPlus.to_string w
   | VoAacEnc w -> VoAacEnc.to_string w
+  | FdkAacEnc w -> FdkAacEnc.to_string w
   | External w -> External.to_string w
   | GStreamer w -> GStreamer.to_string w
 

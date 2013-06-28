@@ -7,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.1.0])
+AC_INIT([liquidsoap],[1.1.1])
 scm_snapshot=true
-version=1.1.0
+version=1.1.1
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -347,7 +347,7 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.4.3])
+AC_CHECK_OCAML_BINDING([ogg],[0.4.5])
 
 #
 # Vorbis
@@ -429,7 +429,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.1])
+AC_CHECK_OCAML_BINDING([lame],[0.3.2])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -478,6 +478,21 @@ AC_SUBST(W_AACPLUS_DYN)
 #
 
 AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
+
+#
+# Fdkaac
+#
+
+AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
+if test -z "${W_FDKAAC}"; then
+  if test -n "${W_DYNLINK}"; then
+    if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+       W_FDKAAC_DYN=yes
+       w_FDKAAC="detected at runtime"
+    fi
+  fi
+fi
+AC_SUBST(W_FDKAAC_DYN)
 
 #
 # Theora
@@ -764,21 +779,6 @@ let requests_table_size = $requests_table_size
 EOCONF
 
 #
-# Speech
-#
-
-if test $OS_TYPE != "Win32"; then
-  AC_PATH_PROG(TEXT2WAVE,text2wave,false)
-  AC_PATH_PROG(SOX,sox,false)
-fi
-
-if test "$TEXT2WAVE" = false -o "$SOX" = false ; then
-   w_TTS="requires text2wave (festival) and sox at runtime"
-else
-   w_TTS="yes"
-fi
-
-#
 # Font for video.add_text*()
 #
 
@@ -924,7 +924,7 @@ cat <<EOMSG
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - text-to-speech    : $w_TTS
+   - text-to-speech    : requires text2wave (festival) and sox at runtime
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LASTFM
 
@@ -934,6 +934,7 @@ cat <<EOMSG
    - MP3 (fixed-point) : $w_SHINE
    - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
+   - FDK-AAC           : $w_FDKAAC
    - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
    - Theora            : $w_THEORA
@@ -974,6 +975,7 @@ cat <<EOMSG
    - GD                : $w_GD
 
  * Additional libraries
+   - wget URI resolver : requires wget at runtime
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lo                : $w_LO

@@ -56,6 +56,7 @@ let create_encoder ~opus ~comments () =
            (fun (v) -> `Set_max_bandwidth v)
            opus.Encoder.Opus.max_bandwidth ;
          maybe (fun (v) -> `Set_signal v) opus.Encoder.Opus.signal;
+         Opus.Encoder.apply_control (`Set_dtx opus.Encoder.Opus.dtx) x;
          enc := Some x ;
          x
   in

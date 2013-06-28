@@ -22,8 +22,6 @@
 
 open Source
 
-let pi = 3.14159265358979323846
-
 class biquad ~kind (source:source) filter_type freq fparam db_gain =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samplerate = Frame.audio_of_seconds 1. in

@@ -341,6 +341,67 @@ let mk_voaacenc params =
   in
     mk (Encoder (Encoder.VoAacEnc voaacenc))
 
+let mk_fdkaac params =
+  let defaults =
+    { Encoder.FdkAacEnc.
+        afterburner    = false;
+        aot            = `Mpeg_4 `HE_AAC_v2;
+        bitrate        = 64;
+        channels       = 2;
+        samplerate     = 44100;
+        sbr_mode       = false;
+        transmux       = `Adts }
+  in
+  let valid_samplerates = [
+    8000;  11025; 12000; 16000; 22050; 24000; 32000;
+    44100; 48000; 64000; 88200; 96000 ]
+  in
+  let fdkaac =
+    List.fold_left
+      (fun f ->
+        function
+          | ("afterburner",{ term = Bool b }) ->
+              { f with Encoder.FdkAacEnc.afterburner = b }
+          | ("aot",({ term = String s } as t)) ->
+              let aot = try Encoder.FdkAacEnc.aot_of_string s with
+                | Not_found -> raise (Error (t,"invalid aot value"))
+              in
+              { f with Encoder.FdkAacEnc.aot = aot }
+          | ("bitrate",{ term = Int i }) ->
+              { f with Encoder.FdkAacEnc.bitrate = i }
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.FdkAacEnc.channels = i }
+          | ("samplerate",({ term = Int i } as t)) ->
+              if not (List.mem i valid_samplerates) then
+               begin
+                let err =
+                  Printf.sprintf "invalid samplerate value. Possible values: %s"
+                  (String.concat ", "
+                    (List.map string_of_int valid_samplerates))
+                in
+                raise (Error (t,err));
+               end;
+              { f with Encoder.FdkAacEnc.samplerate = i }
+          | ("sbr_mode",{ term = Bool b }) ->
+              { f with Encoder.FdkAacEnc.sbr_mode = b }
+          | ("transmux",({ term = String s } as t)) ->
+              let transmux = try Encoder.FdkAacEnc.transmux_of_string s with
+                | Not_found -> raise (Error (t,"invalid transmux value"))
+              in
+              { f with Encoder.FdkAacEnc.transmux = transmux }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.FdkAacEnc.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.FdkAacEnc.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+  let aot = fdkaac.Encoder.FdkAacEnc.aot in
+    if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
+      if fdkaac.Encoder.FdkAacEnc.channels <> 2 then
+        failwith "HE-AAC v2 is only available with 2 channels.";
+    mk (Encoder (Encoder.FdkAacEnc fdkaac))
+
 let mk_flac_gen params =
   let defaults =
     { Encoder.Flac.
@@ -431,6 +492,7 @@ let mk_opus params =
         samplerate = 48000 ;
         signal = None ;
         frame_size = 20.;
+        dtx = false;
     }
   in
   let opus =
@@ -497,6 +559,8 @@ let mk_opus params =
               { f with Encoder.Opus.signal = Some `Music }
           | ("bytes_per_page",{ term = Int i }) ->
               { f with Encoder.Opus.fill = Some i }
+          | ("dtx",{ term = Bool b }) ->
+              { f with Encoder.Opus.dtx = b }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Opus.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -765,7 +829,9 @@ let mk_speex params =
         bitrate_control = Encoder.Speex.Quality 7;
         mode = Encoder.Speex.Narrowband ;
         frames_per_packet = 1 ;
-        complexity = None
+        complexity = None ;
+        dtx = false ;
+        vad = false
     }
   in
   let speex =
@@ -811,6 +877,10 @@ let mk_speex params =
               { f with Encoder.Speex.complexity = Some i }
           | ("bytes_per_page",{ term = Int i }) ->
               { f with Encoder.Speex.fill = Some i }
+          | ("dtx", { term = Bool b }) ->
+              { f with Encoder.Speex.dtx = b }
+          | ("vad", { term = Bool b }) ->
+              { f with Encoder.Speex.vad = b }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->

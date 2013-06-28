@@ -1,9 +1,10 @@
+
 # Turn a source into an infaillible source.
 # by adding blank when the source is not available.
 # @param s the source to turn infaillible
 # @category Source / Track Processing
-def mksafe(s)
-  fallback(id="mksafe",track_sensitive=false,[s,blank(id="safe_blank")])
+def mksafe(~id="mksafe",s)
+  fallback(id=id,track_sensitive=false,[s,blank(id="safe_blank")])
 end
 
 # Alias for the <code>l[k]</code> notation.

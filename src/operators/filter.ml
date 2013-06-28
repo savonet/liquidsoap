@@ -24,8 +24,6 @@ open Source
 
 type mode = Low_pass | High_pass | Band_pass | Notch
 
-let pi = 3.1416
-
 class filter ~kind (source:source) freq q wet mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Lazy.force Frame.audio_rate) in
@@ -59,7 +57,7 @@ object (self)
     let freq = freq () in
     let q = q () in
     let wet = wet () in
-    let f = 2. *. sin (pi *. freq /. rate) in
+    let f = 2. *. sin (Utils.pi *. freq /. rate) in
     for c = 0 to Array.length b - 1 do
       let b_c = b.(c) in
       for i = offset to position - 1 do

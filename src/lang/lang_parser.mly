@@ -160,7 +160,7 @@
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
-%token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR MP3_FXP EXTERNAL
+%token WAV FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR MP3_FXP EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -176,7 +176,7 @@
 %token MINUS
 %token NOT
 %token REF GET SET
-%token PP_IFDEF PP_ENDIF PP_ENDL PP_DEF PP_DEFINE
+%token PP_IFDEF PP_IFENCODER PP_ENDIF PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 
@@ -287,6 +287,7 @@ expr:
   | MP3_FXP app_opt                  { mk_shine $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | VOAACENC app_opt                 { mk_voaacenc $2 }
+  | FDKAAC app_opt                   { mk_fdkaac $2 }
   | FLAC app_opt                     { mk_flac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | GSTREAMER app_opt                { mk_gstreamer $2 }
@@ -383,6 +384,7 @@ cexpr:
   | FLAC app_opt                     { mk_flac $2 }
   | AACPLUS app_opt                  { mk_aacplus $2 }
   | VOAACENC app_opt                 { mk_voaacenc $2 }
+  | FDKAAC app_opt                   { mk_fdkaac $2 }
   | EXTERNAL app_opt                 { mk_external $2 }
   | WAV app_opt                      { mk_wav $2 }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }

@@ -336,7 +336,18 @@ let full_request ?headers ?(port=80) ?(log=fun _ -> ())
         | Post data ->
            post ?headers ~log ~timeout data connection host port url
     in
-    let ret = read_crlf ~log ~timeout ~max:max_int connection in
+    let max =
+      try
+        let (_,len) = List.find (fun (l,k) ->
+          String.lowercase l = "content-length")
+          headers
+        in
+        int_of_string len
+      with _ -> max_int
+    in
+    let ret =
+      read_crlf ~log ~timeout ~max connection
+    in
     status,headers,
        Pcre.substitute
           ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret)

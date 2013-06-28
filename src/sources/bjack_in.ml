@@ -82,7 +82,7 @@ object (self)
               ~input_channels:channels ~output_channels:0 ~flags:[] ?server_name
               ~ringbuffer_size:(nb_blocks*samples_per_frame*bytes_per_sample)
               ~client_name:self#id () in
-          Bjack.set_all_volume dev 75 ;
+          Bjack.set_all_volume dev 100 ;
           device <- Some dev ;
           dev
       | Some d -> d

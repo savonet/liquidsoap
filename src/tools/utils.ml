@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let pi = 4. *. atan 1.
+
 let get_some = function
   | Some x -> x
   | None -> assert false
@@ -207,7 +209,7 @@ let read_all filename =
   close_in channel ;
   Buffer.contents contents
 
-(* Drop all but then [len] last bytes. *)
+(* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
   assert (len <= size) ;
@@ -426,13 +428,9 @@ let interpolate =
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
 let which =
-  let path =
-    let s = Sys.getenv "PATH" in
-      Str.split (Str.regexp_string ":") s
-  in
-    fun s ->
+    fun ~path s ->
       if Sys.file_exists s then s else
-        List.find Sys.file_exists (List.map (fun d -> d^"/"^s) path)
+        List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
 
 (** Very partial strftime clone *)
 let strftime str : string =
