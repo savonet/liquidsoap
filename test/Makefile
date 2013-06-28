@@ -2,7 +2,7 @@ all: lame httpserver wserver
 	./wserver
 
 wserver: wserver.ml
-	ocamlopt.opt -annot -o wserver unix.cmxa -I +threads threads.cmxa str.cmxa -I +cryptokit nums.cmxa cryptokit.cmxa wserver.ml
+	ocamlopt.opt -annot -o wserver unix.cmxa -I +threads threads.cmxa str.cmxa -I +cryptokit nums.cmxa cryptokit.cmxa -I +pulseaudio pulseaudio.cmxa wserver.ml
 
 httpserver: httpserver.ml
 	ocamlopt.opt -annot -o httpserver unix.cmxa -I +threads threads.cmxa str.cmxa httpserver.ml

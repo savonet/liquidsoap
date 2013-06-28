@@ -185,13 +185,38 @@ let handle s =
   Printf.printf "answer:\n%s\n%!" ans;
   assert (Unix.write s ans 0 (String.length ans) = String.length ans);
   let oc = open_out "wserver.dump" in
+  let pa =
+    let sample =
+      { Pulseaudio.
+        sample_format = Pulseaudio.Sample_format_float32le;
+        sample_rate = 44100;
+        sample_chans = 2;
+      }
+    in
+    Pulseaudio.Simple.create ~client_name:"ocamlsynth" ~dir:Pulseaudio.Dir_playback ~stream_name:"websocket" ~sample ()
+  in
   while true do
     (* let n = Unix.read s buf 0 buflen in *)
     (* Printf.printf "Received:\n%s\n%!" (String.sub buf 0 buflen) *)
     let data = frame s in
     Printf.printf "data len: %d\n%!" (String.length data);
     output_string oc data;
-    flush oc
+    flush oc;
+
+    (* Pulseaudio part *)
+    let fbuflen = String.length data / 4 in
+    let fbuf =
+      Array.init fbuflen
+        (fun n ->
+          let ans = ref Int32.zero in
+          for i = 3 downto 0 do
+            ans := Int32.shift_left !ans 8;
+            ans := Int32.add !ans (Int32.of_int (int_of_char data.[4*n+i]))
+          done;
+          Int32.float_of_bits !ans
+        )
+    in
+    Pulseaudio.Simple.write pa [|fbuf;fbuf|] 0 fbuflen;
   done
 
 let () =
@@ -217,6 +242,7 @@ let () =
   Unix.bind sock sockaddr;
   Unix.listen sock 100;
   Printf.printf "Listening for connections.\n%!";
+
   while true do
     let (s, caller) = Unix.accept sock in
     ignore (Thread.create handle_connexion (s, caller));
