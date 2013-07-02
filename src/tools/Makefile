@@ -9,3 +9,7 @@ tutils_test_sources = tutils.ml tutils_test.ml
 
 top_srcdir=../..
 include $(top_srcdir)/Makefile.rules
+
+sha1: sha1.ml
+	ocamlopt sha1.ml -o sha1
+	./sha1
