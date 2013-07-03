@@ -48,17 +48,6 @@ module Int32 = struct
   end
 end
 
-let h0 = Int32.of_string "0x67452301"
-let h1 = Int32.of_string "0xEFCDAB89"
-let h2 = Int32.of_string "0x98BADCFE"
-let h3 = Int32.of_string "0x10325476"
-let h4 = Int32.of_string "0xC3D2E1F0"
-
-let k0 = Int32.of_string "0x5A827999"
-let k1 = Int32.of_string "0x6ED9EBA1"
-let k2 = Int32.of_string "0x8F1BBCDC"
-let k3 = Int32.of_string "0xCA62C1D6"
-
 let digest s =
   (* Pad string and append length. *)
   let len = String.length s in
@@ -81,11 +70,11 @@ let digest s =
   (* Main loop. *)
   let len = String.length s in
   assert (len mod 64 = 0);
-  let h0 = ref h0 in
-  let h1 = ref h1 in
-  let h2 = ref h2 in
-  let h3 = ref h3 in
-  let h4 = ref h4 in
+  let h0 = ref 0x67452301l in
+  let h1 = ref 0xEFCDAB89l in
+  let h2 = ref 0x98BADCFEl in
+  let h3 = ref 0x10325476l in
+  let h4 = ref 0xC3D2E1F0l in
 
   for chunk = 0 to len / 64 - 1 do
     (* Extend words. *)
@@ -107,10 +96,10 @@ let digest s =
 
     for i = 0 to 79 do
       let f, k =
-        if i <= 19 then (Int32.logor (Int32.logand !b !c) (Int32.logand (Int32.lognot !b) !d), k0)
-        else if i <= 39 then (Int32.List.logxor [!b; !c; !d], k1)
-        else if i <= 59 then (Int32.logor (Int32.logand !b !c) (Int32.logor (Int32.logand !b !d) (Int32.logand !c !d)), k2)
-        else (Int32.List.logxor [!b; !c; !d], k3)
+        if i <= 19 then (Int32.logor (Int32.logand !b !c) (Int32.logand (Int32.lognot !b) !d), 0x5A827999l)
+        else if i <= 39 then (Int32.List.logxor [!b; !c; !d], 0x6ED9EBA1l)
+        else if i <= 59 then (Int32.logor (Int32.logand !b !c) (Int32.logor (Int32.logand !b !d) (Int32.logand !c !d)), 0x8F1BBCDCl)
+        else (Int32.List.logxor [!b; !c; !d], 0xCA62C1D6l)
       in
       let temp = Int32.List.add [Int32.leftrotate !a 5; f; !e; k; w.(i)] in
       e := !d;
@@ -129,6 +118,5 @@ let digest s =
   Printf.sprintf "%s %s %s %s %s" (Int32.String.hexadecimal !h0) (Int32.String.hexadecimal !h1) (Int32.String.hexadecimal !h2) (Int32.String.hexadecimal !h3) (Int32.String.hexadecimal !h4)
 
 let () =
-  Printf.printf "%s = %s -> %s\n%!" (Int32.String.hexadecimal h1) (Int32.String.binary h1) (Int32.String.binary (Int32.leftrotate h1 1));
   let s = "The quick brown fox jumps over the lazy dog" in
   Printf.printf "SHA1:\n%S\n%s\n2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12 expected\n%!" s (digest s)
