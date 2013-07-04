@@ -57,7 +57,7 @@ object(self)
   inherit Source.source ~name:"input.harbor" kind
 
   method virtual relay :
-    string -> (string*string) list -> Unix.file_descr -> unit
+    string -> (string*string) list -> ?read:(Unix.file_descr -> int -> (string * int) option) -> Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string*(string -> string -> bool))
   method virtual icy_charset : string option
@@ -381,7 +381,48 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
  done
 
 let handle_websocket_request ~port h headers =
-  reply (Websocket.upgrade headers)
+  let stype = ref "" in
+  let mount = ref "" in
+  let rec read_helo s =
+    match Websocket.read s with
+    | `Text s ->
+      (* TODO: read parameters *)
+      stype := "audio/mpeg";
+      mount := "/mount";
+      Printf.printf "Read params!\n%!";
+      duppy_return ()
+    | _ ->
+      (* TODO *)
+      failwith "HELO expected"
+  in
+  duppy_do
+    duppy_write (Websocket.upgrade headers)
+    with
+      { priority = Tutils.Non_blocking ;
+        handler  = h ;
+        timeout  = conf_timeout#get };
+    duppy_exec
+      read_helo h.Duppy.Monad.Io.socket
+    with
+      { priority = Tutils.Blocking ;
+        handler  = h };
+    duppy s =
+    try
+      duppy_return (find_source !mount port)
+    with
+      | Not_found ->
+          log#f 4 "Request failed: no mountpoint '%s'!" !mount;
+          reply (http_error_page 404 "Not found" "This mountpoint isn't available.")
+    in
+    let read socket len =
+      match Websocket.read socket with
+      | `Binary buf -> Printf.printf "Got a buffer!\n%!"; Some (buf, String.length buf)
+      | `Text _ -> (* TODO: handle metadata *) None
+      | _ -> None
+    in
+    let f () = s#relay !stype headers ~read h.Duppy.Monad.Io.socket in
+    relayed "" f
+  done
 
 exception Handled of http_handler
 

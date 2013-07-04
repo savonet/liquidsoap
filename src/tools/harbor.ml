@@ -63,7 +63,10 @@ class virtual source ~kind =
   object (self)
     inherit Source.source ~name: "input.harbor" kind
     method virtual relay :
-      string -> (string * string) list -> Unix.file_descr -> unit
+      string ->
+        (string * string) list ->
+          ?read: (Unix.file_descr -> int -> (string * int) option) ->
+            Unix.file_descr -> unit
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
     method virtual login : (string * (string -> string -> bool))
     method virtual icy_charset : string option
@@ -352,7 +355,46 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                         "The server could not handle your request."))))
   
 let handle_websocket_request ~port h headers =
-  reply (Websocket.upgrade headers)
+  let stype = ref "" in
+  let mount = ref "" in
+  let rec read_helo s =
+    match Websocket.read s with
+    | `Text s -> (* TODO: read parameters *)
+        (stype := "audio/mpeg";
+         mount := "/mount";
+         Printf.printf "Read params!\n%!";
+         Duppy.Monad.return ())
+    | _ -> (* TODO *) failwith "HELO expected"
+  in
+    Duppy.Monad.bind
+      (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
+         ~priority: Tutils.Non_blocking h (Websocket.upgrade headers))
+      (fun () ->
+         Duppy.Monad.bind
+           (Duppy.Monad.Io.exec ~priority: Tutils.Blocking h
+              (read_helo h.Duppy.Monad.Io.socket))
+           (fun () ->
+              let __pa_duppy_0 =
+                try Duppy.Monad.return (find_source !mount port)
+                with
+                | Not_found ->
+                    (log#f 4 "Request failed: no mountpoint '%s'!" !mount;
+                     reply
+                       (http_error_page 404 "Not found"
+                          "This mountpoint isn't available."))
+              in
+                Duppy.Monad.bind __pa_duppy_0
+                  (fun s ->
+                     let read socket len =
+                       match Websocket.read socket with
+                       | `Binary buf ->
+                           (Printf.printf "Got a buffer!\n%!";
+                            Some (buf, (String.length buf)))
+                       | `Text _ -> (* TODO: handle metadata *) None
+                       | _ -> None in
+                     let f () =
+                       s#relay !stype headers ~read h.Duppy.Monad.Io.socket
+                     in relayed "" f)))
   
 exception Handled of http_handler
   
