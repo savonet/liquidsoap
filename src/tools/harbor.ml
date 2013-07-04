@@ -65,7 +65,7 @@ class virtual source ~kind =
     method virtual relay :
       string ->
         (string * string) list ->
-          ?read: (Unix.file_descr -> int -> (string * int) option) ->
+          ?read: (Unix.file_descr -> int -> (string * int)) ->
             Unix.file_descr -> unit
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
     method virtual login : (string * (string -> string -> bool))
@@ -385,13 +385,14 @@ let handle_websocket_request ~port h headers =
               in
                 Duppy.Monad.bind __pa_duppy_0
                   (fun s ->
-                     let read socket len =
+                     let rec read socket len =
                        match Websocket.read socket with
                        | `Binary buf ->
                            (Printf.printf "Got a buffer!\n%!";
-                            Some (buf, (String.length buf)))
-                       | `Text _ -> (* TODO: handle metadata *) None
-                       | _ -> None in
+                            (buf, (String.length buf)))
+                       | `Text _ -> (* TODO: handle metadata *)
+                           read socket len
+                       | _ -> read socket len in
                      let f () =
                        s#relay !stype headers ~read h.Duppy.Monad.Io.socket
                      in relayed "" f)))

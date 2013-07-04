@@ -27,7 +27,7 @@ module Generated = Generated.Make(Generator)
 let default_read socket len =
   let buf = String.create len in
   let n = Unix.read socket buf 0 len in
-  Some (buf, n)
+  buf, n
 
 class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max ~icy ~port
@@ -116,16 +116,10 @@ object (self)
            | Some socket ->
                begin
                  try
-                   (* Input until we get something. *)
-                   let rec aux () =
-                     (* Wait for `Read event on socket. *)
-                     Tutils.wait_for ~log `Read socket timeout;
-                     (* Now read. *)
-                     match relay_read socket len with
-                     | Some (buf, len) -> buf, len
-                     | None -> aux ()
-                   in
-                   aux ()
+                   (* Wait for `Read event on socket. *)
+                   Tutils.wait_for ~log `Read socket timeout;
+                   (* Now read. *)
+                   relay_read socket len
                  with
                  | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
