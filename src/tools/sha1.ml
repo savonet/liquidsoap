@@ -11,6 +11,16 @@ module Int32 = struct
     done;
     !n
 
+  let to_string_be n =
+    let ans = String.create 4 in
+    let n = ref n in
+    for i = 3 downto 0 do
+      let c = Int32.to_int (logand !n 0xffl) in
+      ans.[i] <- char_of_int c;
+      n := Int32.shift_right !n 8
+    done;
+    ans
+
   let bit n k =
     let mask = shift_left one k in
     logand n mask <> zero
@@ -40,12 +50,6 @@ module Int32 = struct
 
   let leftrotate n k =
     logor (shift_left n k) (shift_right_logical n (32 - k))
-
-  module List = struct
-    let add l = List.fold_left add zero l
-
-    let logxor l = List.fold_left logxor zero l
-  end
 end
 
 let digest s =
@@ -65,7 +69,12 @@ let digest s =
     ans
   in
   let s = s ^ pad ^ slen in
-  Printf.printf "padded: %S\n%!" s;
+
+  let lnot = Int32.lognot in
+  let (land) = Int32.logand in
+  let (lor) = Int32.logor in
+  let (lxor) = Int32.logxor in
+  let (++) = Int32.add in
 
   (* Main loop. *)
   let len = String.length s in
@@ -84,7 +93,7 @@ let digest s =
       w.(i) <- Int32.of_string_be s off
     done;
     for i = 16 to 79 do
-      w.(i) <- Int32.leftrotate (Int32.List.logxor [w.(i-3); w.(i-8); w.(i-14); w.(i-16)]) 1
+      w.(i) <- Int32.leftrotate (w.(i-3) lxor w.(i-8) lxor w.(i-14) lxor w.(i-16)) 1
     done;
 
     (* Main loop. *)
@@ -95,13 +104,19 @@ let digest s =
     let e = ref !h4 in
 
     for i = 0 to 79 do
-      let f, k =
-        if i <= 19 then (Int32.logor (Int32.logand !b !c) (Int32.logand (Int32.lognot !b) !d), 0x5A827999l)
-        else if i <= 39 then (Int32.List.logxor [!b; !c; !d], 0x6ED9EBA1l)
-        else if i <= 59 then (Int32.logor (Int32.logand !b !c) (Int32.logor (Int32.logand !b !d) (Int32.logand !c !d)), 0x8F1BBCDCl)
-        else (Int32.List.logxor [!b; !c; !d], 0xCA62C1D6l)
+      let f =
+        if i <= 19 then (!b land !c) lor ((lnot !b) land !d)
+        else if i <= 39 then !b lxor !c lxor !d
+        else if i <= 59 then (!b land !c) lor (!b land !d) lor (!c land !d)
+        else !b lxor !c lxor !d
       in
-      let temp = Int32.List.add [Int32.leftrotate !a 5; f; !e; k; w.(i)] in
+      let k =
+        if i <= 19 then 0x5A827999l
+        else if i <= 39 then 0x6ED9EBA1l
+        else if i <= 59 then 0x8F1BBCDCl
+        else 0xCA62C1D6l
+      in
+      let temp = (Int32.leftrotate !a 5) ++ f ++ !e ++ k ++ w.(i) in
       e := !d;
       d := !c;
       c := Int32.leftrotate !b 30;
@@ -116,6 +131,7 @@ let digest s =
     h4 := Int32.add !h4 !e
   done;
   Printf.sprintf "%s %s %s %s %s" (Int32.String.hexadecimal !h0) (Int32.String.hexadecimal !h1) (Int32.String.hexadecimal !h2) (Int32.String.hexadecimal !h3) (Int32.String.hexadecimal !h4)
+  (* Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2 ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4 *)
 
 let () =
   let s = "The quick brown fox jumps over the lazy dog" in
