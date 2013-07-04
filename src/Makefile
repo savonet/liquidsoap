@@ -196,9 +196,8 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	configure.ml \
 	tools/http.ml tools/pool.ml \
-	tools/sha1.ml
+	tools/sha1.ml tools/websocket.ml
 
-$(call conditional_compilation,tools,$(W_CRYPTOKIT),tools/websocket.ml)
 $(call conditional_compilation,tools,$(W_INOTIFY),tools/file_watcher_inotify.ml)
 
 stream =stream/frame.ml stream/generator.ml \

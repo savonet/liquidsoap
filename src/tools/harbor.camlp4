@@ -81,7 +81,6 @@ type source_type = [
   | `Source
   | `Xaudiocast
   | `Shout
-  | `Websocket
 ]
 
 type verb = [
@@ -126,6 +125,7 @@ type protocol = [
   | `Ice_10
   | `Icy
   | `Xaudiocast_uri of string
+  | `Websocket
 ]
 
 type reply = | Close of string | Relay of string * (unit -> unit)
@@ -378,7 +378,10 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
         reply
           (http_error_page 500 "Internal Server Error"
               "The server could not handle your request.")
-  done
+ done
+
+let handle_websocket_request ~port h headers =
+  reply (Websocket.upgrade headers)
 
 exception Handled of http_handler
 
@@ -564,6 +567,13 @@ let handle_client ~port ~icy h =
     else
       parse_http_request_line s
   in
+  let hprotocol =
+    try
+      if hmethod = `Get && assoc_uppercase "UPGRADE" headers <> "websocket" then raise Exit;
+      `Websocket
+    with
+    | _ -> hprotocol
+  in
   match hmethod with
     | `Source when not icy ->
         duppy (auth,huri,protocol) =
@@ -597,6 +607,7 @@ let handle_client ~port ~icy h =
             | _ -> duppy_return (false,huri,`Source)
         in
         handle_source_request ~port ~auth ~protocol hprotocol h huri headers
+    | `Get when hprotocol = `Websocket -> handle_websocket_request ~port h headers
     | `Get     
     | `Post   
     | `Put     

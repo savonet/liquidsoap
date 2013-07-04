@@ -14,29 +14,21 @@ type frame =
 (* Compute websocket anwser. *)
 let wsa wsk =
   let wsa = wsk ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in
-  Printf.printf "wsa: %s\n%!" wsa;
-  let sha1 = Cryptokit.Hash.sha1 () in
-  sha1#add_string wsa;
-  let wsa = sha1#result in
+  (* Printf.printf "wsa: %s\n%!" wsa; *)
+  let wsa = Sha1.digest wsa in
   (* for i = 0 to String.length wsa - 1 do *)
     (* Printf.printf "%x" (int_of_char wsa.[i]) *)
   (* done; *)
   (* Printf.printf "\n%!"; *)
-  (* TODO: the following returns a truncated answer *)
-  (* let b64 = Cryptokit.Base64.encode_compact_pad () in *)
-  (* b64#put_string wsa; *)
-  (* let wsa = b64#get_string in *)
   let wsa = Utils.encode64 wsa in
   wsa
 
 (** Handle an upgrade to websocket request. *)
-let upgrade ~headers s =
+let upgrade headers =
   assert (List.assoc "Upgrade" headers = "websocket");
   let wsk = List.assoc "Sec-WebSocket-Key" headers in
   let wsa = wsa wsk in
-  let ans = Printf.sprintf "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n" wsa in
-  Printf.printf "answer:\n%s\n%!" ans;
-  assert (Unix.write s ans 0 (String.length ans) = String.length ans)
+  Printf.sprintf "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n" wsa
 
 (** Read a websocket frame. *)
 let read_frame s =
@@ -111,3 +103,13 @@ let read_frame s =
   unmask masking_key data;
   (* Printf.printf "data: %s\n%!" data; *)
   { fin; rsv1; rsv2; rsv3; opcode; data }
+
+let rec read s =
+  let frame = read_frame s in
+  match frame.opcode with
+  | 0x1 -> `Text frame.data
+  | 0x2 -> `Binary frame.data
+  | 0x8 -> `Close
+  | 0x9 -> `Ping
+  | 0xa -> `Pong
+  | _ -> read s

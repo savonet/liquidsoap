@@ -130,9 +130,14 @@ let digest s =
     h3 := Int32.add !h3 !d;
     h4 := Int32.add !h4 !e
   done;
-  Printf.sprintf "%s %s %s %s %s" (Int32.String.hexadecimal !h0) (Int32.String.hexadecimal !h1) (Int32.String.hexadecimal !h2) (Int32.String.hexadecimal !h3) (Int32.String.hexadecimal !h4)
-  (* Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2 ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4 *)
+  (* Printf.sprintf "%s %s %s %s %s" (Int32.String.hexadecimal !h0) (Int32.String.hexadecimal !h1) (Int32.String.hexadecimal !h2) (Int32.String.hexadecimal !h3) (Int32.String.hexadecimal !h4) *)
+  Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2 ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4
 
-let () =
-  let s = "The quick brown fox jumps over the lazy dog" in
-  Printf.printf "SHA1:\n%S\n%s\n2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12 expected\n%!" s (digest s)
+(* let () = *)
+  (* let s = "The quick brown fox jumps over the lazy dog" in *)
+  (* Printf.printf "SHA1:\n%S\n%s\n2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12 expected\n%!" s (digest s) *)
+
+(* let () = *)
+  (* let s = "x3JJHMbDL1EzLkh9GBhXDw==" ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in *)
+  (* let s = digest s in *)
+  (* Printf.printf "%s\ninstead of\nHSmrc0sMlYUkAGmm5OPpG2HaGWk=\n%!" (Utils.encode64 s) *)
