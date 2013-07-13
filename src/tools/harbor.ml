@@ -354,48 +354,65 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      (http_error_page 500 "Internal Server Error"
                         "The server could not handle your request."))))
   
-let handle_websocket_request ~port h headers =
-  let stype = ref "" in
-  let mount = ref "" in
-  let rec read_helo s =
-    match Websocket.read s with
-    | `Text s -> (* TODO: read parameters *)
-        (stype := "audio/mpeg";
-         mount := "/mount";
-         Printf.printf "Read params!\n%!";
-         Duppy.Monad.return ())
-    | _ -> (* TODO *) failwith "HELO expected"
+let handle_websocket_request ~port h huri headers =
+  let json_string_of = function | `String s -> s | _ -> raise Not_found in
+  let extract_packet s =
+    let json =
+      match Yojson.Basic.from_string s with
+      | `Assoc json -> json
+      | _ -> raise Not_found in
+    let packet_type =
+      match List.assoc "type" json with
+      | `String s -> s
+      | _ -> raise Not_found in
+    let data =
+      match List.assoc "data" json with
+      | `Assoc data -> data
+      | _ -> raise Not_found
+    in (packet_type, data) in
+  let read_hello s =
+    let error = reply (http_error_page 422 "Invalid hello" "Invalid hello")
+    in
+      try
+        match Websocket.read s with
+        | `Text s ->
+            (match extract_packet s with
+             | ("hello", data) ->
+                 Duppy.Monad.return (json_string_of (List.assoc "mime" data))
+             | _ -> error)
+        | _ -> error
+      with | _ -> error
   in
     Duppy.Monad.bind
       (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
          ~priority: Tutils.Non_blocking h (Websocket.upgrade headers))
       (fun () ->
-         Duppy.Monad.bind
-           (Duppy.Monad.Io.exec ~priority: Tutils.Blocking h
-              (read_helo h.Duppy.Monad.Io.socket))
-           (fun () ->
-              let __pa_duppy_0 =
-                try Duppy.Monad.return (find_source !mount port)
-                with
-                | Not_found ->
-                    (log#f 4 "Request failed: no mountpoint '%s'!" !mount;
-                     reply
-                       (http_error_page 404 "Not found"
-                          "This mountpoint isn't available."))
-              in
-                Duppy.Monad.bind __pa_duppy_0
-                  (fun s ->
-                     let rec read socket len =
-                       match Websocket.read socket with
-                       | `Binary buf ->
-                           (Printf.printf "Got a buffer!\n%!";
-                            (buf, (String.length buf)))
-                       | `Text _ -> (* TODO: handle metadata *)
-                           read socket len
-                       | _ -> read socket len in
-                     let f () =
-                       s#relay !stype headers ~read h.Duppy.Monad.Io.socket
-                     in relayed "" f)))
+         let __pa_duppy_0 =
+           Duppy.Monad.Io.exec ~priority: Tutils.Blocking h
+             (read_hello h.Duppy.Monad.Io.socket)
+         in
+           Duppy.Monad.bind __pa_duppy_0
+             (fun stype ->
+                let __pa_duppy_0 =
+                  try Duppy.Monad.return (find_source huri port)
+                  with
+                  | Not_found ->
+                      (log#f 4 "Request failed: no mountpoint '%s'!" huri;
+                       reply
+                         (http_error_page 404 "Not found"
+                            "This mountpoint isn't available."))
+                in
+                  Duppy.Monad.bind __pa_duppy_0
+                    (fun source ->
+                       let rec read socket len =
+                         match Websocket.read socket with
+                         | `Binary buf -> (buf, (String.length buf))
+                         | `Text _ | (* TODO: handle metadata *) _ ->
+                             read socket len in
+                       let f () =
+                         source#relay stype headers ~read
+                           h.Duppy.Monad.Io.socket
+                       in relayed "" f)))
   
 exception Handled of http_handler
   
@@ -627,7 +644,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                              handle_source_request ~port ~auth ~protocol
                                hprotocol h huri headers)
                   | `Get when hprotocol = `Websocket ->
-                      handle_websocket_request ~port h headers
+                      handle_websocket_request ~port h huri headers
                   | `Get | `Post | `Put | `Delete | `Options | `Head when
                       not icy ->
                       let len =

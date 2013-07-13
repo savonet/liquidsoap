@@ -26,9 +26,22 @@ let wsa wsk =
 (** Handle an upgrade to websocket request. *)
 let upgrade headers =
   assert (List.assoc "Upgrade" headers = "websocket");
+  let origin =
+    try
+      Printf.sprintf "Origin: %s\r\n" (List.assoc "Origin" headers)
+    with
+      | _ -> ""
+  in
   let wsk = List.assoc "Sec-WebSocket-Key" headers in
   let wsa = wsa wsk in
-  Printf.sprintf "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n" wsa
+  Printf.sprintf
+    "HTTP/1.1 101 Switching Protocols\r\n\
+     Connection: Upgrade\r\n\
+     %s\
+     Sec-WebSocket-Accept: %s\r\n\
+     Sec-WebSocket-Protocol: webcast\r\n\
+     Upgrade: websocket\r\n\
+     \r\n" origin wsa
 
 (** Read a websocket frame. *)
 let read_frame s =
