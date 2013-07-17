@@ -180,6 +180,10 @@ let http_error_page code status msg =
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>" ^ msg ^ "</p></body></html>" )
 
+(* TODO: find a better format *)
+let websocket_error msg =
+  Websocket.to_string ~final:true (`Text msg)
+
 let parse_icy_request_line ~port h r =
   duppy s =
     try
@@ -380,7 +384,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
               "The server could not handle your request.")
  done
 
-let handle_websocket_request ~port h huri headers =
+let handle_websocket_request ~port h headers =
   let json_string_of = function
     | `String s -> s
     | _ -> raise Not_found
@@ -404,35 +408,37 @@ let handle_websocket_request ~port h huri headers =
     (packet_type, data)
   in
   let read_hello s =
-    let error =
-      reply (http_error_page 422 "Invalid hello" "Invalid hello")
-    in
+    let error = reply (websocket_error "Invalid hello") in
     try
       match Websocket.read s with
         | `Text s ->
-           begin
+          begin
+            Printf.printf "HELLO: %s\n%!" s;
             match extract_packet s with
               | ("hello", data) ->
-                 duppy_return (json_string_of (List.assoc "mime" data))
+                let data = List.map (fun (l,v) -> l, json_string_of v) data in
+                duppy_return data
               | _ -> error
-           end
+          end
         | _ -> error
     with _ -> error
   in
   duppy_do
-    duppy_write 
+    duppy_write
       (Websocket.upgrade headers)
     with
       { priority = Tutils.Non_blocking ;
         handler  = h ;
         timeout  = conf_timeout#get };
-    duppy stype =
+    duppy hello =
       duppy_exec
         read_hello h.Duppy.Monad.Io.socket
       with
         { priority = Tutils.Blocking ;
           handler  = h };
     in
+    let stype = List.assoc "mime" hello in
+    let huri = List.assoc "mount" hello in
     duppy source =
       try
         duppy_return (find_source huri port)
@@ -678,7 +684,7 @@ let handle_client ~port ~icy h =
         in
         handle_source_request ~port ~auth ~protocol hprotocol h huri headers
     | `Get when hprotocol = `Websocket ->
-         handle_websocket_request ~port h huri headers
+         handle_websocket_request ~port h headers
     | `Get     
     | `Post   
     | `Put     

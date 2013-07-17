@@ -176,6 +176,9 @@ let http_error_page code status msg =
      <body><p>"
                 ^ (msg ^ "</p></body></html>")))))
   
+(* TODO: find a better format *)
+let websocket_error msg = Websocket.to_string ~final: true (`Text msg)
+  
 let parse_icy_request_line ~port h r =
   let __pa_duppy_0 =
     try Duppy.Monad.return (find_source "/" (port - 1))
@@ -354,7 +357,7 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      (http_error_page 500 "Internal Server Error"
                         "The server could not handle your request."))))
   
-let handle_websocket_request ~port h huri headers =
+let handle_websocket_request ~port h headers =
   let json_string_of = function | `String s -> s | _ -> raise Not_found in
   let extract_packet s =
     let json =
@@ -371,15 +374,18 @@ let handle_websocket_request ~port h huri headers =
       | _ -> raise Not_found
     in (packet_type, data) in
   let read_hello s =
-    let error = reply (http_error_page 422 "Invalid hello" "Invalid hello")
+    let error = reply (websocket_error "Invalid hello")
     in
       try
         match Websocket.read s with
         | `Text s ->
-            (match extract_packet s with
-             | ("hello", data) ->
-                 Duppy.Monad.return (json_string_of (List.assoc "mime" data))
-             | _ -> error)
+            (Printf.printf "HELLO: %s\n%!" s;
+             (match extract_packet s with
+              | ("hello", data) ->
+                  let data =
+                    List.map (fun (l, v) -> (l, (json_string_of v))) data
+                  in Duppy.Monad.return data
+              | _ -> error))
         | _ -> error
       with | _ -> error
   in
@@ -392,7 +398,9 @@ let handle_websocket_request ~port h huri headers =
              (read_hello h.Duppy.Monad.Io.socket)
          in
            Duppy.Monad.bind __pa_duppy_0
-             (fun stype ->
+             (fun hello ->
+                let stype = List.assoc "mime" hello in
+                let huri = List.assoc "mount" hello in
                 let __pa_duppy_0 =
                   try Duppy.Monad.return (find_source huri port)
                   with
@@ -644,7 +652,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                              handle_source_request ~port ~auth ~protocol
                                hprotocol h huri headers)
                   | `Get when hprotocol = `Websocket ->
-                      handle_websocket_request ~port h huri headers
+                      handle_websocket_request ~port h headers
                   | `Get | `Post | `Put | `Delete | `Options | `Head when
                       not icy ->
                       let len =
