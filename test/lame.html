@@ -2,20 +2,19 @@
 <meta charset="utf-8"/>
 <title>Lame Test</title>
 <script language="javascript" type="text/javascript">
+  var audioContext;
+  if (typeof webkitAudioContext !== "undefined") { audioContext = new webkitAudioContext(); }
+  else { audioContext = new AudioContext(); };
+
   var wsUri = "ws://localhost:1234/";
   var websocket = new WebSocket(wsUri);
   websocket.onopen = function(evt) {
     console.log("Websocket connected.");
-    websocket.send(JSON.stringify({"type": "hello", "data": {"mime": "audio/x-raw,format=S8,channels=2,layout=interleaved,rate=44100", "mount": "/mount"}}));
+    websocket.send(JSON.stringify({"type": "hello", "data": {"mime": "audio/x-raw,format=S8,channels=2,layout=interleaved,rate="+audioContext.sampleRate, "mount": "/mount"}}));
   };
   websocket.onclose = function(evt) { console.log("Websocket disconnected."); };
   websocket.onmessage = function(evt) { console.log("Websocket message: " + evt.data); };
   websocket.onerror = function(evt) { console.log("Websocket error: " + evt.data) };
-
-
-  var audioContext;
-  if (typeof webkitAudioContext !== "undefined") { audioContext = new webkitAudioContext(); }
-  else { audioContext = new AudioContext(); };
 
   var buflen = 4096;
 
