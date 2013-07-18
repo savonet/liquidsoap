@@ -1,5 +1,8 @@
-all: lame httpserver wserver
-	./wserver
+all:
+
+server:
+	python -m SimpleHTTPServer
+
 
 wserver: wserver.ml
 	ocamlopt.opt -annot -o wserver unix.cmxa -I +threads threads.cmxa str.cmxa -I +cryptokit nums.cmxa cryptokit.cmxa -I +pulseaudio pulseaudio.cmxa wserver.ml

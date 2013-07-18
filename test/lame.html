@@ -21,27 +21,32 @@
 
   function onAudioProcess(e) {
     var buf0 = e.inputBuffer.getChannelData(0);
-    var buf1 = e.inputBuffer.getChannelData(0);
-    var len = buf0.length;
-    var buf = new Array();
+    var buf1 = e.inputBuffer.getChannelData(1);
+    var buflen = buf0.length;
+    var buf = new Float32Array(2*buflen);
     for (i = 0; i < buflen; i++) { buf[2*i] = buf0[i]; buf[2*i+1] = buf1[i] };
+
+    //var buf = e.inputBuffer.getChannelData(0);
     console.log("Got buffer.");
     websocket.send(buf);
+  }
+
+  function connectStream(source) {
+    console.log("Connect stream.")
+    var node = audioContext.createJavaScriptNode(buflen, 2, 2);
+    console.log("Created node.");
+
+    source.connect(node);
+    node.onaudioprocess = onAudioProcess;
+    node.connect(audioContext.destination);
+    console.log("Connected.");
   }
 
   function onStream(stream) {
     console.log("Got stream.");
     var mediaStreamSource = audioContext.createMediaStreamSource(stream);
     console.log("Created source.");
-
-    // Create buffer processor
-    var node = audioContext.createJavaScriptNode(buflen, 2, 2);
-    console.log("Created node.");
-
-    mediaStreamSource.connect(node);
-    node.onaudioprocess = onAudioProcess;
-    node.connect(audioContext.destination);
-    console.log("Connected.");
+    connectStream(mediaStreamSource);
   }
 
   function init() {
@@ -49,8 +54,21 @@
     var recordAudio = document.getElementById('record-audio');
 
     recordAudio.onclick = function () {
-      console.log("Clicked.");
+      console.log("Clicked record.");
       navigator.webkitGetUserMedia({audio:true, video:false}, onStream, function(e) { console.log("getUserMedia error: "+e.name+" "+e.message); });
+    };
+
+    var audio = new Audio();
+    audio.src = "http://upload.wikimedia.org/wikipedia/en/4/45/ACDC_-_Back_In_Black-sample.ogg";
+    audio.controls = true;
+    audio.autoplay = false;
+    audio.loop = true;
+    document.body.appendChild(audio);
+    var playAudio = document.getElementById('play-audio');
+    playAudio.onclick = function() {
+      console.log("Clicked play.");
+      audio.play();
+      connectStream(audioContext.createMediaElementSource(audio));
     };
   }
 
@@ -59,5 +77,6 @@
 
 <h2>Lame Test</h2>
 <button id="record-audio">Record</button>
+<button id="play-audio">Play</button>
 <div id="output"></div>
 </html>

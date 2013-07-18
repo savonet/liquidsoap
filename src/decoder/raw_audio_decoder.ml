@@ -62,7 +62,7 @@ module Make (Generator:Generator.S_Asio) = struct
           let pos = ref 0 in
           match format.format with
           | `F32LE ->
-              (* TODO: handle endianness *)
+            (* TODO: handle endianness *)
             fun () ->
               let ans = ref Int32.zero in
               for i = 3 downto 0 do
