@@ -6,7 +6,7 @@
   var websocket = new WebSocket(wsUri);
   websocket.onopen = function(evt) {
     console.log("Websocket connected.");
-    websocket.send(JSON.stringify({"type": "hello", "data": {"mime": "audio/x-raw,format=F32LE,channels=2,layout=interleaved,rate=44100", "mount": "/mount"}}));
+    websocket.send(JSON.stringify({"type": "hello", "data": {"mime": "audio/x-raw,format=S8,channels=2,layout=interleaved,rate=44100", "mount": "/mount"}}));
   };
   websocket.onclose = function(evt) { console.log("Websocket disconnected."); };
   websocket.onmessage = function(evt) { console.log("Websocket message: " + evt.data); };
@@ -23,8 +23,10 @@
     var buf0 = e.inputBuffer.getChannelData(0);
     var buf1 = e.inputBuffer.getChannelData(1);
     var buflen = buf0.length;
-    var buf = new Float32Array(2*buflen);
-    for (i = 0; i < buflen; i++) { buf[2*i] = buf0[i]; buf[2*i+1] = buf1[i] };
+    //var buf = new Float32Array(2*buflen);
+    //for (i = 0; i < buflen; i++) { buf[2*i] = buf0[i]; buf[2*i+1] = buf1[i] };
+    var buf = new Int8Array(2*buflen);
+    for (i = 0; i < buflen; i++) { buf[2*i] = buf0[i]*127.; buf[2*i+1] = buf1[i]*127. };
 
     //var buf = e.inputBuffer.getChannelData(0);
     console.log("Got buffer.");

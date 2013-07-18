@@ -34,7 +34,7 @@ exception End_of_stream
 
 type format =
   {
-    format : [ `S16LE | `F32LE ];
+    format : [ `S8 | `S16LE | `F32LE ];
     channels : int;
     interleaved : bool;
     samplerate : float;
@@ -43,6 +43,7 @@ type format =
 (** Bytes per sample. *)
 let sample_size fmt =
   match fmt.format with
+  | `S8 -> 1
   | `S16LE -> 2
   | `F32LE -> 4
 
@@ -63,6 +64,12 @@ module Make (Generator:Generator.S_Asio) = struct
         let sample =
           let pos = ref 0 in
           match format.format with
+          | `S8 ->
+            fun () ->
+              let ans = int_of_char src.[!pos] in
+              let ans = if ans > 128 then ans - 256 else ans in
+              incr pos;
+              float ans /. 128.
           | `S16LE ->
             fun () ->
               let ans = int_of_char src.[!pos] + (int_of_char src.[!pos+1] lsl 8) in
@@ -132,7 +139,7 @@ let parse_mime m =
     List.iter (fun (l,v) ->
       match l with
       | "format" ->
-        let format = List.assoc v ["S16LE",`S16LE;"F32LE",`F32LE] in
+        let format = List.assoc v ["S8",`S8;"S16LE",`S16LE;"F32LE",`F32LE] in
         ans := { !ans with format }
       | "channels" ->
         let channels = int_of_string v in
