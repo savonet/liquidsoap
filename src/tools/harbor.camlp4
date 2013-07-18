@@ -392,48 +392,46 @@ let handle_websocket_request ~port h headers =
   let extract_packet s =
     let json =
       match Yojson.Basic.from_string s with
-        | `Assoc json -> json
-        | _ -> raise Not_found
+      | `Assoc json -> json
+      | _ -> raise Not_found
     in
     let packet_type =
       match List.assoc "type" json with
-        | `String s -> s
-        | _ -> raise Not_found
+      | `String s -> s
+      | _ -> raise Not_found
     in
     let data =
       match List.assoc "data" json with
-        | `Assoc data -> data
-        | _ -> raise Not_found
+      | `Assoc data -> data
+      | _ -> raise Not_found
     in
     (packet_type, data)
   in
   let read_hello s =
-    let error = reply (websocket_error "Invalid hello") in
+    let error = reply (websocket_error "Invalid hello.") in
     try
       match Websocket.read s with
-        | `Text s ->
-          begin
-            (* Printf.printf "HELLO: %s\n%!" s; *)
-            match extract_packet s with
-              | ("hello", data) ->
-                let mime = json_string_of (List.assoc "mime" data) in
-                let mount = json_string_of (List.assoc "mount" data) in
-                duppy_return (mime, mount)
-              | _ -> error
-          end
-        | _ -> error
+      | `Text s ->
+        begin
+          (* Printf.printf "HELLO: %s\n%!" s; *)
+          match extract_packet s with
+          | ("hello", data) ->
+            let mime = json_string_of (List.assoc "mime" data) in
+            let mount = json_string_of (List.assoc "mount" data) in
+            duppy_return (mime, mount)
+          | _ -> error
+        end
+      | _ -> error
     with _ -> error
   in
   duppy_do
-    duppy_write
-      (Websocket.upgrade headers)
-    with
-      { priority = Tutils.Non_blocking ;
-        handler  = h ;
-        timeout  = conf_timeout#get };
-    duppy hello =
-      duppy_exec
-        read_hello h.Duppy.Monad.Io.socket
+    duppy_write (Websocket.upgrade headers)
+  with
+   { priority = Tutils.Non_blocking ;
+     handler  = h ;
+     timeout  = conf_timeout#get };
+   duppy hello =
+      duppy_exec read_hello h.Duppy.Monad.Io.socket
       with
         { priority = Tutils.Blocking ;
           handler  = h };
@@ -450,10 +448,26 @@ let handle_websocket_request ~port h headers =
             reply (http_error_page 404 "Not found" "This mountpoint isn't available.")
     in
     let rec read socket len =
+      let continue () = read socket len in
       match Websocket.read socket with
         | `Binary buf -> buf, String.length buf
-        | `Text _ (* TODO: handle metadata *)
-        | _ -> read socket len
+        | `Text s ->
+          (
+            match extract_packet s with
+            | ("metadata", data) ->
+              let m = List.map (fun (l,v) -> l, json_string_of v) data in
+              let m =
+                let ans = Hashtbl.create (List.length m) in
+                (* TODO: convert charset *)
+                let g x = x in
+                List.iter (fun (l,v) -> Hashtbl.add ans (g l) (g v)) m;
+                ans
+              in
+              source#insert_metadata m;
+              continue ()
+            | _ -> continue ()
+          )
+        | _ -> continue ()
     in
     let f () =
       source#relay stype headers ~read h.Duppy.Monad.Io.socket 

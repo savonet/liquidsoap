@@ -70,6 +70,11 @@
       audio.play();
       connectStream(audioContext.createMediaElementSource(audio));
     };
+
+    document.getElementById('send-metadata').onclick = function () {
+      console.log("Send metadata.");
+      websocket.send(JSON.stringify({"type": "metadata", "data": {"title":"title test", "artist": "artistic test"}}));
+    }
   }
 
   window.addEventListener("load", init, false);
@@ -78,5 +83,6 @@
 <h2>Lame Test</h2>
 <button id="record-audio">Record</button>
 <button id="play-audio">Play</button>
+<button id="send-metadata">Send metadata</button>
 <div id="output"></div>
 </html>

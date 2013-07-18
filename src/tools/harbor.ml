@@ -374,7 +374,7 @@ let handle_websocket_request ~port h headers =
       | _ -> raise Not_found
     in (packet_type, data) in
   let read_hello s =
-    let error = reply (websocket_error "Invalid hello")
+    let error = reply (websocket_error "Invalid hello.")
     in
       try
         match Websocket.read s with
@@ -414,10 +414,34 @@ let handle_websocket_request ~port h headers =
                      Duppy.Monad.bind __pa_duppy_0
                        (fun source ->
                           let rec read socket len =
-                            match Websocket.read socket with
-                            | `Binary buf -> (buf, (String.length buf))
-                            | `Text _ | (* TODO: handle metadata *) _ ->
-                                read socket len in
+                            let continue () = read socket len
+                            in
+                              match Websocket.read socket with
+                              | `Binary buf -> (buf, (String.length buf))
+                              | `Text s ->
+                                  (match extract_packet s with
+                                   | ("metadata", data) ->
+                                       let m =
+                                         List.map
+                                           (fun (l, v) ->
+                                              (l, (json_string_of v)))
+                                           data in
+                                       let m =
+                                         let ans =
+                                           Hashtbl.create (List.length m) in
+                                         (* TODO: convert charset *)
+                                         let g x = x
+                                         in
+                                           (List.iter
+                                              (fun (l, v) ->
+                                                 Hashtbl.add ans (g l) (g v))
+                                              m;
+                                            ans)
+                                       in
+                                         (source#insert_metadata m;
+                                          continue ())
+                                   | _ -> continue ())
+                              | _ -> continue () in
                           let f () =
                             source#relay stype headers ~read
                               h.Duppy.Monad.Io.socket
