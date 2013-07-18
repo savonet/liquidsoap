@@ -6,7 +6,7 @@
   var websocket = new WebSocket(wsUri);
   websocket.onopen = function(evt) {
     console.log("Websocket connected.");
-    websocket.send(JSON.stringify({"type": "hello", "data": {"mime": "audio/x-raw,format=F32LE,channels=2,layout=interleaved,samplerate=44100", "mount": "/mount"}}));
+    websocket.send(JSON.stringify({"type": "hello", "data": {"mime": "audio/x-raw,format=F32LE,channels=2,layout=interleaved,rate=44100", "mount": "/mount"}}));
   };
   websocket.onclose = function(evt) { console.log("Websocket disconnected."); };
   websocket.onmessage = function(evt) { console.log("Websocket message: " + evt.data); };
@@ -50,8 +50,7 @@
 
     recordAudio.onclick = function () {
       console.log("Clicked.");
-      navigator.webkitGetUserMedia({audio:true, video:false}, onStream);
-      console.log("Getting user media.");
+      navigator.webkitGetUserMedia({audio:true, video:false}, onStream, function(e) { console.log("getUserMedia error: "+e.name+" "+e.message); });
     };
   }
 

@@ -1,5 +1,7 @@
 (** Websockets. *)
 
+open Stdlib
+
 (* Compute websocket anwser. *)
 let wsa wsk =
   let wsa = wsk ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in
@@ -133,7 +135,7 @@ module Frame = struct
     in
     (* Printf.printf "masking key: %s\n%!" masking_key; *)
     let data = String.create length in
-    let n = Unix.read s data 0 length in
+    let n = Unix.read_retry s data 0 length in
     assert (n = length);
     unmask masking_key data;
     (* Printf.printf "data: %s\n%!" data; *)

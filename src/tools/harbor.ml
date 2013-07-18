@@ -378,14 +378,13 @@ let handle_websocket_request ~port h headers =
     in
       try
         match Websocket.read s with
-        | `Text s ->
-            (Printf.printf "HELLO: %s\n%!" s;
-             (match extract_packet s with
-              | ("hello", data) ->
-                  let data =
-                    List.map (fun (l, v) -> (l, (json_string_of v))) data
-                  in Duppy.Monad.return data
-              | _ -> error))
+        | `Text s -> (* Printf.printf "HELLO: %s\n%!" s; *)
+            (match extract_packet s with
+             | ("hello", data) ->
+                 let data =
+                   List.map (fun (l, v) -> (l, (json_string_of v))) data
+                 in Duppy.Monad.return data
+             | _ -> error)
         | _ -> error
       with | _ -> error
   in
@@ -400,27 +399,30 @@ let handle_websocket_request ~port h headers =
            Duppy.Monad.bind __pa_duppy_0
              (fun hello ->
                 let stype = List.assoc "mime" hello in
-                let huri = List.assoc "mount" hello in
-                let __pa_duppy_0 =
-                  try Duppy.Monad.return (find_source huri port)
-                  with
-                  | Not_found ->
-                      (log#f 4 "Request failed: no mountpoint '%s'!" huri;
-                       reply
-                         (http_error_page 404 "Not found"
-                            "This mountpoint isn't available."))
+                let huri = List.assoc "mount" hello
                 in
-                  Duppy.Monad.bind __pa_duppy_0
-                    (fun source ->
-                       let rec read socket len =
-                         match Websocket.read socket with
-                         | `Binary buf -> (buf, (String.length buf))
-                         | `Text _ | (* TODO: handle metadata *) _ ->
-                             read socket len in
-                       let f () =
-                         source#relay stype headers ~read
-                           h.Duppy.Monad.Io.socket
-                       in relayed "" f)))
+                  (log#f 4 "Mime type: %s" stype;
+                   log#f 4 "Mount point: %s" huri;
+                   let __pa_duppy_0 =
+                     try Duppy.Monad.return (find_source huri port)
+                     with
+                     | Not_found ->
+                         (log#f 4 "Request failed: no mountpoint '%s'!" huri;
+                          reply
+                            (http_error_page 404 "Not found"
+                               "This mountpoint isn't available."))
+                   in
+                     Duppy.Monad.bind __pa_duppy_0
+                       (fun source ->
+                          let rec read socket len =
+                            match Websocket.read socket with
+                            | `Binary buf -> (buf, (String.length buf))
+                            | `Text _ | (* TODO: handle metadata *) _ ->
+                                read socket len in
+                          let f () =
+                            source#relay stype headers ~read
+                              h.Duppy.Monad.Io.socket
+                          in relayed "" f))))
   
 exception Handled of http_handler
   

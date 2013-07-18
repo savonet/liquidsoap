@@ -22,6 +22,8 @@
 
 (** Decode raw data *)
 
+open Stdlib
+
 let log = Dtools.Log.make ["decoder";"raw"]
 
 (** {1 Generic decoder} *)
@@ -102,13 +104,45 @@ module Buffered = Decoder.Buffered(Generator)
 module D_stream = Make(Generator_plus)
 
 (* The mime types are inspired of GStreamer's convention. See
-   http://gstreamer.freedesktop.org/data/doc/gstreamer/head/pwg/html/section-types-definitions.html *)
-(* TODO: proper parser... *)
+   http://gstreamer.freedesktop.org/data/doc/gstreamer/head/pwg/html/section-types-definitions.html
+   For instance: audio/x-raw,format=F32LE,channels=2,layout=interleaved,rate=44100 *)
+(* TODO: proper parser? *)
 let parse_mime m =
-  Printf.printf "MIME: %S\n%!" m;
-  match m with
-  | "audio/x-raw,format=F32LE,channels=2,layout=interleaved,samplerate=44100" ->
-    Some { format = `F32LE; channels = 2; interleaved = true; samplerate = 44100. }
+  let ans = ref { format = `F32LE; channels = 2; interleaved = true; samplerate = 44100. } in
+  try
+    let m = String.split_char ',' m in
+    if m = [] || List.hd m <> "audio/x-raw" then raise Exit;
+    let m = List.tl m in
+    let m =
+      List.map (fun lv ->
+        let lv = String.split_char '=' lv in
+        match lv with
+        | [l;v] -> l,v
+        | _ -> raise Exit
+      ) m
+    in
+    List.iter (fun (l,v) ->
+      match l with
+      | "format" ->
+        let format = List.assoc v ["F32LE", `F32LE] in
+        ans := { !ans with format }
+      | "channels" ->
+        let channels = int_of_string v in
+        ans := { !ans with channels }
+      | "layout" ->
+        let interleaved =
+          if v = "interleaved" then true
+          else if v = "non-interleaved" then false
+          else raise Exit
+        in
+        ans := { !ans with interleaved }
+      | "rate" | "samplerate" ->
+        let samplerate = float_of_string v in
+        ans := { !ans with samplerate }
+      | _ -> failwith ("Unknown property: "^l)
+    ) m;
+    Some !ans
+  with
   | _ -> None
 
 let () =
