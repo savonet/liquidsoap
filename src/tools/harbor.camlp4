@@ -391,7 +391,7 @@ let handle_websocket_request ~port h headers =
   in
   let extract_packet s =
     let json =
-      match Yojson.Basic.from_string s with
+      match Configure.JSON.from_string s with
       | `Assoc json -> json
       | _ -> raise Not_found
     in
@@ -413,7 +413,7 @@ let handle_websocket_request ~port h headers =
       match Websocket.read s with
       | `Text s ->
         begin
-          (* Printf.printf "HELLO: %s\n%!" s; *)
+          log#f 5 "Hello packet: %s\n%!" s;
           match extract_packet s with
           | ("hello", data) ->
             let mime = json_string_of (List.assoc "mime" data) in
@@ -455,6 +455,7 @@ let handle_websocket_request ~port h headers =
           (
             match extract_packet s with
             | ("metadata", data) ->
+              log#f 5 "Metadata packet: %s\n%!" s;
               let m = List.map (fun (l,v) -> l, json_string_of v) data in
               let m =
                 let ans = Hashtbl.create (List.length m) in

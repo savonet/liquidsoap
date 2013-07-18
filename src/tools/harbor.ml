@@ -361,7 +361,7 @@ let handle_websocket_request ~port h headers =
   let json_string_of = function | `String s -> s | _ -> raise Not_found in
   let extract_packet s =
     let json =
-      match Yojson.Basic.from_string s with
+      match JSON.from_string s with
       | `Assoc json -> json
       | _ -> raise Not_found in
     let packet_type =
@@ -378,13 +378,14 @@ let handle_websocket_request ~port h headers =
     in
       try
         match Websocket.read s with
-        | `Text s -> (* Printf.printf "HELLO: %s\n%!" s; *)
-            (match extract_packet s with
-             | ("hello", data) ->
-                 let mime = json_string_of (List.assoc "mime" data) in
-                 let mount = json_string_of (List.assoc "mount" data)
-                 in Duppy.Monad.return (mime, mount)
-             | _ -> error)
+        | `Text s ->
+            (log#f 5 "Hello packet: %s\n%!" s;
+             (match extract_packet s with
+              | ("hello", data) ->
+                  let mime = json_string_of (List.assoc "mime" data) in
+                  let mount = json_string_of (List.assoc "mount" data)
+                  in Duppy.Monad.return (mime, mount)
+              | _ -> error))
         | _ -> error
       with | _ -> error
   in
@@ -421,25 +422,26 @@ let handle_websocket_request ~port h headers =
                               | `Text s ->
                                   (match extract_packet s with
                                    | ("metadata", data) ->
-                                       let m =
-                                         List.map
-                                           (fun (l, v) ->
-                                              (l, (json_string_of v)))
-                                           data in
-                                       let m =
-                                         let ans =
-                                           Hashtbl.create (List.length m) in
-                                         (* TODO: convert charset *)
-                                         let g x = x
-                                         in
-                                           (List.iter
-                                              (fun (l, v) ->
-                                                 Hashtbl.add ans (g l) (g v))
-                                              m;
-                                            ans)
-                                       in
-                                         (source#insert_metadata m;
-                                          continue ())
+                                       (log#f 5 "Metadata packet: %s\n%!" s;
+                                        let m =
+                                          List.map
+                                            (fun (l, v) ->
+                                               (l, (json_string_of v)))
+                                            data in
+                                        let m =
+                                          let ans =
+                                            Hashtbl.create (List.length m) in
+                                          (* TODO: convert charset *)
+                                          let g x = x
+                                          in
+                                            (List.iter
+                                               (fun (l, v) ->
+                                                  Hashtbl.add ans (g l) (g v))
+                                               m;
+                                             ans)
+                                        in
+                                          (source#insert_metadata m;
+                                           continue ()))
                                    | _ -> continue ())
                               | _ -> continue () in
                           let f () =

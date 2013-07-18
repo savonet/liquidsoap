@@ -743,6 +743,20 @@ cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch
 EOCONF
 
+# Yojson
+
+AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
+
+if test -z "${W_YOJSON}"; then
+cat >> src/configure.ml <<__BLAH__
+module JSON = JSON
+__BLAH__
+else
+cat >> src/configure.ml <<__BLAH__
+module JSON = struct include Yojson.Basic let from_string s = from_string s end
+__BLAH__
+fi
+
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad],[0.3.0])
@@ -754,7 +768,6 @@ AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 AC_CHECK_OCAML_BINDING([lo],[0.1.0])
-AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
 AC_CHECK_OCAML_BINDING([gd])
 
 # Winsvc (to run as a service)

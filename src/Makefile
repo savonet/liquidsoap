@@ -192,7 +192,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
-	tools/wav.ml tools/tutils.ml \
+	tools/wav.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	configure.ml \
 	tools/http.ml tools/pool.ml \
@@ -292,7 +292,7 @@ liquidsoap_doc_sources= \
 	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
 	tools/server.ml tools/tutils.ml playlist_parser.ml \
 	tools/doc.ml tools/wav.ml tools/ioRing.ml \
-	tools/dyntools.ml \
+	tools/dyntools.ml tools/JSON.ml \
 	converters/audio_converter.ml converters/video_converter.ml \
 	ogg_formats/ogg_muxer.ml \
 	sources/generated.ml sources/request_source.ml sources/synthesized.ml \
