@@ -361,7 +361,7 @@ let handle_websocket_request ~port h headers =
   let json_string_of = function | `String s -> s | _ -> raise Not_found in
   let extract_packet s =
     let json =
-      match JSON.from_string s with
+      match Configure.JSON.from_string s with
       | `Assoc json -> json
       | _ -> raise Not_found in
     let packet_type =

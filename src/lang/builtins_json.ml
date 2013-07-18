@@ -92,7 +92,7 @@ let () =
      let s = Lang.to_string (List.assoc "" p) in
      try
        let json =
-         Yojson.Basic.from_string s
+         Configure.JSON.from_string s
        in
        of_json default.Lang.t json
      with
