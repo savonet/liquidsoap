@@ -1,0 +1,15 @@
+In order to test the websocket implementation in Liquidsoap, you should follow
+those steps:
+
+1. Lauch the a webserver for the current directory:
+
+   python -m SimpleHTTPServer
+
+2. Launch the Liquidsoap client
+
+   ./websocket.liq
+
+3. Go to test webpage http://localhost:8000/lame.html on your favorite browser
+  (currently this has only be tested with chrome).
+
+4. Push the Record or Play button on the webpage and you should hear sound!
