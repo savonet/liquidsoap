@@ -381,9 +381,9 @@ let handle_websocket_request ~port h headers =
         | `Text s -> (* Printf.printf "HELLO: %s\n%!" s; *)
             (match extract_packet s with
              | ("hello", data) ->
-                 let data =
-                   List.map (fun (l, v) -> (l, (json_string_of v))) data
-                 in Duppy.Monad.return data
+                 let mime = json_string_of (List.assoc "mime" data) in
+                 let mount = json_string_of (List.assoc "mount" data)
+                 in Duppy.Monad.return (mime, mount)
              | _ -> error)
         | _ -> error
       with | _ -> error
@@ -398,8 +398,7 @@ let handle_websocket_request ~port h headers =
          in
            Duppy.Monad.bind __pa_duppy_0
              (fun hello ->
-                let stype = List.assoc "mime" hello in
-                let huri = List.assoc "mount" hello
+                let (stype, huri) = hello
                 in
                   (log#f 4 "Mime type: %s" stype;
                    log#f 4 "Mount point: %s" huri;

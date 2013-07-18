@@ -416,8 +416,9 @@ let handle_websocket_request ~port h headers =
             (* Printf.printf "HELLO: %s\n%!" s; *)
             match extract_packet s with
               | ("hello", data) ->
-                let data = List.map (fun (l,v) -> l, json_string_of v) data in
-                duppy_return data
+                let mime = json_string_of (List.assoc "mime" data) in
+                let mount = json_string_of (List.assoc "mount" data) in
+                duppy_return (mime, mount)
               | _ -> error
           end
         | _ -> error
@@ -437,8 +438,7 @@ let handle_websocket_request ~port h headers =
         { priority = Tutils.Blocking ;
           handler  = h };
     in
-    let stype = List.assoc "mime" hello in
-    let huri = List.assoc "mount" hello in
+    let stype, huri = hello in
     log#f 4 "Mime type: %s" stype;
     log#f 4 "Mount point: %s" huri;
     duppy source =
