@@ -150,15 +150,29 @@ let rec read s =
       )
     in
     `Close reason
-  | 0x9 -> `Ping
-  | 0xa -> `Pong
+  | 0x9 -> `Ping data
+  | 0xa -> `Pong data
   | _ -> read s
 
 let to_string data =
   let frame = { Frame. fin = true; rsv1 = false; rsv2 = false; rsv3 = false; opcode = 0; data = "" } in
   let frame =
     match data with
-    | `Text s -> { frame with Frame. opcode = 1; data = s }
+    | `Text s -> { frame with Frame. opcode = 0x1; data = s }
+    | `Binary data -> { frame with Frame. opcode = 0x2; data }
+    | `Close r ->
+      let data =
+        match r with
+        | None -> ""
+        | Some (n, msg) ->
+          let nn = String.create 2 in
+          nn.[0] <- char_of_int (n lsr 8);
+          nn.[1] <- char_of_int (n land 0xff);
+          nn ^ msg
+      in
+      { frame with Frame. opcode = 0x8; data }
+    | `Ping data -> { frame with Frame. opcode = 0x9; data }
+    | `Pong data -> { frame with Frame. opcode = 0xa; data }
     | _ -> assert false
   in
   Frame.to_string frame
