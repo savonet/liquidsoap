@@ -186,5 +186,4 @@ let to_string data =
 let write s data =
   let frame = to_string data in
   let n = Unix.write s frame 0 (String.length frame) in
-  (* TODO: handle fragmentation *)
   assert (n = String.length frame)

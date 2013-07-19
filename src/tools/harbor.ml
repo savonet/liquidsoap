@@ -410,7 +410,7 @@ let handle_websocket_request ~port h headers =
                      | Not_found ->
                          (log#f 4 "Request failed: no mountpoint '%s'!" huri;
                           reply
-                            (http_error_page 404 "Not found"
+                            (websocket_error 1011
                                "This mountpoint isn't available."))
                    in
                      Duppy.Monad.bind __pa_duppy_0

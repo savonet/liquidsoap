@@ -446,7 +446,7 @@ let handle_websocket_request ~port h headers =
       with
         | Not_found ->
             log#f 4 "Request failed: no mountpoint '%s'!" huri;
-            reply (http_error_page 404 "Not found" "This mountpoint isn't available.")
+            reply (websocket_error 1011 "This mountpoint isn't available.")
     in
     let rec read socket len =
       let continue () = read socket len in
@@ -471,9 +471,7 @@ let handle_websocket_request ~port h headers =
           )
         | _ -> continue ()
     in
-    let f () =
-      source#relay stype headers ~read h.Duppy.Monad.Io.socket 
-    in
+    let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
     relayed "" f
   done
 
