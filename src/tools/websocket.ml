@@ -58,7 +58,13 @@ module Frame = struct
         ans.[2] <- char_of_int (len land 0xff);
         ans
       else
-        failwith "TODO: long length"
+        let ans = String.create 5 in
+        ans.[0] <- '\127';
+        ans.[1] <- char_of_int ((len lsr 24) land 0xff);
+        ans.[2] <- char_of_int ((len lsr 16) land 0xff);
+        ans.[3] <- char_of_int ((len lsr 8) land 0xff);
+        ans.[4] <- char_of_int (len land 0xff);
+        ans
     in
     b0 ^ blen ^ f.data
 
