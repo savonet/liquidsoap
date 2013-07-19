@@ -176,8 +176,9 @@ let http_error_page code status msg =
      <body><p>"
                 ^ (msg ^ "</p></body></html>")))))
   
-(* TODO: find a better format *)
-let websocket_error msg = Websocket.to_string ~final: true (`Text msg)
+(* The error numbers are specified here:
+   http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
+let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
   
 let parse_icy_request_line ~port h r =
   let __pa_duppy_0 =
@@ -374,7 +375,7 @@ let handle_websocket_request ~port h headers =
       | _ -> raise Not_found
     in (packet_type, data) in
   let read_hello s =
-    let error = reply (websocket_error "Invalid hello.")
+    let error () = reply (websocket_error 1002 "Invalid hello.")
     in
       try
         match Websocket.read s with
@@ -385,9 +386,9 @@ let handle_websocket_request ~port h headers =
                   let mime = json_string_of (List.assoc "mime" data) in
                   let mount = json_string_of (List.assoc "mount" data)
                   in Duppy.Monad.return (mime, mount)
-              | _ -> error))
-        | _ -> error
-      with | _ -> error
+              | _ -> error ()))
+        | _ -> error ()
+      with | _ -> error ()
   in
     Duppy.Monad.bind
       (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)

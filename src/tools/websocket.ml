@@ -5,12 +5,7 @@ open Stdlib
 (* Compute websocket anwser. *)
 let wsa wsk =
   let wsa = wsk ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in
-  (* Printf.printf "wsa: %s\n%!" wsa; *)
   let wsa = Sha1.digest wsa in
-  (* for i = 0 to String.length wsa - 1 do *)
-  (* Printf.printf "%x" (int_of_char wsa.[i]) *)
-  (* done; *)
-  (* Printf.printf "\n%!"; *)
   let wsa = Utils.encode64 wsa in
   wsa
 
@@ -96,14 +91,9 @@ module Frame = struct
     let rsv2 = c land 0b100000 <> 0 in
     let rsv3 = c land 0b10000 <> 0 in
     let opcode = c land 0b1111 in
-    (* Printf.printf "fin: %B\n%!" fin; *)
-    (* Printf.printf "rsv: %B %B %B\n%!" rsv1 rsv2 rsv3; *)
-    (* Printf.printf "op: 0x%x\n%!" opcode; *)
     let c = read_byte () in
     let mask = c land 0b10000000 <> 0 in
     let length = c land 0b1111111 in
-    (* Printf.printf "mask: %B\n%!" mask; *)
-    (* TODO: is this right? *)
     let length =
       if length = 126 then
         read_short ()
@@ -112,7 +102,6 @@ module Frame = struct
       else
         length
     in
-    (* Printf.printf "length: %d\n%!" length; *)
     let masking_key =
       if mask then
         let key = String.create 4 in
@@ -133,27 +122,40 @@ module Frame = struct
           s.[i] <- c
         done
     in
-    (* Printf.printf "masking key: %s\n%!" masking_key; *)
     let data = String.create length in
     let n = Unix.read_retry s data 0 length in
     assert (n = length);
     unmask masking_key data;
-    (* Printf.printf "data: %s\n%!" data; *)
     { fin; rsv1; rsv2; rsv3; opcode; data }
 end
 
 let rec read s =
   let frame = Frame.read s in
+  let data = frame.Frame.data in
+  (* TODO: handle continuation frames. There is a problem with our model though:
+     control frames can be inserted in the middle of a fragmented packet. *)
+  assert (frame.Frame.fin = true);
   match frame.Frame.opcode with
-  | 0x1 -> `Text frame.Frame.data
-  | 0x2 -> `Binary frame.Frame.data
-  | 0x8 -> `Close
+  | 0x1 -> `Text data
+  | 0x2 -> `Binary data
+  | 0x8 ->
+    let reason =
+    if data = "" then
+      None
+    else
+      (
+        assert (String.length data >= 2);
+        let code = int_of_char data.[0] lsl 8 + int_of_char data.[1] in
+        Some (code, String.sub data 2 (String.length data - 2))
+      )
+    in
+    `Close reason
   | 0x9 -> `Ping
   | 0xa -> `Pong
   | _ -> read s
 
-let to_string ?(final=false) data =
-  let frame = { Frame. fin = final; rsv1 = false; rsv2 = false; rsv3 = false; opcode = 0; data = "" } in
+let to_string data =
+  let frame = { Frame. fin = true; rsv1 = false; rsv2 = false; rsv3 = false; opcode = 0; data = "" } in
   let frame =
     match data with
     | `Text s -> { frame with Frame. opcode = 1; data = s }
@@ -161,8 +163,8 @@ let to_string ?(final=false) data =
   in
   Frame.to_string frame
 
-let write ?final s data =
-  let frame = to_string ?final data in
+let write s data =
+  let frame = to_string data in
   let n = Unix.write s frame 0 (String.length frame) in
   (* TODO: handle fragmentation *)
   assert (n = String.length frame)

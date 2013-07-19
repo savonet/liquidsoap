@@ -180,19 +180,20 @@ let http_error_page code status msg =
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>" ^ msg ^ "</p></body></html>" )
 
-(* TODO: find a better format *)
-let websocket_error msg =
-  Websocket.to_string ~final:true (`Text msg)
+(* The error numbers are specified here:
+   http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
+let websocket_error n msg =
+  Websocket.to_string (`Close (Some (n, msg)))
 
 let parse_icy_request_line ~port h r =
   duppy s =
-    try
-      duppy_return (find_source "/" (port-1))
-    with
-    | Not_found ->
-       log#f 4 "ICY error: no / mountpoint" ;
-       reply "No / mountpoint\r\n\r\n"
-  in
+  try
+    duppy_return (find_source "/" (port-1))
+  with
+  | Not_found ->
+    log#f 4 "ICY error: no / mountpoint" ;
+    reply "No / mountpoint\r\n\r\n"
+in
   (* Authentication can be blocking. *)
   duppy_exec
    let user,auth_f = s#login in
@@ -408,7 +409,7 @@ let handle_websocket_request ~port h headers =
     (packet_type, data)
   in
   let read_hello s =
-    let error = reply (websocket_error "Invalid hello.") in
+    let error () = reply (websocket_error 1002 "Invalid hello.") in
     try
       match Websocket.read s with
       | `Text s ->
@@ -419,10 +420,10 @@ let handle_websocket_request ~port h headers =
             let mime = json_string_of (List.assoc "mime" data) in
             let mount = json_string_of (List.assoc "mount" data) in
             duppy_return (mime, mount)
-          | _ -> error
+          | _ -> error ()
         end
-      | _ -> error
-    with _ -> error
+      | _ -> error ()
+    with _ -> error ()
   in
   duppy_do
     duppy_write (Websocket.upgrade headers)

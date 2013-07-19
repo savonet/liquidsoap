@@ -52,6 +52,7 @@ module Int32 = struct
     logor (shift_left n k) (shift_right_logical n (32 - k))
 end
 
+(** Digest a string using SHA-1. *)
 let digest s =
   (* Pad string and append length. *)
   let len = String.length s in
@@ -134,10 +135,6 @@ let digest s =
   Int32.to_string_be !h0 ^ Int32.to_string_be !h1 ^ Int32.to_string_be !h2 ^ Int32.to_string_be !h3 ^ Int32.to_string_be !h4
 
 (* let () = *)
+  (* (\* Example from Wikipedia page *\) *)
   (* let s = "The quick brown fox jumps over the lazy dog" in *)
-  (* Printf.printf "SHA1:\n%S\n%s\n2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12 expected\n%!" s (digest s) *)
-
-(* let () = *)
-  (* let s = "x3JJHMbDL1EzLkh9GBhXDw==" ^ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in *)
-  (* let s = digest s in *)
-  (* Printf.printf "%s\ninstead of\nHSmrc0sMlYUkAGmm5OPpG2HaGWk=\n%!" (Utils.encode64 s) *)
+  (* assert (digest s = "\x2f\xd4\xe1\xc6\x7a\x2d\x28\xfc\xed\x84\x9e\xe1\xbb\x76\xe7\x39\x1b\x93\xeb\x12") *)
