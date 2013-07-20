@@ -634,6 +634,11 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                          ((assoc_uppercase "UPGRADE" headers) <> "websocket")
                      then raise Exit
                      else ();
+                     if
+                       (assoc_uppercase "SEC-WEBSOCKET-PROTOCOL" headers) <>
+                         "webcast"
+                     then raise Exit
+                     else ();
                      `Websocket)
                   with | _ -> hprotocol
                 in

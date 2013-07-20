@@ -661,7 +661,11 @@ let handle_client ~port ~icy h =
   in
   let hprotocol =
     try
-      if hmethod = `Get && assoc_uppercase "UPGRADE" headers <> "websocket" then raise Exit;
+      if hmethod = `Get &&
+         assoc_uppercase "UPGRADE" headers <> "websocket" then
+        raise Exit;
+      if assoc_uppercase "SEC-WEBSOCKET-PROTOCOL" headers <> "webcast" then
+        raise Exit;
       `Websocket
     with
     | _ -> hprotocol
