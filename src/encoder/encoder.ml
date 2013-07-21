@@ -306,7 +306,7 @@ struct
   }
 
   let to_string m =
-    Printf.sprintf "%%mp3.fxp(channels=%d,samplerate=%d,bitrate=%d)"
+    Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d)"
       m.channels
       m.samplerate
       m.bitrate
