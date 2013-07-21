@@ -149,7 +149,8 @@ rule token = parse
   | "%mp3.cbr" { MP3 }
   | "%mp3.abr" { MP3_ABR }
   | "%mp3.vbr" { MP3_VBR }
-  | "%mp3.fxp" { MP3_FXP }
+  | "%mp3.fxp" { SHINE }
+  | "%shine"   { SHINE }
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
   | "%aac" { VOAACENC }

@@ -41,7 +41,7 @@ let get_encoder_format tokenizer lexbuf =
     | Lang_parser.MP3 -> Lang_encoders.mk_mp3_cbr []
     | Lang_parser.MP3_VBR -> Lang_encoders.mk_mp3_vbr []
     | Lang_parser.MP3_ABR -> Lang_encoders.mk_mp3_vbr []
-    | Lang_parser.MP3_FXP -> Lang_encoders.mk_shine []
+    | Lang_parser.SHINE   -> Lang_encoders.mk_shine []
     | Lang_parser.AACPLUS -> Lang_encoders.mk_aacplus []
     | Lang_parser.VOAACENC -> Lang_encoders.mk_voaacenc []
     | Lang_parser.FDKAAC -> Lang_encoders.mk_fdkaac []

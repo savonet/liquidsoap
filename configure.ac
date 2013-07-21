@@ -444,7 +444,7 @@ AC_SUBST(W_LAME_DYN)
 # Shine
 #
 
-AC_CHECK_OCAML_BINDING([shine],[0.1.0])
+AC_CHECK_OCAML_BINDING([shine],[0.2.0])
 
 #
 # Gstreamer
