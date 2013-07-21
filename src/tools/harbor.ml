@@ -59,6 +59,9 @@ let conf_timeout =
 let log = Log.make [ "harbor" ]
   
 (* Define what we need as a source *)
+(** Raised when source needs to retry read. *)
+exception Retry
+  
 class virtual source ~kind =
   object (self)
     inherit Source.source ~name: "input.harbor" kind
@@ -415,36 +418,34 @@ let handle_websocket_request ~port h headers =
                    in
                      Duppy.Monad.bind __pa_duppy_0
                        (fun source ->
-                          let rec read socket len =
-                            let continue () = read socket len
-                            in
-                              match Websocket.read socket with
-                              | `Binary buf -> (buf, (String.length buf))
-                              | `Text s ->
-                                  (match extract_packet s with
-                                   | ("metadata", data) ->
-                                       (log#f 5 "Metadata packet: %s\n%!" s;
-                                        let m =
-                                          List.map
-                                            (fun (l, v) ->
-                                               (l, (json_string_of v)))
-                                            data in
-                                        let m =
-                                          let ans =
-                                            Hashtbl.create (List.length m) in
-                                          (* TODO: convert charset *)
-                                          let g x = x
-                                          in
-                                            (List.iter
-                                               (fun (l, v) ->
-                                                  Hashtbl.add ans (g l) (g v))
-                                               m;
-                                             ans)
+                          let read socket len =
+                            match Websocket.read socket with
+                            | `Binary buf -> (buf, (String.length buf))
+                            | `Text s ->
+                                (match extract_packet s with
+                                 | ("metadata", data) ->
+                                     (log#f 5 "Metadata packet: %s\n%!" s;
+                                      let m =
+                                        List.map
+                                          (fun (l, v) ->
+                                             (l, (json_string_of v)))
+                                          data in
+                                      let m =
+                                        let ans =
+                                          Hashtbl.create (List.length m) in
+                                        (* TODO: convert charset *)
+                                        let g x = x
                                         in
-                                          (source#insert_metadata m;
-                                           continue ()))
-                                   | _ -> continue ())
-                              | _ -> continue () in
+                                          (List.iter
+                                             (fun (l, v) ->
+                                                Hashtbl.add ans (g l) (g v))
+                                             m;
+                                           ans)
+                                      in
+                                        (source#insert_metadata m;
+                                         raise Retry))
+                                 | _ -> raise Retry)
+                            | _ -> raise Retry in
                           let f () =
                             source#relay stype headers ~read
                               h.Duppy.Monad.Io.socket

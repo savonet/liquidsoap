@@ -52,12 +52,19 @@ let conf_timeout =
 let log = Log.make ["harbor"]
 
 (* Define what we need as a source *)
+
+(** Raised when source needs to retry read. *)
+exception Retry
+
 class virtual source ~kind =
 object(self)
   inherit Source.source ~name:"input.harbor" kind
 
   method virtual relay :
-    string -> (string*string) list -> ?read:(Unix.file_descr -> int -> (string * int)) -> Unix.file_descr -> unit
+    string -> (string*string) list ->
+    ?read:(Unix.file_descr ->
+    int -> (string * int)) ->
+    Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string*(string -> string -> bool))
   method virtual icy_charset : string option
@@ -448,8 +455,7 @@ let handle_websocket_request ~port h headers =
             log#f 4 "Request failed: no mountpoint '%s'!" huri;
             reply (websocket_error 1011 "This mountpoint isn't available.")
     in
-    let rec read socket len =
-      let continue () = read socket len in
+    let read socket len =
       match Websocket.read socket with
         | `Binary buf -> buf, String.length buf
         | `Text s ->
@@ -466,10 +472,10 @@ let handle_websocket_request ~port h headers =
                 ans
               in
               source#insert_metadata m;
-              continue ()
-            | _ -> continue ()
+              raise Retry
+            | _ -> raise Retry
           )
-        | _ -> continue ()
+        | _ -> raise Retry
     in
     let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
     relayed "" f

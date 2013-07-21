@@ -116,10 +116,16 @@ object (self)
            | Some socket ->
                begin
                  try
-                   (* Wait for `Read event on socket. *)
-                   Tutils.wait_for ~log `Read socket timeout;
-                   (* Now read. *)
-                   relay_read socket len
+                   let rec f () =
+                     try
+                       (* Wait for `Read event on socket. *)
+                       Tutils.wait_for ~log `Read socket timeout;
+                       (* Now read. *)
+                       relay_read socket len
+                      with
+                        | Harbor.Retry -> f ()
+                   in
+                   f ()
                  with
                  | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
