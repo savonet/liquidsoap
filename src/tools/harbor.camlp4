@@ -392,7 +392,9 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
               "The server could not handle your request.")
  done
 
-let handle_websocket_request ~port h headers =
+exception Websocket_closed
+
+let handle_websocket_request ~port h mount headers =
   let json_string_of = function
     | `String s -> s
     | _ -> raise Not_found
@@ -410,8 +412,8 @@ let handle_websocket_request ~port h headers =
     in
     let data =
       match List.assoc "data" json with
-      | `Assoc data -> data
-      | _ -> raise Not_found
+      | `Assoc data -> Some data
+      | _ -> None
     in
     (packet_type, data)
   in
@@ -424,8 +426,8 @@ let handle_websocket_request ~port h headers =
           log#f 5 "Hello packet: %s\n%!" s;
           match extract_packet s with
           | ("hello", data) ->
+            let data = Utils.get_some data in
             let mime = json_string_of (List.assoc "mime" data) in
-            let mount = json_string_of (List.assoc "mount" data) in
             duppy_return (mime, mount)
           | _ -> error ()
         end
@@ -463,6 +465,7 @@ let handle_websocket_request ~port h headers =
             match extract_packet s with
             | ("metadata", data) ->
               log#f 5 "Metadata packet: %s\n%!" s;
+              let data = Utils.get_some data in
               let m = List.map (fun (l,v) -> l, json_string_of v) data in
               let m =
                 let ans = Hashtbl.create (List.length m) in
@@ -475,6 +478,7 @@ let handle_websocket_request ~port h headers =
               raise Retry
             | _ -> raise Retry
           )
+        | `Close _ -> raise Websocket_closed
         | _ -> raise Retry
     in
     let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
@@ -710,7 +714,7 @@ let handle_client ~port ~icy h =
         in
         handle_source_request ~port ~auth ~protocol hprotocol h huri headers
     | `Get when hprotocol = `Websocket ->
-         handle_websocket_request ~port h headers
+         handle_websocket_request ~port h huri headers
     | `Get     
     | `Post   
     | `Put     

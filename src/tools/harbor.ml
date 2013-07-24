@@ -361,7 +361,9 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      (http_error_page 500 "Internal Server Error"
                         "The server could not handle your request."))))
   
-let handle_websocket_request ~port h headers =
+exception Websocket_closed
+  
+let handle_websocket_request ~port h mount headers =
   let json_string_of = function | `String s -> s | _ -> raise Not_found in
   let extract_packet s =
     let json =
@@ -374,8 +376,8 @@ let handle_websocket_request ~port h headers =
       | _ -> raise Not_found in
     let data =
       match List.assoc "data" json with
-      | `Assoc data -> data
-      | _ -> raise Not_found
+      | `Assoc data -> Some data
+      | _ -> None
     in (packet_type, data) in
   let read_hello s =
     let error () = reply (websocket_error 1002 "Invalid hello.")
@@ -386,8 +388,8 @@ let handle_websocket_request ~port h headers =
             (log#f 5 "Hello packet: %s\n%!" s;
              (match extract_packet s with
               | ("hello", data) ->
-                  let mime = json_string_of (List.assoc "mime" data) in
-                  let mount = json_string_of (List.assoc "mount" data)
+                  let data = Utils.get_some data in
+                  let mime = json_string_of (List.assoc "mime" data)
                   in Duppy.Monad.return (mime, mount)
               | _ -> error ()))
         | _ -> error ()
@@ -425,6 +427,7 @@ let handle_websocket_request ~port h headers =
                                 (match extract_packet s with
                                  | ("metadata", data) ->
                                      (log#f 5 "Metadata packet: %s\n%!" s;
+                                      let data = Utils.get_some data in
                                       let m =
                                         List.map
                                           (fun (l, v) ->
@@ -445,6 +448,7 @@ let handle_websocket_request ~port h headers =
                                         (source#insert_metadata m;
                                          raise Retry))
                                  | _ -> raise Retry)
+                            | `Close _ -> raise Websocket_closed
                             | _ -> raise Retry in
                           let f () =
                             source#relay stype headers ~read
@@ -686,7 +690,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                              handle_source_request ~port ~auth ~protocol
                                hprotocol h huri headers)
                   | `Get when hprotocol = `Websocket ->
-                      handle_websocket_request ~port h headers
+                      handle_websocket_request ~port h huri headers
                   | `Get | `Post | `Put | `Delete | `Options | `Head when
                       not icy ->
                       let len =
