@@ -23,7 +23,11 @@
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
-(* {1 Input handling} *)
+(** Default function to read from a socket. *)
+let default_read socket len =
+  let buf = String.create len in
+  let n = Unix.read socket buf 0 len in
+  buf, n
 
 class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max ~icy ~port
@@ -42,8 +46,9 @@ object (self)
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize as generated
 
-  (** POSIX sucks.. *)
   val mutable relay_socket = None
+  (** Function to read on socket. *)
+  val mutable relay_read = (fun socket len -> assert false)
   (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
   val mutable create_decoder = fun _ -> assert false
@@ -104,28 +109,28 @@ object (self)
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
-      let buf,input = (fun len -> 
-        let socket =
-          Tutils.mutexify relay_m (fun () ->
-            relay_socket) ()
-         in
+      let buf,input = (fun len ->
+        let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
          match socket with
            | None -> "", 0
            | Some socket ->
                begin
-                try
-                 (* Wait for `Read event on socket. *)
-                 let log = self#log#f 4 "%s" in
-                 Tutils.wait_for ~log `Read socket timeout;
-                 (* Now read. *)
-                 let buf = String.make len ' ' in
-                 let input = Unix.read socket buf 0 len in
-                 buf, input
-                with
-                  | e -> self#log#f 2 "Error while reading from client: \
+                 try
+                   let rec f () =
+                     try
+                       (* Wait for `Read event on socket. *)
+                       Tutils.wait_for ~log `Read socket timeout;
+                       (* Now read. *)
+                       relay_read socket len
+                      with
+                        | Harbor.Retry -> f ()
+                   in
+                   f ()
+                 with
+                 | e -> self#log#f 2 "Error while reading from client: \
                             %s" (Utils.error_message e);
-                         self#disconnect ~lock:false;
-                         "",0
+                   self#disconnect ~lock:false;
+                   "",0
                end) len;
       in
       begin
@@ -196,32 +201,29 @@ object (self)
       | Some d -> create_decoder <- d ; mime_type <- Some mime
       | None -> raise Harbor.Unknown_codec
 
-  method relay stype (headers:(string*string) list) socket =
+  method relay stype (headers:(string*string) list) ?(read=default_read) socket =
     Tutils.mutexify relay_m (fun () ->
-      if relay_socket <> None then
-        raise Harbor.Mount_taken ;
-      self#register_decoder stype ;
-      relay_socket <- Some socket) () ;
+      if relay_socket <> None then raise Harbor.Mount_taken;
+      self#register_decoder stype;
+      relay_socket <- Some socket;
+      relay_read <- read
+    ) ();
     on_connect headers ;
     begin match dumpfile with
       | Some f ->
           begin try
-            dump <- Some (open_out_bin
-                            (Utils.home_unrelate f))
+            dump <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open dump file: \
-                            %s" (Utils.error_message e)
+            self#log#f 2 "Could not open dump file: %s" (Utils.error_message e)
           end
       | None -> ()
     end ;
     begin match logfile with
       | Some f ->
           begin try
-            logf <- Some (open_out_bin
-                            (Utils.home_unrelate f))
+            logf <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open log file: \
-                            %s" (Utils.error_message e)
+            self#log#f 2 "Could not open log file: %s" (Utils.error_message e)
           end
       | None -> ()
     end ;
