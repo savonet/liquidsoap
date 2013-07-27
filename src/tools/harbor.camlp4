@@ -52,12 +52,19 @@ let conf_timeout =
 let log = Log.make ["harbor"]
 
 (* Define what we need as a source *)
+
+(** Raised when source needs to retry read. *)
+exception Retry
+
 class virtual source ~kind =
 object(self)
   inherit Source.source ~name:"input.harbor" kind
 
   method virtual relay :
-    string -> (string*string) list -> Unix.file_descr -> unit
+    string -> (string*string) list ->
+    ?read:(Unix.file_descr ->
+    int -> (string * int)) ->
+    Unix.file_descr -> unit
   method virtual insert_metadata : (string, string) Hashtbl.t -> unit
   method virtual login : (string*(string -> string -> bool))
   method virtual icy_charset : string option
@@ -125,6 +132,7 @@ type protocol = [
   | `Ice_10
   | `Icy
   | `Xaudiocast_uri of string
+  | `Websocket
 ]
 
 type reply = | Close of string | Relay of string * (unit -> unit)
@@ -179,15 +187,20 @@ let http_error_page code status msg =
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>" ^ msg ^ "</p></body></html>" )
 
+(* The error numbers are specified here:
+   http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
+let websocket_error n msg =
+  Websocket.to_string (`Close (Some (n, msg)))
+
 let parse_icy_request_line ~port h r =
   duppy s =
-    try
-      duppy_return (find_source "/" (port-1))
-    with
-    | Not_found ->
-       log#f 4 "ICY error: no / mountpoint" ;
-       reply "No / mountpoint\r\n\r\n"
-  in
+  try
+    duppy_return (find_source "/" (port-1))
+  with
+  | Not_found ->
+    log#f 4 "ICY error: no / mountpoint" ;
+    reply "No / mountpoint\r\n\r\n"
+in
   (* Authentication can be blocking. *)
   duppy_exec
    let user,auth_f = s#login in
@@ -377,6 +390,99 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
         reply
           (http_error_page 500 "Internal Server Error"
               "The server could not handle your request.")
+ done
+
+exception Websocket_closed
+
+let handle_websocket_request ~port h mount headers =
+  let json_string_of = function
+    | `String s -> s
+    | _ -> raise Not_found
+  in
+  let extract_packet s =
+    let json =
+      match Configure.JSON.from_string s with
+      | `Assoc json -> json
+      | _ -> raise Not_found
+    in
+    let packet_type =
+      match List.assoc "type" json with
+      | `String s -> s
+      | _ -> raise Not_found
+    in
+    let data =
+      match List.assoc "data" json with
+      | `Assoc data -> Some data
+      | _ -> None
+    in
+    (packet_type, data)
+  in
+  let read_hello s =
+    let error () = reply (websocket_error 1002 "Invalid hello.") in
+    try
+      match Websocket.read s with
+      | `Text s ->
+        begin
+          log#f 5 "Hello packet: %s\n%!" s;
+          match extract_packet s with
+          | ("hello", data) ->
+            let data = Utils.get_some data in
+            let mime = json_string_of (List.assoc "mime" data) in
+            duppy_return (mime, mount)
+          | _ -> error ()
+        end
+      | _ -> error ()
+    with _ -> error ()
+  in
+  duppy_do
+    duppy_write (Websocket.upgrade headers)
+  with
+   { priority = Tutils.Non_blocking ;
+     handler  = h ;
+     timeout  = conf_timeout#get };
+   duppy hello =
+      duppy_exec read_hello h.Duppy.Monad.Io.socket
+      with
+        { priority = Tutils.Blocking ;
+          handler  = h };
+    in
+    let stype, huri = hello in
+    log#f 4 "Mime type: %s" stype;
+    log#f 4 "Mount point: %s" huri;
+    duppy source =
+      try
+        duppy_return (find_source huri port)
+      with
+        | Not_found ->
+            log#f 4 "Request failed: no mountpoint '%s'!" huri;
+            reply (websocket_error 1011 "This mountpoint isn't available.")
+    in
+    let read socket len =
+      match Websocket.read socket with
+        | `Binary buf -> buf, String.length buf
+        | `Text s ->
+          (
+            match extract_packet s with
+            | ("metadata", data) ->
+              log#f 5 "Metadata packet: %s\n%!" s;
+              let data = Utils.get_some data in
+              let m = List.map (fun (l,v) -> l, json_string_of v) data in
+              let m =
+                let ans = Hashtbl.create (List.length m) in
+                (* TODO: convert charset *)
+                let g x = x in
+                List.iter (fun (l,v) -> Hashtbl.add ans (g l) (g v)) m;
+                ans
+              in
+              source#insert_metadata m;
+              raise Retry
+            | _ -> raise Retry
+          )
+        | `Close _ -> raise Websocket_closed
+        | _ -> raise Retry
+    in
+    let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
+    relayed "" f
   done
 
 exception Handled of http_handler
@@ -563,6 +669,17 @@ let handle_client ~port ~icy h =
     else
       parse_http_request_line s
   in
+  let hprotocol =
+    try
+      if hmethod = `Get &&
+         assoc_uppercase "UPGRADE" headers <> "websocket" then
+        raise Exit;
+      if assoc_uppercase "SEC-WEBSOCKET-PROTOCOL" headers <> "webcast" then
+        raise Exit;
+      `Websocket
+    with
+    | _ -> hprotocol
+  in
   match hmethod with
     | `Source when not icy ->
         duppy (auth,huri,protocol) =
@@ -596,6 +713,8 @@ let handle_client ~port ~icy h =
             | _ -> duppy_return (false,huri,`Source)
         in
         handle_source_request ~port ~auth ~protocol hprotocol h huri headers
+    | `Get when hprotocol = `Websocket ->
+         handle_websocket_request ~port h huri headers
     | `Get     
     | `Post   
     | `Put     

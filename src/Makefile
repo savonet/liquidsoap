@@ -88,7 +88,7 @@ decoders = \
 	decoder/metadata_decoder.ml \
 	decoder/wav_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
-	decoder/external_decoder.ml
+	decoder/external_decoder.ml decoder/raw_audio_decoder.ml
 
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_FAAD),decoder/aac_decoder.ml)
@@ -192,10 +192,11 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
-	tools/wav.ml tools/tutils.ml \
+	tools/wav.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	configure.ml \
-	tools/http.ml tools/pool.ml
+	tools/http.ml tools/pool.ml \
+	tools/sha1.ml tools/websocket.ml
 
 $(call conditional_compilation,tools,$(W_INOTIFY),tools/file_watcher_inotify.ml)
 
@@ -212,8 +213,7 @@ synth = synth/keyboard.ml synth/synth_op.ml
 
 $(call conditional_compilation,synth,$(W_DSSI),synth/dssi_op.ml)
 
-builtins = lang/lang_builtins.ml \
-	$(if $(W_YOJSON),lang/builtins_json.ml)
+builtins = lang/lang_builtins.ml lang/builtins_json.ml
 
 $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)
@@ -291,7 +291,7 @@ liquidsoap_doc_sources= \
 	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
 	tools/server.ml tools/tutils.ml playlist_parser.ml \
 	tools/doc.ml tools/wav.ml tools/ioRing.ml \
-	tools/dyntools.ml \
+	tools/dyntools.ml tools/JSON.ml \
 	converters/audio_converter.ml converters/video_converter.ml \
 	ogg_formats/ogg_muxer.ml \
 	sources/generated.ml sources/request_source.ml sources/synthesized.ml \

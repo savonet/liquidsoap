@@ -59,11 +59,17 @@ let conf_timeout =
 let log = Log.make [ "harbor" ]
   
 (* Define what we need as a source *)
+(** Raised when source needs to retry read. *)
+exception Retry
+  
 class virtual source ~kind =
   object (self)
     inherit Source.source ~name: "input.harbor" kind
     method virtual relay :
-      string -> (string * string) list -> Unix.file_descr -> unit
+      string ->
+        (string * string) list ->
+          ?read: (Unix.file_descr -> int -> (string * int)) ->
+            Unix.file_descr -> unit
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
     method virtual login : (string * (string -> string -> bool))
     method virtual icy_charset : string option
@@ -105,7 +111,13 @@ let string_of_verb =
   | _ -> assert false
   
 type protocol =
-  [ | `Http_10 | `Http_11 | `Ice_10 | `Icy | `Xaudiocast_uri of string
+  [
+    | `Http_10
+    | `Http_11
+    | `Ice_10
+    | `Icy
+    | `Xaudiocast_uri of string
+    | `Websocket
   ]
 
 type reply = | Close of string | Relay of string * (unit -> unit)
@@ -166,6 +178,10 @@ let http_error_page code status msg =
      <head><title>Liquidsoap source harbor</title></head>\
      <body><p>"
                 ^ (msg ^ "</p></body></html>")))))
+  
+(* The error numbers are specified here:
+   http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
+let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
   
 let parse_icy_request_line ~port h r =
   let __pa_duppy_0 =
@@ -345,6 +361,100 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      (http_error_page 500 "Internal Server Error"
                         "The server could not handle your request."))))
   
+exception Websocket_closed
+  
+let handle_websocket_request ~port h mount headers =
+  let json_string_of = function | `String s -> s | _ -> raise Not_found in
+  let extract_packet s =
+    let json =
+      match Configure.JSON.from_string s with
+      | `Assoc json -> json
+      | _ -> raise Not_found in
+    let packet_type =
+      match List.assoc "type" json with
+      | `String s -> s
+      | _ -> raise Not_found in
+    let data =
+      match List.assoc "data" json with
+      | `Assoc data -> Some data
+      | _ -> None
+    in (packet_type, data) in
+  let read_hello s =
+    let error () = reply (websocket_error 1002 "Invalid hello.")
+    in
+      try
+        match Websocket.read s with
+        | `Text s ->
+            (log#f 5 "Hello packet: %s\n%!" s;
+             (match extract_packet s with
+              | ("hello", data) ->
+                  let data = Utils.get_some data in
+                  let mime = json_string_of (List.assoc "mime" data)
+                  in Duppy.Monad.return (mime, mount)
+              | _ -> error ()))
+        | _ -> error ()
+      with | _ -> error ()
+  in
+    Duppy.Monad.bind
+      (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
+         ~priority: Tutils.Non_blocking h (Websocket.upgrade headers))
+      (fun () ->
+         let __pa_duppy_0 =
+           Duppy.Monad.Io.exec ~priority: Tutils.Blocking h
+             (read_hello h.Duppy.Monad.Io.socket)
+         in
+           Duppy.Monad.bind __pa_duppy_0
+             (fun hello ->
+                let (stype, huri) = hello
+                in
+                  (log#f 4 "Mime type: %s" stype;
+                   log#f 4 "Mount point: %s" huri;
+                   let __pa_duppy_0 =
+                     try Duppy.Monad.return (find_source huri port)
+                     with
+                     | Not_found ->
+                         (log#f 4 "Request failed: no mountpoint '%s'!" huri;
+                          reply
+                            (websocket_error 1011
+                               "This mountpoint isn't available."))
+                   in
+                     Duppy.Monad.bind __pa_duppy_0
+                       (fun source ->
+                          let read socket len =
+                            match Websocket.read socket with
+                            | `Binary buf -> (buf, (String.length buf))
+                            | `Text s ->
+                                (match extract_packet s with
+                                 | ("metadata", data) ->
+                                     (log#f 5 "Metadata packet: %s\n%!" s;
+                                      let data = Utils.get_some data in
+                                      let m =
+                                        List.map
+                                          (fun (l, v) ->
+                                             (l, (json_string_of v)))
+                                          data in
+                                      let m =
+                                        let ans =
+                                          Hashtbl.create (List.length m) in
+                                        (* TODO: convert charset *)
+                                        let g x = x
+                                        in
+                                          (List.iter
+                                             (fun (l, v) ->
+                                                Hashtbl.add ans (g l) (g v))
+                                             m;
+                                           ans)
+                                      in
+                                        (source#insert_metadata m;
+                                         raise Retry))
+                                 | _ -> raise Retry)
+                            | `Close _ -> raise Websocket_closed
+                            | _ -> raise Retry in
+                          let f () =
+                            source#relay stype headers ~read
+                              h.Duppy.Monad.Io.socket
+                          in relayed "" f))))
+  
 exception Handled of http_handler
   
 let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
@@ -522,92 +632,113 @@ let handle_client ~port ~icy h = (* Read and process lines *)
          in
            Duppy.Monad.bind __pa_duppy_0
              (fun (hmethod, huri, hprotocol) ->
-                match hmethod with
-                | `Source when not icy ->
-                    let __pa_duppy_0 =
-                      (* X-audiocast sends lines of the form:
+                let hprotocol =
+                  try
+                    (if
+                       (hmethod = `Get) &&
+                         ((assoc_uppercase "UPGRADE" headers) <> "websocket")
+                     then raise Exit
+                     else ();
+                     if
+                       (assoc_uppercase "SEC-WEBSOCKET-PROTOCOL" headers) <>
+                         "webcast"
+                     then raise Exit
+                     else ();
+                     `Websocket)
+                  with | _ -> hprotocol
+                in
+                  match hmethod with
+                  | `Source when not icy ->
+                      let __pa_duppy_0 =
+                        (* X-audiocast sends lines of the form:
            * [SOURCE password path] *)
-                      (match hprotocol with
-                       | `Xaudiocast_uri uri ->
-                           let password = huri in
-                           (* We check authentication here *)
+                        (match hprotocol with
+                         | `Xaudiocast_uri uri ->
+                             let password = huri in
+                             (* We check authentication here *)
+                             let __pa_duppy_0 =
+                               (try Duppy.Monad.return (find_source uri port)
+                                with
+                                | Not_found ->
+                                    (log#f 4
+                                       "Request failed: no mountpoint '%s'!"
+                                       uri;
+                                     reply
+                                       (http_error_page 404 "Not found"
+                                          "This mountpoint isn't available.")))
+                             in
+                               Duppy.Monad.bind __pa_duppy_0
+                                 (fun s ->
+                                    (* Authentication can be blocking *)
+                                    Duppy.Monad.Io.exec
+                                      ~priority:
+                                        (* ICY = true means that authentication has already
+                     * hapenned *)
+                                        Tutils.Maybe_blocking
+                                      h
+                                      (let (valid_user, auth_f) = s#login
+                                       in
+                                         if not (auth_f valid_user password)
+                                         then reply "Invalid password!"
+                                         else
+                                           Duppy.Monad.return
+                                             (true, uri, `Xaudiocast)))
+                         | _ -> Duppy.Monad.return (false, huri, `Source))
+                      in
+                        Duppy.Monad.bind __pa_duppy_0
+                          (fun (auth, huri, protocol) ->
+                             handle_source_request ~port ~auth ~protocol
+                               hprotocol h huri headers)
+                  | `Get when hprotocol = `Websocket ->
+                      handle_websocket_request ~port h huri headers
+                  | `Get | `Post | `Put | `Delete | `Options | `Head when
+                      not icy ->
+                      let len =
+                        (try
+                           int_of_string
+                             (assoc_uppercase "CONTENT-LENGTH" headers)
+                         with | e -> 0) in
+                      let __pa_duppy_0 =
+                        if len > 0
+                        then
+                          Duppy.Monad.Io.read
+                            ?timeout: (Some conf_timeout#get)
+                            ~priority: Tutils.Non_blocking
+                            ~marker: (Duppy.Io.Length len) h
+                        else Duppy.Monad.return ""
+                      in
+                        Duppy.Monad.bind __pa_duppy_0
+                          (fun data ->
+                             handle_http_request ~hmethod ~hprotocol ~data
+                               ~port h huri headers)
+                  | `Shout when icy ->
+                      Duppy.Monad.bind
+                        (Duppy.Monad.Io.write
+                           ?timeout: (Some conf_timeout#get)
+                           ~priority: Tutils.Non_blocking h
+                           "OK2\r\nicy-caps:11\r\n\r\n")
+                        (fun () -> (* Now parsing headers *)
                            let __pa_duppy_0 =
-                             (try Duppy.Monad.return (find_source uri port)
-                              with
-                              | Not_found ->
-                                  (log#f 4
-                                     "Request failed: no mountpoint '%s'!"
-                                     uri;
-                                   reply
-                                     (http_error_page 404 "Not found"
-                                        "This mountpoint isn't available.")))
+                             Duppy.Monad.Io.read
+                               ?timeout: (Some conf_timeout#get)
+                               ~priority: Tutils.Non_blocking
+                               ~marker: (Duppy.Io.Split "[\r]?\n[\r]?\n") h
                            in
                              Duppy.Monad.bind __pa_duppy_0
-                               (fun s -> (* Authentication can be blocking *)
-                                  Duppy.Monad.Io.exec
-                                    ~priority:
-                                      (* ICY = true means that authentication has already
-                     * hapenned *)
-                                      Tutils.Maybe_blocking
-                                    h
-                                    (let (valid_user, auth_f) = s#login
-                                     in
-                                       if not (auth_f valid_user password)
-                                       then reply "Invalid password!"
-                                       else
-                                         Duppy.Monad.return
-                                           (true, uri, `Xaudiocast)))
-                       | _ -> Duppy.Monad.return (false, huri, `Source))
-                    in
-                      Duppy.Monad.bind __pa_duppy_0
-                        (fun (auth, huri, protocol) ->
-                           handle_source_request ~port ~auth ~protocol
-                             hprotocol h huri headers)
-                | `Get | `Post | `Put | `Delete | `Options | `Head when
-                    not icy ->
-                    let len =
-                      (try
-                         int_of_string
-                           (assoc_uppercase "CONTENT-LENGTH" headers)
-                       with | e -> 0) in
-                    let __pa_duppy_0 =
-                      if len > 0
-                      then
-                        Duppy.Monad.Io.read ?timeout: (Some conf_timeout#get)
-                          ~priority: Tutils.Non_blocking
-                          ~marker: (Duppy.Io.Length len) h
-                      else Duppy.Monad.return ""
-                    in
-                      Duppy.Monad.bind __pa_duppy_0
-                        (fun data ->
-                           handle_http_request ~hmethod ~hprotocol ~data
-                             ~port h huri headers)
-                | `Shout when icy ->
-                    Duppy.Monad.bind
-                      (Duppy.Monad.Io.write ?timeout: (Some conf_timeout#get)
-                         ~priority: Tutils.Non_blocking h
-                         "OK2\r\nicy-caps:11\r\n\r\n")
-                      (fun () -> (* Now parsing headers *)
-                         let __pa_duppy_0 =
-                           Duppy.Monad.Io.read
-                             ?timeout: (Some conf_timeout#get)
-                             ~priority: Tutils.Non_blocking
-                             ~marker: (Duppy.Io.Split "[\r]?\n[\r]?\n") h
-                         in
-                           Duppy.Monad.bind __pa_duppy_0
-                             (fun s ->
-                                let lines =
-                                  Pcre.split ~rex: (Pcre.regexp "[\r]?\n") s in
-                                let headers = parse_headers (List.tl lines)
-                                in
-                                  handle_source_request ~port ~auth: true
-                                    ~protocol: `Shout hprotocol h huri
-                                    headers))
-                | _ ->
-                    (log#f 4 "Returned 501: not implemented";
-                     reply
-                       (http_error_page 501 "Not Implemented"
-                          "The server did not understand your request."))))
+                               (fun s ->
+                                  let lines =
+                                    Pcre.split ~rex: (Pcre.regexp "[\r]?\n")
+                                      s in
+                                  let headers = parse_headers (List.tl lines)
+                                  in
+                                    handle_source_request ~port ~auth: true
+                                      ~protocol: `Shout hprotocol h huri
+                                      headers))
+                  | _ ->
+                      (log#f 4 "Returned 501: not implemented";
+                       reply
+                         (http_error_page 501 "Not Implemented"
+                            "The server did not understand your request."))))
   
 (* {1 The server} *)
 (* Open a port and listen to it. *)

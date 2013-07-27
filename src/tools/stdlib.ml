@@ -47,3 +47,17 @@ module String = struct
     in
     List.rev (aux [] 0)
 end
+
+module Unix = struct
+  include Unix
+
+  let read_retry s buf off len =
+    let r = ref 0 in
+    let loop = ref true in
+    while !loop do
+      let n = Unix.read s buf (off + !r) (len - !r) in
+      r := !r + n;
+      loop := !r <> 0 && !r < len
+    done;
+    !r
+end
