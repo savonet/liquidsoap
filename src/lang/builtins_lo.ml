@@ -105,6 +105,33 @@ let register name osc_t liq_t =
       add_handler path osc_t handle;
       start_server ();
       Lang.unit
+    );
+  Lang.add_builtin ("osc.send_"^name) ~category:"Interaction"
+    [
+      "host",Lang.string_t,None,Some "OSC client address.";
+      "port",Lang.int_t,None,Some "OSC client port.";
+      "",Lang.string_t,None,Some "OSC path.";
+      "",liq_t,None,Some "Value to send."
+    ]
+    Lang.unit_t
+    ~descr:"Send a value to an OSC client."
+    (fun p _ ->
+      let host = Lang.to_string (List.assoc "host" p) in
+      let port = Lang.to_int (List.assoc "port" p) in
+      let path = Lang.to_string (Lang.assoc "" 1 p) in
+      let v = Lang.assoc "" 2 p in
+      let address = LO.Address.create host port in
+      let osc_val v =
+        match v.Lang.value with
+        | Lang.Bool b -> if b then [`True] else [`False]
+        | Lang.String s -> [`String s]
+        | Lang.Float x -> [`Float x]
+        | _ -> failwith "Unhandled value."
+      in
+      (* There was a bug in early versions of lo bindings and anyway we don't
+         really want errors to show up here... *)
+      (try LO.send address path (osc_val v) with _ -> ());
+      Lang.unit
     )
 
 let () =
