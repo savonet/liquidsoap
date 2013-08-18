@@ -18,6 +18,12 @@ let upgrade headers =
     with
       | _ -> ""
   in
+  let version =
+    try
+      let value = List.assoc "Sec-WebSocket-Version" headers in
+      Printf.sprintf "Sec-WebSocket-Version: %s\r\n" value
+    with Not_found -> ""
+  in
   let wsk = List.assoc "Sec-WebSocket-Key" headers in
   let wsa = wsa wsk in
   Printf.sprintf
@@ -25,8 +31,10 @@ let upgrade headers =
      Connection: Upgrade\r\n\
      %s\
      Sec-WebSocket-Accept: %s\r\n\
+     Sec-WebSocket-Protocol: webcast\r\n\
+     %s\
      Upgrade: websocket\r\n\
-     \r\n" origin wsa
+     \r\n" origin wsa version
 
 (** Websocket frames. *)
 module Frame = struct
