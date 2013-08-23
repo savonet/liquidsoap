@@ -196,7 +196,7 @@ let params plugin info =
               let r = int_of_float (r *. 255.) in
               let g = int_of_float (g *. 255.) in
               let b = int_of_float (b *. 255.) in
-              let v = Lang.int ((r lsl 16) + (g lsl 8) + b) in
+              let v = Lang.int ((b lsl 16) + (g lsl 8) + r) in
               Lang.int_t, Some v
             | Frei0r.Position ->
               let t = Lang.product_t Lang.float_t Lang.float_t in
@@ -246,9 +246,9 @@ let params plugin info =
               Some (fun () -> oc f (x ()))
             | Frei0r.Color ->
               let c = Lang.to_int v in
-              let r = (c lsr 16) land 0xff in
+              let b = (c lsr 16) land 0xff in
               let g = (c lsr 8) land 0xff in
-              let b = c land 0xff in
+              let r = c land 0xff in
               let r = float r /. 255. in
               let g = float g /. 255. in
               let b = float b /. 255. in
