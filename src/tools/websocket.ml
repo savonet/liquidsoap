@@ -140,7 +140,7 @@ module Frame = struct
     let n = Unix.read_retry s data 0 length in
     assert (n = length);
     unmask masking_key data;
-    { fin; rsv1; rsv2; rsv3; opcode; data }
+    { fin = fin; rsv1 = rsv1; rsv2 = rsv2; rsv3 = rsv3; opcode = opcode; data = data }
 end
 
 let rec read s =
@@ -173,7 +173,7 @@ let to_string data =
   let frame =
     match data with
     | `Text s -> { frame with Frame. opcode = 0x1; data = s }
-    | `Binary data -> { frame with Frame. opcode = 0x2; data }
+    | `Binary data -> { frame with Frame. opcode = 0x2; data = data }
     | `Close r ->
       let data =
         match r with
@@ -184,9 +184,9 @@ let to_string data =
           nn.[1] <- char_of_int (n land 0xff);
           nn ^ msg
       in
-      { frame with Frame. opcode = 0x8; data }
-    | `Ping data -> { frame with Frame. opcode = 0x9; data }
-    | `Pong data -> { frame with Frame. opcode = 0xa; data }
+      { frame with Frame. opcode = 0x8; data = data }
+    | `Ping data -> { frame with Frame. opcode = 0x9; data = data }
+    | `Pong data -> { frame with Frame. opcode = 0xa; data = data }
     | _ -> assert false
   in
   Frame.to_string frame

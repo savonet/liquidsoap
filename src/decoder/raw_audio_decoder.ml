@@ -140,20 +140,20 @@ let parse_mime m =
       match l with
       | "format" ->
         let format = List.assoc v ["S8",`S8;"S16LE",`S16LE;"F32LE",`F32LE] in
-        ans := { !ans with format }
+        ans := { !ans with format = format }
       | "channels" ->
         let channels = int_of_string v in
-        ans := { !ans with channels }
+        ans := { !ans with channels = channels }
       | "layout" ->
         let interleaved =
           if v = "interleaved" then true
           else if v = "non-interleaved" then false
           else raise Exit
         in
-        ans := { !ans with interleaved }
+        ans := { !ans with interleaved = interleaved }
       | "rate" | "samplerate" ->
         let samplerate = float_of_string v in
-        ans := { !ans with samplerate }
+        ans := { !ans with samplerate = samplerate }
       | _ -> failwith ("Unknown property: "^l)
     ) m;
     Some !ans
