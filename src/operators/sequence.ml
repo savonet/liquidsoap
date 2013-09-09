@@ -63,22 +63,17 @@ object (self)
   method private get_frame buf =
     if head_ready then begin
       let hd = List.hd sources in
-      hd#get buf;
-      if Frame.is_partial buf then
-        (
-          if List.length sources > 1 then
-            (
-              hd#leave (self:>source);
-              head_ready <- false;
-              sources <- List.tl sources;
-            )
-          else
-            head_ready <- hd#is_ready;
+        hd#get buf ;
+        if List.length sources > 1 && Frame.is_partial buf then begin
+          hd#leave (self:>source) ;
+          head_ready <- false ;
+          sources <- List.tl sources ;
           if merge && self#is_ready then
             let pos = Frame.position buf in
-            self#get_frame buf;
-            Frame.set_breaks buf (Utils.remove_one ((=) pos) (Frame.breaks buf))
-        )
+              self#get_frame buf ;
+              Frame.set_breaks buf
+                (Utils.remove_one ((=) pos) (Frame.breaks buf))
+        end
     end else begin
       match sources with
         | a::(_::_ as tl) ->
