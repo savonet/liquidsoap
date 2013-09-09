@@ -95,12 +95,6 @@ def drop_metadata(s)
   map_metadata(fun(_)->[],update=false,strip=true,insert_missing=false,s)
 end
 
-# Merge all tracks from a source.
-# @category Source / Track Processing
-def merge_tracks(s)
-  sequence(merge=true,[s])
-end
-
 # Default inputs and outpus
 #
 # They are called "prefered" but it's not a user preference,
