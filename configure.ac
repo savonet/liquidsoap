@@ -347,25 +347,25 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.4.5])
+AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
 
 #
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.6.1],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[0.6.2],[ogg])
 
 #
 # Opus
 #
 
-AC_CHECK_OCAML_BINDING([opus],[0.1.0],[ogg])
+AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
 
 #
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[0.2.0],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
 
 #
 # Mad
@@ -377,7 +377,7 @@ AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.1])
+AC_CHECK_OCAML_BINDING([flac],[0.1.2])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
@@ -498,13 +498,13 @@ AC_SUBST(W_FDKAAC_DYN)
 # Theora
 #
 
-AC_CHECK_OCAML_BINDING([theora],[0.3.0],[ogg])
+AC_CHECK_OCAML_BINDING([theora],[0.3.1],[ogg])
 
 #
 # Schroedinger
 #
 
-AC_CHECK_OCAML_BINDING([schroedinger],[0.1.0],[ogg])
+AC_CHECK_OCAML_BINDING([schroedinger],[0.1.1],[ogg])
 
 #
 # Gavl
