@@ -42,16 +42,16 @@ type track_data =
 
 type position = Unknown | Time of float
 
-type 'a track_encoder = 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
+type 'a track_encoder = 'a data -> Ogg.Stream.stream -> (Ogg.Page.t -> unit) -> unit
 type page_end_time = Ogg.Page.t -> position
-type header_encoder = Ogg.Stream.t -> Ogg.Page.t
-type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
-type stream_start = Ogg.Stream.t -> Ogg.Page.t list
-type end_of_stream = Ogg.Stream.t -> unit
+type header_encoder = Ogg.Stream.stream -> Ogg.Page.t
+type fisbone_packet = Ogg.Stream.stream -> Ogg.Stream.packet option
+type stream_start = Ogg.Stream.stream -> Ogg.Page.t list
+type end_of_stream = Ogg.Stream.stream -> unit
 
 type 'a stream = 
   {
-    os                : Ogg.Stream.t;
+    os                : Ogg.Stream.stream;
     encoder           : 'a track_encoder;
     end_pos           : page_end_time;
     page_fill         : int option;
@@ -76,7 +76,7 @@ type state = Eos | Streaming | Bos
 type t =
   {
     id               : string;
-    mutable skeleton : Ogg.Stream.t option;
+    mutable skeleton : Ogg.Stream.stream option;
     header           : Buffer.t;
     encoded          : Buffer.t;
     mutable position : float;
