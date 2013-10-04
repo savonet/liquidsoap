@@ -67,14 +67,14 @@ object (self)
       done
 end
 
-let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.any_fixed in
+let declare suffix format fun_ret_t f_rms =
+  let k = Lang.kind_type_of_kind_format ~fresh:3 format in
   let return_t =
     Lang.product_t
-      (Lang.fun_t [] Lang.float_t)
+      (Lang.fun_t [] fun_ret_t)
       (Lang.source_t k)
   in
-  Lang.add_builtin "rms"
+  Lang.add_builtin ("rms"^suffix)
     ~category:(Lang.string_of_category Lang.Visualization)
     ~descr:"Get current audio RMS volume of the source. \
             Returns a pair @(f,s)@ where s is a new source and \
@@ -95,12 +95,17 @@ let () =
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new rms ~kind duration src in
       if id <> "" then s#set_id id;
-      let f =
-        Lang.val_fun [] ~ret_t:Lang.float_t
-          (fun p t ->
-            let rms = s#rms in
-            let r = Array.fold_left (+.) 0. rms in
-            let r = r /. float (Array.length rms) in
-            Lang.float r)
-      in
+      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun p t -> f_rms s#rms) in
       Lang.product f (Lang.source (s :> Source.source)))
+
+let () =
+  let f rms =
+    let r = Array.fold_left (+.) 0. rms in
+    let r = r /. float (Array.length rms) in
+    Lang.float r
+  in
+  let f_stereo rms =
+    Lang.product (Lang.float rms.(0)) (Lang.float rms.(1))
+  in
+  declare "" Lang.any_fixed Lang.float_t f;
+  declare ".stereo" (Lang.any_fixed_with ~audio:2 ()) (Lang.product_t Lang.float_t Lang.float_t) f_stereo
