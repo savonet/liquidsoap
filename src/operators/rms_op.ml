@@ -22,7 +22,9 @@
 
 open Source
 
-class rms ~kind source =
+class virtual base ~kind duration source =
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+  let duration = Frame.audio_of_seconds duration in
 object (self)
   inherit operator kind [source] ~name:"rms" as super
 
@@ -31,26 +33,50 @@ object (self)
   method remaining = source#remaining
   method abort_track = source#abort_track
 
-  val mutable volume = 0.
+  (** Sum of squares. *)
+  val sq = Array.create channels 0.
+  (** Duration of the sum of squares in samples. *)
+  val mutable sq_dur = 0
 
-  val m = Mutex.create ()
-
-  method rms =
-    Tutils.mutexify m
-      (fun () -> volume) ()
+  method virtual on_rms : float array -> unit
 
   method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
-    let rms = AFrame.rms buf offset (AFrame.position buf - offset) in
-    let channels = Array.length rms in
-    Tutils.mutexify m
-      (fun () ->
-        volume <- 0.;
-        for i = 0 to channels - 1 do
-          volume <- volume +. rms.(i)
-        done;
-        volume <- volume /. (float channels)) ()
+    let position = AFrame.position buf in
+    let buf = AFrame.content buf offset in
+    for i = offset to position - 1 do
+      for c = 0 to channels - 1 do
+        let x = buf.(c).(i) in
+        sq.(c) <- sq.(c) +. x *. x
+      done;
+      sq_dur <- sq_dur + 1;
+      if sq_dur = duration then
+        (
+          let dur = float sq_dur in
+          let r = Array.map (fun s -> sqrt (s /. dur)) sq in
+          for i = 0 to channels - 1 do sq.(i) <- 0. done;
+          sq_dur <- 0;
+          self#on_rms r
+        )
+    done
+end
+
+class rms ~kind duration source =
+object (self)
+  inherit base ~kind duration source
+
+  val mutable volume = 0.
+
+  method on_rms r =
+    let channels = Array.length r in
+    let v = ref 0. in
+    for i = 0 to channels - 1 do
+      v := !v +. r.(i)
+    done;
+    volume <- !v /. (float channels)
+
+  method rms = volume
 end
 
 let () =
@@ -67,16 +93,20 @@ let () =
             Returns a pair @(f,s)@ where s is a new source and \
             @f@ is a function of type @() -> float@ and \
             returns the current RMS of the source."
-    [ "id",Lang.string_t,Some (Lang.string ""),
-      Some "Force the value of the source ID.";
-      "", Lang.source_t k, None, None ] return_t
+    [
+      "id", Lang.string_t,Some (Lang.string ""), Some "Force the value of the source ID.";
+      "duration", Lang.float_t, Some (Lang.float 0.5), Some "Duration of the RMS window (in seconds).";
+      "", Lang.source_t k, None, None
+    ]
+    return_t
     (fun p t ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let id = Lang.to_string (f "id") in
+      let duration = Lang.to_float (f "duration") in
       let (_,t) = Lang.of_product_t t in
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
-      let s = new rms ~kind src in
+      let s = new rms ~kind duration src in
       if id <> "" then s#set_id id;
       let f =
         Lang.val_fun [] ~ret_t:Lang.float_t
