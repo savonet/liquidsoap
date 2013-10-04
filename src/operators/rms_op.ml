@@ -24,7 +24,6 @@ open Source
 
 class virtual base ~kind duration source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
-  let duration = Frame.audio_of_seconds duration in
 object (self)
   inherit operator kind [source] ~name:"rms" as super
 
@@ -43,23 +42,26 @@ object (self)
   method private get_frame buf =
     let offset = AFrame.position buf in
     source#get buf;
-    let position = AFrame.position buf in
-    let buf = AFrame.content buf offset in
-    for i = offset to position - 1 do
-      for c = 0 to channels - 1 do
-        let x = buf.(c).(i) in
-        sq.(c) <- sq.(c) +. x *. x
-      done;
-      sq_dur <- sq_dur + 1;
-      if sq_dur = duration then
-        (
-          let dur = float sq_dur in
-          let r = Array.map (fun s -> sqrt (s /. dur)) sq in
-          for i = 0 to channels - 1 do sq.(i) <- 0. done;
-          sq_dur <- 0;
-          self#on_rms r
-        )
-    done
+    let duration = duration () in
+    if duration > 0. then
+      let duration = Frame.audio_of_seconds duration in
+      let position = AFrame.position buf in
+      let buf = AFrame.content buf offset in
+      for i = offset to position - 1 do
+        for c = 0 to channels - 1 do
+          let x = buf.(c).(i) in
+          sq.(c) <- sq.(c) +. x *. x
+        done;
+        sq_dur <- sq_dur + 1;
+        if sq_dur >= duration then
+          (
+            let dur = float sq_dur in
+            let r = Array.map (fun s -> sqrt (s /. dur)) sq in
+            for i = 0 to channels - 1 do sq.(i) <- 0. done;
+            sq_dur <- 0;
+            self#on_rms r
+          )
+      done
 end
 
 class rms ~kind duration source =
@@ -80,8 +82,7 @@ object (self)
 end
 
 let () =
-  let format = Lang.any_fixed_with ~audio:1 () in
-  let k = Lang.kind_type_of_kind_format ~fresh:1 format in
+  let k = Lang.kind_type_of_kind_format ~fresh:3 Lang.any_fixed in
   let return_t =
     Lang.product_t
       (Lang.fun_t [] Lang.float_t)
@@ -95,7 +96,7 @@ let () =
             returns the current RMS of the source."
     [
       "id", Lang.string_t,Some (Lang.string ""), Some "Force the value of the source ID.";
-      "duration", Lang.float_t, Some (Lang.float 0.5), Some "Duration of the RMS window (in seconds).";
+      "duration", Lang.float_getter_t 2, Some (Lang.float 0.5), Some "Duration of the RMS window (in seconds). A value <= 0, means that computation should not be performed.";
       "", Lang.source_t k, None, None
     ]
     return_t
@@ -103,7 +104,7 @@ let () =
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let id = Lang.to_string (f "id") in
-      let duration = Lang.to_float (f "duration") in
+      let duration = Lang.to_float_getter (f "duration") in
       let (_,t) = Lang.of_product_t t in
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new rms ~kind duration src in
