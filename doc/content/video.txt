@@ -223,12 +223,46 @@ s = add([s,cam])
 output.sdl(fallible=true,drop_audio(s))
 %%
 
+h4. Encoding with GStreamer codecs
+
+Gstreamer codecs can be used to encode videos and audio as any natively
+supported format. For instance, suppose that you want to stream using harbor in
+x264 / mp3. This can be achieved as follows:
+
+%%
+# Set the values for video size and fps.
+# On my standard computer, higher values means
+# that we cannot encode in realtime.
+set("frame.video.width", 320)
+set("frame.video.height",240)
+set("frame.video.samplerate",12)
+
+# The video we want to stream.
+s = single("big_buck_bunny_720p_stereo.ogg")
+# This hack is necessary (for now) in order
+# to leave the synchronization to GStreamer.
+clock.assign_new(sync=false,[s])
+
+output.harbor(
+  format="video/mpeg",
+  icy_metadata="false",
+  mount="/test",
+  %gstreamer(video="x264enc speed-preset=1",audio="lamemp3enc"),
+  s)
+%%
+
+The video can be read after that at
+"http://localhost:8000/test":http://localhost:8000/test and of course an
+@output.icecast@ or @output.file@ could have been used instead of
+@output.harbor@ depending on your needs.
+
 h4. Streaming with GStreamer
 
 The usual way to stream a video is using icecast, as for audio. However, it can
 happen that you want to use weired formats or ways to to stream. In this case,
-using GStreamer might be a good idea. For instance, suppose that you want to
-stream mp4 video using RTP. This can be done as follows:
+using GStreamer as output (as opposed to simply a codec as above) might be a
+good idea. For instance, suppose that you want to stream mp4 video using
+RTP. This can be done as follows:
 
 %%
 s = single("test.mp4")
