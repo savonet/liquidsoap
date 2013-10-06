@@ -31,11 +31,11 @@ size of videos have a great impact on computations; if your machine cannot
 handle a stream (i.e. it's always catching up) you can try to encode to smaller
 videos for a start.
 
-h3. Useful tips & tricks
+h3@tips. Useful tips & tricks
 
 Video is a really exciting world where there are lots of cool stuff to do.
 
-h4. Transitions
+h4@transitions. Transitions
 
 Transitions at the beginning or at the end of video can be achieved using
 @video.fade.in@ and @video.fade.out@. For instance, fading at the beginning of
@@ -45,7 +45,7 @@ videos is done by
 source = video.fade.in(transition="fade",duration=3.,source)
 %%
 
-h4. Adding a logo
+h4@logo. Adding a logo
 
 You can add a logo (any image) using the @video.add_image@ operator, as follows:
 
@@ -57,7 +57,7 @@ source = video.add_image(
        source)
 %%
 
-h4. Inputting from a webcam
+h4@webcam. Inputting from a webcam
 
 If your computer has a webcam, it can be used as a source thanks to the
 @input.v4l2@ operator. For instance:
@@ -66,7 +66,7 @@ If your computer has a webcam, it can be used as a source thanks to the
 output.sdl(input.v4l2())
 %%
 
-h4. Video in video
+h4@video_in_video. Video in video
 
 Suppose that you have two video sources @source@ and @source2@ and you want to
 display a small copy of @source2@ on top of @source@. This can be achieved by
@@ -76,7 +76,7 @@ source2 = video.scale(scale=0.2,x=10,y=10,source2)
 source = add([source,source2])
 %%
 
-h4. Scrolling text
+h4@scrolltext. Scrolling text
 
 Adding scrolling text at the bottom of your video is as easy as
 
@@ -89,7 +89,7 @@ source = video.add_text.sdl(
 You might need to change the @font@ parameter so that it matches a font file
 present on your system.
 
-h4. Effects
+h4@effects. Effects
 
 There are many of effects that you can use to add some fun to your videos:
 @video.greyscale@, @video.sepia@, @video.lomo@, etc. "Read the
@@ -98,7 +98,7 @@ Liquidsoap with "frei0r":http://www.piksel.org/frei0r/ support, and have
 installed frei0r plugins, they will be named @video.frei0r.*@. You can have a
 list of those supported on your installation as usual, using @liquidsoap --list-plugins@.
 
-h4. Presenting weather forecast
+h4@weather. Presenting weather forecast
 
 You can say that a specific color should be transparent using
 @video.transparent@. For instance, you can put yourself in front of a blue
@@ -112,9 +112,9 @@ cam = video.transparent(color=0x0000ff,precision=0.2,cam)
 source = add([img,cam])
 %%
 
-h3. Detailed examples
+h3@examples. Detailed examples
 
-h4. The anonymizer
+h4@anonymizer. The anonymizer
 
 Let's design an "anonymizer" effect: I want to blur my face and change my voice
 so that nobody will recognise me in the street after seeing the youtube
@@ -158,7 +158,7 @@ s = mksafe(s)
 output.file(%ogg(%theora(quality=63),%vorbis), "anonymous.ogv", s)
 %%
 
-h4. Controlling with OSC
+h4@osc. Controlling with OSC
 
 In this example we are going to use OSC integration in order to modify the
 parameters in realtime. There are many OSC clients around, for instance I used
@@ -195,7 +195,7 @@ output.pulseaudio(fallible=true,s)
 output.sdl(fallible=true,drop_audio(s))
 %%
 
-h4. Blue screen
+h4@bluescreen. Blue screen
 
 You want to show yourself in front of a video of a bunny, as in
 
@@ -223,7 +223,7 @@ s = add([s,cam])
 output.sdl(fallible=true,drop_audio(s))
 %%
 
-h4. Encoding with GStreamer codecs
+h4@gstreamer_codecs. Encoding with GStreamer codecs
 
 Gstreamer codecs can be used to encode videos and audio as any natively
 supported format. For instance, suppose that you want to stream using harbor in
@@ -256,7 +256,7 @@ The video can be read after that at
 @output.icecast@ or @output.file@ could have been used instead of
 @output.harbor@ depending on your needs.
 
-h4. Streaming with GStreamer
+h4@gstreamer_output. Streaming with GStreamer
 
 The usual way to stream a video is using icecast, as for audio. However, it can
 happen that you want to use weired formats or ways to to stream. In this case,
@@ -279,9 +279,9 @@ c=IN IP4 127.0.0.1
 a=rtpmap:96 MP4V-ES/90000
 %%
 
-h3. Frequently asked questions
+h3@faq. Frequently asked questions
 
-h4. audio=1+_
+h4@audio_plus. audio=1+_
 
 When I try
 
@@ -323,9 +323,9 @@ s = input.v4l2_with_audio()
 output.sdl(drop_audio(s))
 %%
 
-h3. Advanced parameters
+h3@parameters. Advanced parameters
 
-h4. Default size for videos
+h4@size. Default size for videos
 
 Internally, Liquidsoap uses a video format which is the same for all frames. You
 can change it by doing
@@ -339,7 +339,7 @@ set("frame.video.samplerate",24)
 Using higher values result in higher quality videos produced, but this also
 means more computations to perform!
 
-h4. Converters
+h4@converters. Converters
 
 Most videos need to be rescaled to the Liquidsoap internal format. The default
 converter is the GAVL library but you can choose other (such as @native@ or
