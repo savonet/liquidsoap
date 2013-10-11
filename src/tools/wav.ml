@@ -25,12 +25,16 @@ type 'a read_ops =
     really_input : 'a -> string -> int -> int -> unit ;
     input_byte   : 'a -> int;
     input        : 'a -> string -> int -> int -> int ;
+    seek         : 'a -> int -> unit;
     close        : 'a -> unit; 
   }
 
 let in_chan_ops = { really_input = really_input ;
                     input_byte = input_byte ;
-                    input = input; close = close_in }
+                    input = input ;
+                    seek = (fun ic len ->
+                      seek_in ic ((pos_in ic) + len));
+                    close = close_in }
 
 type 'a t =
     {
@@ -83,14 +87,23 @@ let read_header read_ops ic =
     really_input ic ans 0 n;
     ans
   in
+  let seek_chunk ic name =
+    let rec seek () =
+      if read_string ic 4 <> name then
+       begin
+        read_ops.seek ic (read_int ic);
+        seek ()
+       end
+    in
+    seek ();
+  in
 
     if read_string ic 4 <> "RIFF" then
       raise (Not_a_wav_file "Bad header: \"RIFF\" expected");
     ignore (read_int ic); (* size of the file *)
     if read_string ic 4 <> "WAVE" then
       raise (Not_a_wav_file "Bad header: \"WAVE\" expected");
-    if read_string ic 4 <> "fmt " then
-      raise (Not_a_wav_file "Bad header: \"fmt \" expected");
+    seek_chunk ic "fmt ";
 
     let fmt_len = read_int ic in
     if fmt_len < 0x10 then
@@ -106,25 +119,19 @@ let read_header read_ops ic =
     (* The fmt header can be padded *)
     if fmt_len > 0x10 then ignore (read_int_num_bytes ic (fmt_len - 0x10));
 
-    let header = ref (read_string ic 4) in
-      (* Skip unhandled chunks. *)
-      while !header <> "data" do
-        let len = read_int ic in
-        ignore (read_string ic len);
-        header := read_string ic 4
-      done;
-
-      let len_dat = read_int ic in
-        {
-          ic = ic ;
-          read_ops = read_ops;
-          channels_number = chan_num;
-          sample_rate = samp_hz;
-          bytes_per_second = byt_per_sec;
-          bytes_per_sample = byt_per_samp;
-          bits_per_sample = bit_per_samp;
-          length_of_data_to_follow = len_dat;
-        }
+    (* Skip unhandled chunks. *)
+    seek_chunk ic "data";  
+    let len_dat = read_int ic in
+      {
+        ic = ic ;
+        read_ops = read_ops;
+        channels_number = chan_num;
+        sample_rate = samp_hz;
+        bytes_per_second = byt_per_sec;
+        bytes_per_sample = byt_per_samp;
+        bits_per_sample = bit_per_samp;
+        length_of_data_to_follow = len_dat;
+      }
 
 let in_chan_read_header = read_header in_chan_ops
 

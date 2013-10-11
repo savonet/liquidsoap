@@ -31,6 +31,8 @@ type 'a read_ops =
     really_input : 'a -> string -> int -> int -> unit ;
     input_byte   : 'a -> int ;
     input        : 'a -> string -> int -> int -> int ;
+    (* Seek bytes from the _current_ stream position. *)
+    seek         : 'a -> int -> unit;
     close        : 'a -> unit
   }
 

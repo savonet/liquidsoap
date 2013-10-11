@@ -52,11 +52,16 @@ let input input buf ofs len =
   String.blit ret 0 buf ofs len ;
   len
 
+let seek input len =
+  let s = String.create len in
+  ignore(really_input input s 0 len)
+
 let input_ops =
   { Wav.
      really_input = really_input ;
      input_byte = input_byte ;
      input = input ;
+     seek = seek ;
      close = fun _ -> ()
   }
 
