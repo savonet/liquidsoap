@@ -37,9 +37,11 @@ object (self)
   (** Duration of the sum of squares in samples. *)
   val mutable sq_dur = 0
   (** Last computed rms. *)
-  val rms = Array.create channels 0.
+  val mutable rms = Array.create channels 0.
 
-  method rms = rms
+  val m = Mutex.create ()
+
+  method rms = Tutils.mutexify m (fun () -> rms) ()
 
   method private get_frame buf =
     let offset = AFrame.position buf in
@@ -56,14 +58,15 @@ object (self)
         done;
         sq_dur <- sq_dur + 1;
         if sq_dur >= duration then
-          (
-            let dur = float sq_dur in
-            for i = 0 to channels - 1 do
-              rms.(i) <- sqrt (sq.(i) /. dur);
-              sq.(i) <- 0.
-            done;
-            sq_dur <- 0
-          )
+          let dur = float sq_dur in
+          let rms' = Array.init channels
+            (fun i ->
+              let r = sqrt (sq.(i) /. dur) in
+              sq.(i) <- 0.;
+              r)
+          in
+          sq_dur <- 0;
+          Tutils.mutexify m (fun () -> rms <- rms') ()
       done
 end
 
