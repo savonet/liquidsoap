@@ -49,10 +49,9 @@ end
 module Icecast_v(M:Icecast_t) = 
 struct
   type encoder_data = {
-    factory      : string -> Encoder.Meta.export_metadata -> Encoder.encoder;
-    format       : M.content;
-    icy_metadata : bool;
-    info         : M.info;
+    factory : string -> Encoder.Meta.export_metadata -> Encoder.encoder;
+    format  : M.content;
+    info    : M.info;
   }
 
   let mpeg = M.format_of_content mpeg_mime
@@ -78,11 +77,6 @@ struct
       | Encoder.WAV _ -> Some wav
       | Encoder.Ogg _ -> Some ogg
 
-  let icy_metadata =
-    function
-      | Encoder.Ogg _ -> true
-      | _ -> false
-
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
     let enc = Lang.to_format v in
@@ -104,9 +98,8 @@ struct
                                                  "No format (mime) found, \
                                                   please specify one."))
     in
-    { factory      = encoder_factory;
-      format       = format;
-      icy_metadata = icy_metadata enc;
-      info         = info }
+    { factory = encoder_factory;
+      format  = format;
+      info    = info }
 end
 
