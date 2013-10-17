@@ -265,14 +265,12 @@ class output ~kind p =
                 (Lang.apply ~t: Lang.unit_t on_disconnect
                    [ ("", (Lang.string s)) ])
             in let metaint = Lang.to_int (List.assoc "metaint" p)
-              in
-                let (_, encoder_factory, format, icecast_info, icy_metadata,
-                     ogg) =
-                  encoder_data p
+              in let data = encoder_data p
                 in
                   let out_enc =
                     match Lang.to_string (List.assoc "encoding" p) with
-                    | "" -> if icy_metadata then "ISO-8859-1" else "UTF-8"
+                    | "" ->
+                        if data.icy_metadata then "ISO-8859-1" else "UTF-8"
                     | s -> String.uppercase s
                   in let timeout = Lang.to_float (List.assoc "timeout" p)
                     in let buflen = Lang.to_int (List.assoc "buffer" p)
@@ -521,6 +519,7 @@ class output ~kind p =
                                                                     a (
                                                                     f b)) m;
                                                                     if
+                                                                    data.
                                                                     icy_metadata
                                                                     then
                                                                     Tutils.
@@ -572,6 +571,7 @@ class output ~kind p =
                                                                     "Icy-MetaData"
                                                                     headers)
                                                                     = "1") &&
+                                                                    data.
                                                                     icy_metadata);
                                                                     (metaint,
                                                                     (Printf.
@@ -601,6 +601,7 @@ class output ~kind p =
                                                                     sprintf
                                                                     "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n"
                                                                     protocol
+                                                                    data.
                                                                     format
                                                                     icyheader
                                                                     extra_headers in
@@ -1044,7 +1045,8 @@ class output ~kind p =
                                                                     = None);
                                                                    let enc 
                                                                     =
-                                                                    encoder_factory
+                                                                    data.
+                                                                    factory
                                                                     self#id
                                                                    in
                                                                     (encoder

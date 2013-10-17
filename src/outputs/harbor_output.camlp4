@@ -305,16 +305,12 @@ class output ~kind p =
 
   let metaint = Lang.to_int (List.assoc "metaint" p) in
 
-  let _,encoder_factory, 
-      format,icecast_info,icy_metadata,
-      ogg =
-    encoder_data p
-  in
+  let data = encoder_data p in
 
   let out_enc =
     match Lang.to_string (List.assoc "encoding" p) with
       | "" ->
-         if icy_metadata then
+         if data.icy_metadata then
            "ISO-8859-1"
          else
            "UTF-8"
@@ -445,7 +441,7 @@ object (self)
     let meta = Hashtbl.create (Hashtbl.length m) in
     let f = Configure.recode_tag ~out_enc in
     Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m ;
-    if icy_metadata then
+    if data.icy_metadata then
       Tutils.mutexify metadata.metadata_m
         (fun () -> 
           metadata.metadata <- Some meta) ()
@@ -461,7 +457,7 @@ object (self)
     in
     let metaint,icyheader = 
       try
-        assert(List.assoc "Icy-MetaData" headers = "1" && icy_metadata);
+        assert(List.assoc "Icy-MetaData" headers = "1" && data.icy_metadata);
         metaint,Printf.sprintf "icy-metaint: %d\r\n" metaint
       with
         | _ -> -1,""
@@ -473,7 +469,7 @@ object (self)
     in
     let reply = 
       Printf.sprintf "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" 
-         protocol format icyheader extra_headers
+         protocol data.format icyheader extra_headers
     in
     let buffer = Buffer.create buflen in
     begin
@@ -642,7 +638,7 @@ object (self)
 
   method output_start =
     assert (encoder = None) ;
-    let enc = encoder_factory self#id in
+    let enc = data.factory self#id in
     encoder <- 
        Some (enc (Encoder.Meta.empty_metadata)) ;
     let handler ~protocol ~data ~headers ~socket
