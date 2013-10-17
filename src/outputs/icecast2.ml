@@ -257,7 +257,35 @@ class output ~kind p =
                    (v, "Valid values are 'http' (icecast) \
                         and 'icy' (shoutcast)"))
   in
-  let icy_metadata = Lang.to_bool (List.assoc "icy_metadata" p) in
+  let icy_metadata =
+    let v = List.assoc "icy_metadata" p in
+    let icy =
+       match Lang.to_string v with
+         | "guess" -> `Guess
+         | "true"  -> `True
+         | "false" -> `False
+         | _ ->
+               raise (Lang.Invalid_value
+                       (v, "Valid values are 'guess', \
+                           'true' or 'false'"))
+    in
+    match data.format, icy with
+      | _, `True -> true
+      | _, `False -> false
+      | x, `Guess when x = mpeg ||
+                       x = wav ||
+                       x = aac ||
+                       x = aacplus ||
+                       x = flac -> true
+      | x, `Guess when x = ogg_application ||
+                       x = ogg_audio ||
+                       x = ogg_video -> false
+      | _, _ ->
+           raise (Lang.Invalid_value
+                    (List.assoc "icy_metadata" p,
+                     "Could not guess icy_metadata for this format, \
+                     please specify either 'true' or 'false'."))
+  in
 
   let ogg =
     match data.format with

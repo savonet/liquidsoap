@@ -680,39 +680,49 @@ let handle_client ~port ~icy h =
     with
     | _ -> hprotocol
   in
+  let is_source =
+    try
+      ignore(find_source huri port);
+      true
+    with Not_found -> false
+  in
+  let handle_source () =
+    duppy (auth,huri,protocol) =
+      (* X-audiocast sends lines of the form:
+       * [SOURCE password path] *)
+      match hprotocol with
+        | `Xaudiocast_uri uri ->
+            let password = huri in
+            (* We check authentication here *)
+            duppy s =
+              try
+                duppy_return (find_source uri port)
+              with
+                | Not_found ->
+                     log#f 4 "Request failed: no mountpoint '%s'!" uri ;
+                     reply (http_error_page 404 "Not found"
+                             "This mountpoint isn't available.")
+            in
+            (* Authentication can be blocking *)
+            duppy_exec
+              let valid_user,auth_f = s#login in
+              if not (auth_f valid_user password) then
+                reply "Invalid password!"
+              else
+                (* ICY = true means that authentication has already
+                 * hapenned *)
+                duppy_return (true,uri,`Xaudiocast)
+            with
+              { priority = Tutils.Maybe_blocking ;
+                handler  = h }
+        | _ -> duppy_return (false,huri,`Source)
+    in
+    handle_source_request ~port ~auth ~protocol hprotocol h huri headers
+  in
   match hmethod with
-    | `Source when not icy ->
-        duppy (auth,huri,protocol) =
-          (* X-audiocast sends lines of the form:
-           * [SOURCE password path] *)
-          match hprotocol with
-            | `Xaudiocast_uri uri ->
-                let password = huri in
-                (* We check authentication here *)
-                duppy s =
-                  try
-                    duppy_return (find_source uri port)
-                  with
-                    | Not_found ->
-                         log#f 4 "Request failed: no mountpoint '%s'!" uri ;
-                         reply (http_error_page 404 "Not found"
-                                 "This mountpoint isn't available.")
-                in
-                (* Authentication can be blocking *)
-                duppy_exec
-                  let valid_user,auth_f = s#login in
-                  if not (auth_f valid_user password) then
-                    reply "Invalid password!"
-                  else
-                    (* ICY = true means that authentication has already
-                     * hapenned *)
-                    duppy_return (true,uri,`Xaudiocast)
-                with
-                  { priority = Tutils.Maybe_blocking ;
-                    handler  = h }
-            | _ -> duppy_return (false,huri,`Source)
-        in
-        handle_source_request ~port ~auth ~protocol hprotocol h huri headers
+    | `Put when is_source -> handle_source ()
+    | `Post when is_source -> handle_source ()
+    | `Source when not icy -> handle_source ()
     | `Get when hprotocol = `Websocket ->
          handle_websocket_request ~port h huri headers
     | `Get     
