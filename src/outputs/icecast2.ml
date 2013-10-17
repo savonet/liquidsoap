@@ -185,7 +185,7 @@ let proto kind =
     "verb", Lang.string_t, (Some (Lang.string "SOURCE")),
      Some "Verb to use with the 'http' protocol. One of: \
            'SOURCE', 'PUT' or 'POST'.";
-    "chunked", Lang.string_t, (Some (Lang.bool false)),
+    "chunked", Lang.bool_t, (Some (Lang.bool false)),
      Some "Used cunked transfer with the 'http' protocol.";
     "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
      Some "Send new metadata using the ICY protocol. \

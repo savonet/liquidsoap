@@ -364,11 +364,29 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                       -> "audio/mpeg"
           | Not_found -> raise Unknown_codec
        in
+       let chunked = 
+         try
+           (assoc_uppercase "TRANSFER-ENCODING" headers) = "chunked"
+          with
+            | Not_found -> false
+       in
+       let read = 
+         if chunked then 
+           Some (Http.read_chunked ~timeout:conf_timeout#get)
+         else
+           None
+       in
        let f () = 
-         s#relay stype headers h.Duppy.Monad.Io.socket
+         s#relay ?read stype headers h.Duppy.Monad.Io.socket
        in
        log#f 4 "Adding source on mountpoint %S with type %S." uri stype ;
-       relayed "HTTP/1.0 200 OK\r\n\r\n" f
+       let protocol =
+         match hprotocol with
+           | `Http_10 -> "HTTP/1.0"
+           | `Http_11 -> "HTTP/1.1"
+           | _ -> assert false
+       in
+       relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f
     with
       | Mount_taken ->
          log#f 4 "Returned 403: Mount taken" ;
