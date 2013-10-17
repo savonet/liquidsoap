@@ -328,9 +328,9 @@ let auth_check ?args ~login h uri headers =
     { priority = Tutils.Maybe_blocking ;
       handler  = h }
 
-let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
+let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
   (* ICY request are on port+1 *)
-  let source_port = if protocol = `Shout then port-1 else port in
+  let source_port = if smethod = `Shout then port-1 else port in
   duppy s =
     try
       duppy_return (find_source uri source_port)
@@ -348,9 +348,11 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
        duppy_return () ;
     try
       let sproto =
-       match protocol with
+       match smethod with
          | `Shout -> "ICY"
          | `Source -> "SOURCE"
+         | `Put -> "PUT (source)"
+         | `Post -> "POST (source)"
          | `Xaudiocast -> "X-AUDIOCAST"
          | _ -> assert false
        in
@@ -359,8 +361,8 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
         try
          assoc_uppercase "CONTENT-TYPE" headers
         with
-          | Not_found when protocol = `Shout ||
-                           protocol = `Xaudiocast
+          | Not_found when smethod = `Shout ||
+                           smethod = `Xaudiocast
                       -> "audio/mpeg"
           | Not_found -> raise Unknown_codec
        in
@@ -704,8 +706,8 @@ let handle_client ~port ~icy h =
       true
     with Not_found -> false
   in
-  let handle_source () =
-    duppy (auth,huri,protocol) =
+  let handle_source smethod =
+    duppy (auth,huri,smethod) =
       (* X-audiocast sends lines of the form:
        * [SOURCE password path] *)
       match hprotocol with
@@ -733,14 +735,14 @@ let handle_client ~port ~icy h =
             with
               { priority = Tutils.Maybe_blocking ;
                 handler  = h }
-        | _ -> duppy_return (false,huri,`Source)
+        | _ -> duppy_return (false,huri,smethod)
     in
-    handle_source_request ~port ~auth ~protocol hprotocol h huri headers
+    handle_source_request ~port ~auth ~smethod hprotocol h huri headers
   in
   match hmethod with
-    | `Put when is_source -> handle_source ()
-    | `Post when is_source -> handle_source ()
-    | `Source when not icy -> handle_source ()
+    | `Put when is_source -> handle_source `Put
+    | `Post when is_source -> handle_source `Post
+    | `Source when not icy -> handle_source `Source
     | `Get when hprotocol = `Websocket ->
          handle_websocket_request ~port h huri headers
     | `Get     
@@ -790,7 +792,7 @@ let handle_client ~port ~icy h =
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s
           in
           let headers = parse_headers (List.tl lines) in
-          handle_source_request ~port ~auth:true ~protocol:`Shout hprotocol
+          handle_source_request ~port ~auth:true ~smethod:`Shout hprotocol
                                 h huri headers
         done
    | _ ->
