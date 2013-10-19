@@ -182,9 +182,9 @@ let proto kind =
     "protocol", Lang.string_t, (Some (Lang.string "http")),
      Some "Protocol of the streaming server: \
           'http' for Icecast, 'icy' for shoutcast." ;
-    "verb", Lang.string_t, (Some (Lang.string "SOURCE")),
+    "verb", Lang.string_t, (Some (Lang.string "source")),
      Some "Verb to use with the 'http' protocol. One of: \
-           'SOURCE', 'PUT' or 'POST'.";
+           'source', 'put' or 'post'.";
     "chunked", Lang.bool_t, (Some (Lang.bool false)),
      Some "Used cunked transfer with the 'http' protocol.";
     "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
@@ -241,12 +241,12 @@ class output ~kind p =
     let verb =
       let v = List.assoc "verb" p in
       match Lang.to_string v with
-        | "SOURCE" -> Cry.Source
-        | "PUT"    -> Cry.Put
-        | "POST"   -> Cry.Post
+        | "source" -> Cry.Source
+        | "put"    -> Cry.Put
+        | "post"   -> Cry.Post
         | _ -> raise (Lang.Invalid_value
-                   (v, "Valid values are: 'SOURCE' \
-                       'PUT' or 'POST'.")) 
+                   (v, "Valid values are: 'source' \
+                       'put' or 'post'.")) 
     in  
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
