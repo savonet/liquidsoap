@@ -324,7 +324,7 @@ fi
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.2.2])
+AC_CHECK_OCAML_BINDING([cry],[0.3.0])
 
 # ocaml-mm
 #

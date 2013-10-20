@@ -295,9 +295,9 @@ let auth_check ?args ~login h uri headers =
   Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
     (auth_check ?args ~login uri headers)
   
-let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
+let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
   (* ICY request are on port+1 *)
-  let source_port = if protocol = `Shout then port - 1 else port in
+  let source_port = if smethod = `Shout then port - 1 else port in
   let __pa_duppy_0 =
     try Duppy.Monad.return (find_source uri source_port)
     with
@@ -317,9 +317,11 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
            (fun () ->
               try
                 let sproto =
-                  match protocol with
+                  match smethod with
                   | `Shout -> "ICY"
                   | `Source -> "SOURCE"
+                  | `Put -> "PUT (source)"
+                  | `Post -> "POST (source)"
                   | `Xaudiocast -> "X-AUDIOCAST"
                   | _ -> assert false
                 in
@@ -328,14 +330,31 @@ let handle_source_request ~port ~auth ~protocol hprotocol h uri headers =
                      try assoc_uppercase "CONTENT-TYPE" headers
                      with
                      | Not_found when
-                         (protocol = `Shout) || (protocol = `Xaudiocast) ->
+                         (smethod = `Shout) || (smethod = `Xaudiocast) ->
                          "audio/mpeg"
                      | Not_found -> raise Unknown_codec in
-                   let f () = s#relay stype headers h.Duppy.Monad.Io.socket
+                   let chunked =
+                     try
+                       (assoc_uppercase "TRANSFER-ENCODING" headers) =
+                         "chunked"
+                     with | Not_found -> false in
+                   let read =
+                     if chunked
+                     then Some (Http.read_chunked ~timeout: conf_timeout#get)
+                     else None in
+                   let f () =
+                     s#relay ?read stype headers h.Duppy.Monad.Io.socket
                    in
                      (log#f 4 "Adding source on mountpoint %S with type %S."
                         uri stype;
-                      relayed "HTTP/1.0 200 OK\r\n\r\n" f))
+                      let protocol =
+                        match hprotocol with
+                        | `Http_10 -> "HTTP/1.0"
+                        | `Http_11 -> "HTTP/1.1"
+                        | _ -> assert false
+                      in
+                        relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol)
+                          f))
               with
               | Mount_taken ->
                   (log#f 4 "Returned 403: Mount taken";
@@ -645,50 +664,54 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                      then raise Exit
                      else ();
                      `Websocket)
-                  with | _ -> hprotocol
+                  with | _ -> hprotocol in
+                let is_source =
+                  try (ignore (find_source huri port); true)
+                  with | Not_found -> false in
+                let handle_source smethod =
+                  let __pa_duppy_0 =
+                    (* X-audiocast sends lines of the form:
+       * [SOURCE password path] *)
+                    match hprotocol with
+                    | `Xaudiocast_uri uri ->
+                        let password = huri in
+                        (* We check authentication here *)
+                        let __pa_duppy_0 =
+                          (try Duppy.Monad.return (find_source uri port)
+                           with
+                           | Not_found ->
+                               (log#f 4 "Request failed: no mountpoint '%s'!"
+                                  uri;
+                                reply
+                                  (http_error_page 404 "Not found"
+                                     "This mountpoint isn't available.")))
+                        in
+                          Duppy.Monad.bind __pa_duppy_0
+                            (fun s -> (* Authentication can be blocking *)
+                               Duppy.Monad.Io.exec
+                                 ~priority:
+                                   (* ICY = true means that authentication has already
+                 * hapenned *)
+                                   Tutils.Maybe_blocking
+                                 h
+                                 (let (valid_user, auth_f) = s#login
+                                  in
+                                    if not (auth_f valid_user password)
+                                    then reply "Invalid password!"
+                                    else
+                                      Duppy.Monad.return
+                                        (true, uri, `Xaudiocast)))
+                    | _ -> Duppy.Monad.return (false, huri, smethod)
+                  in
+                    Duppy.Monad.bind __pa_duppy_0
+                      (fun (auth, huri, smethod) ->
+                         handle_source_request ~port ~auth ~smethod hprotocol
+                           h huri headers)
                 in
                   match hmethod with
-                  | `Source when not icy ->
-                      let __pa_duppy_0 =
-                        (* X-audiocast sends lines of the form:
-           * [SOURCE password path] *)
-                        (match hprotocol with
-                         | `Xaudiocast_uri uri ->
-                             let password = huri in
-                             (* We check authentication here *)
-                             let __pa_duppy_0 =
-                               (try Duppy.Monad.return (find_source uri port)
-                                with
-                                | Not_found ->
-                                    (log#f 4
-                                       "Request failed: no mountpoint '%s'!"
-                                       uri;
-                                     reply
-                                       (http_error_page 404 "Not found"
-                                          "This mountpoint isn't available.")))
-                             in
-                               Duppy.Monad.bind __pa_duppy_0
-                                 (fun s ->
-                                    (* Authentication can be blocking *)
-                                    Duppy.Monad.Io.exec
-                                      ~priority:
-                                        (* ICY = true means that authentication has already
-                     * hapenned *)
-                                        Tutils.Maybe_blocking
-                                      h
-                                      (let (valid_user, auth_f) = s#login
-                                       in
-                                         if not (auth_f valid_user password)
-                                         then reply "Invalid password!"
-                                         else
-                                           Duppy.Monad.return
-                                             (true, uri, `Xaudiocast)))
-                         | _ -> Duppy.Monad.return (false, huri, `Source))
-                      in
-                        Duppy.Monad.bind __pa_duppy_0
-                          (fun (auth, huri, protocol) ->
-                             handle_source_request ~port ~auth ~protocol
-                               hprotocol h huri headers)
+                  | `Put when is_source -> handle_source `Put
+                  | `Post when is_source -> handle_source `Post
+                  | `Source when not icy -> handle_source `Source
                   | `Get when hprotocol = `Websocket ->
                       handle_websocket_request ~port h huri headers
                   | `Get | `Post | `Put | `Delete | `Options | `Head when
@@ -732,7 +755,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                                   let headers = parse_headers (List.tl lines)
                                   in
                                     handle_source_request ~port ~auth: true
-                                      ~protocol: `Shout hprotocol h huri
+                                      ~smethod: `Shout hprotocol h huri
                                       headers))
                   | _ ->
                       (log#f 4 "Returned 501: not implemented";

@@ -187,7 +187,7 @@ object (self)
                       mountpointpoint '%s' and port %i." mountpoint port))
     end ;
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s"
+    log_ref := fun (s) -> self#log#f 3 "%s" s
 
   method private sleep =
     self#disconnect ~lock:true;

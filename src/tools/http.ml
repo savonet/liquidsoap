@@ -207,39 +207,61 @@ type status = string * int * string
 
 type headers = (string*string) list
 
-(* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-let read_crlf ?(log=fun _ -> ()) ?(max=4096) ~timeout socket =
-  (* We read until we see [\r]?\n[\r]?\n *)
+(* An ugly code to read until we see [\r]?\n n times. *)
+let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
+  (* We read until we see [\r]?\n n times *)
   let ans = Buffer.create 10 in
   let n = ref 0 in
-  let loop = ref true in
-  let was_n = ref false in
+  let count_n = ref 0 in
+  let stop = ref false in
   let c = String.create 1 in
     (* We need to parse char by char because
      * we want to make sure we stop at the exact
-     * end of [\r]?\n[\r]?\n in order to pass a socket
+     * end of [\r]?\n in order to pass a socket
      * which is placed at the exact char after it.
      * The maximal length is a security but it may
      * be lifted.. *)
-    while !loop && !n < max do
+    while !count_n < count && !n < max && not !stop do
       (* This is quite ridiculous but we have 
        * no way to know how much data is available
        * in the socket.. *)
       Tutils.wait_for ~log `Read socket timeout;
       let h = Unix.read socket c 0 1 in
         if h < 1 then
-          loop := false
+          stop := true
         else
           (
             Buffer.add_string ans c;
             if c = "\n" then
-              (if !was_n then loop := false else was_n := true)
+              incr count_n
             else if c <> "\r" then
-              was_n := false
+              count_n := 0
           );
         incr n
     done;
     Buffer.contents ans
+
+(* Read chunked transfer. *)
+let read_chunked ~timeout socket len =
+  let read = read_crlf ~count:1 ~timeout socket in
+  let len = List.hd (Pcre.split ~pat:"[\r]?\n" read) in
+  let len = List.hd (Pcre.split ~pat:";" len) in
+  let len = int_of_string ("0x" ^ len) in
+  let buf = Buffer.create len in
+  let rec f () =
+    let rem = len - Buffer.length buf in
+    assert(0 < rem);
+    let s = String.create rem in
+    let n = Unix.read socket s 0 rem in
+    Buffer.add_substring buf s 0 n;
+    if Buffer.length buf = len then
+      Buffer.contents buf
+    else
+      f ()
+  in
+  let s = f () in
+  ignore(read_crlf ~count:1 ~timeout socket);
+  s, len
 
 let request ?(log=fun _ -> ()) ~timeout socket request =
   if

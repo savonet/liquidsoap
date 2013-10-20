@@ -46,9 +46,12 @@ type status = string * int * string
 (** Type for headers data. *)
 type headers = (string*string) list
 
-(* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-val read_crlf : ?log:(string -> unit) -> ?max:int -> 
+(* An ugly code to read until we see [\r]?\n n times. *)
+val read_crlf : ?log:(string -> unit) -> ?max:int -> ?count:int -> 
                 timeout:float -> connection -> string
+
+(* Read chunked data. *)
+val read_chunked : timeout:float -> connection -> int -> string * int
 
 val request : ?log:(string -> unit) ->
               timeout:float ->
