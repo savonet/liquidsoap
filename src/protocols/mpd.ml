@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-let debug = false
-
 module Conf = Dtools.Conf
 
 let conf =
@@ -40,6 +38,9 @@ let conf_path_prefix =
 let conf_randomize =
   Conf.bool ~p:(conf#plug "randomize") ~d:true
     "Randomize order of MPD's results."
+let conf_debug =
+  Conf.bool ~p:(conf#plug "debug") ~d:false
+    "Debug communications with MPD server."
 
 let re_newline = Str.regexp "[\r\n]+"
 let re_version = Str.regexp "OK MPD \\([0-9a-z\\.]+\\)"
@@ -65,12 +66,12 @@ let connect () =
       n := Unix.recv socket buf 0 buflen [];
       ans := !ans ^ String.sub buf 0 !n
     done;
-    if debug then Printf.printf "R: %s%!" !ans;
+    if conf_debug#get then Printf.printf "R: %s%!" !ans;
     !ans
   in
   let write s =
     let len = String.length s in
-    if debug then Printf.printf "W: %s%!" s;
+    if conf_debug#get then Printf.printf "W: %s%!" s;
     let l = Unix.send socket s 0 len [] in
     assert (l = len)
   in
@@ -114,7 +115,7 @@ let search read write field v =
         let f = Str.matched_group 1 s in
         let prefix = conf_path_prefix#get in
         let f = prefix ^ "/" ^ f in
-        if debug then Printf.printf "Found: %s\n%!" f;
+        if conf_debug#get then Printf.printf "Found: %s\n%!" f;
         add ();
         file := f
       else if Str.string_match re_metadata s 0 then
