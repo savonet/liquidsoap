@@ -140,6 +140,13 @@ let mpd s ~log maxtime =
     raise (Error "Invalid request");
   let field = Str.matched_group 1 s in
   let value = Str.matched_group 2 s in
+  let value =
+    let len = String.length value in
+    if len > 0 && value.[0] = '"' && value.[len-1] = '"' then
+      String.sub value 1 (len-2)
+    else
+      value
+  in
   let socket, read, write = connect () in
   let search = search read write in
   let version =
@@ -156,5 +163,5 @@ let mpd s ~log maxtime =
 
 let () =
   Request.protocols#register "mpd"
-    ~sdoc:("[mpd:tag=\"value\"] finds all files with a tag equal to a given value using mpd.")
+    ~sdoc:("[mpd:tag=value] finds all files with a tag equal to a given value using mpd.")
     { Request.resolve = mpd ; Request.static = false }
