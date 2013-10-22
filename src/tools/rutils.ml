@@ -72,7 +72,7 @@ type wav_converter =
     audio_src_rate:float ->
     string -> Frame.audio_t array * int
 
-let create_from_wav ~channels ~samplesize =
+let create_from_iff ~format ~channels ~samplesize =
   let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
   let sample_bytes = samplesize / 8 in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
@@ -83,7 +83,8 @@ let create_from_wav ~channels ~samplesize =
     let to_audio =
       match samplesize with
       | 8 -> Audio.U8.to_audio
-      | 16 -> Audio.S16LE.to_audio
+      | 16 when format = `Wav -> Audio.S16LE.to_audio
+      | 16 when format = `Aiff -> Audio.S16BE.to_audio
       | _ -> failwith "unsuported sample size"
     in
     to_audio src 0 dst 0 len;

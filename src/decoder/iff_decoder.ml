@@ -22,7 +22,7 @@
 
 (** Decode WAV files. *)
 
-let log = Dtools.Log.make ["decoder";"wav"]
+let log = Dtools.Log.make ["decoder";"iff"]
 
 (** {1 Generic decoder} *)
 
@@ -57,7 +57,7 @@ let seek input len =
   ignore(really_input input s 0 len)
 
 let input_ops =
-  { Wav.
+  { Iff.
      really_input = really_input ;
      input_byte = input_byte ;
      input = input ;
@@ -90,38 +90,43 @@ let create ?header input =
   in
 
   let read_header () =
-    let wav_header = 
-      Wav.read_header input_ops input.Decoder.read 
+    let iff_header = 
+      Iff.read_header input_ops input.Decoder.read 
     in
-    let samplesize = Wav.sample_size wav_header in
-    let channels = Wav.channels wav_header in
-    let samplerate = Wav.sample_rate wav_header in
-    let datalen = Wav.data_length wav_header in
+    let samplesize = Iff.sample_size iff_header in
+    let channels = Iff.channels iff_header in
+    let samplerate = Iff.sample_rate iff_header in
+    let datalen = Iff.data_length iff_header in
     let datalen = if datalen <= 0 then -1 else datalen in
+    let format = Iff.format_of_handler iff_header in
     let converter =
-        Rutils.create_from_wav
-          ~samplesize ~channels
+        Rutils.create_from_iff
+          ~samplesize ~channels ~format
           ~audio_src_rate:(float samplerate)
     in
-
+    let format_descr =
+      match format with
+        | `Wav -> "WAV"
+        | `Aiff -> "AIFF"
+    in
       log#f 4
-        "WAV header read (%dHz, %dbits, %dbytes), starting decoding..."
-        samplerate samplesize datalen;
-      header := Some (samplesize,channels,(float samplerate),datalen);
+        "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
+        format_descr samplerate samplesize datalen;
+      header := Some (format,samplesize,channels,(float samplerate),datalen);
       decoder := main_decoder datalen converter
 
   in
     begin match !header with
       | None -> decoder := (fun _ -> read_header ())
-      | Some (samplesize,channels,audio_src_rate,datalen) ->
+      | Some (format,samplesize,channels,audio_src_rate,datalen) ->
           let converter =
-            Rutils.create_from_wav ~samplesize ~channels ~audio_src_rate
+            Rutils.create_from_iff ~format ~samplesize ~channels ~audio_src_rate
           in
             decoder := main_decoder datalen converter
     end ;
   let seek ticks = 
     match input.Decoder.lseek,input.Decoder.tell,!header with
-      | Some seek, Some tell, Some (samplesize,channels,samplerate,datalen) ->
+      | Some seek, Some tell, Some (format,samplesize,channels,samplerate,datalen) ->
          (* seek is in absolute position *)
          let duration = Frame.seconds_of_master ticks in
          let samples = int_of_float (duration *. samplerate) in
@@ -151,19 +156,19 @@ module Buffered = Decoder.Buffered(Generator)
 module D = Make(Generator)
 
 let get_type filename =
-  let header = Wav.fopen filename in
+  let header = Iff.fopen filename in
     Tutils.finalize
-      ~k:(fun () -> Wav.close header)
+      ~k:(fun () -> Iff.close header)
       (fun () ->
          let channels =
-           let channels  = Wav.channels header in
-           let sample_rate = Wav.sample_rate header in
+           let channels  = Iff.channels header in
+           let sample_rate = Iff.sample_rate header in
            let ok_message s =
              log#f 4
                "%S recognized as WAV file (%s,%dHz,%d channels)."
                  filename s sample_rate channels ;
            in
-           match Wav.sample_size header with
+           match Iff.sample_size header with
              | 8  -> ok_message "u8"; channels
              | 16 -> ok_message "s16le"; channels
              | _ ->
@@ -180,17 +185,17 @@ let create_file_decoder filename kind =
 
 
 let mime_types =
-  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "wav")
-    "Mime-types used for guessing WAV format"
-    ~d:["audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "iff")
+    "Mime-types used for guessing IFF format"
+    ~d:["audio/x-aiff"; "audio/aiff"; "audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
 let file_extensions = 
-  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "wav")
-    "File extensions used for guessing WAV format"
-    ~d:["wav"]
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "iff")
+    "File extensions used for guessing IFF format"
+    ~d:["aiff"; "aif"; "aifc"; "wav"; "wave"]
 
 let () =
-  Decoder.file_decoders#register "WAV"
-    ~sdoc:"Decode as WAV any file with a correct header."
+  Decoder.file_decoders#register "WAV/AIFF"
+    ~sdoc:"Decode as WAV or AIFF any file with a correct header."
     (fun ~metadata filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
@@ -213,9 +218,9 @@ let () =
 
 let () =
   let duration file =
-    let w = Wav.fopen file in
-    let ret = Wav.duration w in
-    Wav.close w ;
+    let w = Iff.fopen file in
+    let ret = Iff.duration w in
+    Iff.close w ;
     ret
   in
   Request.dresolvers#register "WAV" duration
@@ -265,6 +270,6 @@ let () =
              Frame.Zero <: kind.Frame.midi &&
              Frame.Succ (Frame.Succ Frame.Zero) <: kind.Frame.audio
           then
-            Some (D_stream.create ~header:(8,2,8000.,-1))
+            Some (D_stream.create ~header:(`Wav,8,2,8000.,-1))
           else
             None)

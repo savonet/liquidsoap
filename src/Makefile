@@ -86,7 +86,7 @@ $(call conditional_compilation,video_converters,$(W_FFMPEG),converters/video/ffm
 
 decoders = \
 	decoder/metadata_decoder.ml \
-	decoder/wav_decoder.ml decoder/midi_decoder.ml \
+	decoder/iff_decoder.ml decoder/midi_decoder.ml \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml
 
@@ -192,7 +192,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
-	tools/wav.ml tools/tutils.ml tools/JSON.ml \
+	tools/iff.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	configure.ml \
 	tools/http.ml tools/pool.ml \
@@ -290,7 +290,7 @@ liquidsoap_doc_sources= \
 	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
 	tools/server.ml tools/tutils.ml playlist_parser.ml \
-	tools/doc.ml tools/wav.ml tools/ioRing.ml \
+	tools/doc.ml tools/iff.ml tools/ioRing.ml \
 	tools/dyntools.ml tools/JSON.ml \
 	converters/audio_converter.ml converters/video_converter.ml \
 	ogg_formats/ogg_muxer.ml \
