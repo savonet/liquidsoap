@@ -57,7 +57,7 @@ let seek input len =
   ignore(really_input input s 0 len)
 
 let input_ops =
-  { Iff.
+  { Wav_aiff.
      really_input = really_input ;
      input_byte = input_byte ;
      input = input ;
@@ -91,14 +91,14 @@ let create ?header input =
 
   let read_header () =
     let iff_header = 
-      Iff.read_header input_ops input.Decoder.read 
+      Wav_aiff.read_header input_ops input.Decoder.read 
     in
-    let samplesize = Iff.sample_size iff_header in
-    let channels = Iff.channels iff_header in
-    let samplerate = Iff.sample_rate iff_header in
-    let datalen = Iff.data_length iff_header in
+    let samplesize = Wav_aiff.sample_size iff_header in
+    let channels = Wav_aiff.channels iff_header in
+    let samplerate = Wav_aiff.sample_rate iff_header in
+    let datalen = Wav_aiff.data_length iff_header in
     let datalen = if datalen <= 0 then -1 else datalen in
-    let format = Iff.format_of_handler iff_header in
+    let format = Wav_aiff.format_of_handler iff_header in
     let converter =
         Rutils.create_from_iff
           ~samplesize ~channels ~format
@@ -156,19 +156,19 @@ module Buffered = Decoder.Buffered(Generator)
 module D = Make(Generator)
 
 let get_type filename =
-  let header = Iff.fopen filename in
+  let header = Wav_aiff.fopen filename in
     Tutils.finalize
-      ~k:(fun () -> Iff.close header)
+      ~k:(fun () -> Wav_aiff.close header)
       (fun () ->
          let channels =
-           let channels  = Iff.channels header in
-           let sample_rate = Iff.sample_rate header in
+           let channels  = Wav_aiff.channels header in
+           let sample_rate = Wav_aiff.sample_rate header in
            let ok_message s =
              log#f 4
                "%S recognized as WAV file (%s,%dHz,%d channels)."
                  filename s sample_rate channels ;
            in
-           match Iff.sample_size header with
+           match Wav_aiff.sample_size header with
              | 8  -> ok_message "u8"; channels
              | 16 -> ok_message "s16le"; channels
              | _ ->
@@ -218,9 +218,9 @@ let () =
 
 let () =
   let duration file =
-    let w = Iff.fopen file in
-    let ret = Iff.duration w in
-    Iff.close w ;
+    let w = Wav_aiff.fopen file in
+    let ret = Wav_aiff.duration w in
+    Wav_aiff.close w ;
     ret
   in
   Request.dresolvers#register "WAV" duration

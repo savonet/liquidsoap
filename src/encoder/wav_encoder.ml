@@ -43,7 +43,7 @@ let encoder wav =
                                (float sample_size) /. 8.))
   in
   let header =
-    Iff.wav_header ?len ~channels ~sample_rate ~sample_size ()
+    Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
   in
   let need_header = ref wav.header in
   let encode frame start len =

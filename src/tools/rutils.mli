@@ -40,7 +40,7 @@
       Formats: unsigned 8 bit (u8) or
                signed 16 bit little endian (s16le) *)
   val create_from_iff :
-           format:Iff.format ->
+           format:Wav_aiff.format ->
            channels:int ->
            samplesize:int ->
            wav_converter
