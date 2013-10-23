@@ -36,11 +36,14 @@ let in_chan_ops = { really_input = really_input ;
                       seek_in ic ((pos_in ic) + len));
                     close = close_in }
 
+type format = [ `Aiff | `Wav ]
+
 type 'a t =
     {
       ic : 'a;
       read_ops : 'a read_ops;
 
+      format : format;
       channels_number : int;  (* 1 = mono ; 2 = stereo *)
       sample_rate : int;      (* in Hz *)
       bytes_per_second : int; 
@@ -50,12 +53,14 @@ type 'a t =
       length_of_data_to_follow : int;  (* ?? *)
     }
 
-exception Not_a_wav_file of string
+let format_of_handler x = x.format
+
+exception Not_a_iff_file of string
 
 let error_translator =
   function
-    | Not_a_wav_file x ->
-       Some (Printf.sprintf "Wave error: %s" x)
+    | Not_a_iff_file x ->
+       Some (Printf.sprintf "IFF File error: %s" x)
     | _ -> None
 
 let () = Utils.register_error_translator error_translator
@@ -66,26 +71,39 @@ let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_WAV" <> None
 
 let read_header read_ops ic =
   let really_input = read_ops.really_input in
+  let read_string ic n =
+    let ans = String.create n in
+    really_input ic ans 0 n;
+    ans
+  in
+  let format =
+    match read_string ic 4 with
+      | "RIFF" -> `Wav
+      | "FORM" -> `Aiff
+      | _ -> raise (Not_a_iff_file "Unknown file format.")
+  in
+
   let input_byte = read_ops.input_byte in
-  let read_int_num_bytes ic =
-    let rec aux = function
-      | 0 -> 0
+  let read_int_num_bytes ic total =
+    let rec aux cur = function
+      | 0 -> cur
       | n ->
           let b = input_byte ic in
-            b + 256*(aux (n-1))
+          let cur =
+            if format = `Wav then
+              b lsl ((total-n)*8) + cur
+            else
+              (cur lsl 8) + b
+          in
+          aux cur (n-1)
     in
-      aux
+    aux 0 total
   in
   let read_int ic =
     read_int_num_bytes ic 4
   in
   let read_short ic =
     read_int_num_bytes ic 2
-  in
-  let read_string ic n =
-    let ans = String.create n in
-    really_input ic ans 0 n;
-    ans
   in
   let seek_chunk ic name =
     let rec seek () =
@@ -98,32 +116,40 @@ let read_header read_ops ic =
     seek ();
   in
 
-    if read_string ic 4 <> "RIFF" then
-      raise (Not_a_wav_file "Bad header: \"RIFF\" expected");
     ignore (read_int ic); (* size of the file *)
-    if read_string ic 4 <> "WAVE" then
-      raise (Not_a_wav_file "Bad header: \"WAVE\" expected");
-    seek_chunk ic "fmt ";
+    begin
+     match read_string ic 4 with
+       | "WAVE" when format = `Wav -> ()
+       | "AIFF" when format = `Aiff -> ()
+       | _ -> raise (Not_a_iff_file "Bad header")
+    end;
+    let format_chunk = 
+      if format = `Wav then "fmt " else "COMM"
+    in
+    seek_chunk ic format_chunk;
 
     let fmt_len = read_int ic in
-    if fmt_len < 0x10 then
-      raise (Not_a_wav_file "Bad header: invalid \"fmt \" length");
-    if read_short ic <> 1 then
-      raise (Not_a_wav_file "Bad header: unhandled codec");
+    if format = `Wav then
+     begin
+      if fmt_len < 0x10 then
+        raise (Not_a_iff_file "Bad header: invalid \"fmt \" length");
+      if read_short ic <> 1 then
+        raise (Not_a_iff_file "Bad header: unhandled codec");
 
-    let chan_num = read_short ic in
-    let samp_hz = read_int ic in
-    let byt_per_sec = read_int ic in
-    let byt_per_samp= read_short ic in
-    let bit_per_samp= read_short ic in
-    (* The fmt header can be padded *)
-    if fmt_len > 0x10 then ignore (read_int_num_bytes ic (fmt_len - 0x10));
+      let chan_num = read_short ic in
+      let samp_hz = read_int ic in
+      let byt_per_sec = read_int ic in
+      let byt_per_samp = read_short ic in
+      let bit_per_samp = read_short ic in
+      (* The fmt header can be padded *)
+      if fmt_len > 0x10 then read_ops.seek ic (fmt_len - 0x10);
 
-    (* Skip unhandled chunks. *)
-    seek_chunk ic "data";  
-    let len_dat = read_int ic in
+      (* Skip unhandled chunks. *)
+      seek_chunk ic "data";
+      let len_dat = read_int ic in
       {
-        ic = ic ;
+        ic = ic;
+        format = format;
         read_ops = read_ops;
         channels_number = chan_num;
         sample_rate = samp_hz;
@@ -132,6 +158,49 @@ let read_header read_ops ic =
         bits_per_sample = bit_per_samp;
         length_of_data_to_follow = len_dat;
       }
+     end
+    else if format = `Aiff then
+     begin
+      if fmt_len < 0x12 then
+        raise (Not_a_iff_file "Bad header: invalid \"COMM\" length");
+
+      let chan_num = read_short ic in
+      read_ops.seek ic 4;
+      let bit_per_samp = read_short ic in
+      let byt_per_samp = bit_per_samp / 8 in
+      let samp_hz =
+        int_of_float
+          (Utils.float_of_extended_float
+            (read_string ic 10))
+      in
+      let byt_per_sec = byt_per_samp * samp_hz in
+
+      (* Test for AIFC header, reject other than PCM. *)
+      if fmt_len > 0x12 then
+       begin
+        match read_string ic 4 with
+          | "NONE" -> read_ops.seek ic (fmt_len - 0x16);
+          | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported")
+       end;
+
+      (* Skip unhandled chunks. *)
+      seek_chunk ic "SSND";
+      let len_dat = read_int ic in
+      let offset = read_int ic in
+      read_ops.seek ic (4+offset);
+      {
+        ic = ic;
+        format = format;
+        read_ops = read_ops;
+        channels_number = chan_num;
+        sample_rate = samp_hz;
+        bytes_per_second = byt_per_sec;
+        bytes_per_sample = byt_per_samp;
+        bits_per_sample = bit_per_samp;
+        length_of_data_to_follow = len_dat - (8+offset);
+      }
+     end
+    else assert false
 
 let in_chan_read_header = read_header in_chan_ops
 
@@ -142,7 +211,7 @@ let fopen file =
     with
       | End_of_file ->
           close_in ic ;
-          raise (Not_a_wav_file "End of file unexpected")
+          raise (Not_a_iff_file "End of file unexpected")
       | e ->
           close_in ic ;
           raise e
@@ -201,7 +270,7 @@ let int_string n =
     s.[3] <- char_of_int ((n land 0x7f000000) lsr 24) ;
     s
 
-let header ?len ~channels ~sample_rate ~sample_size () =
+let wav_header ?len ~channels ~sample_rate ~sample_size () =
   (* The data lengths are set to their maximum possible values. *)
   let header_len,data_len = 
     match len with

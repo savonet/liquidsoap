@@ -141,21 +141,21 @@ let external_input process input =
 
 let duration process = 
   let pull = Unix.open_process_in process in
-  let w = Wav.in_chan_read_header pull in
-  let ret = Wav.duration w in
+  let w = Wav_aiff.in_chan_read_header pull in
+  let ret = Wav_aiff.duration w in
   ignore(Unix.close_process_in pull) ;
   ret
 
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
-(** A function to wrap around the Wav_decoder *)
+(** A function to wrap around the Wav_aiff_decoder *)
 let create process kind filename = 
   let close = ref (fun () -> ()) in
   let create input =
     let input,actual_close = external_input process input in
       close := actual_close ;
-      Wav_decoder.D.create ?header:None input
+      Wav_aiff_decoder.D.create ?header:None input
   in
   let generator = Generator.create `Audio in
   let dec = Buffered.file_decoder filename kind create generator in
@@ -170,7 +170,7 @@ let create_stream process input =
   let input,close = external_input process input in
   (* Put this here so that ret is not in its closure.. *)
   let close _ = close () in
-  let ret = Wav_decoder.D_stream.create input in
+  let ret = Wav_aiff_decoder.D_stream.create input in
   Gc.finalise close ret;
   ret
 
@@ -268,7 +268,7 @@ let external_input_oblivious process filename prebuf =
   in
   let gen = Generator.create `Audio in
   let prebuf = Frame.master_of_seconds prebuf in
-  let decoder = Wav_decoder.D.create input in
+  let decoder = Wav_aiff_decoder.D.create input in
   let fill frame = 
      if not !process_done then
        begin try

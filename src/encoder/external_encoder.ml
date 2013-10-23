@@ -114,7 +114,7 @@ let encoder id ext =
     if h.params.header then
       begin
         let header =
-          Wav.header ~channels:h.params.channels
+          Wav_aiff.wav_header ~channels:h.params.channels
                      ~sample_rate:h.params.samplerate
                      ~sample_size:16 ()
         in
