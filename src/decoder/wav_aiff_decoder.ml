@@ -22,7 +22,7 @@
 
 (** Decode WAV files. *)
 
-let log = Dtools.Log.make ["decoder";"iff"]
+let log = Dtools.Log.make ["decoder";"wav/aiff"]
 
 (** {1 Generic decoder} *)
 
@@ -184,23 +184,23 @@ let create_file_decoder filename kind =
     Buffered.file_decoder filename kind (D.create ?header:None) generator
 
 
-let mime_types =
-  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "iff")
-    "Mime-types used for guessing IFF format"
-    ~d:["audio/x-aiff"; "audio/aiff"; "audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
-let file_extensions = 
-  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "iff")
-    "File extensions used for guessing IFF format"
-    ~d:["aiff"; "aif"; "aifc"; "wav"; "wave"]
+let wav_mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "wav")
+    "Mime-types used for guessing WAV format"
+    ~d:["audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
+let wav_file_extensions = 
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "wav")
+    "File extensions used for guessing WAV format"
+    ~d:["wav"; "wave"]
 
 let () =
-  Decoder.file_decoders#register "WAV/AIFF"
-    ~sdoc:"Decode as WAV or AIFF any file with a correct header."
+  Decoder.file_decoders#register "WAV"
+    ~sdoc:"Decode as WAV any file with a correct header."
     (fun ~metadata filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
-        not (Decoder.test_file ~mimes:mime_types#get
-                               ~extensions:file_extensions#get
+        not (Decoder.test_file ~mimes:wav_mime_types#get
+                               ~extensions:wav_file_extensions#get
                                ~log filename) then None 
        else
        let file_type = get_type filename in
@@ -215,6 +215,37 @@ let () =
            None
          end)
 
+let aiff_mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "aiff")
+    "Mime-types used for guessing AIFF format"
+    ~d:["audio/x-aiff"; "audio/aiff"]
+let aiff_file_extensions =
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "aiff")
+    "File extensions used for guessing AIFF format"
+    ~d:["aiff"; "aif"; "aifc"]
+
+let () =
+  Decoder.file_decoders#register "AIFF"
+    ~sdoc:"Decode as AIFF any file with a correct header."
+    (fun ~metadata filename kind ->
+       (* Don't get the file's type if no audio is allowed anyway. *)
+       if kind.Frame.audio = Frame.Zero ||
+        not (Decoder.test_file ~mimes:aiff_mime_types#get
+                               ~extensions:aiff_file_extensions#get
+                               ~log filename) then None
+       else
+       let file_type = get_type filename in
+         if Frame.type_has_kind file_type kind then
+           Some (fun () -> create_file_decoder filename kind)
+         else begin
+           log#f 3
+             "AIFF file %S has content type %s but %s was expected."
+             filename
+             (Frame.string_of_content_type file_type)
+             (Frame.string_of_content_kind kind) ;
+           None
+         end)
+
 
 let () =
   let duration file =
@@ -223,7 +254,7 @@ let () =
     Wav_aiff.close w ;
     ret
   in
-  Request.dresolvers#register "WAV" duration
+  Request.dresolvers#register "WAV/AIFF" duration
 
 (* Stream decoding *)
 
@@ -235,7 +266,30 @@ let () =
     ~sdoc:"Decode a WAV stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime mime_types#get &&
+          if List.mem mime wav_mime_types#get &&
+             (* Check that it is okay to have zero video and midi,
+              * and at least one audio channel. *)
+             Frame.Zero <: kind.Frame.video &&
+             Frame.Zero <: kind.Frame.midi &&
+             kind.Frame.audio <> Frame.Zero
+          then
+            (* In fact we can't be sure that we'll satisfy the content
+             * kind, because the stream might be mono or stereo.
+             * For now, we let this problem result in an error at
+             * decoding-time. Failing early would only be an advantage
+             * if there was possibly another plugin for decoding
+             * correctly the stream (e.g. by performing conversions). *)
+            Some (D_stream.create ?header:None)
+          else
+            None)
+
+let () =
+  Decoder.stream_decoders#register
+    "AIFF"
+    ~sdoc:"Decode a AIFF stream with an appropriate MIME type."
+     (fun mime kind ->
+        let (<:) a b = Frame.mul_sub_mul a b in
+          if List.mem mime aiff_mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
