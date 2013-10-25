@@ -430,7 +430,7 @@ let () =
 (** Random switch *)
 exception Found of child
 class random ~kind ?replay_meta strict mode children =
-  let name = if strict then "quota" else "random" in
+  let name = if strict then "rotate" else "random" in
 object
   inherit switch ~name ~kind ?replay_meta ~mode (List.map snd children)
 
