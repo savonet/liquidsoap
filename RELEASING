@@ -2,6 +2,7 @@
 - How to release liquidsoap -
 -----------------------------
 
+ [] Run tests! We have too few, but we do have some: "make test".
  [] Update copyright years in headers and check that all files have license
      headers.
  [] Check version in configure.ac, README and INSTALL.
