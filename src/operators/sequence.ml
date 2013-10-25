@@ -44,6 +44,15 @@ object (self)
   method private sleep =
     List.iter (fun s -> (s:>source)#leave (self:>source)) sources
 
+  (** When head_ready is true, it must be that:
+    *  - (List.hd sources)#is_ready
+    *  - or we have started playing a track of (List.hd sources)
+    *    and that track has not ended yet.
+    * In case the head source becomes unavailable before its end of track,
+    * head_ready keeps the sequence operator available, so that its #get_frame
+    * can be called to properly end the track and cleanup the source if needed.
+    * If instead the operator had become unavailable then source#get would have
+    * inserted an end of track automatically instead of calling #get_frame. *)
   val mutable head_ready = false
 
   method is_ready = head_ready || List.exists (fun s -> s#is_ready) sources
@@ -69,15 +78,17 @@ object (self)
     if head_ready then begin
       let hd = List.hd sources in
         hd#get buf ;
-        if List.length sources > 1 && Frame.is_partial buf then begin
-          hd#leave (self:>source) ;
+        if Frame.is_partial buf then begin
           head_ready <- false ;
-          sources <- List.tl sources ;
-          if merge && self#is_ready then
-            let pos = Frame.position buf in
-              self#get_frame buf ;
-              Frame.set_breaks buf
-                (Utils.remove_one ((=) pos) (Frame.breaks buf))
+          if List.length sources > 1 then begin
+            hd#leave (self:>source) ;
+            sources <- List.tl sources ;
+            if merge && self#is_ready then
+              let pos = Frame.position buf in
+                self#get_frame buf ;
+                Frame.set_breaks buf
+                  (Utils.remove_one ((=) pos) (Frame.breaks buf))
+          end
         end
     end else begin
       match sources with
