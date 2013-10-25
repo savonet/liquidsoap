@@ -481,7 +481,7 @@ object (self)
   method get buf =
     assert (Frame.is_partial buf) ;
     if not caching then begin
-      if not self#is_ready then
+      if not self#is_ready then begin
         (* In some cases we can't avoid #get being called on a non-ready
          * source, for example:
          * - A starts pumping B, stops in the middle of the track
@@ -494,8 +494,9 @@ object (self)
          * having checked #is_ready. It also makes it really important
          * to have #is_ready = true during tracks, otherwise this bit
          * of code will forcefully end the track! *)
+        self#log#f 4 "Warning: dirty #get when not #is_ready!" ;
         Frame.add_break buf (Frame.position buf)
-      else
+      end else
       let b = Frame.breaks buf in
         self#get_frame buf ;
         if List.length b + 1 <> List.length (Frame.breaks buf) then begin
@@ -507,10 +508,11 @@ object (self)
         Frame.get_chunk buf memo
       with
       | Frame.No_chunk ->
-          if not self#is_ready then
+          if not self#is_ready then begin
             (* See similar test above. *)
+            self#log#f 4 "Warning: dirty #get when not #is_ready!" ;
             Frame.add_break buf (Frame.position buf)
-          else
+          end else
           (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
           let b = Frame.breaks memo in
           let p = Frame.position memo in

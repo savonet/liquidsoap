@@ -124,7 +124,12 @@ object (self)
              else begin
                (* If there is more than one source we fill greedily. *)
                s#get buffer ;
+               let get_count = ref 0 in
                while Frame.is_partial buffer && s#is_ready do
+                 incr get_count ;
+                 if !get_count > Lazy.force Frame.size then
+                   self#log#f 2
+                     "Warning: there may be an infinite sequence of empty tracks!" ;
                  get_again s buffer
                done
              end ;

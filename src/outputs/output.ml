@@ -165,7 +165,12 @@ object (self)
 
     if is_started then begin
       (* Complete filling of the frame *)
+      let get_count = ref 0 in
       while Frame.is_partial memo && self#is_ready do
+        incr get_count ;
+        if !get_count > Lazy.force Frame.size then
+          self#log#f 2
+            "Warning: there may be an infinite sequence of empty tracks!" ;
         source#get memo
       done ;
       List.iter
