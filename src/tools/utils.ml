@@ -632,39 +632,35 @@ let reopen_in inchan filename =
 
 (* See: http://www.onicos.com/staff/iz/formats/ieee.c *)
 let float_of_extended_float bytes =
-  let float_of_unsigned u =
-    (float (u - 2147483647 - 1)) +. 2147483648.0
-  in
+  let float_of_unsigned u = (float (u - 2147483647 - 1)) +. 2147483648.0 in
   let ioc = int_of_char in
-  let expon =
-    (((ioc bytes.[0]) land 0x7F) lsl 8) lor ((ioc bytes.[1]) land 0xFF) 
-  in
-  let hiMant = 
+  let expon = (((ioc bytes.[0]) land 0x7F) lsl 8) lor ((ioc bytes.[1]) land 0xFF) in
+  let hiMant =
     (((ioc bytes.[2]) land 0xFF) lsl 24) lor
-    (((ioc bytes.[3]) land 0xFF) lsl 16) lor
-    (((ioc bytes.[4]) land 0xFF) lsl 8) lor
-    ((ioc bytes.[5]) land 0xFF)
+      (((ioc bytes.[3]) land 0xFF) lsl 16) lor
+      (((ioc bytes.[4]) land 0xFF) lsl 8) lor
+      ((ioc bytes.[5]) land 0xFF)
   in
   let loMant =
     (((ioc bytes.[6]) land 0xFF) lsl 24) lor
-    (((ioc bytes.[7]) land 0xFF) lsl 16) lor
-    (((ioc bytes.[8]) land 0xFF) lsl 8) lor
-    ((ioc bytes.[9]) land 0xFF)
+      (((ioc bytes.[7]) land 0xFF) lsl 16) lor
+      (((ioc bytes.[8]) land 0xFF) lsl 8) lor
+      ((ioc bytes.[9]) land 0xFF)
   in
   if expon = 0 && hiMant = 0 && loMant = 0 then
     0.
   else
-   begin
-    if expon = 0x7FFF then
-      nan
-    else
-     begin
-       let expon = expon - 16383 - 31 in
-       let f = ldexp (float_of_unsigned hiMant) expon in
-       let f = f +. ldexp (float_of_unsigned loMant) (expon-32) in
-       if (int_of_char bytes.[0]) land 0x80 <> 0 then
-         -1. *. f
-       else
-         f
-     end
-   end
+    begin
+      if expon = 0x7FFF then
+        nan
+      else
+        begin
+          let expon = expon - 16383 - 31 in
+          let f = ldexp (float_of_unsigned hiMant) expon in
+          let f = f +. ldexp (float_of_unsigned loMant) (expon-32) in
+          if (int_of_char bytes.[0]) land 0x80 <> 0 then
+            -1. *. f
+          else
+            f
+        end
+    end
