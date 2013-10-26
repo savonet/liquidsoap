@@ -632,26 +632,32 @@ let reopen_in inchan filename =
 
 (* See: http://www.onicos.com/staff/iz/formats/ieee.c *)
 let float_of_extended_float bytes =
-  let float_of_unsigned u = (float (u - 2147483647 - 1)) +. 2147483648.0 in
-  let ioc = int_of_char in
-  let expon = (((ioc bytes.[0]) land 0x7F) lsl 8) lor ((ioc bytes.[1]) land 0xFF) in
+  let float_of_unsigned u =
+    let ( - ) = Int32.sub in
+    let f = (Int32.shift_left Int32.one 31) - Int32.one in
+    (Int32.to_float (u - f - Int32.one)) +. 2147483648.
+  in
+  let expon = (((int_of_char bytes.[0]) land 0x7F) lsl 8) lor ((int_of_char bytes.[1]) land 0xff) in
+  let boc c = Int32.of_int (int_of_char c land 0xff) in
+  let ( lsl ) = Int32.shift_left in
+  let ( lor ) = Int32.logor in
   let hiMant =
-    (((ioc bytes.[2]) land 0xFF) lsl 24) lor
-      (((ioc bytes.[3]) land 0xFF) lsl 16) lor
-      (((ioc bytes.[4]) land 0xFF) lsl 8) lor
-      ((ioc bytes.[5]) land 0xFF)
+    ((boc bytes.[2]) lsl 24) lor
+      ((boc bytes.[3]) lsl 16) lor
+      ((boc bytes.[4]) lsl 8) lor
+      (boc bytes.[5])
   in
   let loMant =
-    (((ioc bytes.[6]) land 0xFF) lsl 24) lor
-      (((ioc bytes.[7]) land 0xFF) lsl 16) lor
-      (((ioc bytes.[8]) land 0xFF) lsl 8) lor
-      ((ioc bytes.[9]) land 0xFF)
+    ((boc bytes.[6]) lsl 24) lor
+      ((boc bytes.[7]) lsl 16) lor
+      ((boc bytes.[8]) lsl 8) lor
+      (boc bytes.[9])
   in
-  if expon = 0 && hiMant = 0 && loMant = 0 then
+  if expon = 0 && hiMant = Int32.zero && loMant = Int32.zero then
     0.
   else
     begin
-      if expon = 0x7FFF then
+      if expon = 0x7fff then
         nan
       else
         begin
