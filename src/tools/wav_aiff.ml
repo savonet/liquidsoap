@@ -99,16 +99,6 @@ let read_header read_ops ic =
   in
   let read_int ic = read_int_num_bytes ic 4 in
   let read_short ic = read_int_num_bytes ic 2 in
-  let seek_chunk ic name =
-    let rec seek () =
-      if read_string ic 4 <> name then
-        begin
-          read_ops.seek ic (read_int ic);
-          seek ()
-        end
-    in
-    seek ()
-  in
 
   ignore (read_int ic); (* size of the file *)
   begin
@@ -118,6 +108,21 @@ let read_header read_ops ic =
     | _ -> raise (Not_a_iff_file "Bad header")
   end;
   let format_chunk = if format = `Wav then "fmt " else "COMM" in
+
+  let seek_chunk ic name =
+    let rec seek () =
+      if read_string ic 4 <> name then
+        begin
+          let n = read_int ic in
+          (* In aiff, there is a 1 byte padding so that length is even *)
+          let n = if format = `Aiff then ((n+1)/2)*2 else n in
+          read_ops.seek ic n;
+          seek ()
+        end
+    in
+    seek ()
+  in
+
   seek_chunk ic format_chunk;
 
   let fmt_len = read_int ic in
