@@ -67,6 +67,9 @@ let () = Utils.register_error_translator error_translator
 
 let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_WAV" <> None
 
+(** Round to the lowest even integer above. *)
+let even_ceil n = ((n+1)/2)*2
+
 let read_header read_ops ic =
   let really_input = read_ops.really_input in
   let read_string ic n =
@@ -115,7 +118,7 @@ let read_header read_ops ic =
         begin
           let n = read_int ic in
           (* In aiff, there is a 1 byte padding so that length is even *)
-          let n = if format = `Aiff then ((n+1)/2)*2 else n in
+          let n = if format = `Aiff then even_ceil n else n in
           read_ops.seek ic n;
           seek ()
         end
@@ -172,7 +175,7 @@ let read_header read_ops ic =
       if fmt_len > 0x12 then
         begin
           match read_string ic 4 with
-          | "NONE" -> read_ops.seek ic (fmt_len - 0x16);
+          | "NONE" -> read_ops.seek ic (even_ceil (fmt_len - 0x16));
           | _ -> raise (Not_a_iff_file "Compressed AIFC data not supported")
         end;
 
