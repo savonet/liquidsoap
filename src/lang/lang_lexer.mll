@@ -110,9 +110,12 @@ rule token = parse
           incrline ~n:(List.length doc) lexbuf ;
           PP_COMMENT doc }
 
-  | "%ifdef"   { PP_IFDEF }
+  | "%ifdef"       { PP_IFDEF }
+  | "%ifndef"      { PP_IFNDEF }
   | "%ifencoder"   { PP_IFENCODER }
-  | "%endif"   { PP_ENDIF }
+  | "%ifnencoder"  { PP_IFNENCODER }
+  | "%endif"       { PP_ENDIF }
+
   | "%include" [' ' '\t']* '"' ([^ '"' '>' '\n']* as file) '"'
                { PP_INCLUDE file }
   | "%include" [' ' '\t']* '<' ([^ '"' '>' '\n']* as file) '>'
