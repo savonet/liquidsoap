@@ -10,15 +10,20 @@ type json =
 
 exception Error
 
-let lexer = Genlex.make_lexer ["{";"}";",";":"]
+let lexer = Genlex.make_lexer ["{";"}";"[";"]";",";":"]
 
 let rec parse stream =
   match Stream.next stream with
-  | Genlex.String s | Genlex.Ident s -> `String s
+  | Genlex.String s | Genlex.Ident s ->
+    if s = "true" then `Bool true
+    else if s = "false" then `Bool false
+    else if s = "null" then `Null
+    else `String s
   | Genlex.Char c -> `String (String.make 1 c)
   | Genlex.Float f -> `Float f
   | Genlex.Int n -> `Int n
   | Genlex.Kwd "{" -> `Assoc (parse_assoc stream)
+  | Genlex.Kwd "[" -> `List (parse_list stream)
   | _ -> raise Error
 and parse_assoc stream =
   match Stream.next stream with
@@ -32,6 +37,16 @@ and parse_assoc stream =
     else raise Error
   | Genlex.Kwd "}" -> []
   | _ -> raise Error
+and parse_list stream =
+  match Stream.peek stream with
+  | Some (Genlex.Kwd "]") -> Stream.junk stream; []
+  | Some _ ->
+    let v = parse stream in
+    let k = Stream.next stream in
+    if k = Genlex.Kwd "," then v::(parse_list stream)
+    else if k = Genlex.Kwd "]" then [v]
+    else raise Error
+  | None -> raise Error
 
 let from_string s =
   let lexer = lexer (Stream.of_string s) in
