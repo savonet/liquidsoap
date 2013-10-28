@@ -14,11 +14,10 @@ let lexer = Genlex.make_lexer ["{";"}";"[";"]";",";":"]
 
 let rec parse stream =
   match Stream.next stream with
-  | Genlex.String s | Genlex.Ident s ->
-    if s = "true" then `Bool true
-    else if s = "false" then `Bool false
-    else if s = "null" then `Null
-    else `String s
+  | Genlex.Ident "true" -> `Bool true
+  | Genlex.Ident "false" -> `Bool false
+  | Genlex.Ident "null" -> `Null
+  | Genlex.String s | Genlex.Ident s -> `String s
   | Genlex.Char c -> `String (String.make 1 c)
   | Genlex.Float f -> `Float f
   | Genlex.Int n -> `Int n
