@@ -1326,6 +1326,13 @@ let () =
          Lang.unit)
 
 let () =
+  add_builtin "source.is_up" ~cat:Sys
+    [ "", Lang.source_t (Lang.univ_t 1), None, None ]
+    Lang.bool_t
+    ~descr:"Check whether a source is up."
+    (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)
+
+let () =
   add_builtin "garbage_collect" ~cat:Liq
     ~descr:"Trigger full major garbage collection."
     [] Lang.unit_t

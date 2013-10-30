@@ -428,6 +428,8 @@ object (self)
         end
       end
 
+  method is_up = static_activations <> [] || dynamic_activations <> []
+
   (** Two methods called for initialization and shutdown of the source *)
   method private wake_up activation =
     self#log#f 4
@@ -480,23 +482,33 @@ object (self)
    * round ([#after_output]). *)
   method get buf =
     assert (Frame.is_partial buf) ;
+    (* In some cases we can't avoid #get being called on a non-ready
+     * source, for example:
+     * - A starts pumping B, stops in the middle of the track
+     * - B finishes its track, becomes unavailable
+     * - A starts streaming again, needs to receive an EOT before
+     *   having to worry about availability.
+     *
+     * So we add special cases where, instead of calling #get_frame, we
+     * call silent_end_track to properly end a track by inserting a break.
+     *
+     * This makes the whole protocol a bit sloppy as it weakens constraints
+     * tying #is_ready and #get, preventing the detection of "bad" calls
+     * of #get without prior check of #is_ready. To compensate this we issue
+     * a detailed warning.
+     *
+     * This fix makes it really important to keep #is_ready = true during a
+     * track, otherwise the track will be ended without the source noticing! *)
+    let silent_end_track () =
+      self#log#f 3
+        "Warning: #get called when not #is_ready! \
+         This is normal if an operator using this source has been unused \
+         while the source has gone unavailable. If unsure about this warning, \
+         you are very welcome to report it and ask for clarifications." ;
+      Frame.add_break buf (Frame.position buf)
+    in
     if not caching then begin
-      if not self#is_ready then begin
-        (* In some cases we can't avoid #get being called on a non-ready
-         * source, for example:
-         * - A starts pumping B, stops in the middle of the track
-         * - B finishes its track, becomes unavailable
-         * - A starts streaming again, needs to receive an EOT before
-         *   having to worry about availability.
-         * So we add this branch, which makes the whole protocol a bit
-         * sloppy because it removes any constraint tying #is_ready and
-         * #get. It prevents the detection of "bad" calls of #get without
-         * having checked #is_ready. It also makes it really important
-         * to have #is_ready = true during tracks, otherwise this bit
-         * of code will forcefully end the track! *)
-        self#log#f 4 "Warning: dirty #get when not #is_ready!" ;
-        Frame.add_break buf (Frame.position buf)
-      end else
+      if not self#is_ready then silent_end_track () else
       let b = Frame.breaks buf in
         self#get_frame buf ;
         if List.length b + 1 <> List.length (Frame.breaks buf) then begin
@@ -508,11 +520,7 @@ object (self)
         Frame.get_chunk buf memo
       with
       | Frame.No_chunk ->
-          if not self#is_ready then begin
-            (* See similar test above. *)
-            self#log#f 4 "Warning: dirty #get when not #is_ready!" ;
-            Frame.add_break buf (Frame.position buf)
-          end else
+          if not self#is_ready then silent_end_track () else
           (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
           let b = Frame.breaks memo in
           let p = Frame.position memo in

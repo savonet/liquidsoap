@@ -73,6 +73,9 @@ object
   method leave : ?dynamic:bool -> source -> unit
   method private sleep : unit
 
+  (** Check if a source is up or not. *)
+  method is_up : bool
+
   (** {1 Streaming} *)
 
   (** What kind of content does this source produce. *)
