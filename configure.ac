@@ -176,6 +176,11 @@ fi
 liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
 requires="unix threads str"
+if test "$enable_debugging" \!= "no" ; then
+  CFLAGS="$CFLAGS -g"
+  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
+fi
 # Disable nativecode if ocamlopt is not present
 if test "$OCAMLOPT" = "no"; then 
   enable_nativecode="no"
@@ -191,11 +196,6 @@ if test "$enable_nativecode" \!= "no" ; then
     liquidsoap_ocamlcflags="$liquidsoap_ocamlcflags"
     if test "x$enable_profiling" = "xyes" ; then
         liquidsoap_ocamlcflags="-p $liquidsoap_ocamlcflags"
-    fi
-    if test "x$enable_debugging" = "xyes" ; then
-        CFLAGS="$CFLAGS -g"
-        liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
-        liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
     fi
     AC_MSG_CHECKING(whether ocamlopt accepts -ffast-math)
     if [ `$OCAMLFIND ocamlopt -ffast-math 2>/dev/null` ]; then
@@ -220,10 +220,6 @@ else
       if test "$OCAMLMKLIB" = "no"; then
         AC_MSG_ERROR(Not found.)
       fi
-    fi
-    if test "x$enable_debugging" = "xyes" ; then
-        CFLAGS="$CFLAGS -g"
-        liquidsoap_ocamlcflags="$liquidsoap_ocamlcflags -g"
     fi
     if test "x$enable_profiling" = "xyes" ; then
         OCAMLC="$OCAMLFIND ocamlcp"
