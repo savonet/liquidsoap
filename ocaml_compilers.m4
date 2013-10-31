@@ -31,7 +31,7 @@ AC_ARG_ENABLE([debugging],
       [--disable-debugging],
       [disable debugging information (backtrace printing in particular)]))
 
-if test "x$enable_debugging" = "xyes" ; then
+if test "$enable_debugging" \!= "no" ; then
   OCAMLFLAGS="$OCAMLFLAGS -g"
 fi
 
