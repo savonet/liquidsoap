@@ -256,7 +256,9 @@ def input.mplayer(~id="input.mplayer",
   input.external(id=id,restart=restart,
                  restart_on_error=restart_on_error,
                  buffer=buffer,max=max,
-                 "mplayer -really-quiet -ao pcm:file=/dev/stdout \
+                 "mplayer -really-quiet \
+                    -af resample=#{get(default=44100,\"frame.audio.samplerate\")},channels=#{get(default=2,\"frame.audio.channels\")} \
+                    -ao pcm:file=/dev/stdout \
                     -vc null -vo null #{quote(s)} 2>/dev/null")
 end
 %endif
