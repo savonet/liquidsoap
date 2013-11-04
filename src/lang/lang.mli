@@ -46,6 +46,9 @@ and in_value =
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
                full_env * full_env * Lang_values.term
+  (** A function with given arguments (argument label, argument variable,
+      default value), parameters already passed to the function, closure and
+      value. *)
   | FFI     of (string * string * value option) list *
                full_env *
                (full_env -> t -> value)
