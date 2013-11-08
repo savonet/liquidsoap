@@ -1,4 +1,3 @@
-
 DISTFILES = Makefile $(wildcard *.liq) $(wildcard *.pl)
 
 top_srcdir = ../..
