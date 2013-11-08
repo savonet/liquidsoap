@@ -253,7 +253,7 @@ def test_process(command)
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
-# ("foo",[("arg","bar"),("arg2","bar2")]).
+# [("arg","bar"),("arg2","bar2")].
 # @category String
 # @param args Agument string to split
 def url.split_args(args) =
