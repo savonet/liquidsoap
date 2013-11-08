@@ -257,15 +257,14 @@ end
 # @category String
 # @param args Agument string to split
 def url.split_args(args) =
-  l = string.split(separator="&",args)
   def f(x) =
     ret = string.split(separator="=",x)
     arg = url.decode(list.nth(ret,0))
     val = if list.length(ret) == 1 then "" else url.decode(list.nth(ret,1)) end
     (arg,val)
   end
-  l = list.map(f,l)
-  l
+  l = string.split(separator="&",args)
+  list.map(f,l)
 end
 
 # Split an url of the form foo?arg=bar&arg2=bar2 into
