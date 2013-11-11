@@ -244,14 +244,6 @@ let () =
        let max_blank,min_noise,threshold,track_sensitive,s = extract p in
          new on_blank ~kind ~max_blank ~min_noise ~threshold
            ~track_sensitive ~on_blank ~on_noise s) ;
-  Lang.add_operator "skip_blank"
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.TrackProcessing
-    ~descr:"Skip track when detecting a blank."
-    proto
-    (fun p kind ->
-       let length,threshold,track_sensitive,s = extract p in
-         new skip ~kind ~length ~threshold ~track_sensitive s) ;
   Lang.add_operator "strip_blank" ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
