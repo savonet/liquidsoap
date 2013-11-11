@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ class normalize ~kind (source:source)
 let channels = (Frame.type_of_kind kind).Frame.audio in
 let rmsi = Frame.audio_of_seconds window in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"normalize" kind [source] as super
 
   (** Current squares of RMS. *)
   val rms = Array.make channels 0.

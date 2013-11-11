@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,26 +29,14 @@ let aac_mime = "audio/aac"
 let aacplus_mime = "audio/aacp"
 let flac_mime = "audio/x-flac"
 
-type icecast_protocol = Http | Icy
-
 let base_proto kind = 
-    [("protocol", Lang.string_t, (Some (Lang.string "http")),
-      Some "Protocol of the streaming server: \
-           'http' for Icecast, 'icy' for shoutcast.") ;
-      "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
-      Some "Send new metadata using the ICY protocol. \
-            One of: \"guess\", \"true\", \"false\"";
-     ("format", Lang.string_t, Some (Lang.string ""),
+    ["format", Lang.string_t, Some (Lang.string ""),
       Some "Format, e.g. \"audio/ogg\". \
-      When empty, the encoder is used to guess.") ;
-      "", Lang.format_t kind, None, Some "Encoding format."]
+      When empty, the encoder is used to guess." ;
+     "", Lang.format_t kind, None, Some "Encoding format."]
 
 module type Icecast_t =
 sig
-  type protocol
-
-  val protocol_of_icecast_protocol : icecast_protocol -> protocol
-
   type content
 
   val format_of_content : string -> content
@@ -56,12 +44,15 @@ sig
   type info
 
   val info_of_encoder : Encoder.format -> info
-
 end
 
 module Icecast_v(M:Icecast_t) = 
 struct
-  type icy_metadata = Guess | True | False
+  type encoder_data = {
+    factory : string -> Encoder.Meta.export_metadata -> Encoder.encoder;
+    format  : M.content;
+    info    : M.info;
+  }
 
   let mpeg = M.format_of_content mpeg_mime
   let ogg_application = M.format_of_content ogg_application_mime
@@ -73,38 +64,23 @@ struct
   let aacplus = M.format_of_content aacplus_mime
   let flac = M.format_of_content flac_mime
 
-  let protocol p =
-    let v = List.assoc "protocol" p in
-      match Lang.to_string v with
-        | "http" -> Http
-        | "icy" -> Icy
-        | _ ->
-            raise (Lang.Invalid_value
-                     (v, "Valid values are 'http' (icecast) \
-                          and 'icy' (shoutcast)"))
   let format_of_encoder =
     function
       | Encoder.MP3 _ -> Some mpeg
-      | Encoder.AACPlus _ -> Some aacplus
+      | Encoder.Shine _ -> Some mpeg
+      | Encoder.AACPlus _ -> Some aac
       | Encoder.VoAacEnc _ -> Some aac
+      | Encoder.FdkAacEnc _ -> Some aac
       | Encoder.External _ -> None
+      | Encoder.GStreamer _ -> None
       | Encoder.Flac _ -> Some flac
       | Encoder.WAV _ -> Some wav
       | Encoder.Ogg _ -> Some ogg
 
-  let is_ogg =
-    function
-      | Encoder.Ogg _ -> true
-      | _ -> false
-
   let encoder_data p =
-    let protocol = protocol p in
     let v = Lang.assoc "" 1 p in
     let enc = Lang.to_format v in
     let info,format =
-       if (is_ogg enc) && (protocol = Icy) then
-         raise (Lang.Invalid_value
-               (v, "icy protocol (shoutcast) does not support Ogg")) ;
        M.info_of_encoder enc,format_of_encoder enc
     in
     let encoder_factory =
@@ -122,39 +98,8 @@ struct
                                                  "No format (mime) found, \
                                                   please specify one."))
     in
-    let icy_metadata =
-      let v = List.assoc "icy_metadata" p in
-      match Lang.to_string v with
-        | "guess" -> Guess
-        | "true"  -> True
-        | "false" -> False
-        | _ ->
-              raise (Lang.Invalid_value
-                       (v, "Valid values are 'guess', \
-                            'true' or 'false'"))
-    in
-    let icy_metadata =
-      match format, icy_metadata with
-        | _, True -> true
-        | _, False -> false
-        | x, _ when x = mpeg ||
-                    x = wav ||
-                    x = aac ||
-                    x = aacplus ||
-                    x = flac -> true
-        | x, _ when x = ogg_application ||
-                    x = ogg_audio ||
-                    x = ogg_video -> false
-        | _, Guess ->
-             raise (Lang.Invalid_value
-                      (List.assoc "icy_metadata" p,
-                       "Could not guess icy_metadata for this format, \
-                        please specify either 'true' or 'false'."))
-    in
-    let ogg = is_ogg enc in
-    (M.protocol_of_icecast_protocol protocol),
-    encoder_factory, format, info,
-    icy_metadata, ogg
-
+    { factory = encoder_factory;
+      format  = format;
+      info    = info }
 end
 

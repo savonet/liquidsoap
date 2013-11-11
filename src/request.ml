@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ let conf =
   Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 let grace_time =
   Conf.float ~p:(conf#plug "grace_time") ~d:600.
-    "Time after which a destroyed request cannot be accessed anymore."
+    "Time (in seconds) after which a destroyed request cannot be accessed anymore."
 
 let log = Log.make ["request"]
 
@@ -175,6 +175,28 @@ let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   metadata = metadata
 }
 
+(** Length *)
+let dresolvers_doc =
+  "Methods to extract duration from a file."
+let dresolvers =
+  Plug.create ~doc:dresolvers_doc ~insensitive:true
+    "audio file formats (duration)"
+
+exception Duration of float
+let duration file =
+  try
+    dresolvers#iter
+      (fun name resolver ->
+        try
+          let ans = resolver file in
+          raise (Duration ans)
+        with
+        | Duration e -> raise (Duration e)
+        | _ -> ());
+    raise Not_found
+  with
+  | Duration d -> d
+
 (** Manage requests' metadata *)
 
 let toplevel_metadata t =
@@ -280,12 +302,45 @@ let mresolvers =
     ~register_hook:(fun (name,_) -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
+let conf_override_metadata =
+  Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
+      "Allow metadata resolvers to override metadata already \
+       set through annotate: or playlist resolution for instance."
+
+let conf_duration =
+  Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
+    "Compute duration in the \"duration\" metadata, if the metadata is not \
+     already present. This can take a long time and the use of this option is \
+     not recommended: the proper way is to have a script precompute the \
+     \"duration\" metadata."
+
+(** Sys.file_exists doesn't make a difference between existing files
+  * and files without enough permissions to list their attributes,
+  * for example when they are in a directory without x permission.
+  * The two following functions allow a more precise diagnostic.
+  * We do not use them everywhere in this file, but only when splitting
+  * existence and readability checks yields better logs. *)
+
+let file_exists name =
+  try Unix.access name [Unix.F_OK] ; true with
+    | Unix.Unix_error (Unix.EACCES,_,_) -> true
+    | Unix.Unix_error _ -> false
+
+let file_is_readable name =
+  try Unix.access name [Unix.R_OK] ; true with
+    | Unix.Unix_error _ -> false
+
 let local_check t =
   let check_decodable kind = try
-    while t.decoder = None && Sys.file_exists (peek_indicator t).string do
+    while t.decoder = None && file_exists (peek_indicator t).string do
       let indicator = peek_indicator t in
       let name = indicator.string in
       let metadata = get_all_metadata t in
+        if not (file_is_readable name) then begin
+          log#f 3 "Read permission denied for %S!" name ;
+          add_log t "Read permission denied!" ;
+          pop_indicator t
+        end else
         match Decoder.get_file_decoder ~metadata name kind with
           | Some (decoder_name,f) ->
               t.decoder <- Some f ;
@@ -296,10 +351,18 @@ let local_check t =
                      let ans = resolver name in
                        List.iter
                          (fun (k,v) ->
-                            (* XXX Policy ? Never/always overwrite ? *)
-                            Hashtbl.replace indicator.metadata
-                              (String.lowercase k) (cleanup v))
+                           let k = String.lowercase k in
+                           if conf_override_metadata#get || get_metadata t k = None then
+                             Hashtbl.replace indicator.metadata
+                              k (cleanup v))
                          ans;
+                     if conf_duration#get && get_metadata t "duration" = None then
+                       (
+                         try
+                           Hashtbl.replace indicator.metadata "duration" (string_of_float (duration name))
+                         with
+                         | Not_found -> ()
+                       )
                    with
                      | _ -> ()) (get_decoders conf_metadata_decoders
                                      mresolvers) ;
@@ -337,29 +400,6 @@ let get_filename t =
     Some (List.hd (List.hd t.indicators)).string
   else
     None
-
-(** Length *)
-let dresolvers_doc =
-  "Methods to extract duration from a file."
-let dresolvers =
-  Plug.create ~doc:dresolvers_doc ~insensitive:true
-    "audio file formats (duration)"
-
-exception Duration of float
-let duration file =
-  try
-    dresolvers#iter
-      (fun name resolver ->
-        try
-         let ans = resolver file in
-         raise (Duration ans)
-        with 
-          | Duration e -> raise (Duration e) 
-          | _ -> () ) ; 
-      raise Not_found
-  with
-    | Duration d -> d
-
 
 let update_metadata t =
   let replace = Hashtbl.replace t.root_metadata in
@@ -531,7 +571,7 @@ let resolve t timeout =
     (* If the file is local we only need to check that it's valid,
      * we'll actually do that in a single local_check for all local indicators
      * on the top of the stack. *)
-    if Sys.file_exists i.string then local_check t else
+    if file_exists i.string then local_check t else
       match parse_uri i.string with
         | Some (proto,arg) ->
             begin match protocols#get proto with
@@ -557,7 +597,8 @@ let resolve t timeout =
                   pop_indicator t
             end
         | None ->
-            log#f 3 "Nonexistent file or ill-formed URI %S!" i.string ;
+            let log_level = if i.string = "" then 4 else 3 in
+            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
             add_log t "Nonexistent file or ill-formed URI!" ;
             pop_indicator t
   in

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,8 +33,8 @@ class external_input ~kind ~restart ~bufferize ~channels
   let abg_max_len = Frame.audio_of_seconds max in
   let in_freq = float samplerate in
   let converter =
-    Rutils.create_from_wav ~channels ~samplesize:16
-                           () ~audio_src_rate:in_freq
+    Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
+                           ~audio_src_rate:in_freq
   in
   (* We need a temporary log until
    * the source has an id *)
@@ -43,7 +43,7 @@ class external_input ~kind ~restart ~bufferize ~channels
   let abg = Generator.create ~log ~kind `Audio in
   let priority = Tutils.Non_blocking in
 object (self)
-  inherit Source.source kind
+  inherit Source.source ~name:"input.external" kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
   val mutable should_stop = false

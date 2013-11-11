@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,26 +20,14 @@
 
  *****************************************************************************)
 
-open Unix
-
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
-exception Disconnected
-exception Stopped
-
-(** Error translator *)
-let error_translator e =
-   match e with
-     | Disconnected ->
-         raise (Utils.Translation "Source client disconnected")
-     | Stopped ->
-         raise (Utils.Translation "Source stopped")
-     | _ -> ()
-
-let () = Utils.register_error_translator error_translator
-
-(* {1 Input handling} *)
+(** Default function to read from a socket. *)
+let default_read socket len =
+  let buf = String.create len in
+  let n = Unix.read socket buf 0 len in
+  buf, n
 
 class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max ~icy ~port
@@ -52,41 +40,28 @@ class http_input_server ~kind ~dumpfile ~logfile
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
-  inherit Source.source ~name:"harbor" kind
+  inherit Source.source ~name:"harbor" kind as super
   inherit Generated.source
             (Generator.create
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
             ~empty_on_abort:false ~bufferize as generated
 
   val mutable relay_socket = None
+  (** Function to read on socket. *)
+  val mutable relay_read = (fun socket len -> assert false)
+  (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
 
-  (** [kill_polling] is for requesting that the feeding thread stops;
-    * it is called on #disconnect. *)
-  val mutable kill_polling = None
-
-  (** [wait_polling] is to make sure that the thread did stop;
-    * it is only called in #relay before creating a new thread,
-    * so that #disconnect is instantaneous. *)
-  val mutable wait_polling = None
-
   val mutable dump = None
   val mutable logf = None
 
-  initializer 
+  initializer
     ns_kind <- "input.harbor" ;
-    let stop =
-      Tutils.mutexify relay_m
-        (fun _ ->
-          if relay_socket <> None then 
-            begin
-             self#disconnect ~lock:false; 
-             "Done"
-            end
-          else 
-            "No source client connected")
+    let stop _ =
+      self#disconnect ~lock:true;
+      "Done"
     in
     self#register_command
       "stop" ~descr:"Stop current source client, if connected." stop ;
@@ -94,7 +69,7 @@ object (self)
       "kick" ~descr:"Kick current source client, if connected." stop ;
     self#register_command
       "status" ~descr:"Display current status."
-      (Tutils.mutexify relay_m 
+      (Tutils.mutexify relay_m
        (fun _ ->
          match relay_socket with
            | Some s ->
@@ -103,7 +78,7 @@ object (self)
                                          (Unix.getpeername s))
            | None ->
                "no source client connected")) ;
-    self#register_command 
+    self#register_command
                "buffer_length" ~usage:"buffer_length"
                ~descr:"Get the buffer's length, in seconds."
        (fun _ -> Printf.sprintf "%.2f"
@@ -130,26 +105,45 @@ object (self)
 
   method get_mime_type = mime_type
 
-  method feed socket (should_stop,has_stopped) =
+  method feed =
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
-      (* Wait for `Read event on socket. *)
-      let log = self#log#f 4 "%s" in
-      Utils.wait_for ~log `Read socket timeout;
-      (* Now read. *)
-      let buf = String.make len ' ' in
-      let input = Unix.read socket buf 0 len in
-      if input<=0 then raise End_of_file ;
-      begin match dump with
-        | Some b -> output_string b (String.sub buf 0 input)
-        | None -> ()
+      let buf,input = (fun len ->
+        let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
+         match socket with
+           | None -> "", 0
+           | Some socket ->
+               begin
+                 try
+                   let rec f () =
+                     try
+                       (* Wait for `Read event on socket. *)
+                       Tutils.wait_for ~log `Read socket timeout;
+                       (* Now read. *)
+                       relay_read socket len
+                      with
+                        | Harbor.Retry -> f ()
+                   in
+                   f ()
+                 with
+                 | e -> self#log#f 2 "Error while reading from client: \
+                            %s" (Utils.error_message e);
+                   self#disconnect ~lock:false;
+                   "",0
+               end) len;
+      in
+      begin
+        match dump with
+          | Some b -> output_string b (String.sub buf 0 input)
+          | None -> ()
       end ;
-      begin match logf with
-        | Some b ->
-            let time = (Unix.gettimeofday () -. t0) /. 60. in
-              Printf.fprintf b "%f %d\n%!" time self#length
-        | None -> ()
+      begin
+        match logf with
+          | Some b ->
+             let time = (Unix.gettimeofday () -. t0) /. 60. in
+             Printf.fprintf b "%f %d\n%!" time self#length
+          | None -> ()
       end ;
       buf,input
     in
@@ -163,11 +157,9 @@ object (self)
       try
         let decoder = create_decoder input in
         while true do
-          if should_stop () then
-            raise Disconnected ;
-          Tutils.mutexify relay_m 
+          Tutils.mutexify relay_m
             (fun () ->
-               if relay_socket = None then 
+               if relay_socket = None then
                  failwith "relaying stopped") () ;
           decoder.Decoder.decode generator
         done
@@ -175,28 +167,12 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            (* Do not show internal exception, e.g. Unix.read()
-             * exception if source has been stopped. The socket
-             * is closed when stopping so we expect this exception
-             * to happen.. *)
-            let e =
-              match e with
-                | Stopped
-                | Disconnected -> e
-                | _ when relay_socket = None -> Stopped
-                | _ -> e
-            in 
             self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
-            (* exception Disconnected is raised when
-             * the thread is being killed, which only
-             * happends in self#disconnect. No need to
-             * call it then.. *)
-            if e <> Disconnected && e <> Stopped then
-              self#disconnect ~lock:true;
-            has_stopped () ;
-            if debug then raise e 
+            self#disconnect ~lock:true;
+            if debug then raise e
 
-  method private wake_up _ =
+  method private wake_up act =
+     super#wake_up act ;
      begin
       try
         Harbor.add_source ~port ~mountpoint ~icy (self:>Harbor.source) ;
@@ -211,14 +187,11 @@ object (self)
                       mountpointpoint '%s' and port %i." mountpoint port))
     end ;
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s"
+    log_ref := fun (s) -> self#log#f 3 "%s" s
 
   method private sleep =
-    Tutils.mutexify relay_m
-     (fun () ->
-       if relay_socket <> None then 
-         self#disconnect ~lock:false) () ;
-    Harbor.remove_source ~port ~mountpoint () 
+    self#disconnect ~lock:true;
+    Harbor.remove_source ~port ~mountpoint ()
 
   method register_decoder mime =
     Generator.set_mode generator `Undefined ;
@@ -228,264 +201,244 @@ object (self)
       | Some d -> create_decoder <- d ; mime_type <- Some mime
       | None -> raise Harbor.Unknown_codec
 
-  method relay stype (headers:(string*string) list) socket =
-    Tutils.mutexify relay_m
-      (fun () ->
-        if relay_socket <> None then
-          raise Harbor.Mount_taken ;
-        self#register_decoder stype ;
-        relay_socket <- Some socket ;
-        on_connect headers ;
-        begin match dumpfile with
-          | Some f ->
-              begin try
-                dump <- Some (open_out_bin 
-                                (Utils.home_unrelate f))
-              with e ->
-                self#log#f 2 "Could not open dump file: \
-                                %s" (Utils.error_message e)
-              end
-          | None -> ()
-        end ;
-        begin match logfile with
-          | Some f ->
-              begin try
-                logf <- Some (open_out_bin 
-                                (Utils.home_unrelate f))
-              with e ->
-                self#log#f 2 "Could not open log file: \
-                                %s" (Utils.error_message e)
-              end
-          | None -> ()
-        end ;
-        (* Wait for the old feeding thread to return, 
-         * then create a new one. *)
-        assert (kill_polling = None) ;
-        begin match wait_polling with
-          | None -> ()
-          | Some f -> 
-              f () ; wait_polling <- None
-        end ;
-        begin
-         let kill,wait = 
-           Tutils.stoppable_thread 
-                (self#feed socket) 
-                "harbor source feeding" 
-         in
-         kill_polling <- Some kill ;
-         wait_polling <- Some wait
-        end) ()
+  method relay stype (headers:(string*string) list) ?(read=default_read) socket =
+    Tutils.mutexify relay_m (fun () ->
+      if relay_socket <> None then raise Harbor.Mount_taken;
+      self#register_decoder stype;
+      relay_socket <- Some socket;
+      relay_read <- read
+    ) ();
+    on_connect headers ;
+    begin match dumpfile with
+      | Some f ->
+          begin try
+            dump <- Some (open_out_bin (Utils.home_unrelate f))
+          with e ->
+            self#log#f 2 "Could not open dump file: %s" (Utils.error_message e)
+          end
+      | None -> ()
+    end ;
+    begin match logfile with
+      | Some f ->
+          begin try
+            logf <- Some (open_out_bin (Utils.home_unrelate f))
+          with e ->
+            self#log#f 2 "Could not open log file: %s" (Utils.error_message e)
+          end
+      | None -> ()
+    end ;
+    ignore(Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
-  method disconnect ~lock =
-    let f () = 
-      match relay_socket with
-        | Some s -> 
-           begin match dump with
-             | Some f -> 
-                 close_out f ; dump <- None
-             | None -> ()
-           end ;
-           begin match logf with
-             | Some f -> 
-                 close_out f ; logf <- None
-             | None -> ()
-           end ;
-           begin 
-             try
-               Unix.close s
-             with _ -> ()
-           end;
-           (Utils.get_some kill_polling) () ;
-           kill_polling <- None ;
-           relay_socket <- None ;
-           on_disconnect ()
-        | None -> assert false
-    in
+  method private disconnect_no_lock =
+    Utils.maydo (fun s ->
+      try
+       Unix.close s
+      with _ -> ()) relay_socket;
+    relay_socket <- None
+
+  method private disconnect_with_lock =
+    Tutils.mutexify relay_m (fun () ->
+      self#disconnect_no_lock) ();
+
+  method private after_disconnect =
+    begin match dump with
+       | Some f ->
+           close_out f ; dump <- None
+       | None -> ()
+    end ;
+    begin match logf with
+       | Some f ->
+           close_out f ; logf <- None
+       | None -> ()
+    end ;
+    on_disconnect ()
+
+  method disconnect ~lock : unit =
     if lock then
-      Tutils.mutexify relay_m f ()
+      self#disconnect_with_lock
     else
-      f ()
+      self#disconnect_no_lock;
+    self#after_disconnect
 end
 
 let () =
-  let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
-    Lang.add_operator "input.harbor"
-      ~kind:(Lang.Unconstrained kind)
-      ~category:Lang.Input
-      ~descr:("Retrieves the given http stream from the harbor.")
-      [
-        "buffer", Lang.float_t, Some (Lang.float 2.),
-         Some "Duration of the pre-buffered data." ;
+  Lang.add_operator "input.harbor"
+    ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+    ~category:Lang.Input
+    ~descr:"Retrieves the given http stream from the harbor."
+    [
+      "buffer", Lang.float_t, Some (Lang.float 2.),
+       Some "Duration of the pre-buffered data." ;
 
-        "max", Lang.float_t, Some (Lang.float 10.),
-        Some "Maximum duration of the buffered data.";
+      "max", Lang.float_t, Some (Lang.float 10.),
+      Some "Maximum duration of the buffered data.";
 
-        "timeout", Lang.float_t, Some (Lang.float 30.),
-        Some "Timeout for source connectionn.";
+      "timeout", Lang.float_t, Some (Lang.float 30.),
+      Some "Timeout for source connectionn.";
 
-        "on_connect",
-        Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
-        Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
-        Some "Function to execute when a source is connected. \
-              Its receives the list of headers, of the form: \
-              (<label>,<value>). All labels are lowercase.";
+      "on_connect",
+      Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+      Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
+      Some "Function to execute when a source is connected. \
+            Its receives the list of headers, of the form: \
+            (<label>,<value>). All labels are lowercase.";
 
-        "on_disconnect",Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Functions to excecute when a source is disconnected";
+      "on_disconnect",Lang.fun_t [] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Functions to excecute when a source is disconnected";
 
-        "user",Lang.string_t,
-        Some (Lang.string "source"),
-        Some "Source user.";
+      "user",Lang.string_t,
+      Some (Lang.string "source"),
+      Some "Source user.";
 
-        "password",Lang.string_t,
-        Some (Lang.string "hackme"),
-        Some "Source password.";
+      "password",Lang.string_t,
+      Some (Lang.string "hackme"),
+      Some "Source password.";
 
-        "port", Lang.int_t,
-        Some (Lang.int 8005),
-        Some "Port used to connect to the source.";
+      "port", Lang.int_t,
+      Some (Lang.int 8005),
+      Some "Port used to connect to the source.";
 
-        "icy", Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Enable ICY (shoutcast) protocol.";
+      "icy", Lang.bool_t,
+      Some (Lang.bool false),
+      Some "Enable ICY (shoutcast) protocol.";
 
-        "icy_metadata_charset", Lang.string_t,
-        Some (Lang.string ""),
-        Some "ICY (shoutcast) metadata charset. \
-              Guessed if empty. Default for shoutcast is ISO-8859-1. \
-              Set to that value if all your clients send metadata using this \
-              charset and automatic detection is not working for you.";
+      "icy_metadata_charset", Lang.string_t,
+      Some (Lang.string ""),
+      Some "ICY (shoutcast) metadata charset. \
+            Guessed if empty. Default for shoutcast is ISO-8859-1. \
+            Set to that value if all your clients send metadata using this \
+            charset and automatic detection is not working for you.";
 
-        "metadata_charset", Lang.string_t,
-        Some (Lang.string ""),
-        Some "Metadata charset for non-ICY (shoutcast) source protocols. \
-              Guessed if empty.";
+      "metadata_charset", Lang.string_t,
+      Some (Lang.string ""),
+      Some "Metadata charset for non-ICY (shoutcast) source protocols. \
+            Guessed if empty.";
 
-        "auth",
-        Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
-        Some
-          (Lang.val_cst_fun
-             ["",Lang.string_t,None;"",Lang.string_t,None]
-             (Lang.bool false)),
-        Some "Authentication function. \
-              <code>f(login,password)</code> returns <code>true</code> \
-              if the user should be granted access for this login. \
-              Override any other method if used.";
+      "auth",
+      Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
+      Some
+        (Lang.val_cst_fun
+           ["",Lang.string_t,None;"",Lang.string_t,None]
+           (Lang.bool false)),
+      Some "Authentication function. \
+            <code>f(login,password)</code> returns <code>true</code> \
+            if the user should be granted access for this login. \
+            Override any other method if used.";
 
-        "dumpfile", Lang.string_t, Some (Lang.string ""),
-        Some "Dump stream to file, for debugging purpose. Disabled if empty.";
+      "dumpfile", Lang.string_t, Some (Lang.string ""),
+      Some "Dump stream to file, for debugging purpose. Disabled if empty.";
 
-        "logfile", Lang.string_t, Some (Lang.string ""),
-        Some "Log buffer status to file, for debugging purpose. \
-              Disabled if empty.";
+      "logfile", Lang.string_t, Some (Lang.string ""),
+      Some "Log buffer status to file, for debugging purpose. \
+            Disabled if empty.";
 
-        "debug", Lang.bool_t, Some (Lang.bool false),
-        Some "Run in debugging mode by not catching some exceptions.";
+      "debug", Lang.bool_t, Some (Lang.bool false),
+      Some "Run in debugging mode by not catching some exceptions.";
 
-        "", Lang.string_t, None,
-        Some "Mountpoint to look for." ]
-      (fun p kind ->
-         let mountpoint = Lang.to_string (List.assoc "" p) in
-         let mountpoint =
-           if mountpoint<>"" && mountpoint.[0]='/' then mountpoint else
-             Printf.sprintf "/%s" mountpoint
+      "", Lang.string_t, None,
+      Some "Mountpoint to look for." ]
+    (fun p kind ->
+       let mountpoint = Lang.to_string (List.assoc "" p) in
+       let mountpoint =
+         if mountpoint<>"" && mountpoint.[0]='/' then mountpoint else
+           Printf.sprintf "/%s" mountpoint
+       in
+       let trivially_false = function
+         | { Lang.value =
+               Lang.Fun (_,_,_,
+                         { Lang_values.term = Lang_values.Bool false }) }
+             -> true
+         | _ -> false
+       in
+       let default_user =
+         Lang.to_string (List.assoc "user" p)
+       in
+       let default_password =
+         Lang.to_string (List.assoc "password" p)
+       in
+       let debug = Lang.to_bool (List.assoc "debug" p) in
+       let timeout = Lang.to_float (List.assoc "timeout" p) in
+       let icy = Lang.to_bool (List.assoc "icy" p) in
+       let icy_charset =
+         match Lang.to_string (List.assoc "icy_metadata_charset" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let meta_charset =
+         match Lang.to_string (List.assoc "metadata_charset" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let port = Lang.to_int (List.assoc "port" p) in
+       let auth_function = List.assoc "auth" p in
+       let login user password =
+         (** We try to decode user & password here.
+           * Idealy, it would be better to decode them
+           * in tools/harbor.ml in order to use any
+           * possible charset information there.
+           * However:
+           * - ICY password are given raw, without
+           *   any charset information
+           * - HTTP password are encoded in Base64 and
+           *   passed through the HTTP headers, where
+           *   there are no charset information concerning
+           *   the password. Note: Content-Type may contain
+           *   a charset information, but this refers to
+           *   the charset of the HTML content.. *)
+         let user,password =
+           let f = Configure.recode_tag in
+           f user, f password
          in
-         let trivially_false = function
-           | { Lang.value =
-                 Lang.Fun (_,_,_,
-                           { Lang_values.term = Lang_values.Bool false }) }
-               -> true
-           | _ -> false
+         let default_login =
+           user = default_user &&
+           password = default_password
          in
-         let default_user = 
-           Lang.to_string (List.assoc "user" p) 
+         if not (trivially_false auth_function) then
+           Lang.to_bool
+               (Lang.apply ~t:Lang.bool_t
+                  auth_function
+                  ["",Lang.string user;
+                   "",Lang.string password])
+           else
+             default_login
+       in
+       let login = (default_user, login) in
+       let dumpfile =
+         match Lang.to_string (List.assoc "dumpfile" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let logfile =
+         match Lang.to_string (List.assoc "logfile" p) with
+           | "" -> None
+           | s -> Some s
+       in
+       let bufferize = Lang.to_float (List.assoc "buffer" p) in
+       let max = Lang.to_float (List.assoc "max" p) in
+       if bufferize >= max then
+         raise (Lang.Invalid_value
+                  (List.assoc "max" p,
+                   "Maximun buffering inferior to pre-buffered data"));
+       let on_connect l =
+         let l =
+           List.map
+            (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+            l
          in
-         let default_password = 
-           Lang.to_string (List.assoc "password" p) 
+         let arg =
+           Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
          in
-         let debug = Lang.to_bool (List.assoc "debug" p) in
-         let timeout = Lang.to_float (List.assoc "timeout" p) in
-         let icy = Lang.to_bool (List.assoc "icy" p) in
-         let icy_charset = 
-           match Lang.to_string (List.assoc "icy_metadata_charset" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let meta_charset =
-           match Lang.to_string (List.assoc "metadata_charset" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let port = Lang.to_int (List.assoc "port" p) in
-         let auth_function = List.assoc "auth" p in
-         let login user password =
-           (** We try to decode user & password here. 
-             * Idealy, it would be better to decode them
-             * in tools/harbor.ml in order to use any
-             * possible charset information there.
-             * However: 
-             * - ICY password are given raw, without
-             *   any charset information
-             * - HTTP password are encoded in Base64 and 
-             *   passed through the HTTP headers, where
-             *   there are no charset information concerning
-             *   the password. Note: Content-Type may contain
-             *   a charset information, but this refers to 
-             *   the charset of the HTML content.. *)
-           let user,password = 
-              let f = Configure.recode_tag in
-              f user, f password
-           in
-           let default_login =
-             user = default_user &&
-             password = default_password
-           in
-             if not (trivially_false auth_function) then
-               Lang.to_bool
-                 (Lang.apply ~t:Lang.bool_t
-                    auth_function
-                    ["",Lang.string user;
-                     "",Lang.string password])
-             else
-               default_login
-         in
-         let login = (default_user, login) in
-         let dumpfile =
-           match Lang.to_string (List.assoc "dumpfile" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let logfile =
-           match Lang.to_string (List.assoc "logfile" p) with
-             | "" -> None
-             | s -> Some s
-         in
-         let bufferize = Lang.to_float (List.assoc "buffer" p) in
-         let max = Lang.to_float (List.assoc "max" p) in
-         if bufferize >= max then
-           raise (Lang.Invalid_value
-                    (List.assoc "max" p,
-                     "Maximun buffering inferior to pre-buffered data"));
-         let on_connect l =
-           let l = 
-             List.map 
-              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
-              l
-           in
-           let arg =
-             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
-           in
-           ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
-         in
-         let on_disconnect () =
-           ignore
-             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
-         in
-         (new http_input_server ~kind ~timeout
-                   ~bufferize ~max ~login ~mountpoint
-                   ~dumpfile ~logfile ~icy ~port 
-                   ~icy_charset ~meta_charset
-                   ~on_connect ~on_disconnect ~debug 
-                   p :> Source.source))
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+       in
+       let on_disconnect () =
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+       in
+       (new http_input_server ~kind ~timeout
+                 ~bufferize ~max ~login ~mountpoint
+                 ~dumpfile ~logfile ~icy ~port
+                 ~icy_charset ~meta_charset
+                 ~on_connect ~on_disconnect ~debug
+                 p :> Source.source))

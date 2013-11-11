@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,6 +33,13 @@ let dssi_enable =
   with
     | Not_found -> true
 
+let dssi_load =
+  try
+    let venv = Unix.getenv "LIQ_DSSI_LOAD" in
+    Pcre.split ~pat:":" venv
+  with
+    | Not_found -> []
+
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_DSSI_PATH" in
@@ -46,7 +53,7 @@ let all_chans = 16
 (* chan = None means synth all channels *)
 class dssi ~kind ?chan plugin descr outputs params source =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"dssi" kind [source] as super
 
   method stype = source#stype
 
@@ -136,11 +143,11 @@ let register_descr plugin_name descr_n descr outputs =
   in
   let liq_params = liq_params in
     Lang.add_operator
-      ("synth.dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      ("synth.dssi." ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
       (["channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle."]@liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in
@@ -156,11 +163,11 @@ let register_descr plugin_name descr_n descr outputs =
                                 midi = Lang.Fixed all_chans})
   in
     Lang.add_operator
-      ("synth.all.dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      ("synth.all.dssi." ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
       (liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in
@@ -169,7 +176,7 @@ let register_descr plugin_name descr_n descr outputs =
            new dssi ~kind plugin_name descr_n outputs params source
       )
 
-let register_plugin pname =
+let register_plugin ?(log_errors=false) pname =
   try
     let p = Plugin.load pname in
     let descr = Descriptor.descriptors p in
@@ -179,12 +186,21 @@ let register_plugin pname =
            let i, o = Ladspa_op.get_audio_ports ladspa_descr in
              (* TODO: we should handle inputs too someday *)
              if Array.length i = 0 then
-               register_descr pname n d o
+               (
+                 register_descr pname n d o;
+                 if log_errors then
+                   log#f 3 "Registered DSSI plugin: %s." (Ladspa.Descriptor.label ladspa_descr)
+               )
+             else
+               if log_errors then
+                 log#f 3 "Plugin %s has inputs, don't know how to handle them for now." (Ladspa.Descriptor.label ladspa_descr)
         ) descr
       (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
       (* Plugin.unload p *)
   with
-    | Plugin.Not_a_plugin -> ()
+    | Plugin.Not_a_plugin ->
+      if log_errors then
+        log#f 3 "File \"%s\" is not a plugin!" pname
 
 let register_plugins () =
   let plugins =
@@ -210,9 +226,32 @@ let register_plugins () =
   in
     List.iter register_plugin plugins
 
+let dssi_init =
+  let inited = ref false in
+  fun () ->
+    if !inited then () else
+      (
+        Dssi.init ();
+        inited := true
+      )
+
 let () =
   if dssi_enable then
     (
-      Dssi.init ();
+      dssi_init ();
       register_plugins ()
+    );
+  List.iter (register_plugin ~log_errors:true) dssi_load
+
+let () =
+  Lang.add_builtin "dssi.register"
+    ~category:(Lang.string_of_category Lang.SoundSynthesis)
+    ~descr:"Resgister a DSSI plugin."
+    ["", Lang.string_t, None, Some "Path of the DSSI plugin file."]
+    Lang.unit_t
+    (fun p _ ->
+      dssi_init ();
+      let fname = Lang.to_string (List.assoc "" p) in
+      register_plugin ~log_errors:true fname;
+      Lang.unit
     )

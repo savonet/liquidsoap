@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -144,7 +144,8 @@ object (self)
                     let cue_in =
                       match cue_in with
                         | Some i when i <= 0L ->
-                            self#log#f 2 "Ignoring negative cue-in point." ;
+                            if i < 0L then
+                              self#log#f 2 "Ignoring negative cue-in point." ;
                             None
                         | i -> i
                     in

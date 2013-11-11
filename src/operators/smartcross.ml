@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ class cross ~kind (s:source)
             ~conservative ~active transition =
   let channels = float (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit source kind as super
+  inherit source ~name:"smart_cross" kind as super
 
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
@@ -223,9 +223,10 @@ object (self)
         rmsi_before <- min rms_width (rmsi_before + 1)
     done ;
     (* Should we buffer more or are we done ? *)
-    if AFrame.is_partial buf_frame then
+    if AFrame.is_partial buf_frame then begin
+      Generator.add_break gen_before ;
       status <- `Limit
-    else
+    end else
       if n>0 then self#buffering (n - AFrame.position buf_frame)
 
   (* Analyze the beginning of a new track. *)
@@ -332,14 +333,19 @@ object (self)
   method remaining =
     match status with
       | `Idle | `After _ -> source#remaining
-      | `Limit -> 0
+      | `Limit -> 0 (* TODO -1? *)
       | `Before ->
           let rem = source#remaining in
             if rem<0 then -1 else
               source#remaining +
               Generator.length gen_before
 
-  method is_ready = source#is_ready
+  (** Contrary to cross.ml, the transition is only created (and stored in
+    * the source instance variable) after that status has moved from `Limit to
+    * `After. If is_ready becomes false at this point, source.ml will end the
+    * track before that the transition (or bare end of track) gets a chance
+    * to be played. *)
+  method is_ready = source#is_ready || status = `Limit
 
   method abort_track = source#abort_track
 

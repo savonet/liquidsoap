@@ -26,9 +26,9 @@ Each file is given by an external script, <code>radiopilote-getnext</code>,
 whose answer looks as follows (except that it's on a single line):
 <pre>
 annotate:file_id="3541",length="400.613877551",\
-  type="chansons",display_title="John Holt - Holigan",\
-  display_artist="RadioPi - Canal reggae",\
-  display_album="Studio One SeleKta! - Album Studio 1 12",\
+  type="chansons",title="John Holt - Holigan",\
+  artist="RadioPi - Canal reggae",\
+  album="Studio One SeleKta! - Album Studio 1 12",\
   canal="reggae":ftp://***:***@host/files/3541.mp3
 </pre>
 
@@ -257,15 +257,6 @@ def channel_radiopilote(~skip=true,name)
                     system(scripts ^ "radiopilote-feedback "
                            ^quote(meta["canal"])^" "
                            ^quote(meta["file_id"]) ^ "'"), source)
-
-  # Rewrite metadata
-  source = 
-    rewrite_metadata(
-     [("artist",'$(if $(display_artist),"$(display_artist)","$(artist)")'),
-      ("comment",""),
-      ("title", '$(if $(display_title),"$(display_title)","$(title)")'),
-      ("album", '$(if $(display_album),"$(display_album)","$(album)")')],
-     source)
 
   # Finally apply a smart crossfading
   smart_crossfade(source)

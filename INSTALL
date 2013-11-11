@@ -1,56 +1,58 @@
+Liquidsoap 1.1.1
+----------------
 
- Liquidsoap 1.0.0
- ----------------
+Below is a list of dependencies, mostly OCaml libraries. Optional libraries
+provide extra features. They need to be detected by the "configure" script.
 
- Below is a list of dependencies, mostly OCaml libraries.
- Optional libraries provide extra features. They need to be detected
- by the "configure" script.
+Most of the libraries are developed by the Savonet project and, in addition to
+being available through traditional distribution channels, are bundled in the
+liquidsoap-<version>-full.tar.bz2 tarballs for easier builds.
 
- Most of the libraries are developed by the Savonet project and,
- in addition to being available through traditional distribution
- channels, are bundled in the liquidsoap-<version>-full.tar.bz2 tarballs
- for easier builds.
+Libraries not developed by Savonet are:
 
- Libraries not developed by Savonet are:
    ocaml-pcre, ocaml-magic, ocaml-sdl
    camomile, json-wheel, camlimages, gd4o
 
+Mandatory dependencies :
 
- Mandatory dependencies :
-
-   ocaml-dtools>=0.2.2
-   ocaml-duppy>=0.4.2
-   ocaml-mm>=0.2.0
+   ocaml-dtools>=0.3.1
+   ocaml-duppy>=0.5.1
+   ocaml-mm>=0.2.1
    ocaml-pcre
 
- Recommended dependencies :
+Recommended dependencies :
 
    camomile                 for charset recoding in metadata
    ocaml-magic>=0.6         for file type detection
    festival, sox, normalize for speech synthesis
 
- Optional dependencies :
+Optional dependencies :
 
    ocaml-cry>=0.2.2          for sending to Shoutcast & Icecast
-   ocaml-ogg>=0.4.3          for Ogg codecs
+   ocaml-ogg>=0.4.5          for Ogg codecs
    ocaml-vorbis>=0.6.1       for Ogg/Vorbis codec
+   ocaml-opus>=0.1.0         for Ogg/Opus codec
    ocaml-theora>=0.3.0       for Ogg/Theora codec
    ocaml-speex>=0.2.0        for Ogg/Speex codec
-   ocaml-flac>=0.1.0         for Flac and Ogg/Flac codec
+   ocaml-flac>=0.1.1         for Flac and Ogg/Flac codec
    ocaml-schroedinger>=0.1.0 for Ogg/Schroedinger codec
    ocaml-mad>=0.4.4          for MP3 decoding
-   ocaml-lame>=0.3.1         for MP3 encoding
-   ocaml-taglib>=0.2.0       for MP3ID3 metadata access
-   ocaml-faad>=0.3.0         for AAC stream decoding
-   ocaml-aacplus>=0.2.0      for AAC(+) encoding
-   ocaml-voaacenc>=0.1.0     for AAC(+) encoding
+   ocaml-lame>=0.3.2         for MP3 encoding
+   ocaml-shine>=0.1.0        for fixed-point MP3 encoding
+   ocaml-taglib>=0.3.1       for MP3ID3 metadata access
+   ocaml-faad>=0.3.2         for AAC stream decoding
+   ocaml-aacplus>=0.2.1      for AAC+ encoding
+   ocaml-voaacenc>=0.1.0     for AAC encoding
+   ocaml-fdkaac>=0.1.0       for AAC(+) encoding (replacement candidate for voaac and aacplus)
    camlimages>=4.0.0         for image decoding
    ocaml-sdl                 for display, font & image support
-   ocaml-gavl>=0.1.4         for video conversion using the gavl library
-   ocaml-samplerate>=0.1.1   for libsamplerate audio conversion
+   ocaml-gavl>=0.1.5         for video conversion using the gavl library
+   ocaml-ffmpeg>=0.1.0       for video conversion using the ffmpeg library
+   ocaml-samplerate>=0.1.2   for libsamplerate audio conversion
    ocaml-lastfm>=0.3.0       for lastfm protocol support
    ocaml-xmlplaylist>=0.1.3  for XML-based playlist formats
-   ocaml-dssi>=0.1.0         for DSSI sound synthesis
+   ocaml-dssi>=0.1.1         for DSSI sound synthesis
+   ocaml-frei0r>=0.1.0       for frei0r plugins
    ocaml-lo>=0.1.0           for OSC (Open Sound Control) support
    ocaml-ladspa>=0.1.4       for LADSPA plugins
    ocaml-soundtouch>=0.1.7   for libsoundtouch's audio effects
@@ -58,67 +60,72 @@
    ocaml-alsa>=0.2.1         for ALSA I/O
    ocaml-portaudio>=0.2.0    for Portaudio I/O
    ocaml-pulseaudio>=0.1.2   for PulseAudio I/O
-   ocaml-bjack>=0.1.3        for Jack support
-   ocaml-gstreamer>=0.1.0    for v4l2 (video for linux) input
+   ocaml-bjack>=0.1.4        for Jack support
+   ocaml-gstreamer>=0.2.0    for GStreamer input, output and encoding/decoding
+   ocaml-inotify>=1.0        for reloading playlists when changed
    json-wheel                for parsing JSON data (of_json function)
    gd4o                      for video.add_text() on servers without X
 
- Runtime optional dependencies :
+Runtime optional dependencies :
 
    wget for http/https/ftp support
-   ufetch (from ocaml-fetch) for smb support
 
- How to install
- --------------
+How to install
+--------------
 
- *BSD users, as well as OSX users might need to export some variables 
- that can be missing during the process:
+*BSD users, as well as OSX users might need to export some variables that can be
+missing during the process:
+
    % export CPPFLAGS=-I/usr/local/include
    % export LDFLAGS=-L/usr/local/lib
-   % export OCAMLMKLIB_FLAGS=-L/usr/local/lib 
- Also, liquidsoap needs GNU make. If you have a GNU make, this is normally
- detected during configuration. If this check fails you can set the MAKE
- variable:
+   % export OCAMLMKLIB_FLAGS=-L/usr/local/lib
+
+Also, liquidsoap needs GNU make. If you have a GNU make, this is normally
+detected during configuration. If this check fails you can set the MAKE
+variable:
+
    % export MAKE=`your make command`
 
- The following assumes your MAKE command is make. Change to yours if
- different.
+The following assumes your MAKE command is make. Change to yours if different.
 
- Now you can start the build configuration:
+Now you can start the build configuration:
+
    % ./configure
 
- If you want a complete installation of liquidsoap, enabling a production
- use of liquidsoap as a daemon, you should pass --with-user=<login> and
- --with-group=<group> options to indicate which user/group you have
- created for liquidsoap.
+If you want a complete installation of liquidsoap, enabling a production use of
+liquidsoap as a daemon, you should pass --with-user=<login> and
+--with-group=<group> options to indicate which user/group you have created for
+liquidsoap.
 
- Then, build the software:
+Then, build the software:
+
    % make
 
- You can also generate the documentation for liquidsoap:
+You can also generate the documentation for liquidsoap:
+
    % make doc
 
- It will generate the HTML documentation, including a version of the scripting
- API reference corresponding to your configuration. If Perl's module XML::DOM
- is not available it only generate a stub reference and issue a warning.
+It will generate the HTML documentation, including a version of the scripting
+API reference corresponding to your configuration. If Perl's module XML::DOM is
+not available it only generate a stub reference and issue a warning.
 
- Then, you may proceed to the installation. You may need to be root for that.
+Then, you may proceed to the installation. You may need to be root for that.
 
    % make install
 
- This will not install files such as /var/log/liquidsoap unless you have
- provided a user/group under which liquidsoap should be ran. This behavior
- can be overridden by passing INSTALL_DAEMON="yes" (useful for preparing
- binary packages).
+This will not install files such as /var/log/liquidsoap unless you have provided
+a user/group under which liquidsoap should be ran. This behavior can be
+overridden by passing INSTALL_DAEMON="yes" (useful for preparing binary
+packages).
 
- For installing developers documentation, run:
+For installing developers documentation, run:
 
    % make api-doc-install
 
- Then if you want services to be installed in $prefix/etc/init.d, run one of
- the following. service is for a generic /bin/sh service, gentoo is for
- a gentoo compliant service, to be used iff you've a gentoo linux.
+Then if you want services to be installed in $prefix/etc/init.d, run one of the
+following. service is for a generic /bin/sh service, gentoo is for a gentoo
+compliant service, to be used iff you've a gentoo linux.
 
    % make (service|gentoo)-install
 
- See /doc for understanding liquidsoap scripting. Have fun!
+See /doc for understanding liquidsoap scripting. Have fun!

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,9 +39,9 @@
   (** samplesize is in bits.
       Formats: unsigned 8 bit (u8) or
                signed 16 bit little endian (s16le) *)
-  val create_from_wav :
+  val create_from_iff :
+           format:Wav_aiff.format ->
            channels:int ->
            samplesize:int ->
-           unit ->
            wav_converter
 

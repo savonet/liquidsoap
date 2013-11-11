@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
  *****************************************************************************)
 
 (** Values and types of the liquidsoap language. *)
+
+val log : Dtools.Log.t
 
 (** The type of a value. *)
 type t = Lang_types.t
@@ -44,6 +46,9 @@ and in_value =
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
                full_env * full_env * Lang_values.term
+  (** A function with given arguments (argument label, argument variable,
+      default value), parameters already passed to the function, closure and
+      value. *)
   | FFI     of (string * string * value option) list *
                full_env *
                (full_env -> t -> value)
@@ -53,7 +58,9 @@ type env = (string*value) list
 (** Get a string representation of a value. *)
 val print_value : value -> string
 
-(** Iter a function over all sources contained in a value. *)
+(** Iter a function over all sources contained in a value.
+  * This only applies to statically referenced objects, ie.
+  * it does not explore inside reference cells. *)
 val iter_sources : (Source.source -> unit) -> value -> unit
 
 (** {2 Computation} *)
@@ -126,6 +133,8 @@ val audio_n : int -> lang_kind_formats
 val audio_variable : lang_kind_formats
 
 val video_only : lang_kind_formats
+val video_n : int -> lang_kind_formats
+
 val midi_n : int -> lang_kind_formats
 val midi_only : lang_kind_formats
 
@@ -163,6 +172,8 @@ val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
+val to_fun : t:t -> value -> (string * value) list -> value
+
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)
@@ -182,6 +193,7 @@ val of_list_t  : t -> t
 val zero_t     : t
 val variable_t : t
 val succ_t     : t -> t
+val add_t      : int -> t -> t
 val type_of_int : int -> t
 
 val request_t    : t -> t

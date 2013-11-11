@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ let get_again s buf =
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
 object (self)
-  inherit operator kind (List.map snd sources) as super
+  inherit operator ~name:"add" kind (List.map snd sources) as super
 
   (* We want the sources at the beginning of the list to
    * have their metadatas copied to the output stream, so direction
@@ -124,7 +124,12 @@ object (self)
              else begin
                (* If there is more than one source we fill greedily. *)
                s#get buffer ;
+               let get_count = ref 0 in
                while Frame.is_partial buffer && s#is_ready do
+                 incr get_count ;
+                 if !get_count > Lazy.force Frame.size then
+                   self#log#f 2
+                     "Warning: there may be an infinite sequence of empty tracks!" ;
                  get_again s buffer
                done
              end ;

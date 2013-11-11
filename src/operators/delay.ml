@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ open Source
 
 class delay ~kind ~initial (source:source) delay =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"delay" kind [source] as super
 
   method stype = Fallible
   method remaining = source#remaining

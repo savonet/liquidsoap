@@ -17,7 +17,7 @@ h4. add_decoder
 
 %%
 add_decoder(name="my_decoder",description="My custom decoder",
-            test,decoder)@, where:
+            test,decoder)
 %%
 
 @add_decoder@ is used for external decoders that can read the encoded data from their standard
@@ -40,7 +40,7 @@ to read the encoded data from its standard input.
 
 %%
 add_oblivious_decoder(name="my_decoder",description="My custom decoder",
-                      buffer=5., test,decoder)@, where:
+                      buffer=5., test,decoder)
 %%
 
 @add_decoder@ is used for external decoders that can read the encoded data from their standard

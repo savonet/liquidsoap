@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,9 +37,14 @@ type random_mode = Random | Randomize | Normal
  * is choosed -- it requires the source to be selected:
  * Every_N_seconds n: the playlist is reloaded every n seconds;
  * Every_N_rounds n: A round is every time the end of playlist is reached
- *                   (only defined for Normal and Randomize modes).
+ *                   (only defined for Normal and Randomize modes);
+ * Watch: the playlist is reloaded whenever it is changed.
  *)
-type reload_mode = Never | Every_N_rounds of int | Every_N_seconds of float
+type reload_mode =
+  | Never
+  | Every_N_rounds of int
+  | Every_N_seconds of float
+  | Watch
 
 let is_dir f =
   try
@@ -79,7 +84,7 @@ object (self)
   val mutable virtual ns_kind : string
 
   initializer
-    ns_kind <- "playlist" ;
+    ns_kind <- "playlist";
     self#register_command "reload"
       ~descr:"Reload the playlist, unless already being loaded."
       (fun s -> self#reload_playlist () ; "OK") ;
@@ -163,12 +168,18 @@ object (self)
              (* TODO This is quite inefficient:
               *   reading the whole file as a string before parsing it... *)
             let content = Utils.read_all filename in
+            let pwd =
+              if Http.is_url uri then
+                Http.dirname uri
+              else
+                Filename.dirname filename
+            in
               let (format,playlist) =
                 match mime with
                   | "" ->
                       self#log#f 3
                         "No mime type specified, trying autodetection." ;
-                      Playlist_parser.search_valid content
+                      Playlist_parser.search_valid ~pwd content
                   | x ->
                       begin match Playlist_parser.parsers#get x with
                         | Some plugin ->
@@ -277,7 +288,7 @@ object (self)
   method private may_autoreload round_done =
     assert (Tutils.seems_locked mylock) ;
     match reload with
-      | Never -> ()
+      | Never | Watch -> ()
       | Every_N_seconds n ->
           if Unix.time () -. reload_t > n then begin
             reload_t <- Unix.time () ;
@@ -357,7 +368,7 @@ object (self)
      * check for playlist safety, making things messy. *)
     Mutex.lock mylock ;
     begin match reload with
-      | Never -> ()
+      | Never | Watch -> ()
       | Every_N_rounds n -> round_c <- n
       | Every_N_seconds _ -> reload_t <- Unix.time ()
     end ;
@@ -384,7 +395,7 @@ class playlist ~kind
   ~mime ~reload ~random
   ~length ~default_duration ~timeout ~prefix ~conservative
   uri =
-object
+object (self)
 
   (* Some day it might be useful to set distinct timeout parameters
    * for the playlist and media requests... or maybe not. *)
@@ -403,6 +414,13 @@ object
   (** Assume that every URI is valid, it will be checked on queuing. *)
   method is_valid file = true
 
+  method get_ready ?dynamic sl =
+    super#get_ready ?dynamic sl;
+    let watch = !Configure.file_watcher in
+    if reload = Watch then
+      self#on_shutdown
+        (watch [`Modify] (Utils.home_unrelate playlist_uri)
+          (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -441,11 +459,16 @@ object (self)
   (** Nothing queued, hence nothing to expire. *)
   method private expire _ = ()
 
+  method get_ready ?dynamic sl =
+    super#get_ready ?dynamic sl;
+    let watch = !Configure.file_watcher in
+    if reload = Watch then
+      self#on_shutdown (watch [`Modify] (Utils.home_unrelate playlist_uri)
+        (fun () -> self#reload_playlist ~uri:playlist_uri ()))
 end
 
 
 let () =
-
   let proto =
     [ "mode",
       Lang.string_t,
@@ -459,13 +482,14 @@ let () =
       "reload",
       Lang.int_t,
       Some (Lang.int 0),
-      Some "Amount of time (in seconds or rounds) before which \
+      Some "Amount of time (in seconds or rounds), when applicable, before which \
             the playlist is reloaded; 0 means never." ;
 
       "reload_mode",
       Lang.string_t,
       Some (Lang.string "seconds"),
-      Some "Unit of the reload parameter, either 'rounds' or 'seconds'." ;
+      Some "Unit of the reload parameter, either 'rounds', 'seconds' or \
+            'watch' (reload the file whenever it is changed)." ;
 
       "mime_type",
       Lang.string_t,
@@ -488,16 +512,20 @@ let () =
   in
   let reload_of i s =
     let arg = Lang.to_int i in
-      if arg<0 then
-        raise (Lang.Invalid_value (i,"must be positive")) ;
-      if arg = 0 then Never else
-      begin match Lang.to_string s with
-        | "rounds"  -> Every_N_rounds arg
-        | "seconds" -> Every_N_seconds (float_of_int arg)
-        | _ ->
-            raise (Lang.Invalid_value
-                     (s,"valid values are 'rounds' and 'seconds'"))
-      end
+    let ss = Lang.to_string s in
+      if ss = "watch" then Watch
+      else
+        (
+          if arg < 0 then raise (Lang.Invalid_value (i,"must be positive")) ;
+          if arg = 0 then Never else
+            begin match ss with
+            | "rounds"  -> Every_N_rounds arg
+            | "seconds" -> Every_N_seconds (float_of_int arg)
+            | _ ->
+              raise (Lang.Invalid_value
+                       (s,"valid values are 'rounds', 'seconds' and 'watch'"))
+            end
+        )
   in
   let random_of s =
     match Lang.to_string s with

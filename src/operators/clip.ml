@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,9 +22,9 @@
 
 open Source
 
-class echo ~kind (source:source) vmin vmax =
+class clip ~kind (source:source) vmin vmax =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"clip" kind [source] as super
 
   method stype = source#stype
   method remaining = source#remaining
@@ -57,4 +57,4 @@ let () =
          Lang.to_float (f "max"),
          Lang.to_source (f "")
        in
-         new echo ~kind src vmin vmax)
+         new clip ~kind src vmin vmax)

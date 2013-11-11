@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,11 +53,11 @@ type track_data =
   * If the encoding process outputs ogg pages, then
   * the encoder should use the last argument to add its pages
   * to the stream. *)
-type 'a track_encoder = 'a data -> Ogg.Stream.t -> (Ogg.Page.t -> unit) -> unit
+type 'a track_encoder = 'a data -> Ogg.Stream.stream -> (Ogg.Page.t -> unit) -> unit
 
 (** Returns the first page of the stream,
   * to be placed at the very beginning. *)
-type header_encoder = Ogg.Stream.t -> Ogg.Page.t
+type header_encoder = Ogg.Stream.stream -> Ogg.Page.t
 
 (** Return the end time of a page, in milliseconds. *)
 type position = Unknown | Time of float
@@ -69,13 +69,13 @@ type page_end_time = Ogg.Page.t -> position
   * will contain the data for this stream to
   * put in the ogg skeleton, if enabled in
   * the encoder. *)
-type fisbone_packet = Ogg.Stream.t -> Ogg.Stream.packet option
+type fisbone_packet = Ogg.Stream.stream -> Ogg.Stream.packet option
 
 (** Returns the remaining header data, before data encoding starts. *)
-type stream_start = Ogg.Stream.t -> Ogg.Page.t list
+type stream_start = Ogg.Stream.stream -> Ogg.Page.t list
 
 (** Ends the track. *)
-type end_of_stream = Ogg.Stream.t -> unit
+type end_of_stream = Ogg.Stream.stream -> unit
 
 (** A data encoder is an encoder for either a audio or a video track. *)
 type data_encoder =
@@ -144,9 +144,14 @@ val peek_data : t -> string
 
 (** Register a new track to the stream.
   * The state needs to be [Bos] or [Eos].
+  *
+  * [fill] parameter is used to try to control ogg
+  * logical page's size. See [Ogg.get_page] for more
+  * details.
+  *
   * Returns the serial number of the registered ogg
   * stream. *)
-val register_track : t -> stream_encoder -> nativeint
+val register_track : ?fill:int -> t -> stream_encoder -> nativeint
 
 (** Start streams, set state to [Streaming]. *)
 val streams_start : t -> unit
@@ -166,4 +171,4 @@ val end_of_stream : t -> unit
   (** {2 Utils} *)
 
 (** flush all availables pages from an ogg stream *)
-val flush_pages : Ogg.Stream.t -> Ogg.Page.t list
+val flush_pages : Ogg.Stream.stream -> Ogg.Page.t list

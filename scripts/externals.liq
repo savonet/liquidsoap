@@ -1,13 +1,11 @@
 # Decoders, enabled when the binary is detected and the os is not Win32.
 
 %ifdef add_decoder
-# Enable external Musepack decoder. Requires the 
-# mpcdec binary in the path. Does not work on 
-# Win32.
+# Enable external Musepack decoder. Requires the mpcdec binary in the path.
 # @category Liquidsoap
 def enable_external_mpc_decoder() =
   # A list of know extensions and content-type for Musepack.
-  # Values from http://en.wikipedia.org/wiki/Musepack 
+  # Values from http://en.wikipedia.org/wiki/Musepack
   mpc_mimes = [ "audio/x-musepack", "audio/musepack" ]
   mpc_filexts = [ "mpc", "mp+", "mpp" ]
 
@@ -15,7 +13,7 @@ def enable_external_mpc_decoder() =
     def get_channels(file) =
       int_of_string(
         list.hd(
-          get_process_lines("mpcdec -i #{quote(file)} 2>&1 \
+          get_process_lines("mpcdec#{exe_ext} -i #{quote(file)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
     # Get the file's mime
@@ -32,7 +30,7 @@ def enable_external_mpc_decoder() =
            get_channels(file)
          else
             0
-         end   
+         end
        else
          get_channels(file)
        end
@@ -48,22 +46,20 @@ def enable_external_mpc_decoder() =
     log(level=3,"Did not find mpcdec binary: musepack decoder disabled.")
   end
 
-end 
+end
 
-# Enable external FLAC decoders. Requires flac binary
-# in the path for audio decoding and metaflac binary for 
-# metadata. Does not work on Win32. Default: disabled.
-# Please note that built-in support for FLAC is available
-# in liquidsoap if compiled and should be preferred over
-# the external decoder.
+# Enable external FLAC decoders. Requires flac binary in the path for audio
+# decoding and metaflac binary for metadata. Default: disabled.
+# Please note that built-in support for FLAC is available in liquidsoap if
+# compiled and should be preferred over the external decoder.
 # @category Liquidsoap
-def enable_external_flac_decoder() = 
+def enable_external_flac_decoder() =
   if test_process("which flac") then
     log(level=3,"Found flac binary: enabling flac external decoder.")
     flac_p = "flac -d -c - 2>/dev/null"
     def test_flac(file) =
       if test_process("which metaflac") then
-        channels = list.hd(get_process_lines("metaflac \
+        channels = list.hd(get_process_lines("metaflac#{exe_ext} \
                                               --show-channels #{quote(file)} \
                                               2>/dev/null"))
         # If the value is not an int, this returns 0 and we are ok :)
@@ -80,7 +76,7 @@ def enable_external_flac_decoder() =
       end
     end
     add_decoder(name="EXTERNAL_FLAC",description="Decode files using the flac \
-                decoder binary.", test=test_flac,flac_p)
+                decoder binary.", mimes=["audio/x-flac"], test=test_flac,flac_p)
   else
     log(level=3,"Did not find flac binary: flac decoder disabled.")
   end
@@ -89,7 +85,7 @@ def enable_external_flac_decoder() =
    log(level=3,"Found metaflac binary: enabling flac external metadata \
                 resolver.")
    def flac_meta(file)
-     ret = get_process_lines("metaflac --export-tags-to=- \
+     ret = get_process_lines("metaflac#{exe_ext} --export-tags-to=- \
                   #{quote(file)} 2>/dev/null")
      ret = list.map(string.split(separator="="),ret)
      # Could be made better..
@@ -114,17 +110,16 @@ end
 %endif
 
 %ifdef add_oblivious_decoder
-# Enable or disable external FAAD (AAC/AAC+/M4A) decoders. 
-# Requires faad binary in the path for audio decoding and 
-# metaflac binary for metadata. Does not work on Win32.
-# Please note that built-in support for faad is available
-# in liquidsoap if compiled and should be preferred over
-# the external decoder.
+# Enable or disable external FAAD (AAC/AAC+/M4A) decoders.  Requires faad binary
+# in the path for audio decoding and metaflac binary for metadata. Does not work
+# on Win32.
+# Please note that built-in support for faad is available in liquidsoap if
+# compiled and should be preferred over the external decoder.
 # @category Liquidsoap
 def enable_external_faad_decoder() =
 
   # A list of know extensions and content-type for AAC.
-  # Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding 
+  # Values from http://en.wikipedia.org/wiki/Advanced_Audio_Coding
   # TODO: can we register a setting for that ??
   aac_mimes =
     ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
@@ -132,17 +127,16 @@ def enable_external_faad_decoder() =
   aac_filexts = ["m4a", "m4b", "m4p", "m4v",
                  "m4r", "3gp", "mp4", "aac"]
 
-  # Faad is not very selective so
-  # We are checking only file that
-  # end with a known extension or mime type
-  def faad_test(file) = 
+  # Faad is not very selective so we are checking only file that end with a
+  # known extension or mime type
+  def faad_test(file) =
     # Get the file's mime
     mime = get_mime(file)
     # Test mime
     if list.mem(mime,aac_mimes) then
       true
     else
-      # Otherwise test file extension
+      # Otherwise test file extension
       ret = string.extract(pattern='\.(.+)$',file)
       if list.length(ret) != 0 then
          ext = ret["1"]
@@ -159,10 +153,10 @@ def enable_external_faad_decoder() =
     faad_p = (fun (f) -> "faad -w #{quote(f)} 2>/dev/null")
     def test_faad(file) =
       if faad_test(file) then
-        channels = list.hd(get_process_lines("faad -i #{quote(file)} 2>&1 | \
+        channels = list.hd(get_process_lines("faad#{exe_ext} -i #{quote(file)} 2>&1 | \
                                               grep 'ch,'"))
         ret = string.extract(pattern=", (\d) ch,",channels)
-        ret = 
+        ret =
           if list.length(ret) == 0 then
           # If we pass the faad_test, chances are
           # high that the file will contain aac audio data..
@@ -179,9 +173,9 @@ def enable_external_faad_decoder() =
                           the faad binary.", test=test_faad, faad_p)
     def faad_meta(file) =
       if faad_test(file) then
-        ret = get_process_lines("faad -i \
+        ret = get_process_lines("faad#{exe_ext} -i \
                      #{quote(file)} 2>&1")
-        # Yea, this is ugly programming (again) !
+        # Yea, this is ugly programming (again)!
         def get_meta(l,s)=
           ret = string.extract(pattern="^(\w+):\s(.+)$",s)
           if list.length(ret) > 0 then
@@ -262,7 +256,9 @@ def input.mplayer(~id="input.mplayer",
   input.external(id=id,restart=restart,
                  restart_on_error=restart_on_error,
                  buffer=buffer,max=max,
-                 "mplayer -really-quiet -ao pcm:file=/dev/stdout \
+                 "mplayer -really-quiet \
+                    -af resample=#{get(default=44100,\"frame.audio.samplerate\")},channels=#{get(default=2,\"frame.audio.channels\")} \
+                    -ao pcm:file=/dev/stdout \
                     -vc null -vo null #{quote(s)} 2>/dev/null")
 end
 %endif

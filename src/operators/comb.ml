@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ class comb ~kind (source:source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"comb" kind [source] as super
 
   method stype = source#stype
 

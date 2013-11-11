@@ -24,6 +24,12 @@ val url_split_host_port : string -> string * int option * string
  *  (path and arguments, without their seperators). *)
 val http_sanitize : string -> string
 
+(** Basic detection of whether a path is an HTTP url. *)
+val is_url : string -> bool
+
+(** Url without the trailing filename. *)
+val dirname : string -> string
+
 (** split arg=value&arg2=value2 into (arg, value) Hashtbl.t *)
 val args_split : string -> (string, string) Hashtbl.t
 
@@ -40,9 +46,12 @@ type status = string * int * string
 (** Type for headers data. *)
 type headers = (string*string) list
 
-(* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-val read_crlf : ?log:(string -> unit) -> ?max:int -> 
+(* An ugly code to read until we see [\r]?\n n times. *)
+val read_crlf : ?log:(string -> unit) -> ?max:int -> ?count:int -> 
                 timeout:float -> connection -> string
+
+(* Read chunked data. *)
+val read_chunked : timeout:float -> connection -> int -> string * int
 
 val request : ?log:(string -> unit) ->
               timeout:float ->

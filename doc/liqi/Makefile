@@ -1,4 +1,4 @@
-DISTFILES= $(wildcard *.ml*) Makefile
+DISTFILES= Makefile liqi_parser.mly liqi_lexer.mll $(wildcard *.ml)
 
 ocaml_progs=liqi
 liqi_sources=liqi.ml html.ml latex.ml liqi_parser.ml liqi_lexer.ml main.ml

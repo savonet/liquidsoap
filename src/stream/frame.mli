@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,58 +20,128 @@
 
  *****************************************************************************)
 
-(** Frames are the units in which streams are split into. *)
+(** Operations on frames, which are small portions of streams. *)
 
+(** {2 Frame definitions} *)
+
+(** A frame contains fields which hold audio, video and MIDI data. *)
 type ('a, 'b, 'c) fields = { audio : 'a; video : 'b; midi : 'c; }
 
+(** Multiplicity of a field, used in types to impose constraints on channels
+    (empty, variable, at least k, etc.). *)
 type multiplicity = Variable | Zero | Succ of multiplicity
+
+(** Multiplicity of each field of a frame. *)
 type content_kind = (multiplicity, multiplicity, multiplicity) fields
 
+(** Content type of a frame: number of channels for audio, video and MIDI. *)
 type content_type = (int, int, int) fields
 
+(** Actual content of a frame. *)
 type content = (audio_t array, video_t array, midi_t array) fields
-and audio_t = Audio.Mono.buffer
-and video_t = Video.buffer
-and midi_t = MIDI.buffer
+and audio_t = Audio.Mono.buffer (** Audio data. *)
+and video_t = Video.buffer (** Video data. *)
+and midi_t = MIDI.buffer (** MIDI data. *)
 
+(** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset
+    [o1] into [c2] starting at offset [o2]. All numerical values are in
+    ticks. *)
 val blit_content : content -> int -> content -> int -> int -> unit
 
+(** Make a copy of the contents of a frame. *)
 val copy : content -> content
 
+(** Metadata of a frame. *)
 type metadata = (string, string) Hashtbl.t
+
+(** A frame. *)
 type t = {
-  mutable breaks : int list;
-  mutable metadata : (int * metadata) list;
-  mutable contents : (int * content) list
+  mutable breaks : int list; (** End of track markers. A break at the end of the
+                                 buffer is not an end of track (if needed, the
+                                 end-of-track needs to be put at the beginning
+                                 of the next frame). *)
+  mutable metadata : (int * metadata) list; (** Metadata along with the time they occur. *)
+  mutable contents : (int * content) list; (** The actual content can represent
+                                               several tracks in one content
+                                               chunk, for efficiency, but may
+                                               also be split in several chunks
+                                               of different content_type. Each
+                                               chunk has an end position, after
+                                               which data should be considered
+                                               as undefined. Chunks can be seen
+                                               as layers: they all have the same
+                                               (full) size, and data goes from
+                                               one to the other. For example:
+                                               [[5,A;7,B;10,C]] is A = 0 1 2 3 4
+                                               . . . . ., B = . . . . . 5 6
+                                               . . ., C = . . . . . . . 7 8 9
+                                               where "." is an undefined sample.
+                                               This representation is slightly
+                                               costly in memory (but several
+                                               chunks shouldn't happen too
+                                               often) but is very convenient to
+                                               handle; notably, there's no need
+                                               to pass offsets around. *)
 }
 
-(** {2 Content-independent frame operations}
-  * All units are in ticks (master clock). *)
+(** {2 Content-independent frame operations} *)
 
+(** All units are in ticks (master clock). *)
+
+(** Create a frame of given content kind. *)
 val create : content_kind -> t
 
+(** Position of the end of the last chunk of the frame (i.e. the offset of the
+    end of the frame). *)
 val position : t -> int
+
+(** Is the frame partially filled, i.e. is its end [position] strictly before
+    its size? *)
 val is_partial : t -> bool
 
+(** Make the frame empty. *)
 val clear : t -> unit
+
+(** Same as [clear] from a given position. *)
 val clear_from : t -> int -> unit
+
+(** Same as [clear] but leaves the last metadata at position [-1]. *)
 val advance : t -> unit
 
 (** {3 Breaks} *)
 
+(** List of breaks in a frame. *)
 val breaks : t -> int list
+
+(** Set all the breaks of a frame. *)
 val set_breaks : t -> int list -> unit
+
+(** Add a break to a frame (which should be past its current end position). *)
 val add_break : t -> int -> unit
 
 (** {3 Metadata} *)
 
 exception No_metadata
+
+(** Attach metadata at a given position in the frame. *)
 val set_metadata : t -> int -> metadata -> unit
+
+(** Retrieve metadata at a given position. *)
 val get_metadata : t -> int -> metadata option
+
+(** Remove all metadata at given position. *)
 val free_metadata : t -> int -> unit
+
+(** Remove all metadata. *)
 val free_all_metadata : t -> unit
+
+(** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
+
+(** Set all metadata. *)
 val set_all_metadata : t -> (int * metadata) list -> unit
+
+(** Retreive "past metadata" which are stored at offset [-1] (cf. [advance]). *)
 val get_past_metadata : t -> metadata option
 
 (** {2 Content operations} *)
@@ -87,6 +157,9 @@ exception No_chunk
 val get_chunk : t -> t -> unit
 
 (** {2 Compatibilities between content values, types and kinds} *)
+
+(** Compatibilities between content kinds, types and values: [sub a b] is [true]
+    when [b] is more permissive than [a]. *)
 
 val mul_sub_mul : multiplicity -> multiplicity -> bool
 val int_sub_mul : int -> multiplicity -> bool
@@ -106,32 +179,50 @@ val string_of_content_type : content_type -> string
 (** {2 Format settings} *)
 
 (** The channel numbers are only defaults, used when channel numbers
-  * cannot be infered / are not forced from the context.
+  * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
-(* This variable prevents forcing
- * the value of a lazy configuration
- * value before the user gets a chance to
- * override the default. *)
+(** Prevent forcing the value of a lazy configuration value before the user gets
+    a chance to override the default. *)
 val allow_lazy_config_eval : unit -> unit
 
+(** Default number of audio channels. *)
 val audio_channels : int Lazy.t
+
+(** Default number of video channels. *)
 val video_channels : int Lazy.t
+
+(** Default number of MIDI channels. *)
 val midi_channels : int Lazy.t
 
+(** Width of video images. *)
 val video_width : int Lazy.t
+
+(** Height of video images. *)
 val video_height : int Lazy.t
 
+(** Rate of audio (in samples per second). *)
 val audio_rate : int Lazy.t
+
+(** Video rate (in images per second). *)
 val video_rate : int Lazy.t
+
 val midi_rate : int Lazy.t
+
+(** Ticks per second. *)
 val master_rate : int Lazy.t
 
 val size : int Lazy.t
+
+(** Duration of a frame in seconds. *)
 val duration : float Lazy.t
 
 (** {2 Time and frequency conversions} *)
 
+(** Conversion between the internal unit (master ticks), seconds, and data
+    units. *)
+
+(** Duration of given number of samples in ticks. *)
 val audio_of_master : int -> int
 val video_of_master : int -> int
 val midi_of_master : int -> int

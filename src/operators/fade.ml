@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,11 +22,37 @@
 
 open Source
 
+let get_fader name =
+  let wrap f =
+    Some (fun l ->
+      let l = float l in
+       fun i ->
+         let i = float i /. l in
+          f (max 0. (min 1. i)))
+  in
+  (* A few typical shapes..
+   * In theory, any mapping from [0:1] to [0:1] is OK,
+   * preferably monotonic and one-to-one. *)
+  match name with
+    | "lin" -> wrap (fun x -> x)
+    | "log" ->
+        let curve = 10. in
+        let m = log (1.+.curve) in
+        wrap (fun x -> log (1. +. x*.10.) /. m)
+    | "exp" ->
+        let curve = 2. in
+        let m = exp curve -. 1. in
+        wrap (fun x -> (exp (curve *. x) -. 1.) /. m)
+    | "sin" ->
+        let pi = acos (-1.) in
+        wrap (fun x -> (1. +. sin ((x-.0.5)*.pi))/.2.)
+    | _ -> None
+
 (** Fade-in at the beginning of every frame.
   * The [duration] is in seconds.
   * If the initial flag is set, only the first/current track is faded in. *)
 class fade_in ~kind
-  ?(meta="liq_fade_in") ?(initial=false) duration fader source =
+  ~duration_meta ~type_meta ?(initial=false) duration fader source =
 object (self)
 
   inherit operator ~name:"fade_in" kind [source] as super
@@ -45,13 +71,21 @@ object (self)
     let fade,length,count =
       match state with
         | `Idle ->
-            let duration =
+            let fader, duration =
               match AFrame.get_metadata ab p1 with
-                | None -> duration
                 | Some m ->
-                    match Utils.hashtbl_get m meta with
+                   let fader =
+                    match Utils.hashtbl_get m type_meta with
+                      | Some n -> (try Utils.get_some (get_fader n) with _ -> fader)
+                      | None -> fader
+                   in
+                   let duration =
+                    match Utils.hashtbl_get m duration_meta with
                       | Some d -> (try float_of_string d with _ -> duration)
                       | None -> duration
+                   in
+                   fader, duration
+                | None -> fader, duration
             in
             let length = Frame.audio_of_seconds duration in
               fader length,
@@ -78,7 +112,7 @@ end
   * If the final flag is set, the fade-out happens as of instantiation
   * and the source becomes unavailable once it's finished. *)
 class fade_out ~kind
-  ?(meta="liq_fade_out") ?(final=false) duration fader source =
+  ~duration_meta ~type_meta ?(final=false) duration fader source =
 object (self)
 
   inherit operator ~name:"fade_out" kind [source] as super
@@ -113,13 +147,21 @@ object (self)
           | Some (f,l) -> f,l
           | None ->
               (* Set the length at the beginning of a track *)
-              let duration =
+              let fader, duration =
                 match AFrame.get_metadata ab offset1 with
-                  | None -> duration
                   | Some m ->
-                      match Utils.hashtbl_get m meta with
-                        | None -> duration
+                     let fader =
+                      match Utils.hashtbl_get m type_meta with
+                        | Some n -> (try Utils.get_some (get_fader n) with _ -> fader)
+                        | None -> fader
+                     in
+                     let duration =
+                      match Utils.hashtbl_get m duration_meta with
                         | Some d -> (try float_of_string d with _ -> duration)
+                        | None -> duration
+                     in
+                     fader, duration
+                  | _ -> fader, duration
               in
               let l = Frame.audio_of_seconds duration in
               let f = fader l in
@@ -162,80 +204,59 @@ let proto,kind =
     "", Lang.source_t kind, None, None ],
   kind
 
+let override_proto duration_name = proto @ [
+  "override_duration", Lang.string_t, Some (Lang.string duration_name),
+   Some "Metadata field which, if present and containing a float, \
+         overrides the 'duration' parameter for current track.";
+  "override_type", Lang.string_t, Some (Lang.string "liq_fade_type"),
+   Some "Metadata field which, if present and correct, overrides the \
+         'type' parameter for current track." ]
+
+
 let extract p =
   Lang.to_float (List.assoc "duration" p),
   (let mode = List.assoc "type" p in
-   let f =
-     (* A few typical shapes..
-      * In theory, any mapping from [0:1] to [0:1] is OK,
-      * preferably monotonic and one-to-one. *)
-     match Lang.to_string mode with
-       | "lin" -> (fun x -> x)
-       | "log" ->
-           let curve = 10. in
-           let m = log (1.+.curve) in
-             (fun x -> log (1. +. x*.10.) /. m)
-       | "exp" ->
-           let curve = 2. in
-           let m = exp curve -. 1. in
-             (fun x -> (exp (curve *. x) -. 1.) /. m)
-       | "sin" ->
-           let pi = acos (-1.) in
-             (fun x -> (1. +. sin ((x-.0.5)*.pi))/.2.)
-       | _ ->
-           let msg =
-             "The 'type' parameter should be 'lin','sin','log' or 'exp'!"
-           in
-             raise (Lang.Invalid_value (mode,msg))
-   in
-     fun l ->
-       let l = float l in
-         fun i ->
-           let i = float i /. l in
-             f (max 0. (min 1. i))
-  ),
+   (* A few typical shapes..
+    * In theory, any mapping from [0:1] to [0:1] is OK,
+    * preferably monotonic and one-to-one. *)
+   match get_fader (Lang.to_string mode) with
+     | Some f -> f
+     | None ->
+         let msg =
+           "The 'type' parameter should be 'lin','sin','log' or 'exp'!"
+         in
+           raise (Lang.Invalid_value (mode,msg))),
+  Lang.to_string (List.assoc "override_duration" p),
+  Lang.to_string (List.assoc "override_type" p),
   Lang.to_source (List.assoc "" p)
-
-let override_doc =
-  Some "Metadata field which, if present and containing a float, \
-        overrides the 'duration' parameter for current track."
 
 let () =
   Lang.add_operator
-    "fade.in" (("override", Lang.string_t, Some (Lang.string "liq_fade_in"),
-               override_doc) :: proto)
+    "fade.in" (override_proto "liq_fade_in")
     ~category:Lang.SoundProcessing
-    ~descr:"Fade the beginning of tracks. \
-            A special override metadata field can be used \
-            to set the duration for a specific track (float in seconds)."
+    ~descr:"Fade the beginning of tracks."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let d,f,s = extract p in
-       let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_in ~kind ~meta d f s) ;
-  Lang.add_operator "fade.initial" proto
+       let d,f,duration_meta,type_meta,s = extract p in
+       new fade_in ~kind ~duration_meta ~type_meta d f s) ;
+  Lang.add_operator "fade.initial" (override_proto "liq_fade_initial")
     ~category:Lang.SoundProcessing
     ~descr:"Fade the beginning of a stream."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let d,f,s = extract p in
-         new fade_in ~kind ~initial:true d f s) ;
-  Lang.add_operator "fade.out"
-    (("override", Lang.string_t, Some (Lang.string "liq_fade_out"),
-      override_doc) :: proto)
+       let d,f,duration_meta,type_meta,s = extract p in
+       new fade_in ~kind ~initial:true ~duration_meta ~type_meta d f s) ;
+  Lang.add_operator "fade.out" (override_proto "liq_fade_out")
     ~category:Lang.SoundProcessing
-    ~descr:"Fade the end of tracks. A special override metadata field \
-            can be used to set the duration for a specific track \
-            (float in seconds)."
+    ~descr:"Fade the end of tracks."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let d,f,s = extract p in
-       let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_out ~kind ~meta d f s) ;
-  Lang.add_operator "fade.final" proto
+       let d,f,duration_meta,type_meta,s = extract p in
+       new fade_out ~kind ~duration_meta ~type_meta d f s) ;
+  Lang.add_operator "fade.final" (override_proto "liq_fade_final")
     ~category:Lang.SoundProcessing
     ~descr:"Fade a stream to silence."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let d,f,s = extract p in
-         new fade_out ~kind ~final:true d f s)
+       let d,f,duration_meta,type_meta,s = extract p in
+       new fade_out ~kind ~duration_meta ~type_meta ~final:true d f s)

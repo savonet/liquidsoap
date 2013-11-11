@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@ exception Error
 
 let annotate s ~log maxtime =
   try
+    (* Avoid =- being lexed as a single identifier. *)
+    let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in
     let l = String.length s in
     let pos = ref 0 in
     let str =

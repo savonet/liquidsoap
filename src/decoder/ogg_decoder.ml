@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -158,8 +158,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
      end ;
     Generator.set_mode buffer mode ;
     let add_meta f t =
-      (* Initial metadata in files are handled
-       * seperatly.. *)
+      (* Initial metadata in files is handled separately. *)
       if source = `Stream ||
          (merge_tracks && (not !first_meta))
       then
@@ -199,6 +198,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
            failwith "Ogg stream does not contain required data"
   in
   let decode buffer =
+    try
       if not !started then
        begin
         init ~reset:false buffer;
@@ -235,25 +235,35 @@ let create_decoder ?(merge_tracks=false) source mode input =
         in
         Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
       in
-      try
+      let decode_audio, decode_video =
+        if decode_audio && decode_video then
+          (* Only decode the one which is late, so that we don't have memory
+             problems. *)
+          if Generator.audio_length buffer < Generator.video_length buffer then
+            true, false
+          else
+            false, true
+        else
+          decode_audio, decode_video
+      in
         if decode_audio then
-         begin
-          let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
-          Ogg_demuxer.decode_audio decoder track (audio_feed track) 
-         end ;
+          begin
+            let track = Utils.get_some tracks.Ogg_demuxer.audio_track in
+            Ogg_demuxer.decode_audio decoder track (audio_feed track) 
+          end ;
         if decode_video then
-         begin
-          let track = Utils.get_some tracks.Ogg_demuxer.video_track in
-          Ogg_demuxer.decode_video decoder track (video_feed track)
-         end;
-      with
-           (* We catch [Ogg_demuxer.End_of_stream] only if asked to
-            * to merge logical tracks or with a stream source. 
-            * In this case, we try to reset the decoder to see if 
-            * there could be another sequentialized logical stream
-            * starting. Actual reset is handled in the
-            * decoding function since we need the actual
-            * buffer to add metadata etc. *)
+          begin
+            let track = Utils.get_some tracks.Ogg_demuxer.video_track in
+            Ogg_demuxer.decode_video decoder track (video_feed track)
+          end;
+    with
+        (* We catch [Ogg_demuxer.End_of_stream] only if asked to
+         * to merge logical tracks or with a stream source. 
+         * In this case, we try to reset the decoder to see if 
+         * there could be another sequentialized logical stream
+         * starting. Actual reset is handled in the
+         * decoding function since we need the actual
+         * buffer to add metadata etc. *)
         | Ogg_demuxer.End_of_stream when merge_tracks || (source = `Stream) -> ()
            (* We catch Ogg.Out_of_sync only in
             * stream mode. Ogg/theora streams, for instance,
@@ -342,7 +352,7 @@ let mime_types =
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ogg")
     "File extensions used for guessing OGG format"
-    ~d:["ogv";"oga";"ogx";"ogg"]
+    ~d:["ogv";"oga";"ogx";"ogg";"opus"]
 
 let () =
   Decoder.file_decoders#register "OGG"
@@ -396,10 +406,6 @@ let () =
           None)
 
 (** Metadata *)
-
-exception Metadata of (string*string) list
-
-let log = Dtools.Log.make ["metadata";"ogg"]
 
 let get_tags file =
   if not (Decoder.test_file ~mimes:mime_types#get

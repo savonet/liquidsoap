@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liqi, a simple wiki-like langage
-  Copyright 2008-2011 Savonet team
+  Copyright 2008-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 %}
 
 %token <string> CODE
-%token <string option * string> SNIPPET
+%token <string option * string * string option> SNIPPET
 %token <string * string> IMAGE
 %token <string*string> HREF
 %token <int*string option*string> HEADER

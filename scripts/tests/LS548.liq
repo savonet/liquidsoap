@@ -2,6 +2,12 @@
 # decoder which prevented input.http decoder 
 # from detecting an EOS.
 
+%ifnencoder %aacplus
+  print("no encoder for %aacplus: TEST SKIPPED")
+%endif
+
+%ifencoder %aacplus
+
 # Setup an aac+ output
 s = sine()
 h = output.harbor(%aacplus,s,mount="test",port=546742)
@@ -34,3 +40,5 @@ add_timeout(5.,
      output.harbor(%aacplus,s,mount="test",port=546742)
      (-1.)
    end)
+
+%endif

@@ -1,3 +1,6 @@
+#
+# An example of custom transition: inserting a jingle
+#
 
 # Simple settings for example scripts
 set("log.stdout",true)
@@ -15,7 +18,7 @@ def tr(x,old,new)
   sequence([ x , new ])
 end
 
-output.icecast.vorbis(name="test",
-                      fallback(track_sensitive=false,
-                               transitions=[ tr(jingle), tr(jingle) ],
-                               [ live, auto ]))
+output.icecast(%vorbis,name="test",
+    fallback(track_sensitive=false,
+      transitions=[ tr(jingle), tr(jingle) ],
+      [ live, auto ]))

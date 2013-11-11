@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ sig
   val set_in_samplerate : encoder -> int -> unit
   val set_num_channels : encoder -> int -> unit
   val set_out_samplerate : encoder -> int -> unit
+  val set_quality : encoder -> int -> unit
   type vbr_mode =
     | Vbr_off (** constant bitrate *)
     | Vbr_rh
@@ -64,6 +65,7 @@ sig
   exception Unknown_error of int
   val encode_buffer_float_part :
       encoder -> float array -> float array -> int -> int -> string
+  val encode_flush_nogap : encoder -> string
 end
 
 let bit_at s pos = 
@@ -122,8 +124,18 @@ struct
       (* Input settings *)
       Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
       Lame.set_num_channels enc (if mp3.Encoder.MP3.stereo then 2 else 1) ;
+      (* Internal quality *)
+      Lame.set_quality enc mp3.Encoder.MP3.internal_quality ;
       (* Output settings *)
-      Lame.set_mode enc (if mp3.Encoder.MP3.stereo then Lame.Stereo else Lame.Mono);
+      begin
+        if not mp3.Encoder.MP3.stereo then
+          Lame.set_mode enc Lame.Mono
+        else
+          match mp3.Encoder.MP3.stereo_mode with
+            | Encoder.MP3.Default -> ()
+            | Encoder.MP3.Stereo -> Lame.set_mode enc Lame.Stereo
+            | Encoder.MP3.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo
+      end;
       begin                  
         match mp3.Encoder.MP3.bitrate_control with
           | Encoder.MP3.VBR quality ->
@@ -148,7 +160,7 @@ struct
       Lame.init_params enc;
       enc
     in
-    let mp3_encoder mp3 = 
+    let mp3_encoder mp3 metadata = 
       let enc = create_encoder mp3 in 
       let id3v2 = ref Waiting in
       let has_started = ref false in
@@ -191,25 +203,32 @@ struct
               (Printf.sprintf "%s%s" s (encoded ()))
           | _ -> encoded ()
       in
+      let stop () =
+        Lame.encode_flush_nogap enc
+      in
       let insert_metadata = 
         match mp3.id3v2 with
           | Some f -> 
              (* Only insert metadata at the beginning.. *)
              (fun m ->
                match !id3v2 with
-                 | Waiting -> id3v2 := Rendered (f m)
+                 | Waiting ->
+                     if not (Encoder.Meta.is_empty m) then 
+                       id3v2 := Rendered (f m)
                  | _ -> ())
           | None -> (fun _ -> ())
       in
+      (* Try to insert initial metadata now.. *)
+      insert_metadata metadata;
         {
           insert_metadata = insert_metadata ;
           encode = encode ;
           header = None ;
-          stop = (fun () -> "")
+          stop = stop
         }
     in
     Encoder.plug#register name
       (function
-         | Encoder.MP3 m -> Some (fun _ _ -> mp3_encoder m)
+         | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
          | _ -> None)
 end

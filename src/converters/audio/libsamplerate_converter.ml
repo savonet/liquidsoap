@@ -1,0 +1,66 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2013 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
+
+ (** Samplerate converter using libsamplerate *)
+
+let samplerate_conf = 
+  Dtools.Conf.void ~p:(Audio_converter.Samplerate.samplerate_conf#plug "libsamplerate") 
+    "Libsamplerate conversion settings" 
+    ~comments:["Options related to libsamplerate conversion."]
+
+let quality_conf = 
+  Dtools.Conf.string ~p:(samplerate_conf#plug "quality")
+    "Resampling quality" ~d:"fast"
+    ~comments:["Resampling quality, one of: \
+                \"best\", \
+                \"medium\", \
+                \"fast\", \
+                \"zero_order\", \
+                \"linear\". Refer to ocaml-samplerate for details."]
+
+let quality_of_string v = 
+  match v with
+    | "best" -> Samplerate.Conv_sinc_best_quality
+    | "medium" -> Samplerate.Conv_sinc_medium_quality
+    | "fast" -> Samplerate.Conv_fastest
+    | "zero_order" -> Samplerate.Conv_zero_order_hold
+    | "linear" -> Samplerate.Conv_linear
+    | _ -> raise (Lang.Invalid_value 
+                    (Lang.string v,
+                      "libsamplerate quality must be one of: \
+                       \"best\", \
+                       \"medium\", \
+                       \"fast\", \
+                       \"zero_order\", \
+                       \"linear\"."))
+
+let samplerate_converter () = 
+  let quality = quality_of_string quality_conf#get in
+  let converter = Samplerate.create quality 1 in
+  let convert ratio b ofs len =
+    Samplerate.process_alloc converter ratio b ofs len
+  in
+  convert
+
+let () = 
+  Audio_converter.Samplerate.converters#register 
+    "libsamplerate" samplerate_converter

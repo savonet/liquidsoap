@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ class input ~kind ~hostname ~port ~decoder_factory ~bufferize =
   let log = (fun x -> !log_ref x) in
 object (self)
 
-  inherit Source.source kind
+  inherit Source.source ~name:"input.udp" kind
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
@@ -125,7 +125,7 @@ object (self)
         if should_stop () then begin
           failwith "stop"
         end ;
-        let l,_,_ = Utils.select [socket] [] [] 1. in
+        let l,_,_ = Unix.select [socket] [] [] 1. in
           if l = [] then wait ()
       in
       (* Read data from the network. *)

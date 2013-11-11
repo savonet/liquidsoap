@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ struct
   (** The source which produces data by reading the buffer. *)
   class producer ~kind source c =
   object (self)
-    inherit Source.source kind
+    inherit Source.source kind ~name:"warp_prod"
 
     method stype = Source.Fallible
 

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,9 +22,9 @@
 
 open Source
 
-class setvol ~kind (source:source) override_field coeff =
+class amplify ~kind (source:source) override_field coeff =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"amplify" kind [source] as super
 
   val mutable override = None
 
@@ -87,4 +87,4 @@ let () =
        let s = Lang.to_source (Lang.assoc "" 2 p) in
        let o = Lang.to_string (Lang.assoc "override" 1 p) in
        let o = if o = "" then None else Some (String.lowercase o) in
-         new setvol ~kind s o c)
+         new amplify ~kind s o c)

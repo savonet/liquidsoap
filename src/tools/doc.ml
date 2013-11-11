@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -86,36 +86,43 @@ let print : item -> unit =
     print 0
 
 let print_lang (i:item) : unit =
-  Printf.printf "%s\n" i#get_doc ;
+  let print_string_split f s =
+    String.iter
+      (fun c ->
+         if c = ' ' then Format.pp_print_space f () else Format.pp_print_char f c)
+      s
+  in
+  Format.printf "@.@[%a@]@." print_string_split i#get_doc ;
   let sub = i#get_subsections in
   let sub =
+    Format.printf "@.Type: %s@." (i#get_subsection "_type")#get_doc ;
+    List.remove_assoc "_type" sub
+  in
+  let sub =
     try
-      Printf.printf "Category: %s\n" (List.assoc "_category" sub)#get_doc ;
+      Format.printf "@.Category: %s@." (List.assoc "_category" sub)#get_doc ;
       List.remove_assoc "_category" sub
     with
       | Not_found -> sub
   in
-  let sub =
-    Printf.printf "Type: %s\n" (i#get_subsection "_type")#get_doc ;
-    List.remove_assoc "_type" sub
-  in
   let rec print_flags sub =
     try
-      Printf.printf "Flag: %s\n" (List.assoc "_flag" sub)#get_doc ;
+      Format.printf "Flag: %s@." (List.assoc "_flag" sub)#get_doc ;
       print_flags (List.remove_assoc "_flag" sub)
     with
       | Not_found -> sub
   in
   let sub = print_flags sub in
     if sub<>[] then begin
-      Printf.printf "Parameters:\n" ;
+      Format.printf "@.Parameters:@." ;
       List.iter
         (fun (lbl,i) ->
-           Printf.printf "* %s : %s (default: %s)\n"
+           Format.printf "@. * %s : %s (default: %s)@."
              lbl
              (i#get_subsection "type")#get_doc
              (i#get_subsection "default")#get_doc ;
            if i#get_doc <> "(no doc)" then
-             Printf.printf "    %s\n" i#get_doc)
+             Format.printf "@[<5>     %a@]@." print_string_split i#get_doc)
         sub
-    end
+    end ;
+    Format.printf "@."

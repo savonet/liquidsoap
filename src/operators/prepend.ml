@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ open Source
 
 class prepend ~kind ~merge source f =
 object (self)
-  inherit operator kind [source]
+  inherit operator ~name:"prepend" kind [source]
 
   val mutable state = `Idle
 

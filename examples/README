@@ -1,8 +1,10 @@
-Here are some examples of how to run liquidsoap:
+Here are some examples of how to run liquidsoap. Note that most examples
+require you to edit at least the filename of the default file, otherwise
+they'll fail to startup with an "infallible source" error.
 
-* radio.liq is an example of good radio program, easy to adapt and test.
-* geek.liq is a complex full-featured example.
-* fallible.liq: example of fallible scheduler.
-* transitions.liq is an example of how to use transitions.
+* radio.liq         an example of radio program, easy to adapt and test
+* geek.liq          a more complex full-featured example
+* fallible.liq      example of fallible scheduler
+* transitions.liq   an example of custom transitions
 
-Find some more doc and examples on: http://savonet.sf.net
+Find some more doc and examples on <http://liquidsoap.fm>.

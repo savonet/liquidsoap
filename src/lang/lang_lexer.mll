@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -110,12 +110,17 @@ rule token = parse
           incrline ~n:(List.length doc) lexbuf ;
           PP_COMMENT doc }
 
-  | "%ifdef"   { PP_IFDEF }
-  | "%endif"   { PP_ENDIF }
+  | "%ifdef"       { PP_IFDEF }
+  | "%ifndef"      { PP_IFNDEF }
+  | "%ifencoder"   { PP_IFENCODER }
+  | "%ifnencoder"  { PP_IFNENCODER }
+  | "%endif"       { PP_ENDIF }
+
   | "%include" [' ' '\t']* '"' ([^ '"' '>' '\n']* as file) '"'
                { PP_INCLUDE file }
   | "%include" [' ' '\t']* '<' ([^ '"' '>' '\n']* as file) '>'
                { PP_INCLUDE (Filename.concat Configure.libs_dir file) }
+  | "%define"  { PP_DEFINE }
 
   | '#' [^'\n']* eof { EOF }
   | eof { EOF }
@@ -133,21 +138,26 @@ rule token = parse
 
   | "%ogg"    { OGG }
   | "%vorbis" { VORBIS }
+  | "%opus"   { OPUS }
   | "%flac"   { FLAC }
   | "%vorbis.cbr" { VORBIS_CBR }
   | "%vorbis.abr" { VORBIS_ABR }
   | "%theora" { THEORA }
   | "%external" { EXTERNAL }
+  | "%gstreamer" { GSTREAMER }
   | "%dirac"  { DIRAC  }
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
-  | "%mp3" { MP3 }
+  | "%mp3"     { MP3 }
   | "%mp3.cbr" { MP3 }
   | "%mp3.abr" { MP3_ABR }
   | "%mp3.vbr" { MP3_VBR }
+  | "%mp3.fxp" { SHINE }
+  | "%shine"   { SHINE }
   | "%aac+" { AACPLUS }
   | "%aacplus" { AACPLUS }
   | "%aac" { VOAACENC }
+  | "%fdkaac" { FDKAAC }
 
   | '[' { LBRA }
   | ']' { RBRA }
@@ -160,6 +170,7 @@ rule token = parse
   | ';' { SEQ }
   | ";;" { SEQSEQ }
   | "~" { TILD }
+  | "?" { QUESTION }
   | "-" { MINUS }
   | "not" { NOT }
   | "and" | "or"                   { BIN0 (Lexing.lexeme lexbuf) }

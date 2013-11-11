@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liqi, a simple wiki-like langage
-  Copyright 2008-2011 Savonet team
+  Copyright 2008-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -73,14 +73,14 @@ rule token = parse
     "." ' '* ([^'\n']+ as t) '\n'
                          { incrline lexbuf ; HEADER (int_of_string n,anchor,t) }
   | '\n'*
-    "%%" ('(' ([^')']+ as title) ')')? '\n'
+  "%%" ('(' ([^')']+ as title) ')')?([^'\n'' ']+ as language)? '\n'
     (([^'%']|'%'[^'%'])* '\n' as body)
     "%%"                 { incrline lexbuf ;
-                           SNIPPET (title, body) }
+                           SNIPPET (title, body, language) }
   | '\n'*
     "<pre>" ([^'<']* as body) "</pre>"
                          { incrline lexbuf ;
-                           SNIPPET (None, body) }
+                           SNIPPET (None, body, None) }
   | '\n'*
     "title:" [' ']* ([^'\n']* as title)'\n'
                          { incrline lexbuf ;

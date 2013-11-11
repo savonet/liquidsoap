@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,12 +22,6 @@
 
 open Lang_values
 
-(** Parsing locations. *)
-let curpos ?pos () =
-  match pos with
-    | None -> Parsing.symbol_start_pos (), Parsing.symbol_end_pos ()
-    | Some (i,j) -> Parsing.rhs_start_pos i, Parsing.rhs_end_pos j
-
 (** Errors *)
 
 exception Error of (term*string)
@@ -45,19 +39,9 @@ let generic_error t =
   else
     Error (t,"unknown parameter name or invalid parameter value")
 
-(** Create a new value with an unknown type. *)
-let mk ?pos e =
-  let kind =
-    T.fresh_evar ~level:(-1) ~pos:(Some (curpos ?pos ()))
-  in
-    if Lang_values.debug then
-      Printf.eprintf "%s (%s): assigned type var %s\n"
-        (T.print_pos (Utils.get_some kind.T.pos))
-        (try Lang_values.print_term {t=kind;term=e} with _ -> "<?>")
-        (T.print kind) ;
-    { t = kind ; term = e }
+(** Encoding format construction *)
 
-let mk_wav params =
+let wav params =
   let defaults = { Encoder.WAV.
                     channels   = 2 ;
                     samplesize = 16;
@@ -91,16 +75,18 @@ let mk_wav params =
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    mk (Encoder (Encoder.WAV wav))
+    Encoder.WAV wav
 
 let mp3_base_defaults = 
     { Encoder.MP3.
         stereo = true ;
+        stereo_mode = Encoder.MP3.Joint_stereo ;
         samplerate = 44100 ;
         bitrate_control = Encoder.MP3.CBR 128 ;
+        internal_quality = 2;
         id3v2 = None ;
         msg_interval = 0.1 ;
-        msg = Configure.vendor }
+        msg = "" }
 
 let mp3_base f =
   function
@@ -108,6 +94,19 @@ let mp3_base f =
         { f with Encoder.MP3.stereo = b }
     | ("mono",{ term = Bool b }) ->
         { f with Encoder.MP3.stereo = not b }
+    | ("stereo_mode",({ term = String m } as t)) ->
+        let mode =
+          match m with
+            | "default" -> Encoder.MP3.Default
+            | "joint_stereo" -> Encoder.MP3.Joint_stereo
+            | "stereo" -> Encoder.MP3.Stereo
+            | _ -> raise (Error(t,"invalid stereo mode"))
+        in
+        { f with Encoder.MP3.stereo_mode = mode }
+    | ("internal_quality",({ term = Int q } as t)) ->
+        if q < 0 || q > 9 then
+          raise (Error(t,"internal quality must be a value between 0 and 9"));
+        { f with Encoder.MP3.internal_quality = q }
     | ("msg_interval",{ term = Float i }) ->
         { f with Encoder.MP3.msg_interval = i }
     | ("msg",{ term = String m }) ->
@@ -121,7 +120,7 @@ let mp3_base f =
         { f with Encoder.MP3.samplerate = i }
     | ("id3v2",({ term = Bool true } as t)) ->
         (match !Encoder.MP3.id3v2_export with
-           | None -> raise (Error(t,"No id3v2 support available for the mp3 encoder!"))
+           | None -> raise (Error(t,"no id3v2 support available for the mp3 encoder"))
            | Some g -> { f with Encoder.MP3.id3v2 = Some g })
     | ("id3v2",{ term = Bool false }) ->
         { f with Encoder.MP3.id3v2 = None }
@@ -131,7 +130,7 @@ let mp3_base f =
         { f with Encoder.MP3.stereo = true }
     | (_,t) -> raise (generic_error t)
 
-let mk_mp3_cbr params =
+let mp3_cbr params =
   let defaults =
     { mp3_base_defaults with
        Encoder.MP3.
@@ -158,9 +157,9 @@ let mk_mp3_cbr params =
           | x -> mp3_base f x)
       defaults params
   in
-    mk (Encoder (Encoder.MP3 mp3))
+    Encoder.MP3 mp3
 
-let mk_mp3_abr params =
+let mp3_abr params =
   let defaults =
     { mp3_base_defaults with
        Encoder.MP3.
@@ -224,9 +223,9 @@ let mk_mp3_abr params =
           | x -> mp3_base f x)
       defaults params
   in
-    mk (Encoder (Encoder.MP3 mp3))
+    Encoder.MP3 mp3
 
-let mk_mp3_vbr params =
+let mp3_vbr params =
   let defaults =
     { mp3_base_defaults with
        Encoder.MP3.
@@ -243,9 +242,35 @@ let mk_mp3_vbr params =
           | x -> mp3_base f x)
       defaults params
   in
-    mk (Encoder (Encoder.MP3 mp3))
+    Encoder.MP3 mp3
 
-let mk_aacplus params =
+let shine params =
+  let defaults =
+    { Encoder.Shine.
+        channels = 2 ;
+        samplerate = 44100 ;
+        bitrate = 128 }
+  in
+  let shine =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.Shine.channels = i }
+          | ("samplerate",{ term = Int i }) ->
+              { f with Encoder.Shine.samplerate = i }
+          | ("bitrate",{ term = Int i }) ->
+              { f with Encoder.Shine.bitrate = i }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.Shine.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Shine.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    Encoder.Shine shine
+
+let aacplus params =
   let defaults =
     { Encoder.AACPlus.
         channels = 2 ;
@@ -269,9 +294,9 @@ let mk_aacplus params =
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    mk (Encoder (Encoder.AACPlus aacplus))
+    Encoder.AACPlus aacplus
 
-let mk_voaacenc params =
+let voaacenc params =
   let defaults =
     { Encoder.VoAacEnc.
         channels = 2 ;
@@ -298,12 +323,74 @@ let mk_voaacenc params =
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    mk (Encoder (Encoder.VoAacEnc voaacenc))
+    Encoder.VoAacEnc voaacenc
 
-let mk_flac_gen params =
+let fdkaac params =
+  let defaults =
+    { Encoder.FdkAacEnc.
+        afterburner    = false;
+        aot            = `Mpeg_4 `HE_AAC_v2;
+        bitrate        = 64;
+        channels       = 2;
+        samplerate     = 44100;
+        sbr_mode       = false;
+        transmux       = `Adts }
+  in
+  let valid_samplerates = [
+    8000;  11025; 12000; 16000; 22050; 24000; 32000;
+    44100; 48000; 64000; 88200; 96000 ]
+  in
+  let fdkaac =
+    List.fold_left
+      (fun f ->
+        function
+          | ("afterburner",{ term = Bool b }) ->
+              { f with Encoder.FdkAacEnc.afterburner = b }
+          | ("aot",({ term = String s } as t)) ->
+              let aot = try Encoder.FdkAacEnc.aot_of_string s with
+                | Not_found -> raise (Error (t,"invalid aot value"))
+              in
+              { f with Encoder.FdkAacEnc.aot = aot }
+          | ("bitrate",{ term = Int i }) ->
+              { f with Encoder.FdkAacEnc.bitrate = i }
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.FdkAacEnc.channels = i }
+          | ("samplerate",({ term = Int i } as t)) ->
+              if not (List.mem i valid_samplerates) then
+               begin
+                let err =
+                  Printf.sprintf "invalid samplerate value. Possible values: %s"
+                  (String.concat ", "
+                    (List.map string_of_int valid_samplerates))
+                in
+                raise (Error (t,err));
+               end;
+              { f with Encoder.FdkAacEnc.samplerate = i }
+          | ("sbr_mode",{ term = Bool b }) ->
+              { f with Encoder.FdkAacEnc.sbr_mode = b }
+          | ("transmux",({ term = String s } as t)) ->
+              let transmux = try Encoder.FdkAacEnc.transmux_of_string s with
+                | Not_found -> raise (Error (t,"invalid transmux value"))
+              in
+              { f with Encoder.FdkAacEnc.transmux = transmux }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.FdkAacEnc.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.FdkAacEnc.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+  let aot = fdkaac.Encoder.FdkAacEnc.aot in
+    if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
+      if fdkaac.Encoder.FdkAacEnc.channels <> 2 then
+        failwith "HE-AAC v2 is only available with 2 channels.";
+    Encoder.FdkAacEnc fdkaac
+
+let flac_gen params =
   let defaults =
     { Encoder.Flac.
         channels = 2 ;
+        fill = None;
         samplerate = 44100 ;
         bits_per_sample = 16;
         compression = 5 }
@@ -323,6 +410,8 @@ let mk_flac_gen params =
               if i <> 8 && i <> 16 && i <> 32 then
                 raise (Error (t,"invalid bits_per_sample value")) ;
               { f with Encoder.Flac.bits_per_sample = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Flac.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Flac.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -330,13 +419,13 @@ let mk_flac_gen params =
           | (_,t) -> raise (generic_error t))
       defaults params
 
-let mk_ogg_flac params = 
-    Encoder.Ogg.Flac (mk_flac_gen params)
+let ogg_flac params = 
+    Encoder.Ogg.Flac (flac_gen params)
 
-let mk_flac params = 
-    mk (Encoder (Encoder.Flac (mk_flac_gen params)))
+let flac params = 
+    Encoder.Flac (flac_gen params)
 
-let mk_external params =
+let external_encoder params =
   let defaults =
     { Encoder.External.
         channels = 2 ;
@@ -372,13 +461,105 @@ let mk_external params =
   in
     if ext.Encoder.External.process = "" then
       raise Encoder.External.No_process ;
-    mk (Encoder (Encoder.External ext))
+    Encoder.External ext
 
-let mk_vorbis_cbr params =
+let opus params =
+  let defaults =
+    { Encoder.Opus.
+        application = None ;
+        complexity = None ;
+        max_bandwidth = None ;
+        mode = Encoder.Opus.VBR true ;
+        bitrate = `Auto ;
+        fill = None;
+        channels = 2 ;
+        samplerate = 48000 ;
+        signal = None ;
+        frame_size = 20.;
+        dtx = false;
+    }
+  in
+  let opus =
+    List.fold_left
+      (fun f ->
+        function
+          | ("application",{ term = String "voip" }) ->
+              { f with Encoder.Opus.application = Some `Voip }
+          | ("application",{ term = String "audio" }) ->
+              { f with Encoder.Opus.application = Some `Audio }
+          | ("application",{ term = String "restricted_lowdelay" }) ->
+              { f with Encoder.Opus.application = Some `Restricted_lowdelay }
+          | ("complexity",({ term = Int c } as t)) ->
+              (* Doc say this should be from 0 to 10. *)
+              if c < 0 || c > 10 then
+                raise (Error (t,"Opus complexity should be in 0..10"));
+              { f with Encoder.Opus.complexity = Some c }
+          | ("max_bandwidth",{ term = String "narrow_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Narrow_band }
+          | ("max_bandwidth",{ term = String "medium_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Medium_band }
+          | ("max_bandwidth",{ term = String "wide_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Wide_band }
+          | ("max_bandwidth",{ term = String "super_wide_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Super_wide_band }
+          | ("max_bandwidth",{ term = String "full_band" }) ->
+              { f with Encoder.Opus.max_bandwidth = Some `Full_band }
+          | ( "frame_size", ({ term = Float size } as t)) ->
+              let frame_sizes = [2.5;5.;10.;20.;40.;60.] in
+              if not (List.mem size frame_sizes) then
+                raise (Error (t,"Opus frame size should be one of \
+                                 2.5, 5., 10., 20., 40. or 60."));
+              { f with Encoder.Opus.frame_size = size }
+          | ("samplerate",({ term = Int i } as t)) ->
+              let samplerates = [8000;12000;16000;24000;48000] in
+              if not (List.mem i samplerates) then
+                raise (Error (t,"Opus samplerate should be one of \
+                                 8000, 12000, 16000, 24000 or 48000"));
+              { f with Encoder.Opus.samplerate = i }
+          | ("bitrate",({ term = Int i } as t)) ->
+              let i = i*1000 in
+              (* Doc say this should be from 500 to 512000. *)
+              if i < 500 || i > 512000 then
+                raise (Error (t,"Opus bitrate should be in 5..512"));
+              { f with Encoder.Opus.bitrate = `Bitrate i }
+          | ("bitrate",{ term = String "auto" }) ->
+              { f with Encoder.Opus.bitrate = `Auto }
+          | ("bitrate",{ term = String "max" }) ->
+              { f with Encoder.Opus.bitrate = `Bitrate_max }
+          | ("channels",({ term = Int i } as t)) ->
+              if i < 1 or i > 2 then
+                raise (Error (t,"only mono and stereo streams are supported \
+                                 for now"));
+              { f with Encoder.Opus.channels = i }
+          | ("vbr",{ term = String "none" }) ->
+              { f with Encoder.Opus.mode = Encoder.Opus.CBR }
+          | ("vbr",{ term = String "constrained" }) ->
+              { f with Encoder.Opus.mode = Encoder.Opus.VBR true }
+          | ("vbr",{ term = String "unconstrained" }) ->
+              { f with Encoder.Opus.mode = Encoder.Opus.VBR false }
+          | ("signal",{ term = String "voice" }) ->
+              { f with Encoder.Opus.signal = Some `Voice }
+          | ("signal",{ term = String "music" }) ->
+              { f with Encoder.Opus.signal = Some `Music }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Opus.fill = Some i }
+          | ("dtx",{ term = Bool b }) ->
+              { f with Encoder.Opus.dtx = b }
+          | ("",{ term = Var s }) when String.lowercase s = "mono" ->
+              { f with Encoder.Opus.channels = 1 }
+          | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
+              { f with Encoder.Opus.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    Encoder.Ogg.Opus opus
+
+let vorbis_cbr params =
   let defaults =
     { Encoder.Vorbis.
         mode = Encoder.Vorbis.CBR 128 ;
         channels = 2 ;
+        fill = None;
         samplerate = 44100 ;
     }
   in
@@ -392,6 +573,8 @@ let mk_vorbis_cbr params =
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR i }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Vorbis.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -401,11 +584,12 @@ let mk_vorbis_cbr params =
   in
     Encoder.Ogg.Vorbis vorbis
 
-let mk_vorbis_abr params =
+let vorbis_abr params =
   let defaults =
     { Encoder.Vorbis.
         mode = Encoder.Vorbis.ABR (None,None,None) ;
         channels = 2 ;
+        fill = None ;
         samplerate = 44100 ;
     }
   in
@@ -431,6 +615,8 @@ let mk_vorbis_abr params =
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (Some i,x,y) }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Vorbis.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -440,11 +626,12 @@ let mk_vorbis_abr params =
   in
     Encoder.Ogg.Vorbis vorbis
 
-let mk_vorbis params =
+let vorbis params =
   let defaults =
     { Encoder.Vorbis.
         mode = Encoder.Vorbis.VBR 0.3 ;
         channels = 2 ;
+        fill = None ;
         samplerate = 44100 ;
     }
   in
@@ -465,6 +652,8 @@ let mk_vorbis params =
               { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
           | ("channels",{ term = Int i }) ->
               { f with Encoder.Vorbis.channels = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Vorbis.fill = Some i }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -474,11 +663,12 @@ let mk_vorbis params =
   in
     Encoder.Ogg.Vorbis vorbis
 
-let mk_theora params =
+let theora params =
   let defaults =
     {
       Encoder.Theora.
        bitrate_control    = Encoder.Theora.Quality 40 ;
+       fill               = None ;
        width              = Frame.video_width ;
        height             = Frame.video_height ;
        picture_width      = Frame.video_width ;
@@ -511,26 +701,28 @@ let mk_theora params =
           | ("width",({ term = Int i } as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
-                raise (Error (t,"invalid frame width value")) ;
+                raise (Error (t,"invalid frame width value \
+                                 (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
                     width = Lazy.lazy_from_val i;
                     picture_width = Lazy.lazy_from_val i }
           | ("height",({ term = Int i } as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
-                raise (Error (t,"invalid frame height value")) ;
+                raise (Error (t,"invalid frame height value \
+                                 (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
                     height = Lazy.lazy_from_val i;
                     picture_height = Lazy.lazy_from_val i }
           | ("picture_width",({ term = Int i } as t)) ->
               (* According to the doc: must not be larger than width. *)
               if i > Lazy.force f.Encoder.Theora.width then
-                raise (Error (t,"picture width must not be larger than width.")) ;
+                raise (Error (t,"picture width must not be larger than width")) ;
               { f with Encoder.Theora.picture_width = Lazy.lazy_from_val i }
           | ("picture_height",({ term = Int i } as t)) ->
               (* According to the doc: must not be larger than height. *)
               if i > Lazy.force f.Encoder.Theora.height then
-                raise (Error (t,"picture height must not be larger than height.")) ;
+                raise (Error (t,"picture height must not be larger than height")) ;
               { f with Encoder.Theora.picture_height = Lazy.lazy_from_val i }
           | ("picture_x",({ term = Int i } as t)) ->
               (* According to the doc: must be no larger than width-picture_width 
@@ -543,7 +735,7 @@ let mk_theora params =
               then
                 raise (Error (t,"picture x must not be larger than \
                                  width - picture width or 255, \
-                                 whichever is smaller.")) ;
+                                 whichever is smaller")) ;
               { f with Encoder.Theora.picture_x = i }
           | ("picture_y",({ term = Int i } as t)) ->
               (* According to the doc: must be no larger than width-picture_width   
@@ -553,10 +745,10 @@ let mk_theora params =
                      (Lazy.force f.Encoder.Theora.picture_height)) 
               then
                 raise (Error (t,"picture y must not be larger than height - \
-                                 picture height."));
+                                 picture height"));
               if (Lazy.force f.Encoder.Theora.picture_height) - i > 255 then
                 raise (Error (t,"picture height - picture y must not be \
-                                 larger than 255.")) ;
+                                 larger than 255")) ;
               { f with Encoder.Theora.picture_y = i }
           | ("aspect_numerator",{ term = Int i }) ->
               { f with Encoder.Theora.aspect_numerator = i }
@@ -572,16 +764,19 @@ let mk_theora params =
               { f with Encoder.Theora.buffer_delay = Some i }
           | ("speed",{ term = Int i }) ->
               { f with Encoder.Theora.speed = Some i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Theora.fill = Some i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Theora theora
 
-let mk_dirac params =
+let dirac params =
   let defaults =
     {
       Encoder.Dirac.
        quality            = 35. ;
+       fill               = None ;
        width              = Frame.video_width ;
        height             = Frame.video_height ;
        aspect_numerator   = 1 ;
@@ -604,20 +799,25 @@ let mk_dirac params =
               { f with Encoder.Dirac.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i }) ->
               { f with Encoder.Dirac.aspect_denominator = i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Dirac.fill = Some i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
     Encoder.Ogg.Dirac dirac
 
-let mk_speex params =
+let speex params =
   let defaults =
     { Encoder.Speex.
         stereo = false ;
+        fill = None ;
         samplerate = 44100 ;
         bitrate_control = Encoder.Speex.Quality 7;
         mode = Encoder.Speex.Narrowband ;
         frames_per_packet = 1 ;
-        complexity = None
+        complexity = None ;
+        dtx = false ;
+        vad = false
     }
   in
   let speex =
@@ -661,6 +861,12 @@ let mk_speex params =
               if i < 1 || i > 10 then
                 raise (Error (t,"Speex complexity should be in 1..10"));
               { f with Encoder.Speex.complexity = Some i }
+          | ("bytes_per_page",{ term = Int i }) ->
+              { f with Encoder.Speex.fill = Some i }
+          | ("dtx", { term = Bool b }) ->
+              { f with Encoder.Speex.dtx = b }
+          | ("vad", { term = Bool b }) ->
+              { f with Encoder.Speex.vad = b }
           | ("",{ term = Var s }) when String.lowercase s = "mono" ->
               { f with Encoder.Speex.stereo = false }
           | ("",{ term = Var s }) when String.lowercase s = "stereo" ->
@@ -669,3 +875,65 @@ let mk_speex params =
       defaults params
   in
     Encoder.Ogg.Speex speex
+
+let gstreamer ?pos params =
+  let defaults =
+    { Encoder.GStreamer.
+       channels  = 2;
+       audio     = Some "lamemp3enc";
+       has_video = true;
+       video     = Some "x264enc";
+       muxer     = Some "mpegtsmux";
+       metadata  = "metadata";
+       log        = 5;
+       pipeline  = None
+    }
+  in
+  let gstreamer =
+    let perhaps = function
+      | "" -> None
+      | s  -> Some s
+    in
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i }) ->
+              { f with Encoder.GStreamer.channels = i }
+          | ("audio",{ term = String s }) ->
+              { f with Encoder.GStreamer.audio = perhaps s }
+          | ("has_video",{ term = Bool b }) ->
+              { f with Encoder.GStreamer.has_video = b }
+          | ("video",{ term = String s }) ->
+              { f with Encoder.GStreamer.video = perhaps s }
+          | ("muxer",{ term = String s }) ->
+              { f with Encoder.GStreamer.muxer = perhaps s }
+          | ("metadata",{ term = String s }) ->
+              { f with Encoder.GStreamer.metadata = s }
+          | ("log",{ term = Int i }) ->
+              { f with Encoder.GStreamer.log = i }
+          | ("pipeline",{ term = String s }) ->
+              { f with Encoder.GStreamer.pipeline = perhaps s }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+  let dummy =
+    { Lang_values.
+        t = T.fresh_evar ~level:(-1) ~pos ;
+        term = Encoder (Encoder.GStreamer gstreamer) }
+  in
+    if gstreamer.Encoder.GStreamer.pipeline = None &&
+       gstreamer.Encoder.GStreamer.audio <> None && 
+       gstreamer.Encoder.GStreamer.channels = 0
+    then
+      raise
+        (Error (dummy, "must have at least one audio channel when \
+                        passing an audio pipeline"));
+    if gstreamer.Encoder.GStreamer.pipeline = None &&
+       gstreamer.Encoder.GStreamer.video <> None && 
+       gstreamer.Encoder.GStreamer.audio <> None && 
+       gstreamer.Encoder.GStreamer.muxer = None
+    then
+      raise
+        (Error (dummy, "must have a muxer when passing an audio and \
+                        a video pipeline"));
+    Encoder.GStreamer gstreamer

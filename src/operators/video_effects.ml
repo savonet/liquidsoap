@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ module Img = Image.RGBA32
 
 class effect ~kind effect (source:source) =
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"video.effect" kind [source] as super
 
   method stype = source#stype
 
@@ -167,13 +167,12 @@ let () =
 let () =
   Lang.add_operator "video.scale"
     [
-      "coef", Lang.float_t, Some (Lang.float 1.),
+      "scale", Lang.float_t, Some (Lang.float 1.),
       Some "Scaling coefficient in both directions.";
-
-      "coef_x", Lang.float_t, Some (Lang.float 1.), Some "x scaling";
-      "coef_y", Lang.float_t, Some (Lang.float 1.), Some "y scaling";
-      "offset_x", Lang.int_t, Some (Lang.int 1), Some "x offset";
-      "offset_y", Lang.int_t, Some (Lang.int 1), Some "y offset";
+      "xscale", Lang.float_t, Some (Lang.float 1.), Some "x scaling.";
+      "yscale", Lang.float_t, Some (Lang.float 1.), Some "y scaling.";
+      "x", Lang.int_t, Some (Lang.int 0), Some "x offset.";
+      "y", Lang.int_t, Some (Lang.int 0), Some "y offset.";
       "", Lang.source_t kind, None, None
     ]
     ~kind:(Lang.Unconstrained kind)
@@ -183,26 +182,22 @@ let () =
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
        let c, cx, cy, ox, oy =
-         Lang.to_float (f "coef"),
-         Lang.to_float (f "coef_x"),
-         Lang.to_float (f "coef_y"),
-         Lang.to_int (f "offset_x"),
-         Lang.to_int (f "offset_y")
+         Lang.to_float (f "scale"),
+         Lang.to_float (f "xscale"),
+         Lang.to_float (f "yscale"),
+         Lang.to_int (f "x"),
+         Lang.to_int (f "y")
        in
          new effect ~kind
            (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
 
 let () =
-  let effect a da buf =
-    a := !a +. da;
-    Img.Effect.rotate buf !a
-  in
   Lang.add_operator "video.rotate"
     [
-      "angle", Lang.float_t, Some (Lang.float 0.),
+      "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
       Some "Initial angle in radians.";
 
-      "speed", Lang.float_t, Some (Lang.float 3.1416),
+      "speed", Lang.float_getter_t 2, Some (Lang.float Utils.pi),
       Some "Rotation speed in radians per sec.";
 
       "", Lang.source_t kind, None, None
@@ -211,9 +206,25 @@ let () =
     ~category:Lang.VideoProcessing
     ~descr:"Rotate video."
     (fun p kind ->
-       let f v = List.assoc v p in
-       let src = Lang.to_source (f "") in
-       let angle = ref (Lang.to_float (f "angle")) in
-       let speed = Lang.to_float (f "speed") in
-       let da = speed /. float (Lazy.force Frame.video_rate) in
-         new effect ~kind (effect angle da) src)
+      let f v = List.assoc v p in
+      let src = Lang.to_source (f "") in
+      let a = Lang.to_float_getter (f "angle") in
+      let speed = Lang.to_float_getter (f "speed") in
+      let da =
+        let fps = float (Lazy.force Frame.video_rate) in
+        fun () ->
+          speed () /. fps
+      in
+      let angle = ref (a ()) in
+      let a_old = ref (a ()) in
+      let effect buf =
+        if a () <> !a_old then
+          (
+            a_old := a ();
+            angle := !a_old
+          )
+        else
+          angle := !angle +. da ();
+        Img.Effect.rotate buf !angle
+      in
+      new effect ~kind effect src)

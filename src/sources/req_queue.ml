@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -75,11 +75,13 @@ object (self)
         (fun s ->
            let id = int_of_string s in
              match Request.from_id id with
-               | None -> "No such request!"
+               | None -> "ERROR: No such request!"
                | Some r ->
                    if Request.get_root_metadata r "source_id" <>
                         Some (string_of_int (Oo.id self)) then
-                     "That request doesn't belong to me!"
+                     "ERROR: That request doesn't belong to me!"
+                   else if Request.is_on_air r then
+                     "ERROR: Request already on air!"
                    else if Request.get_metadata r "queue" = Some "primary" then begin
                      self#expire (fun r' -> Request.get_id r = Request.get_id r') ;
                      "OK"
@@ -96,9 +98,9 @@ object (self)
                | Some r ->
                    if Request.get_root_metadata r "source_id" <>
                         Some (string_of_int (Oo.id self)) then
-                     "That request doesn't belong to me!"
+                     "ERROR: That request doesn't belong to me!"
                    else if Request.get_metadata r "queue" = Some "primary" then begin
-                     "Error: cannot un-ignore in the primary queue."
+                     "ERROR: Cannot un-ignore in the primary queue."
                    end else begin
                      Request.set_root_metadata r "skip" "false" ;
                      "OK"

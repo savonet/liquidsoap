@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ class compress ~kind (source:source) attack release threshold ratio knee rms_win
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samplerate = Lazy.force Frame.audio_rate in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator ~name:"compress" kind [source] as super
 
   val effect = new Audio.Effect.compress ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ()) ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ()) channels samplerate
 

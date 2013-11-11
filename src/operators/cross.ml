@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -255,7 +255,10 @@ object (self)
     Generator.feed buffer
       ~metadata:(Frame.get_all_metadata buf_frame)
       content start (stop-start) ;
-    if Frame.is_partial buf_frame then
+    if Frame.is_partial buf_frame then begin
+      (* Add a break to properly terminate the generator,
+       * so that remaining time info can be issued. *)
+      Generator.add_break buffer ;
       (* As for Switch's transitions, we avoid stacking compositions
        * because this would lead to huge sources, never simplified.
        * We compose the end of a track with the original source [s] instead of
@@ -293,7 +296,7 @@ object (self)
         source#leave (self:>source) ;
         source <- s ;
         status <- `After inhibit
-    else
+    end else
       if n>0 then self#buffering buffer (n - Frame.position buf_frame)
 
 end

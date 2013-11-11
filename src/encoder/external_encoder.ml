@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,8 +56,6 @@ let create_handle id params =
 
 let priority = Tutils.Non_blocking
 
-exception External_failure
-
 let encoder id ext =
   (* The params *)
   let handle = create_handle id ext in
@@ -71,7 +69,6 @@ let encoder id ext =
       | Some (_,out_e as enc) ->
          h.log#f 3 "stopping current process" ;
          begin
-           Mutex.lock h.cond_m;
            try
              begin
               try
@@ -80,9 +77,9 @@ let encoder id ext =
               with
                 | _ -> ()
              end;
-             if h.is_task then
-               Condition.wait h.cond h.cond_m;
-             Mutex.unlock h.cond_m;
+             Tutils.mutexify h.cond_m (fun () ->
+               if h.is_task then
+                 Condition.wait h.cond h.cond_m) ();
              begin
               try
                 ignore(Unix.close_process enc)
@@ -99,15 +96,9 @@ let encoder id ext =
   in
 
   let reset_process start_f h = 
-    Mutex.lock h.create_m;
-    try
+    Tutils.mutexify h.create_m (fun () ->
       stop_process h;
-      start_f h;
-      Mutex.unlock h.create_m
-    with
-      | e ->
-           Mutex.unlock h.create_m;
-           raise e
+      start_f h) ()
   in
 
   (* This function does NOT use the 
@@ -123,7 +114,7 @@ let encoder id ext =
     if h.params.header then
       begin
         let header =
-          Wav.header ~channels:h.params.channels
+          Wav_aiff.wav_header ~channels:h.params.channels
                      ~sample_rate:h.params.samplerate
                      ~sample_size:16 ()
         in
@@ -138,19 +129,15 @@ let encoder id ext =
       let read () =
         let ret = input in_e buf 0 10000 in
         if ret > 0 then
-          begin
-            Mutex.lock h.read_m; 
-            Buffer.add_string h.read (String.sub buf 0 ret);
-            Mutex.unlock h.read_m
-          end;
+          Tutils.mutexify h.read_m (fun () ->
+            Buffer.add_string h.read (String.sub buf 0 ret)) ();
         ret
       in
       let stop () =
         (* Signal the end of the task *)
-        Mutex.lock h.cond_m;
-        Condition.signal h.cond;
-        h.is_task <- false;
-        Mutex.unlock h.cond_m
+        Tutils.mutexify h.cond_m (fun () ->
+          Condition.signal h.cond;
+          h.is_task <- false) ();
       in
       try
         let ret = read () in
@@ -164,12 +151,15 @@ let encoder id ext =
            h.log#f 4 "Reading task reached end of data";
            stop (); []
          end
-      with _ -> 
+      with e -> 
+        h.log#f 3
+          "Error while reading data from encoding process: %s"
+          (Utils.error_message e) ;
         stop (); 
         (if h.params.restart_on_crash then
           reset_process start_process h
          else
-          raise External_failure) ;
+          raise e);
         []
     in
     Duppy.Task.add Tutils.scheduler
@@ -221,31 +211,28 @@ let encoder id ext =
     let sbuf = String.create slen in
     Audio.S16LE.of_audio b start sbuf 0 len;
     (** Wait for any possible creation.. *)
-    Mutex.lock h.create_m;
     begin
-     match h.encoder with
-       | Some (_,x) ->
-           begin
-            try
+      try
+        Tutils.mutexify h.create_m (fun () ->
+         match h.encoder with
+           | Some (_,x) ->
               output_string x sbuf;
-              Mutex.unlock h.create_m
-            with
-              | _ ->
-                Mutex.unlock h.create_m;
-                if h.params.restart_on_crash then
-                  reset_process h
-                else
-                  raise External_failure
-           end
-       | None ->
-            Mutex.unlock h.create_m;
-            raise External_failure
+           | None ->
+              raise Not_found) ()
+      with
+        | e ->
+           h.log#f 3
+             "Error while writing data to encoding process: %s"
+             (Utils.error_message e) ;
+           if h.params.restart_on_crash then
+             reset_process h
+           else
+             raise e
     end;
-    Mutex.lock h.read_m;
-    let ret = Buffer.contents h.read in
-    Buffer.reset h.read;
-    Mutex.unlock h.read_m;
-    ret
+    Tutils.mutexify h.read_m (fun () ->
+      let ret = Buffer.contents h.read in
+      Buffer.reset h.read;
+      ret) ()
   in
 
   let stop h () = 

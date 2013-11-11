@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liqi, a simple wiki-like langage
-  Copyright 2008-2011 Savonet team
+  Copyright 2008-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 type ditem =
   | Header    of (int * string option * string)
   | Paragraph of ((int * (pitem list)) list)
-  | Snippet   of (string option * string)
+  | Snippet   of (string option * string * string option)
   | Antiquote of string
   | Image     of (string * string)
 

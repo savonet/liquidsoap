@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ class mean ~kind source =
   in
   let channels = float channels in
 object (self)
-  inherit operator kind [source] as super
+  inherit operator kind [source] ~name:"mean" as super
 
   method stype = source#stype
   method is_ready = source#is_ready

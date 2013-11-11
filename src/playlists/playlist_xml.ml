@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,18 +31,19 @@ let conf_xml =
         "text/xml";
         "application/xml";
         "application/smil";
+        "application/smil+xml";
         "application/xspf+xml";
         "application/rss+xml"]
     "Mime types associated to XML-based playlist formats"
 
-let tracks s = 
+let tracks ?pwd s = 
   try 
     let recode_metas m = 
       let f = Configure.recode_tag in
       List.map (fun (a,b) -> (f a,f b)) m
     in
     List.map 
-      (fun (a,b) -> recode_metas a,b) 
+      (fun (a,b) -> recode_metas a, Playlist_parser.get_file ?pwd b) 
       (Xmlplaylist.tracks s)
   with
     | Xmlplaylist.Error(e) -> log#f 5 "Parsing failed: %s" 

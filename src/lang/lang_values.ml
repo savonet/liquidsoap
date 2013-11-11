@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,19 +20,26 @@
 
  *****************************************************************************)
 
+(** Values in the Liquidsoap language. *)
+
+(** A parsing error. *)
+exception Parse_error of ((Lexing.position*Lexing.position)*string)
+
+(** Are we in debugging mode? *)
 let debug =
   try
-    ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG") ;
+    ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG");
     true
   with
     | Not_found -> false
 
+(** Should errors be considered as simple warnings? *)
 let errors_as_warnings = ref false
 
-(** {1 Kinds}
-  *
-  * In a sense this could move to Lang_types, but I like to keep that
-  * part free of some specificities of liquidsoap, as much as possible. *)
+(** {2 Kinds} *)
+
+(* In a sense this could move to Lang_types, but I like to keep that
+    part free of some specificities of liquidsoap, as much as possible. *)
 
 module T = Lang_types
 
@@ -44,7 +51,8 @@ let zero_t = T.make T.Zero
 let succ_t t = T.make (T.Succ t)
 let variable_t = T.make T.Variable
 
-let rec type_of_int n = if n=0 then zero_t else succ_t (type_of_int (n-1))
+let rec add_t n m = if n=0 then m else succ_t (add_t (n-1) m)
+let type_of_int n = add_t n zero_t
 
 (** A frame kind type is a purely abstract type representing a frame kind.
   * The parameters [audio,video,midi] are intended to be multiplicity types,
@@ -102,18 +110,18 @@ let type_of_format ~pos ~level f =
   let midi  = type_of_mul ~pos ~level kind.Frame.midi in
     format_t ~pos ~level (frame_kind_t ~pos ~level audio video midi)
 
-(** {1 Terms}
-  * The way we implement this mini-language is not very efficient.
-  * It should not matter, since very little computation is done here.
-  * It is mostly used for a single run on startup to build the sources,
-  * and then sometimes for building transitions. Terms are small, no recursion
-  * is possible.
-  * In order to report informative errors, including runtime errors (invalid
-  * values of a valid type given to a FF) we need to keep a complete AST
-  * all the way long.
-  * We actually don't need the types anymore after the static checking,
-  * but I don't want to bother with stripping down to another datatype. *)
+(** {2 Terms} *)
 
+(** The way we implement this mini-language is not very efficient. It should not
+    matter, since very little computation is done here. It is mostly used for a
+    single run on startup to build the sources, and then sometimes for building
+    transitions. Terms are small, no recursion is possible. In order to report
+    informative errors, including runtime errors (invalid values of a valid type
+    given to a FF) we need to keep a complete AST all the way long.  We actually
+    don't need the types anymore after the static checking, but I don't want to
+    bother with stripping down to another datatype. *)
+
+(** Sets of variables. *)
 module Vars = Set.Make(String)
 
 type term = { mutable t : T.t ; term : in_term }
@@ -125,30 +133,30 @@ and let_t = {
   body : term
 }
 and in_term =
-  | Unit
-  | Bool    of bool
-  | Int     of int
-  | String  of string
-  | Float   of float
-  | Encoder of Encoder.format
-  | List    of term list
-  | Product of term * term
-  | Ref     of term
-  | Get     of term
-  | Set     of term * term
-  | Let     of let_t
-  | Var     of string
-  | Seq     of term * term
-  | App     of term * (string * term) list
-  | Fun     of Vars.t *
-               (string*string*T.t*term option) list *
-               term
-               (* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
-                * [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]
-                * The first component [V] is the list containing all
-                * variables occurring in the function. It is used to
-                * restrict the environment captured when a closure is
-                * formed. *)
+| Unit
+| Bool    of bool
+| Int     of int
+| String  of string
+| Float   of float
+| Encoder of Encoder.format
+| List    of term list
+| Product of term * term
+| Ref     of term
+| Get     of term
+| Set     of term * term
+| Let     of let_t
+| Var     of string
+| Seq     of term * term
+| App     of term * (string * term) list
+| Fun     of Vars.t *
+    (string*string*T.t*term option) list *
+    term
+(* [fun ~l1:x1 .. ?li:(xi=defi) .. -> body] =
+ * [Fun (V, [(l1,x1,None)..(li,xi,Some defi)..], body)]
+ * The first component [V] is the list containing all
+ * variables occurring in the function. It is used to
+ * restrict the environment captured when a closure is
+ * formed. *)
 
 (* Only used for printing very simple functions. *)
 let rec is_ground x = match x.term with
@@ -474,12 +482,12 @@ struct
 
 end
 
-(** {1 Built-in values and toplevel definitions} *)
+(** {2 Built-in values and toplevel definitions} *)
 
 let builtins : (((int*T.constraints) list) * V.value) Plug.plug
   = Plug.create ~duplicates:false ~doc:"scripting values" "scripting values"
 
-(* {1 Type checking/inference} *)
+(* {2 Type checking/inference} *)
 
 let (<:) = T.(<:)
 let (>:) = T.(>:)
@@ -699,13 +707,16 @@ let check ?(ignored=false) e =
   let print_toplevel = !Configure.display_types in
     try
       check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e ;
+      if print_toplevel && (T.deref e.t).T.descr <> T.Ground T.Unit then
+        add_task (fun () ->
+          Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t) ;
       if ignored && not (can_ignore e.t) then raise_ignored e ;
       pop_tasks ()
     with
       | e -> pop_tasks () ; raise e
 
 
-(** {1 Computations} *)
+(** {2 Computations} *)
 
 (** For internal use. I want to give an ID to sources built by FFI application
   * based on the name under which the FFI is registered.

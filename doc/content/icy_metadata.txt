@@ -3,12 +3,12 @@ title: ICY metadata
 h3. ICY metadata
 
 _ICY metadata_ is the name for the mechanism used to update
-metadata in Icecast's source streams.
-The techniques is primaly intented for data formats that do not support in-stream
-metadata, such as mp3 or AAC. However, it appears that Icecast also supports
+metadata in icecast's source streams.
+The techniques is primarily intended for data formats that do not support in-stream
+metadata, such as mp3 or AAC. However, it appears that icecast also supports
 ICY metadata update for ogg/vorbis streams.
 
-When using the ICY metadata update mechanism, new metadata are submited seperatly from
+When using the ICY metadata update mechanism, new metadata are submitted separately from
 the stream's data, via a http GET request. The format of the request depends on the
 protocol you are using (ICY for shoutcast and icecast 1 or HTTP for icecast 2).
 
@@ -30,7 +30,7 @@ h4. Update metadata manually
 
 The function @icy.update_metadata@ implements a manual metadata update
 using the ICY mechanism. It can be used independently from the @icy_metadata@
-parameter described above, provided icecast supports ICY metadata for the intented stream.
+parameter described above, provided icecast supports ICY metadata for the intended stream.
 
 For instance the following script registers a telnet command name @metadata.update@ 
 that can be used to manually update metadata:
@@ -60,6 +60,5 @@ server.register("update",namespace="metadata",
                  icy_update)
 %%
 
-As ususal, @liquidsoap -h icy.update_metadata@ lists all the arguments
+As usual, @liquidsoap -h icy.update_metadata@ lists all the arguments
 of the function.
-

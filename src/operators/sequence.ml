@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,11 @@
 
 open Source
 
+(** Given a list of [sources], play one track from each of the first
+  * sources, then loop on the last one. Optionally, merge tracks when
+  * advancing in the sequence. The [merge] flag will *not* merge tracks
+  * while looping on the last source -- this behavior would not be suited
+  * to the current use of [sequence] in transitions. *)
 class sequence ~kind ?(merge=false) sources =
 object (self)
   inherit operator ~name:"sequence" kind sources as super
@@ -39,7 +44,9 @@ object (self)
   method private sleep =
     List.iter (fun s -> (s:>source)#leave (self:>source)) sources
 
-  method is_ready = List.exists (fun s -> s#is_ready) sources
+  val mutable head_ready = false
+
+  method is_ready = head_ready || List.exists (fun s -> s#is_ready) sources
 
   method remaining =
     if merge then
@@ -57,8 +64,6 @@ object (self)
             List.iter (fun (s:source) -> s#leave (self:>source)) tl
     end ;
     (List.hd sources)#abort_track
-
-  val mutable head_ready = false
 
   method private get_frame buf =
     if head_ready then begin
@@ -93,16 +98,52 @@ object (self)
 
 end
 
+class merge_tracks ~kind source =
+object (self)
+
+  inherit operator ~name:"sequence" kind [source] as super
+
+  method stype = source#stype
+  method is_ready = source#is_ready
+  method abort_track = source#abort_track
+  method remaining = -1
+
+  method private get_frame buf =
+    source#get buf ;
+    if Frame.is_partial buf && source#is_ready then
+      let pos = Frame.position buf in
+        self#log#f 4 "End of track: merging." ;
+        self#get_frame buf ;
+        Frame.set_breaks buf
+          (Utils.remove_one ((=) pos) (Frame.breaks buf))
+
+end
+
 let () =
   let k = Lang.univ_t 1 in
   Lang.add_operator "sequence"
-    [ "merge", Lang.bool_t, Some (Lang.bool false), None ;
+    [ "merge", Lang.bool_t, Some (Lang.bool false),
+      Some "Merge tracks when advancing from one source to the next one. \
+            This will NOT merge consecutive tracks from the last source; \
+            see merge_tracks() if you need that too." ;
       "", Lang.list_t (Lang.source_t k), None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Play only one track of every successive source, \
-            except for the last one which is played as much as available."
+            except for the last one which is played as much as available. \
+            Sources are released after being used, allowing them to shutdown \
+            cleanly and free their resources."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        new sequence ~kind
          ~merge:(Lang.to_bool (List.assoc "merge" p))
          (Lang.to_source_list (List.assoc "" p)))
+
+let () =
+  let k = Lang.univ_t 1 in
+  Lang.add_operator "merge_tracks"
+    [ "", Lang.source_t k, None, None ]
+    ~category:Lang.TrackProcessing
+    ~descr:"Merge consecutive tracks from the input source."
+    ~kind:(Lang.Unconstrained k)
+    (fun p kind ->
+       new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))

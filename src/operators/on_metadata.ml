@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 class on_metadata ~kind f s =
 object (self)
-  inherit Source.operator kind [s]
+  inherit Source.operator ~name:"on_metadata" kind [s]
 
   method stype = s#stype
   method is_ready = s#is_ready

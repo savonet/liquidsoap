@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ let size _ = vot (Lazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)
 let is_partial t = is_partial t
+let position t = vot (position t)
 
 let get_content frame source =
   let p0 = Frame.position frame in

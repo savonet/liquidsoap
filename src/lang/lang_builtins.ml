@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,14 +20,17 @@
 
  *****************************************************************************)
 
-type category = Sys | Math | String | List | Bool | Liq | Control
-              | Interaction | Other
+open Stdlib
+
+type category = Sys | Math | String | List | Bool | Pair
+              | Liq | Control | Interaction | Other
 
 let string_of_category = function
   | Sys     -> "System"
   | Math    -> "Math"
   | String  -> "String"
   | List    -> "List"
+  | Pair    -> "Pair"
   | Bool    -> "Bool"
   | Liq     -> "Liquidsoap"
   | Control -> "Control"
@@ -66,9 +69,17 @@ let () =
     (Lang.String Sys.os_type)
     Lang.string_t
 
+let () =
+  Lang.add_builtin_base
+    ~category:(string_of_category Sys)
+    ~descr:"Executable file extension."
+    "exe_ext"
+    (Lang.String Configure.exe_ext)
+    Lang.string_t
+
 (** Liquidsoap stuff *)
 
-let log = Dtools.Log.make ["lang"]
+let log = Lang.log
 
 let () =
   add_builtin ~cat:Liq "eval"
@@ -206,6 +217,27 @@ let () =
                Lang.unit)
 
 let () =
+  add_builtin "clock.unify" ~cat:Liq
+    ~descr:"Enforce that a list of sources all belong to the same clock."
+    [ ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None, None) ]
+    Lang.unit_t
+    (fun p ->
+       let l = List.assoc "" p in
+         try
+           match Lang.to_source_list l with
+             | [] -> Lang.unit
+             | hd::tl ->
+                 List.iter (fun s -> Clock.unify hd#clock s#clock) tl ;
+                 Lang.unit
+         with
+           | Source.Clock_conflict (a,b) ->
+               raise (Lang.Clock_conflict
+                        (l.Lang.t.Lang_types.pos,a,b))
+           | Source.Clock_loop (a,b) ->
+               raise (Lang.Clock_loop
+                        (l.Lang.t.Lang_types.pos,a,b)))
+
+let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
     add_builtin "get_clock_status" ~cat:Liq
       ~descr:"Get the current time for all allocated clocks."
@@ -241,25 +273,28 @@ let () =
      * . x >= 1: audio with a fixed number (x) of channels. *)
    let test_file_t = Lang.fun_t [false,"",Lang.string_t] Lang.int_t in
    let test_arg =
-     "test",test_file_t,None, 
-     Some "Function used to \
-           determine if the file should \
+     "test",test_file_t,None,
+     Some "Function used to determine if a file should \
            be decoded by the decoder. Returned values are: \
            0: no decodable audio, -1: decodable audio but \
            number of audio channels unknown, x: fixed number of decodable \
-           audio channels."                               
+           audio channels."
    in
-   let test_f f = 
+   let test_f f =
      (fun file ->
         Lang.to_int (Lang.apply f ~t:Lang.int_t ["",Lang.string file]))
    in
     add_builtin "add_decoder" ~cat:Liq
-      ~descr:"Register an external file decoder. \
+      ~descr:"Register an external decoder. \
               The encoder should output in WAV format \
               to his standard output (stdout) and read \
               data from its standard input (stdin)."
       ["name",Lang.string_t,None,Some "Format/decoder's name." ;
        "description",Lang.string_t,None,Some "Description of the decoder.";
+       "mimes",Lang.list_t (Lang.string_t),
+       Some (Lang.list ~t:Lang.string_t []),
+       Some "List of mime types supported by this decoder \
+             for decoding streams."; 
        test_arg;
        "",Lang.string_t,None,Some "Process to start."]
       Lang.unit_t
@@ -267,8 +302,11 @@ let () =
          let process = Lang.to_string (Lang.assoc "" 1 p) in
          let name = Lang.to_string (List.assoc "name" p) in
          let descr = Lang.to_string (List.assoc "description" p) in
+         let mimes =
+           List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+         in
          let test = List.assoc "test" p in
-         External_decoder.register_stdin name descr (test_f test) process;
+         External_decoder.register_stdin name descr mimes (test_f test) process;
          Lang.unit) ;
 
     let process_t = Lang.fun_t [false,"",Lang.string_t] Lang.string_t in
@@ -299,20 +337,20 @@ let () =
          in
          let test = List.assoc "test" p in
          External_decoder.register_oblivious
-           name descr 
+           name descr
            (test_f test) process prebuf ;
          Lang.unit)
    end
 
-let () = 
-  add_builtin "metadata.export" ~cat:Liq 
+let () =
+  add_builtin "metadata.export" ~cat:Liq
    ~descr:"Filter-out internal metadata."
    ["",Lang.metadata_t,None,None] Lang.metadata_t
    (fun p ->
-     Lang.metadata 
+     Lang.metadata
       (Encoder.Meta.to_metadata
         (Encoder.Meta.export_metadata
-          (Lang.to_metadata 
+          (Lang.to_metadata
             (List.assoc "" p)))))
 
 let () =
@@ -468,9 +506,31 @@ let () =
          Lang.float (Random.float (max -. min) +. min))
 
 let () =
+  add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
+    ["min",Lang.float_t,Some (Lang.int min_int),None;
+     "max",Lang.float_t,Some (Lang.int max_int),None]
+    Lang.int_t
+    (fun p ->
+       let min = Lang.to_int (List.assoc "min" p) in
+       let max = Lang.to_int (List.assoc "max" p) in
+         Lang.int (Random.int (max - min) + min))
+
+let () =
   add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random value."
     [] Lang.bool_t
     (fun p -> Lang.bool (Random.bool ()))
+
+let () =
+  add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
+    ~flags:[Lang.Hidden]
+    [] Lang.int_t
+    (fun _ -> Lang.int max_int)
+
+let () =
+  add_builtin "min_int" ~cat:Math ~descr:"Minimal representable integer."
+    ~flags:[Lang.Hidden]
+    [] Lang.int_t
+    (fun _ -> Lang.int min_int)
 
 (** Comparison and boolean connectives *)
 
@@ -570,9 +630,9 @@ let special_chars =
    * usual '"' and '\' *)
   escaped 0 ['"'; '\\'; '\x7F']
 
-let register_escape_fun ~name ~descr ~escape 
+let register_escape_fun ~name ~descr ~escape
                         ~escape_char =
-  let escape ~special_char ~escape_char s = 
+  let escape ~special_char ~escape_char s =
     let b = Buffer.create (String.length s) in
     let f = Format.formatter_of_buffer b in
     escape ~special_char ~escape_char f s ;
@@ -581,24 +641,24 @@ let register_escape_fun ~name ~descr ~escape
   in
   let special_chars =
     Lang.list Lang.string_t
-     (List.map Lang.string 
-      (List.map (String.make 1) 
+     (List.map Lang.string
+      (List.map (String.make 1)
         special_chars))
   in
   let escape_char p _ =
-    let v = List.assoc "" p in 
+    let v = List.assoc "" p in
     Lang.string
      (escape_char
        (Lang.to_string v).[0])
   in
-  let escape_char = 
-    Lang.val_fun 
+  let escape_char =
+    Lang.val_fun
      ["","",Lang.string_t,None]
      ~ret_t:Lang.string_t
      escape_char
   in
-  add_builtin name ~cat:String ~descr 
-    [ "special_chars", Lang.list_t Lang.string_t, 
+  add_builtin name ~cat:String ~descr
+    [ "special_chars", Lang.list_t Lang.string_t,
       Some (special_chars),
       Some ("List of characters that should be escaped. The first \
              character of each element in the list is considered.") ;
@@ -610,26 +670,26 @@ let register_escape_fun ~name ~descr ~escape
     Lang.string_t
     (fun p ->
        let s = Lang.to_string (List.assoc "" p) in
-       let special_chars = 
-         List.map 
+       let special_chars =
+         List.map
           (fun s -> s.[0])
             (List.map Lang.to_string
               (Lang.to_list (List.assoc "special_chars" p)))
        in
        let special_char c = List.mem c special_chars in
        let f = List.assoc "escape_char" p in
-       let escape_char c = 
+       let escape_char c =
          Lang.to_string
-          (Lang.apply f ~t:Lang.string_t 
+          (Lang.apply f ~t:Lang.string_t
              ["",Lang.string (String.make 1 c)])
        in
-       Lang.string (escape ~special_char ~escape_char s)) 
+       Lang.string (escape ~special_char ~escape_char s))
 
-let () = 
-  let escape ~special_char ~escape_char f s = 
+let () =
+  let escape ~special_char ~escape_char f s =
     Utils.escape ~special_char ~escape_char f s
   in
-  register_escape_fun ~name:"string.escape" 
+  register_escape_fun ~name:"string.escape"
                       ~descr:"Escape special charaters in a \
                               string. String is parsed char by char. \
                               See @string.utf8.escape@ for an UTF8-aware \
@@ -638,7 +698,7 @@ let () =
   let escape ~special_char ~escape_char f s =
     Utils.escape_utf8 ~special_char ~escape_char f s
   in
-  register_escape_fun ~name:"string.utf8.escape" 
+  register_escape_fun ~name:"string.utf8.escape"
                       ~descr:"Escape special charaters in an UTF8 \
                               string."
                       ~escape ~escape_char:Utils.escape_utf8_char
@@ -721,17 +781,17 @@ let () =
             is enabled."
     [ "in_enc", Lang.string_t, Some (Lang.string ""),
       Some "Input encoding. Autodetected if empty." ;
-      "out_enc", Lang.string_t, Some (Lang.string "UTF-8"), 
+      "out_enc", Lang.string_t, Some (Lang.string "UTF-8"),
       Some "Output encoding." ;
       "", Lang.string_t, None, None ]
     Lang.string_t
     (fun p ->
-       let in_enc = 
+       let in_enc =
          match Lang.to_string (List.assoc "in_enc" p) with
            | "" -> None
            | s  -> Some s
        in
-       let out_enc = 
+       let out_enc =
          Lang.to_string (List.assoc "out_enc" p)
        in
        let string = Lang.to_string (List.assoc "" p) in
@@ -865,16 +925,16 @@ let () =
      "",Lang.metadata_t,None,None]
     Lang.string_t
     (fun p ->
-                     let s = Lang.to_string (Lang.assoc "" 1 p) in
-                     let l =
-                       List.map
-                         (fun p ->
-                            let a,b = Lang.to_product p in
-                              Lang.to_string a, Lang.to_string b)
-                         (Lang.to_list (Lang.assoc "" 2 p))
-                     in
-                       Lang.string
-                         (Utils.interpolate (fun k -> List.assoc k l) s))
+      let s = Lang.to_string (Lang.assoc "" 1 p) in
+      let l =
+        List.map
+          (fun p ->
+            let a,b = Lang.to_product p in
+            Lang.to_string a, Lang.to_string b)
+          (Lang.to_list (Lang.assoc "" 2 p))
+      in
+      Lang.string
+        (Utils.interpolate (fun k -> List.assoc k l) s))
 
 let () =
   add_builtin "quote" ~cat:String ~descr:"Escape shell metacharacters."
@@ -890,7 +950,7 @@ let () =
    *      errors. *)
   add_builtin "_[_]" ~cat:List
     ~descr:"l[k] returns the first v such that \
-            (k,v) is in the list l."
+            (k,v) is in the list l (or \"\" if no such v exists)."
     ["",Lang.string_t,None,None ;
      "",Lang.metadata_t,None,None]
     Lang.string_t
@@ -904,6 +964,23 @@ let () =
            (Lang.to_list (Lang.assoc "" 2 p))
        in
          Lang.string (try List.assoc k l with _ -> ""))
+
+let () =
+  Lang.add_builtin "list.add"
+    ~category:(string_of_category List)
+    ~descr:"Add an element at the top of a list."
+    ["",Lang.univ_t 1,None,None;
+     "",Lang.list_t (Lang.univ_t 1),None,None]
+    (Lang.list_t (Lang.univ_t 1))
+    (fun p t ->
+      let t = Lang.of_list_t t in
+      let x,l =
+        match p with
+        | ["",x;"",l] -> x,l
+        | _ -> assert false
+      in
+      let l = Lang.to_list l in
+      Lang.list ~t (x::l))
 
 let () =
   add_builtin "list.iter" ~cat:List
@@ -940,6 +1017,18 @@ let () =
          Lang.list ~t l)
 
 let () =
+  let t = Lang.list_t (Lang.univ_t 1) in
+  Lang.add_builtin "list.randomize"
+    ~category:(string_of_category List)
+    ~descr:"Shuffle the content of a list."
+    ["", t, None, None ] t
+    (fun p t ->
+       let t = Lang.of_list_t t in
+       let l = Array.of_list (Lang.to_list (List.assoc "" p)) in
+       Utils.randomize l;
+       Lang.list ~t (Array.to_list l))
+
+let () =
   add_builtin "list.fold" ~cat:List
     ~descr:"Fold a function on every element of a list: \
             list.fold(f,x1,[e1,..,en]) is f(...f(f(x1,e1),e2)...,en)."
@@ -966,10 +1055,10 @@ let () =
        let l = Lang.to_list l in
          List.fold_left (fun x y -> Lang.apply ~t:x.Lang.t f ["",x; "",y]) x l)
 
-(* TODO: This will fail the whole script 
+(* TODO: This will fail the whole script
  * if the list does not have the required element! *)
 let () =
-  add_builtin "list.nth" ~cat:List 
+  add_builtin "list.nth" ~cat:List
     ~descr:"Get the n-th element of a list \
             (the first element is at position 0)."
     [ "",Lang.list_t (Lang.univ_t 1),None,None ;
@@ -1009,6 +1098,23 @@ let () =
          (List.sort sort (Lang.to_list l)))
 
 let () =
+  add_builtin "list.filter" ~cat:List
+    ~descr:"Filter a list according to a filtering function."
+    ["",
+     Lang.fun_t [false,"",Lang.univ_t 1] Lang.bool_t,
+     None, None ;
+     "",Lang.list_t (Lang.univ_t 1),None,None] (Lang.list_t (Lang.univ_t 1))
+    (fun p ->
+       let f = Lang.assoc "" 1 p in
+       let filter x =
+         Lang.to_bool (Lang.apply ~t:Lang.bool_t f ["",x])
+       in
+       let l = Lang.assoc "" 2 p in
+       Lang.list
+         (Lang.of_list_t l.Lang.t)
+         (List.filter filter (Lang.to_list l)))
+
+let () =
   add_builtin "list.tl" ~cat:List
     ~descr:"Return the list without its first element."
     ["",Lang.list_t (Lang.univ_t 1),None,None]
@@ -1045,13 +1151,10 @@ let () =
        let l = Lang.assoc "" 2 p in
        let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
-       let rec remove a l l' =
-         match l with
-           | x :: l'' when x = a -> l' @ l''
-           | x :: l'' -> remove a l'' (l' @ [x])
-           | [] -> l'
+       let l = List.fold_left (fun l' x ->
+         if compare_value x a = 0 then l' else x::l') [] l
        in
-         Lang.list ~t (remove a l []))
+         Lang.list ~t l)
 
 let () =
   add_builtin "list.rev" ~cat:List
@@ -1086,12 +1189,12 @@ let () =
 (** Operations on products. *)
 
 let () =
-  add_builtin "fst" ~cat:List (* TODO wrong category *)
+  add_builtin "fst" ~cat:Pair
     ~descr:"Get the first component of a pair."
     ["",Lang.product_t (Lang.univ_t 1) (Lang.univ_t 2),None,None]
     (Lang.univ_t 1)
     (fun p -> fst (Lang.to_product (Lang.assoc "" 1 p))) ;
-  add_builtin "snd" ~cat:List (* TODO wrong category *)
+  add_builtin "snd" ~cat:Pair
     ~descr:"Get the second component of a pair."
     ["",Lang.product_t (Lang.univ_t 1) (Lang.univ_t 2),None,None]
     (Lang.univ_t 2)
@@ -1112,8 +1215,8 @@ let () =
       "",Lang.fun_t [] Lang.float_t,None,None ]
     Lang.unit_t
     ~descr:"Call a function in N seconds. \
-        If the result of the function is positive or null, \
-        the task will be scheduled after this amount of time (in seconds.)"
+        If the result of the function is positive or null, the \
+        task will be scheduled again after this amount of time (in seconds)."
     (fun p ->
        let d = Lang.to_float (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
@@ -1180,32 +1283,9 @@ let () =
       Tutils.shutdown () ;
       Lang.unit)
 
-(** A function to reopen a file descriptor
-  * Thanks to Xavier Leroy!
-  * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
-  *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
-  *)
-let reopen_out outchan filename =
-  flush outchan;
-  let fd1 = Unix.descr_of_out_channel outchan in
-  let fd2 =
-    Unix.openfile filename [Unix.O_WRONLY] 0o666
-  in
-  Unix.dup2 fd2 fd1;
-  Unix.close fd2
-
-(** The same for inchan *)
-let reopen_in inchan filename =
-  let fd1 = Unix.descr_of_in_channel inchan in
-  let fd2 =
-    Unix.openfile filename [Unix.O_RDONLY] 0o666
-  in
-  Unix.dup2 fd2 fd1;
-  Unix.close fd2
-
-let () = 
+let () =
   let reopen name descr f =
-    add_builtin name ~cat:Sys ~descr 
+    add_builtin name ~cat:Sys ~descr
       ["", Lang.string_t, None, None] Lang.unit_t
       (fun p ->
         let file = Lang.to_string (List.assoc "" p) in
@@ -1213,11 +1293,11 @@ let () =
         Lang.unit)
   in
   reopen "reopen.stdin" "Reopen standard input on the given file"
-         (reopen_in stdin) ;
+         (Utils.reopen_in stdin) ;
   reopen "reopen.stdout" "Reopen standard output on the given file"
-         (reopen_out stdout) ;
+         (Utils.reopen_out stdout) ;
   reopen "reopen.stderr" "Reopen standard error on the given file"
-         (reopen_out stderr)
+         (Utils.reopen_out stderr)
 
 let () =
   add_builtin "on_shutdown" ~cat:Sys
@@ -1229,6 +1309,28 @@ let () =
        let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
          ignore (Dtools.Init.at_stop wrap_f) ;
          Lang.unit)
+
+let () =
+  add_builtin "source.on_shutdown" ~cat:Sys
+    [ "", Lang.source_t (Lang.univ_t 1), None, None;
+      "", Lang.fun_t [] Lang.unit_t, None, None ]
+    Lang.unit_t
+    ~descr:"Register a function to be called when source shuts down."
+    (fun p ->
+       let s = Lang.to_source
+         (Lang.assoc "" 1 p)
+       in
+       let f = Lang.assoc "" 2 p in
+       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
+         s#on_shutdown wrap_f;
+         Lang.unit)
+
+let () =
+  add_builtin "source.is_up" ~cat:Sys
+    [ "", Lang.source_t (Lang.univ_t 1), None, None ]
+    Lang.bool_t
+    ~descr:"Check whether a source is up."
+    (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)
 
 let () =
   add_builtin "garbage_collect" ~cat:Liq
@@ -1309,7 +1411,7 @@ let () =
       let l = Unix.environment () in
       (* Split at first occurence of '='. Return v,"" if
        * no '=' could be found. *)
-      let split s = 
+      let split s =
         try
           let pos = String.index s '=' in
           String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
@@ -1323,11 +1425,11 @@ let () =
 
 let () =
   add_builtin "getenv" ~cat:Sys
-    ~descr:"Get the value associated to a variable in the process environment. Returns \"\" if variable \
-            is not set."
+    ~descr:"Get the value associated to a variable in the process \
+            environment. Return \"\" if variable is not set."
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
-      Lang.string (Unix.getenv (Lang.to_string (List.assoc "" p))))
+      Lang.string (Utils.getenv ~default:"" (Lang.to_string (List.assoc "" p))))
 
 let () =
   add_builtin "setenv" ~cat:Sys
@@ -1415,13 +1517,20 @@ let () =
        let default = Lang.to_string (List.assoc "default" p) in
        let i = Lang.to_int (List.assoc "" p) in
        let opts = !opts in
-         if i < List.length opts then
+         if i = 0 then
+           (* Special case so that argv(0) returns the script name *)
+           let i = offset - 1 in
+           if 0 <= i && i < Array.length argv then
+             Lang.string argv.(i)
+           else
+             Lang.string default
+         else if i < List.length opts then
            Lang.string (List.nth opts i)
          else
            Lang.string default)
 
 let () =
-  add_builtin "server.register" ~cat:Sys
+  add_builtin "server.register" ~cat:Interaction
     ~descr:"Register a command. You can then execute this function \
             through the server, either telnet or socket."
     [ "namespace",Lang.string_t,Some (Lang.string ""),None ;
@@ -1451,16 +1560,16 @@ let () =
     ~descr:"Register a HTTP handler on the harbor. \
            The given function receives as argument \
            the full requested uri (e.g. \"foo?var=bar\"), \
-           method type, http protocol version, possible input data \
+           http protocol version, possible input data \
            and the list of HTTP headers \
            and returns the answer sent to the client, including HTTP headers. \
            Registered uri can be regular expressions \
            (e.g. \".+\\.php\") and can override default \
            metadata handlers."
     [ "port",Lang.int_t,None,Some "Port to server.";
+      "method", Lang.string_t, None, Some "Accepted method";
       "",Lang.string_t,None,Some "URI to serve." ;
-      "",Lang.fun_t [(false,"method",Lang.string_t);
-                     (false,"protocol",Lang.string_t);
+      "",Lang.fun_t [(false,"protocol",Lang.string_t);
                      (false,"data",Lang.string_t);
                      (false,"headers",Lang.list_t
                                  (Lang.product_t Lang.string_t
@@ -1477,12 +1586,15 @@ let () =
     Lang.unit_t
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
+       let verb =
+         Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
+       in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f ~http_method ~protocol ~data ~headers ~socket uri =
+       let f ~protocol ~data ~headers ~socket uri =
          let l =
-            List.map 
-              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y)) 
+            List.map
+              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
               headers
          in
          let l = Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t)
@@ -1490,25 +1602,28 @@ let () =
          in
          Harbor.reply
            (Lang.to_string
-             (Lang.apply ~t:Lang.string_t 
+             (Lang.apply ~t:Lang.string_t
                          f [("",Lang.string uri);("headers",l);
                             ("data",Lang.string data);
-                            ("protocol",Lang.string protocol);
-                            ("method",Lang.string http_method)]))
+                            ("protocol",Lang.string protocol)]))
        in
-       Harbor.add_http_handler ~port ~uri f;
+       Harbor.add_http_handler ~port ~verb ~uri f;
        Lang.unit)
 
 let () =
   add_builtin "harbor.http.remove" ~cat:Liq
     ~descr:"Remove a registered HTTP handler on the harbor."
-    [ "port",Lang.int_t,None,Some "Port to server.";
-      "",Lang.string_t,None,Some "URI to serve." ]
+    ["method",Lang.string_t,None,Some "Method served.";
+     "port",Lang.int_t,None,Some "Port to server.";
+      "",Lang.string_t,None,Some "URI served." ]
     Lang.unit_t
     (fun p ->
        let port = Lang.to_int (List.assoc "port" p) in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
-       Harbor.remove_http_handler ~port ~uri () ;
+       let verb =
+         Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
+       in
+       Harbor.remove_http_handler ~port ~verb ~uri () ;
        Lang.unit)
 
 (** Data conversions. *)
@@ -1586,27 +1701,27 @@ let rec to_json_compact v =
             s
     | Lang.List l ->
         (* Convert (string*'a) list to object *)
-        begin 
+        begin
          try
           let t = v.Lang.t in
           let t = Lang.of_list_t t in
           let (t,_) = Lang.of_product_t t in
           let compare = Lang_types.( <: ) in
           ignore(compare t Lang.string_t);
-          let l = 
+          let l =
             List.map (fun x ->
                         let (x,y) = Lang.to_product x in
-                        Printf.sprintf "%s:%s" 
+                        Printf.sprintf "%s:%s"
                           (to_json_compact x) (to_json_compact y))
                       l
           in
           Printf.sprintf "{%s}" (String.concat "," l)
          with _ ->
-               Printf.sprintf "[%s]" 
-                (String.concat "," 
+               Printf.sprintf "[%s]"
+                (String.concat ","
                   (List.map to_json_compact l))
         end
-    | Lang.Product (p,q) -> 
+    | Lang.Product (p,q) ->
        Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
@@ -1619,22 +1734,22 @@ let rec to_json_pp f v =
   match v.Lang.value with
     | Lang.List l ->
         (* Convert (string*'a) list to object *)
-        begin 
+        begin
          try
           let t = v.Lang.t in
           let t = Lang.of_list_t t in
           let (t,_) = Lang.of_product_t t in
             let compare = Lang_types.( <: ) in
             ignore(compare t Lang.string_t);
-            let print f l = 
+            let print f l =
               let len = List.length l in
               let f pos x =
                 let (x,y) = Lang.to_product x in
                 if pos != len - 1 then
-                  Format.fprintf f "%a: %a,@;<1 0>" 
+                  Format.fprintf f "%a: %a,@;<1 0>"
                     to_json_pp x to_json_pp y
                 else
-                  Format.fprintf f "%a: %a" 
+                  Format.fprintf f "%a: %a"
                     to_json_pp x to_json_pp y ;
                 pos+1
               in
@@ -1657,11 +1772,11 @@ let rec to_json_pp f v =
                in
                Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
         end
-    | Lang.Product (p,q) -> 
+    | Lang.Product (p,q) ->
        Format.fprintf f
          "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]"
          to_json_pp p to_json_pp q
-    | Lang.Ref v -> 
+    | Lang.Ref v ->
        Format.fprintf  f
          "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
          to_json_pp !v
@@ -1674,15 +1789,15 @@ let to_json_pp v =
   Format.pp_print_flush f ();
   Buffer.contents b
 
-let to_json ~compact v = 
-  if compact then 
+let to_json ~compact v =
+  if compact then
      to_json_compact v
   else
      to_json_pp v
 
 let () =
   add_builtin "json_of" ~cat:String
-    ~descr:"Convert a value to a json string." 
+    ~descr:"Convert a value to a json string."
      ["compact",Lang.bool_t,Some (Lang.bool false),
       Some "Output compact text.";
       "",Lang.univ_t 1,None,None] Lang.string_t
@@ -1705,12 +1820,12 @@ let () =
     (fun p -> (Lang.to_source (List.assoc "" p))#abort_track ; Lang.unit)
 
 let () =
-  add_builtin "source.seek" ~cat:Liq 
+  add_builtin "source.seek" ~cat:Liq
     ~descr:"Seek forward, in seconds. \
             Returns the amount of time effectively seeked."
     [ "",Lang.source_t (Lang.univ_t 1),None,None;
       "",Lang.float_t,None,None ] Lang.float_t
-    (fun p -> 
+    (fun p ->
        let s = Lang.to_source (Lang.assoc "" 1 p) in
        let time = Lang.to_float (Lang.assoc "" 2 p) in
        let len = Frame.master_of_seconds time in
@@ -1721,6 +1836,13 @@ let () =
   add_builtin "source.id" ~cat:Liq ~descr:"Get one source's identifier."
     [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.string_t
     (fun p -> Lang.string (Lang.to_source (List.assoc "" p))#id)
+
+let () =
+  add_builtin "source.fallible" ~cat:Liq
+    ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
+    [ "",Lang.source_t (Lang.univ_t 1),None,None ] Lang.bool_t
+    (fun p ->
+      Lang.bool ((Lang.to_source (List.assoc "" p))#stype == Source.Fallible))
 
 let () =
   add_builtin "source.is_ready" ~cat:Liq
@@ -1916,6 +2038,24 @@ let () =
          Lang.bool (Sys.file_exists f))
 
 let () =
+  add_builtin "file.watch" ~cat:Sys
+    [
+      "",Lang.string_t,None,Some "File to watch.";
+      "",Lang.fun_t [] Lang.unit_t,None,Some "Handler function.";
+    ]
+    (Lang.fun_t [] Lang.unit_t)
+    ~descr:"Call a function when a file is modified. Returns unwatch function."
+    (fun p ->
+       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
+       let fname = Utils.home_unrelate fname in
+       let f = List.assoc_nth "" 1 p in
+       let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
+       let watch = !Configure.file_watcher in
+       let unwatch = watch [`Modify] fname f in
+       Lang.val_fun [] ~ret_t:Lang.unit_t
+         (fun _ _ -> unwatch (); Lang.unit))
+
+let () =
   add_builtin "is_directory" ~cat:Sys
     ["",Lang.string_t,None,None] Lang.bool_t
     ~descr:"Returns true if the directory exists."
@@ -1959,9 +2099,10 @@ let () =
        let f = Lang.to_string (List.assoc "" p) in
        let f = Utils.home_unrelate f in
        let content = Utils.read_all f in
+       let pwd     = Filename.dirname f in
        let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
          try
-           let _,l = Playlist_parser.search_valid content in
+           let _,l = Playlist_parser.search_valid ~pwd content in
            let process m =
              let f (n,v) =
                Lang.product (Lang.string n) (Lang.string v)
@@ -2113,6 +2254,26 @@ let () =
          Lang.val_fun [] ~ret_t:Lang.float_t (fun p _ -> Lang.float !v))
 
 let () =
+  add_builtin "interactive.bool" ~cat:Interaction
+    ~descr:"Read a boolean from an interactive input."
+    ["",Lang.string_t,None,None; "",Lang.bool_t,None,None ]
+    (Lang.fun_t [] Lang.bool_t)
+    (fun p ->
+       let name = Lang.to_string (Lang.assoc "" 1 p) in
+       let v = Lang.to_bool (Lang.assoc "" 2 p) in
+       let v = ref v in
+         Var.add
+           name
+           Lang.bool_t
+           ~get:(fun () -> Printf.sprintf "%B" !v)
+           ~set:(fun s -> v := s = "true")
+           ~validate:
+           (fun s ->
+             if s <> "true" && s <> "false" then
+               raise (Var.Invalid_value (s ^ " is not a boolean")));
+         Lang.val_fun [] ~ret_t:Lang.bool_t (fun p _ -> Lang.bool !v))
+
+let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."
     ["newline",Lang.bool_t,Some (Lang.bool true),
      Some "If true, a newline is added after displaying the value." ;
@@ -2168,21 +2329,21 @@ let add_http_request name descr request =
       in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let url = Lang.to_string (List.assoc "" p) in
-      let host, port, url = Http.url_split_host_port url in
-      let port = match port with Some p -> p | None -> 80 in
-      let request =
-        if request = Get then
-           Http.Get
-        else
-          begin
-            let data = Lang.to_string (List.assoc "data" p) in
-            Http.Post data
-          end
-      in
-      let log = log#f 4 "%s" in
       let ((x,y,z),headers,data) =
         try
-          Http.full_request ~log ~timeout ~headers 
+          let host, port, url = Http.url_split_host_port url in
+          let port = match port with Some p -> p | None -> 80 in
+          let request =
+            if request = Get then
+              Http.Get
+            else
+             begin
+              let data = Lang.to_string (List.assoc "data" p) in
+              Http.Post data
+            end
+          in
+          let log = log#f 4 "%s" in
+          Http.full_request ~log ~timeout ~headers
                             ~port ~host ~url ~request ()
         with
           | e ->

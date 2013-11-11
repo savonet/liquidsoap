@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -155,6 +155,9 @@ val get_log : t -> log
 
 (** Indicate that a request is currently being streamed. *)
 val on_air : t -> unit
+
+(** Query whether a request is currently being streamed. *)
+val is_on_air : t -> bool
 
 (** [duration filename] computes the duration of audio data contained in
   * [filename]. The computation may be expensive.

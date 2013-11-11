@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -346,7 +346,7 @@ let () =
   in
     Lang.add_operator "switch"
       ~category:Lang.TrackProcessing
-      ~descr:"At the beginning of a track, select the first source
+      ~descr:"At the beginning of a track, select the first source \
               whose predicate is true."
       (common kind @ proto)
       ~kind:(Lang.Unconstrained kind)
@@ -430,7 +430,7 @@ let () =
 (** Random switch *)
 exception Found of child
 class random ~kind ?replay_meta strict mode children =
-  let name = if strict then "quota" else "random" in
+  let name = if strict then "rotate" else "random" in
 object
   inherit switch ~name ~kind ?replay_meta ~mode (List.map snd children)
 

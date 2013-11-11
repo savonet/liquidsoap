@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liqi, a simple wiki-like langage
-  Copyright 2008-2011 Savonet team
+  Copyright 2008-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ let print_doc f =
          | Paragraph p -> print_paragraph pprinter f p
          | Image (title,url) -> fprintf f "TODO image (%s)" title
          | Antiquote _ -> assert false
-         | Snippet (_,body) ->
+         | Snippet (_,body,_) ->
              fprintf f
                "\\begin{verbatim}\n%s%s\\end{verbatim}\n"
                body

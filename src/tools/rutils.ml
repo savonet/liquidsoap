@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,35 +72,27 @@ type wav_converter =
     audio_src_rate:float ->
     string -> Frame.audio_t array * int
 
-let create_from_wav ~channels ~samplesize x =
-  let audio_dst_rate =
-    float (Lazy.force Frame.audio_rate)
-  in
+let create_from_iff ~format ~channels ~samplesize =
+  let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
+  let sample_bytes = samplesize / 8 in
+  let samplerate_converter = Audio_converter.Samplerate.create channels in
   (fun ~audio_src_rate src ->
-    let sample_bytes = samplesize / 8 in
     let ratio = audio_dst_rate /. audio_src_rate in
-    (* Compute the length in samples, in the source data,
-     * then in the destination format, adding 1 to prevent rounding bugs. *)
-    let len_src = (String.length src) / (sample_bytes*channels) in
-    (* Adding 1 just in case the resampler doesn't round like us.
-     * Currently it always truncates which means that data is dropped:
-     * a proper resampling would have to be stateful. *)
-    let len_dst = 1 + int_of_float (float len_src *. ratio) in
-    let dst = Array.init channels (fun _ -> Array.make len_dst 0.) in
-    let resample_wav
-        src src_off len samplesize
-        ratio dst dst_off =
-      let f =
-        match samplesize with
-          | 8  -> Audio.U8.convert_to_audio
-          | 16 -> Audio.S16LE.convert_to_audio
-          | _ -> failwith "unsuported sample size"
-      in
-      f src src_off len ~resample:ratio dst dst_off
+    let len = (String.length src) / (sample_bytes*channels) in
+    let dst = Array.init channels (fun _ -> Array.make len 0.) in
+    let to_audio =
+      match samplesize with
+      | 8 -> Audio.U8.to_audio
+      | 16 when format = `Wav -> Audio.S16LE.to_audio
+      | 16 when format = `Aiff -> Audio.S16BE.to_audio
+      | _ -> failwith "unsuported sample size"
     in
-    let len_dst =
-      resample_wav
-        src 0 len_src samplesize
-        ratio dst 0
+    to_audio src 0 dst 0 len;
+    let dst =
+      Audio_converter.Samplerate.resample
+        samplerate_converter
+        ratio
+        dst 0 len
     in
-    dst, len_dst)
+    let dst_len = Array.length dst.(0) in
+    dst, dst_len)

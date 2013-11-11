@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+exception Incorrect_stream_type
+
 module type S =
 sig
   type t
@@ -35,6 +37,8 @@ module type S_Asio =
 sig
   type t
   val length : t -> int (* ticks *)
+  val audio_length : t -> int
+  val video_length : t -> int
   val remaining : t -> int (* ticks *)
   val clear : t -> unit
   val fill : t -> Frame.t -> unit
@@ -49,7 +53,9 @@ end
 module Generator =
 struct
 
+(** A chunk with given offset and length. *)
 type 'a chunk = 'a * int * int
+(** A buffer is a queue of chunks. *)
 type 'a buffer = 'a chunk Queue.t
 
 (** All positions and lengths are in ticks. *)
@@ -77,7 +83,7 @@ let length b = b.length
 let rec remove g len =
   assert (g.length >= len) ;
   if len>0 then
-  let b,_,b_len = Queue.peek g.buffers in
+  let b,b_off,b_len = Queue.peek g.buffers in
     (* Is it enough to advance in the first buffer?
      * Or do we need to consume it completely and go farther in the queue? *)
     if g.offset + len < b_len then begin
@@ -313,7 +319,8 @@ struct
   let video_length t = Generator.length t.video
 
   (** Total length. *)
-  let length t = min (Generator.length t.audio) (Generator.length t.video)
+  let length t =
+    min (Generator.length t.audio) (Generator.length t.video)
 
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t =
@@ -504,12 +511,15 @@ struct
     mutable error : bool ;
     overfull : overfull option ;
     gen : Super.t ;
-    log : string -> unit
+    log : string -> unit ;
+    (* Metadata rewriting, in place modification allowed *)
+    mutable map_meta : Frame.metadata -> Frame.metadata
   }
 
   let create ?(lock=Mutex.create()) ?overfull ~kind ~log mode =
     { lock = lock ; kind = kind ; error = false ; overfull = overfull ;
-      log = log   ; gen = Super.create mode }
+      log = log   ; gen = Super.create mode ;
+      map_meta = fun x -> x }
 
   let mode t = Tutils.mutexify t.lock Super.mode t.gen
   let set_mode t mode = Tutils.mutexify t.lock (Super.set_mode t.gen) mode
@@ -519,8 +529,11 @@ struct
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
 
+  let set_rewrite_metadata t f = t.map_meta <- f
+
   let add_metadata t m =
-    Tutils.mutexify t.lock (Super.add_metadata t.gen) m
+    Tutils.mutexify t.lock (fun m -> Super.add_metadata t.gen (t.map_meta m)) m
+
   let add_break ?sync t = Tutils.mutexify t.lock (Super.add_break ?sync) t.gen
 
   let clear t = Tutils.mutexify t.lock Super.clear t.gen
@@ -561,7 +574,7 @@ struct
       (fun () ->
          if t.error then begin
            Super.clear t.gen ; t.error <- false ;
-           failwith "Incorrect stream type!"
+           raise Incorrect_stream_type
          end else begin
            check_overfull t (Frame.master_of_audio len) ;
            Super.put_audio t.gen buf off len
@@ -572,7 +585,7 @@ struct
       (fun () ->
          if t.error then begin
            Super.clear t.gen ; t.error <- false ;
-           failwith "Incorrect stream type!"
+           raise Incorrect_stream_type
          end else begin
            check_overfull t (Frame.master_of_video len) ;
            Super.put_video t.gen buf off len

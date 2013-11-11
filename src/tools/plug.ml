@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2011 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,8 +29,9 @@ object (self)
   inherit Doc.item doc
 
   val mutable plugins : (string*'a) list = []
+  val mutable aliases : (string*'a) list = []
 
-  method register plugin ?doc ?sdoc v =
+  method register plugin ?plugin_aliases ?doc ?sdoc v =
     let plugin = if insensitive then String.uppercase plugin else plugin in
     let doc = match doc,sdoc with
       | (Some d), _ -> d
@@ -45,7 +46,11 @@ object (self)
           (plugin,doc)::(List.filter (fun (k,_) -> k<>plugin) subsections) ;
         plugins <- (plugin,v)::(List.filter (fun (k,_) -> k<>plugin) plugins)
       end ;
-      register_hook (plugin,v)
+      register_hook (plugin,v);
+      match plugin_aliases with
+        | Some l -> 
+            aliases <- (List.map (fun alias -> (alias, v)) l) @ aliases
+        | None       -> ()
 
   method is_registered a = List.mem_assoc a plugins
   method keys = List.fold_left (fun l (k,v) -> k::l) [] plugins
@@ -63,7 +68,13 @@ object (self)
       try
         Some (List.assoc plugin plugins)
       with
-        | Not_found -> None
+        | Not_found -> 
+            begin 
+             try
+              Some (List.assoc plugin aliases)
+             with 
+               | Not_found -> None
+            end
 
 end
 
