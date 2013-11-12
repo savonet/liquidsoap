@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-(** Clocks indicate at which rate a source can be read, thus avoiding by typing
-    the need for infinite buffering. *)
-
 type clock_variable = Source.clock_variable
 type source = Source.source
 type active_source = Source.active_source
@@ -36,14 +33,14 @@ let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
 (** [started] indicates that the application has loaded and started
-    * its initial configuration; it is set after the first collect.
-    * It is mostly intended to allow different behaviors on error:
-    *  - for the initial conf, all errors are fatal
-    *  - after that (dynamic code execution, interactive mode) some errors
-    *    are not fatal anymore. *)
+  * its initial configuration; it is set after the first collect.
+  * It is mostly intended to allow different behaviors on error:
+  *  - for the initial conf, all errors are fatal
+  *  - after that (dynamic code execution, interactive mode) some errors
+  *    are not fatal anymore. *)
 let started : [ `Yes | `No | `Soon ] ref = ref `No
 
-(** Does the application have started to run? *)
+(** Indicates whether the application has started to run or not. *)
 let running () = !started = `Yes
 
 (** We need to keep track of all used clocks, to have them (un)register
@@ -173,7 +170,8 @@ object (self)
         if error <> [] then begin
           Tutils.mutexify lock
             (fun () ->
-               outputs <- List.filter (fun (_,s) -> not (List.mem s error)) outputs)
+               outputs <-
+                 List.filter (fun (_,s) -> not (List.mem s error)) outputs)
             () ;
           (* To stop this clock it would be enough to detach all sources
            * and let things stop by themselves. We stop all sources by
@@ -201,7 +199,8 @@ object (self)
       Tutils.mutexify lock
         (fun () ->
            let rec aux (outputs,to_start) = function
-             | (`New,s)::tl when f s -> aux ((`Starting,s)::outputs,s::to_start) tl
+             | (`New,s)::tl when f s ->
+                 aux ((`Starting,s)::outputs,s::to_start) tl
              | (flag,s)::tl -> aux ((flag,s)::outputs,to_start) tl
              | [] -> outputs,to_start
            in

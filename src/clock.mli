@@ -20,11 +20,15 @@
 
  *****************************************************************************)
 
-(** Clocks indicate at which rate a source can be read, thus avoiding by typing
-    the need for infinite buffering. *)
-
+(** A clock represents the rate at which a source runs. In itself it does not
+  * do much, except forcing that one source belongs to exactly one clock,
+  * which prevents inconsistent uses of the source. Clocks are assigned to
+  * sources at the end of the typing phase. *)
 class clock : string -> Source.clock
 
+(** Wallclocks are clocks attached to a thread that periodically makes the
+  * clock tick, which triggers the streaming of the active sources attached
+  * to the clock. *)
 class wallclock : ?sync:bool -> string -> clock
 
 class self_sync : string ->
