@@ -559,9 +559,13 @@ let rec check ?(print_toplevel=false) ~level ~env e =
               e.t
             with
               | T.Type_Error _ ->
-                sup >: e.t;
-                sup
-          ) (T.fresh_evar ~level ~pos) l
+                  if debug then
+                    Printf.eprintf "Ignoring type error to compute \
+                                    a sup of list element types.\n" ;
+                  sup >: e.t;
+                  sup)
+          (T.fresh_evar ~level ~pos)
+          l
       in
         e.t >: mk (T.List tsup) ;
         List.iter (fun item -> item.t <: tsup) l
