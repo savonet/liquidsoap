@@ -551,18 +551,20 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
   | List l ->
       List.iter (check ~level ~env) l ;
+      (* We first try to compute the sup of types of elements in the list,
+         which will give us the type of the list. *)
       let tsup =
         List.fold_left
           (fun sup e ->
             try
-              sup <: e.t;
+              e.t >: sup;
               e.t
             with
               | T.Type_Error _ ->
                   if debug then
                     Printf.eprintf "Ignoring type error to compute \
                                     a sup of list element types.\n" ;
-                  sup >: e.t;
+                  e.t <: sup;
                   sup)
           (T.fresh_evar ~level ~pos)
           l
