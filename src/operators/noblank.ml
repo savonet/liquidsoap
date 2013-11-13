@@ -244,10 +244,7 @@ let () =
        let max_blank,min_noise,threshold,track_sensitive,s = extract p in
          new on_blank ~kind ~max_blank ~min_noise ~threshold
            ~track_sensitive ~on_blank ~on_noise s) ;
-  Lang.add_operator "strip_blank"
-    (* TODO make it active again when it doesn't hurt type
-     *   inference as much, cf. LS-551.
-     * ~active:true *)
+  Lang.add_operator "strip_blank" ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank."
