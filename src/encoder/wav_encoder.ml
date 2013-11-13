@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ let encoder wav =
                                (float sample_size) /. 8.))
   in
   let header =
-    Wav.header ?len ~channels ~sample_rate ~sample_size ()
+    Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
   in
   let need_header = ref wav.header in
   let encode frame start len =

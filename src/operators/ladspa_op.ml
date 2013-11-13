@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -221,20 +221,6 @@ object (self)
         AFrame.add_break buf position
 end
 
-let norm_string s =
-  let s =
-    Pcre.substitute
-      ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
-      ~subst:(fun _ -> "") s
-  in
-  let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
-  let s = String.lowercase s in
-  (* Identifiers cannot begin with a digit. *)
-  let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
-    s
-
 (* List the indexes of control ports. *)
 let get_control_ports d =
   let ports = Descriptor.port_count d in
@@ -263,7 +249,7 @@ let params_of_descr d =
         (fun p ->
            let t = port_t d p in
              incr univ;
-             norm_string (Descriptor.port_name d p),
+             Utils.normalize_parameter_string (Descriptor.port_name d p),
              (match t with
                 | Float -> Lang.float_getter_t !univ
                 | Int -> Lang.int_t
@@ -308,7 +294,7 @@ let params_of_descr d =
                        | None -> ()
                      end ;
                      bounds :=
-                     !bounds ^ (norm_string (Descriptor.port_name d p));
+                     !bounds ^ "<code>" ^ (Utils.normalize_parameter_string (Descriptor.port_name d p)) ^ "</code>";
                      begin match max with
                        | Some f ->
                            begin match t with
@@ -334,7 +320,7 @@ let params_of_descr d =
       List.map
         (fun p ->
            p,
-           let v = f (norm_string (Descriptor.port_name d p)) in
+           let v = f (Utils.normalize_parameter_string (Descriptor.port_name d p)) in
              match port_t d p with
                | Float -> Lang.to_float_getter v
                | Int ->
@@ -358,11 +344,13 @@ let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
   let liq_params =
     liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
   in
-  let descr = Printf.sprintf "%s by %s." (Descriptor.name d) (Descriptor.maker d) in
-    Lang.add_operator ("ladspa." ^ norm_string (Descriptor.label d)) liq_params
+  let maker = Descriptor.maker d in
+  let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
+  let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
+    Lang.add_operator ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d)) liq_params
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundProcessing
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr
       (fun p kind ->
          let f v = List.assoc v p in

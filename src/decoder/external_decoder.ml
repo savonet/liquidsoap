@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 
 let log = Dtools.Log.make ["decoder";"external"]
 
-let priority = Tutils.Non_blocking
+let priority = Tutils.Blocking
 let buf_size = 1024
 
 (** First, an external decoder that receives
@@ -61,10 +61,11 @@ let external_input process input =
       * lock, set is_task to false
       * and signal it to wake-up the main
       * thread waiting for the task to end.. *)
-    Mutex.lock task_m ;
-    is_task := false ;
-    Condition.signal task_c ;
-    Mutex.unlock task_m ;
+    Tutils.mutexify task_m (fun () ->
+      is_task := false ;
+      Condition.signal task_c) () ;
+    (* We can now close the process. *)
+    ignore(Unix.close_process (pull,push));
     (** Finally, tell duppy that we are done
       * by returning an empty list of new tasks. *)
     []
@@ -112,48 +113,49 @@ let external_input process input =
     { Decoder.
         read = 
          (fun inlen ->
-           let tmpbuf = String.create inlen in
-           let read = Unix.read pull_e tmpbuf 0 inlen in
-             tmpbuf, read);
+           Tutils.mutexify task_m (fun () ->
+             if !is_task then
+               let tmpbuf = String.create inlen in
+               let read = Unix.read pull_e tmpbuf 0 inlen in
+               tmpbuf, read
+              else
+                "", 0) ());
          tell = None;
          length = None;
          lseek = None },
     (* And a function to close the process *)
     (fun () -> 
       (* We grab the task's mutex. *)
-      Mutex.lock task_m ;
-      (* If the task has not yet ended, 
-       * we write a char in the close pipe 
-       * and wait for a signal from the task. *)
-      if !is_task then
-       begin
-        ignore(Unix.write push_p " " 0 1) ;
-        Condition.wait task_c task_m 
-       end ;
-      Mutex.unlock task_m ;
-      (* Now we can close our side of 
-       * the close pipe as well as the 
-       * encoding process. *)
-      Unix.close push_p ;
-      ignore(Unix.close_process (pull,push)))
+      Tutils.mutexify task_m (fun () ->
+        (* If the task has not yet ended, 
+         * we write a char in the close pipe 
+         * and wait for a signal from the task. *)
+        if !is_task then
+          begin
+            ignore(Unix.write push_p " " 0 1) ;
+            Condition.wait task_c task_m;
+          end;
+          (* Now we can close our side of 
+           * the close pipe. *)
+          Unix.close push_p) ())
 
 let duration process = 
   let pull = Unix.open_process_in process in
-  let w = Wav.in_chan_read_header pull in
-  let ret = Wav.duration w in
+  let w = Wav_aiff.in_chan_read_header pull in
+  let ret = Wav_aiff.duration w in
   ignore(Unix.close_process_in pull) ;
   ret
 
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
-(** A function to wrap around the Wav_decoder *)
+(** A function to wrap around the Wav_aiff_decoder *)
 let create process kind filename = 
   let close = ref (fun () -> ()) in
   let create input =
     let input,actual_close = external_input process input in
       close := actual_close ;
-      Wav_decoder.D.create ?header:None input
+      Wav_aiff_decoder.D.create ?header:None input
   in
   let generator = Generator.create `Audio in
   let dec = Buffered.file_decoder filename kind create generator in
@@ -163,6 +165,14 @@ let create process kind filename =
          Tutils.finalize
           ~k:(fun () -> dec.Decoder.close ()) 
           !close) }
+
+let create_stream process input =
+  let input,close = external_input process input in
+  (* Put this here so that ret is not in its closure.. *)
+  let close _ = close () in
+  let ret = Wav_aiff_decoder.D_stream.create input in
+  Gc.finalise close ret;
+  ret
 
 let test_kind f filename = 
   (* 0 = file rejected,
@@ -177,7 +187,7 @@ let test_kind f filename =
                       else
                         Frame.mul_of_int ret }
 
-let register_stdin name sdoc test process =
+let register_stdin name sdoc mimes test process =
   Decoder.file_decoders#register name ~sdoc
     (fun ~metadata filename kind ->
        match test_kind test filename with
@@ -194,7 +204,30 @@ let register_stdin name sdoc test process =
     in
     duration process
   in
-  Request.dresolvers#register name duration
+  Request.dresolvers#register name duration;
+  if mimes <> [] then
+    Decoder.stream_decoders#register name
+      ~sdoc:(Printf.sprintf 
+        "Use %s to decode any stream with an appropriate MIME type."
+        name)
+       (fun mime kind ->
+          let (<:) a b = Frame.mul_sub_mul a b in
+            if List.mem mime mimes &&
+               (* Check that it is okay to have zero video and midi,
+                * and at least one audio channel. *)
+               Frame.Zero <: kind.Frame.video &&
+               Frame.Zero <: kind.Frame.midi &&
+               kind.Frame.audio <> Frame.Zero
+            then
+              (* In fact we can't be sure that we'll satisfy the content
+               * kind, because the stream might be mono or stereo.
+               * For now, we let this problem result in an error at
+               * decoding-time. Failing early would only be an advantage
+               * if there was possibly another plugin for decoding
+               * correctly the stream (e.g. by performing conversions). *)
+              Some (create_stream process)
+            else
+              None)
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case
@@ -235,7 +268,7 @@ let external_input_oblivious process filename prebuf =
   in
   let gen = Generator.create `Audio in
   let prebuf = Frame.master_of_seconds prebuf in
-  let decoder = Wav_decoder.D.create input in
+  let decoder = Wav_aiff_decoder.D.create input in
   let fill frame = 
      if not !process_done then
        begin try

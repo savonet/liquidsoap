@@ -2,6 +2,7 @@
 - How to release liquidsoap -
 -----------------------------
 
+ [] Run tests! We have too few, but we do have some: "make test".
  [] Update copyright years in headers and check that all files have license
      headers.
  [] Check version in configure.ac, README and INSTALL.
@@ -11,6 +12,8 @@
  [] Fill-in CHANGES, with the release date.
  [] make clean
  [] make tarball
+ [] In website: copy reference-VER.txt settings-VER.txt and contents-VER,
+    update previously.txt.
 
 At least on one configuration (preferably all-yes)
 -----------------------------

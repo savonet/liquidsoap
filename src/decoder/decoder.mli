@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@ val file_decoders :
   (metadata:Frame.metadata -> file -> Frame.content_kind ->
      (unit -> file_decoder) option)
   Plug.plug
+val image_file_decoders : (file -> Image.RGBA32.t option) Plug.plug
 val stream_decoders :
   (stream -> Frame.content_kind -> stream_decoder option) Plug.plug
 
@@ -66,6 +67,7 @@ val test_file : ?log:Dtools.Log.t ->
 val get_file_decoder :
   metadata:Frame.metadata -> file -> Frame.content_kind ->
   (string * (unit -> file_decoder)) option
+val get_image_file_decoder : file -> Image.RGBA32.t option
 val get_stream_decoder :
   file -> Frame.content_kind -> stream_decoder option
 

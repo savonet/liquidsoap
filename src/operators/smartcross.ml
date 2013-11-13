@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -223,9 +223,10 @@ object (self)
         rmsi_before <- min rms_width (rmsi_before + 1)
     done ;
     (* Should we buffer more or are we done ? *)
-    if AFrame.is_partial buf_frame then
+    if AFrame.is_partial buf_frame then begin
+      Generator.add_break gen_before ;
       status <- `Limit
-    else
+    end else
       if n>0 then self#buffering (n - AFrame.position buf_frame)
 
   (* Analyze the beginning of a new track. *)

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,12 +20,31 @@
 
  *****************************************************************************)
 
-let get_some = function Some x -> x | None -> assert false
+let pi = 4. *. atan 1.
+
+let get_some = function
+  | Some x -> x
+  | None -> assert false
+
+let maybe f = function
+  | Some x -> Some (f x)
+  | None   -> None
+
+let maydo f = function
+  | Some x -> f x
+  | None -> ()
+
+let some_or none = function
+  | Some x -> x
+  | None   -> none
 
 let pi = 4. *. atan 1.
 
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale"
+
+(** General configuration *)
+let conf = Dtools.Conf.void "Liquidsoap configuration"
 
 let () = 
   force_locale ()
@@ -167,29 +186,6 @@ let really_read fd buf ofs len =
     done;
     !l
 
-(* There seems to be an issue under win32 where 
- * some sockets are left in non-blocking mode
- * after Unix.select. See: http://caml.inria.fr/mantis/view.php?id=5328
- * 
- * Since we do not use non-blocking mode at all
- * in liquidsoap, this wrapper ensures that all socket are set back to
- * blocking mode after a call to select under win32.. *)
-let select r w e t =
-  let ret = Unix.select r w e t in
-  if Sys.os_type <> "Win32" then
-    ret
-  else
-   begin
-    let f x =
-       try
-        Unix.clear_nonblock x
-       with _ -> ()
-    in
-    let f = List.iter f in
-    f r; f w; f e;
-    ret
-   end
-
 (* Read all data from a given filename.
  * We cannot use really_input with the 
  * reported length of the file because
@@ -215,36 +211,7 @@ let read_all filename =
   close_in channel ;
   Buffer.contents contents
 
-exception Timeout
-
-(* Wait for [`Read], [`Write] or [`Both] for
- * at most [timeout] seconds on the
- * given [socket]. Raises [Timeout] 
- * if timeout is reached. *)
-let wait_for ?(log=fun _ -> ()) event socket timeout = 
-  let max_time = Unix.gettimeofday () +. timeout in
-  let r, w = 
-    match event with
-      | `Read -> [socket],[]
-      | `Write -> [],[socket]
-      | `Both -> [socket],[socket]
-  in
-  let rec wait t =
-    let l,l',_ = select r w [] t in
-    if l=[] && l'=[] then begin
-      log (Printf.sprintf "No network activity for %.02f second(s)." t);
-      let current_time = Unix.gettimeofday () in
-      if current_time >= max_time then
-       begin
-        log "Network activity timeout! Disconnecting source." ;
-        raise Timeout 
-       end
-      else
-        wait (min 1. (max_time -. current_time))
-    end
-  in wait (min 1. timeout)
-
-(* Drop all but then [len] last bytes. *)
+(* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
   assert (len <= size) ;
@@ -258,9 +225,6 @@ let buffer_drop buffer len =
  * and override it with Printexc's implementation
  * if present.. *)
 
-(* Exception translation *)
-exception Translation of string
-
 let error_translators = Queue.create ()
 
 let register_error_translator x = Queue.push x error_translators
@@ -268,19 +232,16 @@ let register_error_translator x = Queue.push x error_translators
 let unix_translator = 
   function
     | Unix.Unix_error (code,name,param) ->
-      raise (Translation 
-          (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
-                                         name param))
-    | _ -> ()
+       Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
+                                           name param)
+    | _ -> None
 
 let () = register_error_translator unix_translator
 
 let exception_printer e =
- try
-   Queue.iter (fun f -> f e) error_translators ;
-   None
- with
-   | Translation x -> Some x
+  Queue.fold
+    (fun cur f -> if cur <> None then cur else f e)
+    None error_translators
 
 let register_printer _ = 
     raise Not_found
@@ -469,13 +430,9 @@ let interpolate =
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
 let which =
-  let path =
-    let s = Sys.getenv "PATH" in
-      Str.split (Str.regexp_string ":") s
-  in
-    fun s ->
+    fun ~path s ->
       if Sys.file_exists s then s else
-        List.find Sys.file_exists (List.map (fun d -> d^"/"^s) path)
+        List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
 
 (** Very partial strftime clone *)
 let strftime str : string =
@@ -635,3 +592,83 @@ let name_of_sockaddr ?(rev_dns=true) ?(show_port=false) a =
 let uptime =
   let base = Unix.gettimeofday () in
     fun () -> Unix.gettimeofday () -. base
+
+(** Generate a string which can be used as a parameter name. *)
+let normalize_parameter_string s =
+  let s =
+    Pcre.substitute
+      ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
+      ~subst:(fun _ -> "") s
+  in
+  let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
+  let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
+  let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
+  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
+  let s = String.lowercase s in
+  (* Identifiers cannot begin with a digit. *)
+  let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
+  s
+
+(** A function to reopen a file descriptor
+  * Thanks to Xavier Leroy!
+  * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
+  *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
+  *)
+let reopen_out outchan filename =
+  flush outchan;
+  let fd1 = Unix.descr_of_out_channel outchan in
+  let fd2 =
+    Unix.openfile filename [Unix.O_WRONLY] 0o666
+  in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(** The same for inchan *)
+let reopen_in inchan filename =
+  let fd1 = Unix.descr_of_in_channel inchan in
+  let fd2 =
+    Unix.openfile filename [Unix.O_RDONLY] 0o666
+  in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(* See: http://www.onicos.com/staff/iz/formats/ieee.c *)
+let float_of_extended_float bytes =
+  let float_of_unsigned u =
+    let ( - ) = Int32.sub in
+    let f = (Int32.shift_left Int32.one 31) - Int32.one in
+    (Int32.to_float (u - f - Int32.one)) +. 2147483648.
+  in
+  let expon = (((int_of_char bytes.[0]) land 0x7F) lsl 8) lor ((int_of_char bytes.[1]) land 0xff) in
+  let boc c = Int32.of_int (int_of_char c land 0xff) in
+  let ( lsl ) = Int32.shift_left in
+  let ( lor ) = Int32.logor in
+  let hiMant =
+    ((boc bytes.[2]) lsl 24) lor
+      ((boc bytes.[3]) lsl 16) lor
+      ((boc bytes.[4]) lsl 8) lor
+      (boc bytes.[5])
+  in
+  let loMant =
+    ((boc bytes.[6]) lsl 24) lor
+      ((boc bytes.[7]) lsl 16) lor
+      ((boc bytes.[8]) lsl 8) lor
+      (boc bytes.[9])
+  in
+  if expon = 0 && hiMant = Int32.zero && loMant = Int32.zero then
+    0.
+  else
+    begin
+      if expon = 0x7fff then
+        nan
+      else
+        begin
+          let expon = expon - 16383 - 31 in
+          let f = ldexp (float_of_unsigned hiMant) expon in
+          let f = f +. ldexp (float_of_unsigned loMant) (expon-32) in
+          if (int_of_char bytes.[0]) land 0x80 <> 0 then
+            -1. *. f
+          else
+            f
+        end
+    end

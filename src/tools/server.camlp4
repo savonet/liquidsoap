@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 
  *****************************************************************************)
 
-open Unix
 open Dtools
 
 let log = Dtools.Log.make ["server"]
@@ -342,14 +341,14 @@ let start_socket () =
   let socket_path = Configure.subst_vars (conf_socket_path#get) in
   let socket_name = Filename.basename socket_path in
   let socket_dir = Filename.dirname socket_path in
-  let bind_addr = ADDR_UNIX socket_path in
+  let bind_addr = Unix.ADDR_UNIX socket_path in
   let rights = conf_socket_perms#get in
   let max_conn = 10 in
-  let sock = socket PF_UNIX SOCK_STREAM 0 in
+  let sock = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   let rec incoming _ =
     begin
       try
-        let (socket,caller) = accept sock in
+        let (socket,caller) = Unix.accept sock in
           let ip =
             Utils.name_of_sockaddr caller
           in
@@ -363,24 +362,19 @@ let start_socket () =
          events = [`Read sock] ;
          handler = incoming }]
   in
-    setsockopt sock SO_REUSEADDR true ;
+    Unix.setsockopt sock Unix.SO_REUSEADDR true ;
     (* Try to close the socket if exists.. *)
     if not (Utils.dir_exists socket_dir) then
       failwith
         (Printf.sprintf "Unknown directory for the socket: %s" socket_dir) ;
-    if Sys.file_exists socket_path then unlink socket_path ;
-    begin try bind sock bind_addr with
-      | Unix.Unix_error(Unix.EACCES, "bind", "") ->
-          failwith (Printf.sprintf "access to socket %s denied" socket_path)
-      | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "socket %s already taken" socket_path)
-    end ;
+    if Sys.file_exists socket_path then Unix.unlink socket_path ;
+    Unix.bind sock bind_addr;
+    Unix.listen sock max_conn;
     ignore (Dtools.Init.at_stop
               (fun () ->
                  log#f 3 "Unlink %s" socket_name ;
                  Unix.unlink socket_path)) ;
-    chmod socket_path rights ;
-    listen sock max_conn ;
+    Unix.chmod socket_path rights ;
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Non_blocking ;
@@ -390,17 +384,17 @@ let start_socket () =
 let start_telnet () =
   let port = conf_telnet_port#get in
   let bind_addr_inet =
-    inet_addr_of_string (conf_telnet_bind_addr#get)
+    Unix.inet_addr_of_string (conf_telnet_bind_addr#get)
   in
-  let bind_addr = ADDR_INET(bind_addr_inet, port) in
+  let bind_addr = Unix.ADDR_INET(bind_addr_inet, port) in
   let max_conn = 10 in
-  let sock = socket PF_INET SOCK_STREAM 0 in
+  let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   (* Set TCP_NODELAY on the socket *)
-  Liq_sockets.set_tcp_nodelay sock true ;
+  Unix.setsockopt sock Unix.TCP_NODELAY true;
   let rec incoming _ =
     begin
       try
-        let (socket,caller) = accept sock in
+        let (socket,caller) = Unix.accept sock in
         let ip =
            Utils.name_of_sockaddr caller
         in
@@ -414,12 +408,9 @@ let start_telnet () =
          events   = [`Read sock] ;
          handler  = incoming }]
     in
-    setsockopt sock SO_REUSEADDR true ;
-    begin try bind sock bind_addr with
-      | Unix.Unix_error(Unix.EADDRINUSE, "bind", "") ->
-          failwith (Printf.sprintf "port %d already taken" port)
-    end ;
-    listen sock max_conn ;
+    Unix.setsockopt sock Unix.SO_REUSEADDR true ;
+    Unix.bind sock bind_addr;
+    Unix.listen sock max_conn;
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Non_blocking ;

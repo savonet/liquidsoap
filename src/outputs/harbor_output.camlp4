@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -305,20 +305,26 @@ class output ~kind p =
 
   let metaint = Lang.to_int (List.assoc "metaint" p) in
 
-  let _,encoder_factory, 
-      format,icecast_info,icy_metadata,
-      ogg =
-    encoder_data p
+  let data = encoder_data p in
+
+  let encoding =
+    Lang.to_string (List.assoc "encoding" p)
   in
 
-  let out_enc =
-    match Lang.to_string (List.assoc "encoding" p) with
-      | "" ->
-         if icy_metadata then
-           "ISO-8859-1"
-         else
-           "UTF-8"
-      | s -> String.uppercase s
+  let recode ~icy m =
+    let out_enc = 
+      match encoding with
+        | "" ->
+           if icy then
+             "ISO-8859-1"
+           else
+             "UTF-8"
+        | s -> String.uppercase s
+    in
+    let f = Configure.recode_tag ~out_enc in
+    let meta = Hashtbl.create (Hashtbl.length m) in
+    Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m;
+    meta
   in
 
   let timeout = Lang.to_float (List.assoc "timeout" p) in
@@ -443,15 +449,11 @@ object (self)
   method insert_metadata m = 
     let m = Encoder.Meta.to_metadata m in
     let meta = Hashtbl.create (Hashtbl.length m) in
-    let f = Configure.recode_tag ~out_enc in
-    Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m ;
-    if icy_metadata then
-      Tutils.mutexify metadata.metadata_m
-        (fun () -> 
-          metadata.metadata <- Some meta) ()
-    else
-      (Utils.get_some encoder).Encoder.insert_metadata 
-         (Encoder.Meta.export_metadata meta) 
+    Tutils.mutexify metadata.metadata_m
+      (fun () -> 
+        metadata.metadata <- Some (recode ~icy:true meta)) ();
+    (Utils.get_some encoder).Encoder.insert_metadata 
+       (Encoder.Meta.export_metadata (recode ~icy:false meta)); 
 
   method add_client ~protocol ~headers ~uri ~args s = 
     let ip = 
@@ -461,7 +463,7 @@ object (self)
     in
     let metaint,icyheader = 
       try
-        assert(List.assoc "Icy-MetaData" headers = "1" && icy_metadata);
+        assert(List.assoc "Icy-MetaData" headers = "1");
         metaint,Printf.sprintf "icy-metaint: %d\r\n" metaint
       with
         | _ -> -1,""
@@ -473,7 +475,7 @@ object (self)
     in
     let reply = 
       Printf.sprintf "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" 
-         protocol format icyheader extra_headers
+         protocol data.format icyheader extra_headers
     in
     let buffer = Buffer.create buflen in
     begin
@@ -542,28 +544,25 @@ object (self)
         else
           duppy_return () 
       with
-        | Harbor.Reply _ -> assert false
+        | Harbor.Relay _ -> assert false
         | Harbor.Close s ->
              self#log#f 4 "Client %s failed to authenticate!" ip ;
              client.state <- Done ;
              Harbor.reply s
      end ;
-     begin
-       self#log#f 4 "Client %s connected" ip ;
-       duppy_exec
+     duppy_exec
+       Harbor.relayed reply (fun () ->
+         self#log#f 4 "Client %s connected" ip;
          Tutils.mutexify clients_m
             (fun () -> Queue.push client clients) ();
          let h_headers =
             Hashtbl.create (List.length headers)
          in
          List.iter (fun (x,y) -> Hashtbl.add h_headers x y) headers ;
-         on_connect ~protocol ~uri ~headers:h_headers ip ;
-         duppy_return ()
-       with
-         { priority = Tutils.Maybe_blocking ;
-           handler  = handler }
-      end ;
-     Harbor.relayed reply
+         on_connect ~protocol ~uri ~headers:h_headers ip)
+     with
+       { priority = Tutils.Maybe_blocking ;
+         handler  = handler }
     done
 
   method send b =
@@ -645,7 +644,7 @@ object (self)
 
   method output_start =
     assert (encoder = None) ;
-    let enc = encoder_factory self#id in
+    let enc = data.factory self#id in
     encoder <- 
        Some (enc (Encoder.Meta.empty_metadata)) ;
     let handler ~protocol ~data ~headers ~socket

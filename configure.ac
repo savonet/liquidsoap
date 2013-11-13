@@ -1,4 +1,3 @@
-
 dnl BEFORE RELEASING
 dnl Make sure that you edit the version number on the next line
 dnl as well as the "version" variable below AND the "libs_dir_version",
@@ -8,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.0.1])
+AC_INIT([liquidsoap],[1.1.1])
 scm_snapshot=true
-version=1.0.1
+version=1.1.1
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -51,7 +50,7 @@ CFLAGS="$CFLAGS -I\$(top_srcdir)"
 cat > src/configure.ml << _BLAH_
 let version = "$version"
 let scm_snapshot = $scm_snapshot
-let conf = Dtools.Conf.void "Liquidsoap configuration"
+let conf = Utils.conf
 let var_script = ref "default"
 let substs = ref
     [[
@@ -161,9 +160,7 @@ if test -n "${FINDLIB_PATH}"; then
 fi
 # Add -I`ocamlc -where` to CFLAGS for 
 # user with locally installed headers.
-if test "$OS_TYPE" \!= "Win32" ; then
-  CFLAGS="$CFLAGS -I${OCAML_WHERE}"
-fi
+CFLAGS="$CFLAGS -I${OCAML_WHERE}"
 cat >> src/configure.ml <<__BLAH__
 let findlib_path = [[${FINDLIB_PATH}]]
 __BLAH__
@@ -179,6 +176,11 @@ fi
 liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
 requires="unix threads str"
+if test "$enable_debugging" \!= "no" ; then
+  CFLAGS="$CFLAGS -g"
+  liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
+  liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
+fi
 # Disable nativecode if ocamlopt is not present
 if test "$OCAMLOPT" = "no"; then 
   enable_nativecode="no"
@@ -194,11 +196,6 @@ if test "$enable_nativecode" \!= "no" ; then
     liquidsoap_ocamlcflags="$liquidsoap_ocamlcflags"
     if test "x$enable_profiling" = "xyes" ; then
         liquidsoap_ocamlcflags="-p $liquidsoap_ocamlcflags"
-    fi
-    if test "x$enable_debugging" = "xyes" ; then
-        CFLAGS="$CFLAGS -g"
-        liquidsoap_ocamlcflags="-g -annot $liquidsoap_ocamlcflags"
-        liquidsoap_ocamllflags="-g $liquidsoap_ocamllflags"
     fi
     AC_MSG_CHECKING(whether ocamlopt accepts -ffast-math)
     if [ `$OCAMLFIND ocamlopt -ffast-math 2>/dev/null` ]; then
@@ -224,10 +221,6 @@ else
         AC_MSG_ERROR(Not found.)
       fi
     fi
-    if test "x$enable_debugging" = "xyes" ; then
-        CFLAGS="$CFLAGS -g"
-        liquidsoap_ocamlcflags="$liquidsoap_ocamlcflags -g"
-    fi
     if test "x$enable_profiling" = "xyes" ; then
         OCAMLC="$OCAMLFIND ocamlcp"
     else
@@ -245,17 +238,6 @@ OCAML_REVISION="`echo $OCAML_VERSION | cut -d'.' -f 3`"
 AC_SUBST(OCAML_REVISION)
 AC_MSG_CHECKING([for ocamlc version])
 AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
-
-# Variables for support of TCP_NODELAY:
-if test $OCAML_MAJOR -ge 3 -a $OCAML_MINOR -ge 11 ; then
-  NEED_TCP_NODELAY=
-  TCP_NODELAY_VALUE='let set_tcp_nodelay fd v = Unix.setsockopt fd Unix.TCP_NODELAY v'
-else
-  NEED_TCP_NODELAY=yes
-  TCP_NODELAY_VALUE='external set_tcp_nodelay : Unix.file_descr -> bool -> unit = "stub_set_tcp_nodelay"'
-fi
-AC_SUBST(NEED_TCP_NODELAY)
-AC_SUBST(TCP_NODELAY_VALUE)
 
 AC_SUBST(BYTE)
 
@@ -341,7 +323,7 @@ AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
 
 AC_CHECK_OCAML_BINDING([duppy],[0.4.2],[],[1],[],[1])
 
-# Small hack..
+# Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
   if test "${CAMLP4O}" != "no" ; then
     with_duppy_syntax_dir=${with_duppy_dir}
@@ -361,12 +343,12 @@ fi
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.2.2])
+AC_CHECK_OCAML_BINDING([cry],[0.3.0])
 
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.2.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.3.0],[],[1],[],[1])
 
 #
 # xmlplaylist
@@ -384,19 +366,25 @@ AC_CHECK_OCAML_BINDING([lastfm],[0.3.0],[xmlplaylist])
 # Ogg
 #
 
-AC_CHECK_OCAML_BINDING([ogg],[0.4.3])
+AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
 
 #
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.6.1],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[0.6.2],[ogg])
+
+#
+# Opus
+#
+
+AC_CHECK_OCAML_BINDING([opus],[0.1.1],[ogg])
 
 #
 # Speex
 #
 
-AC_CHECK_OCAML_BINDING([speex],[0.2.0],[ogg])
+AC_CHECK_OCAML_BINDING([speex],[0.2.1],[ogg])
 
 #
 # Mad
@@ -408,8 +396,8 @@ AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.1])
-# Small hack..
+AC_CHECK_OCAML_BINDING([flac],[0.1.2])
+# Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
@@ -423,10 +411,10 @@ AC_CHECK_OCAML_BINDING([dynlink],[],[],[],[],[1])
 # Dynlink may be for bytecode only..
 AC_MSG_CHECKING([whether ocaml compiler supports dynlink])
 if test -n "${W_DYNLINK}"; then
-  DYN_TEST_FILE=`mktemp XXXX.ml`
-  trap "rm -f $DYN_TEST_FILE; exit" SIGHUP SIGINT SIGTERM
-  echo "module Foo = Dynlink" > $DYN_TEST_FILE
-  if ! $OCAMLC -linkpkg -package dynlink -o /dev/null $DYN_TEST_FILE >/dev/null 2>&1; then
+  DYN_TEST_FILE_ML=`mktemp XXXX.ml`
+  trap "rm -f $DYN_TEST_FILE_ML; exit" SIGHUP SIGINT SIGTERM
+  echo "module Foo = Dynlink" > $DYN_TEST_FILE_ML
+  if ! $OCAMLC -linkpkg -package dynlink -o /dev/null $DYN_TEST_FILE_ML >/dev/null 2>&1; then
     AC_MSG_RESULT([no])
     AC_MSG_WARN([Dynlink module is installed but not available])
     AC_MSG_WARN([Are you compiling to native code with ocaml < 3.11 ?])
@@ -437,7 +425,8 @@ if test -n "${W_DYNLINK}"; then
   else
     AC_MSG_RESULT([yes])
   fi
-  rm -f $DYN_TEST_FILE
+  DYN_TEST_FILE=`basename $DYN_TEST_FILE_ML .ml`
+  rm -f $DYN_TEST_FILE_ML $DYN_TEST_FILE.cmx $DYN_TEST_FILE.cmo $DYN_TEST_FILE.cmi $DYN_TEST_FILE.o
 fi
 
 if test -z "${W_DYNLINK}"; then
@@ -459,7 +448,7 @@ fi
 # Lame
 #
 
-AC_CHECK_OCAML_BINDING([lame],[0.3.1])
+AC_CHECK_OCAML_BINDING([lame],[0.3.2])
 if test -z "${W_LAME}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -471,10 +460,22 @@ fi
 AC_SUBST(W_LAME_DYN)
 
 #
+# Shine
+#
+
+AC_CHECK_OCAML_BINDING([shine],[0.2.0])
+
+#
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.1.0])
+AC_CHECK_OCAML_BINDING([gstreamer],[0.2.0])
+
+#
+# frei0r
+#
+
+AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
 
 #
 # Aacplus
@@ -498,22 +499,43 @@ AC_SUBST(W_AACPLUS_DYN)
 AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
 
 #
+# Fdkaac
+#
+
+AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
+if test -z "${W_FDKAAC}"; then
+  if test -n "${W_DYNLINK}"; then
+    if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
+       W_FDKAAC_DYN=yes
+       w_FDKAAC="detected at runtime"
+    fi
+  fi
+fi
+AC_SUBST(W_FDKAAC_DYN)
+
+#
 # Theora
 #
 
-AC_CHECK_OCAML_BINDING([theora],[0.3.0],[ogg])
+AC_CHECK_OCAML_BINDING([theora],[0.3.1],[ogg])
 
 #
 # Schroedinger
 #
 
-AC_CHECK_OCAML_BINDING([schroedinger],[0.1.0],[ogg])
+AC_CHECK_OCAML_BINDING([schroedinger],[0.1.1],[ogg])
 
 #
 # Gavl
 #
 
 AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
+
+#
+# FFMPEG
+#
+
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.1.0])
 
 #
 # Jack
@@ -543,7 +565,7 @@ AC_CHECK_OCAML_BINDING([samplerate],[0.1.1])
 # Taglib
 #
 
-AC_CHECK_OCAML_BINDING([taglib],[0.2.0])
+AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
 
 #
 # OSS
@@ -732,6 +754,28 @@ let recode_tag =
 EOCONF
 fi
 
+# Inotify
+
+AC_CHECK_OCAML_BINDING([inotify],[1.0])
+
+cat >> src/configure.ml <<EOCONF
+let file_watcher = ref File_watcher_mtime.watch
+EOCONF
+
+# Yojson
+
+AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
+
+if test -z "${W_YOJSON}"; then
+cat >> src/configure.ml <<__BLAH__
+module JSON = JSON
+__BLAH__
+else
+cat >> src/configure.ml <<__BLAH__
+module JSON = struct include Yojson.Basic let from_string s = from_string s end
+__BLAH__
+fi
+
 # OCaml bindings
 
 AC_CHECK_OCAML_BINDING([faad],[0.3.0])
@@ -743,8 +787,11 @@ AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
 AC_CHECK_OCAML_BINDING([lo],[0.1.0])
-AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
 AC_CHECK_OCAML_BINDING([gd])
+
+# Winsvc (to run as a service)
+
+AC_CHECK_OCAML_BINDING([winsvc],[0.0.1])
 
 #
 # Tuning (See INSTALL to understand these features)
@@ -762,21 +809,6 @@ cat >> src/configure.ml <<EOCONF
 let requests_max_id = $requests_max_id
 let requests_table_size = $requests_table_size
 EOCONF
-
-#
-# Speech
-#
-
-if test $OS_TYPE != "Win32"; then
-  AC_PATH_PROG(TEXT2WAVE,text2wave,false)
-  AC_PATH_PROG(SOX,sox,false)
-fi
-
-if test "$TEXT2WAVE" = false -o "$SOX" = false ; then
-   w_TTS="requires text2wave (festival) and sox at runtime"
-else
-   w_TTS="yes"
-fi
 
 #
 # Font for video.add_text*()
@@ -871,7 +903,6 @@ AC_CONFIG_FILES([scripts/liquidsoap.initd],[chmod a-w scripts/liquidsoap.initd])
 AC_CONFIG_FILES([scripts/liquidsoap.gentoo.initd],
                 [chmod a-w scripts/liquidsoap.gentoo.initd])
 AC_CONFIG_FILES([src/META],[chmod a-w src/META])
-AC_CONFIG_FILES([src/tools/liq_sockets.ml],[chmod a-w src/tools/liq_sockets.ml])
 AC_OUTPUT
 $MAKE finish-configure
 
@@ -926,16 +957,19 @@ cat <<EOMSG
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - text-to-speech    : $w_TTS
+   - text-to-speech    : requires text2wave (festival) and sox at runtime
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LASTFM
 
  * Supported output formats
    - Vorbis            : $w_VORBIS
    - MP3               : $w_LAME
+   - MP3 (fixed-point) : $w_SHINE
    - AAC               : $w_VOAACENC
    - AAC+              : $w_AACPLUS
+   - FDK-AAC           : $w_FDKAAC
    - SPEEX             : $w_SPEEX
+   - Opus              : $w_OPUS
    - Theora            : $w_THEORA
    - Dirac             : $w_SCHROEDINGER
 
@@ -961,6 +995,8 @@ cat <<EOMSG
 
  * Video manipulation
    - Gavl              : $w_GAVL
+   - FFmpeg            : $w_FFMPEG
+   - frei0r            : $w_FREI0R
    - camlimages        : $w_CAMLIMAGES
 
  * MIDI manipulation
@@ -972,10 +1008,13 @@ cat <<EOMSG
    - GD                : $w_GD
 
  * Additional libraries
+   - wget URI resolver : requires wget at runtime
    - dynlink           : $w_DYNLINK
-   - magic             : $w_MAGIC
+   - inotify           : $w_INOTIFY
    - lo                : $w_LO
+   - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
+   - windows service   : $w_WINSVC
 
  * Graphical interfaces
    - Python GUI        : $w_PYTHON

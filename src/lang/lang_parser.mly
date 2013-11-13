@@ -1,7 +1,7 @@
 /*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,6 +48,8 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ?pos (Fun (fv,args,body))
 
+  let mk_enc e = mk (Encoder e)
+
   (** Time intervals *)
 
   let time_units = [| 7*24*60*60 ; 24*60*60 ; 60*60 ; 60 ; 1 |]
@@ -58,7 +60,7 @@
     let to_int = function None -> 0 | Some i -> i in
     let rec aux = function
       | None::tl -> aux tl
-      | [] -> failwith "Invalid time"
+      | [] -> raise (Parse_error (curpos (), "Invalid time."))
       | l ->
           let a = Array.of_list l in
           let n = Array.length a in
@@ -97,7 +99,9 @@
     let p2 = precision d2 in
     let t1 = date d1 in
     let t2 = date d2 in
-      if p1<>p2 then failwith "Invalid time interval: precisions differ" ;
+      if p1<>p2 then
+        raise (Parse_error (curpos (),
+                            "Invalid time interval: precisions differ."));
       (t1,t2,p1)
 
   let during d =
@@ -128,13 +132,13 @@
           let audio,video,midi =
             match args with
               | ["",a;"",v;"",m] -> a,v,m
-              | l when List.length l > 3 -> 
-                  failwith "invalid type parameters"
+              | l when List.length l > 3 ->
+                  raise (Parse_error (curpos (), "Invalid type parameters."))
               | l ->
                   List.iter
                     (fun (lbl,_) ->
                       if not (List.mem lbl ["audio";"video";"midi"]) then
-                        failwith "invalid type parameters")
+                        raise (Parse_error (curpos (), "Invalid type parameters.")))
                     l ;
                   let assoc x =
                     try List.assoc x l with
@@ -144,7 +148,7 @@
                     assoc "audio", assoc "video", assoc "midi"
           in
             Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
-      | _ -> failwith "unknown type constructor"
+      | _ -> raise (Parse_error (curpos (), "Unknown type constructor."))
 
   open Lang_encoders
 
@@ -159,8 +163,8 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX
-%token WAV VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR EXTERNAL
+%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
+%token WAV FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -176,7 +180,8 @@
 %token MINUS
 %token NOT
 %token REF GET SET
-%token PP_IFDEF PP_ENDIF PP_ENDL PP_DEF
+%token PP_IFDEF PP_IFNDEF PP_IFENCODER PP_IFNENCODER PP_ENDIF
+%token PP_ENDL PP_DEF PP_DEFINE
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 
@@ -281,14 +286,17 @@ expr:
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
   | expr SET expr                    { mk (Set ($1,$3)) }
-  | MP3 app_opt                      { mk_mp3_cbr $2 }
-  | MP3_VBR app_opt                  { mk_mp3_vbr $2 }
-  | MP3_ABR app_opt                  { mk_mp3_abr $2 }
-  | AACPLUS app_opt                  { mk_aacplus $2 }
-  | VOAACENC app_opt                 { mk_voaacenc $2 }
-  | FLAC app_opt                     { mk_flac $2 }
-  | EXTERNAL app_opt                 { mk_external $2 }
-  | WAV app_opt                      { mk_wav $2 }
+  | MP3 app_opt                      { mk_enc (mp3_cbr $2) }
+  | MP3_VBR app_opt                  { mk_enc (mp3_vbr $2) }
+  | MP3_ABR app_opt                  { mk_enc (mp3_abr $2) }
+  | SHINE app_opt                    { mk_enc (shine $2) }
+  | AACPLUS app_opt                  { mk_enc (aacplus $2) }
+  | VOAACENC app_opt                 { mk_enc (voaacenc $2) }
+  | FDKAAC app_opt                   { mk_enc (fdkaac $2) }
+  | FLAC app_opt                     { mk_enc (flac $2) }
+  | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
+  | GSTREAMER app_opt                { mk_enc (gstreamer ~pos:(curpos ()) $2) }
+  | WAV app_opt                      { mk_enc (wav $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
@@ -374,14 +382,16 @@ cexpr:
   | REF expr                         { mk (Ref $2) }
   | GET expr                         { mk (Get $2) }
   | cexpr SET expr                   { mk (Set ($1,$3)) }
-  | MP3 app_opt                      { mk_mp3_cbr $2 }
-  | MP3_VBR app_opt                  { mk_mp3_vbr $2 }
-  | MP3_ABR app_opt                  { mk_mp3_abr $2 }
-  | FLAC app_opt                     { mk_flac $2 }
-  | AACPLUS app_opt                  { mk_aacplus $2 }
-  | VOAACENC app_opt                 { mk_voaacenc $2 }
-  | EXTERNAL app_opt                 { mk_external $2 }
-  | WAV app_opt                      { mk_wav $2 }
+  | MP3 app_opt                      { mk_enc (mp3_cbr $2) }
+  | MP3_VBR app_opt                  { mk_enc (mp3_vbr $2) }
+  | MP3_ABR app_opt                  { mk_enc (mp3_abr $2) }
+  | SHINE app_opt                    { mk_enc (shine $2) }
+  | FLAC app_opt                     { mk_enc (flac $2) }
+  | AACPLUS app_opt                  { mk_enc (aacplus $2) }
+  | VOAACENC app_opt                 { mk_enc (voaacenc $2) }
+  | FDKAAC app_opt                   { mk_enc (fdkaac $2) }
+  | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
+  | WAV app_opt                      { mk_enc (wav $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
@@ -489,12 +499,13 @@ ogg_items:
   | ogg_item { [$1] }
   | ogg_item COMMA ogg_items { $1::$3 }
 top_level_ogg_item:
-  | VORBIS app_opt     { mk_vorbis $2 }
-  | VORBIS_CBR app_opt { mk_vorbis_cbr $2 }
-  | VORBIS_ABR app_opt { mk_vorbis_abr $2 }
-  | THEORA app_opt     { mk_theora $2 }
-  | DIRAC app_opt      { mk_dirac $2 }
-  | SPEEX app_opt      { mk_speex $2 }
+  | VORBIS app_opt     { vorbis $2 }
+  | VORBIS_CBR app_opt { vorbis_cbr $2 }
+  | VORBIS_ABR app_opt { vorbis_abr $2 }
+  | THEORA app_opt     { theora $2 }
+  | DIRAC app_opt      { dirac $2 }
+  | SPEEX app_opt      { speex $2 }
+  | OPUS app_opt       { opus $2 }
 ogg_item:
-  | FLAC app_opt   { mk_ogg_flac $2 }
+  | FLAC app_opt   { ogg_flac $2 }
   | top_level_ogg_item { $1 }

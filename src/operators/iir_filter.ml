@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,8 +23,6 @@
 open Source
 open Complex
 
-let pi = 3.14159265358979323846
-
 type filter_type = Band_stop | Band_pass | High_pass | Low_pass | All_pass
 type filter_family = Butterworth | Resonator
 
@@ -38,8 +36,8 @@ object (self)
   (* Params *)
   val raw_alpha1 = freq1 /. rate
   val raw_alpha2 = freq2 /. rate
-  val warped_alpha1 = tan (pi *. freq1 /. rate) /. pi
-  val warped_alpha2 = tan (pi *. freq2 /. rate) /. pi
+  val warped_alpha1 = tan (Utils.pi *. freq1 /. rate) /. Utils.pi
+  val warped_alpha2 = tan (Utils.pi *. freq2 /. rate) /. Utils.pi
   val mutable gain = 0.
 
   (* Used for computation *)
@@ -126,9 +124,9 @@ object (self)
               for i = 0 to (2 * order) - 1 do
                 let theta =
                   match (order mod 2) with
-                    | 1 -> (float_of_int i *. pi) /. (float_of_int order)
+                    | 1 -> (float_of_int i *. Utils.pi) /. (float_of_int order)
                     | 0 ->
-                        ((float_of_int i +. 0.5) *. pi) /. (float_of_int order)
+                        ((float_of_int i +. 0.5) *. Utils.pi) /. (float_of_int order)
                     | _ -> assert false
                 in
                   self#log#f 4
@@ -137,8 +135,8 @@ object (self)
                   choosepole ({re = cos(theta) ; im = sin(theta)})
               done;
             (* Normalize *)
-            let w1 = cor (2. *. pi *. warped_alpha1) in
-            let w2 = cor (2. *. pi *. warped_alpha2) in
+            let w1 = cor (2. *. Utils.pi *. warped_alpha1) in
+            let w2 = cor (2. *. Utils.pi *. warped_alpha2) in
               begin match filter_type with
                 | Band_stop ->
                     (* Band-stop filter *)
@@ -275,7 +273,7 @@ object (self)
             zplane_numzeros <- 2 ;
             zplane_zeros <- [|cor 1. ; cor (-1.)|] ;
             (* where we want the peak to be *)
-            let theta = 2. *. pi *. raw_alpha1 in
+            let theta = 2. *. Utils.pi *. raw_alpha1 in
               if (qfactor == infinity) then begin
                 self#log#f 4 "Infinite Q factor!" ;
                 (* oscillator *)
@@ -287,7 +285,7 @@ object (self)
                 let r = exp (cor (-. theta /. (2. *. qfactor)))
                   and thm = ref theta
                   and th1 = ref 0.
-                  and th2 = ref pi
+                  and th2 = ref Utils.pi
                   and cvg = ref false
                 in
                   for i = 0 to 50 do
@@ -359,7 +357,7 @@ object (self)
       dc_gain <- evaluate topcoeffs zplane_numzeros botcoeffs
                           zplane_numpoles {re = 1. ; im = 0.} ;
       let theta =
-        2. *. pi *. 0.5 *. (raw_alpha1 +. raw_alpha2) (* jwt for centre freq. *)
+        2. *. Utils.pi *. 0.5 *. (raw_alpha1 +. raw_alpha2) (* jwt for centre freq. *)
       in
       fc_gain <- evaluate topcoeffs zplane_numzeros botcoeffs zplane_numpoles
                    (Complex.exp {re = 0. ; im = theta}) ;

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ let () =
      let s = Lang.to_string (List.assoc "" p) in
      try
        let json =
-         Yojson.Basic.from_string s
+         Configure.JSON.from_string s
        in
        of_json default.Lang.t json
      with

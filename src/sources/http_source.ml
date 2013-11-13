@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,15 +22,14 @@
 
 exception Internal
 exception Read_error
-exception Disconnected
 
 (** Error translator *)
 let error_translator e =
    match e with
-     | Internal -> raise (Utils.Translation "Internal http error.")
+     | Internal -> Some "Internal http error."
      | Read_error ->
-         raise (Utils.Translation "Error while reading http stream.")
-     | _ -> ()
+         Some "Error while reading http stream."
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
@@ -169,6 +168,7 @@ let parse_url url =
     else
       host,80,mount,auth
 
+module G = Generator
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
@@ -194,6 +194,11 @@ object (self)
 
   method stype = Source.Fallible
 
+  (** POSIX sucks. *)
+  val mutable socket       = None
+  (* Mutex to change the socket's state (open, close) *)
+  val mutable socket_m     = Mutex.create()
+
   val mutable url = url
 
   (** [kill_polling] is for requesting that the feeding thread stops;
@@ -208,7 +213,6 @@ object (self)
   (** Log file for the timestamps of read events. *)
   val mutable logf = None
 
-  val mutable connected = None
   val mutable relaying = autostart
   val mutable playlist_mode = playlist_mode
 
@@ -234,10 +238,10 @@ object (self)
               \"polling\" (attempting to connect to the HTTP stream) \
               or \"connected <url>\" (connected to <url>, buffering or \
               playing back the stream)."
-      (fun _ ->
-         match connected with
-           | Some s -> "connected " ^ s
-           | None -> if relaying then "polling" else "stopped") ;
+       (Tutils.mutexify socket_m (fun _ ->
+         match socket with
+           | Some (_,_,url) -> "connected " ^ url
+           | None -> if relaying then "polling" else "stopped")) ;
     self#register_command "buffer_length" ~usage:"buffer_length"
                           ~descr:"Get the buffer's length, in seconds."
       (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
@@ -252,12 +256,26 @@ object (self)
     if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
   method feeding should_stop ?(newstream=true)
-                 create_decoder socket chunked metaint =
-    let read = read_stream socket chunked metaint self#insert_metadata in
-    let read len =
+                 create_decoder =
+    let read =
       let log = self#log#f 4 "%s" in
-      Utils.wait_for ~log `Read socket timeout;
-      read len
+      (* Socket can't be closed while waiting on it. *)
+      (fun len ->
+        let socket = Tutils.mutexify socket_m (fun () ->
+          socket) ()
+        in
+        match socket with
+          | None -> "",0
+          | Some (socket,read,_) ->
+              begin
+               try
+                Tutils.wait_for ~log `Read socket timeout;
+                read len
+               with e -> self#log#f 2 "Error while reading from socket: \
+                            %s" (Utils.error_message e);
+                         self#disconnect_no_lock;
+                         "",0
+               end)
     in
     let read =
       match logf with
@@ -293,6 +311,13 @@ object (self)
             begin match e with
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s" s
+              | G.Incorrect_stream_type ->
+                self#log#f 2 "Feeding stopped: the decoded stream was not of \
+                              the right type. The typical situation is when \
+                              you expect a stereo stream whereas the http \
+                              stream is mono (in this case the situation can \
+                              easily be solved by using the audio_to_stereo \
+                              operator to convert the stream to a stereo one)."
               | e ->
                   self#log#f 2 "Feeding stopped: %s" (Utils.error_message e)
             end ;
@@ -300,8 +325,18 @@ object (self)
               | Some f -> close_out f ; logf <- None
               | None -> ()
             end ;
-            connected <- None ;
-            Http.disconnect socket
+            self#disconnect
+
+  method private disconnect_no_lock =
+    Utils.maydo (fun (s,_,_) ->
+     try
+      Http.disconnect s
+     with _ -> ()) socket;
+    socket <- None
+
+  method disconnect =
+    Tutils.mutexify socket_m (fun () ->
+      self#disconnect_no_lock) ()
 
   (** This method gets overriden by superclasses (see Lastfm_input)
     * but #private_connect should not be changed.
@@ -335,144 +370,167 @@ object (self)
         "%sUser-Agent: %s\r\n%sIcy-MetaData:1\r\n\r\n"
         req user_agent auth
     in
-      self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
-      try
-        let socket =
-          Http.connect ?bind_address host port
-        in
+    try
+      let (_, status, status_msg), fields =
+        Tutils.mutexify socket_m (fun () ->
+          if socket <> None then
+            failwith "Cannot connect while already connected..";
+          self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
+          let s = Http.connect ?bind_address host port in
+          let log = self#log#f 4 "%s" in
+          let ((_, status, status_msg), fields as ret) =
+            Http.request ~log ~timeout s request
+          in
+          let metaint =
+            try
+              Some (int_of_string (List.assoc "icy-metaint" fields))
+            with _ -> None
+          in
+          let chunked =
+            try
+              List.assoc "transfer-encoding" fields = "chunked"
+            with _ -> false
+          in
+          if chunked then
+            self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+          (* read_stream has a state, so we must create it here.. *)
+          let read =
+            read_stream s chunked metaint self#insert_metadata
+          in
+          socket <- Some (s,read,url);
+          ret) ()
+      in
+      let content_type =
+        match force_mime with
+          | Some s -> s
+          | None ->
+             let content_type =
+               try List.assoc "content-type" fields with Not_found -> "unknown"
+             in
+             (* Remove modifiers from content type. *)
+             try
+               let sub = Pcre.exec ~pat:"^([^;]+);.*$" content_type in
+               Pcre.get_substring sub 1
+             with
+               | Not_found -> content_type
+      in
+      self#log#f 4 "Content-type %S." content_type ;
+      if status = 301 || status = 302 || 
+         status = 303 || status = 307
+      then begin
+        let location =
           try
-            let log = self#log#f 4 "%s" in
-            let (_, status, status_msg), fields =
-               Http.request ~log ~timeout socket request
-            in
-            let content_type =
-              match force_mime with
-                | Some s -> s
-                | None ->
-              let content_type =
-                try List.assoc "content-type" fields with Not_found -> "unknown"
-              in
-              (* Remove modifiers from content type. *)
-                try
-                  let sub = Pcre.exec ~pat:"^([^;]+);.*$" content_type in
-                    Pcre.get_substring sub 1
-                with
-                | Not_found -> content_type
-            in
-            let metaint =
-              try
-                Some (int_of_string (List.assoc "icy-metaint" fields))
-              with _ -> None
-            in
-            let chunked =
-              try
-                List.assoc "transfer-encoding" fields = "chunked"
-              with _ -> false
-            in
-              if
-                status = 301 || status = 302 || status = 303 || status = 307
-              then begin
-                let location =
-                  try
-                    List.assoc "location" fields
-                  with
-                    | Not_found -> raise Internal
-                in
-                  self#log#f 4 "Redirected to %s" location;
-                  raise (Redirection location)
-              end ;
-              if status <> 200 then begin
-                self#log#f 4 "Could not get file: %s" status_msg;
-                raise Internal
-              end ;
-              let play_track (m,uri) =
-                if not (poll_should_stop ()) then
-                let metas = Hashtbl.create 2 in
-                  List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
-                  self#insert_metadata metas;
-                  self#private_connect poll_should_stop uri
-              in
-              let randomize playlist =
-                let aplay = Array.of_list playlist in
-                  Utils.randomize aplay;
-                  Array.to_list aplay
-              in
-              let playlist_process playlist =
-                try
-                  match playlist_mode with
-                    | Random ->  play_track (List.hd (randomize playlist))
-                    | First -> play_track (List.hd playlist)
-                    | Randomize -> List.iter play_track (randomize playlist)
-                    | Normal -> List.iter play_track playlist
-                with
-                  | Failure hd -> raise Not_found
-              in
-              let test_playlist parser =
-                let content = Http.read ~timeout socket None in
-                let playlist = parser content in
-                  match playlist with
-                    | [] -> raise Not_found
-                    | _ -> playlist_process playlist
-              in
-                try
-                  self#log#f 4
-                    "Trying playlist parser for mime %s" content_type ;
-                  match Playlist_parser.parsers#get content_type with
-                    | None -> raise Not_found
-                    | Some plugin ->
-                        test_playlist plugin.Playlist_parser.parser
-                with
-                  | Not_found ->
-                      (* Trying playlist auto parsing in case
-                       * of content type text/plain *)
-                      if content_type = "text/plain" then begin
-                        try
-                          test_playlist
-                            (fun x -> snd (Playlist_parser.search_valid x))
-                        with
-                          | Not_found -> ()
-                      end else begin
-                        self#log#f 4 "Content-type %S." content_type ;
-                        if chunked then
-                          self#log#f 4 "Chunked HTTP/1.1 transfer" ;
-                        Generator.set_mode generator `Undefined ;
-                        let dec =
-                          match
-                            Decoder.get_stream_decoder content_type kind
-                          with
-                            | Some d -> d
-                            | None -> failwith "Unknown format!"
-                        in
-                          begin match logfile with
-                            | Some f ->
-                                begin try
-                                  logf <-
-                                  Some (open_out_bin (Utils.home_unrelate f))
-                                with e ->
-                                  self#log#f 2
-                                    "Could not open log file: %s"
-                                    (Utils.error_message e)
-                                end
-                            | None -> ()
-                          end ;
-                          self#log#f 3 "Decoding..." ;
-                          connected <- Some url ;
-                          self#feeding
-                            poll_should_stop dec socket chunked metaint
-                      end
+            List.assoc "location" fields
           with
-            | e ->
-                Http.disconnect socket;
-                raise e
-      with
-        | Redirection location ->
-            self#private_connect ~sanitize:false poll_should_stop location
-        | Http.Error e ->
-            self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
-            if debug then raise (Http.Error e)
-        | e ->
-            self#log#f 4 "Connection failed: %s" (Utils.error_message e) ;
-            if debug then raise e
+            | Not_found -> raise Internal
+        in
+        let location =
+          if location <> "" && location.[0] = '/' then
+            Printf.sprintf "http://%s:%d%s" host port location
+          else
+            location
+        in
+        self#log#f 4 "Redirected to %s" location;
+        raise (Redirection location)
+      end ;
+      if status <> 200 then begin
+        self#log#f 4 "Could not get file: %s" status_msg;
+        raise Internal
+      end ;
+      let play_track (m,uri) =
+        if not (poll_should_stop ()) then
+          let metas = Hashtbl.create 2 in
+          List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
+          self#insert_metadata metas;
+          self#disconnect;
+          self#private_connect poll_should_stop uri
+      in
+      let randomize playlist =
+        let aplay = Array.of_list playlist in
+         Utils.randomize aplay;
+         Array.to_list aplay
+      in
+      let playlist_process playlist =
+        try
+          match playlist_mode with
+            | Random ->  play_track (List.hd (randomize playlist))
+            | First -> play_track (List.hd playlist)
+            | Randomize -> List.iter play_track (randomize playlist)
+            | Normal -> List.iter play_track playlist
+        with
+          | Failure hd -> raise Not_found
+      in
+      let test_playlist parser =
+        let playlist =
+          Tutils.mutexify socket_m (fun () ->
+            match socket with
+            | None -> failwith "not connected!"
+            | Some (s,_,_) ->
+              let content = Http.read ~timeout s None in
+              let playlist = parser content in
+              match playlist with
+              | [] -> raise Not_found
+              | _ -> playlist) ()
+        in
+        playlist_process playlist
+      in
+        try
+          self#log#f 4
+            "Trying playlist parser for mime %s" content_type ;
+          match Playlist_parser.parsers#get content_type with
+            | None -> raise Not_found
+            | Some plugin ->
+              let pwd = Http.dirname url in
+              test_playlist (plugin.Playlist_parser.parser ~pwd)
+        with
+          | Not_found ->
+              (* Trying playlist auto parsing in case
+               * of content type text/plain *)
+              if content_type = "text/plain" then begin
+                try
+                  test_playlist
+                    (fun x -> snd (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
+                with
+                  | Not_found -> ()
+              end else begin
+                Generator.set_mode generator `Undefined ;
+                let dec =
+                  match
+                    Decoder.get_stream_decoder content_type kind
+                  with
+                    | Some d -> d
+                    | None -> failwith "Unknown format!"
+                in
+                begin match logfile with
+                  | Some f ->
+                      begin try
+                        logf <-
+                          Some (open_out_bin (Utils.home_unrelate f))
+                      with e ->
+                        self#log#f 2
+                          "Could not open log file: %s"
+                          (Utils.error_message e)
+                      end
+                  | None -> ()
+                end ;
+                self#log#f 3 "Decoding..." ;
+                Generator.set_rewrite_metadata generator
+                  (fun m -> Hashtbl.add m "source_url" url ; m) ;
+                self#feeding
+                  poll_should_stop dec
+            end
+    with
+      | Redirection location ->
+          self#disconnect;
+          self#private_connect ~sanitize:false poll_should_stop location
+      | Http.Error e ->
+          self#disconnect;
+          self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
+          if debug then raise (Http.Error e)
+      | e ->
+          self#disconnect;
+          self#log#f 4 "Connection failed: %s" (Utils.error_message e) ;
+          if debug then raise e
 
   (* Take care of (re)starting the decoding *)
   method poll (should_stop,has_stopped) =

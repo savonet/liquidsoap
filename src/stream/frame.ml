@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ let delayed_conf x =
 let (!!) = Lazy.force
 
 (** The channel numbers are only defaults, used when channel numbers
-  * cannot be infered / are not forced from the context.
+  * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
 let audio_channels = delayed_conf conf_audio_channels
@@ -442,13 +442,12 @@ let get_past_metadata b =
  * When accessing for writing, one chooses it, which possibly triggers a
  * layout change. *)
 
-(** Get the current content of a frame at a given position.
-  * Independently of breaks, this content may only be valid until some
-  * end position (that is returned together with the content) in case
-  * the frame content type is not fixed.
-  * Calling this function requires the caller to handle all possible
-  * content types allowed by the frame kind, and never affects
-  * the contents layout. *)
+(** Get the current content of a frame at a given position.  Independently of
+    breaks, this content may only be valid until some end position (that is
+    returned together with the content) in case the frame content type is not
+    fixed. Calling this function requires that the caller handles all possible
+    content types allowed by the frame kind, and never affects the contents
+    layout. *)
 let content frame pos =
   (* The next line allows to homonegenously treat cases where no portion
    * of the buffer actually has to be processed: if one wants to read
@@ -522,7 +521,15 @@ let hide_contents =
       frame.contents <- [!!size, {audio=[||];video=[||];midi=[||]}] ;
       (fun () -> frame.contents <- save)
 
-type content_layer = { content : content ; start : int ; length : int }
+(** A content layer representation (see [t.contents]). *)
+type content_layer =
+  {
+    content : content; (** Actual content. *)
+    start : int; (** Begining position. *)
+    length : int; (** End position. *)
+  }
+
+(** Retrieve all content layers in a frame. *)
 let get_content_layers frame =
   let rec aux pos = function
     | [] -> []
@@ -560,10 +567,11 @@ let blit src src_pos dst dst_pos len =
   let dst = content_of_type dst dst_pos (type_of_content src) in
     blit_content src src_pos dst dst_pos len
 
+(** Raised by [get_chunk] when no chunk is available. *)
 exception No_chunk
 
-(** Get the (end of) next chunk from [from].
-  * A chunk is a region of a frame between two breaks.
+(** [get_chunk dst src] gets the (end of) next chunk from [src]
+  * (a chunk is a region of a frame between two breaks).
   * Metadata relevant to the copied chunk is copied as well,
   * and content layout is changed if needed. *)
 let get_chunk ab from =

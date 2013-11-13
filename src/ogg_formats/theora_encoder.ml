@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -77,7 +77,11 @@ let create_encoder ~theora ~metadata () =
       speed              = speed
     }
   in
-  let enc = Theora.Encoder.create info params metadata in
+  let enc =
+    if width mod 16 <> 0 || height mod 16 <> 0 then
+      failwith "Invalide theora width/height (should be a multiple of 16).";
+    Theora.Encoder.create info params metadata
+  in
   let started = ref false in
   let header_encoder os = 
     Theora.Encoder.encode_header enc os;
@@ -169,7 +173,7 @@ let create_theora =
          let enc =
            create_encoder ~theora ~metadata ()
          in
-         Ogg_muxer.register_track ogg_enc enc
+         Ogg_muxer.register_track ?fill:theora.Encoder.Theora.fill ogg_enc enc
        in
        { 
         Ogg_encoder.

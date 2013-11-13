@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,6 +42,8 @@ val is_partial : t -> bool
 
 (** Number of video frames. *)
 val size : 'a -> int
+
+val position : t -> int
 
 (** Position (in video samples) of the next video sample to fill-in. *)
 val next_sample_position : t -> int

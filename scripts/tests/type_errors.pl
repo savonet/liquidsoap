@@ -27,6 +27,11 @@ sub correct {
   print "\n";
 }
 
+section("LISTS");
+incorrect('ignore([4,"x"])');
+correct('ignore([input.oss(), sine()])');
+correct('ignore([sine(), input.oss()])');
+
 section("BASIC");
 incorrect('[1]==["1"]');
 incorrect('1==["1"]');
@@ -45,7 +50,7 @@ correct('ignore(((blank():source(1,1,1)):source(*,*,*)))');
 incorrect('((blank():source(*,*,*)):source(1,1,1))');
 # Next one requires the inference of a subtype (fixed vs. variable arity)
 correct('ignore(audio_to_stereo(add([])))');
-correct('ignore((blank():source(audio=1,video=1,midi=1))');
+correct('ignore((blank():source(audio=1,video=1,midi=1)))');
 correct('ignore((blank():source(*+1,0,0)))');
 correct('ignore((blank():source(1+*,0,0)))');
 

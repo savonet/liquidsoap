@@ -3,15 +3,18 @@
 use strict ;
 
 my $file = $ARGV[0] || die ;
+my $mime;
 
 sub test_mime {
-  my $file = shift ;
-  if (`which file`) {
-    return `file -b --mime-type "$file"`;
+  if (!$mime) {
+    if (`which file`) {
+      $mime = `file -b --mime-type "$file"`;
+    }
   }
+  return $mime;
 }
 
-if (($file =~ /\.mp3$/i) || (test_mime($file) =~ /audio\/mpeg/))  {
+if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
 
   if (`which mp3gain`) {
 
@@ -25,7 +28,7 @@ if (($file =~ /\.mp3$/i) || (test_mime($file) =~ /audio\/mpeg/))  {
 
   }
 
-} elsif (($file =~ /\.ogg$/i) || (test_mime($file) =~ /application\/ogg/)) {
+} elsif (($file =~ /\.ogg$/i) || (test_mime() =~ /application\/ogg/)) {
 
   if ((`which vorbisgain`) && (`which ogginfo`)) {
 
@@ -40,7 +43,7 @@ if (($file =~ /\.mp3$/i) || (test_mime($file) =~ /audio\/mpeg/))  {
 
   }
 
-} elsif (($file =~ /\.flac$/i) || (test_mime($file) =~ /audio\/x-flac/)) {
+} elsif (($file =~ /\.flac$/i) || (test_mime() =~ /audio\/x-flac/)) {
 
   if (`which metaflac`) {
 

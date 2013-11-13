@@ -2,13 +2,12 @@ title: Liquidsoap documentation
 
 h3. Documentation index
 
-**How to use**: Start with the "quickstart":quick_start.html and 
-make sure you learn "how to find help":help.html. Then it's as you like:
-go for another "general tutorial":#general, or a 
-"specific example":#specific,
-pick a "basic notion":#core, or some examples from the 
-"cookbook":cookbook.html. If you've understood all you need,
-just browse the "reference":reference.html and compose your dream stream.
+**How to use**: Start with the "quickstart":quick_start.html and make sure you
+learn "how to find help":help.html. Then it's as you like: go for another
+"general tutorial":#general, or a "specific example":#specific, pick a "basic
+notion":#core, or some examples from the "cookbook":cookbook.html. If you've
+understood all you need, just browse the "reference":reference.html and compose
+your dream stream.
 
 If you downloaded a source tarball of liquidsoap, you may first read the
 "build instructions":build.html.
@@ -19,6 +18,7 @@ liquidsoap, you may want to read the "custom path":custom-path.html page.
 h4@general. General tutorials
 
 * "Quickstart":quick_start.html: where anyone should start.
+* "ON2 tutorial":on2.html: a in-depth tutorial of Liquidsoap from scratch.
 * "Complete case analysis":complete_case.html: an example that is not a toy.
 * "Advanced":advanced.html: overview of more advanced features for serious usage.
 * "How to find help":help.html about operators, settings, server commands, etc.
@@ -42,7 +42,7 @@ h4@core. Core
 * "Script loading":script_loading.html: load several scripts, learn about the script library.
 * "Execution phases":phases.html
 
-h4@specific. Specific tutorials 
+h4@specific. Specific tutorials
 
 * "Blank detection":blank.html
 * "Customize metadata":metadata.html
@@ -52,17 +52,17 @@ h4@specific. Specific tutorials
 * "External encoders":external_encoders.html: use an external audio encoding program.
 * "HTTP input":http_input.html: relay external streams.
 * "Harbor input":harbor.html: receive streams from icecast and shoutcast source clients.
-* "Interaction with the Harbor":harbor_http.html: interact with a running liquidsoap using the Harbor server.
-* "Interaction with the server":server.html interact with a running liquidsoap instance using the telnet server.
+* "Interaction with the Harbor":harbor_http.html: interact with a running Liquidsoap using the Harbor server.
+* "Interaction with the server":server.html interact with a running Liquidsoap instance using the telnet server.
 * "ICY metadata update":icy_metadata.html: manipulate and configure metadata update in Icecast.
 * "Normalization and replay gain":replay_gain.html: normalize audio data.
 * "Requests-based sources":request_sources.html: create advanced sources using requests.
 * "Shoutcast output":shoutcast.html: output to shoutcast.
 * "Dynamic source creation":dynamic_sources.html: dynamically create sources using server requests.
 * "Smart crossfading":smartcrossfade.html: define custom crossfade transitions.
-* "Secure command server":secure_server_access.html: secure authenticated access to the command server.
 * "Using in production":in_production.html: integrate liquidsoap scripts in a production environment.
 * "Liquid Flows":flows.html: add your radio to the "webpage":http://flows.liquidsoap.fm/ of proud users.
+* "Videos streams":video.html: why restrict yourself to sound only?
 
 h4@users. User scripts
 
@@ -79,3 +79,10 @@ h4@users. User scripts
 h4. Code snippets
 
 * "Code example index":scripts/index.html
+
+h4. Behind the curtains
+
+* "Some presentations and publications":../publications.html explaining the theory underlying Liquidsoap
+* "OCaml libraries":../modules.html used in Liquidsoap, that can be reused in other projects
+* "Documentation of some internals":../modules/liquidsoap/index.html of Liquidsoap
+* "Documentation for previous versions":../previously.html

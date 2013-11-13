@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,49 +21,46 @@
  *****************************************************************************)
 
 open Dtools
+open Stdlib
 
 module S = LO.Server
 
-let m = Mutex.create ()
-
 let log = Log.make ["osc"]
 
-let conf_oss =
+let conf_osc =
   Conf.void ~p:(Configure.conf#plug "osc")
     "Interactions through the OSC protocol."
 
 let conf_port =
-  Conf.int ~p:(conf_oss#plug "port") ~d:7777
+  Conf.int ~p:(conf_osc#plug "port") ~d:7777
     "Port for OSC server."
 
-let osc_bool = ref []
-let osc_float = ref []
-let osc_float_pair = ref []
+(* (path,type),handler *)
+let handlers = ref []
 
-let handler path data =
-  Mutex.lock m;
-  (
-    try
-      (
-        match data with
-          | [|`Float f|] | [|`Double f|] ->
-            log#f 6 "Float %f on path %s" f path;
-            let v = List.assoc path !osc_float in
-            v := f
-          | [|`Float x; `Float y|] | [|`Double x; `Double y|] ->
-            log#f 6 "Float pair (%f,%f) on path %s" x y path;
-            let v = List.assoc path !osc_float_pair in
-            v := (x,y)
-          | [|`True as b|] | [|`False as b|] ->
-            let b = (b = `True) in
-            let v = List.assoc path !osc_bool in
-            v := b
-          | _ -> ()
-      )
-    with
-      | _ -> ()
-  );
-  Mutex.unlock m
+let add_handler path t f =
+  handlers := ((path,t),f) :: !handlers
+
+let handler path (data:LO.Message.data array) =
+  let typ = function
+    | `Float _ | `Double _ -> `Float
+    | `True | `False -> `Bool
+    | `String _ | `Symbol _ -> `String
+    | _ -> failwith "Unhandled value."
+  in
+  let value = function
+    | `Float x | `Double x -> Lang.float x
+    | `True | `False as b -> Lang.bool (b = `True)
+    | `String s | `Symbol s -> Lang.string s
+    | _ -> failwith "Unhandled value."
+  in
+  try
+    let t = Array.map typ data in
+    let v = Array.map value data in
+    let h = List.assoc_all (path,t) !handlers in
+    List.iter (fun f -> f v) h;
+  with
+  | _ -> ()
 
 let server = ref None
 
@@ -74,71 +71,72 @@ let start_server () =
     server := Some s;
     ignore (Thread.create (fun () -> while true do S.recv s done) ())
 
-let () =
-  Lang.add_builtin "osc.float" ~category:"Interaction"
-    ["",Lang.string_t,None,None; "",Lang.float_t,None,None]
-    (Lang.fun_t [] Lang.float_t)
-    ~descr:"Read a float from an OSC path."
+let register name osc_t liq_t =
+  let val_array vv =
+    match Array.length vv with
+    | 1 -> vv.(0)
+    | 2 -> Lang.product vv.(0) vv.(1)
+    | _ -> assert false
+  in
+  Lang.add_builtin ("osc."^name) ~category:"Interaction"
+    ["",Lang.string_t,None,Some "OSC path."; "",liq_t,None,Some "Initial value."]
+    (Lang.fun_t [] liq_t)
+    ~descr:"Read from an OSC path."
     (fun p _ ->
       let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let v = Lang.to_float (Lang.assoc "" 2 p) in
+      let v = Lang.assoc "" 2 p in
       let v = ref v in
-      Mutex.lock m;
-      osc_float := (path,v) :: !osc_float;
-      Mutex.unlock m;
+      let handle vv = v := val_array vv in
+      add_handler path osc_t handle;
       start_server ();
-      Lang.val_fun [] ~ret_t:Lang.float_t
-        (fun p _ ->
-          Mutex.lock m;
-          let v = Lang.float !v in
-          Mutex.unlock m;
-          v
-        )
+      Lang.val_fun [] ~ret_t:liq_t (fun p _ -> !v)
+    );
+  Lang.add_builtin ("osc.on_"^name) ~category:"Interaction"
+    ["",Lang.string_t,None,Some "OSC path."; "",Lang.fun_t [false,"",liq_t] Lang.unit_t,None,Some "Callback function."]
+    Lang.unit_t
+    ~descr:"Register a callback on OSC messages."
+    (fun p _ ->
+      let path = Lang.to_string (Lang.assoc "" 1 p) in
+      let f = Lang.assoc "" 2 p in
+      let handle v =
+        let v = val_array v in
+        ignore (Lang.apply ~t:Lang.unit_t f ["",v])
+      in
+      add_handler path osc_t handle;
+      start_server ();
+      Lang.unit
+    );
+  Lang.add_builtin ("osc.send_"^name) ~category:"Interaction"
+    [
+      "host",Lang.string_t,None,Some "OSC client address.";
+      "port",Lang.int_t,None,Some "OSC client port.";
+      "",Lang.string_t,None,Some "OSC path.";
+      "",liq_t,None,Some "Value to send."
+    ]
+    Lang.unit_t
+    ~descr:"Send a value to an OSC client."
+    (fun p _ ->
+      let host = Lang.to_string (List.assoc "host" p) in
+      let port = Lang.to_int (List.assoc "port" p) in
+      let path = Lang.to_string (Lang.assoc "" 1 p) in
+      let v = Lang.assoc "" 2 p in
+      let address = LO.Address.create host port in
+      let osc_val v =
+        match v.Lang.value with
+        | Lang.Bool b -> if b then [`True] else [`False]
+        | Lang.String s -> [`String s]
+        | Lang.Float x -> [`Float x]
+        | _ -> failwith "Unhandled value."
+      in
+      (* There was a bug in early versions of lo bindings and anyway we don't
+         really want errors to show up here... *)
+      (try LO.send address path (osc_val v) with _ -> ());
+      Lang.unit
     )
 
 let () =
-  let t = Lang.product_t Lang.float_t Lang.float_t in
-  Lang.add_builtin "osc.float_pair" ~category:"Interaction"
-    ["",Lang.string_t,None,None; "",t,None,None]
-    (Lang.fun_t [] t)
-    ~descr:"Read a float from an OSC path."
-    (fun p _ ->
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let (v1,v2) = Lang.to_product (Lang.assoc "" 2 p) in
-      let v = Lang.to_float v1, Lang.to_float v2 in
-      let v = ref v in
-      Mutex.lock m;
-      osc_float_pair := (path,v) :: !osc_float_pair;
-      Mutex.unlock m;
-      start_server ();
-      Lang.val_fun [] ~ret_t:t
-        (fun p _ ->
-          Mutex.lock m;
-          let x, y = !v in
-          let v = Lang.product (Lang.float x) (Lang.float y) in
-          Mutex.unlock m;
-          v
-        )
-    )
-
-let () =
-  Lang.add_builtin "osc.bool" ~category:"Interaction"
-    ["",Lang.string_t,None,None; "",Lang.bool_t,None,None]
-    (Lang.fun_t [] Lang.bool_t)
-    ~descr:"Read a boolean from an OSC path."
-    (fun p _ ->
-      let path = Lang.to_string (Lang.assoc "" 1 p) in
-      let v = Lang.to_bool (Lang.assoc "" 2 p) in
-      let v = ref v in
-      Mutex.lock m;
-      osc_bool := (path,v) :: !osc_bool;
-      Mutex.unlock m;
-      start_server ();
-      Lang.val_fun [] ~ret_t:Lang.bool_t
-        (fun p _ ->
-          Mutex.lock m;
-          let v = Lang.bool !v in
-          Mutex.unlock m;
-          v
-        )
-    )
+  register "float" [|`Float|] Lang.float_t;
+  register "float_pair" [|`Float;`Float|] (Lang.product_t Lang.float_t Lang.float_t);
+  register "bool" [|`Bool|] (Lang.bool_t);
+  register "string" [|`String|] (Lang.string_t);
+  register "string_pair" [|`String;`String|] (Lang.product_t Lang.string_t Lang.string_t)

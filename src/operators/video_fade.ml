@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ object (self)
       * because the state has to be updated anyway. Also, it is important
       * that the metadata is ready at the position in ticks rather than
       * video, otherwise we might miss some data. *)
-    let fade,length,count =
+    let fade,fadefun,length,count =
       match state with
         | `Idle ->
             let duration =
@@ -62,11 +62,13 @@ object (self)
             in
             let length = Frame.video_of_seconds duration in
             let fade = fader length in
-              state <- `Play (fade,length,0) ;
+            let fadefun = fadefun () in
+              state <- `Play (fade,fadefun,length,0) ;
               fade,
+              fadefun,
               length,
               0
-        | `Play (fade,length,count) -> fade,length,count
+        | `Play (fade,fadefun,length,count) -> fade,fadefun,length,count
     in
       if not initial && Frame.is_partial ab then state <- `Idle ;
       match video_content with
@@ -79,7 +81,7 @@ object (self)
                     fadefun rgb.(off+i) m
                 done ;
               if state <> `Idle then
-                state <- `Play (fade,length,count+len)
+                state <- `Play (fade,fadefun,length,count+len)
 
 end
 
@@ -114,9 +116,9 @@ object (self)
       let off_ticks = Frame.position ab in
       let video_content = VFrame.get_content ab source in
       (** In video frames: [length] of the fade. *)
-      let fade,length =
+      let fade,fadefun,length =
         match cur_length with
-          | Some (f,l) -> f,l
+          | Some (f,g,l) -> f,g,l
           | None ->
               (* Set the length at the beginning of a track *)
               let duration =
@@ -129,8 +131,9 @@ object (self)
               in
               let l = Frame.video_of_seconds duration in
               let f = fader l in
-                cur_length <- Some (f,l) ;
-                f,l
+              let g = fadefun () in
+                cur_length <- Some (f,g,l) ;
+                f,g,l
       in
         (* Reset the length at the end of a track *)
         if Frame.is_partial ab then cur_length <- None ;
@@ -179,35 +182,39 @@ let proto =
 let rec transition_of_string p transition =
   let ifm n a = int_of_float ((float_of_int n) *. a) in
     match transition with
-      | "fade" -> Img.Effect.Alpha.scale
+      | "fade" -> fun () -> Img.Effect.Alpha.scale
       | "slide_left" ->
-          fun buf t ->
+          fun () buf t ->
             Img.Effect.translate buf
               (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
       | "slide_right" ->
-          fun buf t ->
+          fun () buf t ->
             Img.Effect.translate buf
               (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
       | "slide_up" ->
-          fun buf t ->
+          fun () buf t ->
             Img.Effect.translate buf
               0 (ifm (Lazy.force Frame.video_height) (1.-.t))
       | "slide_down" ->
-          fun buf t ->
+          fun () buf t ->
             Img.Effect.translate buf
               0 (ifm (Lazy.force Frame.video_height) (t-.1.))
-      | "grow" -> fun buf t -> Img.Effect.affine buf t t 0 0
+      | "grow" -> fun () buf t -> Img.Effect.affine buf t t 0 0
       | "disc" ->
           let w = Lazy.force Frame.video_width in
           let h = Lazy.force Frame.video_height in
           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
-            fun buf t -> Img.Effect.Alpha.disk buf (w/2) (h/2) (ifm r_max t)
+            fun () buf t -> Img.Effect.Alpha.disk buf (w/2) (h/2) (ifm r_max t)
       | "random" ->
           let trans =
             [|"slide_left"; "slide_right"; "slide_up"; "slide_down";
               "fade"; "grow"; "disc"|]
           in
-            transition_of_string p trans.(Random.int (Array.length trans))
+            fun () ->
+              let f = 
+                transition_of_string p trans.(Random.int (Array.length trans)) ()
+              in
+              f
       | _ ->
           raise (Lang.Invalid_value
                    (List.assoc "transition" p, "Invalid transition kind"))

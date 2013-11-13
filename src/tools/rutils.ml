@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,25 +72,27 @@ type wav_converter =
     audio_src_rate:float ->
     string -> Frame.audio_t array * int
 
-let create_from_wav ~channels ~samplesize () =
-  let audio_dst_rate =
-    float (Lazy.force Frame.audio_rate)
-  in
-  let samplerate_converter =
-    Audio_converter.Samplerate.create channels
-  in
+let create_from_iff ~format ~channels ~samplesize =
+  let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
+  let sample_bytes = samplesize / 8 in
+  let samplerate_converter = Audio_converter.Samplerate.create channels in
   (fun ~audio_src_rate src ->
-    let sample_bytes = samplesize / 8 in
     let ratio = audio_dst_rate /. audio_src_rate in
-    let len = String.length src / (sample_bytes*channels) in
-    let conv =
+    let len = (String.length src) / (sample_bytes*channels) in
+    let dst = Array.init channels (fun _ -> ABuf.create len) in
+    let to_audio =
       match samplesize with
-      | 8  -> ABuf.of_u8
-      | 16 -> ABuf.of_s16le
+      | 8 -> ABuf.of_u8
+      | 16 when format = `Wav -> ABuf.of_s16le
+      | 16 when format = `Aiff -> ABuf.of_s16le
       | _ -> failwith "unsuported sample size"
     in
-    let dst = Array.init channels (fun _ -> ABuf.create len) in
-    conv src 0 len dst 0;
-    let dst = Audio_converter.Samplerate.resample samplerate_converter ratio dst 0 len in
-    let len_dst = ABuf.length dst.(0) in
-    dst, len_dst)
+    to_audio src 0 len dst 0;
+    let dst =
+      Audio_converter.Samplerate.resample
+        samplerate_converter
+        ratio
+        dst 0 len
+    in
+    let dst_len = ABuf.length dst.(0) in
+    dst, dst_len)

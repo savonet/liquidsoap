@@ -1,11 +1,10 @@
+Liquidsoap 1.1.1
 
-Liquidsoap 1.0.1
+Copyright 2003-2013 Savonet team
 
-Copyright 2003-2012 Savonet team
-
-Email   : savonet-users@lists.sourceforge.net
-Homepage: http://savonet.sf.net/
-Trac    : http://dev.sourcefabric.org/browse/LS
+Email     : savonet-users@lists.sourceforge.net
+Homepage  : http://liquidsoap.fm
+Bugreports: https://github.com/savonet/liquidsoap/issues
 
 INSTALLATION
 ============
@@ -15,8 +14,8 @@ See the INSTALL file.
 DOCUMENTATION
 =============
 
-Some documentation is available on our website: 
-  http://savonet.sf.net/
+Some documentation is available on our website:
+  http://liquidsoap.fm
 You should find some HTML doc in the distribution:
   doc/html/index.html
 
@@ -45,10 +44,10 @@ AUTHORS
     David     Baelde     <david.baelde@ens-lyon.org>
     Romain    Beauxis    <toots@rastageeks.org>
     Samuel    Mimram     <samuel.mimram@ens-lyon.org>
-    Vincent   Tabard     <vincent@radiopytagor.com>
 * Contributors:
     Florent   Bouchez    <florent.bouchez@ens-lyon.org>
     Julien    Cristau    <julien.cristau@ens-lyon.org>
     Stéphane  Gimenez    <stephane.gimenez@ens-lyon.org>
     Clément   Renard     <clement.renard@ens-lyon.org>
+    Vincent   Tabard     <vincent@radiopytagor.com>
     Sattisvar Tandabany  <sattisvar.tandabany@ens-lyon.org>

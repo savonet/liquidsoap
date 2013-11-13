@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# This script is called from liquidsoap to download a file using the server's returned name.
+
+URL=$1
+DST=$2
+TRUST_SERVER=$3
+
+if test -n "$TRUST_SERVER"; then
+  DIRNAME=`dirname $DST`
+  cd "$DIRNAME"
+  RET=`wget -nv -r --trust-server-name $URL 2>&1 | grep -o -E "\".+\"" | tr -d '"'`
+  printf "$DIRNAME/$RET"
+else
+  wget -q $URL -O $DST
+  printf "$DST"
+fi

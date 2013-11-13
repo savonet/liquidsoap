@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -101,6 +101,19 @@ let encoder ogg name meta =
                   Ogg_muxer.log#f 3
                     "%s: Could not find any vorbis encoder." name ;
                   raise Not_found          
+           end
+        | Encoder.Ogg.Opus x ->
+           begin
+            try
+              let create_opus =
+                Hashtbl.find encoders "opus"
+              in
+              create_opus (Encoder.Ogg.Opus x) :: cur
+            with
+              | Not_found ->
+                  Ogg_muxer.log#f 3
+                    "%s: Could not find any opus encoder." name ;
+                  raise Not_found
            end
         | Encoder.Ogg.Flac x ->
            begin

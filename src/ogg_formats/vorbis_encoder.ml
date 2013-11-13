@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -159,7 +159,7 @@ let create_vorbis =
                 -> create ~channels ~samplerate 
                           ~quality ~metadata ()
         in
-        Ogg_muxer.register_track ogg_enc enc
+        Ogg_muxer.register_track ?fill:vorbis.Encoder.Vorbis.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float samplerate in

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ open Dtools
 let error_translator =
   function
     | Cry.Error _ as e ->
-       raise (Utils.Translation (Cry.string_of_error e))
-    | _ -> ()
+       Some (Cry.string_of_error e)
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
@@ -42,14 +42,6 @@ type icecast_info =
 
 module Icecast = 
 struct
-
-  type protocol = Cry.protocol
-
-  let protocol_of_icecast_protocol = 
-    function
-      | Icecast_utils.Http -> Cry.Http
-      | Icecast_utils.Icy -> Cry.Icy 
-
   type content = Cry.content_type
 
   let format_of_content x =
@@ -76,6 +68,12 @@ struct
               samplerate = Some m.Encoder.MP3.samplerate ;
               channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
             }
+        | Encoder.Shine m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.Shine.bitrate ;
+              samplerate = Some m.Encoder.Shine.samplerate ;
+              channels = Some m.Encoder.Shine.channels
+            }
         | Encoder.AACPlus m ->
             { quality = None ;
               bitrate = Some m.Encoder.AACPlus.bitrate ;
@@ -88,11 +86,23 @@ struct
               samplerate = Some m.Encoder.VoAacEnc.samplerate ;
               channels = Some m.Encoder.VoAacEnc.channels
             }
+        | Encoder.FdkAacEnc m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.FdkAacEnc.bitrate ;
+              samplerate = Some m.Encoder.FdkAacEnc.samplerate ;
+              channels = Some m.Encoder.FdkAacEnc.channels
+            }
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
               samplerate = Some m.Encoder.External.samplerate ;
               channels = Some m.Encoder.External.channels
+            }
+        | Encoder.GStreamer m ->
+            { quality    = None ;
+              bitrate    = None ;
+              samplerate = None ;
+              channels   = Some (Encoder.GStreamer.audio_channels m)
             }
         | Encoder.Flac m ->
             { quality = Some (string_of_int m.Encoder.Flac.compression) ;
@@ -169,6 +179,17 @@ let proto kind =
            for \"http\" protocol and \"ISO-8859-1\" for \"icy\" \
            protocol." ;
     "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
+    "protocol", Lang.string_t, (Some (Lang.string "http")),
+     Some "Protocol of the streaming server: \
+          'http' for Icecast, 'icy' for shoutcast." ;
+    "verb", Lang.string_t, (Some (Lang.string "source")),
+     Some "Verb to use with the 'http' protocol. One of: \
+           'source', 'put' or 'post'.";
+    "chunked", Lang.bool_t, (Some (Lang.bool false)),
+     Some "Used cunked transfer with the 'http' protocol.";
+    "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
+     Some "Send new metadata using the ICY protocol. \
+           One of: \"guess\", \"true\", \"false\"";
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
     ("description", Lang.string_t,
      Some (Lang.string "Liquidsoap Radio!"), None) ;
@@ -212,10 +233,66 @@ class output ~kind p =
     Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg]) 
   in
 
-  let protocol,encoder_factory, 
-      format,icecast_info,
-      icy_metadata,ogg =
-    encoder_data p
+  let data = encoder_data p in
+
+  let chunked = Lang.to_bool (List.assoc "chunked" p) in
+
+  let protocol = 
+    let verb =
+      let v = List.assoc "verb" p in
+      match Lang.to_string v with
+        | "source" -> Cry.Source
+        | "put"    -> Cry.Put
+        | "post"   -> Cry.Post
+        | _ -> raise (Lang.Invalid_value
+                   (v, "Valid values are: 'source' \
+                       'put' or 'post'.")) 
+    in  
+    let v = List.assoc "protocol" p in
+    match Lang.to_string v with
+      | "http" -> Cry.Http verb
+      | "icy" -> Cry.Icy
+      | _ ->
+          raise (Lang.Invalid_value
+                   (v, "Valid values are 'http' (icecast) \
+                        and 'icy' (shoutcast)"))
+  in
+  let icy_metadata =
+    let v = List.assoc "icy_metadata" p in
+    let icy =
+       match Lang.to_string v with
+         | "guess" -> `Guess
+         | "true"  -> `True
+         | "false" -> `False
+         | _ ->
+               raise (Lang.Invalid_value
+                       (v, "Valid values are 'guess', \
+                           'true' or 'false'"))
+    in
+    match data.format, icy with
+      | _, `True -> true
+      | _, `False -> false
+      | x, `Guess when x = mpeg ||
+                       x = wav ||
+                       x = aac ||
+                       x = aacplus ||
+                       x = flac -> true
+      | x, `Guess when x = ogg_application ||
+                       x = ogg_audio ||
+                       x = ogg_video -> false
+      | _, _ ->
+           raise (Lang.Invalid_value
+                    (List.assoc "icy_metadata" p,
+                     "Could not guess icy_metadata for this format, \
+                     please specify either 'true' or 'false'."))
+  in
+
+  let ogg =
+    match data.format with
+     | x when x = Cry.ogg_application -> true
+     | x when x = Cry.ogg_audio -> true
+     | x when x = Cry.ogg_video -> true
+     | _ -> false
   in
 
   let out_enc =
@@ -432,7 +509,7 @@ object (self)
 
   method icecast_start =
     assert (encoder = None) ;
-    let enc = encoder_factory self#id in
+    let enc = data.factory self#id in
     encoder <- 
        Some (enc (Encoder.Meta.empty_metadata)) ; 
     assert (Cry.get_status connection = Cry.Disconnected) ;
@@ -447,10 +524,10 @@ object (self)
         | Some q -> Hashtbl.add audio_info y (z q)
         | None -> ()
     in
-      f icecast_info.bitrate "bitrate" string_of_int;
-      f icecast_info.quality "quality" (fun x -> x);
-      f icecast_info.samplerate "samplerate" string_of_int;
-      f icecast_info.channels "channels" string_of_int;
+      f data.info.bitrate "bitrate" string_of_int;
+      f data.info.quality "quality" (fun x -> x);
+      f data.info.samplerate "samplerate" string_of_int;
+      f data.info.channels "channels" string_of_int;
       let user_agent =
         try
           List.assoc "User-Agent" headers
@@ -460,8 +537,8 @@ object (self)
       let source = 
         Cry.connection ~host ~port ~user ~password
                        ~genre ~url ~description ~name
-                       ~public ~protocol ~mount  
-                       ~audio_info ~user_agent ~content_type:format ()
+                       ~public ~protocol ~mount ~chunked 
+                       ~audio_info ~user_agent ~content_type:data.format ()
       in
       List.iter (fun (x,y) -> 
                       (* User-Agent has already been passed to Cry.. *)
@@ -472,7 +549,7 @@ object (self)
         Cry.connect connection source ;
         self#log#f 3 "Connection setup was successful." ;
         let c = Cry.get_connection_data connection in
-        let () = Liq_sockets.set_tcp_nodelay c.Cry.data_socket true in
+        Unix.setsockopt c.Cry.data_socket Unix.TCP_NODELAY true;
         (* Execute on_connect hook. *)
         on_connect () ;
       with

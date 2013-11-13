@@ -1,5 +1,7 @@
 (* Some structured exceptions *)
 
+include Stdlib
+
 type error = Socket | Response | UrlDecoding
 exception Error of error
 
@@ -12,8 +14,8 @@ let string_of_error e =
 (** Error translator *)
 let error_translator e =
    match e with
-     | Error e -> raise (Utils.Translation (string_of_error e))
-     | _ -> ()
+     | Error e -> Some (string_of_error e)
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
@@ -114,7 +116,9 @@ let http_sanitize url =
     let sub = Pcre.exec ~rex:basic_rex url in
     let host,path = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
     let encode path =
-      let path = Pcre.split ~pat:"/" path in
+      (* Pcre.split removes empty strings and thus removes trailing '/' which
+         can change the semantics of the URL... *)
+      let path = String.split_char '/' path in
       (* We decode the path, in case it was already encoded. *)
       let path =
         List.map (fun x -> url_encode ~plus:false (url_decode x)) path
@@ -143,6 +147,14 @@ let http_sanitize url =
       | _ -> Printf.sprintf "http://%s%s" host (encode path)
   with
     | _ -> url
+
+let is_url path =
+  Pcre.pmatch ~pat:"^http://.+" path
+
+let dirname url =
+  let rex = Pcre.regexp "^(http://.+/)[^/]*$" in
+  let s = Pcre.exec ~rex url in
+  Pcre.get_substring s 1
 
 (** HTTP functions. *)
 
@@ -174,7 +186,7 @@ let disconnect socket =
     | _ -> ()
 
 let read ?(log=fun _ -> ()) ~timeout socket buflen =
-  Utils.wait_for ~log `Read socket timeout;
+  Tutils.wait_for ~log `Read socket timeout;
   match buflen with
     | Some buflen ->
         let buf = String.create buflen in
@@ -195,44 +207,66 @@ type status = string * int * string
 
 type headers = (string*string) list
 
-(* An ugly code to read until we see [\r]?\n[\r]?\n. *)
-let read_crlf ?(log=fun _ -> ()) ?(max=4096) ~timeout socket =
-  (* We read until we see [\r]?\n[\r]?\n *)
+(* An ugly code to read until we see [\r]?\n n times. *)
+let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
+  (* We read until we see [\r]?\n n times *)
   let ans = Buffer.create 10 in
   let n = ref 0 in
-  let loop = ref true in
-  let was_n = ref false in
+  let count_n = ref 0 in
+  let stop = ref false in
   let c = String.create 1 in
     (* We need to parse char by char because
      * we want to make sure we stop at the exact
-     * end of [\r]?\n[\r]?\n in order to pass a socket
+     * end of [\r]?\n in order to pass a socket
      * which is placed at the exact char after it.
      * The maximal length is a security but it may
      * be lifted.. *)
-    while !loop && !n < max do
+    while !count_n < count && !n < max && not !stop do
       (* This is quite ridiculous but we have 
        * no way to know how much data is available
        * in the socket.. *)
-      Utils.wait_for ~log `Read socket timeout;
+      Tutils.wait_for ~log `Read socket timeout;
       let h = Unix.read socket c 0 1 in
         if h < 1 then
-          loop := false
+          stop := true
         else
           (
             Buffer.add_string ans c;
             if c = "\n" then
-              (if !was_n then loop := false else was_n := true)
+              incr count_n
             else if c <> "\r" then
-              was_n := false
+              count_n := 0
           );
         incr n
     done;
     Buffer.contents ans
 
+(* Read chunked transfer. *)
+let read_chunked ~timeout socket len =
+  let read = read_crlf ~count:1 ~timeout socket in
+  let len = List.hd (Pcre.split ~pat:"[\r]?\n" read) in
+  let len = List.hd (Pcre.split ~pat:";" len) in
+  let len = int_of_string ("0x" ^ len) in
+  let buf = Buffer.create len in
+  let rec f () =
+    let rem = len - Buffer.length buf in
+    assert(0 < rem);
+    let s = String.create rem in
+    let n = Unix.read socket s 0 rem in
+    Buffer.add_substring buf s 0 n;
+    if Buffer.length buf = len then
+      Buffer.contents buf
+    else
+      f ()
+  in
+  let s = f () in
+  ignore(read_crlf ~count:1 ~timeout socket);
+  s, len
+
 let request ?(log=fun _ -> ()) ~timeout socket request =
   if
     let len = String.length request in
-      Utils.wait_for ~log `Write socket timeout;
+      Tutils.wait_for ~log `Write socket timeout;
       Unix.write socket request 0 len < len
   then
     raise Socket ;
@@ -324,7 +358,18 @@ let full_request ?headers ?(port=80) ?(log=fun _ -> ())
         | Post data ->
            post ?headers ~log ~timeout data connection host port url
     in
-    let ret = read_crlf ~log ~timeout ~max:max_int connection in
+    let max =
+      try
+        let (_,len) = List.find (fun (l,k) ->
+          String.lowercase l = "content-length")
+          headers
+        in
+        int_of_string len
+      with _ -> max_int
+    in
+    let ret =
+      read_crlf ~log ~timeout ~max connection
+    in
     status,headers,
        Pcre.substitute
           ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret)

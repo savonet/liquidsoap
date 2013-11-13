@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@ module T = Lang_types
 module Vars = Term.Vars
 
 type t = T.t
+
+let log = Dtools.Log.make ["lang"]
 
 (** Type construction *)
 
@@ -53,6 +55,7 @@ let metadata_t = list_t (product_t string_t string_t)
 let zero_t = Term.zero_t
 let succ_t t = Term.succ_t t
 let variable_t = Term.variable_t
+let add_t = Term.add_t
 let type_of_int = Term.type_of_int
 
 (** In order to keep the old way of declaring the type of builtins,
@@ -100,7 +103,7 @@ let kind_type_of_frame_kind kind =
   let midi  = t_of_mul kind.Frame.midi in
     frame_kind_t ~audio ~video ~midi
 
-(** Given a Lang type that has been infered, convert it to a kind.
+(** Given a Lang type that has been inferred, convert it to a kind.
   * This might require to force some Any_fixed variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
@@ -178,6 +181,10 @@ let audio_video_any =
   Constrained
     { Frame. audio = Any_fixed 0 ; video = Any_fixed 0 ; midi = Fixed 0 }
 
+let video_n n =
+  Constrained
+    { Frame. audio = Fixed 0 ; video = Fixed n ; midi = Fixed 0 }
+
 let midi_n n =
   Constrained
     { Frame. audio = Fixed 0 ; video = Fixed 0 ; midi = Fixed n }
@@ -191,21 +198,12 @@ let kind_type_of_kind_format ~fresh fmt =
     | Constrained fields ->
         let aux fresh = function
           | Fixed i ->
-              let rec aux i =
-                if i = 0 then zero_t else succ_t (aux (i-1))
-              in
-                fresh, aux i
+              fresh, type_of_int i
           | Any_fixed i ->
-              let zero = univ_t ~constraints:[T.Arity_fixed] fresh in
-              let rec aux i =
-                if i = 0 then zero else succ_t (aux (i-1))
-              in
-                fresh+1, aux i
+              fresh+1,
+              Term.add_t i (univ_t ~constraints:[T.Arity_fixed] fresh)
           | Variable i ->
-              let rec aux i =
-                if i = 0 then variable_t else succ_t (aux (i-1))
-              in
-                fresh, aux i
+              fresh, Term.add_t i variable_t
         in
         let fresh,audio = aux fresh fields.Frame.audio in
         let fresh,video = aux fresh fields.Frame.video in
@@ -362,7 +360,7 @@ let string_of_category x = "Source / " ^ match x with
   *    e.g. the parameter of a format type.
   * From this high-level description a type is created. Often it will
   * carry a type constraint.
-  * Once the type has been infered, the function might be executed,
+  * Once the type has been inferred, the function might be executed,
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
@@ -412,6 +410,11 @@ let add_operator
   let category = string_of_category category in
     add_builtin ~category ~descr ~flags name proto return_t f
 
+exception Found
+
+(** List of references for which iter_sources had to give up --- see below. *)
+let static_analysis_failed = ref []
+
 let iter_sources f v =
   let rec iter_term env v = match v.Term.term with
     | Term.Unit | Term.Bool _ | Term.String _
@@ -434,11 +437,11 @@ let iter_sources f v =
         List.iter (fun (_,_,_,v) -> match v with
                      | Some v -> iter_term env v
                      | None -> ()) proto
+
   and iter_value v = match v.value with
     | Source s -> f s
     | Unit | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
     | List l -> List.iter iter_value l
-    | Ref a -> iter_value !a
     | Product (a,b) ->
         iter_value a ; iter_value b
     | Fun (proto,pe,env,body) ->
@@ -458,6 +461,38 @@ let iter_sources f v =
              | _,_,Some v -> iter_value v
              | _ -> ())
           proto
+    | Ref r ->
+        if List.memq r !static_analysis_failed then () else
+        (* Do not walk inside references, otherwise the list of "contained"
+         * sources may change from one time to the next, which makes it
+         * impossible to avoid ill-balanced activations.
+         * Not walking inside references does not break things more than they
+         * are already: detecting sharing in presence of references to sources
+         * cannot be done statically anyway.)
+         * Display a fat log message to warn about this risky situation,
+         * which probably won't prevent users to get biffled... *)
+        let may_have_source =
+          try
+            let has_var_neg,has_var_pos =
+              Lang_types.iter_constr
+                (fun pos c ->
+                   if pos &&
+                      match c with
+                        | { T.name = "source" } -> true | _ -> false
+                   then raise Found)
+                v.t
+            in
+              has_var_pos
+          with Found -> true
+        in
+          static_analysis_failed := r :: !static_analysis_failed ;
+          if may_have_source then
+            log#f 2 "WARNING! \
+                     Found a reference, potentially containing sources, \
+                     inside a dynamic source-producing function. \
+                     Static analysis cannot be performed: \
+                     make sure you are not sharing sources contained \
+                     in references!"
   in
     iter_value v
 
@@ -472,6 +507,12 @@ let to_unit t = match t.value with
 
 let to_bool t = match t.value with
   | Bool b -> b
+  | _ -> assert false
+
+let to_fun ~t f =
+  match f.value with
+  | Fun _  | FFI _ ->
+    (fun args -> apply ~t f args)
   | _ -> assert false
 
 let to_string t = match t.value with
@@ -589,6 +630,10 @@ let report_error lexbuf f =
     try f () with
       | Failure "lexing: empty token" -> print_error "Empty token" ; raise Error
       | Parsing.Parse_error -> print_error "Parse error" ; raise Error
+      | Lang_values.Parse_error (pos,s) ->
+        let pos = T.print_pos pos in
+        Format.printf "@[<2>%s:@ %s@]@." pos s;
+        raise Error
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Format.printf

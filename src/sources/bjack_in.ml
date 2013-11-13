@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ object (self)
               ~input_channels:channels ~output_channels:0 ~flags:[] ?server_name
               ~ringbuffer_size:(nb_blocks*samples_per_frame*bytes_per_sample)
               ~client_name:self#id () in
-          Bjack.set_all_volume dev 75 ;
+          Bjack.set_all_volume dev 100 ;
           device <- Some dev ;
           dev
       | Some d -> d

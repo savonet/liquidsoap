@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 open Source
-
-let pi = 3.14159265358979323846
 
 class biquad ~kind (source:source) filter_type freq fparam db_gain =
   let channels = (Frame.type_of_kind kind).Frame.audio in

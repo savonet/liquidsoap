@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -143,11 +143,11 @@ let register_descr plugin_name descr_n descr outputs =
   in
   let liq_params = liq_params in
     Lang.add_operator
-      ("synth.dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      ("synth.dssi." ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
       (["channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle."]@liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in
@@ -163,11 +163,11 @@ let register_descr plugin_name descr_n descr outputs =
                                 midi = Lang.Fixed all_chans})
   in
     Lang.add_operator
-      ("synth.all.dssi." ^ Ladspa_op.norm_string (Ladspa.Descriptor.label ladspa_descr))
+      ("synth.all.dssi." ^ Utils.normalize_parameter_string (Ladspa.Descriptor.label ladspa_descr))
       (liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in

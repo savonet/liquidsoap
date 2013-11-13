@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,43 +22,82 @@
 
 open Source
 
-class soundtouch ~kind (source:source) rate tempo pitch =
-object (self)
-  inherit operator ~name:"soundtouch" kind [source] as super
+module Generator = Generator.From_audio_video
 
-  val st = Soundtouch.make ((Frame.type_of_kind kind).Frame.audio) (Lazy.force Frame.audio_rate)
+class soundtouch ~kind (source:source) rate tempo pitch =
+  let abg = Generator.create `Audio in
+  let channels = (Frame.type_of_kind kind).Frame.audio in
+object (self)
+  inherit operator ~name:"soundtouch" kind [source]
+
+  val st = Soundtouch.make channels (Lazy.force Frame.audio_rate)
+
+  val databuf = Frame.create kind
+
+  method private set_clock =
+    let slave_clock = Clock.create_known (new Clock.clock self#id) in
+    (* Our external clock should stricly contain the slave clock. *)
+    Clock.unify
+      self#clock
+      (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
+    Clock.unify slave_clock source#clock
+
+  method private slave_tick =
+    (Clock.get source#clock)#end_tick ;
+    source#after_output ;
+    Frame.advance databuf
 
   initializer
     self#log#f 3 "Using soundtouch %s." (Soundtouch.get_version_string st)
 
-  method stype = source#stype
-  method is_ready = source#is_ready
-  method remaining = source#remaining
-  method abort_track = source#abort_track
+  method stype       = source#stype
 
-  (* Temporary buffer. *)
-  val databuf = Frame.create kind
+  method is_ready    =
+    (Generator.length abg > 0) || source#is_ready
+
+  method remaining   = Generator.remaining abg
+
+  method abort_track =
+    Generator.clear abg;
+    source#abort_track
+
+  method private feed =
+    Soundtouch.set_rate st (rate ());
+    Soundtouch.set_tempo st (tempo ());
+    Soundtouch.set_pitch st (pitch ());
+    AFrame.clear databuf;
+    source#get databuf;
+    let db = AFrame.content databuf 0 in
+    Soundtouch.put_samples_ni st db 0 (Array.length db.(0));
+    let available = Soundtouch.get_available_samples st in
+    if available > 0 then
+     begin
+      let tmp =
+        Array.init channels (fun _ -> Array.make available 0.)
+      in    
+      ignore (Soundtouch.get_samples_ni st tmp 0 available );
+      Generator.put_audio abg tmp 0 available
+     end;
+    if AFrame.is_partial databuf then
+      Generator.add_break abg; 
+    (* It's almost impossible to know where to add metadata,
+     * b/c of tempo so we add then right here. *)
+    List.iter
+      (fun (_,m) -> Generator.add_metadata abg m)
+      (AFrame.get_all_metadata databuf);
+    self#slave_tick
 
   method private get_frame buf =
-    let startpos = AFrame.position buf in
-    let b = AFrame.content buf startpos in
-    let endpos = AFrame.size () in
-      Soundtouch.set_rate st (rate ());
-      Soundtouch.set_tempo st (tempo ());
-      Soundtouch.set_pitch st (pitch ());
-      (* TODO: handle end of tracks *)
-      while Soundtouch.get_available_samples st < endpos - startpos do
-        AFrame.clear databuf;
-        source#get databuf;
-        let db = AFrame.content databuf startpos in
-          Soundtouch.put_samples_ni st db 0 (Array.length db.(0))
-      done;
-      ignore (Soundtouch.get_samples_ni st b startpos (endpos - startpos));
-      AFrame.add_break buf (AFrame.size ())
+    let need = AFrame.size () - AFrame.position buf in
+    while Generator.length abg < need && source#is_ready do
+      self#feed
+    done;
+    Generator.fill abg buf
 end
 
 let () =
-  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.any_fixed in
+  (* TODO: could we keep the video in some cases? *)
+  let k = Lang.kind_type_of_kind_format ~fresh:4 Lang.audio_any in
   Lang.add_operator "soundtouch"
     [
       "rate", Lang.float_getter_t 1, Some (Lang.float 1.0), None;

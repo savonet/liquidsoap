@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,14 @@
 
  *****************************************************************************)
 
-open Taglib
+exception Invalid_file
+
+let error_translator =
+  function
+    | Invalid_file -> Some "Invalid file"
+    | _ -> None
+
+let () = Utils.register_error_translator error_translator
 
 let log = Dtools.Log.make ["decoder";"taglib"]
 
@@ -53,40 +60,40 @@ let file_extensions =
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
 let get_tags fname =
-  let mime_types, file_extensions, ftype =
-    if conf_force_mpeg#get then
-      Mad_decoder.mime_types, Mad_decoder.file_extensions, `Mpeg
-    else
-      mime_types, file_extensions, `Autodetect
-  in
-  if not (Decoder.test_file ~mimes:mime_types#get 
-                            ~extensions:file_extensions#get 
-                            ~log fname) then
-    raise Not_found ;
   try
-    let f = File.open_file ftype fname in
-    Tutils.finalize ~k:(fun () -> File.close_file f)
-    (fun () -> 
-      let gt l (n, t) =
+    let mime_types, file_extensions, ftype =
+      if conf_force_mpeg#get then
+        Mad_decoder.mime_types, Mad_decoder.file_extensions, `Mpeg
+      else
+        mime_types, file_extensions, `Autodetect
+    in
+    if not (Decoder.test_file ~mimes:mime_types#get 
+                              ~extensions:file_extensions#get 
+                              ~log fname) then
+      raise Invalid_file ;
+    let f = Taglib.File.open_file ftype fname in
+    Tutils.finalize ~k:(fun () -> Taglib.File.close_file f)
+    (fun () ->
+      let tags =
         try
-          (* Do not pass empty strings.. *)
-          match t f with
-            | "" -> l 
-            | x  -> (n, x) :: l
-        with
-          | _ -> l
+          ["year", string_of_int (Taglib.tag_year f)]
+        with Not_found -> []
       in
-      List.fold_left gt []
-        [
-          "title", tag_title;
-          "artist", tag_artist;
-          "album", tag_album;
-          "tracknumber", (fun x -> string_of_int (tag_track x));
-          "year", (fun x -> string_of_int (tag_year x));
-          "genre", tag_genre;
-          "comment", tag_comment;
-        ])
+      Hashtbl.fold
+        (fun key (values:string list) tags ->
+          if values = [] then
+            tags
+          else
+            let v = List.hd values in
+            if v = "" then
+              tags
+            else
+              (key,v)::tags
+        ) (Taglib.File.properties f) tags)
   with
-    | _ -> raise Not_found
+    | e ->
+       log#f 4 "Error while decoding file tags: %s" (Utils.error_message e);       
+       log#f 4 "Backtrace:\n%s" (Utils.get_backtrace());
+       raise Not_found
 
-let () = Request.mresolvers#register "TAGLIB" get_tags 
+let () = Request.mresolvers#register "TAGLIB" get_tags

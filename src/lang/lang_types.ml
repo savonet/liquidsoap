@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -532,7 +532,7 @@ let rec bind a0 b =
         * When a value is passed to a FFI, its type is bound to a type without
         * any location.
         * If it doesn't break sharing, we set the parsing position of
-        * that variable occurrence to the position of the infered type. *)
+        * that variable occurrence to the position of the inferred type. *)
       if b.pos = None && match b.descr with EVar _ -> false | _ -> true
       then
         a.descr <- Link { a0 with descr = b.descr }
@@ -556,12 +556,12 @@ let print ?generalized t : string =
   Format.flush_str_formatter ()
 
 let print_type_error (flipped,ta,tb,a,b) =
-  let infered_pos a =
+  let inferred_pos a =
     let dpos = (deref a).pos in
       if a.pos = dpos then "" else
         match dpos with
           | None -> ""
-          | Some p -> " (infered at " ^ print_pos ~prefix:"" p ^ ")"
+          | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")"
   in
   let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
     Format.printf
@@ -570,7 +570,7 @@ let print_type_error (flipped,ta,tb,a,b) =
          | None -> "At unknown position"
          | Some p -> print_pos p)
       print_repr a
-      (infered_pos ta) ;
+      (inferred_pos ta) ;
     Format.printf
       "but it should be a %stype of%s@;<1 2>%a%s@]@."
       (if flipped then "super" else "sub")
@@ -580,7 +580,7 @@ let print_type_error (flipped,ta,tb,a,b) =
              Printf.sprintf " (the type of the value at %s)"
                (print_pos ~prefix:"" p))
       print_repr b
-      (infered_pos tb)
+      (inferred_pos tb)
 
 let doc_of_type ~generalized t =
   let margin = Format.pp_get_margin Format.str_formatter () in
@@ -869,3 +869,28 @@ let instantiate ~level ~generalized =
   * the AST. *)
 let fresh = fresh_evar
 let fresh_evar = fresh_evar ~constraints:[]
+
+(** {1 Misc} *)
+
+(** Iterate over all constructed types, giving info about their
+  * positivity, and return [true] if there is a var, because it might be
+  * instantiated by a ground type later. *)
+let iter_constr f t =
+  let has_var_pos = ref false in
+  let has_var_neg = ref false in
+  let rec aux pos t = let t = deref t in match t.descr with
+    | Ground _ -> ()
+    | Succ _ | Zero | Variable -> ()
+    | List t -> aux pos t
+    | Product (a,b) -> aux pos a ; aux pos b
+    | Constr c ->
+        f pos c ;
+        List.iter (fun (_,t) -> aux pos t) c.params
+    | Arrow (p,t) ->
+        aux pos t ;
+        List.iter (fun (_,_,t) -> aux (not pos) t) p
+    | EVar _ ->
+        if pos then has_var_pos := true else has_var_neg := true
+    | Link _ -> assert false
+  in
+    aux true t ; !has_var_neg,!has_var_pos

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,8 +33,8 @@ class external_input ~kind ~restart ~bufferize ~channels
   let abg_max_len = Frame.audio_of_seconds max in
   let in_freq = float samplerate in
   let converter =
-    Rutils.create_from_wav ~channels ~samplesize:16
-                           () ~audio_src_rate:in_freq
+    Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
+                           ~audio_src_rate:in_freq
   in
   (* We need a temporary log until
    * the source has an id *)

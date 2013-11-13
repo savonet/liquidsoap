@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,6 +52,9 @@ object
   method register_command : descr:string -> ?usage:string -> string ->
                             (string->string) -> unit
 
+  (** Register a callback, to be executed when source shuts down. *)
+  method on_shutdown : (unit -> unit) -> unit
+
   (** The clock under which the source will run, initially unknown. *)
   method clock : clock_variable
 
@@ -69,6 +72,9 @@ object
   (** Opposite of [get_ready] : the operator no longer needs the source. *)
   method leave : ?dynamic:bool -> source -> unit
   method private sleep : unit
+
+  (** Check if a source is up or not. *)
+  method is_up : bool
 
   (** {1 Streaming} *)
 
@@ -172,9 +178,13 @@ val iterate_new_outputs : (active_source -> unit) -> unit
 
 class type clock =
 object
+  (** Identifier of the clock. *)
   method id : string
 
+  (** Attach an output source to the clock. *)
   method attach : active_source -> unit
+
+  (** Detach output sources which satisfy a given criterion from the source. *)
   method detach : (active_source -> bool) -> unit
 
   method attach_clock : clock_variable -> unit

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ let conf_clock =
   *    are not fatal anymore. *)
 let started : [ `Yes | `No | `Soon ] ref = ref `No
 
+(** Indicates whether the application has started to run or not. *)
 let running () = !started = `Yes
 
 (** We need to keep track of all used clocks, to have them (un)register
@@ -82,8 +83,7 @@ let leave (s:active_source) =
       (log#f 3 "%s")
       (Pcre.split ~pat:"\n" (Utils.get_backtrace ()))
 
-(** Base clock class *)
-
+(** Base clock class. *)
 class clock id =
 object (self)
 
@@ -170,7 +170,8 @@ object (self)
         if error <> [] then begin
           Tutils.mutexify lock
             (fun () ->
-               outputs <- List.filter (fun (_,s) -> not (List.mem s error)) outputs)
+               outputs <-
+                 List.filter (fun (_,s) -> not (List.mem s error)) outputs)
             () ;
           (* To stop this clock it would be enough to detach all sources
            * and let things stop by themselves. We stop all sources by
@@ -198,7 +199,8 @@ object (self)
       Tutils.mutexify lock
         (fun () ->
            let rec aux (outputs,to_start) = function
-             | (`New,s)::tl when f s -> aux ((`Starting,s)::outputs,s::to_start) tl
+             | (`New,s)::tl when f s ->
+                 aux ((`Starting,s)::outputs,s::to_start) tl
              | (flag,s)::tl -> aux ((flag,s)::outputs,to_start) tl
              | [] -> outputs,to_start
            in

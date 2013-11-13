@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -93,11 +93,11 @@ let init input =
        end;
       let rec f pos =
         if pos < seek_time then
-         begin
-           Mad.skip_frame !dec;
-           update_index ();
-           f (get_time ())
-         end
+          if (try Mad.skip_frame !dec; true with Mad.End_of_stream -> false) then
+            (
+              update_index ();
+              f (get_time ())
+            )
       in
       f (get_time ());
       let new_time = get_time () in

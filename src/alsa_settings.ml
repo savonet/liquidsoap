@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,9 +37,8 @@ let error_translator e =
      | Alsa.Device_removed
      | Alsa.Interrupted
      | Alsa.Unknown_error _ ->
-       raise (Utils.Translation
-         (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e)))
-     | _ -> ()
+         Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ let () =
         let v = List.assoc "protocol" p in
         match Lang.to_string v with
           | "icy"  -> Cry.Icy
-          | "http" -> Cry.Http
+          | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
           | _      -> 
               raise (Lang.Invalid_value (v, "protocol should be one of: \
                                              'icy' or 'http'."))

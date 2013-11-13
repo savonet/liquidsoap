@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2012 Savonet team
+  Copyright 2003-2013 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -99,6 +99,7 @@ struct
     channels   : int ;
     mode       : mode ;
     samplerate : int ;
+    fill       : int option ;
   }
 
   let string_of_mode = function
@@ -121,6 +122,96 @@ struct
       (string_of_mode v.mode)
       v.channels
       v.samplerate
+end
+
+module Opus =
+struct
+  type application = [
+    | `Voip
+    | `Audio
+    | `Restricted_lowdelay
+  ]
+
+  type bitrate = [
+    | `Auto
+    | `Bitrate_max
+    | `Bitrate of int
+  ]
+
+  type mode =
+    | VBR of bool        (* Variable bitrate, constrained or not. *)
+    | CBR                (* Constant bitrate. *)
+
+  type max_bandwidth = [
+    | `Narrow_band
+    | `Medium_band
+    | `Wide_band
+    | `Super_wide_band
+    | `Full_band 
+  ]
+
+  type signal = [
+    | `Auto
+    | `Voice
+    | `Music
+  ]
+
+  type t = {
+    application   : application option ;
+    bitrate       : bitrate ;
+    complexity    : int option ;
+    channels      : int ;
+    frame_size    : float ;
+    max_bandwidth : max_bandwidth option ;
+    mode          : mode ;
+    samplerate    : int ;
+    signal        : signal option ;
+    fill          : int option ;
+    dtx           : bool ;
+  }
+
+  let string_of_bitrate = function
+    | `Auto -> "birate=\"auto\","
+    | `Bitrate_max -> "birate=\"max\","
+    | `Bitrate b -> Printf.sprintf "bitrate=%d," b
+
+  let string_of_mode = function
+    | CBR   -> "vbr=\"none\""
+    | VBR b -> Printf.sprintf "vbr=%S" (if b then "constrained" else "unconstrained")
+
+  let string_of_application = function
+    | None -> ""
+    | Some `Voip  -> "application=\"voip\","
+    | Some `Audio -> "application=\"audio\","
+    | Some `Restricted_lowdelay -> "application=\"restricted_lowdelay\","
+
+  let string_of_bandwidth = function
+    | None -> ""
+    | Some `Narrow_band -> "max_bandwidth=\"narrow_band\","
+    | Some `Medium_band -> "max_bandwidth=\"medium_band\","
+    | Some `Wide_band   -> "max_bandwidth=\"wide_band\","
+    | Some `Super_wide_band -> "max_bandwidth=\"super_wide_band\","
+    | Some `Full_band -> "max_bandwidth=\"full_band\","
+
+  let string_of_signal = function
+    | None -> ""
+    | Some `Auto -> "signal=\"auto\","
+    | Some `Voice -> "signal=\"voice\","
+    | Some `Music -> "signal=\"music\","
+
+  let to_string v =
+    Printf.sprintf
+    "%%opus(%s,%schannels=%d,%s%s%s%ssamplerate=%d,frame_size=%.02f,dtx=%B)"
+      (string_of_mode v.mode)
+      (string_of_bitrate v.bitrate)
+      v.channels
+      (string_of_application v.application)
+      (match v.complexity with None -> "" | Some i -> (Printf.sprintf "complexity=\"%d\"," i))
+      (string_of_bandwidth v.max_bandwidth)
+      (string_of_signal v.signal)
+      v.samplerate
+      v.frame_size
+      v.dtx
 end
 
 module MP3 =
@@ -195,12 +286,30 @@ struct
     bits_per_sample : int ;
     samplerate : int ;
     compression : int ;
+    fill : int option ;
   }
 
   let to_string m =
     Printf.sprintf
       "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
       m.channels m.bits_per_sample m.samplerate m.compression
+
+end
+
+module Shine =
+struct
+
+  type t = {
+    channels   : int ;
+    samplerate : int ;
+    bitrate    : int ;
+  }
+
+  let to_string m =
+    Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d)"
+      m.channels
+      m.samplerate
+      m.bitrate
 
 end
 
@@ -221,6 +330,93 @@ struct
 
 end
 
+module FdkAacEnc =
+struct
+  type mpeg2_aac =
+    [
+       | `AAC_LC
+       | `HE_AAC
+       | `HE_AAC_v2
+    ]
+
+  type mpeg4_aac =
+    [
+       | mpeg2_aac
+       | `AAC_LD
+       | `AAC_ELD
+    ]
+
+  type aot =
+    [
+       | `Mpeg_4 of mpeg4_aac
+       | `Mpeg_2 of mpeg2_aac
+    ]
+
+  type transmux =
+    [
+       | `Raw
+       | `Adif
+       | `Adts
+       | `Latm
+       | `Latm_out_of_band
+       | `Loas
+    ]
+
+  type t = {
+    afterburner    : bool;
+    aot            : aot;
+    bitrate        : int;
+    channels       : int;
+    samplerate     : int;
+    sbr_mode       : bool;
+    transmux       : transmux
+  }
+
+  let string_of_aot = function
+    | `Mpeg_4 `AAC_LC -> "mpeg4_aac_lc"
+    | `Mpeg_4 `HE_AAC -> "mpeg4_he_aac"
+    | `Mpeg_4 `HE_AAC_v2 -> "mpeg4_he_aac_v2"
+    | `Mpeg_4 `AAC_LD -> "mpeg4_aac_ld"
+    | `Mpeg_4 `AAC_ELD -> "mpeg4_aac_eld"
+    | `Mpeg_2 `AAC_LC -> "mpeg2_aac_lc"
+    | `Mpeg_2 `HE_AAC -> "mpeg2_he_aac"
+    | `Mpeg_2 `HE_AAC_v2 -> "mpeg2_he_aac_v2"
+
+  let aot_of_string = function
+    | "mpeg4_aac_lc" -> `Mpeg_4 `AAC_LC
+    | "mpeg4_he_aac" -> `Mpeg_4 `HE_AAC 
+    | "mpeg4_he_aac_v2" -> `Mpeg_4 `HE_AAC_v2
+    | "mpeg4_aac_ld" -> `Mpeg_4 `AAC_LD
+    | "mpeg4_aac_eld" -> `Mpeg_4 `AAC_ELD
+    | "mpeg2_aac_lc" -> `Mpeg_2 `AAC_LC
+    | "mpeg2_he_aac" -> `Mpeg_2 `HE_AAC
+    | "mpeg2_he_aac_v2" -> `Mpeg_2 `HE_AAC_v2
+    | _ -> raise Not_found
+
+  let string_of_transmux = function
+    | `Raw -> "raw"
+    | `Adif -> "adif"
+    | `Adts -> "adts"
+    | `Latm -> "latm"
+    | `Latm_out_of_band -> "latm_out_of_band"
+    | `Loas -> "loas"
+
+  let transmux_of_string = function
+    | "raw" -> `Raw
+    | "adif" -> `Adif
+    | "adts" -> `Adts
+    | "latm" -> `Latm
+    | "latm_out_of_band" -> `Latm_out_of_band
+    | "loas" -> `Loas
+    | _ -> raise Not_found
+
+  let to_string m =
+    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,bitrate=%d,channels=%d,\
+                             samplerate=%d,sbr_mode=%b,transmux=%S)"
+      m.afterburner (string_of_aot m.aot) m.bitrate m.channels
+      m.samplerate m.sbr_mode (string_of_transmux m.transmux)
+end
+
 module VoAacEnc =
 struct
 
@@ -237,7 +433,6 @@ struct
       m.samplerate
       m.bitrate
       m.adts
-
 end
 
 module External =
@@ -286,7 +481,10 @@ struct
     stereo            : bool ;
     mode              : mode ;
     frames_per_packet : int ;
-    complexity        : int option
+    complexity        : int option ;
+    fill              : int option ;
+    dtx               : bool ;
+    vad               : bool ;
   }
 
   let string_of_br_ctl x =
@@ -308,14 +506,62 @@ struct
 
   let to_string m =
     Printf.sprintf
-      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s)"
+      "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
       (string_of_stereo m.stereo)
       (string_of_br_ctl m.bitrate_control)
       m.samplerate
       (string_of_mode m.mode)
       m.frames_per_packet
       (string_of_complexity m.complexity)
+      m.dtx
+      m.vad
 
+end
+
+module GStreamer =
+struct
+  type t = {
+    channels  : int;
+    audio     : string option;
+    has_video : bool;
+    video     : string option;
+    muxer     : string option;
+    metadata  : string;
+    pipeline  : string option;
+    log       : int
+  }
+
+  let audio_channels m =
+    if m.audio = None then
+      0
+    else
+      m.channels
+
+  let video_channels m =
+    if m.video = None || not m.has_video then
+      0
+    else
+      1
+
+  let to_string m =
+    let pipeline l name value = 
+      Utils.some_or l
+        (Utils.maybe
+          (fun value -> (Printf.sprintf "%s=%S" name value)::l)
+            value)
+    in
+    Printf.sprintf "%%gstreamer(%s,metadata=%S,has_video=%b,%slog=%d)"
+      (String.concat ","
+        (pipeline
+         (pipeline
+           (pipeline [Printf.sprintf "channels=%d" m.channels] 
+             "audio" m.audio)
+             "video" m.video)
+             "muxer" m.muxer))
+      m.metadata
+      m.has_video
+      (Utils.some_or "" (Utils.maybe (Printf.sprintf "pipeline=%S,") m.pipeline))
+      m.log
 end
 
 module Theora =
@@ -339,6 +585,7 @@ struct
     soft_target        : bool ;
     buffer_delay       : int option ;
     speed              : int option ;
+    fill               : int option ;
   }
 
   let bit_ctl_to_string bit_ctl =
@@ -383,7 +630,8 @@ struct
     width              : int Lazy.t ;
     height             : int Lazy.t ;
     aspect_numerator   : int ;
-    aspect_denominator : int
+    aspect_denominator : int ;
+    fill               : int option ;
   }
 
   let to_string dr =
@@ -404,6 +652,7 @@ struct
     | Flac of Flac.t
     | Theora of Theora.t
     | Dirac of Dirac.t
+    | Opus of Opus.t
   type t = item list
 
   let to_string l =
@@ -415,7 +664,8 @@ struct
                | Flac   v -> Flac.to_string v
                | Theora t -> Theora.to_string t
                | Speex  s -> Speex.to_string s
-               | Dirac  d -> Dirac.to_string d)
+               | Dirac  d -> Dirac.to_string d
+               | Opus   o -> Opus.to_string o)
             l))
 
 end
@@ -424,10 +674,13 @@ type format =
   | WAV of WAV.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
+  | Shine of Shine.t
   | Flac of Flac.t
   | AACPlus of AACPlus.t
   | VoAacEnc of VoAacEnc.t
+  | FdkAacEnc of FdkAacEnc.t
   | External of External.t
+  | GStreamer of GStreamer.t
 
 let kind_of_format = function
   | WAV w ->
@@ -435,6 +688,9 @@ let kind_of_format = function
         Frame.video = 0 ; Frame.midi = 0 }
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;
+        Frame.video = 0 ; Frame.midi = 0 }
+  | Shine m ->
+      { Frame.audio = m.Shine.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
   | Flac m ->
       { Frame.audio = m.Flac.channels ;
@@ -445,10 +701,15 @@ let kind_of_format = function
   | VoAacEnc m ->
       { Frame.audio = m.VoAacEnc.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | FdkAacEnc m ->
+      { Frame.audio = m.FdkAacEnc.channels ;
+        Frame.video = 0 ; Frame.midi = 0 }
   | Ogg l ->
       List.fold_left
         (fun k -> function
            | Ogg.Vorbis { Vorbis.channels = n } ->
+               { k with Frame.audio = k.Frame.audio+n }
+           | Ogg.Opus { Opus.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Flac { Flac.channels = n } ->
                { k with Frame.audio = k.Frame.audio+n }
@@ -464,6 +725,10 @@ let kind_of_format = function
   | External e ->
       { Frame.audio = e.External.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | GStreamer e ->
+    { Frame.audio = GStreamer.audio_channels e;
+      Frame.video = GStreamer.video_channels e;
+      Frame.midi = 0 }
 
 let kind_of_format f =
   let k = kind_of_format f in
@@ -475,10 +740,13 @@ let string_of_format = function
   | WAV w -> WAV.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
+  | Shine w -> Shine.to_string w
   | Flac w -> Flac.to_string w
   | AACPlus w -> AACPlus.to_string w
   | VoAacEnc w -> VoAacEnc.to_string w
+  | FdkAacEnc w -> FdkAacEnc.to_string w
   | External w -> External.to_string w
+  | GStreamer w -> GStreamer.to_string w
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 
