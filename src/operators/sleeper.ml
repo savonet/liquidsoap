@@ -24,9 +24,12 @@ open Source
 
 let minisleep t = ignore (Unix.select [] [] [] t)
 
-class map ~kind source delay random =
+class map ~kind source delay random die =
+  let dt = AFrame.duration () in
 object (self)
   inherit operator kind [source] as super
+
+  val mutable lived = 0.
 
   method stype = source#stype
   method remaining = source#remaining
@@ -36,7 +39,10 @@ object (self)
   method private get_frame buf =
     source#get buf;
     let delay = delay +. Random.float random in
-    minisleep delay
+    minisleep delay;
+    lived <- lived +. max dt delay;
+    if die >= 0. && lived >= die then
+      while true do minisleep 60. done
 end
 
 let () =
@@ -45,6 +51,7 @@ let () =
     [
       "delay", Lang.float_t, Some (Lang.float 1.), Some "Amount of time to sleep at each frame, the unit being the frame length.";
       "random", Lang.float_t, Some (Lang.float 0.), Some "Maximal random amount of time added (unit is frame length).";
+      "die", Lang.float_t, Some (Lang.float (-1.)), Some "Die after given amount of time (don't die if negative).";
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)
@@ -56,5 +63,6 @@ let () =
       let delay = AFrame.duration () *. delay in
       let random = Lang.to_float (List.assoc "random" p) in
       let random = AFrame.duration () *. random in
+      let die = Lang.to_float (List.assoc "die" p) in
       let src = Lang.to_source (List.assoc "" p) in
-      new map ~kind src delay random)
+      new map ~kind src delay random die)
