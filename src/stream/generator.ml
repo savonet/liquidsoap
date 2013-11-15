@@ -132,7 +132,7 @@ let put g content ofs len =
   g.length <- g.length + len ;
   Queue.add (content,ofs,len) g.buffers
 
-(** Get [size] amount of data from [g].
+(*  Get [size] amount of data from [g].
   * Returns a list where each element will typically be passed to a blit:
   * its elements are of the form [b,o,o',l] where [o] is the offset of data
   * in the block [b], [o'] is the position at which it should be written
@@ -359,8 +359,7 @@ struct
     * otherwise both have to be fed. *)
   let mode t = t.mode
 
-  (** Change the generator mode.
-    * Only allowed when there is as much audio as video.  *)
+  (** Change the generator mode. Only allowed when there is as much audio as video.  *)
   let set_mode t m =
     if t.mode <> m then begin
       assert (audio_length t = video_length t) ;
@@ -390,6 +389,39 @@ struct
             Generator.put t.audio [||] 0 l
         | `Both -> ()
         | `Audio | `Undefined -> assert false
+
+  (** Take all data from a frame: breaks, metadata and available content. *)
+  let feed_from_frame t frame =
+    let size = Lazy.force Frame.size in
+    t.metadata <-
+      t.metadata @
+      (List.map
+         (fun (p,m) -> length t + p, m)
+         (Frame.get_all_metadata frame)) ;
+    t.breaks <-
+      t.breaks @
+      (List.map
+         (fun p -> length t + p)
+         (* Filter out the last break, which only marks the end
+          * of frame, not a track limit (doesn't mean is_partial). *)
+         (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
+    (* Feed all content layers into the generator. *)
+    let rec feed_all ofs = function
+      | (cstop,content)::contents ->
+        let content = Frame.copy content in
+        (
+          match mode t with
+          | `Audio -> put_audio t content.Frame.audio ofs cstop
+          | `Video -> put_video t content.Frame.video ofs cstop
+          | `Both ->
+            put_audio t content.Frame.audio ofs cstop;
+            put_video t content.Frame.video ofs cstop
+          | `Undefined -> ()
+        );
+        if cstop < size then feed_all cstop contents
+      | [] -> assert false
+    in
+    feed_all 0 frame.Frame.contents
 
   (* Advance metadata and breaks by [len] ticks. *)
   let advance t len =
@@ -480,7 +512,6 @@ struct
           | 0::tl -> t.breaks <- tl
           | [] -> () (* end of stream / underrun ... *)
           | _ -> assert false
-
 end
 
 module From_audio_video_plus =
