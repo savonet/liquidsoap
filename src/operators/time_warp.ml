@@ -191,8 +191,8 @@ struct
 
     method stype = Source.Fallible
 
-    (* TODO *)
-    method remaining = -1
+    method remaining =
+      proceed c (fun () -> MG.remaining c.mg)
 
     method is_ready =
       proceed c (fun () -> not c.buffering)
