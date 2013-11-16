@@ -163,7 +163,8 @@ let () =
 
 module AdaptativeBuffer =
 struct
-  module RB = Audio.Ringbuffer_ext
+  module RB = Audio.Ringbuffer
+  module MG = Generator.Metadata
 
   (* The kind of value shared by a producer and a consumer. *)
   (* TODO: also have breaks and metadata as in generators. *)
@@ -171,6 +172,7 @@ struct
     lock : Mutex.t;
     rb : RB.t;
     mutable rb_length : float; (* average length of the ringbuffer in samples *)
+    mg : MG.t;
     mutable buffering : bool;
     mutable abort : bool;
   }
@@ -185,7 +187,7 @@ struct
     (* see get_frame for an explanation *)
     let alpha = log 2. *. AFrame.duration () /. averaging in
   object (self)
-    inherit Source.source kind ~name:"warp_prod"
+    inherit Source.source kind ~name:"buffer.adaptative_producer"
 
     method stype = Source.Fallible
 
@@ -220,33 +222,51 @@ struct
           (* Fill dlen samples of dst using slen samples of the ringbuffer. *)
           let fill dst dofs dlen slen =
             let slen = min slen (RB.read_space c.rb) in
-            let src = Audio.create channels slen in
-            RB.read c.rb src 0 slen;
-            if slen = dlen then
-              Audio.blit src 0 dst dofs slen
-            else
-              (* TODO: we could do better than nearest interpolation. However,
-                 for slight adaptations the difference should not really be
-                 audible. *)
-              for c = 0 to channels - 1 do
-                let srcc = src.(c) in
-                let dstc = dst.(c) in
-                for i = 0 to dlen - 1 do
-                  dstc.(i + dofs) <- srcc.(i * slen / dlen)
+            if slen > 0 then
+              let src = Audio.create channels slen in
+              RB.read c.rb src 0 slen;
+              if slen = dlen then
+                Audio.blit src 0 dst dofs slen
+              else
+                (* TODO: we could do better than nearest interpolation. However,
+                   for slight adaptations the difference should not really be
+                   audible. *)
+                for c = 0 to channels - 1 do
+                  let srcc = src.(c) in
+                  let dstc = dst.(c) in
+                  for i = 0 to dlen - 1 do
+                    let x = srcc.(i * slen / dlen) in
+                    dstc.(i + dofs) <- x
+                  done
                 done
-              done
           in
 
-          let ofs = AFrame.position frame in
-          let len = AFrame.size () - ofs in
-          let buf = AFrame.content_of_type ~channels frame ofs in
+          let ofs = Frame.position frame in
+          (* Yes, I've seen some cases... *)
+          let ofs = max 0 ofs in
+          let len =
+            let len = Lazy.force Frame.size - ofs in
+            let rem = MG.remaining c.mg in
+            if rem = -1 then len else min len rem
+          in
+          let aofs = Frame.audio_of_master ofs in
+          let alen = Frame.audio_of_master len in
+          let buf = AFrame.content_of_type ~channels frame aofs in
 
           (* We scale the reading so that the buffer always approximatively
              contains prebuf data. *)
           let scaling = c.rb_length /. prebuf in
-          let slen = int_of_float (float len *. scaling) in
-          fill buf ofs len slen;
-          AFrame.add_break frame len;
+          let scale n = int_of_float (float n *. scaling) in
+          let salen = scale alen in
+          fill buf aofs alen salen;
+          Frame.add_break frame len;
+
+          (* Fill in metadata *)
+          let md = MG.metadata c.mg len in
+          List.iter (fun (t,m) -> Frame.set_metadata frame (scale t) m) md;
+          MG.advance c.mg len;
+          if Frame.is_partial frame then MG.drop_initial_break c.mg;
+
           (* If we should play at 10x we declare that we should buffer again. *)
           if RB.read_space c.rb = 0 || scaling < 0.1 then begin
             self#log#f 3 "Buffer emptied, start buffering...";
@@ -258,12 +278,11 @@ struct
   end
 
   class consumer
-    ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
+    ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
     ~kind source_val c
     =
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let prebuf = Frame.audio_of_seconds pre_buffer in
-    (* let maxbuf = Frame.audio_of_seconds max_buffer in *)
   object (self)
     inherit Output.output
       ~output_kind:"buffer" ~content_kind:kind
@@ -287,11 +306,11 @@ struct
           let len = AFrame.position frame in
           (* TODO: is this ok to start from 0? *)
           let buf = AFrame.content_of_type ~channels frame 0 in
+          if RB.write_space c.rb < len then RB.read_advance c.rb (len - RB.write_space c.rb);
           RB.write c.rb buf 0 len;
-          if RB.read_space c.rb > prebuf then begin
-            c.buffering <- false;
-            (* TODO: drop if greater than maxbuf *)
-          end)
+          MG.feed_from_frame c.mg frame;
+          if RB.read_space c.rb > prebuf then c.buffering <- false
+        )
 
   end
 
@@ -303,6 +322,7 @@ struct
         lock = Mutex.create ();
         rb = RB.create channels (Frame.audio_of_seconds max_buffer);
         rb_length = float (Frame.audio_of_seconds pre_buffer);
+        mg = MG.create ();
         buffering = true;
         abort = false;
       }
@@ -311,8 +331,7 @@ struct
     let _ =
       new consumer
         ~autostart ~infallible ~on_start ~on_stop
-        ~kind source_val
-        ~pre_buffer ~max_buffer control
+        ~kind source_val ~pre_buffer control
     in
     new producer ~kind ~pre_buffer ~averaging source control
 end
@@ -321,13 +340,19 @@ let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   Lang.add_operator "buffer.adaptative"
     (Output.proto @
-       ["buffer", Lang.float_t, Some (Lang.float 1.), Some "Amount of data to pre-buffer, in seconds.";
-        "max", Lang.float_t, Some (Lang.float 10.), Some "Maximum amount of buffered data, in seconds.";
-        "averaging", Lang.float_t, Some (Lang.float 30.), Some "Half-life for the averaging of the buffer size, in seconds.";
+       ["buffer", Lang.float_t, Some (Lang.float 1.),
+        Some "Amount of data to pre-buffer, in seconds.";
+        "max", Lang.float_t, Some (Lang.float 10.),
+        Some "Maximum amount of buffered data, in seconds.";
+        "averaging", Lang.float_t, Some (Lang.float 30.),
+        Some "Half-life for the averaging of the buffer size, in seconds.";
         "", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Liquidsoap
-    ~descr:"Create a buffer between two different clocks. The speed of the output is adapted so that no buffer underrun or overrun occur. This wonderful behavior has a cost: the pitch of the sound might be changed a little. Also, this operator drops track boundaries and metadata for now."
+    ~descr:"Create a buffer between two different clocks. The speed of \
+            the output is adapted so that no buffer underrun or overrun \
+            occurs. This wonderful behavior has a cost: the pitch of the \
+            sound might be changed a little."
     ~flags:[Lang.Experimental]
     (fun p kind ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

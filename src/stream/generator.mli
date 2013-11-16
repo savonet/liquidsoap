@@ -83,6 +83,41 @@ sig
   val get : 'a t -> int -> ('a * int * int * int) list
 end
 
+(** A generator for metadata. *)
+module Metadata : sig
+  (** A metadata generator. *)
+  type t
+
+  (** Create a generator. *)
+  val create : unit -> t
+
+  (** Clear generator. *)
+  val clear : t -> unit
+
+  (** Length in ticks. *)
+  val length : t -> int
+
+  (** Time until next break, or -1 if there is none. *)
+  val remaining : t -> int
+
+  (** Drop a portion at the begining. *)
+  val advance : t -> int -> unit
+
+  (** Drop break at the beginning. This should be called after filling a partial
+      frame manually (i.e. not using [fill]). *)
+  val drop_initial_break : t -> unit
+
+  (** Retrieve all metadata between now and given time. *)
+  val metadata : t -> int -> (int * Frame.metadata) list
+
+  (** Feed all breaks and metadata from a frame. *)
+  val feed_from_frame : t -> Frame.t -> unit
+
+  (** Fill a frame (until the next break) with metadata and add a break at the
+      end. *)
+  val fill : t -> Frame.t -> unit
+end
+
 (** A generator that consumes frames (or frame content) and produces frames. *)
 module From_frames :
 sig
