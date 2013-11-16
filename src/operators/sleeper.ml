@@ -22,8 +22,6 @@
 
 open Source
 
-let minisleep t = ignore (Unix.select [] [] [] t)
-
 class map ~kind source delay random die =
   let dt = AFrame.duration () in
 object (self)
@@ -39,19 +37,22 @@ object (self)
   method private get_frame buf =
     source#get buf;
     let delay = delay +. Random.float random in
-    minisleep delay;
+    Thread.delay delay;
     lived <- lived +. max dt delay;
     if die >= 0. && lived >= die then
-      while true do minisleep 60. done
+      while true do Thread.delay 60. done
 end
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "sleeper"
     [
-      "delay", Lang.float_t, Some (Lang.float 1.), Some "Amount of time to sleep at each frame, the unit being the frame length.";
-      "random", Lang.float_t, Some (Lang.float 0.), Some "Maximal random amount of time added (unit is frame length).";
-      "die", Lang.float_t, Some (Lang.float (-1.)), Some "Die after given amount of time (don't die if negative).";
+      "delay", Lang.float_t, Some (Lang.float 1.),
+      Some "Amount of time to sleep at each frame, the unit being the frame length.";
+      "random", Lang.float_t, Some (Lang.float 0.),
+      Some "Maximal random amount of time added (unit is frame length).";
+      "die", Lang.float_t, Some (Lang.float (-1.)),
+      Some "Die after given amount of time (don't die if negative).";
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)
