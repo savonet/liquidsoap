@@ -22,7 +22,7 @@
 
 open Source
 
-class map ~kind source delay random die =
+class map ~kind source delay random freeze =
   let dt = AFrame.duration () in
 object (self)
   inherit operator kind [source] as super
@@ -39,7 +39,7 @@ object (self)
     let delay = delay +. Random.float random in
     Thread.delay delay;
     lived <- lived +. max dt delay;
-    if die >= 0. && lived >= die then
+    if freeze >= 0. && lived >= freeze then
       while true do Thread.delay 60. done
 end
 
@@ -51,8 +51,8 @@ let () =
       Some "Amount of time to sleep at each frame, the unit being the frame length.";
       "random", Lang.float_t, Some (Lang.float 0.),
       Some "Maximal random amount of time added (unit is frame length).";
-      "die", Lang.float_t, Some (Lang.float (-1.)),
-      Some "Die after given amount of time (don't die if negative).";
+      "freeze", Lang.float_t, Some (Lang.float (-1.)),
+      Some "Freeze after given amount of time (don't freeze if negative).";
       "", Lang.source_t k, None, None
     ]
     ~kind:(Lang.Unconstrained k)
@@ -64,6 +64,6 @@ let () =
       let delay = AFrame.duration () *. delay in
       let random = Lang.to_float (List.assoc "random" p) in
       let random = AFrame.duration () *. random in
-      let die = Lang.to_float (List.assoc "die" p) in
+      let freeze = Lang.to_float (List.assoc "freeze" p) in
       let src = Lang.to_source (List.assoc "" p) in
-      new map ~kind src delay random die)
+      new map ~kind src delay random freeze)
