@@ -132,7 +132,9 @@ object (self)
     Clock.unify slave_clock s#clock ;
     Lang.iter_sources
       (fun s -> Clock.unify slave_clock s#clock)
-      f
+      f ;
+    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   (* Intermediate for buffering the source's stream. *)
   val buf_frame = Frame.create kind

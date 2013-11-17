@@ -90,6 +90,7 @@ object
   (** Attach a sub_clock, get all subclocks, see below. *)
 
   method attach_clock : 'b -> unit
+  method detach_clock : 'b -> unit
   method sub_clocks : 'b list
 
   method start_outputs : ('a -> bool) -> unit -> 'a list
@@ -210,6 +211,13 @@ let rec unify a b =
         List.iter c#attach s ;
         List.iter c#attach_clock sc ;
         r := Same_as (Known c)
+
+let rec forget var subclock =
+  match var with
+    | Known c -> c#detach_clock subclock
+    | Link {contents=Same_as a} -> forget a subclock
+    | Link ({contents=Unknown (sources,clocks)} as r) ->
+        r := Unknown (sources, List.filter ((<>) subclock) clocks)
 
 (** {1 Sources} *)
 
@@ -617,6 +625,7 @@ object
   method attach : active_source -> unit
   method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit
+  method detach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
   method start_outputs : (active_source -> bool) -> unit -> active_source list
   method get_tick : int
@@ -629,6 +638,7 @@ struct
   let create_unknown = create_unknown
   let create_known = create_known
   let unify = unify
+  let forget = forget
   let get v =
     match deref v with
       | Known c -> c

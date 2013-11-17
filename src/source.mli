@@ -181,14 +181,19 @@ object
   (** Identifier of the clock. *)
   method id : string
 
-  (** Attach an output source to the clock. *)
+  (** Attach an active source to the clock. *)
   method attach : active_source -> unit
 
-  (** Detach output sources which satisfy a given criterion from the source. *)
+  (** Detach active sources that satisfy a given criterion. *)
   method detach : (active_source -> bool) -> unit
 
+  (** Manage subordinate clocks *)
+
   method attach_clock : clock_variable -> unit
+  method detach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
+
+  (** Streaming *)
 
   method start_outputs : (active_source -> bool) -> unit -> active_source list
   method get_tick : int
@@ -206,6 +211,7 @@ sig
                        clock_variable
   val create_known : clock -> clock_variable
   val unify : clock_variable -> clock_variable -> unit
+  val forget : clock_variable -> clock_variable -> unit
   val get : clock_variable -> clock
   val is_known : clock_variable -> bool
 end

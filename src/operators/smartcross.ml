@@ -109,7 +109,9 @@ object (self)
     Clock.unify slave_clock s#clock ;
     Lang.iter_sources
       (fun s -> Clock.unify slave_clock s#clock)
-      transition
+      transition ;
+    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   val mutable master_time = 0
   val mutable last_slave_tick = 0 (* in master time *)

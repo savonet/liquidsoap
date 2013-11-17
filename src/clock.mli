@@ -85,4 +85,5 @@ val create_unknown : sources:(Source.active_source list) ->
                      clock_variable
 val create_known : clock -> clock_variable
 val unify : clock_variable -> clock_variable -> unit
+val forget : clock_variable -> clock_variable -> unit
 val get : clock_variable -> Source.clock

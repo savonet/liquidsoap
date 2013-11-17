@@ -126,6 +126,9 @@ object (self)
   method sub_clocks = sub_clocks
   method attach_clock c =
     if not (List.mem c sub_clocks) then sub_clocks <- c::sub_clocks
+  method detach_clock c =
+    assert (List.mem c sub_clocks) ;
+    sub_clocks <- List.filter (fun c' -> c <> c') sub_clocks
 
   val mutable round = 0
 
