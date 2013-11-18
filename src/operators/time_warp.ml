@@ -242,12 +242,11 @@ struct
           in
 
           let ofs = Frame.position frame in
-          (* Yes, I've seen some cases... *)
-          let ofs = max 0 ofs in
           let len =
             let len = Lazy.force Frame.size - ofs in
             let rem = MG.remaining c.mg in
-            if rem = -1 then len else min len rem
+            let rem = if rem = -1 then MG.length c.mg else rem in
+            min len rem
           in
           let aofs = Frame.audio_of_master ofs in
           let alen = Frame.audio_of_master len in

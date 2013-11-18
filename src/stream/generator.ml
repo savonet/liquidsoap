@@ -194,7 +194,8 @@ module Metadata = struct
     g.metadata <- List.filter (fun (t,_) -> t >= 0) g.metadata;
     g.breaks <- List.map (fun t -> t-len) g.breaks;
     g.breaks <- List.filter (fun t -> t >= 0) g.breaks;
-    g.length <- g.length - len
+    g.length <- g.length - len;
+    assert (g.length >= 0)
 
   let length g = g.length
 
