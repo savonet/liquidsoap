@@ -332,7 +332,7 @@ let start_socket () =
      Unix.bind sock bind_addr;
      Unix.listen sock max_conn;
      ignore
-       (Dtools.Init.at_stop
+       (Shutdown.at_stop
           (fun () ->
              (log#f 3 "Unlink %s" socket_name; Unix.unlink socket_path)));
      Unix.chmod socket_path rights;
@@ -348,7 +348,13 @@ let start_telnet () =
   let bind_addr_inet = Unix.inet_addr_of_string conf_telnet_bind_addr#get in
   let bind_addr = Unix.ADDR_INET (bind_addr_inet, port) in
   let max_conn = 10 in
-  let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0
+  let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  let () =
+    (* The socket has to be closed for restart to work, and this has to be
+       done after duppy has stopped using it. *)
+    Shutdown.at_stop ~name: "Server shutdown"
+      ~depends: [ Shutdown.duppy_scheduler () ]
+      (fun () -> (log#f 3 "Closing socket."; Unix.close sock))
   in
     (* Set TCP_NODELAY on the socket *)
     (Unix.setsockopt sock Unix.TCP_NODELAY true;
