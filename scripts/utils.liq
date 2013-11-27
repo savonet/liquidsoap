@@ -755,3 +755,17 @@ end
 def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
   on_blank({source.skip(s)},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
+
+# Extract the left channel of a stereo source
+# @category Source / Conversions
+# @param s Source to extract from
+def stereo.left(s)
+  mean(stereo.pan(pan=-1., s))
+end
+
+# Extract the right channel of a stereo source
+# @category Source / Conversions
+# @param s Source to extract from
+def stereo.right(s)
+  mean(stereo.pan(pan=1., s))
+end
