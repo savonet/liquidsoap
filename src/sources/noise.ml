@@ -53,7 +53,7 @@ let () =
   let k = Lang.frame_kind_t (Lang.univ_t 1) (Lang.univ_t 2) Lang.zero_t in
     Lang.add_operator "noise"
       ~category:Lang.Input
-      ~descr:"Generate white noise."
+      ~descr:"Generate (audio and/or video) white noise."
       [ "duration", Lang.float_t, Some (Lang.float 0.), None ]
       ~kind:(Lang.Unconstrained k)
       (fun p kind ->
