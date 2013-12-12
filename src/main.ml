@@ -614,8 +614,9 @@ struct
       Clock.start () ;
       Tutils.main ()
     in
-      ignore (Init.at_stop ~before:[Shutdown.duppy ()] cleanup_threads);
-      Shutdown.final_atom := Some (Init.at_stop ~depends:[Shutdown.duppy ()] cleanup_final);
+      (* We join threads, then shutdown duppy, then do the final task. *)
+      ignore (Init.at_stop ~before:[Shutdown.duppy_scheduler ()] cleanup_threads);
+      Shutdown.final_atom := Some (Init.at_stop ~depends:[Shutdown.duppy_scheduler ()] cleanup_final);
       if !interactive then begin
         load_libs () ;
         Log.conf_stdout#set_d (Some false) ;
