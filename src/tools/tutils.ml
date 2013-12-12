@@ -182,6 +182,15 @@ type priority =
 
 let scheduler = Duppy.create ()
 
+let () =
+  let name = "Duppy scheduler shutdown" in
+  let f () =
+    log#f 3 "Shutting down scheduler...";
+    Duppy.stop scheduler;
+    log#f 3 "Scheduler shut down."
+  in
+  Shutdown.duppy_atom := Some (Dtools.Init.at_stop ~name f)
+
 let scheduler_log n =
   if scheduler_log#get then
     let log = Log.make [n] in

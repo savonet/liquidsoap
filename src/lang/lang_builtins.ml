@@ -1280,6 +1280,13 @@ let () =
   add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
     [] Lang.unit_t
     (fun p ->
+      Shutdown.restart := false ;
+      Tutils.shutdown () ;
+      Lang.unit) ;
+  add_builtin "restart" ~cat:Sys ~descr:"Restart the application."
+    [] Lang.unit_t
+    (fun p ->
+      Shutdown.restart := true ;
       Tutils.shutdown () ;
       Lang.unit)
 
@@ -1307,7 +1314,8 @@ let () =
     (fun p ->
        let f = List.assoc "" p in
        let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
-         ignore (Dtools.Init.at_stop wrap_f) ;
+         (* TODO: this could happen after duppy and other threads are shut down, is that ok? *)
+         ignore (Shutdown.at_stop wrap_f) ;
          Lang.unit)
 
 let () =

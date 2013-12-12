@@ -572,15 +572,27 @@ struct
 
   (* Now that outputs have been defined, we can start the main loop. *)
   let () =
-    let cleanup () =
+    let cleanup_threads () =
       log#f 3 "Shutdown started!" ;
       Clock.stop () ;
       log#f 3 "Waiting for threads to terminate..." ;
-      Tutils.join_all () ;
+      Tutils.join_all ();
+      log#f 3 "Threads terminated."
+    in
+    let cleanup_final () =
       log#f 3 "Cleaning downloaded files..." ;
       Request.clean () ;
       log#f 3 "Freeing memory..." ;
-      Gc.full_major ()
+      Gc.full_major ();
+      if !Shutdown.restart then
+        (
+          log#f 3 "Restarting..." ;
+          Unix.execv Sys.executable_name Sys.argv
+        )
+    in
+    let cleanup () =
+      cleanup_threads ();
+      cleanup_final ()
     in
     let main () =
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
@@ -602,7 +614,9 @@ struct
       Clock.start () ;
       Tutils.main ()
     in
-      ignore (Init.at_stop cleanup) ;
+      (* We join threads, then shutdown duppy, then do the final task. *)
+      ignore (Init.at_stop ~before:[Shutdown.duppy_scheduler ()] cleanup_threads);
+      Shutdown.final_atom := Some (Init.at_stop ~depends:[Shutdown.duppy_scheduler ()] cleanup_final);
       if !interactive then begin
         load_libs () ;
         Log.conf_stdout#set_d (Some false) ;
