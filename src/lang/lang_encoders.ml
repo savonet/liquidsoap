@@ -527,7 +527,7 @@ let opus params =
           | ("bitrate",{ term = String "max" }) ->
               { f with Encoder.Opus.bitrate = `Bitrate_max }
           | ("channels",({ term = Int i } as t)) ->
-              if i < 1 or i > 2 then
+              if i < 1 || i > 2 then
                 raise (Error (t,"only mono and stereo streams are supported \
                                  for now"));
               { f with Encoder.Opus.channels = i }
