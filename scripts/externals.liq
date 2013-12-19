@@ -25,15 +25,15 @@ def enable_external_mpc_decoder() =
       # Otherwise test file extension
       ret = string.extract(pattern='\.(.+)$',file)
       if list.length(ret) != 0 then
-         ext = ret["1"]
-         if list.mem(ext,mpc_filexts) then
-           get_channels(file)
-         else
-            0
-         end
-       else
-         get_channels(file)
-       end
+        ext = ret["1"]
+        if list.mem(ext,mpc_filexts) then
+          get_channels(file)
+        else
+          0
+        end
+      else
+        get_channels(file)
+      end
     end
   end
 
@@ -82,27 +82,27 @@ def enable_external_flac_decoder() =
   end
 
   if test_process("which metaflac") then
-   log(level=3,"Found metaflac binary: enabling flac external metadata \
+    log(level=3,"Found metaflac binary: enabling flac external metadata \
                 resolver.")
-   def flac_meta(file)
-     ret = get_process_lines("metaflac#{exe_ext} --export-tags-to=- \
-                  #{quote(file)} 2>/dev/null")
-     ret = list.map(string.split(separator="="),ret)
-     # Could be made better..
-     def f(l',l)=
-       if list.length(l) >= 2 then
-         list.append([(list.hd(l),list.nth(l,1))],l')
-       else
-         if list.length(l) >= 1 then
-           list.append([(list.hd(l),"")],l')
-         else
-         l'
-       end
-     end
-   end
-   list.fold(f,[],ret)
-   end
-   add_metadata_resolver("EXTERNAL_FLAC",flac_meta)
+    def flac_meta(file)
+      ret = get_process_lines("metaflac#{exe_ext} --export-tags-to=- \
+                   #{quote(file)} 2>/dev/null")
+      ret = list.map(string.split(separator="="),ret)
+      # Could be made better..
+      def f(l',l)=
+        if list.length(l) >= 2 then
+          list.append([(list.hd(l),list.nth(l,1))],l')
+        else
+          if list.length(l) >= 1 then
+            list.append([(list.hd(l),"")],l')
+          else
+            l'
+          end
+        end
+      end
+      list.fold(f,[],ret)
+    end
+    add_metadata_resolver("EXTERNAL_FLAC",flac_meta)
   else
     log(level=3,"Did not find metaflac binary: flac metadata resolver disabled.")
   end
@@ -139,11 +139,11 @@ def enable_external_faad_decoder() =
       # Otherwise test file extension
       ret = string.extract(pattern='\.(.+)$',file)
       if list.length(ret) != 0 then
-         ext = ret["1"]
-         list.mem(ext,aac_filexts)
-       else
-         false
-       end
+        ext = ret["1"]
+        list.mem(ext,aac_filexts)
+      else
+        false
+      end
     end
   end
 
@@ -158,8 +158,8 @@ def enable_external_faad_decoder() =
         ret = string.extract(pattern=", (\d) ch,",channels)
         ret =
           if list.length(ret) == 0 then
-          # If we pass the faad_test, chances are
-          # high that the file will contain aac audio data..
+            # If we pass the faad_test, chances are high that the file will
+            # contain aac audio data..
             "-1"
           else
             ret["1"]
