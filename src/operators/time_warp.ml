@@ -153,10 +153,7 @@ let () =
          let s = List.assoc "" p in
          let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
          let max_buffer = Lang.to_float (List.assoc "max" p) in
-           if pre_buffer >= max_buffer then
-             raise (Lang.Invalid_value
-                      (List.assoc "max" p,
-                       "Maximum buffering inferior to pre-buffering"));
+         let max_buffer = max max_buffer (pre_buffer *. 1.1) in
            Buffer.create
              ~infallible ~autostart ~on_start ~on_stop
              ~pre_buffer ~max_buffer ~kind s)
@@ -364,10 +361,7 @@ let () =
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let averaging = Lang.to_float (List.assoc "averaging" p) in
-      if pre_buffer >= max_buffer then
-        raise (Lang.Invalid_value
-                 (List.assoc "max" p,
-                  "Maximum buffering inferior to pre-buffering"));
+      let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       AdaptativeBuffer.create
         ~infallible ~autostart ~on_start ~on_stop
         ~pre_buffer ~max_buffer ~averaging ~kind s)
