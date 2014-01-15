@@ -120,6 +120,15 @@ type protocol =
     | `Websocket
   ]
 
+let string_of_protocol =
+  function
+  | `Http_10 -> "HTTP/1.0"
+  | `Http_11 -> "HTTP/1.1"
+  | `Ice_10 -> "ICE/1.0"
+  | `Icy -> "ICY"
+  | `Xaudiocast_uri uri -> Printf.sprintf "X-AUDIOCAST (%s)" uri
+  | `Websocket -> "WEBSOCKET"
+  
 type reply = | Close of string | Relay of string * (unit -> unit)
 
 let reply s = Duppy.Monad.raise (Close s)
@@ -353,8 +362,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                         | `Http_11 -> "HTTP/1.1"
                         | _ -> assert false
                       in
-                        relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol)
-                          f))
+                        (log#f 5 "Relaying %s."
+                           (string_of_protocol hprotocol);
+                         relayed
+                           (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f)))
               with
               | Mount_taken ->
                   (log#f 4 "Returned 403: Mount taken";
