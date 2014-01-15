@@ -527,7 +527,7 @@ struct
     Configure.load_plugins_dir Configure.plugins_dir
 
   (* Startup *)
-  let () =
+  let startup () =
     Random.self_init () ;
 
     (* Set the default values. *)
@@ -617,6 +617,7 @@ struct
       (* We join threads, then shutdown duppy, then do the final task. *)
       ignore (Init.at_stop ~before:[Shutdown.duppy_scheduler ()] cleanup_threads);
       Shutdown.final_atom := Some (Init.at_stop ~depends:[Shutdown.duppy_scheduler ()] cleanup_final);
+      startup ();
       if !interactive then begin
         load_libs () ;
         Log.conf_stdout#set_d (Some false) ;
