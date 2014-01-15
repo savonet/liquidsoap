@@ -236,7 +236,7 @@ replace both encoders in a future release.
 
 Its syntax is:
 %%
-%fdkaac(channels=2, samplerate=44100, aot="mpeg2_he_aac_v2", transmux="adts", transmux=true, sbr_mode=false)
+%fdkaac(channels=2, samplerate=44100, bitrate=64, afterburner=false, aot="mpeg2_he_aac_v2", transmux="adts", sbr_mode=false)
 %%
 
 Where @aot@ is one of: @"mpeg4_aac_lc"@, @"mpeg4_he_aac"@, @"mpeg4_he_aac_v2"@,
