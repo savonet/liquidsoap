@@ -390,13 +390,13 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
          s#relay ?read stype headers h.Duppy.Monad.Io.socket
        in
        log#f 4 "Adding source on mountpoint %S with type %S." uri stype ;
+       log#f 5 "Relaying %s." (string_of_protocol hprotocol) ;
        let protocol =
          match hprotocol with
            | `Http_10 -> "HTTP/1.0"
            | `Http_11 -> "HTTP/1.1"
            | _ -> assert false
        in
-       log#f 5 "Relaying %s." (string_of_protocol hprotocol);
        relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f
     with
       | Mount_taken ->
