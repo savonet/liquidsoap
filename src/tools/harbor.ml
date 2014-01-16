@@ -359,7 +359,7 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                       log#f 5 "Relaying %s." (string_of_protocol hprotocol);
                       let protocol =
                         match hprotocol with
-                        | `Http_10 -> "HTTP/1.0"
+                        | `Ice_10 | `Http_10 -> "HTTP/1.0"
                         | `Http_11 -> "HTTP/1.1"
                         | _ -> assert false
                       in
