@@ -182,8 +182,9 @@ let () =
   (fun ~metadata filename kind ->
   (* Before doing anything, check that we are allowed to produce
    * audio, and don't have to produce midi or video. Only then
-   * check that the file seems relevant for MP3 decoding. *)
-  if kind.Frame.audio = Frame.Zero ||
+   * check that the file seems relevant for AAC decoding. *)
+  let content = get_type filename in
+  if content.Frame.audio = 0 ||
      not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
           Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
      not (Decoder.test_file ~mimes:aac_mime_types#get
@@ -194,7 +195,7 @@ let () =
   else
     if kind.Frame.audio = Frame.Variable ||
        kind.Frame.audio = Frame.Succ Frame.Variable ||
-       Frame.type_has_kind (get_type filename) kind
+       Frame.type_has_kind content kind
     then
       Some (fun () -> create_file_decoder filename kind)
     else
@@ -318,8 +319,10 @@ let () =
   (fun ~metadata filename kind ->
   (* Before doing anything, check that we are allowed to produce
    * audio, and don't have to produce midi or video. Only then
-   * check that the file seems relevant for MP3 decoding. *)
-  if kind.Frame.audio = Frame.Zero ||
+   * check that the file seems relevant for MP4 decoding. *)
+  let content = get_type filename in
+  if content.Frame.audio = 0 ||
+     kind.Frame.audio = Frame.Zero ||
      not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
           Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
      not (Decoder.test_file ~mimes:mp4_mime_types#get
@@ -330,7 +333,7 @@ let () =
   else
     if kind.Frame.audio = Frame.Variable ||
        kind.Frame.audio = Frame.Succ Frame.Variable ||
-       Frame.type_has_kind (get_type filename) kind
+       Frame.type_has_kind content kind
     then
       Some (fun () -> create_file_decoder filename kind)
     else
