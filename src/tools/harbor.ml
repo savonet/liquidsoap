@@ -108,7 +108,8 @@ let string_of_verb =
   | `Delete -> "DELETE"
   | `Head -> "HEAD"
   | `Options -> "OPTIONS"
-  | _ -> assert false
+  | `Source -> "SOURCE"
+  | `Shout -> "SHOUT"
   
 type protocol =
   [
@@ -332,7 +333,6 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                   | `Put -> "PUT (source)"
                   | `Post -> "POST (source)"
                   | `Xaudiocast -> "X-AUDIOCAST"
-                  | _ -> assert false
                 in
                   (log#f 4 "%s request on %s." sproto uri;
                    let stype =
@@ -357,14 +357,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                      (log#f 4 "Adding source on mountpoint %S with type %S."
                         uri stype;
                       log#f 5 "Relaying %s." (string_of_protocol hprotocol);
-                      let protocol =
-                        match hprotocol with
-                        | `Ice_10 | `Http_10 -> "HTTP/1.0"
-                        | `Http_11 -> "HTTP/1.1"
-                        | _ -> assert false
-                      in
-                        relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol)
-                          f))
+                      relayed
+                        (Printf.sprintf "%s 200 OK\r\n\r\n"
+                           (string_of_protocol hprotocol))
+                        f))
               with
               | Mount_taken ->
                   (log#f 4 "Returned 403: Mount taken";
@@ -486,7 +482,8 @@ let handle_websocket_request ~port h mount headers =
   
 exception Handled of http_handler
   
-let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
+let handle_http_request ~hmethod: ((hmethod : verb)) ~hprotocol ~data ~port h
+                        uri headers =
   let ans_404 () =
     (log#f 4 "Returned 404 for '%s'." uri;
      reply (http_error_page 404 "Not found" "This page isn't available.")) in
@@ -592,11 +589,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
       in ((Pcre.get_substring sub 1), (Pcre.get_substring sub 2))
     with | Not_found -> (uri, "") in
   let smethod = string_of_verb hmethod in
-  let protocol =
-    match hprotocol with
-    | `Http_10 -> "HTTP/1.0"
-    | `Http_11 -> "HTTP/1.1"
-    | _ -> assert false
+  let protocol = string_of_protocol hprotocol
   in
     (log#f 4 "HTTP %s request on %s." smethod base_uri;
      let args = Http.args_split args in (* Filter out password *)
