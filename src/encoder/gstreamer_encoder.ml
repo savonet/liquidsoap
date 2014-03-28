@@ -37,7 +37,7 @@ type gst =
     sink : Gstreamer.App_sink.t;
   }
 
-let encoder id ext =
+let encoder ext =
   GU.init ();
   let channels = Encoder.GStreamer.audio_channels ext in
   let mutex = Mutex.create () in
@@ -116,7 +116,7 @@ let encoder id ext =
     { bin; audio_src; video_src; sink }
   in
 
-  let stop gst () =
+  let stop () =
     let ret =
      if !samples > 0 then
       begin
@@ -140,7 +140,7 @@ let encoder id ext =
    ret
   in
 
-  let insert_metadata gst m =
+  let insert_metadata m =
     let m = Encoder.Meta.to_metadata m in
     try
       let meta =
@@ -158,7 +158,7 @@ let encoder id ext =
   let nano = 1_000_000_000. in
   let vduration = Int64.of_float (Frame.seconds_of_video 1 *. nano) in
 
-  let encode h frame start len =
+  let encode frame start len =
     let nanolen = Int64.of_float (Frame.seconds_of_master len *. nano) in
     let videochans = if gst.video_src <> None then 1 else 0 in
     let content =
@@ -212,18 +212,18 @@ let encoder id ext =
 
   {
     Encoder.
-    insert_metadata = insert_metadata gst;
+    insert_metadata = insert_metadata;
     header = None;
-    encode = encode gst;
-    stop   = stop gst;
+    encode = encode;
+    stop   = stop;
   }
 
 let () =
   Encoder.plug#register "GSTREAMER"
     (function
     | Encoder.GStreamer params ->
-        let f s m =
-          let encoder = encoder s params in
+        let f _ m =
+          let encoder = encoder params in
           encoder.Encoder.insert_metadata m;
           encoder
         in

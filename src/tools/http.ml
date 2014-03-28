@@ -175,7 +175,7 @@ let connect ?bind_address host port =
         (Unix.ADDR_INET((Unix.gethostbyname host).Unix.h_addr_list.(0),port));
       socket
     with
-      | e ->
+      | _ ->
           Unix.close socket;
           raise Socket
 
@@ -242,7 +242,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
     Buffer.contents ans
 
 (* Read chunked transfer. *)
-let read_chunked ~timeout socket len =
+let read_chunked ~timeout socket =
   let read = read_crlf ~count:1 ~timeout socket in
   let len = List.hd (Pcre.split ~pat:"[\r]?\n" read) in
   let len = List.hd (Pcre.split ~pat:";" len) in
@@ -298,7 +298,7 @@ let request ?(log=fun _ -> ()) ~timeout socket request =
   in
     (response_http_version, response_status, response_msg), (List.rev fields)
 
-let http_req ?(post="") ?(headers=[]) socket host port file =
+let http_req ?(post="") ?(headers=[]) host port file =
   let action =
     if post <> "" then
       "POST"
@@ -334,11 +334,11 @@ let http_req ?(post="") ?(headers=[]) socket host port file =
     Printf.sprintf "%s\r\n" req
 
 let get ?(headers=[]) ?log ~timeout socket host port file =
-  let req = http_req ~headers:headers socket host port file in
+  let req = http_req ~headers:headers host port file in
      request ?log ~timeout socket req
 
 let post ?(headers=[]) ?log ~timeout data socket host port file =
-  let req = http_req ~post:data ~headers:headers socket host port file in
+  let req = http_req ~post:data ~headers:headers host port file in
      request ?log ~timeout socket req
 
 type request = Get | Post of string
@@ -360,7 +360,7 @@ let full_request ?headers ?(port=80) ?(log=fun _ -> ())
     in
     let max =
       try
-        let (_,len) = List.find (fun (l,k) ->
+        let (_,len) = List.find (fun (l,_) ->
           String.lowercase l = "content-length")
           headers
         in

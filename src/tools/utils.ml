@@ -106,7 +106,7 @@ let unescape s =
     | _ -> s
 
 (* Unescape a given char in a string, i.e. \\c -> c *)
-let unescape_char c s =
+let unescape_char s =
   let len = String.length s in
   let rec f ~escaped cur pos =
     if pos >= len then
@@ -150,7 +150,7 @@ let split ~sep s =
        else
          split (String.sub s 0 pos :: cur ) (String.sub s (pos+1) (len-pos-1))
   in
-  List.map (unescape_char sep) (List.rev (split [] s))
+  List.map unescape_char (List.rev (split [] s))
 
 (** Remove trailing and leading spaces. *)
 let trim s =
@@ -174,15 +174,6 @@ let rec may_map f = function
         | None -> may_map f t
       end
   | [] -> []
-
-let really_read fd buf ofs len =
-  let l = ref 0 in
-  let r = ref (-1) in
-    while !l < len && !r <> 0 do
-      r := Unix.read fd buf !l (len - !l);
-      l := !l + !r
-    done;
-    !l
 
 (* Read all data from a given filename.
  * We cannot use really_input with the 

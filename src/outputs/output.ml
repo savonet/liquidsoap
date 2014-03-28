@@ -174,7 +174,7 @@ object (self)
         source#get memo
       done ;
       List.iter
-        (fun (i,m) -> self#add_metadata m)
+        (fun (_,m) -> self#add_metadata m)
         (Frame.get_all_metadata memo) ;
       (* Output that frame *)
       self#output_send memo ;

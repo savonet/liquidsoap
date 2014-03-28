@@ -27,8 +27,8 @@ open Source
 class compress ~kind (source:source) attack release threshold ratio knee rms_window gain =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samplerate = Lazy.force Frame.audio_rate in
-object (self)
-  inherit operator ~name:"compress" kind [source] as super
+object
+  inherit operator ~name:"compress" kind [source] 
 
   val effect = new Audio.Effect.compress ~attack:(attack ()) ~release:(release ()) ~threshold:(threshold ()) ~ratio:(ratio ()) ~knee:(knee ()) ~rms_window ~gain:(gain ()) channels samplerate
 

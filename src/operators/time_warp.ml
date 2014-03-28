@@ -49,7 +49,7 @@ struct
     Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind source c =
+  class producer ~kind c =
   object (self)
     inherit Source.source kind ~name:"warp_prod"
 
@@ -82,7 +82,7 @@ struct
   =
     let prebuf = Frame.master_of_seconds pre_buffer in
     let maxbuf = Frame.master_of_seconds max_buffer in
-  object (self)
+  object
     inherit Output.output
       ~output_kind:"buffer" ~content_kind:kind
       ~infallible ~on_start ~on_stop
@@ -120,14 +120,13 @@ struct
       buffering = true ;
       abort = false
     } in
-    let source = Lang.to_source source_val in
     let _ =
       new consumer
         ~autostart ~infallible ~on_start ~on_stop
         ~kind source_val
         ~pre_buffer ~max_buffer control
     in
-      new producer ~kind source control
+      new producer ~kind control
 
 end
 
@@ -178,7 +177,7 @@ struct
     Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind ~pre_buffer ~averaging source c =
+  class producer ~kind ~pre_buffer ~averaging c =
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
     (* see get_frame for an explanation *)
@@ -279,7 +278,7 @@ struct
     =
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let prebuf = Frame.audio_of_seconds pre_buffer in
-  object (self)
+  object
     inherit Output.output
       ~output_kind:"buffer" ~content_kind:kind
       ~infallible ~on_start ~on_stop
@@ -323,13 +322,12 @@ struct
         abort = false;
       }
     in
-    let source = Lang.to_source source_val in
     let _ =
       new consumer
         ~autostart ~infallible ~on_start ~on_stop
         ~kind source_val ~pre_buffer control
     in
-    new producer ~kind ~pre_buffer ~averaging source control
+    new producer ~kind ~pre_buffer ~averaging control
 end
 
 let () =

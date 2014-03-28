@@ -53,9 +53,8 @@ let get_fader name =
   * If the initial flag is set, only the first/current track is faded in. *)
 class fade_in ~kind
   ~duration_meta ~type_meta ?(initial=false) duration fader source =
-object (self)
-
-  inherit operator ~name:"fade_in" kind [source] as super
+object
+  inherit operator ~name:"fade_in" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -114,8 +113,7 @@ end
 class fade_out ~kind
   ~duration_meta ~type_meta ?(final=false) duration fader source =
 object (self)
-
-  inherit operator ~name:"fade_out" kind [source] as super
+  inherit operator ~name:"fade_out" kind [source]
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track

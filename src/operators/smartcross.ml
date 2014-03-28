@@ -76,7 +76,7 @@ object (self)
    * pull data from it at a higher rate around track limits. *)
   val mutable source = s
 
-  method private wake_up activator =
+  method private wake_up _ =
     s#get_ready ~dynamic:true [(self:>source)] ;
     source <- s ;
     source#get_ready [(self:>source)] ;
@@ -293,7 +293,7 @@ object (self)
            in
            let metadata = function
              | None ->
-                 Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
+                 Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
              | Some m -> Lang.metadata m
            in
            let f a b =

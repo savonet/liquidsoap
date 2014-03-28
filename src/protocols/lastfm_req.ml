@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let lastfm req ~log maxtime =
+let lastfm req ~log _ =
   try
     let l = Liqfm.Radio.get (Printf.sprintf "lastfm:%s" req) in
     if l <> [] then

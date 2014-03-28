@@ -22,8 +22,6 @@
  *****************************************************************************)
 open Dtools
   
-open Http_source
-  
 let conf_harbor =
   Conf.void ~p: (Configure.conf#plug "harbor")
     "Harbor settings (Icecast/shoutcast stream receiver)."
@@ -63,8 +61,7 @@ let log = Log.make [ "harbor" ]
 exception Retry
   
 class virtual source ~kind =
-  object (self)
-    inherit Source.source ~name: "input.harbor" kind
+  object inherit Source.source ~name: "input.harbor" kind
     method virtual relay :
       string ->
         (string * string) list ->
@@ -247,7 +244,7 @@ let parse_headers headers =
        display_headers;
      headers)
   
-let auth_check ?args ~login uri headers = (* 401 error model *)
+let auth_check ?args ~login headers = (* 401 error model *)
   let http_reply s =
     reply
       (http_error_page 401
@@ -300,9 +297,9 @@ let auth_check ?args ~login uri headers = (* 401 error model *)
         (log#f 4 "Returned 401: bad authentication.";
          http_reply "No login / password supplied.")
   
-let auth_check ?args ~login h uri headers =
+let auth_check ?args ~login h headers =
   Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
-    (auth_check ?args ~login uri headers)
+    (auth_check ?args ~login headers)
   
 let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
   (* ICY request are on port+1 *)
@@ -321,7 +318,7 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
          Duppy.Monad.bind
            ((* ICY and Xaudiocast auth check was done before.. *)
             if not auth
-            then auth_check ~login: s#login h uri headers
+            then auth_check ~login: s#login h headers
             else Duppy.Monad.return ())
            (fun () ->
               try
@@ -349,7 +346,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                      with | Not_found -> false in
                    let read =
                      if chunked
-                     then Some (Http.read_chunked ~timeout: conf_timeout#get)
+                     then
+                       (let read =
+                          Http.read_chunked ~timeout: conf_timeout#get
+                        in Some (fun connection _ -> read connection))
                      else None in
                    let f () =
                      s#relay ?read stype headers h.Duppy.Monad.Io.socket
@@ -449,7 +449,7 @@ let handle_websocket_request ~port h mount headers =
                    in
                      Duppy.Monad.bind __pa_duppy_0
                        (fun source ->
-                          let read socket len =
+                          let read socket _ =
                             match Websocket.read socket with
                             | `Binary buf -> (buf, (String.length buf))
                             | `Text s ->
@@ -531,7 +531,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                     Duppy.Monad.bind __pa_duppy_0
                       (fun s ->
                          Duppy.Monad.bind
-                           (auth_check ~args ~login: s#login h uri headers)
+                           (auth_check ~args ~login: s#login h headers)
                            (fun () ->
                               Duppy.Monad.bind
                                 (if
@@ -581,7 +581,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                                       (s#insert_metadata args;
                                        reply
                                          (Printf.sprintf
-                                            "HTTP/1.0 200 OK\r\n\r\n
+                                            "HTTP/1.0 200 OK\r\n\r\n\
                     Updated metadatas for mount %s"
                                             mount)))))))
            | _ -> ans_500 ()) in
@@ -730,7 +730,7 @@ let handle_client ~port ~icy h = (* Read and process lines *)
                         (try
                            int_of_string
                              (assoc_uppercase "CONTENT-LENGTH" headers)
-                         with | e -> 0) in
+                         with | _ -> 0) in
                       let __pa_duppy_0 =
                         if len > 0
                         then

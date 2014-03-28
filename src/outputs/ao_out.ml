@@ -133,7 +133,7 @@ let () =
 
       "options",
       Lang.metadata_t,
-      Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) []),
+      Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []),
       Some "List of parameters, depends on the driver." ;
 
       "", Lang.source_t kind, None, None

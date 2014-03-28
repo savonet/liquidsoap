@@ -23,8 +23,8 @@
 open Source
 
 class id ~kind ?(name="id") (source:source) =
-object (self)
-  inherit operator ~name kind [source] as super
+object
+  inherit operator ~name kind [source]
 
   method stype = source#stype
   method remaining = source#remaining

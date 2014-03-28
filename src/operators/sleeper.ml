@@ -24,8 +24,8 @@ open Source
 
 class map ~kind source delay random freeze =
   let dt = AFrame.duration () in
-object (self)
-  inherit operator kind [source] as super
+object
+  inherit operator kind [source]
 
   val mutable lived = 0.
 

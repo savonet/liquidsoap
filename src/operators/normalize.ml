@@ -33,8 +33,8 @@ class normalize ~kind (source:source)
            =
 let channels = (Frame.type_of_kind kind).Frame.audio in
 let rmsi = Frame.audio_of_seconds window in
-object (self)
-  inherit operator ~name:"normalize" kind [source] as super
+object
+  inherit operator ~name:"normalize" kind [source]
 
   (** Current squares of RMS. *)
   val rms = Array.make channels 0.

@@ -22,7 +22,6 @@
  *****************************************************************************)
 
 open Dtools
-open Http_source
 
 let conf_harbor =
   Conf.void ~p:(Configure.conf#plug "harbor")
@@ -57,7 +56,7 @@ let log = Log.make ["harbor"]
 exception Retry
 
 class virtual source ~kind =
-object(self)
+object
   inherit Source.source ~name:"input.harbor" kind
 
   method virtual relay :
@@ -265,7 +264,7 @@ let parse_headers headers =
     display_headers ;
   headers
 
-let auth_check ?args ~login uri headers =
+let auth_check ?args ~login headers =
     (* 401 error model *)
     let http_reply s =
       reply (http_error_page 401
@@ -329,9 +328,9 @@ let auth_check ?args ~login uri headers =
              log#f 4 "Returned 401: bad authentication." ;
              http_reply "No login / password supplied."
 
-let auth_check ?args ~login h uri headers =
+let auth_check ?args ~login h headers =
   duppy_exec
-    auth_check ?args ~login uri headers
+    auth_check ?args ~login headers
   with
     { priority = Tutils.Maybe_blocking ;
       handler  = h }
@@ -351,7 +350,7 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
   duppy_do
     (* ICY and Xaudiocast auth check was done before.. *)
     if not auth then
-       auth_check ~login:s#login h uri headers
+       auth_check ~login:s#login h headers
     else
        duppy_return () ;
     try
@@ -382,7 +381,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
        in
        let read = 
          if chunked then 
-           Some (Http.read_chunked ~timeout:conf_timeout#get)
+           let read =
+             Http.read_chunked ~timeout:conf_timeout#get
+           in
+           Some (fun connection _ -> read connection)
          else
            None
        in
@@ -487,7 +489,7 @@ let handle_websocket_request ~port h mount headers =
             log#f 4 "Request failed: no mountpoint '%s'!" huri;
             reply (websocket_error 1011 "This mountpoint isn't available.")
     in
-    let read socket len =
+    let read socket _ =
       match Websocket.read socket with
         | `Binary buf -> buf, String.length buf
         | `Text s ->
@@ -564,7 +566,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                         "No such mountpoint")
          in
          duppy_do
-           auth_check ~args ~login:s#login h uri headers ;
+           auth_check ~args ~login:s#login h headers ;
            duppy_do
              if not (List.mem (Utils.get_some s#get_mime_type)
                                conf_icy_metadata#get)
@@ -610,7 +612,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                s#insert_metadata args ;
                reply
                  (Printf.sprintf
-                   "HTTP/1.0 200 OK\r\n\r\n
+                   "HTTP/1.0 200 OK\r\n\r\n\
                     Updated metadatas for mount %s"
                     mount)
              end
@@ -765,7 +767,7 @@ let handle_client ~port ~icy h =
           try
            int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
          with
-           | e -> 0
+           | _ -> 0
         in
         duppy data =
           if len > 0 then

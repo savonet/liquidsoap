@@ -28,7 +28,7 @@ module List = struct
         assoc_nth l (n-1) t
     | _::t -> assoc_nth l n t
 
-  let rec assoc_all x l =
+  let assoc_all x l =
     may_map (fun (y,v) -> if x = y then Some v else None) l
 end
 

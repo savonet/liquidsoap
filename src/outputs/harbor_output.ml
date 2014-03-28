@@ -122,7 +122,8 @@ let proto kind =
           (Some (Lang.val_cst_fun [ ("", Lang.string_t, None) ] Lang.unit)),
           (Some "Callback executed when connection stops."));
          ("headers", Lang.metadata_t,
-          (Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])),
+          (Some
+             (Lang.list ~t: (Lang.product_t Lang.string_t Lang.string_t) [])),
           (Some "Additional headers."));
          ("dumpfile", Lang.string_t, (Some (Lang.string "")),
           (Some
@@ -356,9 +357,10 @@ class output ~kind p =
                                                                     term =
                                                                     Lang_values.
                                                                     Bool
-                                                                    false
-                                                                })
-                                                            } -> true
+                                                                    false;
+                                                                  _
+                                                                });
+                                                            _ } -> true
                                                         | _ -> false
                                                       in
                                                         let auth_function 
@@ -760,7 +762,6 @@ class output ~kind p =
                                                                     (default_user,
                                                                     login)
                                                                     handler
-                                                                    uri
                                                                     headers
                                                                     else
                                                                     Duppy.
@@ -1056,7 +1057,8 @@ class output ~kind p =
                                                                     empty_metadata);
                                                                     let handler 
                                                                     ~protocol
-                                                                    ~data
+                                                                    ~data:
+                                                                    (_)
                                                                     ~headers
                                                                     ~socket
                                                                     uri =
@@ -1066,8 +1068,7 @@ class output ~kind p =
                                                                     regexp
                                                                     "^(.+)\\?(.+)$" in
                                                                     let 
-                                                                    (base_uri,
-                                                                    args) =
+                                                                    (_, args) =
                                                                     try
                                                                     let sub 
                                                                     =
@@ -1189,9 +1190,9 @@ class output ~kind p =
 let () =
   let k = Lang.univ_t 1
   in
-    Lang.add_operator "output.harbor" ~category: Lang.Output ~active: true
+    Lang.add_operator ~category: Lang.Output ~active: true
       ~descr: "Encode and output the stream using the harbor server."
-      (proto k) ~kind: (Lang.Unconstrained k)
-      (fun p kind -> (new output kind p :> Source.source))
+      "output.harbor" (proto k) ~kind: (Lang.Unconstrained k)
+      (fun p kind -> (new output ~kind p :> Source.source))
   
 

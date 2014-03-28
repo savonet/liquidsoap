@@ -23,7 +23,7 @@
 class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
   let video_width    = Lazy.force Frame.video_width in
   let video_height   = Lazy.force Frame.video_height in
-object (self)
+object
   inherit Output.output ~name:"graphics" ~output_kind:"output.graphics"
             ~infallible ~on_start ~on_stop ~content_kind:kind source autostart
 

@@ -175,7 +175,7 @@ let () =
                  Lang.float (get Dtools.Conf.as_float path s)
              | Lang.List l ->
                  let l = List.map Lang.to_string l in
-                   Lang.list Lang.string_t
+                   Lang.list ~t:Lang.string_t
                      (List.map
                         Lang.string
                         (get Dtools.Conf.as_list path l))
@@ -640,7 +640,7 @@ let register_escape_fun ~name ~descr ~escape
     Buffer.contents b
   in
   let special_chars =
-    Lang.list Lang.string_t
+    Lang.list ~t:Lang.string_t
      (List.map Lang.string
       (List.map (String.make 1)
         special_chars))
@@ -716,7 +716,7 @@ let () =
        let sep = Lang.to_string (List.assoc "separator" p) in
        let string = Lang.to_string (List.assoc "" p) in
        let rex = Pcre.regexp sep in
-         Lang.list Lang.string_t
+         Lang.list ~t:Lang.string_t
            (List.map Lang.string (Pcre.split ~rex string)))
 
 let () =
@@ -757,7 +757,7 @@ let () =
               l)
        with
          | Not_found ->
-             Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])
+             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) [])
 
 let () =
   add_builtin "string.match" ~cat:String
@@ -1094,7 +1094,7 @@ let () =
        in
        let l = Lang.assoc "" 2 p in
        Lang.list
-         (Lang.of_list_t l.Lang.t)
+         ~t:(Lang.of_list_t l.Lang.t)
          (List.sort sort (Lang.to_list l)))
 
 let () =
@@ -1111,7 +1111,7 @@ let () =
        in
        let l = Lang.assoc "" 2 p in
        Lang.list
-         (Lang.of_list_t l.Lang.t)
+         ~t:(Lang.of_list_t l.Lang.t)
          (List.filter filter (Lang.to_list l)))
 
 let () =
@@ -1124,8 +1124,8 @@ let () =
        let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
          match l with
-           | [] -> Lang.list t []
-           | _::tl -> Lang.list t tl)
+           | [] -> Lang.list ~t []
+           | _::tl -> Lang.list ~t tl)
 
 let () =
   add_builtin "list.append" ~cat:List
@@ -1255,7 +1255,7 @@ let () =
         | _ -> c ^ " " ^ a
     in
     let r = try Server.exec (s) with Not_found -> "Command not found!" in
-      Lang.list Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
+      Lang.list ~t:Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
   in
   add_builtin "server.execute"
     ~cat ~descr params return_t execute
@@ -1408,7 +1408,7 @@ let () =
        in
        let l = aux () in
          ignore (Unix.close_process_in chan) ;
-         Lang.list Lang.string_t (List.map Lang.string l))
+         Lang.list ~t:Lang.string_t (List.map Lang.string l))
 
 let () =
   let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
@@ -1429,7 +1429,7 @@ let () =
       let l = List.map split l in
       let l = List.map (fun (x,y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x,y) -> Lang.product x y) l in
-      Lang.list ret_t l)
+      Lang.list ~t:ret_t l)
 
 let () =
   add_builtin "getenv" ~cat:Sys
@@ -1905,11 +1905,12 @@ let () =
             a request that will fail to be resolved."
     [("indicators",
       Lang.list_t Lang.string_t,
-      Some (Lang.list Lang.string_t []),
+      Some (Lang.list ~t:Lang.string_t []),
       None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
-    (Lang.request_t (Lang.frame_kind_t Lang.zero_t Lang.zero_t Lang.zero_t))
+    (Lang.request_t
+      (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t ~midi:Lang.zero_t))
     (fun p ->
        let indicators = List.assoc "indicators" p in
        let persistent = Lang.to_bool (List.assoc "persistent" p) in
@@ -1937,7 +1938,7 @@ let () =
             a request that will fail to be resolved."
     [("indicators",
       Lang.list_t Lang.string_t,
-      Some (Lang.list Lang.string_t []),
+      Some (Lang.list ~t:Lang.string_t []),
       None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
@@ -2122,9 +2123,9 @@ let () =
            let process (m,uri) =
              Lang.product (process m) (Lang.string uri)
            in
-             Lang.list ret_item_t (List.map process l)
+             Lang.list ~t:ret_item_t (List.map process l)
          with
-           | _ -> Lang.list ret_item_t [])
+           | _ -> Lang.list ~t:ret_item_t [])
 
 (** Sound utils. *)
 

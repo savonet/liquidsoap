@@ -48,5 +48,3 @@ let set_metadata t i m = set_metadata t (tom i) m
 let get_metadata t i = get_metadata t (tom i)
 let get_all_metadata t =
   List.map (fun (x,y) -> mot x, y) (get_all_metadata t)
-let set_all_metadata t l =
-  set_all_metadata t (List.map (fun (x,y) -> tom x, y) l)

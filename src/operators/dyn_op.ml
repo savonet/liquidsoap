@@ -103,4 +103,4 @@ let () =
       ~descr:"Dynamically change the underlying source."
       ~category:Lang.TrackProcessing
       ~flags:[Lang.Experimental]
-      (fun p kind -> new dyn kind (List.assoc "" p))
+      (fun p kind -> new dyn ~kind (List.assoc "" p))

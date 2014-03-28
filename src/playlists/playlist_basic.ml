@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Unix
-
 let log = Dtools.Log.make ["playlist";"basic"]
 
 let split_lines buf =

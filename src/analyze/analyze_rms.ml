@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 class rms ~kind ~window_length ~update source =
-object (self)
+object
   inherit Source.operator ~name:"rms" kind [source]
 
   method stype = source#stype

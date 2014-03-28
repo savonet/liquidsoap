@@ -87,7 +87,7 @@ object (self)
     ns_kind <- "playlist";
     self#register_command "reload"
       ~descr:"Reload the playlist, unless already being loaded."
-      (fun s -> self#reload_playlist () ; "OK") ;
+      (fun _ -> self#reload_playlist () ; "OK") ;
     self#register_command "uri"
                ~descr:"Print playlist URI if called without an argument, \
                        otherwise set a new one and load it."
@@ -412,7 +412,7 @@ object (self)
     super#wake_up activation
 
   (** Assume that every URI is valid, it will be checked on queuing. *)
-  method is_valid file = true
+  method is_valid _ = true
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
@@ -543,11 +543,10 @@ let () =
       (Request_source.queued_proto@proto)
       ~kind:(Lang.Unconstrained (Lang.univ_t 1))
       (fun params kind ->
-         let reload,random,timeout,mime,uri,prefix =
+         let reload,random,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
              (random_of (e "mode")),
-             (Lang.to_float (e "timeout")),
              (Lang.to_string (e "mime_type")),
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))

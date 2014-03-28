@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Source
 open Dtools
 
 let dlog = Log.make ["protocols";"external"]

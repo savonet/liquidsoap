@@ -92,7 +92,7 @@ struct
       (fun () ->
          let preferred = preferred_conf#get in
          match converters#get preferred with
-           | Some v ->
+           | Some _ ->
               log#f 4 "Using preferred samplerate converter: %s." preferred;
            | None ->
               log#f 4 "Couldn't find preferred samplerate converter: %s."
