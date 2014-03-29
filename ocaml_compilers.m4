@@ -35,6 +35,17 @@ if test "$enable_debugging" \!= "no" ; then
   OCAMLFLAGS="$OCAMLFLAGS -g"
 fi
 
+AC_ARG_WITH([ocaml-warnings],
+   AC_HELP_STRING(
+      [--with-ocaml-warnings=WARNINGS],
+      [Enable specific list of ocaml compiler warnings.]))
+
+if test -n "${with_ocaml_warnings}" ; then
+  OCAMLFLAGS="$OCAMLFLAGS -w +${with_ocaml_warnings}"
+else
+  OCAMLFLAGS="$OCAMLFLAGS -w +A-4@5-7@8@11@12@20@27-35-44-45"
+fi
+
 AC_ARG_ENABLE([profiling],
    AC_HELP_STRING(
       [--enable-profiling],
