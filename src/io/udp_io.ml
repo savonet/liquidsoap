@@ -78,7 +78,7 @@ object (self)
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-      ~empty_on_abort:false ~bufferize as generated
+      ~empty_on_abort:false ~bufferize
   inherit
     Start_stop.async
       ~source_kind:"udp"

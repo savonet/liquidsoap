@@ -39,7 +39,7 @@ let vol n v =
 
 class vumeter ~kind source scroll =
 object
-  inherit operator kind [source] ~name:"vumeter" as super
+  inherit operator kind [source] ~name:"vumeter"
 
   method stype = source#stype
   method is_ready = source#is_ready

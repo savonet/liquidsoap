@@ -31,10 +31,10 @@ let create speex ~metadata () =
       | Encoder.Speex.Wideband   -> Speex.Wideband
       | Encoder.Speex.Ultra_wideband -> Speex.Ultra_wideband
   in
-  let vbr,quality = 
+  let vbr = 
     match speex.Encoder.Speex.bitrate_control with
-      | Encoder.Speex.Vbr x -> true,x
-      | _     -> false,0
+      | Encoder.Speex.Vbr _ -> true
+      | _     -> false
   in
   let channels = if speex.Encoder.Speex.stereo then 2 else 1 in
   let rate = speex.Encoder.Speex.samplerate in

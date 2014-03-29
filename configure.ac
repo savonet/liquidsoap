@@ -614,7 +614,7 @@ AC_CHECK_OCAML_BINDING([camomile])
 
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
-    echo let recode_tag ?in_enc ?out_enc s = s >> src/configure.ml
+    echo let recode_tag ?in_enc:_ ?out_enc:_ s = s >> src/configure.ml
   else
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi

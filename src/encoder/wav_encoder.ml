@@ -22,7 +22,6 @@
 
 (** WAV encoder *)
 
-open Encoder
 open Encoder.WAV
 
 let encoder wav =
@@ -75,7 +74,7 @@ let encoder wav =
   in
     {
      Encoder.
-      insert_metadata = (fun m -> ()) ;
+      insert_metadata = (fun _ -> ()) ;
       encode = encode ;
       header = Some header ;
       stop = (fun () -> "")
