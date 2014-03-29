@@ -725,7 +725,7 @@ let recode_tag ?in_enc ?out_enc s =
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then
-    fun ?in_enc ?out_enc s -> s
+    fun ?in_enc:_ ?out_enc:_ s -> s
   else
     recode_tag
 EOCONF
