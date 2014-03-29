@@ -23,8 +23,8 @@
 open Source
 
 class pan ~kind (source:source) phi phi_0 =
-object (self)
-  inherit operator ~name:"pan" kind [source] as super
+object
+  inherit operator ~name:"pan" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready

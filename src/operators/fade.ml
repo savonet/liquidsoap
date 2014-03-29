@@ -112,7 +112,7 @@ end
   * and the source becomes unavailable once it's finished. *)
 class fade_out ~kind
   ~duration_meta ~type_meta ?(final=false) duration fader source =
-object (self)
+object
   inherit operator ~name:"fade_out" kind [source]
 
   method stype = if final then Fallible else source#stype

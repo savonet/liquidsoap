@@ -30,7 +30,7 @@ class text ~kind
   let video_height = Lazy.force Frame.video_height in
   let video_width = Lazy.force Frame.video_width in
 object (self)
-  inherit operator ~name:"video.add_text" kind [source] as super
+  inherit operator ~name:"video.add_text" kind [source]
 
   method stype = source#stype
 
@@ -83,7 +83,7 @@ object (self)
               | Some meta ->
                   let ans = ref cur_text in
                     List.iter
-                      (fun (t,m) ->
+                      (fun (_,m) ->
                          try
                            ans := Hashtbl.find m meta
                          with

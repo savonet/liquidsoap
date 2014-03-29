@@ -24,7 +24,7 @@ open Source
 
 class amplify ~kind (source:source) override_field coeff =
 object (self)
-  inherit operator ~name:"amplify" kind [source] as super
+  inherit operator ~name:"amplify" kind [source]
 
   val mutable override = None
 

@@ -24,8 +24,8 @@ open Source
 
 class bpm ~kind (source:source) cb every =
   let every = Frame.audio_of_seconds every in
-object (self)
-  inherit operator ~name:"bpm" kind [source] as super
+object
+  inherit operator ~name:"bpm" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready

@@ -22,9 +22,9 @@
 
 open Source
 
-class clip ~kind (source:source) vmin vmax =
-object (self)
-  inherit operator ~name:"clip" kind [source] as super
+class clip ~kind (source:source) =
+object
+  inherit operator ~name:"clip" kind [source]
 
   method stype = source#stype
   method remaining = source#remaining
@@ -42,19 +42,11 @@ end
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   Lang.add_operator "clip"
-    [ "min", Lang.float_t, Some (Lang.float (-0.999)),
-      Some "Minimal acceptable value.";
-      "max", Lang.float_t, Some (Lang.float 0.999),
-      Some "Maximal acceptable value.";
-      "", Lang.source_t k, None, None ]
+  [ "", Lang.source_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing
     ~descr:"Clip sound."
     (fun p kind ->
        let f v = List.assoc v p in
-       let vmin, vmax, src =
-         Lang.to_float (f "min"),
-         Lang.to_float (f "max"),
-         Lang.to_source (f "")
-       in
-         new clip ~kind src vmin vmax)
+       let src = Lang.to_source (f "") in
+         new clip ~kind src)

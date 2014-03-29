@@ -25,8 +25,8 @@ open Source
 module Img = Image.RGBA32
 
 class effect ~kind effect (source:source) =
-object (self)
-  inherit operator ~name:"video.effect" kind [source] as super
+object
+  inherit operator ~name:"video.effect" kind [source]
 
   method stype = source#stype
 

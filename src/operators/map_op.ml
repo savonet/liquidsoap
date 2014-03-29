@@ -23,8 +23,8 @@
 open Source
 
 class map ~kind source f =
-object (self)
-  inherit operator ~name:"audio.map" kind [source] as super
+object
+  inherit operator ~name:"audio.map" kind [source]
 
   method stype = source#stype
   method remaining = source#remaining
