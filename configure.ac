@@ -173,7 +173,7 @@ if test "x$enable_optimize" = "xyes" ; then
   CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
 fi
 
-liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
+liquidsoap_ocamlcflags="$OCAMLFLAGS -ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
