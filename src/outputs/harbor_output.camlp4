@@ -540,7 +540,7 @@ object (self)
         if default_user <> "" ||
            not (trivially_false auth_function) then
           Harbor.auth_check ~args ~login:(default_user,login) 
-                            handler headers
+                            handler uri headers
         else
           duppy_return () 
       with
