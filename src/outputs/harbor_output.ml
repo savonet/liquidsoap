@@ -762,7 +762,6 @@ class output ~kind p =
                                                                     (default_user,
                                                                     login)
                                                                     handler
-                                                                    uri
                                                                     headers
                                                                     else
                                                                     Duppy.

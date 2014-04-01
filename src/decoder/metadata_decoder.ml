@@ -93,7 +93,7 @@ let file_deco filename =
 
 let () =
   Decoder.file_decoders#register "META"
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        if Frame.type_has_kind empty kind then begin
          ignore (parse_file filename) ;
          Some (fun () -> file_deco filename)

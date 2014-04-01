@@ -65,8 +65,6 @@ let () = Utils.register_error_translator error_translator
 
 (* open file and verify it has the right format *)
 
-let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_WAV" <> None
-
 (** Round to the lowest even integer above. *)
 let even_ceil n = ((n+1)/2)*2
 
@@ -212,8 +210,6 @@ let fopen file =
     close_in ic ;
     raise e
 
-let skip_header f c = read_header f c
-
 let sample w buf pos len=
   match w.read_ops.input w.ic buf 0 len with
   | 0 -> raise End_of_file
@@ -221,11 +217,11 @@ let sample w buf pos len=
 
 let info w =
   Printf.sprintf
-    "channels_number = %d
-     sample_rate = %d
-     bytes_per_second = %d
-     bytes_per_sample = %d
-     bits_per_sample = %d
+    "channels_number = %d \n\
+     sample_rate = %d \n\
+     bytes_per_second = %d \n\
+     bytes_per_sample = %d \n\
+     bits_per_sample = %d \n\
      length_of_data_to_follow = %d"
     w.channels_number
     w.sample_rate
@@ -238,15 +234,9 @@ let channels w = w.channels_number
 let sample_rate w = w.sample_rate
 let sample_size w = w.bits_per_sample
 let data_length w = w.length_of_data_to_follow
-(** Length of the data in samples. *)
-let data_samples w = w.length_of_data_to_follow / ((sample_size w / 8) * channels w)
 
 let close w =
   w.read_ops.close w.ic
-
-let data_len file =
-  let stats = Unix.stat file in
-  stats.Unix.st_size - 36
 
 let duration w =
   (float w.length_of_data_to_follow) /. (float w.bytes_per_second)

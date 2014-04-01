@@ -175,15 +175,6 @@ let rec may_map f = function
       end
   | [] -> []
 
-let really_read fd buf ofs len =
-  let l = ref 0 in
-  let r = ref (-1) in
-    while !l < len && !r <> 0 do
-      r := Unix.read fd buf !l (len - !l);
-      l := !l + !r
-    done;
-    !l
-
 (* Read all data from a given filename.
  * We cannot use really_input with the 
  * reported length of the file because

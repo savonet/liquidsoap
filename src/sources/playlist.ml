@@ -87,7 +87,7 @@ object (self)
     ns_kind <- "playlist";
     self#register_command "reload"
       ~descr:"Reload the playlist, unless already being loaded."
-      (fun s -> self#reload_playlist () ; "OK") ;
+      (fun _ -> self#reload_playlist () ; "OK") ;
     self#register_command "uri"
                ~descr:"Print playlist URI if called without an argument, \
                        otherwise set a new one and load it."
@@ -412,7 +412,7 @@ object (self)
     super#wake_up activation
 
   (** Assume that every URI is valid, it will be checked on queuing. *)
-  method is_valid file = true
+  method is_valid _ = true
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
