@@ -26,7 +26,6 @@
   * A few specializations of it are defined below. *)
 
 open Source
-open Dtools
 
 (* A transition is a value of type (source,source) -> source *)
 type transition = Lang.value
@@ -48,8 +47,7 @@ type track_mode = Sensitive | Insensitive
 class virtual switch ~kind ~name
   ?(mode=Sensitive) ?(replay_meta=true) (cases : child list) =
 object (self)
-
-  inherit operator ~name kind (List.map (fun x -> x.source) cases) as super
+  inherit operator ~name kind (List.map (fun x -> x.source) cases)
 
   val mutable selected : (child*source) option = None
 
@@ -102,7 +100,7 @@ object (self)
   method private wake_up activator =
     activation <- (self:>source)::activator ;
     List.iter
-      (fun { transition = transition ; source = s } ->
+      (fun { transition = transition ; source = s ; _ } ->
          s#get_ready ~dynamic:true activation ;
          Lang.iter_sources
            (fun s -> s#get_ready ~dynamic:true activation)
@@ -111,7 +109,7 @@ object (self)
 
   method private sleep =
     List.iter
-      (fun { transition = transition ; source = s } ->
+      (fun { transition = transition ; source = s ; _ } ->
          s#leave ~dynamic:true (self:>source) ;
          Lang.iter_sources (fun s -> s#leave ~dynamic:true (self:>source))
            transition)
@@ -181,7 +179,7 @@ object (self)
           end
       | None ->
           begin match selected with
-            | Some (old_c,old_s) ->
+            | Some (_,old_s) ->
                 old_s#leave (self:>source) ;
                 to_finish <- old_s::to_finish ;
                 selected <- None
@@ -256,7 +254,7 @@ let common kind = [
   in
   "transitions",
   Lang.list_t transition_t,
-  Some (Lang.list transition_t []),
+  Some (Lang.list ~t:transition_t []),
   Some "Transition functions, \
         padded with <code>fun (x,y) -> y</code> functions."
 ]
@@ -293,15 +291,14 @@ let extract_common ~kind p l =
 let satisfied f = Lang.to_bool (Lang.apply ~t:Lang.bool_t f [])
 let trivially_true = function
   | { Lang.value =
-        Lang.Fun (_,_,_,{ Lang_values.term = Lang_values.Bool true }) } -> true
+        Lang.Fun (_,_,_,{ Lang_values.term = Lang_values.Bool true; _}); _} -> true
   | _ -> false
 
 let third (_,_,s) = s
 
 class lang_switch ~kind
   mode ?replay_meta (children : (Lang.value * bool * child) list) =
-object (self)
-
+object
   inherit
     switch ~name:"switch" ~kind ~mode ?replay_meta (List.map third children)
 
@@ -338,7 +335,7 @@ let () =
   let kind = Lang.univ_t 1 in
   let pred_t = Lang.fun_t [] Lang.bool_t in
   let proto =
-    [ "single", Lang.list_t Lang.bool_t, Some (Lang.list Lang.bool_t []),
+    [ "single", Lang.list_t Lang.bool_t, Some (Lang.list ~t:Lang.bool_t []),
       Some "Forbid the selection of a branch for two tracks in a row. \
             The empty list stands for <code>[false,...,false]</code>." ;
       "", Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)), None,
@@ -469,7 +466,7 @@ let () =
     let kind = Lang.univ_t 1 in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       (common  kind @
-       [ "weights", Lang.list_t Lang.int_t, Some (Lang.list Lang.int_t []),
+       [ "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
          Some weight_descr ;
          "", Lang.list_t (Lang.source_t kind), None, None ])
       ~kind:(Lang.Unconstrained kind)

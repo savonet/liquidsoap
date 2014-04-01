@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 class on_end ~kind ~delay f s =
-object (self)
+object
   inherit Source.operator ~name:"on_end" kind [s]
 
   val mutable executed = false

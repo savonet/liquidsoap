@@ -72,7 +72,7 @@ let encoder aac =
     Voaacenc.encode_buffer enc data
   in
     {
-      insert_metadata = (fun m -> ()) ;
+      insert_metadata = (fun _ -> ()) ;
       header = None ;
       encode = encode ;
       stop = fun () -> ""

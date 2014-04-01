@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Source
-open Dtools
 
 type handler =
   { req : Request.t;
@@ -128,7 +127,7 @@ object (self)
       must_fail <- false ;
       Frame.add_break buf (Frame.position buf)
     end else begin
-      let rec try_get () =
+      let try_get () =
         match current with
           | None ->
               (* We're supposed to be ready so this shouldn't be reached. *)
@@ -267,7 +266,7 @@ object (self)
     begin try
       Mutex.lock qlock ;
       while true do
-        let {request=req} = Queue.take retrieved in
+        let {request=req; _} = Queue.take retrieved in
           Request.destroy req
       done
     with e -> Mutex.unlock qlock ;

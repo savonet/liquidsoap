@@ -54,15 +54,6 @@ let cleanup =
   let re2 = Str.regexp "[\t ]*$" in
     fun s -> Str.global_replace re1 "" (Str.global_replace re2 "" s)
 
-let get_extension f =
-  try
-    let i = 1 + String.rindex f '.' in
-    let len = String.length f in
-      if i >= len then "" else
-        String.sub f i (len-i)
-  with
-    | Not_found -> ""
-
 (** Metadata *)
 
 type metadata = (string,string) Hashtbl.t
@@ -186,7 +177,7 @@ exception Duration of float
 let duration file =
   try
     dresolvers#iter
-      (fun name resolver ->
+      (fun _ resolver ->
         try
           let ans = resolver file in
           raise (Duration ans)
@@ -452,7 +443,7 @@ let get_id t = t.id
 let from_id id = Pool.find id
 
 let all_requests () =
-  Pool.fold (fun k v l -> k::l) []
+  Pool.fold (fun k _ l -> k::l) []
 
 let alive_requests () =
   Pool.fold
@@ -525,7 +516,7 @@ let destroy ?force t =
 
 let clean () =
   Pool.iter
-    (fun k r -> if r.status <> Destroyed then destroy ~force:true r)
+    (fun _ r -> if r.status <> Destroyed then destroy ~force:true r)
 
 let get_decoder r =
   match r.decoder with None -> None | Some d -> Some (d ())
@@ -546,7 +537,7 @@ let is_static s =
     Some true
   else
     match parse_uri s with
-      | Some (proto,arg) ->
+      | Some (proto,_) ->
           begin match protocols#get proto with
             | Some handler -> Some handler.static
             | None -> None

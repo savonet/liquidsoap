@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Lastfm_generic
-
 class lastfm ~kind ~autostart ~poll_delay ~track_on_meta 
              ~bufferize ~timeout ~bind_address ~user ~password 
              ~debug ~max ~user_agent uri =
@@ -36,7 +34,7 @@ object (self)
   val mutable session = None
 
   (* Called when there's no decoding process, in order to create one. *)
-  method connect should_stop url =
+  method connect should_stop _ =
     (* Do nothing is the buffer is
      * still greater than bufferize.
      * This is not an active wait because 
@@ -52,7 +50,7 @@ object (self)
         Liqfm.Radio.parse uri
        with
          | Liqfm.Radio.Error (Liqfm.Radio.Auth _) ->
-            let subst x =
+            let subst _ =
               Printf.sprintf "lastfm://%s:%s@" user password
             in
             let uri = Pcre.substitute ~pat:"lastfm://" ~subst uri
@@ -81,7 +79,7 @@ object (self)
       in
       let (m,uri) =
         match tracks with
-          | (m,uri) :: l -> (m,uri)
+          | (m,uri) :: _ -> (m,uri)
           | _ -> Liqfm.Radio.clear id ; 
 	         raise (Liqfm.Radio.Error Liqfm.Radio.Empty)
       in

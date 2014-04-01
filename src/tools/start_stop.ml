@@ -79,7 +79,7 @@ object (self)
 
   method is_active = is_started
 
-  method private wake_up (activation : Source.source list) =
+  method private wake_up (_ : Source.source list) =
     (* We prefer [name] as an ID over the default,
      * but do not overwrite user-defined ID.
      * Our ID will be used for the server interface. *)

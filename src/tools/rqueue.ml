@@ -46,12 +46,6 @@ let create () =
     top = Obj.magic None
   } 
 
-let clear q =
-  Mutex.lock q.lock ;
-  q.length <- 0 ;
-  q.top <- Obj.magic None ;
-  Mutex.unlock q.lock
-
 let top q =
   Mutex.lock q.lock ;
   match q.length with

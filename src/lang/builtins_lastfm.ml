@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Lang
 open Lang_builtins
 
 let log = Dtools.Log.make ["lastfm";"submit"]

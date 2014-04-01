@@ -112,7 +112,7 @@ object (self)
       | `Replay (Some s) when s#is_ready && merge ->
           let (+) a b = if a<0 || b<0 then -1 else a+b in
             source#remaining+s#remaining
-      | `Replay (Some s) ->
+      | `Replay (Some _) ->
           source#remaining
       | `Append s -> s#remaining
 

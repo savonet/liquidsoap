@@ -59,7 +59,7 @@ let decoder ~channels file =
 
 let () =
   Decoder.file_decoders#register "MIDI"
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Any number of MIDI channel is acceptable as the decoder
         * silently drops events on higher channels if needed.
         * The number of MIDI channels is chosen at the beginning

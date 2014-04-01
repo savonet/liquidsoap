@@ -29,7 +29,7 @@ open Source
   * to the current use of [sequence] in transitions. *)
 class sequence ~kind ?(merge=false) sources =
 object (self)
-  inherit operator ~name:"sequence" kind sources as super
+  inherit operator ~name:"sequence" kind sources
 
   val mutable sources = sources
   initializer assert (sources <> [])
@@ -111,8 +111,7 @@ end
 
 class merge_tracks ~kind source =
 object (self)
-
-  inherit operator ~name:"sequence" kind [source] as super
+  inherit operator ~name:"sequence" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready

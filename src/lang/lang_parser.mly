@@ -22,7 +22,6 @@
 
 %{
 
-  open Source
   open Lang_values
 
   (** Parsing locations. *)

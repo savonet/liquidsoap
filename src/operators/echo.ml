@@ -24,8 +24,8 @@ open Source
 
 class echo ~kind (source:source) delay feedback ping_pong =
   let channels = (Frame.type_of_kind kind).Frame.audio in
-object (self)
-  inherit operator ~name:"echo" kind [source] as super
+object
+  inherit operator ~name:"echo" kind [source]
 
   method stype = source#stype
   method remaining = source#remaining

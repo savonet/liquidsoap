@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Unix
-
 let log = Dtools.Log.make ["playlist";"xml"]
 
 let conf_xml =

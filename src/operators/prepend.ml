@@ -48,7 +48,7 @@ object (self)
                       Lang.metadata m
                   | None ->
                       false,
-                      Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
+                      Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
               in
                 if inhibit then begin
                   self#log#f 4 "Prepending disabled from metadata \

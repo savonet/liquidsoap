@@ -42,10 +42,6 @@ let conf_debug =
   Conf.bool ~p:(conf#plug "debug") ~d:false
     "Debug communications with MPD server."
 
-let re_newline = Str.regexp "[\r\n]+"
-let re_version = Str.regexp "OK MPD \\([0-9a-z\\.]+\\)"
-let re_file = Str.regexp "^file: \\(.*\\)$"
-
 exception Error of string
 
 let connect () =
@@ -136,7 +132,7 @@ let search read write field v =
 let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"
 let re_version = Str.regexp "OK MPD \\([0-9\\.]+\\)"
 
-let mpd s ~log maxtime =
+let mpd s ~log _ =
   if not (Str.string_match re_request s 0) then
     raise (Error "Invalid request");
   let field = Str.matched_group 1 s in
@@ -148,7 +144,7 @@ let mpd s ~log maxtime =
     else
       value
   in
-  let socket, read, write = connect () in
+  let _, read, write = connect () in
   let search = search read write in
   let version =
     let v = read () in

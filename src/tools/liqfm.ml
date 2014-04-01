@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Duppy
-
 let log = Dtools.Log.make ["liqfm"]
 
 (* A custom implementation of HTTP 
@@ -99,10 +97,6 @@ let log = Dtools.Log.make ["audioscrobbler"]
 
 exception Duration
 
-let conf_liqfm =
-  Dtools.Conf.void ~p:(Configure.conf#plug "audioscrobbler")
-	    "Audioscrobbler configuration."
-
 let client = { client = "lsp"; version = "0.1" }
 
 let init host =
@@ -112,10 +106,10 @@ let init host =
  let submit_m = Mutex.create () in
  let reason = log#f 3 "Lastfm Submission failed: %s" in
  (* Define a new task *)
- let rec do_submit () =
+ let do_submit () =
    try
     (* This function checks that the submission is valid *)
-    let song songs (user,password,source,stype,length,m) =
+    let song songs (user,password,(source:source),stype,length,m) =
       let login = { user = user ; password = password } in
       let f = fun x -> try Hashtbl.find m x with Not_found -> "" in
       let artist,track = f "artist",f "title" in
@@ -209,7 +203,7 @@ let init host =
          | Not_found -> Hashtbl.add submit (c,t) [m]
      in
      List.iter filter songs ;
-     let f (login,stype) songs =
+     let f (login,(stype:submission)) songs =
        try
          match stype with
            | NowPlaying -> 

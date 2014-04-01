@@ -66,7 +66,7 @@ let frame_kind_t ?pos ?level audio video midi =
 let of_frame_kind_t t = match (T.deref t).T.descr with
   | T.Constr { T.name="stream_kind" ; T.params=[_,audio;_,video;_,midi] } ->
       { Frame. audio=audio; video=video; midi=midi }
-  | T.EVar (j,c) ->
+  | T.EVar (_,_) ->
       let audio = type_of_int (Lazy.force Frame.audio_channels) in
       let video = type_of_int (Lazy.force Frame.video_channels) in
       let midi = type_of_int (Lazy.force Frame.midi_channels) in
@@ -220,7 +220,7 @@ let free_vars ?bound body =
 
 let can_ignore t =
   match (T.deref t).T.descr with
-    | T.Ground T.Unit | T.Constr {T.name="active_source"} -> true
+    | T.Ground T.Unit | T.Constr {T.name="active_source";_} -> true
     | T.EVar _ -> true
     | _ -> false
 
@@ -230,7 +230,7 @@ let is_fun t =
 
 let is_source t =
   match (T.deref t).T.descr with
-    | T.Constr {T.name="source"} -> true | _ -> false
+    | T.Constr {T.name="source";_} -> true | _ -> false
 
 (** Check that all let-bound variables are used.
   * No check is performed for variable arguments.
@@ -240,7 +240,7 @@ let is_source t =
 
 exception Unused_variable of (string*Lexing.position)
 
-let rec check_unused ~lib tm =
+let check_unused ~lib tm =
   let rec check ?(toplevel=false) v tm = match tm.term with
     | Var s -> Vars.remove s v
     | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
@@ -251,8 +251,8 @@ let rec check_unused ~lib tm =
     | List l -> List.fold_left check v l
     | App (hd,l) ->
         let v = check v hd in
-          List.fold_left (fun v (lbl,t) -> check v t) v l
-    | Fun (fv,p,body) ->
+          List.fold_left (fun v (_,t) -> check v t) v l
+    | Fun (_,p,body) ->
         let v =
           List.fold_left
             (fun v -> function
@@ -275,7 +275,7 @@ let rec check_unused ~lib tm =
            * The masking variables have been used but it does not count
            * for the ones they masked. *)
           Vars.union masked v
-    | Let { var = s ; def = def ; body = body } ->
+    | Let { var = s ; def = def ; body = body ; _ } ->
         let v = check v def in
         let mask = Vars.mem s v in
         let v = Vars.add s v in
@@ -368,7 +368,7 @@ let rec fold_types f gen x tm = match tm.term with
            x
            p)
         v
-  | Let {gen=gen';def=def;body=body} ->
+  | Let {gen=gen';def=def;body=body;_} ->
       let x = fold_types f (gen'@gen) x def in
         fold_types f gen x body
 
@@ -407,8 +407,8 @@ struct
     | Int i    -> string_of_int i
     | Float f  -> string_of_float f
     | String s -> Printf.sprintf "%S" s
-    | Source s -> "<source>"
-    | Request s -> "<request>"
+    | Source _ -> "<source>"
+    | Request _ -> "<request>"
     | Encoder e -> Encoder.string_of_format e
     | List l ->
         "["^(String.concat ", " (List.map print_value l))^"]"
@@ -469,10 +469,10 @@ struct
      * no type instantiation should occur in the following cases (f should
      * be the identity): one cannot change the type of such objects once
      * they are created. *)
-    | Source s ->
+    | Source _ ->
         assert (f gen v.t = v.t) ;
         v
-    | Request s ->
+    | Request _ ->
         assert (f gen v.t = v.t) ;
         v
     | Ref r ->
@@ -601,7 +601,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         | T.Arrow (ap,t) ->
             (* Find in l the first arg labeled lbl,
              * return it together with the remaining of the list. *)
-            let rec get_arg lbl l =
+            let get_arg lbl l =
               let rec aux acc = function
                 | [] -> None
                 | (o,lbl',t)::l ->
@@ -621,7 +621,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
                      | None ->
                          let first = not (List.mem lbl already) in
                            raise (No_label (a,lbl,first,v))
-                     | Some (o,t,ap') ->
+                     | Some (_,t,ap') ->
                          v.t <: t ;
                          (lbl::already,ap'))
                 ([],ap)
@@ -677,7 +677,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
         if debug then
           Printf.eprintf "Instantiate %s[%d] : %s becomes %s\n"
             var (T.deref e.t).T.level (T.print orig) (T.print e.t)
-  | Let ({gen=gen; var=name; def=def; body=body} as l) ->
+  | Let ({var=name; def=def; body=body; _} as l) ->
       check ~level:level ~env def ;
       let generalized =
         if value_restriction def then
@@ -685,7 +685,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
             let x' =
               T.filter_vars
                 (function
-                   | { T. descr = T.EVar (i,c) ; level = l } ->
+                   | { T. descr = T.EVar (i,_) ; level = l ; _ } ->
                        not (List.mem_assoc i x) &&
                        not (List.mem_assoc i gen) && l >= level
                    | _ -> assert false)
@@ -824,7 +824,7 @@ let rec eval ~env tm =
                 mk V.Unit
             | _ -> assert false
           end
-      | Let {gen=generalized;var=x;def=v;body=b} ->
+      | Let {gen=generalized;var=x;def=v;body=b;_} ->
           (* It should be the case that generalizable variables don't
            * get instantiated in any way when evaluating the definition.
            * But we don't double-check it. *)
@@ -922,9 +922,9 @@ let toplevel_add (doc,params) x ~generalized v =
       | V.Fun (p,_,_,_) -> List.map (fun (l,_,o) -> l,o) p
       | _ -> []
   in
-  let params,pvalues =
+  let params,_ =
     List.fold_left
-      (fun (params,pvalues) (opt,label,t) ->
+      (fun (params,pvalues) (_,label,t) ->
          let descr,params =
            try
              List.assoc label params,

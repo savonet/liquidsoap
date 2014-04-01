@@ -23,8 +23,8 @@
 open Source
 
 class compand ~kind (source:source) mu =
-object (self)
-  inherit operator ~name:"compand" kind [source] as super
+object
+  inherit operator ~name:"compand" kind [source]
 
   method stype = source#stype
 

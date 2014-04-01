@@ -27,8 +27,8 @@ open Source
 class comb ~kind (source:source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
   let channels = (Frame.type_of_kind kind).Frame.audio in
-object (self)
-  inherit operator ~name:"comb" kind [source] as super
+object
+  inherit operator ~name:"comb" kind [source]
 
   method stype = source#stype
 

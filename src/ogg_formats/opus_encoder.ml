@@ -65,9 +65,7 @@ let create_encoder ~opus ~comments () =
     Ogg.Stream.put_packet os (Opus.Encoder.header enc); 
     Ogg.Stream.flush_page os
   in
-  let fisbone_packet os =
-    None
-  in
+  let fisbone_packet _ = None in
   let stream_start os = 
     let enc = get_enc os in
     Ogg.Stream.put_packet os (Opus.Encoder.comments enc);

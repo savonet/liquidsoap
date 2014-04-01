@@ -28,7 +28,7 @@
 open Genlex
 exception Error
 
-let annotate s ~log maxtime =
+let annotate s ~log _ =
   try
     (* Avoid =- being lexed as a single identifier. *)
     let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in

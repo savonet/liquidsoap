@@ -459,7 +459,7 @@ object (self)
   (* [self#seek x] skips [x] master ticks.
    * returns the number of ticks actually skipped.
    * By default it always returns 0, refusing to seek at all. *)
-  method seek (len:int) = 
+  method seek (_:int) = 
     self#log#f 3 "Seek not implemented!";
     0
 
@@ -598,12 +598,12 @@ end
 (** Shortcuts for defining sources with no children *)
 
 class virtual source ?name content_kind =
-object (self)
+object
   inherit operator ?name content_kind []
 end
 
 class virtual active_source ?name content_kind =
-object (self)
+object
   inherit active_operator ?name content_kind []
 end
 

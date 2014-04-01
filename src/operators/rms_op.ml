@@ -24,8 +24,8 @@ open Source
 
 class rms ~kind duration source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
-object (self)
-  inherit operator kind [source] ~name:"rms" as super
+object
+  inherit operator kind [source] ~name:"rms"
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -98,7 +98,7 @@ let declare suffix format fun_ret_t f_rms =
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new rms ~kind duration src in
       if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun p t -> f_rms s#rms) in
+      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun _ _ -> f_rms s#rms) in
       Lang.product f (Lang.source (s :> Source.source)))
 
 let () =

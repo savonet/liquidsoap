@@ -27,7 +27,7 @@ class virtual ['a] base ~nb_blocks ~blank =
     if nb_blocks < 1 then
       failwith "Buffered I/O requires a non-zero buffer length." ;
   in
-object (self)
+object
 
   val buffer = Array.init nb_blocks (fun _ -> blank ())
   val mutable read = 0

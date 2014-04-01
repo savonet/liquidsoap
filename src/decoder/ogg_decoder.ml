@@ -357,7 +357,7 @@ let file_extensions =
 let () =
   Decoder.file_decoders#register "OGG"
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
         (* First, test file extension and mime *)
         if Decoder.test_file ~mimes:mime_types#get
                                ~extensions:file_extensions#get

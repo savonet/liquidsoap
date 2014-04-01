@@ -22,8 +22,6 @@
  *****************************************************************************)
 open Dtools
   
-let log = Dtools.Log.make [ "server" ]
-  
 let conf =
   Conf.void ~p: (Configure.conf#plug "server") "Server configuration"
     ~comments:
@@ -83,10 +81,6 @@ let conf_telnet_port =
   Conf.int ~p: (conf_telnet#plug "port") ~d: 1234
     "Port on which the telnet server should listen"
   
-let conf_telnet_revdns =
-  Conf.bool ~p: (conf_telnet#plug "reverse_dns") ~d: true
-    "Perform reverse DNS lookup to get the client's hostname from its IP."
-  
 let log = Log.make [ "server" ]
   
 exception Duppy of Duppy.Io.failure
@@ -116,7 +110,7 @@ let register ns kind =
   
 let to_string = String.concat "."
   
-let rec prefix_ns cmd ns = to_string (ns @ [ cmd ])
+let prefix_ns cmd ns = to_string (ns @ [ cmd ])
   
 (* Then add your commands to that namespace *)
 let add ~ns ?usage ~descr cmd handler =
@@ -168,17 +162,15 @@ let usage () =
   let l = List.sort compare l
   in
     List.fold_left
-      (fun s (k, (h, u, _)) -> s ^ (Printf.sprintf "\r\n| %s" u)) "" l
+      (fun s (_, (_, u, _)) -> s ^ (Printf.sprintf "\r\n| %s" u)) "" l
   
 (** {1 Handling of a client} *)
 (** The very-builtin commands *)
 let () =
   let add = add ~ns: []
   in
-    (add "exit" ~descr: "Close current server session."
-       (fun args -> raise Exit);
-     add "quit" ~descr: "Close current server session."
-       (fun args -> raise Exit);
+    (add "exit" ~descr: "Close current server session." (fun _ -> raise Exit);
+     add "quit" ~descr: "Close current server session." (fun _ -> raise Exit);
      add "help" ~usage: "help [<command>]"
        ~descr: "Get information on available commands."
        (fun args ->

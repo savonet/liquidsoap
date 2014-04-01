@@ -99,7 +99,7 @@ struct
         ""
       in
         {
-          insert_metadata = (fun m -> ()) ;
+          insert_metadata = (fun _ -> ()) ;
           header = None ;
           encode = encode ;
           stop = stop

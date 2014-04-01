@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Dtools
-open Printf
 
 (** Runner module signature. *)
 module type Runner_t =
@@ -391,7 +390,7 @@ let options = [
     (* Unix.fork is not implemented in Win32. *)
     (if Sys.os_type <> "Win32" then
       [["-d";"--daemon"],
-       Arg.Unit (fun f -> Init.conf_daemon#set true),
+       Arg.Unit (fun _ -> Init.conf_daemon#set true),
        "Run in daemon mode."]
      else [])
     @

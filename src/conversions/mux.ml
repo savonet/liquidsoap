@@ -84,7 +84,7 @@ object (self)
               while s#is_ready && Frame.is_partial frame do
                 s#get frame
               done ;
-              let p,c = Frame.content frame pos in
+              let _,c = Frame.content frame pos in
               let end_pos = Frame.position frame in
                 if inicon != c then
                   self#log#f 4 "Copy-avoiding optimization isn't working!" ;

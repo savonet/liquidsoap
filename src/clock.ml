@@ -401,7 +401,7 @@ end
 
 class self_sync id =
 object
-  inherit wallclock ~sync:true id as super
+  inherit wallclock ~sync:true id
 
   val mutable blocking_sources = 0
   val bs_lock = Mutex.create ()
@@ -474,7 +474,6 @@ end
   * collect. *)
 let after_collect_tasks = ref 1
 let lock = Mutex.create ()
-let cond = Condition.create ()
 
 (** We might not need a default clock, so we use a lazy clock value.
   * We don't use Lazy because we need a thread-safe mechanism. *)

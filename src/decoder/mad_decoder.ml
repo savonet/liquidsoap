@@ -120,8 +120,8 @@ let create_decoder input =
      decode =
        (fun gen ->
          let data = get_data () in
-         let sample_freq,channels,_ = get_info () in
-         let content,length =
+         let sample_freq,_,_ = get_info () in
+         let content,_ =
            resampler ~audio_src_rate:(float sample_freq) data
          in
          Generator.set_mode gen `Audio ;
@@ -193,7 +193,7 @@ let () =
   ~plugin_aliases:["MP3"; "MP2"; "MP1"]
   ~sdoc:"Use libmad to decode any file \
          if its MIME type or file extension is appropriate."
-  (fun ~metadata filename kind ->
+  (fun ~metadata:_ filename kind ->
      (* Before doing anything, check that we are allowed to produce
       * audio, and don't have to produce midi or video. Only then
       * check that the file seems relevant for decoding. *)

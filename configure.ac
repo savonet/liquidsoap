@@ -173,7 +173,7 @@ if test "x$enable_optimize" = "xyes" ; then
   CFLAGS="$CFLAGS -O3 -march=native -mtune=native"
 fi
 
-liquidsoap_ocamlcflags="-ccopt \"\$(CFLAGS)\""
+liquidsoap_ocamlcflags="$OCAMLFLAGS -ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
@@ -614,7 +614,7 @@ AC_CHECK_OCAML_BINDING([camomile])
 
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
-    echo let recode_tag ?in_enc ?out_enc s = s >> src/configure.ml
+    echo let recode_tag ?in_enc:_ ?out_enc:_ s = s >> src/configure.ml
   else
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
@@ -725,7 +725,7 @@ let recode_tag ?in_enc ?out_enc s =
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then
-    fun ?in_enc ?out_enc s -> s
+    fun ?in_enc:_ ?out_enc:_ s -> s
   else
     recode_tag
 EOCONF

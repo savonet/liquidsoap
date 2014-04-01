@@ -27,8 +27,8 @@ type mode = Low_pass | High_pass | Band_pass | Notch
 class filter ~kind (source:source) freq q wet mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Lazy.force Frame.audio_rate) in
-object (self)
-  inherit operator ~name:"filter" kind [source] as super
+object  
+  inherit operator ~name:"filter" kind [source]
 
   method stype = source#stype
   method remaining = source#remaining
