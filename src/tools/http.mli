@@ -51,7 +51,7 @@ val read_crlf : ?log:(string -> unit) -> ?max:int -> ?count:int ->
                 timeout:float -> connection -> string
 
 (* Read chunked data. *)
-val read_chunked : timeout:float -> connection -> string * int
+val read_chunked : timeout:float -> connection -> int -> string * int
 
 val request : ?log:(string -> unit) ->
               timeout:float ->

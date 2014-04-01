@@ -1,2 +1,3 @@
 src/tools/harbor.ml binary
 src/tools/server.ml binary
+src/outputs/harbor_output.ml binary
