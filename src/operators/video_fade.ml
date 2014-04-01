@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,9 +29,8 @@ module Img = Image.RGBA32
   * If the initial flag is set, only the first/current track is faded in. *)
 class fade_in ~kind ?(meta="liq_video_fade_in") ?(initial=false) duration
               fader fadefun source =
-object (self)
-
-  inherit operator ~name:"video.fade.in" kind [source] as super
+object
+  inherit operator ~name:"video.fade.in" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -89,9 +88,8 @@ end
   * If the final flag is set, the fade-out happens as of instantiation
   * and the source becomes unavailable once it's finished. *)
 class fade_out ~kind ?(meta="liq_video_fade_out") ?(final=false) duration fader fadefun source =
-object (self)
-
-  inherit operator ~name:"video.fade.out" kind [source] as super
+object
+  inherit operator ~name:"video.fade.out" kind [source]
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@
 open Source
 
 class virtual base ~kind ~name (source:source) =
-object (self)
-  inherit operator ~name kind [source] as super
+object
+  inherit operator ~name kind [source]
 
   method stype = source#stype
 
@@ -36,7 +36,7 @@ object (self)
 end
 
 class merge ~kind (source:source) out =
-object (self)
+object
   inherit base ~kind (source) ~name:"midi.merge_all"
 
   method private get_frame buf =
@@ -50,7 +50,7 @@ object (self)
 end
 
 class remove ~kind (source:source) t =
-object (self)
+object
   inherit base ~kind (source) ~name:"midi.remove"
 
   method private get_frame buf =

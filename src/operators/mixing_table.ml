@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ open Source
 class mixing ~kind source =
   let n = Array.length source in
 object (self)
-  inherit operator ~name:"mix" kind (Array.to_list source) as super
+  inherit operator ~name:"mix" kind (Array.to_list source)
 
   initializer assert (n>0)
 

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 open Source
-open Unix
-open Dtools
 
 let insert_re = Str.regexp "\\(-?[0-9]+\\) +\\(.*\\)"
 let move_re = Str.regexp "\\([0-9]+\\) +\\(-?[0-9]+\\)"
@@ -107,7 +105,7 @@ object (self)
              let rid = int_of_string (Str.matched_group 1 a) in
              let pos = int_of_string (Str.matched_group 2 a) in
                try
-                 let req,i = Rqueue.remove_pred_index queue
+                 let req,_ = Rqueue.remove_pred_index queue
                              (fun _ r -> Request.get_id r = rid)
                  in
                    try

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ end
 
 let () =
   let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let {Frame.audio=audio;video=video;midi=midi} = Lang.of_frame_kind_t input in
+  let {Frame.audio=audio;video=_;midi=midi} = Lang.of_frame_kind_t input in
   let output = Lang.frame_kind_t ~audio ~video:Lang.zero_t ~midi in
   Lang.add_operator "drop_video"
     ~category:Lang.Conversions
@@ -101,7 +101,7 @@ end
 
 let () =
   let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let {Frame.audio=audio;video=video;midi=midi} = Lang.of_frame_kind_t input in
+  let {Frame.audio=_;video=video;midi=midi} = Lang.of_frame_kind_t input in
   let output = Lang.frame_kind_t ~audio:Lang.zero_t ~video ~midi in
   Lang.add_operator "drop_audio"
     ~category:Lang.Conversions
@@ -148,7 +148,7 @@ end
 
 let () =
   let input = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
-  let {Frame.audio=audio;video=video;midi=midi} = Lang.of_frame_kind_t input in
+  let {Frame.audio=audio;video=video;midi=_} = Lang.of_frame_kind_t input in
   let output = Lang.frame_kind_t ~audio ~video ~midi:Lang.zero_t in
   Lang.add_operator "drop_midi"
     ~category:Lang.Conversions

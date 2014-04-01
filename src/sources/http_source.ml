@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -186,11 +186,11 @@ class http ~kind
   let log = (fun x -> !log_ref x) in
 object (self)
 
-  inherit Source.source ~name:"http" kind as super
+  inherit  Source.source ~name:"http" kind as super
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-      ~empty_on_abort:false ~bufferize as generated
+      ~empty_on_abort:false ~bufferize
 
   method stype = Source.Fallible
 
@@ -255,8 +255,7 @@ object (self)
     Generator.add_metadata generator m ;
     if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
-  method feeding should_stop ?(newstream=true)
-                 create_decoder =
+  method feeding should_stop create_decoder =
     let read =
       let log = self#log#f 4 "%s" in
       (* Socket can't be closed while waiting on it. *)
@@ -378,7 +377,7 @@ object (self)
           self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
           let s = Http.connect ?bind_address host port in
           let log = self#log#f 4 "%s" in
-          let ((_, status, status_msg), fields as ret) =
+          let (_, fields as ret) =
             Http.request ~log ~timeout s request
           in
           let metaint =
@@ -458,7 +457,7 @@ object (self)
             | Randomize -> List.iter play_track (randomize playlist)
             | Normal -> List.iter play_track playlist
         with
-          | Failure hd -> raise Not_found
+          | Failure _ -> raise Not_found
       in
       let test_playlist parser =
         let playlist =

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ let get_again s buf =
   s#get buf ;
   Frame.set_breaks buf
     (match Frame.breaks buf with
-       | pos::prev::l -> pos::l
+       | pos::_::l -> pos::l
        | _ -> assert false)
 
 (** Add/mix several sources together.
@@ -42,7 +42,7 @@ let get_again s buf =
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
 object (self)
-  inherit operator ~name:"add" kind (List.map snd sources) as super
+  inherit operator ~name:"add" kind (List.map snd sources)
 
   (* We want the sources at the beginning of the list to
    * have their metadatas copied to the output stream, so direction
@@ -194,7 +194,7 @@ let () =
            Only relay metadata from the first source that is effectively \
            summed."
     [ "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.int_t, Some (Lang.list Lang.int_t []),
+      "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "", Lang.list_t (Lang.source_t kind_t), None, None ]
@@ -226,7 +226,7 @@ let tile_pos n =
     if l = 0 then [||] else
       let dx = (x' - x) / l in
       let x = ref (x-dx) in
-        Array.init l (fun i -> x := !x + dx; !x, y, dx, (y'-y))
+        Array.init l (fun _ -> x := !x + dx; !x, y, dx, (y'-y))
   in
   let x' = Lazy.force Frame.video_width in
   let y' = Lazy.force Frame.video_height in
@@ -243,7 +243,7 @@ let () =
     ~descr:"Tile sources (same as add but produces tiles of videos)."
     [
       "normalize", Lang.bool_t, Some (Lang.bool true), None ;
-      "weights", Lang.list_t Lang.int_t, Some (Lang.list Lang.int_t []),
+      "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
       Some "Relative weight of the sources in the sum. \
             The empty list stands for the homogeneous distribution." ;
       "proportional", Lang.bool_t, Some (Lang.bool true),

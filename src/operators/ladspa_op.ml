@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ let port_t d p =
 
 class virtual base ~kind source =
 object
-  inherit operator ~name:"ladspa" kind [source] as super
+  inherit operator ~name:"ladspa" kind [source]
 
   method stype = source#stype
 
@@ -79,7 +79,7 @@ end
 
 (* A plugin is created for each channel. *)
 class ladspa ~kind (source:source) plugin descr input output params =
-object (self)
+object
   inherit base ~kind source
 
   val inst =
@@ -113,7 +113,7 @@ object (self)
 end
 
 class ladspa_nosource ~kind plugin descr output params =
-object (self)
+object
   inherit base_nosource ~kind
 
   val inst =
@@ -153,7 +153,7 @@ end
 
 (* The plugin handles stereo streams. *)
 class ladspa_stereo ~kind (source:source) plugin descr inputs outputs params =
-object (self)
+object
   inherit base ~kind source
 
   val inst =
@@ -185,7 +185,7 @@ object (self)
 end
 
 class ladspa_stereo_nosource ~kind plugin descr outputs params =
-object (self)
+object
   inherit base_nosource ~kind
 
   val inst =

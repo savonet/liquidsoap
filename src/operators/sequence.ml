@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ open Source
   * to the current use of [sequence] in transitions. *)
 class sequence ~kind ?(merge=false) sources =
 object (self)
-  inherit operator ~name:"sequence" kind sources as super
+  inherit operator ~name:"sequence" kind sources
 
   val mutable sources = sources
   initializer assert (sources <> [])
@@ -111,8 +111,7 @@ end
 
 class merge_tracks ~kind source =
 object (self)
-
-  inherit operator ~name:"sequence" kind [source] as super
+  inherit operator ~name:"sequence" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 (** Decode files using an external decoder. *)
-
-let log = Dtools.Log.make ["decoder";"external"]
 
 let priority = Tutils.Blocking
 let buf_size = 1024
@@ -189,7 +187,7 @@ let test_kind f filename =
 
 let register_stdin name sdoc mimes test process =
   Decoder.file_decoders#register name ~sdoc
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        match test_kind test filename with
          | None -> None
          | Some out_kind ->
@@ -292,7 +290,7 @@ let external_input_oblivious process filename prebuf =
 
 let register_oblivious name sdoc test process prebuf =
   Decoder.file_decoders#register name ~sdoc
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        match test_kind test filename with
          | None -> None
          | Some out_kind ->

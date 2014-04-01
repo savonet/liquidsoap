@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,28 +27,28 @@ let () =
     add "request.all"
       ~descr:"Get the identifiers of all requests, in use or not. \
               Destroyed requests will remain there only for some limited time."
-      (fun args ->
+      (fun _ ->
          String.concat " "
            (List.map
               string_of_int
               (Request.all_requests ()))) ;
     add "request.alive"
       ~descr:"Get the identifiers of requests that are still in use."
-      (fun args ->
+      (fun _ ->
          String.concat " "
            (List.map
               string_of_int
               (Request.alive_requests ()))) ;
     add "request.on_air"
       ~descr:"Get the identifiers of requests that are on air."
-      (fun args ->
+      (fun _ ->
          String.concat " "
            (List.map
               string_of_int
               (Request.on_air_requests ()))) ;
     add "request.resolving"
       ~descr:"Get the identifiers of requests that are being prepared."
-      (fun args ->
+      (fun _ ->
          String.concat " "
            (List.map
               string_of_int
@@ -76,7 +76,7 @@ let () =
              | None -> "No such request."
            end) ;
     add "uptime" ~descr:"Print the uptime for this instance."
-      (fun args ->
+      (fun _ ->
          let date = int_of_float (Utils.uptime ()) in
            Printf.sprintf "%dd %02dh %02dm %02ds"
              (date/(24*60*60))

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ class visu ~kind source =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
 object (self)
-  inherit operator ~name:"video.volume" kind [source] as super
+  inherit operator ~name:"video.volume" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready

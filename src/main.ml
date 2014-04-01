@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Dtools
-open Printf
 
 (** Runner module signature. *)
 module type Runner_t =
@@ -391,7 +390,7 @@ let options = [
     (* Unix.fork is not implemented in Win32. *)
     (if Sys.os_type <> "Win32" then
       [["-d";"--daemon"],
-       Arg.Unit (fun f -> Init.conf_daemon#set true),
+       Arg.Unit (fun _ -> Init.conf_daemon#set true),
        "Run in daemon mode."]
      else [])
     @
@@ -444,7 +443,7 @@ let options = [
     Arg.Unit (fun () ->
                 Printf.printf
                   "Liquidsoap %s%s\n\
-                   Copyright (c) 2003-2013 Savonet team\n\
+                   Copyright (c) 2003-2014 Savonet team\n\
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
                    See <http://liquidsoap.fm> for more information.\n"

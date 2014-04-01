@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ class virtual ['a] base ~nb_blocks ~blank =
     if nb_blocks < 1 then
       failwith "Buffered I/O requires a non-zero buffer length." ;
   in
-object (self)
+object
 
   val buffer = Array.init nb_blocks (fun _ -> blank ())
   val mutable read = 0

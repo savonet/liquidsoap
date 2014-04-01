@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -357,7 +357,7 @@ let file_extensions =
 let () =
   Decoder.file_decoders#register "OGG"
     ~sdoc:"Decode a file as OGG provided that libogg accepts it."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
         (* First, test file extension and mime *)
         if Decoder.test_file ~mimes:mime_types#get
                                ~extensions:file_extensions#get

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -71,10 +71,9 @@ let print_pos ?(prefix="At ") (start,stop) =
 
 (** Ground types *)
 
-type mul = Frame.multiplicity
 type ground = Unit | Bool | Int | String | Float
 
-let rec print_ground = function
+let print_ground = function
   | Unit    -> "unit"
   | String  -> "string"
   | Bool    -> "bool"
@@ -344,10 +343,10 @@ let print_repr f t =
     Format.fprintf f "@[" ;
     begin match t with
       (* We're only printing a variable: ignore its [repr]esentation. *)
-      | `EVar (i,c) when c <> [] ->
+      | `EVar (_,c) when c <> [] ->
           Format.fprintf f "something that is %s"
             (String.concat " and " (List.map print_constr c))
-      | `UVar (i,c) when c <> [] ->
+      | `UVar (_,c) when c <> [] ->
           Format.fprintf f "anything that is %s"
             (String.concat " and " (List.map print_constr c))
       (* Print the full thing, then display constraints *)
@@ -420,7 +419,7 @@ let rec occur_check a b =
       | Zero | Variable -> ()
       | Arrow (p,t) ->
           List.iter
-            (fun (o,l,t) -> occur_check a t)
+            (fun (_,_,t) -> occur_check a t)
             p ;
           occur_check a t
       | EVar _ ->
@@ -443,7 +442,7 @@ let rec bind a0 b =
     if b==a then () else begin
       occur_check a b ;
       begin match a.descr with
-        | EVar (i,constraints) ->
+        | EVar (_,constraints) ->
             List.iter
               (function
                  | Getter g ->
@@ -453,7 +452,7 @@ let rec bind a0 b =
                          | Arrow([],t) ->
                              begin match (deref t).descr with
                                | Ground g' -> if g<>g' then raise error
-                               | EVar (j,c) ->
+                               | EVar (_,_) ->
                                    (* This is almost wrong as it flips <: into
                                     * >:, but that's OK for a ground type. *)
                                    bind t (make (Ground g))
@@ -468,7 +467,7 @@ let rec bind a0 b =
                      (** In check, [b] is assumed to be dereferenced *)
                      let rec check b =
                        match b.descr with
-                         | Ground g -> ()
+                         | Ground _ -> ()
                          | EVar (j,c) ->
                              if List.mem Ord c then () else
                                b.descr <- EVar (j,Ord::c)
@@ -488,7 +487,7 @@ let rec bind a0 b =
                              | Ground g ->
                                  if g <> String then
                                    raise (Unsatisfied_constraint (Dtools,b'))
-                             | EVar (j,c) ->
+                             | EVar (_,_) ->
                                  bind b' (make (Ground String))
                              | _ -> raise (Unsatisfied_constraint (Dtools,b'))
                            end
@@ -542,7 +541,6 @@ let rec bind a0 b =
 
 (* {1 Subtype checking/inference} *)
 
-type trace_item = Item of t*t | Flip
 exception Error of (repr*repr)
 type explanation = bool*t*t*repr*repr
 exception Type_Error of explanation
@@ -666,7 +664,7 @@ let rec (<:) a b =
          * and either l2 is erasable and t<:t'
          *        or (l2)->t <: t'. *)
         let ellipsis = false,"",`Range_Ellipsis in
-        let elide (o,l,t) = o,l,`Ellipsis in
+        let elide (o,l,_) = o,l,`Ellipsis in
         let l1,l2 =
           List.fold_left
             (* Start with [l2:=l12], [l1:=[]] and
@@ -724,7 +722,7 @@ let rec (<:) a b =
      * For now we do with a couple special cases regarding arities... *)
     | EVar (_,c), Variable when List.mem Arity_fixed c -> ()
     | EVar (_,c), Variable when List.mem Arity_any c -> ()
-    | EVar (_,c), Succ b' ->
+    | EVar (_,_), Succ b' ->
         (* This could be optimized to process a bunch of succ all at once.
          * But it doesn't matter. The point is that binding might fail,
          * and is too abusive anyway. *)
@@ -736,7 +734,7 @@ let rec (<:) a b =
         begin try a' <: b' with
           | Error (a',b') -> raise (Error (`Succ a', `Succ b'))
         end
-    | Succ a', EVar (_,c) ->
+    | Succ a', EVar (_,_) ->
         let b' = fresh_evar ~level:b.level ~constraints:[] ~pos:None in
         begin try bind b (make ~pos:b.pos (Succ b')) with
           | Unsatisfied_constraint _ ->
@@ -764,7 +762,7 @@ let rec (<:) a b =
         let filter () =
           let already = ref false in
             function
-              | {descr = Link _} -> false
+              | {descr = Link _; _} -> false
               | _ -> let x = !already in already := true ; x
         in
         let a = repr ~filter_out:(filter ()) a in
@@ -824,7 +822,7 @@ let copy_with subst t =
   let rec aux t =
     let cp x = { t with descr = x } in
       match t.descr with
-        | EVar (i,c) ->
+        | EVar (i,_) ->
             begin try
               snd (List.find (fun ((j,_),_) -> i=j) subst)
             with

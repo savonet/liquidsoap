@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,9 +23,9 @@
 (** A [plug] is something where plug-ins plug.
   We build [plug] on the top of [Doc.item]. *)
 
-class ['a] plug name ?(register_hook=fun _ -> ()) doc insensitive 
+class ['a] plug ?(register_hook=fun _ -> ()) doc insensitive 
                      duplicates =
-object (self)
+object
   inherit Doc.item doc
 
   val mutable plugins : (string*'a) list = []
@@ -53,7 +53,7 @@ object (self)
         | None       -> ()
 
   method is_registered a = List.mem_assoc a plugins
-  method keys = List.fold_left (fun l (k,v) -> k::l) [] plugins
+  method keys = List.fold_left (fun l (k,_) -> k::l) [] plugins
   method iter ?(rev=false) f = 
     let plugins = 
       if rev then
@@ -85,7 +85,7 @@ let plugs = new Doc.item "All the plugs"
 let create ?(duplicates=true) ?register_hook ?insensitive ?doc plugname =
   let insensitive = match insensitive with Some true -> true | _ -> false in
   let doc = match doc with None -> "(no doc)" | Some d -> d in
-  let plug = new plug ?register_hook plugname doc insensitive duplicates in
+  let plug = new plug ?register_hook doc insensitive duplicates in
     plugs#add_subsection plugname (plug:>Doc.item) ;
     plug
 

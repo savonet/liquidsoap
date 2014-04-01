@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ struct
  * or external processes, if we could wrap the input function used
  * for decoding stream (in http and harbor) as an in_channel. *)
 let create ?header input =
-  let decoder = ref (fun gen -> assert false) in
+  let decoder = ref (fun _ -> assert false) in
   let header = ref header in
 
   let main_decoder remaining =
@@ -126,7 +126,7 @@ let create ?header input =
     end ;
   let seek ticks = 
     match input.Decoder.lseek,input.Decoder.tell,!header with
-      | Some seek, Some tell, Some (format,samplesize,channels,samplerate,datalen) ->
+      | Some seek, Some tell, Some (_,samplesize,channels,samplerate,_) ->
          (* seek is in absolute position *)
          let duration = Frame.seconds_of_master ticks in
          let samples = int_of_float (duration *. samplerate) in
@@ -196,7 +196,7 @@ let wav_file_extensions =
 let () =
   Decoder.file_decoders#register "WAV"
     ~sdoc:"Decode as WAV any file with a correct header."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
         not (Decoder.test_file ~mimes:wav_mime_types#get
@@ -227,7 +227,7 @@ let aiff_file_extensions =
 let () =
   Decoder.file_decoders#register "AIFF"
     ~sdoc:"Decode as AIFF any file with a correct header."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
         not (Decoder.test_file ~mimes:aiff_mime_types#get

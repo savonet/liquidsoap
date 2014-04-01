@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ let length b = b.length
 let rec remove g len =
   assert (g.length >= len) ;
   if len>0 then
-  let b,b_off,b_len = Queue.peek g.buffers in
+  let _,_,b_len = Queue.peek g.buffers in
     (* Is it enough to advance in the first buffer?
      * Or do we need to consume it completely and go farther in the queue? *)
     if g.offset + len < b_len then begin
@@ -98,12 +98,12 @@ let rec remove g len =
 
 (** Remove data at the end of the generator: this is not a natural operation
   * for Generators, it's done in linear time. *)
-let rec remove_end g remove_len =
+let remove_end g remove_len =
   (* Remove length [l] at the beginning of the buffers,
    * should correspond exactly to some last [n] chunks. *)
   let rec remove l =
     if l>0 then
-      let (_,ofs,len) = Queue.take g.buffers in
+      let (_,_,len) = Queue.take g.buffers in
         assert (l>=len) ;
         remove (l-len)
   in
@@ -205,7 +205,7 @@ module Metadata = struct
     | _ -> -1
 
   let metadata g len =
-    List.filter (fun (t,m) -> t < len) g.metadata
+    List.filter (fun (t,_) -> t < len) g.metadata
 
   let feed_from_frame g frame =
     let size = Lazy.force Frame.size in

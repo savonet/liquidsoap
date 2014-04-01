@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -65,9 +65,7 @@ let create_encoder ~opus ~comments () =
     Ogg.Stream.put_packet os (Opus.Encoder.header enc); 
     Ogg.Stream.flush_page os
   in
-  let fisbone_packet os =
-    None
-  in
+  let fisbone_packet _ = None in
   let stream_start os = 
     let enc = get_enc os in
     Ogg.Stream.put_packet os (Opus.Encoder.comments enc);

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ let () =
     try
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
     with
-      | Dtools.Conf.Unbound (t, s) ->
+      | Dtools.Conf.Unbound (_, _) ->
           log#f 2 "WARNING: there is no configuration key named %S!" path
   in
     add_builtin ~cat:Liq "set"
@@ -124,7 +124,7 @@ let () =
                | _ -> assert false
              end ;
              Lang.unit
-           with Dtools.Conf.Mismatch t ->
+           with Dtools.Conf.Mismatch _ ->
              let t =
                Configure.conf#path
                  (Dtools.Conf.path_of_string path)
@@ -152,7 +152,7 @@ let () =
     try
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#get
     with
-      | Dtools.Conf.Unbound (t, s) ->
+      | Dtools.Conf.Unbound (_, _) ->
           log#f 2 "WARNING: there is no configuration key named %S!" path ;
           v
   in
@@ -175,7 +175,7 @@ let () =
                  Lang.float (get Dtools.Conf.as_float path s)
              | Lang.List l ->
                  let l = List.map Lang.to_string l in
-                   Lang.list Lang.string_t
+                   Lang.list ~t:Lang.string_t
                      (List.map
                         Lang.string
                         (get Dtools.Conf.as_list path l))
@@ -243,7 +243,7 @@ let () =
       ~descr:"Get the current time for all allocated clocks."
       []
       (Lang.list_t t)
-      (fun p ->
+      (fun _ ->
          let l =
            Clock.fold
              (fun clock l ->
@@ -261,7 +261,7 @@ let () =
                    (Utils.uptime () /. Lazy.force Frame.duration)))
            :: l
          in
-           Lang.list t l)
+           Lang.list ~t l)
 
 let () =
   if Sys.os_type <> "Win32" then
@@ -406,7 +406,7 @@ let () =
            Request.protocols#register name
              { Request.static = false ;
                Request.resolve =
-                 fun arg ~log timeout ->
+                 fun arg ~log:_ timeout ->
                    let l =
                      Lang.apply ~t:(Lang.list_t Lang.string_t)
                        f ["",Lang.string arg;
@@ -451,7 +451,7 @@ let () =
       ["",t,None,None;"",t,None,None] t
       (fun p ->
          match p with
-           | ["",{Lang.value=Lang.Int a};"",{Lang.value=Lang.Int b}] ->
+         | ["",{Lang.value=Lang.Int a;_};"",{Lang.value=Lang.Int b;_}] ->
                Lang.int (a mod b)
            | _ -> assert false)
 
@@ -460,8 +460,8 @@ let () =
     add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
       ["",t,None,None] t
       (function
-         | ["",{ Lang.value = Lang.Int i }] -> Lang.int (~- i)
-         | ["",{ Lang.value = Lang.Float i }] -> Lang.float (~-. i)
+         | ["",{ Lang.value = Lang.Int i;_}] -> Lang.int (~- i)
+         | ["",{ Lang.value = Lang.Float i;_}] -> Lang.float (~-. i)
          | _ -> assert false)
 
 let () =
@@ -481,9 +481,9 @@ let () =
       ["",t,None,None;"",t,None,None] t
       (fun p ->
          match p with
-           | ["",{Lang.value=Lang.Int a};"",{Lang.value=Lang.Int b}] ->
+           | ["",{Lang.value=Lang.Int a;_};"",{Lang.value=Lang.Int b;_}] ->
                Lang.int (op_int a b)
-           | ["",{Lang.value=Lang.Float a};"",{Lang.value=Lang.Float b}] ->
+           | ["",{Lang.value=Lang.Float a;_};"",{Lang.value=Lang.Float b;_}] ->
                Lang.float (op_float a b)
            | _ -> assert false)
   in
@@ -518,7 +518,7 @@ let () =
 let () =
   add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random value."
     [] Lang.bool_t
-    (fun p -> Lang.bool (Random.bool ()))
+    (fun _ -> Lang.bool (Random.bool ()))
 
 let () =
   add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
@@ -640,7 +640,7 @@ let register_escape_fun ~name ~descr ~escape
     Buffer.contents b
   in
   let special_chars =
-    Lang.list Lang.string_t
+    Lang.list ~t:Lang.string_t
      (List.map Lang.string
       (List.map (String.make 1)
         special_chars))
@@ -716,7 +716,7 @@ let () =
        let sep = Lang.to_string (List.assoc "separator" p) in
        let string = Lang.to_string (List.assoc "" p) in
        let rex = Pcre.regexp sep in
-         Lang.list Lang.string_t
+         Lang.list ~t:Lang.string_t
            (List.map Lang.string (Pcre.split ~rex string)))
 
 let () =
@@ -750,14 +750,14 @@ let () =
          in
          let l = extract [] 1 in
          Lang.list
-           (Lang.product_t Lang.string_t Lang.string_t)
+           ~t:(Lang.product_t Lang.string_t Lang.string_t)
            (List.map
               (fun (x,y) ->
                  Lang.product (Lang.string x) (Lang.string y))
               l)
        with
          | Not_found ->
-             Lang.list (Lang.product_t Lang.string_t Lang.string_t) [])
+             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) [])
 
 let () =
   add_builtin "string.match" ~cat:String
@@ -1094,7 +1094,7 @@ let () =
        in
        let l = Lang.assoc "" 2 p in
        Lang.list
-         (Lang.of_list_t l.Lang.t)
+         ~t:(Lang.of_list_t l.Lang.t)
          (List.sort sort (Lang.to_list l)))
 
 let () =
@@ -1111,7 +1111,7 @@ let () =
        in
        let l = Lang.assoc "" 2 p in
        Lang.list
-         (Lang.of_list_t l.Lang.t)
+         ~t:(Lang.of_list_t l.Lang.t)
          (List.filter filter (Lang.to_list l)))
 
 let () =
@@ -1124,8 +1124,8 @@ let () =
        let t = Lang.of_list_t l.Lang.t in
        let l = Lang.to_list l in
          match l with
-           | [] -> Lang.list t []
-           | _::tl -> Lang.list t tl)
+           | [] -> Lang.list ~t []
+           | _::tl -> Lang.list ~t tl)
 
 let () =
   add_builtin "list.append" ~cat:List
@@ -1255,7 +1255,7 @@ let () =
         | _ -> c ^ " " ^ a
     in
     let r = try Server.exec (s) with Not_found -> "Command not found!" in
-      Lang.list Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
+      Lang.list ~t:Lang.string_t (List.map Lang.string (Pcre.split ~pat:"\n" r))
   in
   add_builtin "server.execute"
     ~cat ~descr params return_t execute
@@ -1279,13 +1279,13 @@ let () =
 let () =
   add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
     [] Lang.unit_t
-    (fun p ->
+    (fun _ ->
       Shutdown.restart := false ;
       Tutils.shutdown () ;
       Lang.unit) ;
   add_builtin "restart" ~cat:Sys ~descr:"Restart the application."
     [] Lang.unit_t
-    (fun p ->
+    (fun _ ->
       Shutdown.restart := true ;
       Tutils.shutdown () ;
       Lang.unit)
@@ -1344,7 +1344,7 @@ let () =
   add_builtin "garbage_collect" ~cat:Liq
     ~descr:"Trigger full major garbage collection."
     [] Lang.unit_t
-    (fun p ->
+    (fun _ ->
       Gc.full_major () ;
       Lang.unit)
 
@@ -1363,7 +1363,7 @@ let () =
     []
     Lang.int_t
     ~descr:"Get the process' pid."
-    (fun p ->
+    (fun _ ->
        Lang.int (Unix.getpid()))
 
 let () =
@@ -1372,7 +1372,7 @@ let () =
     Lang.float_t
     ~descr:"Return the current time since \
             00:00:00 GMT, Jan. 1, 1970, in seconds."
-    (fun p ->
+    (fun _ ->
        Lang.float (Unix.gettimeofday ()))
 
 let () =
@@ -1408,14 +1408,14 @@ let () =
        in
        let l = aux () in
          ignore (Unix.close_process_in chan) ;
-         Lang.list Lang.string_t (List.map Lang.string l))
+         Lang.list ~t:Lang.string_t (List.map Lang.string l))
 
 let () =
   let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
   add_builtin "environment" ~cat:Sys
     ~descr:"Return the process environment."
     [] ret_t
-    (fun p ->
+    (fun _ ->
       let l = Unix.environment () in
       (* Split at first occurence of '='. Return v,"" if
        * no '=' could be found. *)
@@ -1429,7 +1429,7 @@ let () =
       let l = List.map split l in
       let l = List.map (fun (x,y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x,y) -> Lang.product x y) l in
-      Lang.list ret_t l)
+      Lang.list ~t:ret_t l)
 
 let () =
   add_builtin "getenv" ~cat:Sys
@@ -1599,7 +1599,7 @@ let () =
        in
        let uri = Lang.to_string (Lang.assoc "" 1 p) in
        let f = Lang.assoc "" 2 p in
-       let f ~protocol ~data ~headers ~socket uri =
+       let f ~protocol ~data ~headers ~socket:_ uri =
          let l =
             List.map
               (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
@@ -1685,7 +1685,7 @@ let () =
     ["",Lang.univ_t 1,None,None] Lang.string_t
     (fun p ->
        match List.assoc "" p with
-         | {Lang.value=Lang.String s} -> Lang.string s
+         | {Lang.value=Lang.String s;_} -> Lang.string s
          | v -> Lang.string (Lang.print_value v))
 
 let rec to_json_compact v =
@@ -1895,7 +1895,7 @@ let () =
           *   this trick to compare active sources and passive ones... *)
          Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
        in
-         Lang.list s_t (List.map (fun x -> Lang.source (x:>Source.source)) l))
+         Lang.list ~t:s_t (List.map (fun x -> Lang.source (x:>Source.source)) l))
 
 let () =
   add_builtin "request.create.raw" ~cat:Liq
@@ -1905,11 +1905,12 @@ let () =
             a request that will fail to be resolved."
     [("indicators",
       Lang.list_t Lang.string_t,
-      Some (Lang.list Lang.string_t []),
+      Some (Lang.list ~t:Lang.string_t []),
       None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
-    (Lang.request_t (Lang.frame_kind_t Lang.zero_t Lang.zero_t Lang.zero_t))
+    (Lang.request_t
+      (Lang.frame_kind_t ~audio:Lang.zero_t ~video:Lang.zero_t ~midi:Lang.zero_t))
     (fun p ->
        let indicators = List.assoc "indicators" p in
        let persistent = Lang.to_bool (List.assoc "persistent" p) in
@@ -1937,7 +1938,7 @@ let () =
             a request that will fail to be resolved."
     [("indicators",
       Lang.list_t Lang.string_t,
-      Some (Lang.list Lang.string_t []),
+      Some (Lang.list ~t:Lang.string_t []),
       None);
      "persistent",Lang.bool_t,Some (Lang.bool false),None;
      "",Lang.string_t,None,None]
@@ -2116,15 +2117,15 @@ let () =
                Lang.product (Lang.string n) (Lang.string v)
              in
                Lang.list
-                 (Lang.product_t Lang.string_t Lang.string_t)
+                 ~t:(Lang.product_t Lang.string_t Lang.string_t)
                  (List.map f m)
            in
            let process (m,uri) =
              Lang.product (process m) (Lang.string uri)
            in
-             Lang.list ret_item_t (List.map process l)
+             Lang.list ~t:ret_item_t (List.map process l)
          with
-           | _ -> Lang.list ret_item_t [])
+           | _ -> Lang.list ~t:ret_item_t [])
 
 (** Sound utils. *)
 
@@ -2163,7 +2164,7 @@ struct
     let usage = "list" in
       Server.add ~ns ~usage "list"
                  ~descr:"List available interactive variables."
-        (fun s ->
+        (fun _ ->
            String.concat "\n"
              (List.map
                 (fun (_,v) ->
@@ -2237,7 +2238,7 @@ let () =
                         with _ ->
                           raise (Var.Invalid_value
                                    (s ^ " is not a string")));
-         Lang.val_fun [] ~ret_t:Lang.string_t (fun p _ -> Lang.string !v))
+         Lang.val_fun [] ~ret_t:Lang.string_t (fun _ _ -> Lang.string !v))
 
 let () =
   add_builtin "interactive.float" ~cat:Interaction
@@ -2259,7 +2260,7 @@ let () =
                         with _ ->
                           raise (Var.Invalid_value
                                    (s ^ " is not a float")));
-         Lang.val_fun [] ~ret_t:Lang.float_t (fun p _ -> Lang.float !v))
+         Lang.val_fun [] ~ret_t:Lang.float_t (fun _ _ -> Lang.float !v))
 
 let () =
   add_builtin "interactive.bool" ~cat:Interaction
@@ -2279,7 +2280,7 @@ let () =
            (fun s ->
              if s <> "true" && s <> "false" then
                raise (Var.Invalid_value (s ^ " is not a boolean")));
-         Lang.val_fun [] ~ret_t:Lang.bool_t (fun p _ -> Lang.bool !v))
+         Lang.val_fun [] ~ret_t:Lang.bool_t (fun _ _ -> Lang.bool !v))
 
 let () =
   add_builtin "print" ~cat:Interaction ~descr:"Print on standard output."

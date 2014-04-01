@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,15 +40,15 @@ class http_input_server ~kind ~dumpfile ~logfile
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
-  inherit Source.source ~name:"harbor" kind as super
+  inherit  Source.source ~name:"harbor" kind as super
   inherit Generated.source
             (Generator.create
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-            ~empty_on_abort:false ~bufferize as generated
+            ~empty_on_abort:false ~bufferize
 
   val mutable relay_socket = None
   (** Function to read on socket. *)
-  val mutable relay_read = (fun socket len -> assert false)
+  val mutable relay_read = (fun _ _ -> assert false)
   (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
   val mutable create_decoder = fun _ -> assert false
@@ -347,7 +347,7 @@ let () =
        let trivially_false = function
          | { Lang.value =
                Lang.Fun (_,_,_,
-                         { Lang_values.term = Lang_values.Bool false }) }
+                         { Lang_values.term = Lang_values.Bool false; _}); _}
              -> true
          | _ -> false
        in

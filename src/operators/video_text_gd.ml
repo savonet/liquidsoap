@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ let render_text ~font ~size text =
   let x1, y1 = bounds.(6), bounds.(7) in
   let x2, y2 = bounds.(2), bounds.(3) in
   let w, h = x2 - x1, y2 - y1 in
-  let img = Gd.create w h in
+  let img = Gd.create ~x:w ~y:h in
   let ca = img#colors in
   img#filled_rectangle ~x1:0 ~y1:0 ~x2:(w-1) ~y2:(h-1) ca#black;
   ignore (img#string_ft ~fname:font ~size:(float size) ~angle:0. ~x:0 ~y:h ~fg:ca#white text);

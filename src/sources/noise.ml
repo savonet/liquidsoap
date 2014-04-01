@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,7 +50,9 @@ object
 end
 
 let () =
-  let k = Lang.frame_kind_t (Lang.univ_t 1) (Lang.univ_t 2) Lang.zero_t in
+  let k =
+    Lang.frame_kind_t ~audio:(Lang.univ_t 1) ~video:(Lang.univ_t 2) ~midi:Lang.zero_t
+  in
     Lang.add_operator "noise"
       ~category:Lang.Input
       ~descr:"Generate (audio and/or video) white noise."

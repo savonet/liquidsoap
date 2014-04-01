@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 
 (** Decode files and streams using GStreamer. *)
 
-open Dtools
 open Stdlib
 
 module GU = Gstreamer_utils
@@ -41,9 +40,7 @@ type gst =
 (** Generic decoder. *)
 (* TODO: we should share some code with Ogg_decoder... *)
 module Make (Generator : Generator.S_Asio) = struct
-
-  let create_decoder ?(merge_tracks=false) source ~channels mode input =
-
+  let create_decoder ?(merge_tracks=false) _ ~channels mode input =
     GU.init ();
 
     let decode_audio = mode = `Both || mode = `Audio in
@@ -129,7 +126,7 @@ module Make (Generator : Generator.S_Asio) = struct
     in
     Gstreamer.App_src.on_need_data gst.src feed_data;
 
-    let rec decode buffer =
+    let decode buffer =
       if not !started then
         (
           init ~reset:false buffer;
@@ -272,7 +269,7 @@ let get_type ~channels filename =
 let () =
   Decoder.file_decoders#register "GSTREAMER"
     ~sdoc:"Decode a file using GStreamer."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
       if not (Decoder.test_file
                 ~mimes:mime_types#get
                 ~extensions:file_extensions#get

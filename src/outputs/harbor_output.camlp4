@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -109,7 +109,7 @@ let proto kind =
     Some (Lang.val_cst_fun ["",Lang.string_t,None] Lang.unit),
     Some "Callback executed when connection stops."  ;
     ("headers", Lang.metadata_t,
-     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) []),
+     Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []),
      Some "Additional headers.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
@@ -377,7 +377,7 @@ class output ~kind p =
   let trivially_false = function
     | { Lang.value =
            Lang.Fun (_,_,_,
-                     { Lang_values.term = Lang_values.Bool false }) }
+                     { Lang_values.term = Lang_values.Bool false; _}); _}
         -> true
     | _ -> false
   in
@@ -540,7 +540,7 @@ object (self)
         if default_user <> "" ||
            not (trivially_false auth_function) then
           Harbor.auth_check ~args ~login:(default_user,login) 
-                            handler uri headers
+                            handler headers
         else
           duppy_return () 
       with
@@ -647,10 +647,10 @@ object (self)
     let enc = data.factory self#id in
     encoder <- 
        Some (enc (Encoder.Meta.empty_metadata)) ;
-    let handler ~protocol ~data ~headers ~socket
+    let handler ~protocol ~data:_ ~headers ~socket
                 uri =
       let rex = Pcre.regexp "^(.+)\\?(.+)$" in
-      let base_uri,args =
+      let _,args =
       try
         let sub = Pcre.exec ~rex:rex uri in
         Pcre.get_substring sub 1,
@@ -697,8 +697,9 @@ end
 
 let () =
   let k = Lang.univ_t 1 in
-  Lang.add_operator "output.harbor" ~category:Lang.Output ~active:true
+  Lang.add_operator ~category:Lang.Output ~active:true
     ~descr:"Encode and output the stream using the harbor server."
+    "output.harbor"
     (proto k)
     ~kind:(Lang.Unconstrained k)
-    (fun p kind -> ((new output kind p):>Source.source))
+    (fun p kind -> ((new output ~kind p):>Source.source))

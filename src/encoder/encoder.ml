@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -707,17 +707,17 @@ let kind_of_format = function
   | Ogg l ->
       List.fold_left
         (fun k -> function
-           | Ogg.Vorbis { Vorbis.channels = n } ->
+           | Ogg.Vorbis { Vorbis.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
-           | Ogg.Opus { Opus.channels = n } ->
+           | Ogg.Opus { Opus.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
-           | Ogg.Flac { Flac.channels = n } ->
+           | Ogg.Flac { Flac.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
                { k with Frame.video = k.Frame.video+1 }
            | Ogg.Dirac _ ->
                { k with Frame.video = k.Frame.video+1 }
-           | Ogg.Speex { Speex.stereo = stereo } ->
+           | Ogg.Speex { Speex.stereo = stereo; _} ->
                let n = if stereo then 2 else 1 in
                { k with Frame.audio = k.Frame.audio+n })
         { Frame.audio = 0 ; Frame.video = 0 ; Frame.midi = 0 }

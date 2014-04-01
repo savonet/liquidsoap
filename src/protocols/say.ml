@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ let say s ~log maxtime =
   let cmd = conf_program#get in
   let voice,s = parse_arg s in
     try
-      let pid,ret =
+      let _,ret =
         dlog#f 3 "Synthetizing %S to %S" s local ;
         let pid = flush_all () ; fork () in
           if pid = 0 then begin
@@ -94,7 +94,7 @@ let () =
     "say"
     { Request.resolve = say ; Request.static = true }
 
-let time arg ~log timeout =
+let time arg ~log:_ _ =
   let tm = Unix.localtime (Unix.gettimeofday ()) in
   let date =
     Printf.sprintf

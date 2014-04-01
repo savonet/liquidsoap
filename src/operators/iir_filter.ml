@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ class iir ~kind (source:source)
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Frame.audio_of_seconds 1.) in
 object (self)
-  inherit operator ~name:"iir_filter" kind [source] as super
+  inherit operator ~name:"iir_filter" kind [source]
 
   (* Params *)
   val raw_alpha1 = freq1 /. rate
@@ -73,7 +73,7 @@ object (self)
     and ( +~ ), ( -~ ), ( *~ ), ( /~ ) =
       Complex.add, Complex.sub, Complex.mul, Complex.div
     in
-    let multin w s n c =
+    let multin w n c =
       (* multiply factor (z-w) into coeffs *)
       let w = (cor 0. -~ w)
       in
@@ -87,7 +87,7 @@ object (self)
               (Array.make n {re = 0. ; im = 0. })
       in
         for i = 0 to n - 1 do
-          multin z.(i) i n c ;
+          multin z.(i) n c ;
         done;
         (* check that computed coeffs of z^k are all real *)
         for i = 0 to n do
@@ -97,14 +97,14 @@ object (self)
         done;
         c
     in
-    let eval c n z =
+    let eval c z =
       (* evaluate polynomial in z, substituting for z *)
       Array.fold_right (fun a b -> Complex.add (Complex.mul b z) a)
         c {re = 0. ; im = 0.}
     in
-    let evaluate t nz b np z =
+    let evaluate t b z =
       (* evaluate response, substituting for z *)
-      Complex.div (eval t nz z) (eval b np z)
+      Complex.div (eval t z) (eval b z)
     in
       begin match filter_family with
         | Butterworth ->
@@ -292,8 +292,7 @@ object (self)
                     let zp = r *~ {re = cos !thm ; im = sin !thm} in
                       zplane_poles <- [|zp ; Complex.conj zp|] ;
                       botcoeffs <- expand zplane_poles zplane_numpoles ;
-                      let g = evaluate topcoeffs zplane_numzeros
-                                       botcoeffs zplane_numpoles
+                      let g = evaluate topcoeffs botcoeffs
                                        {re = cos theta ; im = sin theta}
                       in
                         let phi = g.im /. g.re in (* approx to atan2 *)
@@ -354,15 +353,12 @@ object (self)
                     Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
                  botcoeffs))) ;
       (* Gain *)
-      dc_gain <- evaluate topcoeffs zplane_numzeros botcoeffs
-                          zplane_numpoles {re = 1. ; im = 0.} ;
+      dc_gain <- evaluate topcoeffs botcoeffs {re = 1. ; im = 0.} ;
       let theta =
         2. *. Utils.pi *. 0.5 *. (raw_alpha1 +. raw_alpha2) (* jwt for centre freq. *)
       in
-      fc_gain <- evaluate topcoeffs zplane_numzeros botcoeffs zplane_numpoles
-                   (Complex.exp {re = 0. ; im = theta}) ;
-      hf_gain <- evaluate topcoeffs zplane_numzeros botcoeffs zplane_numpoles
-                   {re = -1. ; im = 0.} ;
+      fc_gain <- evaluate topcoeffs botcoeffs (Complex.exp {re = 0. ; im = theta}) ;
+      hf_gain <- evaluate topcoeffs botcoeffs {re = -1. ; im = 0.} ;
       gain <- begin match filter_type with
                 | Band_stop -> Complex.norm (sqrt (dc_gain *~ hf_gain ))
                 | Band_pass

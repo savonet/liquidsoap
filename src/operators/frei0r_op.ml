@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2014 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,9 +47,8 @@ let plugin_dirs =
 class frei0r_filter ~kind ~name bgra instance params (source:source) =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. (float fps) in
-object (self)
-
-  inherit operator ~name:("frei0r."^name) kind [source] as super
+object
+  inherit operator ~name:("frei0r."^name) kind [source]
 
   method stype = source#stype
   method remaining = source#remaining
@@ -78,9 +77,8 @@ end
 class frei0r_mixer ~kind ~name bgra instance params (source:source) source2 =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. (float fps) in
-object (self)
-
-  inherit operator ~name:("frei0r."^name) kind [source;source2] as super
+object
+  inherit operator ~name:("frei0r."^name) kind [source;source2]
 
   method stype =
     match source#stype, source2#stype with
@@ -138,8 +136,7 @@ end
 class frei0r_source ~kind ~name bgra instance params =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. (float fps) in
-object (self)
-
+object
   inherit source ~name:("frei0r."^name) kind
 
   method stype = Infallible
@@ -286,7 +283,7 @@ let register_plugin fname =
     ]
   then raise Blacklisted;
   let bgra = info.Frei0r.color_model = Frei0r.BGRA8888 in
-  let inputs,outputs =
+  let inputs,_ =
     match info.Frei0r.plugin_type with
     | Frei0r.Filter -> 1,1
     | Frei0r.Source -> 0,1
