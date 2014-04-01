@@ -232,29 +232,14 @@ let exception_printer e =
     (fun cur f -> if cur <> None then cur else f e)
     None error_translators
 
-let register_printer _ = 
-    raise Not_found
-
 (* Exception backtrace printing.
  * This is used in Threads where 
  * the backtrace seems to be lost
  * otherwise. *)
 
-(* Default implementation when Printexc does
- * not implement it. *)
-let get_backtrace () = 
-  "Liquidsoap not compiled with ocaml >= 3.11, \
-   cannot print stack backtrace"
-
-(* Open Printexc, which overrides register_printer 
- * and get_backtrace. *)
-open Printexc
-
-let get_backtrace = get_backtrace
-
 let printexc_has_register = 
   try
-    register_printer exception_printer ;
+    Printexc.register_printer exception_printer ;
     true
   with
     | Not_found -> false

@@ -81,7 +81,7 @@ let leave (s:active_source) =
       s#id (Utils.error_message e) ;
     List.iter
       (log#f 3 "%s")
-      (Pcre.split ~pat:"\n" (Utils.get_backtrace ()))
+      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
 
 (** Base clock class. *)
 class clock id =
@@ -161,7 +161,7 @@ object (self)
                      s#id (Utils.error_message exn) ;
                    List.iter
                      (log#f 3 "%s")
-                     (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                     (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                    leave s ;
                    s::e,a)
           ([],[])
@@ -221,7 +221,7 @@ object (self)
                    s#id (Utils.error_message e) ;
                  List.iter
                   (log#f 3 "%s")
-                  (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                  (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                  leave s ;
                  `Error s)
         to_start
@@ -237,7 +237,7 @@ object (self)
                        s#id (Utils.error_message e) ;
                      List.iter
                        (log#f 3 "%s")
-                       (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                      leave s ;
                      `Error s)
         to_start
