@@ -2359,7 +2359,7 @@ let add_http_request name descr request =
              (* Here we return a fake code.. *)
              ("Internal error",999,"Internal error"),[],
               (Printf.sprintf "Error while processing request: %s"
-                  (Utils.error_message e))
+                  (Printexc.to_string e))
       in
       let status =
         Lang.product

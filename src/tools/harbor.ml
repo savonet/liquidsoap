@@ -223,7 +223,7 @@ let parse_http_request_line r =
           | _ -> raise Not_found))
   with
   | e ->
-      (log#f 4 "Invalid request line %s: %s" r (Utils.error_message e);
+      (log#f 4 "Invalid request line %s: %s" r (Printexc.to_string e);
        reply "HTTP 500 Invalid request\r\n\r\n")
   
 let parse_headers headers =
@@ -382,7 +382,7 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                         "This stream's format is not recognized."))
               | e ->
                   (log#f 4 "Returned 500 for '%s': %s" uri
-                     (Utils.error_message e);
+                     (Printexc.to_string e);
                    reply
                      (http_error_page 500 "Internal Server Error"
                         "The server could not handle your request."))))
@@ -632,7 +632,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                    ~socket: h.Duppy.Monad.Io.socket uri)
           | e ->
               (log#f 4 "HTTP %s request on uri '%s' failed: %s" smethod
-                 (Utils.error_message e) uri;
+                 (Printexc.to_string e) uri;
                ans_500 ())))
   
 let handle_client ~port ~icy h = (* Read and process lines *)
@@ -796,9 +796,8 @@ let open_port ~icy port =
                         ip
                   | Duppy.Io.Unix (c, p, m) ->
                       log#f 4 "%s"
-                        (Utils.error_message (Unix.Unix_error (c, p, m)))
-                  | Duppy.Io.Unknown e ->
-                      log#f 4 "%s" (Utils.error_message e));
+                        (Printexc.to_string (Unix.Unix_error (c, p, m)))
+                  | Duppy.Io.Unknown e -> log#f 4 "%s" (Printexc.to_string e));
                  (* Sending an HTTP response in case of timeout
               * even though ICY connections are not HTTP.. *)
                  if e = Duppy.Io.Timeout
@@ -830,8 +829,7 @@ let open_port ~icy port =
                   (handle_client ~port ~icy h))
          with
          | e ->
-             log#f 2 "Failed to accept new client: %s"
-               (Utils.error_message e));
+             log#f 2 "Failed to accept new client: %s" (Printexc.to_string e));
         [ {
             Duppy.Task.priority = Tutils.Non_blocking;
             events = [ `Read sock; `Read out_s ];

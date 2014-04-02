@@ -229,7 +229,7 @@ class output ~kind p =
   let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
   let on_error error =
-    let msg = Utils.error_message error in
+    let msg = Printexc.to_string error in
     Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg]) 
   in
 
@@ -456,7 +456,7 @@ object (self)
                  Cry.update_metadata ~charset:out_enc connection m 
                with e -> self#log#f 3 "Metadata update may have failed with \
                                        error: %s" 
-                             (Utils.error_message e))
+                             (Printexc.to_string e))
           | Cry.Disconnected -> ()
               (* Do nothing if shout connection isn't available *)
      end 
@@ -480,7 +480,7 @@ object (self)
               | None -> () 
           with
             | e ->
-                self#log#f 2 "Error while sending data: %s!" (Utils.error_message e) ;
+                self#log#f 2 "Error while sending data: %s!" (Printexc.to_string e) ;
                 let delay = on_error e in
                 if delay >= 0. then
                  begin
@@ -556,7 +556,7 @@ object (self)
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
         | e ->
-            self#log#f 2 "Connection failed: %s" (Utils.error_message e) ;
+            self#log#f 2 "Connection failed: %s" (Printexc.to_string e) ;
             let delay = on_error e in
             if delay >= 0. then
              begin

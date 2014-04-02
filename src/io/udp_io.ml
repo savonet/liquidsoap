@@ -161,7 +161,7 @@ object (self)
                     self#log#f 2 "Feeding stopped: %s." s
                 | e ->
                     self#log#f 2 "Feeding stopped: %s."
-                      (Utils.error_message e)
+                      (Printexc.to_string e)
               end ;
               if should_stop () then
                 has_stopped ()

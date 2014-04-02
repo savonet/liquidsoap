@@ -705,8 +705,8 @@ class output ~kind p =
                                                                     p, m) ->
                                                                     self#log#
                                                                     f 5 "%s"
-                                                                    (Utils.
-                                                                    error_message
+                                                                    (Printexc.
+                                                                    to_string
                                                                     (Unix.
                                                                     Unix_error
                                                                     (c, p, m)))
@@ -716,8 +716,8 @@ class output ~kind p =
                                                                     ->
                                                                     self#log#
                                                                     f 5 "%s"
-                                                                    (Utils.
-                                                                    error_message
+                                                                    (Printexc.
+                                                                    to_string
                                                                     e));
                                                                     self#log#
                                                                     f 4

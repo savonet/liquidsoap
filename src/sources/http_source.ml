@@ -271,7 +271,7 @@ object (self)
                 Tutils.wait_for ~log `Read socket timeout;
                 read len
                with e -> self#log#f 2 "Error while reading from socket: \
-                            %s" (Utils.error_message e);
+                            %s" (Printexc.to_string e);
                          self#disconnect_no_lock;
                          "",0
                end)
@@ -318,7 +318,7 @@ object (self)
                               easily be solved by using the audio_to_stereo \
                               operator to convert the stream to a stereo one)."
               | e ->
-                  self#log#f 2 "Feeding stopped: %s" (Utils.error_message e)
+                  self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
             end ;
             begin match logf with
               | Some f -> close_out f ; logf <- None
@@ -508,7 +508,7 @@ object (self)
                       with e ->
                         self#log#f 2
                           "Could not open log file: %s"
-                          (Utils.error_message e)
+                          (Printexc.to_string e)
                       end
                   | None -> ()
                 end ;
@@ -528,7 +528,7 @@ object (self)
           if debug then raise (Http.Error e)
       | e ->
           self#disconnect;
-          self#log#f 4 "Connection failed: %s" (Utils.error_message e) ;
+          self#log#f 4 "Connection failed: %s" (Printexc.to_string e) ;
           if debug then raise e
 
   (* Take care of (re)starting the decoding *)

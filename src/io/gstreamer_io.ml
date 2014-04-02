@@ -464,7 +464,7 @@ object (self)
           (string_of_state_change (Element.set_state self#get_device.bin s) )
       with
         | e ->
-            Printf.sprintf "Error while changing state: %s\n" (Utils.error_message e)
+            Printf.sprintf "Error while changing state: %s\n" (Printexc.to_string e)
     in
     self#register_command
       "pause" ~descr:"Set gstreamer pipeline state to paused" (change_state Element.State_paused);

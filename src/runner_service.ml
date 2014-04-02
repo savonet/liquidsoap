@@ -102,6 +102,6 @@ let () =
         with
           | e ->
               Main.log#f 2 "Error while running service: %s"
-                             (Utils.error_message e)
+                             (Printexc.to_string e)
        end
     | `None -> main ()

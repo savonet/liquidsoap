@@ -145,7 +145,7 @@ let create ~wait f x s =
                  log#f 3 "Thread %S terminated." s
              with e ->
                Mutex.lock lock ;
-               let backtrace = Utils.get_backtrace () in
+               let backtrace = Printexc.get_backtrace () in
                begin match e with
                  | Exit ->
                      log#f 3 "Thread %S exited." s
@@ -153,7 +153,7 @@ let create ~wait f x s =
                      log#f 1 "Thread %S failed: %s!" s e
                  | e ->
                      log#f 1 "Thread %S aborts with exception %s!"
-                              s (Utils.error_message e)
+                              s (Printexc.to_string e)
                end ;
                if e <> Exit then
                 begin
@@ -208,8 +208,8 @@ let new_queue ?priorities ~name () =
          | Some priorities ->
              Duppy.queue scheduler ~log:qlog ~priorities name
      with e ->
-       log#f 2 "Queue %s crashed with exception %s" name (Utils.error_message e) ;
-       log#f 2 "%s" (Utils.get_backtrace());
+       log#f 2 "Queue %s crashed with exception %s" name (Printexc.to_string e) ;
+       log#f 2 "%s" (Printexc.get_backtrace());
        log#f 1 "PANIC: Liquidsoap has crashed, exiting.." ;
        log#f 1 "Please report at: savonet-users@lists.sf.net" ;
        exit 1

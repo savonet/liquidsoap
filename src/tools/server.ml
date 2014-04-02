@@ -217,7 +217,7 @@ let exec s =
     | Not_found ->
         "ERROR: unknown command, type \"help\" to get a \
                       list of commands."
-    | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
+    | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
   
 let handle_client socket ip =
   let on_error e =
@@ -229,8 +229,8 @@ let handle_client socket ip =
                       client %s."
             ip
       | Duppy.Io.Unix (c, p, m) ->
-          log#f 4 "%s" (Utils.error_message (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e -> log#f 3 "%s" (Utils.error_message e));
+          log#f 4 "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
+      | Duppy.Io.Unknown e -> log#f 3 "%s" (Printexc.to_string e));
      Duppy e) in
   let h =
     {
@@ -305,8 +305,7 @@ let start_socket () =
         let ip = Utils.name_of_sockaddr caller
         in (log#f 3 "New client %s." ip; handle_client socket ip)
       with
-      | e ->
-          log#f 2 "Failed to accept new client: %S" (Utils.error_message e));
+      | e -> log#f 2 "Failed to accept new client: %S" (Printexc.to_string e));
      [ {
          Duppy.Task.priority = Tutils.Non_blocking;
          events = [ `Read sock ];
@@ -357,8 +356,7 @@ let start_telnet () =
            in (log#f 3 "New client: %s." ip; handle_client socket ip)
          with
          | e ->
-             log#f 2 "Failed to accept new client: %S"
-               (Utils.error_message e));
+             log#f 2 "Failed to accept new client: %S" (Printexc.to_string e));
         [ {
             Duppy.Task.priority = Tutils.Non_blocking;
             events = [ `Read sock ];

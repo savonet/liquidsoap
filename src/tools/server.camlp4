@@ -227,7 +227,7 @@ let exec s =
       | Exit -> raise Exit
       | Not_found -> "ERROR: unknown command, type \"help\" to get a \
                       list of commands."
-      | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
+      | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
 
 let handle_client socket ip =
   let on_error e =
@@ -239,10 +239,10 @@ let handle_client socket ip =
                       client %s." ip
         | Duppy.Io.Unix (c,p,m) ->
              log#f 4 "%s"
-                 (Utils.error_message
+                 (Printexc.to_string
                     (Unix.Unix_error (c,p,m)))
         | Duppy.Io.Unknown e ->
-                 log#f 3 "%s" (Utils.error_message e)
+                 log#f 3 "%s" (Printexc.to_string e)
      end;
      Duppy e
   in
@@ -350,7 +350,7 @@ let start_socket () =
           log#f 3 "New client %s." ip;
           handle_client socket ip
       with e ->
-        log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
+        log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
     end ;
     [{ Duppy.Task.
          priority = Tutils.Non_blocking ;
@@ -407,7 +407,7 @@ let start_telnet () =
         log#f 3 "New client: %s." ip ;
         handle_client socket ip
       with e ->
-      log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
+      log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
     end ;
     [{ Duppy.Task.
          priority =Tutils.Non_blocking ;

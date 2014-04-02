@@ -128,7 +128,7 @@ object (self)
                    f ()
                  with
                  | e -> self#log#f 2 "Error while reading from client: \
-                            %s" (Utils.error_message e);
+                            %s" (Printexc.to_string e);
                    self#disconnect ~lock:false;
                    "",0
                end) len;
@@ -167,7 +167,7 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
+            self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
             self#disconnect ~lock:true;
             if debug then raise e
 
@@ -214,7 +214,7 @@ object (self)
           begin try
             dump <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open dump file: %s" (Utils.error_message e)
+            self#log#f 2 "Could not open dump file: %s" (Printexc.to_string e)
           end
       | None -> ()
     end ;
@@ -223,7 +223,7 @@ object (self)
           begin try
             logf <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open log file: %s" (Utils.error_message e)
+            self#log#f 2 "Could not open log file: %s" (Printexc.to_string e)
           end
       | None -> ()
     end ;

@@ -33,7 +33,7 @@ module Liq_http =
   let exc_of_exc = 
     function
       | Http s -> Http s
-      | e -> Http (Utils.error_message e)
+      | e -> Http (Printexc.to_string e)
 
   (* This in unused for now.. *)
   let default_timeout = ref 5.
@@ -187,7 +187,7 @@ let init host =
             songs
         | e ->
             log#f 4 "could not submit track %s -- %s: unknown error %s"
-              artist track (Utils.error_message e) ;
+              artist track (Printexc.to_string e) ;
             songs
      in
      Mutex.lock submit_m;
@@ -219,7 +219,7 @@ let init host =
      Hashtbl.iter f submit ;
      (-1.)
    with
-     | e -> reason (Utils.error_message e); (-1.)
+     | e -> reason (Printexc.to_string e); (-1.)
    in
    let task = 
      Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler do_submit

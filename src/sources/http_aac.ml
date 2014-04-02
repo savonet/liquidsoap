@@ -38,7 +38,7 @@ let decode_aac sink =
       buf := !buf ^ (sink.Http_source.read (buflen - String.length !buf))
     with
       | e ->
-          aac_stream_log#f 2 "Read error %s" (Utils.error_message e)
+          aac_stream_log#f 2 "Read error %s" (Printexc.to_string e)
   in
   let (* ofs *) _, samplerate, channels = (* TODO: use ofs *)
     feed_buf ();
