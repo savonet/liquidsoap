@@ -154,7 +154,7 @@ let encoder id ext =
       with e -> 
         h.log#f 3
           "Error while reading data from encoding process: %s"
-          (Utils.error_message e) ;
+          (Printexc.to_string e) ;
         stop (); 
         (if h.params.restart_on_crash then
           reset_process start_process h
@@ -223,7 +223,7 @@ let encoder id ext =
         | e ->
            h.log#f 3
              "Error while writing data to encoding process: %s"
-             (Utils.error_message e) ;
+             (Printexc.to_string e) ;
            if h.params.restart_on_crash then
              reset_process h
            else

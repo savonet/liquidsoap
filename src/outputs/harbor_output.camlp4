@@ -520,10 +520,10 @@ object (self)
                         self#log#f 5 "I/O error"
                    | Duppy.Io.Unix (c,p,m) ->
                         self#log#f 5 "%s"
-                          (Utils.error_message
+                          (Printexc.to_string
                             (Unix.Unix_error (c,p,m)))
                    | Duppy.Io.Unknown e ->
-                        self#log#f 5 "%s" (Utils.error_message e)
+                        self#log#f 5 "%s" (Printexc.to_string e)
                 end ;
                 self#log#f 4 "Client %s disconnected" ip ;
                 Tutils.mutexify client.mutex

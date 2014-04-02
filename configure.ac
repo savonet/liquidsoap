@@ -707,7 +707,7 @@ let recode_tag ?in_enc ?out_enc s =
             C.name_of in_enc
         in
         camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
-          s in_enc (C.name_of out_enc) (Utils.error_message e) ;
+          s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
         s
   with
     | Unknown_encoding e ->
@@ -721,7 +721,7 @@ let recode_tag ?in_enc ?out_enc s =
               s e ; s
     | e ->
           camolog#f 3 "Failed to convert %S: unknown error %s"
-              s (Utils.error_message e) ; s
+              s (Printexc.to_string e) ; s
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then

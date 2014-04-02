@@ -93,7 +93,7 @@ object (self)
            self#log#f 4
              "Could not get file from lastfm: %s"
              (Liqfm.Radio.string_of_error e)
-       | e -> self#log#f 4 "Lastfm connection failed: %s" (Utils.error_message e)
+       | e -> self#log#f 4 "Lastfm connection failed: %s" (Printexc.to_string e)
 
   (* TODO abort streaming on #abort_track,
    *   setting relaying <- false is too radical, it would completely

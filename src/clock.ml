@@ -78,7 +78,7 @@ let allow_streaming_errors =
 let leave (s:active_source) =
   try s#leave (s:>source) with e ->
     log#f 2 "Error when leaving output %s: %s!"
-      s#id (Utils.error_message e) ;
+      s#id (Printexc.to_string e) ;
     List.iter
       (log#f 3 "%s")
       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
@@ -158,7 +158,7 @@ object (self)
                | exn ->
                    log#f 2
                      "Source %s failed while streaming: %s!"
-                     s#id (Utils.error_message exn) ;
+                     s#id (Printexc.to_string exn) ;
                    List.iter
                      (log#f 3 "%s")
                      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
@@ -218,7 +218,7 @@ object (self)
            try s#get_ready [(s:>source)] ; `Woken_up s with
              | e ->
                  log#f 2 "Error when starting %s: %s!"
-                   s#id (Utils.error_message e) ;
+                   s#id (Printexc.to_string e) ;
                  List.iter
                   (log#f 3 "%s")
                   (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
@@ -234,7 +234,7 @@ object (self)
                try s#output_get_ready ; `Started s with
                  | e ->
                      log#f 2 "Error when starting output %s: %s!"
-                       s#id (Utils.error_message e) ;
+                       s#id (Printexc.to_string e) ;
                      List.iter
                        (log#f 3 "%s")
                        (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;

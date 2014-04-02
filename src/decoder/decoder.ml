@@ -231,7 +231,7 @@ let get_file_decoder ~metadata filename kind =
              | e ->
                  log#f 4
                    "Decoder %S failed on %S: %s!"
-                   name filename (Utils.error_message e) ;
+                   name filename (Printexc.to_string e) ;
                  None
          with
            | Some f ->
@@ -263,7 +263,7 @@ let get_image_file_decoder filename =
           | e ->
             log#f 4
               "Decoder %S failed on %S: %s!"
-              name filename (Utils.error_message e);
+              name filename (Printexc.to_string e);
             None
         with
         | Some img ->
@@ -364,7 +364,7 @@ struct
           done
         with
           | e ->
-             log#f 4 "Decoding %S ended: %s." filename (Utils.error_message e) ;
+             log#f 4 "Decoding %S ended: %s." filename (Printexc.to_string e) ;
              decoding_done := true ;
              if conf_debug#get then raise e
         end ;

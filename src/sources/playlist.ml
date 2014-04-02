@@ -195,7 +195,7 @@ object (self)
           with
             | e ->
                 self#log#f 3
-                  "Could not parse playlist: %s" (Utils.error_message e) ;
+                  "Could not parse playlist: %s" (Printexc.to_string e) ;
                 []
       in
       let req =

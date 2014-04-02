@@ -97,6 +97,6 @@ let () =
          | e ->
              log#f 2
                "Manual metadata update failed: %s"
-               (Utils.error_message e)
+               (Printexc.to_string e)
       end ;
       Lang.unit)

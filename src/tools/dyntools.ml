@@ -69,7 +69,7 @@ let load_plugins_dir d =
              if report then
               begin
                 dyn_log#f 2 "Unknown error while loading plugin file %s: %s"
-                  file (Utils.error_message e) ;
+                  file (Printexc.to_string e) ;
                 cur
               end
              else

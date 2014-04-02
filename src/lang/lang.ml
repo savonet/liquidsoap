@@ -837,7 +837,7 @@ let interactive () =
         | Error ->
             true
         | e ->
-            Format.printf "Exception: %s!@." (Utils.error_message e) ;
+            Format.printf "Exception: %s!@." (Printexc.to_string e) ;
             true
     then
       loop ()

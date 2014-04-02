@@ -92,7 +92,7 @@ let get_tags fname =
         ) (Taglib.File.properties f) tags)
   with
     | e ->
-       log#f 4 "Error while decoding file tags: %s" (Utils.error_message e);       
+       log#f 4 "Error while decoding file tags: %s" (Printexc.to_string e);       
        log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace());
        raise Not_found
 
