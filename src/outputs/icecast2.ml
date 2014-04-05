@@ -22,8 +22,6 @@
 
 (** Output to an icecast server. *)
 
-open Dtools
-
 let error_translator =
   function
     | Cry.Error _ as e ->
@@ -121,7 +119,7 @@ struct
               | [Encoder.Ogg.Vorbis
                    {Encoder.Vorbis.channels=n;
                                    mode=Encoder.Vorbis.VBR q;
-                                   samplerate=s}]
+                                   samplerate=s;_}]
                 ->
                   { quality = Some (string_of_float q) ;
                     bitrate = None ;
@@ -130,7 +128,7 @@ struct
               | [Encoder.Ogg.Vorbis
                    {Encoder.Vorbis.channels=n;
                                    mode=Encoder.Vorbis.ABR (_,b,_);
-                                   samplerate=s}]
+                                   samplerate=s;_}]
                 ->
                   { quality = None ;
                     bitrate = b ;
@@ -139,7 +137,7 @@ struct
               | [Encoder.Ogg.Vorbis
                    {Encoder.Vorbis.channels=n;
                                    mode=Encoder.Vorbis.CBR b;
-                                   samplerate=s}]
+                                   samplerate=s;_}]
                 ->
                   { quality = None ;
                     bitrate = Some b ;
@@ -210,7 +208,7 @@ let proto kind =
           this amount of time (in seconds)." ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
-     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
+     Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
      Some "Additional headers.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
@@ -596,4 +594,4 @@ let () =
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
     (proto k)
     ~kind:(Lang.Unconstrained k)
-    (fun p kind -> ((new output kind p):>Source.source))
+    (fun p kind -> ((new output ~kind p):>Source.source))

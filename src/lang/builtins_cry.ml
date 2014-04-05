@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Lang
 open Lang_builtins
 
 let log = Dtools.Log.make ["icy";"update_metadata"]
@@ -43,7 +42,7 @@ let () =
      "encoding", Lang.string_t, Some (Lang.string ""),
      Some "Encoding used to send metadata, default (UTF-8) if empty." ;
      "headers", Lang.metadata_t,
-     Some (Lang.list Lang.metadata_t [user_agent]),
+     Some (Lang.list ~t:Lang.metadata_t [user_agent]),
      Some "Additional headers." ;
      "",Lang.metadata_t,None,None ] Lang.unit_t
     (fun p ->
