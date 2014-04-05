@@ -78,7 +78,7 @@ let encoder shine =
   in
   let stop () = Shine.flush enc in
   { Encoder.
-     insert_metadata = (fun m -> ()) ;
+     insert_metadata = (fun _ -> ()) ;
      header = None ;
      encode = encode ;
      stop = stop }
