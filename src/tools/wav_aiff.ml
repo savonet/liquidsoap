@@ -114,9 +114,7 @@ let read_header read_ops ic =
     let rec seek () =
       if read_string ic 4 <> name then
         begin
-          let n = read_int ic in
-          (* In aiff, there is a 1 byte padding so that length is even *)
-          let n = if format = `Aiff then even_ceil n else n in
+          let n = even_ceil (read_int ic) in
           read_ops.seek ic n;
           seek ()
         end
