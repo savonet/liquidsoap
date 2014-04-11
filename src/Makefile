@@ -105,10 +105,13 @@ playlists = \
 $(call conditional_compilation,playlists,$(W_XMLPLAYLIST),playlists/playlist_xml.ml)
 
 protocols = \
-	protocols/say.ml \
 	protocols/annotate.ml \
 	protocols/mpd.ml \
 	protocols/extproto.ml
+
+ifneq ($(OS_TYPE), "Win32")
+protocols += protocols/say.ml
+endif
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
