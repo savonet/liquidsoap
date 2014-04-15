@@ -191,7 +191,11 @@ object (self)
                       end
               in
                 self#log#f 3 "Playlist treated as format %s" format  ;
-                List.map (fun (_,x) -> x) playlist
+                List.map (fun (l, x) ->
+                  Printf.sprintf "annotate:%s:%s"
+                    (String.concat "," (List.map
+                      (fun (l,v) -> Printf.sprintf "%s=%S" l v) l))
+                    x) playlist
           with
             | e ->
                 self#log#f 3
