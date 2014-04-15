@@ -44,6 +44,8 @@ if test -n "$PKG_CONFIG"; then
 fi[]dnl
 ])dnl PKG_PROG_PKG_CONFIG
 
+AC_ARG_VAR([PKG_CONFIG_OPTIONS], [Additional options passed when invoking pkg-config])
+
 dnl PKG_CONFIG_CHECK_MODULE([name],[min-version])
 dnl min-version is optional
 AC_DEFUN([PKG_CONFIG_CHECK_MODULE],
@@ -53,12 +55,12 @@ else
   PKGCONFIG_CHECK_VERSION=""
 fi
 AC_MSG_CHECKING([whether pkg-config knows about $1${PKGCONFIG_CHECK_VERSION}])
-if ! $PKG_CONFIG --exists $1; then
+if ! $PKG_CONFIG $PKG_CONFIG_OPTIONS --exists $1; then
   AC_MSG_ERROR([$1.pc not found.. Do you need to set PKG_CONFIG_PATH?])
 else
   if test -n "$2"; then
-    if ! $PKG_CONFIG --atleast-version=$2 $1; then
-      $1_VERSION="`pkg-config --modversion $1`"
+    if ! $PKG_CONFIG $PKG_CONFIG_OPTIONS --atleast-version=$2 $1; then
+      $1_VERSION="`$PKG_CONFIG $PKG_CONFIG_OPTIONS --modversion $1`"
       AC_MSG_ERROR([requires version >= $2, found ${$1_VERSION}])
     else
       AC_MSG_RESULT([ok])
@@ -67,8 +69,8 @@ else
     AC_MSG_RESULT([ok])
   fi
 fi
-CFLAGS="$CFLAGS `$PKG_CONFIG --cflags $1`"
-CPPFLAGS="$CPPFLAGS `$PKG_CONFIG --cflags $1`"
-LIBS="$LIBS `$PKG_CONFIG --libs-only-l $1`"
-LDFLAGS="$LDFLAGS `$PKG_CONFIG --libs-only-L $1`"
+CFLAGS="$CFLAGS `$PKG_CONFIG $PKG_CONFIG_OPTIONS --cflags $1`"
+CPPFLAGS="$CPPFLAGS `$PKG_CONFIG $PKG_CONFIG_OPTIONS --cflags $1`"
+LIBS="$LIBS `$PKG_CONFIG $PKG_CONFIG_OPTIONS --libs-only-l $1`"
+LDFLAGS="$LDFLAGS `$PKG_CONFIG $PKG_CONFIG_OPTIONS --libs-only-L $1`"
 ])
