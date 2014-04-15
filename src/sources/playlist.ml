@@ -192,10 +192,11 @@ object (self)
               in
                 self#log#f 3 "Playlist treated as format %s" format  ;
                 List.map (fun (l, x) ->
-                  Printf.sprintf "annotate:%s:%s"
-                    (String.concat "," (List.map
-                      (fun (l,v) -> Printf.sprintf "%s=%S" l v) l))
-                    x) playlist
+                  if l = [] then x else
+                    Printf.sprintf "annotate:%s:%s"
+                      (String.concat "," (List.map
+                        (fun (l,v) -> Printf.sprintf "%s=%S" l v) l))
+                      x) playlist
           with
             | e ->
                 self#log#f 3
