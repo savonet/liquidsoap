@@ -40,7 +40,9 @@ object (self)
     Clock.unify
       self#clock
       (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
-    Clock.unify slave_clock source#clock
+    Clock.unify slave_clock source#clock ;
+    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   method private slave_tick =
     (Clock.get source#clock)#end_tick ;
