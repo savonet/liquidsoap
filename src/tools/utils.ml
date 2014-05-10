@@ -106,15 +106,15 @@ let unescape s =
     | _ -> s
 
 (* Unescape a given char in a string, i.e. \\c -> c *)
-let unescape_char s =
+let unescape_char c s =
   let len = String.length s in
   let rec f ~escaped cur pos =
     if pos >= len then
       (if escaped then Printf.sprintf "%s\\" cur else cur)
     else
-      let c   = s.[pos] in
+      let d   = s.[pos] in
       let pos = pos + 1 in
-      match c with
+      match d with
         | '\\' when not escaped ->
             f ~escaped:true cur pos
         | x    when x = c ->
@@ -150,7 +150,7 @@ let split ~sep s =
        else
          split (String.sub s 0 pos :: cur ) (String.sub s (pos+1) (len-pos-1))
   in
-  List.map unescape_char (List.rev (split [] s))
+  List.map (unescape_char sep) (List.rev (split [] s))
 
 (** Remove trailing and leading spaces. *)
 let trim s =
