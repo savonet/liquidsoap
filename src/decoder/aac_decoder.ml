@@ -128,7 +128,7 @@ let create_decoder input =
             processed := !processed + Array.length data.(0)
           with _ -> () end;
           drop pos ;
-          let content,_ =
+          let content =
             resampler ~audio_src_rate:(float sample_freq) data
           in
             (* TODO assert (Array.length content.(0) = length) ? *)
@@ -254,7 +254,7 @@ struct
       begin try
         pos := !pos + (Array.length data.(0))
       with _ -> () end;
-      let content,_ =
+      let content =
         resampler ~audio_src_rate:(float sample_freq) data
       in
       Generator.set_mode gen `Audio;

@@ -24,10 +24,9 @@
 
 (** TODO: video *)
 
-(** The returned length (int) is in audio samples *)
 type audio_converter =
     ?audio_src_rate:float ->
-    Frame.audio_t array -> Frame.audio_t array*int
+    Frame.audio_t array -> Frame.audio_t array
 
 let create_audio () =
   let audio_converters = Hashtbl.create 2 in
@@ -57,8 +56,7 @@ let create_audio () =
         in
         ret.(0)
       in
-      let ret = Array.mapi resample_chan audio_buf in
-      ret,Array.length ret.(0)
+      Array.mapi resample_chan audio_buf
     in
     let audio_rate =
       match audio_src_rate with
@@ -67,10 +65,9 @@ let create_audio () =
     in
     process_audio audio_rate)
 
-(** The returned length (int) is in audio samples *)
 type wav_converter =
     audio_src_rate:float ->
-    string -> Frame.audio_t array * int
+    string -> Frame.audio_t array
 
 let create_from_iff ~format ~channels ~samplesize =
   let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
@@ -88,11 +85,7 @@ let create_from_iff ~format ~channels ~samplesize =
       | _ -> failwith "unsuported sample size"
     in
     to_audio src 0 dst 0 len;
-    let dst =
-      Audio_converter.Samplerate.resample
-        samplerate_converter
-        ratio
-        dst 0 len
-    in
-    let dst_len = Array.length dst.(0) in
-    dst, dst_len)
+    Audio_converter.Samplerate.resample
+      samplerate_converter
+      ratio
+      dst 0 len)

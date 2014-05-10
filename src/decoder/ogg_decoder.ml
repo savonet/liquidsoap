@@ -215,10 +215,10 @@ let create_decoder ?(merge_tracks=false) source mode input =
            Ogg_demuxer.audio_info 
               decoder track 
         in
-        let content,length =
+        let content =
           audio_resample ~audio_src_rate:(float info.Ogg_demuxer.sample_rate) buf
         in
-        Generator.put_audio buffer content 0 length 
+        Generator.put_audio buffer content 0 (Array.length content.(0))
       in
       let video_feed track buf =
         let info,_ = 

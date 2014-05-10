@@ -64,8 +64,8 @@ object (self)
       let get_data () =
         let ret = input in_e tmpbuf 0 1024 in
           if ret = 0 then raise (Finished ("Process exited.",restart));
-          let data,len = converter (String.sub tmpbuf 0 ret) in
-          Generator.put_audio abg data 0 len
+          let data = converter (String.sub tmpbuf 0 ret) in
+          Generator.put_audio abg data 0 (Array.length data.(0))
       in
       let do_restart s restart f =
         self#log#f 2 "%s" s;
