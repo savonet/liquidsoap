@@ -84,9 +84,9 @@ let create ?header input =
     let data,bytes = input.Decoder.read bytes_to_get in
       if !remaining <> -1 then remaining := !remaining - bytes;
       if bytes=0 then raise End_of_stream ;
-      let content,length = converter (String.sub data 0 bytes) in
+      let content = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 length
+        Generator.put_audio gen content 0 (Array.length content.(0))
   in
 
   let read_header () =

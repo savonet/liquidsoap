@@ -128,7 +128,7 @@ let create_decoder input =
             processed := !processed + Array.length data.(0)
           with _ -> () end;
           drop pos ;
-          let content,length =
+          let content =
             resampler ~audio_src_rate:(float sample_freq) data
           in
             (* TODO assert (Array.length content.(0) = length) ? *)
@@ -242,7 +242,7 @@ struct
     let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in
     let track = Faad.Mp4.find_aac_track mp4 in
-    let sample_freq, chans = Faad.Mp4.init mp4 dec track in
+    let sample_freq, _ = Faad.Mp4.init mp4 dec track in
     let nb_samples = Faad.Mp4.samples mp4 track in
     let sample = ref 0 in
     let pos = ref 0 in
@@ -254,7 +254,7 @@ struct
       begin try
         pos := !pos + (Array.length data.(0))
       with _ -> () end;
-      let content,length =
+      let content =
         resampler ~audio_src_rate:(float sample_freq) data
       in
       Generator.set_mode gen `Audio;

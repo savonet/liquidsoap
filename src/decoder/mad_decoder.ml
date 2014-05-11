@@ -121,7 +121,7 @@ let create_decoder input =
        (fun gen ->
          let data = get_data () in
          let sample_freq,_,_ = get_info () in
-         let content,_ =
+         let content =
            resampler ~audio_src_rate:(float sample_freq) data
          in
          Generator.set_mode gen `Audio ;

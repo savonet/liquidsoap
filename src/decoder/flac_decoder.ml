@@ -98,7 +98,7 @@ let create_decoder input =
                  | _ -> 0
              in
              processed := Int64.add !processed (Int64.of_int len);
-             let content,_ =
+             let content =
                resampler ~audio_src_rate:(float sample_freq) data
              in
              Generator.set_mode gen `Audio ;

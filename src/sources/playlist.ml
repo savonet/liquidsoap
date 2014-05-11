@@ -548,11 +548,10 @@ let () =
       (Request_source.queued_proto@proto)
       ~kind:(Lang.Unconstrained (Lang.univ_t 1))
       (fun params kind ->
-         let reload,random,timeout,mime,uri,prefix =
+         let reload,random,mime,uri,prefix =
            let e v = List.assoc v params in
              (reload_of (e "reload") (e "reload_mode")),
              (random_of (e "mode")),
-             (Lang.to_float (e "timeout")),
              (Lang.to_string (e "mime_type")),
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))

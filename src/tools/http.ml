@@ -242,7 +242,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
     Buffer.contents ans
 
 (* Read chunked transfer. *)
-let read_chunked ~timeout socket len =
+let read_chunked ~timeout socket =
   let read = read_crlf ~count:1 ~timeout socket in
   let len = List.hd (Pcre.split ~pat:"[\r]?\n" read) in
   let len = List.hd (Pcre.split ~pat:";" len) in

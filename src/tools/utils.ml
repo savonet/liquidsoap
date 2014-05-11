@@ -112,9 +112,9 @@ let unescape_char c s =
     if pos >= len then
       (if escaped then Printf.sprintf "%s\\" cur else cur)
     else
-      let c   = s.[pos] in
+      let d   = s.[pos] in
       let pos = pos + 1 in
-      match c with
+      match d with
         | '\\' when not escaped ->
             f ~escaped:true cur pos
         | x    when x = c ->

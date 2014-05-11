@@ -24,17 +24,15 @@
 
  (** TODO: video ! :-) *)
 
-  (** The returned length (int) is in audio samples *)
   type audio_converter =
             ?audio_src_rate:float ->
-            Frame.audio_t array -> Frame.audio_t array*int
+            Frame.audio_t array -> Frame.audio_t array
 
   val create_audio : unit -> audio_converter
 
-  (** The returned length (int) is in audio samples *)
   type wav_converter =
           audio_src_rate:float ->
-          string -> Frame.audio_t array * int
+          string -> Frame.audio_t array
 
   (** samplesize is in bits.
       Formats: unsigned 8 bit (u8) or

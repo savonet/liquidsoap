@@ -346,7 +346,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
                      with | Not_found -> false in
                    let read =
                      if chunked
-                     then Some (Http.read_chunked ~timeout: conf_timeout#get)
+                     then
+                       (let read =
+                          Http.read_chunked ~timeout: conf_timeout#get
+                        in Some (fun connection _ -> read connection))
                      else None in
                    let f () =
                      s#relay ?read stype headers h.Duppy.Monad.Io.socket
@@ -446,9 +449,11 @@ let handle_websocket_request ~port h mount headers =
                    in
                      Duppy.Monad.bind __pa_duppy_0
                        (fun source ->
-                          let read socket len =
+                          let binary_data = Buffer.create 1024 in
+                          let read_socket socket =
                             match Websocket.read socket with
-                            | `Binary buf -> (buf, (String.length buf))
+                            | `Binary buf ->
+                                Buffer.add_string binary_data buf
                             | `Text s ->
                                 (match extract_packet s with
                                  | ("metadata", data) ->
@@ -476,6 +481,15 @@ let handle_websocket_request ~port h mount headers =
                                  | _ -> raise Retry)
                             | `Close _ -> raise Websocket_closed
                             | _ -> raise Retry in
+                          let read socket len =
+                            (if (Buffer.length binary_data) = 0
+                             then read_socket socket
+                             else ();
+                             let len = min (Buffer.length binary_data) len in
+                             let data = Buffer.sub binary_data 0 len
+                             in
+                               (Utils.buffer_drop binary_data len;
+                                (data, len))) in
                           let f () =
                             source#relay stype headers ~read
                               h.Duppy.Monad.Io.socket

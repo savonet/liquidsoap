@@ -208,11 +208,6 @@ let fopen file =
     close_in ic ;
     raise e
 
-let sample w buf pos len=
-  match w.read_ops.input w.ic buf 0 len with
-  | 0 -> raise End_of_file
-  | n -> n
-
 let info w =
   Printf.sprintf
     "channels_number = %d \n\
