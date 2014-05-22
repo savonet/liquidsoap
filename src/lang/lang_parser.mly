@@ -125,7 +125,7 @@
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
-      | "source" ->
+      | "source" | "active_source" ->
           (* TODO less confusion in hiding the stream_kind constructed type *)
           (* TODO print position in error message *)
           let audio,video,midi =
@@ -137,7 +137,8 @@
                   List.iter
                     (fun (lbl,_) ->
                       if not (List.mem lbl ["audio";"video";"midi"]) then
-                        raise (Parse_error (curpos (), "Invalid type parameters.")))
+                        raise (Parse_error (curpos (),
+                                            "Invalid type parameters.")))
                     l ;
                   let assoc x =
                     try List.assoc x l with
@@ -146,7 +147,9 @@
                   in
                     assoc "audio", assoc "video", assoc "midi"
           in
-            Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
+            Lang_values.source_t
+              ~active:(name <> "source")
+              (Lang_values.frame_kind_t audio video midi)
       | _ -> raise (Parse_error (curpos (), "Unknown type constructor."))
 
   open Lang_encoders
@@ -337,6 +340,7 @@ expr:
 ty:
   | VAR                       { mk_ty $1 [] }
   | VARLPAR ty_args RPAR      { mk_ty $1 $2 }
+  | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some (curpos())) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
   | INT                       { Lang_values.type_of_int $1 }

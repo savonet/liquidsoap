@@ -43,8 +43,8 @@ let errors_as_warnings = ref false
 
 module T = Lang_types
 
-let ref_t ~pos ~level t =
-  T.make ~pos ~level
+let ref_t ?pos ?level t =
+  T.make ?pos ?level
     (T.Constr { T.name = "ref" ; T.params = [T.Invariant,t] })
 
 let zero_t = T.make T.Zero
