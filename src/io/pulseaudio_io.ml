@@ -39,7 +39,7 @@ class virtual base ~client ~device =
   let device = 
     if device = "" then None else Some device 
   in
-object (self)
+object
   val client_name = client
   val dev = device
 
