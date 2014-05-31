@@ -14,5 +14,6 @@ on_shutdown({ print("TEST PASSED") })
 s = input.alsa()
 
 output.icecast(%wav, host="nonexistant", 
-               mount="foo", s)
+               mount="foo", on_stop=shutdown,
+               s)
 
