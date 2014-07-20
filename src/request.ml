@@ -66,9 +66,9 @@ let string_of_metadata metadata =
     Hashtbl.iter (fun k v ->
                     if !first then begin
                       first := false ;
-                      Format.fprintf f "%s=%a" k escape v
+                      try (Format.fprintf f "%s=%a" k escape v) with _ -> (Format.fprintf f "%s=ERROR" k )
                     end else
-                      Format.fprintf f "\n%s=%a" k escape v)
+                      try (Format.fprintf f "\n%s=%a" k escape v) with _ -> (Format.fprintf f "\n%s=ERROR" k ))
       metadata ;
     Format.pp_print_flush f () ;
     Buffer.contents b
@@ -115,7 +115,7 @@ let string_of_log log =
   * from the current active URI to the root.
   * At the end of the previous example, the tree looks like:
   * [ [ "/tmp/localfile_from_smb" ] ;
-  *   [ 
+  *   [
   *     (* Some http://something was there but was removed without producing
   *      * anything. *)
   *     "smb://something" ; (* The successfully downloaded URI *)
@@ -289,7 +289,7 @@ let get_decoders conf decoders =
 let mresolvers_doc =
   "Methods to extract metadata from a file."
 let mresolvers =
-  Plug.create 
+  Plug.create
     ~register_hook:(fun (name,_) -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
