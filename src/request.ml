@@ -573,7 +573,7 @@ let resolve t timeout =
               | Some handler ->
                   add_log t
                     (Printf.sprintf
-                       "Resolving %S (timeout %.fs)..."
+                       "Resolving %S (timeout %.0fs)..."
                        i.string timeout) ;
                   let production =
                     handler.resolve ~log:(add_log t) arg maxtime
