@@ -29,9 +29,9 @@ object (self)
 
   initializer assert (n>0)
 
-  val mutable vol = Array.create n 1.
-  val mutable sel = Array.create n false
-  val mutable single = Array.create n false
+  val mutable vol = Array.make n 1.
+  val mutable sel = Array.make n false
+  val mutable single = Array.make n false
 
   method stype = Infallible
   method is_ready = true

@@ -29,7 +29,7 @@ object
   method abort_track = source#abort_track
   method remaining = source#remaining
 
-  val window = Array.create window_length 0.
+  val window = Array.make window_length 0.
   val mutable pos = 0
   val mutable rms = 0.
 

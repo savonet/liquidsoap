@@ -248,7 +248,7 @@ let check_unused ~lib tm =
     | Get r -> check v r
     | Product (a,b) | Set (a,b) -> check (check v a) b
     | Seq (a,b) -> check ~toplevel (check v a) b
-    | List l -> List.fold_left check v l
+    | List l -> List.fold_left (fun x y -> check x y) v l
     | App (hd,l) ->
         let v = check v hd in
           List.fold_left (fun v (_,t) -> check v t) v l
@@ -550,7 +550,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   | Float   _ -> e.t >: mkg T.Float
   | Encoder f -> e.t >: type_of_format ~pos:e.t.T.pos ~level f
   | List l ->
-      List.iter (check ~level ~env) l ;
+      List.iter (fun x -> check ~level ~env x) l ;
       (* We first try to compute the sup of types of elements in the list,
          which will give us the type of the list. *)
       let tsup =

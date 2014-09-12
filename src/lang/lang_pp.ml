@@ -265,7 +265,9 @@ let expand tokenizer =
 let parse_comments tokenizer =
   let documented_def doc =
     let doc =
-      List.map (Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "")) doc
+      List.map
+        (fun x -> Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
+        doc
     in
     let rec parse_doc (main,special,params) = function
       | [] -> (main,special,params)

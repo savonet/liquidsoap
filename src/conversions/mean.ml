@@ -28,7 +28,8 @@ class mean ~kind source =
   let channels = src_type.Frame.audio in
   let tmp_audio =
     Array.init channels
-      (fun _ -> Array.create (Frame.audio_of_master (Lazy.force Frame.size)) 0.)
+      (fun _ ->
+         Array.make (Frame.audio_of_master (Lazy.force Frame.size)) 0.)
   in
   let channels = float channels in
 object (self)

@@ -1692,7 +1692,7 @@ let rec to_json_compact v =
   (* Utils.escape implements
    * JSON's escaping RFC. *)
   let print_s s =
-    Utils.escape_string Utils.escape_utf8 s
+    Utils.escape_string (fun x -> Utils.escape_utf8 x) s
   in
   match v.Lang.value with
     | Lang.Unit -> "null"
@@ -1927,7 +1927,7 @@ let () =
          List.map Lang.to_string (Lang.to_list indicators)
        in
        let indicators =
-         List.map Request.indicator indicators
+         List.map (fun x -> Request.indicator x) indicators
        in
          Lang.request (Request.create_raw ~persistent ~indicators initial))
 
@@ -1959,7 +1959,7 @@ let () =
          List.map Lang.to_string (Lang.to_list indicators)
        in
        let indicators =
-         List.map Request.indicator indicators
+         List.map (fun x -> Request.indicator x) indicators
        in
        let kind =
          let k_t = Lang.of_request_t t in

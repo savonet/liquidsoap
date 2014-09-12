@@ -371,7 +371,8 @@ class output ~kind p =
                                                                     password
                                                                     =
                                                             let (user,
-                                                                 password) =
+                                                                 password) 
+                                                              =
                                                               let f =
                                                                 Configure.
                                                                 recode_tag
@@ -565,7 +566,8 @@ class output ~kind p =
                                                                     s) in
                                                                     let 
                                                                     (metaint,
-                                                                    icyheader) =
+                                                                    icyheader) 
+                                                                    =
                                                                     try
                                                                     (assert
                                                                     ((List.
@@ -899,7 +901,8 @@ class output ~kind p =
                                                                     (acc, 0) in
                                                                     let 
                                                                     (data,
-                                                                    pos) =
+                                                                    pos) 
+                                                                    =
                                                                     f [] 0
                                                                     (b ::
                                                                     (List.rev
@@ -1068,7 +1071,8 @@ class output ~kind p =
                                                                     regexp
                                                                     "^(.+)\\?(.+)$" in
                                                                     let 
-                                                                    (_, args) =
+                                                                    (_, args) 
+                                                                    =
                                                                     try
                                                                     let sub 
                                                                     =

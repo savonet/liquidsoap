@@ -46,7 +46,7 @@ object (self)
   val mutable gen_before = Generator.create ()
   val mutable rms_before = 0.
   val mutable rmsi_before = 0
-  val mutable mem_before = Array.create rms_width 0.
+  val mutable mem_before = Array.make rms_width 0.
   val mutable mem_i = 0
   val mutable before_metadata = None
 

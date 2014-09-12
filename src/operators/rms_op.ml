@@ -33,11 +33,11 @@ object
   method abort_track = source#abort_track
 
   (** Sum of squares. *)
-  val sq = Array.create channels 0.
+  val sq = Array.make channels 0.
   (** Duration of the sum of squares in samples. *)
   val mutable sq_dur = 0
   (** Last computed rms. *)
-  val mutable rms = Array.create channels 0.
+  val mutable rms = Array.make channels 0.
 
   val m = Mutex.create ()
 
