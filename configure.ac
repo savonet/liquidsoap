@@ -63,7 +63,6 @@ let subst_vars s =
   List.fold_left
     (fun v (r, s) -> Str.global_replace (Str.regexp r) (s ()) v)
      s !substs
-let env_has key = try ignore (Sys.getenv key) ; true with Not_found -> false
 _BLAH_
 
 # This is ugly, I'd like to find a better solution.
@@ -722,6 +721,8 @@ let recode_tag ?in_enc ?out_enc s =
     | e ->
           camolog#f 3 "Failed to convert %S: unknown error %s"
               s (Printexc.to_string e) ; s
+
+let env_has key = try ignore (Sys.getenv key) ; true with Not_found -> false
 
 let recode_tag =
   if env_has "LIQ_DISABLE_CAMOMILE" then
