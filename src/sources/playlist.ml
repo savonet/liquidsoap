@@ -121,7 +121,8 @@ object (self)
              (self#get_next n))
 
 
-  method virtual is_valid : string -> bool
+  method private virtual is_valid : string -> bool
+  method private virtual check_next : Request.t -> bool
   method virtual stype : Source.source_t
   method virtual id : string
   method virtual set_id : ?definitive:bool -> string -> unit
@@ -311,11 +312,7 @@ object (self)
 
   method get_next_request : Request.t option =
     Mutex.lock mylock ;
-    if !playlist = [||] then begin
-      self#may_autoreload true ;
-      Mutex.unlock mylock ;
-      None
-    end else
+    let rec get_uri () =
       (* URI to be played together with
        * position in playlist at the time of selection. *)
       let pos,uri =
@@ -358,8 +355,22 @@ object (self)
         [ "playlist_position", string_of_int pos ;
           "playlist_length", string_of_int (Array.length !playlist) ]
       in
+      let r = self#create_request ~metadata uri in
+      let id = Request.get_id r in
+        if self#check_next r then begin
+          Mutex.unlock mylock ;
+          Some r
+        end else begin
+          self#log#f 3 "Request (RID %d) rejected by check_next!" id ;
+          Request.destroy r ;
+          get_uri ()
+        end
+    in
+      if !playlist = [||] then begin
+        self#may_autoreload true ;
         Mutex.unlock mylock ;
-        Some (self#create_request ~metadata uri)
+        None
+      end else get_uri ()
 
   method playlist_wake_up =
     let base_name =
@@ -415,7 +426,7 @@ end
 
 (** Standard playlist, with a queue. *)
 class playlist ~kind
-  ~mime ~reload ~random
+  ~mime ~reload ~random ~check_next
   ~length ~default_duration ~timeout ~prefix ~conservative
   uri =
 object (self)
@@ -435,7 +446,7 @@ object (self)
     super#wake_up activation
 
   (** Assume that every URI is valid, it will be checked on queuing. *)
-  method is_valid _ = true
+  method private is_valid _ = true
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
@@ -444,6 +455,11 @@ object (self)
       self#on_shutdown
         (watch [`Modify] (Utils.home_unrelate playlist_uri)
           (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
+
+  method private check_next r =
+    Lang.to_bool
+      (Lang.apply ~t:Lang.bool_t check_next ["",Lang.request r])
+
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -462,12 +478,14 @@ object (self)
 
   (** We check that the lines are valid local files,
     * thus, we can assume that the source is infallible. *)
-  method is_valid uri =
+  method private is_valid uri =
     Sys.file_exists uri &&
     let r = Request.create ~kind uri in
     let check = Request.resolve r 0. = Request.Resolved in
       Request.destroy r ;
       check
+
+  method private check_next _ = true
 
   method stype = Infallible
 
@@ -559,12 +577,29 @@ let () =
           raise (Lang.Invalid_value
                    (s,"valid values are 'random', 'randomize' and 'normal'"))
   in
+  let check_next k =
+    "check_next",
+    Lang.fun_t [false,"",Lang.request_t k] Lang.bool_t,
+    Some (Lang.val_fun
+            ["","r",Lang.request_t k,None]
+            ~ret_t:Lang.bool_t
+            (fun _ _ -> Lang.bool true)),
+    Some "Function used to filter next tracks. A candidate \
+          track is only validated if the function returns true on it. \
+          The function is called before resolution, hence metadata will \
+          only be available for requests corresponding to local files. \
+          This is typically used to avoid repetitions, but be careful: \
+          if the function rejects all attempts, the playlist will enter \
+          into a consuming loop and stop playing anything."
+  in
+
+  let fmt = Lang.univ_t 1 in
 
     Lang.add_operator "playlist"
       ~category:Lang.Input
       ~descr:"Loop on a playlist of URIs."
-      (Request_source.queued_proto@proto)
-      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      (Request_source.queued_proto @ check_next fmt :: proto)
+      ~kind:(Lang.Unconstrained fmt)
       (fun params kind ->
          let reload,random,mime,uri,prefix =
            let e v = List.assoc v params in
@@ -574,12 +609,13 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
+         let check_next = List.assoc "check_next" params in
          let length,default_duration,timeout,conservative =
                 Request_source.extract_queued_params params
          in
            ((new playlist ~kind ~mime ~reload ~random
                           ~length ~default_duration ~prefix ~timeout
-                          ~conservative uri):>source)) ;
+                          ~check_next ~conservative uri):>source)) ;
 
     Lang.add_operator "playlist.safe"
       ~category:Lang.Input
