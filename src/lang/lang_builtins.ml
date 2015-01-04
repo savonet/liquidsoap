@@ -286,7 +286,7 @@ let () =
        "mimes",Lang.list_t (Lang.string_t),
        Some (Lang.list ~t:Lang.string_t []),
        Some "List of mime types supported by this decoder \
-             for decoding streams."; 
+             for decoding streams.";
        test_arg;
        "",Lang.string_t,None,Some "Process to start."]
       Lang.unit_t
@@ -663,7 +663,9 @@ let () =
                       ~descr:"Escape special charaters in a \
                               string. String is parsed char by char. \
                               See @string.utf8.escape@ for an UTF8-aware \
-                              parsing function."
+                              parsing function.\n\n \
+                              Example:\n \
+                              meta = string.escape(meta)"
                       ~escape ~escape_char:Utils.escape_char ;
   let escape ~special_char ~escape_char f s =
     Utils.escape_utf8 ~special_char ~escape_char f s
