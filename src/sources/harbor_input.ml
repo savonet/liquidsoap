@@ -419,7 +419,7 @@ let () =
        if bufferize >= max then
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
-                   "Maximun buffering inferior to pre-buffered data"));
+                   "Maximum buffering inferior to pre-buffered data"));
        let on_connect l =
          let l =
            List.map
