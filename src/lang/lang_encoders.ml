@@ -704,26 +704,26 @@ let theora params =
                 raise (Error (t,"invalid frame width value \
                                  (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
-                    width = Lazy.lazy_from_val i;
-                    picture_width = Lazy.lazy_from_val i }
+                    width = Lazy.from_val i;
+                    picture_width = Lazy.from_val i }
           | ("height",({ term = Int i; _} as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
                 raise (Error (t,"invalid frame height value \
                                  (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
-                    height = Lazy.lazy_from_val i;
-                    picture_height = Lazy.lazy_from_val i }
+                    height = Lazy.from_val i;
+                    picture_height = Lazy.from_val i }
           | ("picture_width",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than width. *)
               if i > Lazy.force f.Encoder.Theora.width then
                 raise (Error (t,"picture width must not be larger than width")) ;
-              { f with Encoder.Theora.picture_width = Lazy.lazy_from_val i }
+              { f with Encoder.Theora.picture_width = Lazy.from_val i }
           | ("picture_height",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than height. *)
               if i > Lazy.force f.Encoder.Theora.height then
                 raise (Error (t,"picture height must not be larger than height")) ;
-              { f with Encoder.Theora.picture_height = Lazy.lazy_from_val i }
+              { f with Encoder.Theora.picture_height = Lazy.from_val i }
           | ("picture_x",({ term = Int i; _} as t)) ->
               (* According to the doc: must be no larger than width-picture_width 
                * or 255, whichever is smaller. *)
@@ -791,10 +791,10 @@ let dirac params =
               { f with Encoder.Dirac.quality = i }
           | ("width",{ term = Int i; _}) ->
               { f with Encoder.Dirac.
-                    width = Lazy.lazy_from_val i }
+                    width = Lazy.from_val i }
           | ("height",{ term = Int i; _}) ->
               { f with Encoder.Dirac.
-                    height = Lazy.lazy_from_val i }
+                    height = Lazy.from_val i }
           | ("aspect_numerator",{ term = Int i; _}) ->
               { f with Encoder.Dirac.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i; _}) ->

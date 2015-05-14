@@ -53,7 +53,7 @@ let input input buf ofs len =
   len
 
 let seek input len =
-  let s = String.create len in
+  let s = Bytes.create len in
   ignore(really_input input s 0 len)
 
 let input_ops =

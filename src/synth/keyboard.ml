@@ -74,7 +74,7 @@ object (self)
       let rec task _ =
         if run_id <> id then [] else
           let c =
-            let c = String.create 1 in
+            let c = Bytes.create 1 in
               ignore (Unix.read Unix.stdin c 0 1);
               c.[0]
           in

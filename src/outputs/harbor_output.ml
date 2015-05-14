@@ -171,10 +171,10 @@ let add_meta c data =
     (* Pad string to a multiple of 16 bytes. *)
     let len = String.length meta in
     let pad = (len / 16) + 1 in
-    let ret = String.make ((pad * 16) + 1) ' '
+    let ret = Bytes.make ((pad * 16) + 1) ' '
     in
-      (ret.[0] <- Char.chr pad;
-       String.blit meta 0 ret 1 len;
+      (Bytes.set ret 0 (Char.chr pad);
+       Bytes.blit meta 0 ret 1 len;
        if ret <> c.latest_meta then (c.latest_meta <- ret; ret) else "\000") in
   let rec process meta rem data =
     let pos = c.metaint - c.metapos in
@@ -371,8 +371,7 @@ class output ~kind p =
                                                                     password
                                                                     =
                                                             let (user,
-                                                                 password) 
-                                                              =
+                                                                 password) =
                                                               let f =
                                                                 Configure.
                                                                 recode_tag
@@ -566,8 +565,7 @@ class output ~kind p =
                                                                     s) in
                                                                     let 
                                                                     (metaint,
-                                                                    icyheader) 
-                                                                    =
+                                                                    icyheader) =
                                                                     try
                                                                     (assert
                                                                     ((List.
@@ -901,8 +899,7 @@ class output ~kind p =
                                                                     (acc, 0) in
                                                                     let 
                                                                     (data,
-                                                                    pos) 
-                                                                    =
+                                                                    pos) =
                                                                     f [] 0
                                                                     (b ::
                                                                     (List.rev
@@ -1071,8 +1068,7 @@ class output ~kind p =
                                                                     regexp
                                                                     "^(.+)\\?(.+)$" in
                                                                     let 
-                                                                    (_, args) 
-                                                                    =
+                                                                    (_, args) =
                                                                     try
                                                                     let sub 
                                                                     =

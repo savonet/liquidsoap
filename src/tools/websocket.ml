@@ -55,23 +55,23 @@ module Frame = struct
     let len = String.length f.data in
     let b0 = (bit f.fin lsl 7) lor (bit f.rsv1 lsl 6) lor (bit f.rsv2 lsl 5) lor f.opcode in
     let b0 = char_of_int b0 in
-    let b0 = String.make 1 b0 in
+    let b0 = Bytes.make 1 b0 in
     let blen =
       if len <= 125 then
-        String.make 1 (char_of_int len)
+        Bytes.make 1 (char_of_int len)
       else if len <= 0xffff then
-        let ans = String.create 3 in
-        ans.[0] <- '\126';
-        ans.[1] <- char_of_int (len lsr 8);
-        ans.[2] <- char_of_int (len land 0xff);
+        let ans = Bytes.create 3 in
+        Bytes.set ans 0 '\126';
+        Bytes.set ans 1 (char_of_int (len lsr 8));
+        Bytes.set ans 2 (char_of_int (len land 0xff));
         ans
       else
-        let ans = String.create 5 in
-        ans.[0] <- '\127';
-        ans.[1] <- char_of_int ((len lsr 24) land 0xff);
-        ans.[2] <- char_of_int ((len lsr 16) land 0xff);
-        ans.[3] <- char_of_int ((len lsr 8) land 0xff);
-        ans.[4] <- char_of_int (len land 0xff);
+        let ans = Bytes.create 5 in
+        Bytes.set ans 0 '\127';
+        Bytes.set ans 1 (char_of_int ((len lsr 24) land 0xff));
+        Bytes.set ans 2 (char_of_int ((len lsr 16) land 0xff));
+        Bytes.set ans 3 (char_of_int ((len lsr 8) land 0xff));
+        Bytes.set ans 4 (char_of_int (len land 0xff));
         ans
     in
     b0 ^ blen ^ f.data
@@ -79,7 +79,7 @@ module Frame = struct
   (** Read a websocket frame. *)
   let read s =
     let read_char () =
-      let c = String.create 1 in
+      let c = Bytes.create 1 in
       let n = Unix.read s c 0 1 in
       assert (n = 1);
       c.[0]
@@ -118,9 +118,9 @@ module Frame = struct
     in
     let masking_key =
       if mask then
-        let key = String.create 4 in
+        let key = Bytes.create 4 in
         for i = 0 to 3 do
-          key.[i] <- read_char ()
+          Bytes.set key i (read_char ())
         done;
         key
       else
@@ -128,15 +128,15 @@ module Frame = struct
     in
     let unmask key s =
       if key <> "" then
-        for i = 0 to String.length s - 1 do
+        for i = 0 to Bytes.length s - 1 do
           let c = int_of_char s.[i] in
           let k = int_of_char key.[i mod 4] in
           let c = c lxor k in
           let c = char_of_int c in
-          s.[i] <- c
+          Bytes.set s i c
         done
     in
-    let data = String.create length in
+    let data = Bytes.create length in
     let n = Unix.read_retry s data 0 length in
     assert (n = length);
     unmask masking_key data;
@@ -179,9 +179,9 @@ let to_string data =
         match r with
         | None -> ""
         | Some (n, msg) ->
-          let nn = String.create 2 in
-          nn.[0] <- char_of_int (n lsr 8);
-          nn.[1] <- char_of_int (n land 0xff);
+          let nn = Bytes.create 2 in
+          Bytes.set nn 0 (char_of_int (n lsr 8));
+          Bytes.set nn 1 (char_of_int (n land 0xff));
           nn ^ msg
       in
       { frame with Frame. opcode = 0x8; data = data }

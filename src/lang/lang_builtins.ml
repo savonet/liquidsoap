@@ -642,7 +642,7 @@ let register_escape_fun ~name ~descr ~escape
   let special_chars =
     Lang.list ~t:Lang.string_t
      (List.map Lang.string
-      (List.map (String.make 1)
+      (List.map (Bytes.make 1)
         special_chars))
   in
   let escape_char p _ =
@@ -681,7 +681,7 @@ let register_escape_fun ~name ~descr ~escape
        let escape_char c =
          Lang.to_string
           (Lang.apply f ~t:Lang.string_t
-             ["",Lang.string (String.make 1 c)])
+             ["",Lang.string (Bytes.make 1 c)])
        in
        Lang.string (escape ~special_char ~escape_char s))
 
@@ -1384,7 +1384,7 @@ let () =
          Unix.open_process_in (Lang.to_string (List.assoc "" p))
        in
        let rec aux s =
-         let more = String.make 128 '?' in
+         let more = Bytes.make 128 '?' in
          let n = input chan more 0 128 in
            if n = 0 then s else
              aux (s^(String.sub more 0 n))

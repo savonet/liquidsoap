@@ -27,7 +27,7 @@ let log = Dtools.Log.make ["decoder";"ppm"]
 let load_image fname =
   let ic = open_in_bin fname in
   let len = in_channel_length ic in
-  let data = String.create len in
+  let data = Bytes.create len in
   really_input ic data 0 len;
   close_in ic;
   Img.of_PPM data

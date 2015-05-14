@@ -12,11 +12,11 @@ module Int32 = struct
     !n
 
   let to_string_be n =
-    let ans = String.create 4 in
+    let ans = Bytes.create 4 in
     let n = ref n in
     for i = 3 downto 0 do
       let c = Int32.to_int (logand !n 0xffl) in
-      ans.[i] <- char_of_int c;
+      Bytes.set ans i (char_of_int c);
       n := Int32.shift_right !n 8
     done;
     ans
@@ -56,15 +56,15 @@ end
 let digest s =
   (* Pad string and append length. *)
   let len = String.length s in
-  let s = s ^ (String.make 1 (char_of_int 0b10000000)) in
+  let s = s ^ (Bytes.make 1 (char_of_int 0b10000000)) in
   let pad = 64 - ((len+1) mod 64) - 8 in
   let pad = if pad < 0 then pad + 64 else pad in
-  let pad = String.make pad (char_of_int 0) in
+  let pad = Bytes.make pad (char_of_int 0) in
   let slen =
-    let ans = String.create 8 in
+    let ans = Bytes.create 8 in
     let len = ref (8*len) in
     for i = 7 downto 0 do
-      ans.[i] <- char_of_int (!len land 0xff);
+      Bytes.set ans i (char_of_int (!len land 0xff));
       len := !len lsr 8;
     done;
     ans

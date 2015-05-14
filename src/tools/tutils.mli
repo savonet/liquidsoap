@@ -86,7 +86,7 @@ val finalize : k:(unit -> unit) -> (unit -> 'a) -> 'a
   * This is meant to be used for assertions. *)
 val seems_locked : Mutex.t -> bool
 
-(** Thread-safe equivalent to Lazy.lazy_from_fun. *)
+(** Thread-safe equivalent to Lazy.from_fun. *)
 val lazy_cell : (unit -> 'a) -> (unit -> 'a)
 
 (** Preemptive stoppable thread.

@@ -35,9 +35,9 @@ let to_hex2 =
        '8'; '9'; 'A'; 'B'; 'C'; 'D'; 'E'; 'F' |]
   in
     fun k ->
-      let s = String.create 2 in
-        s.[0] <- hex_digits.( (k lsr 4) land 15 ) ;
-        s.[1] <- hex_digits.( k land 15 ) ;
+      let s = Bytes.create 2 in
+        Bytes.set s 0 (hex_digits.( (k lsr 4) land 15 )) ;
+        Bytes.set s 1 (hex_digits.( k land 15 )) ;
         s
 
 let url_encode ?(plus=true) s =
@@ -68,7 +68,7 @@ let url_decode ?(plus = true) s =
                 if String.length s < 3 then raise UrlDecoding ;
                 let k1 = of_hex1 s.[1] in
                 let k2 = of_hex1 s.[2] in
-                  String.make 1 (Char.chr ((k1 lsl 4) lor k2))
+                  Bytes.make 1 (Char.chr ((k1 lsl 4) lor k2))
               end)
     s
 
@@ -189,17 +189,17 @@ let read ?(log=fun _ -> ()) ~timeout socket buflen =
   Tutils.wait_for ~log `Read socket timeout;
   match buflen with
     | Some buflen ->
-        let buf = String.create buflen in
+        let buf = Bytes.create buflen in
         let n = Unix.recv socket buf 0 buflen [] in
           String.sub buf 0 n
     | None ->
         let buflen = 1024 in
-        let buf = String.create buflen in
+        let buf = Bytes.create buflen in
         let ans = ref "" in
         let n = ref buflen in
           while !n <> 0 do
             n := Unix.recv socket buf 0 buflen [];
-            ans := !ans ^ String.sub buf 0 !n
+            ans := !ans ^ Bytes.sub buf 0 !n
           done;
           !ans
 
@@ -214,7 +214,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
   let n = ref 0 in
   let count_n = ref 0 in
   let stop = ref false in
-  let c = String.create 1 in
+  let c = Bytes.create 1 in
     (* We need to parse char by char because
      * we want to make sure we stop at the exact
      * end of [\r]?\n in order to pass a socket
@@ -231,7 +231,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
           stop := true
         else
           (
-            Buffer.add_string ans c;
+            Buffer.add_bytes ans c;
             if c = "\n" then
               incr count_n
             else if c <> "\r" then
@@ -251,9 +251,9 @@ let read_chunked ~timeout socket =
   let rec f () =
     let rem = len - Buffer.length buf in
     assert(0 < rem);
-    let s = String.create rem in
+    let s = Bytes.create rem in
     let n = Unix.read socket s 0 rem in
-    Buffer.add_substring buf s 0 n;
+    Buffer.add_subbytes buf s 0 n;
     if Buffer.length buf = len then
       Buffer.contents buf
     else

@@ -186,13 +186,13 @@ let rec may_map f = function
 let read_all filename =
   let channel = open_in filename in
   let buflen = 1024 in
-  let tmp = String.create 1024 in
+  let tmp = Bytes.create 1024 in
   let contents = Buffer.create buflen in
   let rec read () =
     let ret = input channel tmp 0 1024 in
     if ret > 0 then
      begin
-      Buffer.add_substring contents tmp 0 ret ;
+      Buffer.add_subbytes contents tmp 0 ret ;
       read ()
      end
   in
@@ -487,8 +487,8 @@ let decode64 s =
         | _ -> failwith "decode64: invalid encoding"
     in
     let len = List.length result in
-    let s = String.make len ' ' in
-      ignore (List.fold_left (fun i c -> s.[i] <- c ; i-1) (len-1) result) ;
+    let s = Bytes.make len ' ' in
+      ignore (List.fold_left (fun i c -> Bytes.set s i c ; i-1) (len-1) result) ;
       s
 
 (** Base 64 encoding. *)
@@ -499,9 +499,9 @@ let encode64 s =
   let extra = String.length s mod 3 in
   let s = match extra with 1 -> s ^ "\000\000" | 2 -> s ^ "\000" | _ -> s in
   let n = String.length s in
-  let dst = String.create (4 * (n/3)) in
+  let dst = Bytes.create (4 * (n/3)) in
     for i = 0 to n/3 - 1 do
-      let (:=) j v = dst.[i*4+j] <- digit.[v] in
+      let (:=) j v = Bytes.set dst (i*4+j) digit.[v] in
       let c j = int_of_char s.[i*3+j] in
       let c0 = c 0 and c1 = c 1 and c2 = c 2 in
         0 := c0 lsr 2 ;
@@ -510,10 +510,10 @@ let encode64 s =
         3 := c2 land 63
     done ;
     if extra = 1 then begin
-      dst.[4*(n/3)-2] <- '=' ;
-      dst.[4*(n/3)-1] <- '='
+      Bytes.set dst (4*(n/3)-2) '=' ;
+      Bytes.set dst (4*(n/3)-1) '='
     end else if extra = 2 then
-      dst.[4*(n/3)-1] <- '=' ;
+      Bytes.set dst (4*(n/3)-1) '=' ;
     dst
 
 (** Get a file/uri extension. *)

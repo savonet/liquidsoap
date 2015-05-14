@@ -31,7 +31,7 @@ let format = Wav.format fd
 let abg = Mixer.Generator.create ()
 let ab = Mixer.Buffer.create ()
 let buflen = Mixer.Buffer.size
-let buf = String.make buflen 'x'
+let buf = Bytes.make buflen 'x'
 let running = ref true
 
 let () =

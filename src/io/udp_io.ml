@@ -131,7 +131,7 @@ object (self)
       (* Read data from the network. *)
       let read len =
         wait () ;
-        let msg = String.create len in
+        let msg = Bytes.create len in
         let n,_ = Unix.recvfrom socket msg 0 len [] in
           msg,n
       in

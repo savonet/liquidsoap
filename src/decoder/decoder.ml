@@ -326,7 +326,7 @@ struct
     let proc_bytes = ref 0 in
     let read len =
       try
-        let s = String.create len in
+        let s = Bytes.create len in
         let i = Unix.read fd s 0 len in
         proc_bytes := !proc_bytes + i;
           s, i

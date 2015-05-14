@@ -160,7 +160,7 @@ let get_type filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
   let dec = Faad.create () in
   let aacbuflen = 1024 in
-  let aacbuf = String.create aacbuflen in
+  let aacbuf = Bytes.create aacbuflen in
     Tutils.finalize ~k:(fun () -> Unix.close fd)
       (fun () ->
          let _,rate,channels =

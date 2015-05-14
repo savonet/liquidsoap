@@ -113,7 +113,7 @@ let external_input process input =
          (fun inlen ->
            Tutils.mutexify task_m (fun () ->
              if !is_task then
-               let tmpbuf = String.create inlen in
+               let tmpbuf = Bytes.create inlen in
                let read = Unix.read pull_e tmpbuf 0 inlen in
                tmpbuf, read
               else
@@ -250,7 +250,7 @@ let external_input_oblivious process filename prebuf =
   in
   let read len = 
     if not !process_done then
-      let ret = String.create len in
+      let ret = Bytes.create len in
       let read = Unix.read pull_e ret 0 len in
       if read = 0 then close () ; 
       ret,read

@@ -175,9 +175,9 @@ let encoder ext =
       let astart = Frame.audio_of_master start in
       let alen = Frame.audio_of_master len in
       let pcm = content.Frame.audio in
-      let data = String.create (2*channels*alen) in
+      let data = Bytes.create (2*channels*alen) in
       Audio.S16LE.of_audio pcm astart data 0 alen;
-      let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
+      let gstbuf = Gstreamer.Buffer.of_string data 0 (Bytes.length data) in
       Gstreamer.Buffer.set_presentation_time gstbuf !now;
       Gstreamer.Buffer.set_duration gstbuf nanolen;
       Gstreamer.App_src.push_buffer (Utils.get_some gst.audio_src) gstbuf;

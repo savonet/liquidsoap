@@ -46,7 +46,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
   in
   let size = 16*size in
   let chunk =
-    let buf = String.create size in
+    let buf = Bytes.create size in
     let rec read pos =
       if pos=size then buf else
         let p = Unix.read socket buf pos (size-pos) in
@@ -84,7 +84,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
 
 let read_line socket =
   let ans = ref "" in
-  let c = String.create 1 in
+  let c = Bytes.create 1 in
     if Unix.read socket c 0 1 <> 1 then raise Read_error ;
     while c <> "\n" do
       ans := !ans ^ c;
@@ -97,7 +97,7 @@ let read_chunk socket =
   let n = Scanf.sscanf n "%x" (fun n -> n) in
   let ans = ref "" in
     while String.length !ans <> n do
-      let buf = String.create (n - String.length !ans) in
+      let buf = Bytes.create (n - String.length !ans) in
       let r = Unix.read socket buf 0 (n - String.length !ans) in
         ans := !ans ^ (String.sub buf 0 r)
     done;
@@ -119,14 +119,14 @@ let read_stream socket chunked metaint insert_metadata =
     match metaint with
       | None ->
           fun len ->
-            let b = String.create len in
+            let b = Bytes.create len in
             let r = read b 0 len in
               if r < 0 then "",0 else b,r
       | Some metaint ->
           let readcnt = ref 0 in
             fun len ->
               let len = min len (metaint - !readcnt) in
-              let b = String.create len in
+              let b = Bytes.create len in
               let r = read b 0 len in
                 if r < 0 then "",0 else begin
                   readcnt := !readcnt + r;

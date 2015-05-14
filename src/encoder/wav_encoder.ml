@@ -60,7 +60,7 @@ let encoder wav =
         in
         b,0,Array.length b.(0)
     in
-    let s = String.create (sample_size / 8 * len * channels) in
+    let s = Bytes.create (sample_size / 8 * len * channels) in
     begin match sample_size with
       | 16 -> Audio.S16LE.of_audio b start s 0 len
       | 8 -> Audio.U8.of_audio b start s 0 len

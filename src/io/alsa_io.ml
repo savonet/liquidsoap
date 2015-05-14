@@ -75,13 +75,13 @@ object (self)
                     Pcm.set_access dev params Pcm.Access_rw_interleaved;
                     write <-
                     (fun pcm buf ofs len ->
-                       let sbuf = String.create (2 * len * Array.length buf) in
+                       let sbuf = Bytes.create (2 * len * Array.length buf) in
                        Audio.S16LE.of_audio buf ofs sbuf 0 len;
                        Pcm.writei pcm sbuf 0 len
                     );
                     read <-
                     (fun pcm buf ofs len ->
-                       let sbuf = String.create (2 * 2 * len) in
+                       let sbuf = Bytes.create (2 * 2 * len) in
                        let r = Pcm.readi pcm sbuf 0 len in
                        Audio.S16LE.to_audio sbuf 0 buf ofs r;
                        r
@@ -97,7 +97,7 @@ object (self)
                            let sbuf =
                              Array.init
                                channels
-                               (fun _ -> String.create (2 * len))
+                               (fun _ -> Bytes.create (2 * len))
                            in
                            for c = 0 to Audio.channels buf - 1 do
                              Audio.S16LE.of_audio
@@ -110,7 +110,7 @@ object (self)
                            let sbuf =
                              Array.init
                                channels
-                               (fun _ -> String.create (2 * len))
+                               (fun _ -> Bytes.create (2 * len)
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
                            for c = 0 to Audio.channels buf - 1 do

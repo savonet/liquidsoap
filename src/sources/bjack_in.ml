@@ -34,7 +34,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
   let blank () =
-    String.make (samples_per_frame * channels * bytes_per_sample) '0'
+    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
   inherit active_source ~name:"input.jack" kind as active_source

@@ -25,7 +25,7 @@ module Generated = Generated.Make(Generator)
 
 (** Default function to read from a socket. *)
 let default_read socket len =
-  let buf = String.create len in
+  let buf = Bytes.create len in
   let n = Unix.read socket buf 0 len in
   buf, n
 
