@@ -347,7 +347,7 @@ class output ~kind p =
   let user =
     match protocol, s "user" with
       | Cry.Http _, "" -> "source"
-       | _, user -> user 
+      | _, user -> user 
   in
   let password = s "password" in
   let genre = s "genre" in
