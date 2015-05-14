@@ -307,7 +307,7 @@ liquidsoap_doc_sources= \
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	if test -e ../.git && which git > /dev/null ; then \
-	  url=`git remote -v | grep fetch | sed 's/origin[ \t]*//' | sed 's/[ \t]*(.*)//'` ; \
+	  url=`git remote -v | grep origin | grep fetch | sed 's/origin//' | sed 's/ (.*)//' | tr -d '\t'` ; \
 	  head=`git rev-parse HEAD` ; \
           date=`date +%Y%m%d:%H%M%S`; \
 	  echo "let rev = \" ($$url@$$head:$$date)\"" > SVN.ml ; \
