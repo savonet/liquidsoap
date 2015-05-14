@@ -75,7 +75,7 @@ let parse_scpls ?pwd string =
   test_text string ;
   let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
   (* Format check, raise Not_found if invalid *)
-  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (String.lowercase string)) ;
+  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (Utils.StringCompat.lowercase_ascii string)) ;
   let lines = split_lines string in
   let urls =
     List.map

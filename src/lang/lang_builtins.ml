@@ -818,9 +818,9 @@ let () =
        let string = Lang.to_string (List.assoc "" p) in
        Lang.string
          (if lower then
-           String.lowercase(string)
+           Utils.StringCompat.lowercase_ascii string
           else
-           String.uppercase(string)))
+           Utils.StringCompat.uppercase_ascii string))
 
 let () =
   add_builtin "string.capitalize" ~cat:String
@@ -838,9 +838,9 @@ let () =
        let string = Lang.to_string (List.assoc "" p) in
        let f s =
            if cap then
-             String.capitalize(s)
+             Utils.StringCompat.capitalize_ascii s
            else
-             String.uncapitalize(s)
+             Utils.StringCompat.uncapitalize_ascii s
       in
       Lang.string
       (if space_sensitive then

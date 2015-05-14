@@ -173,8 +173,8 @@ let add_meta c data =
     let pad = (len / 16) + 1 in
     let ret = Bytes.make ((pad * 16) + 1) ' '
     in
-      (Bytes.set ret 0 (Char.chr pad);
-       Bytes.blit meta 0 ret 1 len;
+      (ret.[0] <- Char.chr pad;
+       String.blit meta 0 ret 1 len;
        if ret <> c.latest_meta then (c.latest_meta <- ret; ret) else "\000") in
   let rec process meta rem data =
     let pos = c.metaint - c.metapos in
@@ -273,7 +273,7 @@ class output ~kind p =
                       let out_enc =
                         match encoding with
                         | "" -> if icy then "ISO-8859-1" else "UTF-8"
-                        | s -> String.uppercase s in
+                        | s -> Utils.StringCompat.uppercase_ascii s in
                       let f = Configure.recode_tag ~out_enc in
                       let meta = Hashtbl.create (Hashtbl.length m)
                       in

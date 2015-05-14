@@ -189,7 +189,7 @@ $(call conditional_compilation,io,$(W_OSS),io/oss_io.ml)
 $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 
-tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
+tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \

@@ -98,7 +98,59 @@ let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None
 
-(** Unescapt a string. *)
+(* Backward-compatible API.. *)
+
+module LazyCompat =
+struct
+  let from_fun f = lazy (f ())
+  let from_val v = lazy v
+  (* Make compiler happy.. *)
+  let () =
+    ignore(from_fun (fun () -> ()));
+    ignore(from_val ())
+  include Lazy
+end
+
+exception Not_implemented
+
+module type StringWrapper =
+sig
+  include module type of String
+  val capitalize : string -> string
+  val uncapitalize : string -> string
+  val lowercase : string -> string
+  val uppercase : string -> string
+end
+
+module StringWrapper : StringWrapper =
+struct
+  let capitalize _ = raise Not_implemented
+  let uncapitalize _ = raise Not_implemented
+  let lowercase _ = raise Not_implemented
+  let uppercase _ = raise Not_implemented
+  let () =
+    let e f = try ignore(f "") with Not_implemented -> () in
+    e capitalize; e uncapitalize;
+    e lowercase; e uppercase
+  include String
+end
+
+module StringCompat =
+struct
+  let capitalize_ascii = StringWrapper.capitalize
+  let uncapitalize_ascii = StringWrapper.uncapitalize
+  let lowercase_ascii = StringWrapper.lowercase
+  let uppercase_ascii = StringWrapper.uppercase
+
+  let () =
+    let e f = try ignore(f "") with Not_implemented -> () in
+    e capitalize_ascii; e uncapitalize_ascii;
+    e lowercase_ascii; e uppercase_ascii
+
+  include String
+end
+
+(** Unescape a string. *)
 let unescape s =
   try
     Scanf.sscanf s "%S" (fun u -> u)
@@ -192,7 +244,7 @@ let read_all filename =
     let ret = input channel tmp 0 1024 in
     if ret > 0 then
      begin
-      Buffer.add_subbytes contents tmp 0 ret ;
+      Buffer.add_substring contents tmp 0 ret ;
       read ()
      end
   in
@@ -524,7 +576,7 @@ let get_ext s =
  try
   let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
   let ret = Pcre.exec ~rex s in
-  String.lowercase (Pcre.get_substring ret 1)
+  StringCompat.lowercase_ascii (Pcre.get_substring ret 1)
  with
    | _ -> raise Not_found
 
@@ -560,7 +612,7 @@ let normalize_parameter_string s =
   let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
   let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
-  let s = String.lowercase s in
+  let s = StringCompat.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
   let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
   s

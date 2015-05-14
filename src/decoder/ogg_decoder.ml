@@ -167,7 +167,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
         let metas = Hashtbl.create 10 in
         List.iter 
           (fun (x,y) -> 
-            Hashtbl.add metas (String.lowercase x) y)
+            Hashtbl.add metas (Utils.StringCompat.lowercase_ascii x) y)
             m;
         Hashtbl.add metas "vendor" v;
         Generator.add_metadata buffer metas

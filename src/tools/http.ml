@@ -231,7 +231,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
           stop := true
         else
           (
-            Buffer.add_bytes ans c;
+            Buffer.add_string ans c;
             if c = "\n" then
               incr count_n
             else if c <> "\r" then
@@ -253,7 +253,7 @@ let read_chunked ~timeout socket =
     assert(0 < rem);
     let s = Bytes.create rem in
     let n = Unix.read socket s 0 rem in
-    Buffer.add_subbytes buf s 0 n;
+    Buffer.add_substring buf s 0 n;
     if Buffer.length buf = len then
       Buffer.contents buf
     else
@@ -291,7 +291,7 @@ let request ?(log=fun _ -> ()) ~timeout socket request =
         (fun fields line ->
            try
              let (!!) = Pcre.get_substring (Pcre.exec ~pat line) in
-               (String.lowercase !!1, !!2) :: fields
+               (Utils.StringCompat.lowercase_ascii !!1, !!2) :: fields
            with
              | Not_found -> fields)
         [] header
@@ -361,7 +361,7 @@ let full_request ?headers ?(port=80) ?(log=fun _ -> ())
     let max =
       try
         let (_,len) = List.find (fun (l,_) ->
-          String.lowercase l = "content-length")
+          Utils.StringCompat.lowercase_ascii l = "content-length")
           headers
         in
         int_of_string len

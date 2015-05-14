@@ -53,7 +53,7 @@ module Meta :
     let export_metadata m =
       let ret = Hashtbl.create 10 in
       let l = conf_export_metadata#get in
-      Hashtbl.iter (fun x y -> if List.mem (String.lowercase x) l then
+      Hashtbl.iter (fun x y -> if List.mem (Utils.StringCompat.lowercase_ascii x) l then
                                Hashtbl.add ret x y) m;
     ret
     let to_metadata m = m

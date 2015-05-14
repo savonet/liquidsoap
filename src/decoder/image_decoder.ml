@@ -25,7 +25,7 @@ module Gen = Image.Generic
 
 (** Converter used to resize images. *)
 let converter =
-  Lazy.from_fun
+  Utils.LazyCompat.from_fun
     (fun () ->
       Video_converter.find_converter
         (Gen.Pixel.RGB Gen.Pixel.RGBA32)

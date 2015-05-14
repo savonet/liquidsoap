@@ -319,7 +319,7 @@ class output ~kind p =
              "ISO-8859-1"
            else
              "UTF-8"
-        | s -> String.uppercase s
+        | s -> Utils.StringCompat.uppercase_ascii s
     in
     let f = Configure.recode_tag ~out_enc in
     let meta = Hashtbl.create (Hashtbl.length m) in
