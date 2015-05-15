@@ -300,7 +300,7 @@ class output ~kind p =
            "ISO-8859-1"
          else
            "UTF-8"
-      | s -> String.uppercase s
+      | s -> Utils.StringCompat.uppercase_ascii s
   in
 
   let source = Lang.assoc "" 2 p in

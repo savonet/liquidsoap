@@ -55,7 +55,7 @@ let connect () =
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   let read () =
     let buflen = 1024 in
-    let buf = String.create buflen in
+    let buf = Bytes.create buflen in
     let ans = ref "" in
     let n = ref buflen in
     while !n = buflen do
@@ -116,7 +116,7 @@ let search read write field v =
         file := f
       else if Str.string_match re_metadata s 0 then
         let field = Str.matched_group 1 s in
-        let field = String.lowercase field in
+        let field = Utils.StringCompat.lowercase_ascii field in
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
           metadata := (field, value) :: !metadata

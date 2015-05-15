@@ -282,6 +282,12 @@ else
 fi
 
 #
+# Bytes
+#
+
+AC_CHECK_OCAML_BINDING([bytes],[],[],[1],[],[1])
+
+#
 # PCRE
 #
 

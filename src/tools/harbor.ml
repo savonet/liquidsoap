@@ -85,7 +85,7 @@ type verb =
   ]
 
 let verb_of_string s =
-  match String.uppercase s with
+  match Utils.StringCompat.uppercase_ascii s with
   | "GET" -> `Get
   | "POST" -> `Post
   | "PUT" -> `Put
@@ -95,7 +95,9 @@ let verb_of_string s =
   | _ -> raise Not_found
   
 let verb_or_source_of_string s =
-  match String.uppercase s with | "SOURCE" -> `Source | _ -> verb_of_string s
+  match Utils.StringCompat.uppercase_ascii s with
+  | "SOURCE" -> `Source
+  | _ -> verb_of_string s
   
 let string_of_verb =
   function
@@ -157,7 +159,9 @@ let assoc_uppercase x y =
   try
     (List.iter
        (fun (l, v) ->
-          if (String.uppercase l) = x then raise (Assoc v) else ())
+          if (Utils.StringCompat.uppercase_ascii l) = x
+          then raise (Assoc v)
+          else ())
        y;
      raise Not_found)
   with | Assoc s -> s
@@ -215,7 +219,7 @@ let parse_http_request_line r =
     in
       Duppy.Monad.return
         (protocol, (List.nth data 1),
-         (match String.uppercase (List.nth data 2) with
+         (match Utils.StringCompat.uppercase_ascii (List.nth data 2) with
           | "HTTP/1.0" -> `Http_10
           | "HTTP/1.1" -> `Http_11
           | "ICE/1.0" -> `Ice_10
@@ -233,7 +237,7 @@ let parse_headers headers =
       let sub = Pcre.exec ~rex h
       in ((Pcre.get_substring sub 1), (Pcre.get_substring sub 2)) :: l
     with | Not_found -> l in
-  let f x = String.uppercase x in
+  let f x = Utils.StringCompat.uppercase_ascii x in
   let headers = List.fold_right split_header headers [] in
   let display_headers =
     List.filter
@@ -567,7 +571,8 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                                     let in_enc =
                                       try
                                         let enc =
-                                          match String.uppercase
+                                          match Utils.StringCompat.
+                                                  uppercase_ascii
                                                   (Hashtbl.find args
                                                      "charset")
                                           with

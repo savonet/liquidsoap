@@ -71,7 +71,7 @@ let even_ceil n = ((n+1)/2)*2
 let read_header read_ops ic =
   let really_input = read_ops.really_input in
   let read_string ic n =
-    let ans = String.create n in
+    let ans = Bytes.create n in
     really_input ic ans 0 n;
     ans
   in
@@ -237,15 +237,15 @@ let duration w =
 let short_string i =
   let up = i/256 in
   let down = i-256*up in
-  (String.make 1 (char_of_int down))^
-  (String.make 1 (char_of_int up))
+  (Bytes.make 1 (char_of_int down))^
+  (Bytes.make 1 (char_of_int up))
 
 let int_string n =
-  let s = String.create 4 in
-  s.[0] <- char_of_int (n land 0xff) ;
-  s.[1] <- char_of_int ((n land 0xff00) lsr 8) ;
-  s.[2] <- char_of_int ((n land 0xff0000) lsr 16) ;
-  s.[3] <- char_of_int ((n land 0x7f000000) lsr 24) ;
+  let s = Bytes.create 4 in
+  Bytes.set s 0 (char_of_int (n land 0xff)) ;
+  Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8)) ;
+  Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16)) ;
+  Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24)) ;
   s
 
 let wav_header ?len ~channels ~sample_rate ~sample_size () =

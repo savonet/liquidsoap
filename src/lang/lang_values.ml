@@ -703,7 +703,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
           (add_task (fun () ->
              Format.printf "@[<2>%s :@ %a@]@."
                (let l = String.length name and max = 5 in
-                  if l >= max then name else name ^ String.make (max-l) ' ')
+                  if l >= max then name else name ^ Bytes.make (max-l) ' ')
                (T.pp_type_generalized generalized) def.t)) ;
         check ~print_toplevel ~level:(level+1) ~env body ;
         e.t >: body.t

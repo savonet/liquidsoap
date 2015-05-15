@@ -122,7 +122,7 @@ let encoder id ext =
         output_string out_e header
       end;
     let sock = Unix.descr_of_in_channel in_e in
-    let buf = String.create 10000 in
+    let buf = Bytes.create 10000 in
     let events = [`Read sock]
     in
     let rec pull _ =
@@ -208,7 +208,7 @@ let encoder id ext =
         b,0,Array.length b.(0)
     in
     let slen = 2 * len * Array.length b in
-    let sbuf = String.create slen in
+    let sbuf = Bytes.create slen in
     Audio.S16LE.of_audio b start sbuf 0 len;
     (** Wait for any possible creation.. *)
     begin

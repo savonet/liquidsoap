@@ -88,7 +88,7 @@ object (self)
                     Pcm.set_format dev params Pcm.Format_s16_le ;
                     alsa_write <-
                       (fun pcm buf ofs len ->
-                         let sbuf = String.create (2 * len * Array.length buf) in
+                         let sbuf = Bytes.create (2 * len * Array.length buf) in
                          Audio.S16LE.of_audio buf ofs sbuf 0 len;
                          Pcm.writei pcm sbuf 0 len
                       )

@@ -346,7 +346,7 @@ let local_check t =
                      let ans = resolver name in
                        List.iter
                          (fun (k,v) ->
-                           let k = String.lowercase k in
+                           let k = Utils.StringCompat.lowercase_ascii k in
                            if conf_override_metadata#get || get_metadata t k = None then
                              Hashtbl.replace indicator.metadata
                               k (cleanup v))

@@ -271,7 +271,7 @@ let start_forwarding () =
          handler  = f }
     in
     let len = 1024 in
-    let buffer = String.create len in
+    let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in
       let rec split acc i =

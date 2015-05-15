@@ -56,9 +56,9 @@ let wav params =
               { f with Encoder.WAV.channels = if b then 2 else 1 }
           | ("mono",{ term = Bool b; _ }) ->
               { f with Encoder.WAV.channels = if b then 1 else 2 }
-          | ("",{ term = Var s; _ }) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.WAV.channels = 2 }
-          | ("",{ term = Var s; _ }) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.WAV.channels = 1 }
           | ("channels",{ term = Int c; _ }) ->
               { f with Encoder.WAV.channels = c }
@@ -124,9 +124,9 @@ let mp3_base f =
            | Some g -> { f with Encoder.MP3.id3v2 = Some g })
     | ("id3v2",{ term = Bool false; _ }) ->
         { f with Encoder.MP3.id3v2 = None }
-    | ("",{ term = Var s; _ }) when String.lowercase s = "mono" ->
+    | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "mono" ->
         { f with Encoder.MP3.stereo = false }
-    | ("",{ term = Var s; _ }) when String.lowercase s = "stereo" ->
+    | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
         { f with Encoder.MP3.stereo = true }
     | (_,t) -> raise (generic_error t)
 
@@ -261,9 +261,9 @@ let shine params =
               { f with Encoder.Shine.samplerate = i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Encoder.Shine.bitrate = i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Shine.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Shine.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -287,9 +287,9 @@ let aacplus params =
               { f with Encoder.AACPlus.samplerate = i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Encoder.AACPlus.bitrate = i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.AACPlus.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.AACPlus.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -316,9 +316,9 @@ let voaacenc params =
               { f with Encoder.VoAacEnc.bitrate = i }
           | ("adts",{ term = Bool i; _}) ->
               { f with Encoder.VoAacEnc.adts = i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.VoAacEnc.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.VoAacEnc.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -373,9 +373,9 @@ let fdkaac params =
                 | Not_found -> raise (Error (t,"invalid transmux value"))
               in
               { f with Encoder.FdkAacEnc.transmux = transmux }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.FdkAacEnc.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.FdkAacEnc.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -412,9 +412,9 @@ let flac_gen params =
               { f with Encoder.Flac.bits_per_sample = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Encoder.Flac.fill = Some i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Flac.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Flac.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -448,7 +448,7 @@ let external_encoder params =
           | ("restart_on_crash",{ term = Bool h; _}) ->
               { f with Encoder.External.restart_on_crash = h }
           | ("",{ term = Var s; _})
-            when String.lowercase s = "restart_on_metadata" ->
+            when Utils.StringCompat.lowercase_ascii s = "restart_on_metadata" ->
               { f with Encoder.External.restart = Encoder.External.Metadata }
           | ("restart_after_delay",{ term = Int i; _}) ->
               { f with Encoder.External.restart = Encoder.External.Delay i }
@@ -545,9 +545,9 @@ let opus params =
               { f with Encoder.Opus.fill = Some i }
           | ("dtx",{ term = Bool b; _}) ->
               { f with Encoder.Opus.dtx = b }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Opus.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Opus.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -575,9 +575,9 @@ let vorbis_cbr params =
               { f with Encoder.Vorbis.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Encoder.Vorbis.fill = Some i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Vorbis.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -617,9 +617,9 @@ let vorbis_abr params =
               { f with Encoder.Vorbis.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Encoder.Vorbis.fill = Some i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Vorbis.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -654,9 +654,9 @@ let vorbis params =
               { f with Encoder.Vorbis.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Encoder.Vorbis.fill = Some i }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Vorbis.channels = 1 }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Vorbis.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -704,33 +704,33 @@ let theora params =
                 raise (Error (t,"invalid frame width value \
                                  (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
-                    width = Lazy.lazy_from_val i;
-                    picture_width = Lazy.lazy_from_val i }
+                    width = Utils.LazyCompat.from_val i;
+                    picture_width = Utils.LazyCompat.from_val i }
           | ("height",({ term = Int i; _} as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
                 raise (Error (t,"invalid frame height value \
                                  (should be a multiple of 16)")) ;
               { f with Encoder.Theora.
-                    height = Lazy.lazy_from_val i;
-                    picture_height = Lazy.lazy_from_val i }
+                    height = Utils.LazyCompat.from_val i;
+                    picture_height = Utils.LazyCompat.from_val i }
           | ("picture_width",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than width. *)
-              if i > Lazy.force f.Encoder.Theora.width then
+              if i > Utils.LazyCompat.force f.Encoder.Theora.width then
                 raise (Error (t,"picture width must not be larger than width")) ;
-              { f with Encoder.Theora.picture_width = Lazy.lazy_from_val i }
+              { f with Encoder.Theora.picture_width = Utils.LazyCompat.from_val i }
           | ("picture_height",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than height. *)
-              if i > Lazy.force f.Encoder.Theora.height then
+              if i > Utils.LazyCompat.force f.Encoder.Theora.height then
                 raise (Error (t,"picture height must not be larger than height")) ;
-              { f with Encoder.Theora.picture_height = Lazy.lazy_from_val i }
+              { f with Encoder.Theora.picture_height = Utils.LazyCompat.from_val i }
           | ("picture_x",({ term = Int i; _} as t)) ->
               (* According to the doc: must be no larger than width-picture_width 
                * or 255, whichever is smaller. *)
               if 
                 i > min 
-                     ((Lazy.force f.Encoder.Theora.width) - 
-                      (Lazy.force f.Encoder.Theora.picture_width)) 
+                     ((Utils.LazyCompat.force f.Encoder.Theora.width) - 
+                      (Utils.LazyCompat.force f.Encoder.Theora.picture_width)) 
                      255 
               then
                 raise (Error (t,"picture x must not be larger than \
@@ -741,12 +741,12 @@ let theora params =
               (* According to the doc: must be no larger than width-picture_width   
                * and frame_height-pic_height-pic_y must be no larger than 255. *)
               if 
-                i > ((Lazy.force f.Encoder.Theora.height) - 
-                     (Lazy.force f.Encoder.Theora.picture_height)) 
+                i > ((Utils.LazyCompat.force f.Encoder.Theora.height) - 
+                     (Utils.LazyCompat.force f.Encoder.Theora.picture_height)) 
               then
                 raise (Error (t,"picture y must not be larger than height - \
                                  picture height"));
-              if (Lazy.force f.Encoder.Theora.picture_height) - i > 255 then
+              if (Utils.LazyCompat.force f.Encoder.Theora.picture_height) - i > 255 then
                 raise (Error (t,"picture height - picture y must not be \
                                  larger than 255")) ;
               { f with Encoder.Theora.picture_y = i }
@@ -791,10 +791,10 @@ let dirac params =
               { f with Encoder.Dirac.quality = i }
           | ("width",{ term = Int i; _}) ->
               { f with Encoder.Dirac.
-                    width = Lazy.lazy_from_val i }
+                    width = Utils.LazyCompat.from_val i }
           | ("height",{ term = Int i; _}) ->
               { f with Encoder.Dirac.
-                    height = Lazy.lazy_from_val i }
+                    height = Utils.LazyCompat.from_val i }
           | ("aspect_numerator",{ term = Int i; _}) ->
               { f with Encoder.Dirac.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i; _}) ->
@@ -846,13 +846,13 @@ let speex params =
                         bitrate_control =
                          Encoder.Speex.Vbr q }
           | ("mode",{ term = Var s; _})
-            when String.lowercase s = "wideband" ->
+            when Utils.StringCompat.lowercase_ascii s = "wideband" ->
               { f with Encoder.Speex.mode = Encoder.Speex.Wideband }
           | ("mode",{ term = Var s; _})
-            when String.lowercase s = "narrowband" ->
+            when Utils.StringCompat.lowercase_ascii s = "narrowband" ->
               { f with Encoder.Speex.mode = Encoder.Speex.Narrowband }
           | ("mode",{ term = Var s; _})
-            when String.lowercase s = "ultra-wideband" ->
+            when Utils.StringCompat.lowercase_ascii s = "ultra-wideband" ->
               { f with Encoder.Speex.mode = Encoder.Speex.Ultra_wideband }
           | ("frames_per_packet",{ term = Int i; _}) ->
               { f with Encoder.Speex.frames_per_packet = i }
@@ -867,9 +867,9 @@ let speex params =
               { f with Encoder.Speex.dtx = b }
           | ("vad", { term = Bool b; _}) ->
               { f with Encoder.Speex.vad = b }
-          | ("",{ term = Var s; _}) when String.lowercase s = "mono" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
               { f with Encoder.Speex.stereo = false }
-          | ("",{ term = Var s; _}) when String.lowercase s = "stereo" ->
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
               { f with Encoder.Speex.stereo = true }
           | (_,t) -> raise (generic_error t))
       defaults params

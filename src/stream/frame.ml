@@ -90,7 +90,7 @@ let conf_midi_channels =
 let lazy_config_eval = ref false
 let allow_lazy_config_eval () = lazy_config_eval := true
 
-let delayed f = Lazy.lazy_from_fun f
+let delayed f = Utils.LazyCompat.from_fun f
 let delayed_conf x =
   delayed
     (fun () ->

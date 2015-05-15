@@ -277,7 +277,7 @@ let get_image_file_decoder filename =
   with
   | Pervasives.Exit -> !ans
 
-exception Exit of stream_decoder
+exception Exit_decoder of stream_decoder
 
 let get_stream_decoder mime kind =
   try
@@ -287,13 +287,13 @@ let get_stream_decoder mime kind =
          match try decoder mime kind with _ -> None with
            | Some f ->
                log#f 3 "Method %S accepted %S." name mime ;
-               raise (Exit f)
+               raise (Exit_decoder f)
            | None -> ()) (get_decoders conf_stream_decoders
                                        stream_decoders);
     log#f 3 "Unable to decode stream of type %S!" mime ;
     None
   with
-    | Exit f -> Some f
+    | Exit_decoder f -> Some f
 
 (** {1 Helpers for defining decoders} *)
 
@@ -326,7 +326,7 @@ struct
     let proc_bytes = ref 0 in
     let read len =
       try
-        let s = String.create len in
+        let s = Bytes.create len in
         let i = Unix.read fd s 0 len in
         proc_bytes := !proc_bytes + i;
           s, i

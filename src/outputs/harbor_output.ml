@@ -171,7 +171,7 @@ let add_meta c data =
     (* Pad string to a multiple of 16 bytes. *)
     let len = String.length meta in
     let pad = (len / 16) + 1 in
-    let ret = String.make ((pad * 16) + 1) ' '
+    let ret = Bytes.make ((pad * 16) + 1) ' '
     in
       (ret.[0] <- Char.chr pad;
        String.blit meta 0 ret 1 len;
@@ -273,7 +273,7 @@ class output ~kind p =
                       let out_enc =
                         match encoding with
                         | "" -> if icy then "ISO-8859-1" else "UTF-8"
-                        | s -> String.uppercase s in
+                        | s -> Utils.StringCompat.uppercase_ascii s in
                       let f = Configure.recode_tag ~out_enc in
                       let meta = Hashtbl.create (Hashtbl.length m)
                       in
@@ -371,8 +371,7 @@ class output ~kind p =
                                                                     password
                                                                     =
                                                             let (user,
-                                                                 password) 
-                                                              =
+                                                                 password) =
                                                               let f =
                                                                 Configure.
                                                                 recode_tag
@@ -566,8 +565,7 @@ class output ~kind p =
                                                                     s) in
                                                                     let 
                                                                     (metaint,
-                                                                    icyheader) 
-                                                                    =
+                                                                    icyheader) =
                                                                     try
                                                                     (assert
                                                                     ((List.
@@ -901,8 +899,7 @@ class output ~kind p =
                                                                     (acc, 0) in
                                                                     let 
                                                                     (data,
-                                                                    pos) 
-                                                                    =
+                                                                    pos) =
                                                                     f [] 0
                                                                     (b ::
                                                                     (List.rev
@@ -1071,8 +1068,7 @@ class output ~kind p =
                                                                     regexp
                                                                     "^(.+)\\?(.+)$" in
                                                                     let 
-                                                                    (_, args) 
-                                                                    =
+                                                                    (_, args) =
                                                                     try
                                                                     let sub 
                                                                     =

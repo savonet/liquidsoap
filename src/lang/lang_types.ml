@@ -199,7 +199,7 @@ let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
           try
             Hashtbl.find evars i
           with Not_found ->
-            let name = String.uppercase (name (counter ())) in
+            let name = Utils.StringCompat.uppercase_ascii (name (counter ())) in
               Hashtbl.add evars i name ;
               name
         in
