@@ -178,7 +178,7 @@ exception Redirection of string
 class http ~kind
         ~playlist_mode ~poll_delay ~track_on_meta ?(force_mime=None)
         ~bind_address ~autostart ~bufferize ~max ~timeout
-        ~debug ?(logfile=None)
+        ~debug ~on_connect ~on_disconnect ?(logfile=None)
         ~user_agent url =
   let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
   (* We need a temporary log until the source has an ID. *)
@@ -195,9 +195,9 @@ object (self)
   method stype = Source.Fallible
 
   (** POSIX sucks. *)
-  val mutable socket       = None
+  val mutable socket = None
   (* Mutex to change the socket's state (open, close) *)
-  val mutable socket_m     = Mutex.create()
+  val mutable socket_m = Mutex.create()
 
   val mutable url = url
 
@@ -329,7 +329,8 @@ object (self)
   method private disconnect_no_lock =
     Utils.maydo (fun (s,_,_) ->
      try
-      Http.disconnect s
+      Http.disconnect s;
+      on_disconnect ()
      with _ -> ()) socket;
     socket <- None
 
@@ -436,6 +437,7 @@ object (self)
         self#log#f 4 "Could not get file: %s" status_msg;
         raise Internal
       end ;
+      on_connect fields ;
       let play_track (m,uri) =
         if not (poll_should_stop ()) then
           let metas = Hashtbl.create 2 in
@@ -586,6 +588,17 @@ let () =
       "timeout", Lang.float_t, Some (Lang.float 30.),
       Some "Timeout for source connectionn.";
 
+      "on_connect",
+      Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+      Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
+      Some "Function to execute when a source is connected. \
+            Its receives the list of headers, of the form: \
+            (<label>,<value>). All labels are lowercase.";
+
+      "on_disconnect",Lang.fun_t [] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Functions to excecute when a source is disconnected";
+
       "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
       Some "Treat new metadata as new track." ;
 
@@ -667,8 +680,25 @@ let () =
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
                    "Maximum buffering inferior to pre-buffered data"));
+       let on_connect l =
+         let l =
+           List.map
+            (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+            l
+         in
+         let arg =
+           Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
+         in
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+       in
+       let on_disconnect () =
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+       in
        let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          ((new http ~kind ~playlist_mode ~autostart ~track_on_meta
                     ~force_mime ~bind_address ~poll_delay ~timeout
-                    ~bufferize ~max ~debug ~logfile ~user_agent url)
+                    ~on_connect ~on_disconnect ~bufferize ~max 
+                    ~debug ~logfile ~user_agent url)
             :> Source.source))
