@@ -597,7 +597,7 @@ let () =
 
       "on_disconnect",Lang.fun_t [] Lang.unit_t,
       Some (Lang.val_cst_fun [] Lang.unit),
-      Some "Functions to excecute when a source is disconnected";
+      Some "Function to excecute when a source is disconnected";
 
       "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
       Some "Treat new metadata as new track." ;
