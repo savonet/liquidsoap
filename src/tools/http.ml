@@ -12,7 +12,7 @@ let string_of_error e =
     | UrlDecoding -> "Http: URL decoding failed"
 
 (** Error translator *)
-let error_translator e =
+let error_translator (e:exn) =
    match e with
      | Error e -> Some (string_of_error e)
      | _ -> None

@@ -484,7 +484,7 @@ AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
+AC_CHECK_OCAML_BINDING([fdkaac],[0.2.1])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then

@@ -31,7 +31,7 @@ let invalid t =
     | Int _ | Bool _ | Float _ | String _ -> false
     | _ -> true
 
-let generic_error t =
+let generic_error t : exn =
   if invalid t then
     match t.term with
       | Var _ -> Error (t,"variables are forbidden in encoding formats")
@@ -331,6 +331,7 @@ let fdkaac params =
         afterburner    = false;
         aot            = `Mpeg_4 `HE_AAC_v2;
         bitrate        = 64;
+        bitrate_mode   = `Constant;
         channels       = 2;
         samplerate     = 44100;
         sbr_mode       = false;
@@ -340,6 +341,7 @@ let fdkaac params =
     8000;  11025; 12000; 16000; 22050; 24000; 32000;
     44100; 48000; 64000; 88200; 96000 ]
   in
+  let valid_vbr = [1;2;3;4;5] in
   let fdkaac =
     List.fold_left
       (fun f ->
@@ -351,6 +353,17 @@ let fdkaac params =
                 | Not_found -> raise (Error (t,"invalid aot value"))
               in
               { f with Encoder.FdkAacEnc.aot = aot }
+          | ("vbr",({ term = Int i; _} as t)) ->
+              if not (List.mem i valid_vbr) then
+               begin
+                let err =
+                  Printf.sprintf "invalid vbr mode. Possible values: %s"
+                  (String.concat ", "
+                    (List.map string_of_int valid_vbr))
+                in
+                raise (Error (t,err));
+               end;
+              { f with Encoder.FdkAacEnc.bitrate_mode = `Variable i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Encoder.FdkAacEnc.bitrate = i }
           | ("channels",{ term = Int i; _}) ->
