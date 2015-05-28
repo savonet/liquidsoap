@@ -294,7 +294,7 @@ liquidsoap_doc_sources= \
 	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
 	tools/server.ml tools/tutils.ml playlist_parser.ml \
-	tools/doc.ml tools/iff.ml tools/ioRing.ml \
+	tools/doc.ml tools/ioRing.ml \
 	tools/dyntools.ml tools/JSON.ml \
 	converters/audio_converter.ml converters/video_converter.ml \
 	ogg_formats/ogg_muxer.ml \
