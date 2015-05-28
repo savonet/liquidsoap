@@ -352,6 +352,12 @@ struct
        | `Mpeg_2 of mpeg2_aac
     ]
 
+  type bitrate_mode =
+    [
+       | `Constant
+       | `Variable of int
+    ]
+
   type transmux =
     [
        | `Raw
@@ -365,6 +371,7 @@ struct
   type t = {
     afterburner    : bool;
     aot            : aot;
+    bitrate_mode   : bitrate_mode;
     bitrate        : int;
     channels       : int;
     samplerate     : int;
@@ -411,9 +418,14 @@ struct
     | _ -> raise Not_found
 
   let to_string m =
-    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,bitrate=%d,channels=%d,\
+    let br_info =
+      match m.bitrate_mode with
+        | `Variable vbr -> Printf.sprintf "vbr=%d" vbr
+        | `Constant     -> Printf.sprintf "bitrate=%d" m.bitrate
+    in 
+    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,\
                              samplerate=%d,sbr_mode=%b,transmux=%S)"
-      m.afterburner (string_of_aot m.aot) m.bitrate m.channels
+      m.afterburner (string_of_aot m.aot) br_info m.channels
       m.samplerate m.sbr_mode (string_of_transmux m.transmux)
 end
 
