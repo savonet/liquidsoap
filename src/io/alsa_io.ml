@@ -110,7 +110,7 @@ object (self)
                            let sbuf =
                              Array.init
                                channels
-                               (fun _ -> Bytes.create (2 * len)
+                               (fun _ -> Bytes.create (2 * len))
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
                            for c = 0 to Audio.channels buf - 1 do
