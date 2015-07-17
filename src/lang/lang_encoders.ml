@@ -67,7 +67,7 @@ let wav params =
           | ("samplerate",{ term = Int i; _ }) ->
               { f with Encoder.WAV.samplerate = i }
           | ("samplesize",({ term = Int i; _ } as t)) ->
-              if i <> 8 && i <> 16 then
+              if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
                 raise (Error (t,"invalid sample size")) ;
               { f with Encoder.WAV.samplesize = i }
           | ("header",{ term = Bool b; _ }) ->

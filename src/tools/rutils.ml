@@ -73,19 +73,29 @@ let create_from_iff ~format ~channels ~samplesize =
   let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
   let sample_bytes = samplesize / 8 in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
+  let buf = Buffer.create 1024 in
   (fun ~audio_src_rate src ->
     let ratio = audio_dst_rate /. audio_src_rate in
-    let len = (String.length src) / (sample_bytes*channels) in
-    let dst = Array.init channels (fun _ -> Array.make len 0.) in
+    Buffer.add_string buf src;
+    let src = Buffer.contents buf in
+    let src_len = String.length src in
+    let elem_len = sample_bytes*channels in
+    let sample_len = src_len / elem_len in
+    let sample_bytes_len = sample_len*elem_len in
+    Buffer.reset buf;
+    Buffer.add_substring buf src sample_bytes_len (src_len-sample_bytes_len);
+    let dst = Array.init channels (fun _ -> Array.make sample_len 0.) in
     let to_audio =
       match samplesize with
       | 8 -> Audio.U8.to_audio
       | 16 when format = `Wav -> Audio.S16LE.to_audio
       | 16 when format = `Aiff -> Audio.S16BE.to_audio
+      | 24 when format = `Wav -> Audio.S24LE.to_audio
+      | 32 when format = `Wav -> Audio.S32LE.to_audio
       | _ -> failwith "unsuported sample size"
     in
-    to_audio src 0 dst 0 len;
+    to_audio src 0 dst 0 sample_len;
     Audio_converter.Samplerate.resample
       samplerate_converter
       ratio
-      dst 0 len)
+      dst 0 sample_len)
