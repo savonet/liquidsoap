@@ -249,20 +249,23 @@ let get_type ~channels filename =
       0
   in
   let video =
-    let pipeline =
-      Printf.sprintf "%s ! %s ! fakesink" filesrc (GU.Pipeline.decode_video ())
-    in
-    let bin = Gstreamer.Pipeline.parse_launch pipeline in
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
-    let _, state, _ = Gstreamer.Element.get_state bin in
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    if state = Gstreamer.Element.State_paused then
-      (
-        log#f 5 "File %s has video." filename;
-        1
-      )
-    else
-      0
+    try
+      let pipeline =
+        Printf.sprintf "%s ! %s ! fakesink" filesrc (GU.Pipeline.decode_video ())
+      in
+      let bin = Gstreamer.Pipeline.parse_launch pipeline in
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
+      let _, state, _ = Gstreamer.Element.get_state bin in
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
+      if state = Gstreamer.Element.State_paused then
+        (
+          log#f 5 "File %s has video." filename;
+          1
+        )
+      else
+        0
+    with
+    | Gstreamer.Failure -> 0
   in
   { Frame. video; audio; midi = 0 }
 
