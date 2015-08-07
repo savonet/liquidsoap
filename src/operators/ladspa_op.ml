@@ -112,47 +112,8 @@ object
     done
 end
 
-(* A plugin is created for each channel. *)
-class ladspa_mono_nosource ~kind plugin descr output params =
-object
-  inherit base_nosource ~kind
-
-  val inst =
-    let p = Plugin.load plugin in
-    let d = Descriptor.descriptor p descr in
-    Array.init ((Frame.type_of_kind kind).Frame.audio)
-      (fun _ ->
-        Descriptor.instantiate
-          d
-          (Lazy.force Frame.audio_rate)
-          (AFrame.size ()))
-
-  initializer
-    Array.iter Descriptor.activate inst
-
-  method private get_frame buf =
-    if must_fail then
-      (
-        AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false
-      )
-    else
-      let offset = AFrame.position buf in
-      let b = AFrame.content buf offset in
-      let position = AFrame.size () in
-      let len = position - offset in
-      for c = 0 to Array.length b - 1 do
-        Descriptor.set_samples inst.(c) len;
-        Descriptor.connect_audio_port inst.(c) output b.(c) offset;
-        List.iter
-          (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
-          params;
-        Descriptor.run inst.(c)
-      done;
-      AFrame.add_break buf position
-end
-
 class ladspa ~kind (source:source) plugin descr inputs outputs params =
+  let oc = Array.length outputs in
 object
   inherit base ~kind source
 
@@ -177,11 +138,25 @@ object
       (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
       params;
     Descriptor.set_samples inst len;
-    for c = 0 to Array.length b - 1 do
-      Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
-      Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
-    done;
-    Descriptor.run inst
+    if Array.length inputs = Array.length outputs then
+      (
+        (* The simple case: number of channels does not get changed. *)
+        for c = 0 to Array.length b - 1 do
+          Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
+          Descriptor.connect_audio_port inst outputs.(c) b.(c) offset
+        done;
+        Descriptor.run inst
+      )
+    else
+      (* We have to change channels. *)
+      let d = AFrame.content_of_type ~channels:oc buf offset in
+      for c = 0 to Array.length b - 1 do
+        Descriptor.connect_audio_port inst inputs.(c) b.(c) offset
+      done;
+      for c = 0 to Array.length d - 1 do
+        Descriptor.connect_audio_port inst outputs.(c) d.(c) offset
+      done;
+      Descriptor.run inst
 end
 
 class ladspa_nosource ~kind plugin descr outputs params =
@@ -336,10 +311,11 @@ let params_of_descr d =
 let register_descr plugin_name descr_n d inputs outputs =
   let ni = Array.length inputs in
   let no = Array.length outputs in
+  let mono = ni = 1 && no = 1 in
   let liq_params, params = params_of_descr d in
   let k =
     Lang.kind_type_of_kind_format ~fresh:1
-      (if ni = 1 && no = 1 then Lang.any_fixed else Lang.audio_n ni)
+      (if mono then Lang.any_fixed else Lang.audio_n ni)
   in
   let liq_params =
     liq_params@(
@@ -352,7 +328,7 @@ let register_descr plugin_name descr_n d inputs outputs =
   let maker = Descriptor.maker d in
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
-  let k = if (ni = 0 || ni = 1) && no = 1 then k else
+  let k = if mono then k else
       (* TODO: do we really need a fresh variable here? *)
       Lang.kind_type_of_kind_format ~fresh:1 (Lang.audio_n no)
   in
@@ -373,38 +349,31 @@ let register_descr plugin_name descr_n d inputs outputs =
       in
       let params = params p in
       if ni = 0 then
-        if no = 1 then
-          new ladspa_mono_nosource ~kind
-            plugin_name
-            descr_n
-            outputs.(0)
-            params
-        else
-          new ladspa_nosource ~kind
-            plugin_name
-            descr_n
-            outputs
-            params
+        new ladspa_nosource ~kind
+          plugin_name
+          descr_n
+          outputs
+          params
+      else if mono then
+        new ladspa_mono ~kind
+          (Utils.get_some source)
+          plugin_name
+          descr_n
+          inputs.(0)
+          outputs.(0)
+          params
       else
-        if ni = 1 && no = 1 then
-          new ladspa_mono ~kind
-            (Utils.get_some source)
-            plugin_name
-            descr_n
-            inputs.(0)
-            outputs.(0)
-            params
-        else
-          new ladspa ~kind
-            (Utils.get_some source)
-            plugin_name
-            descr_n
-            inputs
-            outputs
-            params
+        new ladspa ~kind
+          (Utils.get_some source)
+          plugin_name
+          descr_n
+          inputs
+          outputs
+          params
     )
 
 let register_descr plugin_name descr_n d inputs outputs =
+  (* We do not register plugins without outputs for now. *)
   if outputs <> [||] then
     register_descr plugin_name descr_n d inputs outputs
 
