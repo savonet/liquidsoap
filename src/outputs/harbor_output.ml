@@ -173,7 +173,7 @@ let add_meta c data =
     let pad = (len / 16) + 1 in
     let ret = Bytes.make ((pad * 16) + 1) ' '
     in
-      (Bytes.set ret 0 (Char.chr pad);
+      (ret.[0] <- Char.chr pad;
        String.blit meta 0 ret 1 len;
        if ret <> c.latest_meta then (c.latest_meta <- ret; ret) else "\000") in
   let rec process meta rem data =
