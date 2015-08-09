@@ -2047,6 +2047,28 @@ let () =
          Lang.bool (Sys.file_exists f))
 
 let () =
+  (* This is not named "file.read" because we might want to use that for a
+     proper file API, with descriptors, etc. *)
+  add_builtin "file.contents" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.string_t
+    ~descr:"Read the whole contents of a file."
+    (fun p ->
+      let f = Lang.to_string (List.assoc "" p) in
+      let ic = open_in f in
+      let s = ref "" in
+      let buflen = 1024 in
+      let buf = Bytes.create buflen in
+      try
+        while true do
+          let n = input ic buf 0 buflen in
+          if n = 0 then raise Exit;
+          s := !s ^ (if n = buflen then buf else Bytes.sub buf 0 n)
+        done;
+        assert false
+      with
+      | Exit -> Lang.string !s)
+
+let () =
   add_builtin "file.watch" ~cat:Sys
     [
       "",Lang.string_t,None,Some "File to watch.";
