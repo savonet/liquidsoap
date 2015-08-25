@@ -23,9 +23,11 @@ cat PACKAGES.default \
     | grep -v ocaml-shine \
     | grep -v ocaml-aacplus \
     | grep -v ocaml-fdkaac \
+    | grep -v ocaml-lastfm \
     > PACKAGES
 
-# compile & run tests
+# Compile and run tests
 ./bootstrap
 ./configure --disable-graphics
 make
+make -C scripts/tests test
