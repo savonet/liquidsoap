@@ -1,7 +1,7 @@
 # Hacking the build into Travis-CI "C" environment
 # See http://anil.recoil.org/2013/09/30/travis-and-ocaml.html
 
-OPAM_PACKAGES='ocamlfind base-bytes camlp4 pcre magic xmlm ocamlnet yojson'
+OPAM_PACKAGES='ocamlfind base-bytes camlp4 pcre syslog magic xmlm ocamlnet yojson'
 
 export OPAMYES=1
 opam init
@@ -24,6 +24,7 @@ cat PACKAGES.default \
     | grep -v ocaml-shine \
     | grep -v ocaml-aacplus \
     | grep -v ocaml-speex \
+    | grep -v ocaml-opus \
     | grep -v ocaml-schroedinger \
     | grep -v ocaml-voaacenc \
     | grep -v ocaml-fdkaac \

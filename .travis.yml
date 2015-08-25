@@ -14,7 +14,6 @@ addons:
     - libogg-dev
     - libvorbis-dev
     - libtheora-dev
-    - libopus-dev
     - libfaad-dev
     - libflac-dev
     - libavutil-dev
