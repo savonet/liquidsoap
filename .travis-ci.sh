@@ -30,4 +30,4 @@ cat PACKAGES.default \
 ./bootstrap
 ./configure --disable-graphics
 make
-make -C scripts/tests test
+make -C liquidsoap/scripts/tests test
