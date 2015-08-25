@@ -17,24 +17,11 @@ cd liquidsoap-full
 make init
 # We only test with a few packages for now...
 cat PACKAGES.default \
-    | grep -v ocaml-ao \
     | grep -v ocaml-portaudio \
-    | grep -v ocaml-bjack \
     | grep -v ocaml-gstreamer \
     | grep -v ocaml-shine \
     | grep -v ocaml-aacplus \
-    | grep -v ocaml-speex \
-    | grep -v ocaml-opus \
-    | grep -v ocaml-schroedinger \
-    | grep -v ocaml-voaacenc \
     | grep -v ocaml-fdkaac \
-    | grep -v ocaml-ladspa \
-    | grep -v ocaml-soundtouch \
-    | grep -v ocaml-samplerate \
-    | grep -v ocaml-gavl \
-    | grep -v ocaml-frei0r \
-    | grep -v ocaml-dssi \
-    | grep -v ocaml-lastfm \
     > PACKAGES
 
 # compile & run tests
