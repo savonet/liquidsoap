@@ -19,6 +19,7 @@ make init
 cat PACKAGES.default \
     | grep -v ocaml-ao \
     | grep -v ocaml-portaudio \
+    | grep -v ocaml-pulseaudio \
     | grep -v ocaml-bjack \
     | grep -v ocaml-gstreamer \
     | grep -v ocaml-shine \
