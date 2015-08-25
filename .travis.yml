@@ -8,6 +8,7 @@ addons:
     - opam
     - libpcre3-dev
     - libasound2-dev
+    - libpulse-dev
     - libmad0-dev
     - libtag1-dev
     - libmp3lame-dev
