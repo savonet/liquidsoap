@@ -31,7 +31,7 @@ before_install:
   - sudo apt-get install -y libsamplerate-dev
   - sudo apt-get install -y libsoundtouch-dev
   - sudo apt-get install -y libjack-jackd2-dev libsamplerate0-dev
-  - sudo apt-get install -y libspeex-dev libopus-dev libschroedinger-dev
+  - sudo apt-get install -y libspeex-dev libschroedinger-dev
   - sudo apt-get install -y dssi-dev
   - sudo apt-get install -y libvo-aacenc-dev
 
