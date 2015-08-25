@@ -1,0 +1,25 @@
+language: c
+sudo: false
+addons:
+  apt:
+    sources:
+    - avsm
+    packages:
+    - opam
+    - libpcre3-dev
+    - libasound2-dev
+    - libmad0-dev
+    - libtag1-dev
+    - libmp3lame-dev
+    - libogg-dev
+    - libvorbis-dev
+    - libtheora-dev
+    - libopus-dev
+    - libfaad-dev
+    - libflac-dev
+    - libavutil-dev
+    - libswscale-dev
+    - liblo-dev
+    - libmagic-dev
+
+script: bash -ex .travis-ci.sh
