@@ -114,6 +114,12 @@ struct
               samplerate = Some m.Encoder.WAV.samplerate ;
               channels = Some m.Encoder.WAV.channels
             }
+        | Encoder.AVI m ->
+            { quality = None ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.AVI.samplerate ;
+              channels = Some m.Encoder.AVI.channels
+            }
         | Encoder.Ogg o ->
             match o with
               | [Encoder.Ogg.Vorbis
