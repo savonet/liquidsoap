@@ -30,7 +30,6 @@ cat PACKAGES.default \
     | grep -v ocaml-shine \
     | grep -v ocaml-aacplus \
     | grep -v ocaml-fdkaac \
-    | grep -v ocaml-lastfm \
     > PACKAGES
 
 # Compile and run tests
