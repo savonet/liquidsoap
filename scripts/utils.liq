@@ -525,9 +525,9 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
       else
         # Playlist finished
         if not !has_stopped then
+          has_stopped := true
           on_done ()
         end
-        has_stopped := true
         ""
       end
     request.create(file)
