@@ -25,7 +25,7 @@ cat PACKAGES.default \
     | grep -v ocaml-aacplus \
     | grep -v ocaml-fdkaac \
     > PACKAGES
-./bootstrap
+make -j6 bootstrap
 ./configure --disable-graphics
 make
 
@@ -42,4 +42,4 @@ chmod +x c
 
 # Compile and run tests
 make
-make -C liquidsoap/scripts/tests test
+make -C scripts/tests test
