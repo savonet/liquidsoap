@@ -18,8 +18,9 @@ make init
 make update
 
 # Use current Liquidsoap
-rm -rf liquidsoap
-ln -s .. liquidsoap
+# TODO: does not work because .. in a symlinked dir refers to the actual dir
+#rm -rf liquidsoap
+#ln -s .. liquidsoap
 
 # We only test with a few packages for now...
 cat PACKAGES.default \
