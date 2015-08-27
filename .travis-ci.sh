@@ -20,9 +20,11 @@ make init
 make update
 
 # Switch to right branch
-cd liquidsoap
-git checkout $branch
-cd ..
+# TODO: this does not work, we get something like
+# "(detached' from '5e10ffb)" as branch...
+#cd liquidsoap
+#git checkout $branch
+#cd ..
 
 # We only test with a few packages for now...
 cat PACKAGES.default \
