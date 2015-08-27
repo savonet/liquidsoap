@@ -31,10 +31,8 @@ make
 
 # Configure current Liquidsoap
 LIQ_FULL_DIR=`pwd`
-echo $LIQ_FULL_DIR
 cd ..
 LIQ_FULL_DIR=`echo $LIQ_FULL_DIR | sed 's/\\//\\\\\//g'` # replace / with \/
-echo $LIQ_FULL_DIR
 cat liquidsoap-full/liquidsoap/configure-with-options | sed "s/\.\./$LIQ_FULL_DIR/g" > c # replace .. with liquidsoap-full
 chmod +x c
 ./bootstrap
