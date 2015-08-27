@@ -45,7 +45,7 @@ let chunk id data =
 let list = chunk "LIST"
 
 let header ~channels ~samplerate () =
-  let max_dword = 0x7fffffff in
+  let max_dword = 0xffffffff in
   let file_size = max_dword in
   let video_rate = Lazy.force Frame.video_rate in
   let width = Lazy.force Frame.video_width in
