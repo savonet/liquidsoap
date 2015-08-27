@@ -95,7 +95,7 @@ struct
 
   let to_string w =
     Printf.sprintf
-      "%%wav(samplerate=%d,channels=%d)"
+      "%%avi(samplerate=%d,channels=%d)"
       w.samplerate w.channels
 end
 
@@ -485,13 +485,13 @@ struct
         | Metadata        -> "restart_on_metadata"
         | No_condition    -> ""
     in
-    Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%s,header=%s,\
-                              restart_on_crash=%s,%s,process=%s)"
+    Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%b,header=%b,\
+                              restart_on_crash=%b,%s,process=%s)"
       e.channels
       e.samplerate
-      (string_of_bool e.video)
-      (string_of_bool e.header)
-      (string_of_bool e.restart_on_crash)
+      e.video
+      e.header
+      e.restart_on_crash
       (string_of_restart_condition e.restart)
       e.process
 

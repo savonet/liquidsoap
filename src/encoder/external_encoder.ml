@@ -202,7 +202,9 @@ let encoder id ext =
     let channels = h.params.channels in
     let sbuf =
       if h.params.video then
-        Avi_encoder.encode_frame ~channels ~samplerate:h.params.samplerate ~converter:h.converter frame start len
+        Avi_encoder.encode_frame
+          ~channels ~samplerate:h.params.samplerate ~converter:h.converter
+          frame start len
       else
         (
           let start = Frame.audio_of_master start in
