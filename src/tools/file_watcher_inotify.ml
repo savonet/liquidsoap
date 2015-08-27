@@ -49,7 +49,7 @@ let watch : File_watcher.watch = fun e file f ->
   Tutils.mutexify m (fun () ->
     if !fd = None then
       begin
-        fd := Some (Inotify.init ());
+        fd := Some (Inotify.create ());
         Duppy.Task.add Tutils.scheduler (watchdog ())
       end;
     let fd = Utils.get_some !fd in
