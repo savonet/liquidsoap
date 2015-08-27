@@ -149,6 +149,7 @@ rule token = parse
   | "%dirac"  { DIRAC  }
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
+  | "%avi" { AVI }
   | "%mp3"     { MP3 }
   | "%mp3.cbr" { MP3 }
   | "%mp3.abr" { MP3_ABR }
