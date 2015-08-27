@@ -82,7 +82,6 @@ let avi params =
     {
       Encoder.AVI.
       channels = 2;
-      duration = None;
       samplerate = 44100
     }
   in
@@ -92,8 +91,6 @@ let avi params =
         function
           | ("channels",{ term = Int c; _ }) ->
               { f with Encoder.AVI.channels = c }
-          | ("duration",{ term = Float d; _ }) ->
-              { f with Encoder.AVI.duration = Some d }
           | ("samplerate",{ term = Int i; _ }) ->
               { f with Encoder.AVI.samplerate = i }
           | (_,t) -> raise (generic_error t))

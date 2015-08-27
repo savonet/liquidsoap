@@ -91,18 +91,12 @@ struct
     {
       samplerate : int;
       channels : int;
-      duration : float option
     }
 
   let to_string w =
-    let duration = 
-      match w.duration with
-        | None -> ""
-        | Some d -> Printf.sprintf ",duration=%f" d
-    in
     Printf.sprintf
-      "%%wav(samplerate=%d,channels=%d,%s)"
-      w.samplerate w.channels duration
+      "%%wav(samplerate=%d,channels=%d)"
+      w.samplerate w.channels
 end
 
 module Vorbis =
