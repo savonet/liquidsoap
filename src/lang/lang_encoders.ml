@@ -77,6 +77,27 @@ let wav params =
   in
     Encoder.WAV wav
 
+let avi params =
+  let defaults =
+    {
+      Encoder.AVI.
+      channels = 2;
+      samplerate = 44100
+    }
+  in
+  let avi =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int c; _ }) ->
+              { f with Encoder.AVI.channels = c }
+          | ("samplerate",{ term = Int i; _ }) ->
+              { f with Encoder.AVI.samplerate = i }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+  Encoder.AVI avi
+      
 let mp3_base_defaults = 
     { Encoder.MP3.
         stereo = true ;
@@ -443,6 +464,7 @@ let external_encoder params =
     { Encoder.External.
         channels = 2 ;
         samplerate = 44100 ;
+        video = false ;
         header  = true ;
         restart_on_crash = false ;
         restart = Encoder.External.No_condition ;
@@ -455,7 +477,9 @@ let external_encoder params =
           | ("channels",{ term = Int c; _}) ->
               { f with Encoder.External.channels = c }
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.External.samplerate = i }
+             { f with Encoder.External.samplerate = i }
+          | ("video",{ term = Bool h; _}) ->
+              { f with Encoder.External.video = h }
           | ("header",{ term = Bool h; _}) ->
               { f with Encoder.External.header = h }
           | ("restart_on_crash",{ term = Bool h; _}) ->

@@ -85,6 +85,20 @@ struct
 
 end
 
+module AVI =
+struct
+  type t =
+    {
+      samplerate : int;
+      channels : int;
+    }
+
+  let to_string w =
+    Printf.sprintf
+      "%%avi(samplerate=%d,channels=%d)"
+      w.samplerate w.channels
+end
+
 module Vorbis =
 struct
 
@@ -457,6 +471,7 @@ struct
   type t = {
     channels            : int ;
     samplerate          : int ;
+    video               : bool ;
     header              : bool ;
     restart_on_crash    : bool ;
     restart             : restart_condition ;
@@ -470,12 +485,13 @@ struct
         | Metadata        -> "restart_on_metadata"
         | No_condition    -> ""
     in
-    Printf.sprintf "%%external(channels=%i,samplerate=%i,header=%s,\
-                              restart_on_crash=%s,%s,process=%s)"
+    Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%b,header=%b,\
+                              restart_on_crash=%b,%s,process=%s)"
       e.channels
       e.samplerate
-      (string_of_bool e.header)
-      (string_of_bool e.restart_on_crash)
+      e.video
+      e.header
+      e.restart_on_crash
       (string_of_restart_condition e.restart)
       e.process
 
@@ -684,6 +700,7 @@ end
 
 type format =
   | WAV of WAV.t
+  | AVI of AVI.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
   | Shine of Shine.t
@@ -698,6 +715,9 @@ let kind_of_format = function
   | WAV w ->
       { Frame.audio = w.WAV.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | AVI a ->
+      { Frame.audio = a.AVI.channels ;
+        Frame.video = 1 ; Frame.midi = 0 }
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;
         Frame.video = 0 ; Frame.midi = 0 }
@@ -736,7 +756,7 @@ let kind_of_format = function
         l
   | External e ->
       { Frame.audio = e.External.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
+        Frame.video = if e.External.video then 1 else 0 ; Frame.midi = 0 }
   | GStreamer e ->
     { Frame.audio = GStreamer.audio_channels e;
       Frame.video = GStreamer.video_channels e;
@@ -750,6 +770,7 @@ let kind_of_format f =
 
 let string_of_format = function
   | WAV w -> WAV.to_string w
+  | AVI w -> AVI.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
   | Shine w -> Shine.to_string w

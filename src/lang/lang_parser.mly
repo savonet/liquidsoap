@@ -166,7 +166,7 @@
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
-%token WAV FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
+%token WAV AVI FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -299,6 +299,7 @@ expr:
   | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
   | GSTREAMER app_opt                { mk_enc (gstreamer ~pos:(curpos ()) $2) }
   | WAV app_opt                      { mk_enc (wav $2) }
+  | AVI app_opt                      { mk_enc (avi $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
@@ -395,6 +396,7 @@ cexpr:
   | FDKAAC app_opt                   { mk_enc (fdkaac $2) }
   | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
   | WAV app_opt                      { mk_enc (wav $2) }
+  | AVI app_opt                      { mk_enc (avi $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
