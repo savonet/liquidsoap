@@ -11,10 +11,19 @@ fi
 eval `opam config env`
 opam install -q -y ${OPAM_PACKAGES}
 
+branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+
 # Download full Liquidsoap
 git clone https://github.com/savonet/liquidsoap-full.git
 cd liquidsoap-full
 make init
+make update
+
+# Switch to right branch
+cd liquidsoap
+git checkout $branch
+cd ..
+
 # We only test with a few packages for now...
 cat PACKAGES.default \
     | grep -v ocaml-portaudio \
