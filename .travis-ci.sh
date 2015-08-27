@@ -11,20 +11,15 @@ fi
 eval `opam config env`
 opam install -q -y ${OPAM_PACKAGES}
 
-branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-
 # Download full Liquidsoap
 git clone https://github.com/savonet/liquidsoap-full.git
 cd liquidsoap-full
 make init
 make update
 
-# Switch to right branch
-# TODO: this does not work, we get something like
-# "(detached' from '5e10ffb)" as branch...
-#cd liquidsoap
-#git checkout $branch
-#cd ..
+# Use current Liquidsoap
+rm -rf liquidsoap
+ln -s .. liquidsoap
 
 # We only test with a few packages for now...
 cat PACKAGES.default \
