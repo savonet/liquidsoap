@@ -740,7 +740,7 @@ fi
 
 # Inotify
 
-AC_CHECK_OCAML_BINDING([inotify],[1.0])
+AC_CHECK_OCAML_BINDING([inotify],[1.5])
 
 cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch
