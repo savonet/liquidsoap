@@ -87,7 +87,7 @@ object (self)
     ns_kind <- "playlist";
     self#register_command "reload"
       ~descr:"Reload the playlist, unless already being loaded."
-      (fun _ -> self#reload_playlist () ; "OK") ;
+      (fun _ -> self#reload_playlist `Other ; "OK") ;
     self#register_command "uri"
                ~descr:"Print playlist URI if called without an argument, \
                        otherwise set a new one and load it."
@@ -96,7 +96,7 @@ object (self)
          if s = "" then
            playlist_uri
          else
-           (self#reload_playlist ~uri:s () ; "OK")) ;
+           (self#reload_playlist ~uri:s `Other ; "OK")) ;
     self#register_command "next"
       ~descr:"Return up to 10 next URIs to be played."
       (* We cannot return request IDs because we create requests at the last
@@ -154,10 +154,13 @@ object (self)
   (** Lock for the previous variables. *)
   val mylock = Mutex.create ()
 
-  (** (re-)read playlist_file and update datas.
-    [reload] should be true except on first load, in that case playlist
-    resolution failures won't result in emptying the current playlist.*)
-  method load_playlist ?(uri=playlist_uri) is_reload =
+  (** Load or reload playlist and update data.
+    * [reload] should be [`No] on the first load, [`Round] for round-based reloads
+    * and [`Other] otherwise (i.e., manual, time and watch-based reloads).
+    * For the first load, playlist resolution failures won't result in
+    * emptying the current playlist.
+    * For round-based reloads, already loaded files won't be expired. *)
+  method load_playlist ?(uri=playlist_uri) (reload : [`No|`Round|`Other]) =
     let _playlist =
       let read_playlist filename =
         if is_dir filename then begin
@@ -234,7 +237,7 @@ object (self)
         (List.filter self#is_valid _playlist)
     in
       (* TODO distinguish error and empty if fallible *)
-      if _playlist = [] && is_reload then
+      if _playlist = [] && reload <> `No then
         self#log#f 3 "Got an empty list: keeping the old one."
       else begin
         (* Don't worry if a reload fails,
@@ -253,7 +256,7 @@ object (self)
          * old requests as expired. Users who don't want that we'll have
          * to avoid useless reloading. *)
         index_played <- -1 ;
-        self#expire (fun _ -> true) ;
+        if reload <> `Round then self#expire (fun _ -> true) ;
         Mutex.unlock mylock ;
 
         self#log#f 3
@@ -272,13 +275,13 @@ object (self)
     * with mutexes, waiting for a fully satisfying solution using
     * Duppy mutexes -- and perhaps support for blocking server commands
     * enabling a synchronous reload command. *)
-  method reload_playlist ?uri () =
+  method reload_playlist ?uri (reload_kind : [`Round|`Other]) =
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Maybe_blocking ;
           events   = [`Delay 0.] ;
           handler  = (fun _ ->
-            self#load_playlist ?uri true ;
+            self#load_playlist ?uri (reload_kind:>[`No|`Other|`Round]) ;
             []) }
 
   (** Schedule reloading if necessary.
@@ -297,13 +300,13 @@ object (self)
       | Every_N_seconds n ->
           if Unix.time () -. reload_t > n then begin
             reload_t <- Unix.time () ;
-            self#reload_playlist ()
+            self#reload_playlist `Other
           end
       | Every_N_rounds n ->
           if round_done then round_c <- round_c - 1 ;
           if round_c <= 0 then begin
             round_c <- n ;
-            self#reload_playlist ()
+            self#reload_playlist `Round
           end
 
   method get_next_request : Request.t option =
@@ -317,28 +320,35 @@ object (self)
         match random with
           | Randomize ->
               index_played <- index_played + 1 ;
+              let uri : string = !playlist.(index_played) in
               let round =
-                if index_played >= Array.length !playlist
-                then ( index_played <- 0 ;
-                       Utils.randomize !playlist ;
-                       true )
-                else false
+                if index_played < Array.length !playlist - 1 then
+                  false
+                else begin
+                  index_played <- -1 ;
+                  Utils.randomize !playlist ;
+                  true
+                end
               in
                 self#may_autoreload round ;
-                !playlist.(index_played)
+                uri
           | Random ->
               index_played <- Random.int (Array.length !playlist) ;
               self#may_autoreload false ;
               !playlist.(index_played)
           | Normal ->
               index_played <- index_played + 1 ;
+              let uri : string = !playlist.(index_played) in
               let round =
-                if index_played >= Array.length !playlist
-                then ( index_played <- 0 ; true )
-                else false
+                if index_played < Array.length !playlist - 1 then
+                  false
+                else begin
+                  index_played <- -1 ;
+                  true
+                end
               in
                 self#may_autoreload round ;
-                !playlist.(index_played)
+                uri
       in
         Mutex.unlock mylock ;
         Some (self#create_request uri)
@@ -378,7 +388,7 @@ object (self)
       | Every_N_seconds _ -> reload_t <- Unix.time ()
     end ;
     Mutex.unlock mylock ;
-    self#load_playlist true
+    self#load_playlist `No
 
   (** Give the next [n] URIs, if guessing is easy. *)
   method get_next = Tutils.mutexify mylock (fun n ->
@@ -425,7 +435,7 @@ object (self)
     if reload = Watch then
       self#on_shutdown
         (watch [`Modify] (Utils.home_unrelate playlist_uri)
-          (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+          (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -469,7 +479,7 @@ object (self)
     let watch = !Configure.file_watcher in
     if reload = Watch then
       self#on_shutdown (watch [`Modify] (Utils.home_unrelate playlist_uri)
-        (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+        (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
 end
 
 
