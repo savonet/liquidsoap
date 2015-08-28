@@ -1,5 +1,5 @@
 language: c
-
+sudo: required
 addons:
   apt:
     sources:
@@ -34,5 +34,9 @@ before_install:
   - sudo apt-get install -y libspeex-dev libschroedinger-dev
   - sudo apt-get install -y dssi-dev
   - sudo apt-get install -y libvo-aacenc-dev
+  - export OPAMYES=1
+  - opam init
+  - eval `opam config env`
+  - opam install -q -y ocamlfind base-bytes camlp4 pcre camomile syslog magic xmlm ocamlnet yojson inotify
 
 script: bash -ex .travis-ci.sh
