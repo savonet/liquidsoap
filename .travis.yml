@@ -21,6 +21,7 @@ addons:
     - libswscale-dev
     - liblo-dev
     - libmagic-dev
+    - portaudio19-dev
 
 before_install:
   - sudo add-apt-repository -y ppa:gstreamer-developers/ppa
