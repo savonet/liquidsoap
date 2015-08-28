@@ -18,9 +18,7 @@ include $(top_srcdir)/Makefile.defs
 # $1: name of the make variable where the file should go if compiled builtin.
 # $2: the $W_FOO variable
 # $3: path to the file
-# $4: type of source: empty for .ml sources,
-#                     c_ for c sources and camlp4_ for camlp4 sources.
-#                     (Camlp4 sources are not supported yet..)
+# $4: type of source: empty for .ml sources and c_ for c sources.
 #
 # For now, the old style Makefile has been converted to
 # this new style by replacing $(if $(W_FOO),..) by
@@ -38,17 +36,6 @@ liquidsoap_c_files = tools/locale_c.c
 
 # Add conditional files..
 $(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)
-
-# Camlp4 compilation works as follow:
-# both .camlp4 and .ml files are present in the
-# source tree.
-# If camlp4o is detected, then a .camlp4.ml target
-# is executed for each .camlp4. This target creates a .camlp4.ml
-# file that is not used and regenerate the .ml files used for compilation.
-liquidsoap_camlp4_files = \
-	$(if $(W_DUPPY_SYNTAX),outputs/harbor_output.camlp4) \
-	$(if $(W_DUPPY_SYNTAX),tools/server.camlp4) \
-	$(if $(W_DUPPY_SYNTAX),tools/harbor.camlp4)
 
 # This variable contains only conditional files..
 ogg_demuxer =
