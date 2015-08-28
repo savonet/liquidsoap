@@ -316,11 +316,14 @@ object (self)
       Mutex.unlock mylock ;
       None
     end else
-      let uri =
+      (* URI to be played together with
+       * position in playlist at the time of selection. *)
+      let pos,uri =
         match random with
           | Randomize ->
               index_played <- index_played + 1 ;
-              let uri : string = !playlist.(index_played) in
+              let pos = index_played in
+              let uri = !playlist.(index_played) in
               let round =
                 if index_played < Array.length !playlist - 1 then
                   false
@@ -331,14 +334,15 @@ object (self)
                 end
               in
                 self#may_autoreload round ;
-                uri
+                pos,uri
           | Random ->
               index_played <- Random.int (Array.length !playlist) ;
               self#may_autoreload false ;
-              !playlist.(index_played)
+              index_played,!playlist.(index_played)
           | Normal ->
               index_played <- index_played + 1 ;
-              let uri : string = !playlist.(index_played) in
+              let pos = index_played in
+              let uri = !playlist.(index_played) in
               let round =
                 if index_played < Array.length !playlist - 1 then
                   false
@@ -348,10 +352,14 @@ object (self)
                 end
               in
                 self#may_autoreload round ;
-                uri
+                pos,uri
+      in
+      let metadata =
+        [ "playlist_position", string_of_int pos ;
+          "playlist_length", string_of_int (Array.length !playlist) ]
       in
         Mutex.unlock mylock ;
-        Some (self#create_request uri)
+        Some (self#create_request ~metadata uri)
 
   method playlist_wake_up =
     let base_name =
