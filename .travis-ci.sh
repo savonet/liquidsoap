@@ -6,7 +6,6 @@ make update
 # We only test with a few packages for now...
 cat PACKAGES.default \
     | grep -v ocaml-portaudio \
-    | grep -v ocaml-gstreamer \
     | grep -v ocaml-opus \
     | grep -v ocaml-shine \
     | grep -v ocaml-aacplus \
