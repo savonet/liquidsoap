@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ class virtual base ~client ~device =
   let device = 
     if device = "" then None else Some device 
   in
-object (self)
+object
   val client_name = client
   val dev = device
 

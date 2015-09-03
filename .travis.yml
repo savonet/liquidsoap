@@ -1,0 +1,45 @@
+language: c
+sudo: required
+addons:
+  apt:
+    sources:
+    - avsm
+    packages:
+    - opam
+    - libpcre3-dev
+    - libasound2-dev
+    - libpulse-dev
+    - libmad0-dev
+    - libtag1-dev
+    - libmp3lame-dev
+    - libogg-dev
+    - libvorbis-dev
+    - libtheora-dev
+    - libfaad-dev
+    - libflac-dev
+    - libavutil-dev
+    - libswscale-dev
+    - liblo-dev
+    - libmagic-dev
+    - portaudio19-dev
+
+before_install:
+  - sudo add-apt-repository -y ppa:gstreamer-developers/ppa
+  - sudo apt-get update -qq
+  - sudo apt-get install -y libao-dev
+  - sudo apt-get install -y libgavl-dev
+  - sudo apt-get install -y ladspa-sdk
+  - sudo apt-get install -y frei0r-plugins-dev
+  - sudo apt-get install -y libsamplerate-dev
+  - sudo apt-get install -y libsoundtouch-dev
+  - sudo apt-get install -y libjack-jackd2-dev libsamplerate0-dev
+  - sudo apt-get install -y libspeex-dev libschroedinger-dev
+  - sudo apt-get install -y dssi-dev
+  - sudo apt-get install -y libvo-aacenc-dev
+  - sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+  - export OPAMYES=1
+  - opam init
+  - eval `opam config env`
+  - opam install -q -y ocamlfind base-bytes camlp4 pcre camomile syslog magic xmlm ocamlnet yojson inotify
+
+script: bash -ex .travis-ci.sh

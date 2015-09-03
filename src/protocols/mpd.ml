@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,10 +42,6 @@ let conf_debug =
   Conf.bool ~p:(conf#plug "debug") ~d:false
     "Debug communications with MPD server."
 
-let re_newline = Str.regexp "[\r\n]+"
-let re_version = Str.regexp "OK MPD \\([0-9a-z\\.]+\\)"
-let re_file = Str.regexp "^file: \\(.*\\)$"
-
 exception Error of string
 
 let connect () =
@@ -59,7 +55,7 @@ let connect () =
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   let read () =
     let buflen = 1024 in
-    let buf = String.create buflen in
+    let buf = Bytes.create buflen in
     let ans = ref "" in
     let n = ref buflen in
     while !n = buflen do
@@ -120,7 +116,7 @@ let search read write field v =
         file := f
       else if Str.string_match re_metadata s 0 then
         let field = Str.matched_group 1 s in
-        let field = String.lowercase field in
+        let field = Utils.StringCompat.lowercase_ascii field in
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
           metadata := (field, value) :: !metadata
@@ -136,7 +132,7 @@ let search read write field v =
 let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"
 let re_version = Str.regexp "OK MPD \\([0-9\\.]+\\)"
 
-let mpd s ~log maxtime =
+let mpd s ~log _ =
   if not (Str.string_match re_request s 0) then
     raise (Error "Invalid request");
   let field = Str.matched_group 1 s in
@@ -148,7 +144,7 @@ let mpd s ~log maxtime =
     else
       value
   in
-  let socket, read, write = connect () in
+  let _, read, write = connect () in
   let search = search read write in
   let version =
     let v = read () in

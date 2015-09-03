@@ -84,7 +84,7 @@ channels and report a runtime error if that fails.
 h4. Conversions
 
 The above example did not make much sense, but in some cases you'll
-get a type error on seemingly meaningul code, and you'll wonder how
+get a type error on seemingly meaningful code, and you'll wonder how
 to fix it. Often, it suffices to perform a few explicit conversions.
 
 Consider another example involving the SDL output, where we also try
@@ -160,7 +160,7 @@ After this first phase, it is possible that some contents are still
 undetermined. For example in <code>output.alsa(input.alsa())</code>,
 any number of audio channels could work, and nothing helps us determine
 what is intended. At this point, the default numbers of channels are
-used. They are given by the setting 
+used. They are given by the setting
 <code>frame.audio/video/midi.channels</code> (whose defaults are respectively
 <code>2</code>, <code>0</code> and <code>0</code>). In our example,
 stereo audio would be chosen.

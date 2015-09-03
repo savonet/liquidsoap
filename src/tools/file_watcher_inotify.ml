@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ let watch : File_watcher.watch = fun e file f ->
   Tutils.mutexify m (fun () ->
     if !fd = None then
       begin
-        fd := Some (Inotify.init ());
+        fd := Some (Inotify.create ());
         Duppy.Task.add Tutils.scheduler (watchdog ())
       end;
     let fd = Utils.get_some !fd in

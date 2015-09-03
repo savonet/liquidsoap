@@ -25,7 +25,7 @@ The constants and their syntax are quite common:
 Strings might be surrounded by double or single quotes. In both cases, you can escape the quote you're using: <code>"He said: \"Hello, you\"."</code> is valid but <code>'He said: "Hello, you".'</code> is equivalent and nicer.
 
 Also, you can include variables in a string using the <code>#{...}</code>
-syntax: 
+syntax:
 <code>"foo #{quote(my_var)} bar"</code> is equivalent to
 <code>"foo " ^ quote(my_var) ^ " bar"</code>.
 
@@ -45,7 +45,7 @@ You can form expressions by using:
 * Parenthesis can be used to delimit explicitly expressions. In some places where only expressions can be written, as opposed to sequences of expressions, the @begin .. end@ block can be used to explicitly form a simple expression from a sequence. This notably happens with the simple form of definitions without @def .. end@, and in the body of anonymous functions. For example <code>fun (x) -> f1(x) ; f2(x)</code> will be read as <code>(fun (x) -> f1(x)) ; f2(x)</code> not as <code>fun (x) -> begin f1(x) ; f2(x) end</code>.
 * Code blocks: <code>{ expr }</code> is a shortcut for <code>fun () -> expr</code>.
 
-**No assignation, only definitions.** <code>x = expr</code> doesn't modify <code>x</code>, it just defines a new <code>x</code>. The expression <code>(x = s1 ; def y = x = s2 ; (x,s3) end ; (y,x))</code> evaluates to <code>((s2,s3),s1)</code>.
+**No assignment, only definitions.** <code>x = expr</code> doesn't modify <code>x</code>, it just defines a new <code>x</code>. The expression <code>(x = s1 ; def y = x = s2 ; (x,s3) end ; (y,x))</code> evaluates to <code>((s2,s3),s1)</code>.
 
 **Function.** The return value of a function is the evaluation of its body where parameters have been substituted by their values. Accordingly, the type of the body is the return type of the function. If the body is a sequence, the return value will thus be its last expression, and the return type its type.
 
@@ -80,7 +80,7 @@ h4. Types
 
 We believe in static typing especially for a script which is intended to run during weeks: we don't want to notice a mistake only when the special code for your rare live events is triggered! Moreover, we find it important to show that even for a simple script language like that, it is worth implementing type inference. It's not that hard, and makes life easier.
 
-The basic types are <code>int</code>, <code>float</code>, <code>bool</code> 
+The basic types are <code>int</code>, <code>float</code>, <code>bool</code>
 and <code>string</code>.
 Corresponding to pairs and lists,
 you get <code>(T*T)</code> and <code>[T]</code> types --

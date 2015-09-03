@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ open Source
 
 class synth ~kind (synth:Synth.synth) (source:source) chan volume =
 object (self)
-  inherit operator ~name:"synth" kind [source] as super
+  inherit operator ~name:"synth" kind [source]
 
   initializer
     synth#set_volume volume

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ struct
       (fun () ->
          let preferred = preferred_conf#get in
          match converters#get preferred with
-           | Some v ->
+           | Some _ ->
               log#f 4 "Using preferred samplerate converter: %s." preferred;
            | None ->
               log#f 4 "Couldn't find preferred samplerate converter: %s."

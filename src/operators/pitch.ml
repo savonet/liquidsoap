@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ class pitch ~kind every length freq_min freq_max (source:source) =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let length = Frame.audio_of_seconds length in
 object (self)
-  inherit operator ~name:"pitch" kind [source] as super
+  inherit operator ~name:"pitch" kind [source]
 
   val ring = Ringbuffer.create channels (2 * length)
 

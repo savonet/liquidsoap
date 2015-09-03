@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ let knotes =
   [|'a'; '?'; 'z'; '"'; 'e'; 'r'; '('; 't'; '-'; 'y'; '?';
     'u'; 'i'; '?'; 'o'; '?'; 'p'|]
 
-let array_index a x =
+let array_index x =
   let ans = ref None in
     for i = 0 to Array.length knotes - 1 do
       if knotes.(i) = x then ans := Some i
@@ -34,7 +34,7 @@ let array_index a x =
       | None -> raise Not_found
 
 let note_of_char c =
-  array_index knotes c + 72
+  array_index c + 72
 
 class keyboard ~kind =
 object (self)
@@ -74,7 +74,7 @@ object (self)
       let rec task _ =
         if run_id <> id then [] else
           let c =
-            let c = String.create 1 in
+            let c = Bytes.create 1 in
               ignore (Unix.read Unix.stdin c 0 1);
               c.[0]
           in
@@ -113,4 +113,4 @@ let () =
     ~category:Lang.Input
     ~flags:[Lang.Hidden; Lang.Experimental]
     ~descr:"Play notes from the keyboard."
-    (fun p kind -> ((new keyboard ~kind):>Source.source))
+    (fun _ kind -> ((new keyboard ~kind):>Source.source))

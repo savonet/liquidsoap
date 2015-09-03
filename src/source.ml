@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -90,6 +90,7 @@ object
   (** Attach a sub_clock, get all subclocks, see below. *)
 
   method attach_clock : 'b -> unit
+  method detach_clock : 'b -> unit
   method sub_clocks : 'b list
 
   method start_outputs : ('a -> bool) -> unit -> 'a list
@@ -211,6 +212,13 @@ let rec unify a b =
         List.iter c#attach_clock sc ;
         r := Same_as (Known c)
 
+let rec forget var subclock =
+  match var with
+    | Known c -> c#detach_clock subclock
+    | Link {contents=Same_as a} -> forget a subclock
+    | Link ({contents=Unknown (sources,clocks)} as r) ->
+        r := Unknown (sources, List.filter ((<>) subclock) clocks)
+
 (** {1 Sources} *)
 
 open Dtools
@@ -255,6 +263,9 @@ object (self)
      * to avoid bloating from unused sources.
      * If the ID changes, and [log] has already been initialized, reset it. *)
     if log != source_log then self#create_log
+
+  initializer
+    Gc.finalise (fun s -> source_log#f 4 "Garbage collected %s." s#id) self
 
   (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)
@@ -456,7 +467,7 @@ object (self)
   (* [self#seek x] skips [x] master ticks.
    * returns the number of ticks actually skipped.
    * By default it always returns 0, refusing to seek at all. *)
-  method seek (len:int) = 
+  method seek (_:int) = 
     self#log#f 3 "Seek not implemented!";
     0
 
@@ -595,12 +606,12 @@ end
 (** Shortcuts for defining sources with no children *)
 
 class virtual source ?name content_kind =
-object (self)
+object
   inherit operator ?name content_kind []
 end
 
 class virtual active_source ?name content_kind =
-object (self)
+object
   inherit active_operator ?name content_kind []
 end
 
@@ -614,6 +625,7 @@ object
   method attach : active_source -> unit
   method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit
+  method detach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
   method start_outputs : (active_source -> bool) -> unit -> active_source list
   method get_tick : int
@@ -626,6 +638,7 @@ struct
   let create_unknown = create_unknown
   let create_known = create_known
   let unify = unify
+  let forget = forget
   let get v =
     match deref v with
       | Known c -> c

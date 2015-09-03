@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,27 +48,28 @@
 
   (** Process multiline string syntax à la Caml (backslash-newline).
     * This is done almost in-place, mutating the initial string. *)
-  let process_string s =
+  let process_bytes s =
     let copy,cut =
       let pos = ref 0 in
         (fun i ->
-           if !pos<>i then s.[!pos] <- s.[i] ;
+           if !pos<>i then Bytes.set s !pos (Bytes.get  s i) ;
            incr pos),
-        (fun () -> String.sub s 0 !pos)
+        (fun () -> Bytes.sub s 0 !pos)
     in
-    let len = String.length s in
+    let len = Bytes.length s in
     let rec search i test =
       if i >= len then raise Not_found ;
-      if test s.[i] then i else
+      if test (Bytes.get s i) then i else
         search (i+1) test
     in
     let rec parse i =
       if i = len-1 then copy i else
       if i = len-2 then begin copy i ; copy (i+1) end else
         parse
-          (if s.[i] = '\\' && s.[i+1] = '\n' then
+          (if (Bytes.get s i) = '\\' && (Bytes.get s (i+1)) = '\n' then
              let i = search (i+2) (fun c -> c <> ' ') in
-               if s.[i] = '\\' && i+1<len && s.[i+1] = ' ' then i+1 else i
+               if (Bytes.get s i) = '\\' && i+1<len &&
+                  (Bytes.get s (i+1)) = ' ' then i+1 else i
            else begin
              copy i ; i+1
            end)
@@ -76,7 +77,7 @@
       (try parse 0 with _ -> ()) ;
       cut ()
 
-  let process_string s = process_string (String.copy s)
+  let process_string s = process_bytes (Bytes.of_string s)
 }
 
 let decimal_literal =
@@ -148,6 +149,7 @@ rule token = parse
   | "%dirac"  { DIRAC  }
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
+  | "%avi" { AVI }
   | "%mp3"     { MP3 }
   | "%mp3.cbr" { MP3 }
   | "%mp3.abr" { MP3_ABR }

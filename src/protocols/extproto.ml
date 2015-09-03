@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-open Source
 open Dtools
 
 let dlog = Log.make ["protocols";"external"]
@@ -82,11 +81,11 @@ let resolve proto program command s ~log maxtime =
            end
           else
            begin
-            let s = String.create 1024 in
+            let s = Bytes.create 1024 in
             let ret =
               try Unix.read xR s 0 1024 with _ -> 0
             in
-            prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
+            prog_stdout := !prog_stdout ^ (Bytes.sub s 0 ret);
             if ret > 0 then [task()] else []
            end
         in

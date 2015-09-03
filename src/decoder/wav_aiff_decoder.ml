@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ let input input buf ofs len =
   len
 
 let seek input len =
-  let s = String.create len in
+  let s = Bytes.create len in
   ignore(really_input input s 0 len)
 
 let input_ops =
@@ -73,7 +73,7 @@ struct
  * or external processes, if we could wrap the input function used
  * for decoding stream (in http and harbor) as an in_channel. *)
 let create ?header input =
-  let decoder = ref (fun gen -> assert false) in
+  let decoder = ref (fun _ -> assert false) in
   let header = ref header in
 
   let main_decoder remaining =
@@ -84,9 +84,9 @@ let create ?header input =
     let data,bytes = input.Decoder.read bytes_to_get in
       if !remaining <> -1 then remaining := !remaining - bytes;
       if bytes=0 then raise End_of_stream ;
-      let content,length = converter (String.sub data 0 bytes) in
+      let content = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 length
+        Generator.put_audio gen content 0 (Array.length content.(0))
   in
 
   let read_header () =
@@ -126,7 +126,7 @@ let create ?header input =
     end ;
   let seek ticks = 
     match input.Decoder.lseek,input.Decoder.tell,!header with
-      | Some seek, Some tell, Some (format,samplesize,channels,samplerate,datalen) ->
+      | Some seek, Some tell, Some (_,samplesize,channels,samplerate,_) ->
          (* seek is in absolute position *)
          let duration = Frame.seconds_of_master ticks in
          let samples = int_of_float (duration *. samplerate) in
@@ -171,8 +171,10 @@ let get_type filename =
            match Wav_aiff.sample_size header with
              | 8  -> ok_message "u8"; channels
              | 16 -> ok_message "s16le"; channels
+             | 24 -> ok_message "s24le"; channels
+             | 32 -> ok_message "s32le"; channels
              | _ ->
-                log#f 4 "Only 16 and 8 bit WAV files \
+                log#f 4 "Only 8, 16, 24 and 32 bit WAV files \
                          are supported at the moment.." ;
                 0
          in
@@ -196,7 +198,7 @@ let wav_file_extensions =
 let () =
   Decoder.file_decoders#register "WAV"
     ~sdoc:"Decode as WAV any file with a correct header."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
         not (Decoder.test_file ~mimes:wav_mime_types#get
@@ -227,7 +229,7 @@ let aiff_file_extensions =
 let () =
   Decoder.file_decoders#register "AIFF"
     ~sdoc:"Decode as AIFF any file with a correct header."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
         not (Decoder.test_file ~mimes:aiff_mime_types#get

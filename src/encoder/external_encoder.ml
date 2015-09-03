@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -66,33 +66,33 @@ let encoder id ext =
   (* The encoding logic *)
   let stop_process h = 
     match h.encoder with
-      | Some (_,out_e as enc) ->
-         h.log#f 3 "stopping current process" ;
-         begin
-           try
-             begin
-              try
-               flush out_e;
-               Unix.close (Unix.descr_of_out_channel out_e)
-              with
-                | _ -> ()
-             end;
-             Tutils.mutexify h.cond_m (fun () ->
-               if h.is_task then
-                 Condition.wait h.cond h.cond_m) ();
-             begin
-              try
-                ignore(Unix.close_process enc)
-              with
-                | _ -> ()
-             end;
-             h.encoder <- None
-           with
-             | e ->
-                 h.log#f 2 "couldn't stop the reading task.";
-                 raise e
-         end
-      | None -> ()
+    | Some (_,out_e as enc) ->
+       h.log#f 3 "stopping current process" ;
+      begin
+        try
+          begin
+            try
+              flush out_e;
+              Unix.close (Unix.descr_of_out_channel out_e)
+            with
+            | _ -> ()
+          end;
+          Tutils.mutexify h.cond_m (fun () ->
+            if h.is_task then
+              Condition.wait h.cond h.cond_m) ();
+          begin
+            try
+              ignore(Unix.close_process enc)
+            with
+            | _ -> ()
+          end;
+          h.encoder <- None
+        with
+        | e ->
+           h.log#f 2 "couldn't stop the reading task.";
+          raise e
+      end
+    | None -> ()
   in
 
   let reset_process start_f h = 
@@ -111,18 +111,25 @@ let encoder id ext =
     assert(h.encoder = None);
     let (in_e,out_e as enc) = Unix.open_process process in
     h.encoder <- Some enc;
-    if h.params.header then
+    if h.params.video then
+      begin
+        let header =
+          Avi.header ~channels:h.params.channels ~samplerate:h.params.samplerate ()
+        in
+        output_string out_e header
+      end
+    else if h.params.header then
       begin
         let header =
           Wav_aiff.wav_header ~channels:h.params.channels
-                     ~sample_rate:h.params.samplerate
-                     ~sample_size:16 ()
+            ~sample_rate:h.params.samplerate
+            ~sample_size:16 ()
         in
         (* Write WAV header *)
         output_string out_e header
       end;
     let sock = Unix.descr_of_in_channel in_e in
-    let buf = String.create 10000 in
+    let buf = Bytes.create 10000 in
     let events = [`Read sock]
     in
     let rec pull _ =
@@ -143,45 +150,45 @@ let encoder id ext =
         let ret = read () in
         if ret > 0 then
           [{ Duppy.Task.
-               priority = priority ;
-               events   = events ;
-               handler  = pull }]
+             priority = priority ;
+             events   = events ;
+             handler  = pull }]
         else
-         begin
-           h.log#f 4 "Reading task reached end of data";
-           stop (); []
-         end
+          begin
+            h.log#f 4 "Reading task reached end of data";
+            stop (); []
+          end
       with e -> 
         h.log#f 3
           "Error while reading data from encoding process: %s"
-          (Utils.error_message e) ;
+          (Printexc.to_string e) ;
         stop (); 
         (if h.params.restart_on_crash then
-          reset_process start_process h
+            reset_process start_process h
          else
-          raise e);
+            raise e);
         []
     in
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
-          priority = priority ;
-          events   = events ;
-          handler  = pull };
+        priority = priority ;
+        events   = events ;
+        handler  = pull };
     h.is_task <- true;
     (** Creating restart task. *)
     match h.params.restart with
-      | Delay d -> 
-          let f _ =
-            h.log#f 3 "Restarting encoder after delay (%is)" d;
-            reset_process start_process h ;
-            []
-          in
-          Duppy.Task.add Tutils.scheduler
-            { Duppy.Task.
-                priority = priority ;
-                events   = [`Delay (float d)] ;
-                handler  = f }
-      | _ -> ()
+    | Delay d -> 
+       let f _ =
+         h.log#f 3 "Restarting encoder after delay (%is)" d;
+         reset_process start_process h ;
+         []
+       in
+       Duppy.Task.add Tutils.scheduler
+         { Duppy.Task.
+           priority = priority ;
+           events   = [`Delay (float d)] ;
+           handler  = f }
+    | _ -> ()
   in
 
   let reset_process = reset_process start_process in
@@ -193,39 +200,49 @@ let encoder id ext =
 
   let encode h ratio frame start len =
     let channels = h.params.channels in
-    let start = Frame.audio_of_master start in
-    let b = AFrame.content_of_type ~channels frame start in
-    let len = Frame.audio_of_master len in
-    (* Resample if needed. *)
-    let b,start,len =
-      if ratio = 1. then
-        b,start,len
+    let sbuf =
+      if h.params.video then
+        Avi_encoder.encode_frame
+          ~channels ~samplerate:h.params.samplerate ~converter:h.converter
+          frame start len
       else
-        let b =
-          Audio_converter.Samplerate.resample
-                 h.converter ratio b start len
-        in
-        b,0,ABuf.length b.(0)
+        (
+          let start = Frame.audio_of_master start in
+          let b = AFrame.content_of_type ~channels frame start in
+          let len = Frame.audio_of_master len in
+          (* Resample if needed. *)
+          let b,start,len =
+            if ratio = 1. then
+              b,start,len
+            else
+              let b =
+                Audio_converter.Samplerate.resample
+                  h.converter ratio b start len
+              in
+              b,0,ABuf.length b.(0)
+          in
+          let slen = 2 * len * Array.length b in
+          ABuf.to_s16le b start len
+        )
     in
-    let sbuf = ABuf.to_s16le b start len in
     (** Wait for any possible creation.. *)
     begin
       try
         Tutils.mutexify h.create_m (fun () ->
-         match h.encoder with
-           | Some (_,x) ->
-              output_string x sbuf;
-           | None ->
-              raise Not_found) ()
+          match h.encoder with
+          | Some (_,x) ->
+             output_string x sbuf;
+          | None ->
+             raise Not_found) ()
       with
-        | e ->
-           h.log#f 3
-             "Error while writing data to encoding process: %s"
-             (Utils.error_message e) ;
-           if h.params.restart_on_crash then
-             reset_process h
-           else
-             raise e
+      | e ->
+         h.log#f 3
+           "Error while writing data to encoding process: %s"
+           (Printexc.to_string e) ;
+        if h.params.restart_on_crash then
+          reset_process h
+        else
+          raise e
     end;
     Tutils.mutexify h.read_m (fun () ->
       let ret = Buffer.contents h.read in
@@ -241,13 +258,13 @@ let encoder id ext =
     Buffer.reset h.read;
     ret
   in
- 
+  
   (* Create an initial process *)
   start_process handle ;
 
   (* Return the encoding handle *)
   {
-   Encoder. 
+    Encoder. 
     insert_metadata  = insert_metadata handle ;
     (* External encoders do not support 
      * headers for now. They will probably

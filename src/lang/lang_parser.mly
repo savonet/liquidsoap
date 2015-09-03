@@ -1,7 +1,7 @@
 /*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 
 %{
 
-  open Source
   open Lang_values
 
   (** Parsing locations. *)
@@ -126,7 +125,7 @@
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
-      | "source" ->
+      | "source" | "active_source" ->
           (* TODO less confusion in hiding the stream_kind constructed type *)
           (* TODO print position in error message *)
           let audio,video,midi =
@@ -138,7 +137,8 @@
                   List.iter
                     (fun (lbl,_) ->
                       if not (List.mem lbl ["audio";"video";"midi"]) then
-                        raise (Parse_error (curpos (), "Invalid type parameters.")))
+                        raise (Parse_error (curpos (),
+                                            "Invalid type parameters.")))
                     l ;
                   let assoc x =
                     try List.assoc x l with
@@ -147,7 +147,9 @@
                   in
                     assoc "audio", assoc "video", assoc "midi"
           in
-            Lang_values.source_t (Lang_values.frame_kind_t audio video midi)
+            Lang_values.source_t
+              ~active:(name <> "source")
+              (Lang_values.frame_kind_t audio video midi)
       | _ -> raise (Parse_error (curpos (), "Unknown type constructor."))
 
   open Lang_encoders
@@ -164,7 +166,7 @@
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
-%token WAV FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
+%token WAV AVI FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -297,6 +299,7 @@ expr:
   | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
   | GSTREAMER app_opt                { mk_enc (gstreamer ~pos:(curpos ()) $2) }
   | WAV app_opt                      { mk_enc (wav $2) }
+  | AVI app_opt                      { mk_enc (avi $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }
@@ -338,6 +341,7 @@ expr:
 ty:
   | VAR                       { mk_ty $1 [] }
   | VARLPAR ty_args RPAR      { mk_ty $1 $2 }
+  | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some (curpos())) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
   | INT                       { Lang_values.type_of_int $1 }
@@ -392,6 +396,7 @@ cexpr:
   | FDKAAC app_opt                   { mk_enc (fdkaac $2) }
   | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
   | WAV app_opt                      { mk_enc (wav $2) }
+  | AVI app_opt                      { mk_enc (avi $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
   | LPAR RPAR                        { mk Unit }

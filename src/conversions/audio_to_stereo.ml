@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,8 +31,7 @@
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic ~kind source =
-object (self)
-
+object
   inherit Source.operator kind [source] ~name:"audio_to_stereo"
 
   method stype = source#stype
@@ -48,7 +47,7 @@ object (self)
     let layers = source#get frame ; Frame.get_content_layers frame in
     (** Install the final stereo layer, and copy everything to it *)
     let dst = Frame.content_of_type frame start stereo in
-    let rec aux { Frame. content = src ; start = pos ; length = l } =
+    let aux { Frame. content = src ; start = pos ; length = l } =
       if pos >= start then begin
         assert (src.Frame.video = [||] && src.Frame.midi = [||]) ;
         match src.Frame.audio with

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ let create ~wait f x s =
                  log#f 3 "Thread %S terminated." s
              with e ->
                Mutex.lock lock ;
-               let backtrace = Utils.get_backtrace () in
+               let backtrace = Printexc.get_backtrace () in
                begin match e with
                  | Exit ->
                      log#f 3 "Thread %S exited." s
@@ -153,7 +153,7 @@ let create ~wait f x s =
                      log#f 1 "Thread %S failed: %s!" s e
                  | e ->
                      log#f 1 "Thread %S aborts with exception %s!"
-                              s (Utils.error_message e)
+                              s (Printexc.to_string e)
                end ;
                if e <> Exit then
                 begin
@@ -182,6 +182,16 @@ type priority =
 
 let scheduler = Duppy.create ()
 
+let () =
+  let name = "Duppy scheduler shutdown" in
+  let f () =
+    log#f 3 "Shutting down scheduler...";
+    (* TODO: Duppy.stop uses Thread.kill, which is not implemented... *)
+    (* Duppy.stop scheduler; *)
+    log#f 3 "Scheduler shut down."
+  in
+  Shutdown.duppy_atom := Some (Dtools.Init.at_stop ~name f)
+
 let scheduler_log n =
   if scheduler_log#get then
     let log = Log.make [n] in
@@ -198,8 +208,8 @@ let new_queue ?priorities ~name () =
          | Some priorities ->
              Duppy.queue scheduler ~log:qlog ~priorities name
      with e ->
-       log#f 2 "Queue %s crashed with exception %s" name (Utils.error_message e) ;
-       log#f 2 "%s" (Utils.get_backtrace());
+       log#f 2 "Queue %s crashed with exception %s" name (Printexc.to_string e) ;
+       log#f 2 "%s" (Printexc.get_backtrace());
        log#f 1 "PANIC: Liquidsoap has crashed, exiting.." ;
        log#f 1 "Please report at: savonet-users@lists.sf.net" ;
        exit 1
@@ -261,7 +271,7 @@ let start_forwarding () =
          handler  = f }
     in
     let len = 1024 in
-    let buffer = String.create len in
+    let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in
       let rec split acc i =

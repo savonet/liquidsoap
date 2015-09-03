@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@
 open Source
 
 class compand ~kind (source:source) mu =
-object (self)
-  inherit operator ~name:"compand" kind [source] as super
+object
+  inherit operator ~name:"compand" kind [source]
 
   method stype = source#stype
 

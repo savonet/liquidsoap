@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ let decoder ~channels file =
   in
   let close_on_err f x =
     try f x with e ->
-      log#f 4 "Closing on error: %s." (Utils.error_message e);
+      log#f 4 "Closing on error: %s." (Printexc.to_string e);
       close (); raise e
   in
 
@@ -59,7 +59,7 @@ let decoder ~channels file =
 
 let () =
   Decoder.file_decoders#register "MIDI"
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Any number of MIDI channel is acceptable as the decoder
         * silently drops events on higher channels if needed.
         * The number of MIDI channels is chosen at the beginning

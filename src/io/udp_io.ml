@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ object (self)
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-      ~empty_on_abort:false ~bufferize as generated
+      ~empty_on_abort:false ~bufferize
   inherit
     Start_stop.async
       ~source_kind:"udp"
@@ -131,7 +131,7 @@ object (self)
       (* Read data from the network. *)
       let read len =
         wait () ;
-        let msg = String.create len in
+        let msg = Bytes.create len in
         let n,_ = Unix.recvfrom socket msg 0 len [] in
           msg,n
       in
@@ -161,7 +161,7 @@ object (self)
                     self#log#f 2 "Feeding stopped: %s." s
                 | e ->
                     self#log#f 2 "Feeding stopped: %s."
-                      (Utils.error_message e)
+                      (Printexc.to_string e)
               end ;
               if should_stop () then
                 has_stopped ()

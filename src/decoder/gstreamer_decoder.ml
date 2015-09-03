@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 
 (** Decode files and streams using GStreamer. *)
 
-open Dtools
 open Stdlib
 
 module GU = Gstreamer_utils
@@ -41,9 +40,7 @@ type gst =
 (** Generic decoder. *)
 (* TODO: we should share some code with Ogg_decoder... *)
 module Make (Generator : Generator.S_Asio) = struct
-
-  let create_decoder ?(merge_tracks=false) source ~channels mode input =
-
+  let create_decoder ?(merge_tracks=false) _ ~channels mode input =
     GU.init ();
 
     let decode_audio = mode = `Both || mode = `Audio in
@@ -129,7 +126,7 @@ module Make (Generator : Generator.S_Asio) = struct
     in
     Gstreamer.App_src.on_need_data gst.src feed_data;
 
-    let rec decode buffer =
+    let decode buffer =
       if not !started then
         (
           init ~reset:false buffer;
@@ -252,27 +249,30 @@ let get_type ~channels filename =
       0
   in
   let video =
-    let pipeline =
-      Printf.sprintf "%s ! %s ! fakesink" filesrc (GU.Pipeline.decode_video ())
-    in
-    let bin = Gstreamer.Pipeline.parse_launch pipeline in
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
-    let _, state, _ = Gstreamer.Element.get_state bin in
-    ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    if state = Gstreamer.Element.State_paused then
-      (
-        log#f 5 "File %s has video." filename;
-        1
-      )
-    else
-      0
+    try
+      let pipeline =
+        Printf.sprintf "%s ! %s ! fakesink" filesrc (GU.Pipeline.decode_video ())
+      in
+      let bin = Gstreamer.Pipeline.parse_launch pipeline in
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
+      let _, state, _ = Gstreamer.Element.get_state bin in
+      ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
+      if state = Gstreamer.Element.State_paused then
+        (
+          log#f 5 "File %s has video." filename;
+          1
+        )
+      else
+        0
+    with
+    | Gstreamer.Failure -> 0
   in
   { Frame. video; audio; midi = 0 }
 
 let () =
   Decoder.file_decoders#register "GSTREAMER"
     ~sdoc:"Decode a file using GStreamer."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
       if not (Decoder.test_file
                 ~mimes:mime_types#get
                 ~extensions:file_extensions#get

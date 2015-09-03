@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ module Generated = Generated.Make(Generator)
 
 (** Default function to read from a socket. *)
 let default_read socket len =
-  let buf = String.create len in
+  let buf = Bytes.create len in
   let n = Unix.read socket buf 0 len in
   buf, n
 
@@ -40,15 +40,15 @@ class http_input_server ~kind ~dumpfile ~logfile
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
-  inherit Source.source ~name:"harbor" kind as super
+  inherit  Source.source ~name:"harbor" kind as super
   inherit Generated.source
             (Generator.create
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-            ~empty_on_abort:false ~bufferize as generated
+            ~empty_on_abort:false ~bufferize
 
   val mutable relay_socket = None
   (** Function to read on socket. *)
-  val mutable relay_read = (fun socket len -> assert false)
+  val mutable relay_read = (fun _ _ -> assert false)
   (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
   val mutable create_decoder = fun _ -> assert false
@@ -128,7 +128,7 @@ object (self)
                    f ()
                  with
                  | e -> self#log#f 2 "Error while reading from client: \
-                            %s" (Utils.error_message e);
+                            %s" (Printexc.to_string e);
                    self#disconnect ~lock:false;
                    "",0
                end) len;
@@ -167,7 +167,7 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
+            self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
             self#disconnect ~lock:true;
             if debug then raise e
 
@@ -214,7 +214,7 @@ object (self)
           begin try
             dump <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open dump file: %s" (Utils.error_message e)
+            self#log#f 2 "Could not open dump file: %s" (Printexc.to_string e)
           end
       | None -> ()
     end ;
@@ -223,7 +223,7 @@ object (self)
           begin try
             logf <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open log file: %s" (Utils.error_message e)
+            self#log#f 2 "Could not open log file: %s" (Printexc.to_string e)
           end
       | None -> ()
     end ;
@@ -347,7 +347,7 @@ let () =
        let trivially_false = function
          | { Lang.value =
                Lang.Fun (_,_,_,
-                         { Lang_values.term = Lang_values.Bool false }) }
+                         { Lang_values.term = Lang_values.Bool false; _}); _}
              -> true
          | _ -> false
        in
@@ -419,7 +419,7 @@ let () =
        if bufferize >= max then
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
-                   "Maximun buffering inferior to pre-buffered data"));
+                   "Maximum buffering inferior to pre-buffered data"));
        let on_connect l =
          let l =
            List.map

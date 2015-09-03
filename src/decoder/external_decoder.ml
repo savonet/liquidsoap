@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 (** Decode files using an external decoder. *)
-
-let log = Dtools.Log.make ["decoder";"external"]
 
 let priority = Tutils.Blocking
 let buf_size = 1024
@@ -115,7 +113,7 @@ let external_input process input =
          (fun inlen ->
            Tutils.mutexify task_m (fun () ->
              if !is_task then
-               let tmpbuf = String.create inlen in
+               let tmpbuf = Bytes.create inlen in
                let read = Unix.read pull_e tmpbuf 0 inlen in
                tmpbuf, read
               else
@@ -189,7 +187,7 @@ let test_kind f filename =
 
 let register_stdin name sdoc mimes test process =
   Decoder.file_decoders#register name ~sdoc
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        match test_kind test filename with
          | None -> None
          | Some out_kind ->
@@ -252,7 +250,7 @@ let external_input_oblivious process filename prebuf =
   in
   let read len = 
     if not !process_done then
-      let ret = String.create len in
+      let ret = Bytes.create len in
       let read = Unix.read pull_e ret 0 len in
       if read = 0 then close () ; 
       ret,read
@@ -277,7 +275,7 @@ let external_input_oblivious process filename prebuf =
          done
        with
          | e ->
-             log#f 4 "Decoding %s ended: %s." process (Utils.error_message e) ;
+             log#f 4 "Decoding %s ended: %s." process (Printexc.to_string e) ;
              close ()
        end ;
      Generator.fill gen frame ;
@@ -292,7 +290,7 @@ let external_input_oblivious process filename prebuf =
 
 let register_oblivious name sdoc test process prebuf =
   Decoder.file_decoders#register name ~sdoc
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        match test_kind test filename with
          | None -> None
          | Some out_kind ->

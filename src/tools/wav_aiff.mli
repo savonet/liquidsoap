@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,22 +52,6 @@ val read_header : 'a read_ops -> 'a -> 'a t
 
 val in_chan_read_header : in_channel -> in_channel t
 (** Read data from an input channel. *)
-
-val sample : 'a t -> string -> int -> int -> int
-(** [sample w buf pos len] reads up to [len] characters from
-   the given wav [w], storing them in string [buf], starting at
-   character number [pos].
-   It returns the actual number of characters read, between 0 and
-   [len] (inclusive).
-   A return value of 0 means that the end of file was reached.
-   A return value between 0 and [len] exclusive means that
-   not all requested [len] characters were read, either because
-   no more characters were available at that time, or because
-   the implementation found it convenient to do a partial read;
-   [sample] must be called again to read the remaining characters,
-   if desired.
-   Exception [Invalid_argument "input"] is raised if [pos] and [len]
-   do not designate a valid substring of [buf]. *)
 
 val info : 'a t -> string
 (** [info w] returns a string containing some informations on wav [w] *)

@@ -11,5 +11,5 @@ on_shutdown({ print("TEST PASSED") })
 
 p = input.http("http://localhost:8000/nonexistent")
 o = output.icecast(%wav,fallible=true,host="nonexistent",
-                    mount="test",p)
+                    mount="test",on_stop=shutdown,p)
 

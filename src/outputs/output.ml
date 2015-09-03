@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -174,7 +174,7 @@ object (self)
         source#get memo
       done ;
       List.iter
-        (fun (i,m) -> self#add_metadata m)
+        (fun (_,m) -> self#add_metadata m)
         (Frame.get_all_metadata memo) ;
       (* Output that frame *)
       self#output_send memo ;

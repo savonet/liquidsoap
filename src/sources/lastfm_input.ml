@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,23 +20,22 @@
 
  *****************************************************************************)
 
-open Lastfm_generic
-
 class lastfm ~kind ~autostart ~poll_delay ~track_on_meta 
              ~bufferize ~timeout ~bind_address ~user ~password 
-             ~debug ~max ~user_agent uri =
+             ~debug ~on_connect ~on_disconnect ~max ~user_agent uri =
  let playlist_mode = Http_source.First in
  let bufferize_time = Frame.master_of_seconds bufferize in
 object (self)
   inherit Http_source.http ~kind ~playlist_mode ~poll_delay 
                            ~autostart ~bind_address ~bufferize 
                            ~max ~track_on_meta ~timeout 
-                           ~debug ~user_agent uri as http
+                           ~debug ~on_connect ~on_disconnect 
+                           ~user_agent uri as http
 
   val mutable session = None
 
   (* Called when there's no decoding process, in order to create one. *)
-  method connect should_stop url =
+  method connect should_stop _ =
     (* Do nothing is the buffer is
      * still greater than bufferize.
      * This is not an active wait because 
@@ -52,7 +51,7 @@ object (self)
         Liqfm.Radio.parse uri
        with
          | Liqfm.Radio.Error (Liqfm.Radio.Auth _) ->
-            let subst x =
+            let subst _ =
               Printf.sprintf "lastfm://%s:%s@" user password
             in
             let uri = Pcre.substitute ~pat:"lastfm://" ~subst uri
@@ -81,7 +80,7 @@ object (self)
       in
       let (m,uri) =
         match tracks with
-          | (m,uri) :: l -> (m,uri)
+          | (m,uri) :: _ -> (m,uri)
           | _ -> Liqfm.Radio.clear id ; 
 	         raise (Liqfm.Radio.Error Liqfm.Radio.Empty)
       in
@@ -95,7 +94,7 @@ object (self)
            self#log#f 4
              "Could not get file from lastfm: %s"
              (Liqfm.Radio.string_of_error e)
-       | e -> self#log#f 4 "Lastfm connection failed: %s" (Utils.error_message e)
+       | e -> self#log#f 4 "Lastfm connection failed: %s" (Printexc.to_string e)
 
   (* TODO abort streaming on #abort_track,
    *   setting relaying <- false is too radical, it would completely
@@ -145,6 +144,15 @@ let () =
         Some "Polling delay." ;
         "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
         Some "Treat new metadata as new track." ;
+        "on_connect",
+        Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+        Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
+        Some "Function to execute when a source is connected. \
+              Its receives the list of headers, of the form: \
+              (<label>,<value>). All labels are lowercase.";
+        "on_disconnect",Lang.fun_t [] Lang.unit_t,
+        Some (Lang.val_cst_fun [] Lang.unit),
+        Some "Function to excecute when a source is disconnected";
         "debug", Lang.bool_t, Some (Lang.bool false),
         Some "Run in debugging mode by not catching some exceptions." ;
         "max", Lang.float_t, Some (Lang.float 25.),
@@ -172,9 +180,25 @@ let () =
          in
          let user_agent = Lang.to_string (List.assoc "user_agent" p) in
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
-	 let timeout = Lang.to_float (List.assoc "timeout" p) in
+         let timeout = Lang.to_float (List.assoc "timeout" p) in
          let poll_delay =  Lang.to_float (List.assoc "poll_delay" p) in
          let max = Lang.to_float (List.assoc "max" p) in
+         let on_connect l =
+           let l =
+             List.map
+              (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+              l
+           in
+           let arg =
+             Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
+           in
+           ignore
+             (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+         in
+         let on_disconnect () =
+           ignore
+             (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+         in
          let user = Lang.to_string (List.assoc "user" p) in
          let password = Lang.to_string (List.assoc "password" p) in
          if bufferize > max then
@@ -183,4 +207,5 @@ let () =
                      "Maximun buffering inferior to pre-buffered data"));
            ((new lastfm ~kind ~autostart ~poll_delay ~bufferize
                         ~track_on_meta ~bind_address ~timeout ~max ~debug 
-                        ~user_agent ~user ~password uri):>Source.source))
+                        ~user_agent ~on_connect ~on_disconnect
+                        ~user ~password uri):>Source.source))

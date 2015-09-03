@@ -46,3 +46,14 @@ If you use an external encoder with the @output.icecast@ operator,
 you should also use the following options of @output.icecast@:
 * @icy_metadata@: send new metadata as ICY update. This is the case for headerless formats, such as MP3 or AAC, and it appears to work also for ogg/vorbis streams.
 * @format@: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of "application/ogg", "audio/ogg" or "video/ogg" and for mp3 data it is "audio/mpeg".
+
+h3. Video support
+
+Videos can also be encoded by programs able to read files in avi format from
+standard input. To use it, the flag @video=true@ of @%external@ should be
+used. For instance, a compresed avi file can be generated with @ffmpeg@ using
+%%
+output.file(
+  %external(process="ffmpeg -i pipe:0 -f avi pipe:1",video=true),
+  "/tmp/test.avi", s)
+%%

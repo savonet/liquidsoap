@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -103,4 +103,4 @@ let () =
       ~descr:"Dynamically change the underlying source."
       ~category:Lang.TrackProcessing
       ~flags:[Lang.Experimental]
-      (fun p kind -> new dyn kind (List.assoc "" p))
+      (fun p kind -> new dyn ~kind (List.assoc "" p))

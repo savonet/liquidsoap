@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -231,7 +231,7 @@ let get_file_decoder ~metadata filename kind =
              | e ->
                  log#f 4
                    "Decoder %S failed on %S: %s!"
-                   name filename (Utils.error_message e) ;
+                   name filename (Printexc.to_string e) ;
                  None
          with
            | Some f ->
@@ -263,7 +263,7 @@ let get_image_file_decoder filename =
           | e ->
             log#f 4
               "Decoder %S failed on %S: %s!"
-              name filename (Utils.error_message e);
+              name filename (Printexc.to_string e);
             None
         with
         | Some img ->
@@ -277,7 +277,7 @@ let get_image_file_decoder filename =
   with
   | Pervasives.Exit -> !ans
 
-exception Exit of stream_decoder
+exception Exit_decoder of stream_decoder
 
 let get_stream_decoder mime kind =
   try
@@ -287,13 +287,13 @@ let get_stream_decoder mime kind =
          match try decoder mime kind with _ -> None with
            | Some f ->
                log#f 3 "Method %S accepted %S." name mime ;
-               raise (Exit f)
+               raise (Exit_decoder f)
            | None -> ()) (get_decoders conf_stream_decoders
                                        stream_decoders);
     log#f 3 "Unable to decode stream of type %S!" mime ;
     None
   with
-    | Exit f -> Some f
+    | Exit_decoder f -> Some f
 
 (** {1 Helpers for defining decoders} *)
 
@@ -326,7 +326,7 @@ struct
     let proc_bytes = ref 0 in
     let read len =
       try
-        let s = String.create len in
+        let s = Bytes.create len in
         let i = Unix.read fd s 0 len in
         proc_bytes := !proc_bytes + i;
           s, i
@@ -364,7 +364,7 @@ struct
           done
         with
           | e ->
-             log#f 4 "Decoding %S ended: %s." filename (Utils.error_message e) ;
+             log#f 4 "Decoding %S ended: %s." filename (Printexc.to_string e) ;
              decoding_done := true ;
              if conf_debug#get then raise e
         end ;

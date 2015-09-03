@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ object (self)
   val mutable gen_before = Generator.create ()
   val mutable rms_before = 0.
   val mutable rmsi_before = 0
-  val mutable mem_before = Array.create rms_width 0.
+  val mutable mem_before = Array.make rms_width 0.
   val mutable mem_i = 0
   val mutable before_metadata = None
 
@@ -76,7 +76,7 @@ object (self)
    * pull data from it at a higher rate around track limits. *)
   val mutable source = s
 
-  method private wake_up activator =
+  method private wake_up _ =
     s#get_ready ~dynamic:true [(self:>source)] ;
     source <- s ;
     source#get_ready [(self:>source)] ;
@@ -109,7 +109,9 @@ object (self)
     Clock.unify slave_clock s#clock ;
     Lang.iter_sources
       (fun s -> Clock.unify slave_clock s#clock)
-      transition
+      transition ;
+    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   val mutable master_time = 0
   val mutable last_slave_tick = 0 (* in master time *)
@@ -293,7 +295,7 @@ object (self)
            in
            let metadata = function
              | None ->
-                 Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
+                 Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
              | Some m -> Lang.metadata m
            in
            let f a b =

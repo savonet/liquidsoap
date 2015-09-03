@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ module Meta :
     let export_metadata m =
       let ret = Hashtbl.create 10 in
       let l = conf_export_metadata#get in
-      Hashtbl.iter (fun x y -> if List.mem (String.lowercase x) l then
+      Hashtbl.iter (fun x y -> if List.mem (Utils.StringCompat.lowercase_ascii x) l then
                                Hashtbl.add ret x y) m;
     ret
     let to_metadata m = m
@@ -83,6 +83,20 @@ struct
       "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
       w.samplerate w.channels w.samplesize w.header duration
 
+end
+
+module AVI =
+struct
+  type t =
+    {
+      samplerate : int;
+      channels : int;
+    }
+
+  let to_string w =
+    Printf.sprintf
+      "%%avi(samplerate=%d,channels=%d)"
+      w.samplerate w.channels
 end
 
 module Vorbis =
@@ -352,6 +366,12 @@ struct
        | `Mpeg_2 of mpeg2_aac
     ]
 
+  type bitrate_mode =
+    [
+       | `Constant
+       | `Variable of int
+    ]
+
   type transmux =
     [
        | `Raw
@@ -365,6 +385,7 @@ struct
   type t = {
     afterburner    : bool;
     aot            : aot;
+    bitrate_mode   : bitrate_mode;
     bitrate        : int;
     channels       : int;
     samplerate     : int;
@@ -411,9 +432,14 @@ struct
     | _ -> raise Not_found
 
   let to_string m =
-    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,bitrate=%d,channels=%d,\
+    let br_info =
+      match m.bitrate_mode with
+        | `Variable vbr -> Printf.sprintf "vbr=%d" vbr
+        | `Constant     -> Printf.sprintf "bitrate=%d" m.bitrate
+    in 
+    Printf.sprintf "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,\
                              samplerate=%d,sbr_mode=%b,transmux=%S)"
-      m.afterburner (string_of_aot m.aot) m.bitrate m.channels
+      m.afterburner (string_of_aot m.aot) br_info m.channels
       m.samplerate m.sbr_mode (string_of_transmux m.transmux)
 end
 
@@ -445,6 +471,7 @@ struct
   type t = {
     channels            : int ;
     samplerate          : int ;
+    video               : bool ;
     header              : bool ;
     restart_on_crash    : bool ;
     restart             : restart_condition ;
@@ -458,12 +485,13 @@ struct
         | Metadata        -> "restart_on_metadata"
         | No_condition    -> ""
     in
-    Printf.sprintf "%%external(channels=%i,samplerate=%i,header=%s,\
-                              restart_on_crash=%s,%s,process=%s)"
+    Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%b,header=%b,\
+                              restart_on_crash=%b,%s,process=%s)"
       e.channels
       e.samplerate
-      (string_of_bool e.header)
-      (string_of_bool e.restart_on_crash)
+      e.video
+      e.header
+      e.restart_on_crash
       (string_of_restart_condition e.restart)
       e.process
 
@@ -672,6 +700,7 @@ end
 
 type format =
   | WAV of WAV.t
+  | AVI of AVI.t
   | Ogg of Ogg.t
   | MP3 of MP3.t
   | Shine of Shine.t
@@ -686,6 +715,9 @@ let kind_of_format = function
   | WAV w ->
       { Frame.audio = w.WAV.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
+  | AVI a ->
+      { Frame.audio = a.AVI.channels ;
+        Frame.video = 1 ; Frame.midi = 0 }
   | MP3 m ->
       { Frame.audio = if m.MP3.stereo then 2 else 1 ;
         Frame.video = 0 ; Frame.midi = 0 }
@@ -707,24 +739,24 @@ let kind_of_format = function
   | Ogg l ->
       List.fold_left
         (fun k -> function
-           | Ogg.Vorbis { Vorbis.channels = n } ->
+           | Ogg.Vorbis { Vorbis.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
-           | Ogg.Opus { Opus.channels = n } ->
+           | Ogg.Opus { Opus.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
-           | Ogg.Flac { Flac.channels = n } ->
+           | Ogg.Flac { Flac.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
                { k with Frame.video = k.Frame.video+1 }
            | Ogg.Dirac _ ->
                { k with Frame.video = k.Frame.video+1 }
-           | Ogg.Speex { Speex.stereo = stereo } ->
+           | Ogg.Speex { Speex.stereo = stereo; _} ->
                let n = if stereo then 2 else 1 in
                { k with Frame.audio = k.Frame.audio+n })
         { Frame.audio = 0 ; Frame.video = 0 ; Frame.midi = 0 }
         l
   | External e ->
       { Frame.audio = e.External.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
+        Frame.video = if e.External.video then 1 else 0 ; Frame.midi = 0 }
   | GStreamer e ->
     { Frame.audio = GStreamer.audio_channels e;
       Frame.video = GStreamer.video_channels e;
@@ -738,6 +770,7 @@ let kind_of_format f =
 
 let string_of_format = function
   | WAV w -> WAV.to_string w
+  | AVI w -> AVI.to_string w
   | Ogg w -> Ogg.to_string w
   | MP3 w -> MP3.to_string w
   | Shine w -> Shine.to_string w

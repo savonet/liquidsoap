@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -265,7 +265,9 @@ let expand tokenizer =
 let parse_comments tokenizer =
   let documented_def doc =
     let doc =
-      List.map (Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "")) doc
+      List.map
+        (fun x -> Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
+        doc
     in
     let rec parse_doc (main,special,params) = function
       | [] -> (main,special,params)
@@ -389,7 +391,7 @@ let expand_define tokenizer =
       (
         match tokenizer lexbuf with
         | Lang_parser.VAR x ->
-          if x <> String.uppercase x then raise Parsing.Parse_error;
+          if x <> Utils.StringCompat.uppercase_ascii x then raise Parsing.Parse_error;
           (
             match tokenizer lexbuf with
             | Lang_parser.INT _

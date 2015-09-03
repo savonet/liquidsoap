@@ -18,7 +18,7 @@ let rec parse stream =
   | Genlex.Ident "false" -> `Bool false
   | Genlex.Ident "null" -> `Null
   | Genlex.String s | Genlex.Ident s -> `String s
-  | Genlex.Char c -> `String (String.make 1 c)
+  | Genlex.Char c -> `String (Bytes.make 1 c)
   | Genlex.Float f -> `Float f
   | Genlex.Int n -> `Int n
   | Genlex.Kwd "{" -> `Assoc (parse_assoc stream)

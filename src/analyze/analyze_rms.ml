@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 class rms ~kind ~window_length ~update source =
-object (self)
+object
   inherit Source.operator ~name:"rms" kind [source]
 
   method stype = source#stype
@@ -29,7 +29,7 @@ object (self)
   method abort_track = source#abort_track
   method remaining = source#remaining
 
-  val window = Array.create window_length 0.
+  val window = Array.make window_length 0.
   val mutable pos = 0
   val mutable rms = 0.
 

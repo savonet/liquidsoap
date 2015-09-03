@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ object (self)
   val mutable now = Int64.zero
 
   method output_send frame =
-    let bin, audio_src, video_src = self#get_gst in
+    let _, audio_src, video_src = self#get_gst in
     if not (Frame.is_partial frame) then
       let _, content = Frame.content frame 0 in
       let len = Lazy.force Frame.size in
@@ -141,9 +141,9 @@ object (self)
           let pcm = content.Frame.audio in
           assert (Array.length pcm = channels);
           let len = Frame.audio_of_master len in
-          let data = String.create (2*channels*len) in
+          let data = Bytes.create (2*channels*len) in
           Audio.S16LE.of_audio pcm 0 data 0 len;
-          let gstbuf = Gstreamer.Buffer.of_string data 0 (String.length data) in
+          let gstbuf = Gstreamer.Buffer.of_string data 0 (Bytes.length data) in
           Gstreamer.Buffer.set_presentation_time gstbuf now;
           Gstreamer.Buffer.set_duration gstbuf nanolen;
           Gstreamer.App_src.push_buffer (Utils.get_some audio_src) gstbuf
@@ -305,8 +305,8 @@ object (self)
   val audio_buffer_condition = Condition.create ()
   val video_buffer_condition = Condition.create ()
 
-  method feed_audio n =
-    let bin, audio_src, video_src = self#get_gst in
+  method feed_audio _ =
+    let _, audio_src, _ = self#get_gst in
     Tutils.mutexify audio_buffer_mutex (fun () ->
       while Queue.is_empty audio_buffer do
         Condition.wait audio_buffer_condition audio_buffer_mutex
@@ -320,8 +320,8 @@ object (self)
       Gstreamer.App_src.push_buffer audio_src gstbuf;
       audio_now <- Int64.add audio_now nanolen) ()
 
-  method feed_video n =
-    let bin, audio_src, video_src = self#get_gst in
+  method feed_video _ =
+    let _, _, video_src = self#get_gst in
     Tutils.mutexify video_buffer_mutex (fun () ->
       while Queue.is_empty video_buffer do
         Condition.wait video_buffer_condition video_buffer_mutex
@@ -345,7 +345,7 @@ object (self)
       let pcm = content.Frame.audio in
       assert (Array.length pcm = channels);
       let len = Frame.audio_of_master len in
-      let data = String.create (2*channels*len) in
+      let data = Bytes.create (2*channels*len) in
       Audio.S16LE.of_audio pcm 0 data 0 len;
       Tutils.mutexify audio_buffer_mutex (fun () ->
         Queue.push data audio_buffer;
@@ -464,7 +464,7 @@ object (self)
           (string_of_state_change (Element.set_state self#get_device.bin s) )
       with
         | e ->
-            Printf.sprintf "Error while changing state: %s\n" (Utils.error_message e)
+            Printf.sprintf "Error while changing state: %s\n" (Printexc.to_string e)
     in
     self#register_command
       "pause" ~descr:"Set gstreamer pipeline state to paused" (change_state Element.State_paused);

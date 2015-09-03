@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -128,7 +128,7 @@ let create_decoder input =
             processed := !processed + Array.length data.(0)
           with _ -> () end;
           drop pos ;
-          let content,length =
+          let content =
             resampler ~audio_src_rate:(float sample_freq) data
           in
             (* TODO assert (Array.length content.(0) = length) ? *)
@@ -160,7 +160,7 @@ let get_type filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
   let dec = Faad.create () in
   let aacbuflen = 1024 in
-  let aacbuf = String.create aacbuflen in
+  let aacbuf = Bytes.create aacbuflen in
     Tutils.finalize ~k:(fun () -> Unix.close fd)
       (fun () ->
          let _,rate,channels =
@@ -179,11 +179,12 @@ let () =
   "AAC"
   ~sdoc:"Use libfaad to decode AAC if MIME type or file extension \
          is appropriate."
-  (fun ~metadata filename kind ->
+  (fun ~metadata:_ filename kind ->
   (* Before doing anything, check that we are allowed to produce
    * audio, and don't have to produce midi or video. Only then
-   * check that the file seems relevant for MP3 decoding. *)
-  if kind.Frame.audio = Frame.Zero ||
+   * check that the file seems relevant for AAC decoding. *)
+  let content = get_type filename in
+  if content.Frame.audio = 0 ||
      not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
           Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
      not (Decoder.test_file ~mimes:aac_mime_types#get
@@ -194,7 +195,7 @@ let () =
   else
     if kind.Frame.audio = Frame.Variable ||
        kind.Frame.audio = Frame.Succ Frame.Variable ||
-       Frame.type_has_kind (get_type filename) kind
+       Frame.type_has_kind content kind
     then
       Some (fun () -> create_file_decoder filename kind)
     else
@@ -241,7 +242,7 @@ struct
     let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in
     let track = Faad.Mp4.find_aac_track mp4 in
-    let sample_freq, chans = Faad.Mp4.init mp4 dec track in
+    let sample_freq, _ = Faad.Mp4.init mp4 dec track in
     let nb_samples = Faad.Mp4.samples mp4 track in
     let sample = ref 0 in
     let pos = ref 0 in
@@ -253,7 +254,7 @@ struct
       begin try
         pos := !pos + (Array.length data.(0))
       with _ -> () end;
-      let content,length =
+      let content =
         resampler ~audio_src_rate:(float sample_freq) data
       in
       Generator.set_mode gen `Audio;
@@ -315,11 +316,13 @@ let () =
   "MP4"
   ~sdoc:"Use libfaad to decode MP4 if MIME type or file extension \
          is appropriate."
-  (fun ~metadata filename kind ->
+  (fun ~metadata:_ filename kind ->
   (* Before doing anything, check that we are allowed to produce
    * audio, and don't have to produce midi or video. Only then
-   * check that the file seems relevant for MP3 decoding. *)
-  if kind.Frame.audio = Frame.Zero ||
+   * check that the file seems relevant for MP4 decoding. *)
+  let content = get_type filename in
+  if content.Frame.audio = 0 ||
+     kind.Frame.audio = Frame.Zero ||
      not (Frame.mul_sub_mul Frame.Zero kind.Frame.video &&
           Frame.mul_sub_mul Frame.Zero kind.Frame.midi) ||
      not (Decoder.test_file ~mimes:mp4_mime_types#get
@@ -330,7 +333,7 @@ let () =
   else
     if kind.Frame.audio = Frame.Variable ||
        kind.Frame.audio = Frame.Succ Frame.Variable ||
-       Frame.type_has_kind (get_type filename) kind
+       Frame.type_has_kind content kind
     then
       Some (fun () -> create_file_decoder filename kind)
     else

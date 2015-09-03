@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ class blank ~kind duration =
   (* The kind should not allow a variable number of channels,
    * so it can directly be seen as a type. *)
   let content_type = Frame.type_of_kind kind in
-object (self)
+object
   inherit source ~name:"blank" kind
   method stype = Infallible
   method is_ready = true
@@ -80,16 +80,16 @@ let () =
          ((new blank ~kind d):>source))
 
 class empty ~kind =
-object (self)
+object
   inherit source ~name:"empty" kind
   method stype = Fallible
   method is_ready = false
   method remaining = 0
   method abort_track = ()
-  method get_frame ab = assert false
+  method get_frame _ = assert false
 end
 
-let empty kind = ((new empty kind):>source)
+let empty kind = ((new empty ~kind):>source)
 
 let () =
   let audio = Lang.univ_t 1 in

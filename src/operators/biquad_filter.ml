@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@ open Source
 class biquad ~kind (source:source) filter_type freq fparam db_gain =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let samplerate = Frame.audio_of_seconds 1. in
-object (self)
-  inherit operator ~name:"biquad_filter" kind [source] as super
+object
+  inherit operator ~name:"biquad_filter" kind [source]
 
   val effect = new Audio.Effect.biquad_filter channels samplerate filter_type ~gain:db_gain freq fparam
 

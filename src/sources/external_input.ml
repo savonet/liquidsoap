@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,14 +58,14 @@ object (self)
       let in_e = Unix.open_process_in command in
       in_e,Unix.descr_of_in_channel in_e
     in
-    let (in_e,in_d) as x = create () in
-    let tmpbuf = String.create 1024 in
+    let (_,in_d) as x = create () in
+    let tmpbuf = Bytes.create 1024 in
     let rec process ((in_e,in_d) as x) l =
       let get_data () =
         let ret = input in_e tmpbuf 0 1024 in
           if ret = 0 then raise (Finished ("Process exited.",restart));
-          let data,len = converter (String.sub tmpbuf 0 ret) in
-          Generator.put_audio abg data 0 len
+          let data = converter (String.sub tmpbuf 0 ret) in
+          Generator.put_audio abg data 0 (Array.length data.(0))
       in
       let do_restart s restart f =
         self#log#f 2 "%s" s;
@@ -78,7 +78,7 @@ object (self)
         if restart then
          begin
           self#log#f 2 "Restarting process.";
-          let ((in_e,in_d) as x) = create () in
+          let ((_,in_d) as x) = create () in
           [{ Duppy.Task.
               priority = priority;
               events   = [`Read in_d];
@@ -117,7 +117,7 @@ object (self)
        | e ->
           do_restart
             (Printf.sprintf "Process exited with error: %s"
-                (Utils.error_message e)) restart_on_error
+                (Printexc.to_string e)) restart_on_error
                 (fun () -> raise e)
     in
     let task =

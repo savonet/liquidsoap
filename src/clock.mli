@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -85,4 +85,5 @@ val create_unknown : sources:(Source.active_source list) ->
                      clock_variable
 val create_known : clock -> clock_variable
 val unify : clock_variable -> clock_variable -> unit
+val forget : clock_variable -> clock_variable -> unit
 val get : clock_variable -> Source.clock

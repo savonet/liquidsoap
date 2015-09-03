@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ object (self)
                       Lang.metadata m
                   | None ->
                       false,
-                      Lang.list (Lang.product_t Lang.string_t Lang.string_t) []
+                      Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
               in
                 if inhibit then begin
                   self#log#f 4 "Prepending disabled from metadata \

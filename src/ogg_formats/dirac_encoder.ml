@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 module Img = Image.Generic
 module P = Img.Pixel
 
-let create_encoder ~metadata dirac =
+let create_encoder ~metadata:_ dirac =
   let width = Lazy.force dirac.Encoder.Dirac.width in
   let height = Lazy.force dirac.Encoder.Dirac.height in
   let aspect_numerator = dirac.Encoder.Dirac.aspect_numerator in
@@ -86,7 +86,7 @@ let create_encoder ~metadata dirac =
       (P.RGB P.RGBA32)
       (P.YUV P.YUVJ420)
   in
-  let stream_start os = [] in
+  let stream_start _ = [] in
   let data_encoder data os add_page = 
     let b,ofs,len = data.Ogg_muxer.data,data.Ogg_muxer.offset,
                     data.Ogg_muxer.length 

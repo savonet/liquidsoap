@@ -18,9 +18,7 @@ include $(top_srcdir)/Makefile.defs
 # $1: name of the make variable where the file should go if compiled builtin.
 # $2: the $W_FOO variable
 # $3: path to the file
-# $4: type of source: empty for .ml sources,
-#                     c_ for c sources and camlp4_ for camlp4 sources.
-#                     (Camlp4 sources are not supported yet..)
+# $4: type of source: empty for .ml sources and c_ for c sources.
 #
 # For now, the old style Makefile has been converted to
 # this new style by replacing $(if $(W_FOO),..) by
@@ -38,17 +36,6 @@ liquidsoap_c_files = tools/locale_c.c
 
 # Add conditional files..
 $(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)
-
-# Camlp4 compilation works as follow:
-# both .camlp4 and .ml files are present in the
-# source tree.
-# If camlp4o is detected, then a .camlp4.ml target
-# is executed for each .camlp4. This target creates a .camlp4.ml
-# file that is not used and regenerate the .ml files used for compilation.
-liquidsoap_camlp4_files = \
-	$(if $(W_DUPPY_SYNTAX),outputs/harbor_output.camlp4) \
-	$(if $(W_DUPPY_SYNTAX),tools/server.camlp4) \
-	$(if $(W_DUPPY_SYNTAX),tools/harbor.camlp4)
 
 # This variable contains only conditional files..
 ogg_demuxer =
@@ -105,10 +92,13 @@ playlists = \
 $(call conditional_compilation,playlists,$(W_XMLPLAYLIST),playlists/playlist_xml.ml)
 
 protocols = \
-	protocols/say.ml \
 	protocols/annotate.ml \
 	protocols/mpd.ml \
 	protocols/extproto.ml
+
+ifneq ($(OS_TYPE), "Win32")
+protocols += protocols/say.ml
+endif
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
@@ -129,7 +119,7 @@ operators = \
 	operators/switch.ml operators/fade.ml operators/add.ml \
 	operators/sequence.ml operators/cross.ml operators/smartcross.ml \
 	operators/compress_exp.ml operators/pitch.ml \
-	operators/fir_filter.ml operators/iir_filter.ml \
+	operators/fir_filter.ml operators/iir_filter.ml operators/filter_rc.ml \
 	operators/biquad_filter.ml operators/cuepoint.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
 	operators/compress.ml operators/clip.ml operators/filter.ml \
@@ -138,7 +128,7 @@ operators = \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
 	operators/noblank.ml operators/compand.ml \
 	operators/mixing_table.ml operators/prepend.ml \
-	operators/midi_routing.ml \
+	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \
 	operators/chord.ml operators/video_text.ml operators/rms_op.ml
 
@@ -155,6 +145,7 @@ analyze = analyze/analyze_rms.ml
 
 encoders = \
 	encoder/wav_encoder.ml \
+	encoder/avi_encoder.ml \
 	encoder/lame_encoder.ml \
 	encoder/fdkaac_encoder.ml \
 	encoder/aacplus_encoder.ml \
@@ -186,7 +177,7 @@ $(call conditional_compilation,io,$(W_OSS),io/oss_io.ml)
 $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 
-tools = tools/stdlib.ml tools/doc.ml tools/plug.ml tools/utils.ml \
+tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
@@ -220,7 +211,8 @@ $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)
 $(call conditional_compilation,builtins,$(W_CRY),lang/builtins_cry.ml)
 
-liquidsoap_sources= $(tools) SVN.ml converters/audio_converter.ml $(stream) \
+liquidsoap_sources= shutdown.ml \
+	$(tools) SVN.ml converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml encoder/encoder.ml \
@@ -278,7 +270,7 @@ liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \
 	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
-	tools/icecast_utils.ml \
+	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \
 	$(encoders) $(ogg_muxer) $(io) \
@@ -307,7 +299,7 @@ liquidsoap_doc_sources= \
 	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
 	tools/server.ml tools/tutils.ml playlist_parser.ml \
-	tools/doc.ml tools/iff.ml tools/ioRing.ml \
+	tools/doc.ml tools/ioRing.ml \
 	tools/dyntools.ml tools/JSON.ml \
 	converters/audio_converter.ml converters/video_converter.ml \
 	ogg_formats/ogg_muxer.ml \
@@ -320,7 +312,7 @@ liquidsoap_doc_sources= \
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
 SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
 	if test -e ../.git && which git > /dev/null ; then \
-	  url=`git remote -v | grep fetch | sed 's/origin[ \t]*//' | sed 's/[ \t]*(.*)//'` ; \
+	  url=`git remote -v | grep origin | grep fetch | sed 's/origin//' | sed 's/ (.*)//' | tr -d '\t'` ; \
 	  head=`git rev-parse HEAD` ; \
           date=`date +%Y%m%d:%H%M%S`; \
 	  echo "let rev = \" ($$url@$$head:$$date)\"" > SVN.ml ; \

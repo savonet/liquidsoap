@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,8 +52,9 @@ let all_chans = 16
 
 (* chan = None means synth all channels *)
 class dssi ~kind ?chan plugin descr outputs params source =
-object (self)
-  inherit operator ~name:"dssi" kind [source] as super
+object
+
+  inherit operator ~name:"dssi" kind [source]
 
   method stype = source#stype
 

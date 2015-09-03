@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ let format = Wav.format fd
 let abg = Mixer.Generator.create ()
 let ab = Mixer.Buffer.create ()
 let buflen = Mixer.Buffer.size
-let buf = String.make buflen 'x'
+let buf = Bytes.make buflen 'x'
 let running = ref true
 
 let () =

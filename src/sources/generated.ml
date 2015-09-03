@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ end
  * The generator shouldn't be fed anymore. *)
 class consumer ~kind generator =
 object
-  inherit Source.source ~name:"buffer" kind
+  inherit  Source.source ~name:"buffer" kind
   inherit source generator ~bufferize:0. ~empty_on_abort:true
   method stype = Source.Fallible
 end

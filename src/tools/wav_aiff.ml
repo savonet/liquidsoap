@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -65,15 +65,13 @@ let () = Utils.register_error_translator error_translator
 
 (* open file and verify it has the right format *)
 
-let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_WAV" <> None
-
 (** Round to the lowest even integer above. *)
 let even_ceil n = ((n+1)/2)*2
 
 let read_header read_ops ic =
   let really_input = read_ops.really_input in
   let read_string ic n =
-    let ans = String.create n in
+    let ans = Bytes.create n in
     really_input ic ans 0 n;
     ans
   in
@@ -116,9 +114,7 @@ let read_header read_ops ic =
     let rec seek () =
       if read_string ic 4 <> name then
         begin
-          let n = read_int ic in
-          (* In aiff, there is a 1 byte padding so that length is even *)
-          let n = if format = `Aiff then even_ceil n else n in
+          let n = even_ceil (read_int ic) in
           read_ops.seek ic n;
           seek ()
         end
@@ -212,20 +208,13 @@ let fopen file =
     close_in ic ;
     raise e
 
-let skip_header f c = read_header f c
-
-let sample w buf pos len=
-  match w.read_ops.input w.ic buf 0 len with
-  | 0 -> raise End_of_file
-  | n -> n
-
 let info w =
   Printf.sprintf
-    "channels_number = %d
-     sample_rate = %d
-     bytes_per_second = %d
-     bytes_per_sample = %d
-     bits_per_sample = %d
+    "channels_number = %d \n\
+     sample_rate = %d \n\
+     bytes_per_second = %d \n\
+     bytes_per_sample = %d \n\
+     bits_per_sample = %d \n\
      length_of_data_to_follow = %d"
     w.channels_number
     w.sample_rate
@@ -238,15 +227,9 @@ let channels w = w.channels_number
 let sample_rate w = w.sample_rate
 let sample_size w = w.bits_per_sample
 let data_length w = w.length_of_data_to_follow
-(** Length of the data in samples. *)
-let data_samples w = w.length_of_data_to_follow / ((sample_size w / 8) * channels w)
 
 let close w =
   w.read_ops.close w.ic
-
-let data_len file =
-  let stats = Unix.stat file in
-  stats.Unix.st_size - 36
 
 let duration w =
   (float w.length_of_data_to_follow) /. (float w.bytes_per_second)
@@ -254,15 +237,15 @@ let duration w =
 let short_string i =
   let up = i/256 in
   let down = i-256*up in
-  (String.make 1 (char_of_int down))^
-  (String.make 1 (char_of_int up))
+  (Bytes.make 1 (char_of_int down))^
+  (Bytes.make 1 (char_of_int up))
 
 let int_string n =
-  let s = String.create 4 in
-  s.[0] <- char_of_int (n land 0xff) ;
-  s.[1] <- char_of_int ((n land 0xff00) lsr 8) ;
-  s.[2] <- char_of_int ((n land 0xff0000) lsr 16) ;
-  s.[3] <- char_of_int ((n land 0x7f000000) lsr 24) ;
+  let s = Bytes.create 4 in
+  Bytes.set s 0 (char_of_int (n land 0xff)) ;
+  Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8)) ;
+  Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16)) ;
+  Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24)) ;
   s
 
 let wav_header ?len ~channels ~sample_rate ~sample_size () =

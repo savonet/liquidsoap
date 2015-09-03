@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,8 +22,6 @@
  *****************************************************************************)
 
 open Dtools
-
-let log = Dtools.Log.make ["server"]
 
 let conf =
   Conf.void ~p:(Configure.conf#plug "server")
@@ -86,9 +84,6 @@ let conf_telnet_bind_addr =
 let conf_telnet_port =
   Conf.int ~p:(conf_telnet#plug "port") ~d:1234
     "Port on which the telnet server should listen"
-let conf_telnet_revdns =
-  Conf.bool ~p:(conf_telnet#plug "reverse_dns") ~d:true
-    "Perform reverse DNS lookup to get the client's hostname from its IP."
 
 let log = Log.make ["server"]
 
@@ -124,7 +119,7 @@ let register ns kind =
 
 let to_string = String.concat "."
 
-let rec prefix_ns cmd ns = to_string (ns@[cmd])
+let prefix_ns cmd ns = to_string (ns@[cmd])
 
 (* Then add your commands to that namespace *)
 let add ~ns ?usage ~descr cmd handler =
@@ -173,7 +168,7 @@ let usage () =
   let compare (x,_) (y,_) = compare x y in
   let l = List.sort compare l in
     List.fold_left
-      (fun s (k,(h,u,_)) -> s^(Printf.sprintf "\r\n| %s" u))
+      (fun s (_,(_,u,_)) -> s^(Printf.sprintf "\r\n| %s" u))
       "" l
 
 (** {1 Handling of a client} *)
@@ -183,10 +178,10 @@ let () =
   let add = add ~ns:[] in
     add "exit"
       ~descr:"Close current server session."
-      (fun args -> raise Exit) ;
+      (fun _ -> raise Exit) ;
     add "quit"
       ~descr:"Close current server session."
-      (fun args -> raise Exit) ;
+      (fun _ -> raise Exit) ;
     add "help" ~usage:"help [<command>]"
                ~descr:"Get information on available commands."
       (fun args ->
@@ -232,7 +227,7 @@ let exec s =
       | Exit -> raise Exit
       | Not_found -> "ERROR: unknown command, type \"help\" to get a \
                       list of commands."
-      | e -> Printf.sprintf "ERROR: %s" (Utils.error_message e)
+      | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
 
 let handle_client socket ip =
   let on_error e =
@@ -244,10 +239,10 @@ let handle_client socket ip =
                       client %s." ip
         | Duppy.Io.Unix (c,p,m) ->
              log#f 4 "%s"
-                 (Utils.error_message
+                 (Printexc.to_string
                     (Unix.Unix_error (c,p,m)))
         | Duppy.Io.Unknown e ->
-                 log#f 3 "%s" (Utils.error_message e)
+                 log#f 3 "%s" (Printexc.to_string e)
      end;
      Duppy e
   in
@@ -355,7 +350,7 @@ let start_socket () =
           log#f 3 "New client %s." ip;
           handle_client socket ip
       with e ->
-        log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
+        log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
     end ;
     [{ Duppy.Task.
          priority = Tutils.Non_blocking ;
@@ -370,7 +365,7 @@ let start_socket () =
     if Sys.file_exists socket_path then Unix.unlink socket_path ;
     Unix.bind sock bind_addr;
     Unix.listen sock max_conn;
-    ignore (Dtools.Init.at_stop
+    ignore (Shutdown.at_stop
               (fun () ->
                  log#f 3 "Unlink %s" socket_name ;
                  Unix.unlink socket_path)) ;
@@ -389,6 +384,17 @@ let start_telnet () =
   let bind_addr = Unix.ADDR_INET(bind_addr_inet, port) in
   let max_conn = 10 in
   let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  let () =
+    (* The socket has to be closed for restart to work, and this has to be
+       done after duppy has stopped using it. *)
+    Shutdown.at_stop
+      ~name:"Server shutdown"
+      ~depends:[Shutdown.duppy_scheduler ()]
+      (fun () ->
+        log#f 3 "Closing socket.";
+        Unix.close sock
+      )
+  in
   (* Set TCP_NODELAY on the socket *)
   Unix.setsockopt sock Unix.TCP_NODELAY true;
   let rec incoming _ =
@@ -401,7 +407,7 @@ let start_telnet () =
         log#f 3 "New client: %s." ip ;
         handle_client socket ip
       with e ->
-      log#f 2 "Failed to accept new client: %S" (Utils.error_message e)
+      log#f 2 "Failed to accept new client: %S" (Printexc.to_string e)
     end ;
     [{ Duppy.Task.
          priority =Tutils.Non_blocking ;

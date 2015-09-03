@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -78,10 +78,10 @@ let allow_streaming_errors =
 let leave (s:active_source) =
   try s#leave (s:>source) with e ->
     log#f 2 "Error when leaving output %s: %s!"
-      s#id (Utils.error_message e) ;
+      s#id (Printexc.to_string e) ;
     List.iter
       (log#f 3 "%s")
-      (Pcre.split ~pat:"\n" (Utils.get_backtrace ()))
+      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
 
 (** Base clock class. *)
 class clock id =
@@ -126,6 +126,9 @@ object (self)
   method sub_clocks = sub_clocks
   method attach_clock c =
     if not (List.mem c sub_clocks) then sub_clocks <- c::sub_clocks
+  method detach_clock c =
+    assert (List.mem c sub_clocks) ;
+    sub_clocks <- List.filter (fun c' -> c <> c') sub_clocks
 
   val mutable round = 0
 
@@ -158,10 +161,10 @@ object (self)
                | exn ->
                    log#f 2
                      "Source %s failed while streaming: %s!"
-                     s#id (Utils.error_message exn) ;
+                     s#id (Printexc.to_string exn) ;
                    List.iter
                      (log#f 3 "%s")
-                     (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                     (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                    leave s ;
                    s::e,a)
           ([],[])
@@ -218,10 +221,10 @@ object (self)
            try s#get_ready [(s:>source)] ; `Woken_up s with
              | e ->
                  log#f 2 "Error when starting %s: %s!"
-                   s#id (Utils.error_message e) ;
+                   s#id (Printexc.to_string e) ;
                  List.iter
                   (log#f 3 "%s")
-                  (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                  (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                  leave s ;
                  `Error s)
         to_start
@@ -234,10 +237,10 @@ object (self)
                try s#output_get_ready ; `Started s with
                  | e ->
                      log#f 2 "Error when starting output %s: %s!"
-                       s#id (Utils.error_message e) ;
+                       s#id (Printexc.to_string e) ;
                      List.iter
                        (log#f 3 "%s")
-                       (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                      leave s ;
                      `Error s)
         to_start
@@ -401,7 +404,7 @@ end
 
 class self_sync id =
 object
-  inherit wallclock ~sync:true id as super
+  inherit wallclock ~sync:true id
 
   val mutable blocking_sources = 0
   val bs_lock = Mutex.create ()
@@ -474,7 +477,6 @@ end
   * collect. *)
 let after_collect_tasks = ref 1
 let lock = Mutex.create ()
-let cond = Condition.create ()
 
 (** We might not need a default clock, so we use a lazy clock value.
   * We don't use Lazy because we need a thread-safe mechanism. *)

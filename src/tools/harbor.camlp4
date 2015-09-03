@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
  *****************************************************************************)
 
 open Dtools
-open Http_source
 
 let conf_harbor =
   Conf.void ~p:(Configure.conf#plug "harbor")
@@ -57,7 +56,7 @@ let log = Log.make ["harbor"]
 exception Retry
 
 class virtual source ~kind =
-object(self)
+object
   inherit Source.source ~name:"input.harbor" kind
 
   method virtual relay :
@@ -102,7 +101,7 @@ type verb = [
 ]
 
 let verb_of_string s =
-  match (String.uppercase s) with
+  match (Utils.StringCompat.uppercase_ascii s) with
     | "GET"     -> `Get
     | "POST"    -> `Post
     | "PUT"     -> `Put
@@ -112,7 +111,7 @@ let verb_of_string s =
     | _ -> raise Not_found
 
 let verb_or_source_of_string s =
-  match (String.uppercase s) with
+  match (Utils.StringCompat.uppercase_ascii s) with
     | "SOURCE"  -> `Source
     | _         -> verb_of_string s
 
@@ -134,6 +133,14 @@ type protocol = [
   | `Xaudiocast_uri of string
   | `Websocket
 ]
+
+let string_of_protocol = function
+  | `Http_10 -> "HTTP/1.0"
+  | `Http_11 -> "HTTP/1.1"
+  | `Ice_10 -> "ICE/1.0"
+  | `Icy -> "ICY"
+  | `Xaudiocast_uri uri -> Printf.sprintf "X-AUDIOCAST (%s)" uri
+  | `Websocket -> "WEBSOCKET"
 
 type reply = | Close of string | Relay of string * (unit -> unit)
 
@@ -166,7 +173,7 @@ exception Assoc of string
 let assoc_uppercase x y =
   try
     List.iter
-      (fun (l,v) -> if String.uppercase l = x then
+      (fun (l,v) -> if Utils.StringCompat.uppercase_ascii l = x then
                      raise (Assoc v)) y ;
     raise Not_found
   with
@@ -223,7 +230,7 @@ let parse_http_request_line r =
    duppy_return
      (protocol,
       List.nth data 1,
-     (match (String.uppercase (List.nth data 2)) with
+     (match (Utils.StringCompat.uppercase_ascii (List.nth data 2)) with
         | "HTTP/1.0" -> `Http_10
         | "HTTP/1.1" -> `Http_11
         | "ICE/1.0"  -> `Ice_10
@@ -232,7 +239,7 @@ let parse_http_request_line r =
         | _ -> raise Not_found))
   with
     | e ->
-        log#f 4 "Invalid request line %s: %s" r (Utils.error_message e) ;
+        log#f 4 "Invalid request line %s: %s" r (Printexc.to_string e) ;
         reply "HTTP 500 Invalid request\r\n\r\n"
 
 let parse_headers headers =
@@ -245,7 +252,7 @@ let parse_headers headers =
     with
       | Not_found -> l
   in
-  let f x = String.uppercase x in
+  let f x = Utils.StringCompat.uppercase_ascii x in
   let headers = List.fold_right split_header headers [] in
   let display_headers =
     List.filter
@@ -257,7 +264,7 @@ let parse_headers headers =
     display_headers ;
   headers
 
-let auth_check ?args ~login uri headers =
+let auth_check ?args ~login headers =
     (* 401 error model *)
     let http_reply s =
       reply (http_error_page 401
@@ -321,9 +328,9 @@ let auth_check ?args ~login uri headers =
              log#f 4 "Returned 401: bad authentication." ;
              http_reply "No login / password supplied."
 
-let auth_check ?args ~login h uri headers =
+let auth_check ?args ~login h headers =
   duppy_exec
-    auth_check ?args ~login uri headers
+    auth_check ?args ~login headers
   with
     { priority = Tutils.Maybe_blocking ;
       handler  = h }
@@ -343,7 +350,7 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
   duppy_do
     (* ICY and Xaudiocast auth check was done before.. *)
     if not auth then
-       auth_check ~login:s#login h uri headers
+       auth_check ~login:s#login h headers
     else
        duppy_return () ;
     try
@@ -374,7 +381,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
        in
        let read = 
          if chunked then 
-           Some (Http.read_chunked ~timeout:conf_timeout#get)
+           let read =
+             Http.read_chunked ~timeout:conf_timeout#get
+           in
+           Some (fun connection _ -> read connection)
          else
            None
        in
@@ -382,8 +392,10 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
          s#relay ?read stype headers h.Duppy.Monad.Io.socket
        in
        log#f 4 "Adding source on mountpoint %S with type %S." uri stype ;
+       log#f 5 "Relaying %s." (string_of_protocol hprotocol) ;
        let protocol =
          match hprotocol with
+           | `Ice_10
            | `Http_10 -> "HTTP/1.0"
            | `Http_11 -> "HTTP/1.1"
            | _ -> assert false
@@ -406,7 +418,7 @@ let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
           (http_error_page 501 "Not Implemented"
              "This stream's format is not recognized.")
      | e ->
-        log#f 4 "Returned 500 for '%s': %s" uri (Utils.error_message e) ;
+        log#f 4 "Returned 500 for '%s': %s" uri (Printexc.to_string e) ;
         reply
           (http_error_page 500 "Internal Server Error"
               "The server could not handle your request.")
@@ -477,9 +489,10 @@ let handle_websocket_request ~port h mount headers =
             log#f 4 "Request failed: no mountpoint '%s'!" huri;
             reply (websocket_error 1011 "This mountpoint isn't available.")
     in
-    let read socket len =
+    let binary_data = Buffer.create 1024 in
+    let read_socket socket =
       match Websocket.read socket with
-        | `Binary buf -> buf, String.length buf
+        | `Binary buf -> Buffer.add_string binary_data buf
         | `Text s ->
           (
             match extract_packet s with
@@ -500,6 +513,14 @@ let handle_websocket_request ~port h mount headers =
           )
         | `Close _ -> raise Websocket_closed
         | _ -> raise Retry
+    in
+    let read socket len =
+      if Buffer.length binary_data = 0 then
+        read_socket socket;
+      let len = min (Buffer.length binary_data) len in
+      let data = Buffer.sub binary_data 0 len in
+      Utils.buffer_drop binary_data len;
+      data, len
     in
     let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
     relayed "" f
@@ -554,7 +575,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                         "No such mountpoint")
          in
          duppy_do
-           auth_check ~args ~login:s#login h uri headers ;
+           auth_check ~args ~login:s#login h headers ;
            duppy_do
              if not (List.mem (Utils.get_some s#get_mime_type)
                                conf_icy_metadata#get)
@@ -575,7 +596,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                let in_enc =
                 try
                  let enc = 
-                   match String.uppercase (Hashtbl.find args "charset") with
+                   match Utils.StringCompat.uppercase_ascii (Hashtbl.find args "charset") with
                      | "LATIN1" -> "ISO-8859-1"
                      | s        -> s
                  in
@@ -600,7 +621,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
                s#insert_metadata args ;
                reply
                  (Printf.sprintf
-                   "HTTP/1.0 200 OK\r\n\r\n
+                   "HTTP/1.0 200 OK\r\n\r\n\
                     Updated metadatas for mount %s"
                     mount)
              end
@@ -665,7 +686,7 @@ let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
               handler  = h }
     | e ->
        log#f 4 "HTTP %s request on uri '%s' failed: %s"
-           smethod (Utils.error_message e) uri ;
+           smethod (Printexc.to_string e) uri ;
        ans_500 ()
 
 let handle_client ~port ~icy h =
@@ -755,7 +776,7 @@ let handle_client ~port ~icy h =
           try
            int_of_string (assoc_uppercase "CONTENT-LENGTH" headers)
          with
-           | e -> 0
+           | _ -> 0
         in
         duppy data =
           if len > 0 then
@@ -837,10 +858,10 @@ let open_port ~icy port =
                               with client %s." ip
                 | Duppy.Io.Unix (c,p,m) ->
                      log#f 4 "%s"
-                       (Utils.error_message
+                       (Printexc.to_string
                           (Unix.Unix_error (c,p,m)))
                 | Duppy.Io.Unknown e ->
-                      log#f 4 "%s" (Utils.error_message e)
+                      log#f 4 "%s" (Printexc.to_string e)
              end ;
              (* Sending an HTTP response in case of timeout
               * even though ICY connections are not HTTP.. *)
@@ -887,7 +908,7 @@ let open_port ~icy port =
            | e ->
                log#f 2
                  "Failed to accept new client: %s"
-                 (Utils.error_message e)) ;
+                 (Printexc.to_string e)) ;
         [{ Duppy.Task.
             priority = Tutils.Non_blocking ;
             events = [`Read sock; `Read out_s] ;

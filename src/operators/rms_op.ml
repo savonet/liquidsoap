@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@ open Source
 
 class rms ~kind duration source =
   let channels = (Frame.type_of_kind kind).Frame.audio in
-object (self)
-  inherit operator kind [source] ~name:"rms" as super
+object
+  inherit operator kind [source] ~name:"rms"
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -33,11 +33,11 @@ object (self)
   method abort_track = source#abort_track
 
   (** Sum of squares. *)
-  val sq = Array.create channels 0.
+  val sq = Array.make channels 0.
   (** Duration of the sum of squares in samples. *)
   val mutable sq_dur = 0
   (** Last computed rms. *)
-  val mutable rms = Array.create channels 0.
+  val mutable rms = Array.make channels 0.
 
   val m = Mutex.create ()
 
@@ -98,7 +98,7 @@ let declare suffix format fun_ret_t f_rms =
       let kind = Lang.frame_kind_of_kind_type (Lang.of_source_t t) in
       let s = new rms ~kind duration src in
       if id <> "" then s#set_id id;
-      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun p t -> f_rms s#rms) in
+      let f = Lang.val_fun [] ~ret_t:fun_ret_t (fun _ _ -> f_rms s#rms) in
       Lang.product f (Lang.source (s :> Source.source)))
 
 let () =

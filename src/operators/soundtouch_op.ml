@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2015 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,7 +40,9 @@ object (self)
     Clock.unify
       self#clock
       (Clock.create_unknown ~sources:[] ~sub_clocks:[slave_clock]) ;
-    Clock.unify slave_clock source#clock
+    Clock.unify slave_clock source#clock ;
+    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   method private slave_tick =
     (Clock.get source#clock)#end_tick ;
