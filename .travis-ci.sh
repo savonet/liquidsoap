@@ -11,7 +11,7 @@ cat PACKAGES.default \
     | grep -v ocaml-fdkaac \
     > PACKAGES
 make -j6 bootstrap
-./configure --disable-graphics
+./configure --disable-graphics $CONFIGURE_OPTS
 make
 
 # Configure current Liquidsoap

@@ -59,7 +59,7 @@ struct
       let dst_freq = float samplerate in
       (* Aacplus accepts data of a fixed length.. *)
       let samples = Aacplus.frame_size enc in
-      let data = Audio.create channels samples in
+      let data = Array.init channels (fun _ -> ABuf.create samples) in
       let buf = G.create () in
       let encoded = Buffer.create 1024 in
       let encode frame start len =
@@ -72,15 +72,17 @@ struct
               samplerate_converter (dst_freq /. src_freq)
               b start len
             in
-            b,0,Array.length b.(0)
+            b,0,ABuf.length b.(0)
           else
-            Audio.copy b,start,len
+            Array.map ABuf.copy b,start,len
         in
         G.put buf b start len ;
         while (G.length buf > samples) do
           let l = G.get buf samples in
-          let f (b,o,o',l) = 
-            Audio.blit b o data o' l
+          let f (b,o,o',l) =
+            for i = 0 to channels - 1 do
+              ABuf.blit b.(i) o data.(i) o' l
+            done
           in
           List.iter f l ;
           has_encoded := true;

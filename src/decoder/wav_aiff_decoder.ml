@@ -86,7 +86,7 @@ let create ?header input =
       if bytes=0 then raise End_of_stream ;
       let content = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 (Array.length content.(0))
+        Generator.put_audio gen content 0 (ABuf.length content.(0))
   in
 
   let read_header () =

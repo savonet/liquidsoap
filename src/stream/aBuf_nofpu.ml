@@ -5,17 +5,17 @@ let fsample_max = float sample_max
 type buffer = string
 type t = buffer
 
-let length b = String.length b / sample_bytes
+let length b = Bytes.length b / sample_bytes
 
-let create n = String.create (n*sample_bytes)
+let create n = Bytes.create (n*sample_bytes)
 
-let make n = String.make (n*sample_bytes) '\000'
+let make n = Bytes.make (n*sample_bytes) '\000'
 
 external clear : t -> int -> int -> unit = "caml_nofpu_clear"
 
 let blit s soff d doff len = String.blit s (soff*sample_bytes) d (doff*sample_bytes) (len*sample_bytes)
 
-let copy = String.copy
+let copy = Bytes.copy
 
 external gain : float -> t -> int -> int -> unit = "caml_nofpu_gain"
 

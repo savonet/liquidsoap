@@ -42,4 +42,8 @@ before_install:
   - eval `opam config env`
   - opam install -q -y ocamlfind base-bytes camlp4 pcre camomile syslog magic xmlm ocamlnet yojson inotify
 
+env:
+  - CONFIGURE_OPTS="--disable-fpu"
+  - CONFIGURE_OPTS=""
+
 script: bash -ex .travis-ci.sh
