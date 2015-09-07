@@ -3,7 +3,7 @@ DISTFILES = Makefile $(wildcard *.liq) $(wildcard *.pl)
 top_srcdir = ../..
 include $(top_srcdir)/Makefile.rules
 
-test: threesines
+test: #threesines
 	@for i in $(wildcard *.liq) ; do \
 	  echo -n "$$i... " ; $(top_srcdir)/src/liquidsoap -q ../pervasives.liq - < ./$$i | \
 		tee /dev/null - | head -n 1 ; \
