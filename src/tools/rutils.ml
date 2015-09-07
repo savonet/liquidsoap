@@ -92,7 +92,7 @@ let create_from_iff ~format ~channels ~samplesize =
       | 16 when format = `Aiff -> ABuf.of_s16le
       | _ -> failwith "unsuported sample size"
     in
-    to_audio src 0 sample_len dst 0;
+    to_audio src 0 dst 0 sample_len;
     Audio_converter.Samplerate.resample
       samplerate_converter
       ratio

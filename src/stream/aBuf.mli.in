@@ -27,12 +27,12 @@ val add : t -> int -> t -> int -> int -> unit
 
 val rms : t -> int -> int -> float
 
-val resample : float -> t -> int -> int -> t
+val resample : ?mode:[ `Linear | `Nearest ] -> float -> t -> int -> int -> t
 
 (** Conversion *)
 
 val to_s16le : t array -> int -> int -> string
 
-val of_u8 : string -> int -> int -> buffer array -> int -> unit
+val of_u8 : string -> int -> buffer array -> int -> int -> unit
 
-val of_s16le : string -> int -> int -> buffer array -> int -> unit
+val of_s16le : string -> int -> buffer array -> int -> int -> unit

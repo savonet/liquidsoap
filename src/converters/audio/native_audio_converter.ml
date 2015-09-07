@@ -23,6 +23,6 @@
   (** Native audio converters *)
 
 (* TODO: setting to be able to choose linear resampling. *)
-let samplerate_converter () = ABuf.resample
+let samplerate_converter () = ABuf.resample ?mode:None
 
 let () = Audio_converter.Samplerate.converters#register "native" samplerate_converter

@@ -150,7 +150,7 @@ object (self)
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
-      ABuf.of_s16le s 0 d buf 0;
+      ABuf.of_s16le s 0 buf 0 d;
       AFrame.add_break frame (AFrame.size ())
 
 end
