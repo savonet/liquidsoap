@@ -172,13 +172,16 @@ def fallback.skip(~input,f)
   fallback(track_sensitive=false,transitions=[transition,transition],[input,f])
 end
 
+%ifdef compress
 # Compress and normalize, producing a more uniform and "full" sound.
 # @category Source / Sound Processing
 # @param s The input source.
 def nrj(s)
   compress(threshold=-15.,ratio=3.,gain=3.,normalize(s))
 end
+%endif
 
+%ifdef filter.iif.eq.low
 # Multiband-compression.
 # @category Source / Sound Processing
 # @param s The input source.
@@ -202,6 +205,7 @@ def sky(s)
                  high(s))
       ])
 end
+%endif 
 
 # Simple crossfade.
 # @category Source / Track Processing
@@ -323,6 +327,7 @@ def server.insert_metadata(~id="",s) =
   s
 end
 
+%ifdef rms
 # Register a command that outputs the RMS of the returned source.
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.
@@ -341,6 +346,7 @@ def server.rms(~id="",s) =
                   "rms",rms)
   s
 end
+%endif
 
 # Read some value from standard input (console).
 # @category System
@@ -394,13 +400,14 @@ def get_mime(file) =
   end
 end
 
-
+%ifdef filter
 # Remove low frequencies often produced by microphones.
 # @category Source / Sound Processing
 # @param s The input source.
 def mic_filter(s)
   filter(freq=200.,q=1.,mode="high",s)
 end
+%endif
 
 # Creates a source that fails to produce anything.
 # @category Source / Input
@@ -415,6 +422,7 @@ def once(s)
   sequence([s,fail()])
 end
 
+%ifdef smart_cross
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Track Processing
@@ -497,6 +505,7 @@ def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
   smart_cross(width=width, duration=start_next, conservative=conservative,
               transition,s)
 end
+%endif
 
 # Custom playlist source written using the script language.  Will read directory
 # or playlist, play all files and stop.  Returns a pair @(reload,source)@ where
@@ -756,6 +765,7 @@ def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensit
   on_blank({source.skip(s)},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
+%ifdef mean
 # Extract the left channel of a stereo source
 # @category Source / Conversions
 # @param s Source to extract from
@@ -769,3 +779,4 @@ end
 def stereo.right(s)
   mean(stereo.pan(pan=1., s))
 end
+%endif
