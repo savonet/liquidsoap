@@ -39,4 +39,4 @@ let of_s16le _ = failwith "TODO"
 
 external to_s16le : t array -> int -> int -> string = "caml_nofpu_to_s16le"
 
-let resample _ = failwith "TODO"
+let resample ?mode _ = failwith "TODO"
