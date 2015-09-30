@@ -25,4 +25,4 @@ chmod +x c
 
 # Compile and run tests
 make
-make -C scripts/tests test
+make test
