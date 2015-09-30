@@ -17,6 +17,7 @@ pre-distclean: clean
 	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
+	$(MAKE) -C src/test test
 	$(MAKE) -C scripts/tests test
 
 # Build liquidsoap as it will be used for building the doc
