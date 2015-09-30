@@ -1,4 +1,6 @@
-let json = "\
+let json =
+  [|
+"\
 {\n\
   \"firstName\": \"John\",\n\
   \"lastName\": \"Smith\",\n\
@@ -23,7 +25,12 @@ let json = "\
   \"children\": [],\n\
   \"spouse\": null\n\
 }\n\
-"
+";
+    "{ \"face\": \"😂\" }";
+    "{ \"face\": \"\\uD83D\\uDE02\" }"
+  |]
 
 let () =
-  ignore (JSON.from_string json)
+  for i = 0 to Array.length json - 1 do
+    ignore (JSON.from_string json.(i))
+  done
