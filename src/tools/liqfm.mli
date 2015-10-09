@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 module Audioscrobbler : Lastfm_generic.Audioscrobbler_t
-module Radio          : Lastfm_generic.Radio_t
 
 type source = User | Lastfm | Broadcast | Recommendation | Unknown
 

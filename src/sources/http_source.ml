@@ -338,22 +338,8 @@ object (self)
     Tutils.mutexify socket_m (fun () ->
       self#disconnect_no_lock) ()
 
-  (** This method gets overriden by superclasses (see Lastfm_input)
-    * but #private_connect should not be changed.
-    * TODO Document more this OO problem to see why/if there really isn't
-    *   a better way (e.g. using super#connect instead of self#connect
-    *   in the derived class). *)
-  method connect should_stop url =
-    self#private_connect ~sanitize:true should_stop url
-
   (* Called when there's no decoding process, in order to create one. *)
-  method private_connect ?(sanitize=true) poll_should_stop url =
-    let url =
-      if sanitize then
-        Http.http_sanitize url
-      else
-        url
-    in
+  method connect poll_should_stop url =
     let host,port,mount,auth = parse_url url in
     let req =
       Printf.sprintf
@@ -444,7 +430,7 @@ object (self)
           List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
           self#insert_metadata metas;
           self#disconnect;
-          self#private_connect poll_should_stop uri
+          self#connect poll_should_stop uri
       in
       let randomize playlist =
         let aplay = Array.of_list playlist in
@@ -523,7 +509,7 @@ object (self)
     with
       | Redirection location ->
           self#disconnect;
-          self#private_connect ~sanitize:false poll_should_stop location
+          self#connect poll_should_stop location
       | Http.Error e ->
           self#disconnect;
           self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
