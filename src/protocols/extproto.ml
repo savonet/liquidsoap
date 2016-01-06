@@ -41,7 +41,7 @@ let ext_of_content_type url =
   (* Using curl here since it's way more powerful. *)
   let cmd =
     Printf.sprintf
-      "%s -I -X HEAD -L %s 2>/dev/null | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+      "%s -sI -X HEAD -L %s | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
       curl url
   in
   let ch = Unix.open_process_in cmd in
