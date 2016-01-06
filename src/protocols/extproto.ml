@@ -24,11 +24,50 @@ open Dtools
 
 let dlog = Log.make ["protocols";"external"]
 
+let which =
+  let which = Utils.which ~path:Configure.path in
+  if Sys.os_type <> "Win32" then
+    which
+  else
+    fun s ->
+      try which s with Not_found ->
+        which (Printf.sprintf "%s%s" s Configure.exe_ext)
+
+(* Find extension of a file based on a returned content-type. *)
+let ext_of_content_type url =
+  if Sys.os_type = "Win32" then
+    raise Not_found;
+  let curl = which "curl" in
+  (* Using curl here since it's way more powerful. *)
+  let cmd =
+    Printf.sprintf
+      "%s -I -X HEAD -L %s 2>/dev/null | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+      curl url
+  in
+  let ch = Unix.open_process_in cmd in
+  let mime = String.trim (input_line ch) in
+  ignore(Unix.close_process_in ch);
+  match Utils.StringCompat.lowercase_ascii mime with
+    | "audio/mpeg" -> "mp3"
+    | "application/ogg" | "application/x-ogg"
+    | "audio/x-ogg" | "audio/ogg"
+    | "video/ogg" -> "ogg"
+    | "audio/x-flac" -> "flac"
+    | "audio/mp4" | "application/mp4" -> "mp4"
+    | "audio/vnd.wave" | "audio/wav"
+    | "audio/wave" | "audio/x-wav" -> "wav"
+    | _ -> raise Not_found
+
+let get_ext src =
+  try
+    ext_of_content_type src
+  with Not_found -> Utils.get_ext src
+
 let mktmp src =
   let file_ext =
     Printf.sprintf ".%s"
     (try
-      Utils.get_ext src
+      get_ext src
      with
        | _ -> "osb")
   in
@@ -45,7 +84,7 @@ let resolve proto program command s ~log maxtime =
   let args,active =
     match command program s local with
       | `Active args  -> args,true
-      | `Passive args -> args, false 
+      | `Passive args -> args,false 
   in
   let pid =
     Unix.create_process program args iR xW Unix.stderr
@@ -122,15 +161,6 @@ let conf_server_name =
   Dtools.Conf.bool ~p:(conf#plug "use_server_name") "Use server-provided name"
     ~d:false ~comments:["Use server-provided name."]
 
-let which =
-  let which = Utils.which ~path:Configure.path in
-  if Sys.os_type <> "Win32" then
-    which
-  else
-    fun s ->
-      try which s with Not_found ->
-        which (Printf.sprintf "%s%s" s Configure.exe_ext)
-
 let get_program, command =
   try
     which Configure.get_program,
@@ -141,8 +171,8 @@ let get_program, command =
         (`Passive [|prog;src;dst|]))
   with
     | Not_found ->
-        "wget", (fun prog src dst ->
-          (`Passive [|prog;"-q";src;"-O";dst|]))
+        "curl", (fun prog src dst ->
+          (`Passive [|prog;"-sL";src;"-o";dst|]))
 
 let extproto = [
   get_program,
