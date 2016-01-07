@@ -109,8 +109,8 @@ let resolve proto program command s ~log maxtime =
     if code = Unix.WEXITED 0 then
     [Request.indicator ~temporary:true local]
     else begin
-      log "Download failed: timeout, invalid URI ?" ;
-      ( try Unix.unlink !prog_stdout with _ -> () ) ;
+      log "Download failed: timeout, invalid URI?" ;
+      ( try Unix.unlink local with _ -> () ) ;
       []
     end)
 
