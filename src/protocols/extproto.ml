@@ -64,6 +64,7 @@ let resolve proto program command s ~log maxtime =
         Condition.wait c m;
       fn()),
     Tutils.mutexify m (fun () ->
+      Unix.close xR;
       is_task := false;
       Condition.signal c)
   in
