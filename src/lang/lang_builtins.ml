@@ -2044,7 +2044,15 @@ let () =
     ~descr:"Returns true if the file or directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
-         Lang.bool (Sys.file_exists f))
+       Lang.bool (Sys.file_exists f))
+
+let () =
+  add_builtin "file.is_directory" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.bool_t
+    ~descr:"Returns true if the file exists and is a directory."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
   (* This is not named "file.read" because we might want to use that for a
