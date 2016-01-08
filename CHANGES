@@ -1,3 +1,67 @@
+1.2.0 (unreleased)
+==================
+
+New:
+
+- Websocket server (#90): this means that you can stream to harbor directly from
+  your browser!
+
+- Add support for AIFF format (#112).
+
+- Add url.split_args to split the argument of an url (#123).
+
+- Add buffer.adaptative to cope with small network delays (#131).
+
+- Add sleeper operator to simulate network delays and test robustness (#131).
+
+- Add stereo.left and stereo.right to extract channels from a stereo stream.
+
+- Add restart command to restart liquidsoap (#135).
+
+- Add file.contents to read the contents of a file.
+
+- Add filter.rc for first-order RC filters.
+
+
+Enhancements:
+
+- Add support for sending OSC data (osc.send_*).
+
+- Native support for (some) AVI files (#256) which enables support for external
+  video encoders (#233).
+
+- Improve rms operator (#105) to have per channel rms (#102), the ability to
+  dynamically set window duration (#103) and multiple monitors (#104).
+
+- Icecast streaming can now use HTTP1.1 chunked encoding (#82, #107).
+
+- Add support for multiple shoutcast extensions (#216).
+
+- Fade type can be overridden by metadata in fade.in / fade.out (#64).
+
+- Allow LADSPA plugins with arbitrary number of channels (#191).
+
+- Rename shine encoder from %mp3.fxp to %shine.
+
+- fdkaac: dynamic plugin (#79), set afterburner parameter, use MPEG4 by default
+  (#83).
+
+- Improved subtyping on lists (#125, #126).
+
+- Add native simple JSON decoder.
+
+- Better code: do not abusively use assertions (#137), issue more warnings and
+  fix them (#162).
+
+
+Bugfixes:
+
+- Correctly close connection in http.get / http.post (#72).
+
+- Remove input.lastfm which has been broken for a while.
+
+- Lots of small bugfixes.
+
 1.1.1 (08-05-2013)
 ==================
 
