@@ -29,9 +29,9 @@ test = fallback(track_sensitive=false,
 
 def check()
   if source.is_up(s) then
-    print("FAILED")
+    print("TEST FAILED")
   else
-    print("PASSED")
+    print("TEST PASSED")
   end
   shutdown()
 end

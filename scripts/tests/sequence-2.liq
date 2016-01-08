@@ -25,9 +25,9 @@ test = sequence([ s, fail() ])
 
 def check()
   if source.is_up(s) then
-    print("FAILED")
+    print("TEST FAILED")
   else
-    print("PASSED")
+    print("TEST PASSED")
   end
   shutdown()
 end
