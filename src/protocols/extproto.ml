@@ -81,19 +81,13 @@ let resolve proto program command s ~log maxtime =
   let (iR,iW) = Unix.pipe () in
   let (xR,xW) = Unix.pipe () in
   let local = mktmp s in
-  let args,active =
-    match command program s local with
-      | `Active args  -> args,true
-      | `Passive args -> args,false 
-  in
+  let args = command program s local in
   let pid =
     Unix.create_process program args iR xW Unix.stderr
   in
   dlog#f 4 "Executing %s %S %S" program s local;
   let timeout () = max 0. (maxtime -. Unix.gettimeofday ()) in
   Unix.close iR ;
-  let prog_stdout = ref "" in
-  (* Setup task.. *)
   let after_task,task_done =
     let m = Mutex.create () in
     let c = Condition.create () in
@@ -103,11 +97,13 @@ let resolve proto program command s ~log maxtime =
         Condition.wait c m;
       fn()),
     Tutils.mutexify m (fun () ->
+      Unix.close xR;
       is_task := false;
       Condition.signal c)
   in
   let rec task () = 
     let timeout = timeout () in
+    let s = Bytes.create 1024 in
     { Duppy.Task.
       priority = Tutils.Non_blocking;
       events   = [`Read xR; `Delay timeout];
@@ -120,11 +116,9 @@ let resolve proto program command s ~log maxtime =
            end
           else
            begin
-            let s = Bytes.create 1024 in
             let ret =
               try Unix.read xR s 0 1024 with _ -> 0
             in
-            prog_stdout := !prog_stdout ^ (Bytes.sub s 0 ret);
             if ret > 0 then [task()] else []
            end
         in
@@ -142,42 +136,19 @@ let resolve proto program command s ~log maxtime =
   Unix.close iW ;
   Unix.close xW ;
   after_task (fun () ->
-    let local =
-      if active then !prog_stdout else local
-    in
     if code = Unix.WEXITED 0 then
     [Request.indicator ~temporary:true local]
     else begin
       log "Download failed: timeout, invalid URI ?" ;
-      ( try Unix.unlink !prog_stdout with _ -> () ) ;
+      (try Unix.unlink local with _ -> () ) ;
       []
     end)
 
-let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "extproto") "External protocol resolvers"
-    ~comments:["Settings for the external protocol resolver"]
-
-let conf_server_name =
-  Dtools.Conf.bool ~p:(conf#plug "use_server_name") "Use server-provided name"
-    ~d:false ~comments:["Use server-provided name."]
-
-let get_program, command =
-  try
-    which Configure.get_program,
-    (fun prog src dst ->
-      if conf_server_name#get then
-        (`Active [|prog;src;dst;"true"|])
-      else
-        (`Passive [|prog;src;dst|]))
-  with
-    | Not_found ->
-        "curl", (fun prog src dst ->
-          (`Passive [|prog;"-sL";src;"-o";dst|]))
-
 let extproto = [
-  get_program,
+  "curl",
   [ "http";"https";"ftp" ],
-  command
+  (fun prog src dst ->
+    [|prog;"-sL";src;"-o";dst|])
 ]
 
 let () =
