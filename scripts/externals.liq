@@ -262,3 +262,25 @@ def input.mplayer(~id="input.mplayer",
                     -vc null -vo null #{quote(s)} 2>/dev/null")
 end
 %endif
+
+%ifdef input.external.avi
+  def input.ffmpeg.video(~id="input.ffmpeg.video",
+    ~restart=true,~restart_on_error=false,
+    ~buffer=0.2,~max=10.,~format="",s) =
+      format = if format == "" then "" else "-f #{format}" end
+      audiorate = get(default=44100,"frame.audio.samplerate")
+      width = get(default=320,"frame.video.width")
+      height = get(default=240,"frame.video.height")
+      videorate = get(default=24,"frame.video.samplerate")
+      command = "ffmpeg -v 16 #{format} -i #{quote(s)} \
+      -f avi -vf format=rgb24 -vcodec rawvideo -r #{videorate} -s #{width}x#{height} \
+      -acodec pcm_s16le -ar #{audiorate} \
+      pipe:1"
+      log("********************")
+      log(command)
+      input.external.avi(id=id,restart=restart,
+        restart_on_error=restart_on_error,
+        buffer=buffer,max=max,
+        command)
+  end
+%endif

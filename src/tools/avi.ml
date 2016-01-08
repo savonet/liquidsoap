@@ -197,9 +197,9 @@ module Read = struct
     + int_of_char (Bytes.get s 2) lsl 16
     + int_of_char (Bytes.get s 3) lsl 24
 
-  exception Invalid
+  exception Invalid of string
 
-  let must b = if not b then raise Invalid
+  let must s b = if not b then raise (Invalid s)
 
   let rec chunk f =
     let tag = read 4 f in
@@ -217,7 +217,7 @@ module Read = struct
          let ll = ref [] in
          (* Printf.printf "<<\n%!"; *)
          while !rem <> 0 do
-           if !rem < 0 then raise Invalid;
+           if !rem < 0 then raise (Invalid "Wrong header size.");
            let l,c = chunk f in
            rem := !rem - l;
            ll := c :: !ll
@@ -229,7 +229,7 @@ module Read = struct
        let max_bytes_per_sec = dword f in
        let reserved = read 4 f in
        let flags = dword f in
-       must (flags land 0x0100 <> 0); (* interleaved *)
+       must "Not interleaved." (flags land 0x0100 <> 0); (* interleaved *)
        let total_frame = dword f in
        let init_frame = dword f in
        let nb_stream = dword f in
@@ -237,18 +237,19 @@ module Read = struct
        let width = dword f in
        let height = dword f in
        let scale = dword f in
-       must (scale = 0);
+       must "Non-zero scale." (scale = 0);
        let rate = dword f in
        let start = dword f in
        let length = dword f in
        `avih (width, height)
     | "strh" ->
        let stream_type = read 4 f in
-       must (len = 56);
+       must "Wrong strh length." (len = 56);
        let fourcc = dword f in
-       must (fourcc = 0);
+       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0);
+       must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
        let flags = dword f in
-       must (flags = 0);
+       must "Wrong strh flags." (flags = 0);
        let priority = word f in
        let language = word f in
        let init_frames = dword f in
@@ -276,6 +277,9 @@ module Read = struct
        (* TODO: other channels and audio frames too (first argument is channel
           number) *)
        `Frame (`Video, 0, s)
+    | "00wb" | "01wb" ->
+       let s = read len f in
+       `Frame (`Audio, 0, s)
     | _ ->
        let s = read len f in
        `Other s
@@ -283,9 +287,9 @@ module Read = struct
   let chunk f = snd (chunk f)
 
   let headers f =
-    must (read 4 f = "RIFF");
+    must "Not a RIFF file." (read 4 f = "RIFF");
     let filesize = dword f in
-    must (read 4 f = "AVI ");
+    must "Not an AVI file." (read 4 f = "AVI ");
     let h = ref [] in
     try
       while true do
@@ -302,34 +306,51 @@ module Read = struct
 
   let headers_simple f =
     let headers = headers f in
-    if List.length headers < 2 then raise Invalid;
+    if List.length headers < 2 then raise (Invalid "Not enough headers.");
     let h =
       match List.hd headers with
       | `LIST ("hdrl", h) -> h
-      | _ -> raise Invalid
+      | _ -> raise (Invalid "Does not begin with hdrl.")
     in
     let width, height =
       match List.hd h with
       | `avih (width, height) -> width, height
-      | _  -> raise Invalid;
+      | _  -> raise (Invalid "Does not begin with avih.");
     in
     let h = List.tl h in
     let streams = ref [] in
     List.iter
       (function
       | `LIST ("strl", l) ->
-         if List.length l < 2 then raise Invalid;
+         if List.length l < 2 then raise (Invalid "strl too short.");
         let strf =
           match List.hd (List.tl l) with
           | `strf s -> s
-          | _ -> raise Invalid
+          | _ -> raise (Invalid "strf expected.")
         in
+        let word s o =
+          int_of_char (Bytes.get s o)
+          + int_of_char (Bytes.get s (o+1)) lsl 8
+        in
+        let dword s o =
+          int_of_char (Bytes.get s o)
+          + int_of_char (Bytes.get s (o+1)) lsl 8
+          + int_of_char (Bytes.get s (o+2)) lsl 16
+          + int_of_char (Bytes.get s (o+3)) lsl 24
+        in
+        let word = word strf in
+        let dword = dword strf in
         begin
           match List.hd l with
           | `strh (stream_type, fps) ->
              if stream_type = "vids" then streams := `Video (width, height, fps) :: !streams
-             else if stream_type = "auds" then streams := `Audio :: !streams
-             else raise Invalid
+             else if stream_type = "auds" then
+               let codec = word 0 in
+               must "Wrong audio codec." (codec = 255);
+               let channels = word 2 in
+               let sample_rate = dword 4 in
+               streams := `Audio (channels, sample_rate) :: !streams
+             else raise (Invalid "Unhandled stream type.")
           | _ -> ()
         end
       | _ -> ()
@@ -337,5 +358,5 @@ module Read = struct
     let streams = List.rev !streams in
     match List.last headers with
     | `movi len -> streams, len
-    | _ -> raise Invalid
+    | _ -> raise (Invalid "Does not contain movi.")
 end

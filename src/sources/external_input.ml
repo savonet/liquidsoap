@@ -220,14 +220,14 @@ object (self)
       in_e, f
     in
     let (_, in_d) as x = create () in
-    let counter = ref 0 in
+    (* let counter = ref 0 in *)
     let rec process ((in_e,in_d) as x) l =
       let get_data () =
         try
           match Avi.Read.chunk in_d with
           | `Frame (`Video, _, data) ->
              assert (Bytes.length data = width * height * 3);
-             incr counter; self#log#f 2 "FRAME: %d%!" !counter;
+             (* incr counter; self#log#f 2 "FRAME: %d%!" !counter; *)
              let data = Img.of_RGB24_string data width in
              Img.swap_rb data;
              (* Img.Effect.flip data; *)
@@ -299,7 +299,7 @@ object (self)
 end
 
 let () =
-    Lang.add_operator "input.external.video"
+    Lang.add_operator "input.external.avi"
       ~category:Lang.Input
       ~flags:[Lang.Experimental]
       ~descr:"Stream data from an external application."
