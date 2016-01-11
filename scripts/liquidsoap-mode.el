@@ -1,5 +1,5 @@
 ;; liquidsoap-mode.el -- Liquidsoap major mode
-;; Copyright (C) 2015 Samuel Mimram
+;; Copyright (C) 2016 Samuel Mimram
 
 (defvar liquidsoap-font-lock-keywords
  '(
