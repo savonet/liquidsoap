@@ -1,18 +1,20 @@
 # End test successfully.
-def test.pass()
-  print("TEST PASSED")
+def test.pass(~termination=false)
+  s = if termination then "If this terminates then " else "" end
+  print(s^"TEST PASSED")
   shutdown()
 end
 
 # End test with a failure.
 def test.fail()
   print("TEST FAILED")
-  shutdown()
+  exit(1);
+  # shutdown()
 end
 
-# Check that files are never repeated in source s, possibly by rounds.
-# The function triggers test.fail on repeated filenames,
-# only clearing its list of seen filenames once all nb_files have been seen.
+# Check that files are never repeated in source s, possibly by rounds. The
+# function triggers test.fail on repeated filenames, only clearing its list of
+# seen filenames once all nb_files have been seen.
 def test.check_non_repeating(~nb_files,~nb_rounds,s)
 
   seen = ref([])       # List of seen filenames

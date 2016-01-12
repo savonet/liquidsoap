@@ -1,3 +1,5 @@
+%include "test.liq"
+
 sa = sine()
 
 sb_on = ref false
@@ -7,7 +9,7 @@ add_timeout(1.,{ sb_on := true ; (-1.) })
 output.dummy(smooth_add(delay=0.9,p=0.3,normal=sa,special=sb))
 
 add_timeout(4.,{
-  print("if this terminates, then TEST PASSED")
+  test.pass(termination=true)
   shutdown()
   (-1.)
 })

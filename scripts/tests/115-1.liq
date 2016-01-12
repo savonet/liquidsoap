@@ -1,3 +1,5 @@
+%include "test.liq"
+
 s = add(normalize=true,[
   sine(),
   sequence([sine(amplitude=0.3,duration=1.),
@@ -7,7 +9,7 @@ s = add(normalize=true,[
 output.dummy(s)
 
 add_timeout(3.,{
-  print("if this terminates, then TEST PASSED")
+  test.pass(termination=true)
   shutdown()
   (-1.)
 })

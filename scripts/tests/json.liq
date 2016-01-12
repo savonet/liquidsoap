@@ -1,4 +1,7 @@
 # We test some ground values for json import/export.
+
+%include "test.liq"
+
 success = ref true
 
 def test(d,x) =
@@ -21,7 +24,7 @@ test([3],[])
 test([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4, \"b\" : 5}"))
 
 if !success then
-  print("TEST PASSED")
+  test.pass()
 else
-  print("TEST FAILED")
+  test.fail()
 end
