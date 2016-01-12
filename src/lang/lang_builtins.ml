@@ -1288,7 +1288,14 @@ let () =
     (fun _ ->
       Shutdown.restart := true ;
       Tutils.shutdown () ;
-      Lang.unit)
+      Lang.unit);
+  add_builtin "exit" ~cat:Sys ~flags:[Hidden]
+    ~descr:"Immediately stop the application. This should only be used in extreme cases or to specify an exit value. The recommended way of stopping Liquidsoap is to use shutdown."
+    ["", Lang.int_t, None, Some "Exit value."] Lang.unit_t
+    (fun p ->
+      let n = Lang.to_int (List.assoc "" p) in
+      exit n)
+
 
 let () =
   let reopen name descr f =
