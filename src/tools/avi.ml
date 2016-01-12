@@ -45,8 +45,9 @@ let chunk id data =
 let list = chunk "LIST"
 
 let header ~channels ~samplerate () =
-  let max_dword = 0xffffffff in
-  let file_size = max_dword in
+  (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
+     architectures. *)
+  let dword_max () = word 0xffff; word 0xffff in
   let video_rate = Lazy.force Frame.video_rate in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
@@ -58,7 +59,7 @@ let header ~channels ~samplerate () =
         ^ dword 0 (* maximum bytes per second *)
         ^ dword 0 (* reserved *)
         ^ dword 0x0100 (* flags (interleaved) *)
-        ^ dword max_dword (* number of frames *)
+        ^ dword_max () (* number of frames *)
         ^ dword 0 (* initial frame *)
         ^ dword 2 (* number of streams *)
         ^ dword 0 (* suggested buffer size *)
@@ -84,9 +85,9 @@ let header ~channels ~samplerate () =
           ^ dword 1 (* scale *)
           ^ dword video_rate (* rate *)
           ^ dword 0 (* start time *)
-          ^ dword max_dword (* stream length *)
+          ^ dword_max () (* stream length *)
           ^ dword 0 (* suggested buffer size *)
-          ^ dword 0xffffffff (* quality *)
+          ^ dword_max () (* quality *)
           ^ dword 0 (* sample size *)
           ^ word 0 (* left *)
           ^ word 0 (* top *)
@@ -128,9 +129,9 @@ let header ~channels ~samplerate () =
           ^ dword 1 (* scale *)
           ^ dword samplerate (* rate *)
           ^ dword 0 (* start time *)
-          ^ dword max_dword (* stream length *)
+          ^ dword_max () (* stream length *)
           ^ dword 0 (* suggested buffer size *)
-          ^ dword 0xffffffff (* quality *)
+          ^ dword_max () (* quality *)
           ^ dword (2 * channels) (* sample size *)
           ^ word 0 (* left *)
           ^ word 0 (* top *)
@@ -161,11 +162,11 @@ let header ~channels ~samplerate () =
     list ("INFO" ^ producer)
   in
   "RIFF"
-  ^ dword file_size
+  ^ dword_max () (* file size *)
   ^ "AVI "
   ^ headers
   ^ info
-  ^ "LIST" ^ dword max_dword ^ "movi"
+  ^ "LIST" ^ dword_max () ^ "movi"
 
 (* Audio in 16LE *)
 let audio_chunk b =
