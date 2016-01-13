@@ -284,7 +284,7 @@ end
       -f avi -vf format=rgb24 -vcodec rawvideo -r #{videorate} -s #{width}x#{height} \
       -acodec pcm_s16le -ar #{audiorate} \
       pipe:1"
-      # log(command)
+      log("FFMpeg command: " ^ command)
       input.external.avi(id=id,restart=restart,
         restart_on_error=restart_on_error,
         buffer=buffer,max=max,
@@ -292,18 +292,18 @@ end
   end
 
   # TODO: not working yet
-  def input.mencoder.video(~id="input.mencoder.video",
-    ~restart=true,~restart_on_error=false,
-    ~buffer=0.2,~max=10.,s) =
+  # def input.mencoder.video(~id="input.mencoder.video",
+    # ~restart=true,~restart_on_error=false,
+    # ~buffer=0.2,~max=10.,s) =
       # audiorate = get(default=44100,"frame.audio.samplerate")
       # width = get(default=320,"frame.video.width")
       # height = get(default=240,"frame.video.height")
       # videorate = get(default=24,"frame.video.samplerate")
-      command = "mencoder -really-quiet #{quote(s)} -of avi -ovc raw -oac pcm -vf format=rgb24 -o -"
-      log(command)
-      input.external.avi(id=id,restart=restart,
-        restart_on_error=restart_on_error,
-        buffer=buffer,max=max,
-        command)
-  end
+      # command = "mencoder -really-quiet #{quote(s)} -of avi -ovc raw -oac pcm -vf format=rgb24 -o -"
+      # log(command)
+      # input.external.avi(id=id,restart=restart,
+        # restart_on_error=restart_on_error,
+        # buffer=buffer,max=max,
+        # command)
+  # end
 %endif

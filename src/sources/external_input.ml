@@ -191,7 +191,8 @@ class video ~kind ~restart ~bufferize ~restart_on_error ~max command =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
-  let abg = Generator.create ~log ~kind `Both in
+  (* TODO: generators with 0 audio channels should work in `Both mode *)
+  let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
   let priority = Tutils.Non_blocking in
   let audio_converter = ref None in
 object (self)
@@ -229,11 +230,13 @@ object (self)
       let get_data () =
         try
           match Avi.Read.chunk in_d with
+          | `Frame (_, _, data) when Bytes.length data = 0 -> ()
           | `Frame (`Video, _, data) ->
-             assert (Bytes.length data = width * height * 3);
+             if Bytes.length data <> width * height * 3 then
+               failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (Bytes.length data) (width * height * 3));
              (* incr counter; self#log#f 2 "FRAME: %d%!" !counter; *)
              let data = Img.of_RGB24_string data width in
-             Img.swap_rb data;
+             (* Img.swap_rb data; *)
              (* Img.Effect.flip data; *)
              Generator.put_video abg [|[|data|]|] 0 1
           | `Frame (`Audio, _, data) ->
