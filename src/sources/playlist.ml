@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2015 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -237,8 +237,7 @@ object (self)
         (Printf.sprintf "%s%s" prefix)
         (List.filter self#is_valid _playlist)
     in
-      (* TODO distinguish error and empty if fallible *)
-      if _playlist = [] && reload <> `No then
+      if _playlist = [] && reload <> `No && self#stype = Infallible then
         self#log#f 3 "Got an empty list: keeping the old one."
       else begin
         (* Don't worry if a reload fails,

@@ -11,7 +11,7 @@ more power than you need for creating or transforming streams. But liquidsoap is
 still very light and easy to use, in the Unix tradition of simple strong
 components working together.
 
-Copyright 2003-2014 Savonet team
+Copyright 2003-2016 Savonet team
 
 * Email     : savonet-users@lists.sourceforge.net
 * Homepage  : http://liquidsoap.fm

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2015 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 *****************************************************************************)
+
+open Stdlib
 
 let word n =
   let s = Bytes.create 2 in
@@ -45,8 +47,9 @@ let chunk id data =
 let list = chunk "LIST"
 
 let header ~channels ~samplerate () =
-  let max_dword = 0xffffffff in
-  let file_size = max_dword in
+  (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
+     architectures. *)
+  let dword_max () = word 0xffff; word 0xffff in
   let video_rate = Lazy.force Frame.video_rate in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
@@ -58,7 +61,7 @@ let header ~channels ~samplerate () =
         ^ dword 0 (* maximum bytes per second *)
         ^ dword 0 (* reserved *)
         ^ dword 0x0100 (* flags (interleaved) *)
-        ^ dword max_dword (* number of frames *)
+        ^ dword_max () (* number of frames *)
         ^ dword 0 (* initial frame *)
         ^ dword 2 (* number of streams *)
         ^ dword 0 (* suggested buffer size *)
@@ -84,9 +87,9 @@ let header ~channels ~samplerate () =
           ^ dword 1 (* scale *)
           ^ dword video_rate (* rate *)
           ^ dword 0 (* start time *)
-          ^ dword max_dword (* stream length *)
+          ^ dword_max () (* stream length *)
           ^ dword 0 (* suggested buffer size *)
-          ^ dword 0xffffffff (* quality *)
+          ^ dword_max () (* quality *)
           ^ dword 0 (* sample size *)
           ^ word 0 (* left *)
           ^ word 0 (* top *)
@@ -128,9 +131,9 @@ let header ~channels ~samplerate () =
           ^ dword 1 (* scale *)
           ^ dword samplerate (* rate *)
           ^ dword 0 (* start time *)
-          ^ dword max_dword (* stream length *)
+          ^ dword_max () (* stream length *)
           ^ dword 0 (* suggested buffer size *)
-          ^ dword 0xffffffff (* quality *)
+          ^ dword_max () (* quality *)
           ^ dword (2 * channels) (* sample size *)
           ^ word 0 (* left *)
           ^ word 0 (* top *)
@@ -161,11 +164,11 @@ let header ~channels ~samplerate () =
     list ("INFO" ^ producer)
   in
   "RIFF"
-  ^ dword file_size
+  ^ dword_max () (* file size *)
   ^ "AVI "
   ^ headers
   ^ info
-  ^ "LIST" ^ dword max_dword ^ "movi"
+  ^ "LIST" ^ dword_max () ^ "movi"
 
 (* Audio in 16LE *)
 let audio_chunk b =
@@ -174,3 +177,192 @@ let audio_chunk b =
 (* Video in RGB. *)
 let video_chunk b =
   chunk "00db" b
+
+module Read = struct
+  let read n f =
+    let s = Bytes.create n in
+    let k = Unix.read_retry f s 0 n in
+    if k = 0 && n <> 0 then raise End_of_file;
+    assert (k = n);
+    s
+
+  let word f =
+    let s = read 2 f in
+    int_of_char (Bytes.get s 0)
+    + int_of_char (Bytes.get s 1) lsl 8
+
+  let dword f =
+    let s = read 4 f in
+    int_of_char (Bytes.get s 0)
+    + int_of_char (Bytes.get s 1) lsl 8
+    + int_of_char (Bytes.get s 2) lsl 16
+    + int_of_char (Bytes.get s 3) lsl 24
+
+  exception Invalid of string
+
+  let must s b = if not b then raise (Invalid s)
+
+  let rec chunk f =
+    let tag = read 4 f in
+    let len = dword f in
+    (* Printf.printf "Read: %s (%d)\n%!" tag len; *)
+    len + 8,
+    match tag with
+    | "LIST" ->
+       let subtag = read 4 f in
+       if subtag = "movi" then
+         (* for obvious size reasons we stop parsing here *)
+         `movi (len - 4)
+       else
+         let rem = ref (len - 4) in
+         let ll = ref [] in
+         (* Printf.printf "<<\n%!"; *)
+         while !rem <> 0 do
+           if !rem < 0 then raise (Invalid "Wrong header size.");
+           let l,c = chunk f in
+           rem := !rem - l;
+           ll := c :: !ll
+         done;
+         (* Printf.printf ">>\n%!"; *)
+         `LIST (subtag, List.rev !ll)
+    | "avih" ->
+       let microsec_per_frame = dword f in
+       let max_bytes_per_sec = dword f in
+       let reserved = read 4 f in
+       let flags = dword f in
+       must "Not interleaved." (flags land 0x0100 <> 0); (* interleaved *)
+       let total_frame = dword f in
+       let init_frame = dword f in
+       let nb_stream = dword f in
+       let sug_buf_size = dword f in
+       let width = dword f in
+       let height = dword f in
+       let scale = dword f in
+       must "Non-zero scale." (scale = 0);
+       let rate = dword f in
+       let start = dword f in
+       let length = dword f in
+       `avih (width, height)
+    | "strh" ->
+       let stream_type = read 4 f in
+       must "Wrong strh length." (len = 56);
+       let fourcc = dword f in
+       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0 ||
+           fourcc = 0x52474218 (* RGB24 *));
+       must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
+       let flags = dword f in
+       must "Wrong strh flags." (flags = 0);
+       let priority = word f in
+       let language = word f in
+       let init_frames = dword f in
+       let scale = dword f in
+       let rate = dword f in
+       let fps = float rate /. float scale in
+       let start = dword f in
+       let length = dword f in
+       let buf_size = dword f in
+       let quality = dword f in
+       let sample_size = dword f in
+       let left = word f in
+       let top = word f in
+       let right = word f in
+       let bottom = word f in
+       `strh (stream_type, fps)
+    | "strf" ->
+       let s = read len f in
+       `strf s
+    | "JUNK" ->
+       let s = read len f in
+       `JUNK s
+    | "00dc" ->
+       let s = read len f in
+       (* TODO: other channels and audio frames too (first argument is channel
+          number) *)
+       `Frame (`Video, 0, s)
+    | "00wb" | "01wb" ->
+       let s = read len f in
+       `Frame (`Audio, 0, s)
+    | _ ->
+       let s = read len f in
+       `Other s
+
+  let chunk f = snd (chunk f)
+
+  let headers f =
+    must "Not a RIFF file." (read 4 f = "RIFF");
+    let filesize = dword f in
+    must "Not an AVI file." (read 4 f = "AVI ");
+    let h = ref [] in
+    try
+      while true do
+        let c = chunk f in
+        h := c :: !h;
+        match c with
+        | `movi _ -> raise Exit
+        | _ -> ()
+      done;
+      assert false
+    with
+    | Exit ->
+       List.rev !h
+
+  let headers_simple f =
+    let headers = headers f in
+    if List.length headers < 2 then raise (Invalid "Not enough headers.");
+    let h =
+      match List.hd headers with
+      | `LIST ("hdrl", h) -> h
+      | _ -> raise (Invalid "Does not begin with hdrl.")
+    in
+    let width, height =
+      match List.hd h with
+      | `avih (width, height) -> width, height
+      | _  -> raise (Invalid "Does not begin with avih.");
+    in
+    let h = List.tl h in
+    let streams = ref [] in
+    List.iter
+      (function
+      | `LIST ("strl", l) ->
+         if List.length l < 2 then raise (Invalid "strl too short.");
+        let strf =
+          match List.hd (List.tl l) with
+          | `strf s -> s
+          | _ -> raise (Invalid "strf expected.")
+        in
+        let word s o =
+          int_of_char (Bytes.get s o)
+          + int_of_char (Bytes.get s (o+1)) lsl 8
+        in
+        let dword s o =
+          int_of_char (Bytes.get s o)
+          + int_of_char (Bytes.get s (o+1)) lsl 8
+          + int_of_char (Bytes.get s (o+2)) lsl 16
+          + int_of_char (Bytes.get s (o+3)) lsl 24
+        in
+        let word = word strf in
+        let dword = dword strf in
+        begin
+          match List.hd l with
+          | `strh (stream_type, fps) ->
+             if stream_type = "vids" then
+               (
+                 (* Printf.printf "video: %dx%d@%f\n%!" width height fps; *)
+                 streams := `Video (width, height, fps) :: !streams
+               )
+             else if stream_type = "auds" then
+               let codec = word 0 in
+               must ("Wrong audio codec.") (codec = 1 || codec = 255);
+               let channels = word 2 in
+               let sample_rate = dword 4 in
+               streams := `Audio (channels, sample_rate) :: !streams
+             else raise (Invalid "Unhandled stream type.")
+          | _ -> ()
+        end
+      | _ -> ()
+      ) h;
+    let streams = List.rev !streams in
+    match List.last headers with
+    | `movi len -> streams, len
+    | _ -> raise (Invalid "Does not contain movi.")
+end

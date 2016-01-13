@@ -10,6 +10,8 @@
 # but A finds itself not ready anymore.
 # In other words, B committed but A did not.
 
+%include "test.liq"
+
 r = ref false
 pred = { v=!r ; r:=false ; v }
 add_timeout(2.,{ r := true ; (-1.) })
@@ -18,4 +20,4 @@ mixer = fallback(id="mixer", track_sensitive=false,
   [at(pred, sine(duration=3.)), blank()])
 
 output.dummy(mixer)
-add_timeout(3.,{ print("TEST PASSED") ; shutdown() ; (-1.) })
+add_timeout(3.,{ test.pass() ; shutdown() ; (-1.) })

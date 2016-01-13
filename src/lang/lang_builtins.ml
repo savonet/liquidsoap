@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2015 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1288,7 +1288,14 @@ let () =
     (fun _ ->
       Shutdown.restart := true ;
       Tutils.shutdown () ;
-      Lang.unit)
+      Lang.unit);
+  add_builtin "exit" ~cat:Sys ~flags:[Lang.Hidden]
+    ~descr:"Immediately stop the application. This should only be used in extreme cases or to specify an exit value. The recommended way of stopping Liquidsoap is to use shutdown."
+    ["", Lang.int_t, None, Some "Exit value."] Lang.unit_t
+    (fun p ->
+      let n = Lang.to_int (List.assoc "" p) in
+      exit n)
+
 
 let () =
   let reopen name descr f =
@@ -2044,7 +2051,15 @@ let () =
     ~descr:"Returns true if the file or directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
-         Lang.bool (Sys.file_exists f))
+       Lang.bool (Sys.file_exists f))
+
+let () =
+  add_builtin "file.is_directory" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.bool_t
+    ~descr:"Returns true if the file exists and is a directory."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
   (* This is not named "file.read" because we might want to use that for a

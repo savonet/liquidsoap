@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2015 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -158,18 +158,18 @@ let create_file_decoder filename kind =
 (* Get the number of channels of audio in an AAC file. *)
 let get_type filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0o644 in
-  let dec = Faad.create () in
-  let aacbuflen = 1024 in
-  let aacbuf = Bytes.create aacbuflen in
-    Tutils.finalize ~k:(fun () -> Unix.close fd)
-      (fun () ->
-         let _,rate,channels =
-           Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
-         in
-           log#f 4
-             "Libfaad recognizes %S as AAC (%dHz,%d channels)."
-             filename rate channels ;
-           { Frame.
+  Tutils.finalize ~k:(fun () -> Unix.close fd)
+    (fun () ->
+      let dec = Faad.create () in
+      let aacbuflen = 1024 in
+      let aacbuf = Bytes.create aacbuflen in
+      let _,rate,channels =
+        Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
+      in
+        log#f 4
+          "Libfaad recognizes %S as AAC (%dHz,%d channels)."
+          filename rate channels ;
+          { Frame.
              audio = channels ;
              video = 0 ;
              midi  = 0 })

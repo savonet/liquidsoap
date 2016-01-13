@@ -2,6 +2,8 @@
 # decoder which prevented input.http decoder 
 # from detecting an EOS.
 
+%include "test.liq"
+
 %ifnencoder %aacplus
   print("no encoder for %aacplus: TEST SKIPPED")
 %endif
@@ -17,7 +19,7 @@ o = input.http("http://localhost:546742/test")
 
 # Setup an output which shutdowns at the second
 # start
-on_shutdown({ print("TEST PASSED") })
+on_shutdown(test.pass)
 has_started = ref 0
 def on_start() = 
   has_started := !has_started + 1

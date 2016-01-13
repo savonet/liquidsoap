@@ -230,8 +230,6 @@ $(call conditional_compilation,outputs,$(W_SDL),outputs/sdl_out.ml)
 
 # Same for lastfm..
 $(call conditional_compilation,liquidsoap_sources,$(W_LASTFM),tools/liqfm.ml)
-$(call conditional_compilation,protocols,$(W_LASTFM),protocols/lastfm_req.ml)
-$(call conditional_compilation,sources,$(W_LASTFM),sources/lastfm_input.ml)
 $(call conditional_compilation,builtins,$(W_LASTFM),lang/builtins_lastfm.ml)
 
 # Same for alsa..

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2015 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -443,7 +443,7 @@ let options = [
     Arg.Unit (fun () ->
                 Printf.printf
                   "Liquidsoap %s%s\n\
-                   Copyright (c) 2003-2015 Savonet team\n\
+                   Copyright (c) 2003-2016 Savonet team\n\
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
                    See <http://liquidsoap.fm> for more information.\n"

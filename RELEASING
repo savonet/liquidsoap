@@ -13,7 +13,7 @@
  [] make clean
  [] make tarball
  [] In website: copy reference-VER.txt settings-VER.txt and contents-VER,
-    update previously.txt.
+    update documentation.txt.
 
 At least on one configuration (preferably all-yes)
 -----------------------------

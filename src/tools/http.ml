@@ -109,50 +109,11 @@ let url_split_host_port url =
   in
   host,port,uri
 
-let http_sanitize url =
-  try
-    let basic_rex = Pcre.regexp "^http://([^/]+)/(.*)$" in
-    let path_rex = Pcre.regexp "^([^?]+)\\?(.+)$" in
-    let sub = Pcre.exec ~rex:basic_rex url in
-    let host,path = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
-    let encode path =
-      (* Pcre.split removes empty strings and thus removes trailing '/' which
-         can change the semantics of the URL... *)
-      let path = String.split_char '/' path in
-      (* We decode the path, in case it was already encoded. *)
-      let path =
-        List.map (fun x -> url_encode ~plus:false (url_decode x)) path
-      in
-      List.fold_left (Printf.sprintf "%s/%s") "" path
-    in
-    try
-      let sub = Pcre.exec ~rex:path_rex path in
-      let path,options = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
-      (* args_split also decodes the arguments if
-       * they were already encoded. *)
-      let options = args_split options in
-      let args = Hashtbl.create 2 in
-      Hashtbl.iter
-        (fun a b -> Hashtbl.replace args (url_encode a) (url_encode b))
-        options ;
-      let merge a b c =
-        match c with
-          | "" -> Printf.sprintf "%s=%s" a b
-          | _ -> Printf.sprintf "%s=%s&%s" a b c
-      in
-      let options = Hashtbl.fold merge args "" in
-      let path = encode path in
-      Printf.sprintf "http://%s%s?%s" host path options
-    with
-      | _ -> Printf.sprintf "http://%s%s" host (encode path)
-  with
-    | _ -> url
-
 let is_url path =
-  Pcre.pmatch ~pat:"^http://.+" path
+  Pcre.pmatch ~pat:"^https?://.+" path
 
 let dirname url =
-  let rex = Pcre.regexp "^(http://.+/)[^/]*$" in
+  let rex = Pcre.regexp "^(https?://.+/)[^/]*$" in
   let s = Pcre.exec ~rex url in
   Pcre.get_substring s 1
 
