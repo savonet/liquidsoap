@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,10 +26,10 @@ exception Read_error
 (** Error translator *)
 let error_translator e =
    match e with
-     | Internal -> raise (Utils.Translation "Internal http error.")
+     | Internal -> Some "Internal http error."
      | Read_error ->
-         raise (Utils.Translation "Error while reading http stream.")
-     | _ -> ()
+         Some "Error while reading http stream."
+     | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
@@ -46,7 +46,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
   in
   let size = 16*size in
   let chunk =
-    let buf = String.create size in
+    let buf = Bytes.create size in
     let rec read pos =
       if pos=size then buf else
         let p = Unix.read socket buf pos (size-pos) in
@@ -84,7 +84,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
 
 let read_line socket =
   let ans = ref "" in
-  let c = String.create 1 in
+  let c = Bytes.create 1 in
     if Unix.read socket c 0 1 <> 1 then raise Read_error ;
     while c <> "\n" do
       ans := !ans ^ c;
@@ -97,7 +97,7 @@ let read_chunk socket =
   let n = Scanf.sscanf n "%x" (fun n -> n) in
   let ans = ref "" in
     while String.length !ans <> n do
-      let buf = String.create (n - String.length !ans) in
+      let buf = Bytes.create (n - String.length !ans) in
       let r = Unix.read socket buf 0 (n - String.length !ans) in
         ans := !ans ^ (String.sub buf 0 r)
     done;
@@ -119,14 +119,14 @@ let read_stream socket chunked metaint insert_metadata =
     match metaint with
       | None ->
           fun len ->
-            let b = String.create len in
+            let b = Bytes.create len in
             let r = read b 0 len in
               if r < 0 then "",0 else b,r
       | Some metaint ->
           let readcnt = ref 0 in
             fun len ->
               let len = min len (metaint - !readcnt) in
-              let b = String.create len in
+              let b = Bytes.create len in
               let r = read b 0 len in
                 if r < 0 then "",0 else begin
                   readcnt := !readcnt + r;
@@ -178,7 +178,7 @@ exception Redirection of string
 class http ~kind
         ~playlist_mode ~poll_delay ~track_on_meta ?(force_mime=None)
         ~bind_address ~autostart ~bufferize ~max ~timeout
-        ~debug ?(logfile=None)
+        ~debug ~on_connect ~on_disconnect ?(logfile=None)
         ~user_agent url =
   let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
   (* We need a temporary log until the source has an ID. *)
@@ -186,20 +186,18 @@ class http ~kind
   let log = (fun x -> !log_ref x) in
 object (self)
 
-  inherit Source.source ~name:"http" kind as super
+  inherit  Source.source ~name:"http" kind as super
   inherit
     Generated.source
       (Generator.create ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-      ~empty_on_abort:false ~bufferize as generated
+      ~empty_on_abort:false ~bufferize
 
   method stype = Source.Fallible
 
   (** POSIX sucks. *)
-  val mutable socket       = None
+  val mutable socket = None
   (* Mutex to change the socket's state (open, close) *)
-  val mutable socket_m     = Mutex.create()
-  (* Mutex to grap the socket's state *)
-  val mutable get_socket_m = Mutex.create()
+  val mutable socket_m = Mutex.create()
 
   val mutable url = url
 
@@ -240,7 +238,7 @@ object (self)
               \"polling\" (attempting to connect to the HTTP stream) \
               or \"connected <url>\" (connected to <url>, buffering or \
               playing back the stream)."
-       (Tutils.mutexify get_socket_m (fun _ ->
+       (Tutils.mutexify socket_m (fun _ ->
          match socket with
            | Some (_,_,url) -> "connected " ^ url
            | None -> if relaying then "polling" else "stopped")) ;
@@ -257,18 +255,26 @@ object (self)
     Generator.add_metadata generator m ;
     if track_on_meta then Generator.add_break ~sync:`Ignore generator
 
-  method feeding should_stop ?(newstream=true)
-                 create_decoder =
-    let read len =
+  method feeding should_stop create_decoder =
+    let read =
       let log = self#log#f 4 "%s" in
       (* Socket can't be closed while waiting on it. *)
-      Tutils.mutexify socket_m (fun () ->
-          match socket with
-            | None -> "",0
-            | Some (socket,read,_) ->
-              Utils.wait_for ~log `Read socket timeout;
-              read len
-      ) ()
+      (fun len ->
+        let socket = Tutils.mutexify socket_m (fun () ->
+          socket) ()
+        in
+        match socket with
+          | None -> "",0
+          | Some (socket,read,_) ->
+              begin
+               try
+                Tutils.wait_for ~log `Read socket timeout;
+                read len
+               with e -> self#log#f 2 "Error while reading from socket: \
+                            %s" (Printexc.to_string e);
+                         self#disconnect_no_lock;
+                         "",0
+               end)
     in
     let read =
       match logf with
@@ -305,9 +311,14 @@ object (self)
               | Failure s ->
                   self#log#f 2 "Feeding stopped: %s" s
               | G.Incorrect_stream_type ->
-                self#log#f 2 "Feeding stopped: the decoded stream was not of the right type. The typical situation is when you expect a stereo stream whereas the http stream is mono (in this case the situation can easily be solved by using the audio_to_stereo operator to convert the stream to a stereo one)."
+                self#log#f 2 "Feeding stopped: the decoded stream was not of \
+                              the right type. The typical situation is when \
+                              you expect a stereo stream whereas the http \
+                              stream is mono (in this case the situation can \
+                              easily be solved by using the audio_to_stereo \
+                              operator to convert the stream to a stereo one)."
               | e ->
-                  self#log#f 2 "Feeding stopped: %s" (Utils.error_message e)
+                  self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
             end ;
             begin match logf with
               | Some f -> close_out f ; logf <- None
@@ -315,29 +326,20 @@ object (self)
             end ;
             self#disconnect
 
-  method private disconnect =
-    Tutils.mutexify socket_m
-      (Tutils.mutexify get_socket_m (fun () ->
-        Utils.maydo (fun (s,_,_) ->
-          Http.disconnect s;
-          socket <- None) socket)) ()
+  method private disconnect_no_lock =
+    Utils.maydo (fun (s,_,_) ->
+     try
+      Http.disconnect s;
+      on_disconnect ()
+     with _ -> ()) socket;
+    socket <- None
 
-  (** This method gets overriden by superclasses (see Lastfm_input)
-    * but #private_connect should not be changed.
-    * TODO Document more this OO problem to see why/if there really isn't
-    *   a better way (e.g. using super#connect instead of self#connect
-    *   in the derived class). *)
-  method connect should_stop url =
-    self#private_connect ~sanitize:true should_stop url
+  method disconnect =
+    Tutils.mutexify socket_m (fun () ->
+      self#disconnect_no_lock) ()
 
   (* Called when there's no decoding process, in order to create one. *)
-  method private_connect ?(sanitize=true) poll_should_stop url =
-    let url =
-      if sanitize then
-        Http.http_sanitize url
-      else
-        url
-    in
+  method connect poll_should_stop url =
     let host,port,mount,auth = parse_url url in
     let req =
       Printf.sprintf
@@ -356,34 +358,33 @@ object (self)
     in
     try
       let (_, status, status_msg), fields =
-        Tutils.mutexify socket_m
-          (Tutils.mutexify get_socket_m (fun () ->
-            if socket <> None then
-              failwith "Cannot connect while already connected..";
-            self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
-            let s = Http.connect ?bind_address host port in
-            let log = self#log#f 4 "%s" in
-            let ((_, status, status_msg), fields as ret) =
-              Http.request ~log ~timeout s request
-            in
-            let metaint =
-              try
-                Some (int_of_string (List.assoc "icy-metaint" fields))
-              with _ -> None
-            in
-            let chunked =
-              try
-                List.assoc "transfer-encoding" fields = "chunked"
-              with _ -> false
-            in
-            if chunked then
-              self#log#f 4 "Chunked HTTP/1.1 transfer" ;
-            (* read_stream has a state, so we must create it here.. *)
-            let read =
-              read_stream s chunked metaint self#insert_metadata
-            in
-            socket <- Some (s,read,url);
-            ret)) ()
+        Tutils.mutexify socket_m (fun () ->
+          if socket <> None then
+            failwith "Cannot connect while already connected..";
+          self#log#f 4 "Connecting to <http://%s:%d%s>..." host port mount ;
+          let s = Http.connect ?bind_address host port in
+          let log = self#log#f 4 "%s" in
+          let (_, fields as ret) =
+            Http.request ~log ~timeout s request
+          in
+          let metaint =
+            try
+              Some (int_of_string (List.assoc "icy-metaint" fields))
+            with _ -> None
+          in
+          let chunked =
+            try
+              List.assoc "transfer-encoding" fields = "chunked"
+            with _ -> false
+          in
+          if chunked then
+            self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+          (* read_stream has a state, so we must create it here.. *)
+          let read =
+            read_stream s chunked metaint self#insert_metadata
+          in
+          socket <- Some (s,read,url);
+          ret) ()
       in
       let content_type =
         match force_mime with
@@ -422,13 +423,14 @@ object (self)
         self#log#f 4 "Could not get file: %s" status_msg;
         raise Internal
       end ;
+      on_connect fields ;
       let play_track (m,uri) =
         if not (poll_should_stop ()) then
           let metas = Hashtbl.create 2 in
           List.iter (fun (a,b) -> Hashtbl.add metas a b) m;
           self#insert_metadata metas;
           self#disconnect;
-          self#private_connect poll_should_stop uri
+          self#connect poll_should_stop uri
       in
       let randomize playlist =
         let aplay = Array.of_list playlist in
@@ -443,26 +445,30 @@ object (self)
             | Randomize -> List.iter play_track (randomize playlist)
             | Normal -> List.iter play_track playlist
         with
-          | Failure hd -> raise Not_found
+          | Failure _ -> raise Not_found
       in
       let test_playlist parser =
-        Tutils.mutexify get_socket_m (fun () ->
-          match socket with
+        let playlist =
+          Tutils.mutexify socket_m (fun () ->
+            match socket with
             | None -> failwith "not connected!"
             | Some (s,_,_) ->
               let content = Http.read ~timeout s None in
               let playlist = parser content in
-                match playlist with
-                  | [] -> raise Not_found
-                  | _ -> playlist_process playlist) ()
+              match playlist with
+              | [] -> raise Not_found
+              | _ -> playlist) ()
         in
+        playlist_process playlist
+      in
         try
           self#log#f 4
             "Trying playlist parser for mime %s" content_type ;
           match Playlist_parser.parsers#get content_type with
             | None -> raise Not_found
             | Some plugin ->
-                test_playlist plugin.Playlist_parser.parser
+              let pwd = Http.dirname url in
+              test_playlist (plugin.Playlist_parser.parser ~pwd)
         with
           | Not_found ->
               (* Trying playlist auto parsing in case
@@ -470,7 +476,7 @@ object (self)
               if content_type = "text/plain" then begin
                 try
                   test_playlist
-                    (fun x -> snd (Playlist_parser.search_valid x))
+                    (fun x -> snd (Playlist_parser.search_valid ~pwd:(Http.dirname url) x))
                 with
                   | Not_found -> ()
               end else begin
@@ -490,7 +496,7 @@ object (self)
                       with e ->
                         self#log#f 2
                           "Could not open log file: %s"
-                          (Utils.error_message e)
+                          (Printexc.to_string e)
                       end
                   | None -> ()
                 end ;
@@ -503,14 +509,14 @@ object (self)
     with
       | Redirection location ->
           self#disconnect;
-          self#private_connect ~sanitize:false poll_should_stop location
+          self#connect poll_should_stop location
       | Http.Error e ->
           self#disconnect;
           self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
           if debug then raise (Http.Error e)
       | e ->
           self#disconnect;
-          self#log#f 4 "Connection failed: %s" (Utils.error_message e) ;
+          self#log#f 4 "Connection failed: %s" (Printexc.to_string e) ;
           if debug then raise e
 
   (* Take care of (re)starting the decoding *)
@@ -567,6 +573,17 @@ let () =
 
       "timeout", Lang.float_t, Some (Lang.float 30.),
       Some "Timeout for source connectionn.";
+
+      "on_connect",
+      Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+      Some (Lang.val_cst_fun ["",Lang.metadata_t,None] Lang.unit),
+      Some "Function to execute when a source is connected. \
+            Its receives the list of headers, of the form: \
+            (<label>,<value>). All labels are lowercase.";
+
+      "on_disconnect",Lang.fun_t [] Lang.unit_t,
+      Some (Lang.val_cst_fun [] Lang.unit),
+      Some "Function to excecute when a source is disconnected";
 
       "new_track_on_metadata", Lang.bool_t, Some (Lang.bool true),
       Some "Treat new metadata as new track." ;
@@ -649,8 +666,25 @@ let () =
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
                    "Maximum buffering inferior to pre-buffered data"));
+       let on_connect l =
+         let l =
+           List.map
+            (fun (x,y) -> Lang.product (Lang.string x) (Lang.string y))
+            l
+         in
+         let arg =
+           Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) l
+         in
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_connect" p) ["",arg])
+       in
+       let on_disconnect () =
+         ignore
+           (Lang.apply ~t:Lang.unit_t (List.assoc "on_disconnect" p) [])
+       in
        let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          ((new http ~kind ~playlist_mode ~autostart ~track_on_meta
                     ~force_mime ~bind_address ~poll_delay ~timeout
-                    ~bufferize ~max ~debug ~logfile ~user_agent url)
+                    ~on_connect ~on_disconnect ~bufferize ~max 
+                    ~debug ~logfile ~user_agent url)
             :> Source.source))

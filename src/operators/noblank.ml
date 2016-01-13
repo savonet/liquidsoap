@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@ open Source
 (** Below, lengths are in audio samples, thresholds in RMS (in [0.;1.]). *)
 
 class virtual base ~track_sensitive ~max_blank ~min_noise ~threshold =
-object(self)
-
+object
   (** State can be either
     *  - `Noise l: the source is considered to be emitting,
     *     but it has been silent for l samples;
@@ -76,9 +75,8 @@ end
 class on_blank ~kind ~max_blank ~min_noise ~threshold
   ~track_sensitive ~on_blank ~on_noise source =
 object (self)
-
   inherit operator ~name:"on_blank" kind [source]
-  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold as base
+  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -107,7 +105,7 @@ object (self)
    *  - keep pulling data from the source during those times. *)
 
   inherit active_operator ~name:"strip_blank" kind [source]
-  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold as base
+  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold
 
   initializer
     ns_kind <- "strip_blank" ;
@@ -153,8 +151,8 @@ object (self)
    * TODO It requires control over the time flow of the source; we need
    * to force our own clock onto it. *)
 
-  inherit operator ~name:"eat_blank" kind [source] as super
-  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold as base
+  inherit operator ~name:"eat_blank" kind [source]
+  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold
 
   (** We strip when the source is silent,
     * but only at the beginning of tracks if [at_beginning] is passed. *)
@@ -244,10 +242,7 @@ let () =
        let max_blank,min_noise,threshold,track_sensitive,s = extract p in
          new on_blank ~kind ~max_blank ~min_noise ~threshold
            ~track_sensitive ~on_blank ~on_noise s) ;
-  Lang.add_operator "strip_blank"
-    (* TODO make it active again when it doesn't hurt type
-     *   inference as much, cf. LS-551.
-     * ~active:true *)
+  Lang.add_operator "strip_blank" ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
     ~descr:"Make the source unavailable when it is streaming blank."

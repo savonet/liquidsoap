@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 
 (** WAV encoder *)
 
-open Encoder
 open Encoder.WAV
 
 let encoder wav =
@@ -43,7 +42,7 @@ let encoder wav =
                                (float sample_size) /. 8.))
   in
   let header =
-    Wav.header ?len ~channels ~sample_rate ~sample_size ()
+    Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
   in
   let need_header = ref wav.header in
   let encode frame start len =
@@ -61,12 +60,16 @@ let encoder wav =
         in
         b,0,Array.length b.(0)
     in
-    let s = String.create (sample_size / 8 * len * channels) in
-    begin match sample_size with
-      | 16 -> Audio.S16LE.of_audio b start s 0 len
-      | 8 -> Audio.U8.of_audio b start s 0 len
-      | _ -> failwith "unsupported sample size"
-    end ;
+    let s = Bytes.create (sample_size / 8 * len * channels) in
+    let of_audio =
+      match sample_size with
+        | 32 -> Audio.S32LE.of_audio
+        | 24 -> Audio.S24LE.of_audio
+        | 16 -> Audio.S16LE.of_audio
+        | 8 -> Audio.U8.of_audio
+        | _ -> failwith "unsupported sample size"
+    in
+    of_audio b start s 0 len;
     if !need_header then begin
       need_header := false ;
       header ^ s
@@ -75,7 +78,7 @@ let encoder wav =
   in
     {
      Encoder.
-      insert_metadata = (fun m -> ()) ;
+      insert_metadata = (fun _ -> ()) ;
       encode = encode ;
       header = Some header ;
       stop = (fun () -> "")

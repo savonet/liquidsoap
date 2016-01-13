@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ let kind_type_of_frame_kind kind =
   let midi  = t_of_mul kind.Frame.midi in
     frame_kind_t ~audio ~video ~midi
 
-(** Given a Lang type that has been infered, convert it to a kind.
+(** Given a Lang type that has been inferred, convert it to a kind.
   * This might require to force some Any_fixed variables. *)
 let rec mul_of_type default t =
   match (T.deref t).T.descr with
@@ -213,17 +213,17 @@ let kind_type_of_kind_format ~fresh fmt =
 (** Value construction *)
 
 let mk ~t v = { t = t ; value = v }
-let unit = mk unit_t Unit
-let int i = mk int_t (Int i)
-let bool i = mk bool_t (Bool i)
-let float i = mk float_t (Float i)
-let string i = mk string_t (String i)
-let product a b = mk (product_t a.t b.t) (Product (a,b))
+let unit = mk ~t:unit_t Unit
+let int i = mk ~t:int_t (Int i)
+let bool i = mk ~t:bool_t (Bool i)
+let float i = mk ~t:float_t (Float i)
+let string i = mk ~t:string_t (String i)
+let product a b = mk ~t:(product_t a.t b.t) (Product (a,b))
 
-let list ~t l = mk (list_t t) (List l)
+let list ~t l = mk ~t:(list_t t) (List l)
 
 let source s =
-  mk (source_t (kind_type_of_frame_kind s#kind)) (Source s)
+  mk ~t:(source_t (kind_type_of_frame_kind s#kind)) (Source s)
 
 let request r =
   let kind =
@@ -231,12 +231,12 @@ let request r =
       | Some k -> k
       | None -> let z = Frame.Zero in {Frame.audio=z;video=z;midi=z}
   in
-    mk (request_t (kind_type_of_frame_kind kind)) (Request r)
+    mk ~t:(request_t (kind_type_of_frame_kind kind)) (Request r)
 
 let val_fun p ~ret_t f =
   let f env t = f (List.map (fun (x,(g,v)) -> assert (g=[]) ; x,v) env) t in
   let t = fun_t (List.map (fun (l,_,t,d) -> d<>None,l,t) p) ret_t in
-  let p' = List.map (fun (l,x,t,d) -> l,x,d) p in
+  let p' = List.map (fun (l,x,_,d) -> l,x,d) p in
     mk ~t (FFI (p',[],f))
 
 let val_cst_fun p c =
@@ -257,7 +257,7 @@ let val_cst_fun p c =
 
 let metadata m =
   list
-    (product_t string_t string_t)
+    ~t:(product_t string_t string_t)
     (Hashtbl.fold
        (fun k v l -> (product (string k) (string v))::l)
        m [])
@@ -360,7 +360,7 @@ let string_of_category x = "Source / " ^ match x with
   *    e.g. the parameter of a format type.
   * From this high-level description a type is created. Often it will
   * carry a type constraint.
-  * Once the type has been infered, the function might be executed,
+  * Once the type has been inferred, the function might be executed,
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
@@ -421,7 +421,7 @@ let iter_sources f v =
     | Term.Int _ | Term.Float _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
     | Term.Ref a | Term.Get a -> iter_term env a
-    | Term.Let {Term.def=a;body=b}
+    | Term.Let {Term.def=a;body=b;_}
     | Term.Product (a,b) | Term.Seq (a,b) | Term.Set (a,b) ->
         iter_term env a ; iter_term env b
     | Term.Var v ->
@@ -473,12 +473,12 @@ let iter_sources f v =
          * which probably won't prevent users to get biffled... *)
         let may_have_source =
           try
-            let has_var_neg,has_var_pos =
+            let _,has_var_pos =
               Lang_types.iter_constr
                 (fun pos c ->
                    if pos &&
                       match c with
-                        | { T.name = "source" } -> true | _ -> false
+                      | { T.name = "source"; _} -> true | _ -> false
                    then raise Found)
                 v.t
             in
@@ -630,6 +630,10 @@ let report_error lexbuf f =
     try f () with
       | Failure "lexing: empty token" -> print_error "Empty token" ; raise Error
       | Parsing.Parse_error -> print_error "Parse error" ; raise Error
+      | Lang_values.Parse_error (pos,s) ->
+        let pos = T.print_pos pos in
+        Format.printf "@[<2>%s:@ %s@]@." pos s;
+        raise Error
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
             Format.printf
@@ -833,7 +837,7 @@ let interactive () =
         | Error ->
             true
         | e ->
-            Format.printf "Exception: %s!@." (Utils.error_message e) ;
+            Format.printf "Exception: %s!@." (Printexc.to_string e) ;
             true
     then
       loop ()

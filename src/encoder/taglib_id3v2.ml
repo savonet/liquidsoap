@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ let render m =
     try
       Hashtbl.iter
         (fun k x ->
-          if (String.uppercase l) = (String.uppercase k) then
+          if (Utils.StringCompat.uppercase_ascii l) = (Utils.StringCompat.uppercase_ascii k) then
            raise (Found x)) m ;
      t
     with

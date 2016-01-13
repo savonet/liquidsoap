@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ let note_of_string s = note_of_string s - 12
 
 class chord ~kind metadata_name (source:source) =
 object (self)
-  inherit operator ~name:"chord" kind [source] as super
+  inherit operator ~name:"chord" kind [source]
 
   method stype = source#stype
 

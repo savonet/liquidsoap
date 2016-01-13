@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ sig
   exception Unknown_error of int
   val encode_buffer_float_part :
       encoder -> float array -> float array -> int -> int -> string
+  val encode_flush_nogap : encoder -> string
 end
 
 let bit_at s pos = 
@@ -202,6 +203,9 @@ struct
               (Printf.sprintf "%s%s" s (encoded ()))
           | _ -> encoded ()
       in
+      let stop () =
+        Lame.encode_flush_nogap enc
+      in
       let insert_metadata = 
         match mp3.id3v2 with
           | Some f -> 
@@ -220,7 +224,7 @@ struct
           insert_metadata = insert_metadata ;
           encode = encode ;
           header = None ;
-          stop = (fun () -> "")
+          stop = stop
         }
     in
     Encoder.plug#register name

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ let conf_midi_channels =
 let lazy_config_eval = ref false
 let allow_lazy_config_eval () = lazy_config_eval := true
 
-let delayed f = Lazy.lazy_from_fun f
+let delayed f = Utils.LazyCompat.from_fun f
 let delayed_conf x =
   delayed
     (fun () ->
@@ -99,7 +99,7 @@ let delayed_conf x =
 let (!!) = Lazy.force
 
 (** The channel numbers are only defaults, used when channel numbers
-  * cannot be infered / are not forced from the context.
+  * cannot be inferred / are not forced from the context.
   * I'm currently unsure how much they are really useful. *)
 
 let audio_channels = delayed_conf conf_audio_channels
@@ -348,7 +348,7 @@ let create_content content_type =
   {
     audio =
       Array.init content_type.audio
-        (fun _ -> Array.create (audio_of_master !!size) 0.) ;
+        (fun _ -> Array.make (audio_of_master !!size) 0.) ;
     video =
       Array.init content_type.video
         (fun _ ->
@@ -386,11 +386,11 @@ let rec last = function
 
 (* When clearing a buffer, only the last content chunk is kept
  * since it is the most likely to be re-used. *)
-let clear b =
+let clear (b:t) =
   b.contents <- [last b.contents] ;
   b.breaks <- [] ; b.metadata <- []
 
-let clear_from b pos =
+let clear_from (b:t) pos =
   let rec aux = function
     | [] -> assert false
     | (end_pos,content)::l ->
@@ -407,7 +407,7 @@ let advance b =
   b.contents <- [last b.contents] ;
   assert (fst (List.hd b.contents) = !!size) ;
   let max a (p,m) =
-    match a with Some (pa,ma) when pa > p -> a | _ -> Some (p,m)
+    match a with Some (pa,_) when pa > p -> a | _ -> Some (p,m)
   in
   let rec last a = function
     | [] -> a
@@ -448,7 +448,7 @@ let get_past_metadata b =
     fixed. Calling this function requires that the caller handles all possible
     content types allowed by the frame kind, and never affects the contents
     layout. *)
-let content frame pos =
+let content (frame:t) pos =
   (* The next line allows to homonegenously treat cases where no portion
    * of the buffer actually has to be processed: if one wants to read
    * past the end of the buffer, we can return anything really, but
@@ -466,7 +466,7 @@ let content frame pos =
   * if the current content type at the given position is not the required
   * one. Hence, the caller of this function should always assume the
   * invalidation of all data after the given position. *)
-let content_of_type ?force frame pos content_type =
+let content_of_type ?force (frame:t) pos content_type =
   (* [acc] contains the previous layers in reverse order,
    * [start_pos] is the starting position of the first layer in [acc],
    * and we're walking through the next layers. *)
@@ -484,7 +484,7 @@ let content_of_type ?force frame pos content_type =
             if pos=start_pos then
               (* We are erasing the current layer. *)
               match acc with
-                | (end_pos,content)::acc
+                | (_,content)::acc
                   when content_has_type content content_type ->
                     (* We must re-use the previous layer. *)
                     frame.contents <- List.rev ((!!size, content)::acc) ;
@@ -516,7 +516,7 @@ let content_of_type ?force frame pos content_type =
   * Hiding content layers avoids that they are used in any way, which
   * is often needed in optimized content conversions. *)
 let hide_contents =
-  fun frame ->
+  fun (frame:t) ->
     let save = frame.contents in
       frame.contents <- [!!size, {audio=[||];video=[||];midi=[||]}] ;
       (fun () -> frame.contents <- save)
@@ -530,7 +530,7 @@ type content_layer =
   }
 
 (** Retrieve all content layers in a frame. *)
-let get_content_layers frame =
+let get_content_layers (frame:t) =
   let rec aux pos = function
     | [] -> []
     | (endpos,c)::l ->

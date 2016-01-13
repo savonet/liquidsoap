@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,12 +21,11 @@
  *****************************************************************************)
 
 open Source
-open Genlex
 exception Error
 
 class insert_metadata ~kind source =
-object (self)
-  inherit operator ~name:"insert_metadata" kind [source] as super
+object
+  inherit operator ~name:"insert_metadata" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -83,7 +82,7 @@ let () =
        if id <> "" then s#set_id id ;
        let f =
          Lang.val_fun ["","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
-                      (fun p t ->
+                      (fun p _ ->
                          s#insert_metadata
                            (Lang.to_metadata (List.assoc "" p));
                          Lang.unit)
@@ -93,7 +92,7 @@ let () =
 (** Insert metadata at the beginning if none is set.
   * Currently used by the switch classes. *)
 class replay ~kind meta src =
-object (self)
+object
   inherit operator ~name:"replay_metadata" kind [src]
 
   val mutable first = true

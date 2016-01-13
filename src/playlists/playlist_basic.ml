@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,14 +20,12 @@
 
  *****************************************************************************)
 
-open Unix
-
 let log = Dtools.Log.make ["playlist";"basic"]
 
 let split_lines buf =
   Pcre.split ~pat:"[\r\n]+" buf
 
-let test_text s = 
+let test_text s =
   match Configure.data_mime with
     | None -> ()
     | Some get_mime ->
@@ -41,8 +39,8 @@ let test_text s =
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
   test_text string ;
-  let lines = 
-    List.filter (fun x -> x <> "") (split_lines string) 
+  let lines =
+    List.filter (fun x -> x <> "") (split_lines string)
   in
   let is_info line =
     Pcre.pmatch ~pat:"^#EXTINF" line
@@ -53,7 +51,7 @@ let parse_mpegurl ?pwd string =
   let rec get_urls cur lines =
     match lines with
       | x :: y :: lines when is_info x && not (skip_line y) ->
-          let metadata = 
+          let metadata =
             match List.rev (Utils.split ~sep:',' x) with
               | x :: _ ->
                  begin
@@ -66,7 +64,7 @@ let parse_mpegurl ?pwd string =
               | _ -> []
           in
           get_urls ((metadata, Playlist_parser.get_file ?pwd y) :: cur) lines
-      | x :: lines when not (skip_line x) -> 
+      | x :: lines when not (skip_line x) ->
           get_urls (([], Playlist_parser.get_file ?pwd x) :: cur) lines
       | _ :: lines -> get_urls cur lines
       | [] -> List.rev cur
@@ -77,7 +75,7 @@ let parse_scpls ?pwd string =
   test_text string ;
   let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
   (* Format check, raise Not_found if invalid *)
-  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (String.lowercase string)) ;
+  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (Utils.StringCompat.lowercase_ascii string)) ;
   let lines = split_lines string in
   let urls =
     List.map
@@ -121,7 +119,7 @@ let parse_maybe_escaped escaped non_escaped f =
 
 let parse_file s f =
   let ret =
-    try 
+    try
       parse_maybe_escaped (Scanf.sscanf s "FILE %S %s") (Scanf.sscanf s "FILE %s %s") (fun x _ -> x)
     with
       | _ -> raise Not_found
@@ -142,7 +140,7 @@ let parse_track s f =
 let parse_index s f =
   try
     Scanf.sscanf s "INDEX %i %i:%i:%i" (fun index min sec frames ->
-      let position = 
+      let position =
         (float_of_int min) *. 60. +. (float_of_int sec) +. (float_of_int frames) /. 75.
       in
       f index position)
@@ -154,8 +152,8 @@ let find_file l =
     match rem with
       | x :: rem ->
          begin
-          try 
-            parse_file x (fun title -> title, cur, rem) 
+          try
+            parse_file x (fun title -> title, cur, rem)
           with Not_found -> find (x :: cur) rem
          end
       | [] -> raise Not_found
@@ -180,11 +178,11 @@ let parse_tracks index lines =
               in
               parse tracks track rem)
           with _ ->
-            let track = parse_title x (fun title -> 
+            let track = parse_title x (fun title ->
               if title <> None then { track with track_title = title } else track)
             in
-            let track = parse_performer x (fun performer -> 
-              if performer <> None then { track with track_performer = performer } else track) 
+            let track = parse_performer x (fun performer ->
+              if performer <> None then { track with track_performer = performer } else track)
             in
             begin
              try
@@ -205,8 +203,8 @@ let parse_tracks index lines =
 let parse_cue ?pwd string =
   test_text string ;
   let strings = split_lines string in
-  let strings = List.map (fun string -> 
-    Pcre.replace ~rex:(Pcre.regexp "^\\s+") string) strings 
+  let strings = List.map (fun string ->
+    Pcre.replace ~rex:(Pcre.regexp "^\\s+") string) strings
   in
   let strings = List.filter (fun s -> s <> "") strings in
   let strings, file = find_file strings in
@@ -247,17 +245,17 @@ let parse_cue ?pwd string =
     let metadata = maybe "artist" track.track_performer metadata in
     let metadata = maybe "title"  track.track_title     metadata in
     let metadata =
-      maybe 
-        Playlist_parser.conf_cue_in_metadata#get 
+      maybe
+        Playlist_parser.conf_cue_in_metadata#get
         (try Some (string_of_float (Hashtbl.find track.indexes 1)) with _ -> None)
         metadata
     in
-    maybe Playlist_parser.conf_cue_out_metadata#get cue_out metadata, 
+    maybe Playlist_parser.conf_cue_out_metadata#get cue_out metadata,
     Playlist_parser.get_file ?pwd sheet.file
   in
   let rec export_tracks cur tracks =
     match tracks with
-      | []          -> 
+      | []          ->
           assert (cur == []);
           []
       | track :: [] ->
@@ -268,7 +266,7 @@ let parse_cue ?pwd string =
                 Some (string_of_float (Hashtbl.find track'.indexes 0))
               with _ ->
                 begin
-                 try 
+                 try
                   Some (string_of_float (Hashtbl.find track'.indexes 1))
                  with _ -> None
                 end
@@ -285,4 +283,7 @@ let () =
   Playlist_parser.parsers#register "audio/x-mpegurl"
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
   Playlist_parser.parsers#register "audio/mpegurl"
+    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl } ;
+  Playlist_parser.parsers#register "application/x-mpegURL"
     { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
+

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,29 +20,79 @@
 
  *****************************************************************************)
 
+(* TODO: also parse optional arguments? *)
+let get_encoder_format tokenizer lexbuf =
+  let ogg_item = function
+    | Lang_parser.VORBIS -> Lang_encoders.vorbis []
+    | Lang_parser.VORBIS_CBR -> Lang_encoders.vorbis_cbr []
+    | Lang_parser.VORBIS_ABR -> Lang_encoders.vorbis_abr []
+    | Lang_parser.THEORA -> Lang_encoders.theora []
+    | Lang_parser.DIRAC -> Lang_encoders.dirac []
+    | Lang_parser.SPEEX -> Lang_encoders.speex []
+    | Lang_parser.OPUS -> Lang_encoders.opus []
+    | Lang_parser.FLAC -> Lang_encoders.ogg_flac []
+    | _ -> failwith "ogg format expected"
+  in
+  let is_ogg_item token =
+    try let _ = ogg_item token in true with _ -> false
+  in
+    match tokenizer lexbuf with
+    | Lang_parser.MP3 -> Lang_encoders.mp3_cbr []
+    | Lang_parser.MP3_VBR -> Lang_encoders.mp3_vbr []
+    | Lang_parser.MP3_ABR -> Lang_encoders.mp3_vbr []
+    | Lang_parser.SHINE   -> Lang_encoders.shine []
+    | Lang_parser.AACPLUS -> Lang_encoders.aacplus []
+    | Lang_parser.VOAACENC -> Lang_encoders.voaacenc []
+    | Lang_parser.FDKAAC -> Lang_encoders.fdkaac []
+    | Lang_parser.FLAC -> Lang_encoders.flac []
+    | Lang_parser.EXTERNAL -> Lang_encoders.external_encoder []
+    | Lang_parser.GSTREAMER -> Lang_encoders.gstreamer []
+    | Lang_parser.WAV -> Lang_encoders.wav []
+    | ogg when is_ogg_item ogg ->
+      let ogg = ogg_item ogg in
+        Encoder.Ogg [ogg]
+    (* TODO *)
+    (* | Lang_parser.OGG -> Lang_encoders.mk ... [] *)
+    | _ -> failwith "expected an encoding format after %ifencoder"
+
 (* The Lang_lexer is not quite enough for our needs,
  * so we first define convenient layers between it and the parser.
  * First a pre-processor which evaluates %ifdefs. *)
 let preprocess tokenizer =
   let state = ref 0 in
   let rec token lexbuf =
+    let go_on () =
+      incr state ;
+      token lexbuf
+    in
+    let rec skip () =
+      match tokenizer lexbuf with
+      | Lang_parser.PP_ENDIF -> token lexbuf
+      | _ -> skip ()
+    in
     match tokenizer lexbuf with
-      | Lang_parser.PP_IFDEF ->
+      | Lang_parser.PP_IFDEF | Lang_parser.PP_IFNDEF as tok ->
           begin match tokenizer lexbuf with
             | Lang_parser.VAR v ->
+                let test =
+                  if tok = Lang_parser.PP_IFDEF then fun x -> x else not
+                in
                 (** XXX Less natural meaning than the original one. *)
-                if Lang_values.builtins#is_registered v then begin
-                  incr state ;
-                  token lexbuf
-                end else
-                  let rec skip () =
-                    match tokenizer lexbuf with
-                      | Lang_parser.PP_ENDIF -> token lexbuf
-                      | _ -> skip ()
-                  in
-                    skip ()
+                if test (Lang_values.builtins#is_registered v) then
+                  go_on ()
+                else
+                  skip ()
             | _ -> failwith "expected a variable after %ifdef"
           end
+      | Lang_parser.PP_IFENCODER | Lang_parser.PP_IFNENCODER as tok ->
+          let fmt = get_encoder_format tokenizer lexbuf in
+          let has_enc =
+            try let _ = Encoder.get_factory fmt in true with Not_found -> false
+          in
+          let test =
+            if tok = Lang_parser.PP_IFENCODER then fun x -> x else not
+          in
+            if test has_enc then go_on () else skip ()
       | Lang_parser.PP_ENDIF ->
           if !state=0 then failwith "no %ifdef to end here" ;
           decr state ;
@@ -215,7 +265,9 @@ let expand tokenizer =
 let parse_comments tokenizer =
   let documented_def doc =
     let doc =
-      List.map (Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "")) doc
+      List.map
+        (fun x -> Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
+        doc
     in
     let rec parse_doc (main,special,params) = function
       | [] -> (main,special,params)
@@ -330,7 +382,7 @@ let strip_newlines tokenizer =
   in
     token
 
-(* Inline %define x = value. *)
+(* Inline %define x value. *)
 let expand_define tokenizer =
   let defs = ref [] in
   let rec token lexbuf =
@@ -339,7 +391,7 @@ let expand_define tokenizer =
       (
         match tokenizer lexbuf with
         | Lang_parser.VAR x ->
-          if x <> String.uppercase x then raise Parsing.Parse_error;
+          if x <> Utils.StringCompat.uppercase_ascii x then raise Parsing.Parse_error;
           (
             match tokenizer lexbuf with
             | Lang_parser.INT _

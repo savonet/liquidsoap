@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ let file_deco filename =
   let fill frame =
     let pos = Frame.position frame in
     let duration = Frame.seconds_of_master (size-pos) in
-    let rec aux t' =
+    let rec aux () =
       match !events with
         | (ts,k,v)::tl ->
             if ts < !t+.duration then
@@ -76,13 +76,13 @@ let file_deco filename =
                 Hashtbl.add meta k v ;
                 Frame.set_metadata frame pos meta ;
                 events := tl ;
-                aux pos
+                aux ()
             else
               Frame.add_break frame size
         | [] -> Frame.add_break frame pos
     in
       ignore (Frame.content_of_type frame pos empty) ;
-      aux pos ;
+      aux () ;
       t := !t +. Frame.seconds_of_master (Frame.position frame - pos) ;
       -1 (* TODO remaining time *)
   in
@@ -93,7 +93,7 @@ let file_deco filename =
 
 let () =
   Decoder.file_decoders#register "META"
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        if Frame.type_has_kind empty kind then begin
          ignore (parse_file filename) ;
          Some (fun () -> file_deco filename)

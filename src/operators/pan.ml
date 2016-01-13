@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,11 +22,9 @@
 
 open Source
 
-let pi = 3.14159265358979323846
-
 class pan ~kind (source:source) phi phi_0 =
-object (self)
-  inherit operator ~name:"pan" kind [source] as super
+object
+  inherit operator ~name:"pan" kind [source]
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -38,7 +36,7 @@ object (self)
       source#get buf ;
       let buffer = AFrame.content_of_type buf ~channels:2 offset in
       (* Degrees to radians + half field. *)
-      let phi_0 = (phi_0 ()) *. pi /. 360. in
+      let phi_0 = (phi_0 ()) *. Utils.pi /. 360. in
        (* Map -1 / 1 to radians. *)
       let phi = (phi ()) *. phi_0 in
       let gain_left = ((tan phi_0) +. tan phi) /. 2. in

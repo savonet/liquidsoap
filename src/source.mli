@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,6 +72,9 @@ object
   (** Opposite of [get_ready] : the operator no longer needs the source. *)
   method leave : ?dynamic:bool -> source -> unit
   method private sleep : unit
+
+  (** Check if a source is up or not. *)
+  method is_up : bool
 
   (** {1 Streaming} *)
 
@@ -175,13 +178,22 @@ val iterate_new_outputs : (active_source -> unit) -> unit
 
 class type clock =
 object
+  (** Identifier of the clock. *)
   method id : string
 
+  (** Attach an active source to the clock. *)
   method attach : active_source -> unit
+
+  (** Detach active sources that satisfy a given criterion. *)
   method detach : (active_source -> bool) -> unit
 
+  (** Manage subordinate clocks *)
+
   method attach_clock : clock_variable -> unit
+  method detach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
+
+  (** Streaming *)
 
   method start_outputs : (active_source -> bool) -> unit -> active_source list
   method get_tick : int
@@ -199,6 +211,7 @@ sig
                        clock_variable
   val create_known : clock -> clock_variable
   val unify : clock_variable -> clock_variable -> unit
+  val forget : clock_variable -> clock_variable -> unit
   val get : clock_variable -> clock
   val is_known : clock_variable -> bool
 end

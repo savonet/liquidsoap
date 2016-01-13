@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ let encoder shine =
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   (* Shine accepts data of a fixed length.. *)
-  let samples = Shine.samples_per_frame in
+  let samples = Shine.samples_per_pass enc in
   let data = Audio.create channels samples in
   let buf = G.create () in
   let encoded = Buffer.create 1024 in
@@ -78,7 +78,7 @@ let encoder shine =
   in
   let stop () = Shine.flush enc in
   { Encoder.
-     insert_metadata = (fun m -> ()) ;
+     insert_metadata = (fun _ -> ()) ;
      header = None ;
      encode = encode ;
      stop = stop }

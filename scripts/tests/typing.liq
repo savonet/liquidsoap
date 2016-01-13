@@ -3,6 +3,8 @@
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
+%include "test.liq"
+
 # Check that some polymorphism is allowed.
 # id : (string,'a)->'a
 def id(a,b)
@@ -54,7 +56,7 @@ list.iter(fun (f) -> log(string_of(f())), l1)
 # list.iter(fun (f) -> log(string_of(f(42))), l1)
 
 # Actually, this is forbidden too, but the reason is more complex...
-# The infered type for the function is ((int)->int)->unit,
+# The inferred type for the function is ((int)->int)->unit,
 # and (int)->int is not a subtype of (?int)->int.
 # There's no most general answer here since (?int)->int is not a 
 # subtype of (int)->int either.
@@ -109,4 +111,4 @@ def sum_eq(a,b)
   a+b == a
 end
 
-print("TEST PASSED")
+test.pass()

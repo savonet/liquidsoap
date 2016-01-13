@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ let to_s16le b =
   assert (Audio.channels fpcm = 2);
   (*
   let slen = 2 * Array.length fpcm * Array.length fpcm.(0) in
-  let s = String.create slen in
+  let s = Bytes.create slen in
     assert (Audio.to_16le fpcm 0 (Array.length fpcm.(0)) s 0 = slen);
     s
   *)

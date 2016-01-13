@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@
 open Source
 
 class swap ~kind (source:source) =
-object (self)
-  inherit operator kind [source] ~name:"swap" as super
+object
+  inherit operator kind [source] ~name:"swap"
 
   method stype = source#stype
   method is_ready = source#is_ready

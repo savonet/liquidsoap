@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,59 +20,135 @@
 
  *****************************************************************************)
 
-open Source
 open Dtools
 
 let dlog = Log.make ["protocols";"external"]
 
-let resolve proto program command s ~log maxtime =
-  let s = proto ^ ":" ^ s in
-  let file_ext = 
+let which =
+  let which = Utils.which ~path:Configure.path in
+  if Sys.os_type <> "Win32" then
+    which
+  else
+    fun s ->
+      try which s with Not_found ->
+        which (Printf.sprintf "%s%s" s Configure.exe_ext)
+
+(* Find extension of a file based on a returned content-type. *)
+let ext_of_content_type url =
+  if Sys.os_type = "Win32" then
+    raise Not_found;
+  let curl = which "curl" in
+  (* Using curl here since it's way more powerful. *)
+  let cmd =
+    Printf.sprintf
+      "%s -sLI -X HEAD %s | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+      curl url
+  in
+  let ch = Unix.open_process_in cmd in
+  let mime = String.trim (input_line ch) in
+  ignore(Unix.close_process_in ch);
+  match Utils.StringCompat.lowercase_ascii mime with
+    | "audio/mpeg" -> "mp3"
+    | "application/ogg" | "application/x-ogg"
+    | "audio/x-ogg" | "audio/ogg"
+    | "video/ogg" -> "ogg"
+    | "audio/x-flac" -> "flac"
+    | "audio/mp4" | "application/mp4" -> "mp4"
+    | "audio/vnd.wave" | "audio/wav"
+    | "audio/wave" | "audio/x-wav" -> "wav"
+    | _ -> raise Not_found
+
+let get_ext src =
+  try
+    ext_of_content_type src
+  with Not_found -> Utils.get_ext src
+
+let mktmp src =
+  let file_ext =
     Printf.sprintf ".%s"
     (try
-      Utils.get_ext s
+      get_ext src
      with
        | _ -> "osb")
   in
-  let local = Filename.temp_file "liq" file_ext in
+  Filename.temp_file "liq" file_ext
+
+let resolve proto program command s ~log maxtime =
+  let s = proto ^ ":" ^ s in
   (* We create a fresh stdin for the process,
    * and another one, unused by the child, on which we'll wait for EOF
    * as a mean to detect termination. *)
   let (iR,iW) = Unix.pipe () in
   let (xR,xW) = Unix.pipe () in
+  let local = mktmp s in
+  let args = command program s local in
   let pid =
-    Unix.create_process
-      program (command program s local)
-      iR Unix.stderr Unix.stderr
+    Unix.create_process program args iR xW Unix.stderr
   in
-  dlog#f 4 "Executing %s %S %S" program s local ;
-  let timeout = max 0. (maxtime -. Unix.gettimeofday ()) in
-    Unix.close iR ;
-    Unix.close xW ;
-    if Utils.select [xR] [] [] timeout = ([],[],[]) then
-      Unix.kill pid 9 ;
-    let (p,code) = Unix.waitpid [] pid in
-      assert (p <> 0) ;
-      dlog#f 4 "Download process finished (%s)"
-        (match code with
-        | Unix.WSIGNALED _ -> "killed"
-        | Unix.WEXITED 0 -> "ok"
-        | _ -> "error") ;
-      Unix.close iW ;
-      Unix.close xR ;
-      if code = Unix.WEXITED 0 then
-        [Request.indicator ~temporary:true local]
-      else begin
-        log "Download failed: timeout, invalid URI ?" ;
-        ( try Unix.unlink local with _ -> () ) ;
-        []
-      end
+  dlog#f 4 "Executing %s %S %S" program s local;
+  let timeout () = max 0. (maxtime -. Unix.gettimeofday ()) in
+  Unix.close iR ;
+  let after_task,task_done =
+    let m = Mutex.create () in
+    let c = Condition.create () in
+    let is_task = ref false in
+    Tutils.mutexify m (fun fn ->
+      if !is_task then
+        Condition.wait c m;
+      fn()),
+    Tutils.mutexify m (fun () ->
+      Unix.close xR;
+      is_task := false;
+      Condition.signal c)
+  in
+  let rec task () = 
+    let timeout = timeout () in
+    let s = Bytes.create 1024 in
+    { Duppy.Task.
+      priority = Tutils.Non_blocking;
+      events   = [`Read xR; `Delay timeout];
+      handler  = fun l ->
+        let rem = 
+          if List.mem (`Delay timeout) l then
+           begin
+            Unix.kill pid 9;
+            []
+           end
+          else
+           begin
+            let ret =
+              try Unix.read xR s 0 1024 with _ -> 0
+            in
+            if ret > 0 then [task()] else []
+           end
+        in
+        if rem = [] then task_done();
+        rem }
+  in
+  Duppy.Task.add Tutils.scheduler (task ());
+  let (p,code) = Unix.waitpid [] pid in
+  assert (p <> 0) ;
+  dlog#f 4 "Download process finished (%s)"
+    (match code with
+       | Unix.WSIGNALED _ -> "killed"
+       | Unix.WEXITED 0 -> "ok"
+       | _ -> "error") ;
+  Unix.close iW ;
+  Unix.close xW ;
+  after_task (fun () ->
+    if code = Unix.WEXITED 0 then
+    [Request.indicator ~temporary:true local]
+    else begin
+      log "Download failed: timeout, invalid URI?" ;
+      ( try Unix.unlink local with _ -> () ) ;
+      []
+    end)
 
 let extproto = [
-  "wget",
+  "curl",
   [ "http";"https";"ftp" ],
   (fun prog src dst ->
-     [|prog;"-q";src;"-O";dst|]) ;
+    [|prog;"-sL";src;"-o";dst|])
 ]
 
 let () =
@@ -83,7 +159,7 @@ let () =
   List.iter
     (fun (prog,protos,command) ->
        try
-         let prog = Utils.which prog in
+         let prog = which prog in
            dlog#f 3 "Found %S." prog ;
            List.iter
              (fun proto ->

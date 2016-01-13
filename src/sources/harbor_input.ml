@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,26 +20,14 @@
 
  *****************************************************************************)
 
-open Unix
-
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.Make(Generator)
 
-exception Disconnected
-exception Stopped
-
-(** Error translator *)
-let error_translator e =
-   match e with
-     | Disconnected ->
-         raise (Utils.Translation "Source client disconnected")
-     | Stopped ->
-         raise (Utils.Translation "Source stopped")
-     | _ -> ()
-
-let () = Utils.register_error_translator error_translator
-
-(* {1 Input handling} *)
+(** Default function to read from a socket. *)
+let default_read socket len =
+  let buf = Bytes.create len in
+  let n = Unix.read socket buf 0 len in
+  buf, n
 
 class http_input_server ~kind ~dumpfile ~logfile
                         ~bufferize ~max ~icy ~port
@@ -52,29 +40,19 @@ class http_input_server ~kind ~dumpfile ~logfile
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
 object (self)
-  inherit Source.source ~name:"harbor" kind as super
+  inherit  Source.source ~name:"harbor" kind as super
   inherit Generated.source
             (Generator.create
                ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-            ~empty_on_abort:false ~bufferize as generated
+            ~empty_on_abort:false ~bufferize
 
-  (** POSIX sucks.. *)
   val mutable relay_socket = None
-  (* Mutex used to change socket's state (close) *)
+  (** Function to read on socket. *)
+  val mutable relay_read = (fun _ _ -> assert false)
+  (* Mutex used to protect socket's state (close) *)
   val relay_m = Mutex.create ()
-  (* Mutex used to grab socket's status (read only) *)
-  val get_relay_m = Mutex.create()
   val mutable create_decoder = fun _ -> assert false
   val mutable mime_type = None
-
-  (** [kill_polling] is for requesting that the feeding thread stops;
-    * it is called on #disconnect. *)
-  val mutable kill_polling = None
-
-  (** [wait_polling] is to make sure that the thread did stop;
-    * it is only called in #relay before creating a new thread,
-    * so that #disconnect is instantaneous. *)
-  val mutable wait_polling = None
 
   val mutable dump = None
   val mutable logf = None
@@ -82,7 +60,7 @@ object (self)
   initializer
     ns_kind <- "input.harbor" ;
     let stop _ =
-      self#disconnect;
+      self#disconnect ~lock:true;
       "Done"
     in
     self#register_command
@@ -91,7 +69,7 @@ object (self)
       "kick" ~descr:"Kick current source client, if connected." stop ;
     self#register_command
       "status" ~descr:"Display current status."
-      (Tutils.mutexify get_relay_m
+      (Tutils.mutexify relay_m
        (fun _ ->
          match relay_socket with
            | Some s ->
@@ -127,31 +105,47 @@ object (self)
 
   method get_mime_type = mime_type
 
-  method feed (should_stop,has_stopped) =
+  method feed =
     self#log#f 3 "Decoding..." ;
     let t0 = Unix.gettimeofday () in
     let read len =
-      Tutils.mutexify relay_m (fun () -> 
-        match relay_socket with
-          | None -> "", 0
-          | Some socket ->
-            (* Wait for `Read event on socket. *)
-            let log = self#log#f 4 "%s" in
-            Utils.wait_for ~log `Read socket timeout;
-            (* Now read. *)
-            let buf = String.make len ' ' in
-            let input = Unix.read socket buf 0 len in
-            begin match dump with
-              | Some b -> output_string b (String.sub buf 0 input)
-              | None -> ()
-            end ;
-            begin match logf with
-              | Some b ->
-                  let time = (Unix.gettimeofday () -. t0) /. 60. in
-                  Printf.fprintf b "%f %d\n%!" time self#length
-              | None -> ()
-            end ;
-            buf,input) ()
+      let buf,input = (fun len ->
+        let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
+         match socket with
+           | None -> "", 0
+           | Some socket ->
+               begin
+                 try
+                   let rec f () =
+                     try
+                       (* Wait for `Read event on socket. *)
+                       Tutils.wait_for ~log `Read socket timeout;
+                       (* Now read. *)
+                       relay_read socket len
+                      with
+                        | Harbor.Retry -> f ()
+                   in
+                   f ()
+                 with
+                 | e -> self#log#f 2 "Error while reading from client: \
+                            %s" (Printexc.to_string e);
+                   self#disconnect ~lock:false;
+                   "",0
+               end) len;
+      in
+      begin
+        match dump with
+          | Some b -> output_string b (String.sub buf 0 input)
+          | None -> ()
+      end ;
+      begin
+        match logf with
+          | Some b ->
+             let time = (Unix.gettimeofday () -. t0) /. 60. in
+             Printf.fprintf b "%f %d\n%!" time self#length
+          | None -> ()
+      end ;
+      buf,input
     in
     let input =
       { Decoder.
@@ -163,9 +157,7 @@ object (self)
       try
         let decoder = create_decoder input in
         while true do
-          if should_stop () then
-            raise Disconnected ;
-          Tutils.mutexify get_relay_m
+          Tutils.mutexify relay_m
             (fun () ->
                if relay_socket = None then
                  failwith "relaying stopped") () ;
@@ -175,25 +167,8 @@ object (self)
         | e ->
             (* Feeding has stopped: adding a break here. *)
             Generator.add_break ~sync:`Drop generator ;
-            (* Do not show internal exception, e.g. Unix.read()
-             * exception if source has been stopped. The socket
-             * is closed when stopping so we expect this exception
-             * to happen.. *)
-            let e =
-              match e with
-                | Stopped
-                | Disconnected -> e
-                | _ when relay_socket = None -> Stopped
-                | _ -> e
-            in
-            self#log#f 2 "Feeding stopped: %s." (Utils.error_message e) ;
-            (* exception Disconnected is raised when
-             * the thread is being killed, which only
-             * happends in self#disconnect. No need to
-             * call it then.. *)
-            if e <> Disconnected && e <> Stopped then
-              self#disconnect;
-            has_stopped () ;
+            self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
+            self#disconnect ~lock:true;
             if debug then raise e
 
   method private wake_up act =
@@ -212,10 +187,10 @@ object (self)
                       mountpointpoint '%s' and port %i." mountpoint port))
     end ;
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s"
+    log_ref := fun (s) -> self#log#f 3 "%s" s
 
   method private sleep =
-    self#disconnect;
+    self#disconnect ~lock:true;
     Harbor.remove_source ~port ~mountpoint ()
 
   method register_decoder mime =
@@ -226,60 +201,46 @@ object (self)
       | Some d -> create_decoder <- d ; mime_type <- Some mime
       | None -> raise Harbor.Unknown_codec
 
-  method relay stype (headers:(string*string) list) socket =
-    Tutils.mutexify relay_m
-      (Tutils.mutexify get_relay_m
-        (fun () ->
-          if relay_socket <> None then
-            raise Harbor.Mount_taken ;
-          self#register_decoder stype ;
-          relay_socket <- Some socket)) () ;
+  method relay stype (headers:(string*string) list) ?(read=default_read) socket =
+    Tutils.mutexify relay_m (fun () ->
+      if relay_socket <> None then raise Harbor.Mount_taken;
+      self#register_decoder stype;
+      relay_socket <- Some socket;
+      relay_read <- read
+    ) ();
     on_connect headers ;
     begin match dumpfile with
       | Some f ->
           begin try
-            dump <- Some (open_out_bin
-                            (Utils.home_unrelate f))
+            dump <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open dump file: \
-                            %s" (Utils.error_message e)
+            self#log#f 2 "Could not open dump file: %s" (Printexc.to_string e)
           end
       | None -> ()
     end ;
     begin match logfile with
       | Some f ->
           begin try
-            logf <- Some (open_out_bin
-                            (Utils.home_unrelate f))
+            logf <- Some (open_out_bin (Utils.home_unrelate f))
           with e ->
-            self#log#f 2 "Could not open log file: \
-                            %s" (Utils.error_message e)
+            self#log#f 2 "Could not open log file: %s" (Printexc.to_string e)
           end
       | None -> ()
     end ;
-    (* Wait for the old feeding thread to return,
-      * then create a new one. *)
-    assert (kill_polling = None) ;
-    begin match wait_polling with
-      | None -> ()
-      | Some f ->
-          f () ; wait_polling <- None
-    end ;
-    let kill,wait =
-      Tutils.stoppable_thread self#feed
-          "harbor source feeding"
-    in
-    kill_polling <- Some kill ;
-    wait_polling <- Some wait
+    ignore(Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
-  method disconnect =
-    Tutils.mutexify relay_m
-      (Tutils.mutexify get_relay_m (fun () ->
-        Utils.maydo (fun s ->
-          try
-            Unix.close s
-          with _ -> ()) relay_socket;
-        relay_socket <- None)) ();
+  method private disconnect_no_lock =
+    Utils.maydo (fun s ->
+      try
+       Unix.close s
+      with _ -> ()) relay_socket;
+    relay_socket <- None
+
+  method private disconnect_with_lock =
+    Tutils.mutexify relay_m (fun () ->
+      self#disconnect_no_lock) ();
+
+  method private after_disconnect =
     begin match dump with
        | Some f ->
            close_out f ; dump <- None
@@ -290,9 +251,14 @@ object (self)
            close_out f ; logf <- None
        | None -> ()
     end ;
-    Utils.maydo (fun f -> f()) kill_polling ;
-    kill_polling <- None ;
     on_disconnect ()
+
+  method disconnect ~lock : unit =
+    if lock then
+      self#disconnect_with_lock
+    else
+      self#disconnect_no_lock;
+    self#after_disconnect
 end
 
 let () =
@@ -381,7 +347,7 @@ let () =
        let trivially_false = function
          | { Lang.value =
                Lang.Fun (_,_,_,
-                         { Lang_values.term = Lang_values.Bool false }) }
+                         { Lang_values.term = Lang_values.Bool false; _}); _}
              -> true
          | _ -> false
        in
@@ -453,7 +419,7 @@ let () =
        if bufferize >= max then
          raise (Lang.Invalid_value
                   (List.assoc "max" p,
-                   "Maximun buffering inferior to pre-buffered data"));
+                   "Maximum buffering inferior to pre-buffered data"));
        let on_connect l =
          let l =
            List.map

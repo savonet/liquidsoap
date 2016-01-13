@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -177,7 +177,7 @@ let () =
   let k =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
-  Lang.add_operator "output.portaudio"
+  Lang.add_operator "output.portaudio" ~active:true
     (Output.proto @ [
       "clock_safe", Lang.bool_t, Some (Lang.bool true),
         Some "Force the use of the dedicated Portaudio clock." ;

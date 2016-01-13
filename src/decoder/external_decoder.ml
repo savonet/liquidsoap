@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 (** Decode files using an external decoder. *)
-
-let log = Dtools.Log.make ["decoder";"external"]
 
 let priority = Tutils.Blocking
 let buf_size = 1024
@@ -115,7 +113,7 @@ let external_input process input =
          (fun inlen ->
            Tutils.mutexify task_m (fun () ->
              if !is_task then
-               let tmpbuf = String.create inlen in
+               let tmpbuf = Bytes.create inlen in
                let read = Unix.read pull_e tmpbuf 0 inlen in
                tmpbuf, read
               else
@@ -141,21 +139,21 @@ let external_input process input =
 
 let duration process = 
   let pull = Unix.open_process_in process in
-  let w = Wav.in_chan_read_header pull in
-  let ret = Wav.duration w in
+  let w = Wav_aiff.in_chan_read_header pull in
+  let ret = Wav_aiff.duration w in
   ignore(Unix.close_process_in pull) ;
   ret
 
 module Generator = Generator.From_audio_video
 module Buffered = Decoder.Buffered(Generator)
 
-(** A function to wrap around the Wav_decoder *)
+(** A function to wrap around the Wav_aiff_decoder *)
 let create process kind filename = 
   let close = ref (fun () -> ()) in
   let create input =
     let input,actual_close = external_input process input in
       close := actual_close ;
-      Wav_decoder.D.create ?header:None input
+      Wav_aiff_decoder.D.create ?header:None input
   in
   let generator = Generator.create `Audio in
   let dec = Buffered.file_decoder filename kind create generator in
@@ -170,7 +168,7 @@ let create_stream process input =
   let input,close = external_input process input in
   (* Put this here so that ret is not in its closure.. *)
   let close _ = close () in
-  let ret = Wav_decoder.D_stream.create input in
+  let ret = Wav_aiff_decoder.D_stream.create input in
   Gc.finalise close ret;
   ret
 
@@ -189,7 +187,7 @@ let test_kind f filename =
 
 let register_stdin name sdoc mimes test process =
   Decoder.file_decoders#register name ~sdoc
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        match test_kind test filename with
          | None -> None
          | Some out_kind ->
@@ -252,7 +250,7 @@ let external_input_oblivious process filename prebuf =
   in
   let read len = 
     if not !process_done then
-      let ret = String.create len in
+      let ret = Bytes.create len in
       let read = Unix.read pull_e ret 0 len in
       if read = 0 then close () ; 
       ret,read
@@ -268,7 +266,7 @@ let external_input_oblivious process filename prebuf =
   in
   let gen = Generator.create `Audio in
   let prebuf = Frame.master_of_seconds prebuf in
-  let decoder = Wav_decoder.D.create input in
+  let decoder = Wav_aiff_decoder.D.create input in
   let fill frame = 
      if not !process_done then
        begin try
@@ -277,7 +275,7 @@ let external_input_oblivious process filename prebuf =
          done
        with
          | e ->
-             log#f 4 "Decoding %s ended: %s." process (Utils.error_message e) ;
+             log#f 4 "Decoding %s ended: %s." process (Printexc.to_string e) ;
              close ()
        end ;
      Generator.fill gen frame ;
@@ -292,7 +290,7 @@ let external_input_oblivious process filename prebuf =
 
 let register_oblivious name sdoc test process prebuf =
   Decoder.file_decoders#register name ~sdoc
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        match test_kind test filename with
          | None -> None
          | Some out_kind ->

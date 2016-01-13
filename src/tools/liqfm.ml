@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Duppy
-
 let log = Dtools.Log.make ["liqfm"]
 
 (* A custom implementation of HTTP 
@@ -35,7 +33,7 @@ module Liq_http =
   let exc_of_exc = 
     function
       | Http s -> Http s
-      | e -> Http (Utils.error_message e)
+      | e -> Http (Printexc.to_string e)
 
   (* This in unused for now.. *)
   let default_timeout = ref 5.
@@ -66,19 +64,13 @@ module Liq_http =
  end
 
 module Audioscrobbler = Lastfm_generic.Audioscrobbler_generic(Liq_http)
-module Radio          = Lastfm_generic.Radio_generic(Liq_http)
 
 let error_translator =
   function
     | Audioscrobbler.Error x ->
-       raise (Utils.Translation
-          (Printf.sprintf "Audioscrobbler error: %s" 
-             (Audioscrobbler.string_of_error x)))
-    | Radio.Error x ->
-       raise (Utils.Translation
-          (Printf.sprintf "Lastfm radio error: %s"
-             (Radio.string_of_error x)))
-    | _ -> ()
+        Some (Printf.sprintf "Audioscrobbler error: %s" 
+               (Audioscrobbler.string_of_error x))
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
@@ -100,10 +92,6 @@ let log = Dtools.Log.make ["audioscrobbler"]
 
 exception Duration
 
-let conf_liqfm =
-  Dtools.Conf.void ~p:(Configure.conf#plug "audioscrobbler")
-	    "Audioscrobbler configuration."
-
 let client = { client = "lsp"; version = "0.1" }
 
 let init host =
@@ -113,10 +101,10 @@ let init host =
  let submit_m = Mutex.create () in
  let reason = log#f 3 "Lastfm Submission failed: %s" in
  (* Define a new task *)
- let rec do_submit () =
+ let do_submit () =
    try
     (* This function checks that the submission is valid *)
-    let song songs (user,password,source,stype,length,m) =
+    let song songs (user,password,(source:source),stype,length,m) =
       let login = { user = user ; password = password } in
       let f = fun x -> try Hashtbl.find m x with Not_found -> "" in
       let artist,track = f "artist",f "title" in
@@ -194,7 +182,7 @@ let init host =
             songs
         | e ->
             log#f 4 "could not submit track %s -- %s: unknown error %s"
-              artist track (Utils.error_message e) ;
+              artist track (Printexc.to_string e) ;
             songs
      in
      Mutex.lock submit_m;
@@ -210,7 +198,7 @@ let init host =
          | Not_found -> Hashtbl.add submit (c,t) [m]
      in
      List.iter filter songs ;
-     let f (login,stype) songs =
+     let f (login,(stype:submission)) songs =
        try
          match stype with
            | NowPlaying -> 
@@ -226,7 +214,7 @@ let init host =
      Hashtbl.iter f submit ;
      (-1.)
    with
-     | e -> reason (Utils.error_message e); (-1.)
+     | e -> reason (Printexc.to_string e); (-1.)
    in
    let task = 
      Duppy.Async.add ~priority:Tutils.Blocking Tutils.scheduler do_submit

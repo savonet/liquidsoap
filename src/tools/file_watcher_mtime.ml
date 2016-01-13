@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ let rec watchdog () =
       watched :=
         List.map
         (fun (file,mtime,f) ->
-          let mtime' = file_mtime file in
+          let mtime' = try file_mtime file with _ -> mtime in
           if mtime' <> mtime then f ();
           file,mtime',f
         ) !watched;
@@ -55,7 +55,8 @@ let watch : File_watcher.watch = fun e file f ->
           launched := true;
           Duppy.Task.add Tutils.scheduler (watchdog ())
         end;
-      watched := (file,file_mtime file,f) :: !watched;
+      let mtime = try file_mtime file with _ -> 0. in
+      watched := (file,mtime,f) :: !watched;
       let unwatch =
         Tutils.mutexify m (fun () ->
           watched := List.filter (fun (fname,_,_) -> fname <> file) !watched

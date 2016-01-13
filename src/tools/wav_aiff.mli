@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,48 +20,38 @@
 
  *****************************************************************************)
 
-(** Encode/decode WAV files. *)
+(** Encode/decode IFF files, that is AIFF and WAV. *)
 
 type 'a t
 
-exception Not_a_wav_file of string
+type format = [ `Aiff | `Wav ]
+
+val format_of_handler : 'a t -> format
+
+exception Not_a_iff_file of string
 
 type 'a read_ops =
   {
     really_input : 'a -> string -> int -> int -> unit ;
     input_byte   : 'a -> int ;
     input        : 'a -> string -> int -> int -> int ;
+    (* Seek bytes from the _current_ stream position. *)
+    seek         : 'a -> int -> unit;
     close        : 'a -> unit
   }
 
 val in_chan_ops :  in_channel read_ops
 
 val fopen : string -> in_channel t
-(** Open the named wav for reading, and return a new wav descriptor.
-   Raise [Sys_error] if the file could not be opened and [Not_a_wav_file]
+(** Open the named file for reading, and return a new wav descriptor.
+   Raise [Sys_error] if the file could not be opened and [Not_a_iff_file]
    if it hasn't the right format. *)
 
 val read_header : 'a read_ops -> 'a -> 'a t
-(** Generic WAV opener. *)
+(** Generic opener. *)
 
 val in_chan_read_header : in_channel -> in_channel t
-(** Read WAV data from an input channel. *)
-
-val sample : 'a t -> string -> int -> int -> int
-(** [sample w buf pos len] reads up to [len] characters from
-   the given wav [w], storing them in string [buf], starting at
-   character number [pos].
-   It returns the actual number of characters read, between 0 and
-   [len] (inclusive).
-   A return value of 0 means that the end of file was reached.
-   A return value between 0 and [len] exclusive means that
-   not all requested [len] characters were read, either because
-   no more characters were available at that time, or because
-   the implementation found it convenient to do a partial read;
-   [sample] must be called again to read the remaining characters,
-   if desired.
-   Exception [Invalid_argument "input"] is raised if [pos] and [len]
-   do not designate a valid substring of [buf]. *)
+(** Read data from an input channel. *)
 
 val info : 'a t -> string
 (** [info w] returns a string containing some informations on wav [w] *)
@@ -77,9 +67,9 @@ val close : 'a t -> unit
 
 (** Returns the WAV header that declares the given format.
   * The lengths of file and data are set to their maximum possible value. *)
-val header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
-             unit -> string
+val wav_header : ?len:int -> channels:int -> sample_rate:int -> sample_size:int ->
+                  unit -> string
 
-(** Returns the duration of the WAV data.
+(** Returns the duration of the data.
     Warning: value may not be accurate for streams. *)
 val duration : 'a t -> float

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,11 +28,12 @@ class mean ~kind source =
   let channels = src_type.Frame.audio in
   let tmp_audio =
     Array.init channels
-      (fun _ -> Array.create (Frame.audio_of_master (Lazy.force Frame.size)) 0.)
+      (fun _ ->
+         Array.make (Frame.audio_of_master (Lazy.force Frame.size)) 0.)
   in
   let channels = float channels in
 object (self)
-  inherit operator kind [source] ~name:"mean" as super
+  inherit operator kind [source] ~name:"mean"
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -83,8 +84,8 @@ end
 let () =
   let in_kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed in
   let out_kind =
-    let { Frame.audio=a;video=v;midi=m } = Lang.of_frame_kind_t in_kind in
-      Lang.frame_kind_t (Lang.succ_t Lang.zero_t) v m
+    let { Frame.audio=_;video=v;midi=m } = Lang.of_frame_kind_t in_kind in
+      Lang.frame_kind_t ~audio:(Lang.succ_t Lang.zero_t) ~video:v ~midi:m
   in
     Lang.add_operator "mean"
       [ "", Lang.source_t in_kind, None, None ]

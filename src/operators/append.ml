@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ object (self)
       | `Replay (Some s) when s#is_ready && merge ->
           let (+) a b = if a<0 || b<0 then -1 else a+b in
             source#remaining+s#remaining
-      | `Replay (Some s) ->
+      | `Replay (Some _) ->
           source#remaining
       | `Append s -> s#remaining
 

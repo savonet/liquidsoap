@@ -12,10 +12,11 @@
 CAMLprim value caml_oss_dsp_setfmt(value fd, value fmt)
 {
   int f = Int_val(fmt);
+  int ret = ioctl(Int_val(fd), SNDCTL_DSP_SETFMT, &f);
 
   /* TODO: raise errors */
   /* TODO: use format constants */
-  assert(ioctl(Int_val(fd), SNDCTL_DSP_SETFMT, &f) != -1);
+  assert(ret != -1);
 
   return Val_int(f);
 }
@@ -23,8 +24,9 @@ CAMLprim value caml_oss_dsp_setfmt(value fd, value fmt)
 CAMLprim value caml_oss_dsp_channels(value fd, value chans)
 {
   int c = Int_val(chans);
+  int ret = ioctl(Int_val(fd), SNDCTL_DSP_CHANNELS, &c);
 
-  assert(ioctl(Int_val(fd), SNDCTL_DSP_CHANNELS, &c) != -1);
+  assert(ret != -1);
 
   return Val_int(c);
 }
@@ -32,8 +34,9 @@ CAMLprim value caml_oss_dsp_channels(value fd, value chans)
 CAMLprim value caml_oss_dsp_speed(value fd, value speed)
 {
   int s = Int_val(speed);
+  int ret = ioctl(Int_val(fd), SNDCTL_DSP_SPEED, &s);
 
-  assert(ioctl(Int_val(fd), SNDCTL_DSP_SPEED, &s) != -1);
+  assert(ret != -1);
 
   return Val_int(s);
 }

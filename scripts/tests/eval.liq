@@ -1,3 +1,5 @@
+%include "test.liq"
+
 count = ref 1
 fail = ref false
 
@@ -42,4 +44,4 @@ echo(string_of(f(14)))
 
 test("15",{ list.remove(2,[2]) == [] })
 
-if !fail then print("TEST FAILED") else print("TEST PASSED") end
+if !fail then test.fail() else test.pass() end

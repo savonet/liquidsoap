@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,9 +47,8 @@ let plugin_dirs =
 class frei0r_filter ~kind ~name bgra instance params (source:source) =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. (float fps) in
-object (self)
-
-  inherit operator ~name:("frei0r."^name) kind [source] as super
+object
+  inherit operator ~name:("frei0r."^name) kind [source]
 
   method stype = source#stype
   method remaining = source#remaining
@@ -78,9 +77,8 @@ end
 class frei0r_mixer ~kind ~name bgra instance params (source:source) source2 =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. (float fps) in
-object (self)
-
-  inherit operator ~name:("frei0r."^name) kind [source;source2] as super
+object
+  inherit operator ~name:("frei0r."^name) kind [source;source2]
 
   method stype =
     match source#stype, source2#stype with
@@ -138,8 +136,7 @@ end
 class frei0r_source ~kind ~name bgra instance params =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. (float fps) in
-object (self)
-
+object
   inherit source ~name:("frei0r."^name) kind
 
   method stype = Infallible
@@ -273,12 +270,20 @@ let params plugin info =
   liq_params, params
 
 exception Unhandled_number_of_inputs
+exception Blacklisted
 
 let register_plugin fname =
   let plugin = Frei0r.load fname in
   let info = Frei0r.info plugin in
+  let name = Utils.normalize_parameter_string info.Frei0r.name in
+  if List.mem name
+    [
+      "curves"; (* Bad characters in doc. *)
+      "keyspillm0pup"; (* idem *)
+    ]
+  then raise Blacklisted;
   let bgra = info.Frei0r.color_model = Frei0r.BGRA8888 in
-  let inputs,outputs =
+  let inputs,_ =
     match info.Frei0r.plugin_type with
     | Frei0r.Filter -> 1,1
     | Frei0r.Source -> 0,1
@@ -300,7 +305,7 @@ let register_plugin fname =
   in
   let explanation =
     let e = info.Frei0r.explanation in
-    let e = String.capitalize e in
+    let e = Utils.StringCompat.capitalize_ascii e in
     let e = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") e in
     if e = "" then e else
       if e.[String.length e - 1] = '.' then
@@ -314,7 +319,6 @@ let register_plugin fname =
     a
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in
-  let name = Utils.normalize_parameter_string info.Frei0r.name in
   Lang.add_operator
     ("video.frei0r." ^ name)
     liq_params
@@ -348,6 +352,7 @@ let register_plugin plugin =
     register_plugin plugin
   with
   | Unhandled_number_of_inputs -> ()
+  | Blacklisted -> ()
   | e ->
     Printf.eprintf
       "Failed to register plugin %s: %s\n%!"

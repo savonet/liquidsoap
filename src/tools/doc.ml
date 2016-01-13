@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ let xml_escape s =
 
 let print_xml item =
   let rec print_xml indent doc =
-    let prefix = String.make indent ' ' in
+    let prefix = Bytes.make indent ' ' in
       Printf.printf "%s<info>%s</info>\n" prefix (xml_escape doc#get_doc) ;
       List.iter
         (fun (k,v) ->
@@ -75,7 +75,7 @@ let print_xml item =
 
 let print : item -> unit =
   let rec print indent doc =
-    let prefix = String.make indent ' ' in
+    let prefix = Bytes.make indent ' ' in
       Printf.printf "%s%s\n" prefix doc#get_doc ;
       List.iter
         (fun (k,v) ->

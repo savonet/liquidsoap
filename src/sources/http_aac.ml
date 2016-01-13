@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ let decode_aac sink =
       buf := !buf ^ (sink.Http_source.read (buflen - String.length !buf))
     with
       | e ->
-          aac_stream_log#f 2 "Read error %s" (Utils.error_message e)
+          aac_stream_log#f 2 "Read error %s" (Printexc.to_string e)
   in
   let (* ofs *) _, samplerate, channels = (* TODO: use ofs *)
     feed_buf ();

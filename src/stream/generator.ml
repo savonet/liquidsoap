@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ let length b = b.length
 let rec remove g len =
   assert (g.length >= len) ;
   if len>0 then
-  let b,b_off,b_len = Queue.peek g.buffers in
+  let _,_,b_len = Queue.peek g.buffers in
     (* Is it enough to advance in the first buffer?
      * Or do we need to consume it completely and go farther in the queue? *)
     if g.offset + len < b_len then begin
@@ -98,12 +98,12 @@ let rec remove g len =
 
 (** Remove data at the end of the generator: this is not a natural operation
   * for Generators, it's done in linear time. *)
-let rec remove_end g remove_len =
+let remove_end g remove_len =
   (* Remove length [l] at the beginning of the buffers,
    * should correspond exactly to some last [n] chunks. *)
   let rec remove l =
     if l>0 then
-      let (_,ofs,len) = Queue.take g.buffers in
+      let (_,_,len) = Queue.take g.buffers in
         assert (l>=len) ;
         remove (l-len)
   in
@@ -132,7 +132,7 @@ let put g content ofs len =
   g.length <- g.length + len ;
   Queue.add (content,ofs,len) g.buffers
 
-(** Get [size] amount of data from [g].
+(*  Get [size] amount of data from [g].
   * Returns a list where each element will typically be passed to a blit:
   * its elements are of the form [b,o,o',l] where [o] is the offset of data
   * in the block [b], [o'] is the position at which it should be written
@@ -166,6 +166,97 @@ let get g size =
   in
     if size = 0 then [] else aux [] 0
 
+end
+
+(* TODO: use this in the following modules instead of copying the code... *)
+module Metadata = struct
+  type t =
+    {
+      mutable metadata : (int * Frame.metadata) list;
+      mutable breaks : int list;
+      mutable length : int;
+    }
+
+  let create () =
+    {
+      metadata = [];
+      breaks = [];
+      length = 0;
+    }
+
+  let clear g =
+    g.metadata <- [];
+    g.breaks <- [];
+    g.length <- 0
+
+  let advance g len =
+    g.metadata <- List.map (fun (t,m) -> t-len, m) g.metadata;
+    g.metadata <- List.filter (fun (t,_) -> t >= 0) g.metadata;
+    g.breaks <- List.map (fun t -> t-len) g.breaks;
+    g.breaks <- List.filter (fun t -> t >= 0) g.breaks;
+    g.length <- g.length - len;
+    assert (g.length >= 0)
+
+  let length g = g.length
+
+  let remaining g =
+    match g.breaks with
+    | a::_ -> a
+    | _ -> -1
+
+  let metadata g len =
+    List.filter (fun (t,_) -> t < len) g.metadata
+
+  let feed_from_frame g frame =
+    let size = Lazy.force Frame.size in
+    let length = length g in
+    g.metadata <-
+      g.metadata @
+      (List.map
+         (fun (t,m) -> length+t, m)
+         (Frame.get_all_metadata frame));
+    g.breaks <-
+      g.breaks @
+      (List.map
+         (fun t -> length+t)
+         (* Filter out the last break, which only marks the end of frame, not a
+          * track limit (doesn't mean is_partial). *)
+         (List.filter (fun x -> x < size) (Frame.breaks frame)));
+    let frame_length =
+      let rec aux = function
+        | [t] -> t
+        | _::tl -> aux tl
+        | [] -> size
+      in
+      aux (Frame.breaks frame)
+    in
+    g.length <- g.length + frame_length
+
+  let drop_initial_break g =
+    match g.breaks with
+    | 0::tl -> g.breaks <- tl
+    | [] -> () (* end of stream / underrun... *)
+    | _ -> assert false
+
+  let fill g frame =
+    let offset = Frame.position frame in
+    let needed =
+      let size = Lazy.force Frame.size in
+      let remaining = remaining g in
+      let remaining = if remaining = -1 then length g else remaining in
+      min (size-offset) remaining
+    in
+    List.iter
+      (fun (p,m) ->
+        if p < needed then Frame.set_metadata frame (offset+p) m
+      ) g.metadata;
+    advance g needed;
+    (* Mark the end of this filling. If the frame is partial it must be because
+     * of a break in the generator, or because the generator is emptying.
+     * Conversely, each break in the generator must cause a partial frame, so
+     * don't remove any if it isn't partial. *)
+    Frame.add_break frame (offset+needed);
+    if Frame.is_partial frame then drop_initial_break g
 end
 
 (** Generate a stream, including metadata and breaks.
@@ -359,8 +450,7 @@ struct
     * otherwise both have to be fed. *)
   let mode t = t.mode
 
-  (** Change the generator mode.
-    * Only allowed when there is as much audio as video.  *)
+  (** Change the generator mode. Only allowed when there is as much audio as video.  *)
   let set_mode t m =
     if t.mode <> m then begin
       assert (audio_length t = video_length t) ;
@@ -390,6 +480,39 @@ struct
             Generator.put t.audio [||] 0 l
         | `Both -> ()
         | `Audio | `Undefined -> assert false
+
+  (** Take all data from a frame: breaks, metadata and available content. *)
+  let feed_from_frame t frame =
+    let size = Lazy.force Frame.size in
+    t.metadata <-
+      t.metadata @
+      (List.map
+         (fun (p,m) -> length t + p, m)
+         (Frame.get_all_metadata frame)) ;
+    t.breaks <-
+      t.breaks @
+      (List.map
+         (fun p -> length t + p)
+         (* Filter out the last break, which only marks the end
+          * of frame, not a track limit (doesn't mean is_partial). *)
+         (List.filter (fun x -> x < size) (Frame.breaks frame))) ;
+    (* Feed all content layers into the generator. *)
+    let rec feed_all ofs = function
+      | (cstop,content)::contents ->
+        let content = Frame.copy content in
+        (
+          match mode t with
+          | `Audio -> put_audio t content.Frame.audio ofs cstop
+          | `Video -> put_video t content.Frame.video ofs cstop
+          | `Both ->
+            put_audio t content.Frame.audio ofs cstop;
+            put_video t content.Frame.video ofs cstop
+          | `Undefined -> ()
+        );
+        if cstop < size then feed_all cstop contents
+      | [] -> assert false
+    in
+    feed_all 0 frame.Frame.contents
 
   (* Advance metadata and breaks by [len] ticks. *)
   let advance t len =
@@ -480,7 +603,6 @@ struct
           | 0::tl -> t.breaks <- tl
           | [] -> () (* end of stream / underrun ... *)
           | _ -> assert false
-
 end
 
 module From_audio_video_plus =

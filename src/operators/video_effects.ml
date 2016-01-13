@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@ open Source
 module Img = Image.RGBA32
 
 class effect ~kind effect (source:source) =
-object (self)
-  inherit operator ~name:"video.effect" kind [source] as super
+object
+  inherit operator ~name:"video.effect" kind [source]
 
   method stype = source#stype
 
@@ -197,7 +197,7 @@ let () =
       "angle", Lang.float_getter_t 1, Some (Lang.float 0.),
       Some "Initial angle in radians.";
 
-      "speed", Lang.float_getter_t 2, Some (Lang.float 3.1416),
+      "speed", Lang.float_getter_t 2, Some (Lang.float Utils.pi),
       Some "Rotation speed in radians per sec.";
 
       "", Lang.source_t kind, None, None

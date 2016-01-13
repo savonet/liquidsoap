@@ -1,3 +1,5 @@
+## -*- mode: makefile -*-
+
 .PHONY: all all-subdirs all-local
 .PHONY: all-auto all-auto-ocaml-prog clean-buildings
 .PHONY: clean clean-subdirs clean-local
@@ -75,15 +77,11 @@ _OCAML_LFLAGS=$($(PROG)_ocamllflags)
 
 -include $(PROG)_depend
 
-ifdef CAMLP4O
-  camlp4_ml=$($(PROG)_camlp4_files:.camlp4=.camlp4.ml)
-endif
-
 # Include plugin sources for dependencies computation..
 plugins_sources=
 $(foreach plug,$($(PROG)_PLUGINS),$(eval plugins_sources+=$($(plug)_sources)))
 
-$(PROG)_depend: $($(PROG)_sources) $(camlp4_ml) $($(PROG)_headers) $(plugins_sources)
+$(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers) $(plugins_sources)
 	$(V)echo OCAMLDEP
 	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
 		$($(PROG)_sources) $($(PROG)_headers) $(plugins_sources) > $@
@@ -116,8 +114,8 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs) $($(PROG)_PLUGINS:%=plu
 		$(c_link)
 endif
 
-# Compute C dependencies
-# Apparently, dynamic modules cannot
+# Compute C dependencies
+# Apparently, dynamic modules cannot
 # use the custom mode..
 plug_c_link = \
 $(if $($(1)_c_sources),\
@@ -177,13 +175,9 @@ plugins/dllliquidsoap_%.so:
 	$(V)echo OCAMLMKLIB -o plugins/dllliquidsoap_$*.so
 	$(V)$(OCAMLMKLIB) -o plugins/liquidsoap_$* $($*_c_sources:.c=.o)
 
-# The keyword %.ml is already used for
-# .mll files.
-%.camlp4.ml: %.camlp4
-	@echo $(@:.camlp4=.camlp4.ml) >> auto_clean
+%.ml: %.camlp4
 	$(V)echo CAMLP4O $<
 	$(V)$(CAMLP4O) -printer Camlp4OCamlPrinter -impl $< > $@
-	$(V)cat < $@ > $(<:.camlp4=.ml)
 
 %.ml: %.mll
 	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
@@ -225,6 +219,7 @@ ifdef DISTDIRS
 	cp -rfL $(DISTDIRS) $(DDIR)
 endif
 	find $(DDIR) -name .svn | while read i; do rm -rf "$$i"; done
+	find $(DDIR) -name .git | while read i; do rm -rf "$$i"; done
 
 dist:
 	@a=`cd $(top_srcdir) ; pwd ` ; b=`pwd` ; [ "eq$$a" = "eq$$b" ] \
@@ -236,6 +231,7 @@ dist:
 
 configure: configure.ac install-sh
 	./bootstrap
+	./configure-with-options || ./configure
 
 tarball: configure pre-distclean dist
 	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,13 +22,11 @@
 
 (** Output to an icecast server. *)
 
-open Dtools
-
 let error_translator =
   function
     | Cry.Error _ as e ->
-       raise (Utils.Translation (Cry.string_of_error e))
-    | _ -> ()
+       Some (Cry.string_of_error e)
+    | _ -> None
 
 let () = Utils.register_error_translator error_translator
 
@@ -42,14 +40,6 @@ type icecast_info =
 
 module Icecast = 
 struct
-
-  type protocol = Cry.protocol
-
-  let protocol_of_icecast_protocol = 
-    function
-      | Icecast_utils.Http -> Cry.Http
-      | Icecast_utils.Icy -> Cry.Icy 
-
   type content = Cry.content_type
 
   let format_of_content x =
@@ -94,6 +84,12 @@ struct
               samplerate = Some m.Encoder.VoAacEnc.samplerate ;
               channels = Some m.Encoder.VoAacEnc.channels
             }
+        | Encoder.FdkAacEnc m ->
+            { quality = None ;
+              bitrate = Some m.Encoder.FdkAacEnc.bitrate ;
+              samplerate = Some m.Encoder.FdkAacEnc.samplerate ;
+              channels = Some m.Encoder.FdkAacEnc.channels
+            }
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
@@ -118,12 +114,18 @@ struct
               samplerate = Some m.Encoder.WAV.samplerate ;
               channels = Some m.Encoder.WAV.channels
             }
+        | Encoder.AVI m ->
+            { quality = None ;
+              bitrate = None ;
+              samplerate = Some m.Encoder.AVI.samplerate ;
+              channels = Some m.Encoder.AVI.channels
+            }
         | Encoder.Ogg o ->
             match o with
               | [Encoder.Ogg.Vorbis
                    {Encoder.Vorbis.channels=n;
                                    mode=Encoder.Vorbis.VBR q;
-                                   samplerate=s}]
+                                   samplerate=s;_}]
                 ->
                   { quality = Some (string_of_float q) ;
                     bitrate = None ;
@@ -132,7 +134,7 @@ struct
               | [Encoder.Ogg.Vorbis
                    {Encoder.Vorbis.channels=n;
                                    mode=Encoder.Vorbis.ABR (_,b,_);
-                                   samplerate=s}]
+                                   samplerate=s;_}]
                 ->
                   { quality = None ;
                     bitrate = b ;
@@ -141,7 +143,7 @@ struct
               | [Encoder.Ogg.Vorbis
                    {Encoder.Vorbis.channels=n;
                                    mode=Encoder.Vorbis.CBR b;
-                                   samplerate=s}]
+                                   samplerate=s;_}]
                 ->
                   { quality = None ;
                     bitrate = Some b ;
@@ -164,7 +166,10 @@ let user_agent = Lang.product (Lang.string "User-Agent")
 
 let proto kind =
   Output.proto @ (Icecast_utils.base_proto kind) @
-  [ "mount", Lang.string_t, Some (Lang.string no_mount), None ;
+  [ "mount", Lang.string_t, Some (Lang.string no_mount),
+     Some "Source mount point. Mandatory when streaming to icecast." ;
+    "icy_id", Lang.int_t, Some (Lang.int 1),
+     Some "Shoutcast source ID. Only supported by Shoutcast v2." ;
     "name", Lang.string_t, Some (Lang.string no_name), None ;
     "host", Lang.string_t, Some (Lang.string "localhost"), None ;
     "port", Lang.int_t, Some (Lang.int 8000), None ;
@@ -172,8 +177,8 @@ let proto kind =
     Some "Timeout for establishing network connections (disabled is negative).";
     "timeout", Lang.float_t, Some (Lang.float 30.),
     Some "Timeout for network read and write.";
-    ("user", Lang.string_t, Some (Lang.string "source"),
-     Some "User for shout source connection. \
+    ("user", Lang.string_t, Some (Lang.string ""),
+     Some "User for shout source connection. Defaults to \"source\" for icecast connections. \
            Useful only in special cases, like with per-mountpoint users.") ;
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
     "encoding", Lang.string_t, Some (Lang.string ""),
@@ -181,6 +186,17 @@ let proto kind =
            for \"http\" protocol and \"ISO-8859-1\" for \"icy\" \
            protocol." ;
     "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
+    "protocol", Lang.string_t, (Some (Lang.string "http")),
+     Some "Protocol of the streaming server: \
+          'http' for Icecast, 'icy' for shoutcast." ;
+    "verb", Lang.string_t, (Some (Lang.string "source")),
+     Some "Verb to use with the 'http' protocol. One of: \
+           'source', 'put' or 'post'.";
+    "chunked", Lang.bool_t, (Some (Lang.bool false)),
+     Some "Used cunked transfer with the 'http' protocol.";
+    "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
+     Some "Send new metadata using the ICY protocol. \
+           One of: \"guess\", \"true\", \"false\"";
     "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
     ("description", Lang.string_t,
      Some (Lang.string "Liquidsoap Radio!"), None) ;
@@ -201,7 +217,7 @@ let proto kind =
           this amount of time (in seconds)." ;
     "public", Lang.bool_t, Some (Lang.bool true), None ;
     ("headers", Lang.metadata_t,
-     Some (Lang.list (Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
+     Some (Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) [user_agent]),
      Some "Additional headers.") ;
     ("dumpfile", Lang.string_t, Some (Lang.string ""), 
      Some "Dump stream to file, for debugging purpose. Disabled if empty.") ;
@@ -220,14 +236,70 @@ class output ~kind p =
   let on_connect () = ignore (Lang.apply ~t:Lang.unit_t on_connect []) in
   let on_disconnect () = ignore (Lang.apply ~t:Lang.unit_t on_disconnect []) in
   let on_error error =
-    let msg = Utils.error_message error in
+    let msg = Printexc.to_string error in
     Lang.to_float (Lang.apply ~t:Lang.unit_t on_error ["", Lang.string msg]) 
   in
 
-  let protocol,encoder_factory, 
-      format,icecast_info,
-      icy_metadata,ogg =
-    encoder_data p
+  let data = encoder_data p in
+
+  let chunked = Lang.to_bool (List.assoc "chunked" p) in
+
+  let protocol = 
+    let verb =
+      let v = List.assoc "verb" p in
+      match Lang.to_string v with
+        | "source" -> Cry.Source
+        | "put"    -> Cry.Put
+        | "post"   -> Cry.Post
+        | _ -> raise (Lang.Invalid_value
+                   (v, "Valid values are: 'source' \
+                       'put' or 'post'.")) 
+    in  
+    let v = List.assoc "protocol" p in
+    match Lang.to_string v with
+      | "http" -> Cry.Http verb
+      | "icy" -> Cry.Icy
+      | _ ->
+          raise (Lang.Invalid_value
+                   (v, "Valid values are 'http' (icecast) \
+                        and 'icy' (shoutcast)"))
+  in
+  let icy_metadata =
+    let v = List.assoc "icy_metadata" p in
+    let icy =
+       match Lang.to_string v with
+         | "guess" -> `Guess
+         | "true"  -> `True
+         | "false" -> `False
+         | _ ->
+               raise (Lang.Invalid_value
+                       (v, "Valid values are 'guess', \
+                           'true' or 'false'"))
+    in
+    match data.format, icy with
+      | _, `True -> true
+      | _, `False -> false
+      | x, `Guess when x = mpeg ||
+                       x = wav ||
+                       x = aac ||
+                       x = aacplus ||
+                       x = flac -> true
+      | x, `Guess when x = ogg_application ||
+                       x = ogg_audio ||
+                       x = ogg_video -> false
+      | _, _ ->
+           raise (Lang.Invalid_value
+                    (List.assoc "icy_metadata" p,
+                     "Could not guess icy_metadata for this format, \
+                     please specify either 'true' or 'false'."))
+  in
+
+  let ogg =
+    match data.format with
+     | x when x = Cry.ogg_application -> true
+     | x when x = Cry.ogg_audio -> true
+     | x when x = Cry.ogg_video -> true
+     | _ -> false
   in
 
   let out_enc =
@@ -237,23 +309,26 @@ class output ~kind p =
            "ISO-8859-1"
          else
            "UTF-8"
-      | s -> String.uppercase s
+      | s -> Utils.StringCompat.uppercase_ascii s
   in
 
   let source = Lang.assoc "" 2 p in
 
+  let icy_id =
+    Lang.to_int (List.assoc "icy_id" p)
+  in
+
   let mount = s "mount" in
   let name = s "name" in
   let name =
-    if name = no_name then
-      if mount = no_mount then
+    match protocol, name, mount with
+      | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
         raise (Lang.Invalid_value
                  (List.assoc "mount" p,
-                  "Either name or mount must be defined"))
-      else
-        mount
-    else
-      name
+                  "Either name or mount must be defined for icecast sources."))
+      | Cry.Icy, name, _ when name = no_name -> Printf.sprintf "sc#%i" icy_id
+      | _, name, mount when name = no_name -> mount
+      | _ -> name
   in
   let mount =
     if mount = no_mount then
@@ -275,7 +350,11 @@ class output ~kind p =
 
   let host = s "host" in
   let port = e Lang.to_int "port" in
-  let user = s "user" in
+  let user =
+    match protocol, s "user" with
+      | Cry.Http _, "" -> "source"
+      | _, user -> user 
+  in
   let password = s "password" in
   let genre = s "genre" in
   let url = s "url" in
@@ -391,7 +470,7 @@ object (self)
                  Cry.update_metadata ~charset:out_enc connection m 
                with e -> self#log#f 3 "Metadata update may have failed with \
                                        error: %s" 
-                             (Utils.error_message e))
+                             (Printexc.to_string e))
           | Cry.Disconnected -> ()
               (* Do nothing if shout connection isn't available *)
      end 
@@ -415,7 +494,7 @@ object (self)
               | None -> () 
           with
             | e ->
-                self#log#f 2 "Error while sending data: %s!" (Utils.error_message e) ;
+                self#log#f 2 "Error while sending data: %s!" (Printexc.to_string e) ;
                 let delay = on_error e in
                 if delay >= 0. then
                  begin
@@ -444,7 +523,7 @@ object (self)
 
   method icecast_start =
     assert (encoder = None) ;
-    let enc = encoder_factory self#id in
+    let enc = data.factory self#id in
     encoder <- 
        Some (enc (Encoder.Meta.empty_metadata)) ; 
     assert (Cry.get_status connection = Cry.Disconnected) ;
@@ -459,10 +538,10 @@ object (self)
         | Some q -> Hashtbl.add audio_info y (z q)
         | None -> ()
     in
-      f icecast_info.bitrate "bitrate" string_of_int;
-      f icecast_info.quality "quality" (fun x -> x);
-      f icecast_info.samplerate "samplerate" string_of_int;
-      f icecast_info.channels "channels" string_of_int;
+      f data.info.bitrate "bitrate" string_of_int;
+      f data.info.quality "quality" (fun x -> x);
+      f data.info.samplerate "samplerate" string_of_int;
+      f data.info.channels "channels" string_of_int;
       let user_agent =
         try
           List.assoc "User-Agent" headers
@@ -472,8 +551,8 @@ object (self)
       let source = 
         Cry.connection ~host ~port ~user ~password
                        ~genre ~url ~description ~name
-                       ~public ~protocol ~mount  
-                       ~audio_info ~user_agent ~content_type:format ()
+                       ~public ~protocol ~mount ~icy_id ~chunked 
+                       ~audio_info ~user_agent ~content_type:data.format ()
       in
       List.iter (fun (x,y) -> 
                       (* User-Agent has already been passed to Cry.. *)
@@ -491,7 +570,7 @@ object (self)
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
         | e ->
-            self#log#f 2 "Connection failed: %s" (Utils.error_message e) ;
+            self#log#f 2 "Connection failed: %s" (Printexc.to_string e) ;
             let delay = on_error e in
             if delay >= 0. then
              begin
@@ -531,4 +610,4 @@ let () =
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
     (proto k)
     ~kind:(Lang.Unconstrained k)
-    (fun p kind -> ((new output kind p):>Source.source))
+    (fun p kind -> ((new output ~kind p):>Source.source))

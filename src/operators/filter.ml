@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,13 +24,11 @@ open Source
 
 type mode = Low_pass | High_pass | Band_pass | Notch
 
-let pi = 3.1416
-
 class filter ~kind (source:source) freq q wet mode =
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Lazy.force Frame.audio_rate) in
-object (self)
-  inherit operator ~name:"filter" kind [source] as super
+object  
+  inherit operator ~name:"filter" kind [source]
 
   method stype = source#stype
   method remaining = source#remaining
@@ -59,7 +57,7 @@ object (self)
     let freq = freq () in
     let q = q () in
     let wet = wet () in
-    let f = 2. *. sin (pi *. freq /. rate) in
+    let f = 2. *. sin (Utils.pi *. freq /. rate) in
     for c = 0 to Array.length b - 1 do
       let b_c = b.(c) in
       for i = offset to position - 1 do

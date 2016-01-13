@@ -49,10 +49,15 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~width Scale to width (zero means frame width, negative means original width).
 # @param ~height Scale to height (zero means frame height, negative means original height).
-# @param ~x x position (negative means from right).
-# @param ~y y position (negative means from right).
-# @param ~duration duration (0 means infinite).
+# @param ~x x position.
+# @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id="",~width=0,~height=0,~x=0,~y=0,~duration=-1.,~file,s)
-  add([s,single(id=id,"annotate:width=#{width},height=#{height},x=#{x},y=#{y},duration=#{duration}:#{file}")])
+def video.add_image(~id="",~width=0,~height=0,~x=max_int(),~y=max_int(),~file,s)
+  width = if width == 0 then "" else "width=#{width}" end
+  height = if height == 0 then "" else "height=#{height}" end
+  x = if x == max_int() then "" else "x=#{x}" end
+  y = if y == max_int() then "" else "y=#{y}" end
+  image = single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
+  image = mux_audio(audio=blank(), image)
+  add([s,image])
 end

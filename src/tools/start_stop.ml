@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ object (self)
 
   method is_active = is_started
 
-  method private wake_up (activation : Source.source list) =
+  method private wake_up (_ : Source.source list) =
     (* We prefer [name] as an ID over the default,
      * but do not overwrite user-defined ID.
      * Our ID will be used for the server interface. *)

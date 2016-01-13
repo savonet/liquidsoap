@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -132,7 +132,9 @@ object (self)
     Clock.unify slave_clock s#clock ;
     Lang.iter_sources
       (fun s -> Clock.unify slave_clock s#clock)
-      f
+      f ;
+    (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
+    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
 
   (* Intermediate for buffering the source's stream. *)
   val buf_frame = Frame.create kind
@@ -255,7 +257,10 @@ object (self)
     Generator.feed buffer
       ~metadata:(Frame.get_all_metadata buf_frame)
       content start (stop-start) ;
-    if Frame.is_partial buf_frame then
+    if Frame.is_partial buf_frame then begin
+      (* Add a break to properly terminate the generator,
+       * so that remaining time info can be issued. *)
+      Generator.add_break buffer ;
       (* As for Switch's transitions, we avoid stacking compositions
        * because this would lead to huge sources, never simplified.
        * We compose the end of a track with the original source [s] instead of
@@ -293,7 +298,7 @@ object (self)
         source#leave (self:>source) ;
         source <- s ;
         status <- `After inhibit
-    else
+    end else
       if n>0 then self#buffering buffer (n - Frame.position buf_frame)
 
 end

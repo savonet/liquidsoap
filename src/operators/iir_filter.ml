@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,8 +23,6 @@
 open Source
 open Complex
 
-let pi = 3.14159265358979323846
-
 type filter_type = Band_stop | Band_pass | High_pass | Low_pass | All_pass
 type filter_family = Butterworth | Resonator
 
@@ -33,13 +31,13 @@ class iir ~kind (source:source)
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let rate = float (Frame.audio_of_seconds 1.) in
 object (self)
-  inherit operator ~name:"iir_filter" kind [source] as super
+  inherit operator ~name:"iir_filter" kind [source]
 
   (* Params *)
   val raw_alpha1 = freq1 /. rate
   val raw_alpha2 = freq2 /. rate
-  val warped_alpha1 = tan (pi *. freq1 /. rate) /. pi
-  val warped_alpha2 = tan (pi *. freq2 /. rate) /. pi
+  val warped_alpha1 = tan (Utils.pi *. freq1 /. rate) /. Utils.pi
+  val warped_alpha2 = tan (Utils.pi *. freq2 /. rate) /. Utils.pi
   val mutable gain = 0.
 
   (* Used for computation *)
@@ -75,7 +73,7 @@ object (self)
     and ( +~ ), ( -~ ), ( *~ ), ( /~ ) =
       Complex.add, Complex.sub, Complex.mul, Complex.div
     in
-    let multin w s n c =
+    let multin w n c =
       (* multiply factor (z-w) into coeffs *)
       let w = (cor 0. -~ w)
       in
@@ -89,7 +87,7 @@ object (self)
               (Array.make n {re = 0. ; im = 0. })
       in
         for i = 0 to n - 1 do
-          multin z.(i) i n c ;
+          multin z.(i) n c ;
         done;
         (* check that computed coeffs of z^k are all real *)
         for i = 0 to n do
@@ -99,14 +97,14 @@ object (self)
         done;
         c
     in
-    let eval c n z =
+    let eval c z =
       (* evaluate polynomial in z, substituting for z *)
       Array.fold_right (fun a b -> Complex.add (Complex.mul b z) a)
         c {re = 0. ; im = 0.}
     in
-    let evaluate t nz b np z =
+    let evaluate t b z =
       (* evaluate response, substituting for z *)
-      Complex.div (eval t nz z) (eval b np z)
+      Complex.div (eval t z) (eval b z)
     in
       begin match filter_family with
         | Butterworth ->
@@ -126,9 +124,9 @@ object (self)
               for i = 0 to (2 * order) - 1 do
                 let theta =
                   match (order mod 2) with
-                    | 1 -> (float_of_int i *. pi) /. (float_of_int order)
+                    | 1 -> (float_of_int i *. Utils.pi) /. (float_of_int order)
                     | 0 ->
-                        ((float_of_int i +. 0.5) *. pi) /. (float_of_int order)
+                        ((float_of_int i +. 0.5) *. Utils.pi) /. (float_of_int order)
                     | _ -> assert false
                 in
                   self#log#f 4
@@ -137,8 +135,8 @@ object (self)
                   choosepole ({re = cos(theta) ; im = sin(theta)})
               done;
             (* Normalize *)
-            let w1 = cor (2. *. pi *. warped_alpha1) in
-            let w2 = cor (2. *. pi *. warped_alpha2) in
+            let w1 = cor (2. *. Utils.pi *. warped_alpha1) in
+            let w2 = cor (2. *. Utils.pi *. warped_alpha2) in
               begin match filter_type with
                 | Band_stop ->
                     (* Band-stop filter *)
@@ -275,7 +273,7 @@ object (self)
             zplane_numzeros <- 2 ;
             zplane_zeros <- [|cor 1. ; cor (-1.)|] ;
             (* where we want the peak to be *)
-            let theta = 2. *. pi *. raw_alpha1 in
+            let theta = 2. *. Utils.pi *. raw_alpha1 in
               if (qfactor == infinity) then begin
                 self#log#f 4 "Infinite Q factor!" ;
                 (* oscillator *)
@@ -287,15 +285,14 @@ object (self)
                 let r = exp (cor (-. theta /. (2. *. qfactor)))
                   and thm = ref theta
                   and th1 = ref 0.
-                  and th2 = ref pi
+                  and th2 = ref Utils.pi
                   and cvg = ref false
                 in
                   for i = 0 to 50 do
                     let zp = r *~ {re = cos !thm ; im = sin !thm} in
                       zplane_poles <- [|zp ; Complex.conj zp|] ;
                       botcoeffs <- expand zplane_poles zplane_numpoles ;
-                      let g = evaluate topcoeffs zplane_numzeros
-                                       botcoeffs zplane_numpoles
+                      let g = evaluate topcoeffs botcoeffs
                                        {re = cos theta ; im = sin theta}
                       in
                         let phi = g.im /. g.re in (* approx to atan2 *)
@@ -356,15 +353,12 @@ object (self)
                     Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
                  botcoeffs))) ;
       (* Gain *)
-      dc_gain <- evaluate topcoeffs zplane_numzeros botcoeffs
-                          zplane_numpoles {re = 1. ; im = 0.} ;
+      dc_gain <- evaluate topcoeffs botcoeffs {re = 1. ; im = 0.} ;
       let theta =
-        2. *. pi *. 0.5 *. (raw_alpha1 +. raw_alpha2) (* jwt for centre freq. *)
+        2. *. Utils.pi *. 0.5 *. (raw_alpha1 +. raw_alpha2) (* jwt for centre freq. *)
       in
-      fc_gain <- evaluate topcoeffs zplane_numzeros botcoeffs zplane_numpoles
-                   (Complex.exp {re = 0. ; im = theta}) ;
-      hf_gain <- evaluate topcoeffs zplane_numzeros botcoeffs zplane_numpoles
-                   {re = -1. ; im = 0.} ;
+      fc_gain <- evaluate topcoeffs botcoeffs (Complex.exp {re = 0. ; im = theta}) ;
+      hf_gain <- evaluate topcoeffs botcoeffs {re = -1. ; im = 0.} ;
       gain <- begin match filter_type with
                 | Band_stop -> Complex.norm (sqrt (dc_gain *~ hf_gain ))
                 | Band_pass

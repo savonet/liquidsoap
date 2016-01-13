@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -90,6 +90,7 @@ object
   (** Attach a sub_clock, get all subclocks, see below. *)
 
   method attach_clock : 'b -> unit
+  method detach_clock : 'b -> unit
   method sub_clocks : 'b list
 
   method start_outputs : ('a -> bool) -> unit -> 'a list
@@ -211,6 +212,13 @@ let rec unify a b =
         List.iter c#attach_clock sc ;
         r := Same_as (Known c)
 
+let rec forget var subclock =
+  match var with
+    | Known c -> c#detach_clock subclock
+    | Link {contents=Same_as a} -> forget a subclock
+    | Link ({contents=Unknown (sources,clocks)} as r) ->
+        r := Unknown (sources, List.filter ((<>) subclock) clocks)
+
 (** {1 Sources} *)
 
 open Dtools
@@ -255,6 +263,9 @@ object (self)
      * to avoid bloating from unused sources.
      * If the ID changes, and [log] has already been initialized, reset it. *)
     if log != source_log then self#create_log
+
+  initializer
+    Gc.finalise (fun s -> source_log#f 4 "Garbage collected %s." s#id) self
 
   (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)
@@ -428,6 +439,8 @@ object (self)
         end
       end
 
+  method is_up = static_activations <> [] || dynamic_activations <> []
+
   (** Two methods called for initialization and shutdown of the source *)
   method private wake_up activation =
     self#log#f 4
@@ -454,7 +467,7 @@ object (self)
   (* [self#seek x] skips [x] master ticks.
    * returns the number of ticks actually skipped.
    * By default it always returns 0, refusing to seek at all. *)
-  method seek (len:int) = 
+  method seek (_:int) = 
     self#log#f 3 "Seek not implemented!";
     0
 
@@ -480,22 +493,33 @@ object (self)
    * round ([#after_output]). *)
   method get buf =
     assert (Frame.is_partial buf) ;
+    (* In some cases we can't avoid #get being called on a non-ready
+     * source, for example:
+     * - A starts pumping B, stops in the middle of the track
+     * - B finishes its track, becomes unavailable
+     * - A starts streaming again, needs to receive an EOT before
+     *   having to worry about availability.
+     *
+     * So we add special cases where, instead of calling #get_frame, we
+     * call silent_end_track to properly end a track by inserting a break.
+     *
+     * This makes the whole protocol a bit sloppy as it weakens constraints
+     * tying #is_ready and #get, preventing the detection of "bad" calls
+     * of #get without prior check of #is_ready. To compensate this we issue
+     * a detailed warning.
+     *
+     * This fix makes it really important to keep #is_ready = true during a
+     * track, otherwise the track will be ended without the source noticing! *)
+    let silent_end_track () =
+      self#log#f 3
+        "Warning: #get called when not #is_ready! \
+         This is normal if an operator using this source has been unused \
+         while the source has gone unavailable. If unsure about this warning, \
+         you are very welcome to report it and ask for clarifications." ;
+      Frame.add_break buf (Frame.position buf)
+    in
     if not caching then begin
-      if not self#is_ready then
-        (* In some cases we can't avoid #get being called on a non-ready
-         * source, for example:
-         * - A starts pumping B, stops in the middle of the track
-         * - B finishes its track, becomes unavailable
-         * - A starts streaming again, needs to receive an EOT before
-         *   having to worry about availability.
-         * So we add this branch, which makes the whole protocol a bit
-         * sloppy because it removes any constraint tying #is_ready and
-         * #get. It prevents the detection of "bad" calls of #get without
-         * having checked #is_ready. It also makes it really important
-         * to have #is_ready = true during tracks, otherwise this bit
-         * of code will forcefully end the track! *)
-        Frame.add_break buf (Frame.position buf)
-      else
+      if not self#is_ready then silent_end_track () else
       let b = Frame.breaks buf in
         self#get_frame buf ;
         if List.length b + 1 <> List.length (Frame.breaks buf) then begin
@@ -507,10 +531,7 @@ object (self)
         Frame.get_chunk buf memo
       with
       | Frame.No_chunk ->
-          if not self#is_ready then
-            (* See similar test above. *)
-            Frame.add_break buf (Frame.position buf)
-          else
+          if not self#is_ready then silent_end_track () else
           (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
           let b = Frame.breaks memo in
           let p = Frame.position memo in
@@ -585,12 +606,12 @@ end
 (** Shortcuts for defining sources with no children *)
 
 class virtual source ?name content_kind =
-object (self)
+object
   inherit operator ?name content_kind []
 end
 
 class virtual active_source ?name content_kind =
-object (self)
+object
   inherit active_operator ?name content_kind []
 end
 
@@ -604,6 +625,7 @@ object
   method attach : active_source -> unit
   method detach : (active_source -> bool) -> unit
   method attach_clock : clock_variable -> unit
+  method detach_clock : clock_variable -> unit
   method sub_clocks : clock_variable list
   method start_outputs : (active_source -> bool) -> unit -> active_source list
   method get_tick : int
@@ -616,6 +638,7 @@ struct
   let create_unknown = create_unknown
   let create_known = create_known
   let unify = unify
+  let forget = forget
   let get v =
     match deref v with
       | Known c -> c

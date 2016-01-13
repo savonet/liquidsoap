@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,8 +52,9 @@ let all_chans = 16
 
 (* chan = None means synth all channels *)
 class dssi ~kind ?chan plugin descr outputs params source =
-object (self)
-  inherit operator ~name:"dssi" kind [source] as super
+object
+
+  inherit operator ~name:"dssi" kind [source]
 
   method stype = source#stype
 
@@ -147,7 +148,7 @@ let register_descr plugin_name descr_n descr outputs =
       (["channel", Lang.int_t, Some (Lang.int 0), Some "MIDI channel to handle."]@liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in
@@ -167,7 +168,7 @@ let register_descr plugin_name descr_n descr outputs =
       (liq_params@["", Lang.source_t k, None, None])
       ~kind:(Lang.Unconstrained k)
       ~category:Lang.SoundSynthesis
-      ~flags:[Lang.Hidden]
+      ~flags:[]
       ~descr:(Ladspa.Descriptor.name ladspa_descr ^ ".")
       (fun p kind ->
          let f v = List.assoc v p in

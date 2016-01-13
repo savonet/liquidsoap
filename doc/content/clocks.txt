@@ -227,8 +227,7 @@ icecast.
 Sometimes, the external factors tied to Icecast output cannot be
 disregarded: the network may lag. If you stream a soundcard input
 to Icecast and the network lags, there will be a glitch in the
-soundcard input -- a long enough lag will cause a disconnection,
-in which case there won't be anybody to notice the huge glitch.
+soundcard input -- a long enough lag will cause a disconnection.
 This might be undesirable, and is certainly disappointing if you
 are recording a backup of your precious soundcard input using
 <code>output.file</code>: by default it will suffer the same
@@ -260,14 +259,6 @@ The Icecast quality is also better with that setup,
 since small lags are absorbed by the buffer and do not create
 a glitch in the OSS capture, so that Icecast listeners won't
 notice the lag at all.
-
-Note that explicitly assigning a new clock for the Icecast
-output was unnecessary: liquidsoap would have chosen the default
-wallclock otherwise. However, it is better practice to force
-it manually, to make to obtain the wanted clock assignment.
-It is especially important since you might change your script
-later, and you want to avoid an unnoticed change of the
-clock assignment.
 
 h4. Internal clocks: exploiting multiple cores
 

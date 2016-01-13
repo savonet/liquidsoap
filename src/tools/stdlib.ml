@@ -33,6 +33,14 @@ module List = struct
       else
         assoc_nth l (n-1) t
     | _::t -> assoc_nth l n t
+
+  let assoc_all x l =
+    may_map (fun (y,v) -> if x = y then Some v else None) l
+
+  let rec last = function
+    | [x] -> x
+    | _::l -> last l
+    | [] -> raise Not_found
 end
 
 module String = struct
@@ -61,4 +69,18 @@ module Option = struct
     match x with
     | None -> None
     | Some x -> Some (f x)
+end
+
+module Unix = struct
+  include Unix
+
+  let read_retry s buf off len =
+    let r = ref 0 in
+    let loop = ref true in
+    while !loop do
+      let n = Unix.read s buf (off + !r) (len - !r) in
+      r := !r + n;
+      loop := !r <> 0 && !r < len
+    done;
+    !r
 end

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ class output ~kind ~clock_safe
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let blank () =
-    String.make (samples_per_frame * channels * bytes_per_sample) '0'
+    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
   inherit Output.output
@@ -71,7 +71,7 @@ object (self)
               ~input_channels:0 ~output_channels:channels ~flags:[] ?server_name
               ~ringbuffer_size:(nb_blocks*samples_per_frame*bytes_per_sample)
               ~client_name:self#id () in
-          Bjack.set_all_volume dev 75 ;
+          Bjack.set_all_volume dev 100 ;
           device <- Some dev ;
           dev
       | Some d -> d

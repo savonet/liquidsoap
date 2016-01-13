@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
+
+let pi = 4. *. atan 1.
 
 let get_some = function
   | Some x -> x
@@ -96,7 +98,59 @@ let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None
 
-(** Unescapt a string. *)
+(* Backward-compatible API.. *)
+
+module LazyCompat =
+struct
+  let from_fun f = lazy (f ())
+  let from_val v = lazy v
+  (* Make compiler happy.. *)
+  let () =
+    ignore(from_fun (fun () -> ()));
+    ignore(from_val ())
+  include Lazy
+end
+
+exception Not_implemented
+
+module type StringWrapper =
+sig
+  include module type of String
+  val capitalize : string -> string
+  val uncapitalize : string -> string
+  val lowercase : string -> string
+  val uppercase : string -> string
+end
+
+module StringWrapper : StringWrapper =
+struct
+  let capitalize _ = raise Not_implemented
+  let uncapitalize _ = raise Not_implemented
+  let lowercase _ = raise Not_implemented
+  let uppercase _ = raise Not_implemented
+  let () =
+    let e f = try ignore(f "") with Not_implemented -> () in
+    e capitalize; e uncapitalize;
+    e lowercase; e uppercase
+  include String
+end
+
+module StringCompat =
+struct
+  let capitalize_ascii = StringWrapper.capitalize
+  let uncapitalize_ascii = StringWrapper.uncapitalize
+  let lowercase_ascii = StringWrapper.lowercase
+  let uppercase_ascii = StringWrapper.uppercase
+
+  let () =
+    let e f = try ignore(f "") with Not_implemented -> () in
+    e capitalize_ascii; e uncapitalize_ascii;
+    e lowercase_ascii; e uppercase_ascii
+
+  include String
+end
+
+(** Unescape a string. *)
 let unescape s =
   try
     Scanf.sscanf s "%S" (fun u -> u)
@@ -110,9 +164,9 @@ let unescape_char c s =
     if pos >= len then
       (if escaped then Printf.sprintf "%s\\" cur else cur)
     else
-      let c   = s.[pos] in
+      let d   = s.[pos] in
       let pos = pos + 1 in
-      match c with
+      match d with
         | '\\' when not escaped ->
             f ~escaped:true cur pos
         | x    when x = c ->
@@ -173,38 +227,6 @@ let rec may_map f = function
       end
   | [] -> []
 
-let really_read fd buf ofs len =
-  let l = ref 0 in
-  let r = ref (-1) in
-    while !l < len && !r <> 0 do
-      r := Unix.read fd buf !l (len - !l);
-      l := !l + !r
-    done;
-    !l
-
-(* There seems to be an issue under win32 where 
- * some sockets are left in non-blocking mode
- * after Unix.select. See: http://caml.inria.fr/mantis/view.php?id=5328
- * 
- * Since we do not use non-blocking mode at all
- * in liquidsoap, this wrapper ensures that all socket are set back to
- * blocking mode after a call to select under win32.. *)
-let select r w e t =
-  let ret = Unix.select r w e t in
-  if Sys.os_type <> "Win32" then
-    ret
-  else
-   begin
-    let f x =
-       try
-        Unix.clear_nonblock x
-       with _ -> ()
-    in
-    let f = List.iter f in
-    f r; f w; f e;
-    ret
-   end
-
 (* Read all data from a given filename.
  * We cannot use really_input with the 
  * reported length of the file because
@@ -216,7 +238,7 @@ let select r w e t =
 let read_all filename =
   let channel = open_in filename in
   let buflen = 1024 in
-  let tmp = String.create 1024 in
+  let tmp = Bytes.create 1024 in
   let contents = Buffer.create buflen in
   let rec read () =
     let ret = input channel tmp 0 1024 in
@@ -230,39 +252,7 @@ let read_all filename =
   close_in channel ;
   Buffer.contents contents
 
-exception Timeout
-
-(* Wait for [`Read], [`Write] or [`Both] for at most 
- * [timeout] seconds on the given [socket]. Raises [Timeout] 
- * if timeout is reached.
- *
- * WARNING: Make sure socket does not get closed while
- * waiting here. You might need to thing of thread safety
- * and mutexes.. *)
-let wait_for ?(log=fun _ -> ()) event socket timeout = 
-  let max_time = Unix.gettimeofday () +. timeout in
-  let r, w = 
-    match event with
-      | `Read -> [socket],[]
-      | `Write -> [],[socket]
-      | `Both -> [socket],[socket]
-  in
-  let rec wait t =
-    let l,l',_ = select r w [] t in
-    if l=[] && l'=[] then begin
-      log (Printf.sprintf "No network activity for %.02f second(s)." t);
-      let current_time = Unix.gettimeofday () in
-      if current_time >= max_time then
-       begin
-        log "Network activity timeout!" ;
-        raise Timeout 
-       end
-      else
-        wait (min 1. (max_time -. current_time))
-    end
-  in wait (min 1. timeout)
-
-(* Drop all but then [len] last bytes. *)
+(* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
   assert (len <= size) ;
@@ -276,9 +266,6 @@ let buffer_drop buffer len =
  * and override it with Printexc's implementation
  * if present.. *)
 
-(* Exception translation *)
-exception Translation of string
-
 let error_translators = Queue.create ()
 
 let register_error_translator x = Queue.push x error_translators
@@ -286,54 +273,18 @@ let register_error_translator x = Queue.push x error_translators
 let unix_translator = 
   function
     | Unix.Unix_error (code,name,param) ->
-      raise (Translation 
-          (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
-                                         name param))
-    | _ -> ()
+       Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) 
+                                           name param)
+    | _ -> None
 
 let () = register_error_translator unix_translator
 
 let exception_printer e =
- try
-   Queue.iter (fun f -> f e) error_translators ;
-   None
- with
-   | Translation x -> Some x
+  Queue.fold
+    (fun cur f -> if cur <> None then cur else f e)
+    None error_translators
 
-let register_printer _ = 
-    raise Not_found
-
-(* Exception backtrace printing.
- * This is used in Threads where 
- * the backtrace seems to be lost
- * otherwise. *)
-
-(* Default implementation when Printexc does
- * not implement it. *)
-let get_backtrace () = 
-  "Liquidsoap not compiled with ocaml >= 3.11, \
-   cannot print stack backtrace"
-
-(* Open Printexc, which overrides register_printer 
- * and get_backtrace. *)
-open Printexc
-
-let get_backtrace = get_backtrace
-
-let printexc_has_register = 
-  try
-    register_printer exception_printer ;
-    true
-  with
-    | Not_found -> false
-
-let error_message e = 
-  if printexc_has_register then
-    Printexc.to_string e
-  else
-    match exception_printer e with
-      | Some s -> s
-      | None   -> Printexc.to_string e
+let () = Printexc.register_printer exception_printer
 
 (** Perfect Fisher-Yates shuffle
   * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
@@ -487,13 +438,9 @@ let interpolate =
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
 let which =
-  let path =
-    let s = Sys.getenv "PATH" in
-      Str.split (Str.regexp_string ":") s
-  in
-    fun s ->
+    fun ~path s ->
       if Sys.file_exists s then s else
-        List.find Sys.file_exists (List.map (fun d -> d^"/"^s) path)
+        List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
 
 (** Very partial strftime clone *)
 let strftime str : string =
@@ -592,8 +539,8 @@ let decode64 s =
         | _ -> failwith "decode64: invalid encoding"
     in
     let len = List.length result in
-    let s = String.make len ' ' in
-      ignore (List.fold_left (fun i c -> s.[i] <- c ; i-1) (len-1) result) ;
+    let s = Bytes.make len ' ' in
+      ignore (List.fold_left (fun i c -> Bytes.set s i c ; i-1) (len-1) result) ;
       s
 
 (** Base 64 encoding. *)
@@ -604,9 +551,9 @@ let encode64 s =
   let extra = String.length s mod 3 in
   let s = match extra with 1 -> s ^ "\000\000" | 2 -> s ^ "\000" | _ -> s in
   let n = String.length s in
-  let dst = String.create (4 * (n/3)) in
+  let dst = Bytes.create (4 * (n/3)) in
     for i = 0 to n/3 - 1 do
-      let (:=) j v = dst.[i*4+j] <- digit.[v] in
+      let (:=) j v = Bytes.set dst (i*4+j) digit.[v] in
       let c j = int_of_char s.[i*3+j] in
       let c0 = c 0 and c1 = c 1 and c2 = c 2 in
         0 := c0 lsr 2 ;
@@ -615,10 +562,10 @@ let encode64 s =
         3 := c2 land 63
     done ;
     if extra = 1 then begin
-      dst.[4*(n/3)-2] <- '=' ;
-      dst.[4*(n/3)-1] <- '='
+      Bytes.set dst (4*(n/3)-2) '=' ;
+      Bytes.set dst (4*(n/3)-1) '='
     end else if extra = 2 then
-      dst.[4*(n/3)-1] <- '=' ;
+      Bytes.set dst (4*(n/3)-1) '=' ;
     dst
 
 (** Get a file/uri extension. *)
@@ -629,7 +576,7 @@ let get_ext s =
  try
   let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
   let ret = Pcre.exec ~rex s in
-  String.lowercase (Pcre.get_substring ret 1)
+  StringCompat.lowercase_ascii (Pcre.get_substring ret 1)
  with
    | _ -> raise Not_found
 
@@ -664,7 +611,72 @@ let normalize_parameter_string s =
   let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
-  let s = String.lowercase s in
+  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
+  let s = StringCompat.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
   let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
   s
+
+(** A function to reopen a file descriptor
+  * Thanks to Xavier Leroy!
+  * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
+  *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
+  *)
+let reopen_out outchan filename =
+  flush outchan;
+  let fd1 = Unix.descr_of_out_channel outchan in
+  let fd2 =
+    Unix.openfile filename [Unix.O_WRONLY] 0o666
+  in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(** The same for inchan *)
+let reopen_in inchan filename =
+  let fd1 = Unix.descr_of_in_channel inchan in
+  let fd2 =
+    Unix.openfile filename [Unix.O_RDONLY] 0o666
+  in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(* See: http://www.onicos.com/staff/iz/formats/ieee.c *)
+let float_of_extended_float bytes =
+  let float_of_unsigned u =
+    let ( - ) = Int32.sub in
+    let f = (Int32.shift_left Int32.one 31) - Int32.one in
+    (Int32.to_float (u - f - Int32.one)) +. 2147483648.
+  in
+  let expon = (((int_of_char bytes.[0]) land 0x7F) lsl 8) lor ((int_of_char bytes.[1]) land 0xff) in
+  let boc c = Int32.of_int (int_of_char c land 0xff) in
+  let ( lsl ) = Int32.shift_left in
+  let ( lor ) = Int32.logor in
+  let hiMant =
+    ((boc bytes.[2]) lsl 24) lor
+      ((boc bytes.[3]) lsl 16) lor
+      ((boc bytes.[4]) lsl 8) lor
+      (boc bytes.[5])
+  in
+  let loMant =
+    ((boc bytes.[6]) lsl 24) lor
+      ((boc bytes.[7]) lsl 16) lor
+      ((boc bytes.[8]) lsl 8) lor
+      (boc bytes.[9])
+  in
+  if expon = 0 && hiMant = Int32.zero && loMant = Int32.zero then
+    0.
+  else
+    begin
+      if expon = 0x7fff then
+        nan
+      else
+        begin
+          let expon = expon - 16383 - 31 in
+          let f = ldexp (float_of_unsigned hiMant) expon in
+          let f = f +. ldexp (float_of_unsigned loMant) (expon-32) in
+          if (int_of_char bytes.[0]) land 0x80 <> 0 then
+            -1. *. f
+          else
+            f
+        end
+    end

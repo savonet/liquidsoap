@@ -17,6 +17,7 @@ pre-distclean: clean
 	       gui/liguidsoap $(DISTDIR) $(DISTDIR).tar.bz2
 
 test:
+	$(MAKE) -C src/test test
 	$(MAKE) -C scripts/tests test
 
 # Build liquidsoap as it will be used for building the doc
@@ -31,6 +32,7 @@ ifneq ($(CUSTOM_PATH),yes)
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
 	@echo let plugins_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)/plugins\" >> src/configure.ml
+	@echo let bin_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
@@ -39,17 +41,19 @@ else
 	@echo let logdir = get_dir \"logs\" >> src/configure.ml
 	@echo let plugins_dir = get_dir \"plugins\" >> src/configure.ml
 	@echo let libs_dir = get_dir \"libs\" >> src/configure.ml
+	@echo let bin_dir = get_dir \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
 endif
 	@echo let display_types = ref false >> src/configure.ml
-	@echo "(* Enable backtrace printing if possible, does nothing on ocaml<3.11 *)" >> src/configure.ml
-	@echo "let record_backtrace _ = ()" >> src/configure.ml
-	@echo "open Printexc" >> src/configure.ml
+	@echo let exe_ext = \"$(EXEEXT)\" >> src/configure.ml
 	@echo "let vendor = \
                   Printf.sprintf \"Liquidsoap/%s (%s; OCaml %s)\" \
                      version Sys.os_type Sys.ocaml_version" >> src/configure.ml
-	@echo "let () = record_backtrace true" >> src/configure.ml
+	@echo "let () = Printexc.record_backtrace true" >> src/configure.ml
+	@echo "let path = \
+          let s = try Sys.getenv \"PATH\" with Not_found -> \"\" in \
+          bin_dir :: (Str.split (Str.regexp_string \":\") s)" >> src/configure.ml
 	@echo Creating scripts/liquidsoap.logrotate
 	@cat scripts/liquidsoap.logrotate.in | \
 	  sed -e s:@localstatedir@:$(localstatedir): > scripts/liquidsoap.logrotate
@@ -76,9 +80,8 @@ ifeq ($(INSTALL_DAEMON),yes)
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
-	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
-	for l in externals.liq lastfm.liq utils.liq shoutcast.liq flows.liq video_text.liq \
+	for l in externals.liq lastfm.liq utils.liq shoutcast.liq flows.liq video.liq \
 		       http.liq http_codes.liq pervasives.liq gstreamer.liq ; \
 	do \
 	  $(INSTALL_DATA) scripts/$$l $(libdir)/liquidsoap/$(libs_dir_version) ; \

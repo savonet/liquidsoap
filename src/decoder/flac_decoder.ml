@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ let create_decoder input =
   in 
   let decoder = Flac.Decoder.create dummy_c in
   let decoder,info,_ = Flac.Decoder.init decoder dummy_c in
-  let sample_freq,channels = info.Flac.Decoder.sample_rate,
+  let sample_freq,_ = info.Flac.Decoder.sample_rate,
                              info.Flac.Decoder.channels
   in
   let processed = ref Int64.zero in
@@ -98,7 +98,7 @@ let create_decoder input =
                  | _ -> 0
              in
              processed := Int64.add !processed (Int64.of_int len);
-             let content,length =
+             let content =
                resampler ~audio_src_rate:(float sample_freq) data
              in
              Generator.set_mode gen `Audio ;
@@ -162,7 +162,7 @@ let () =
   "FLAC"
   ~sdoc:"Use libflac to decode any file \
          if its MIME type or file extension is appropriate."
-  (fun ~metadata filename kind ->
+  (fun ~metadata:_ filename kind ->
      if not (Decoder.test_file ~mimes:mime_types#get 
                                ~extensions:file_extensions#get
                                ~log filename) then
@@ -222,7 +222,7 @@ let get_tags file =
     let write = fun _ -> () in
     let h = Flac.Decoder.File.create_from_fd write fd in
     match h.Flac.Decoder.File.comments with
-      | Some (v,m) -> m
+      | Some (_,m) -> m
       | None -> [])
 
 let () = Request.mresolvers#register "FLAC" get_tags

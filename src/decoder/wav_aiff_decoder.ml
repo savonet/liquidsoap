@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 (** Decode WAV files. *)
 
-let log = Dtools.Log.make ["decoder";"wav"]
+let log = Dtools.Log.make ["decoder";"wav/aiff"]
 
 (** {1 Generic decoder} *)
 
@@ -52,11 +52,16 @@ let input input buf ofs len =
   String.blit ret 0 buf ofs len ;
   len
 
+let seek input len =
+  let s = Bytes.create len in
+  ignore(really_input input s 0 len)
+
 let input_ops =
-  { Wav.
+  { Wav_aiff.
      really_input = really_input ;
      input_byte = input_byte ;
      input = input ;
+     seek = seek ;
      close = fun _ -> ()
   }
 
@@ -68,7 +73,7 @@ struct
  * or external processes, if we could wrap the input function used
  * for decoding stream (in http and harbor) as an in_channel. *)
 let create ?header input =
-  let decoder = ref (fun gen -> assert false) in
+  let decoder = ref (fun _ -> assert false) in
   let header = ref header in
 
   let main_decoder remaining =
@@ -79,44 +84,49 @@ let create ?header input =
     let data,bytes = input.Decoder.read bytes_to_get in
       if !remaining <> -1 then remaining := !remaining - bytes;
       if bytes=0 then raise End_of_stream ;
-      let content,length = converter (String.sub data 0 bytes) in
+      let content = converter (String.sub data 0 bytes) in
         Generator.set_mode gen `Audio ;
-        Generator.put_audio gen content 0 length
+        Generator.put_audio gen content 0 (Array.length content.(0))
   in
 
   let read_header () =
-    let wav_header = 
-      Wav.read_header input_ops input.Decoder.read 
+    let iff_header = 
+      Wav_aiff.read_header input_ops input.Decoder.read 
     in
-    let samplesize = Wav.sample_size wav_header in
-    let channels = Wav.channels wav_header in
-    let samplerate = Wav.sample_rate wav_header in
-    let datalen = Wav.data_length wav_header in
+    let samplesize = Wav_aiff.sample_size iff_header in
+    let channels = Wav_aiff.channels iff_header in
+    let samplerate = Wav_aiff.sample_rate iff_header in
+    let datalen = Wav_aiff.data_length iff_header in
     let datalen = if datalen <= 0 then -1 else datalen in
+    let format = Wav_aiff.format_of_handler iff_header in
     let converter =
-        Rutils.create_from_wav
-          ~samplesize ~channels
+        Rutils.create_from_iff
+          ~samplesize ~channels ~format
           ~audio_src_rate:(float samplerate)
     in
-
+    let format_descr =
+      match format with
+        | `Wav -> "WAV"
+        | `Aiff -> "AIFF"
+    in
       log#f 4
-        "WAV header read (%dHz, %dbits, %dbytes), starting decoding..."
-        samplerate samplesize datalen;
-      header := Some (samplesize,channels,(float samplerate),datalen);
+        "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
+        format_descr samplerate samplesize datalen;
+      header := Some (format,samplesize,channels,(float samplerate),datalen);
       decoder := main_decoder datalen converter
 
   in
     begin match !header with
       | None -> decoder := (fun _ -> read_header ())
-      | Some (samplesize,channels,audio_src_rate,datalen) ->
+      | Some (format,samplesize,channels,audio_src_rate,datalen) ->
           let converter =
-            Rutils.create_from_wav ~samplesize ~channels ~audio_src_rate
+            Rutils.create_from_iff ~format ~samplesize ~channels ~audio_src_rate
           in
             decoder := main_decoder datalen converter
     end ;
   let seek ticks = 
     match input.Decoder.lseek,input.Decoder.tell,!header with
-      | Some seek, Some tell, Some (samplesize,channels,samplerate,datalen) ->
+      | Some seek, Some tell, Some (_,samplesize,channels,samplerate,_) ->
          (* seek is in absolute position *)
          let duration = Frame.seconds_of_master ticks in
          let samples = int_of_float (duration *. samplerate) in
@@ -146,23 +156,25 @@ module Buffered = Decoder.Buffered(Generator)
 module D = Make(Generator)
 
 let get_type filename =
-  let header = Wav.fopen filename in
+  let header = Wav_aiff.fopen filename in
     Tutils.finalize
-      ~k:(fun () -> Wav.close header)
+      ~k:(fun () -> Wav_aiff.close header)
       (fun () ->
          let channels =
-           let channels  = Wav.channels header in
-           let sample_rate = Wav.sample_rate header in
+           let channels  = Wav_aiff.channels header in
+           let sample_rate = Wav_aiff.sample_rate header in
            let ok_message s =
              log#f 4
                "%S recognized as WAV file (%s,%dHz,%d channels)."
                  filename s sample_rate channels ;
            in
-           match Wav.sample_size header with
+           match Wav_aiff.sample_size header with
              | 8  -> ok_message "u8"; channels
              | 16 -> ok_message "s16le"; channels
+             | 24 -> ok_message "s24le"; channels
+             | 32 -> ok_message "s32le"; channels
              | _ ->
-                log#f 4 "Only 16 and 8 bit WAV files \
+                log#f 4 "Only 8, 16, 24 and 32 bit WAV files \
                          are supported at the moment.." ;
                 0
          in
@@ -174,23 +186,23 @@ let create_file_decoder filename kind =
     Buffered.file_decoder filename kind (D.create ?header:None) generator
 
 
-let mime_types =
+let wav_mime_types =
   Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "wav")
     "Mime-types used for guessing WAV format"
     ~d:["audio/vnd.wave"; "audio/wav"; "audio/wave"; "audio/x-wav"]
-let file_extensions = 
+let wav_file_extensions = 
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "wav")
     "File extensions used for guessing WAV format"
-    ~d:["wav"]
+    ~d:["wav"; "wave"]
 
 let () =
   Decoder.file_decoders#register "WAV"
     ~sdoc:"Decode as WAV any file with a correct header."
-    (fun ~metadata filename kind ->
+    (fun ~metadata:_ filename kind ->
        (* Don't get the file's type if no audio is allowed anyway. *)
        if kind.Frame.audio = Frame.Zero ||
-        not (Decoder.test_file ~mimes:mime_types#get
-                               ~extensions:file_extensions#get
+        not (Decoder.test_file ~mimes:wav_mime_types#get
+                               ~extensions:wav_file_extensions#get
                                ~log filename) then None 
        else
        let file_type = get_type filename in
@@ -205,15 +217,46 @@ let () =
            None
          end)
 
+let aiff_mime_types =
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "aiff")
+    "Mime-types used for guessing AIFF format"
+    ~d:["audio/x-aiff"; "audio/aiff"]
+let aiff_file_extensions =
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "aiff")
+    "File extensions used for guessing AIFF format"
+    ~d:["aiff"; "aif"; "aifc"]
+
+let () =
+  Decoder.file_decoders#register "AIFF"
+    ~sdoc:"Decode as AIFF any file with a correct header."
+    (fun ~metadata:_ filename kind ->
+       (* Don't get the file's type if no audio is allowed anyway. *)
+       if kind.Frame.audio = Frame.Zero ||
+        not (Decoder.test_file ~mimes:aiff_mime_types#get
+                               ~extensions:aiff_file_extensions#get
+                               ~log filename) then None
+       else
+       let file_type = get_type filename in
+         if Frame.type_has_kind file_type kind then
+           Some (fun () -> create_file_decoder filename kind)
+         else begin
+           log#f 3
+             "AIFF file %S has content type %s but %s was expected."
+             filename
+             (Frame.string_of_content_type file_type)
+             (Frame.string_of_content_kind kind) ;
+           None
+         end)
+
 
 let () =
   let duration file =
-    let w = Wav.fopen file in
-    let ret = Wav.duration w in
-    Wav.close w ;
+    let w = Wav_aiff.fopen file in
+    let ret = Wav_aiff.duration w in
+    Wav_aiff.close w ;
     ret
   in
-  Request.dresolvers#register "WAV" duration
+  Request.dresolvers#register "WAV/AIFF" duration
 
 (* Stream decoding *)
 
@@ -225,7 +268,30 @@ let () =
     ~sdoc:"Decode a WAV stream with an appropriate MIME type."
      (fun mime kind ->
         let (<:) a b = Frame.mul_sub_mul a b in
-          if List.mem mime mime_types#get &&
+          if List.mem mime wav_mime_types#get &&
+             (* Check that it is okay to have zero video and midi,
+              * and at least one audio channel. *)
+             Frame.Zero <: kind.Frame.video &&
+             Frame.Zero <: kind.Frame.midi &&
+             kind.Frame.audio <> Frame.Zero
+          then
+            (* In fact we can't be sure that we'll satisfy the content
+             * kind, because the stream might be mono or stereo.
+             * For now, we let this problem result in an error at
+             * decoding-time. Failing early would only be an advantage
+             * if there was possibly another plugin for decoding
+             * correctly the stream (e.g. by performing conversions). *)
+            Some (D_stream.create ?header:None)
+          else
+            None)
+
+let () =
+  Decoder.stream_decoders#register
+    "AIFF"
+    ~sdoc:"Decode a AIFF stream with an appropriate MIME type."
+     (fun mime kind ->
+        let (<:) a b = Frame.mul_sub_mul a b in
+          if List.mem mime aiff_mime_types#get &&
              (* Check that it is okay to have zero video and midi,
               * and at least one audio channel. *)
              Frame.Zero <: kind.Frame.video &&
@@ -260,6 +326,6 @@ let () =
              Frame.Zero <: kind.Frame.midi &&
              Frame.Succ (Frame.Succ Frame.Zero) <: kind.Frame.audio
           then
-            Some (D_stream.create ~header:(8,2,8000.,-1))
+            Some (D_stream.create ~header:(`Wav,8,2,8000.,-1))
           else
             None)

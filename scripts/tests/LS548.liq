@@ -2,6 +2,14 @@
 # decoder which prevented input.http decoder 
 # from detecting an EOS.
 
+%include "test.liq"
+
+%ifnencoder %aacplus
+  print("no encoder for %aacplus: TEST SKIPPED")
+%endif
+
+%ifencoder %aacplus
+
 # Setup an aac+ output
 s = sine()
 h = output.harbor(%aacplus,s,mount="test",port=546742)
@@ -11,7 +19,7 @@ o = input.http("http://localhost:546742/test")
 
 # Setup an output which shutdowns at the second
 # start
-on_shutdown({ print("TEST PASSED") })
+on_shutdown(test.pass)
 has_started = ref 0
 def on_start() = 
   has_started := !has_started + 1
@@ -34,3 +42,5 @@ add_timeout(5.,
      output.harbor(%aacplus,s,mount="test",port=546742)
      (-1.)
    end)
+
+%endif

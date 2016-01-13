@@ -25,11 +25,20 @@ val dynlink : bool
 (** Where to look for dynamically loadable modules (cmxs). *)
 val plugins_dir : string
 
+(** Where to look for private executables. *)
+val bin_dir : string
+
+(** Standard path. *)
+val path : string list
+
 (** Helper to load dynamic modules. *)
 val load_dynlinks : unit -> unit
 
 (** Helper to load dynamic plugins. *)
 val load_plugins_dir : string -> unit
+
+(** Executable extension. *)
+val exe_ext : string
 
 (** Default font file *)
 val default_font : string
@@ -53,7 +62,7 @@ val tts_program : string
 val rundir : string
 val logdir : string
 
-(** Display infered types. *)
+(** Display inferred types. *)
 val display_types : bool ref
 
 (** Liquidsoap configuration root *)
@@ -67,3 +76,6 @@ val libs_versions : string
 
 (** File watch utility. *)
 val file_watcher : File_watcher.watch ref
+
+(** JSON parser. *)
+module JSON : (module type of JSON)

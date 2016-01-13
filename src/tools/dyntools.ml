@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ let load_plugins_dir d =
              if report then
               begin
                 dyn_log#f 2 "Unknown error while loading plugin file %s: %s"
-                  file (Utils.error_message e) ;
+                  file (Printexc.to_string e) ;
                 cur
               end
              else

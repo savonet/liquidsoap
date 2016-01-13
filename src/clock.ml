@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ let conf_clock =
   *    are not fatal anymore. *)
 let started : [ `Yes | `No | `Soon ] ref = ref `No
 
+(** Indicates whether the application has started to run or not. *)
 let running () = !started = `Yes
 
 (** We need to keep track of all used clocks, to have them (un)register
@@ -77,13 +78,12 @@ let allow_streaming_errors =
 let leave (s:active_source) =
   try s#leave (s:>source) with e ->
     log#f 2 "Error when leaving output %s: %s!"
-      s#id (Utils.error_message e) ;
+      s#id (Printexc.to_string e) ;
     List.iter
       (log#f 3 "%s")
-      (Pcre.split ~pat:"\n" (Utils.get_backtrace ()))
+      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
 
-(** Base clock class *)
-
+(** Base clock class. *)
 class clock id =
 object (self)
 
@@ -126,6 +126,9 @@ object (self)
   method sub_clocks = sub_clocks
   method attach_clock c =
     if not (List.mem c sub_clocks) then sub_clocks <- c::sub_clocks
+  method detach_clock c =
+    assert (List.mem c sub_clocks) ;
+    sub_clocks <- List.filter (fun c' -> c <> c') sub_clocks
 
   val mutable round = 0
 
@@ -158,10 +161,10 @@ object (self)
                | exn ->
                    log#f 2
                      "Source %s failed while streaming: %s!"
-                     s#id (Utils.error_message exn) ;
+                     s#id (Printexc.to_string exn) ;
                    List.iter
                      (log#f 3 "%s")
-                     (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                     (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                    leave s ;
                    s::e,a)
           ([],[])
@@ -170,7 +173,8 @@ object (self)
         if error <> [] then begin
           Tutils.mutexify lock
             (fun () ->
-               outputs <- List.filter (fun (_,s) -> not (List.mem s error)) outputs)
+               outputs <-
+                 List.filter (fun (_,s) -> not (List.mem s error)) outputs)
             () ;
           (* To stop this clock it would be enough to detach all sources
            * and let things stop by themselves. We stop all sources by
@@ -198,7 +202,8 @@ object (self)
       Tutils.mutexify lock
         (fun () ->
            let rec aux (outputs,to_start) = function
-             | (`New,s)::tl when f s -> aux ((`Starting,s)::outputs,s::to_start) tl
+             | (`New,s)::tl when f s ->
+                 aux ((`Starting,s)::outputs,s::to_start) tl
              | (flag,s)::tl -> aux ((flag,s)::outputs,to_start) tl
              | [] -> outputs,to_start
            in
@@ -216,10 +221,10 @@ object (self)
            try s#get_ready [(s:>source)] ; `Woken_up s with
              | e ->
                  log#f 2 "Error when starting %s: %s!"
-                   s#id (Utils.error_message e) ;
+                   s#id (Printexc.to_string e) ;
                  List.iter
                   (log#f 3 "%s")
-                  (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                  (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                  leave s ;
                  `Error s)
         to_start
@@ -232,10 +237,10 @@ object (self)
                try s#output_get_ready ; `Started s with
                  | e ->
                      log#f 2 "Error when starting output %s: %s!"
-                       s#id (Utils.error_message e) ;
+                       s#id (Printexc.to_string e) ;
                      List.iter
                        (log#f 3 "%s")
-                       (Pcre.split ~pat:"\n" (Utils.get_backtrace ())) ;
+                       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                      leave s ;
                      `Error s)
         to_start
@@ -399,7 +404,7 @@ end
 
 class self_sync id =
 object
-  inherit wallclock ~sync:true id as super
+  inherit wallclock ~sync:true id
 
   val mutable blocking_sources = 0
   val bs_lock = Mutex.create ()
@@ -472,7 +477,6 @@ end
   * collect. *)
 let after_collect_tasks = ref 1
 let lock = Mutex.create ()
-let cond = Condition.create ()
 
 (** We might not need a default clock, so we use a lazy clock value.
   * We don't use Lazy because we need a thread-safe mechanism. *)

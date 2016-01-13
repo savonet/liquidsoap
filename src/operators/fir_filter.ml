@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,12 +23,10 @@
 open Source
 open Complex
 
-let pi = 3.14159265358979323846
-
 class fir ~kind (source:source) freq beta numcoeffs =
   let channels = (Frame.type_of_kind kind).Frame.audio in
 object (self)
-  inherit operator ~name:"fir_filter" kind [source] as super
+  inherit operator ~name:"fir_filter" kind [source]
 
   (* Needed to compute RC *)
   val f1 = (1. -. beta) *. (freq /. (float_of_int (Frame.audio_of_seconds 1.)))
@@ -58,7 +56,7 @@ object (self)
         if n < 0 then [||]
         else
           begin
-            let theta = pi *. float_of_int n /. 1024. in
+            let theta = Utils.pi *. float_of_int n /. 1024. in
             Array.append (mkcircle (n - 1))
                          [|{re = cos(theta) ; im = sin(theta)}|]
           end
@@ -70,9 +68,9 @@ object (self)
       let c n =
         let f = float_of_int n /. 2048. in
           match (f <= f1, f <= f2) with
-            | (true, x) -> 1.
+            | (true, _) -> 1.
             | (false, true) -> 0.5 *.
-                (1. +. cos((pi *. tau /. beta) *. (f -. f1)))
+                (1. +. cos((Utils.pi *. tau /. beta) *. (f -. f1)))
             | (false, false) -> 0.
       in
         for i = 0 to 1024 do
@@ -104,7 +102,7 @@ object (self)
       fft (ref temp) (ref vec) 0 2048 ; (* inverse fft *)
       let h = (numcoeffs - 1) / 2 in
         xcoeffs <- Array.mapi
-                     (fun i x -> vec.((2048 - h + i) mod 2048).re /. 2048.)
+                     (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.)
                      xcoeffs;
         self#log#f 4 "Xcoeffs: %s"
           (String.concat "\n"

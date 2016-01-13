@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,10 +24,9 @@
 
 (** TODO: video *)
 
-(** The returned length (int) is in audio samples *)
 type audio_converter =
     ?audio_src_rate:float ->
-    Frame.audio_t array -> Frame.audio_t array*int
+    Frame.audio_t array -> Frame.audio_t array
 
 let create_audio () =
   let audio_converters = Hashtbl.create 2 in
@@ -57,8 +56,7 @@ let create_audio () =
         in
         ret.(0)
       in
-      let ret = Array.mapi resample_chan audio_buf in
-      ret,Array.length ret.(0)
+      Array.mapi resample_chan audio_buf
     in
     let audio_rate =
       match audio_src_rate with
@@ -67,31 +65,37 @@ let create_audio () =
     in
     process_audio audio_rate)
 
-(** The returned length (int) is in audio samples *)
 type wav_converter =
     audio_src_rate:float ->
-    string -> Frame.audio_t array * int
+    string -> Frame.audio_t array
 
-let create_from_wav ~channels ~samplesize =
+let create_from_iff ~format ~channels ~samplesize =
   let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
   let sample_bytes = samplesize / 8 in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
+  let buf = Buffer.create 1024 in
   (fun ~audio_src_rate src ->
     let ratio = audio_dst_rate /. audio_src_rate in
-    let len = (String.length src) / (sample_bytes*channels) in
-    let dst = Array.init channels (fun _ -> Array.make len 0.) in
+    Buffer.add_string buf src;
+    let src = Buffer.contents buf in
+    let src_len = String.length src in
+    let elem_len = sample_bytes*channels in
+    let sample_len = src_len / elem_len in
+    let sample_bytes_len = sample_len*elem_len in
+    Buffer.reset buf;
+    Buffer.add_substring buf src sample_bytes_len (src_len-sample_bytes_len);
+    let dst = Array.init channels (fun _ -> Array.make sample_len 0.) in
     let to_audio =
       match samplesize with
       | 8 -> Audio.U8.to_audio
-      | 16 -> Audio.S16LE.to_audio
+      | 16 when format = `Wav -> Audio.S16LE.to_audio
+      | 16 when format = `Aiff -> Audio.S16BE.to_audio
+      | 24 when format = `Wav -> Audio.S24LE.to_audio
+      | 32 when format = `Wav -> Audio.S32LE.to_audio
       | _ -> failwith "unsuported sample size"
     in
-    to_audio src 0 dst 0 len;
-    let dst =
-      Audio_converter.Samplerate.resample
-        samplerate_converter
-        ratio
-        dst 0 len
-    in
-    let dst_len = Array.length dst.(0) in
-    dst, dst_len)
+    to_audio src 0 dst 0 sample_len;
+    Audio_converter.Samplerate.resample
+      samplerate_converter
+      ratio
+      dst 0 sample_len)

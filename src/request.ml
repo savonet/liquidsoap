@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2013 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -54,15 +54,6 @@ let cleanup =
   let re2 = Str.regexp "[\t ]*$" in
     fun s -> Str.global_replace re1 "" (Str.global_replace re2 "" s)
 
-let get_extension f =
-  try
-    let i = 1 + String.rindex f '.' in
-    let len = String.length f in
-      if i >= len then "" else
-        String.sub f i (len-i)
-  with
-    | Not_found -> ""
-
 (** Metadata *)
 
 type metadata = (string,string) Hashtbl.t
@@ -75,9 +66,13 @@ let string_of_metadata metadata =
     Hashtbl.iter (fun k v ->
                     if !first then begin
                       first := false ;
-                      Format.fprintf f "%s=%a" k escape v
+                      try 
+                        Format.fprintf f "%s=%a" k escape v
+                      with _ -> ()
                     end else
-                      Format.fprintf f "\n%s=%a" k escape v)
+                      try 
+                        Format.fprintf f "\n%s=%a" k escape v
+                      with _ -> ())
       metadata ;
     Format.pp_print_flush f () ;
     Buffer.contents b
@@ -124,7 +119,7 @@ let string_of_log log =
   * from the current active URI to the root.
   * At the end of the previous example, the tree looks like:
   * [ [ "/tmp/localfile_from_smb" ] ;
-  *   [ 
+  *   [
   *     (* Some http://something was there but was removed without producing
   *      * anything. *)
   *     "smb://something" ; (* The successfully downloaded URI *)
@@ -186,7 +181,7 @@ exception Duration of float
 let duration file =
   try
     dresolvers#iter
-      (fun name resolver ->
+      (fun _ resolver ->
         try
           let ans = resolver file in
           raise (Duration ans)
@@ -271,7 +266,7 @@ let rec pop_indicator t =
         Unix.unlink i.string
       with
         | e ->
-            log#f 2 "Unlink failed: %S" (Utils.error_message e)
+            log#f 2 "Unlink failed: %S" (Printexc.to_string e)
       end ;
     t.decoder <- None ;
     if repop then pop_indicator t
@@ -298,7 +293,7 @@ let get_decoders conf decoders =
 let mresolvers_doc =
   "Methods to extract metadata from a file."
 let mresolvers =
-  Plug.create 
+  Plug.create
     ~register_hook:(fun (name,_) -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
@@ -351,7 +346,7 @@ let local_check t =
                      let ans = resolver name in
                        List.iter
                          (fun (k,v) ->
-                           let k = String.lowercase k in
+                           let k = Utils.StringCompat.lowercase_ascii k in
                            if conf_override_metadata#get || get_metadata t k = None then
                              Hashtbl.replace indicator.metadata
                               k (cleanup v))
@@ -452,7 +447,7 @@ let get_id t = t.id
 let from_id id = Pool.find id
 
 let all_requests () =
-  Pool.fold (fun k v l -> k::l) []
+  Pool.fold (fun k _ l -> k::l) []
 
 let alive_requests () =
   Pool.fold
@@ -525,7 +520,7 @@ let destroy ?force t =
 
 let clean () =
   Pool.iter
-    (fun k r -> if r.status <> Destroyed then destroy ~force:true r)
+    (fun _ r -> if r.status <> Destroyed then destroy ~force:true r)
 
 let get_decoder r =
   match r.decoder with None -> None | Some d -> Some (d ())
@@ -546,7 +541,7 @@ let is_static s =
     Some true
   else
     match parse_uri s with
-      | Some (proto,arg) ->
+      | Some (proto,_) ->
           begin match protocols#get proto with
             | Some handler -> Some handler.static
             | None -> None
@@ -578,7 +573,7 @@ let resolve t timeout =
               | Some handler ->
                   add_log t
                     (Printf.sprintf
-                       "Resolving %S (timeout %.fs)..."
+                       "Resolving %S (timeout %.0fs)..."
                        i.string timeout) ;
                   let production =
                     handler.resolve ~log:(add_log t) arg maxtime
@@ -597,7 +592,8 @@ let resolve t timeout =
                   pop_indicator t
             end
         | None ->
-            log#f 3 "Nonexistent file or ill-formed URI %S!" i.string ;
+            let log_level = if i.string = "" then 4 else 3 in
+            log#f log_level "Nonexistent file or ill-formed URI %S!" i.string ;
             add_log t "Nonexistent file or ill-formed URI!" ;
             pop_indicator t
   in
