@@ -242,7 +242,7 @@ object (self)
           | `Frame (`Audio, _, data) ->
              let converter = Utils.get_some !audio_converter in
              let data = converter data in
-             Generator.put_audio abg data 0 (Array.length data.(0))
+             Generator.put_audio abg data 0 (ABuf.length data.(0))
           | _ -> failwith "Invalid chunk."
         with
         | End_of_file -> raise (Finished ("Process exited.", restart))
