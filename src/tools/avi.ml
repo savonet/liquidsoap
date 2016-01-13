@@ -204,7 +204,7 @@ module Read = struct
   let rec chunk f =
     let tag = read 4 f in
     let len = dword f in
-    (* Printf.printf "Read: %s\n%!" tag; *)
+    (* Printf.printf "Read: %s (%d)\n%!" tag len; *)
     len + 8,
     match tag with
     | "LIST" ->
@@ -246,7 +246,8 @@ module Read = struct
        let stream_type = read 4 f in
        must "Wrong strh length." (len = 56);
        let fourcc = dword f in
-       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0);
+       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0 ||
+           fourcc = 0x52474218 (* RGB24 *));
        must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
        let flags = dword f in
        must "Wrong strh flags." (flags = 0);
@@ -343,10 +344,14 @@ module Read = struct
         begin
           match List.hd l with
           | `strh (stream_type, fps) ->
-             if stream_type = "vids" then streams := `Video (width, height, fps) :: !streams
+             if stream_type = "vids" then
+               (
+                 (* Printf.printf "video: %dx%d@%f\n%!" width height fps; *)
+                 streams := `Video (width, height, fps) :: !streams
+               )
              else if stream_type = "auds" then
                let codec = word 0 in
-               must "Wrong audio codec." (codec = 255);
+               must ("Wrong audio codec.") (codec = 1 || codec = 255);
                let channels = word 2 in
                let sample_rate = dword 4 in
                streams := `Audio (channels, sample_rate) :: !streams

@@ -264,6 +264,14 @@ end
 %endif
 
 %ifdef input.external.avi
+  # Stream video from ffmpeg
+  # @category Source / Input
+  # @param s data URI.
+  # @param ~restart restart on exit.
+  # @param ~restart_on_error restart on exit with error.
+  # @param ~buffer Duration of the pre-buffered data.
+  # @param ~max Maximum duration of the buffered data.
+  # @category Source / Input
   def input.ffmpeg.video(~id="input.ffmpeg.video",
     ~restart=true,~restart_on_error=false,
     ~buffer=0.2,~max=10.,~format="",s) =
@@ -276,7 +284,22 @@ end
       -f avi -vf format=rgb24 -vcodec rawvideo -r #{videorate} -s #{width}x#{height} \
       -acodec pcm_s16le -ar #{audiorate} \
       pipe:1"
-      log("********************")
+      # log(command)
+      input.external.avi(id=id,restart=restart,
+        restart_on_error=restart_on_error,
+        buffer=buffer,max=max,
+        command)
+  end
+
+  # TODO: not working yet
+  def input.mencoder.video(~id="input.mencoder.video",
+    ~restart=true,~restart_on_error=false,
+    ~buffer=0.2,~max=10.,s) =
+      # audiorate = get(default=44100,"frame.audio.samplerate")
+      # width = get(default=320,"frame.video.width")
+      # height = get(default=240,"frame.video.height")
+      # videorate = get(default=24,"frame.video.samplerate")
+      command = "mencoder -really-quiet #{quote(s)} -of avi -ovc raw -oac pcm -vf format=rgb24 -o -"
       log(command)
       input.external.avi(id=id,restart=restart,
         restart_on_error=restart_on_error,

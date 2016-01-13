@@ -191,8 +191,9 @@ class video ~kind ~restart ~bufferize ~restart_on_error ~max command =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
-  let abg = Generator.create ~log ~kind `Video in
+  let abg = Generator.create ~log ~kind `Both in
   let priority = Tutils.Non_blocking in
+  let audio_converter = ref None in
 object (self)
   inherit Source.source ~name:"input.external.video" kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
@@ -209,14 +210,17 @@ object (self)
       let in_e = Unix.open_process_in command in
       let f = Unix.descr_of_in_channel in_e in
       let h, _ = Avi.Read.headers_simple f in
-      (
-        match h with
-        | [`Video (w,h,fps)] ->
-           if w <> width then failwith "Wrong width.";
-           if h <> height then failwith "Wrong height.";
-           if fps <> float (Lazy.force Frame.video_rate) then failwith "Wrong rate.";
-        | _ -> failwith "Only AVI with video only are supported for now."
-      );
+      let check = function
+        | `Video (w,h,fps) ->
+           if w <> width then failwith "Wrong video width.";
+           if h <> height then failwith "Wrong video height.";
+           if fps <> float (Lazy.force Frame.video_rate) then failwith "Wrong video rate."
+        | `Audio (channels, audio_src_rate) ->
+           let audio_src_rate = float audio_src_rate in
+           if !audio_converter <> None then failwith "Only one audio track is supported for now.";
+           audio_converter := Some (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16 ~audio_src_rate)
+      in
+      List.iter check h;
       in_e, f
     in
     let (_, in_d) as x = create () in
@@ -232,6 +236,10 @@ object (self)
              Img.swap_rb data;
              (* Img.Effect.flip data; *)
              Generator.put_video abg [|[|data|]|] 0 1
+          | `Frame (`Audio, _, data) ->
+             let converter = Utils.get_some !audio_converter in
+             let data = converter data in
+             Generator.put_audio abg data 0 (Array.length data.(0))
           | _ -> failwith "Invalid chunk."
         with
         | End_of_file -> raise (Finished ("Process exited.", restart))
@@ -299,31 +307,33 @@ object (self)
 end
 
 let () =
-    Lang.add_operator "input.external.avi"
-      ~category:Lang.Input
-      ~flags:[Lang.Experimental]
-      ~descr:"Stream data from an external application."
-      [
-        "buffer", Lang.float_t, Some (Lang.float 1.),
-         Some "Duration of the pre-buffered data." ;
+  let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_video_any in
+  let kind = Lang.Unconstrained k in
+  Lang.add_operator "input.external.avi"
+    ~category:Lang.Input
+    ~flags:[Lang.Experimental]
+    ~descr:"Stream data from an external application."
+    [
+      "buffer", Lang.float_t, Some (Lang.float 1.),
+      Some "Duration of the pre-buffered data." ;
 
-        "max", Lang.float_t, Some (Lang.float 10.),
-        Some "Maximum duration of the buffered data.";
+      "max", Lang.float_t, Some (Lang.float 10.),
+      Some "Maximum duration of the buffered data.";
 
-        "restart", Lang.bool_t, Some (Lang.bool true),
-        Some "Restart process when exited.";
+      "restart", Lang.bool_t, Some (Lang.bool true),
+      Some "Restart process when exited.";
 
-        "restart_on_error", Lang.bool_t, Some (Lang.bool false),
-        Some "Restart process when exited with error.";
+      "restart_on_error", Lang.bool_t, Some (Lang.bool false),
+      Some "Restart process when exited with error.";
 
-        "", Lang.string_t, None,
-        Some "Command to execute."
-      ]
-      ~kind:Lang.video_only
-      (fun p kind ->
-         let command = Lang.to_string (List.assoc "" p) in
-         let bufferize = Lang.to_float (List.assoc "buffer" p) in
-         let restart = Lang.to_bool (List.assoc "restart" p) in
-         let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
-         let max = Lang.to_float (List.assoc "max" p) in
-          ((new video ~kind ~restart ~bufferize ~restart_on_error ~max command):>Source.source))
+      "", Lang.string_t, None,
+      Some "Command to execute."
+    ]
+    ~kind
+    (fun p kind ->
+      let command = Lang.to_string (List.assoc "" p) in
+      let bufferize = Lang.to_float (List.assoc "buffer" p) in
+      let restart = Lang.to_bool (List.assoc "restart" p) in
+      let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+      let max = Lang.to_float (List.assoc "max" p) in
+      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max command):>Source.source))
