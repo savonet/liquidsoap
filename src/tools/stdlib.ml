@@ -30,6 +30,11 @@ module List = struct
 
   let assoc_all x l =
     may_map (fun (y,v) -> if x = y then Some v else None) l
+
+  let rec last = function
+    | [x] -> x
+    | _::l -> last l
+    | [] -> raise Not_found
 end
 
 module String = struct
