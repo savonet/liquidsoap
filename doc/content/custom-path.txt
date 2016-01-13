@@ -15,7 +15,6 @@ A custom loading path is a directory that contains the following file/directorie
 * @./plugins@: default plugins directory (most likely empty)
 * @./run@: default runtime files directory
 * @liquidtts@: @liquidtts@ script.
-* @liquidget@: @liquidget@ script.
 
 h3. Adding liquidsoap binary
 
