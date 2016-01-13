@@ -47,7 +47,7 @@ let text s ~log maxtime =
   with
   | e ->
     dlog#f 3 "Failed to synthetize text: %s!"
-      (match e with Failure s -> s | _ -> Utils.error_message e);
+      (match e with Failure s -> s | _ -> Printexc.to_string e);
     log "text synthesis failed!" ;
     (try Unix.unlink local with _ -> ());
     []

@@ -299,7 +299,7 @@ let get_text_decoder ?font ?size ?color s =
           | e ->
             log#f 4
               "Decoder %S failed on %S: %s!"
-              name s (Utils.error_message e);
+              name s (Printexc.to_string e);
             None
         with
         | Some img ->

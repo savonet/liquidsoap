@@ -28,43 +28,47 @@
 open Genlex
 exception Error
 
+let rec parse s =
+  let parse = parse s in
+  let l = String.length s in
+  let pos = ref 0 in
+  let str =
+    Stream.from (fun i ->
+      pos := i ;
+      if i<l then Some s.[i] else None)
+  in
+  let lexer = make_lexer [":";",";"="] str in
+  fun metadata ->
+    match Stream.next lexer with
+    | Kwd ":" -> metadata,(String.sub s !pos (l - !pos))
+    | Kwd "," -> parse metadata
+    | Ident key ->
+       if key<>"" && key.[0]=':' then
+         metadata,((String.sub key 1 (String.length key - 1))^
+                      (String.sub s !pos (l - !pos)))
+       else begin match Stream.next lexer with
+       | Kwd "=" -> begin match Stream.next lexer with
+         | String s -> parse ((key,s)::metadata)
+         | Int i -> parse ((key,string_of_int i)::metadata)
+         | Float f -> parse ((key,string_of_float f)::metadata)
+         | Ident k -> parse ((key,k)::metadata)
+         | _ -> raise Error
+       end
+       | _ -> raise Error
+       end
+    | _ -> raise Error
+
+let parse s = parse s []
+
 let annotate s ~log _ =
+  (* Avoid =- being lexed as a single identifier. *)
+  let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in
   try
-    (* Avoid =- being lexed as a single identifier. *)
-    let s = Pcre.substitute ~pat:"=-" ~subst:(fun _ -> "= -") s in
-    let l = String.length s in
-    let pos = ref 0 in
-    let str =
-      Stream.from (fun i ->
-                     pos := i ;
-                     if i<l then Some s.[i] else None)
-    in
-    let lexer = make_lexer [":";",";"="] str in
-    let rec parse metadata =
-      match Stream.next lexer with
-        | Kwd ":" -> metadata,(String.sub s !pos (l - !pos))
-        | Kwd "," -> parse metadata
-        | Ident key ->
-            if key<>"" && key.[0]=':' then
-              metadata,((String.sub key 1 (String.length key - 1))^
-                        (String.sub s !pos (l - !pos)))
-            else begin match Stream.next lexer with
-              | Kwd "=" -> begin match Stream.next lexer with
-                  | String s -> parse ((key,s)::metadata)
-                  | Int i -> parse ((key,string_of_int i)::metadata)
-                  | Float f -> parse ((key,string_of_float f)::metadata)
-                  | Ident k -> parse ((key,k)::metadata)
-                  | _ -> raise Error
-                end
-              | _ -> raise Error
-            end
-        | _ -> raise Error
-    in
-    let metadata,uri = parse [] in
-      [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
+    let metadata,uri = parse s in
+    [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
   with
-    | Error
-    | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
+  | Error
+  | Stream.Failure | Stream.Error _ -> log "annotate: syntax error" ; []
 
 let () =
   Request.protocols#register "annotate"
