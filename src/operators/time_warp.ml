@@ -252,18 +252,20 @@ struct
              contains prebuf data. *)
           let scaling = c.rb_length /. prebuf in
           let scale n = int_of_float (float n *. scaling) in
+          let unscale n = int_of_float (float n /. scaling) in
           let salen = scale alen in
           fill buf aofs alen salen;
-          Frame.add_break frame len;
+          Frame.add_break frame (ofs+len);
+          (* self#log#f 5 "filled %d from %d (x %f)" len ofs scaling; *)
 
           (* Fill in metadata *)
-          let md = MG.metadata c.mg len in
-          List.iter (fun (t,m) -> Frame.set_metadata frame (scale t) m) md;
-          MG.advance c.mg len;
+          let md = MG.metadata c.mg (scale len) in
+          List.iter (fun (t,m) -> Frame.set_metadata frame (unscale t) m) md;
+          MG.advance c.mg (scale len);
           if Frame.is_partial frame then MG.drop_initial_break c.mg;
 
           (* If we should play at 10x we declare that we should buffer again. *)
-          if RB.read_space c.rb = 0 || scaling < 0.1 then begin
+          if RB.read_space c.rb = 0 || len = 1 || scaling < 0.1 then begin
             self#log#f 3 "Buffer emptied, start buffering...";
             c.buffering <- true
           end)
