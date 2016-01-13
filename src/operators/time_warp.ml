@@ -200,7 +200,7 @@ struct
 
           (* Update the average length of the ringbuffer (with a damping
              coefficient in order not to be too sensitive to quick local
-             variations).*)
+             variations). *)
           (* y: average length, dt: frame duration, x: read length, A=a/dt
 
              y(t+dt)=(1-a)y(t)+ax(t)
@@ -217,6 +217,8 @@ struct
 
           (* Fill dlen samples of dst using slen samples of the ringbuffer. *)
           let fill dst dofs dlen slen =
+            (* TODO: when the RB is low on space we'd better not fill the whole
+               frame *)
             let slen = min slen (RB.read_space c.rb) in
             if slen > 0 then
               let src = Audio.create channels slen in
@@ -237,22 +239,18 @@ struct
                 done
           in
 
-          let ofs = Frame.position frame in
-          let len =
-            let len = Lazy.force Frame.size - ofs in
-            let rem = MG.remaining c.mg in
-            let rem = if rem = -1 then MG.length c.mg else rem in
-            min len rem
-          in
-          let aofs = Frame.audio_of_master ofs in
-          let alen = Frame.audio_of_master len in
-          let buf = AFrame.content_of_type ~channels frame aofs in
-
           (* We scale the reading so that the buffer always approximatively
              contains prebuf data. *)
           let scaling = c.rb_length /. prebuf in
           let scale n = int_of_float (float n *. scaling) in
           let unscale n = int_of_float (float n /. scaling) in
+
+          let ofs = Frame.position frame in
+          let len = Lazy.force Frame.size - ofs in
+          let aofs = Frame.audio_of_master ofs in
+          let alen = Frame.audio_of_master len in
+          let buf = AFrame.content_of_type ~channels frame aofs in
+
           let salen = scale alen in
           fill buf aofs alen salen;
           Frame.add_break frame (ofs+len);
@@ -261,11 +259,11 @@ struct
           (* Fill in metadata *)
           let md = MG.metadata c.mg (scale len) in
           List.iter (fun (t,m) -> Frame.set_metadata frame (unscale t) m) md;
-          MG.advance c.mg (scale len);
+          MG.advance c.mg (min (Frame.master_of_audio salen) (MG.length c.mg));
           if Frame.is_partial frame then MG.drop_initial_break c.mg;
 
           (* If we should play at 10x we declare that we should buffer again. *)
-          if RB.read_space c.rb = 0 || len = 1 || scaling < 0.1 then begin
+          if RB.read_space c.rb = 0 || scaling < 0.1 then begin
             self#log#f 3 "Buffer emptied, start buffering...";
             c.buffering <- true
           end)
@@ -303,7 +301,13 @@ struct
           let len = AFrame.position frame in
           (* TODO: is this ok to start from 0? *)
           let buf = AFrame.content_of_type ~channels frame 0 in
-          if RB.write_space c.rb < len then RB.read_advance c.rb (len - RB.write_space c.rb);
+          if RB.write_space c.rb < len then
+            (
+              (* Not enough write space, let's drop some data. *)
+              let n = len - RB.write_space c.rb in
+              RB.read_advance c.rb n;
+              MG.advance c.mg (Frame.master_of_audio n)
+            );
           RB.write c.rb buf 0 len;
           MG.feed_from_frame c.mg frame;
           if RB.read_space c.rb > prebuf then c.buffering <- false
