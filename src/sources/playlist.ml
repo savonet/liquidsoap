@@ -237,8 +237,7 @@ object (self)
         (Printf.sprintf "%s%s" prefix)
         (List.filter self#is_valid _playlist)
     in
-      (* TODO distinguish error and empty if fallible *)
-      if _playlist = [] && reload <> `No then
+      if _playlist = [] && reload <> `No && self#stype = Infallible then
         self#log#f 3 "Got an empty list: keeping the old one."
       else begin
         (* Don't worry if a reload fails,
