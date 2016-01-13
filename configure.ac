@@ -7,9 +7,9 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Remove +scm and set scm_snapshot to false before releasing
 # Do not use $version below (and don't write AC_1N1T) before the next
 # line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.1.1])
+AC_INIT([liquidsoap],[1.2.0])
 scm_snapshot=true
-version=1.1.1
+version=1.2.0
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -282,6 +282,12 @@ else
 fi
 
 #
+# Bytes
+#
+
+AC_CHECK_OCAML_BINDING([bytes],[],[],[1],[],[1])
+
+#
 # PCRE
 #
 
@@ -478,7 +484,7 @@ AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
 # Fdkaac
 #
 
-AC_CHECK_OCAML_BINDING([fdkaac],[0.1.0])
+AC_CHECK_OCAML_BINDING([fdkaac],[0.2.1])
 if test -z "${W_FDKAAC}"; then
   if test -n "${W_DYNLINK}"; then
     if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
@@ -734,7 +740,7 @@ fi
 
 # Inotify
 
-AC_CHECK_OCAML_BINDING([inotify],[1.0])
+AC_CHECK_OCAML_BINDING([inotify],[1.5])
 
 cat >> src/configure.ml <<EOCONF
 let file_watcher = ref File_watcher_mtime.watch

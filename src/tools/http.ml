@@ -12,7 +12,7 @@ let string_of_error e =
     | UrlDecoding -> "Http: URL decoding failed"
 
 (** Error translator *)
-let error_translator e =
+let error_translator (e:exn) =
    match e with
      | Error e -> Some (string_of_error e)
      | _ -> None
@@ -35,9 +35,9 @@ let to_hex2 =
        '8'; '9'; 'A'; 'B'; 'C'; 'D'; 'E'; 'F' |]
   in
     fun k ->
-      let s = String.create 2 in
-        s.[0] <- hex_digits.( (k lsr 4) land 15 ) ;
-        s.[1] <- hex_digits.( k land 15 ) ;
+      let s = Bytes.create 2 in
+        Bytes.set s 0 (hex_digits.( (k lsr 4) land 15 )) ;
+        Bytes.set s 1 (hex_digits.( k land 15 )) ;
         s
 
 let url_encode ?(plus=true) s =
@@ -68,7 +68,7 @@ let url_decode ?(plus = true) s =
                 if String.length s < 3 then raise UrlDecoding ;
                 let k1 = of_hex1 s.[1] in
                 let k2 = of_hex1 s.[2] in
-                  String.make 1 (Char.chr ((k1 lsl 4) lor k2))
+                  Bytes.make 1 (Char.chr ((k1 lsl 4) lor k2))
               end)
     s
 
@@ -109,50 +109,11 @@ let url_split_host_port url =
   in
   host,port,uri
 
-let http_sanitize url =
-  try
-    let basic_rex = Pcre.regexp "^http://([^/]+)/(.*)$" in
-    let path_rex = Pcre.regexp "^([^?]+)\\?(.+)$" in
-    let sub = Pcre.exec ~rex:basic_rex url in
-    let host,path = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
-    let encode path =
-      (* Pcre.split removes empty strings and thus removes trailing '/' which
-         can change the semantics of the URL... *)
-      let path = String.split_char '/' path in
-      (* We decode the path, in case it was already encoded. *)
-      let path =
-        List.map (fun x -> url_encode ~plus:false (url_decode x)) path
-      in
-      List.fold_left (Printf.sprintf "%s/%s") "" path
-    in
-    try
-      let sub = Pcre.exec ~rex:path_rex path in
-      let path,options = Pcre.get_substring sub 1,Pcre.get_substring sub 2 in
-      (* args_split also decodes the arguments if
-       * they were already encoded. *)
-      let options = args_split options in
-      let args = Hashtbl.create 2 in
-      Hashtbl.iter
-        (fun a b -> Hashtbl.replace args (url_encode a) (url_encode b))
-        options ;
-      let merge a b c =
-        match c with
-          | "" -> Printf.sprintf "%s=%s" a b
-          | _ -> Printf.sprintf "%s=%s&%s" a b c
-      in
-      let options = Hashtbl.fold merge args "" in
-      let path = encode path in
-      Printf.sprintf "http://%s%s?%s" host path options
-    with
-      | _ -> Printf.sprintf "http://%s%s" host (encode path)
-  with
-    | _ -> url
-
 let is_url path =
-  Pcre.pmatch ~pat:"^http://.+" path
+  Pcre.pmatch ~pat:"^https?://.+" path
 
 let dirname url =
-  let rex = Pcre.regexp "^(http://.+/)[^/]*$" in
+  let rex = Pcre.regexp "^(https?://.+/)[^/]*$" in
   let s = Pcre.exec ~rex url in
   Pcre.get_substring s 1
 
@@ -189,17 +150,17 @@ let read ?(log=fun _ -> ()) ~timeout socket buflen =
   Tutils.wait_for ~log `Read socket timeout;
   match buflen with
     | Some buflen ->
-        let buf = String.create buflen in
+        let buf = Bytes.create buflen in
         let n = Unix.recv socket buf 0 buflen [] in
           String.sub buf 0 n
     | None ->
         let buflen = 1024 in
-        let buf = String.create buflen in
+        let buf = Bytes.create buflen in
         let ans = ref "" in
         let n = ref buflen in
           while !n <> 0 do
             n := Unix.recv socket buf 0 buflen [];
-            ans := !ans ^ String.sub buf 0 !n
+            ans := !ans ^ Bytes.sub buf 0 !n
           done;
           !ans
 
@@ -214,7 +175,7 @@ let read_crlf ?(log=fun _ -> ()) ?(max=4096) ?(count=2) ~timeout socket =
   let n = ref 0 in
   let count_n = ref 0 in
   let stop = ref false in
-  let c = String.create 1 in
+  let c = Bytes.create 1 in
     (* We need to parse char by char because
      * we want to make sure we stop at the exact
      * end of [\r]?\n in order to pass a socket
@@ -251,7 +212,7 @@ let read_chunked ~timeout socket =
   let rec f () =
     let rem = len - Buffer.length buf in
     assert(0 < rem);
-    let s = String.create rem in
+    let s = Bytes.create rem in
     let n = Unix.read socket s 0 rem in
     Buffer.add_substring buf s 0 n;
     if Buffer.length buf = len then
@@ -291,7 +252,7 @@ let request ?(log=fun _ -> ()) ~timeout socket request =
         (fun fields line ->
            try
              let (!!) = Pcre.get_substring (Pcre.exec ~pat line) in
-               (String.lowercase !!1, !!2) :: fields
+               (Utils.StringCompat.lowercase_ascii !!1, !!2) :: fields
            with
              | Not_found -> fields)
         [] header
@@ -361,7 +322,7 @@ let full_request ?headers ?(port=80) ?(log=fun _ -> ())
     let max =
       try
         let (_,len) = List.find (fun (l,_) ->
-          String.lowercase l = "content-length")
+          Utils.StringCompat.lowercase_ascii l = "content-length")
           headers
         in
         int_of_string len

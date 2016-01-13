@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ let log = Dtools.Log.make ["decoder";"ppm"]
 let load_image fname =
   let ic = open_in_bin fname in
   let len = in_channel_length ic in
-  let data = String.create len in
+  let data = Bytes.create len in
   really_input ic data 0 len;
   close_in ic;
   Img.of_PPM data

@@ -57,5 +57,7 @@ def video.add_image(~id="",~width=0,~height=0,~x=max_int(),~y=max_int(),~file,s)
   height = if height == 0 then "" else "height=#{height}" end
   x = if x == max_int() then "" else "x=#{x}" end
   y = if y == max_int() then "" else "y=#{y}" end
-  add([s,single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")])
+  image = single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
+  image = mux_audio(audio=blank(), image)
+  add([s,image])
 end

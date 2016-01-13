@@ -3,6 +3,8 @@
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 
+%include "test.liq"
+
 # Check that some polymorphism is allowed.
 # id : (string,'a)->'a
 def id(a,b)
@@ -109,4 +111,4 @@ def sum_eq(a,b)
   a+b == a
 end
 
-print("TEST PASSED")
+test.pass()

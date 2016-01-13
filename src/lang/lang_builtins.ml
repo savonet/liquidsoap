@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -642,7 +642,7 @@ let register_escape_fun ~name ~descr ~escape
   let special_chars =
     Lang.list ~t:Lang.string_t
      (List.map Lang.string
-      (List.map (String.make 1)
+      (List.map (Bytes.make 1)
         special_chars))
   in
   let escape_char p _ =
@@ -681,7 +681,7 @@ let register_escape_fun ~name ~descr ~escape
        let escape_char c =
          Lang.to_string
           (Lang.apply f ~t:Lang.string_t
-             ["",Lang.string (String.make 1 c)])
+             ["",Lang.string (Bytes.make 1 c)])
        in
        Lang.string (escape ~special_char ~escape_char s))
 
@@ -818,9 +818,9 @@ let () =
        let string = Lang.to_string (List.assoc "" p) in
        Lang.string
          (if lower then
-           String.lowercase(string)
+           Utils.StringCompat.lowercase_ascii string
           else
-           String.uppercase(string)))
+           Utils.StringCompat.uppercase_ascii string))
 
 let () =
   add_builtin "string.capitalize" ~cat:String
@@ -838,9 +838,9 @@ let () =
        let string = Lang.to_string (List.assoc "" p) in
        let f s =
            if cap then
-             String.capitalize(s)
+             Utils.StringCompat.capitalize_ascii s
            else
-             String.uncapitalize(s)
+             Utils.StringCompat.uncapitalize_ascii s
       in
       Lang.string
       (if space_sensitive then
@@ -1288,7 +1288,14 @@ let () =
     (fun _ ->
       Shutdown.restart := true ;
       Tutils.shutdown () ;
-      Lang.unit)
+      Lang.unit);
+  add_builtin "exit" ~cat:Sys ~flags:[Lang.Hidden]
+    ~descr:"Immediately stop the application. This should only be used in extreme cases or to specify an exit value. The recommended way of stopping Liquidsoap is to use shutdown."
+    ["", Lang.int_t, None, Some "Exit value."] Lang.unit_t
+    (fun p ->
+      let n = Lang.to_int (List.assoc "" p) in
+      exit n)
+
 
 let () =
   let reopen name descr f =
@@ -1384,7 +1391,7 @@ let () =
          Unix.open_process_in (Lang.to_string (List.assoc "" p))
        in
        let rec aux s =
-         let more = String.make 128 '?' in
+         let more = Bytes.make 128 '?' in
          let n = input chan more 0 128 in
            if n = 0 then s else
              aux (s^(String.sub more 0 n))
@@ -2044,7 +2051,37 @@ let () =
     ~descr:"Returns true if the file or directory exists."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
-         Lang.bool (Sys.file_exists f))
+       Lang.bool (Sys.file_exists f))
+
+let () =
+  add_builtin "file.is_directory" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.bool_t
+    ~descr:"Returns true if the file exists and is a directory."
+    (fun p ->
+       let f = Lang.to_string (List.assoc "" p) in
+       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
+
+let () =
+  (* This is not named "file.read" because we might want to use that for a
+     proper file API, with descriptors, etc. *)
+  add_builtin "file.contents" ~cat:Sys
+    ["",Lang.string_t,None,None] Lang.string_t
+    ~descr:"Read the whole contents of a file."
+    (fun p ->
+      let f = Lang.to_string (List.assoc "" p) in
+      let ic = open_in f in
+      let s = ref "" in
+      let buflen = 1024 in
+      let buf = Bytes.create buflen in
+      try
+        while true do
+          let n = input ic buf 0 buflen in
+          if n = 0 then raise Exit;
+          s := !s ^ (if n = buflen then buf else Bytes.sub buf 0 n)
+        done;
+        assert false
+      with
+      | Exit -> Lang.string !s)
 
 let () =
   add_builtin "file.watch" ~cat:Sys

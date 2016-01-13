@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -703,7 +703,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
           (add_task (fun () ->
              Format.printf "@[<2>%s :@ %a@]@."
                (let l = String.length name and max = 5 in
-                  if l >= max then name else name ^ String.make (max-l) ' ')
+                  if l >= max then name else name ^ Bytes.make (max-l) ' ')
                (T.pp_type_generalized generalized) def.t)) ;
         check ~print_toplevel ~level:(level+1) ~env body ;
         e.t >: body.t

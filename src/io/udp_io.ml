@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ object (self)
       (* Read data from the network. *)
       let read len =
         wait () ;
-        let msg = String.create len in
+        let msg = Bytes.create len in
         let n,_ = Unix.recvfrom socket msg 0 len [] in
           msg,n
       in

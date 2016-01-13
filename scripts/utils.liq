@@ -507,8 +507,9 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~random Randomize playlist content
 # @param ~on_done Function to execute when the playlist is finished
+# @param ~filter Filter out some files depending on metadata
 # @param uri Playlist URI
-def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
+def playlist.reloadable(~id="",~random=false,~on_done={()},~filter=fun(_)->true,uri)
   # A reference to the playlist
   playlist = ref []
   # A reference to the uri
@@ -516,6 +517,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
   # A reference to know if the source has been stopped
   has_stopped = ref false
   # The next function
+  rec_next = ref ({request.create("")}) # trick to have recursion
   def next () =
     file =
       if list.length(!playlist) > 0 then
@@ -525,13 +527,20 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
       else
         # Playlist finished
         if not !has_stopped then
+          has_stopped := true
           on_done ()
         end
-        has_stopped := true
         ""
       end
-    request.create(file)
+    r = request.create(file)
+    if filter(request.metadata(r)) then
+      r
+    else
+      next = !rec_next
+      next ()
+    end
   end
+  rec_next := next
   # Instanciate the source
   source = request.dynamic(id=id,next)
   # Get its id.
@@ -539,7 +548,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},uri)
   # The load function
   def load_playlist () =
     files =
-      if test_process("test -d #{quote(!playlist_uri)}") then
+      if file.is_directory(!playlist_uri) then
         log(label=id,"playlist is a directory.")
         get_process_lines("find #{quote(!playlist_uri)} -type f | sort")
       else

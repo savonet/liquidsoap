@@ -92,7 +92,7 @@ Examples:
 Optionally, liquidsoap can insert a message within mp3 data. You can set its value using the @msg@ parameter.
 Setting it to @""@ disables this feature. This is its default value.
 
-h3. SHINE
+h4. Shine
 
 Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM. 
 It is named @%shine@ or @%mp3.fxp@ and its parameters are:

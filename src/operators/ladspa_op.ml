@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -78,19 +78,19 @@ object
 end
 
 (* A plugin is created for each channel. *)
-class ladspa ~kind (source:source) plugin descr input output params =
+class ladspa_mono ~kind (source:source) plugin descr input output params =
 object
   inherit base ~kind source
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-      Array.init ((Frame.type_of_kind kind).Frame.audio)
-        (fun _ ->
-           Descriptor.instantiate
-             d
-             (Lazy.force Frame.audio_rate)
-             (AFrame.size ()))
+    Array.init ((Frame.type_of_kind kind).Frame.audio)
+      (fun _ ->
+        Descriptor.instantiate
+          d
+          (Lazy.force Frame.audio_rate)
+          (AFrame.size ()))
 
   initializer
     Array.iter Descriptor.activate inst
@@ -101,68 +101,29 @@ object
     let b = AFrame.content buf offset in
     let position = AFrame.position buf in
     let len = position - offset in
-      for c = 0 to Array.length b - 1 do
-        Descriptor.set_samples inst.(c) len;
-        Descriptor.connect_audio_port inst.(c) input b.(c) offset;
-        Descriptor.connect_audio_port inst.(c) output b.(c) offset;
-        List.iter
-          (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
-          params;
-        Descriptor.run inst.(c)
-      done
+    for c = 0 to Array.length b - 1 do
+      Descriptor.set_samples inst.(c) len;
+      Descriptor.connect_audio_port inst.(c) input b.(c) offset;
+      Descriptor.connect_audio_port inst.(c) output b.(c) offset;
+      List.iter
+        (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
+        params;
+      Descriptor.run inst.(c)
+    done
 end
 
-class ladspa_nosource ~kind plugin descr output params =
-object
-  inherit base_nosource ~kind
-
-  val inst =
-    let p = Plugin.load plugin in
-    let d = Descriptor.descriptor p descr in
-      Array.init ((Frame.type_of_kind kind).Frame.audio)
-        (fun _ ->
-           Descriptor.instantiate
-             d
-             (Lazy.force Frame.audio_rate)
-             (AFrame.size ()))
-
-  initializer
-    Array.iter Descriptor.activate inst
-
-  method private get_frame buf =
-    if must_fail then
-      (
-        AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false
-      )
-    else
-      let offset = AFrame.position buf in
-      let b = AFrame.content buf offset in
-      let position = AFrame.size () in
-      let len = position - offset in
-        for c = 0 to Array.length b - 1 do
-          Descriptor.set_samples inst.(c) len;
-          Descriptor.connect_audio_port inst.(c) output b.(c) offset;
-          List.iter
-            (fun (p,v) -> Descriptor.connect_control_port_in inst.(c) p (v ()))
-            params;
-          Descriptor.run inst.(c)
-        done;
-        AFrame.add_break buf position
-end
-
-(* The plugin handles stereo streams. *)
-class ladspa_stereo ~kind (source:source) plugin descr inputs outputs params =
+class ladspa ~kind (source:source) plugin descr inputs outputs params =
+  let oc = Array.length outputs in
 object
   inherit base ~kind source
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-      Descriptor.instantiate
-        d
-        (Lazy.force Frame.audio_rate)
-        (AFrame.size ())
+    Descriptor.instantiate
+      d
+      (Lazy.force Frame.audio_rate)
+      (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -173,28 +134,42 @@ object
     let b = AFrame.content buf offset in
     let position = AFrame.position buf in
     let len = position - offset in
-      List.iter
-        (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
-        params;
-      Descriptor.set_samples inst len;
-      for c = 0 to 1 do
-        Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
-        Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+    List.iter
+      (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
+      params;
+    Descriptor.set_samples inst len;
+    if Array.length inputs = Array.length outputs then
+      (
+        (* The simple case: number of channels does not get changed. *)
+        for c = 0 to Array.length b - 1 do
+          Descriptor.connect_audio_port inst inputs.(c) b.(c) offset;
+          Descriptor.connect_audio_port inst outputs.(c) b.(c) offset
+        done;
+        Descriptor.run inst
+      )
+    else
+      (* We have to change channels. *)
+      let d = AFrame.content_of_type ~channels:oc buf offset in
+      for c = 0 to Array.length b - 1 do
+        Descriptor.connect_audio_port inst inputs.(c) b.(c) offset
+      done;
+      for c = 0 to Array.length d - 1 do
+        Descriptor.connect_audio_port inst outputs.(c) d.(c) offset
       done;
       Descriptor.run inst
 end
 
-class ladspa_stereo_nosource ~kind plugin descr outputs params =
+class ladspa_nosource ~kind plugin descr outputs params =
 object
   inherit base_nosource ~kind
 
   val inst =
     let p = Plugin.load plugin in
     let d = Descriptor.descriptor p descr in
-      Descriptor.instantiate
-        d
-        (Lazy.force Frame.audio_rate)
-        (AFrame.size ())
+    Descriptor.instantiate
+      d
+      (Lazy.force Frame.audio_rate)
+      (AFrame.size ())
 
   initializer
     Descriptor.activate inst
@@ -210,33 +185,32 @@ object
       let b = AFrame.content buf offset in
       let position = AFrame.size () in
       let len = position - offset in
-        List.iter
-          (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
-          params;
-        Descriptor.set_samples inst len;
-        for c = 0 to 1 do
-          Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
-        done;
-        Descriptor.run inst;
-        AFrame.add_break buf position
+      List.iter
+        (fun (p,v) -> Descriptor.connect_control_port_in inst p (v ()))
+        params;
+      Descriptor.set_samples inst len;
+      for c = 0 to Array.length b - 1 do
+        Descriptor.connect_audio_port inst outputs.(c) b.(c) offset;
+      done;
+      Descriptor.run inst;
+      AFrame.add_break buf position
 end
 
 (* List the indexes of control ports. *)
 let get_control_ports d =
   let ports = Descriptor.port_count d in
   let ans = ref [] in
-    for i = 0 to ports - 1 do
-      if Descriptor.port_is_control d i && Descriptor.port_is_input d i then
-        ans := i :: !ans;
-    done;
-    List.rev !ans
+  for i = 0 to ports - 1 do
+    if Descriptor.port_is_control d i && Descriptor.port_is_input d i then
+      ans := i :: !ans;
+  done;
+  List.rev !ans
 
-(** When creating operator for LADSPA plugins, we don't know yet at
-  * which samplerate liquidsoap will operate. But the default values and
-  * bounds for LADSPA parameters might depend on the samplerate.
-  * Lacking a better solution, we use the following default samplerate,
-  * potentially creating a mismatch between the doc and the actual
-  * behavior. *)
+(** When creating operator for LADSPA plugins, we don't know yet at which
+    samplerate Liquidsoap will operate. But the default values and bounds for
+    LADSPA parameters might depend on the samplerate. Lacking a better solution,
+    we use the following default samplerate, potentially creating a mismatch
+    between the doc and the actual behavior. *)
 let default_samplerate = 44100
 
 (* Make a parameter for each control port.
@@ -334,65 +308,74 @@ let params_of_descr d =
   in
     liq_params, params
 
-
-let register_descr ?(stereo=false) plugin_name descr_n d inputs outputs =
+let register_descr plugin_name descr_n d inputs outputs =
+  let ni = Array.length inputs in
+  let no = Array.length outputs in
+  let mono = ni = 1 && no = 1 in
+  let liq_params, params = params_of_descr d in
   let k =
     Lang.kind_type_of_kind_format ~fresh:1
-      (if stereo then Lang.audio_stereo else Lang.any_fixed)
+      (if mono then Lang.any_fixed else Lang.audio_n ni)
   in
-  let liq_params, params = params_of_descr d in
   let liq_params =
-    liq_params@(if inputs = None then [] else ["", Lang.source_t k, None, None])
+    liq_params@(
+      if ni = 0 then
+        []
+      else
+        ["", Lang.source_t k, None, None]
+    )
   in
   let maker = Descriptor.maker d in
   let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
-    Lang.add_operator ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d)) liq_params
-      ~kind:(Lang.Unconstrained k)
-      ~category:Lang.SoundProcessing
-      ~flags:[]
-      ~descr
-      (fun p kind ->
-         let f v = List.assoc v p in
-         let source =
-           try
-             Some (Lang.to_source (f ""))
-           with
-             | Not_found -> None
-         in
-         let params = params p in
-           match inputs with
-             | Some inputs ->
-                 if stereo then
-                   new ladspa_stereo ~kind
-                       (Utils.get_some source)
-                       plugin_name
-                       descr_n
-                       inputs
-                       outputs
-                       params
-                 else
-                   new ladspa ~kind
-                       (Utils.get_some source)
-                       plugin_name
-                       descr_n
-                       inputs.(0)
-                       outputs.(0)
-                       params
-             | None ->
-                 if stereo then
-                   new ladspa_stereo_nosource ~kind
-                       plugin_name
-                       descr_n
-                       outputs
-                       params
-                 else
-                   new ladspa_nosource ~kind
-                       plugin_name
-                       descr_n
-                       outputs.(0)
-                       params
-      )
+  let k = if mono then k else
+      (* TODO: do we really need a fresh variable here? *)
+      Lang.kind_type_of_kind_format ~fresh:1 (Lang.audio_n no)
+  in
+  Lang.add_operator
+    ("ladspa." ^ Utils.normalize_parameter_string (Descriptor.label d))
+    liq_params
+    ~kind:(Lang.Unconstrained k)
+    ~category:Lang.SoundProcessing
+    ~flags:[]
+    ~descr
+    (fun p kind ->
+      let f v = List.assoc v p in
+      let source =
+        try
+          Some (Lang.to_source (f ""))
+        with
+        | Not_found -> None
+      in
+      let params = params p in
+      if ni = 0 then
+        new ladspa_nosource ~kind
+          plugin_name
+          descr_n
+          outputs
+          params
+      else if mono then
+        new ladspa_mono ~kind
+          (Utils.get_some source)
+          plugin_name
+          descr_n
+          inputs.(0)
+          outputs.(0)
+          params
+      else
+        new ladspa ~kind
+          (Utils.get_some source)
+          plugin_name
+          descr_n
+          inputs
+          outputs
+          params
+    )
+
+let register_descr plugin_name descr_n d inputs outputs =
+  (* We do not register plugins without outputs for now. *)
+  if outputs <> [||] then
+    register_descr plugin_name descr_n d inputs outputs
 
 (** Get input and output ports. *)
 let get_audio_ports d =
@@ -408,69 +391,17 @@ let get_audio_ports d =
     done;
     Array.of_list (List.rev !i), Array.of_list (List.rev !o)
 
-(** Get the input and the output port. Raises [Not_found] if there is not
-  * exactly one output and zero or one input. *)
-let get_io d =
-  let i, o = get_audio_ports d in
-    (
-      if Array.length i = 0 then
-        None
-      else if Array.length i = 1 then
-        Some i.(0)
-      else
-        raise Not_found
-    ),
-    (
-      if Array.length o = 1 then
-        o.(0)
-      else
-        raise Not_found
-    )
-
-(* Same thing but for stereo I/O. *)
-let get_stereo_io d =
-  let i, o = get_audio_ports d in
-    (
-      if Array.length i = 0 then
-        None
-      else if Array.length i = 2 then
-        Some i
-      else
-        raise Not_found
-    ),
-    (
-      if Array.length o = 2 then
-        o
-      else
-        raise Not_found
-    )
-
 let register_plugin pname =
   try
     let p = Plugin.load pname in
     let descr = Descriptor.descriptors p in
-      Array.iteri
-        (fun n d ->
-           try
-             let i, o = get_io d in
-               register_descr pname n d
-                 (match i with
-                    | Some i -> Some [|i|]
-                    | None -> None)
-                 [|o|]
-           with
-             | Not_found ->
-                 (
-                   try
-                     (* TODO: handle other number of channels *)
-                     let i, o = get_stereo_io d in
-                       register_descr ~stereo:true pname n d i o
-                   with
-                     | Not_found -> ()
-                 )
-        ) descr
-      (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
-      (* Plugin.unload p *)
+    Array.iteri
+      (fun n d ->
+        let i, o = get_audio_ports d in
+        register_descr pname n d i o
+      ) descr
+    (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
+    (* Plugin.unload p *)
   with
     | Plugin.Not_a_plugin -> ()
 

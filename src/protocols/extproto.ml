@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,11 +24,50 @@ open Dtools
 
 let dlog = Log.make ["protocols";"external"]
 
+let which =
+  let which = Utils.which ~path:Configure.path in
+  if Sys.os_type <> "Win32" then
+    which
+  else
+    fun s ->
+      try which s with Not_found ->
+        which (Printf.sprintf "%s%s" s Configure.exe_ext)
+
+(* Find extension of a file based on a returned content-type. *)
+let ext_of_content_type url =
+  if Sys.os_type = "Win32" then
+    raise Not_found;
+  let curl = which "curl" in
+  (* Using curl here since it's way more powerful. *)
+  let cmd =
+    Printf.sprintf
+      "%s -sLI -X HEAD %s | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+      curl url
+  in
+  let ch = Unix.open_process_in cmd in
+  let mime = String.trim (input_line ch) in
+  ignore(Unix.close_process_in ch);
+  match Utils.StringCompat.lowercase_ascii mime with
+    | "audio/mpeg" -> "mp3"
+    | "application/ogg" | "application/x-ogg"
+    | "audio/x-ogg" | "audio/ogg"
+    | "video/ogg" -> "ogg"
+    | "audio/x-flac" -> "flac"
+    | "audio/mp4" | "application/mp4" -> "mp4"
+    | "audio/vnd.wave" | "audio/wav"
+    | "audio/wave" | "audio/x-wav" -> "wav"
+    | _ -> raise Not_found
+
+let get_ext src =
+  try
+    ext_of_content_type src
+  with Not_found -> Utils.get_ext src
+
 let mktmp src =
   let file_ext =
     Printf.sprintf ".%s"
     (try
-      Utils.get_ext src
+      get_ext src
      with
        | _ -> "osb")
   in
@@ -42,19 +81,13 @@ let resolve proto program command s ~log maxtime =
   let (iR,iW) = Unix.pipe () in
   let (xR,xW) = Unix.pipe () in
   let local = mktmp s in
-  let args,active =
-    match command program s local with
-      | `Active args  -> args,true
-      | `Passive args -> args, false 
-  in
+  let args = command program s local in
   let pid =
     Unix.create_process program args iR xW Unix.stderr
   in
   dlog#f 4 "Executing %s %S %S" program s local;
   let timeout () = max 0. (maxtime -. Unix.gettimeofday ()) in
   Unix.close iR ;
-  let prog_stdout = ref "" in
-  (* Setup task.. *)
   let after_task,task_done =
     let m = Mutex.create () in
     let c = Condition.create () in
@@ -64,11 +97,13 @@ let resolve proto program command s ~log maxtime =
         Condition.wait c m;
       fn()),
     Tutils.mutexify m (fun () ->
+      Unix.close xR;
       is_task := false;
       Condition.signal c)
   in
   let rec task () = 
     let timeout = timeout () in
+    let s = Bytes.create 1024 in
     { Duppy.Task.
       priority = Tutils.Non_blocking;
       events   = [`Read xR; `Delay timeout];
@@ -81,11 +116,9 @@ let resolve proto program command s ~log maxtime =
            end
           else
            begin
-            let s = String.create 1024 in
             let ret =
               try Unix.read xR s 0 1024 with _ -> 0
             in
-            prog_stdout := !prog_stdout ^ (String.sub s 0 ret);
             if ret > 0 then [task()] else []
            end
         in
@@ -103,51 +136,19 @@ let resolve proto program command s ~log maxtime =
   Unix.close iW ;
   Unix.close xW ;
   after_task (fun () ->
-    let local =
-      if active then !prog_stdout else local
-    in
     if code = Unix.WEXITED 0 then
     [Request.indicator ~temporary:true local]
     else begin
-      log "Download failed: timeout, invalid URI ?" ;
-      ( try Unix.unlink !prog_stdout with _ -> () ) ;
+      log "Download failed: timeout, invalid URI?" ;
+      ( try Unix.unlink local with _ -> () ) ;
       []
     end)
 
-let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "extproto") "External protocol resolvers"
-    ~comments:["Settings for the external protocol resolver"]
-
-let conf_server_name =
-  Dtools.Conf.bool ~p:(conf#plug "use_server_name") "Use server-provided name"
-    ~d:false ~comments:["Use server-provided name."]
-
-let which =
-  let which = Utils.which ~path:Configure.path in
-  if Sys.os_type <> "Win32" then
-    which
-  else
-    fun s ->
-      try which s with Not_found ->
-        which (Printf.sprintf "%s%s" s Configure.exe_ext)
-
-let get_program, command =
-  try
-    which Configure.get_program,
-    (fun prog src dst ->
-      if conf_server_name#get then
-        (`Active [|prog;src;dst;"true"|])
-      else
-        (`Passive [|prog;src;dst|]))
-  with
-    | Not_found ->
-        "wget", (fun prog src dst ->
-          (`Passive [|prog;"-q";src;"-O";dst|]))
-
 let extproto = [
-  get_program,
+  "curl",
   [ "http";"https";"ftp" ],
-  command
+  (fun prog src dst ->
+    [|prog;"-sL";src;"-o";dst|])
 ]
 
 let () =

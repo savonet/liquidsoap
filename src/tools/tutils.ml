@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -271,7 +271,7 @@ let start_forwarding () =
          handler  = f }
     in
     let len = 1024 in
-    let buffer = String.create len in
+    let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in
       let rec split acc i =

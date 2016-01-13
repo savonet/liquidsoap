@@ -1,4 +1,4 @@
-Liquidsoap 1.1.1
+Liquidsoap 1.2.0
 ----------------
 
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
@@ -19,6 +19,7 @@ Mandatory dependencies :
    ocaml-duppy>=0.5.1
    ocaml-mm>=0.2.1
    ocaml-pcre
+   base-bytes, for OCaml compilers < 4.02
 
 Recommended dependencies :
 

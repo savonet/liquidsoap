@@ -77,15 +77,11 @@ _OCAML_LFLAGS=$($(PROG)_ocamllflags)
 
 -include $(PROG)_depend
 
-ifdef CAMLP4O
-  camlp4_ml=$($(PROG)_camlp4_files:.camlp4=.camlp4.ml)
-endif
-
 # Include plugin sources for dependencies computation..
 plugins_sources=
 $(foreach plug,$($(PROG)_PLUGINS),$(eval plugins_sources+=$($(plug)_sources)))
 
-$(PROG)_depend: $($(PROG)_sources) $(camlp4_ml) $($(PROG)_headers) $(plugins_sources)
+$(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers) $(plugins_sources)
 	$(V)echo OCAMLDEP
 	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
 		$($(PROG)_sources) $($(PROG)_headers) $(plugins_sources) > $@
@@ -179,13 +175,9 @@ plugins/dllliquidsoap_%.so:
 	$(V)echo OCAMLMKLIB -o plugins/dllliquidsoap_$*.so
 	$(V)$(OCAMLMKLIB) -o plugins/liquidsoap_$* $($*_c_sources:.c=.o)
 
-# The keyword %.ml is already used for
-# .mll files.
-%.camlp4.ml: %.camlp4
-	@echo $(@:.camlp4=.camlp4.ml) >> auto_clean
+%.ml: %.camlp4
 	$(V)echo CAMLP4O $<
 	$(V)$(CAMLP4O) -printer Camlp4OCamlPrinter -impl $< > $@
-	$(V)cat < $@ > $(<:.camlp4=.ml)
 
 %.ml: %.mll
 	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean

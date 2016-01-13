@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -87,7 +87,7 @@ object (self)
     ns_kind <- "playlist";
     self#register_command "reload"
       ~descr:"Reload the playlist, unless already being loaded."
-      (fun _ -> self#reload_playlist () ; "OK") ;
+      (fun _ -> self#reload_playlist `Other ; "OK") ;
     self#register_command "uri"
                ~descr:"Print playlist URI if called without an argument, \
                        otherwise set a new one and load it."
@@ -96,7 +96,7 @@ object (self)
          if s = "" then
            playlist_uri
          else
-           (self#reload_playlist ~uri:s () ; "OK")) ;
+           (self#reload_playlist ~uri:s `Other ; "OK")) ;
     self#register_command "next"
       ~descr:"Return up to 10 next URIs to be played."
       (* We cannot return request IDs because we create requests at the last
@@ -121,7 +121,8 @@ object (self)
              (self#get_next n))
 
 
-  method virtual is_valid : string -> bool
+  method private virtual is_valid : string -> bool
+  method private virtual check_next : Request.t -> bool
   method virtual stype : Source.source_t
   method virtual id : string
   method virtual set_id : ?definitive:bool -> string -> unit
@@ -154,10 +155,13 @@ object (self)
   (** Lock for the previous variables. *)
   val mylock = Mutex.create ()
 
-  (** (re-)read playlist_file and update datas.
-    [reload] should be true except on first load, in that case playlist
-    resolution failures won't result in emptying the current playlist.*)
-  method load_playlist ?(uri=playlist_uri) is_reload =
+  (** Load or reload playlist and update data.
+    * [reload] should be [`No] on the first load, [`Round] for round-based reloads
+    * and [`Other] otherwise (i.e., manual, time and watch-based reloads).
+    * For the first load, playlist resolution failures won't result in
+    * emptying the current playlist.
+    * For round-based reloads, already loaded files won't be expired. *)
+  method load_playlist ?(uri=playlist_uri) (reload : [`No|`Round|`Other]) =
     let _playlist =
       let read_playlist filename =
         if is_dir filename then begin
@@ -233,7 +237,7 @@ object (self)
         (Printf.sprintf "%s%s" prefix)
         (List.filter self#is_valid _playlist)
     in
-      if _playlist = [] && is_reload && self#stype = Infallible then
+      if _playlist = [] && reload <> `No && self#stype = Infallible then
         self#log#f 3 "Got an empty list: keeping the old one."
       else begin
         (* Don't worry if a reload fails,
@@ -252,7 +256,7 @@ object (self)
          * old requests as expired. Users who don't want that we'll have
          * to avoid useless reloading. *)
         index_played <- -1 ;
-        self#expire (fun _ -> true) ;
+        if reload <> `Round then self#expire (fun _ -> true) ;
         Mutex.unlock mylock ;
 
         self#log#f 3
@@ -271,13 +275,13 @@ object (self)
     * with mutexes, waiting for a fully satisfying solution using
     * Duppy mutexes -- and perhaps support for blocking server commands
     * enabling a synchronous reload command. *)
-  method reload_playlist ?uri () =
+  method reload_playlist ?uri (reload_kind : [`Round|`Other]) =
     Duppy.Task.add Tutils.scheduler
       { Duppy.Task.
           priority = Tutils.Maybe_blocking ;
           events   = [`Delay 0.] ;
           handler  = (fun _ ->
-            self#load_playlist ?uri true ;
+            self#load_playlist ?uri (reload_kind:>[`No|`Other|`Round]) ;
             []) }
 
   (** Schedule reloading if necessary.
@@ -296,51 +300,76 @@ object (self)
       | Every_N_seconds n ->
           if Unix.time () -. reload_t > n then begin
             reload_t <- Unix.time () ;
-            self#reload_playlist ()
+            self#reload_playlist `Other
           end
       | Every_N_rounds n ->
           if round_done then round_c <- round_c - 1 ;
           if round_c <= 0 then begin
             round_c <- n ;
-            self#reload_playlist ()
+            self#reload_playlist `Round
           end
 
   method get_next_request : Request.t option =
     Mutex.lock mylock ;
-    if !playlist = [||] then begin
-      self#may_autoreload true ;
-      Mutex.unlock mylock ;
-      None
-    end else
-      let uri =
+    let rec get_uri () =
+      (* URI to be played together with
+       * position in playlist at the time of selection. *)
+      let pos,uri =
         match random with
           | Randomize ->
               index_played <- index_played + 1 ;
+              let pos = index_played in
+              let uri = !playlist.(index_played) in
               let round =
-                if index_played >= Array.length !playlist
-                then ( index_played <- 0 ;
-                       Utils.randomize !playlist ;
-                       true )
-                else false
+                if index_played < Array.length !playlist - 1 then
+                  false
+                else begin
+                  index_played <- -1 ;
+                  Utils.randomize !playlist ;
+                  true
+                end
               in
                 self#may_autoreload round ;
-                !playlist.(index_played)
+                pos,uri
           | Random ->
               index_played <- Random.int (Array.length !playlist) ;
               self#may_autoreload false ;
-              !playlist.(index_played)
+              index_played,!playlist.(index_played)
           | Normal ->
               index_played <- index_played + 1 ;
+              let pos = index_played in
+              let uri = !playlist.(index_played) in
               let round =
-                if index_played >= Array.length !playlist
-                then ( index_played <- 0 ; true )
-                else false
+                if index_played < Array.length !playlist - 1 then
+                  false
+                else begin
+                  index_played <- -1 ;
+                  true
+                end
               in
                 self#may_autoreload round ;
-                !playlist.(index_played)
+                pos,uri
       in
+      let metadata =
+        [ "playlist_position", string_of_int pos ;
+          "playlist_length", string_of_int (Array.length !playlist) ]
+      in
+      let r = self#create_request ~metadata uri in
+      let id = Request.get_id r in
+        if self#check_next r then begin
+          Mutex.unlock mylock ;
+          Some r
+        end else begin
+          self#log#f 3 "Request (RID %d) rejected by check_next!" id ;
+          Request.destroy r ;
+          get_uri ()
+        end
+    in
+      if !playlist = [||] then begin
+        self#may_autoreload true ;
         Mutex.unlock mylock ;
-        Some (self#create_request uri)
+        None
+      end else get_uri ()
 
   method playlist_wake_up =
     let base_name =
@@ -377,7 +406,7 @@ object (self)
       | Every_N_seconds _ -> reload_t <- Unix.time ()
     end ;
     Mutex.unlock mylock ;
-    self#load_playlist true
+    self#load_playlist `No
 
   (** Give the next [n] URIs, if guessing is easy. *)
   method get_next = Tutils.mutexify mylock (fun n ->
@@ -396,7 +425,7 @@ end
 
 (** Standard playlist, with a queue. *)
 class playlist ~kind
-  ~mime ~reload ~random
+  ~mime ~reload ~random ~check_next
   ~length ~default_duration ~timeout ~prefix ~conservative
   uri =
 object (self)
@@ -416,7 +445,7 @@ object (self)
     super#wake_up activation
 
   (** Assume that every URI is valid, it will be checked on queuing. *)
-  method is_valid _ = true
+  method private is_valid _ = true
 
   method get_ready ?dynamic sl =
     super#get_ready ?dynamic sl;
@@ -424,7 +453,12 @@ object (self)
     if reload = Watch then
       self#on_shutdown
         (watch [`Modify] (Utils.home_unrelate playlist_uri)
-          (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+          (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
+
+  method private check_next r =
+    Lang.to_bool
+      (Lang.apply ~t:Lang.bool_t check_next ["",Lang.request r])
+
 end
 
 (** Safe playlist, without queue and playing only local files,
@@ -443,12 +477,14 @@ object (self)
 
   (** We check that the lines are valid local files,
     * thus, we can assume that the source is infallible. *)
-  method is_valid uri =
+  method private is_valid uri =
     Sys.file_exists uri &&
     let r = Request.create ~kind uri in
     let check = Request.resolve r 0. = Request.Resolved in
       Request.destroy r ;
       check
+
+  method private check_next _ = true
 
   method stype = Infallible
 
@@ -468,7 +504,7 @@ object (self)
     let watch = !Configure.file_watcher in
     if reload = Watch then
       self#on_shutdown (watch [`Modify] (Utils.home_unrelate playlist_uri)
-        (fun () -> self#reload_playlist ~uri:playlist_uri ()))
+        (fun () -> self#reload_playlist ~uri:playlist_uri `Other))
 end
 
 
@@ -540,12 +576,29 @@ let () =
           raise (Lang.Invalid_value
                    (s,"valid values are 'random', 'randomize' and 'normal'"))
   in
+  let check_next k =
+    "check_next",
+    Lang.fun_t [false,"",Lang.request_t k] Lang.bool_t,
+    Some (Lang.val_fun
+            ["","r",Lang.request_t k,None]
+            ~ret_t:Lang.bool_t
+            (fun _ _ -> Lang.bool true)),
+    Some "Function used to filter next tracks. A candidate \
+          track is only validated if the function returns true on it. \
+          The function is called before resolution, hence metadata will \
+          only be available for requests corresponding to local files. \
+          This is typically used to avoid repetitions, but be careful: \
+          if the function rejects all attempts, the playlist will enter \
+          into a consuming loop and stop playing anything."
+  in
+
+  let fmt = Lang.univ_t 1 in
 
     Lang.add_operator "playlist"
       ~category:Lang.Input
       ~descr:"Loop on a playlist of URIs."
-      (Request_source.queued_proto@proto)
-      ~kind:(Lang.Unconstrained (Lang.univ_t 1))
+      (Request_source.queued_proto @ check_next fmt :: proto)
+      ~kind:(Lang.Unconstrained fmt)
       (fun params kind ->
          let reload,random,mime,uri,prefix =
            let e v = List.assoc v params in
@@ -555,12 +608,13 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
+         let check_next = List.assoc "check_next" params in
          let length,default_duration,timeout,conservative =
                 Request_source.extract_queued_params params
          in
            ((new playlist ~kind ~mime ~reload ~random
                           ~length ~default_duration ~prefix ~timeout
-                          ~conservative uri):>source)) ;
+                          ~check_next ~conservative uri):>source)) ;
 
     Lang.add_operator "playlist.safe"
       ~category:Lang.Input

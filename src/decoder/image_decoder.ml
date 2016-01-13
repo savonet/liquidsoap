@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ module Gen = Image.Generic
 
 (** Converter used to resize images. *)
 let converter =
-  Lazy.lazy_from_fun
+  Utils.LazyCompat.from_fun
     (fun () ->
       Video_converter.find_converter
         (Gen.Pixel.RGB Gen.Pixel.RGBA32)

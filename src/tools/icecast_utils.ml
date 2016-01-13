@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ let ogg_application_mime = "application/ogg"
 let ogg_audio_mime = "audio/ogg"
 let ogg_video_mime = "video/ogg"
 let wav_mime = "audio/wav"
+let avi_mime = "video/avi"
 let aac_mime = "audio/aac"
 let aacplus_mime = "audio/aacp"
 let flac_mime = "audio/x-flac"
@@ -60,6 +61,7 @@ struct
   let ogg_video = M.format_of_content ogg_video_mime
   let ogg = ogg_application
   let wav = M.format_of_content wav_mime
+  let avi = M.format_of_content avi_mime
   let aac = M.format_of_content aac_mime
   let aacplus = M.format_of_content aacplus_mime
   let flac = M.format_of_content flac_mime
@@ -75,6 +77,7 @@ struct
       | Encoder.GStreamer _ -> None
       | Encoder.Flac _ -> Some flac
       | Encoder.WAV _ -> Some wav
+      | Encoder.AVI _ -> Some avi
       | Encoder.Ogg _ -> Some ogg
 
   let encoder_data p =

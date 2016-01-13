@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -305,7 +305,7 @@ let register_plugin fname =
   in
   let explanation =
     let e = info.Frei0r.explanation in
-    let e = String.capitalize e in
+    let e = Utils.StringCompat.capitalize_ascii e in
     let e = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") e in
     if e = "" then e else
       if e.[String.length e - 1] = '.' then

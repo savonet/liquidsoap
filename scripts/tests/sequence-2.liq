@@ -12,6 +12,8 @@
 #  - Also does not work simply with a sequence underneath a fallible output,
 #    because such an output will stop as soon as its source is not ready.
 
+%include "test.liq"
+
 # Create a fallible source. We use the experimental operator source.dynamic()
 # which is bit fragile for a test.
 
@@ -25,9 +27,9 @@ test = sequence([ s, fail() ])
 
 def check()
   if source.is_up(s) then
-    print("FAILED")
+    test.fail()
   else
-    print("PASSED")
+    test.pass()
   end
   shutdown()
 end

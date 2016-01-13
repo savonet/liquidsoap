@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -199,7 +199,7 @@ let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
           try
             Hashtbl.find evars i
           with Not_found ->
-            let name = String.uppercase (name (counter ())) in
+            let name = Utils.StringCompat.uppercase_ascii (name (counter ())) in
               Hashtbl.add evars i name ;
               name
         in

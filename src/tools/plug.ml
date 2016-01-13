@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ object
   val mutable aliases : (string*'a) list = []
 
   method register plugin ?plugin_aliases ?doc ?sdoc v =
-    let plugin = if insensitive then String.uppercase plugin else plugin in
+    let plugin = if insensitive then Utils.StringCompat.uppercase_ascii plugin else plugin in
     let doc = match doc,sdoc with
       | (Some d), _ -> d
       | _, None -> Doc.trivial "(no doc)"
@@ -64,7 +64,7 @@ object
     List.iter (fun (k,v) -> f k v) plugins
   method get_all = plugins
   method get plugin =
-    let plugin = if insensitive then String.uppercase plugin else plugin in
+    let plugin = if insensitive then Utils.StringCompat.uppercase_ascii plugin else plugin in
       try
         Some (List.assoc plugin plugins)
       with

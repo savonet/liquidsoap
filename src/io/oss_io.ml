@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ object (self)
     let fd = Utils.get_some fd in
     let buf = AFrame.content memo 0 in
     let r = Audio.S16LE.length (Audio.channels buf) (Audio.duration buf) in
-    let s = String.create r in
+    let s = Bytes.create r in
     Audio.S16LE.of_audio buf 0 s 0 (Audio.duration buf);
     let w = Unix.write fd s 0 r in
     assert (w = r)
@@ -146,7 +146,7 @@ object (self)
     let fd = Utils.get_some fd in
     let buf = AFrame.content_of_type ~channels frame 0 in
     let len = 2 * (Array.length buf) * (Array.length buf.(0)) in
-    let s = String.create len in
+    let s = Bytes.create len in
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;

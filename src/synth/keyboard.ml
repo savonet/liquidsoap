@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ object (self)
       let rec task _ =
         if run_id <> id then [] else
           let c =
-            let c = String.create 1 in
+            let c = Bytes.create 1 in
               ignore (Unix.read Unix.stdin c 0 1);
               c.[0]
           in

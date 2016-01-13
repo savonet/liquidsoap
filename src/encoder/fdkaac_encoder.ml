@@ -1,7 +1,7 @@
 (*****************************************************************************
   
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ module type Fdkaac_t =
         type mpeg4_aac =
             [ `AAC_ELD | `AAC_LC | `AAC_LD | `HE_AAC | `HE_AAC_v2 ]
         type aot = [ `Mpeg_2 of mpeg2_aac | `Mpeg_4 of mpeg4_aac ]
-        type bitrate_mode = [ `Constant | `Full_bitreservoir ]
+        type bitrate_mode = [ `Constant | `Variable of int | `Full_bitreservoir ]
         type transmux =
             [ `Adif | `Adts | `Latm | `Latm_out_of_band | `Loas | `Raw ]
         type param_name =
@@ -79,7 +79,6 @@ struct
     in
     let params = [
       `Aot params.Encoder.FdkAacEnc.aot;
-      `Bitrate (params.Encoder.FdkAacEnc.bitrate*1000);
       `Samplerate params.Encoder.FdkAacEnc.samplerate;
       `Transmux params.Encoder.FdkAacEnc.transmux;
       `Afterburner params.Encoder.FdkAacEnc.afterburner;
@@ -87,6 +86,10 @@ struct
         if params.Encoder.FdkAacEnc.aot = `Mpeg_4 `AAC_ELD then
           [`Sbr_mode params.Encoder.FdkAacEnc.sbr_mode]
         else [])
+      @ (
+        match params.Encoder.FdkAacEnc.bitrate_mode with
+          | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]
+          | `Constant     -> [`Bitrate (params.Encoder.FdkAacEnc.bitrate*1000)])
     in
     List.iter (Fdkaac.Encoder.set encoder) params;
     encoder

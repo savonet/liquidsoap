@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ let input input buf ofs len =
   len
 
 let seek input len =
-  let s = String.create len in
+  let s = Bytes.create len in
   ignore(really_input input s 0 len)
 
 let input_ops =
@@ -171,8 +171,10 @@ let get_type filename =
            match Wav_aiff.sample_size header with
              | 8  -> ok_message "u8"; channels
              | 16 -> ok_message "s16le"; channels
+             | 24 -> ok_message "s24le"; channels
+             | 32 -> ok_message "s32le"; channels
              | _ ->
-                log#f 4 "Only 16 and 8 bit WAV files \
+                log#f 4 "Only 8, 16, 24 and 32 bit WAV files \
                          are supported at the moment.." ;
                 0
          in

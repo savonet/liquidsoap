@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -346,7 +346,7 @@ let local_check t =
                      let ans = resolver name in
                        List.iter
                          (fun (k,v) ->
-                           let k = String.lowercase k in
+                           let k = Utils.StringCompat.lowercase_ascii k in
                            if conf_override_metadata#get || get_metadata t k = None then
                              Hashtbl.replace indicator.metadata
                               k (cleanup v))

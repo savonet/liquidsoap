@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2014 Savonet team
+  Copyright 2003-2016 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ let parse_scpls ?pwd string =
   test_text string ;
   let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
   (* Format check, raise Not_found if invalid *)
-  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (String.lowercase string)) ;
+  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (Utils.StringCompat.lowercase_ascii string)) ;
   let lines = split_lines string in
   let urls =
     List.map
