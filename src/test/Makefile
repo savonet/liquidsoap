@@ -4,8 +4,9 @@ OCAML_CFLAGS = -I ../tools -I .. $(liquidsoap_ocamlcflags) -thread
 OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
 		stdlib.cmx utils.cmx dyntools.cmx shutdown.cmx tutils.cmx \
 		file_watcher_mtime.cmx configure.cmx http.cmx JSON.cmx \
+		stream/aBuf_fpu.cmx stream/aBuf_nofpu.cmx stream/aBuf.cmx \
 		stream/frame.cmx avi.cmx \
-		../tools/locale_c.o
+		../nofpu_stubs.o ../tools/locale_c.o
 
 all: $(TESTS)
 
