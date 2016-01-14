@@ -177,7 +177,7 @@ struct
     Tutils.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~kind ~pre_buffer ~averaging c =
+  class producer ~kind ~pre_buffer ~averaging ~limit c =
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let prebuf = float (Frame.audio_of_seconds pre_buffer) in
     (* see get_frame for an explanation *)
@@ -214,6 +214,9 @@ struct
              we should thus choose alpha = (dt * ln 2)/th
           *)
           c.rb_length <- (1. -. alpha) *. c.rb_length +. alpha *. float (RB.read_space c.rb);
+          (* Limit estimation *)
+          c.rb_length <- min c.rb_length (prebuf *. limit);
+          c.rb_length <- max c.rb_length (prebuf /. limit);
 
           (* Fill dlen samples of dst using slen samples of the ringbuffer. *)
           let fill dst dofs dlen slen =
@@ -316,7 +319,7 @@ struct
   end
 
   let create ~autostart ~infallible ~on_start ~on_stop
-      ~pre_buffer ~max_buffer ~averaging ~kind source_val =
+      ~pre_buffer ~max_buffer ~averaging ~limit ~kind source_val =
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let control =
       {
@@ -333,7 +336,7 @@ struct
         ~autostart ~infallible ~on_start ~on_stop
         ~kind source_val ~pre_buffer control
     in
-    new producer ~kind ~pre_buffer ~averaging control
+    new producer ~kind ~pre_buffer ~averaging ~limit control
 end
 
 let () =
@@ -346,6 +349,8 @@ let () =
         Some "Maximum amount of buffered data, in seconds.";
         "averaging", Lang.float_t, Some (Lang.float 30.),
         Some "Half-life for the averaging of the buffer size, in seconds.";
+        "limit", Lang.float_t, Some (Lang.float 1.25),
+        Some "Maximum acceleration or deceleration factor.";
         "", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Liquidsoap
@@ -365,7 +370,9 @@ let () =
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let averaging = Lang.to_float (List.assoc "averaging" p) in
+      let limit = Lang.to_float (List.assoc "limit" p) in
+      let limit = if limit < 1. then 1. /. limit else limit in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       AdaptativeBuffer.create
         ~infallible ~autostart ~on_start ~on_stop
-        ~pre_buffer ~max_buffer ~averaging ~kind s)
+        ~pre_buffer ~max_buffer ~averaging ~limit ~kind s)
