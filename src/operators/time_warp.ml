@@ -265,9 +265,11 @@ struct
           MG.advance c.mg (min (Frame.master_of_audio salen) (MG.length c.mg));
           if Frame.is_partial frame then MG.drop_initial_break c.mg;
 
-          (* If we should play at 10x we declare that we should buffer again. *)
-          if RB.read_space c.rb = 0 || scaling < 0.1 then begin
+          (* If there is no data left, we should buffer again. *)
+          if RB.read_space c.rb = 0 then begin
             self#log#f 3 "Buffer emptied, start buffering...";
+            self#log#f 5 "Current scaling factor is x%f." scaling;
+            MG.advance c.mg (MG.length c.mg); (* sync just in case *)
             c.buffering <- true
           end)
 
