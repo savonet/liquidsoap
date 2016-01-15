@@ -278,7 +278,7 @@ struct
   end
 
   class consumer
-    ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
+    ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     ~kind source_val c
     =
     let channels = (Frame.type_of_kind kind).Frame.audio in
@@ -315,13 +315,16 @@ struct
             );
           RB.write c.rb buf 0 len;
           MG.feed_from_frame c.mg frame;
-          if RB.read_space c.rb > prebuf then c.buffering <- false
+          if RB.read_space c.rb > prebuf then begin
+            c.buffering <- false;
+            if reset then c.rb_length <- float (Frame.audio_of_seconds pre_buffer)
+          end
         )
 
   end
 
   let create ~autostart ~infallible ~on_start ~on_stop
-      ~pre_buffer ~max_buffer ~averaging ~limit ~kind source_val =
+      ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~kind source_val =
     let channels = (Frame.type_of_kind kind).Frame.audio in
     let control =
       {
@@ -336,7 +339,7 @@ struct
     let _ =
       new consumer
         ~autostart ~infallible ~on_start ~on_stop
-        ~kind source_val ~pre_buffer control
+        ~kind source_val ~pre_buffer ~reset control
     in
     new producer ~kind ~pre_buffer ~averaging ~limit control
 end
@@ -353,6 +356,8 @@ let () =
         Some "Half-life for the averaging of the buffer size, in seconds.";
         "limit", Lang.float_t, Some (Lang.float 1.25),
         Some "Maximum acceleration or deceleration factor.";
+        "reset", Lang.bool_t, Some (Lang.bool false),
+        Some "Reset speed estimation to 1. when the source becomes available again.";
         "", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Liquidsoap
@@ -374,7 +379,8 @@ let () =
       let averaging = Lang.to_float (List.assoc "averaging" p) in
       let limit = Lang.to_float (List.assoc "limit" p) in
       let limit = if limit < 1. then 1. /. limit else limit in
+      let reset = Lang.to_bool (List.assoc "reset" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
       AdaptativeBuffer.create
         ~infallible ~autostart ~on_start ~on_stop
-        ~pre_buffer ~max_buffer ~averaging ~limit ~kind s)
+        ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~kind s)
