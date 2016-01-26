@@ -1,0 +1,13 @@
+FROM savonet/liquidsoap-full
+
+MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+
+USER opam
+
+WORKDIR /tmp/liquidsoap-full
+
+RUN make update && ./bootstrap && ./configure && make clean && make
+
+WORKDIR /tmp/liquidsoap-full/liquidsoap
+
+RUN make test
