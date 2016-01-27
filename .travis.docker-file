@@ -10,4 +10,4 @@ RUN eval $(opam config env) && make update && ./bootstrap && ./configure && make
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
 
-RUN make test
+RUN eval $(opam config env) && make test
