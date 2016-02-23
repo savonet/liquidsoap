@@ -24,14 +24,14 @@ open Source
 
 (** Below, lengths are in audio samples, thresholds in RMS (in [0.;1.]). *)
 
-class virtual base ~track_sensitive ~max_blank ~min_noise ~threshold =
+class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise ~threshold =
 object
   (** State can be either
     *  - `Noise l: the source is considered to be emitting,
     *     but it has been silent for l samples;
     *  - `Blank l: the source is considered to be silent,
     *     but it has been noisy for l samples. *)
-  val mutable state = `Noise 0
+  val mutable state = if start_blank then `Blank 0 else `Noise 0
 
   method private in_blank =
     match state with `Blank _ -> true | _ -> false
@@ -72,11 +72,11 @@ object
 
 end
 
-class on_blank ~kind ~max_blank ~min_noise ~threshold
+class on_blank ~kind ~start_blank ~max_blank ~min_noise ~threshold
   ~track_sensitive ~on_blank ~on_noise source =
 object (self)
   inherit operator ~name:"on_blank" kind [source]
-  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold
+  inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -97,7 +97,7 @@ object (self)
 
 end
 
-class strip ~kind ~max_blank ~min_noise ~threshold ~track_sensitive source =
+class strip ~kind ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive source =
 object (self)
 
   (* Stripping is easy:
@@ -105,7 +105,7 @@ object (self)
    *  - keep pulling data from the source during those times. *)
 
   inherit active_operator ~name:"strip_blank" kind [source]
-  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold
+  inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
   initializer
     ns_kind <- "strip_blank" ;
@@ -144,7 +144,7 @@ object (self)
 end
 
 class eat ~kind ~track_sensitive ~at_beginning
-          ~max_blank ~min_noise ~threshold source =
+          ~start_blank ~max_blank ~min_noise ~threshold source =
 object (self)
 
   (* Eating blank is trickier than stripping.
@@ -152,7 +152,7 @@ object (self)
    * to force our own clock onto it. *)
 
   inherit operator ~name:"eat_blank" kind [source]
-  inherit base ~track_sensitive ~max_blank ~min_noise ~threshold
+  inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
 
   (** We strip when the source is silent,
     * but only at the beginning of tracks if [at_beginning] is passed. *)
@@ -195,6 +195,8 @@ let kind = Lang.kind_type_of_kind_format ~fresh:1 Lang.any_fixed
 let proto =
   [ "threshold", Lang.float_t, Some (Lang.float (-40.)),
     Some "Power in decibels under which the stream is considered silent." ;
+    "start_blank", Lang.bool_t, Some (Lang.bool false),
+    Some "Start assuming we have blank.";
     "max_blank", Lang.float_t, Some (Lang.float 20.),
     Some "Maximum duration of silence allowed, in seconds." ;
     "min_noise", Lang.float_t, Some (Lang.float 0.),
@@ -206,6 +208,7 @@ let proto =
 let extract p =
   let f v = List.assoc v p in
   let s = Lang.to_source (f "") in
+  let start_blank = Lang.to_bool (f "start_blank") in
   let max_blank =
     let l = Lang.to_float  (f "max_blank") in
       Frame.audio_of_seconds l
@@ -222,7 +225,7 @@ let extract p =
       Audio.lin_of_dB t
   in
   let ts = Lang.to_bool (f "track_sensitive") in
-  max_blank,min_noise,threshold,ts,s
+  start_blank,max_blank,min_noise,threshold,ts,s
 
 let () =
   Lang.add_operator "on_blank"
@@ -239,8 +242,8 @@ let () =
        let on_blank = Lang.assoc "" 1 p in
        let on_noise = Lang.assoc "on_noise" 1 p in
        let p = List.remove_assoc "" p in
-       let max_blank,min_noise,threshold,track_sensitive,s = extract p in
-         new on_blank ~kind ~max_blank ~min_noise ~threshold
+       let start_blank,max_blank,min_noise,threshold,track_sensitive,s = extract p in
+         new on_blank ~kind ~start_blank ~max_blank ~min_noise ~threshold
            ~track_sensitive ~on_blank ~on_noise s) ;
   Lang.add_operator "strip_blank" ~active:true
     ~kind:(Lang.Unconstrained kind)
@@ -248,9 +251,9 @@ let () =
     ~descr:"Make the source unavailable when it is streaming blank."
     proto
     (fun p kind ->
-       let max_blank,min_noise,threshold,track_sensitive,s = extract p in
+       let start_blank,max_blank,min_noise,threshold,track_sensitive,s = extract p in
          ((new strip ~kind ~track_sensitive
-             ~max_blank ~min_noise ~threshold s):>Source.source)) ;
+             ~start_blank ~max_blank ~min_noise ~threshold s):>Source.source)) ;
   Lang.add_operator "eat_blank"
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.TrackProcessing
@@ -260,6 +263,6 @@ let () =
       Some "Only eat at the beginning of a track.")::proto)
     (fun p kind ->
        let at_beginning = Lang.to_bool (List.assoc "at_beginning" p) in
-       let max_blank,min_noise,threshold,track_sensitive,s = extract p in
+       let start_blank,max_blank,min_noise,threshold,track_sensitive,s = extract p in
          new eat ~kind ~at_beginning ~track_sensitive
-           ~max_blank ~min_noise ~threshold s)
+           ~start_blank ~max_blank ~min_noise ~threshold s)
