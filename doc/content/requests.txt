@@ -41,7 +41,7 @@ requests and currently playing requests (respectively
 
 h4. Currently supported protocols
 
-*  HTTP, HTTPS, FTP thanks to wget
+*  HTTP, HTTPS, FTP thanks to curl
 *  SAY for speech synthesis (requires festival): <code>say:I am a robot</code> resolves to the WAV file resulting from the synthesis.
 *  TIME for speech synthesis of the current time: <code>time: It is exactly $(time), and you're still listening.</code>
 *  ANNOTATE for manually setting metadata, typically used in <code>annotate:nick="alice",message="for bob":/some/track/uri</code>

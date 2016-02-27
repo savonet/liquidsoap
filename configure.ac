@@ -991,7 +991,7 @@ cat <<EOMSG
    - GD                : $w_GD
 
  * Additional libraries
-   - wget URI resolver : requires wget at runtime
+   - curl URI resolver : requires curl at runtime
    - dynlink           : $w_DYNLINK
    - inotify           : $w_INOTIFY
    - lo                : $w_LO

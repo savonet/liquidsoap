@@ -69,7 +69,7 @@ Optional dependencies :
 
 Runtime optional dependencies :
 
-   wget for http/https/ftp support
+   curl for http/https/ftp support
 
 How to install
 --------------
