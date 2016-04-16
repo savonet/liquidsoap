@@ -313,7 +313,7 @@ class output ~kind p =
   let mount = s "mount" in
 
   let name = s "name" in
-  let display_mount, name =
+  let mount, name =
     match protocol, name, mount with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
         raise (Lang.Invalid_value
@@ -321,16 +321,11 @@ class output ~kind p =
                   "Either name or mount must be defined for icecast sources."))
       | Cry.Icy, name, _ when name = no_name ->
          let name = Printf.sprintf "sc#%i" icy_id in
-         name, name
-      | _, name, mount when name = no_name -> mount, mount
-      | _ -> mount, name
-  in
-
-  let mount =
-    if mount = no_mount then
-      Cry.Icy_id icy_id
-    else
-      Cry.Icecast_mount mount
+         (Cry.Icy_id icy_id), (Printf.sprintf "sc#%i" icy_id)
+      | _, name, mount when name = no_name ->
+         (Cry.Icecast_mount mount), mount
+      | _ ->
+         (Cry.Icecast_mount mount), name
   in
 
   let autostart = Lang.to_bool (List.assoc "start" p) in
@@ -384,7 +379,7 @@ object (self)
   inherit Output.encoded
             ~content_kind:kind ~output_kind:"output.icecast"
             ~infallible ~autostart ~on_start ~on_stop
-            ~name:display_mount source
+            ~name source
 
   (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control
@@ -527,6 +522,11 @@ object (self)
       | Some f -> dump <- Some (open_out_bin f)
       | None -> ()
     end ;
+    let display_mount =
+      match mount with
+        | Cry.Icy_id id -> Printf.sprintf "sid#%d" id
+        | Cry.Icecast_mount mount -> mount
+    in
     self#log#f 3 "Connecting mount %s for %s@%s..." display_mount user host ;
     let audio_info = Hashtbl.create 10 in
     let f x y z =
