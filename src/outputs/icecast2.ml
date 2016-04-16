@@ -158,7 +158,7 @@ module M = Icecast_utils.Icecast_v(Icecast)
 
 open M
 
-let no_mount = "Use [name] with .ogg extension if relevant"
+let no_mount = "Use [name]"
 let no_name = "Use [mount]"
 
 let user_agent = Lang.product (Lang.string "User-Agent")
@@ -294,14 +294,6 @@ class output ~kind p =
                      please specify either 'true' or 'false'."))
   in
 
-  let ogg =
-    match data.format with
-     | x when x = Cry.ogg_application -> true
-     | x when x = Cry.ogg_audio -> true
-     | x when x = Cry.ogg_video -> true
-     | _ -> false
-  in
-
   let out_enc =
     match Lang.to_string (List.assoc "encoding" p) with
       | "" ->
@@ -319,22 +311,26 @@ class output ~kind p =
   in
 
   let mount = s "mount" in
+
   let name = s "name" in
-  let name =
+  let display_mount, name =
     match protocol, name, mount with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
         raise (Lang.Invalid_value
                  (List.assoc "mount" p,
                   "Either name or mount must be defined for icecast sources."))
-      | Cry.Icy, name, _ when name = no_name -> Printf.sprintf "sc#%i" icy_id
-      | _, name, mount when name = no_name -> mount
-      | _ -> name
+      | Cry.Icy, name, _ when name = no_name ->
+         let name = Printf.sprintf "sc#%i" icy_id in
+         name, name
+      | _, name, mount when name = no_name -> mount, mount
+      | _ -> mount, name
   in
+
   let mount =
     if mount = no_mount then
-      if ogg then name ^ ".ogg" else name
+      Cry.Icy_id icy_id
     else
-      mount
+      Cry.Icecast_mount mount
   in
 
   let autostart = Lang.to_bool (List.assoc "start" p) in
@@ -388,7 +384,7 @@ object (self)
   inherit Output.encoded
             ~content_kind:kind ~output_kind:"output.icecast"
             ~infallible ~autostart ~on_start ~on_stop
-            ~name:mount source
+            ~name:display_mount source
 
   (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control
@@ -531,7 +527,7 @@ object (self)
       | Some f -> dump <- Some (open_out_bin f)
       | None -> ()
     end ;
-    self#log#f 3 "Connecting mount %s for %s@%s..." mount user host ;
+    self#log#f 3 "Connecting mount %s for %s@%s..." display_mount user host ;
     let audio_info = Hashtbl.create 10 in
     let f x y z =
       match x with
@@ -551,7 +547,7 @@ object (self)
       let source = 
         Cry.connection ~host ~port ~user ~password
                        ~genre ~url ~description ~name
-                       ~public ~protocol ~mount ~icy_id ~chunked 
+                       ~public ~protocol ~mount ~chunked 
                        ~audio_info ~user_agent ~content_type:data.format ()
       in
       List.iter (fun (x,y) -> 

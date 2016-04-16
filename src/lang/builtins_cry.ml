@@ -36,7 +36,10 @@ let () =
      "port", Lang.int_t, Some (Lang.int 8000), None;
      "user", Lang.string_t, Some (Lang.string "source"), None;
      "password", Lang.string_t, Some (Lang.string "hackme"), None;
-     "mount", Lang.string_t, None , None;
+     "mount", Lang.string_t, Some (Lang.string ""),
+       Some "Source mount point. Mandatory when streaming to icecast.";
+     "icy_id", Lang.int_t, Some (Lang.int 1),
+       Some "Shoutcast source ID. Only supported by Shoutcast v2.";
      "protocol", Lang.string_t, Some (Lang.string "http"), 
      Some "Protocol to use. One of: \"icy\" or \"http\"";
      "encoding", Lang.string_t, Some (Lang.string ""),
@@ -49,6 +52,7 @@ let () =
       let user = Lang.to_string (List.assoc "user" p) in
       let password = Lang.to_string (List.assoc "password" p) in
       let mount = Lang.to_string (List.assoc "mount" p) in
+      let icy_id = Lang.to_int (List.assoc "icy_id" p) in
       let metas = Lang.to_metadata (Lang.assoc "" 1 p) in
       let out_enc =
         match Lang.to_string (List.assoc  "encoding" p) with
@@ -85,6 +89,11 @@ let () =
           | _      -> 
               raise (Lang.Invalid_value (v, "protocol should be one of: \
                                              'icy' or 'http'."))
+      in
+      let mount =
+        match protocol with
+          | Cry.Icy -> Cry.Icy_id icy_id
+          | _ -> Cry.Icecast_mount mount
       in
       begin
        try

@@ -1,3 +1,10 @@
+1.2.1 ()
+========
+
+Bugfixes:
+
+- Fix metadata update for shoutcast v2 when sid <> 1 (#320).
+
 1.2.0 (12-01-2016)
 ==================
 
