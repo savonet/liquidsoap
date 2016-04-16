@@ -6,6 +6,7 @@
 # @param ~start Start output threads on operator initialization.
 # @param ~user User for shout source connection. Useful only in special cases, like with per-mountpoint users.
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
+# @param ~icy_id Shoutcast source ID. Only supported by Shoutcast v2.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
@@ -22,7 +23,8 @@ def output.shoutcast(
   ~host="localhost",~port=8000,
   ~user="source",~password="hackme",
   ~genre="Misc",~url="http://liquidsoap.fm",
-  ~name="Liquidsoap Radio!",~public=true, ~format="",
+  ~name="Liquidsoap Radio!",~public=true,
+  ~icy_id=1, ~format="",
   ~dumpfile="", ~icy_metadata="guess",
   ~on_connect={()}, ~on_disconnect={()},
   ~aim="",~icq="",~irc="",~icy_reset=true,
@@ -32,14 +34,14 @@ def output.shoutcast(
   headers = [("icy-aim",aim),("icy-irc",irc),
              ("icy-icq",icq),("icy-reset",icy_reset)]
   output.icecast(
-    e, format=format,
+    e, format=format, icy_id=icy_id,
     id=id, headers=headers,
     start=start,icy_metadata=icy_metadata,
     on_connect=on_connect, on_disconnect=on_disconnect,
     host=host, port=port, user=user, password=password,
     genre=genre, url=url, description="UNUSED",
     public=public, dumpfile=dumpfile,encoding="ISO-8859-1",
-    name=name, mount="/", protocol="icy",on_error=on_error,
+    name=name, protocol="icy",on_error=on_error,
     fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)
 end

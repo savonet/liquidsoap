@@ -320,8 +320,9 @@ class output ~kind p =
                  (List.assoc "mount" p,
                   "Either name or mount must be defined for icecast sources."))
       | Cry.Icy, name, _ when name = no_name ->
-         let name = Printf.sprintf "sc#%i" icy_id in
          (Cry.Icy_id icy_id), (Printf.sprintf "sc#%i" icy_id)
+      | Cry.Icy, name, _ ->
+         (Cry.Icy_id icy_id), name
       | _, name, mount when name = no_name ->
          (Cry.Icecast_mount mount), mount
       | _ ->
