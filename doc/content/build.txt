@@ -48,7 +48,7 @@ libraries:
 * ocaml-dtools (>= 0.3.0)
 * ocaml-duppy (>= 0.4.2)
 * ocaml-mm (>= 0.2.1)
-* "ocaml-pcre":http://www.ocaml.info/home/ocaml_sources.html
+* "ocaml-pcre":https://github.com/mmottl/pcre-ocaml
 
 And also optional dependencies. For most of these, you also need
 the associated C/C++ library, which is usually provided by your distribution's
