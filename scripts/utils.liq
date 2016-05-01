@@ -765,6 +765,41 @@ def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensit
   on_blank({source.skip(s)},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
+# Creates a source that merges one track from each passed sources
+# as a single merged track and loops. For instance, rotate.sequence([intro,main,outro])
+# creates a source that plays a sequence [intro,main,outro] as single track and loops back.
+# @param ~id Force the value of the source ID.
+# @params sources Sequence of sources to be merged
+def rotate.sequence(~id="",sources)
+  first_ready = ref true
+  second_ready = ref true
+
+  def is_first_ready() =
+    !first_ready
+  end
+
+  def is_second_ready() =
+    !second_ready
+  end
+
+  def to_first(old,new) =
+    if !first_ready then
+      first_ready := false
+      second_ready := true
+    else
+      first_ready := true
+      second_ready := false
+    end
+
+    new
+  end
+
+  source = rotate(transitions=[to_first],sources)
+  source = merge_tracks(source)
+
+  switch(id=id,track_sensitive=false,[(is_first_ready, source), (is_second_ready, source)])
+end
+
 # Extract the left channel of a stereo source
 # @category Source / Conversions
 # @param s Source to extract from
