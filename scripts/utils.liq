@@ -791,7 +791,7 @@ def rotate.sequence(~id="",sources)
       second_ready := false
     end
 
-    new
+    sequence([blank(duration=0.01),new])
   end
 
   source = rotate(transitions=[to_first],sources)
