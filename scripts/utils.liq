@@ -773,6 +773,7 @@ end
 def rotate.sequence(~id="",sources)
   first_ready = ref true
   second_ready = ref true
+  duration = get(default=0.04,"frame.duration")
 
   def is_first_ready() =
     !first_ready
@@ -791,13 +792,13 @@ def rotate.sequence(~id="",sources)
       second_ready := false
     end
 
-    sequence([blank(duration=0.01),new])
+    sequence(merge=true,[blank(duration=duration),new])
   end
 
   source = rotate(transitions=[to_first],sources)
   source = merge_tracks(source)
 
-  switch(id=id,track_sensitive=false,[(is_first_ready, source), (is_second_ready, source)])
+  switch(id=id,replay_metadata=false,track_sensitive=false,[(is_first_ready, source), (is_second_ready, source)])
 end
 
 # Extract the left channel of a stereo source
