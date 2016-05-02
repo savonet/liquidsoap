@@ -765,12 +765,14 @@ def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensit
   on_blank({source.skip(s)},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
-# Creates a source that merges one track from each passed sources
-# as a single merged track and loops. For instance, rotate.sequence([intro,main,outro])
+# Same operator as rotate but merges tracks from each sources
+# as a single merged track and loops. For instance, rotate.merge([intro,main,outro])
 # creates a source that plays a sequence [intro,main,outro] as single track and loops back.
+# @category Source / Track Processing
 # @param ~id Force the value of the source ID.
-# @params sources Sequence of sources to be merged
-def rotate.sequence(~id="",sources)
+# @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
+# @param sources Sequence of sources to be merged
+def rotate.merge(~id="",~weights=[],sources)
   first_ready = ref true
   second_ready = ref true
   duration = get(default=0.04,"frame.duration")
@@ -795,7 +797,7 @@ def rotate.sequence(~id="",sources)
     sequence(merge=true,[blank(duration=duration),new])
   end
 
-  source = rotate(transitions=[to_first],sources)
+  source = rotate(transitions=[to_first],weights=weights,sources)
   source = merge_tracks(source)
 
   switch(id=id,replay_metadata=false,track_sensitive=false,[(is_first_ready, source), (is_second_ready, source)])
