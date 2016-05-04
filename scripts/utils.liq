@@ -766,13 +766,15 @@ def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensit
 end
 
 # Same operator as rotate but merges tracks from each sources.
-# For instance, rotate.merge([intro,main,outro]) creates a source
-# that plays a sequence [intro,main,outro] as single track and loops back.
+# For instance, <code>rotate.merge([intro,main,outro])</code> creates a source
+# that plays a sequence <code>[intro,main,outro]</code> as single track and loops back.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
+# @param ~track_sensitive Re-select only on end of tracks.
+# @param ~transitions Transition functions, padded with <code>fun (x,y) -> y</code> functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
-def rotate.merge(~id="",~weights=[],sources)
+def rotate.merge(~id="",~track_sensitive=true,~transitions=[],~weights=[],sources)
   ready = ref true
   duration = get(default=0.04,"frame.duration")
 
@@ -781,7 +783,17 @@ def rotate.merge(~id="",~weights=[],sources)
     sequence(merge=true,[blank(duration=duration),new])
   end
 
-  source = rotate(transitions=[to_first],weights=weights,sources)
+  transitions = if list.length(transitions) == 0 then
+    [to_first]
+  else
+    list.mapi((fun (i,t) ->
+      if i == 0 then
+        (fun (old,new) ->
+          to_first(old,t(old,new)))
+      else t end), transitions)
+  end
+
+  source = rotate(track_sensitive=track_sensitive,transitions=transitions,weights=weights,sources)
   source = merge_tracks(source)
 
   switch(id=id,replay_metadata=false,track_sensitive=false,[({!ready}, source), ({(not !ready)}, source)])

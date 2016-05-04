@@ -1017,6 +1017,25 @@ let () =
          Lang.list ~t l)
 
 let () =
+  Lang.add_builtin "list.mapi"
+    ~category:(string_of_category List)
+    ~descr:"Map a function on every element of a list, along with its index."
+    [ "",Lang.fun_t [false, "", Lang.int_t;false, "", Lang.univ_t 1]
+                    (Lang.univ_t 2),None,None ;
+      "", (Lang.list_t (Lang.univ_t 1)), None, None ]
+    (Lang.list_t (Lang.univ_t 2))
+    (fun p t ->
+       let f,l =
+         match p with
+           | [("",f);("",l)] -> f,l
+           | _ -> assert false
+       in
+       let t = Lang.of_list_t t in
+       let l = Lang.to_list l in
+       let l = List.mapi (fun i -> fun c -> (Lang.apply ~t f ["",Lang.int i;"",c])) l in
+         Lang.list ~t l)
+
+let () =
   let t = Lang.list_t (Lang.univ_t 1) in
   Lang.add_builtin "list.randomize"
     ~category:(string_of_category List)
