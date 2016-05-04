@@ -42,12 +42,14 @@ let add_handler path t f =
 let handler path (data:LO.Message.data array) =
   let typ = function
     | `Float _ | `Double _ -> `Float
+    | `Int32 _ | `Int64 _ -> `Int
     | `True | `False -> `Bool
     | `String _ | `Symbol _ -> `String
     | _ -> failwith "Unhandled value."
   in
   let value = function
     | `Float x | `Double x -> Lang.float x
+    | `Int32 x | `Int64 x -> Lang.int x
     | `True | `False as b -> Lang.bool (b = `True)
     | `String s | `Symbol s -> Lang.string s
     | _ -> failwith "Unhandled value."
@@ -135,6 +137,8 @@ let register name osc_t liq_t =
 let () =
   register "float" [|`Float|] Lang.float_t;
   register "float_pair" [|`Float;`Float|] (Lang.product_t Lang.float_t Lang.float_t);
+  register "int" [|`Int|] Lang.int_t;
+  register "int_pair" [|`Int;`Int|] (Lang.product_t Lang.int_t Lang.int_t);
   register "bool" [|`Bool|] (Lang.bool_t);
   register "string" [|`String|] (Lang.string_t);
   register "string_pair" [|`String;`String|] (Lang.product_t Lang.string_t Lang.string_t)
