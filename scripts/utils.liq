@@ -773,34 +773,18 @@ end
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
 def rotate.merge(~id="",~weights=[],sources)
-  first_ready = ref true
-  second_ready = ref true
+  ready = ref true
   duration = get(default=0.04,"frame.duration")
 
-  def is_first_ready() =
-    !first_ready
-  end
-
-  def is_second_ready() =
-    !second_ready
-  end
-
   def to_first(old,new) =
-    if !first_ready then
-      first_ready := false
-      second_ready := true
-    else
-      first_ready := true
-      second_ready := false
-    end
-
+    ready := (not !ready)
     sequence(merge=true,[blank(duration=duration),new])
   end
 
   source = rotate(transitions=[to_first],weights=weights,sources)
   source = merge_tracks(source)
 
-  switch(id=id,replay_metadata=false,track_sensitive=false,[(is_first_ready, source), (is_second_ready, source)])
+  switch(id=id,replay_metadata=false,track_sensitive=false,[({!ready}, source), ({(not !ready)}, source)])
 end
 
 # Extract the left channel of a stereo source
