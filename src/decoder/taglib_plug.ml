@@ -91,6 +91,7 @@ let get_tags fname =
               (key,v)::tags
         ) (Taglib.File.properties f) tags)
   with
+    | Invalid_file -> []
     | e ->
        log#f 4 "Error while decoding file tags: %s" (Printexc.to_string e);       
        log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace());
