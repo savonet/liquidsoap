@@ -22,13 +22,6 @@
 
 exception Invalid_file
 
-let error_translator =
-  function
-    | Invalid_file -> Some "Invalid file"
-    | _ -> None
-
-let () = Utils.register_error_translator error_translator
-
 let log = Dtools.Log.make ["decoder";"taglib"]
 
 (** Configuration keys for taglib. *)
