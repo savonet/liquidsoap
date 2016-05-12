@@ -38,7 +38,6 @@ type gst =
   }
 
 let encoder ext =
-  GU.init ();
   let channels = Encoder.GStreamer.audio_channels ext in
   let mutex = Mutex.create () in
   (* Here "samples" are the number of buffers available in the GStreamer

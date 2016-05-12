@@ -23,7 +23,7 @@
 module Img = Image.RGBA32
 module GU = Gstreamer_utils
 
-let init () = GU.init ()
+let init () = ()
 
 let render_text ~font ~size text =
   (* Override default value... *)

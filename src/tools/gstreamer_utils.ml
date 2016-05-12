@@ -20,21 +20,16 @@ let conf_add_borders =
     "Add borders in order to keep video aspect ratio."
 let add_borders () = conf_add_borders#get
 
-let init =
-  let inited = ref false in
-  fun () ->
-    let argv =
-      [|
-        "Liquidsoap";
-        "--gst-debug-spew";
-        Printf.sprintf "--gst-debug-level=%d" conf_debug#get
-      |]
-    in
-    if not !inited then
-      (
-        inited := true;
-        Gstreamer.init ~argv ()
-      )
+let () =
+  ignore (Dtools.Init.at_start (fun () ->
+    Gstreamer.init ~argv:[|
+      "Liquidsoap";
+      "--gst-debug-spew";
+      Printf.sprintf "--gst-debug-level=%d" conf_debug#get
+    |] ();
+  let major, minor, micro, nano_str = Gstreamer.version () in
+  let log = Dtools.Log.make ["gstreamer";"loader"] in
+  log#f 3 "Loaded GStreamer %d.%d.%d %d" major minor micro nano_str))
 
 module Pipeline = struct
   let convert_audio () =

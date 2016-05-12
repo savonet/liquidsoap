@@ -90,7 +90,6 @@ object (self)
     match gst with
     | Some gst -> gst
     | None ->
-      GU.init ();
       let pipeline =
         if has_audio then
           Printf.sprintf "%s ! %s %s"
@@ -278,7 +277,6 @@ object (self)
     match gst with
     | Some gst -> gst
     | None ->
-      GU.init ();
       let pipeline =
         Printf.sprintf "%s ! %s %s ! %s %s"
           (GU.Pipeline.audio_src ~channels "audio_src")
@@ -452,7 +450,6 @@ class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
       ~log:(fun x -> !rlog x) ~kind
       content 
   in
-  let () = GU.init () in
 object (self)
   inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
 

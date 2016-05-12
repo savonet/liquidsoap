@@ -41,8 +41,6 @@ type gst =
 (* TODO: we should share some code with Ogg_decoder... *)
 module Make (Generator : Generator.S_Asio) = struct
   let create_decoder ?(merge_tracks=false) _ ~channels mode input =
-    GU.init ();
-
     let decode_audio = mode = `Both || mode = `Audio in
     let decode_video = mode = `Both || mode = `Video in
 
@@ -228,7 +226,6 @@ let create_file_decoder filename content_type kind =
   * we always pretend that audio content has the expected number of
   * channels, which is passed as a parameter to get_type. *)
 let get_type ~channels filename =
-  GU.init ();
   let filesrc = Printf.sprintf "filesrc location=\"%s\"" filename in
   let audio =
     let pipeline =
@@ -334,7 +331,6 @@ let get_tags file =
        ~extensions:file_extensions#get
        ~log file)
   then raise Not_found;
-  GU.init ();
   let pipeline =
     Printf.sprintf "filesrc location=\"%s\" ! decodebin ! fakesink" file
   in
