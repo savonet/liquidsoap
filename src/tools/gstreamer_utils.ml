@@ -21,15 +21,15 @@ let conf_add_borders =
 let add_borders () = conf_add_borders#get
 
 let () =
-  ignore (Dtools.Init.at_start (fun () ->
+  Configure.at_init (fun () ->
     Gstreamer.init ~argv:[|
       "Liquidsoap";
       "--gst-debug-spew";
       Printf.sprintf "--gst-debug-level=%d" conf_debug#get
     |] ();
-  let major, minor, micro, nano_str = Gstreamer.version () in
+  let major, minor, micro, nano = Gstreamer.version () in
   let log = Dtools.Log.make ["gstreamer";"loader"] in
-  log#f 3 "Loaded GStreamer %d.%d.%d %d" major minor micro nano_str))
+  log#f 3 "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
 
 module Pipeline = struct
   let convert_audio () =

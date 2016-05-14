@@ -63,6 +63,9 @@ let subst_vars s =
   List.fold_left
     (fun v (r, s) -> Str.global_replace (Str.regexp r) (s ()) v)
      s !substs
+let init = Dtools.Init.make ~name:"init" (fun () -> ())
+let at_init f = ignore(Dtools.Init.make ~after:[[init]] f)
+let run_init () = Dtools.Init.exec init
 _BLAH_
 
 # This is ugly, I'd like to find a better solution.
@@ -415,14 +418,10 @@ if test -z "${W_DYNLINK}"; then
   AC_MSG_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
   cat >> src/configure.ml <<EOCONF
 let dynlink = false
-let load_dynlinks _ = ()
-let load_plugins_dir _ = ()
 EOCONF
 else
   cat >> src/configure.ml <<EOCONF
 let dynlink = true
-let load_dynlinks = Dyntools.load_dynlinks
-let load_plugins_dir = Dyntools.load_plugins_dir
 EOCONF
 fi
 

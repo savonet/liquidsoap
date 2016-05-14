@@ -139,3 +139,8 @@ let load_dynlinks () =
           dynload.load ()
   in
   Hashtbl.iter load_library dynlink_list
+
+let () =
+  Configure.at_init (fun () ->
+    load_dynlinks ();
+    load_plugins_dir Configure.plugins_dir)

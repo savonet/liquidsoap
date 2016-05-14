@@ -178,14 +178,14 @@ $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 
 tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
-	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
-	configure.ml \
+  configure.ml \
+  $(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/http.ml tools/pool.ml \
 	tools/sha1.ml tools/websocket.ml
 

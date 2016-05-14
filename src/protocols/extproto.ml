@@ -152,25 +152,25 @@ let extproto = [
 ]
 
 let () =
-  (* Enabling of protocols rely on the presence of the programs.
-   * The detection must be done at startup, so that --list-plugins shows the
-   * enabled protocols. But we delay logging for Init.at_start time, so that
-   * logs shows enabled/disabled protocols. *)
-  List.iter
-    (fun (prog,protos,command) ->
-       try
-         let prog = which prog in
-           dlog#f 3 "Found %S." prog ;
-           List.iter
-             (fun proto ->
-                Request.protocols#register
-                  ~sdoc:(Printf.sprintf "Fetch files using %S." prog)
-                  proto
-                  { Request.resolve = resolve proto prog command ;
-                    Request.static = false })
-             protos
-       with
-         | Not_found ->
-             dlog#f 3 "Didn't find %S." prog
-    )
-    extproto
+  Configure.at_init (fun () ->
+    (* Enabling of protocols rely on the presence of the programs.
+     * The detection must be done at startup, so that --list-plugins shows the
+     * enabled protocols. But we delay logging for Init.at_start time, so that
+     * logs shows enabled/disabled protocols. *)
+    List.iter
+      (fun (prog,protos,command) ->
+         try
+           let prog = which prog in
+             dlog#f 3 "Found %S." prog ;
+             List.iter
+               (fun proto ->
+                  Request.protocols#register
+                    ~sdoc:(Printf.sprintf "Fetch files using %S." prog)
+                    proto
+                    { Request.resolve = resolve proto prog command ;
+                      Request.static = false })
+               protos
+         with
+           | Not_found ->
+               dlog#f 3 "Didn't find %S." prog)
+      extproto)

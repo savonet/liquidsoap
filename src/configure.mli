@@ -31,11 +31,10 @@ val bin_dir : string
 (** Standard path. *)
 val path : string list
 
-(** Helper to load dynamic modules. *)
-val load_dynlinks : unit -> unit
-
-(** Helper to load dynamic plugins. *)
-val load_plugins_dir : string -> unit
+(** Helper for all things that need to be
+  * executed before script parsing. *)
+val at_init : (unit -> unit) -> unit
+val run_init : unit -> unit
 
 (** Executable extension. *)
 val exe_ext : string

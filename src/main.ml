@@ -518,12 +518,8 @@ struct
     else
       s
 
-  (* Load plugins and dynamic loaded libraries:
-   * these should be loaded as early as possible since we want to be
-   * able to use them in scripts... *)
   let () =
-    Configure.load_dynlinks ();
-    Configure.load_plugins_dir Configure.plugins_dir
+    Configure.run_init ()
 
   (* Startup *)
   let startup () =
