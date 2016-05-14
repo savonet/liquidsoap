@@ -2,9 +2,9 @@ TESTS_ML = $(wildcard *.ml)
 TESTS = $(TESTS_ML:.ml=)
 OCAML_CFLAGS = -I ../tools -I .. $(liquidsoap_ocamlcflags) -thread
 OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
-		stdlib.cmx utils.cmx dyntools.cmx shutdown.cmx tutils.cmx \
+		stdlib.cmx utils.cmx shutdown.cmx tutils.cmx \
 		file_watcher_mtime.cmx configure.cmx http.cmx JSON.cmx \
-		stream/frame.cmx avi.cmx \
+		stream/frame.cmx avi.cmx dyntools.cmx \
 		../tools/locale_c.o
 
 all: $(TESTS)
