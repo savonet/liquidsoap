@@ -22,120 +22,47 @@
 
 (** Decode files using an external decoder. *)
 
-let priority = Tutils.Blocking
-let buf_size = 1024
-
 (** First, an external decoder that receives
   * on its stdin. *)
+
+let log = Dtools.Log.make ["decoder";"external"]
 
 (** This function is used to wrap around the "real" input.
   * It pipes its data to the external process and read
   * the available output. *)
 let external_input process input =
-  (** Open the external process, get its stdin/stdout *)
-  let pull,push = Unix.open_process process in
-  (** We operate on the Unix descriptors of 
-    * the processe's stdio. *)
-  let push_e = Unix.descr_of_out_channel push in
-  let pull_e = Unix.descr_of_in_channel pull in
-  (** We also need a pipe to wake up the task
-    * when we want to force it to terminate. *)
-  let pull_p,push_p = Unix.pipe () in
-  (** We gonna wait on these events. *)
-  let events = [`Read pull_p; `Write push_e] in
-  (** These variables are used to synchronize 
-    * between the main thread and the task's thread
-    * when we terminate the task.. *)
-  let is_task = ref true in
-  let task_m = Mutex.create () in
-  let task_c = Condition.create () in
-  (** The function used to close the task. *)
-  let close_task () =
-    (** First, close the processes' stdin
-      * as well as the task's side of the pipe. *)
-    Unix.close pull_p ;
-    Unix.close push_e ;
-    (** Now grab the synchronization
-      * lock, set is_task to false
-      * and signal it to wake-up the main
-      * thread waiting for the task to end.. *)
-    Tutils.mutexify task_m (fun () ->
-      is_task := false ;
-      Condition.signal task_c) () ;
-    (* We can now close the process. *)
-    ignore(Unix.close_process (pull,push));
-    (** Finally, tell duppy that we are done
-      * by returning an empty list of new tasks. *)
-    []
+  let on_stdin pusher =
+    let s,read = input.Decoder.read 1024 in
+    if read = 0 then `Stop else begin
+      Process_handler.write s pusher;
+      `Continue
+    end
   in
-  (** The main task function. (rem,ofs,len)
-    * is the remaining string to write. *)
-  let rec task (rem,ofs,len) l =
-   let rem,ofs,len = 
-      (* If we are done with the current string,
-       * try to get a new one from the original input. *)
-      if len = 0 then
-        let s,read = input.Decoder.read buf_size in
-        s,0,read
-      else
-        rem,ofs,len
-   in
-   let must_close = List.mem (`Read pull_p) l in
-   (* If we could not get something to write or
-    * if the close pipe contains something, we 
-    * close the task. *)
-   if len = 0 || must_close then begin
-     close_task ()
-   end else
-     try
-      (* Otherwise, we write and keep track of 
-       * what was not written yet. *)
-      let written = Unix.write push_e rem ofs len in
-        if written <= 0 then close_task () else
-          [{ Duppy.Task.
-              priority = priority;
-              events   = events;
-              handler  = task (rem,ofs+written,len-written)
-          }]
-     with _ ->
-       close_task ()
+  let on_stderr puller =
+    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    `Continue
   in
-    (** This initiates the task. *)
-    Duppy.Task.add Tutils.scheduler
-      { Duppy.Task.
-          priority = priority;
-          events   = events;
-          handler  = task ("",0,0)
-      } ;
-    (* Now the new input, which reads the process's output *)
-    { Decoder.
-        read = 
-         (fun inlen ->
-           Tutils.mutexify task_m (fun () ->
-             if !is_task then
-               let tmpbuf = Bytes.create inlen in
-               let read = Unix.read pull_e tmpbuf 0 inlen in
-               tmpbuf, read
-              else
-                "", 0) ());
-         tell = None;
-         length = None;
-         lseek = None },
-    (* And a function to close the process *)
-    (fun () -> 
-      (* We grab the task's mutex. *)
-      Tutils.mutexify task_m (fun () ->
-        (* If the task has not yet ended, 
-         * we write a char in the close pipe 
-         * and wait for a signal from the task. *)
-        if !is_task then
-          begin
-            ignore(Unix.write push_p " " 0 1) ;
-            Condition.wait task_c task_m;
-          end;
-          (* Now we can close our side of 
-           * the close pipe. *)
-          Unix.close push_p) ())
+  let log = log#f 3 "%s" in
+  (* reading from input is blocking.. *)
+  let priority = Tutils.Blocking in
+  let process =
+    Process_handler.run ~priority ~on_stdin ~on_stderr ~log process
+  in
+  let read len =
+    try
+      Process_handler.on_stdout process (fun stdout ->
+        let s = Process_handler.read len stdout in
+        s,String.length s)
+    with Process_handler.Finished -> "",0
+  in
+  {Decoder.
+    read = read;
+    tell = None;
+    length = None;
+    lseek = None},
+  (fun () -> try
+    Process_handler.kill process
+   with Process_handler.Finished -> ())
 
 let duration process = 
   let pull = Unix.open_process_in process in
@@ -237,25 +164,25 @@ let register_stdin name sdoc mimes test process =
 let log = Dtools.Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
-  let process = process filename in
-  let process_done = ref false in
-  let pull = Unix.open_process_in process in
-  let pull_e = Unix.descr_of_in_channel pull in
-  let close () =
-    if not !process_done then
-     begin
-      ignore(Unix.close_process_in pull);
-      process_done := true
-     end
+  let on_stderr puller =
+    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    `Continue
   in
-  let read len = 
-    if not !process_done then
-      let ret = Bytes.create len in
-      let read = Unix.read pull_e ret 0 len in
-      if read = 0 then close () ; 
-      ret,read
-    else
-      "",0
+  let command = process filename in
+  let process =
+    Process_handler.run ~on_stderr ~log:(log#f 3 "%s") command
+  in
+  let read len =
+    try
+      Process_handler.on_stdout process (fun stdout ->
+        let s = Process_handler.read len stdout in
+        s,String.length s)
+    with Process_handler.Finished -> "",0
+  in
+  let close () =
+    try
+      Process_handler.kill process
+    with Process_handler.Finished -> ()
   in
   let input = 
     { Decoder.
@@ -268,20 +195,19 @@ let external_input_oblivious process filename prebuf =
   let prebuf = Frame.master_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.D.create input in
   let fill frame = 
-     if not !process_done then
        begin try
-         while Generator.length gen < prebuf && (not !process_done) do
+         while Generator.length gen < prebuf && (not (Process_handler.stopped process)) do
            decoder.Decoder.decode gen
          done
        with
          | e ->
-             log#f 4 "Decoding %s ended: %s." process (Printexc.to_string e) ;
+             log#f 4 "Decoding %s ended: %s." command (Printexc.to_string e) ;
              close ()
        end ;
      Generator.fill gen frame ;
      (** We return -1 while the process is not yet
        * finished. *)
-    if !process_done then Generator.length gen else -1
+    if (Process_handler.stopped process) then Generator.length gen else -1
   in 
   { Decoder.
      fill = fill ;

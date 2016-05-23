@@ -184,7 +184,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
-  configure.ml \
+  configure.ml tools/process_handler.ml \
   $(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/http.ml tools/pool.ml \
 	tools/sha1.ml tools/websocket.ml

@@ -41,96 +41,48 @@ class external_input ~kind ~restart ~bufferize ~channels
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
+  let log_error = ref (fun _ -> ()) in
   let abg = Generator.create ~log ~kind `Audio in
-  let priority = Tutils.Non_blocking in
+  let on_stdout in_chan =
+    let s = Process_handler.read 1024 in_chan in
+    let data = converter s in
+    let len = Array.length data.(0) in
+    let buffered = Generator.length abg in
+    Generator.put_audio abg data 0 (Array.length data.(0));
+    if abg_max_len < buffered+len then
+      `Delay (Frame.seconds_of_audio (buffered+len-abg_max_len))
+    else
+      `Continue
+  in
+  let on_stderr in_chan =
+    (!log_error) (Process_handler.read 1024 in_chan);
+    `Continue
+  in
+  let on_stop = function
+    | Some _ -> restart_on_error
+    | None -> restart
+  in
 object (self)
   inherit Source.source ~name:"input.external" kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-  val mutable should_stop = false
+  val mutable process = None
 
   method stype = Source.Fallible
 
   method wake_up _ =
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s" ;
-    self#log#f 2 "Starting process.";
-    let create () =
-      let in_e = Unix.open_process_in command in
-      in_e,Unix.descr_of_in_channel in_e
-    in
-    let (_,in_d) as x = create () in
-    let tmpbuf = Bytes.create 1024 in
-    let rec process ((in_e,in_d) as x) l =
-      let get_data () =
-        let ret = input in_e tmpbuf 0 1024 in
-          if ret = 0 then raise (Finished ("Process exited.",restart));
-          let data = converter (String.sub tmpbuf 0 ret) in
-          Generator.put_audio abg data 0 (Array.length data.(0))
-      in
-      let do_restart s restart f =
-        self#log#f 2 "%s" s;
-        begin
-         try
-           ignore(Unix.close_process_in in_e);
-         with
-           | _ -> ()
-        end;
-        if restart then
-         begin
-          self#log#f 2 "Restarting process.";
-          let ((_,in_d) as x) = create () in
-          [{ Duppy.Task.
-              priority = priority;
-              events   = [`Read in_d];
-              handler  = process x
-          }]
-         end
-        else
-         begin
-          f ();
-          self#log#f 2 "Task exited.";
-          []
-         end
-      in
-     try
-      let events =
-        if should_stop then
-          raise (Finished ("Source stoped: closing process.",false));
-        let len = Generator.length abg - abg_max_len in
-        if len >= 0 then
-           let delay = Frame.seconds_of_audio len in
-           [`Delay delay]
-        else
-         begin
-          if List.mem (`Read in_d) l then
-           get_data ();
-          [`Read in_d]
-         end
-      in
-      [{ Duppy.Task.
-       priority = priority;
-       events   = events;
-       handler  = process x
-      }]
-     with
-       | Finished (s,b) -> do_restart s b (fun () -> ())
-       | e ->
-          do_restart
-            (Printf.sprintf "Process exited with error: %s"
-                (Printexc.to_string e)) restart_on_error
-                (fun () -> raise e)
-    in
-    let task =
-     { Duppy.Task.
-        priority = priority;
-        events   = [ `Read in_d];
-        handler  = process x
-     }
-    in
-    Duppy.Task.add Tutils.scheduler task
+    log_ref := self#log#f 3 "%s";
+    log_error := self#log#f 5 "%s";
+    process <- Some (Process_handler.run ~on_stop ~on_stdout 
+                                         ~on_stderr ~log command)
 
-  method sleep = should_stop <- true
+  method sleep =
+    match process with
+      | Some h ->
+          Process_handler.kill h;
+          process <- None
+      | None -> ()
 end
 
 let () =
@@ -186,7 +138,7 @@ let () =
 
 module Img = Image.RGBA32
       
-class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data command =
+class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data =
   let abg_max_len = Frame.master_of_seconds max in
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
@@ -346,7 +298,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data command):>Source.source))
+      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data):>Source.source))
 
 (***** raw video *****)
 
@@ -378,7 +330,6 @@ let () =
       let command = Lang.to_string (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in
-      let audio_converter = ref None in
       let create () =
         let in_e = Unix.open_process_in command in
         let f = Unix.descr_of_in_channel in_e in
@@ -401,4 +352,4 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data command):>Source.source))
+      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data):>Source.source))
