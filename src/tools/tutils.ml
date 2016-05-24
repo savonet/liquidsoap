@@ -186,8 +186,7 @@ let () =
   let name = "Duppy scheduler shutdown" in
   let f () =
     log#f 3 "Shutting down scheduler...";
-    (* TODO: Duppy.stop uses Thread.kill, which is not implemented... *)
-    (* Duppy.stop scheduler; *)
+    Duppy.stop scheduler;
     log#f 3 "Scheduler shut down."
   in
   Shutdown.duppy_atom := Some (Dtools.Init.at_stop ~name f)
