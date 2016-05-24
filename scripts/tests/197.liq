@@ -11,7 +11,7 @@ def filter(r)
   end
 end
 
-s = playlist(check_next=filter,mode="randomize",reload=1,reload_mode="rounds","threesines")
+s = playlist(check_next=filter,mode="randomize",reload_mode="rounds","threesines")
 
 s = test.check_non_repeating(nb_files=2,nb_rounds=10,s)
 

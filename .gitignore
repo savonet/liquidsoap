@@ -43,3 +43,4 @@ doc/content/reference.txt
 doc/content/settings.txt
 autodoc/
 *.annot
+scripts/tests/threesines/
