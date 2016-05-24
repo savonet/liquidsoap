@@ -315,42 +315,6 @@ server.register(namespace="dump",
                 fun (s) -> begin stop_dump() "Done!" end)
 %%
 
-h4. Lastfm input
-
-You can listen to "lastfm":http://www.last.fm/ radios using 
-"Liquidsoap":index.html. The corresponding operator is 
-<code>input.lastfm</code> and is used in the following way:
-
-%%(lastfm.liq)
-lastfm_stream =
-  # Replace login info with yours!
-  input.lastfm(user="toots5446",password="hackme",
-               "lastfm://artist/Wackies")
-%%
-
-Lastfm's URIs start with <code>lastfm:</code>:
-
-* <code>lastfm://user/toots5446/paylist</code>: a user's playlist
-* <code>lastfm://globaltags/creative commons</code>: songs tagged with "creative commons"
-* <code>lastfm://user/toots5446/tags/rocksteady</code>: songs tagged "rocksteady" by the user.
-
-You can find more of them on the website, "last.fm":http://www.last.fm/.
-
-The @lastfm.uri@ operator can be used to generate lastfm @URIs@. Its parameters are:
-
-* <code>~user</code>: Lastfm user
-* <code>~password</code>: Lastfm password
-* <code>~discovery</code>: Allow lastfm suggestions
-* <code>radio</code>: URI, e.g. <code>user/toots5446/playlist</code>, <code>globaltags/rocksteady</code>
-
-Example:
-
-%%(lastfm_uri.liq)
-uri = lastfm.uri(user="toots5446", password="hackme",
-                 discovery=false,
-                 "user/toots4556/playlist")
-%%
-
 h4. Transitions
 
 There are two kinds of transitions. Transitions between two different children of a switch are not problematic. Transitions between different tracks of the same source are more tricky, since they involve a fast forward computation of the end of a track before feeding it to the transition function: such a thing is only possible when only one operator is using the source, otherwise it'll get out of sync.

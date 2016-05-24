@@ -45,7 +45,6 @@ Here are a few things you can easily achieve using Liquidsoap:
 * "Input of other streams":http_input.html: useful for switching to a live show. Liquidsoap can relay an HTTP stream but also host it.
 * "Blank detection":blank.html.
 * Definable event handlers on new tracks, new metadata and excessive blank.
-* "Last.fm":cookbook.html#lastfm support: play files, streams, audioscrobbling.
 * Multiple outputs in the same instance: you can have several quality settings, use several media or even broadcast several contents from the same instance.
 * Output to Icecast/Peercast/Shoutcast (MP3/Ogg) or a local file (WAV/MP3/Ogg/AAC).
 * Input/output via Jack, ALSA, OSS and PortAudio. Output via @libao@.
