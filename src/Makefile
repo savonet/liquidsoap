@@ -118,7 +118,7 @@ operators = \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
 	operators/switch.ml operators/fade.ml operators/add.ml \
 	operators/sequence.ml operators/cross.ml operators/smartcross.ml \
-	operators/compress_exp.ml operators/pitch.ml \
+	operators/compress_exp.ml operators/pitch.ml operators/pipe.ml \
 	operators/fir_filter.ml operators/iir_filter.ml operators/filter_rc.ml \
 	operators/biquad_filter.ml operators/cuepoint.ml \
 	operators/map_op.ml operators/flanger.ml operators/comb.ml \
@@ -184,7 +184,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
-  configure.ml \
+  configure.ml tools/process_handler.ml \
   $(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/http.ml tools/pool.ml \
 	tools/sha1.ml tools/websocket.ml

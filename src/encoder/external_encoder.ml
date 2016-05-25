@@ -23,190 +23,93 @@
 (** External encoder *)
 
 open Encoder.External
-
-type external_encoder = in_channel*out_channel
-
-type ext_handle = 
-  { 
-    cond_m          : Mutex.t ;
-    cond            : Condition.t ;
-    mutable is_task : bool ;
-    mutable encoder : external_encoder option ;
-    converter       : Audio_converter.Samplerate.t ;
-    read_m          : Mutex.t ;
-    read            : Buffer.t ;
-    create_m        : Mutex.t ;
-    log             : Dtools.Log.t ;
-    params          : Encoder.External.t
-  }
-
-let create_handle id params = 
-  { 
-    cond_m    = Mutex.create () ;
-    cond      = Condition.create () ;
-    is_task   = false ;
-    encoder   = None ;
-    converter = Audio_converter.Samplerate.create params.channels ;
-    read_m    = Mutex.create () ;
-    read      = Buffer.create 10 ;
-    create_m  = Mutex.create () ;
-    log       = Dtools.Log.make [id] ;
-    params    = params
-  }
-
-let priority = Tutils.Non_blocking
-
 let encoder id ext =
-  (* The params *)
-  let handle = create_handle id ext in
+  let log = Dtools.Log.make [id] in
+
+  let is_metadata_restart = ref false in
+  let is_stop = ref false in
+  let buf = Buffer.create 1024 in
+  let mutex = Mutex.create () in
+  let condition = Condition.create () in
+
+  let restart_decision = Tutils.mutexify mutex (fun () ->
+    let decision =
+      match !is_metadata_restart, !is_stop with
+        | _, true -> false
+        | true, false -> true
+        | false, false -> ext.restart_on_crash
+    in
+    is_metadata_restart := false;
+    decision)
+  in
+
+  let header =
+    if ext.video then
+      Avi.header ~channels:ext.channels ~samplerate:ext.samplerate ()
+    else if ext.header then
+      Wav_aiff.wav_header ~channels:ext.channels
+          ~sample_rate:ext.samplerate
+          ~sample_size:16 ()
+    else ""
+  in
+
+  let on_stderr puller =
+    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    `Continue
+  in
+  let on_start pusher =
+    Process_handler.write header pusher;
+    `Continue
+  in
+  let on_stop = function
+   | None -> restart_decision ()
+   | Some e ->
+      log#f 3 "Error: %s" (Printexc.to_string e);
+      restart_decision ()
+  in
+  let log = log#f 3 "%s" in
+
+  let on_stdout = Tutils.mutexify mutex (fun puller ->
+    begin
+      match (Process_handler.read 1024 puller) with
+        | "" when !is_stop -> Condition.signal condition
+        | s -> Buffer.add_string buf s
+    end;
+    `Continue)
+  in
+
+  let flush_buffer = Tutils.mutexify mutex (fun () ->
+    let content = Buffer.contents buf in
+    Buffer.reset buf;
+    content)
+  in
+
+  let process =
+    Process_handler.run ~on_start ~on_stop ~on_stdout
+                        ~on_stderr ~log ext.process 
+  in
+
+  let insert_metadata = Tutils.mutexify mutex (fun _ -> 
+    if ext.restart = Metadata then
+      is_metadata_restart := true;
+      Process_handler.stop process)
+  in
+
+  let converter =
+    Audio_converter.Samplerate.create ext.channels
+  in
   let ratio =
-    (float handle.params.samplerate) /. (float (Frame.audio_of_seconds 1.))
+    (float ext.samplerate) /. (float (Frame.audio_of_seconds 1.))
   in
 
-  (* The encoding logic *)
-  let stop_process h = 
-    match h.encoder with
-    | Some (_,out_e as enc) ->
-       h.log#f 3 "stopping current process" ;
-      begin
-        try
-          begin
-            try
-              flush out_e;
-              Unix.close (Unix.descr_of_out_channel out_e)
-            with
-            | _ -> ()
-          end;
-          Tutils.mutexify h.cond_m (fun () ->
-            if h.is_task then
-              Condition.wait h.cond h.cond_m) ();
-          begin
-            try
-              ignore(Unix.close_process enc)
-            with
-            | _ -> ()
-          end;
-          h.encoder <- None
-        with
-        | e ->
-           h.log#f 2 "couldn't stop the reading task.";
-          raise e
-      end
-    | None -> ()
-  in
-
-  let reset_process start_f h = 
-    Tutils.mutexify h.create_m (fun () ->
-      stop_process h;
-      start_f h) ()
-  in
-
-  (* This function does NOT use the 
-   * create_m mutex. *)
-  let rec start_process h = 
-    assert(not h.is_task);
-    h.log#f 2 "Creating external encoder..";
-    let process = h.params.process in 
-    (* output_start must be called with encode = None. *)
-    assert(h.encoder = None);
-    let (in_e,out_e as enc) = Unix.open_process process in
-    h.encoder <- Some enc;
-    if h.params.video then
-      begin
-        let header =
-          Avi.header ~channels:h.params.channels ~samplerate:h.params.samplerate ()
-        in
-        output_string out_e header
-      end
-    else if h.params.header then
-      begin
-        let header =
-          Wav_aiff.wav_header ~channels:h.params.channels
-            ~sample_rate:h.params.samplerate
-            ~sample_size:16 ()
-        in
-        (* Write WAV header *)
-        output_string out_e header
-      end;
-    let sock = Unix.descr_of_in_channel in_e in
-    let buf = Bytes.create 10000 in
-    let events = [`Read sock]
-    in
-    let rec pull _ =
-      let read () =
-        let ret = input in_e buf 0 10000 in
-        if ret > 0 then
-          Tutils.mutexify h.read_m (fun () ->
-            Buffer.add_string h.read (String.sub buf 0 ret)) ();
-        ret
-      in
-      let stop () =
-        (* Signal the end of the task *)
-        Tutils.mutexify h.cond_m (fun () ->
-          Condition.signal h.cond;
-          h.is_task <- false) ();
-      in
-      try
-        let ret = read () in
-        if ret > 0 then
-          [{ Duppy.Task.
-             priority = priority ;
-             events   = events ;
-             handler  = pull }]
-        else
-          begin
-            h.log#f 4 "Reading task reached end of data";
-            stop (); []
-          end
-      with e -> 
-        h.log#f 3
-          "Error while reading data from encoding process: %s"
-          (Printexc.to_string e) ;
-        stop (); 
-        (if h.params.restart_on_crash then
-            reset_process start_process h
-         else
-            raise e);
-        []
-    in
-    Duppy.Task.add Tutils.scheduler
-      { Duppy.Task.
-        priority = priority ;
-        events   = events ;
-        handler  = pull };
-    h.is_task <- true;
-    (** Creating restart task. *)
-    match h.params.restart with
-    | Delay d -> 
-       let f _ =
-         h.log#f 3 "Restarting encoder after delay (%is)" d;
-         reset_process start_process h ;
-         []
-       in
-       Duppy.Task.add Tutils.scheduler
-         { Duppy.Task.
-           priority = priority ;
-           events   = [`Delay (float d)] ;
-           handler  = f }
-    | _ -> ()
-  in
-
-  let reset_process = reset_process start_process in
-
-  let insert_metadata h _ = 
-    if h.params.restart = Metadata then
-      reset_process h;
-  in
-
-  let encode h ratio frame start len =
-    let channels = h.params.channels in
+  let encode frame start len =
+    let channels = ext.channels in
     let sbuf =
-      if h.params.video then
+      if ext.video then
         Avi_encoder.encode_frame
-          ~channels ~samplerate:h.params.samplerate ~converter:h.converter
+          ~channels ~samplerate:ext.samplerate ~converter
           frame start len
-      else
-        (
+      else begin
           let start = Frame.audio_of_master start in
           let b = AFrame.content_of_type ~channels frame start in
           let len = Frame.audio_of_master len in
@@ -217,7 +120,7 @@ let encoder id ext =
             else
               let b =
                 Audio_converter.Samplerate.resample
-                  h.converter ratio b start len
+                  converter ratio b start len
               in
               b,0,Array.length b.(0)
           in
@@ -225,55 +128,32 @@ let encoder id ext =
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio b start sbuf 0 len;
           sbuf
-        )
+       end
     in
-    (** Wait for any possible creation.. *)
-    begin
+    Tutils.mutexify mutex (fun () ->
       try
-        Tutils.mutexify h.create_m (fun () ->
-          match h.encoder with
-          | Some (_,x) ->
-             output_string x sbuf;
-          | None ->
-             raise Not_found) ()
-      with
-      | e ->
-         h.log#f 3
-           "Error while writing data to encoding process: %s"
-           (Printexc.to_string e) ;
-        if h.params.restart_on_crash then
-          reset_process h
-        else
-          raise e
-    end;
-    Tutils.mutexify h.read_m (fun () ->
-      let ret = Buffer.contents h.read in
-      Buffer.reset h.read;
-      ret) ()
+        Process_handler.on_stdin process (Process_handler.write sbuf);
+      with Process_handler.Finished
+        when ext.restart_on_crash || !is_metadata_restart -> ()) ();
+    flush_buffer ()
   in
 
-  let stop h () = 
-    stop_process h ;
-    (* Process stopped, no nead
-     * to use the mutex. *)
-    let ret = Buffer.contents h.read in
-    Buffer.reset h.read;
-    ret
+  let stop = Tutils.mutexify mutex (fun () ->
+    is_stop := true;
+    Process_handler.stop process;
+    Condition.wait condition mutex;
+    Buffer.contents buf)
   in
   
-  (* Create an initial process *)
-  start_process handle ;
-
-  (* Return the encoding handle *)
   {
     Encoder. 
-    insert_metadata  = insert_metadata handle ;
-    (* External encoders do not support 
-     * headers for now. They will probably
-     * never do.. *)
-    header = None ;
-    encode = encode handle ratio ;
-    stop   = stop handle ;
+     insert_metadata  = insert_metadata;
+     (* External encoders do not support 
+      * headers for now. They will probably
+      * never do.. *)
+     header = None;
+     encode = encode;
+     stop   = stop;
   }
 
 let () =
