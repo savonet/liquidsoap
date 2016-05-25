@@ -183,17 +183,17 @@ let proto kind =
     "password", Lang.string_t, Some (Lang.string "hackme"), None ;
     "encoding", Lang.string_t, Some (Lang.string ""),
      Some "Encoding used to send metadata. If empty, defaults to \"UTF-8\" \
-           for \"http\" protocol and \"ISO-8859-1\" for \"icy\" \
+           for \"http(s)\" protocol and \"ISO-8859-1\" for \"icy\" \
            protocol." ;
     "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
     "protocol", Lang.string_t, (Some (Lang.string "http")),
      Some "Protocol of the streaming server: \
-          'http' for Icecast, 'icy' for shoutcast." ;
+          'http' or 'https' for Icecast, 'icy' for shoutcast." ;
     "verb", Lang.string_t, (Some (Lang.string "source")),
-     Some "Verb to use with the 'http' protocol. One of: \
+     Some "Verb to use with the 'http(s)' protocol. One of: \
            'source', 'put' or 'post'.";
     "chunked", Lang.bool_t, (Some (Lang.bool false)),
-     Some "Used cunked transfer with the 'http' protocol.";
+     Some "Used cunked transfer with the 'http(s)' protocol.";
     "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
      Some "Send new metadata using the ICY protocol. \
            One of: \"guess\", \"true\", \"false\"";
@@ -258,6 +258,7 @@ class output ~kind p =
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
       | "http" -> Cry.Http verb
+      | "https" -> Cry.Https verb
       | "icy" -> Cry.Icy
       | _ ->
           raise (Lang.Invalid_value
@@ -344,7 +345,8 @@ class output ~kind p =
   let port = e Lang.to_int "port" in
   let user =
     match protocol, s "user" with
-      | Cry.Http _, "" -> "source"
+      | Cry.Http _, ""
+      | Cry.Https _, "" -> "source"
       | _, user -> user 
   in
   let password = s "password" in
@@ -559,8 +561,6 @@ object (self)
       try
         Cry.connect connection source ;
         self#log#f 3 "Connection setup was successful." ;
-        let c = Cry.get_connection_data connection in
-        Unix.setsockopt c.Cry.data_socket Unix.TCP_NODELAY true;
         (* Execute on_connect hook. *)
         on_connect () ;
       with

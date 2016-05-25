@@ -41,7 +41,7 @@ let () =
      "icy_id", Lang.int_t, Some (Lang.int 1),
        Some "Shoutcast source ID. Only supported by Shoutcast v2.";
      "protocol", Lang.string_t, Some (Lang.string "http"), 
-     Some "Protocol to use. One of: \"icy\" or \"http\"";
+     Some "Protocol to use. One of: \"icy\", \"http\" or \"https\"";
      "encoding", Lang.string_t, Some (Lang.string ""),
      Some "Encoding used to send metadata, default (UTF-8) if empty." ;
      "headers", Lang.metadata_t,
@@ -86,9 +86,10 @@ let () =
         match Lang.to_string v with
           | "icy"  -> Cry.Icy
           | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
+          | "https" -> Cry.Https Cry.Source
           | _      -> 
               raise (Lang.Invalid_value (v, "protocol should be one of: \
-                                             'icy' or 'http'."))
+                                             'icy', 'http' or 'https'."))
       in
       let mount =
         match protocol with

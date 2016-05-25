@@ -1,6 +1,10 @@
 1.2.1 ()
 ========
 
+New:
+
+- Support for https (SSL/TLS) icecst connections.
+
 Bugfixes:
 
 - Fix metadata update for shoutcast v2 when sid <> 1 (#320).
