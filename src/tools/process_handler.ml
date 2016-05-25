@@ -109,15 +109,6 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let on_start =
       with_default (fun _ -> `Continue) on_start
     in
-    let on_stdin =
-      with_default (fun _ -> `Continue) on_stdin
-    in
-    let on_stdout =
-      with_default (fun _ -> `Continue) on_stdout
-    in
-    let on_stderr =
-      with_default (fun _ -> `Continue) on_stderr
-    in
     let on_stop =
       with_default (fun _ -> false) on_stop
     in
@@ -145,10 +136,12 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         Unix.descr_of_in_channel process.stderr
       in
       let read_events =
-        [`Read stdout; `Read stderr; `Read out_pipe]
+        List.fold_left (fun cur (fn,fd) ->
+          if fn <> None then (`Read fd)::cur else cur)
+          [`Read out_pipe] [(on_stdout,stdout);(on_stderr,stderr)]
       in
       let continue_events =
-        if process.stopped then read_events else
+        if on_stdin = None || process.stopped then read_events else
           (`Write (Unix.descr_of_out_channel process.stdin))::read_events
       in
       let events = match decision with
@@ -190,6 +183,15 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       in
       let stdout =
         Unix.descr_of_in_channel process.stdout
+      in
+      let on_stdin =
+        with_default (fun _ -> `Continue) on_stdin
+      in
+      let on_stdout =
+        with_default (fun _ -> `Continue) on_stdout
+      in
+      let on_stderr =
+        with_default (fun _ -> `Continue) on_stderr
       in
       try
         let decision =
