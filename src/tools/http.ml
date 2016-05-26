@@ -259,15 +259,23 @@ let request ?(log=fun _ -> ()) ~timeout socket request =
   in
     (response_http_version, response_status, response_msg), (List.rev fields)
 
-let http_req ?(post="") ?(headers=[]) host port file =
-  let action =
-    if post <> "" then
-      "POST"
-    else
-      "GET"
-  in
+type request = Get | Post of string | Put of string | Head | Delete
+
+let method_of_request = function
+  | Get -> "GET"
+  | Post _ -> "POST"
+  | Put _ -> "PUT"
+  | Head -> "HEAD"
+  | Delete -> "DELETE"
+
+let data_of_request = function
+  | Post d
+  | Put d -> d
+  | _ -> assert false
+
+let http_req ?(headers=[]) request host port file =
   let req =
-    Printf.sprintf "%s %s HTTP/1.0\r\n" action file
+    Printf.sprintf "%s %s HTTP/1.0\r\n" (method_of_request request) file
   in
   let req =
     if port = 80 then 
@@ -287,22 +295,32 @@ let http_req ?(post="") ?(headers=[]) host port file =
       (fun s (t,v) -> Printf.sprintf "%s%s: %s\r\n" s t v)
       req headers
   in
-  if post <> "" then
+  if not (List.mem request [Get;Head;Delete])  then
+    let data = data_of_request request in
     Printf.sprintf
       "%sContent-Length: %d\r\n\r\n%s\r\n"
-      req (String.length post)  post
+      req (String.length data) data
   else
     Printf.sprintf "%s\r\n" req
 
-let get ?(headers=[]) ?log ~timeout socket host port file =
-  let req = http_req ~headers:headers host port file in
-     request ?log ~timeout socket req
+let execute ?(headers=[]) ?log ~timeout socket action host port url =
+  let req = http_req ~headers action host port url in
+  request ?log ~timeout socket req
 
-let post ?(headers=[]) ?log ~timeout data socket host port file =
-  let req = http_req ~post:data ~headers:headers host port file in
-     request ?log ~timeout socket req
+let get ?headers ?log ~timeout socket host port url =
+  execute ?headers ?log ~timeout socket Get host port url
 
-type request = Get | Post of string
+let head ?headers ?log ~timeout socket host port url =
+  execute ?headers ?log ~timeout socket Head host port url
+
+let delete ?headers ?log ~timeout socket host port url =
+  execute ?headers ?log ~timeout socket Delete host port url
+
+let post ?headers ?log ~timeout data socket host port url =
+  execute ?headers ?log ~timeout socket (Post data) host port url
+
+let put ?headers ?log ~timeout data socket host port url =
+  execute ?headers ?log ~timeout socket (Put data) host port url
 
 let full_request ?headers ?(port=80) ?(log=fun _ -> ()) 
                  ~timeout ~host ~url ~request () =
@@ -311,14 +329,11 @@ let full_request ?headers ?(port=80) ?(log=fun _ -> ())
  in
  Tutils.finalize ~k:(fun () -> Unix.close connection)
   (fun () ->
-    (* We raise an error if the statuses are not correct. *)
-    let status,headers =
-      match request with
-        | Get ->
-           get ?headers ~log ~timeout connection host port url
-        | Post data ->
-           post ?headers ~log ~timeout data connection host port url
+    let execute request =
+      execute ?headers ~log ~timeout connection request host port url
     in
+    (* We raise an error if the statuses are not correct. *)
+    let status,headers = execute request in
     let max =
       try
         let (_,len) = List.find (fun (l,_) ->

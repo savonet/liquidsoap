@@ -54,7 +54,7 @@ val request : ?log:(string -> unit) ->
               connection ->
               string -> (string * int * string) * (string * string) list
 
-(** [get ?log ?headers ~timeout socket host port file] makes a GET request.
+(** [get ?log ?headers ~timeout socket host port path] makes a GET request.
   * Returns the status and the headers. *)
 val get : ?headers:(string * string) list ->
           ?log:(string -> unit) ->
@@ -64,7 +64,7 @@ val get : ?headers:(string * string) list ->
           int -> string -> (string * int * string) * (string * string) list
 
 
-(** [post ?log ?headers ~timeout data socket host port file] makes a POST request.
+(** [post ?log ?headers ~timeout data socket host port path] makes a POST request.
   * Returns the status and the headers. *)
 val post : ?headers:(string * string) list ->
            ?log:(string -> unit) ->
@@ -74,13 +74,41 @@ val post : ?headers:(string * string) list ->
            string ->
            int -> string -> (string * int * string) * (string * string) list
 
+(** [put ?log ?headers ~timeout data socket host port path] makes a PUT request.
+  * Returns the status and the headers. *)
+val put : ?headers:(string * string) list ->
+           ?log:(string -> unit) ->
+           timeout:float ->
+           string ->
+           connection ->
+           string ->
+           int -> string -> (string * int * string) * (string * string) list
+
+(** [head ?log ?headers ~timeout socket host port path] makes a HEAD request.
+  * Returns the status and the headers. *)
+val head : ?headers:(string * string) list ->
+          ?log:(string -> unit) ->
+          timeout:float ->
+          connection ->
+          string ->
+          int -> string -> (string * int * string) * (string * string) list
+
+(** [delete ?log ?headers ~timeout socket host port path] makes a DELETE request.
+  * Returns the status and the headers. *)
+val delete : ?headers:(string * string) list ->
+          ?log:(string -> unit) ->
+          timeout:float ->
+          connection ->
+          string ->
+          int -> string -> (string * int * string) * (string * string) list
+
 (** [read ?log ~timeout len] reads [len] bytes of data
   * or all available data if [len] is [None]. *)
 val read : ?log:(string -> unit) ->
            timeout:float -> connection -> int option -> string
 
 (** Type for full Http request. *)
-type request = Get | Post of string
+type request = Get | Post of string | Put of string | Head | Delete
 
 (** Perform a full Http request and return the response status,headers
   * and data. *)

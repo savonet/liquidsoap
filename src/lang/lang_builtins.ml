@@ -2354,7 +2354,7 @@ let () =
          print_string v ; flush stdout ;
          Lang.unit)
 
-type request = Get | Post
+type request = Get | Post | Put | Head | Delete
 
 let add_http_request name descr request =
   let log = Dtools.Log.make [name] in
@@ -2367,7 +2367,7 @@ let add_http_request name descr request =
     Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t
   in
   let params =
-    if request = Get then
+    if List.mem request [Get;Head;Delete] then
       []
     else
       ["data", Lang.string_t, Some (Lang.string ""), Some "Http POST data."]
@@ -2399,14 +2399,17 @@ let add_http_request name descr request =
           let host, port, url = Http.url_split_host_port url in
           let port = match port with Some p -> p | None -> 80 in
           let request =
-            if request = Get then
-              Http.Get
-            else
-             begin
-              let data = Lang.to_string (List.assoc "data" p) in
-              Http.Post data
-            end
-          in
+            match request with
+              | Get -> Http.Get
+              | Post ->
+                 let data = Lang.to_string (List.assoc "data" p) in
+                 Http.Post data
+              | Put ->
+                 let data = Lang.to_string (List.assoc "data" p) in
+                 Http.Put data
+              | Head -> Http.Head
+              | Delete -> Http.Delete
+          in 
           let log = log#f 4 "%s" in
           Http.full_request ~log ~timeout ~headers
                             ~port ~host ~url ~request ()
@@ -2440,4 +2443,16 @@ let () =
   add_http_request
     "http.post"
     "Perform a full Http POST request and return (status,headers),data."
-    Post
+    Post;
+  add_http_request
+    "http.put"
+    "Perform a full Http PUT request and return (status,headers),data."
+    Put;
+  add_http_request
+    "http.head"
+    "Perform a full Http HEAD request and return (status,headers),data."
+    Head;
+  add_http_request
+    "http.delete"
+    "Perform a full Http DELETE request and return (status,headers),data."
+    Delete
