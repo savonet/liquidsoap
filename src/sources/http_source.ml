@@ -40,7 +40,8 @@ type playlist_mode =  Random | First | Randomize | Normal
 let read_metadata () = let old_chunk = ref "" in fun socket ->
   let size =
     let buf = " " in
-    let s = Unix.read socket buf 0 1 in
+    let f : Http.connection -> bytes -> int -> int -> int = Http.read in
+    let s = f socket buf 0 1 in
       if s<>1 then raise Read_error ;
       int_of_char buf.[0]
   in
@@ -49,7 +50,7 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
     let buf = Bytes.create size in
     let rec read pos =
       if pos=size then buf else
-        let p = Unix.read socket buf pos (size-pos) in
+        let p = Http.read socket buf pos (size-pos) in
           if p<=0 then raise Read_error ;
           read (pos+p)
     in
@@ -85,10 +86,10 @@ let read_metadata () = let old_chunk = ref "" in fun socket ->
 let read_line socket =
   let ans = ref "" in
   let c = Bytes.create 1 in
-    if Unix.read socket c 0 1 <> 1 then raise Read_error ;
+    if Http.read socket c 0 1 <> 1 then raise Read_error ;
     while c <> "\n" do
       ans := !ans ^ c;
-      if Unix.read socket c 0 1 <> 1 then raise Read_error
+      if Http.read socket c 0 1 <> 1 then raise Read_error
     done;
     String.sub !ans 0 (String.length !ans - 1)
 
@@ -98,7 +99,7 @@ let read_chunk socket =
   let ans = ref "" in
     while String.length !ans <> n do
       let buf = Bytes.create (n - String.length !ans) in
-      let r = Unix.read socket buf 0 (n - String.length !ans) in
+      let r = Http.read socket buf 0 (n - String.length !ans) in
         ans := !ans ^ (String.sub buf 0 r)
     done;
     !ans
@@ -114,7 +115,7 @@ let read_stream socket chunked metaint insert_metadata =
         chunkbuf := String.sub !chunkbuf n (String.length !chunkbuf - n);
         n
     end else
-      Unix.read socket buf 0 len
+      Http.read socket buf 0 len
   in
     match metaint with
       | None ->
@@ -268,7 +269,7 @@ object (self)
           | Some (socket,read,_) ->
               begin
                try
-                Tutils.wait_for ~log `Read socket timeout;
+                Http.wait_for ~log `Read socket timeout;
                 read len
                with e -> self#log#f 2 "Error while reading from socket: \
                             %s" (Printexc.to_string e);
@@ -453,7 +454,7 @@ object (self)
             match socket with
             | None -> failwith "not connected!"
             | Some (s,_,_) ->
-              let content = Http.read ~timeout s None in
+              let content = Http.read_with_timeout ~timeout s None in
               let playlist = parser content in
               match playlist with
               | [] -> raise Not_found
