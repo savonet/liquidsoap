@@ -19,9 +19,9 @@ struct
         | None -> ()
         | Some s ->
           let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
-    (* Seems like you need to bind on port 0 *)
-    let bind_addr = Unix.ADDR_INET(bind_addr_inet, 0) in
-    Unix.bind socket bind_addr ;
+          (* Seems like you need to bind on port 0 *)
+          let bind_addr = Unix.ADDR_INET(bind_addr_inet, 0) in
+          Unix.bind socket bind_addr ;
     end ;
       try
         Unix.connect
@@ -37,7 +37,7 @@ struct
   let read = Unix.read
   let disconnect socket =
     try
-     Unix.close socket
+      Unix.close socket
     with
       | _ -> ()
 end

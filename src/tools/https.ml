@@ -5,7 +5,7 @@ let () =
 module Ssl_transport : Http.Transport_t with type connection = Ssl.socket =
 struct
   type connection = Ssl.socket
-  (* bind_addr is ignore. *)
+  (* bind_addr is ignored. *)
   let connect ?bind_address host port =
     let socketaddr =
       (Unix.ADDR_INET((Unix.gethostbyname host).Unix.h_addr_list.(0),port))
