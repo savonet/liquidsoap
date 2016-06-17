@@ -106,6 +106,7 @@ sources = \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
+  $(if $(W_SSL),sources/https_source.ml) \
 	tools/harbor.ml sources/harbor_input.ml \
 	sources/external_input.ml \
 	tools/liqMM.ml
