@@ -186,8 +186,9 @@ tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
   configure.ml tools/process_handler.ml \
   $(if $(W_DYNLINK),tools/dyntools.ml) \
-	tools/http.ml tools/pool.ml \
-	tools/sha1.ml tools/websocket.ml
+	tools/http.ml \
+  $(if $(W_SSL),tools/https.ml) \
+  tools/pool.ml tools/sha1.ml tools/websocket.ml
 
 $(call conditional_compilation,tools,$(W_INOTIFY),tools/file_watcher_inotify.ml)
 
@@ -204,7 +205,8 @@ synth = synth/keyboard.ml synth/synth_op.ml
 
 $(call conditional_compilation,synth,$(W_DSSI),synth/dssi_op.ml)
 
-builtins = lang/lang_builtins.ml lang/builtins_json.ml
+builtins = lang/lang_builtins.ml lang/builtins_json.ml \
+           $(if $(W_SSL),lang/builtins_https.ml) \
 
 $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)

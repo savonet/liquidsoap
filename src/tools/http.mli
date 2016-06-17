@@ -144,6 +144,6 @@ module type Http_t =
              unit -> (string * int * string) * (string * string) list * string
 end
 
-module Make_http : functor (Transport : Transport_t) -> Http_t
+module Make_http : functor (Transport : Transport_t) -> Http_t with type connection = Transport.connection
 
 include Http_t with type connection = Unix.file_descr

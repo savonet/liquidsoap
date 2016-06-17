@@ -219,7 +219,7 @@ struct
   (* exception Invalid_url *)
   
   let url_split_host_port url =
-    let basic_rex = Pcre.regexp "^http://([^/:]+)(:[0-9]+)?(/.*)$" in
+    let basic_rex = Pcre.regexp "^https?://([^/:]+)(:[0-9]+)?(/.*)$" in
     let sub =
       try
         Pcre.exec ~rex:basic_rex url
