@@ -25,20 +25,20 @@ let () =
   add_http_request
     "https.get"
     "Perform a full Https GET request and return (status,headers),data."
-    Get;
+    Lang_builtins.Get;
   add_http_request
     "https.post"
     "Perform a full Https POST request and return (status,headers),data."
-    Post;
+    Lang_builtins.Post;
   add_http_request
     "https.put"
     "Perform a full Https PUT request and return (status,headers),data."
-    Put;
+    Lang_builtins.Put;
   add_http_request
     "https.head"
     "Perform a full Https HEAD request and return (status,headers),data."
-    Head;
+    Lang_builtins.Head;
   add_http_request
     "https.delete"
     "Perform a full Https DELETE request and return (status,headers),data."
-    Delete
+    Lang_builtins.Delete
