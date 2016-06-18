@@ -4,4 +4,4 @@ services:
   - docker
 
 script:
-  - docker build --no-cache -f .travis.docker-file .
+  - docker build --no-cache --build-arg TRAVIS_COMMIT=$TRAVIS_COMMIT -f .travis.docker-file .
