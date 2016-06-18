@@ -17,11 +17,11 @@ struct
     let socket =
       Ssl.open_connection_with_context ctx socketaddr
     in
-    let unix_socket = Ssl.file_descr_of_socket socket in
     begin
       match bind_address with
         | None -> ()
         | Some s ->
+          let unix_socket = Ssl.file_descr_of_socket socket in
           let bind_addr_inet = (Unix.gethostbyname s).Unix.h_addr_list.(0) in
           (* Seems like you need to bind on port 0 *)
           let bind_addr = Unix.ADDR_INET(bind_addr_inet, 0) in
