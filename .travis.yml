@@ -5,7 +5,7 @@ services:
 
 before_install:  
   - sudo apt-get update
-  - yes | sudo apt-get install --yes docker-engine
+  - sudo apt-get install --force-yes docker-engine
 
 script:
   - docker build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file .
