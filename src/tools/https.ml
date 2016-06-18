@@ -40,6 +40,6 @@ struct
   let write = Ssl.write
 end
 
-module Https = Http.Make_http(Ssl_transport)
+module Https = Http.Make(Ssl_transport)
 
 include Https

@@ -117,7 +117,7 @@ sig
              unit -> (string * int * string) * (string * string) list * string
 end
 
-module Make_http(Transport:Transport_t) =
+module Make(Transport:Transport_t) =
 struct
   (* Some structured exceptions *)
   
@@ -458,6 +458,6 @@ struct
             ~pat:"[\r]?\n$" ~subst:(fun _ -> "") ret)
 end
 
-module Http_request = Make_http(Unix_transport)
+module Http_request = Make(Unix_transport)
 
 include Http_request
