@@ -2397,8 +2397,7 @@ let add_http_request http name descr request =
       let url = Lang.to_string (List.assoc "" p) in
       let ((x,y,z),headers,data) =
         try
-          let host, port, url = Http.url_split_host_port url in
-          let port = match port with Some p -> p | None -> 80 in
+          let uri = Http.parse_url url in
           let request =
             match request with
               | Get -> Http.Get
@@ -2413,7 +2412,7 @@ let add_http_request http name descr request =
           in 
           let log = log#f 4 "%s" in
           Http.full_request ~log ~timeout ~headers
-                            ~port ~host ~url ~request ()
+                            ~uri ~request ()
         with
           | e ->
              (* Here we return a fake code.. *)

@@ -49,10 +49,17 @@ sig
   exception Error of error
   val string_of_error : error -> string
   type connection
+  type protocol = [`Http | `Https]
+  type uri = {
+    protocol: protocol;
+    host: string;
+    port: int option;
+    path: string
+  }
   val user_agent : string
   val url_decode : ?plus:bool -> string -> string
   val url_encode : ?plus:bool -> string -> string
-  val url_split_host_port : string -> string * int option * string
+  val parse_url : string -> uri
   val is_url : string -> bool
   val dirname : string -> string
   val args_split : string -> (string, string) Hashtbl.t
@@ -74,45 +81,38 @@ sig
             ?log:(string -> unit) ->
             timeout:float ->
             connection ->
-            string ->
-            int -> string -> (string * int * string) * (string * string) list
+            uri -> (string * int * string) * (string * string) list
   val post : ?headers:(string * string) list ->
              ?log:(string -> unit) ->
              timeout:float ->
              string ->
              connection ->
-             string ->
-             int -> string -> (string * int * string) * (string * string) list
+             uri -> (string * int * string) * (string * string) list
   val put : ?headers:(string * string) list ->
             ?log:(string -> unit) ->
             timeout:float ->
             string ->
             connection ->
-            string ->
-            int -> string -> (string * int * string) * (string * string) list
+            uri -> (string * int * string) * (string * string) list
   val head : ?headers:(string * string) list ->
              ?log:(string -> unit) ->
              timeout:float ->
              connection ->
-             string ->
-             int -> string -> (string * int * string) * (string * string) list
+             uri -> (string * int * string) * (string * string) list
   val delete : ?headers:(string * string) list ->
                ?log:(string -> unit) ->
                timeout:float ->
                connection ->
-               string ->
-               int -> string -> (string * int * string) * (string * string) list
+               uri -> (string * int * string) * (string * string) list
   val read_with_timeout :
              ?log:(string -> unit) ->
              timeout:float -> connection -> int option -> string
   type request = Get | Post of string | Put of string | Head | Delete
   val full_request :
              ?headers:(string * string) list ->
-             ?port:int ->
              ?log:(string -> unit) ->
              timeout:float ->
-             host:string ->
-             url:string ->
+             uri:uri ->
              request:request ->
              unit -> (string * int * string) * (string * string) list * string
 end
@@ -125,9 +125,6 @@ struct
   
   type error = Socket | Response | UrlDecoding
   exception Error of error
-
-  type connection = Transport.connection
-  
   let string_of_error e =
     match e with
       | Socket -> "Http: error while communicating to socket"
@@ -139,6 +136,16 @@ struct
      match e with
        | Error e -> Some (string_of_error e)
        | _ -> None
+
+  type connection = Transport.connection
+
+  type protocol = [`Http | `Https]
+  type uri = {
+    protocol: protocol;
+    host: string;
+    port: int option;
+    path: string
+  }
   
   let () = Utils.register_error_translator error_translator
   
@@ -218,8 +225,8 @@ struct
   
   (* exception Invalid_url *)
   
-  let url_split_host_port url =
-    let basic_rex = Pcre.regexp "^https?://([^/:]+)(:[0-9]+)?(/.*)?$" in
+  let parse_url url =
+    let basic_rex = Pcre.regexp "^(https?)://([^/:]+)(:[0-9]+)?(/.*)?$" in
     let sub =
       try
         Pcre.exec ~rex:basic_rex url
@@ -228,22 +235,28 @@ struct
           (* raise Invalid_url *)
           failwith "Invalid URL."
     in
-    let host = Pcre.get_substring sub 1 in
+    let protocol =
+      match Pcre.get_substring sub 1 with
+        | "http" -> `Http
+        | "https" -> `Https
+        | _ -> assert false
+    in
+    let host = Pcre.get_substring sub 2 in
     let port =
       try
-        let port = Pcre.get_substring sub 2 in
+        let port = Pcre.get_substring sub 3 in
         let port = String.sub port 1 (String.length port - 1) in
         let port = int_of_string port in
         Some port
       with
         | Not_found -> None
     in
-    let uri =
+    let path =
       try
-        Pcre.get_substring sub 3
+        Pcre.get_substring sub 4
       with Not_found -> "/"
     in
-    host,port,uri
+    {protocol;host;port;path}
   
   let is_url path =
     Pcre.pmatch ~pat:"^https?://.+" path
@@ -380,15 +393,14 @@ struct
     | Put d -> d
     | _ -> assert false
   
-  let http_req ?(headers=[]) request host port file =
+  let http_req ?(headers=[]) request uri =
     let req =
-      Printf.sprintf "%s %s HTTP/1.0\r\n" (method_of_request request) file
+      Printf.sprintf "%s %s HTTP/1.0\r\n" (method_of_request request) uri.path
     in
     let req =
-      if port = 80 then 
-        Printf.sprintf "%sHost: %s\r\n" req host
-      else
-        Printf.sprintf "%sHost: %s:%d\r\n" req host port
+      match uri.port with
+        | None -> Printf.sprintf "%sHost: %s\r\n" req uri.host
+        | Some port -> Printf.sprintf "%sHost: %s:%d\r\n" req uri.host port
     in
     let req =
       if not (List.mem_assoc "User-Agent" headers) then
@@ -410,34 +422,40 @@ struct
     else
       Printf.sprintf "%s\r\n" req
   
-  let execute ?(headers=[]) ?log ~timeout socket action host port url =
-    let req = http_req ~headers action host port url in
+  let execute ?(headers=[]) ?log ~timeout socket action uri =
+    let req = http_req ~headers action uri in
     request ?log ~timeout socket req
   
-  let get ?headers ?log ~timeout socket host port url =
-    execute ?headers ?log ~timeout socket Get host port url
+  let get ?headers ?log ~timeout socket uri =
+    execute ?headers ?log ~timeout socket Get uri
   
-  let head ?headers ?log ~timeout socket host port url =
-    execute ?headers ?log ~timeout socket Head host port url
+  let head ?headers ?log ~timeout socket uri =
+    execute ?headers ?log ~timeout socket Head uri
   
-  let delete ?headers ?log ~timeout socket host port url =
-    execute ?headers ?log ~timeout socket Delete host port url
+  let delete ?headers ?log ~timeout socket uri =
+    execute ?headers ?log ~timeout socket Delete uri
   
-  let post ?headers ?log ~timeout data socket host port url =
-    execute ?headers ?log ~timeout socket (Post data) host port url
+  let post ?headers ?log ~timeout data socket uri =
+    execute ?headers ?log ~timeout socket (Post data) uri
   
-  let put ?headers ?log ~timeout data socket host port url =
-    execute ?headers ?log ~timeout socket (Put data) host port url
+  let put ?headers ?log ~timeout data socket uri =
+    execute ?headers ?log ~timeout socket (Put data) uri
   
-  let full_request ?headers ?(port=80) ?(log=fun _ -> ()) 
-                   ~timeout ~host ~url ~request () =
+  let full_request ?headers ?(log=fun _ -> ()) 
+                   ~timeout ~uri ~request () =
+   let port =
+     match uri.port, uri.protocol with
+       | Some port, _ -> port
+       | None, `Http -> 80
+       | None, `Https -> 443
+   in
    let connection =
-     Transport.connect host port
+     Transport.connect uri.host port
    in
    Tutils.finalize ~k:(fun () -> Transport.disconnect connection)
     (fun () ->
       let execute request =
-        execute ?headers ~log ~timeout connection request host port url
+        execute ?headers ~log ~timeout connection request uri
       in
       (* We raise an error if the statuses are not correct. *)
       let status,headers = execute request in

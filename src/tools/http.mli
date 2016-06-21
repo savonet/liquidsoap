@@ -19,6 +19,15 @@ module type Http_t =
 
   type connection
 
+  type protocol = [`Http | `Https]
+
+  type uri = {
+    protocol: protocol;
+    host: string;
+    port: int option;
+    path: string
+  }
+
   (** User-agent for liquidsoap *)
   val user_agent : string
 
@@ -28,8 +37,8 @@ module type Http_t =
   (** Encode an url. *)
   val url_encode : ?plus:bool -> string -> string
 
-  (** Split an URL to return host, port and URI. *)
-  val url_split_host_port : string -> string * int option * string
+  (** Split an URL into its components. *)
+  val parse_url : string -> uri
 
   (** Basic detection of whether a path is an HTTP url. *)
   val is_url : string -> bool
@@ -80,8 +89,7 @@ module type Http_t =
             ?log:(string -> unit) ->
             timeout:float ->
             connection ->
-            string ->
-            int -> string -> (string * int * string) * (string * string) list
+            uri -> (string * int * string) * (string * string) list
 
 
   (** [post ?log ?headers ~timeout data socket host port path] makes a POST request.
@@ -91,8 +99,7 @@ module type Http_t =
              timeout:float ->
              string ->
              connection ->
-             string ->
-             int -> string -> (string * int * string) * (string * string) list
+             uri -> (string * int * string) * (string * string) list
 
   (** [put ?log ?headers ~timeout data socket host port path] makes a PUT request.
     * Returns the status and the headers. *)
@@ -101,8 +108,7 @@ module type Http_t =
              timeout:float ->
              string ->
              connection ->
-             string ->
-             int -> string -> (string * int * string) * (string * string) list
+             uri -> (string * int * string) * (string * string) list
 
   (** [head ?log ?headers ~timeout socket host port path] makes a HEAD request.
     * Returns the status and the headers. *)
@@ -110,8 +116,7 @@ module type Http_t =
             ?log:(string -> unit) ->
             timeout:float ->
             connection ->
-            string ->
-            int -> string -> (string * int * string) * (string * string) list
+            uri -> (string * int * string) * (string * string) list
 
   (** [delete ?log ?headers ~timeout socket host port path] makes a DELETE request.
     * Returns the status and the headers. *)
@@ -119,8 +124,7 @@ module type Http_t =
             ?log:(string -> unit) ->
             timeout:float ->
             connection ->
-            string ->
-            int -> string -> (string * int * string) * (string * string) list
+            uri -> (string * int * string) * (string * string) list
 
   (** [read_with_timeout ?log ~timeout len] reads [len] bytes of data
     * or all available data if [len] is [None]. *)
@@ -135,11 +139,9 @@ module type Http_t =
     * and data. *)
   val full_request :
              ?headers:(string * string) list ->
-             ?port:int ->
              ?log:(string -> unit) ->
              timeout:float ->
-             host:string ->
-             url:string ->
+             uri:uri ->
              request:request ->
              unit -> (string * int * string) * (string * string) list * string
 end
