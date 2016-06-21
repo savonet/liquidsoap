@@ -3,6 +3,7 @@
 module type Transport_t =
 sig
   type connection
+  val default_port : int
   val connect : ?bind_address:string -> string -> int -> connection
   val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
   val write: connection -> bytes -> int -> int -> int
@@ -19,14 +20,14 @@ module type Http_t =
 
   type connection
 
-  type protocol = [`Http | `Https]
-
   type uri = {
-    protocol: protocol;
     host: string;
     port: int option;
     path: string
   }
+
+  (** Default port. *)
+  val default_port : int
 
   (** User-agent for liquidsoap *)
   val user_agent : string

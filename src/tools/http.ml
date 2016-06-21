@@ -1,6 +1,7 @@
 module type Transport_t =
 sig
   type connection
+  val default_port : int
   val connect : ?bind_address:string -> string -> int -> connection
   val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
   val write: connection -> bytes -> int -> int -> int
@@ -32,6 +33,7 @@ struct
         | _ ->
             Unix.close socket;
             raise Socket
+  let default_port = 80
   let wait_for = Tutils.wait_for
   let write = Unix.write
   let read = Unix.read
@@ -49,13 +51,12 @@ sig
   exception Error of error
   val string_of_error : error -> string
   type connection
-  type protocol = [`Http | `Https]
   type uri = {
-    protocol: protocol;
     host: string;
     port: int option;
     path: string
   }
+  val default_port : int
   val user_agent : string
   val url_decode : ?plus:bool -> string -> string
   val url_encode : ?plus:bool -> string -> string
@@ -139,9 +140,7 @@ struct
 
   type connection = Transport.connection
 
-  type protocol = [`Http | `Https]
   type uri = {
-    protocol: protocol;
     host: string;
     port: int option;
     path: string
@@ -150,6 +149,8 @@ struct
   let () = Utils.register_error_translator error_translator
   
   let raise e = raise (Error e)
+
+  let default_port = Transport.default_port
   
   let user_agent = Configure.vendor
   
@@ -226,7 +227,7 @@ struct
   (* exception Invalid_url *)
   
   let parse_url url =
-    let basic_rex = Pcre.regexp "^(https?)://([^/:]+)(:[0-9]+)?(/.*)?$" in
+    let basic_rex = Pcre.regexp "^https?://([^/:]+)(:[0-9]+)?(/.*)?$" in
     let sub =
       try
         Pcre.exec ~rex:basic_rex url
@@ -235,16 +236,10 @@ struct
           (* raise Invalid_url *)
           failwith "Invalid URL."
     in
-    let protocol =
-      match Pcre.get_substring sub 1 with
-        | "http" -> `Http
-        | "https" -> `Https
-        | _ -> assert false
-    in
-    let host = Pcre.get_substring sub 2 in
+    let host = Pcre.get_substring sub 1 in
     let port =
       try
-        let port = Pcre.get_substring sub 3 in
+        let port = Pcre.get_substring sub 2 in
         let port = String.sub port 1 (String.length port - 1) in
         let port = int_of_string port in
         Some port
@@ -253,10 +248,10 @@ struct
     in
     let path =
       try
-        Pcre.get_substring sub 4
+        Pcre.get_substring sub 3
       with Not_found -> "/"
     in
-    {protocol;host;port;path}
+    {host;port;path}
   
   let is_url path =
     Pcre.pmatch ~pat:"^https?://.+" path
@@ -444,10 +439,9 @@ struct
   let full_request ?headers ?(log=fun _ -> ()) 
                    ~timeout ~uri ~request () =
    let port =
-     match uri.port, uri.protocol with
-       | Some port, _ -> port
-       | None, `Http -> 80
-       | None, `Https -> 443
+     match uri.port with
+       | Some port -> port
+       | None -> default_port
    in
    let connection =
      Transport.connect uri.host port
