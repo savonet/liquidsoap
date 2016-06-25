@@ -3,9 +3,19 @@
 
 New:
 
-- Support for https (SSL/TLS) icecst connections.
+- Support for https (SSL/TLS) icecast connections.
+
+- Added http.{put,head,delete}, https.{get,post,head,put,delete}.
+
+- Added input.https.
+
+- Added list.mapi.
+
+- Added rotate.sequence.
 
 - New pipe() operator for pipe audio data through an external program.
+
+- Switched to curl for request resolution/fetch.
 
 Bugfixes:
 
