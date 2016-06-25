@@ -51,10 +51,10 @@ module Liq_http =
         | Get -> Http.Get
         | Post s -> Http.Post s
     in
+    let uri = {Http.host;port;path=url} in
     let (x,code,y),_,data = 
-          Http.full_request ?headers ?port ~log
-                            ~timeout ~host ~url 
-                            ~request ()
+          Http.full_request ?headers ~log ~timeout
+                            ~uri ~request ()
     in
     if code <> 200 then 
       raise (Http (Printf.sprintf "Http request failed: %s %i %s" x code y));
