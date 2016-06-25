@@ -575,6 +575,12 @@ fi
 AC_SUBST(W_OSS)
 
 #
+# SSL
+#
+
+AC_CHECK_OCAML_BINDING([ssl],[0.5.2])
+
+#
 # Magic
 #
 
@@ -996,6 +1002,7 @@ cat <<EOMSG
    - lo                : $w_LO
    - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
+   - ssl               : $w_SSL
    - windows service   : $w_WINSVC
 
  * Graphical interfaces

@@ -2356,7 +2356,7 @@ let () =
 
 type request = Get | Post | Put | Head | Delete
 
-let add_http_request name descr request =
+let add_http_request http name descr request =
   let log = Dtools.Log.make [name] in
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
@@ -2370,7 +2370,7 @@ let add_http_request name descr request =
     if List.mem request [Get;Head;Delete] then
       []
     else
-      ["data", Lang.string_t, Some (Lang.string ""), Some "Http POST data."]
+      ["data", Lang.string_t, Some (Lang.string ""), Some "POST data."]
   in
   let params = params @
     [
@@ -2382,6 +2382,7 @@ let add_http_request name descr request =
         Some "Requested URL, e.g. \"http://www.google.com:80/index.html\"."
     ]
   in
+  let (module Http : Http.Http_t) = http in
   add_builtin name ~cat:Interaction ~descr
     params
     request_return_t
@@ -2396,8 +2397,7 @@ let add_http_request name descr request =
       let url = Lang.to_string (List.assoc "" p) in
       let ((x,y,z),headers,data) =
         try
-          let host, port, url = Http.url_split_host_port url in
-          let port = match port with Some p -> p | None -> 80 in
+          let uri = Http.parse_url url in
           let request =
             match request with
               | Get -> Http.Get
@@ -2412,7 +2412,7 @@ let add_http_request name descr request =
           in 
           let log = log#f 4 "%s" in
           Http.full_request ~log ~timeout ~headers
-                            ~port ~host ~url ~request ()
+                            ~uri ~request ()
         with
           | e ->
              (* Here we return a fake code.. *)
@@ -2436,6 +2436,7 @@ let add_http_request name descr request =
         (Lang.string data))
 
 let () =
+  let add_http_request = add_http_request (module Http) in
   add_http_request
     "http.get"
     "Perform a full Http GET request and return (status,headers),data."
