@@ -1,4 +1,4 @@
-Liquidsoap 1.2.0
+Liquidsoap 1.2.1
 ----------------
 
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
@@ -29,7 +29,7 @@ Recommended dependencies :
 
 Optional dependencies :
 
-   ocaml-cry>=0.2.2          for sending to Shoutcast & Icecast
+   ocaml-cry>=0.4.0          for sending to Shoutcast & Icecast
    ocaml-ogg>=0.4.5          for Ogg codecs
    ocaml-vorbis>=0.6.1       for Ogg/Vorbis codec
    ocaml-opus>=0.1.0         for Ogg/Opus codec
@@ -64,6 +64,7 @@ Optional dependencies :
    ocaml-bjack>=0.1.4        for Jack support
    ocaml-gstreamer>=0.2.0    for GStreamer input, output and encoding/decoding
    ocaml-inotify>=1.0        for reloading playlists when changed
+   ocaml-ssl>=0.5.0          for enabling SSL/https client connections
    json-wheel                for parsing JSON data (of_json function)
    gd4o                      for video.add_text() on servers without X
 
