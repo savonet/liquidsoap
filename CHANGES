@@ -13,7 +13,7 @@ New:
 
 - Added rotate.sequence.
 
-- New pipe() operator for pipe audio data through an external program.
+- New pipe() operator to pipe audio data through an external program.
 
 - Switched to curl for request resolution/fetch.
 
@@ -21,7 +21,7 @@ Bugfixes:
 
 - Fix metadata update for shoutcast v2 when sid <> 1 (#320).
 
-- Fix connection to input.harbor using the shoutcast v1 protocol (#335).
+- Fix connection to input.harbor using the shoutcast v1 protocol (#337).
 
 
 1.2.0 (12-01-2016)
