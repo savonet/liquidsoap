@@ -6,8 +6,8 @@ sig
   val default_port : int
   val connect : ?bind_address:string -> string -> int -> connection
   val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
-  val write: connection -> bytes -> int -> int -> int
-  val read: connection -> bytes -> int -> int -> int
+  val write: connection -> Bytes.t -> int -> int -> int
+  val read: connection -> Bytes.t -> int -> int -> int
   val disconnect: connection -> unit
 end
 
@@ -57,10 +57,10 @@ module type Http_t =
   val disconnect : connection -> unit
 
   (** Read from connection *)
-  val read : connection -> bytes -> int -> int -> int
+  val read : connection -> Bytes.t -> int -> int -> int
 
   (** Write from connection *)
-  val write : connection -> bytes -> int -> int -> int
+  val write : connection -> Bytes.t -> int -> int -> int
 
   (** Wait until Read and/or Write will be non-blocking (mostly..) *)
   val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit

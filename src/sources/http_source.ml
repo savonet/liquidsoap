@@ -42,7 +42,7 @@ struct
   let read_metadata () = let old_chunk = ref "" in fun socket ->
     let size =
       let buf = " " in
-      let f : Http.connection -> bytes -> int -> int -> int = Http.read in
+      let f : Http.connection -> Bytes.t -> int -> int -> int = Http.read in
       let s = f socket buf 0 1 in
         if s<>1 then raise Read_error ;
         int_of_char buf.[0]

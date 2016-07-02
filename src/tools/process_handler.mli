@@ -55,9 +55,9 @@ type continuation = [
 
 type 'a callback = 'a -> continuation
 
-type pull = bytes -> int -> int -> int
+type pull = Bytes.t -> int -> int -> int
 
-type push = bytes -> int -> int -> int
+type push = Bytes.t -> int -> int -> int
 
 exception Finished
 
