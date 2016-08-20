@@ -40,7 +40,7 @@ let plugin_dirs =
     let path = Unix.getenv "LIQ_LADSPA_PATH" in
       Pcre.split ~pat:":" path
   with
-    | Not_found -> ["/usr/lib/ladspa";"/usr/local/lib/ladspa"]
+    | Not_found -> ["/usr/lib64/ladspa";"/usr/lib/ladspa";"/usr/local/lib/ladspa"]
 
 
 let port_t d p =
