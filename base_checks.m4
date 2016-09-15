@@ -1,16 +1,5 @@
 AC_DEFUN([AC_BASE_CHECKS],
 [AC_REQUIRE([AC_PROG_CC])
-dnl check that running user is not root
-AC_MSG_CHECKING([that calling user is not root])
-RUNNING_USER="$USER"
-if test -z "$RUNNING_USER"; then
-  RUNNING_USER=`whoami`
-fi
-if test $RUNNING_USER = "root"; then
-  AC_MSG_ERROR([configure script must not be run with root user!])
-else
-  AC_MSG_RESULT([ok])
-fi
 
 dnl check for base compilers
 AC_CANONICAL_HOST()
