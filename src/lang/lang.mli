@@ -158,6 +158,7 @@ val add_operator :
 
 val to_unit : value -> unit
 val to_bool : value -> bool
+val to_bool_getter : value -> unit -> bool
 val to_string : value -> string
 val to_string_getter : value -> unit -> string
 val to_float : value -> float
@@ -166,6 +167,7 @@ val to_source : value -> Source.source
 val to_format : value -> Encoder.format
 val to_request : value -> Request.t
 val to_int : value -> int
+val to_int_getter : value -> unit -> int
 val to_list : value -> value list
 val to_product : value -> value * value
 val to_metadata : value -> Frame.metadata
@@ -228,6 +230,8 @@ val string_getter_t : int -> t
 (** A float getter. The argument is the number of the universal type parameter
   * (should be >= 1). *)
 val float_getter_t : int -> t
+val int_getter_t : int -> t
+val bool_getter_t : int -> t
 
 val unit : value
 val int : int -> value

@@ -226,8 +226,8 @@ let params_of_descr d =
              Utils.normalize_parameter_string (Descriptor.port_name d p),
              (match t with
                 | Float -> Lang.float_getter_t !univ
-                | Int -> Lang.int_t
-                | Bool -> Lang.bool_t
+                | Int -> Lang.int_getter_t !univ
+                | Bool -> Lang.bool_getter_t !univ
              ),
              (match
                 Descriptor.port_get_default d
@@ -298,11 +298,11 @@ let params_of_descr d =
              match port_t d p with
                | Float -> Lang.to_float_getter v
                | Int ->
-                   let f = float_of_int (Lang.to_int v) in
-                     fun () -> f
-                       | Bool ->
-                           let f = if Lang.to_bool v then 1. else 0. in
-                             fun () -> f
+                  let f = Lang.to_int_getter v in
+                  (fun () -> float_of_int (f ()))
+               | Bool ->
+                  let f = Lang.to_bool_getter v in
+                  (fun () -> if f () then 1. else 0.)
         )
         control_ports
   in

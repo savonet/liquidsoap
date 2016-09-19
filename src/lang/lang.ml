@@ -80,6 +80,8 @@ let univ_t ?(constraints=[]) i =
           v
 let string_getter_t n = univ_t ~constraints:[T.Getter T.String] n
 let float_getter_t n = univ_t ~constraints:[T.Getter T.Float] n
+let int_getter_t n = univ_t ~constraints:[T.Getter T.Int] n
+let bool_getter_t n = univ_t ~constraints:[T.Getter T.Bool] n
 
 let frame_kind_t ~audio ~video ~midi = Term.frame_kind_t audio video midi
 let of_frame_kind_t t = Term.of_frame_kind_t t
@@ -509,6 +511,15 @@ let to_bool t = match t.value with
   | Bool b -> b
   | _ -> assert false
 
+let to_bool_getter t = match t.value with
+  | Bool b -> (fun () -> b)
+  | Fun _ | FFI _ ->
+     (fun () ->
+       match (apply ~t:bool_t t []).value with
+       | Bool b -> b
+       | _ -> assert false)
+  | _ -> assert false
+
 let to_fun ~t f =
   match f.value with
   | Fun _  | FFI _ ->
@@ -555,6 +566,15 @@ let to_request t = match t.value with
 
 let to_int t = match t.value with
   | Int s -> s
+  | _ -> assert false
+
+let to_int_getter t = match t.value with
+  | Int n -> (fun () -> n)
+  | Fun _ | FFI _ ->
+     (fun () ->
+       match (apply ~t:int_t t []).value with
+       | Int n -> n
+       | _ -> assert false)
   | _ -> assert false
 
 let to_list t = match t.value with
