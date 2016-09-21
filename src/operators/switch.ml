@@ -45,7 +45,7 @@ type child = {
 type track_mode = Sensitive | Insensitive
 
 class virtual switch ~kind ~name
-  ?(mode=Sensitive) ?(replay_meta=true) (cases : child list) =
+  ?(mode=(fun () -> true)) ?(replay_meta=true) (cases : child list) =
 object (self)
   inherit operator ~name kind (List.map (fun x -> x.source) cases)
 
@@ -221,7 +221,7 @@ object (self)
           if Frame.is_partial ab then
             reselect ~forget:true ()
           else
-            if mode = Insensitive then
+            if not (mode ()) then
               reselect ()
 
   method remaining =
@@ -239,7 +239,7 @@ end
 (** Common tools for Lang bindings of switch operators *)
 
 let common kind = [
-  "track_sensitive", Lang.bool_t, Some (Lang.bool true),
+  "track_sensitive", Lang.bool_getter_t 0, Some (Lang.bool true),
   Some "Re-select only on end of tracks." ;
 
   "replay_metadata", Lang.bool_t, Some (Lang.bool true),
@@ -266,12 +266,7 @@ let default_transition k =
       (fun e _ -> List.assoc "y" e)
 
 let extract_common ~kind p l =
-  let ts =
-    if Lang.to_bool (List.assoc "track_sensitive" p) then
-      Sensitive
-    else
-      Insensitive
-  in
+  let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
   let tr =
     let tr = Lang.to_list (List.assoc "transitions" p) in
     let ltr = List.length tr in
