@@ -32,7 +32,7 @@ conditional_compilation = \
       $(eval $(2)_$(4)sources += $(3)),\
       $(eval $(1) += $(3))))
 
-liquidsoap_c_files = tools/locale_c.c
+liquidsoap_c_files = tools/locale_c.c tools/timezone_c.c
 
 # Add conditional files..
 $(call conditional_compilation,liquidsoap_c_files,$(W_OSS),io/oss_io_c.c,c_)

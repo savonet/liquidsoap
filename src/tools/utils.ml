@@ -442,6 +442,14 @@ let which =
       if Sys.file_exists s then s else
         List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
 
+(** Get current timezone. *)
+external timezone : unit -> int = "liquidsoap_get_timezone"
+
+let string_of_timezone tz =
+  (* TODO: not sure about why we need this... *)
+  let tz = -tz in
+  Printf.sprintf "%+03d%02d" (tz/3600) ((abs (tz/60)) mod 60)
+
 (** Very partial strftime clone *)
 let strftime str : string =
   let t = Unix.localtime (Unix.gettimeofday ()) in
@@ -453,6 +461,7 @@ let strftime str : string =
       "m", Printf.sprintf "%02d" (t.Unix.tm_mon + 1) ;
       "Y", string_of_int (t.Unix.tm_year + 1900)     ;
       "w", string_of_int (t.Unix.tm_wday)            ;
+      "z", string_of_timezone (timezone ())          ;
       "%", "%" ]
   in
   let subst sub =
