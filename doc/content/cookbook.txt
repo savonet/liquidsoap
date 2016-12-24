@@ -441,20 +441,23 @@ liquidsoap -v --debug 'input.alsa(bufferize=false)'
 Unless you're lucky, the logs are full of lines like the following:
 
 <pre>
-Partial read (940 instead of 1024)!
-Selecting another buffer size or device can help.
+Could not set buffer size to 'frame.size' (1920 samples), got 2048.
 </pre>
 
 The solution is then to fix the captured frame size to this value, which seems specific to your hardware. Let's try this script:
 
 %%(alsa_unbuffered.liq)
 # Set correct frame size:
-set("frame.size",940)
+set("frame.audio.size",2048)
 
 input = input.alsa(bufferize=false)
 output.alsa(bufferize=false,input)
 %%
 
-If everything goes right, you may hear on your output the captured sound without any delay ! If you want to test the difference, just run the same script with <code>bufferize=true</code> (or without this parameter since it is the default).
+If everything goes right, you may hear on your output the captured sound without any delay ! If you want to test the difference, just run the same script with <code>bufferize=true</code> (or without this parameter since it is the default). The setting will be acknowledged in the log as follows:
+
+<pre>
+Targetting 'frame.audio.size': 2048 audio samples = 2048 ticks.
+</pre>
 
 If you experience problems it might be a good idea to double the value of the frame size. This increases stability, but also latency.
