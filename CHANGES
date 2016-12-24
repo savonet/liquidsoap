@@ -5,6 +5,8 @@ New:
 
 - Added peak and peak.stereo (#364)
 
+- Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
+
 
 1.2.1 (01-07-2016)
 ========
