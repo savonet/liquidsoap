@@ -166,7 +166,9 @@ $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 
 outputs = outputs/output.ml \
 	outputs/pipe_output.ml \
-	outputs/harbor_output.ml
+	outputs/harbor_output.ml \
+  $(if $(W_SSL),outputs/harbor_output_ssl.ml)
+
 
 $(call conditional_compilation,outputs,$(W_AO),outputs/ao_out.ml)
 $(call conditional_compilation,outputs,$(W_CRY),outputs/icecast2.ml)

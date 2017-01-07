@@ -119,6 +119,11 @@ sig
     method virtual get_mime_type : string option
   end
 
+  val http_auth_check : ?args:(string, string) Hashtbl.t ->
+           login:string * (string -> string -> bool) ->
+           (string * string) list -> (unit, reply) Duppy.Monad.t
+  val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
+
   val add_source : port:int -> mountpoint:string -> icy:bool -> source -> unit
   val remove_source : port:int -> mountpoint:string -> unit -> unit
 end
@@ -415,7 +420,7 @@ struct
                log#f 4 "Returned 401: bad authentication." ;
                http_reply "No login / password supplied."
   
-  let http_auth_check ?args ~login h headers =
+  let exec_http_auth_check ?args ~login h headers =
     duppy_exec
       http_auth_check ?args ~login headers
     with
@@ -437,7 +442,7 @@ struct
     duppy_do
       (* ICY and Xaudiocast auth check was done before.. *)
       if not auth then
-         http_auth_check ~login:s#login h headers
+         exec_http_auth_check ~login:s#login h headers
       else
          duppy_return () ;
       try
@@ -673,7 +678,7 @@ struct
                           "No such mountpoint")
            in
            duppy_do
-             http_auth_check ~args ~login:s#login h headers ;
+             exec_http_auth_check ~args ~login:s#login h headers ;
              duppy_do
                if not (List.mem (Utils.get_some s#get_mime_type)
                                  conf_icy_metadata#get)

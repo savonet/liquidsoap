@@ -143,6 +143,13 @@ module type T =
           method virtual get_mime_type : string option
         end
       
+    val http_auth_check :
+      ?args: ((string, string) Hashtbl.t) ->
+        login: (string * (string -> string -> bool)) ->
+          (string * string) list -> (unit, reply) Duppy.Monad.t
+      
+    val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
+      
     val add_source :
       port: int -> mountpoint: string -> icy: bool -> source -> unit
       
@@ -413,7 +420,7 @@ module Make (T : Transport_t) : T with type socket = T.socket =
             (log#f 4 "Returned 401: bad authentication.";
              http_reply "No login / password supplied.")
       
-    let http_auth_check ?args ~login h headers =
+    let exec_http_auth_check ?args ~login h headers =
       Duppy.Monad.Io.exec ~priority: Tutils.Maybe_blocking h
         (http_auth_check ?args ~login headers)
       
@@ -434,7 +441,7 @@ module Make (T : Transport_t) : T with type socket = T.socket =
              Duppy.Monad.bind
                ((* ICY and Xaudiocast auth check was done before.. *)
                 if not auth
-                then http_auth_check ~login: s#login h headers
+                then exec_http_auth_check ~login: s#login h headers
                 else Duppy.Monad.return ())
                (fun () ->
                   try
@@ -681,7 +688,7 @@ module Make (T : Transport_t) : T with type socket = T.socket =
                         Duppy.Monad.bind __pa_duppy_0
                           (fun s ->
                              Duppy.Monad.bind
-                               (http_auth_check ~args ~login: s#login h
+                               (exec_http_auth_check ~args ~login: s#login h
                                   headers)
                                (fun () ->
                                   Duppy.Monad.bind
