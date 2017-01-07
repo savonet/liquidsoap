@@ -7,6 +7,8 @@ New:
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
 
+- Added SSL support to the varous harbor operators.
+
 
 1.2.1 (01-07-2016)
 ========
