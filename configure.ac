@@ -580,6 +580,14 @@ AC_SUBST(W_OSS)
 
 AC_CHECK_OCAML_BINDING([ssl],[0.5.2])
 
+if test "a$W_SSL" = "ayes"; then
+    cat >> src/configure.ml <<EOCONF
+let () =
+  Ssl_threads.init ();
+  Ssl.init ()
+EOCONF
+fi
+
 #
 # Magic
 #

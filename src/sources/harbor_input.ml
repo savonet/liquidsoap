@@ -26,6 +26,7 @@ module Generated = Generated.Make(Generator)
 module type T =
 sig
   include Harbor.T
+  val init : unit -> unit
   val source_name : string
   val source_description : string
 end
@@ -42,6 +43,7 @@ struct
      * the source has an id *)
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
+    let () = Harbor.init () in
   object (self)
     inherit  Source.source ~name:Harbor.source_name kind as super
     inherit Generated.source
@@ -452,6 +454,7 @@ end
 module Unix_input =
 struct
   include Harbor
+  let init () = ()
   let source_name = "input.harbor"
   let source_description = "Retrieves the given http stream from the harbor."
 end

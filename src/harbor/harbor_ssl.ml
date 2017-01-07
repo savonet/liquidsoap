@@ -20,7 +20,7 @@ module Websocket_transport =
 struct
   type socket = Ssl.socket
   let read = Ssl.read
-  let read_retry = Ssl.read
+  let read_retry = Stdlib.read_retry Ssl.read
   let write = Ssl.write
 end
 
@@ -35,24 +35,25 @@ struct
     failwith "Not implemented!"
 end
 
+let m = Mutex.create ()
+let ctx = ref None
+let get_ctx =
+  Tutils.mutexify m (fun () ->
+    match !ctx with
+      | Some ctx -> ctx
+      | None ->
+          let _ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
+          let password = conf_harbor_ssl_password#get in
+          if password != "" then
+            Ssl.set_password_callback _ctx (fun _ -> password);
+          Ssl.use_certificate _ctx conf_harbor_ssl_certificate#get
+                                   conf_harbor_ssl_private_key#get;
+          ctx := Some _ctx;
+          _ctx)
+
 module Transport =
 struct
   type socket = Ssl.socket
-  let m = Mutex.create ()
-  let ctx = ref None
-  let get_ctx =
-    Tutils.mutexify m (fun () ->
-      match !ctx with
-        | Some ctx -> ctx
-        | None ->
-            let _ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
-            let password = conf_harbor_ssl_password#get in
-            if password != "" then
-              Ssl.set_password_callback _ctx (fun _ -> password);
-            Ssl.use_certificate _ctx conf_harbor_ssl_certificate#get
-                                     conf_harbor_ssl_private_key#get;
-            ctx := Some _ctx;
-            _ctx)
   let file_descr_of_socket = Ssl.file_descr_of_socket
   let read socket len =
     let buf = Bytes.create len in
