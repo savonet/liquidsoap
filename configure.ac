@@ -306,7 +306,7 @@ AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.4.2],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1],[],[1])
 
 # Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
