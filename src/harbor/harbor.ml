@@ -1083,12 +1083,10 @@ module Make (T : Transport_t) : T with type socket = T.socket =
     let add_http_handler ~port ~verb ~uri h =
       let handler = get_handler ~icy: false port
       in
-        (log#f 3 "Adding HTTP handler for '%s %s' on port %i"
+        (log#f 3 "Adding handler for '%s %s' on port %i"
            (string_of_verb verb) uri port;
          if Hashtbl.mem handler.http (verb, uri)
-         then
-           log#f 3
-             "WARNING: HTTP handler already registered, old one removed!"
+         then log#f 3 "WARNING: Handler already registered, old one removed!"
          else ();
          Hashtbl.replace handler.http (verb, uri) h)
       
@@ -1097,7 +1095,7 @@ module Make (T : Transport_t) : T with type socket = T.socket =
       let (handler, socks) = Hashtbl.find opened_ports port
       in
         (assert (Hashtbl.mem handler.http (verb, uri));
-         log#f 3 "Removing HTTP handler for '%s %s' on port %i"
+         log#f 3 "Removing handler for '%s %s' on port %i"
            (string_of_verb verb) uri port;
          Hashtbl.remove handler.http (verb, uri);
          if
