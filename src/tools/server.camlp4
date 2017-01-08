@@ -84,6 +84,9 @@ let conf_telnet_bind_addr =
 let conf_telnet_port =
   Conf.int ~p:(conf_telnet#plug "port") ~d:1234
     "Port on which the telnet server should listen"
+let conf_telnet_revdns =
+  Conf.bool ~p:(conf_telnet#plug "revdns") ~d:false
+    "Perform reverse DNS lookup to get the client's hostname from its IP."
 
 let log = Log.make ["server"]
 
@@ -345,7 +348,7 @@ let start_socket () =
       try
         let (socket,caller) = Unix.accept sock in
           let ip =
-            Utils.name_of_sockaddr caller
+            Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
           in
           log#f 3 "New client %s." ip;
           handle_client socket ip
@@ -402,7 +405,7 @@ let start_telnet () =
       try
         let (socket,caller) = Unix.accept sock in
         let ip =
-           Utils.name_of_sockaddr caller
+           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
         log#f 3 "New client: %s." ip ;
         handle_client socket ip
