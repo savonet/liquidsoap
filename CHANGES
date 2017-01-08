@@ -7,6 +7,10 @@ New:
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
 
+Bugfixes:
+
+- Prevent flows metadata updata from stalling sources (#377)
+
 
 1.2.1 (01-07-2016)
 ========
