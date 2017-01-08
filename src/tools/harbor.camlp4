@@ -36,7 +36,7 @@ let conf_pass_verbose =
   Conf.bool ~p:(conf_harbor#plug "verbose") ~d:false
     "Display passwords, for debugging."
 let conf_revdns =
-  Conf.bool ~p:(conf_harbor#plug "reverse_dns") ~d:true
+  Conf.bool ~p:(conf_harbor#plug "reverse_dns") ~d:false
     "Perform reverse DNS lookup to get the client's hostname from its IP."
 let conf_icy_metadata =
   Conf.list ~p:(conf_harbor#plug "icy_formats")

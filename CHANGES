@@ -11,6 +11,8 @@ Bugfixes:
 
 - Prevent flows metadata updata from stalling sources (#377)
 
+- Add revdns setting for telnet, set all revdns default to false (#372)
+
 
 1.2.1 (01-07-2016)
 ========
