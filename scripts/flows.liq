@@ -107,7 +107,11 @@ def register_flow(~server="",~user="default",~password="default",
     artist = m["artist"]
     title = m["title"]
     params = [("m_title",title),("m_artist",artist)]
-    request(cmd="metadata",params=params)
+    def update_song() =
+      request(cmd="metadata",params=params)
+      (-1.)
+    end
+    add_timeout(fast=false,0.,update_song)
   end
   on_metadata(metadata,s)
 end
