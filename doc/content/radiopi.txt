@@ -118,8 +118,8 @@ output.file(%vorbis, reopen_on_metadata=true,
 # Specialize the output functions by partial application
 output.icecast = output.icecast(description=descr, url=url)
 out = output.icecast(host=ice_host,port=8080,password=pass,fallible=true)
-out_aac32 = out(%aacplus(bitrate=32))
-out_aac = out(%aacplus(bitrate=64))
+out_aac32 = out(%fdkaac(bitrate=32))
+out_aac = out(%fdkaac(bitrate=64))
 out = out(%mp3)
 
 # A file for playing during failures

@@ -7,6 +7,12 @@ New:
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
 
+Removed:
+
+- aac and aacplus encoders, removed in favor of fdk-aac.
+
+- dirac/schroedinger video encoder: obsolete, abandoned upstream.
+
 
 1.2.1 (01-07-2016)
 ========
