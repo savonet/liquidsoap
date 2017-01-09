@@ -173,6 +173,8 @@ struct
   ]
   
   type source_type = [
+    | `Put
+    | `Post
     | `Source
     | `Xaudiocast
     | `Shout
@@ -223,7 +225,7 @@ struct
     | `Websocket
   ]
   
-  let string_of_protocol = function
+  let string_of_protocol : protocol -> string = function
     | `Http_10 -> "HTTP/1.0"
     | `Http_11 -> "HTTP/1.1"
     | `Ice_10 -> "ICE/1.0"
@@ -447,13 +449,12 @@ struct
          duppy_return () ;
       try
         let sproto =
-         match smethod with
+         match (smethod:source_type) with
            | `Shout -> "ICY"
            | `Source -> "SOURCE"
            | `Put -> "PUT (source)"
            | `Post -> "POST (source)"
            | `Xaudiocast -> "X-AUDIOCAST"
-           | _ -> assert false
          in
          log#f 4 "%s request on %s." sproto uri ;
          let stype =

@@ -29,6 +29,7 @@ sig
     | `Text of string ]
   val to_string :msg -> string
   val read : socket -> msg
+  val write : socket -> msg -> unit
   val upgrade : (string * string) list -> string
 end
   
