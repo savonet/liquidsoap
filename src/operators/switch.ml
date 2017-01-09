@@ -370,7 +370,7 @@ let () =
          in
          let children =
            try List.map2 (fun (d,s) single -> d,single,s) children singles with
-             | Invalid_argument("List.map2") ->
+             | Invalid_argument s when s = "List.map2" ->
                  raise (Lang.Invalid_value
                           (List.assoc "single" p,
                            "there should be exactly one flag per children"))

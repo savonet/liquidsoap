@@ -846,8 +846,6 @@ let copy_with subst t =
   in
     aux t
 
-module M = Map.Make(struct type t = int let compare = compare end)
-
 (** Instantiate a type scheme, given as a type together with a list
   * of generalized variables.
   * Fresh variables are created with the given (current) level,

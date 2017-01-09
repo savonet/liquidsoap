@@ -49,7 +49,7 @@ let list = chunk "LIST"
 let header ~channels ~samplerate () =
   (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
      architectures. *)
-  let dword_max () = word 0xffff; word 0xffff in
+  let dword_max () = ignore(word 0xffff); word 0xffff in
   let video_rate = Lazy.force Frame.video_rate in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
@@ -226,22 +226,32 @@ module Read = struct
          (* Printf.printf ">>\n%!"; *)
          `LIST (subtag, List.rev !ll)
     | "avih" ->
-       let microsec_per_frame = dword f in
-       let max_bytes_per_sec = dword f in
-       let reserved = read 4 f in
+       (* microsec_per_frame *)
+       let _ = dword f in
+       (* max_bytes_per_sec *)
+       let _ = dword f in
+       (* reserved *)
+       let _ = read 4 f in
        let flags = dword f in
        must "Not interleaved." (flags land 0x0100 <> 0); (* interleaved *)
-       let total_frame = dword f in
-       let init_frame = dword f in
-       let nb_stream = dword f in
-       let sug_buf_size = dword f in
+       (* total_frame *)
+       let _ = dword f in
+       (* init_frame *)
+       let _ = dword f in
+       (* nb_stream *)
+       let _ = dword f in
+       (* sug_buf_size *)
+       let _ = dword f in
        let width = dword f in
        let height = dword f in
        let scale = dword f in
        must "Non-zero scale." (scale = 0);
-       let rate = dword f in
-       let start = dword f in
-       let length = dword f in
+       (* rate *)
+       let _ = dword f in
+       (* start *)
+       let _ = dword f in
+       (* length *)
+       let _ = dword f in
        `avih (width, height)
     | "strh" ->
        let stream_type = read 4 f in
@@ -252,21 +262,33 @@ module Read = struct
        must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
        let flags = dword f in
        must "Wrong strh flags." (flags = 0);
-       let priority = word f in
-       let language = word f in
-       let init_frames = dword f in
+       (* priority *)
+       let _ = word f in
+       (* language *)
+       let _ = word f in
+       (* init_frames *)
+       let _ = dword f in
        let scale = dword f in
        let rate = dword f in
        let fps = float rate /. float scale in
-       let start = dword f in
-       let length = dword f in
-       let buf_size = dword f in
-       let quality = dword f in
-       let sample_size = dword f in
-       let left = word f in
-       let top = word f in
-       let right = word f in
-       let bottom = word f in
+       (* start *)
+       let _ = dword f in
+       (* length *)
+       let _ = dword f in
+       (* buf_size *)
+       let _ = dword f in
+       (* quality *)
+       let _ = dword f in
+       (* sample_size *)
+       let _ = dword f in
+       (* left *)
+       let _ = word f in
+       (* top *)
+       let _ = word f in
+       (* right *)
+       let _ = word f in
+       (* bottom *)
+       let _ = word f in
        `strh (stream_type, fps)
     | "strf" ->
        let s = read len f in
@@ -290,7 +312,8 @@ module Read = struct
 
   let headers f =
     must "Not a RIFF file." (read 4 f = "RIFF");
-    let filesize = dword f in
+    (* filesize *)
+    let _ = dword f in
     must "Not an AVI file." (read 4 f = "AVI ");
     let h = ref [] in
     try

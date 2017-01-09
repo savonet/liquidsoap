@@ -23,7 +23,6 @@
 module Term = Lang_values
 include Term.V
 module T = Lang_types
-module Vars = Term.Vars
 
 type t = T.t
 
@@ -648,7 +647,7 @@ let report_error lexbuf f =
           " before %S: %s!\n" (Lexing.lexeme lexbuf) error
   in
     try f () with
-      | Failure "lexing: empty token" -> print_error "Empty token" ; raise Error
+      | Failure s when s = "lexing: empty token" -> print_error "Empty token" ; raise Error
       | Parsing.Parse_error -> print_error "Parse error" ; raise Error
       | Lang_values.Parse_error (pos,s) ->
         let pos = T.print_pos pos in

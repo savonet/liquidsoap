@@ -1097,7 +1097,7 @@ let () =
        try
          List.hd (Lang.to_list (Lang.assoc "" 1 p))
        with
-         | Failure "hd" -> Lang.string "")
+         | Failure s when s = "hd" -> Lang.string "")
 
 let () =
   add_builtin "list.sort" ~cat:List
