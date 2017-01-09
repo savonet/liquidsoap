@@ -23,6 +23,8 @@ Bugfixes:
 
 - Add revdns setting for telnet, set all revdns default to false (#372)
 
+- Fix icy metadata in output.harbor (#358)
+
 
 1.2.1 (01-07-2016)
 ========

@@ -457,12 +457,12 @@ struct
   
     method insert_metadata m = 
       let m = Encoder.Meta.to_metadata m in
-      let meta = Hashtbl.create (Hashtbl.length m) in
+      let m = recode ~icy:true m in
       Tutils.mutexify metadata.metadata_m
         (fun () -> 
-          metadata.metadata <- Some (recode ~icy:true meta)) ();
+          metadata.metadata <- Some m) ();
       (Utils.get_some encoder).Encoder.insert_metadata 
-         (Encoder.Meta.export_metadata (recode ~icy:false meta)); 
+         (Encoder.Meta.export_metadata m);
   
     method add_client ~protocol ~headers ~uri ~args s = 
       let ip = 
