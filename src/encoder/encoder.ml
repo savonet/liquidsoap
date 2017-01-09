@@ -327,23 +327,6 @@ struct
 
 end
 
-module AACPlus =
-struct
-
-  type t = {
-    channels   : int ;
-    samplerate : int ;
-    bitrate    : int ;
-  }
-
-  let to_string m =
-    Printf.sprintf "%%aac+(channels=%d,samplerate=%d,bitrate=%d)"
-      m.channels
-      m.samplerate
-      m.bitrate
-
-end
-
 module FdkAacEnc =
 struct
   type mpeg2_aac =
@@ -441,24 +424,6 @@ struct
                              samplerate=%d,sbr_mode=%b,transmux=%S)"
       m.afterburner (string_of_aot m.aot) br_info m.channels
       m.samplerate m.sbr_mode (string_of_transmux m.transmux)
-end
-
-module VoAacEnc =
-struct
-
-  type t = {
-    channels   : int ;
-    samplerate : int ;
-    bitrate    : int ;
-    adts       : bool ;
-  }
-
-  let to_string m =
-    Printf.sprintf "%%aac(channels=%d,samplerate=%d,bitrate=%d,adts=%b)"
-      m.channels
-      m.samplerate
-      m.bitrate
-      m.adts
 end
 
 module External =
@@ -649,28 +614,6 @@ struct
 
 end
 
-module Dirac =
-struct
-
-  type t = {
-    (** TODO: framerate ! *)
-    quality            : float ;
-    width              : int Lazy.t ;
-    height             : int Lazy.t ;
-    aspect_numerator   : int ;
-    aspect_denominator : int ;
-    fill               : int option ;
-  }
-
-  let to_string dr =
-    let f = Lazy.force in
-    Printf.sprintf "%%dirac(quality=%02f,width=%d,height=%d,\
-                            aspect_numerator=%d,aspect_denominator=%d)"
-    dr.quality (f dr.width) (f dr.height)
-    dr.aspect_numerator dr.aspect_denominator
-
-end
-
 module Ogg =
 struct
 
@@ -679,7 +622,6 @@ struct
     | Vorbis of Vorbis.t
     | Flac of Flac.t
     | Theora of Theora.t
-    | Dirac of Dirac.t
     | Opus of Opus.t
   type t = item list
 
@@ -692,7 +634,6 @@ struct
                | Flac   v -> Flac.to_string v
                | Theora t -> Theora.to_string t
                | Speex  s -> Speex.to_string s
-               | Dirac  d -> Dirac.to_string d
                | Opus   o -> Opus.to_string o)
             l))
 
@@ -705,8 +646,6 @@ type format =
   | MP3 of MP3.t
   | Shine of Shine.t
   | Flac of Flac.t
-  | AACPlus of AACPlus.t
-  | VoAacEnc of VoAacEnc.t
   | FdkAacEnc of FdkAacEnc.t
   | External of External.t
   | GStreamer of GStreamer.t
@@ -727,12 +666,6 @@ let kind_of_format = function
   | Flac m ->
       { Frame.audio = m.Flac.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
-  | AACPlus m ->
-      { Frame.audio = m.AACPlus.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
-  | VoAacEnc m ->
-      { Frame.audio = m.VoAacEnc.channels ;
-        Frame.video = 0 ; Frame.midi = 0 }
   | FdkAacEnc m ->
       { Frame.audio = m.FdkAacEnc.channels ;
         Frame.video = 0 ; Frame.midi = 0 }
@@ -746,8 +679,6 @@ let kind_of_format = function
            | Ogg.Flac { Flac.channels = n; _} ->
                { k with Frame.audio = k.Frame.audio+n }
            | Ogg.Theora _ ->
-               { k with Frame.video = k.Frame.video+1 }
-           | Ogg.Dirac _ ->
                { k with Frame.video = k.Frame.video+1 }
            | Ogg.Speex { Speex.stereo = stereo; _} ->
                let n = if stereo then 2 else 1 in
@@ -775,8 +706,6 @@ let string_of_format = function
   | MP3 w -> MP3.to_string w
   | Shine w -> Shine.to_string w
   | Flac w -> Flac.to_string w
-  | AACPlus w -> AACPlus.to_string w
-  | VoAacEnc w -> VoAacEnc.to_string w
   | FdkAacEnc w -> FdkAacEnc.to_string w
   | External w -> External.to_string w
   | GStreamer w -> GStreamer.to_string w

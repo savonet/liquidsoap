@@ -345,7 +345,7 @@ def outputs(s) =
 
   # An output in AAC+ at 32 kbits to the "my_radio.aac"
   # mountpoint
-  output.icecast(%aacplus(bitrate=32), mount="my_radio.aac",s)
+  output.icecast(%fdkaac(bitrate=32), mount="my_radio.aac",s)
 end
 %%
 

@@ -180,14 +180,6 @@ You can also pass @bitrate=x@ explicitly instead of a quality.
 The default dimensions are liquidsoap's default,
 from the settings @frame.video.height/width@.
 
-h5. Dirac
-
-%%
-%dirac(quality=35,width=w,height=h,
-       picture_x=0, picture_y=0,
-       aspect_numerator=1, aspect_denominator=1)
-%%
-
 h5. Speex
 
 %%
@@ -215,24 +207,9 @@ The parameters are:
 
 @compression@ ranges from 0 to 8 and @bits_per_sample@ should be one of: @8@, @16@ or @32@.
 
-h4. AAC
-
-The syntax for the internal AAC encoder is:
-%%
-%aac(channels=2, samplerate=44100, bitrate=64, adts=true)
-%%
-
-h4. AAC+
-
-The syntax for the internal AAC+ encoder is:
-%%
-%aacplus(channels=2, samplerate=44100, bitrate=64)
-%%
-
 h4. FDK-AAC
 
-This encoder can do both AAC and AAC+. It is projected to
-replace both encoders in a future release.
+This encoder can do both AAC and AAC+.
 
 Its syntax is:
 %%

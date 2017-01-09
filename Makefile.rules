@@ -148,7 +148,6 @@ $(foreach plug,$($(PROG)_PLUGINS),\
 vorbis_dontlink += ogg
 speex_dontlink += ogg
 theora_dontlink += ogg
-schroedinger_dontlink += ogg
 flac_dontlink += ogg
 flac_ogg_dontlink += ogg flac
 lastfm_dontlink += xmlm xmlplaylist

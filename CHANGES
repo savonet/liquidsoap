@@ -9,6 +9,12 @@ New:
 
 - Add optional "dj" metadata argument for Shoutcast v2, wrap it in a callback in output.shoutcast (#370)
 
+Removed:
+
+- aac and aacplus encoders, removed in favor of fdk-aac.
+
+- dirac/schroedinger video encoder: obsolete, abandoned upstream.
+
 Bugfixes:
 
 - Prevent flows metadata updata from stalling sources (#377)

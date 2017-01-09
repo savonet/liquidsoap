@@ -102,7 +102,7 @@ let dynlink_list = Hashtbl.create 2
 exception Done of string
 
 (* A function to load external libraries (currently
- * lame and aacplus) *)
+ * lame) *)
 let load_dynlinks () =
   let rec check_list f cur =
     match cur with
