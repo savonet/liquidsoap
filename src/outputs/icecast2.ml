@@ -436,7 +436,8 @@ object (self)
                        (get m "tracknum"
                           (get m "comment"
                              (* for Shoutcast *)
-                             (getd m "song" default_song []))))))))
+                             (get m "dj"
+                               (getd m "song" default_song [])))))))))
       in
       let f = Configure.recode_tag ~out_enc in
       let a = Array.map (fun (x,y) -> (x, f y)) a in

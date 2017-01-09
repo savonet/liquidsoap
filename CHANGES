@@ -7,6 +7,8 @@ New:
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
 
+- Add optional "dj" metadata argument for Shoutcast v2, wrap it in a callback in output.shoutcast (#370)
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
