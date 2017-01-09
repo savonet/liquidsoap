@@ -15,6 +15,9 @@ Additionally, liquidsoap can handle many simulataneous harbor sources on differe
 with finer-grained authentication schemes that can be particularly useful when used with
 source clients designed for the shoutcast servers.
 
+If liquidsoap was compiled with SSL support enabled, it should also be able to
+use harbor over secure SSL connections.
+
 h4. Parameters
 
 The global parameters for harbor can be retreived using
@@ -25,6 +28,13 @@ The global parameters for harbor can be retreived using
 * @harbor.verbose@: Print password used by source clients in logs, for debugging purposes. Defaults to: @false@
 * @harbor.reverse_dns@: Perform reverse DNS lookup to get the client's hostname from its IP. Defaults to: @true@
 * @harbor.icy_formats@: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: @["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]@
+
+Optionally, if SSL support was enabled:
+* @harbor.ssl.certificate@: Path to the SSL certificate.
+* @harbor.ssl.private_key@: Path to the SSL private key.
+* @harbor.ssl.password@: Optional password to unlock the private key.
+Obtaining a proper SSL certificate can be tricky. You may want to start with a self-signed certificate first.
+You can obtain a free, valid certificate at: "https://letsencrypt.org/":https://letsencrypt.org/
 
 You also have per-source parameters. You can retreive them using the command 
 @liquidsoap -h input.harbor@. The most important one are:

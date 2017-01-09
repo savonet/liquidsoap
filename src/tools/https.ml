@@ -1,7 +1,3 @@
-let () =
-  Ssl_threads.init ();
-  Ssl.init ()
-
 module Ssl_transport : Http.Transport_t with type connection = Ssl.socket =
 struct
   type connection = Ssl.socket

@@ -1,6 +1,6 @@
 SUBDIRS=tools decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
-	visualization analyze synth
+	visualization analyze synth harbor
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
@@ -105,7 +105,8 @@ sources = \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
   $(if $(W_SSL),sources/https_source.ml) \
-	tools/harbor.ml sources/harbor_input.ml \
+	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
+  $(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
 	sources/external_input.ml \
 	tools/liqMM.ml
 
@@ -159,7 +160,9 @@ $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 
 outputs = outputs/output.ml \
 	outputs/pipe_output.ml \
-	outputs/harbor_output.ml
+	outputs/harbor_output.ml \
+  $(if $(W_SSL),outputs/harbor_output_ssl.ml)
+
 
 $(call conditional_compilation,outputs,$(W_AO),outputs/ao_out.ml)
 $(call conditional_compilation,outputs,$(W_CRY),outputs/icecast2.ml)
@@ -200,7 +203,8 @@ synth = synth/keyboard.ml synth/synth_op.ml
 $(call conditional_compilation,synth,$(W_DSSI),synth/dssi_op.ml)
 
 builtins = lang/lang_builtins.ml lang/builtins_json.ml \
-           $(if $(W_SSL),lang/builtins_https.ml) \
+           lang/builtins_harbor.ml \
+           $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \
 
 $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)

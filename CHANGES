@@ -3,9 +3,11 @@ x.y.z ()
 
 New:
 
-- Added peak and peak.stereo (#364)
+- Add peak and peak.stereo operators (#364)
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
+
+- Add SSL support to the varous harbor operators.
 
 - Add optional "dj" metadata argument for Shoutcast v2, wrap it in a callback in output.shoutcast (#370)
 
