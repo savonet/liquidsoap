@@ -146,7 +146,6 @@ rule token = parse
   | "%theora" { THEORA }
   | "%external" { EXTERNAL }
   | "%gstreamer" { GSTREAMER }
-  | "%dirac"  { DIRAC  }
   | "%speex"  { SPEEX }
   | "%wav" { WAV }
   | "%avi" { AVI }
@@ -156,9 +155,6 @@ rule token = parse
   | "%mp3.vbr" { MP3_VBR }
   | "%mp3.fxp" { SHINE }
   | "%shine"   { SHINE }
-  | "%aac+" { AACPLUS }
-  | "%aacplus" { AACPLUS }
-  | "%aac" { VOAACENC }
   | "%fdkaac" { FDKAAC }
 
   | '[' { LBRA }

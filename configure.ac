@@ -459,27 +459,6 @@ AC_CHECK_OCAML_BINDING([gstreamer],[0.2.0])
 AC_CHECK_OCAML_BINDING([frei0r],[0.1.0])
 
 #
-# Aacplus
-#
-
-AC_CHECK_OCAML_BINDING([aacplus],[0.2.0])
-if test -z "${W_AACPLUS}"; then
-  if test -n "${W_DYNLINK}"; then
-    if test -n "${OCAML_HAS_FIRST_CLASS_MODULES}"; then
-       W_AACPLUS_DYN=yes
-       w_AACPLUS="detected at runtime"
-    fi
-  fi
-fi
-AC_SUBST(W_AACPLUS_DYN)
-
-#
-# Voaacenc
-#
-
-AC_CHECK_OCAML_BINDING([voaacenc],[0.1.0])
-
-#
 # Fdkaac
 #
 
@@ -499,12 +478,6 @@ AC_SUBST(W_FDKAAC_DYN)
 #
 
 AC_CHECK_OCAML_BINDING([theora],[0.3.1],[ogg])
-
-#
-# Schroedinger
-#
-
-AC_CHECK_OCAML_BINDING([schroedinger],[0.1.1],[ogg])
 
 #
 # Gavl
@@ -948,7 +921,6 @@ cat <<EOMSG
    - Vorbis            : $w_VORBIS
    - Theora            : $w_THEORA
    - Speex             : $w_SPEEX
-   - Dirac             : $w_SCHROEDINGER
    - Flac (native)     : $w_FLAC
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
@@ -961,13 +933,10 @@ cat <<EOMSG
    - Vorbis            : $w_VORBIS
    - MP3               : $w_LAME
    - MP3 (fixed-point) : $w_SHINE
-   - AAC               : $w_VOAACENC
-   - AAC+              : $w_AACPLUS
    - FDK-AAC           : $w_FDKAAC
    - SPEEX             : $w_SPEEX
    - Opus              : $w_OPUS
    - Theora            : $w_THEORA
-   - Dirac             : $w_SCHROEDINGER
 
  * Tags
    - Taglib (ID3 tags) : $w_TAGLIB

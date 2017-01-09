@@ -72,18 +72,6 @@ struct
               samplerate = Some m.Encoder.Shine.samplerate ;
               channels = Some m.Encoder.Shine.channels
             }
-        | Encoder.AACPlus m ->
-            { quality = None ;
-              bitrate = Some m.Encoder.AACPlus.bitrate ;
-              samplerate = Some m.Encoder.AACPlus.samplerate ;
-              channels = Some m.Encoder.AACPlus.channels
-            }
-        | Encoder.VoAacEnc m ->
-            { quality = None ;
-              bitrate = Some m.Encoder.VoAacEnc.bitrate ;
-              samplerate = Some m.Encoder.VoAacEnc.samplerate ;
-              channels = Some m.Encoder.VoAacEnc.channels
-            }
         | Encoder.FdkAacEnc m ->
             { quality = None ;
               bitrate = Some m.Encoder.FdkAacEnc.bitrate ;
@@ -283,7 +271,6 @@ class output ~kind p =
       | x, `Guess when x = mpeg ||
                        x = wav ||
                        x = aac ||
-                       x = aacplus ||
                        x = flac -> true
       | x, `Guess when x = ogg_application ||
                        x = ogg_audio ||
@@ -449,7 +436,8 @@ object (self)
                        (get m "tracknum"
                           (get m "comment"
                              (* for Shoutcast *)
-                             (getd m "song" default_song []))))))))
+                             (get m "dj"
+                               (getd m "song" default_song [])))))))))
       in
       let f = Configure.recode_tag ~out_enc in
       let a = Array.map (fun (x,y) -> (x, f y)) a in

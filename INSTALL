@@ -36,15 +36,12 @@ Optional dependencies :
    ocaml-theora>=0.3.0       for Ogg/Theora codec
    ocaml-speex>=0.2.0        for Ogg/Speex codec
    ocaml-flac>=0.1.1         for Flac and Ogg/Flac codec
-   ocaml-schroedinger>=0.1.0 for Ogg/Schroedinger codec
    ocaml-mad>=0.4.4          for MP3 decoding
    ocaml-lame>=0.3.2         for MP3 encoding
    ocaml-shine>=0.1.0        for fixed-point MP3 encoding
    ocaml-taglib>=0.3.1       for MP3ID3 metadata access
    ocaml-faad>=0.3.2         for AAC stream decoding
-   ocaml-aacplus>=0.2.1      for AAC+ encoding
-   ocaml-voaacenc>=0.1.0     for AAC encoding
-   ocaml-fdkaac>=0.1.0       for AAC(+) encoding (replacement candidate for voaac and aacplus)
+   ocaml-fdkaac>=0.1.0       for AAC(+) encoding
    camlimages>=4.0.0         for image decoding
    ocaml-sdl                 for display, font & image support
    ocaml-gavl>=0.1.5         for video conversion using the gavl library

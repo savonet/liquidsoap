@@ -45,7 +45,6 @@ $(call conditional_compilation,ogg_demuxer,$(W_VORBIS),ogg_formats/vorbis_decode
 $(call conditional_compilation,ogg_demuxer,$(W_OPUS),ogg_formats/opus_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_THEORA),ogg_formats/theora_decoder.ml)
 $(call conditional_compilation,ogg_demuxer,$(W_FLAC_OGG),ogg_formats/ogg_flac_decoder.ml)
-$(call conditional_compilation,ogg_demuxer,$(W_SCHROEDINGER),ogg_formats/dirac_decoder.ml)
 
 # This variable contains only conditional files..
 ogg_muxer =
@@ -57,7 +56,6 @@ $(call conditional_compilation,ogg_muxer,$(W_VORBIS),ogg_formats/vorbis_encoder.
 $(call conditional_compilation,ogg_muxer,$(W_OPUS),ogg_formats/opus_encoder.ml)
 $(call conditional_compilation,ogg_muxer,$(W_THEORA),ogg_formats/theora_encoder.ml)
 $(call conditional_compilation,ogg_muxer,$(W_FLAC_OGG),ogg_formats/ogg_flac_encoder.ml)
-$(call conditional_compilation,ogg_muxer,$(W_SCHROEDINGER),ogg_formats/dirac_encoder.ml)
 
 audio_converters = \
 	converters/audio/native_audio_converter.ml
@@ -150,17 +148,13 @@ encoders = \
 	encoder/avi_encoder.ml \
 	encoder/lame_encoder.ml \
 	encoder/fdkaac_encoder.ml \
-	encoder/aacplus_encoder.ml \
 	encoder/external_encoder.ml \
 	$(if $(W_LAME_DYN),encoder/lame_encoder_dynlink.ml) \
-	$(if $(W_FDKAAC_DYN),encoder/fdkaac_encoder_dynlink.ml) \
-	$(if $(W_AACPLUS_DYN),encoder/aacplus_encoder_dynlink.ml)
+	$(if $(W_FDKAAC_DYN),encoder/fdkaac_encoder_dynlink.ml)
 
 $(call conditional_compilation,encoders,$(W_SHINE),encoder/shine_encoder.ml)
 $(call conditional_compilation,encoders,$(W_LAME),encoder/lame_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_FLAC),encoder/flac_encoder.ml)
-$(call conditional_compilation,encoders,$(W_AACPLUS),encoder/aacplus_encoder_builtin.ml)
-$(call conditional_compilation,encoders,$(W_VOAACENC),encoder/voaacenc_encoder.ml)
 $(call conditional_compilation,encoders,$(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 
@@ -185,7 +179,6 @@ tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
-	$(if $(W_AACPLUS_DYN),tools/aacplus_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
   configure.ml tools/process_handler.ml \

@@ -165,8 +165,8 @@
 %token <bool> BOOL
 %token <int option list> TIME
 %token <int option list * int option list> INTERVAL
-%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA DIRAC SPEEX GSTREAMER
-%token WAV AVI FDKAAC VOAACENC AACPLUS MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
+%token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
+%token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
 %token BEGIN END GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
@@ -292,8 +292,6 @@ expr:
   | MP3_VBR app_opt                  { mk_enc (mp3_vbr $2) }
   | MP3_ABR app_opt                  { mk_enc (mp3_abr $2) }
   | SHINE app_opt                    { mk_enc (shine $2) }
-  | AACPLUS app_opt                  { mk_enc (aacplus $2) }
-  | VOAACENC app_opt                 { mk_enc (voaacenc $2) }
   | FDKAAC app_opt                   { mk_enc (fdkaac $2) }
   | FLAC app_opt                     { mk_enc (flac $2) }
   | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
@@ -391,8 +389,6 @@ cexpr:
   | MP3_ABR app_opt                  { mk_enc (mp3_abr $2) }
   | SHINE app_opt                    { mk_enc (shine $2) }
   | FLAC app_opt                     { mk_enc (flac $2) }
-  | AACPLUS app_opt                  { mk_enc (aacplus $2) }
-  | VOAACENC app_opt                 { mk_enc (voaacenc $2) }
   | FDKAAC app_opt                   { mk_enc (fdkaac $2) }
   | EXTERNAL app_opt                 { mk_enc (external_encoder $2) }
   | WAV app_opt                      { mk_enc (wav $2) }
@@ -508,7 +504,6 @@ top_level_ogg_item:
   | VORBIS_CBR app_opt { vorbis_cbr $2 }
   | VORBIS_ABR app_opt { vorbis_abr $2 }
   | THEORA app_opt     { theora $2 }
-  | DIRAC app_opt      { dirac $2 }
   | SPEEX app_opt      { speex $2 }
   | OPUS app_opt       { opus $2 }
 ogg_item:

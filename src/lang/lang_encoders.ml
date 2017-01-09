@@ -291,61 +291,6 @@ let shine params =
   in
     Encoder.Shine shine
 
-let aacplus params =
-  let defaults =
-    { Encoder.AACPlus.
-        channels = 2 ;
-        samplerate = 44100 ;
-        bitrate = 64 }
-  in
-  let aacplus =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.AACPlus.channels = i }
-          | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.AACPlus.samplerate = i }
-          | ("bitrate",{ term = Int i; _}) ->
-              { f with Encoder.AACPlus.bitrate = i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.AACPlus.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.AACPlus.channels = 2 }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-    Encoder.AACPlus aacplus
-
-let voaacenc params =
-  let defaults =
-    { Encoder.VoAacEnc.
-        channels = 2 ;
-        samplerate = 44100 ;
-        bitrate = 64 ;
-        adts = true }
-  in
-  let voaacenc =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.VoAacEnc.channels = i }
-          | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.VoAacEnc.samplerate = i }
-          | ("bitrate",{ term = Int i; _}) ->
-              { f with Encoder.VoAacEnc.bitrate = i }
-          | ("adts",{ term = Bool i; _}) ->
-              { f with Encoder.VoAacEnc.adts = i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.VoAacEnc.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.VoAacEnc.channels = 2 }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-    Encoder.VoAacEnc voaacenc
-
 let fdkaac params =
   let defaults =
     { Encoder.FdkAacEnc.
@@ -807,41 +752,6 @@ let theora params =
       defaults params
   in
     Encoder.Ogg.Theora theora
-
-let dirac params =
-  let defaults =
-    {
-      Encoder.Dirac.
-       quality            = 35. ;
-       fill               = None ;
-       width              = Frame.video_width ;
-       height             = Frame.video_height ;
-       aspect_numerator   = 1 ;
-       aspect_denominator = 1 ;
-    }
-  in
-  let dirac =
-    List.fold_left
-      (fun f ->
-        function
-          | ("quality",{ term = Float i; _}) ->
-              { f with Encoder.Dirac.quality = i }
-          | ("width",{ term = Int i; _}) ->
-              { f with Encoder.Dirac.
-                    width = Utils.LazyCompat.from_val i }
-          | ("height",{ term = Int i; _}) ->
-              { f with Encoder.Dirac.
-                    height = Utils.LazyCompat.from_val i }
-          | ("aspect_numerator",{ term = Int i; _}) ->
-              { f with Encoder.Dirac.aspect_numerator = i }
-          | ("aspect_denominator",{ term = Int i; _}) ->
-              { f with Encoder.Dirac.aspect_denominator = i }
-          | ("bytes_per_page",{ term = Int i; _}) ->
-              { f with Encoder.Dirac.fill = Some i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-    Encoder.Ogg.Dirac dirac
 
 let speex params =
   let defaults =

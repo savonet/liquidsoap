@@ -27,7 +27,6 @@ let ogg_video_mime = "video/ogg"
 let wav_mime = "audio/wav"
 let avi_mime = "video/avi"
 let aac_mime = "audio/aac"
-let aacplus_mime = "audio/aacp"
 let flac_mime = "audio/x-flac"
 
 let base_proto kind = 
@@ -63,15 +62,12 @@ struct
   let wav = M.format_of_content wav_mime
   let avi = M.format_of_content avi_mime
   let aac = M.format_of_content aac_mime
-  let aacplus = M.format_of_content aacplus_mime
   let flac = M.format_of_content flac_mime
 
   let format_of_encoder =
     function
       | Encoder.MP3 _ -> Some mpeg
       | Encoder.Shine _ -> Some mpeg
-      | Encoder.AACPlus _ -> Some aac
-      | Encoder.VoAacEnc _ -> Some aac
       | Encoder.FdkAacEnc _ -> Some aac
       | Encoder.External _ -> None
       | Encoder.GStreamer _ -> None
