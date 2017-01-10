@@ -291,6 +291,14 @@ struct
     Websocket.to_string (`Close (Some (n, msg)))
   
   let parse_icy_request_line ~port h r =
+    let auth_data =
+      Pcre.split ~pat:":" r
+    in
+    let requested_user,password =
+      match auth_data with
+        | user :: password :: _ -> user,password
+        | _ -> "", r
+    in
     duppy s =
     try
       duppy_return (find_source "/" (port-1))
@@ -302,7 +310,9 @@ struct
     (* Authentication can be blocking. *)
     duppy_exec
      let user,auth_f = s#login in
-       if auth_f user r then
+     let user = if requested_user = "" then
+       user else requested_user in 
+       if auth_f user password then
          duppy_return
            (`Shout,"/",`Icy)
        else

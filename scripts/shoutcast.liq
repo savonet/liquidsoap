@@ -22,7 +22,7 @@
 def output.shoutcast(
   ~id="output.shoutcast",~start=true,
   ~host="localhost",~port=8000,
-  ~user="source",~password="hackme",
+  ~user="",~password="hackme",
   ~genre="Misc",~url="http://liquidsoap.fm",
   ~name="Liquidsoap Radio!",~public=true,
   ~icy_id=1, ~format="",~dj={""},
