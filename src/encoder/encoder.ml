@@ -34,7 +34,7 @@ let conf_meta =
 let conf_export_metadata =
   Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
     ~d:["artist";"title";"album";"genre";"date";"tracknumber";
-    "comment";"track";"year"]
+    "comment";"track";"year";"dj"]
     ~comments:["The list of labels of exported metadata."]
 
 (* This is because I am too lazy to write encoder.mli.. *)
