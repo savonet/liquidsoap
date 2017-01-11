@@ -25,6 +25,8 @@ Bugfixes:
 
 - Fix icy metadata in output.harbor (#358)
 
+- Fix missing first line of headers from icy clients in input.harbor (#380)
+
 
 1.2.1 (01-07-2016)
 ========
