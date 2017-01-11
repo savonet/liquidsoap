@@ -926,7 +926,7 @@ struct
             let lines =
               Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s
             in
-            let headers = parse_headers (List.tl lines) in
+            let headers = parse_headers lines in
             handle_source_request ~port ~auth:true ~smethod:`Shout hprotocol
                                   h huri headers
           done
