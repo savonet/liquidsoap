@@ -17,7 +17,7 @@
 # @param ~icy_metadata Send new metadata using the ICY protocol. One of: "guess", "true", "false"
 # @param ~dj Callback to set dj name.
 # @param ~format Format, e.g. "audio/ogg". When empty, the encoder is used to guess.
-# @param e Endoding format. For shoutcast, should be mp3 or AAC(+).
+# @param e Encoding format. For shoutcast, should be mp3 or AAC(+).
 # @param s The source to output
 def output.shoutcast(
   ~id="output.shoutcast",~start=true,
