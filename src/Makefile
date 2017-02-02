@@ -105,8 +105,10 @@ sources = \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
   $(if $(W_SSL),sources/https_source.ml) \
+  $(if $(W_OSX_SECURE_TRANSPORT),sources/https_secure_transport_source.ml) \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
   $(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
+  $(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
 	sources/external_input.ml \
 	tools/liqMM.ml
 
@@ -161,7 +163,8 @@ $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 outputs = outputs/output.ml \
 	outputs/pipe_output.ml \
 	outputs/harbor_output.ml \
-  $(if $(W_SSL),outputs/harbor_output_ssl.ml)
+  $(if $(W_SSL),outputs/harbor_output_ssl.ml) \
+  $(if $(W_OSX_SECURE_TRANSPORT),outputs/harbor_output_secure_transport.ml)
 
 
 $(call conditional_compilation,outputs,$(W_AO),outputs/ao_out.ml)
@@ -185,6 +188,7 @@ tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
   $(if $(W_DYNLINK),tools/dyntools.ml) \
 	tools/http.ml \
   $(if $(W_SSL),tools/https.ml) \
+  $(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
   tools/pool.ml tools/sha1.ml tools/websocket.ml
 
 $(call conditional_compilation,tools,$(W_INOTIFY),tools/file_watcher_inotify.ml)
@@ -205,6 +209,7 @@ $(call conditional_compilation,synth,$(W_DSSI),synth/dssi_op.ml)
 builtins = lang/lang_builtins.ml lang/builtins_json.ml \
            lang/builtins_harbor.ml \
            $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \
+           $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_https_secure_transport.ml lang/builtins_harbor_secure_transport.ml)
 
 $(call conditional_compilation,builtins,$(W_LO),lang/builtins_lo.ml)
 $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)

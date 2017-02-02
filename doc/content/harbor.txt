@@ -31,10 +31,12 @@ The global parameters for harbor can be retreived using
 
 Optionally, if SSL support was enabled:
 * @harbor.ssl.certificate@: Path to the SSL certificate.
-* @harbor.ssl.private_key@: Path to the SSL private key.
+* @harbor.ssl.private_key@: Path to the SSL private key (openssl only).
 * @harbor.ssl.password@: Optional password to unlock the private key.
 Obtaining a proper SSL certificate can be tricky. You may want to start with a self-signed certificate first.
 You can obtain a free, valid certificate at: "https://letsencrypt.org/":https://letsencrypt.org/
+
+SSL can be enabled using of of the following @opam@ packages: @ssl@, @osx-secure-transport@.
 
 You also have per-source parameters. You can retreive them using the command 
 @liquidsoap -h input.harbor@. The most important one are:

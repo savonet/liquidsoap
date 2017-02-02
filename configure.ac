@@ -562,6 +562,12 @@ EOCONF
 fi
 
 #
+# SecureTransport (OSX)
+#
+
+AC_CHECK_OCAML_BINDING([osx-secure-transport],[],[])
+
+#
 # Magic
 #
 
@@ -980,6 +986,7 @@ cat <<EOMSG
    - magic             : $w_MAGIC
    - yojson            : $w_YOJSON
    - ssl               : $w_SSL
+   - SecureTransport   : $w_OSX_SECURE_TRANSPORT
    - windows service   : $w_WINSVC
 
  * Graphical interfaces

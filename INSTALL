@@ -62,6 +62,7 @@ Optional dependencies :
    ocaml-gstreamer>=0.2.0    for GStreamer input, output and encoding/decoding
    ocaml-inotify>=1.0        for reloading playlists when changed
    ocaml-ssl>=0.5.0          for enabling SSL/https client connections
+   osx-secure-transport      for enabling SSL/https client connections via OSX's SecureTransport
    json-wheel                for parsing JSON data (of_json function)
    gd4o                      for video.add_text() on servers without X
 

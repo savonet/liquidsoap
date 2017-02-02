@@ -7,7 +7,7 @@ New:
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
 
-- Add SSL support to the varous harbor operators.
+- Add SSL support to the varous harbor operators, either via openssl or OSX's SecureTransport.
 
 - Add optional "dj" metadata argument for Shoutcast v2, wrap it in a callback in output.shoutcast (#370)
 
