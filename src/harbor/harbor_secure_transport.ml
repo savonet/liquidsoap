@@ -24,8 +24,8 @@
 open Dtools
 
 let conf_harbor_secure_transport =
-  Conf.void ~p:(Harbor_base.conf_harbor#plug "secure_transport")
-    "Harbor SecureTransport (OSX SSL implementation) settings."
+  Conf.void ~p:(Harbor_base.conf_harbor#plug "ssl")
+    "Harbor SSL (OSX SecureTransport implementation) settings."
 let conf_harbor_secure_transport_certificate =
   Conf.string ~p:(conf_harbor_secure_transport#plug "certificate") ~d:""
     "Path to the server's SSL certificate. (mandatory)"
