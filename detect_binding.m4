@@ -104,7 +104,7 @@ else
            AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()_version}.])
          else
            if test -z "${[]BINDING()_SHARED}"; then
-             BINDING()_PACKAGES="`${OCAMLFIND} query -r -separator " " -format "-package %p" $BINDING_PKGS 2>/dev/null`"
+             BINDING()_PACKAGES="`${OCAMLFIND} query -separator " " -format "-package %p" $BINDING_PKGS 2>/dev/null`"
              liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} ${[]BINDING()_PACKAGES}"
              W_[]BINDING()=yes
            else
@@ -137,7 +137,7 @@ else
       fi
     fi
     if test -z "${BINDING()_STOP_CHECK}"; then
-      BINDING()_PACKAGES="`${OCAMLFIND} query -r -separator " " -format "-package %p" $BINGING_PKGS 2>/dev/null`"
+      BINDING()_PACKAGES="`${OCAMLFIND} query -separator " " -format "-package %p" $BINGING_PKGS 2>/dev/null`"
       echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
           || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
       if test -z "${[]BINDING()_SHARED}"; then
@@ -153,7 +153,7 @@ else
         BINDING()_CMA=$1.${cma}
       fi
       for i in ${[]BINDING()_requires}; do
-        BINDING()_PACKAGES="${[]BINDING()_PACKAGES} `${OCAMLFIND} query -r -separator " " -format "-package %p" $i 2>/dev/null`"
+        BINDING()_PACKAGES="${[]BINDING()_PACKAGES} `${OCAMLFIND} query -separator " " -format "-package %p" $i 2>/dev/null`"
       done
       if test -z "${[]BINDING()_SHARED}"; then
         liquidsoap_ocamllflags="${liquidsoap_ocamllflags} ${[]BINDING()_PACKAGES} ${[]BINDING()_CMA}"
