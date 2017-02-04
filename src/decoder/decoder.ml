@@ -426,17 +426,13 @@ struct
     in
     let fseek len = 
       let gen_len = Generator.length gen in
-      if len < 0 then
-       begin
-        Generator.clear gen;
-        decoder.seek len
-       end
-      else if len > gen_len then 
+      if len < 0 || len > gen_len then
         begin
          Generator.clear gen;
          gen_len + decoder.seek (len-gen_len)
         end
        else
+        (* Seek within the pre-buffered data if possible *)
         begin
          Generator.remove gen len;
          len
