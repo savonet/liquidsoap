@@ -403,7 +403,7 @@ object (self)
     (* Update metadata using ICY if told to.. *)
     if icy_metadata then
      begin
-      let get h k l =
+      let get h l k =
         try
           (k,(Hashtbl.find h k))::l
         with _ -> l
@@ -415,7 +415,7 @@ object (self)
       in
       let m = Encoder.Meta.to_metadata m in
       let def_title =
-        match get m "uri" [] with
+        match get m [] "uri" with
           | (_,s)::_ -> let title = Filename.basename s in
               ( try
                   String.sub title 0 (String.rindex title '.')
@@ -428,16 +428,11 @@ object (self)
         (try Hashtbl.find m "title" with _ -> "Unknown")
       in
       let a = Array.of_list
-        (getd m "title" def_title
-           (get m "artist"
-              (get m "genre"
-                 (get m "date"
-                    (get m "album"
-                       (get m "tracknum"
-                          (get m "comment"
-                             (* for Shoutcast *)
-                             (get m "dj"
-                               (getd m "song" default_song [])))))))))
+       (getd m "title" def_title
+         (getd m "song" default_song
+           (List.fold_left (get m) []
+             ["artist";"genre";"date";"album";
+              "tracknum";"comment";"dj";"next"])))
       in
       let f = Configure.recode_tag ~out_enc in
       let a = Array.map (fun (x,y) -> (x, f y)) a in

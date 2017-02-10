@@ -9,7 +9,7 @@ New:
 
 - Add SSL support to the varous harbor operators, either via openssl or OSX's SecureTransport.
 
-- Add optional "dj" metadata argument for Shoutcast v2, wrap it in a callback in output.shoutcast (#370)
+- Add optional "dj" and "next" metadata for Shoutcast v2, wrap "dj" value in a callback in output.shoutcast (#370, #388)
 
 Removed:
 
