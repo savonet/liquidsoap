@@ -2339,7 +2339,9 @@ let add_http_request http name descr request =
               | Head -> Http.Head
               | Delete -> Http.Delete
           in 
-          let log = log#f 4 "%s" in
+          let log s =
+            log#f 4 "%s" s
+          in
           Http.full_request ~log ~timeout ~headers
                             ~uri ~request ()
         with

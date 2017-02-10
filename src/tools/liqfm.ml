@@ -40,7 +40,9 @@ module Liq_http =
   let request ?timeout ?headers ?port 
               ~host ~url ~request () =
   try
-    let log = log#f 4 "%s" in
+    let log s =
+      log#f 4 "%s" s
+    in
     let timeout = 
       match timeout with
         | None -> !default_timeout

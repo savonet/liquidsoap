@@ -29,6 +29,8 @@ Bugfixes:
 
 - Fix missing first line of headers from icy clients in input.harbor (#380)
 
+- Fix timestamp in some logged output (#395)
+
 
 1.2.1 (01-07-2016)
 ========

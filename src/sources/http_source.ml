@@ -260,7 +260,9 @@ struct
   
     method feeding should_stop create_decoder =
       let read =
-        let log = self#log#f 4 "%s" in
+        let log s =
+          self#log#f 4 "%s" s
+        in
         (* Socket can't be closed while waiting on it. *)
         (fun len ->
           let socket = Tutils.mutexify socket_m (fun () ->
@@ -366,7 +368,9 @@ struct
               failwith "Cannot connect while already connected..";
             self#log#f 4 "Connecting to <%s://%s:%d%s>..." protocol host port mount ;
             let s = Http.connect ?bind_address host port in
-            let log = self#log#f 4 "%s" in
+            let log s =
+              self#log#f 4 "%s" s
+            in
             let (_, fields as ret) =
               Http.request ~log ~timeout s request
             in
