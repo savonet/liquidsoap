@@ -6,14 +6,6 @@ def mksafe(~id="mksafe",s)
   fallback(id=id,track_sensitive=false,[s,blank(id="safe_blank")])
 end
 
-# Alias for the <code>l[k]</code> notation.
-# @category List
-# @param a Key to look for
-# @param l List of pairs (key,value)
-def list.assoc(a,l)
-  l[a]
-end
-
 # list.mem_assoc(key,l) returns true if l contains a pair
 # (key,value)
 # @category List
@@ -35,7 +27,7 @@ end
 # @param a Key of pair to be removed
 # @param l List of pairs (key,value)
 def list.remove_assoc(a,l)
-  list.remove((a,list.assoc(a,l)),l)
+  list.remove((a,list.assoc(default="",a,l)),l)
 end
 
 # Rewrite metadata on the fly using a list of (target,rules).

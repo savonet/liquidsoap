@@ -966,6 +966,28 @@ let () =
          Lang.string (try List.assoc k l with _ -> ""))
 
 let () =
+  let t = Lang.univ_t 1 in
+  let lt =
+    Lang.list_t (Lang.product_t Lang.string_t t)
+  in
+  add_builtin "list.assoc" ~cat:List
+    ~descr:"Generalized l[k] with default value."
+    ["default",t,None,Some "Default value if key does not exist";
+     "",Lang.string_t,None,None ;
+     "",lt,None,None] t
+    (fun p ->
+      let default = List.assoc "default" p in
+       let k = Lang.to_string (Lang.assoc "" 1 p) in
+       let l =
+         List.map
+           (fun p ->
+              let (a,b) = Lang.to_product p in
+                Lang.to_string a, b)
+           (Lang.to_list (Lang.assoc "" 2 p))
+       in
+         (try List.assoc k l with _ -> default))
+
+let () =
   Lang.add_builtin "list.add"
     ~category:(string_of_category List)
     ~descr:"Add an element at the top of a list."

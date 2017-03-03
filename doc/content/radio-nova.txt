@@ -50,7 +50,7 @@ def metas() =
         get_process_lines(
 	   "wget -q http://www.novaplanet.com -O - | grep 'scroll_play'"))
   s = string.extract(pattern='scroll_play\("([^"]*)",\s*"([^"]*)"',s)
-  (cap(list.assoc("1",s)),cap(list.assoc("2",s)))
+  (cap(list.assoc(default="","1",s)),cap(list.assoc(default="","2",s)))
 end
 
 # Process that inserts grabbed metadata

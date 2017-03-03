@@ -13,6 +13,8 @@ New:
 
 - Allow partial parsing of JSON objects in of_json.
 
+- Generalize list.assoc to allow default values. Legacy code must be updated: list.assoc(k,l) -> list.assoc(default="",k,l)
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
