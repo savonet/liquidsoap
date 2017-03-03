@@ -54,6 +54,8 @@ depopts: [
   "lo"
   "inotify"
   "ssl"
+  "magic"
+  "yojson"
 ]
 conflicts: [
   "cry" {< "0.4.0"}
