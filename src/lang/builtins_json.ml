@@ -22,6 +22,13 @@
 
 let log = Dtools.Log.make ["lang";"json"]
 
+exception Failed
+
+let () =
+  Printexc.register_printer (function
+    | Failed -> Some "Liquidsoap count not parse JSON string"
+    | _ -> None)
+
 (* We compare the default's type with
  * the parsed json value and return if they match..
  * This comes with json_of in Lang_builtins.. *)
@@ -58,25 +65,25 @@ let rec of_json t j =
                 let (t,t') = Lang.of_product_t t in
                 Lang.product (of_json t j)
                              (of_json t' j')
-            | _ -> failwith "could not parse JSON string."
+            | _ -> raise Failed
          end
        end
     | `Assoc l ->
-        (* Try to convert the object to a list of pairs of strings
-         * This requires the target type to be [(string*string)],
+        (* Try to convert the object to a list of pairs, dropping fields
+         * that cannot be parsed.
+         * This requires the target type to be [(string*'a)],
          * currently it won't work if it is [?T] which would be
          * obtained with of_json(default=[],...). *)
         let lt = Lang.of_list_t t in
         let (t,t') = Lang.of_product_t lt in
         ignore (Lang.string_t <: t) ;
-        let l =
-          List.map
-            (fun (x,y) -> Lang.product (Lang.string x)
-                                       (of_json t' y))
-            l
+        let l = List.fold_left (fun cur (x,y) ->
+          try
+            (Lang.product (Lang.string x) (of_json t' y))::cur
+          with Failed -> cur) [] l
         in
         Lang.list ~t:lt l
-    | _ -> failwith "could not parse JSON string."
+    | _ -> raise Failed
 
 let () =
   let t = Lang.univ_t 1 in

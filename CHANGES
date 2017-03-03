@@ -11,6 +11,8 @@ New:
 
 - Add optional "dj" and "next" metadata for Shoutcast v2, wrap "dj" value in a callback in output.shoutcast (#370, #388)
 
+- Allow partial parsing of JSON objects in of_json.
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
