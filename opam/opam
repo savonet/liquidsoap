@@ -1,0 +1,63 @@
+opam-version: "1.2"
+maintainer: "romain.beauxis@gmail.com"
+homepage: "https://github.com/savonet/liquidsoap"
+authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
+build: [
+  ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
+  [make]
+]
+install: [
+  [make "install"]
+]
+remove: [
+  ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
+]
+depends: [
+  "ocamlfind"
+  "pcre"
+  "camomile"
+  "dtools"
+  "duppy" {>= "0.5.0"}
+  "mm" {>= "0.2.1"}
+]
+depopts: [
+  "cry"
+  "ao"
+  "portaudio"
+  "alsa"
+  "pulseaudio"
+  "bjack"
+  "taglib"
+  "lame"
+  "aacplus"
+  "ogg"
+  "vorbis"
+  "theora"
+  "opus"
+  "faad"
+  "flac"
+  "fdkaac"
+  "speex"
+  "schroedinger"
+  "voaacenc"
+  "ladspa"
+  "mad"
+  "samplerate"
+  "soundtouch"
+  "gavl"
+  "ffmpeg"
+  "frei0r"
+  "dssi"
+  "xmlplaylist"
+  "lastfm"
+  "lo"
+  "inotify"
+  "ssl"
+]
+conflicts: [
+  "cry" {< "0.4.0"}
+  "taglib" {< "0.3.0"}
+]
+available: [ ocaml-version >= "4.00" ]
+bug-reports: "https://github.com/savonet/liquidsoap/issues"
+dev-repo: "https://github.com/savonet/liquidsoap.git"
