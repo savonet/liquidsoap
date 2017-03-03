@@ -35,6 +35,8 @@ Bugfixes:
 
 - Fix timestamp in some logged output (#395)
 
+- Properly install liquidtts.
+
 
 1.2.1 (01-07-2016)
 ========

@@ -81,6 +81,7 @@ endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
+	$(INSTALL_PROGRAM) scripts/liquidtts $(libdir)/liquidsoap/$(libs_dir_version)
 	for l in externals.liq lastfm.liq utils.liq shoutcast.liq flows.liq video.liq \
 		       http.liq http_codes.liq pervasives.liq gstreamer.liq ; \
 	do \
