@@ -80,7 +80,7 @@ let rec of_json t j =
         let l = List.fold_left (fun cur (x,y) ->
           try
             (Lang.product (Lang.string x) (of_json t' y))::cur
-          with Failed -> cur) [] l
+          with _ -> cur) [] l
         in
         Lang.list ~t:lt l
     | _ -> raise Failed
