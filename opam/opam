@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "dev"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
