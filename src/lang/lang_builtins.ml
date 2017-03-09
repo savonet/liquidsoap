@@ -1096,30 +1096,38 @@ let () =
        let l = Lang.to_list l in
          List.fold_left (fun x y -> Lang.apply ~t:x.Lang.t f ["",x; "",y]) x l)
 
-(* TODO: This will fail the whole script
- * if the list does not have the required element! *)
 let () =
+  let t = Lang.univ_t 1 in
   add_builtin "list.nth" ~cat:List
     ~descr:"Get the n-th element of a list \
-            (the first element is at position 0)."
-    [ "",Lang.list_t (Lang.univ_t 1),None,None ;
+            (the first element is at position 0), or
+            'default' if element does not exist."
+    [ "default",t,None,Some "Default value if key does not exist";
+      "",Lang.list_t t,None,None ;
       "",Lang.int_t,None,None ]
-    (Lang.univ_t 1)
+    t
     (fun p ->
-       List.nth
-         (Lang.to_list (Lang.assoc "" 1 p))
-         (Lang.to_int (Lang.assoc "" 2 p)))
+       let default = List.assoc "default" p in
+       try
+         List.nth
+           (Lang.to_list (Lang.assoc "" 1 p))
+           (Lang.to_int (Lang.assoc "" 2 p))
+       with _ -> default)
 
 let () =
+  let t = Lang.univ_t 1 in 
   add_builtin "list.hd" ~cat:List
     ~descr:"Return the head (first element) of a list, \
-            or \"\" if the list is empty."
-    ["",Lang.list_t Lang.string_t,None,None] Lang.string_t
+            or 'default' if the list is empty."
+    [ "default",t,None,Some "Default value if key does not exist";
+      "",Lang.list_t t,None,None ]
+    t
     (fun p ->
+       let default = List.assoc "default" p in
        try
          List.hd (Lang.to_list (Lang.assoc "" 1 p))
        with
-         | Failure s when s = "hd" -> Lang.string "")
+         | _ -> default)
 
 let () =
   add_builtin "list.sort" ~cat:List

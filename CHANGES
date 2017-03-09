@@ -15,6 +15,10 @@ New:
 
 - Generalize list.assoc to allow default values. Legacy code must be updated: list.assoc(k,l) -> list.assoc(default="",k,l)
 
+- Generalize list.hd to allow default values. Legacy code must be updated: list.hd(l) -> list.hd(default="",l)
+
+- Allow to pass a default to list.nth. Legacy code must be updated: list.nth(l,pos) -> list.nth(default=<..>,l,pos)
+
 - Added on_offset to execute a callback at a given offset within a source's tracks.
 
 Removed:

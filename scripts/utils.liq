@@ -237,11 +237,7 @@ end
 def test_process(command)
   lines =
     get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
-  if list.length(lines) == 0 then
-    false
-  else
-    "0" == list.hd(lines)
-  end
+  "0" == list.hd(default="-1",lines)
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
@@ -251,8 +247,8 @@ end
 def url.split_args(args) =
   def f(x) =
     ret = string.split(separator="=",x)
-    arg = url.decode(list.nth(ret,0))
-    val = if list.length(ret) == 1 then "" else url.decode(list.nth(ret,1)) end
+    arg = url.decode(list.nth(default="",ret,0))
+    val = if list.length(ret) == 1 then "" else url.decode(list.nth(default="",ret,1)) end
     (arg,val)
   end
   l = string.split(separator="&",args)
@@ -341,7 +337,7 @@ def read(~hide=false)
   if hide then
     system("stty -echo")
   end
-  s = list.hd(get_process_lines("read BLA && echo $BLA"))
+  s = list.hd(default="",get_process_lines("read BLA && echo $BLA"))
   if hide then
     system("stty echo")
   end
@@ -370,7 +366,7 @@ end
 def get_mime(file) =
   def file_method(file) =
     if test_process("which file") then
-      list.hd(get_process_lines("file -b --mime-type \
+      list.hd(default="",get_process_lines("file -b --mime-type \
                                   #{quote(file)}"))
     else
       ""
@@ -513,7 +509,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},~filter=fun(_)->true,
   def next () =
     file =
       if list.length(!playlist) > 0 then
-        ret = list.hd(!playlist)
+        ret = list.hd(default="",!playlist)
         playlist := list.tl(!playlist)
         ret
       else
@@ -680,8 +676,8 @@ def replaygain_protocol(arg,delay)
  # The extraction program
  extract_replaygain = "#{configure.libdir}/extract-replaygain"
  x = get_process_lines("#{extract_replaygain} #{quote(arg)}")
- if list.hd(x) != "" then
-  ["annotate:replay_gain=\"#{list.hd(x)}\":#{arg}"]
+ if list.hd(default="",x) != "" then
+  ["annotate:replay_gain=\"#{list.hd(default='',x)}\":#{arg}"]
  else
   [arg]
  end
@@ -699,8 +695,8 @@ def enable_replaygain_metadata(
   def replaygain_metadata(file)
     x = get_process_lines("#{extract_replaygain} \
                               #{quote(file)}")
-    if list.hd(x) != "" then
-      [("replay_gain",list.hd(x))]
+    if list.hd(default="",x) != "" then
+      [("replay_gain",list.hd(default="",x))]
     else
       []
     end

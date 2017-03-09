@@ -12,7 +12,7 @@ def enable_external_mpc_decoder() =
   def test_mpc(file) =
     def get_channels(file) =
       int_of_string(
-        list.hd(
+        list.hd(default="",
           get_process_lines("mpcdec#{exe_ext} -i #{quote(file)} 2>&1 \
                              | grep channels | cut -d' ' -f 2")))
     end
@@ -59,7 +59,8 @@ def enable_external_flac_decoder() =
     flac_p = "flac -d -c - 2>/dev/null"
     def test_flac(file) =
       if test_process("which metaflac") then
-        channels = list.hd(get_process_lines("metaflac#{exe_ext} \
+        channels = list.hd(default="",
+                           get_process_lines("metaflac#{exe_ext} \
                                               --show-channels #{quote(file)} \
                                               2>/dev/null"))
         # If the value is not an int, this returns 0 and we are ok :)
@@ -91,10 +92,10 @@ def enable_external_flac_decoder() =
       # Could be made better..
       def f(l',l)=
         if list.length(l) >= 2 then
-          list.append([(list.hd(l),list.nth(l,1))],l')
+          list.append([(list.hd(default="",l),list.nth(default="",l,1))],l')
         else
           if list.length(l) >= 1 then
-            list.append([(list.hd(l),"")],l')
+            list.append([(list.hd(default="",l),"")],l')
           else
             l'
           end
@@ -153,7 +154,8 @@ def enable_external_faad_decoder() =
     faad_p = (fun (f) -> "faad -w #{quote(f)} 2>/dev/null")
     def test_faad(file) =
       if faad_test(file) then
-        channels = list.hd(get_process_lines("faad#{exe_ext} -i #{quote(file)} 2>&1 | \
+        channels = list.hd(default="",
+                           get_process_lines("faad#{exe_ext} -i #{quote(file)} 2>&1 | \
                                               grep 'ch,'"))
         ret = string.extract(pattern=", (\d) ch,",channels)
         ret =
