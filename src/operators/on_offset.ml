@@ -63,7 +63,7 @@ object(self)
           with Failure _ -> raise (Invalid_override pos)
         in
         let ticks = ticks_of_offset pos in
-        self#log#f 4 "Setting new offset to %.02f (%Li ticks)" pos ticks;
+        self#log#f 4 "Setting new offset to %.02fs (%Li ticks)" pos ticks;
         offset <- ticks
       with
         | Failure _

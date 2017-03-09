@@ -1405,17 +1405,20 @@ let () =
       Lang.unit)
 
 let () =
+  let t = Lang.univ_t 1 in
   add_builtin "mutexify" ~cat:Liq
-    ~descr:"Protect a function with a mutex to avoid concurrent calls."
-    ["",Lang.fun_t [] Lang.unit_t,None,None] (Lang.fun_t [] Lang.unit_t)
+    ~descr:"Protect functions with a mutex to avoid concurrent calls, \
+            return original value otherwise."
+    ["",t,None,None] t
     (fun p ->
       let m = Mutex.create () in
-      let f = List.assoc "" p in
-      let fn =
-        Tutils.mutexify m (fun _ t ->
-          Lang.apply ~t f [])
-      in
-      Lang.val_fun [] ~ret_t:Lang.unit_t fn)
+      let v = List.assoc "" p in
+      match v.Lang.value with
+        | Lang.FFI (args, env, fn) ->
+            let fn = Tutils.mutexify m fn in
+            { v with Lang.value =
+                Lang.FFI (args, env, fn) }
+        | _ -> v)
 
 let () =
   add_builtin "system" ~cat:Sys
