@@ -21,6 +21,8 @@ New:
 
 - Added on_offset to execute a callback at a given offset within a source's tracks.
 
+- Added mutexify to protect a function from being called concurrently.
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.

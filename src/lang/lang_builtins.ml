@@ -1100,7 +1100,7 @@ let () =
   let t = Lang.univ_t 1 in
   add_builtin "list.nth" ~cat:List
     ~descr:"Get the n-th element of a list \
-            (the first element is at position 0), or
+            (the first element is at position 0), or\
             'default' if element does not exist."
     [ "default",t,None,Some "Default value if key does not exist";
       "",Lang.list_t t,None,None ;
@@ -1403,6 +1403,19 @@ let () =
     (fun _ ->
       Gc.full_major () ;
       Lang.unit)
+
+let () =
+  add_builtin "mutexify" ~cat:Liq
+    ~descr:"Protect a function with a mutex to avoid concurrent calls."
+    ["",Lang.fun_t [] Lang.unit_t,None,None] (Lang.fun_t [] Lang.unit_t)
+    (fun p ->
+      let m = Mutex.create () in
+      let f = List.assoc "" p in
+      let fn =
+        Tutils.mutexify m (fun _ t ->
+          Lang.apply ~t f [])
+      in
+      Lang.val_fun [] ~ret_t:Lang.unit_t fn)
 
 let () =
   add_builtin "system" ~cat:Sys
