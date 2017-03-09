@@ -15,6 +15,8 @@ New:
 
 - Generalize list.assoc to allow default values. Legacy code must be updated: list.assoc(k,l) -> list.assoc(default="",k,l)
 
+- Added on_offset to execute a callback at a given offset within a source's tracks.
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.

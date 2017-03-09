@@ -128,7 +128,7 @@ operators = \
 	operators/setvol.ml operators/normalize.ml operators/echo.ml \
 	operators/append.ml operators/pan.ml operators/ms_stereo.ml \
 	operators/dyn_op.ml operators/video_effects.ml operators/video_fade.ml \
-	operators/noblank.ml operators/compand.ml \
+	operators/noblank.ml operators/compand.ml operators/on_offset.ml \
 	operators/mixing_table.ml operators/prepend.ml \
 	operators/midi_routing.ml operators/sleeper.ml \
 	operators/time_warp.ml operators/resample.ml \

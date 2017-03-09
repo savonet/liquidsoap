@@ -26,7 +26,7 @@ object
 
   val mutable executed = false
 
-  val mutable latest_metadata = None
+  val mutable latest_metadata = Hashtbl.create 0
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -39,17 +39,12 @@ object
     let compare x y = - (compare x y) in
     let l = List.sort compare (Frame.get_all_metadata ab) in
     if List.length l > 0 then
-      latest_metadata <- Some (snd (List.hd l));
+      latest_metadata <- snd (List.hd l);
     let rem = Frame.seconds_of_master s#remaining in
     if (not executed) && ((0. <= rem && rem <= delay) || Frame.is_partial ab) then
     begin
-      let m =
-        match latest_metadata with
-          | Some m -> m
-          | None -> Hashtbl.create 0
-      in
       ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.float rem;
-                                          "",Lang.metadata m]) ;
+                                          "",Lang.metadata latest_metadata]) ;
       executed <- true
     end ;
     if Frame.is_partial ab then
@@ -65,8 +60,7 @@ let () =
             equal to this value." ;
       "",
       Lang.fun_t
-        [(false,"",Lang.float_t);
-          false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
+        [(false,"",Lang.float_t);(false,"",Lang.metadata_t)]
         Lang.unit_t,
       None,
       Some "Function to execute. First argument is the remaining time, \
