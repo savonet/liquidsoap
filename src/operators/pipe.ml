@@ -183,7 +183,7 @@ object(self)
   method wake_up _ =
     source#get_ready [(self:>source)];
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s";
+    log_ref := self#log#f 4 "%s";
     log_error := self#log#f 5 "%s";
     handler <- Some (Process_handler.run ~on_stop ~on_start ~on_stdout 
                                          ~on_stdin:self#on_stdin

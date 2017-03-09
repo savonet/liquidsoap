@@ -65,7 +65,7 @@ let kill t = Tutils.mutexify t.mutex (fun () ->
 let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
   let process = get_process t in
   if not process.stopped then begin
-    log "stopping process";
+    log "Stopping process";
     process.stopped <- true;
     try close_out process.stdin with _ -> ()
   end) ()
