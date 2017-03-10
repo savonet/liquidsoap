@@ -28,7 +28,7 @@ let (++) = Int64.add
 let ticks_of_offset offset =
   Int64.of_float (offset *. float (Lazy.force Frame.master_rate))
 
-class on_offset ~kind ~offset ~override f s =
+class on_offset ~kind ~force ~offset ~override f s =
 object(self)
   inherit Source.operator ~name:"on_offset" kind [s]
 
@@ -42,6 +42,11 @@ object(self)
   val mutable elapsed = 0L
   val mutable offset = ticks_of_offset offset
   val mutable executed = false
+
+  method private execute =
+    self#log#f 4 "Executing on_offset callback.";
+    ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.metadata latest_metadata]);
+    executed <- true
 
   method private get_frame ab =
     let pos =
@@ -72,13 +77,11 @@ object(self)
             self#log#f 3 "Invalid value for override metadata: %s" pos
     end;
     if not executed && offset <= elapsed then
-     begin
-      self#log#f 4 "Executing on_offset callback.";
-      ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.metadata latest_metadata]);
-      executed <- true
-     end;
+      self#execute;
     if Frame.is_partial ab then
      begin
+      if force && not executed then
+        self#execute;
       executed <- false;
       elapsed <- 0L
      end
@@ -91,6 +94,10 @@ let () =
       Some (Lang.float (-1.)),
       Some "Execute handler when position in track is equal or \
             more than to this value." ;
+      "force", Lang.bool_t,
+      Some (Lang.bool false),
+      Some "Force execution of callback if track ends before 'offset' \
+            position has been reached.";
       "override", Lang.string_t,
       Some (Lang.string "liq_on_offset"),
       Some "Metadata field which, if present and containing a float, overrides the \
@@ -106,7 +113,8 @@ let () =
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
        let offset = Lang.to_float (List.assoc "offset" p) in
+       let force = Lang.to_bool (List.assoc "force" p) in
        let override = Lang.to_string (List.assoc "override" p) in
        let f = Lang.assoc "" 1 p in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
-         new on_offset ~kind ~offset ~override f s)
+         new on_offset ~kind ~offset ~force ~override f s)
