@@ -39,7 +39,7 @@ object
     let compare x y = - (compare x y) in
     let l = List.sort compare (Frame.get_all_metadata ab) in
     if List.length l > 0 then
-      latest_metadata <- snd (List.hd l);
+      latest_metadata <- Hashtbl.copy(snd (List.hd l));
     let rem = Frame.seconds_of_master s#remaining in
     if (not executed) && ((0. <= rem && rem <= delay) || Frame.is_partial ab) then
     begin

@@ -66,7 +66,7 @@ object(self)
     let l = List.sort compare (Frame.get_all_metadata ab) in
     begin
       try
-        latest_metadata <- snd (List.hd l);
+        latest_metadata <- Hashtbl.copy (snd (List.hd l));
         let pos = Hashtbl.find latest_metadata override in
         let pos =
           try float_of_string pos
