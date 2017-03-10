@@ -48,7 +48,10 @@ object
       executed <- true
     end ;
     if Frame.is_partial ab then
-      executed <- false ;
+     begin
+      latest_metadata <- Hashtbl.create 0;
+      executed <- false
+     end;
 end
 
 let () =

@@ -82,6 +82,7 @@ object(self)
      begin
       if force && not executed then
         self#execute;
+      latest_metadata <- Hashtbl.create 0;
       executed <- false;
       elapsed <- 0L
      end
