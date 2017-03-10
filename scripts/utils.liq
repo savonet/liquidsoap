@@ -22,14 +22,6 @@ def list.mem_assoc(a,l)
   list.fold(f, false, l)
 end
 
-# Remove a pair from an associative list
-# @category List
-# @param a Key of pair to be removed
-# @param l List of pairs (key,value)
-def list.remove_assoc(a,l)
-  list.remove((a,list.assoc(default="",a,l)),l)
-end
-
 # Rewrite metadata on the fly using a list of (target,rules).
 # @category Source / Track Processing
 # @param l \

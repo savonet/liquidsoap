@@ -965,27 +965,64 @@ let () =
        in
          Lang.string (try List.assoc k l with _ -> ""))
 
+exception Found_assoc of (Lang.value*Lang.value)
+
+let assoc_value k l =
+  try
+    List.iter (fun ((k',_) as el) ->
+      if compare_value k k' == 0 then
+        raise (Found_assoc el)) l;
+    raise Not_found
+  with Found_assoc v -> v
+
 let () =
-  let t = Lang.univ_t 1 in
+  let t1 = Lang.univ_t 1 in
+  let t2 = Lang.univ_t 2 in
   let lt =
-    Lang.list_t (Lang.product_t Lang.string_t t)
+    Lang.list_t (Lang.product_t t1 t2)
   in
   add_builtin "list.assoc" ~cat:List
     ~descr:"Generalized l[k] with default value."
-    ["default",t,None,Some "Default value if key does not exist";
-     "",Lang.string_t,None,None ;
-     "",lt,None,None] t
+    ["default",t2,None,Some "Default value if key does not exist";
+     "",t1,None,None ;
+     "",lt,None,None] t2
     (fun p ->
       let default = List.assoc "default" p in
-       let k = Lang.to_string (Lang.assoc "" 1 p) in
+       let k = Lang.assoc "" 1 p in
        let l =
-         List.map
-           (fun p ->
-              let (a,b) = Lang.to_product p in
-                Lang.to_string a, b)
+         List.map Lang.to_product
            (Lang.to_list (Lang.assoc "" 2 p))
        in
-         (try List.assoc k l with _ -> default))
+       try
+         snd(assoc_value k l)
+       with Not_found -> default)
+
+let () =
+  let t1 = Lang.univ_t 1 in
+  let t2 = Lang.univ_t 2 in
+  let lt =
+    Lang.list_t (Lang.product_t t1 t2)
+  in
+  add_builtin "list.remove_assoc" ~cat:List
+    ~descr:"Remove the first pair from an associative list."
+    ["",t1,None,Some "Key of pair to be removed";
+     "",lt,None,Some "List of pairs (key,value)"] lt
+    (fun p ->
+       let k = Lang.assoc "" 1 p in
+       let l = Lang.assoc "" 2 p in
+       let t = Lang.of_list_t l.Lang.t in
+       let l =
+         List.map Lang.to_product
+           (Lang.to_list (Lang.assoc "" 2 p))
+       in
+       let l =
+         try
+           let k = fst(assoc_value k l) in
+           List.remove_assoc k l
+         with Not_found -> l
+       in
+       Lang.list ~t (List.map (fun (x,y) ->
+         Lang.product x y) l))
 
 let () =
   Lang.add_builtin "list.add"
