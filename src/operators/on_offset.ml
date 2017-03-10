@@ -45,7 +45,12 @@ object(self)
 
   method private execute =
     self#log#f 4 "Executing on_offset callback.";
-    ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.metadata latest_metadata]);
+    let pos =
+      (Int64.to_float elapsed) /. (float (Lazy.force Frame.master_rate))
+    in
+    ignore(Lang.apply ~t:Lang.unit_t f [
+      "",Lang.float pos;
+      "",Lang.metadata latest_metadata]);
     executed <- true
 
   method private get_frame ab =
@@ -104,9 +109,10 @@ let () =
       Some "Metadata field which, if present and containing a float, overrides the \
             'offset' parameter." ;
       "",
-      Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t,
+      Lang.fun_t [false,"",Lang.float_t;false,"",Lang.metadata_t] Lang.unit_t,
       None,
-      Some "Function to execute. Executed with latest metadata.";
+      Some "Function to execute. First argument is the actual position within \
+            the current track, second is the latest metadata.";
       "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler when position in track is equal or \
