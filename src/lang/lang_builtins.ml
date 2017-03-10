@@ -2029,6 +2029,15 @@ let () =
        Lang.metadata (Request.get_all_metadata r))
 
 let () =
+  add_builtin "request.log" ~cat:Liq
+    ["",Lang.request_t (Lang.univ_t 1),None,None] Lang.string_t
+    ~descr:"Get log data associated to a request."
+    (fun p ->
+       let r = Lang.to_request (List.assoc "" p) in
+       Lang.string (Request.string_of_log
+         (Request.get_log r)))
+
+let () =
   add_builtin "request.ready" ~cat:Liq
     ~descr:"Check if a request is ready, i.e. is associated to a valid \
             local file. Unless the initial URI was such a file, a request \

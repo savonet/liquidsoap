@@ -23,6 +23,8 @@ New:
 
 - Added mutexify to protect a function from being called concurrently.
 
+- Added request.log to get log data associated with a request
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
