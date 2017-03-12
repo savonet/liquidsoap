@@ -792,3 +792,78 @@ end
 def stereo.right(s)
   mean(stereo.pan(pan=1., s))
 end
+
+# Rotate between overlapping sources. Next track starts according
+# to 'liq_start_next' offset metadata.
+# @category Source / Tracks
+# @param ~id Force the value of the source ID.
+# @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
+# @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
+# @param sources Sources to toggle from
+def overlap_sources(~id="",~normalize=false,
+                    ~start_next="liq_start_next",
+                    ~weights=[],sources) =
+  position = ref 0
+  length   = list.length(sources)
+
+  def current_position() =
+    pos = !position
+    position := (pos + 1) mod length
+    pos
+  end
+
+  ready_list = list.map(fun (_) -> ref false,sources)
+  grab_ready = list.nth(default=ref false,ready_list)
+
+  def set_ready(pos,b) =
+    is_ready = grab_ready(pos)
+    is_ready := b
+  end
+
+  # Start next track on_offset
+  def on_start_next(_,_) =
+    set_ready(current_position(),true)
+  end
+  on_offset = on_offset(force=true,override=start_next,on_start_next)
+  sources = list.map(on_offset,sources)
+
+  # Disable after each track
+  def disable(pos,source) =
+    def disable(_) =
+      set_ready(pos,false)
+    end
+    on_track(disable,source)
+  end
+
+  sources = list.mapi(disable,sources)
+
+  # Relay metadata from all sources
+  send_to_main_source = ref fun (_) -> ()
+
+  def relay_metadata(m) =
+    fn = !send_to_main_source
+    fn(m)
+  end
+  sources = list.map(on_metadata(relay_metadata),sources)
+
+  # Now drop all metadata
+  sources = list.map(drop_metadata,sources)
+
+  # Wrap sources into switches.
+  def make_switch(pos,source) =
+    is_ready = grab_ready(pos)
+    switch(track_sensitive=true,[({!is_ready},source)])
+  end
+  sources = list.mapi(make_switch,sources)
+
+  # Initiate the whole thing.
+  set_ready(current_position(),true)
+
+  # Create main source
+  source = add(id=id,normalize=normalize,weights=weights,sources)
+
+  # Set send_to_main_source
+  x = insert_metadata(source)
+  send_to_main_source := fst(x)
+  snd(x)
+end

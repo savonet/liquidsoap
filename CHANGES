@@ -25,6 +25,8 @@ New:
 
 - Added request.log to get log data associated with a request
 
+- Added overlap_sources to rotate between sources with overlapping tracks.
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
