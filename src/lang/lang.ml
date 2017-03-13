@@ -507,9 +507,6 @@ let iter_sources f v =
 let apply f p ~t =
   Clock.collect_after (fun () -> Term.apply f p ~t)
 
-let eval_term ~env v =
-  Clock.collect_after (fun () -> Term.eval ~env v)
-
 (** {1 High-level manipulation of values} *)
 
 let to_unit t = match t.value with
