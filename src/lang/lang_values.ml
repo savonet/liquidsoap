@@ -366,7 +366,7 @@ let rec map_types f (gen:'a list) tm =
   * skipping as much as possible while still
   * guaranteeing that [f] will see all variables. *)
 let rec fold_types f gen x tm =
-  let fold_proto p =
+  let fold_proto x p =
     List.fold_left
       (fun x -> function
         | (_,_,t,Some tm) ->
@@ -389,12 +389,13 @@ let rec fold_types f gen x tm =
       let x = fold_types f gen x tm in
         List.fold_left (fun x (_,tm) -> fold_types f gen x tm) x l
   | Fun (_,p,v) ->
-      fold_types f gen (fold_proto p) v
+      fold_types f gen (fold_proto x p) v
   | RFun (_,p,fn) ->
       begin
         match (fn()).term with
-          | Let {body=body} ->
-              fold_types f gen (fold_proto p) body
+          | Let l ->
+              let x = f gen x l.def.t in
+              fold_types f gen (fold_proto x p) l.body
           | _ -> assert false
       end 
   | Let {gen=gen';def=def;body=body;_} ->
