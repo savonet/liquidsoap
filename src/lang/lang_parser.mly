@@ -56,13 +56,10 @@
         | Some t -> t
         | None ->
             let fnv = mk ?pos (RFun (fv,args,fn)) in
-            let body = mk ?pos (Let {doc=doc;var=name;gen=[];
-                                  def=fnv;body=body})
-            in
-            cached := Some body;
-            body
+            mk ?pos (Let {doc=doc;var=name;gen=[];
+                          def=fnv;body=body})
     in
-      ignore(fn());
+      cached := Some (fn());
       mk ?pos (RFun (fv,args,fn))
 
   let mk_enc e = mk (Encoder e)
