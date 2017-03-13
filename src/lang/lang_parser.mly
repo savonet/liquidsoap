@@ -56,11 +56,11 @@
         | Some t -> t
         | None ->
             let fnv = mk ?pos (RFun (fv,args,fn)) in
-            let t = mk ?pos (Let {doc=doc;var=name;gen=[];
+            let body = mk ?pos (Let {doc=doc;var=name;gen=[];
                                   def=fnv;body=body})
             in
-            cached := Some t;
-            t
+            cached := Some body;
+            body
     in
       ignore(fn());
       mk ?pos (RFun (fv,args,fn))

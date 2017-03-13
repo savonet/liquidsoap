@@ -317,7 +317,12 @@ let check_unused ~lib tm =
 
 (** Maps a function on all types occurring in a term.
   * Ignores variable generalizations. *)
-let rec map_types f (gen:'a list) tm = match tm.term with
+let rec map_types f (gen:'a list) tm =
+  let aux = function
+    | (lbl,var,t,None) -> lbl, var, f gen t, None
+    | (lbl,var,t,Some tm) -> lbl, var, f gen t, Some (map_types f gen tm)
+  in
+  match tm.term with
   | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       { tm with t = f gen tm.t }
   | Ref r ->
@@ -343,17 +348,20 @@ let rec map_types f (gen:'a list) tm = match tm.term with
         term = App (map_types f gen hd,
                     List.map (fun (lbl,v) -> lbl, map_types f gen v) l) }
   | Fun (fv,p,v) ->
-      let aux = function
-        | (lbl,var,t,None) -> lbl, var, f gen t, None
-        | (lbl,var,t,Some tm) -> lbl, var, f gen t, Some (map_types f gen tm)
-      in
         { t = f gen tm.t ;
           term = Fun (fv, List.map aux p, map_types f gen v) }
   | RFun (fv,p,fn) ->
       begin
         match (fn()).term with
-          | Let {body=body} ->
-             map_types f gen {tm with term = Fun (fv,p,body)}
+          | Let ({body=body} as l) ->
+             let p = List.map aux p in
+             let fn () =
+               {tm with term = Let {l with
+                 body = map_types f gen body }}
+             in
+             let body = fn () in
+             { t = f gen tm.t ;
+               term = Fun (fv, List.map aux p, body) }
           | _ -> assert false
       end
   | Let l ->
@@ -365,7 +373,17 @@ let rec map_types f (gen:'a list) tm = match tm.term with
 (** Folds [f] over almost all types occurring in a term,
   * skipping as much as possible while still
   * guaranteeing that [f] will see all variables. *)
-let rec fold_types f gen x tm = match tm.term with
+let rec fold_types f gen x tm =
+  let fold_proto p =
+    List.fold_left
+      (fun x -> function
+        | (_,_,t,Some tm) ->
+            fold_types f gen (f gen x t) tm
+        | (_,_,t,None) ->
+            f gen x t)
+     x p
+  in
+  match tm.term with
   | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       f gen x tm.t
   | List l ->
@@ -379,21 +397,12 @@ let rec fold_types f gen x tm = match tm.term with
       let x = fold_types f gen x tm in
         List.fold_left (fun x (_,tm) -> fold_types f gen x tm) x l
   | Fun (_,p,v) ->
-      fold_types f gen
-        (List.fold_left
-           (fun x -> function
-              | (_,_,t,Some tm) ->
-                  fold_types f gen (f gen x t) tm
-              | (_,_,t,None) ->
-                  f gen x t)
-           x
-           p)
-        v
-  | RFun (fv,p,fn) ->
+      fold_types f gen (fold_proto p) v
+  | RFun (_,p,fn) ->
       begin
         match (fn()).term with
           | Let {body=body} ->
-              fold_types f gen x {tm with term = (Fun (fv,p,body))}
+              fold_types f gen (fold_proto p) body
           | _ -> assert false
       end 
   | Let {gen=gen';def=def;body=body;_} ->
@@ -696,6 +705,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       begin
         match (fn()).term with
           | Let {var=var;def=def;body=body} ->
+             let env = List.remove_assoc var env in
              let env = (var,([],def.t))::env in
              check_fun ~proto ~env def body;
              e.t >: def.t
@@ -891,11 +901,13 @@ let rec eval ~env tm =
           begin
             match (fn ()).term with
               | Let {var=var;body=body} ->
+                  let env = List.remove_assoc var env in
                   let (p,env) = prepare_fun fv p env in
                   let rec ffi args t =
-                    let v = mk (V.FFI (p,args,ffi)) in
+                    let v = mk (V.FFI (p,[],ffi)) in
                     let env = (var,([],v))::env in
-                    let f = mk (V.Fun ([],[],env@args,body)) in
+                    let env = List.rev_append args env in
+                    let f = mk (V.Fun ([],[],env,body)) in
                     apply ~t f []
                   in
                     mk (V.FFI (p,[],ffi))
