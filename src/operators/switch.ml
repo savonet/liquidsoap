@@ -217,7 +217,7 @@ object (self)
                    (Frame.get_all_metadata ab)
                with
                  | None -> None
-                 | Some (_,m) -> Some m) ;
+                 | Some (_,m) -> Some (Hashtbl.copy m)) ;
           if Frame.is_partial ab then
             reselect ~forget:true ()
           else
