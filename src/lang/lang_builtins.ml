@@ -1451,21 +1451,24 @@ let () =
       let m = Mutex.create () in
       let v = List.assoc "" p in
       match v.Lang.value with
-        | Lang.Fun (args,env,e,body) ->
-            let fn pe _ =
-              Lang.eval_term ~env:(List.rev_append pe e) body
+        | Lang.Fun (p,args,env,body) ->
+            let v = {v with Lang.value =
+              Lang.Fun (p,[],env,body)}
             in
-            let fn pe t = Tutils.mutexify m (fun () ->
-              fn pe t) ()
-            in
-            { v with Lang.value =
-                Lang.FFI (args, env, fn) }
-        | Lang.FFI (args, env, fn) ->
-            let fn pe t = Tutils.mutexify m (fun () ->
-              fn pe t) ()
+            let fn args t = Tutils.mutexify m (fun () ->
+              let args = List.map (fun (x,(_,y)) ->
+                (x,y)) args
+              in
+              Lang.apply ~t v args) ()
             in
             { v with Lang.value =
-                Lang.FFI (args, env, fn) }
+                Lang.FFI (p, args, fn) }
+        | Lang.FFI (p, args, fn) ->
+            let fn args t = Tutils.mutexify m (fun () ->
+              fn args t) ()
+            in
+            { v with Lang.value =
+                Lang.FFI (p, args, fn) }
         | _ -> v)
 
 let () =

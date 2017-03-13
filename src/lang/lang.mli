@@ -68,9 +68,6 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 (** Multiapply a value to arguments. *)
 val apply : value -> env -> t:t -> value
 
-(** Evaluate a term. *)
-val eval_term : env:full_env -> Lang_values.term -> value
-
 (** {3 Helpers for source builtins} *)
 
 type proto =
