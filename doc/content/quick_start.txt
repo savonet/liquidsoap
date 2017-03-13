@@ -103,10 +103,10 @@ You may already have an Icecast server. Otherwise you can install and configure 
 We are now going to send an audio stream, encoded as Ogg Vorbis, to an Icecast server:
 
 %%(icecast.sh)
-liquidsoap 
+liquidsoap \
   'output.icecast(%vorbis,
-     host = "localhost", port = 8000, \
-     password = "hackme", mount = "liq.ogg", \
+     host = "localhost", port = 8000,
+     password = "hackme", mount = "liq.ogg",
      mksafe(playlist("playlist.m3u")))'
 %%
 
@@ -115,9 +115,9 @@ The main difference with the previous is that we used <code>output.icecast</code
 Streaming to Shoutcast is quite similar, using the <code>output.shoutcast</code> function:
 
 %%(shoutcast.sh)
-liquidsoap 'output.shoutcast(%mp3, \
-                host="localhost", port = 8000, \
-	        password = "changeme", \
+liquidsoap 'output.shoutcast(%mp3,
+                host="localhost", port = 8000,
+	        password = "changeme",
 	        mksafe(playlist("playlist.m3u")))'
 %%
 
