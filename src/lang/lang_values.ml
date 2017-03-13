@@ -705,7 +705,6 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       begin
         match (fn()).term with
           | Let {var=var;def=def;body=body} ->
-             let env = List.remove_assoc var env in
              let env = (var,([],def.t))::env in
              check_fun ~proto ~env def body;
              e.t >: def.t
@@ -901,7 +900,6 @@ let rec eval ~env tm =
           begin
             match (fn ()).term with
               | Let {var=var;body=body} ->
-                  let env = List.remove_assoc var env in
                   let (p,env) = prepare_fun fv p env in
                   let rec ffi args t =
                     let v = mk (V.FFI (p,[],ffi)) in
