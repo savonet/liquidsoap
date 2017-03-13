@@ -348,22 +348,14 @@ let rec map_types f (gen:'a list) tm =
         term = App (map_types f gen hd,
                     List.map (fun (lbl,v) -> lbl, map_types f gen v) l) }
   | Fun (fv,p,v) ->
-        { t = f gen tm.t ;
-          term = Fun (fv, List.map aux p, map_types f gen v) }
+      { t = f gen tm.t ;
+        term = Fun (fv, List.map aux p, map_types f gen v) }
   | RFun (fv,p,fn) ->
-      begin
-        match (fn()).term with
-          | Let ({body=body} as l) ->
-             let p = List.map aux p in
-             let fn () =
-               {tm with term = Let {l with
-                 body = map_types f gen body }}
-             in
-             let body = fn () in
-             { t = f gen tm.t ;
-               term = Fun (fv, List.map aux p, body) }
-          | _ -> assert false
-      end
+      let fn () =
+        map_types f gen (fn ())
+      in
+      { t = f gen tm.t ;
+        term = RFun (fv, List.map aux p, fn) }
   | Let l ->
       let gen' = l.gen@gen in
         { t = f gen tm.t ;
