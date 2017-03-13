@@ -35,7 +35,7 @@ module Make(Harbor:T) =
 struct
   class http_input_server ~kind ~dumpfile ~logfile
                           ~bufferize ~max ~icy ~port
-                          ~meta_charset ~icy_charset
+                          ~meta_charset ~icy_charset ~replay_meta
                           ~mountpoint ~on_connect ~on_disconnect
                           ~login ~debug ~timeout p =
     let max_ticks = Frame.master_of_seconds max in
@@ -49,7 +49,7 @@ struct
     inherit Generated.source
               (Generator.create
                  ~log ~kind ~overfull:(`Drop_old max_ticks) `Undefined)
-              ~empty_on_abort:false ~bufferize
+              ~empty_on_abort:false ~replay_meta ~bufferize
   
     val mutable relay_socket = None
     (** Function to read on socket. *)
@@ -321,6 +321,11 @@ struct
         Some (Lang.string ""),
         Some "Metadata charset for non-ICY (shoutcast) source protocols. \
               Guessed if empty.";
+
+        "replay_metadata", Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Replay last known metadata when switching back to this source. \
+              This helps when source has dropped due to temporary connection issues.";
   
         "auth",
         Lang.fun_t [false,"",Lang.string_t;false,"",Lang.string_t] Lang.bool_t,
@@ -377,6 +382,7 @@ struct
              | "" -> None
              | s -> Some s
          in
+         let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
          let port = Lang.to_int (List.assoc "port" p) in
          let auth_function = List.assoc "auth" p in
          let login user password =
@@ -446,7 +452,7 @@ struct
          (new http_input_server ~kind ~timeout
                    ~bufferize ~max ~login ~mountpoint
                    ~dumpfile ~logfile ~icy ~port
-                   ~icy_charset ~meta_charset
+                   ~icy_charset ~meta_charset ~replay_meta
                    ~on_connect ~on_disconnect ~debug
                    p :> Source.source))
 end
