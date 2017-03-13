@@ -27,6 +27,8 @@ New:
 
 - Added overlap_sources to rotate between sources with overlapping tracks.
 
+- Added replay_metadata to input.harbor()
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
