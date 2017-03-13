@@ -1455,11 +1455,15 @@ let () =
             let fn pe _ =
               Lang.eval_term ~env:(List.rev_append pe e) body
             in
-            let fn = Tutils.mutexify m fn in
+            let fn pe t = Tutils.mutexify m (fun () ->
+              fn pe t) ()
+            in
             { v with Lang.value =
                 Lang.FFI (args, env, fn) }
         | Lang.FFI (args, env, fn) ->
-            let fn = Tutils.mutexify m fn in
+            let fn pe t = Tutils.mutexify m (fun () ->
+              fn pe t) ()
+            in
             { v with Lang.value =
                 Lang.FFI (args, env, fn) }
         | _ -> v)
