@@ -29,6 +29,8 @@ New:
 
 - Added replay_metadata to input.harbor()
 
+- Added \<char code> syntax for strings (#368)
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
