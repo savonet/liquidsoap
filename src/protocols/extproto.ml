@@ -111,7 +111,7 @@ let resolve proto program command s ~log maxtime =
         let rem = 
           if List.mem (`Delay timeout) l then
            begin
-            Unix.kill pid 9;
+            (try Unix.kill pid 9 with _ -> ());
             []
            end
           else
