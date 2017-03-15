@@ -323,7 +323,7 @@ struct
               Guessed if empty.";
 
         "replay_metadata", Lang.bool_t,
-        Some (Lang.bool true),
+        Some (Lang.bool false),
         Some "Replay last known metadata when switching back to this source. \
               This helps when source has dropped due to temporary connection issues.";
   
