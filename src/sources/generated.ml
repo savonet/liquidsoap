@@ -26,7 +26,7 @@ struct
 (* Reads data from an audio buffer generator.
  * A thread safe generator should be used if it has to be fed concurrently.
  * Store [bufferize] seconds before declaring itself as ready. *)
-class virtual source ?(seek=false) ~bufferize ~empty_on_abort gen =
+class virtual source ?(seek=false) ?(replay_meta=false) ~bufferize ~empty_on_abort gen =
   let bufferize = Frame.master_of_seconds bufferize in
 object (self)
 
@@ -45,6 +45,8 @@ object (self)
   val mutable buffering = true
 
   val mutable should_fail = false
+
+  val mutable cur_meta : Request.metadata option = None
 
   method virtual private log : Dtools.Log.t
 
@@ -81,8 +83,40 @@ object (self)
       if buffering && self#length <= bufferize then 0 else
         Generator.remaining generator
 
+  (* Returns true if metadata should be replayed. *)
+  method private save_metadata frame =
+    let new_meta =
+      (match
+        List.fold_left
+          (function
+              | None -> fun (p,m) -> Some (p,m)
+              | Some (curp,curm) -> fun (p,m) ->
+                  Some (if p>=curp then (p,m) else (curp,curm)))
+           (match cur_meta with
+              | None -> None
+              | Some m -> Some (-1,m))
+           (Frame.get_all_metadata frame)
+       with
+         | None -> None
+         | Some (_,m) -> Some m)
+    in
+    if cur_meta = new_meta then
+      true
+    else
+     begin
+      cur_meta <- new_meta;
+      false
+     end
+
+  method private replay_metadata pos frame =
+    match cur_meta with
+      | None -> ()
+      | Some m -> Frame.set_metadata frame pos m
+
   method private get_frame ab =
     Tutils.mutexify generator_lock (fun () ->
+    let was_buffering = buffering in
+    let pos = Frame.position ab in
     buffering <- false ;
     if should_fail then begin
       self#log#f 4 "Performing skip." ;
@@ -103,7 +137,9 @@ object (self)
       if Generator.length generator = 0 then begin
         self#log#f 4 "Buffer emptied, buffering needed." ;
         buffering <- true
-      end
+      end;
+      if self#save_metadata ab && was_buffering && replay_meta then
+        self#replay_metadata pos ab;
     end) ()
 
 end
