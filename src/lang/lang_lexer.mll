@@ -181,15 +181,18 @@ and read_string c pos buf =
   | '\\' ('\n' ('\n'|'\r'|'\t'|' ')* as s)  {
       String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;    
       read_string c pos buf lexbuf }
-  | '\\' (('"'|'\'') as c') {
+  | '\\' ((['0'-'9'] ['0'-'9'] ['0'-'9']) as code) {
+      Buffer.add_char buf (Char.chr (int_of_string code));
+      read_string c pos buf lexbuf }
+  | '\\' (_ as c') {
       if c = c' then
         Buffer.add_char buf c
       else
-        raise (Lang_values.Parse_error ((pos,lexbuf.Lexing.lex_curr_p),
-              (Printf.sprintf "Illegal string character: %c" c')));
-      read_string c pos buf lexbuf }
-  | '\\' ((['0'-'9'] ['0'-'9'] ['0'-'9']) as code) {
-      Buffer.add_char buf (Char.chr (int_of_string code));
+       begin
+        Printf.printf "Warning: illegal backslash escape in string.\n";
+        Buffer.add_char buf '\\';
+        Buffer.add_char buf c'
+      end;
       read_string c pos buf lexbuf }
   | '\n' {
       incrline lexbuf;
