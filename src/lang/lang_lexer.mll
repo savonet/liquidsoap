@@ -178,21 +178,28 @@ and read_string c pos buf =
   | '\\' 'n'  { Buffer.add_char buf '\n'; read_string c pos buf lexbuf }
   | '\\' 'r'  { Buffer.add_char buf '\r'; read_string c pos buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; read_string c pos buf lexbuf }
-  | '\\' ('\n' ('\n'|'\r'|'\t'|' ')* as s)  {
+  | '\\' ('\n' ('\r'|'\t'|' ')* as s)  {
       String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;    
       read_string c pos buf lexbuf }
+  | '\\' 'x' (((['0'-'9']|['a'-'f']|['A'-'F']) (['0'-'9']|['a'-'f']|['A'-'F'])) as code) {
+      let code = int_of_string (Printf.sprintf "0x%s" code) in
+      Buffer.add_char buf (Char.chr code);
+      read_string c pos buf lexbuf }
+  | '\\' 'o' ((('0'|'1') ('0'|'1') ('0'|'1')) as code) {
+      let code = int_of_string (Printf.sprintf "0o%s" code) in
+      Buffer.add_char buf (Char.chr code);
+      read_string c pos buf lexbuf }
   | '\\' ((['0'-'9'] ['0'-'9'] ['0'-'9']) as code) {
-      Buffer.add_char buf (Char.chr (int_of_string code));
+      let code = int_of_string code in
+      Buffer.add_char buf (Char.chr code);
+      read_string c pos buf lexbuf }
+  | '\\' (('"'|'\'') as c') {
+      Buffer.add_char buf c';
       read_string c pos buf lexbuf }
   | '\\' (_ as c') {
-      if c = c' then
-        Buffer.add_char buf c
-      else
-       begin
-        Printf.printf "Warning: illegal backslash escape in string.\n";
-        Buffer.add_char buf '\\';
-        Buffer.add_char buf c'
-      end;
+      Printf.printf "Warning: illegal backslash escape in string.\n";
+      Buffer.add_char buf '\\';
+      Buffer.add_char buf c';
       read_string c pos buf lexbuf }
   | '\n' {
       incrline lexbuf;
