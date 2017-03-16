@@ -45,39 +45,6 @@
         let sub = Pcre.exec ~pat t in
         let g = g sub in
           [g 1;g 2;Some (int_of_string (Pcre.get_substring sub 3));None]
-
-  (** Process multiline string syntax à la Caml (backslash-newline).
-    * This is done almost in-place, mutating the initial string. *)
-  let process_bytes s =
-    let copy,cut =
-      let pos = ref 0 in
-        (fun i ->
-           if !pos<>i then Bytes.set s !pos (Bytes.get  s i) ;
-           incr pos),
-        (fun () -> Bytes.sub s 0 !pos)
-    in
-    let len = Bytes.length s in
-    let rec search i test =
-      if i >= len then raise Not_found ;
-      if test (Bytes.get s i) then i else
-        search (i+1) test
-    in
-    let rec parse i =
-      if i = len-1 then copy i else
-      if i = len-2 then begin copy i ; copy (i+1) end else
-        parse
-          (if (Bytes.get s i) = '\\' && (Bytes.get s (i+1)) = '\n' then
-             let i = search (i+2) (fun c -> c <> ' ') in
-               if (Bytes.get s i) = '\\' && i+1<len &&
-                  (Bytes.get s (i+1)) = ' ' then i+1 else i
-           else begin
-             copy i ; i+1
-           end)
-    in
-      (try parse 0 with _ -> ()) ;
-      cut ()
-
-  let process_string s = process_bytes (Bytes.of_string s)
 }
 
 let decimal_literal =
@@ -200,20 +167,44 @@ rule token = parse
                                { INTERVAL (parse_time t1, parse_time t2) }
 
   | var as v                   { VAR v }
-
-  | '\'' (([^'\''] | '\\' '\'')* as s) '\''   {
-            String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;
-            let s = process_string s in
-            STRING (Pcre.substitute ~pat:"(?<!\\\\)\\\\[0-9]{3}" ~subst:(fun m ->
-                        Printf.sprintf "%c" (Char.chr (int_of_string (String.sub m 1 3)))) 
-                     (Pcre.substitute ~pat:"\\\\n" ~subst:(fun _ -> "\n")
-                       (Pcre.substitute ~pat:"\\\\r" ~subst:(fun _ -> "\r")
-                        (Pcre.substitute ~pat:"\\\\'" ~subst:(fun _ -> "'") s)))) }
-  | '"' (([^'"'] | '\\' '"')* as s) '"'   {
-            String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;
-            let s = process_string s in
-            STRING (Pcre.substitute ~pat:"(?<!\\\\)\\\\[0-9]{3}" ~subst:(fun m ->
-                        Printf.sprintf "%c" (Char.chr (int_of_string (String.sub m 1 3)))) 
-                     (Pcre.substitute ~pat:"\\\\n" ~subst:(fun _ -> "\n")
-                       (Pcre.substitute ~pat:"\\\\r" ~subst:(fun _ -> "\r")
-                         (Pcre.substitute ~pat:"\\\\\"" ~subst:(fun _ -> "\"") s)))) }
+  | '"'      { read_string '"' lexbuf.Lexing.lex_curr_p (Buffer.create 17) lexbuf }
+  | '\''      { read_string '\'' lexbuf.Lexing.lex_curr_p (Buffer.create 17) lexbuf }
+and read_string c pos buf =
+  parse
+  | '\\' '/'  { Buffer.add_char buf '/'; read_string c pos buf lexbuf }
+  | '\\' '\\' { Buffer.add_char buf '\\'; read_string c pos buf lexbuf }
+  | '\\' 'b'  { Buffer.add_char buf '\b'; read_string c pos buf lexbuf }
+  | '\\' 'f'  { Buffer.add_char buf '\012'; read_string c pos buf lexbuf }
+  | '\\' 'n'  { Buffer.add_char buf '\n'; read_string c pos buf lexbuf }
+  | '\\' 'r'  { Buffer.add_char buf '\r'; read_string c pos buf lexbuf }
+  | '\\' 't'  { Buffer.add_char buf '\t'; read_string c pos buf lexbuf }
+  | '\\' ('\n' ('\n'|'\r'|'\t'|' ')* as s)  {
+      String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;    
+      read_string c pos buf lexbuf }
+  | '\\' (('"'|'\'') as c') {
+      if c = c' then
+        Buffer.add_char buf c
+      else
+        raise (Lang_values.Parse_error ((pos,lexbuf.Lexing.lex_curr_p),
+              (Printf.sprintf "Illegal string character: %c" c')));
+      read_string c pos buf lexbuf }
+  | '\\' ((['0'-'9'] ['0'-'9'] ['0'-'9']) as code) {
+      Buffer.add_char buf (Char.chr (int_of_string code));
+      read_string c pos buf lexbuf }
+  | '\n' {
+      incrline lexbuf;
+      Buffer.add_char buf '\n';
+      read_string c pos buf lexbuf }
+  | [^ '"' '\'' '\\']+
+    { Buffer.add_string buf (Lexing.lexeme lexbuf);
+      read_string c pos buf lexbuf }
+  | (('"'|'\'') as c') { 
+      if c = c' then
+         STRING (Buffer.contents buf)
+      else
+       begin
+        Buffer.add_char buf c;
+        read_string c pos buf lexbuf
+       end }
+  | _  { raise (Lang_values.Parse_error ((pos,lexbuf.Lexing.lex_curr_p),("Illegal string character: " ^ Lexing.lexeme lexbuf))) }
+  | eof { raise (Lang_values.Parse_error ((pos,lexbuf.Lexing.lex_curr_p),("String is not terminated"))) }

@@ -55,6 +55,8 @@ Bugfixes:
 
 - Fix crash in external (download) protocol.
 
+- Fix parsing of "\\" and '\\' strings (#368)
+
 
 1.2.1 (01-07-2016)
 ========
