@@ -297,6 +297,24 @@ AC_CHECK_OCAML_BINDING([bytes],[],[],[1],[],[1])
 AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
 
 #
+# SEDLEX
+#
+
+AC_CHECK_OCAML_BINDING([sedlex],[],[],[1],[],[1])
+
+#
+# MENHIR
+#
+
+AC_CHECK_OCAML_BINDING([menhirLib],[],[],[1],[],[1])
+
+MENHIR=`which menhir 2>/dev/null`
+if test -z "${MENHIR}" ; then
+  AC_MSG_ERROR(Cannot find menhir binary)
+fi
+AC_SUBST(MENHIR)
+
+#
 # Dtools
 #
 

@@ -111,17 +111,12 @@ let includer dir tokenizer =
   let opened = Stack.create () in
   let copy_lexbuf dst src =
     (* Yuk. *)
-    dst.Lexing.lex_buffer      <- src.Lexing.lex_buffer ;
-    dst.Lexing.lex_buffer_len  <- src.Lexing.lex_buffer_len ;
-    dst.Lexing.lex_abs_pos     <- src.Lexing.lex_abs_pos ;
-    dst.Lexing.lex_start_pos   <- src.Lexing.lex_start_pos ;
-    dst.Lexing.lex_curr_pos    <- src.Lexing.lex_curr_pos ;
-    dst.Lexing.lex_last_pos    <- src.Lexing.lex_last_pos ;
-    dst.Lexing.lex_last_action <- src.Lexing.lex_last_action ;
-    dst.Lexing.lex_eof_reached <- src.Lexing.lex_eof_reached ;
-    dst.Lexing.lex_mem         <- src.Lexing.lex_mem ;
-    dst.Lexing.lex_start_p     <- src.Lexing.lex_start_p ;
-    dst.Lexing.lex_curr_p      <- src.Lexing.lex_curr_p ;
+    dst.Sedlexing_compat.lex_start_pos  <- src.Sedlexing_compat.lex_start_pos ;
+    dst.Sedlexing_compat.lex_curr_pos   <- src.Sedlexing_compat.lex_curr_pos ;
+    dst.Sedlexing_compat.lex_marked_pos <- src.Sedlexing_compat.lex_marked_pos ;
+    dst.Sedlexing_compat.lex_marked_p   <- src.Sedlexing_compat.lex_marked_p ;
+    dst.Sedlexing_compat.lex_start_p    <- src.Sedlexing_compat.lex_start_p ;
+    dst.Sedlexing_compat.lex_curr_p     <- src.Sedlexing_compat.lex_curr_p ;
   in
   let current_dir () =
     if Stack.is_empty opened then dir else fst (Stack.top opened)
@@ -140,7 +135,7 @@ let includer dir tokenizer =
      * be done using the values in the queue. *)
     if Stack.is_empty state then
       Stack.push
-        { top_lexbuf with Lexing.lex_buffer = top_lexbuf.Lexing.lex_buffer }
+        { top_lexbuf with Sedlexing_compat.lex_start_pos = top_lexbuf.Sedlexing_compat.lex_start_pos }
         state ;
     let tokenizer () =
       if Stack.length state = 1 then
@@ -171,23 +166,23 @@ let includer dir tokenizer =
                 try open_in filename with
                   | Sys_error _ ->
                       flush_all () ;
-                      let start = lexbuf.Lexing.lex_curr_p in
+                      let start = lexbuf.Sedlexing_compat.lex_curr_p in
                         Printf.printf "%sine %d, char %d: cannot %%include, "
-                          (if start.Lexing.pos_fname="" then "L" else
-                             Printf.sprintf "File %S, l" start.Lexing.pos_fname)
-                          start.Lexing.pos_lnum
-                          (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
+                          (if start.Sedlexing_compat.pos_fname="" then "L" else
+                             Printf.sprintf "File %S, l" start.Sedlexing_compat.pos_fname)
+                          start.Sedlexing_compat.pos_lnum
+                          (1+start.Sedlexing_compat.pos_cnum-start.Sedlexing_compat.pos_bol) ;
                         Printf.printf "file %S doesn't exist.\n" filename ;
                         exit 1
               in
-              let new_lexbuf = Lexing.from_channel channel in
+              let new_lexbuf = Sedlexing_compat.Utf8.from_channel channel in
                 Stack.push (Filename.dirname filename,channel) opened ;
-                new_lexbuf.Lexing.lex_start_p <-
-                  { new_lexbuf.Lexing.lex_start_p with
-                      Lexing.pos_fname = filename } ;
-                new_lexbuf.Lexing.lex_curr_p <-
-                  { new_lexbuf.Lexing.lex_curr_p with
-                      Lexing.pos_fname = filename } ;
+                new_lexbuf.Sedlexing_compat.lex_start_p <-
+                  { new_lexbuf.Sedlexing_compat.lex_start_p with
+                      Sedlexing_compat.pos_fname = filename } ;
+                new_lexbuf.Sedlexing_compat.lex_curr_p <-
+                  { new_lexbuf.Sedlexing_compat.lex_curr_p with
+                      Sedlexing_compat.pos_fname = filename } ;
                 new_lexbuf
             in
               Stack.push new_lexbuf state ;
@@ -207,7 +202,7 @@ let includer dir tokenizer =
 
 (* The expander turns "bla #{e} bli" into ("bla "^string_of(e)^" bli") *)
 type exp_item =
-  | String of string | Expr of Lexing.lexbuf | Concat | RPar | LPar | String_of
+  | String of string | Expr of Sedlexing_compat.lexbuf | Concat | RPar | LPar | String_of
 let expand tokenizer =
   let state = Queue.create () in
   let add x = Queue.add x state in
@@ -219,7 +214,7 @@ let expand tokenizer =
       | s::x::l ->
           List.iter add
             [ String s ; Concat; LPar ;
-              String_of ; Expr (Lexing.from_string x) ; RPar ;
+              String_of ; Expr (Sedlexing_compat.Utf8.from_string x) ; RPar ;
               RPar ] ;
           if l<>[] then begin
             add Concat ;

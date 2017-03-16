@@ -178,14 +178,10 @@ plugins/dllliquidsoap_%.so:
 	$(V)echo CAMLP4O $<
 	$(V)$(CAMLP4O) -printer Camlp4OCamlPrinter -impl $< > $@
 
-%.ml: %.mll
-	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
-	$(V)echo OCAMLLEX $<
-	$(V)$(OCAMLLEX) $<
 %.ml %.mli: %.mly
 	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
-	$(V)echo OCAMLYACC $<
-	$(V)$(OCAMLYACC) $<
+	$(V)echo MENHIR $<
+	$(V)$(MENHIR) --unused-tokens --explain $<
 
 %.$(o): %.ml
 	$(V)echo $(OCAMLCOMP) -c $<

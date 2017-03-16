@@ -22,14 +22,7 @@
 
 open Lang_parser
 
-let incrline ?(n=1) lexbuf =
-  ()
-(*
-  lexbuf.lex_curr_p <- {
-    lexbuf.lex_curr_p with
-        pos_bol = lexbuf.lex_curr_p.pos_cnum ;
-        pos_lnum = n + lexbuf.lex_curr_p.pos_lnum }
-*)
+module Sedlexing = Sedlexing_compat
 
 let parse_time t =
   let g sub n =
@@ -48,55 +41,29 @@ let parse_time t =
       let g = g sub in
         [g 1;g 2;Some (int_of_string (Pcre.get_substring sub 3));None]
 
-(** Process multiline string syntax à la Caml (backslash-newline).
-  * This is done almost in-place, mutating the initial string. *)
-let process_bytes s =
-  let copy,cut =
-    let pos = ref 0 in
-      (fun i ->
-         if !pos<>i then Bytes.set s !pos (Bytes.get  s i) ;
-         incr pos),
-      (fun () -> Bytes.sub s 0 !pos)
-  in
-  let len = Bytes.length s in
-  let rec search i test =
-    if i >= len then raise Not_found ;
-    if test (Bytes.get s i) then i else
-      search (i+1) test
-  in
-  let rec parse i =
-    if i = len-1 then copy i else
-    if i = len-2 then begin copy i ; copy (i+1) end else
-      parse
-        (if (Bytes.get s i) = '\\' && (Bytes.get s (i+1)) = '\n' then
-           let i = search (i+2) (fun c -> c <> ' ') in
-             if (Bytes.get s i) = '\\' && i+1<len &&
-                (Bytes.get s (i+1)) = ' ' then i+1 else i
-         else begin
-           copy i ; i+1
-         end)
-  in
-    (try parse 0 with _ -> ()) ;
-    cut ()
-
-let process_string s = process_bytes (Bytes.of_string s)
+let decimal_digit = [%sedlex.regexp? '0'..'9']
 
 let decimal_literal =
-  [%sedlex.regexp? '0'..'9',Star ('0'..'9'|'_')]
+  [%sedlex.regexp? decimal_digit, Star(decimal_digit|'_')]
+
 let hex_literal =
-  [%sedlex.regexp? '0',('x'|'X'),('0'..'9'|'A'..'F'|'a'..'f'),Star('0'..'9'|'A'..'F'|'a'..'f'|'_')]
+  [%sedlex.regexp? '0',('x'|'X'), ascii_hex_digit, Star(ascii_hex_digit|'_')]
+
+let oct_digit = [%sedlex.regexp? '0'..'7']
+
 let oct_literal =
-  [%sedlex.regexp? '0',('o'|'O'),'0'..'7',Star('0'..'7'|'_')]
+  [%sedlex.regexp? '0',('o'|'O'), oct_digit, Star(oct_digit|'_')]
+
+let bin_digit = [%sedlex.regexp? '0'|'1']
+  
 let bin_literal =
-  [%sedlex.regexp? '0',('b'|'B'),'0'..'1',Star('0'..'1'|'_')]
+  [%sedlex.regexp? '0',('b'|'B'), bin_digit, Star(bin_digit|'_')]
+
 let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
 let var =
-  [%sedlex.regexp?
-    ('A'..'Z'|'a'..'z'|'_'|'\192'..'\214'|'\216'..'\246'|'\248'..'\255'),
-    ('A'..'Z'|'a'..'z'|'_'|'.'),
-       Star('\192'..'\214'|'\216'..'\246'|'\248'..'\255'|'\''|'0'..'9')]
+  [%sedlex.regexp? alphabetic, Star(alphabetic|'0'..'9')]
 
 let time =
   [%sedlex.regexp?
@@ -107,12 +74,12 @@ let time =
     | (Opt(Plus('0'..'9'),'w'), Opt(Plus('0'..'9'), 'h'), Opt(Plus('0'..'9'), 'm'),     Plus('0'..'9'), 's')]
 
 let rec token lexbuf = match%sedlex lexbuf with
-  | (' '|'\t'|'\r')    -> token lexbuf
-  | '\n'               -> incrline lexbuf ; PP_ENDL
+  | (white_space|'\t'|'\r')    -> token lexbuf
+  | '\n'               -> Sedlexing_compat.new_line lexbuf; PP_ENDL
   | Plus('#', Plus(Compl('\n')),'\n') ->
         let doc = Sedlexing.Utf8.lexeme lexbuf in
         let doc = Pcre.split ~pat:"\n" doc in
-          incrline ~n:(List.length doc) lexbuf ;
+          Sedlexing_compat.new_line ~n:(List.length doc) lexbuf ;         
           PP_COMMENT doc
 
   | "%ifdef"       -> PP_IFDEF
@@ -126,7 +93,7 @@ let rec token lexbuf = match%sedlex lexbuf with
       let n = String.index matched '"' in
       let r = String.rindex matched '"' in
       let file = String.sub matched (n+1) (r-n-1) in
-      PP_INCLUDE (String.sub matched (n+1) (r-n-1))
+      PP_INCLUDE file
   | "%include", Star(' '|'\t'), '<', Star(Compl('>')), '>' ->
       let matched = Sedlexing.Utf8.lexeme lexbuf in
       let n = String.index matched '<' in
@@ -221,21 +188,66 @@ let rec token lexbuf = match%sedlex lexbuf with
         let t2 = String.trim t2 in
         INTERVAL (parse_time t1, parse_time t2)
   | var                        -> VAR (Sedlexing.Utf8.lexeme lexbuf)
-
-  | '\'', Star(Compl('\'') | '\\', '\''), '\''   ->
-            let matched = Sedlexing.Utf8.lexeme lexbuf in
-            let s = String.sub matched 1 (String.length matched - 2) in
-            String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;
-            let s = process_string s in
-            STRING (Pcre.substitute ~pat:"\\\\n" ~subst:(fun _ -> "\n")
-                     (Pcre.substitute ~pat:"\\\\r" ~subst:(fun _ -> "\r")
-                      (Pcre.substitute ~pat:"\\\\'" ~subst:(fun _ -> "'") s)))
-  | '"', Star(Compl('"') | ('\\', '"')), '"'   ->
-            let matched = Sedlexing.Utf8.lexeme lexbuf in
-            let s = String.sub matched 1 (String.length matched - 2) in
-            String.iter (fun c -> if c = '\n' then incrline lexbuf) s ;
-            let s = process_string s in
-            STRING (Pcre.substitute ~pat:"\\\\n" ~subst:(fun _ -> "\n")
-                      (Pcre.substitute ~pat:"\\\\r" ~subst:(fun _ -> "\r")
-                      (Pcre.substitute ~pat:"\\\\\"" ~subst:(fun _ -> "\"") s)))
-  | _  -> failwith "Internal failure: Reached impossible place"
+  | '"'  -> read_string '"' lexbuf.Sedlexing_compat.lex_start_p (Buffer.create 17) lexbuf
+  | '\'' -> read_string '\'' lexbuf.Sedlexing_compat.lex_start_p (Buffer.create 17) lexbuf
+  | _    -> raise (Lang_values.Parse_error ((lexbuf.Sedlexing_compat.lex_start_p, lexbuf.Sedlexing_compat.lex_curr_p),
+              ("Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf)))
+and read_string c pos buf lexbuf = match%sedlex lexbuf with
+  | '\\', '/'  -> Buffer.add_char buf '/'; read_string c pos buf lexbuf
+  | '\\', '\\' -> Buffer.add_char buf '\\'; read_string c pos buf lexbuf
+  | '\\', 'b'  -> Buffer.add_char buf '\b'; read_string c pos buf lexbuf
+  | '\\', 'f'  -> Buffer.add_char buf '\012'; read_string c pos buf lexbuf
+  | '\\', 'n'  -> Buffer.add_char buf '\n'; read_string c pos buf lexbuf
+  | '\\', 'r'  -> Buffer.add_char buf '\r'; read_string c pos buf lexbuf
+  | '\\', 't'  -> Buffer.add_char buf '\t'; read_string c pos buf lexbuf
+  | '\\', '\n', Star('\r'|'\t'|' ')  ->
+      read_string c pos buf lexbuf
+  | '\\', 'x', ascii_hex_digit, ascii_hex_digit ->
+      let matched = Sedlexing.Utf8.lexeme lexbuf in
+      let idx = String.index matched 'x' in
+      let code = String.sub matched (idx+1) 2 in
+      let code = int_of_string (Printf.sprintf "0x%s" code) in
+      Buffer.add_char buf (Char.chr code);
+      read_string c pos buf lexbuf
+  | '\\', 'o', oct_digit, oct_digit, oct_digit ->
+      let matched = Sedlexing.Utf8.lexeme lexbuf in
+      let idx = String.index matched 'o' in
+      let code = String.sub matched (idx+1)  3 in
+      let code = int_of_string (Printf.sprintf "0o%s" code) in
+      Buffer.add_char buf (Char.chr code);
+      read_string c pos buf lexbuf
+  | '\\', decimal_digit, decimal_digit, decimal_digit ->
+      let matched = Sedlexing.Utf8.lexeme lexbuf in
+      let code = String.sub matched 1 3 in
+      let code = int_of_string code in
+      Buffer.add_char buf (Char.chr code);
+      read_string c pos buf lexbuf
+  | '\\', '"'|'\'' ->
+      let matched = Sedlexing.Utf8.lexeme lexbuf in
+      Buffer.add_char buf (String.get matched 1);
+      read_string c pos buf lexbuf
+  | '\\', any ->
+      Printf.printf "Warning: illegal backslash escape in string.\n";
+      Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+      read_string c pos buf lexbuf
+  | '\n' ->
+      Sedlexing_compat.new_line lexbuf;
+      Buffer.add_char buf '\n';
+      read_string c pos buf lexbuf
+  | Plus(Compl('"'|'\''|'\\')) ->
+      Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+      read_string c pos buf lexbuf
+  | '"'|'\'' ->
+      let matched = Sedlexing.Utf8.lexeme lexbuf in
+      let c' = String.get matched 0 in
+      if c = c' then
+         STRING (Buffer.contents buf)
+      else
+       begin
+        Buffer.add_char buf c;
+        read_string c pos buf lexbuf
+       end
+  | eof -> raise (Lang_values.Parse_error ((pos,lexbuf.Sedlexing_compat.lex_curr_p),
+              ("String is not terminated")))
+  | _  -> raise (Lang_values.Parse_error ((pos,lexbuf.Sedlexing_compat.lex_curr_p),
+              ("Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf)))

@@ -179,7 +179,7 @@ $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 
 tools = tools/stdlib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
-	tools/rqueue.ml \
+	tools/rqueue.ml tools/sedlexing_compat.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
