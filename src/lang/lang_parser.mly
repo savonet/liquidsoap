@@ -205,9 +205,11 @@
 %%
 
 program:
+  | error { raise (Parse_error (($symbolstartpos, $endpos), "Syntax error!")) } 
   | EOF { mk ~pos:($symbolstartpos, $endpos) Unit }
   | exprs EOF { $1 }
 interactive:
+  | error { raise (Parse_error (($symbolstartpos, $endpos), "Syntax error!")) }
   | exprs SEQSEQ { $1 }
   | EOF { raise End_of_file }
 
