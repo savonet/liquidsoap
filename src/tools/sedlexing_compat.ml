@@ -47,12 +47,9 @@ let start lexbuf =
 
 let next lexbuf =
   let c = Sedlexing.next lexbuf.lexbuf in
-  begin
-    match c with
-      (* '\n' = 10 *)
-      | 10 -> new_line lexbuf
-      | _ -> incr_curr lexbuf
-  end;
+  incr_curr lexbuf;
+  (* '\n' = 10 *)
+  if c = 10 then new_line lexbuf;
   c
 
 let mark lexbuf =
