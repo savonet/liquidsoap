@@ -636,10 +636,10 @@ let report_error lexbuf f =
     flush_all () ;
     let start = lexbuf.Sedlexing_compat.lex_curr_p in
       Printf.printf "%sine %d, char %d"
-        (if start.Sedlexing_compat.pos_fname="" then "L" else
-           Printf.sprintf "File %S, l" start.Sedlexing_compat.pos_fname)
-        start.Sedlexing_compat.pos_lnum
-        (1+start.Sedlexing_compat.pos_cnum-start.Sedlexing_compat.pos_bol) ;
+        (if start.Lexing.pos_fname="" then "L" else
+           Printf.sprintf "File %S, l" start.Lexing.pos_fname)
+        start.Lexing.pos_lnum
+        (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
       if lexbuf.Sedlexing_compat.lex_curr_pos - lexbuf.Sedlexing_compat.lex_start_pos <= 0 then
         Printf.printf ": %s!\n" error
       else
@@ -772,9 +772,9 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
     begin match ns with
       | Some ns ->
           lexbuf.Sedlexing_compat.lex_start_p <- { lexbuf.Sedlexing_compat.lex_start_p with
-                                             Sedlexing_compat.pos_fname = ns } ;
+                                             Lexing.pos_fname = ns } ;
           lexbuf.Sedlexing_compat.lex_curr_p <- { lexbuf.Sedlexing_compat.lex_curr_p with
-                                             Sedlexing_compat.pos_fname = ns }
+                                             Lexing.pos_fname = ns }
       | None -> ()
     end ;
     try report_error lexbuf (fun () ->

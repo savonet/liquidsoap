@@ -40,23 +40,23 @@ let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None
 
 (** Positions *)
 
-type pos = (Sedlexing_compat.position*Sedlexing_compat.position)
+type pos = (Lexing.position*Lexing.position)
 
 let print_single_pos l =
   let file =
-    if l.Sedlexing_compat.pos_fname="" then "" else
-      Printf.sprintf "file %s, " l.Sedlexing_compat.pos_fname
+    if l.Lexing.pos_fname="" then "" else
+      Printf.sprintf "file %s, " l.Lexing.pos_fname
   in
-  let line,col = l.Sedlexing_compat.pos_lnum, (l.Sedlexing_compat.pos_cnum-l.Sedlexing_compat.pos_bol) in
+  let line,col = l.Lexing.pos_lnum, (l.Lexing.pos_cnum-l.Lexing.pos_bol) in
     Printf.sprintf "%sline %d, character %d" file line (col+1)
 
 let print_pos ?(prefix="At ") (start,stop) =
   let prefix =
-    match start.Sedlexing_compat.pos_fname with
+    match start.Lexing.pos_fname with
       | "" -> prefix
       | file -> prefix ^ file ^ ", "
   in
-  let f l = l.Sedlexing_compat.pos_lnum, (l.Sedlexing_compat.pos_cnum-l.Sedlexing_compat.pos_bol) in
+  let f l = l.Lexing.pos_lnum, (l.Lexing.pos_cnum-l.Lexing.pos_bol) in
   let lstart,cstart = f start in
   let lstop,cstop = f stop in
   let cstart = 1+cstart in

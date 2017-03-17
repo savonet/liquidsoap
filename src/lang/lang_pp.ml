@@ -29,10 +29,10 @@ let trd (_,_,z) = z
 let mk_tokenizer ?(fname="") lexbuf () =
   lexbuf.Sedlexing_compat.lex_start_p <-
     { lexbuf.Sedlexing_compat.lex_start_p with
-        Sedlexing_compat.pos_fname = fname } ;
+        Lexing.pos_fname = fname } ;
   lexbuf.Sedlexing_compat.lex_curr_p <-
     { lexbuf.Sedlexing_compat.lex_curr_p with
-        Sedlexing_compat.pos_fname = fname } ;
+        Lexing.pos_fname = fname } ;
   (Lang_lexer.token lexbuf,
    lexbuf.Sedlexing_compat.lex_start_p,
    lexbuf.Sedlexing_compat.lex_curr_p)
@@ -145,10 +145,10 @@ let includer dir tokenizer =
               | Sys_error _ ->
                   flush_all () ;
                     Printf.printf "%sine %d, char %d: cannot %%include, "
-                      (if startp.Sedlexing_compat.pos_fname="" then "L" else
-                         Printf.sprintf "File %S, l" startp.Sedlexing_compat.pos_fname)
-                      startp.Sedlexing_compat.pos_lnum
-                      (1+startp.Sedlexing_compat.pos_cnum-startp.Sedlexing_compat.pos_bol) ;
+                      (if startp.Lexing.pos_fname="" then "L" else
+                         Printf.sprintf "File %S, l" startp.Lexing.pos_fname)
+                      startp.Lexing.pos_lnum
+                      (1+startp.Lexing.pos_cnum-startp.Lexing.pos_bol) ;
                     Printf.printf "file %S doesn't exist.\n" fname ;
                     exit 1
           in
