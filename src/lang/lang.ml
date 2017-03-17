@@ -761,10 +761,8 @@ let mk_expr ~pwd processor lexbuf =
   let processor =
     MenhirLib.Convert.Simplified.traditional2revised processor
   in
-  let tokenizer () =
-    (Lang_pp.token pwd lexbuf,
-     lexbuf.Sedlexing_compat.lex_start_p,
-     lexbuf.Sedlexing_compat.lex_curr_p)
+  let tokenizer =
+    Lang_pp.mk_tokenizer ~pwd lexbuf
   in
   Tutils.mutexify parse_lock processor tokenizer
 

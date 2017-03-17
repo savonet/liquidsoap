@@ -64,8 +64,11 @@ let bin_literal =
 let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
+let var_char =
+  [%sedlex.regexp? alphabetic|'_']
+
 let var =
-  [%sedlex.regexp? alphabetic, Star(alphabetic|decimal_digit)]
+  [%sedlex.regexp? var_char, Star(var_char|decimal_digit|'.'|'\'')]
 
 let time =
   [%sedlex.regexp?
@@ -77,7 +80,7 @@ let time =
 
 let rec token lexbuf = match%sedlex lexbuf with
   | skipped -> token lexbuf
-  | Plus('#', Plus(Compl('\n')),'\n') ->
+  | Plus('#', Star(Compl('\n')),'\n') ->
         let doc = Sedlexing.Utf8.lexeme lexbuf in
         let doc = Pcre.split ~pat:"\n" doc in
           PP_COMMENT doc

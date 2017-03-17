@@ -20,8 +20,25 @@
 
  *****************************************************************************)
 
+type tokenizer = unit -> Lang_parser.token*Sedlexing_compat.position*Sedlexing_compat.position
+
+let fst (x,_,_) = x
+let snd (_,y,_) = y
+let trd (_,_,z) = z
+
+let mk_tokenizer ?(fname="") lexbuf () =
+  lexbuf.Sedlexing_compat.lex_start_p <-
+    { lexbuf.Sedlexing_compat.lex_start_p with
+        Sedlexing_compat.pos_fname = fname } ;
+  lexbuf.Sedlexing_compat.lex_curr_p <-
+    { lexbuf.Sedlexing_compat.lex_curr_p with
+        Sedlexing_compat.pos_fname = fname } ;
+  (Lang_lexer.token lexbuf,
+   lexbuf.Sedlexing_compat.lex_start_p,
+   lexbuf.Sedlexing_compat.lex_curr_p)
+
 (* TODO: also parse optional arguments? *)
-let get_encoder_format tokenizer lexbuf =
+let get_encoder_format tokenizer =
   let ogg_item = function
     | Lang_parser.VORBIS -> Lang_encoders.vorbis []
     | Lang_parser.VORBIS_CBR -> Lang_encoders.vorbis_cbr []
@@ -35,17 +52,17 @@ let get_encoder_format tokenizer lexbuf =
   let is_ogg_item token =
     try let _ = ogg_item token in true with _ -> false
   in
-    match tokenizer lexbuf with
-    | Lang_parser.MP3 -> Lang_encoders.mp3_cbr []
-    | Lang_parser.MP3_VBR -> Lang_encoders.mp3_vbr []
-    | Lang_parser.MP3_ABR -> Lang_encoders.mp3_vbr []
-    | Lang_parser.SHINE   -> Lang_encoders.shine []
-    | Lang_parser.FDKAAC -> Lang_encoders.fdkaac []
-    | Lang_parser.FLAC -> Lang_encoders.flac []
-    | Lang_parser.EXTERNAL -> Lang_encoders.external_encoder []
-    | Lang_parser.GSTREAMER -> Lang_encoders.gstreamer []
-    | Lang_parser.WAV -> Lang_encoders.wav []
-    | ogg when is_ogg_item ogg ->
+    match tokenizer() with
+    | Lang_parser.MP3,_,_ -> Lang_encoders.mp3_cbr []
+    | Lang_parser.MP3_VBR,_,_ -> Lang_encoders.mp3_vbr []
+    | Lang_parser.MP3_ABR,_,_ -> Lang_encoders.mp3_vbr []
+    | Lang_parser.SHINE,_,_   -> Lang_encoders.shine []
+    | Lang_parser.FDKAAC,_,_ -> Lang_encoders.fdkaac []
+    | Lang_parser.FLAC,_,_ -> Lang_encoders.flac []
+    | Lang_parser.EXTERNAL,_,_ -> Lang_encoders.external_encoder []
+    | Lang_parser.GSTREAMER,_,_ -> Lang_encoders.gstreamer []
+    | Lang_parser.WAV,_,_ -> Lang_encoders.wav []
+    | ogg,_,_ when is_ogg_item ogg ->
       let ogg = ogg_item ogg in
         Encoder.Ogg [ogg]
     (* TODO *)
@@ -55,24 +72,24 @@ let get_encoder_format tokenizer lexbuf =
 (* The Lang_lexer is not quite enough for our needs,
  * so we first define convenient layers between it and the parser.
  * First a pre-processor which evaluates %ifdefs. *)
-let preprocess tokenizer =
+let eval_ifdefs tokenizer =
   let state = ref 0 in
-  let rec token lexbuf =
+  let rec token() =
     let go_on () =
       incr state ;
-      token lexbuf
+      token()
     in
     let rec skip () =
-      match tokenizer lexbuf with
-      | Lang_parser.PP_ENDIF -> token lexbuf
+      match tokenizer() with
+      | Lang_parser.PP_ENDIF,_,_ -> token()
       | _ -> skip ()
     in
-    match tokenizer lexbuf with
-      | Lang_parser.PP_IFDEF | Lang_parser.PP_IFNDEF as tok ->
-          begin match tokenizer lexbuf with
-            | Lang_parser.VAR v ->
+    match tokenizer() with
+      | Lang_parser.PP_IFDEF,_,_ | Lang_parser.PP_IFNDEF,_,_ as tok ->
+          begin match tokenizer() with
+            | Lang_parser.VAR v,_,_ ->
                 let test =
-                  if tok = Lang_parser.PP_IFDEF then fun x -> x else not
+                  if fst(tok) = Lang_parser.PP_IFDEF then fun x -> x else not
                 in
                 (** XXX Less natural meaning than the original one. *)
                 if test (Lang_values.builtins#is_registered v) then
@@ -81,19 +98,19 @@ let preprocess tokenizer =
                   skip ()
             | _ -> failwith "expected a variable after %ifdef"
           end
-      | Lang_parser.PP_IFENCODER | Lang_parser.PP_IFNENCODER as tok ->
-          let fmt = get_encoder_format tokenizer lexbuf in
+      | Lang_parser.PP_IFENCODER,_,_ | Lang_parser.PP_IFNENCODER,_,_ as tok ->
+          let fmt = get_encoder_format tokenizer in
           let has_enc =
             try let _ = Encoder.get_factory fmt in true with Not_found -> false
           in
           let test =
-            if tok = Lang_parser.PP_IFENCODER then fun x -> x else not
+            if fst(tok) = Lang_parser.PP_IFENCODER then fun x -> x else not
           in
             if test has_enc then go_on () else skip ()
-      | Lang_parser.PP_ENDIF ->
+      | Lang_parser.PP_ENDIF,_,_ ->
           if !state=0 then failwith "no %ifdef to end here" ;
           decr state ;
-          token lexbuf
+          token()
       | x -> x
   in
     token
@@ -102,151 +119,115 @@ let preprocess tokenizer =
   * Filenames are understood relatively to the current directory,
   * which can be a relative path such as "." or "..". *)
 let includer dir tokenizer =
-  (* We maintain a stack ([state]) of the lexbufs of the nested included files
-   * and a stack of dirnames and in_channels for [opened] files.
-   * In order to maintain the lexing positions, we have to copy data from
-   * the current active lexbuf to the toplevel one, the only visible one
-   * from the parser. *)
-  let state = Stack.create () in
-  let opened = Stack.create () in
-  let copy_lexbuf dst src =
-    (* Yuk. *)
-    dst.Sedlexing_compat.lex_start_pos  <- src.Sedlexing_compat.lex_start_pos ;
-    dst.Sedlexing_compat.lex_curr_pos   <- src.Sedlexing_compat.lex_curr_pos ;
-    dst.Sedlexing_compat.lex_marked_pos <- src.Sedlexing_compat.lex_marked_pos ;
-    dst.Sedlexing_compat.lex_marked_p   <- src.Sedlexing_compat.lex_marked_p ;
-    dst.Sedlexing_compat.lex_start_p    <- src.Sedlexing_compat.lex_start_p ;
-    dst.Sedlexing_compat.lex_curr_p     <- src.Sedlexing_compat.lex_curr_p ;
+  let stack = Stack.create () in
+  let peek () =
+    try
+      fst(Stack.top stack)
+    with Stack.Empty -> tokenizer
   in
   let current_dir () =
-    if Stack.is_empty opened then dir else fst (Stack.top opened)
+    try
+      snd(Stack.top stack)
+    with Stack.Empty -> dir
   in
-  let rec token top_lexbuf =
-    (* At the first call the state will be initialized with a copy
-     * of the toplevel buffer. This copy does not share the mutable fields.
-     * Note that the copy is not a valid lexbuf, in that its filling
-     * function actually modifies the fields of the original top_lexbuf.
-     *
-     * In other calls, state will never be empty.
-     * When the state has only one layer, top_lexbuf's values are stored
-     * in it, in order to be able to restore after a possible inclusion.
-     * When the state has more than one layer, top_buffer is only
-     * used to communicate locations to the parser. And lexing will actually
-     * be done using the values in the queue. *)
-    if Stack.is_empty state then
-      Stack.push
-        { top_lexbuf with Sedlexing_compat.lex_start_pos = top_lexbuf.Sedlexing_compat.lex_start_pos }
-        state ;
-    let tokenizer () =
-      if Stack.length state = 1 then
-        (* Save the top_lexbuf's mutable values on the stack,
-         * in order to restore after a possible inclusion. *)
-        let token = tokenizer top_lexbuf in
-          copy_lexbuf (Stack.top state) top_lexbuf ;
-          token
-      else
-        (* Copy the current lexbuf's info to top_lexbuf for the parser. *)
-        let lexbuf = Stack.top state in
-        let token = tokenizer lexbuf in
-          copy_lexbuf top_lexbuf lexbuf ;
-          token
-    in
-      match tokenizer () with
-        | Lang_parser.PP_INCLUDE filename ->
-            let lexbuf = Stack.top state in
-            let new_lexbuf =
-              let filename = Utils.home_unrelate filename in
-              let filename =
-                if Filename.is_relative filename then
-                  Filename.concat (current_dir ()) filename
-                else
-                  filename
-              in
-              let channel =
-                try open_in filename with
-                  | Sys_error _ ->
-                      flush_all () ;
-                      let start = lexbuf.Sedlexing_compat.lex_curr_p in
-                        Printf.printf "%sine %d, char %d: cannot %%include, "
-                          (if start.Sedlexing_compat.pos_fname="" then "L" else
-                             Printf.sprintf "File %S, l" start.Sedlexing_compat.pos_fname)
-                          start.Sedlexing_compat.pos_lnum
-                          (1+start.Sedlexing_compat.pos_cnum-start.Sedlexing_compat.pos_bol) ;
-                        Printf.printf "file %S doesn't exist.\n" filename ;
-                        exit 1
-              in
-              let new_lexbuf = Sedlexing_compat.Utf8.from_channel channel in
-                Stack.push (Filename.dirname filename,channel) opened ;
-                new_lexbuf.Sedlexing_compat.lex_start_p <-
-                  { new_lexbuf.Sedlexing_compat.lex_start_p with
-                      Sedlexing_compat.pos_fname = filename } ;
-                new_lexbuf.Sedlexing_compat.lex_curr_p <-
-                  { new_lexbuf.Sedlexing_compat.lex_curr_p with
-                      Sedlexing_compat.pos_fname = filename } ;
-                new_lexbuf
-            in
-              Stack.push new_lexbuf state ;
-              token top_lexbuf
-        | Lang_parser.EOF ->
-            if Stack.length state = 1 then Lang_parser.EOF else begin
-              ignore (Stack.pop state) ;
-              close_in (snd (Stack.pop opened)) ;
-              if Stack.length state = 1 then
-                (* top_lexbuf is containing outdated data *)
-                copy_lexbuf top_lexbuf (Stack.top state) ;
-              token top_lexbuf
+  let rec token () =
+    match peek () () with
+      | Lang_parser.PP_INCLUDE fname,startp,_ ->
+          let fname = Utils.home_unrelate fname in
+          let fname =
+            if Filename.is_relative fname then
+              Filename.concat (current_dir ()) fname
+            else
+              fname
+          in
+          let channel =
+            try open_in fname with
+              | Sys_error _ ->
+                  flush_all () ;
+                    Printf.printf "%sine %d, char %d: cannot %%include, "
+                      (if startp.Sedlexing_compat.pos_fname="" then "L" else
+                         Printf.sprintf "File %S, l" startp.Sedlexing_compat.pos_fname)
+                      startp.Sedlexing_compat.pos_lnum
+                      (1+startp.Sedlexing_compat.pos_cnum-startp.Sedlexing_compat.pos_bol) ;
+                    Printf.printf "file %S doesn't exist.\n" fname ;
+                    exit 1
+          in
+          let lexbuf = Sedlexing_compat.Utf8.from_channel channel in
+          let tokenizer = mk_tokenizer ~fname lexbuf in
+          Stack.push (tokenizer,Filename.dirname fname,channel) stack; 
+          token()
+      | Lang_parser.EOF,_,_ as tok ->
+          if Stack.is_empty stack then
+            tok
+          else
+            begin
+              close_in (trd (Stack.pop stack));
+              token()
             end
-        | x -> x
+      | x -> x
   in
     token
 
 (* The expander turns "bla #{e} bli" into ("bla "^string_of(e)^" bli") *)
 type exp_item =
-  | String of string | Expr of Sedlexing_compat.lexbuf | Concat | RPar | LPar | String_of
-let expand tokenizer =
+  | String of string | Expr of tokenizer | Concat | RPar | LPar | String_of
+let expand_string tokenizer =
   let state = Queue.create () in
-  let add x = Queue.add x state in
+  let add startp endp x =
+    Queue.add (x,startp,endp) state
+  in
   let pop () = ignore (Queue.take state) in
-  let parse s =
+  let parse s startp endp =
     let l = Pcre.split ~pat:"#{(.*?)}" s in
     let l = if l = [] then [""] else l in
+    let add = add startp endp in
     let rec parse = function
       | s::x::l ->
+          let lexbuf =
+            Sedlexing_compat.Utf8.from_string x
+          in
+          let tokenizer =
+            mk_tokenizer lexbuf
+          in
+          let tokenizer () =
+            (fst (tokenizer()),startp,endp)
+          in
           List.iter add
             [ String s ; Concat; LPar ;
-              String_of ; Expr (Sedlexing_compat.Utf8.from_string x) ; RPar ;
+              String_of ; Expr tokenizer ; RPar ;
               RPar ] ;
           if l<>[] then begin
             add Concat ;
             parse l
           end
-      | [x] -> add (String x)
+      | [x] -> add (String x);
       | [] -> assert false
     in
       parse l
   in
-  let rec token lexbuf =
+  let rec token () =
     if Queue.is_empty state then begin
-      match tokenizer lexbuf with
-        | Lang_parser.STRING s ->
-            parse s ;
+      match tokenizer() with
+        | Lang_parser.STRING s,startp,endp ->
+            parse s startp endp ;
             if Queue.length state > 1 then begin
-              add RPar ;
-              Lang_parser.LPAR
+              add startp endp RPar ;
+              Lang_parser.LPAR,startp,endp
             end else
-              token lexbuf
+              token()
         | x -> x
     end else
-      match Queue.peek state with
-        | String s  -> pop () ; Lang_parser.STRING s
-        | Concat    -> pop () ; Lang_parser.BIN2 "^"
-        | RPar      -> pop () ; Lang_parser.RPAR
-        | LPar      -> pop () ; Lang_parser.LPAR
-        | String_of -> pop () ; Lang_parser.VARLPAR "string_of"
-        | Expr b ->
-            begin match tokenizer b with
-              | Lang_parser.EOF -> pop () ; token lexbuf
-              | x -> x
+      let (el,startp,endp) = Queue.peek state in
+      match el with
+        | String s  -> pop () ; Lang_parser.STRING s, startp, endp
+        | Concat    -> pop () ; Lang_parser.BIN2 "^", startp, endp
+        | RPar      -> pop () ; Lang_parser.RPAR, startp, endp
+        | LPar      -> pop () ; Lang_parser.LPAR, startp, endp
+        | String_of -> pop () ; Lang_parser.VARLPAR "string_of", startp, endp
+        | Expr tokenizer ->
+            begin match tokenizer() with
+              | Lang_parser.EOF,_,_ -> pop () ; token()
+              | x,_,_ -> x,startp,endp
             end
   in
     token
@@ -255,7 +236,12 @@ let expand tokenizer =
  * and strip out other comments. *)
 
 let parse_comments tokenizer =
-  let documented_def doc =
+  let documented_def (doc,doc_startp) startp endp =
+    let startp =
+      match doc_startp with
+        | Some startp -> startp
+        | None -> startp
+    in
     let doc =
       List.map
         (fun x -> Pcre.substitute ~pat:"^\\s*#\\s?" ~subst:(fun _ -> "") x)
@@ -333,17 +319,17 @@ let parse_comments tokenizer =
            | `Category c -> doc#add_subsection "_category" (Doc.trivial c)
            | `Flag c -> doc#add_subsection "_flag" (Doc.trivial c))
         special ;
-      Lang_parser.DEF (doc,params)
+      Lang_parser.DEF (doc,params),startp,endp
   in
-  let comment = ref [] in
-  let rec token lexbuf =
-    match tokenizer lexbuf with
-      | Lang_parser.PP_COMMENT c -> comment := c ; token lexbuf
-      | Lang_parser.PP_DEF ->
+  let comment = ref ([],None) in
+  let rec token () =
+    match tokenizer () with
+      | Lang_parser.PP_COMMENT c,startp,_ -> comment := (c,Some startp) ; token()
+      | Lang_parser.PP_DEF,startp,endp ->
           let c = !comment in
-            comment := [] ;
-            documented_def c
-      | x -> comment := [] ; x
+            comment := ([],None) ;
+            documented_def c startp endp
+      | x -> comment := ([],None) ; x
   in
     token
 
@@ -353,21 +339,26 @@ let parse_comments tokenizer =
  *   def foo(x,y) ...     << Definition of the function foo *)
 let strip_newlines tokenizer =
   let state = ref None in
-  let rec token lexbuf =
+  let rec token () =
     match !state with
       | None ->
-          begin match tokenizer lexbuf with
-            | Lang_parser.PP_ENDL -> token lexbuf
-            | Lang_parser.VAR _ as v ->
+          begin match tokenizer () with
+            | Lang_parser.PP_ENDL,_,_ -> token()
+            | (Lang_parser.VAR _,_,_) as v ->
                 state := Some v ;
-                token lexbuf
+                token()
             | x -> x
           end
-      | Some (Lang_parser.VAR var as v) ->
-          begin match tokenizer lexbuf with
-            | Lang_parser.LPAR -> state := None ; Lang_parser.VARLPAR var
-            | Lang_parser.LBRA -> state := None ; Lang_parser.VARLBRA var
-            | Lang_parser.PP_ENDL -> state := None ; v
+      | Some ((Lang_parser.VAR var,startp,_) as v) ->
+          begin match tokenizer() with
+            | Lang_parser.LPAR,_,endp ->
+                state := None ;
+                Lang_parser.VARLPAR var,startp,endp
+            | Lang_parser.LBRA,_,endp ->
+                state := None ;
+                Lang_parser.VARLBRA var,startp,endp
+            | Lang_parser.PP_ENDL,_,_ ->
+                state := None ; v
             | x -> state := Some x ; v
           end
       | Some x -> state := None ; x
@@ -377,40 +368,38 @@ let strip_newlines tokenizer =
 (* Inline %define x value. *)
 let expand_define tokenizer =
   let defs = ref [] in
-  let rec token lexbuf =
-    match tokenizer lexbuf with
-    | Lang_parser.PP_DEFINE ->
+  let rec token () =
+    match tokenizer () with
+    | Lang_parser.PP_DEFINE,startp,endp ->
       (
-        match tokenizer lexbuf with
-        | Lang_parser.VAR x ->
-          if x <> Utils.StringCompat.uppercase_ascii x then raise Parsing.Parse_error;
+        match tokenizer() with
+        | Lang_parser.VAR def_name,_,_ ->
+          if def_name <> Utils.StringCompat.uppercase_ascii def_name then raise Parsing.Parse_error;
           (
-            match tokenizer lexbuf with
-            | Lang_parser.INT _
-            | Lang_parser.FLOAT _
-            | Lang_parser.STRING _
-            | Lang_parser.BOOL _ as v ->
-              defs := (x,v) :: !defs;
-              token lexbuf
+            match tokenizer () with
+            | Lang_parser.INT _,_,_
+            | Lang_parser.FLOAT _,_,_
+            | Lang_parser.STRING _,_,_
+            | Lang_parser.BOOL _,_,_ as def_val ->
+              defs := (def_name,(fst(def_val),startp,endp)) :: !defs;
+              token()
             | _ -> raise Parsing.Parse_error
           )
         | _ -> raise Parsing.Parse_error
       )
-    | Lang_parser.VAR v as x ->
-      (try List.assoc v !defs with Not_found -> x)
+    | Lang_parser.VAR def_name,_,_ as v ->
+      (try List.assoc def_name !defs with Not_found -> v)
     | x -> x
   in
   token
 
 (* Wrap the lexer with its extensions *)
-let token dir =
-  let (+) a b = b a in
-    Lang_lexer.token
-    + parse_comments
-    + strip_newlines
-    + preprocess
-    + expand
-    + expand_define
-    (* The includer has to be the last, since it uses its input tokenizer
-     * (which wouldn't get extended by further additions) on inclusions. *)
-    + includer dir
+let mk_tokenizer ~pwd lexbuf =
+  let (=>) a b = b a in
+    mk_tokenizer lexbuf
+    => includer pwd
+    => eval_ifdefs
+    => parse_comments
+    => expand_string
+    => strip_newlines
+    => expand_define
