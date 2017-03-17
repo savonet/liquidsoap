@@ -41,6 +41,8 @@ let parse_time t =
       let g = g sub in
         [g 1;g 2;Some (int_of_string (Pcre.get_substring sub 3));None]
 
+let skipped = [%sedlex.regexp? white_space|'\r'|'\t']
+
 let decimal_digit = [%sedlex.regexp? '0'..'9']
 
 let decimal_literal =
@@ -63,7 +65,7 @@ let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
 let var =
-  [%sedlex.regexp? alphabetic, Star(alphabetic|'0'..'9')]
+  [%sedlex.regexp? alphabetic, Star(alphabetic|decimal_digit)]
 
 let time =
   [%sedlex.regexp?
@@ -74,26 +76,25 @@ let time =
     | (Opt(Plus('0'..'9'),'w'), Opt(Plus('0'..'9'), 'h'), Opt(Plus('0'..'9'), 'm'),     Plus('0'..'9'), 's')]
 
 let rec token lexbuf = match%sedlex lexbuf with
-  | (white_space|'\t'|'\r') -> token lexbuf
-  | '\n'               -> PP_ENDL
+  | skipped -> token lexbuf
   | Plus('#', Plus(Compl('\n')),'\n') ->
         let doc = Sedlexing.Utf8.lexeme lexbuf in
         let doc = Pcre.split ~pat:"\n" doc in
           PP_COMMENT doc
-
+  | '\n'           -> PP_ENDL
   | "%ifdef"       -> PP_IFDEF
   | "%ifndef"      -> PP_IFNDEF
   | "%ifencoder"   -> PP_IFENCODER
   | "%ifnencoder"  -> PP_IFNENCODER
   | "%endif"       -> PP_ENDIF
 
-  | "%include", Star(' '|'\t'), '"', Star(Compl('"')), '"' ->
+  | "%include", Star(white_space|'\t'), '"', Star(Compl('"')), '"' ->
       let matched = Sedlexing.Utf8.lexeme lexbuf in
       let n = String.index matched '"' in
       let r = String.rindex matched '"' in
       let file = String.sub matched (n+1) (r-n-1) in
       PP_INCLUDE file
-  | "%include", Star(' '|'\t'), '<', Star(Compl('>')), '>' ->
+  | "%include", Star(white_space|'\t'), '<', Star(Compl('>')), '>' ->
       let matched = Sedlexing.Utf8.lexeme lexbuf in
       let n = String.index matched '<' in
       let r = String.rindex matched '>' in
@@ -164,7 +165,7 @@ let rec token lexbuf = match%sedlex lexbuf with
   | "true"  -> BOOL true
   | "false" -> BOOL false
   | int_literal -> INT (int_of_string (Sedlexing.Utf8.lexeme lexbuf))
-  | Star('0'..'9'), '.', Star('0'..'9') ->
+  | Star(decimal_digit), '.', Star(decimal_digit) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched '.' in
         let ipart = String.sub matched 0 idx in
@@ -178,7 +179,7 @@ let rec token lexbuf = match%sedlex lexbuf with
           FLOAT (ipart +. fpart)
 
   | time                       -> TIME (parse_time (Sedlexing.Utf8.lexeme lexbuf))
-  | time, Star(' '|'\t'|'\r'), '-', Star(' '|'\t'|'\r'), time ->
+  | time, Star(skipped), '-', Star(skipped), time ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched '-' in
         let t1 = String.sub matched 0 idx in
@@ -199,7 +200,7 @@ and read_string c pos buf lexbuf = match%sedlex lexbuf with
   | '\\', 'n'  -> Buffer.add_char buf '\n'; read_string c pos buf lexbuf
   | '\\', 'r'  -> Buffer.add_char buf '\r'; read_string c pos buf lexbuf
   | '\\', 't'  -> Buffer.add_char buf '\t'; read_string c pos buf lexbuf
-  | '\\', '\n', Star('\r'|'\t'|' ')  ->
+  | '\\', '\n', Star(skipped)  ->
       read_string c pos buf lexbuf
   | '\\', 'x', ascii_hex_digit, ascii_hex_digit ->
       let matched = Sedlexing.Utf8.lexeme lexbuf in
@@ -221,7 +222,7 @@ and read_string c pos buf lexbuf = match%sedlex lexbuf with
       let code = int_of_string code in
       Buffer.add_char buf (Char.chr code);
       read_string c pos buf lexbuf
-  | '\\', '"'|'\'' ->
+  | '\\', ('"'|'\'') ->
       let matched = Sedlexing.Utf8.lexeme lexbuf in
       Buffer.add_char buf (String.get matched 1);
       read_string c pos buf lexbuf
@@ -239,7 +240,7 @@ and read_string c pos buf lexbuf = match%sedlex lexbuf with
          STRING (Buffer.contents buf)
       else
        begin
-        Buffer.add_char buf c;
+        Buffer.add_char buf c';
         read_string c pos buf lexbuf
        end
   | eof -> raise (Lang_values.Parse_error ((pos,lexbuf.Sedlexing_compat.lex_curr_p),
