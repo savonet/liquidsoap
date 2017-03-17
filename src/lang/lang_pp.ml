@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type tokenizer = unit -> Lang_parser.token*Sedlexing_compat.position*Sedlexing_compat.position
+type tokenizer = unit -> Lang_parser.token*Lexing.position*Lexing.position
 
 let fst (x,_,_) = x
 let snd (_,y,_) = y
