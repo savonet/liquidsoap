@@ -7,9 +7,6 @@ type position = Lexing.position = {
 
 type lexbuf = {
   lexbuf: Sedlexing.lexbuf;
-  mutable lex_start_pos:  int;
-  mutable lex_curr_pos:   int;
-  mutable lex_marked_pos: int;
   mutable lex_marked_p:   position;
   mutable lex_start_p:    position;
   mutable lex_curr_p:     position
@@ -25,9 +22,6 @@ let empty_p () = {
 
 let make lexbuf = {
   lexbuf = lexbuf;
-  lex_start_pos = 0;
-  lex_curr_pos = 0;
-  lex_marked_pos = 0;
   lex_marked_p = empty_p ();
   lex_start_p = empty_p ();
   lex_curr_p = empty_p ()
@@ -41,7 +35,6 @@ let new_line lexbuf =
         pos_lnum = lexbuf.lex_curr_p.Lexing.pos_lnum+1}
 
 let incr_curr lexbuf =
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos+1;
   lexbuf.lex_curr_p <- {
     lexbuf.lex_curr_p with
       Lexing.
@@ -50,7 +43,6 @@ let incr_curr lexbuf =
 let start lexbuf =
   lexbuf.lex_start_p <- lexbuf.lex_curr_p;
   lexbuf.lex_marked_p <- lexbuf.lex_curr_p;
-  lexbuf.lex_start_pos <- lexbuf.lex_curr_pos;
   Sedlexing.start lexbuf.lexbuf
 
 let next lexbuf =
@@ -65,12 +57,10 @@ let next lexbuf =
 
 let mark lexbuf =
   lexbuf.lex_marked_p <- lexbuf.lex_curr_p;
-  lexbuf.lex_marked_pos <- lexbuf.lex_curr_pos;
   Sedlexing.mark lexbuf.lexbuf
 
 let backtrack lexbuf =
   lexbuf.lex_curr_p <- lexbuf.lex_marked_p;
-  lexbuf.lex_curr_pos <- lexbuf.lex_marked_pos;
   Sedlexing.backtrack lexbuf.lexbuf 
 
 module Utf8 = struct

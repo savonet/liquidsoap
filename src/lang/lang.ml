@@ -640,11 +640,11 @@ let report_error lexbuf f =
            Printf.sprintf "File %S, l" start.Lexing.pos_fname)
         start.Lexing.pos_lnum
         (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
-      if lexbuf.Sedlexing_compat.lex_curr_pos - lexbuf.Sedlexing_compat.lex_start_pos <= 0 then
+      let buf = Sedlexing_compat.Utf8.lexeme lexbuf in
+      if buf = "" then
         Printf.printf ": %s!\n" error
       else
-        Printf.printf
-          " before %S: %s!\n" (Sedlexing_compat.Utf8.lexeme lexbuf) error
+        Printf.printf " before %S: %s!\n" buf error
   in
     try f () with
       | Failure s when s = "lexing: empty token" -> print_error "Empty token" ; raise Error

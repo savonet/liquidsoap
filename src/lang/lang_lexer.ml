@@ -72,11 +72,11 @@ let var =
 
 let time =
   [%sedlex.regexp?
-      (Opt(Plus('0'..'9'),'w'),     Plus('0'..'9'), 'h',      Plus('0'..'9'))
-    | (Plus('0'..'9'), 'w',     Opt(Plus('0'..'9'), 'h'), Opt(Plus('0'..'9'), 'm'), Opt(Plus('0'..'9'), 's'))
-    | (Opt(Plus('0'..'9'),'w'),     Plus('0'..'9'), 'h',  Opt(Plus('0'..'9'), 'm'), Opt(Plus('0'..'9'), 's'))
-    | (Opt(Plus('0'..'9'),'w'), Opt(Plus('0'..'9'), 'h'),     Plus('0'..'9'), 'm',  Opt(Plus('0'..'9'), 's'))
-    | (Opt(Plus('0'..'9'),'w'), Opt(Plus('0'..'9'), 'h'), Opt(Plus('0'..'9'), 'm'),     Plus('0'..'9'), 's')]
+      (Opt(Plus(decimal_digit),'w'),     Plus(decimal_digit), 'h',      Plus(decimal_digit))
+    |     (Plus(decimal_digit),'w',  Opt(Plus(decimal_digit), 'h'), Opt(Plus(decimal_digit), 'm'), Opt(Plus(decimal_digit), 's'))
+    | (Opt(Plus(decimal_digit),'w'),     Plus(decimal_digit), 'h',  Opt(Plus(decimal_digit), 'm'), Opt(Plus(decimal_digit), 's'))
+    | (Opt(Plus(decimal_digit),'w'), Opt(Plus(decimal_digit), 'h'),     Plus(decimal_digit), 'm',  Opt(Plus(decimal_digit), 's'))
+    | (Opt(Plus(decimal_digit),'w'), Opt(Plus(decimal_digit), 'h'), Opt(Plus(decimal_digit), 'm'),     Plus(decimal_digit), 's')]
 
 let rec token lexbuf = match%sedlex lexbuf with
   | skipped -> token lexbuf

@@ -7,9 +7,6 @@ type position = Lexing.position = {
 
 type lexbuf = {
   lexbuf: Sedlexing.lexbuf;
-  mutable lex_start_pos:  int;
-  mutable lex_curr_pos:   int;
-  mutable lex_marked_pos: int;
   mutable lex_marked_p:   position;
   mutable lex_start_p:    position;
   mutable lex_curr_p:     position
