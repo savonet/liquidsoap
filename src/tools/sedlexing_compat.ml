@@ -18,7 +18,7 @@ type lexbuf = {
 let empty_p () = {
   Lexing.
     pos_fname = "";
-    pos_lnum = 0;
+    pos_lnum = 1;
     pos_bol = 0;
     pos_cnum = 0;
 }
@@ -33,14 +33,15 @@ let make lexbuf = {
   lex_curr_p = empty_p ()
 }
 
-let new_line ?(n=1) lexbuf =
+let new_line lexbuf =
   lexbuf.lex_curr_p <- {
     lexbuf.lex_curr_p with
       Lexing.
         pos_bol = lexbuf.lex_curr_p.Lexing.pos_cnum ;
-        pos_lnum = lexbuf.lex_curr_p.Lexing.pos_lnum+n }
+        pos_lnum = lexbuf.lex_curr_p.Lexing.pos_lnum+1}
 
-let incr_curr_p lexbuf =
+let incr_curr lexbuf =
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos+1;
   lexbuf.lex_curr_p <- {
     lexbuf.lex_curr_p with
       Lexing.
@@ -54,12 +55,11 @@ let start lexbuf =
 
 let next lexbuf =
   let c = Sedlexing.next lexbuf.lexbuf in
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos+1;
   begin
     match c with
       (* '\n' = 10 *)
       | 10 -> new_line lexbuf
-      | _ -> incr_curr_p lexbuf
+      | _ -> incr_curr lexbuf
   end;
   c
 

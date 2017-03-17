@@ -15,7 +15,6 @@ type lexbuf = {
   mutable lex_curr_p:     position
 }
 
-val new_line: ?n:int -> lexbuf -> unit
 val start: lexbuf -> unit
 val next: lexbuf -> int
 val mark: lexbuf -> int -> unit

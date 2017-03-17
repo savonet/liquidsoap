@@ -74,12 +74,11 @@ let time =
     | (Opt(Plus('0'..'9'),'w'), Opt(Plus('0'..'9'), 'h'), Opt(Plus('0'..'9'), 'm'),     Plus('0'..'9'), 's')]
 
 let rec token lexbuf = match%sedlex lexbuf with
-  | (white_space|'\t'|'\r')    -> token lexbuf
-  | '\n'               -> Sedlexing_compat.new_line lexbuf; PP_ENDL
+  | (white_space|'\t'|'\r') -> token lexbuf
+  | '\n'               -> PP_ENDL
   | Plus('#', Plus(Compl('\n')),'\n') ->
         let doc = Sedlexing.Utf8.lexeme lexbuf in
         let doc = Pcre.split ~pat:"\n" doc in
-          Sedlexing_compat.new_line ~n:(List.length doc) lexbuf ;         
           PP_COMMENT doc
 
   | "%ifdef"       -> PP_IFDEF
@@ -229,10 +228,6 @@ and read_string c pos buf lexbuf = match%sedlex lexbuf with
   | '\\', any ->
       Printf.printf "Warning: illegal backslash escape in string.\n";
       Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
-      read_string c pos buf lexbuf
-  | '\n' ->
-      Sedlexing_compat.new_line lexbuf;
-      Buffer.add_char buf '\n';
       read_string c pos buf lexbuf
   | Plus(Compl('"'|'\''|'\\')) ->
       Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
