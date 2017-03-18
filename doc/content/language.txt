@@ -40,7 +40,7 @@ Finally, strings can be interpolated using the following syntax:
 - : string = "This is an interpolated string.This is a defined value."
 %%
 
-Most notable, <code>output.file</code> can use string interpolation to specify a different file name
+Most notably, <code>output.file</code> can use string interpolation to specify a different file name
 using the source's metadata.
 
 h4. Expressions
