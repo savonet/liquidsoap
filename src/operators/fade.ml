@@ -55,6 +55,7 @@ class fade_in ~kind
   ~duration_meta ~type_meta ?(initial=false) duration fader source =
 object
   inherit operator ~name:"fade_in" kind [source]
+  inherit Latest_metadata.source as latest
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -63,29 +64,29 @@ object
 
   val mutable state = `Idle
 
+  val mutable fader = fader
+  val mutable duration = duration
+
+  method private on_new_metadata =
+    begin
+      match Utils.hashtbl_get latest_metadata type_meta with
+        | Some n ->
+            fader <- (try Utils.get_some (get_fader n) with _ -> fader)
+        | None -> ()
+    end;
+    match Utils.hashtbl_get latest_metadata duration_meta with
+      | Some d ->
+          duration <- (try float_of_string d with _ -> duration)
+      | None -> ()
+
   method private get_frame ab =
     let p1 = AFrame.position ab in
     let p2 = source#get ab ; AFrame.position ab in
+    latest#save_latest_metadata ab ;
     (** In samples: [length] of the fade, [count] since beginning. *)
     let fade,length,count =
       match state with
         | `Idle ->
-            let fader, duration =
-              match AFrame.get_metadata ab p1 with
-                | Some m ->
-                   let fader =
-                    match Utils.hashtbl_get m type_meta with
-                      | Some n -> (try Utils.get_some (get_fader n) with _ -> fader)
-                      | None -> fader
-                   in
-                   let duration =
-                    match Utils.hashtbl_get m duration_meta with
-                      | Some d -> (try float_of_string d with _ -> duration)
-                      | None -> duration
-                   in
-                   fader, duration
-                | None -> fader, duration
-            in
             let length = Frame.audio_of_seconds duration in
               fader length,
               length,
@@ -114,6 +115,7 @@ class fade_out ~kind
   ~duration_meta ~type_meta ?(final=false) duration fader source =
 object
   inherit operator ~name:"fade_out" kind [source]
+  inherit Latest_metadata.source as latest
 
   method stype = if final then Fallible else source#stype
   method abort_track = source#abort_track
@@ -131,6 +133,21 @@ object
 
   method is_ready = (remaining > 0 || not final) && source#is_ready
 
+  val mutable fader = fader
+  val mutable duration = duration
+
+  method private on_new_metadata =
+    begin
+      match Utils.hashtbl_get latest_metadata type_meta with
+        | Some n ->
+            fader <- (try Utils.get_some (get_fader n) with _ -> fader)
+        | None -> ()
+    end;
+    match Utils.hashtbl_get latest_metadata duration_meta with
+      | Some d ->
+          duration <- (try float_of_string d with _ -> duration)
+      | None -> ()
+
   method private get_frame ab =
     if final && remaining <= 0 then
       (* This happens in final mode at the end of the remaining time. *)
@@ -139,28 +156,12 @@ object
       let n = Frame.audio_of_master source#remaining in
       let offset1 = AFrame.position ab in
       let offset2 = source#get ab ; AFrame.position ab in
+      latest#save_latest_metadata ab ;
       (** In samples: [length] of the fade. *)
       let fade,length =
         match cur_length with
           | Some (f,l) -> f,l
           | None ->
-              (* Set the length at the beginning of a track *)
-              let fader, duration =
-                match AFrame.get_metadata ab offset1 with
-                  | Some m ->
-                     let fader =
-                      match Utils.hashtbl_get m type_meta with
-                        | Some n -> (try Utils.get_some (get_fader n) with _ -> fader)
-                        | None -> fader
-                     in
-                     let duration =
-                      match Utils.hashtbl_get m duration_meta with
-                        | Some d -> (try float_of_string d with _ -> duration)
-                        | None -> duration
-                     in
-                     fader, duration
-                  | _ -> fader, duration
-              in
               let l = Frame.audio_of_seconds duration in
               let f = fader l in
                 cur_length <- Some (f,l) ;

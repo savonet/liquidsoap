@@ -55,6 +55,8 @@ Bugfixes:
 
 - Fix crash in external (download) protocol.
 
+- Fix fade.{in,out} metadata handling for new fade duration and type.
+
 
 1.2.1 (01-07-2016)
 ========
