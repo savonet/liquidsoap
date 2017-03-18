@@ -160,7 +160,7 @@ object (self)
   method insert_metadata m =
     if reload_on_metadata then
      begin
-      current_metadata <- Some (Hashtb.copy m) ; 
+      current_metadata <- Some m ; 
       need_reset <- true 
      end 
     else
