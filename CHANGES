@@ -3,6 +3,8 @@ x.y.z ()
 
 New:
 
+- Added support for recursive functions (#406)
+
 - Add peak and peak.stereo operators (#364)
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
@@ -54,6 +56,8 @@ Bugfixes:
 - Properly install liquidtts.
 
 - Fix crash in external (download) protocol.
+
+- Fix fade.{in,out} metadata handling for new fade duration and type.
 
 
 1.2.1 (01-07-2016)

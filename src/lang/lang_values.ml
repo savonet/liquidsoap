@@ -148,6 +148,9 @@ and in_term =
 | Var     of string
 | Seq     of term * term
 | App     of term * (string * term) list
+| RFun    of Vars.t *
+    (string*string*T.t*term option) list *
+    (unit -> term)
 | Fun     of Vars.t *
     (string*string*T.t*term option) list *
     term
@@ -180,7 +183,7 @@ let rec print_term v = match v.term with
   | Ref a ->
       Printf.sprintf "ref(%s)" (print_term a)
   | Fun (_,[],v) when is_ground v -> "{"^(print_term v)^"}"
-  | Fun _ -> "<fun>"
+  | Fun _ | RFun _ -> "<fun>"
   | Var s -> s
   | App (hd,tl) ->
       let tl =
@@ -205,8 +208,8 @@ let rec free_vars tm = match tm.term with
         (fun v (_,t) -> Vars.union v (free_vars t))
         (free_vars hd)
         l
-  | Fun (fv,_,_) ->
-      fv
+  | RFun (fv,_,_)
+  | Fun (fv,_,_) -> fv
   | Let l ->
       Vars.union
         (free_vars l.def)
@@ -252,6 +255,17 @@ let check_unused ~lib tm =
     | App (hd,l) ->
         let v = check v hd in
           List.fold_left (fun v (_,t) -> check v t) v l
+    (* A recursive function may not use its recursive let. *)
+    | RFun (fv,p,fn) ->
+      begin
+        match (fn()).term with
+          | Let {var=var;body=body} ->
+              let v =
+                check v {tm with term = Fun (fv,p,body)}
+              in
+              Vars.remove var v        
+          | _ -> assert false
+      end
     | Fun (_,p,body) ->
         let v =
           List.fold_left
@@ -303,7 +317,12 @@ let check_unused ~lib tm =
 
 (** Maps a function on all types occurring in a term.
   * Ignores variable generalizations. *)
-let rec map_types f (gen:'a list) tm = match tm.term with
+let rec map_types f (gen:'a list) tm =
+  let aux = function
+    | (lbl,var,t,None) -> lbl, var, f gen t, None
+    | (lbl,var,t,Some tm) -> lbl, var, f gen t, Some (map_types f gen tm)
+  in
+  match tm.term with
   | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       { tm with t = f gen tm.t }
   | Ref r ->
@@ -329,12 +348,14 @@ let rec map_types f (gen:'a list) tm = match tm.term with
         term = App (map_types f gen hd,
                     List.map (fun (lbl,v) -> lbl, map_types f gen v) l) }
   | Fun (fv,p,v) ->
-      let aux = function
-        | (lbl,var,t,None) -> lbl, var, f gen t, None
-        | (lbl,var,t,Some tm) -> lbl, var, f gen t, Some (map_types f gen tm)
+      { t = f gen tm.t ;
+        term = Fun (fv, List.map aux p, map_types f gen v) }
+  | RFun (fv,p,fn) ->
+      let fn () =
+        map_types f gen (fn ())
       in
-        { t = f gen tm.t ;
-          term = Fun (fv, List.map aux p, map_types f gen v) }
+      { t = f gen tm.t ;
+        term = RFun (fv, List.map aux p, fn) }
   | Let l ->
       let gen' = l.gen@gen in
         { t = f gen tm.t ;
@@ -344,7 +365,17 @@ let rec map_types f (gen:'a list) tm = match tm.term with
 (** Folds [f] over almost all types occurring in a term,
   * skipping as much as possible while still
   * guaranteeing that [f] will see all variables. *)
-let rec fold_types f gen x tm = match tm.term with
+let rec fold_types f gen x tm =
+  let fold_proto x p =
+    List.fold_left
+      (fun x -> function
+        | (_,_,t,Some tm) ->
+            fold_types f gen (f gen x t) tm
+        | (_,_,t,None) ->
+            f gen x t)
+     x p
+  in
+  match tm.term with
   | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       f gen x tm.t
   | List l ->
@@ -358,16 +389,15 @@ let rec fold_types f gen x tm = match tm.term with
       let x = fold_types f gen x tm in
         List.fold_left (fun x (_,tm) -> fold_types f gen x tm) x l
   | Fun (_,p,v) ->
-      fold_types f gen
-        (List.fold_left
-           (fun x -> function
-              | (_,_,t,Some tm) ->
-                  fold_types f gen (f gen x t) tm
-              | (_,_,t,None) ->
-                  f gen x t)
-           x
-           p)
-        v
+      fold_types f gen (fold_proto x p) v
+  | RFun (_,p,fn) ->
+      begin
+        match (fn()).term with
+          | Let l ->
+              let x = f gen x l.def.t in
+              fold_types f gen (fold_proto x p) l.body
+          | _ -> assert false
+      end 
   | Let {gen=gen';def=def;body=body;_} ->
       let x = fold_types f (gen'@gen) x def in
         fold_types f gen x body
@@ -542,6 +572,32 @@ let rec check ?(print_toplevel=false) ~level ~env e =
   let pos = e.t.T.pos in
   let mk t = T.make ~level ~pos t in
   let mkg t = mk (T.Ground t) in
+  let check_fun ~proto ~env e body =
+    let base_check = check ~level ~env in
+    let proto_t,env,level =
+      List.fold_left
+        (fun (p,env,level) -> function
+           | lbl,var,kind,None   ->
+               if debug then
+                 Printf.eprintf "Assigning level %d to %s (%s).\n"
+                   level var (T.print kind) ;
+               kind.T.level <- level ;
+               (false,lbl,kind)::p, (var,([],kind))::env, level+1
+           | lbl,var,kind,Some v ->
+               if debug then
+                 Printf.eprintf "Assigning level %d to %s (%s).\n"
+                   level var (T.print kind) ;
+               kind.T.level <- level ;
+               base_check v ;
+               v.t <: kind ;
+               (true,lbl,kind)::p, (var,([],kind))::env, level+1)
+        ([],env,level)
+        proto
+    in
+    let proto_t = List.rev proto_t in
+      check ~level ~env body ;
+      e.t >: mk (T.Arrow (proto_t,body.t))
+  in
   match e.term with
   | Unit      -> e.t >: mkg T.Unit
   | Bool    _ -> e.t >: mkg T.Bool
@@ -637,31 +693,16 @@ let rec check ?(print_toplevel=false) ~level ~env e =
             let p = List.map (fun (lbl,b) -> false,lbl,b.t) l in
               a.t <: T.make ~level ~pos:None (T.Arrow (p,e.t))
       end
-  | Fun (_,proto,body) ->
-      let base_check = check ~level ~env in
-      let proto_t,env,level =
-        List.fold_left
-          (fun (p,env,level) -> function
-             | lbl,var,kind,None   ->
-                 if debug then
-                   Printf.eprintf "Assigning level %d to %s (%s).\n"
-                     level var (T.print kind) ;
-                 kind.T.level <- level ;
-                 (false,lbl,kind)::p, (var,([],kind))::env, level+1
-             | lbl,var,kind,Some v ->
-                 if debug then
-                   Printf.eprintf "Assigning level %d to %s (%s).\n"
-                     level var (T.print kind) ;
-                 kind.T.level <- level ;
-                 base_check v ;
-                 v.t <: kind ;
-                 (true,lbl,kind)::p, (var,([],kind))::env, level+1)
-          ([],env,level)
-          proto
-      in
-      let proto_t = List.rev proto_t in
-        check ~level ~env body ;
-        e.t >: mk (T.Arrow (proto_t,body.t))
+  | Fun (_,proto,body) -> check_fun ~proto ~env e body
+  | RFun (_,proto,fn) -> 
+      begin
+        match (fn()).term with
+          | Let {var=var;def=def;body=body} ->
+             let env = (var,([],def.t))::env in
+             check_fun ~proto ~env def body;
+             e.t >: def.t
+          | _ -> assert false
+      end 
   | Var var ->
       let generalized,orig =
         try
@@ -801,6 +842,21 @@ let lookup env var ty =
     v
 
 let rec eval ~env tm =
+  let prepare_fun fv p env =
+    (* Unlike OCaml we always evaluate default values,
+     * and we do that early.
+     * I think the only reason is homogeneity with FFI,
+     * which are declared with values as defaults. *)
+    let p =
+      List.map
+        (function
+          | (lbl,var,_,Some v) -> lbl,var,Some (eval ~env v)
+          | (lbl,var,_,None) -> lbl,var,None)
+      p
+    in
+    let env = List.filter (fun (x,_) -> Vars.mem x fv) env in
+    (p,env)
+  in
   let mk v = { V.t = tm.t ; V.value = v } in
     match tm.term with
       | Unit -> mk (V.Unit)
@@ -831,19 +887,23 @@ let rec eval ~env tm =
           let v = eval ~env v in
           eval ~env:((x,(generalized,v))::env) b
       | Fun (fv,p,body) ->
-          (* Unlike OCaml we always evaluate default values,
-           * and we do that early.
-           * I think the only reason is homogeneity with FFI,
-           * which are declared with values as defaults. *)
-          let p =
-            List.map
-              (function
-                 | (lbl,var,_,Some v) -> lbl,var,Some (eval ~env v)
-                 | (lbl,var,_,None) -> lbl,var,None)
-              p
-          in
-          let env = List.filter (fun (x,_) -> Vars.mem x fv) env in
+          let (p,env) = prepare_fun fv p env in
             mk (V.Fun (p,[],env,body))
+      | RFun (fv,p,fn) ->
+          begin
+            match (fn ()).term with
+              | Let {var=var;body=body} ->
+                  let (p,env) = prepare_fun fv p env in
+                  let rec ffi args t =
+                    let v = mk (V.FFI (p,[],ffi)) in
+                    let env = (var,([],v))::env in
+                    let env = List.rev_append args env in
+                    let f = mk (V.Fun ([],[],env,body)) in
+                    apply ~t f []
+                  in
+                    mk (V.FFI (p,[],ffi))
+              | _ -> assert false
+          end
       | Var var ->
           lookup env var tm.t
       | Seq (a,b) ->

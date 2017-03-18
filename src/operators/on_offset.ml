@@ -31,6 +31,7 @@ let ticks_of_offset offset =
 class on_offset ~kind ~force ~offset ~override f s =
 object(self)
   inherit Source.operator ~name:"on_offset" kind [s]
+  inherit Latest_metadata.source as latest
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -38,7 +39,6 @@ object(self)
   method abort_track = s#abort_track
   method seek n = s#seek n
 
-  val mutable latest_metadata = Hashtbl.create 0
   val mutable elapsed = 0L
   val mutable offset = ticks_of_offset offset
   val mutable executed = false
@@ -53,41 +53,38 @@ object(self)
       "",Lang.metadata latest_metadata]);
     executed <- true
 
+  method private on_new_metadata =
+    try
+      let pos = Hashtbl.find latest_metadata override in
+      let pos =
+        try float_of_string pos
+        with Failure _ -> raise (Invalid_override pos)
+      in
+      let ticks = ticks_of_offset pos in
+      self#log#f 4 "Setting new offset to %.02fs (%Li ticks)" pos ticks;
+      offset <- ticks
+    with
+      | Failure _
+      | Not_found -> ()
+      | Invalid_override pos ->
+          self#log#f 3 "Invalid value for override metadata: %s" pos
+
   method private get_frame ab =
     let pos =
       Int64.of_int (Frame.position ab)
     in
     s#get ab ;
+    latest#save_latest_metadata ab ;
     let new_pos =
       Int64.of_int (Frame.position ab)
     in
     elapsed <- elapsed ++ new_pos -- pos;
-    let compare x y = - (compare x y) in
-    let l = List.sort compare (Frame.get_all_metadata ab) in
-    begin
-      try
-        latest_metadata <- Hashtbl.copy (snd (List.hd l));
-        let pos = Hashtbl.find latest_metadata override in
-        let pos =
-          try float_of_string pos
-          with Failure _ -> raise (Invalid_override pos)
-        in
-        let ticks = ticks_of_offset pos in
-        self#log#f 4 "Setting new offset to %.02fs (%Li ticks)" pos ticks;
-        offset <- ticks
-      with
-        | Failure _
-        | Not_found -> ()
-        | Invalid_override pos ->
-            self#log#f 3 "Invalid value for override metadata: %s" pos
-    end;
     if not executed && offset <= elapsed then
       self#execute;
     if Frame.is_partial ab then
      begin
       if force && not executed then
         self#execute;
-      latest_metadata <- Hashtbl.create 0;
       executed <- false;
       elapsed <- 0L
      end

@@ -110,6 +110,7 @@ let rec token lexbuf = match%sedlex lexbuf with
 
   | "def"    -> PP_DEF
   | "fun"    -> FUN
+  | "rec"    -> REC
   | '='      -> GETS
   | "end"    -> END
   | "begin"  -> BEGIN

@@ -23,10 +23,9 @@
 class on_end ~kind ~delay f s =
 object
   inherit Source.operator ~name:"on_end" kind [s]
+  inherit Latest_metadata.source as latest
 
   val mutable executed = false
-
-  val mutable latest_metadata = Hashtbl.create 0
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -34,12 +33,11 @@ object
   method abort_track = s#abort_track
   method seek n = s#seek n
 
+  method private on_new_metadata = ()
+
   method private get_frame ab =
     s#get ab ;
-    let compare x y = - (compare x y) in
-    let l = List.sort compare (Frame.get_all_metadata ab) in
-    if List.length l > 0 then
-      latest_metadata <- Hashtbl.copy(snd (List.hd l));
+    latest#save_latest_metadata ab ;
     let rem = Frame.seconds_of_master s#remaining in
     if (not executed) && ((0. <= rem && rem <= delay) || Frame.is_partial ab) then
     begin
@@ -48,10 +46,7 @@ object
       executed <- true
     end ;
     if Frame.is_partial ab then
-     begin
-      latest_metadata <- Hashtbl.create 0;
       executed <- false
-     end;
 end
 
 let () =

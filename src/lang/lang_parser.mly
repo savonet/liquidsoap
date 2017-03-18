@@ -41,6 +41,16 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
+  let mk_rec_fun ~pos doc name args body =
+    let bound = List.map (fun (_,x,_,_) -> x) args in
+    let fv = Lang_values.free_vars ~bound body in
+    let rec fn () =
+      let fnv = mk ~pos (RFun (fv,args,fn)) in
+      mk ~pos (Let {doc=doc;var=name;gen=[];
+                    def=fnv;body=body})
+    in
+      mk ~pos (RFun (fv,args,fn))
+
   let mk_enc ~pos e = mk ~pos (Encoder e)
 
   (** Time intervals *)
@@ -162,7 +172,7 @@
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
-%token BEGIN END GETS TILD QUESTION
+%token BEGIN END REC GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON
@@ -457,6 +467,13 @@ binding:
       let arglist = $3 in
       let body = mk_fun ~pos:($symbolstartpos, $endpos) arglist $6 in
         $1,$2,body
+    }
+  | DEF REC VARLPAR arglist RPAR g exprs END {
+      let doc = $1 in
+      let name = $3 in
+      let arglist = $4 in
+      let body = mk_rec_fun ~pos:($symbolstartpos, $endpos) doc name arglist $7 in
+        doc,name,body
     }
 
 arglist:
