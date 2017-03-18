@@ -3,6 +3,8 @@ x.y.z ()
 
 New:
 
+- Added support for recursive functions (#406)
+
 - Add peak and peak.stereo operators (#364)
 
 - Change `track_sensitive` parameter to a boolean getter (fixed value or anonymous function).
