@@ -24,10 +24,24 @@ The constants and their syntax are quite common:
 
 Strings might be surrounded by double or single quotes. In both cases, you can escape the quote you're using: <code>"He said: \"Hello, you\"."</code> is valid but <code>'He said: "Hello, you".'</code> is equivalent and nicer.
 
-Also, you can include variables in a string using the <code>#{...}</code>
+You can include variables in a string using the <code>#{...}</code>
 syntax:
 <code>"foo #{quote(my_var)} bar"</code> is equivalent to
 <code>"foo " ^ quote(my_var) ^ " bar"</code>.
+
+Finally, strings can be interpolated using the following syntax:
+
+%%
+# s = 'This is an $(name) string. \
+       This is a $(if $(value),"$(value)","undefined") value.';;
+# s % [("name","interpolated")];;
+- : string = "This is an interpolated string.This is a undefined value."
+# s % [("name","interpolated"),("value","defined")];;
+- : string = "This is an interpolated string.This is a defined value."
+%%
+
+Most notable, <code>output.file</code> can use string interpolation to specify a different file name
+using the source's metadata.
 
 h4. Expressions
 

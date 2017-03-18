@@ -245,23 +245,13 @@ save a file per hour in wav format, the following script can be used:
 # s = ...
 
 # Dump the stream
-output.file(
-    %wav(stereo=true),
-    "/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.wav",
-    on_close=fun(s)->system("qwavheaderdump -F #{s}"),
-    reopen_when={0m0s},
-    s
-)
+file_name = '/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3'
+output.file(%mp3,filename,s)
 %%
 
-To be able to use it, you must install first the @qwavheaderdump@ program which
-can be found in the "quelcom package":http://packages.ubuntu.com/quelcom in
-Ubuntu, which is necessary in order to fix the headers of the generated wav
-files once the data has been dumped.
-
-The script can easily be adapted to other formats, most of which (ogg, mp3, ...)
-don't need to have their headers fixed (i.e. no need for the @on_close@
-parameter).
+This will save your source into a <code>mp3</code> file with name specified by <code>file_name</code>.
+In this example, we use "string interpolation":language.html and time litterals to generate a different
+file name each time new metadata are coming from <code>s</code>.
 
 h4. Manually dump a stream
 
