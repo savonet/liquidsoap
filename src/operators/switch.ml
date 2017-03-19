@@ -66,15 +66,16 @@ object (self)
 
   (** Don't call #select directly but use #cached_select
     * to ensure consistency during one time tick between #is_ready and
-    * #get_frame. *)
+    * #get_frame. We want to make sure that when a source is selected
+    * during a #is_ready call, the same selection is returned during the 
+    * next #get_frame call. *)
   val mutable cached_selected = None
   method private cached_select =
     match cached_selected with
-      | Some c -> c
+      | Some _ as c -> c
       | None ->
-          let c = self#select in
-            cached_selected <- Some c ;
-            c
+          cached_selected <- self#select ;
+          cached_selected
 
   method after_output =
     (* Advance the memo frame. *)
