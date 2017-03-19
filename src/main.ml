@@ -381,11 +381,11 @@ let options = [
       else
         [])
     @
-    [["--errors-as-warnings"],
-    Arg.Set Lang_values.errors_as_warnings,
-    "Issue warnings instead of fatal errors for unused variables \
-     and ignored expressions. If you are not sure about it, it is better \
-     to not use it." ]
+    [["--strict"],
+    Arg.Set Lang_values.strict,
+    "Execute script code in strict mode, issuing fatal errors \
+     instead of warnings in some cases. Currently: unused variables \
+     and ignored expressions. " ]
     @
     (* Unix.fork is not implemented in Win32. *)
     (if Sys.os_type <> "Win32" then
