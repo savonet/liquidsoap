@@ -43,13 +43,15 @@ object (self)
 
   val mutable remaining = 0
 
+  val mutable must_fail = false
+
   (** These values are protected by [plock]. *)
   val mutable send_metadata = false
   val mutable current = None
   val plock = Mutex.create ()
 
   (** How to unload a request. *)
-  method private end_track =
+  method private end_track forced =
     Mutex.lock plock ;
     begin match current with
         | None -> ()
@@ -63,7 +65,8 @@ object (self)
               | Some f -> self#log#f 3 "Finished with %S." f
             end ;
             cur.close () ;
-            Request.destroy cur.req
+            Request.destroy cur.req ;
+            must_fail <- forced
     end ;
     current <- None ;
     remaining <- 0 ;
@@ -112,8 +115,6 @@ object (self)
 
   (** Now we can write the source's methods. *)
 
-  val mutable must_fail = false
-
   method is_ready =
     Mutex.lock plock ;
     let ans = current <> None || must_fail || self#begin_track in
@@ -142,7 +143,7 @@ object (self)
               cur.fill buf
       in
         Tutils.mutexify plock try_get () ;
-        if Frame.is_partial buf then self#end_track
+        if Frame.is_partial buf then self#end_track false
     end
 
   method seek x =
@@ -151,10 +152,9 @@ object (self)
       | Some cur -> cur.seek x
 
   method abort_track =
-    self#end_track ;
-    must_fail <- true
+    self#end_track true
 
-  method private sleep = self#end_track
+  method private sleep = self#end_track false
 
   method copy_queue =
     match current with
