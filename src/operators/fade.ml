@@ -83,6 +83,8 @@ object(self)
     let p1 = AFrame.position ab in
     let p2 = source#get ab ; AFrame.position ab in
     self#save_latest_metadata ab ;
+    if Frame.is_partial ab then
+      self#clear_latest_metadata ;
     (** In samples: [length] of the fade, [count] since beginning. *)
     let fade,length,count =
       match state with

@@ -28,12 +28,6 @@ object(self)
   method virtual private on_new_metadata : unit
 
   method private save_latest_metadata frame =
-    if Frame.is_partial frame then
-      self#clear_latest_metadata
-    else
-      self#fetch_latest_metadata frame
-
-  method private fetch_latest_metadata frame =
     let compare x y = - (compare (fst x) (fst y)) in
     let l = List.sort compare (Frame.get_all_metadata frame) in
     if List.length l > 0 then

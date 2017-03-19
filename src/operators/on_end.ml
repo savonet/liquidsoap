@@ -46,7 +46,10 @@ object(self)
       executed <- true
     end ;
     if Frame.is_partial ab then
+     begin
+      self#clear_latest_metadata ;
       executed <- false
+     end
 end
 
 let () =
