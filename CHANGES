@@ -43,6 +43,8 @@ Removed:
 
 - dirac/schroedinger video encoder: obsolete, abandoned upstream.
 
+- force_mpeg option in taglib metadata decoder. Has not been used for years and allows to decouple taglib code from the mad decoder.
+
 Bugfixes:
 
 - Fix negative seek (#390)
