@@ -22,6 +22,15 @@ def list.mem_assoc(a,l)
   list.fold(f, false, l)
 end
 
+# list.filter_assoc(key,l) returns all the elements of the form
+# (key, value) from l.
+# @category List
+# @param k Key to look for
+# @param l List of pairs (key,value)
+def list.filter_assoc(k,l)
+  list.filter(fun (el) -> fst(el) == k, l)
+end
+
 # Rewrite metadata on the fly using a list of (target,rules).
 # @category Source / Track Processing
 # @param l \
