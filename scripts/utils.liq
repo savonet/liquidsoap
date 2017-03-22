@@ -223,16 +223,29 @@ def helium(s)
 end
 %endif
 
+# Perform a shell call and return its output.
+# @category System
+# @param ~env Process environment
+# @param command Command to run
+def get_process_output(~env=[],command) =
+  fst(fst(run_process(env=env,command)))
+end
+
+# Perform a shell call and return the list of its output lines.
+# @category System
+# @param ~env Process environment
+# @param command Command to run
+def get_process_lines(~env=[],command) =
+  string.split(separator="\\n",get_process_output(env=env,command))
+end
+
 # Return true if process exited with 0 code.
 # @category System
-# @param ~output Redirect process' stdout and stderr to /dev/null if false
 # @param ~env Process environment
 # @param command Command to test
-def test_process(~output=false,~env=[],command)
-  null = if output then "" else ">/dev/null 2>&1" end
-  lines =
-    get_process_lines("(#{command} #{null} && echo 0) || echo 1")
-  "0" == list.hd(default="-1",lines)
+def test_process(~env=[],command) =
+  res = run_process(env=env,command)
+  fst(snd(res)) != "exit" and snd(snd(res)) != 0
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
@@ -696,7 +709,7 @@ def say_protocol(arg,delay) =
   filename = file.temp("liq-say",".wav")
   cmd = "echo #{quote(arg)} | #{!text2wave} > #{filename}"
 
-  if test_process(output=true,env=["LANG=en_US.UTF-8"],cmd) then
+  if test_process(env=["LANG=en_US.UTF-8"],cmd) then
     [filename]
   else
     []

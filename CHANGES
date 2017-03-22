@@ -33,6 +33,8 @@ New:
 
 - Added \<char code> syntax for strings (#368)
 
+- Added run_process to run a process with option environment and return (stdout,stderr,exit_status)
+
 - Added optional env parameter to get_process_lines and get_process_output
 
 - Added optional static parameter to add_protocol

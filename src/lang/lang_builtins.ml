@@ -1514,11 +1514,18 @@ let () =
        Lang.float (Unix.gettimeofday ()))
 
 let () =
-  add_builtin "get_process_output" ~cat:Sys
-    ~descr:"Perform a shell call and return its output."
+  let ret_t = Lang.product_t
+    (Lang.product_t Lang.string_t Lang.string_t)
+    (Lang.product_t Lang.string_t Lang.int_t)
+  in
+  add_builtin "run_process" ~cat:Sys
+    ~descr:"Run a process in a shell environment. Returns: \
+            ((stdout,stderr),status) where status is one of: \
+            (\"exit\",<code>), (\"killed\",<signal number>) or \
+            (\"stopped\",<signal number>)."
     ["env",Lang.list_t Lang.string_t,
      Some (Lang.list ~t:Lang.string_t []),Some "Process environment";
-     "",Lang.string_t,None,None] Lang.string_t
+     "",Lang.string_t,None,None] ret_t
     (fun p ->
        let env = Lang.to_list
          (List.assoc "env" p)
@@ -1526,44 +1533,29 @@ let () =
        let env = List.map Lang.to_string env in
        let env = Array.of_list env in
        let cmd = Lang.to_string (List.assoc "" p) in
-       let ((chan,out_ch,_) as p) = Unix.open_process_full cmd env in
+       let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
        close_out out_ch;
-       let rec aux s =
-         let more = Bytes.make 128 '?' in
-         let n = input chan more 0 128 in
-           if n = 0 then s else
-             aux (s^(String.sub more 0 n))
+       let pull ch =
+         let buf = Buffer.create 1024 in
+         let rec f () =
+           try
+             Buffer.add_channel buf ch 1024;
+             f ()
+           with End_of_file -> Buffer.contents buf
+         in
+         f ()
        in
-       let s = aux "" in
-         ignore (Unix.close_process_full p) ;
-         Lang.string s)
-
-let () =
-  add_builtin "get_process_lines" ~cat:Sys
-    ~descr:"Perform a shell call and return the list of its output lines."
-    ["env",Lang.list_t Lang.string_t,
-     Some (Lang.list ~t:Lang.string_t []),Some "Process environment"; 
-     "",Lang.string_t,None,None]
-    (Lang.list_t Lang.string_t)
-    (fun p ->
-       let env = Lang.to_list
-         (List.assoc "env" p)
+       let stdout = pull in_chan in
+       let stderr = pull err_chan in
+       let status, code =
+         match Unix.close_process_full p with
+           | Unix.WEXITED c -> "exit",c
+           | Unix.WSIGNALED s -> "killed", s
+           | Unix.WSTOPPED s -> "stopped", s
        in
-       let env = List.map Lang.to_string env in
-       let env = Array.of_list env in
-       let cmd = Lang.to_string (List.assoc "" p) in
-       let ((chan,out_ch,_) as p) = Unix.open_process_full cmd env in
-       close_out out_ch;
-       let rec aux () =
-         match
-           try Some (input_line chan) with End_of_file -> None
-         with
-           | None -> []
-           | Some s -> s::(aux ())
-       in
-       let l = aux () in
-         ignore (Unix.close_process_full p) ;
-         Lang.list ~t:Lang.string_t (List.map Lang.string l))
+       Lang.product
+         (Lang.product (Lang.string stdout) (Lang.string stderr))
+         (Lang.product (Lang.string status) (Lang.int code)))
 
 let () =
   let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
