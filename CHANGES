@@ -33,7 +33,7 @@ New:
 
 - Added \<char code> syntax for strings (#368)
 
-- Added run_process to run a process with option environment and return (stdout,stderr,exit_status)
+- Added run_process to run a process with optional environment and return (stdout,stderr,exit_status)
 
 - Added optional static parameter to add_protocol
 

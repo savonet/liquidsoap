@@ -734,7 +734,7 @@ add_protocol(static=true,"process", process_protocol)
 # Register the say: protocol using text2wav and sox
 # @flag hidden
 def say_protocol(arg,delay) =
-  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 | sox - -c 2 $(output)"]
+  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 | sox -t wav --ignore-length - -c 2 $(output)"]
 end
 add_protocol(static=true,"say",say_protocol)
 
