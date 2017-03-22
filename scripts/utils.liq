@@ -225,11 +225,13 @@ end
 
 # Return true if process exited with 0 code.
 # @category System
+# @param ~output Redirect process' stdout and stderr to /dev/null if false
 # @param ~env Process environment
 # @param command Command to test
-def test_process(~env=[],command)
+def test_process(~output=false,~env=[],command)
+  null = if output then "" else ">/dev/null 2>&1" end
   lines =
-    get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
+    get_process_lines("(#{command} #{null} && echo 0) || echo 1")
   "0" == list.hd(default="-1",lines)
 end
 
@@ -694,7 +696,7 @@ def say_protocol(arg,delay) =
   filename = file.temp("liq-say",".wav")
   cmd = "echo #{quote(arg)} | #{!text2wave} > #{filename}"
 
-  if test_process(env=["LANG=en_US.UTF-8"],cmd) then
+  if test_process(output=true,env=["LANG=en_US.UTF-8"],cmd) then
     [filename]
   else
     []
