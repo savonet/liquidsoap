@@ -17,7 +17,7 @@ out(mount="demo.ogg",
   # of remote URIs.
   add([
     # Comment out the next line if you don't have speech synthesis enabled.
-    delay(10.,single("say:"^message)),
+    delay(10.,audio_to_stereo(single("say:"^message))),
     # We add another output without the synthesized messages. It is not started
     # but you can turn it on using the server:
     # > telnet localhost 1234
