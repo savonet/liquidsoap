@@ -287,9 +287,6 @@ def my_safe(s) =
                      technical difficulties but we'll \
                      be back soon so stay tuned!")
 
-  # Default say: requests are mono, converting to stereo:
-  security = audio_to_stereo(security)
-
   # We return a fallback where the original
   # source has priority over the security
   # single. We set track_sensitive to false
@@ -720,12 +717,10 @@ the file-based source:
 %%
 # The transition to live1
 jingle1 = single("say:And now, we present the awesome show number one!!")
-jingle1 = audio_to_stereo(jingle1)
 to_live1 = to_live(jingle1)
 
 # Transition to live2
 jingle2 = single("say:Welcome guys, this is show two on My Awesome Radio!")
-jingle2 = audio_to_stereo(jingle2)
 to_live2 = to_live(jingle2)
 
 # Combine lives and files:

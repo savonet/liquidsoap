@@ -210,8 +210,8 @@ end
 def say_metadata
   p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\", $(title)\").")'
   fun (s,~pattern=p) ->
-    append(s,fun (m) -> audio_to_stereo(request.queue(queue=[request.create(pattern % m)],
-                                        interactive=false)))
+    append(s,fun (m) -> request.queue(queue=[request.create(pattern % m)],
+                                      interactive=false))
 end
 
 %ifdef soundtouch
