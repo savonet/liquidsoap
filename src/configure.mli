@@ -54,9 +54,6 @@ val data_mime : (?len:int -> string -> string) option
 
 val requests_table_size : int
 
-(** Program used for text-to-speech. *)
-val tts_program : string
-
 (** Configured directories. Typically /var/(run|log)/liquidsoap. *)
 val rundir : string
 val logdir : string
