@@ -245,7 +245,7 @@ end
 # @param command Command to test
 def test_process(~env=[],command) =
   res = run_process(env=env,command)
-  fst(snd(res)) != "exit" and snd(snd(res)) != 0
+  fst(snd(res)) == "exit" and snd(snd(res)) == 0
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
@@ -693,41 +693,77 @@ def replaygain_protocol(arg,delay)
 end
 add_protocol("replay_gain", replaygain_protocol)
 
-text2wave = ref "text2wave"
+# Register the process protocol. Syntax:
+# process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
+# [("input",<input file>),("output",<output file>)]
+# See say: protocol for an example.
+# @flag hidden
+def process_protocol(arg,delay)
+  x = string.split(separator=":",arg)
 
-# Set text2wave binary path for the say: protocol.
-# @category Liquidsoap
-# @params path Path to text2wav
-def set_text2wave_path(path) =
-  text2wave := path
+  # process:/path/to/file (unlikely)
+  if x == [] then
+    [arg]
+  else
+    uri = string.concat(separator=":",list.tl(x))
+    x = string.split(separator=",",arg)
+    extname = list.hd(default="liq",x)
+    cmd = string.concat(separator=",",list.tl(x))
+
+    filename = file.temp("liq-process", ".#{extname}")
+
+    r = request.create(uri)
+    if uri == "" or request.resolve(r) then
+      cmd = cmd % [("input",quote(request.filename(r))),("output",quote(filename))]
+
+      lang = getenv("LANG")
+      lang = if lang == "" then "C" else lang end
+
+      if test_process(env=["LANG=#{lang}"],cmd) then
+        [filename]
+      else
+        []
+      end
+    else
+      []
+    end
+  end
 end
+add_protocol("process", process_protocol)
 
-# Register the say: protocol using text2wave
-# speech synthesis.
+# Register the say: protocol using text2wav and sox
 # @flag hidden
 def say_protocol(arg,delay) =
-  filename = file.temp("liq-say",".wav")
-  cmd = "echo #{quote(arg)} | #{!text2wave} > #{filename}"
-
-  if test_process(env=["LANG=en_US.UTF-8"],cmd) then
-    [filename]
-  else
-    []
-  end
+  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 | sox - -c 2 $(output)"]
 end
 add_protocol(static=true,"say",say_protocol)
 
-# Register the polly: protocol using AWS Polly
-# speech synthesis services.
+polly_options = ref []
+
+# Set polly AWS speech synthesis protocol options
 # @category Liquidsoap
 # @param ~profile Path to credential file.
 # @param ~region AWS Region
 # @param ~aws Path to AWS binary
 # @param ~format Output format
-# @param ~debug Print executed command-line
 # @param voice_id Voice ID
-def register_aws_polly(~debug=false,~profile="",~region="",
-                       ~aws="aws",~format="mp3",voice_id) =
+def set_polly_options(~profile="",~region="",
+                      ~aws="aws",~format="mp3",
+                      voice_id) =
+  polly_options := [
+    ("profile",profile),(region,region),
+    ("aws",aws),(format,format),("voice_id",voice_id)
+  ]
+end
+
+# Register the polly: protocol using AWS Polly
+# speech synthesis services. Syntax: polly:<text>
+# @flag hidden
+def polly_protocol(text,delay) =
+  opts = !polly_options
+
+  format = opts["format"]
+
   extname =
     if format == "mp3" then
       ".mp3"
@@ -737,7 +773,11 @@ def register_aws_polly(~debug=false,~profile="",~region="",
       ".wav"
     end
 
+  aws = opts["aws"]
+
   aws = "#{aws} polly synthesize-speech --output-format #{format}"
+
+  region = opts["region"]
 
   aws =
     if region != "" then
@@ -746,6 +786,8 @@ def register_aws_polly(~debug=false,~profile="",~region="",
       aws
     end
 
+  profile = opts["profile"]
+
   aws =
     if profile != "" then
       "#{aws} --profile #{quote(profile)}"
@@ -753,21 +795,11 @@ def register_aws_polly(~debug=false,~profile="",~region="",
       aws
     end
 
-  def polly_protocol(arg,delay) =
-    filename = file.temp("liq-polly",extname) 
-    aws = "#{aws} --text #{quote(arg)} --voice-id #{quote(voice_id)} #{quote(filename)}" 
+  voice_id = opts["voice_id"]
 
-    if debug then
-      print("Polly protocol - executing command-line:\n#{aws}") 
-    end
+  cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
 
-    if test_process(env=["LANG=en_US.UTF-8"],aws) then
-      [filename]
-    else
-      []
-    end
-  end
-  add_protocol(static=true,"polly",polly_protocol)
+  ["process:#{extname}:#{cmd}"]
 end
 
 # Enable replay gain metadata resolver. This resolver will process any file
