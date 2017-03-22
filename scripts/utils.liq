@@ -751,10 +751,13 @@ def set_polly_options(~profile="",~region="",
                       ~aws="aws",~format="mp3",
                       voice_id) =
   polly_options := [
-    ("profile",profile),(region,region),
-    ("aws",aws),(format,format),("voice_id",voice_id)
+    ("profile",profile),("region",region),
+    ("aws",aws),("format",format),
+    ("voice_id",voice_id)
   ]
 end
+
+set_polly_options("")
 
 # Register the polly: protocol using AWS Polly
 # speech synthesis services. Syntax: polly:<text>
@@ -766,11 +769,11 @@ def polly_protocol(text,delay) =
 
   extname =
     if format == "mp3" then
-      ".mp3"
+      "mp3"
     elsif format == "ogg_vorbis" then
-      ".ogg"
+      "ogg"
     else
-      ".wav"
+      "wav"
     end
 
   aws = opts["aws"]
@@ -780,7 +783,7 @@ def polly_protocol(text,delay) =
   region = opts["region"]
 
   aws =
-    if region != "" then
+    if region !="" then
       "#{aws} --region #{region}"
     else
       aws
@@ -789,7 +792,7 @@ def polly_protocol(text,delay) =
   profile = opts["profile"]
 
   aws =
-    if profile != "" then
+    if profile !="" then
       "#{aws} --profile #{quote(profile)}"
     else
       aws
@@ -799,7 +802,7 @@ def polly_protocol(text,delay) =
 
   cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
 
-  ["process:#{extname}:#{cmd}"]
+  ["process:#{extname},#{cmd}"]
 end
 add_protocol(static=true,"polly", polly_protocol)
 
