@@ -223,10 +223,11 @@ def helium(s)
 end
 %endif
 
-# Return true if process exited with 0 code. Command should return quickly.
+# Return true if process exited with 0 code.
 # @category System
-# @param command    Command to test
-def test_process(command)
+# @param ~env Process environment
+# @param command Command to test
+def test_process(~env=[],command)
   lines =
     get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
   "0" == list.hd(default="-1",lines)
@@ -663,7 +664,6 @@ def exec_at(~freq=1.,~pred,f)
 end
 
 # Register the replaygain protocol.
-# @category Liquidsoap
 def replaygain_protocol(arg,delay)
  # The extraction program
  extract_replaygain = "#{configure.libdir}/extract-replaygain"
@@ -675,6 +675,59 @@ def replaygain_protocol(arg,delay)
  end
 end
 add_protocol("replay_gain", replaygain_protocol)
+
+# Register the polly: protocol using AWS Polly
+# speech synthesis services.
+# @category Liquidsoap
+# @param ~profile Path to credential file.
+# @param ~region AWS Region
+# @param ~aws Path to AWS binary
+# @param ~format Output format
+# @param ~debug Print executed command-line
+# @param voice_id Voice ID
+def register_aws_polly(~debug=false,~profile="",~region="",
+                       ~aws="aws",~format="mp3",voice_id) =
+  extname =
+    if format == "mp3" then
+      ".mp3"
+    elsif format == "ogg_vorbis" then
+      ".ogg"
+    else
+      ".wav"
+    end
+
+  aws = "#{aws} polly synthesize-speech --output-format #{format}"
+
+  aws =
+    if region != "" then
+      "#{aws} --region #{region}"
+    else
+      aws
+    end
+
+  aws =
+    if profile != "" then
+      "#{aws} --profile #{quote(profile)}"
+    else
+      aws
+    end
+
+  def polly_protocol(arg,delay) =
+    filename = file.temp("liq-polly",extname) 
+    aws = "#{aws} --text #{quote(arg)} --voice-id #{voice_id} #{quote(filename)}" 
+
+    if debug then
+      print("Polly protocol - executing command-line:\n#{aws}") 
+    end
+
+    if test_process(env=["LANG=en_US.UTF-8"],aws) then
+      [filename]
+    else
+      []
+    end
+  end
+  add_protocol(static=true,"polly",polly_protocol)
+end
 
 # Enable replay gain metadata resolver. This resolver will process any file
 # decoded by liquidsoap and add a replay_gain metadata when this value could be

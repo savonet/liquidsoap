@@ -39,6 +39,8 @@ New:
 
 - Added file.temp to create fresh temporary filename
 
+- Added register_aws_polly to enable speech synthesis using AWS polly.
+
 Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
