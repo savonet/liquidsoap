@@ -35,19 +35,19 @@ New:
 
 - Added run_process to run a process with option environment and return (stdout,stderr,exit_status)
 
-- Added optional env parameter to get_process_lines and get_process_output
-
 - Added optional static parameter to add_protocol
 
 - Added file.temp to create fresh temporary filename
 
-- Added register_aws_polly to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
+- Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
 
 Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
 
-- Moved say: protocol registration to utils.liq. Use set_text2wave_path to set path to text2wave (festival) binary.
+- Moved say: protocol registration to utils.liq.
+
+- Moved get_process_lines and get_process_output to utils.liq, added optional env parameter
 
 Removed:
 
