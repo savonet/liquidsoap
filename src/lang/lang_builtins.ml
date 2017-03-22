@@ -388,6 +388,16 @@ let () =
          Lang.unit)
 
 let () =
+  add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename in the temporary directory."
+    ["",Lang.string_t,None,Some "File prefix";
+     "",Lang.string_t,None, Some "File suffix"]
+    Lang.string_t
+    (fun p ->
+      Lang.string (Filename.temp_file
+        (Lang.to_string (Lang.assoc "" 1 p))
+        (Lang.to_string (Lang.assoc "" 2 p))))
+
+let () =
   let protocol_t =
     Lang.fun_t
       [false,"",Lang.string_t ; false,"",Lang.float_t]
@@ -396,6 +406,8 @@ let () =
     add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
       ["temporary",Lang.bool_t,Some (Lang.bool false),
        Some "if true, file removed when it is finished.";
+       "static",Lang.bool_t,Some (Lang.bool false),
+       Some "if true, resolved requests are always available.";
        "",Lang.string_t,None,None ;
        "",protocol_t,None,None ]
       Lang.unit_t
@@ -403,8 +415,9 @@ let () =
          let name = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
          let temporary = Lang.to_bool (List.assoc "temporary" p) in
+         let static = Lang.to_bool (List.assoc "static" p) in
            Request.protocols#register name
-             { Request.static = false ;
+             { Request.static = static ;
                Request.resolve =
                  fun arg ~log:_ timeout ->
                    let l =
@@ -1501,11 +1514,18 @@ let () =
 let () =
   add_builtin "get_process_output" ~cat:Sys
     ~descr:"Perform a shell call and return its output."
-    [ "",Lang.string_t,None,None] Lang.string_t
+    ["env",Lang.list_t Lang.string_t,
+     Some (Lang.list ~t:Lang.string_t []),Some "Process environment";
+     "",Lang.string_t,None,None] Lang.string_t
     (fun p ->
-       let chan =
-         Unix.open_process_in (Lang.to_string (List.assoc "" p))
+       let env = Lang.to_list
+         (List.assoc "env" p)
        in
+       let env = List.map Lang.to_string env in
+       let env = Array.of_list env in
+       let cmd = Lang.to_string (List.assoc "" p) in
+       let ((chan,out_ch,_) as p) = Unix.open_process_full cmd env in
+       close_out out_ch;
        let rec aux s =
          let more = Bytes.make 128 '?' in
          let n = input chan more 0 128 in
@@ -1513,15 +1533,25 @@ let () =
              aux (s^(String.sub more 0 n))
        in
        let s = aux "" in
-         ignore (Unix.close_process_in chan) ;
+         ignore (Unix.close_process_full p) ;
          Lang.string s)
 
 let () =
   add_builtin "get_process_lines" ~cat:Sys
     ~descr:"Perform a shell call and return the list of its output lines."
-    [ "",Lang.string_t,None,None] (Lang.list_t Lang.string_t)
+    ["env",Lang.list_t Lang.string_t,
+     Some (Lang.list ~t:Lang.string_t []),Some "Process environment"; 
+     "",Lang.string_t,None,None]
+    (Lang.list_t Lang.string_t)
     (fun p ->
-       let chan = Unix.open_process_in (Lang.to_string (List.assoc "" p)) in
+       let env = Lang.to_list
+         (List.assoc "env" p)
+       in
+       let env = List.map Lang.to_string env in
+       let env = Array.of_list env in
+       let cmd = Lang.to_string (List.assoc "" p) in
+       let ((chan,out_ch,_) as p) = Unix.open_process_full cmd env in
+       close_out out_ch;
        let rec aux () =
          match
            try Some (input_line chan) with End_of_file -> None
@@ -1530,7 +1560,7 @@ let () =
            | Some s -> s::(aux ())
        in
        let l = aux () in
-         ignore (Unix.close_process_in chan) ;
+         ignore (Unix.close_process_full p) ;
          Lang.list ~t:Lang.string_t (List.map Lang.string l))
 
 let () =

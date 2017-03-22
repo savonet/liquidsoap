@@ -33,6 +33,12 @@ New:
 
 - Added \<char code> syntax for strings (#368)
 
+- Added optional env parameter to get_process_lines and get_process_output
+
+- Added optional static parameter to add_protocol
+
+- Added file.temp to create fresh temporary filename
+
 Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
