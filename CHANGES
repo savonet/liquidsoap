@@ -33,11 +33,31 @@ New:
 
 - Added \<char code> syntax for strings (#368)
 
+- Added run_process to run a process with optional environment and return (stdout,stderr,exit_status)
+
+- Added optional static parameter to add_protocol
+
+- Added file.temp to create fresh temporary filename
+
+- Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
+
+Changed:
+
+- Reverted default value for --error_as_warnings option, renamed to --strict.
+
+- Moved say: protocol registration to utils.liq.
+
+- Moved get_process_lines and get_process_output to utils.liq, added optional env parameter
+
+- Set conservative=true by default in cross() and smartcross()
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
 
 - dirac/schroedinger video encoder: obsolete, abandoned upstream.
+
+- force_mpeg option in taglib metadata decoder. Has not been used for years and allows to decouple taglib code from the mad decoder.
 
 Bugfixes:
 
@@ -52,8 +72,6 @@ Bugfixes:
 - Fix missing first line of headers from icy clients in input.harbor (#380)
 
 - Fix timestamp in some logged output (#395)
-
-- Properly install liquidtts.
 
 - Fix crash in external (download) protocol.
 

@@ -21,9 +21,9 @@
  *****************************************************************************)
 
 class on_end ~kind ~delay f s =
-object
+object(self)
   inherit Source.operator ~name:"on_end" kind [s]
-  inherit Latest_metadata.source as latest
+  inherit Latest_metadata.source
 
   val mutable executed = false
 
@@ -37,7 +37,7 @@ object
 
   method private get_frame ab =
     s#get ab ;
-    latest#save_latest_metadata ab ;
+    self#save_latest_metadata ab ;
     let rem = Frame.seconds_of_master s#remaining in
     if (not executed) && ((0. <= rem && rem <= delay) || Frame.is_partial ab) then
     begin
@@ -46,7 +46,10 @@ object
       executed <- true
     end ;
     if Frame.is_partial ab then
+     begin
+      self#clear_latest_metadata ;
       executed <- false
+     end
 end
 
 let () =

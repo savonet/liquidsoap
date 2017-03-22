@@ -949,7 +949,6 @@ cat <<EOMSG
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
-   - text-to-speech    : requires text2wave (festival) and sox at runtime
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LASTFM
 

@@ -22,6 +22,15 @@ def list.mem_assoc(a,l)
   list.fold(f, false, l)
 end
 
+# list.filter_assoc(key,l) returns all the elements of the form
+# (key, value) from l.
+# @category List
+# @param k Key to look for
+# @param l List of pairs (key,value)
+def list.filter_assoc(k,l)
+  list.filter(fun (el) -> fst(el) == k, l)
+end
+
 # Rewrite metadata on the fly using a list of (target,rules).
 # @category Source / Track Processing
 # @param l \
@@ -223,13 +232,29 @@ def helium(s)
 end
 %endif
 
-# Return true if process exited with 0 code. Command should return quickly.
+# Perform a shell call and return its output.
 # @category System
-# @param command    Command to test
-def test_process(command)
-  lines =
-    get_process_lines("(" ^ command ^ " >/dev/null 2>&1 && echo 0) || echo 1")
-  "0" == list.hd(default="-1",lines)
+# @param ~env Process environment
+# @param command Command to run
+def get_process_output(~env=[],command) =
+  fst(fst(run_process(env=env,command)))
+end
+
+# Perform a shell call and return the list of its output lines.
+# @category System
+# @param ~env Process environment
+# @param command Command to run
+def get_process_lines(~env=[],command) =
+  string.split(separator="\\n",get_process_output(env=env,command))
+end
+
+# Return true if process exited with 0 code.
+# @category System
+# @param ~env Process environment
+# @param command Command to test
+def test_process(~env=[],command) =
+  res = run_process(env=env,command)
+  fst(snd(res)) == "exit" and snd(snd(res)) == 0
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
@@ -597,6 +622,7 @@ def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",uri)
 end
 
 # Play the whole playlist as one track.
+# @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~random Randomize playlist content
 # @param uri Playlist URI.
@@ -663,7 +689,7 @@ def exec_at(~freq=1.,~pred,f)
 end
 
 # Register the replaygain protocol.
-# @category Liquidsoap
+# @flag hidden
 def replaygain_protocol(arg,delay)
  # The extraction program
  extract_replaygain = "#{configure.libdir}/extract-replaygain"
@@ -675,6 +701,119 @@ def replaygain_protocol(arg,delay)
  end
 end
 add_protocol("replay_gain", replaygain_protocol)
+
+# Register the process protocol. Syntax:
+# process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
+# [("input",<input file>),("output",<output file>)]
+# See say: protocol for an example.
+# @flag hidden
+def process_protocol(arg,delay)
+  x = string.split(separator=":",arg)
+
+  # process:/path/to/file (unlikely)
+  if x == [] then
+    [arg]
+  else
+    uri = string.concat(separator=":",list.tl(x))
+    x = string.split(separator=",",arg)
+    extname = list.hd(default="liq",x)
+    cmd = string.concat(separator=",",list.tl(x))
+
+    filename = file.temp("liq-process", ".#{extname}")
+
+    r = request.create(uri)
+    if uri == "" or request.resolve(r) then
+      cmd = cmd % [("input",quote(request.filename(r))),("output",quote(filename))]
+
+      lang = getenv("LANG")
+      lang = if lang == "" then "C" else lang end
+
+      if test_process(env=["LANG=#{lang}"],cmd) then
+        [filename]
+      else
+        []
+      end
+    else
+      []
+    end
+  end
+end
+add_protocol("process", process_protocol)
+
+# Register the say: protocol using text2wav and sox
+# @flag hidden
+def say_protocol(arg,delay) =
+  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 | sox -t wav --ignore-length - -c 2 $(output)"]
+end
+add_protocol(static=true,"say",say_protocol)
+
+polly_options = ref []
+
+# Set polly AWS speech synthesis protocol options
+# @category Liquidsoap
+# @param ~profile Path to credential file.
+# @param ~region AWS Region
+# @param ~aws Path to AWS binary
+# @param ~format Output format
+# @param voice_id Voice ID
+def set_polly_options(~profile="",~region="",
+                      ~aws="aws",~format="mp3",
+                      voice_id) =
+  polly_options := [
+    ("profile",profile),("region",region),
+    ("aws",aws),("format",format),
+    ("voice_id",voice_id)
+  ]
+end
+
+set_polly_options("")
+
+# Register the polly: protocol using AWS Polly
+# speech synthesis services. Syntax: polly:<text>
+# @flag hidden
+def polly_protocol(text,delay) =
+  opts = !polly_options
+
+  format = opts["format"]
+
+  extname =
+    if format == "mp3" then
+      "mp3"
+    elsif format == "ogg_vorbis" then
+      "ogg"
+    else
+      "wav"
+    end
+
+  aws = opts["aws"]
+
+  aws = "#{aws} polly synthesize-speech --output-format #{format}"
+
+  region = opts["region"]
+
+  aws =
+    if region !="" then
+      "#{aws} --region #{region}"
+    else
+      aws
+    end
+
+  profile = opts["profile"]
+
+  aws =
+    if profile !="" then
+      "#{aws} --profile #{quote(profile)}"
+    else
+      aws
+    end
+
+  voice_id = opts["voice_id"]
+
+  cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
+
+  ["process:#{extname},#{cmd}"]
+end
+add_protocol(static=true,"polly", polly_protocol)
 
 # Enable replay gain metadata resolver. This resolver will process any file
 # decoded by liquidsoap and add a replay_gain metadata when this value could be
@@ -795,7 +934,7 @@ end
 
 # Rotate between overlapping sources. Next track starts according
 # to 'liq_start_next' offset metadata.
-# @category Source / Tracks
+# @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.

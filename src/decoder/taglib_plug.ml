@@ -34,17 +34,6 @@ let conf_taglib =
   Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "taglib")
     "Taglib settings"
 
-let conf_force_mpeg =
-  Dtools.Conf.bool ~p:(conf_taglib#plug "force_mpeg") ~d:false
-    "By default, taglib will only attempt reading metadata from files that it \
-     detects as valid. This may fail, for example if the reported mime type isn't \
-     \"audio/mpeg\". If you set this configuration key to true, then all files \
-     successfully recognized by liquidsoap will be considered as MPEG by taglib. \
-     In this case, taglib configuration keys for file extensions and mime types \
-     (\"decoder.file_extensions.taglib\" and \"decoder.mime_types.taglib\") \
-     are not used, and file detection is only done based on the corresponding \
-     settings from the MAD MPEG decoder."
-
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "taglib")
     "File extensions used for decoding metadata using TAGLIB"
@@ -54,17 +43,11 @@ let file_extensions =
   * automatic format detection should work. *)
 let get_tags fname =
   try
-    let mime_types, file_extensions, ftype =
-      if conf_force_mpeg#get then
-        Mad_decoder.mime_types, Mad_decoder.file_extensions, `Mpeg
-      else
-        mime_types, file_extensions, `Autodetect
-    in
     if not (Decoder.test_file ~mimes:mime_types#get 
                               ~extensions:file_extensions#get 
                               ~log fname) then
       raise Invalid_file ;
-    let f = Taglib.File.open_file ftype fname in
+    let f = Taglib.File.open_file `Autodetect fname in
     Tutils.finalize ~k:(fun () -> Taglib.File.close_file f)
     (fun () ->
       let tags =

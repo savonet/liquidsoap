@@ -53,9 +53,9 @@ let get_fader name =
   * If the initial flag is set, only the first/current track is faded in. *)
 class fade_in ~kind
   ~duration_meta ~type_meta ?(initial=false) duration fader source =
-object
+object(self)
   inherit operator ~name:"fade_in" kind [source]
-  inherit Latest_metadata.source as latest
+  inherit Latest_metadata.source
 
   method stype = source#stype
   method is_ready = source#is_ready
@@ -82,7 +82,9 @@ object
   method private get_frame ab =
     let p1 = AFrame.position ab in
     let p2 = source#get ab ; AFrame.position ab in
-    latest#save_latest_metadata ab ;
+    self#save_latest_metadata ab ;
+    if Frame.is_partial ab then
+      self#clear_latest_metadata ;
     (** In samples: [length] of the fade, [count] since beginning. *)
     let fade,length,count =
       match state with

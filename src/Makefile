@@ -94,10 +94,6 @@ protocols = \
 	protocols/mpd.ml \
 	protocols/extproto.ml
 
-ifneq ($(OS_TYPE), "Win32")
-protocols += protocols/say.ml
-endif
-
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \
 	sources/audio_gen.ml sources/request_source.ml sources/latest_metadata.ml \

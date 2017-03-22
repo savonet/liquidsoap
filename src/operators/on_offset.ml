@@ -31,7 +31,7 @@ let ticks_of_offset offset =
 class on_offset ~kind ~force ~offset ~override f s =
 object(self)
   inherit Source.operator ~name:"on_offset" kind [s]
-  inherit Latest_metadata.source as latest
+  inherit Latest_metadata.source
 
   method stype = s#stype
   method is_ready = s#is_ready
@@ -74,7 +74,7 @@ object(self)
       Int64.of_int (Frame.position ab)
     in
     s#get ab ;
-    latest#save_latest_metadata ab ;
+    self#save_latest_metadata ab ;
     let new_pos =
       Int64.of_int (Frame.position ab)
     in
@@ -86,6 +86,7 @@ object(self)
       if force && not executed then
         self#execute;
       executed <- false;
+      self#clear_latest_metadata ;
       elapsed <- 0L
      end
 end

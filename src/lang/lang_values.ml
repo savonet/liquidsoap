@@ -33,8 +33,8 @@ let debug =
   with
     | Not_found -> false
 
-(** Should errors be considered as simple warnings? *)
-let errors_as_warnings = ref false
+(** Should some warnings be considered as fatal errors? *)
+let strict = ref false
 
 (** {2 Kinds} *)
 
@@ -303,12 +303,12 @@ let check_unused ~lib tm =
              * and functions when at toplevel (sort of a lib situation...) *)
             if not (can_ignore def.t || (toplevel && is_fun def.t)) then
               let start_pos = fst (Utils.get_some tm.t.T.pos) in
-                if !errors_as_warnings then
+                if !strict then
+                  raise (Unused_variable (s,start_pos))
+                else
                   Printf.printf
                     "Warning: unused variable %s at %s.\n%!"
                     s (T.print_single_pos start_pos)
-                else
-                  raise (Unused_variable (s,start_pos))
           end ;
           if mask then Vars.add s v else v
   in
@@ -533,12 +533,12 @@ exception Unbound of T.pos option * string
 exception Ignored of term
 
 let raise_ignored e =
-  if !errors_as_warnings then
+  if !strict then
+    raise (Ignored e)
+  else
     Printf.printf
       "Warning: ignored expression at %s.\n%!"
       (T.print_pos ~prefix:"" (Utils.get_some e.t.T.pos))
-  else
-    raise (Ignored e)
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
   * passed to the function [f] because the latter has no label [lbl].

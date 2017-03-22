@@ -189,11 +189,7 @@ object(self)
                                          ~on_stdin:self#on_stdin
                                          ~on_stderr ~log process)
 
-  method abort_track =
-    source#abort_track;
-    Tutils.mutexify mutex (fun () ->
-      next_stop := `Break;
-      Process_handler.stop self#get_handler) ()
+  method abort_track = source#abort_track
 
   method sleep =
     Tutils.mutexify mutex (fun () ->
