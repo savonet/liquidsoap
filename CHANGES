@@ -45,6 +45,8 @@ Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
 
+- Moved say: protocol registration to utils.liq. Use set_text2wav_path to set path to text2wav (festival) binary.
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
@@ -66,8 +68,6 @@ Bugfixes:
 - Fix missing first line of headers from icy clients in input.harbor (#380)
 
 - Fix timestamp in some logged output (#395)
-
-- Properly install liquidtts.
 
 - Fix crash in external (download) protocol.
 

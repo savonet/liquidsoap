@@ -25,7 +25,7 @@ Recommended dependencies :
 
    camomile                 for charset recoding in metadata
    ocaml-magic>=0.6         for file type detection
-   festival, sox, normalize for speech synthesis
+   festival                 for speech synthesis
 
 Optional dependencies :
 

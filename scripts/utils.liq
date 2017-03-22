@@ -678,6 +678,30 @@ def replaygain_protocol(arg,delay)
 end
 add_protocol("replay_gain", replaygain_protocol)
 
+text2wav = ref "text2wav"
+
+# Set text2wav binary path for the say: protocol.
+# @category Liquidsoap
+# @params path Path to text2wav
+def set_text2wav_path(path) =
+  text2wav := path
+end
+
+# Register the say: protocol using text2wav
+# speech synthesis.
+# @flag hidden
+def say_protocol(arg,delay) =
+  filename = file.temp("liq-say",".wav")
+  cmd = "echo #{quote(arg)} | #{!text2wav} #{filename}"
+
+  if test_process(env=["LANG=en_US.UTF-8"],cmd) then
+    [filename]
+  else
+    []
+  end
+end
+add_protocol(static=true,"say",say_protocol)
+
 # Register the polly: protocol using AWS Polly
 # speech synthesis services.
 # @category Liquidsoap

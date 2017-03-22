@@ -14,7 +14,6 @@ A custom loading path is a directory that contains the following file/directorie
 * @./magic@: directory for magic files. See below for more details.
 * @./plugins@: default plugins directory (most likely empty)
 * @./run@: default runtime files directory
-* @liquidtts@: @liquidtts@ script.
 
 h3. Adding liquidsoap binary
 
@@ -61,7 +60,6 @@ Its layout is:
 ./libs
 ./libs/externals.liq
 (...)
-./liquidtts
 ./log
 ./magic
 ./magic/magic.mime
