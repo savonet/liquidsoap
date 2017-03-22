@@ -435,7 +435,7 @@ struct
     | Unit     -> "()"
     | Bool i   -> string_of_bool i
     | Int i    -> string_of_int i
-    | Float f  -> string_of_float f
+    | Float f  -> Printf.sprintf "%.01f" f
     | String s -> Printf.sprintf "%S" s
     | Source _ -> "<source>"
     | Request _ -> "<request>"
