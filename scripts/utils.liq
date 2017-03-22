@@ -716,7 +716,7 @@ def register_aws_polly(~debug=false,~profile="",~region="",
 
   def polly_protocol(arg,delay) =
     filename = file.temp("liq-polly",extname) 
-    aws = "#{aws} --text #{quote(arg)} --voice-id #{voice_id} #{quote(filename)}" 
+    aws = "#{aws} --text #{quote(arg)} --voice-id #{quote(voice_id)} #{quote(filename)}" 
 
     if debug then
       print("Polly protocol - executing command-line:\n#{aws}") 
