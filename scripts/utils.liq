@@ -692,7 +692,7 @@ end
 # @flag hidden
 def say_protocol(arg,delay) =
   filename = file.temp("liq-say",".wav")
-  cmd = "echo #{quote(arg)} | #{!text2wave} #{filename}"
+  cmd = "echo #{quote(arg)} | #{!text2wave} > #{filename}"
 
   if test_process(env=["LANG=en_US.UTF-8"],cmd) then
     [filename]
