@@ -801,6 +801,7 @@ def polly_protocol(text,delay) =
 
   ["process:#{extname}:#{cmd}"]
 end
+add_protocol(static=true,"polly", polly_protocol)
 
 # Enable replay gain metadata resolver. This resolver will process any file
 # decoded by liquidsoap and add a replay_gain metadata when this value could be
