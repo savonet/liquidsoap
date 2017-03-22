@@ -45,7 +45,7 @@ Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
 
-- Moved say: protocol registration to utils.liq. Use set_text2wave_path to set path to text2wav2 (festival) binary. Generated files are mono so make sure you use audio_to_stereo().
+- Moved say: protocol registration to utils.liq. Use set_text2wave_path to set path to text2wave (festival) binary. Generated files are mono so make sure you use audio_to_stereo().
 
 Removed:
 
