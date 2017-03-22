@@ -598,6 +598,7 @@ def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",uri)
 end
 
 # Play the whole playlist as one track.
+# @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~random Randomize playlist content
 # @param uri Playlist URI.
@@ -664,6 +665,7 @@ def exec_at(~freq=1.,~pred,f)
 end
 
 # Register the replaygain protocol.
+# @flag hidden
 def replaygain_protocol(arg,delay)
  # The extraction program
  extract_replaygain = "#{configure.libdir}/extract-replaygain"
@@ -848,7 +850,7 @@ end
 
 # Rotate between overlapping sources. Next track starts according
 # to 'liq_start_next' offset metadata.
-# @category Source / Tracks
+# @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
