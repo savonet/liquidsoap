@@ -758,7 +758,7 @@ def process_protocol(arg,delay)
     end
   end
 end
-add_protocol("process", process_protocol)
+add_protocol(temporary=true, "process", process_protocol)
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden

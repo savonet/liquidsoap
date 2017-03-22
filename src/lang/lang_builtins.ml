@@ -405,7 +405,7 @@ let () =
   in
     add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
       ["temporary",Lang.bool_t,Some (Lang.bool false),
-       Some "if true, file removed when it is finished.";
+       Some "if true, file is removed when it is finished.";
        "static",Lang.bool_t,Some (Lang.bool false),
        Some "if true, resolved requests are always available.";
        "",Lang.string_t,None,None ;
