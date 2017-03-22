@@ -729,7 +729,7 @@ def process_protocol(arg,delay)
     end
   end
 end
-add_protocol("process", process_protocol)
+add_protocol(static=true,"process", process_protocol)
 
 # Register the say: protocol using text2wav and sox
 # @flag hidden
