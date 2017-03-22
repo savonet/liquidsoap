@@ -704,10 +704,14 @@ add_protocol("replay_gain", replaygain_protocol)
 
 # Register the process protocol. Syntax:
 # process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
-# [("input",<input file>),("output",<output file>)]
+# [("input",<input file>),("output",<output file>),("colon",":")]
 # See say: protocol for an example.
 # @flag hidden
 def process_protocol(arg,delay)
+  log = log(label="procol.process")
+
+  log(level=4,"Processing #{arg}")
+
   x = string.split(separator=":",arg)
 
   # process:/path/to/file (unlikely)
@@ -715,35 +719,58 @@ def process_protocol(arg,delay)
     [arg]
   else
     uri = string.concat(separator=":",list.tl(x))
-    x = string.split(separator=",",arg)
+    x = string.split(separator=",",list.hd(default="",x))
     extname = list.hd(default="liq",x)
     cmd = string.concat(separator=",",list.tl(x))
 
-    filename = file.temp("liq-process", ".#{extname}")
+    output = file.temp("liq-process", ".#{extname}")
 
-    r = request.create(uri)
-    if uri == "" or request.resolve(r) then
-      cmd = cmd % [("input",quote(request.filename(r))),("output",quote(filename))]
+    def resolve(input) =
+      cmd = cmd % [("input",quote(input)),
+                   ("output",quote(output)),
+                   ("colon",":")]
+
+      log(level=4,"Executing #{cmd}")
 
       lang = getenv("LANG")
       lang = if lang == "" then "C" else lang end
 
       if test_process(env=["LANG=#{lang}"],cmd) then
-        [filename]
+        [output]
       else
+        log(level=3,"Failed to execute: #{cmd}")
         []
       end
+    end
+    
+    if uri == "" then
+      resolve("")
     else
-      []
+      r = request.create.raw(uri)
+      if request.resolve(r) then
+        res = resolve(request.filename(r))
+        request.destroy(r)
+        res
+      else
+        log(level=3,"Failed to resolve #{uri}")
+        []
+      end
     end
   end
 end
 add_protocol("process", process_protocol)
 
-# Register the say: protocol using text2wav and sox
+# Register the text2wave: protocol using text2wav
+# @flag hidden
+def text2wave_protocol(arg,delay) =
+  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 > $(output)"]
+end
+add_protocol(static=true,"text2wave",text2wave_protocol)
+
+# Register the legacy say: protocol using text2wav and sox
 # @flag hidden
 def say_protocol(arg,delay) =
-  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 | sox -t wav --ignore-length - -c 2 $(output)"]
+  ["process:wav,sox $(input) -c 2 $(output):text2wave:#{arg}"]
 end
 add_protocol(static=true,"say",say_protocol)
 
