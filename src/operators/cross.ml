@@ -331,7 +331,7 @@ let () =
             or more to avoid transitions on short tracks. \
             With the negative default, transitions always occur." ;
 
-      "conservative", Lang.bool_t, Some (Lang.bool false),
+      "conservative", Lang.bool_t, Some (Lang.bool true),
       Some "Do not trust remaining time estimations, always buffering \
             data in advance. This avoids being tricked by skips, either \
             manual or caused by skip_blank()." ;

@@ -49,6 +49,8 @@ Changed:
 
 - Moved get_process_lines and get_process_output to utils.liq, added optional env parameter
 
+- Set conservative=true by default in cross() and smartcross()
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
