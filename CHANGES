@@ -39,13 +39,13 @@ New:
 
 - Added file.temp to create fresh temporary filename
 
-- Added register_aws_polly to enable speech synthesis using AWS polly.
+- Added register_aws_polly to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
 
 Changed:
 
 - Reverted default value for --error_as_warnings option, renamed to --strict.
 
-- Moved say: protocol registration to utils.liq. Use set_text2wav_path to set path to text2wav (festival) binary.
+- Moved say: protocol registration to utils.liq. Use set_text2wave_path to set path to text2wav2 (festival) binary. Generated files are mono so make sure you use audio_to_stereo().
 
 Removed:
 
