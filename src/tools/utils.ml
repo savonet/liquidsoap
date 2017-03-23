@@ -437,10 +437,15 @@ let interpolate =
         interpolate (process_if s)
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
-let which =
-    fun ~path s ->
-      if Sys.file_exists s then s else
-        List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
+let which ~path s =
+  let test fname =
+    try
+      Unix.access fname [Unix.X_OK];
+      true
+    with _ -> false
+  in
+  if test s then s else
+    List.find test (List.map (fun d -> Filename.concat d s) path)
 
 (** Get current timezone. *)
 external timezone : unit -> int = "liquidsoap_get_timezone"
