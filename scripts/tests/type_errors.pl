@@ -14,7 +14,7 @@ sub section {
 sub incorrect {
   my $expr = pop ;
   print "Incorrect expression $expr...\n" ;
-  system "$liquidsoap '$expr'" ;
+  system "$liquidsoap '$expr' >/dev/null 2>&1" ;
   die unless (($?>>8)==1) ;
   print "\n" ;
 }
@@ -22,15 +22,15 @@ sub incorrect {
 sub correct {
   my $expr = pop ;
   print "Correct expression $expr...\n" ;
-  system "$liquidsoap -i '$expr'" ;
+  system "$liquidsoap -i '$expr' >/dev/null 2>&1" ;
   die unless (($?>>8)==0) ;
   print "\n";
 }
 
 section("LISTS");
 incorrect('ignore([4,"x"])');
-correct('ignore([input.oss(), sine()])');
-correct('ignore([sine(), input.oss()])');
+correct('ignore([input.harbor("foo"), sine()])');
+correct('ignore([sine(), input.harbor("foo")])');
 
 section("BASIC");
 incorrect('[1]==["1"]');

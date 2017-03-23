@@ -9,7 +9,7 @@ add_timeout(1.,{ sb_on := true ; (-1.) })
 output.dummy(smooth_add(delay=0.9,p=0.3,normal=sa,special=sb))
 
 add_timeout(4.,{
-  test.pass(termination=true)
+  test.pass()
   shutdown()
   (-1.)
 })

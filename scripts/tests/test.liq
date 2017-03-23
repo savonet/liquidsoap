@@ -1,11 +1,16 @@
 # End test successfully.
-def test.pass(~termination=false)
+def test.pass()
   shutdown()
 end
 
 # End test with a failure.
 def test.fail()
   exit(1)
+end
+
+# End test with signal 2
+def test.skip()
+  exit(2)
 end
 
 # Check that files are never repeated in source s, possibly by rounds. The

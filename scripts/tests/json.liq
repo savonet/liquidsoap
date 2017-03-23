@@ -21,7 +21,7 @@ test([("foo",(1,"bar"))], [("gni",(2,"boo"))])
 test([(1,[("fr","bar")])], [(2,[("en","foo")])])
 test([("ping",())], [("pong",())])
 test([3],[])
-test([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4, \"b\" : 5}"))
+test([("x",0)],of_json(default=[("x",0)],"{\"a\" : 4}"))
 
 if !success then
   test.pass()

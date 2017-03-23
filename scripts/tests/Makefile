@@ -5,14 +5,9 @@ include $(top_srcdir)/Makefile.rules
 
 test: threesines
 	@for i in $(wildcard *.liq) ; do \
-	  ./run_test.sh $(top_srcdir)/src/liquidsoap $$i ; \
+	  ./run_test.sh "$(top_srcdir)/src/liquidsoap -q ../pervasives.liq -" $$i ; \
 	done
-	@echo -n "type_errors.pl... " ; \
-	  if (./type_errors.pl > /dev/null 2> /dev/null) ; then \
-	    echo "TEST PASSED (check manually the prettiness of messages)" ; \
-	  else \
-	    echo "TEST FAILED" ; exit 1 ; \
-	  fi
+	@./run_test.sh /usr/bin/perl ./type_errors.pl
 
 # Generate samples files in threesines directory
 
