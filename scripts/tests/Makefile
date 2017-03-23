@@ -12,7 +12,7 @@ test: threesines
 # Generate samples files in threesines directory
 
 threesines: threesines/a.wav threesines/b.wav threesines/c.wav
-MKSINE= ../../src/liquidsoap -q ../utils.liq \
+MKSINE= ../../src/liquidsoap  --no-pervasives -q ../utils.liq \
 	  "clock.assign_new(sync=false,[ \
 	  output.file(%wav,\"$$fname\",fallible=true,on_stop=shutdown, \
 	  once(sine(duration=2.,$$freq)))])"
