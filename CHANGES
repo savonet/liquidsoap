@@ -41,6 +41,8 @@ New:
 
 - Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
 
+- Added youtube-dl: protocol to resolved requests using youtube-dl
+
 - Added which() to find an exectuable within the $PATH
 
 Changed:

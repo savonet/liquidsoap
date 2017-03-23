@@ -735,7 +735,11 @@ def process_protocol(arg,delay)
       lang = getenv("LANG")
       lang = if lang == "" then "C" else lang end
 
-      if test_process(env=["LANG=#{lang}"],cmd) then
+      path = getenv("PATH")
+
+      env = ["LANG=#{lang}","PATH=#{path}"]
+
+      if test_process(env=env,cmd) then
         [output]
       else
         log(level=3,"Failed to execute: #{cmd}")
@@ -759,6 +763,16 @@ def process_protocol(arg,delay)
   end
 end
 add_protocol(temporary=true, "process", process_protocol)
+
+# Register the youtube-dl protocol, using youtube-dl.
+# Syntax: youtube-dl:<ID>
+# @flag hidden
+def youtube_dl_protocol(arg,delay)
+  tmp = file.temp("liq-youtube",".%(ext)s")
+  tmp_wav = string.replace(pattern="%\(ext\)s",fun (_) -> "wav",tmp)
+  ["process:wav,youtube-dl --quiet -f bestaudio -x --audio-format wav -o #{quote(tmp)} #{quote(arg)} && mv #{quote(tmp_wav)} $(output)"]
+end
+add_protocol("youtube-dl", youtube_dl_protocol)
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
