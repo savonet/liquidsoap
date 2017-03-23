@@ -68,6 +68,6 @@ let annotate s ~log _ =
 
 let () =
   Request.protocols#register "annotate"
-    ~sdoc:("[annotate:key=\"val\",key2=\"val2\",...:uri] adds "^
-           "the metadata to the request and is then resolved into uri")
+    ~sdoc:("@annotate:key=\"val\",key2=\"val2\",...:uri@ adds \
+            the metadata to the request and is then resolved into uri")
     { Request.resolve = annotate ; Request.static = false }

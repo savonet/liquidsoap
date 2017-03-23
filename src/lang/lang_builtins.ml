@@ -408,6 +408,8 @@ let () =
        Some "if true, file is removed when it is finished.";
        "static",Lang.bool_t,Some (Lang.bool false),
        Some "if true, resolved requests are always available.";
+       "doc",Lang.string_t,None,
+       Some "Protocol documentation.";
        "",Lang.string_t,None,None ;
        "",protocol_t,None,None ]
       Lang.unit_t
@@ -416,7 +418,8 @@ let () =
          let f = Lang.assoc "" 2 p in
          let temporary = Lang.to_bool (List.assoc "temporary" p) in
          let static = Lang.to_bool (List.assoc "static" p) in
-           Request.protocols#register name
+         let sdoc = Lang.to_string (List.assoc "doc" p) in
+           Request.protocols#register ~sdoc name
              { Request.static = static ;
                Request.resolve =
                  fun arg ~log:_ timeout ->

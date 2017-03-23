@@ -700,7 +700,11 @@ def replaygain_protocol(arg,delay)
   [arg]
  end
 end
-add_protocol("replay_gain", replaygain_protocol)
+add_protocol("replay_gain", doc="Compute replaygain value using the \
+                                 extract-replaygain script. Syntax: \
+                                 @replay_gain:uri@ Adds returned \
+                                 value in @\"replay_gain\"@ metadata",
+                            replaygain_protocol)
 
 # Register the process protocol. Syntax:
 # process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
@@ -762,7 +766,13 @@ def process_protocol(arg,delay)
     end
   end
 end
-add_protocol(temporary=true, "process", process_protocol)
+add_protocol(temporary=true, "process", doc="Resolve a request using an arbitrary \
+                                             process. Syntax: \
+                                             @process:<output file extension>,<cmd>:uri@ where \
+                                             @<cmd>@ is interpolated with: \
+                                             @[(\"input\",<input file>),(\"output\",<output file>),\
+                                             (\"colon\",\":\")]@",
+                                        process_protocol)
 
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
@@ -772,21 +782,25 @@ def youtube_dl_protocol(arg,delay)
   tmp_wav = string.replace(pattern="%\(ext\)s",fun (_) -> "wav",tmp)
   ["process:wav,youtube-dl --quiet -f bestaudio -x --audio-format wav -o #{quote(tmp)} #{quote(arg)} && mv #{quote(tmp_wav)} $(output)"]
 end
-add_protocol("youtube-dl", youtube_dl_protocol)
+add_protocol("youtube-dl", youtube_dl_protocol, doc="Resolve a request using youtube-dl. \
+                                                     Syntax: @youtube-dl:uri@ Needs ffmpeg in the path.")
+
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
 def text2wave_protocol(arg,delay) =
   ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 > $(output)"]
 end
-add_protocol(static=true,"text2wave",text2wave_protocol)
+add_protocol(static=true,"text2wave",text2wave_protocol, doc="Generate speech synthesis using text2wave. \
+                                                              Syntax: @text2wav:Text to read@ Result may be mono.")
 
 # Register the legacy say: protocol using text2wav and sox
 # @flag hidden
 def say_protocol(arg,delay) =
   ["process:wav,sox $(input) -c 2 $(output):text2wave:#{arg}"]
 end
-add_protocol(static=true,"say",say_protocol)
+add_protocol(static=true,"say",say_protocol, doc="Generate speech synthesis using text2wave and sox. \
+                                                  Syntax: @say:Text to read@ Result is always stereo.")
 
 polly_options = ref []
 
@@ -854,7 +868,9 @@ def polly_protocol(text,delay) =
 
   ["process:#{extname},#{cmd}"]
 end
-add_protocol(static=true,"polly", polly_protocol)
+add_protocol(static=true,"polly", polly_protocol, doc="Generate speech synthesis using AWS polly service. \
+                                                       Syntax: @polly:Text to read@ Result might be mono, \
+                                                       Needs aws binary in the path.")
 
 # Enable replay gain metadata resolver. This resolver will process any file
 # decoded by liquidsoap and add a replay_gain metadata when this value could be
