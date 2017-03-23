@@ -5,7 +5,7 @@ include $(top_srcdir)/Makefile.rules
 
 test: threesines
 	@for i in $(wildcard *.liq) ; do \
-	  ./run_test.sh "$(top_srcdir)/src/liquidsoap -q ../pervasives.liq -" $$i ; \
+	  ./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../pervasives.liq -" $$i ; \
 	done
 	@./run_test.sh /usr/bin/perl ./type_errors.pl
 
