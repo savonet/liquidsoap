@@ -1516,7 +1516,7 @@ let () =
 let () =
   add_builtin "which" ~cat:Sys
     ~descr:"which(\"progname\") searches for an executable \
-            named \"progname\" using directories in env $PATH \
+            named \"progname\" using directories from the PATH \
             environment variable and returns \"\" if it could not \
             find one."
     ["",Lang.string_t,None,None]
