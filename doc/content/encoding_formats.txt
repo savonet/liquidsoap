@@ -97,13 +97,13 @@ h4. Shine
 Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM. 
 It is named @%shine@ or @%mp3.fxp@ and its parameters are:
 
-%%
+%%(shine_enc.liq)
 %shine(channels=2,samplerate=44100,bitrate=128)
 %%
 
 h4. WAV
 
-%%
+%%(wav_enc.liq)
 %wav(stereo=true, channels=2, samplesize=16, header=true, duration=10.)
 %%
 
@@ -125,14 +125,14 @@ of @%ogg(%vorbis(...))@.
 
 All ogg encoders have a @bytes_per_page@ parameter, which can be used to
 try to limit ogg logical pages size. For instance:
-%%
+%%(ogg_enc.liq)
 # Try to limit vorbis pages size to 1024 bytes
-%vorbis(bytes_per_page=1024, ...)
+%vorbis(bytes_per_page=1024)
 %%
 
 h5. Vorbis
 
-%%
+%%(vorbis_enc.liq)
 # Variable bitrate
 %vorbis(samplerate=44100, channels=2, quality=0.3)
 % Average bitrate
@@ -166,13 +166,13 @@ their meanings and values.
 
 h5. Theora
 
-%%
-%theora(quality=40,width=w,height=h,
-        picture_width=w,picture_height=h,
+%%(theora_enc.liq)
+%theora(quality=40,width=640,height=480,
+        picture_width=255,picture_height=255,
         picture_x=0, picture_y=0,
         aspect_numerator=1, aspect_denominator=1,
         keyframe_frequency=64, vp3_compatible=false,
-        soft_target=false, buffer_delay=0.1,
+        soft_target=false, buffer_delay=5,
         speed=0)
 %%
 
@@ -182,11 +182,11 @@ from the settings @frame.video.height/width@.
 
 h5. Speex
 
-%%
+%%(speex_enc.liq)
 %speex(stereo=false, samplerate=44100, quality=7,
-       mode=[wideband|narrowband|ultra-wideband],
+       mode=wideband, # One of: wideband|narrowband|ultra-wideband
        frames_per_packet=1,
-       complexity=none)
+       complexity=5)
 %%
 
 You can also control quality using @abr=x@ or @vbr=y@.
@@ -198,7 +198,7 @@ The flac encoding format comes in two flavors:
 * @%ogg(%flac,...)@ is the ogg/flac format, which can be used to broadcast data with icecast
 
 The parameters are:
-%%
+%%(flac_enc.liq)
 %flac(samplerate=44100, 
       channels=2, 
       compression=5, 
@@ -212,7 +212,7 @@ h4. FDK-AAC
 This encoder can do both AAC and AAC+.
 
 Its syntax is:
-%%
+%%(fdkaac_enc.liq)
 %fdkaac(channels=2, samplerate=44100, bitrate=64, afterburner=false, aot="mpeg2_he_aac_v2", transmux="adts", sbr_mode=false)
 %%
 
@@ -233,7 +233,7 @@ formats available to your operating system.
 
 The encoder's parameters are as follows:
 
-%%
+%%(gstreamer_enc.liq)
 %gstreamer(channels=2,
            audio="lamemp3enc",
            has_video=true,
@@ -251,12 +251,12 @@ h4. External encoders
 
 For a detailed presentation of external encoders, see "this page":external_encoders.html.
 
-%%
+%%(external_enc.liq)
 %external(channels=2,samplerate=44100,header=true,
           restart_on_crash=false,
           restart_on_metadata,
-          restart_after_delay=<int>,
-          process="")
+          restart_after_delay=30,
+          process="progname")
 %%
 
 Only one of @restart_on_metadata@ and @restart_after_delay@ should

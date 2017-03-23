@@ -5,9 +5,6 @@ of liquidsoap.
 If you don't have one already, we can help you;
 but if you haven't, check the "corresponding page":download.html.
 
-On the day of the workshop we'll introduce the basic concepts,
-otherwise you can check out the "quick start":doc-svn/quick_start.html.
-
 h2. Run liquidsoap on one-liners
 
 A good way to test your install and get started
@@ -28,8 +25,10 @@ Did it work? If so, try to modify it:
 
 h3. Play a remote stream, discover fallibility
 
-Try to execute the liquidsoap expression
-@out(input.http("http://ice.rosebud-media.de:8000/88vier"))@.
+Try to execute the liquidsoap expression:
+%%(on2_p1_http_out.liq)
+out(input.http("http://ice.rosebud-media.de:8000/88vier"))
+%%
 You should now be listening to "Pi-Radio":http://piradio.de,
 unless you have no network connection, in which case the
 @input.http(...)@ source _fails_.
@@ -38,7 +37,9 @@ The output operator @out@ is okay with failure: it simply plays silence
 when the source fails, waiting for it to be ready again.
 But some operators are stricter.
 If you try
-@output.ao(input.http("http://ice.rosebud-media.de:8000/88vier"))@,
+%%(on2_p1_output_ao.liq)
+output.ao(input.http("http://ice.rosebud-media.de:8000/88vier"))
+%%
 the AO output (which uses libao to access your soundcard)
 warns you that there might be a failure.
 To ignore this problem, pass @fallible=true@ to the output.
@@ -62,7 +63,7 @@ Suppose we want to be able to request a particular file for playout
 instead of the automatically chosen files of the playlist.
 This is achieved by wrapping the playlist in a fallback choice
 with a request queue:
-%%
+%%(on2_p1_interactive.liq)
 out(fallback([request.queue(id="q"),playlist("music")]))
 %%
 
@@ -82,10 +83,10 @@ You have learned how to build a few sources, synthesizing sound from scratch,
 from a remote stream or from a list of files. Now, instead of playing the
 stream directly to your soundcard, we'll encode it and save it to a local
 file:
+%%(on2_p1_file_output.liq)
+output.file(%vorbis,"test.ogg",source)
 %%
-output.file(%vorbis,"test.ogg",<SOURCE>)
-%%
-Here @<SOURCE>@ is whatever you want, for example @sine()@.
+Here @source@ is whatever you want, for example @sine()@.
 
 You can tweak the options of the encoding format, or change the encoding
 format; the available options are listed "here":doc-svn/encoding_formats.html.
@@ -158,15 +159,18 @@ it has no source to stream.
 h3. Using variables
 
 Run the following script:
-%%
+%%(on2_p1_variables.liq)
 x = 42
 print(x)
 %%
 
-Pass @--no-pervasives -i@ on the command-line to see the type of @x@,
-inferred by liquidsoap
-(in addition to @-i@ we tell liquidsoap not to load its default libraries
- so that we don't see type information for them).
+As follows:
+%%
+% liquidsoap --no-pervasives -i /path/to/script.liq
+x     : int
+42
+No output defined, nothing to do.
+%%
 Try to obtain the following types
 (some help can be found "there":doc-svn/language.html):
 * @float@
@@ -176,7 +180,7 @@ Try to obtain the following types
 * @(bool*string)@ (a pair made of a boolean and a string)
 
 You can redefine a variable:
-%%
+%%(on2_p1_redef_var.liq)
 x = 42
 y = "42"
 x = (y,y)
@@ -187,7 +191,7 @@ print(z)
 h3. Defining a function
 
 Try this:
-%%
+%%(on2_p1_double.liq)
 def double(s)
   s ^ s
 end
@@ -201,7 +205,7 @@ to fix that problem.
 h3. Conditionals
 
 A simple example:
-%%
+%%(on2_p1_conditionals.liq)
 if "foo"=="bar" then
   print("This is madness.")
 else
@@ -210,7 +214,7 @@ end
 %%
 
 It can also be written as follows:
-%%
+%%(on2_p1_conditionals_bis.liq)
 print(
   if "foo"=="bar" then
     "This is madness."
@@ -232,7 +236,7 @@ You'll learn later how to use assignments when you really need them.
 h3. Sequencing, returning
 
 Here is a function that prints the date and returns 42:
-%%
+%%(on2_p1_print_date.liq)
 def f()
   print(get_process_output("date"))
   42

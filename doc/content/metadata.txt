@@ -124,7 +124,7 @@ h5. Using the telnet server
 This operator is used for inserting metadata using a server command. If you have
 an @server.insert_metadata@ node named @ID@ in your configuration, as in
 
-%%
+%%(server_insert_metadata.liq)
 server.insert_metadata(id="ID", source)
 %%
 
@@ -148,7 +148,7 @@ achieved as follows.
 
 %%(osc_metadata.liq)
 # Our main music source
-s = playlist(...)
+s = playlist("...")
 s = mksafe(s)
 
 # Create a function to insert metadata

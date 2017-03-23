@@ -14,7 +14,7 @@ understand the following documentation.
 
 The encoder's parameters are as follows:
 
-%%
+%%(gstreamer_encoder_example.liq)
 %gstreamer(channels=2,
            audio="lamemp3enc",
            has_video=true,

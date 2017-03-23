@@ -1,15 +1,11 @@
 # End test successfully.
 def test.pass(~termination=false)
-  s = if termination then "If this terminates then " else "" end
-  print(s^"TEST PASSED")
   shutdown()
 end
 
 # End test with a failure.
 def test.fail()
-  print("TEST FAILED")
-  exit(1);
-  # shutdown()
+  exit(1)
 end
 
 # Check that files are never repeated in source s, possibly by rounds. The

@@ -1,4 +1,3 @@
-
 SUBDIRS= src examples doc gui scripts
 DISTFILES = CHANGES COPYING INSTALL README \
 	bootstrap configure.ac configure config.h.in \
@@ -18,6 +17,7 @@ pre-distclean: clean
 
 test:
 	$(MAKE) -C src/test test
+	$(MAKE) -C doc test
 	$(MAKE) -C scripts/tests test
 
 # Build liquidsoap as it will be used for building the doc

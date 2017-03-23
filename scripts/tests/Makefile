@@ -5,7 +5,7 @@ include $(top_srcdir)/Makefile.rules
 
 test: threesines
 	@for i in $(wildcard *.liq) ; do \
-	  echo -n "$$i... " ; $(top_srcdir)/src/liquidsoap -q ../pervasives.liq - < ./$$i || exit 1 ; \
+	  ./run_test.sh $(top_srcdir)/src/liquidsoap $$i ; \
 	done
 	@echo -n "type_errors.pl... " ; \
 	  if (./type_errors.pl > /dev/null 2> /dev/null) ; then \
