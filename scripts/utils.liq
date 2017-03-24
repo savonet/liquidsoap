@@ -234,27 +234,30 @@ end
 
 # Perform a shell call and return its output.
 # @category System
+# @param ~timeout Cancel process after @timeout@ has elapsed. Ignored if negative.
 # @param ~env Process environment
 # @param command Command to run
-def get_process_output(~env=[],command) =
-  fst(fst(run_process(env=env,command)))
+def get_process_output(~timeout=(-1.),~env=[],command) =
+  fst(fst(run_process(timeout=timeout,env=env,command)))
 end
 
 # Perform a shell call and return the list of its output lines.
 # @category System
+# @param ~timeout Cancel process after @timeout@ has elapsed. Ignored if negative.
 # @param ~env Process environment
 # @param command Command to run
-def get_process_lines(~env=[],command) =
-  string.split(separator="\\n",get_process_output(env=env,command))
+def get_process_lines(~timeout=(-1.),~env=[],command) =
+  string.split(separator="\\n",get_process_output(timeout=timeout,env=env,command))
 end
 
 # Return true if process exited with 0 code.
 # @category System
+# @param ~timeout Cancel process after @timeout@ has elapsed. Ignored if negative.
 # @param ~env Process environment
 # @param command Command to test
-def test_process(~env=[],command) =
-  res = run_process(env=env,command)
-  fst(snd(res)) == "exit" and snd(snd(res)) == 0
+def test_process(~timeout=(-1.),~env=[],command) =
+  res = run_process(timeout=timeout,env=env,command)
+  fst(snd(res)) == "exit" and snd(snd(res)) == "0"
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
@@ -687,190 +690,6 @@ def exec_at(~freq=1.,~pred,f)
   end
   add_timeout(freq,check)
 end
-
-# Register the replaygain protocol.
-# @flag hidden
-def replaygain_protocol(arg,delay)
- # The extraction program
- extract_replaygain = "#{configure.libdir}/extract-replaygain"
- x = get_process_lines("#{extract_replaygain} #{quote(arg)}")
- if list.hd(default="",x) != "" then
-  ["annotate:replay_gain=\"#{list.hd(default='',x)}\":#{arg}"]
- else
-  [arg]
- end
-end
-add_protocol("replay_gain", doc="Compute replaygain value using the \
-                                 extract-replaygain script. Syntax: \
-                                 @replay_gain:uri@ Adds returned \
-                                 value in @\"replay_gain\"@ metadata",
-                            replaygain_protocol)
-
-# Register the process protocol. Syntax:
-# process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
-# [("input",<input file>),("output",<output file>),("colon",":")]
-# See say: protocol for an example.
-# @flag hidden
-def process_protocol(arg,delay)
-  log = log(label="procol.process")
-
-  log(level=4,"Processing #{arg}")
-
-  x = string.split(separator=":",arg)
-
-  # process:/path/to/file (unlikely)
-  if x == [] then
-    [arg]
-  else
-    uri = string.concat(separator=":",list.tl(x))
-    x = string.split(separator=",",list.hd(default="",x))
-    extname = list.hd(default="liq",x)
-    cmd = string.concat(separator=",",list.tl(x))
-
-    output = file.temp("liq-process", ".#{extname}")
-
-    def resolve(input) =
-      cmd = cmd % [("input",quote(input)),
-                   ("output",quote(output)),
-                   ("colon",":")]
-
-      log(level=4,"Executing #{cmd}")
-
-      lang = getenv("LANG")
-      lang = if lang == "" then "C" else lang end
-
-      path = getenv("PATH")
-
-      env = ["LANG=#{lang}","PATH=#{path}"]
-
-      if test_process(env=env,cmd) then
-        [output]
-      else
-        log(level=3,"Failed to execute: #{cmd}")
-        []
-      end
-    end
-    
-    if uri == "" then
-      resolve("")
-    else
-      r = request.create.raw(uri)
-      if request.resolve(r) then
-        res = resolve(request.filename(r))
-        request.destroy(r)
-        res
-      else
-        log(level=3,"Failed to resolve #{uri}")
-        []
-      end
-    end
-  end
-end
-add_protocol(temporary=true, "process", doc="Resolve a request using an arbitrary \
-                                             process. Syntax: \
-                                             @process:<output file extension>,<cmd>:uri@ where \
-                                             @<cmd>@ is interpolated with: \
-                                             @[(\"input\",<input file>),(\"output\",<output file>),\
-                                             (\"colon\",\":\")]@",
-                                        process_protocol)
-
-# Register the youtube-dl protocol, using youtube-dl.
-# Syntax: youtube-dl:<ID>
-# @flag hidden
-def youtube_dl_protocol(arg,delay)
-  tmp = file.temp("liq-youtube",".%(ext)s")
-  tmp_wav = string.replace(pattern="%\(ext\)s",fun (_) -> "wav",tmp)
-  ["process:wav,youtube-dl --quiet -f bestaudio -x --audio-format wav -o #{quote(tmp)} #{quote(arg)} && mv #{quote(tmp_wav)} $(output)"]
-end
-add_protocol("youtube-dl", youtube_dl_protocol, doc="Resolve a request using youtube-dl. \
-                                                     Syntax: @youtube-dl:uri@ Needs ffmpeg in the path.")
-
-
-# Register the text2wave: protocol using text2wav
-# @flag hidden
-def text2wave_protocol(arg,delay) =
-  ["process:wav,echo #{quote(arg)} | text2wave -scale 1.9 > $(output)"]
-end
-add_protocol(static=true,"text2wave",text2wave_protocol, doc="Generate speech synthesis using text2wave. \
-                                                              Syntax: @text2wav:Text to read@ Result may be mono.")
-
-# Register the legacy say: protocol using text2wav and sox
-# @flag hidden
-def say_protocol(arg,delay) =
-  ["process:wav,sox $(input) -c 2 $(output):text2wave:#{arg}"]
-end
-add_protocol(static=true,"say",say_protocol, doc="Generate speech synthesis using text2wave and sox. \
-                                                  Syntax: @say:Text to read@ Result is always stereo.")
-
-polly_options = ref []
-
-# Set polly AWS speech synthesis protocol options
-# @category Liquidsoap
-# @param ~profile Path to credential file.
-# @param ~region AWS Region
-# @param ~aws Path to AWS binary
-# @param ~format Output format
-# @param voice_id Voice ID
-def set_polly_options(~profile="",~region="",
-                      ~aws="aws",~format="mp3",
-                      voice_id) =
-  polly_options := [
-    ("profile",profile),("region",region),
-    ("aws",aws),("format",format),
-    ("voice_id",voice_id)
-  ]
-end
-
-set_polly_options("")
-
-# Register the polly: protocol using AWS Polly
-# speech synthesis services. Syntax: polly:<text>
-# @flag hidden
-def polly_protocol(text,delay) =
-  opts = !polly_options
-
-  format = opts["format"]
-
-  extname =
-    if format == "mp3" then
-      "mp3"
-    elsif format == "ogg_vorbis" then
-      "ogg"
-    else
-      "wav"
-    end
-
-  aws = opts["aws"]
-
-  aws = "#{aws} polly synthesize-speech --output-format #{format}"
-
-  region = opts["region"]
-
-  aws =
-    if region !="" then
-      "#{aws} --region #{region}"
-    else
-      aws
-    end
-
-  profile = opts["profile"]
-
-  aws =
-    if profile !="" then
-      "#{aws} --profile #{quote(profile)}"
-    else
-      aws
-    end
-
-  voice_id = opts["voice_id"]
-
-  cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
-
-  ["process:#{extname},#{cmd}"]
-end
-add_protocol(static=true,"polly", polly_protocol, doc="Generate speech synthesis using AWS polly service. \
-                                                       Syntax: @polly:Text to read@ Result might be mono, \
-                                                       Needs aws binary in the path.")
 
 # Enable replay gain metadata resolver. This resolver will process any file
 # decoded by liquidsoap and add a replay_gain metadata when this value could be

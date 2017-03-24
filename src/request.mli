@@ -92,8 +92,10 @@ val resolving_requests : unit -> int list
   * At each step [protocol.resolve first_uri timeout] is called,
   * and the function is expected to push the new URIs in the request. *)
 
+type resolver = string -> log:(string->unit) -> float -> indicator list
+
 type protocol = {
-  resolve : string -> log:(string->unit) -> float -> indicator list ;
+  resolve : resolver ;
   static : bool
 }
 

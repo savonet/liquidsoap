@@ -62,8 +62,18 @@ let encoder id ext =
     `Continue
   in
   let on_stop = function
-   | None -> restart_decision ()
-   | Some e ->
+   | `Status s ->
+      begin match s with
+        | Unix.WEXITED 0 -> ()
+        | Unix.WEXITED c ->
+            log#f 3 "Process exited with code %d" c
+        | Unix.WSIGNALED s ->
+            log#f 3 "Process was killed by signal %d" s
+        | Unix.WSTOPPED s ->
+            log#f 3 "Process was stopped by signal %d" s
+      end;
+      restart_decision ()
+   | `Exception e ->
       log#f 3 "Error: %s" (Printexc.to_string e);
       restart_decision ()
   in

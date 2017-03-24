@@ -68,6 +68,12 @@ val iter_sources : (Source.source -> unit) -> value -> unit
 (** Multiapply a value to arguments. *)
 val apply : value -> env -> t:t -> value
 
+(** {3 Helpers for registering protocols} *)
+
+val add_protocol :
+  syntax:string -> doc:string ->
+  static:bool -> string -> Request.resolver -> unit
+
 (** {3 Helpers for source builtins} *)
 
 type proto =

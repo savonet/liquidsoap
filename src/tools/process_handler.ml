@@ -47,6 +47,11 @@ type pull = string -> int -> int -> int
 
 type push = string -> int -> int -> int
 
+type status = [
+  | `Exception of exn
+  | `Status of Unix.process_status
+]
+
 exception Finished
 
 let get_process {process;_} =
@@ -65,7 +70,7 @@ let kill t = Tutils.mutexify t.mutex (fun () ->
 let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
   let process = get_process t in
   if not process.stopped then begin
-    log "Stopping process";
+    log "Closing process's stdin";
     process.stopped <- true;
     try close_out process.stdin with _ -> ()
   end) ()
@@ -112,6 +117,15 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let on_stop =
       with_default (fun _ -> false) on_stop
     in
+    let on_stdout =
+      with_default (fun _ -> `Continue) on_stdout
+    in
+    let on_stderr =
+      with_default (fun _ -> `Continue) on_stderr
+    in
+    let on_stdin =
+      with_default (fun _ -> `Continue) on_stdin
+    in
     let create () =
       log "Starting process";
       let stdout,stdin,stderr =
@@ -136,12 +150,10 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         Unix.descr_of_in_channel process.stderr
       in
       let read_events =
-        List.fold_left (fun cur (fn,fd) ->
-          if fn <> None then (`Read fd)::cur else cur)
-          [`Read out_pipe] [(on_stdout,stdout);(on_stderr,stderr)]
+        [`Read out_pipe;`Read stdout;`Read stderr]
       in
       let continue_events =
-        if on_stdin = None || process.stopped then read_events else
+        if process.stopped then read_events else
           (`Write (Unix.descr_of_out_channel process.stdin))::read_events
       in
       let events = match decision with
@@ -184,15 +196,6 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       let stdout =
         Unix.descr_of_in_channel process.stdout
       in
-      let on_stdin =
-        with_default (fun _ -> `Continue) on_stdin
-      in
-      let on_stdout =
-        with_default (fun _ -> `Continue) on_stdout
-      in
-      let on_stderr =
-        with_default (fun _ -> `Continue) on_stderr
-      in
       try
         let decision =
           if List.mem (`Read out_pipe) l then on_pipe () else
@@ -217,14 +220,18 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       with 
         | Finished ->
             log "Process exited";
-            restart_decision (on_stop None)
+            let status =
+              let {stdout;stdin;stderr} = get_process t in
+              `Status (Unix.close_process_full (stdout,stdin,stderr))
+            in
+            restart_decision (on_stop status)
         | e ->
             log (Printf.sprintf "Error while running process: %s\n%s"
               (Printexc.to_string e)
               (Printexc.get_backtrace ()));
-            restart_decision (on_stop (Some e))
+            restart_decision (on_stop (`Exception e))
     in
-    let fd = Unix.descr_of_out_channel (get_process t).stdin in 
+    let fd = Unix.descr_of_out_channel (get_process t).stdin in
     Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
     t
 

@@ -39,11 +39,15 @@ New:
 
 - Added file.temp to create fresh temporary filename
 
+- Added s3:// protocol to fetch files from AWS S3 using the AWS CLI.
+
 - Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
 
 - Added youtube-dl: protocol to resolved requests using youtube-dl
 
 - Added which() to find an exectuable within the $PATH
+
+- Added register() to allow to register new configuration settings
 
 Changed:
 

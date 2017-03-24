@@ -27,7 +27,7 @@ be obtained by using the optional argument: @compact=true@.
 
 h3. Importing values using JSON.
 
-If compiled with json-wheel support, Liquidsoap can also
+If compiled with @yojson@ support, Liquidsoap can also
 parse JSON data into values. using @of_json@.
 
 The format is a subset of the format of exported values with the notable

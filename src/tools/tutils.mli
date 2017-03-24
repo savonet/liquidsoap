@@ -69,10 +69,10 @@ val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 (** Make a function work in critical section, protected by a given lock. *) 
 val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
-exception Timeout
+exception Timeout of float
 
 (* Wait for [`Read], [`Write] or [`Both] for at most
- * [timeout] seconds on the given [socket]. Raises [Timeout]
+ * [timeout] seconds on the given [socket]. Raises [Timeout waited_time]
  * if timeout is reached. *)
 val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> Unix.file_descr -> float -> unit
 

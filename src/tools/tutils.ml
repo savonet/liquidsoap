@@ -308,12 +308,12 @@ let wait c m f =
   mutexify m (fun () ->
     while not (f ()) do Condition.wait c m done) ()
 
-exception Timeout
+exception Timeout of float
 
 let error_translator =
   function
-    | Timeout ->
-        Some "Timeout while waiting on socket"
+    | Timeout f ->
+        Some (Printf.sprintf "Timed out after waiting for %.02f sec." f)
     | _ ->
         None
 
@@ -323,7 +323,11 @@ let () = Utils.register_error_translator error_translator
  * [timeout] seconds on the given [socket]. Raises [Timeout]
  * if timeout is reached. *)
 let wait_for ?(log=fun _ -> ()) event socket timeout =
-  let max_time = Unix.gettimeofday () +. timeout in
+  let start_time = Unix.gettimeofday () in
+  let max_time = start_time +. timeout in
+  let step d =
+    if 0. <= d then min 1. d else 1.
+  in
   let r, w = 
     match event with
       | `Read -> [socket],[]
@@ -333,17 +337,17 @@ let wait_for ?(log=fun _ -> ()) event socket timeout =
   let rec wait t =
     let l,l',_ = Unix.select r w [] t in
     if l=[] && l'=[] then begin
-      log (Printf.sprintf "No network activity for %.02f second(s)." t);
+      log (Printf.sprintf "No activity for %.02f second(s)." t);
       let current_time = Unix.gettimeofday () in
-      if current_time >= max_time then
+      if 0. <= timeout && current_time >= max_time then
        begin
-        log "Network activity timeout!" ;
-        raise Timeout 
+        log "Timeout reached!" ;
+        raise (Timeout (current_time -. start_time)) 
        end
       else
-        wait (min 1. (max_time -. current_time))
+        wait (step (max_time -. current_time))
     end
-  in wait (min 1. timeout)
+  in wait (step timeout)
 
 (** Wait for some thread to crash *)
 let run = ref true

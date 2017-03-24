@@ -59,8 +59,8 @@ class external_input ~kind ~restart ~bufferize ~channels
     `Continue
   in
   let on_stop = function
-    | Some _ -> restart_on_error
-    | None -> restart
+    | `Status (Unix.WEXITED 0) -> restart
+    | _ -> restart_on_error
   in
 object (self)
   inherit Source.source ~name:"input.external" kind

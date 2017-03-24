@@ -1,4 +1,5 @@
 %include "utils.liq"
+%include "protocols.liq"
 %include "externals.liq"
 %include "shoutcast.liq"
 %include "lastfm.liq"

@@ -159,6 +159,5 @@ let mpd s ~log _ =
   files
 
 let () =
-  Request.protocols#register "mpd"
-    ~sdoc:("@mpd:tag=value@ finds all files with a tag equal to a given value using mpd.")
-    { Request.resolve = mpd ; Request.static = false }
+  Lang.add_protocol ~doc:"Finds all files with a tag equal to a given value using mpd."
+    ~syntax:"mpd:tag=value" ~static:false "mpd" mpd

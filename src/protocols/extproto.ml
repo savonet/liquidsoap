@@ -162,13 +162,16 @@ let () =
          try
            let prog = which prog in
              dlog#f 3 "Found %S." prog ;
+             let doc =
+               Printf.sprintf "Fetch files using @%S@." prog
+             in
              List.iter
                (fun proto ->
-                  Request.protocols#register
-                    ~sdoc:(Printf.sprintf "Fetch files using %S." prog)
-                    proto
-                    { Request.resolve = resolve proto prog command ;
-                      Request.static = false })
+                 let syntax =
+                   Printf.sprintf "%s://uri" proto
+                 in
+                 Lang.add_protocol ~doc ~syntax ~static:false proto
+                   (resolve proto prog command))
                protos
          with
            | Not_found ->

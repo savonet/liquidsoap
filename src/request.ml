@@ -527,6 +527,8 @@ let get_decoder r =
 
 (** Plugins registration. *)
 
+type resolver = string -> log:(string->unit) -> float -> indicator list
+
 type protocol = {
   resolve : string -> log:(string->unit) -> float -> indicator list ;
   static : bool ;

@@ -94,6 +94,57 @@ let () =
            | Some v -> Lang.string (Lang.print_value v))
 
 let () =
+  let rec f ~name ~descr ~final_key cur path = 
+    match path with
+      | el::rem ->
+          let cur =
+            try cur#path [el] with Dtools.Conf.Unbound _ ->
+              let name,descr,key = if rem = [] then (name,descr,final_key) else
+                (String.capitalize_ascii el,[],Dtools.Conf.void)
+              in
+              key ~p:(cur#plug el) name ~comments:descr
+          in
+          f ~name ~descr ~final_key cur rem
+      | [] -> cur
+  in
+  add_builtin ~cat:Liq "register" ~descr:"Register a new setting."
+    ["name",Lang.string_t,None, Some "Settings name";
+     "descr",Lang.string_t,Some (Lang.string ""), Some "Settings description";
+     "",Lang.string_t,None,Some "Setting key";
+     "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,
+     Some "Setting initial value"]
+    Lang.unit_t
+    (fun p ->
+       let name = Lang.to_string (List.assoc "name" p) in
+       let descr = Lang.to_string (List.assoc "descr" p) in
+       let descr = if descr = "" then [] else [descr] in
+       let path = Lang.to_string (Lang.assoc "" 1 p) in
+       let v = Lang.assoc "" 2 p in
+       let make b ?p ?l ?comments name  =
+         (b ?p ?l ?comments name)#ut
+       in
+       let final_key =
+         match v.Lang.value with
+           | Lang.String s ->
+               make (Dtools.Conf.string ~d:s)
+           | Lang.Int    s ->
+               make (Dtools.Conf.int ~d:s)
+           | Lang.Bool   s ->
+               make (Dtools.Conf.bool ~d:s)
+           | Lang.Float  s ->
+               make (Dtools.Conf.float ~d:s)
+           | Lang.List   l ->
+               let l = List.map Lang.to_string l in
+               make (Dtools.Conf.list ~d:l)
+           | Lang.Unit     ->
+               Dtools.Conf.void
+           | _ -> assert false
+       in
+       ignore(f ~name ~descr ~final_key
+         Configure.conf (Dtools.Conf.path_of_string path));
+       Lang.unit)
+
+let () =
   let set cast path v =
     try
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
@@ -114,6 +165,7 @@ let () =
          let s = Lang.assoc "" 1 p in
          let path = Lang.to_string s in
            try begin match (Lang.assoc "" 2 p).Lang.value with
+               | Lang.Unit     -> set Dtools.Conf.as_unit   path ()
                | Lang.String s -> set Dtools.Conf.as_string path s
                | Lang.Int    s -> set Dtools.Conf.as_int    path s
                | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
@@ -165,6 +217,8 @@ let () =
          let path = Lang.to_string (List.assoc "" p) in
          let v = List.assoc "default" p in
            match v.Lang.value with
+             | Lang.Unit ->
+                 Lang.unit
              | Lang.String s ->
                  Lang.string (get Dtools.Conf.as_string path s)
              | Lang.Int s ->
@@ -398,41 +452,56 @@ let () =
         (Lang.to_string (Lang.assoc "" 2 p))))
 
 let () =
+  let log_p =
+    ["", "", Lang.string_t, None]
+  in
+  let log_t =
+    Lang.fun_t [false,"",Lang.string_t] Lang.unit_t
+  in
   let protocol_t =
     Lang.fun_t
-      [false,"",Lang.string_t ; false,"",Lang.float_t]
+      [false,"rlog",log_t; false,"",Lang.string_t ; false,"",Lang.float_t]
       (Lang.list_t Lang.string_t)
   in
     add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
-      ["temporary",Lang.bool_t,Some (Lang.bool false),
+      ["temporary",Lang.bool_t,Some (Lang.bool true),
        Some "if true, file is removed when it is finished.";
        "static",Lang.bool_t,Some (Lang.bool false),
-       Some "if true, resolved requests are always available.";
+       Some "if true, then requests can be resolved once and for all. \
+             Typically, static protocols can be used to create infallible sources.";
+       "syntax",Lang.string_t,None,
+       Some "URI syntax.";
        "doc",Lang.string_t,None,
        Some "Protocol documentation.";
-       "",Lang.string_t,None,None ;
-       "",protocol_t,None,None ]
+       "",Lang.string_t,None,Some "Protocol name. Resolver will be called on \
+          uris of the form: @<protocol name>:...@." ;
+       "",protocol_t,None,Some "Protocol resolver. Receives a function to log protocol \
+          resolution, the @<arg>@ in @<protocol name>:<arg>@ and the max delay that \
+          resolution should take." ]
       Lang.unit_t
       (fun p ->
          let name = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
          let temporary = Lang.to_bool (List.assoc "temporary" p) in
          let static = Lang.to_bool (List.assoc "static" p) in
-         let sdoc = Lang.to_string (List.assoc "doc" p) in
-           Request.protocols#register ~sdoc name
-             { Request.static = static ;
-               Request.resolve =
-                 fun arg ~log:_ timeout ->
-                   let l =
-                     Lang.apply ~t:(Lang.list_t Lang.string_t)
-                       f ["",Lang.string arg;
+         let doc = Lang.to_string (List.assoc "doc" p) in
+         let syntax = Lang.to_string (List.assoc "syntax" p) in
+         Lang.add_protocol ~syntax ~doc ~static name
+           (fun arg ~log timeout ->
+             let log = Lang.val_fun log_p ~ret_t:Lang.unit_t (fun p _ ->
+               let v = List.assoc "" p in
+               log (Lang.to_string v);
+               Lang.unit)
+             in
+             let l = Lang.apply ~t:(Lang.list_t Lang.string_t)
+                       f ["rlog",log;
+                          "",Lang.string arg;
                           "",Lang.float timeout]
-                   in
-                     List.map
-                       (fun s ->
-                          Request.indicator ~temporary (Lang.to_string s))
-                       (Lang.to_list l) } ;
-           Lang.unit)
+             in
+             List.map (fun s ->
+               Request.indicator ~temporary (Lang.to_string s))
+             (Lang.to_list l)) ;
+         Lang.unit)
 
 let () =
   let t = "",Lang.int_t,None,None in
@@ -1532,46 +1601,105 @@ let () =
 let () =
   let ret_t = Lang.product_t
     (Lang.product_t Lang.string_t Lang.string_t)
-    (Lang.product_t Lang.string_t Lang.int_t)
+    (Lang.product_t Lang.string_t Lang.string_t)
   in
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
-            ((stdout,stderr),status) where status is one of: \
-            (\"exit\",<code>), (\"killed\",<signal number>) or \
-            (\"stopped\",<signal number>)."
+            @((stdout,stderr),status)@ where status is one of: \
+            @(\"exit\",\"<code>\")@, @(\"killed\",\"<signal number>\")@, \
+            @(\"stopped\",\"<signal number>\")@, @(\"exception\",\"<exception description>\", \
+            @(\"timeout\",\"<run time>\")@."
     ["env",Lang.list_t Lang.string_t,
      Some (Lang.list ~t:Lang.string_t []),Some "Process environment";
-     "",Lang.string_t,None,None] ret_t
+     "timeout",Lang.float_t,Some (Lang.float (-1.)),
+     Some "Cancel process after @timeout@ has elapsed. Ignored if negative.";
+     "",Lang.string_t,None,Some "Command to run"] ret_t
     (fun p ->
        let env = Lang.to_list
          (List.assoc "env" p)
        in
+       let timeout = Lang.to_float
+         (List.assoc "timeout" p)
+       in
        let env = List.map Lang.to_string env in
        let env = Array.of_list env in
        let cmd = Lang.to_string (List.assoc "" p) in
-       let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
-       close_out out_ch;
-       let pull ch =
-         let buf = Buffer.create 1024 in
-         let rec f () =
-           try
-             Buffer.add_channel buf ch 1024;
-             f ()
-           with End_of_file -> Buffer.contents buf
+       let buflen = 1024 in
+       let out_buf = Buffer.create buflen in
+       let err_buf = Buffer.create buflen in
+       let on_done (timed_out,status) =
+         let stdout = Buffer.contents out_buf in
+         let stderr = Buffer.contents err_buf in
+         let status, arg =
+           match timed_out, status with
+             | f, _ when 0. <= f ->
+                "timeout", (string_of_float f)
+             | _, Some (`Exception e) ->
+                "exception", (Printexc.to_string e)
+             | _, Some (`Status s) ->
+                 begin match s with
+                   | Unix.WEXITED c -> "exit", (string_of_int c)
+                   | Unix.WSIGNALED s -> "killed", (string_of_int s)
+                   | Unix.WSTOPPED s -> "stopped", (string_of_int s)
+                 end
+             | _ -> assert false
          in
-         f ()
+         Lang.product
+           (Lang.product (Lang.string stdout) (Lang.string stderr))
+           (Lang.product (Lang.string status) (Lang.string arg))
        in
-       let stdout = pull in_chan in
-       let stderr = pull err_chan in
-       let status, code =
-         match Unix.close_process_full p with
-           | Unix.WEXITED c -> "exit",c
-           | Unix.WSIGNALED s -> "killed", s
-           | Unix.WSTOPPED s -> "stopped", s
+       let synchronous () =
+         let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
+         close_out out_ch;
+         let pull buf ch =
+           let rec f () =
+             try
+               Buffer.add_channel buf ch buflen;
+               f ()
+             with End_of_file -> ()
+           in
+           f ()
+         in
+         pull out_buf in_chan;
+         pull err_buf err_chan;
+         (-1.,Some (`Status (Unix.close_process_full p)))
        in
-       Lang.product
-         (Lang.product (Lang.string stdout) (Lang.string stderr))
-         (Lang.product (Lang.string status) (Lang.int code)))
+       let asynchronous () =
+         let out_pipe,in_pipe = Unix.pipe () in
+         Tutils.finalize ~k:(fun () ->
+           ignore(Unix.close in_pipe);
+           ignore(Unix.close out_pipe))
+           (fun () ->
+             let pull buf fn =
+               let bytes = Bytes.create buflen in
+               let ret = fn bytes 0 buflen in
+               Buffer.add_subbytes buf bytes 0 ret;
+              `Continue
+             in
+             let on_stdout = pull out_buf in
+             let on_stderr = pull err_buf in
+             let status = ref None in
+             let on_stop s =
+                status := Some s;
+                begin
+                  try
+                    ignore(Unix.write in_pipe " " 0 1);
+                  with _ -> ()
+                end;
+                false
+             in
+             let p = Process_handler.run ~env ~on_stop
+                       ~on_stdout ~on_stderr cmd
+             in
+             let timed_out =
+               try
+                 Tutils.wait_for `Read out_pipe timeout ;
+                 (-1.)
+               with Tutils.Timeout f -> Process_handler.stop p; f
+             in
+             (timed_out, !status))
+       in
+       on_done (if 0. <= timeout then asynchronous() else synchronous ()))      
 
 let () =
   let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
