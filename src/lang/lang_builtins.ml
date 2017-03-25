@@ -442,6 +442,17 @@ let () =
          Lang.unit)
 
 let () =
+  add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
+    ["dir_sep",Lang.string_t,Some (Lang.string Filename.dir_sep),
+     Some "Directory separator.";
+     "",Lang.string_t,None,None]
+    Lang.string_t
+    (fun p ->
+      let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
+      Lang.string (Utils.file_extension ~dir_sep
+        (Lang.to_string (List.assoc "" p))))
+
+let () =
   add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename in the temporary directory."
     ["",Lang.string_t,None,Some "File prefix";
      "",Lang.string_t,None, Some "File suffix"]

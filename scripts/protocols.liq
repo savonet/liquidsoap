@@ -178,14 +178,11 @@ end
 # Register the s3:// protocol 
 # @flag hidden
 def s3_protocol(~rlog,arg,delay) =
-  x = string.split(separator=":",arg)
-  uri = string.concat(separator=":",list.tl(x))
-  extname = list.hd(default="liq",x)
-  extname = string.replace(pattern="^//",fun (_) -> "",extname)
-  ["process:#{extname},#{aws_base()} s3 cp s3://#{uri} $(output)"]
+  extname = file.extension(dir_sep="/",arg)
+  ["process:#{extname},#{aws_base()} s3 cp s3:#{arg} $(output)"]
 end
 add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
-             syntax="s3://<extname>,uri")
+             syntax="s3://uri")
 
 # Register the polly: protocol using AWS Polly
 # speech synthesis services. Syntax: polly:<text>
