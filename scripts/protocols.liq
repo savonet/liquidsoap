@@ -127,7 +127,7 @@ add_protocol(static=true,"text2wave",text2wave_protocol,
              syntax="text2wav:Text to read")
 
 register(name="Say protocol settings","protocol.say",())
-register(name="Sox path","protocol.text2wave.sox_path","sox")
+register(name="Sox path","protocol.say.sox_path","sox")
 
 # Register the legacy say: protocol using text2wav and sox
 # @flag hidden
