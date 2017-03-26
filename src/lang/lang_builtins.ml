@@ -1074,7 +1074,7 @@ let () =
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
        let s = Lang.to_string (List.assoc "" p) in
-         Lang.string (Filename.quote s))
+         Lang.string (Utils.quote s))
 
 (** Operations on lists. *)
 

@@ -713,3 +713,20 @@ let file_extension ?(dir_sep=Filename.dir_sep) name =
   let dir_sep = dir_sep.[0] in
   let l = file_extension_len ~dir_sep name in
   if l = 0 then "" else String.sub name (String.length name - l) l
+
+let quote s =
+  let quote = '"' in
+  let quotequote = "\\\"" in
+  let escp = '\\' in
+  let quoteescp = "\\\\" in
+  let l = String.length s in
+  let b = Buffer.create (l + 20) in
+  Buffer.add_char b quote;
+  for i = 0 to l - 1 do
+    match s.[i] with
+      | c when c = quote -> Buffer.add_string b quotequote
+      | c when c = escp -> Buffer.add_string b quoteescp
+      | c -> Buffer.add_char b c
+  done;
+  Buffer.add_char b quote;
+  Buffer.contents b
