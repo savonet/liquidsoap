@@ -176,6 +176,7 @@ val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_list : value -> value list
 val to_product : value -> value * value
+val to_metadata_list : value -> (string*string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list

@@ -35,6 +35,8 @@ New:
 
 - Added run_process to run a process with optional environment and return (stdout,stderr,exit_status)
 
+- Added add_playlist_parser to register new playlist parsers
+
 - Added optional static parameter to add_protocol
 
 - Added file.temp to create fresh temporary filename

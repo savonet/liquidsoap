@@ -463,6 +463,43 @@ let () =
         (Lang.to_string (Lang.assoc "" 2 p))))
 
 let () =
+  let playlist_t =
+    Lang.list_t
+      (Lang.product_t Lang.metadata_t Lang.string_t)
+  in
+  let parser_t =
+    Lang.fun_t [true,"pwd",Lang.string_t;
+                false,"",Lang.string_t]
+               playlist_t           
+  in
+  add_builtin "add_playlist_parser" ~cat:Liq ~descr:"Register a new playlist parser."
+    ["format",Lang.string_t,None,Some "Playlist format. If possible, a mime-type.";
+     "strict",Lang.bool_t,None,Some "True if playlist format can be detected unambiguously.";
+     "",parser_t,None,Some "Playlist parser"]
+    Lang.unit_t
+    (fun p ->
+      let format = Lang.to_string (List.assoc "format" p) in
+      let strict = Lang.to_bool (List.assoc "strict" p) in
+      let fn = List.assoc "" p in
+      let fn ?pwd uri =
+        let args = ["",Lang.string uri] in
+        let args = match pwd with
+          | Some pwd -> ("pwd",Lang.string pwd)::args
+          | None -> args
+        in
+        let ret =
+          Lang.apply ~t:playlist_t fn args
+        in
+        List.map (fun el ->
+          let (m,s) = Lang.to_product el in
+          (Lang.to_metadata_list m, Lang.to_string s))
+          (Lang.to_list  ret)
+      in
+      Playlist_parser.parsers#register format
+        { Playlist_parser.strict = strict; Playlist_parser.parser = fn };
+      Lang.unit)
+
+let () =
   let log_p =
     ["", "", Lang.string_t, None]
   in
@@ -475,7 +512,7 @@ let () =
       (Lang.list_t Lang.string_t)
   in
     add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
-      ["temporary",Lang.bool_t,Some (Lang.bool true),
+      ["temporary",Lang.bool_t,Some (Lang.bool false),
        Some "if true, file is removed when it is finished.";
        "static",Lang.bool_t,Some (Lang.bool false),
        Some "if true, then requests can be resolved once and for all. \

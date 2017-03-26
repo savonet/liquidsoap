@@ -608,12 +608,15 @@ let to_product t = match t.value with
   | Product (a,b) -> (a,b)
   | _ -> assert false
 
-let to_metadata t = 
-  let pop v = 
+let to_metadata_list t =
+  let pop v =
     let f (a,b) = (to_string a,to_string b) in
     f (to_product v)
   in
-  let t = List.map pop (to_list t) in
+  List.map pop (to_list t)
+
+let to_metadata t = 
+  let t = to_metadata_list t in
   let metas = Hashtbl.create 10 in
   List.iter (fun (a,b) -> Hashtbl.add metas a b) t;
   metas
