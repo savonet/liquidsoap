@@ -204,7 +204,7 @@ register(name="Voice",descr="Voice ID",
          "protocol.aws.polly.voice","Joanna")
 
 # Build a aws base call
-# flag @hidden
+# @flag hidden
 def aws_base() =
   aws = get(default="aws","protocol.aws.path")
 

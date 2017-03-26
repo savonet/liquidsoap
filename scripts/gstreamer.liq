@@ -30,14 +30,26 @@ def gstreamer.hls(~id="",uri) =
   input.gstreamer.audio_video(id=id, pipeline=pipeline, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline)
 end
 
+# Encode an x264 video file using gstreamer
+# @category Source / Input
+# @param fname Encoded file name
+# @param source Source
 def gstreamer.encode_x264_avi(fname, source)
   output.gstreamer.video(pipeline="videoconvert ! x264enc ! avimux ! filesink location=\"#{fname}\"", source)
 end
 
+# Encode jpeg video file using gstreamer
+# @category Source / Input
+# @param fname Encoded file name
+# @param source Source
 def gstreamer.encode_jpeg_avi(fname, source)
   output.gstreamer.video(pipeline="videoconvert ! jpegenc ! avimux ! filesink location=\"#{fname}\"", source)
 end
 
+# Encode a mp3 file using gstreamer
+# @category Source / Input
+# @param fname Encoded file name
+# @param source Source
 def gstreamer.encode_mp3(fname, source)
   output.gstreamer.audio(pipeline="audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"", source)
 end

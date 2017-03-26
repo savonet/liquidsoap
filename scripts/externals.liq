@@ -295,6 +295,8 @@ end
 %endif
 
 %ifdef input.external.rawvideo
+  # Decode video using memncoder
+  # @category Source / Input
   def input.mencoder.video(~id="input.mencoder.video",
     ~restart=true,~restart_on_error=false,
     ~buffer=0.2,~max=10.,s) =
