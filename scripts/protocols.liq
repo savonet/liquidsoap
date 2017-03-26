@@ -99,15 +99,66 @@ add_protocol(temporary=true, "process", process_protocol,
 
 register(name="Youtube_dl protocol settings","protocol.youtube-dl",())
 register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")
+register(name="Fast resolution",descr="If false and json parsing support is enabled, \
+  youtube-dl: request resolution also checks if provided uri is a playlist and \
+  uses video's title as title metadata. Disable if requests take too long to resolve.",
+  "protocol.youtube-dl.fast",false)
 
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
 # @flag hidden
 def youtube_dl_protocol(~rlog,arg,delay)
   binary = get(default="youtube-dl","protocol.youtube-dl.path")
-  tmp = file.temp("liq-youtube",".%(ext)s")
-  tmp_wav = string.replace(pattern="%\(ext\)s",fun (_) -> "wav",tmp)
-  ["process:wav,#{binary} --quiet -f bestaudio -x --audio-format wav -o #{quote(tmp)} #{quote(arg)} && mv #{quote(tmp_wav)} $(output)"]
+
+  def make_uri(title,id) =
+    tmp_wav = file.temp("liq-youtube",".wav")
+    tmp     = string.replace(pattern="wav$",fun (_) -> "%(ext)s",tmp_wav)
+
+    process="process:wav,#{binary} --quiet -f bestaudio -x --audio-format wav \
+                                   -o #{quote(tmp)} #{quote(id)} && \
+                          mv #{quote(tmp_wav)} $(output)"
+
+    if title != "" then
+      "annotate:title=#{quote(title)}:#{process}"
+    else
+      process
+    end
+  end
+
+  result = [make_uri("",arg)]
+
+%ifdef of_json
+  result =
+    if get(default=false,"protocol.youtube-dl.fast") then
+      result
+    else
+      # check if playlist
+      x = get_process_lines(timeout=delay,"#{binary} -j --flat-playlist #{arg}")
+
+      if list.length(x) > 1 then
+        def make_uri(payload) =
+          x = of_json(default=[("k","v")],payload)
+          id = x["id"]
+          "youtube-dl$(colon)#{id}"
+        end
+
+        urls = string.concat(separator="\n",list.map(make_uri,x))
+        ["process:pls,echo #{quote(urls)} > $(output)"]
+      else
+        x = of_json(default=[("k","v")],list.hd(default="",x))
+        id = x["id"]
+        title =
+          if x["fulltitle"] != "" then
+            x["fulltitle"]
+          else
+            x["title"]
+          end
+        [make_uri(title,id)]
+      end
+    end
+%endif
+
+  result
 end
 add_protocol("youtube-dl", youtube_dl_protocol,
               doc="Resolve a request using youtube-dl. Needs ffmpeg in the path.",
