@@ -31,7 +31,7 @@ def gstreamer.hls(~id="",uri) =
 end
 
 # Encode an x264 video file using gstreamer
-# @category Source / Input
+# @category Source / Output
 # @param fname Encoded file name
 # @param source Source
 def gstreamer.encode_x264_avi(fname, source)
@@ -39,7 +39,7 @@ def gstreamer.encode_x264_avi(fname, source)
 end
 
 # Encode jpeg video file using gstreamer
-# @category Source / Input
+# @category Source / Output
 # @param fname Encoded file name
 # @param source Source
 def gstreamer.encode_jpeg_avi(fname, source)
@@ -47,7 +47,7 @@ def gstreamer.encode_jpeg_avi(fname, source)
 end
 
 # Encode a mp3 file using gstreamer
-# @category Source / Input
+# @category Source / Output
 # @param fname Encoded file name
 # @param source Source
 def gstreamer.encode_mp3(fname, source)
@@ -60,6 +60,7 @@ end
 # m=video 5000 RTP/AVP 96
 # c=IN IP4 127.0.0.1
 # a=rtpmap:96 MP4V-ES/90000
+# @category Source / Output
 def gstreamer.rtp.mpeg4(~host="127.0.0.1",~port=5000,source)
   output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}", source)
 end
