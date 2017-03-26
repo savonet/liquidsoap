@@ -1721,7 +1721,7 @@ let () =
              let pull buf fn =
                let bytes = Bytes.create buflen in
                let ret = fn bytes 0 buflen in
-               Buffer.add_subbytes buf bytes 0 ret;
+               Buffer.add_substring buf (Bytes.to_string bytes) 0 ret;
               `Continue
              in
              let on_stdout = pull out_buf in
