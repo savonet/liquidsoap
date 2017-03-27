@@ -1736,7 +1736,10 @@ let () =
                 end;
                 false
              in
-             let p = Process_handler.run ~env ~on_stop
+             let on_start _ =
+               `Stop
+             in
+             let p = Process_handler.run ~env ~on_start ~on_stop
                        ~on_stdout ~on_stderr cmd
              in
              let timed_out =
