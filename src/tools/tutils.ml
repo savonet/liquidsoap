@@ -328,35 +328,37 @@ let error_translator =
 
 let () = Utils.register_error_translator error_translator
 
-(* Wait for [`Read], [`Write] or [`Both] for at most
- * [timeout] seconds on the given [socket]. Raises [Timeout]
- * if timeout is reached. *)
-let wait_for ?(log=fun _ -> ()) event socket timeout =
-  let start_time = Unix.gettimeofday () in
-  let max_time = start_time +. timeout in
-  let step d =
-    if 0. <= d then min 1. d else 1.
+(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
+ * Raises [Timeout elapsed_time] if timeout is reached. *)
+let wait_for ?(log=fun _ -> ()) events =
+  let timed_out = ref None in
+  let m = Mutex.create () in
+  let c = Condition.create () in
+  let handler = mutexify m (fun l ->
+    List.iter (function
+      | `Delay _ ->
+         timed_out := Some (Unix.gettimeofday ())
+      | _ -> ()) l;
+    Condition.signal c;
+    [])
   in
-  let r, w = 
-    match event with
-      | `Read -> [socket],[]
-      | `Write -> [],[socket]
-      | `Both -> [socket],[socket]
+  let task = {
+    Duppy.Task.
+      priority = Non_blocking;
+      events = events;
+      handler = handler
+  } in
+  let start_time =
+    mutexify m (fun () ->
+      Duppy.Task.add scheduler task;
+      Condition.wait c m;
+      Unix.gettimeofday ()) ()
   in
-  let rec wait t =
-    let l,l',_ = Unix.select r w [] t in
-    if l=[] && l'=[] then begin
-      log (Printf.sprintf "No activity for %.02f second(s)." t);
-      let current_time = Unix.gettimeofday () in
-      if 0. <= timeout && current_time >= max_time then
-       begin
+  match !timed_out with
+    | Some t ->
         log "Timeout reached!" ;
-        raise (Timeout (current_time -. start_time)) 
-       end
-      else
-        wait (step (max_time -. current_time))
-    end
-  in wait (step timeout)
+        raise (Timeout (t -. start_time)) 
+    | _ -> ()
 
 (** Wait for some thread to crash *)
 let run = ref true
