@@ -517,9 +517,9 @@ let () =
        "static",Lang.bool_t,Some (Lang.bool false),
        Some "if true, then requests can be resolved once and for all. \
              Typically, static protocols can be used to create infallible sources.";
-       "syntax",Lang.string_t,None,
+       "syntax",Lang.string_t,Some (Lang.string "Undocumented"),
        Some "URI syntax.";
-       "doc",Lang.string_t,None,
+       "doc",Lang.string_t,Some (Lang.string "Undocumented"),
        Some "Protocol documentation.";
        "",Lang.string_t,None,Some "Protocol name. Resolver will be called on \
           uris of the form: @<protocol name>:...@." ;
