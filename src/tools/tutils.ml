@@ -182,6 +182,13 @@ type priority =
 
 let scheduler = Duppy.create ()
 
+let started  = ref false
+
+let started_m = Mutex.create ()
+
+let has_started = mutexify started_m (fun () ->
+  !started)
+
 let () =
   let name = "Duppy scheduler shutdown" in
   let f () =
@@ -239,7 +246,9 @@ let () =
           new_queue
             ~priorities:(fun x -> x = Non_blocking)
             ~name ()
-        done))
+        done;
+      mutexify started_m (fun () ->
+        started := true) ()))
 
 (** Replace stdout/err by a pipe, and install a Duppy task that pulls data
   * out of that pipe and logs it.

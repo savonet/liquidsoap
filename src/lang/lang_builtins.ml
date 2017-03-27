@@ -1747,7 +1747,7 @@ let () =
              in
              (timed_out, !status))
        in
-       on_done (if 0. <= timeout then asynchronous() else synchronous ()))      
+       on_done (if 0. <= timeout && Tutils.has_started() then asynchronous() else synchronous ()))      
 
 let () =
   let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in

@@ -31,6 +31,7 @@
   raises an exception. *)
 val create : ('a -> unit) -> 'a -> string -> Thread.t
 val main : unit -> unit
+val has_started : unit -> bool
 val shutdown : unit -> unit
 
 (** Special exception allowed for "clean" termination of Tutils threads.
