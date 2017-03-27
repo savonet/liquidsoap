@@ -164,6 +164,8 @@ type t = {
 
 let kind x = x.kind
 
+let initial_uri x = x.initial_uri
+
 let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   string = home_unrelate s ;
   temporary = temporary = Some true ;

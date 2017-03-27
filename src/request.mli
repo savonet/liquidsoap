@@ -54,6 +54,9 @@ val create_raw :
 (** Return the kind of a media request, None for raw requests. *)
 val kind : t -> Frame.content_kind option
 
+(** Return the request's initial uri. *)
+val initial_uri : t -> string
+
 (** Destroying of a requests causes its file to be deleted if it's a temporary
   * one, for example a downloaded file. If the metadata ["persistent"] is
   * set to ["true"], destroying doesn't happen, unless [force] is set too.

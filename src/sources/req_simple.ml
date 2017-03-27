@@ -26,13 +26,16 @@ open Dtools
 
 exception Invalid_URI
 
+(** [r] must resolve and be always ready. *)
 class unqueued ~kind r =
-  (** We assume that [r] is ready. *)
-  let filename = Utils.get_some (Request.get_filename r) in
 object (self)
   inherit Request_source.unqueued ~name:"single" ~kind as super
 
   method wake_up x =
+    self#log#f 3 "%S is static, resolving once for all..." (Request.initial_uri r) ;
+    if Request.Resolved <> Request.resolve r 60. then
+      raise Invalid_URI ;
+    let filename = Utils.get_some (Request.get_filename r) in
     if String.length filename < 15 then self#set_id filename ;
     super#wake_up x
 
@@ -82,12 +85,8 @@ let () =
          with
            | Some true ->
                let r = Request.create ~kind ~persistent:true uri in
-                 log#f 3 "%S is static, resolving once for all..." uri ;
-                 if Request.Resolved <> Request.resolve r 60. then
-                   raise Invalid_URI ;
                  ((new unqueued ~kind r) :> source)
            | None | Some false ->
-               log#f 3 "%S will be queued." uri ;
                ((new queued uri ~kind l d t c) :> source)
          with
            | Invalid_URI ->
