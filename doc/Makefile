@@ -75,8 +75,8 @@ else
 endif
 
 content/settings.txt: ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --dynamic-plugins-dir ../src/plugins \
-	--conf-descr-liqi > $(@)
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../scripts/pervasives.liq \
+	--dynamic-plugins-dir ../src/plugins --conf-descr-liqi > $(@)
 
 VERSION="`../src/liquidsoap --version | head -n 1`"
 
