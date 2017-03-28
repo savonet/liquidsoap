@@ -41,6 +41,10 @@ New:
 
 - Added file.temp to create fresh temporary filename
 
+- Added process: protocol
+
+- Reimplemented curl-based fetch process using process:
+
 - Added s3:// protocol to fetch files from AWS S3 using the AWS CLI.
 
 - Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().

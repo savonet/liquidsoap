@@ -100,7 +100,7 @@ add_protocol(temporary=true, "process", process_protocol,
                   file name as returned while resolving @uri@.",
              syntax="process:<extname>,<cmd>[:uri]")
 
-register(name="External download protocol","protocol.external",())
+register(name="External download protocol","protocol.external",true)
 register(name="Path to curl","protocol.external.curl","curl")
 register(name="External protocols","protocol.external.protocols",["http","https","ftp"])
 
@@ -155,7 +155,9 @@ end
 def add_download_protocol(proto) =
   add_protocol(syntax="#{proto}://...",doc="Download files using curl",proto,download_protocol(proto))
 end
-list.iter(add_download_protocol,get(default=["http","https","ftp"],"protocol.external.protocols"))
+if get(default=true,"protocol.external") then
+  list.iter(add_download_protocol,get(default=["http","https","ftp"],"protocol.external.protocols"))
+end
 
 register(name="Youtube_dl protocol settings","protocol.youtube-dl",())
 register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")
