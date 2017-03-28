@@ -56,10 +56,6 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
-(** Ask for a special queue that treats exclusively non blocking tasks.
-  * This is need for things such as the server or harbor to run smoothly. *)
-val need_non_blocking_queue : unit -> unit
-
 (** {1 Misc} *)
 
 (** Waits for [f()] to become true on condition [c].

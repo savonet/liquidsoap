@@ -940,7 +940,6 @@ struct
 
   (* Open a port and listen to it. *)
   let open_port ~icy port =
-    Tutils.need_non_blocking_queue () ;
     log#f 4 "Opening port %d with icy = %b" port icy ;
     let max_conn = conf_harbor_max_conn#get in
     let rec incoming ~port ~icy sock out_s e =

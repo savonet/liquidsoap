@@ -430,7 +430,6 @@ let start () =
   let telnet = conf_telnet#get in
   let socket = conf_socket#get in
   if telnet || socket then begin
-    Tutils.need_non_blocking_queue () ;
     if telnet then start_telnet () ;
     if socket then start_socket ()
   end

@@ -224,9 +224,6 @@ let new_queue ?priorities ~name () =
 
 let create f x name = create ~wait:true f x name
 
-let start_non_blocking = ref false
-let need_non_blocking_queue () = start_non_blocking := true
-
 let () =
   (* A dtool atom to start
    * tasks *)
@@ -240,13 +237,12 @@ let () =
         let name = Printf.sprintf "fast queue #%d" i in
           new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
       done;
-      if !start_non_blocking then
-        for i = 1 to non_blocking_queues#get do
-          let name = Printf.sprintf "non-blocking queue #%d" i in
-          new_queue
-            ~priorities:(fun x -> x = Non_blocking)
-            ~name ()
-        done;
+      for i = 1 to non_blocking_queues#get do
+        let name = Printf.sprintf "non-blocking queue #%d" i in
+        new_queue
+          ~priorities:(fun x -> x = Non_blocking)
+          ~name ()
+      done;
       mutexify started_m (fun () ->
         started := true) ()))
 
@@ -308,7 +304,6 @@ let () =
   ignore (Dtools.Init.at_start (fun () ->
     if Dtools.Init.conf_daemon#get then begin
       Dtools.Log.conf_stdout#set false ;
-      need_non_blocking_queue () ;
       start_forwarding ()
     end))
 
