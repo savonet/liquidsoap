@@ -100,6 +100,17 @@ add_protocol(temporary=true, "process", process_protocol,
                   file name as returned while resolving @uri@.",
              syntax="process:<extname>,<cmd>[:uri]")
 
+# Create a process: uri, replacing colon with $(colon)
+# @category Liquidsoap
+# @param cmd Command line to execute
+# @param ~extname Output file extension (with no leading '.')
+# @param ~uri Input uri
+def process_uri(~extname,~uri="",cmd) =
+  cmd = string.replace(pattern=":",fun (_) -> "$(colon)",cmd)
+  uri = if uri != "" then ":#{uri}" else "" end
+  "process:#{extname},#{cmd}#{uri}"
+end
+
 register(name="External download protocol","protocol.external",true)
 register(name="Path to curl","protocol.external.curl","curl")
 register(name="External protocols","protocol.external.protocols",["http","https","ftp"])
@@ -108,6 +119,7 @@ register(name="External protocols","protocol.external.protocols",["http","https"
 # @flag hidden
 def download_protocol(proto,~rlog,~maxtime,arg) =
   curl = get(default="curl","protocol.external.curl")
+  uri = "#{proto}:#{arg}"
 
   log = log(label="procol.external")
 
@@ -116,7 +128,6 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     log(level=level,s)
   end
 
-  uri = "#{proto}:#{arg}"
   cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
   delay = maxtime - gettimeofday()
   log(level=4,"Running #{cmd}")
@@ -145,8 +156,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
         "osb"
       end
     end
-  uri = "#{proto}$(colon)#{arg}"
-  ["process:#{extname},#{curl} -sL #{quote(uri)} -o $(output)"]
+  [process_uri(extname=extname,"#{curl} -sL #{quote(uri)} -o $(output)")]
 end
 
 # Register download protocol
@@ -174,10 +184,10 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   def make_uri(title,id) =
     tmp_wav = file.temp("liq-youtube",".wav")
     tmp     = string.replace(pattern="wav$",fun (_) -> "%(ext)s",tmp_wav)
+    cmd     = "#{binary} --quiet -f bestaudio -x --audio-format wav \
+               -o #{quote(tmp)} #{quote(id)} && mv #{quote(tmp_wav)} $(output)"
 
-    process="process:wav,#{binary} --quiet -f bestaudio -x --audio-format wav \
-                                   -o #{quote(tmp)} #{quote(id)} && \
-                          mv #{quote(tmp_wav)} $(output)"
+    process = process_uri(extname="wav",cmd)
 
     if title != "" then
       "annotate:title=#{quote(title)}:#{process}"
@@ -201,11 +211,12 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
         def make_uri(payload) =
           x = of_json(default=[("k","v")],payload)
           id = x["id"]
-          "youtube-dl$(colon)#{id}"
+          "youtube-dl:#{id}"
         end
 
         urls = string.concat(separator="\n",list.map(make_uri,x))
-        ["process:pls,echo #{quote(urls)} > $(output)"]
+        cmd = "echo #{quote(urls)} > $(output)"
+        [process_uri(extname="pls",cmd)]
       else
         x = of_json(default=[("k","v")],list.hd(default="",x))
         id = x["id"]
@@ -233,7 +244,7 @@ register(name="Text2wave path","protocol.text2wave.path","text2wave")
 # @flag hidden
 def text2wave_protocol(~rlog,~maxtime,arg) =
   binary = get(default="text2wave","protocol.text2wave.path")
-  ["process:wav,echo #{quote(arg)} | #{binary} -scale 1.9 > $(output)"]
+  [process_uri(extname="wav","echo #{quote(arg)} | #{binary} -scale 1.9 > $(output)")]
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
@@ -246,7 +257,7 @@ register(name="Sox path","protocol.say.sox_path","sox")
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
   sox = get(default="sox","protocol.say.sox_path")
-  ["process:wav,#{sox} $(input) -c 2 $(output):text2wave:#{arg}"]
+  [process_uri(extname="wav",uri="text2wave:#{arg}","#{sox} $(input) -c 2 $(output)")]
 end
 add_protocol(static=true,"say",say_protocol,
              doc="Generate speech synthesis using text2wave and sox. Result is always stereo.",
@@ -292,7 +303,7 @@ end
 # @flag hidden
 def s3_protocol(~rlog,~maxtime,arg) =
   extname = file.extension(dir_sep="/",arg)
-  ["process:#{extname},#{aws_base()} s3 cp s3:#{arg} $(output)"]
+  [process_uri(extname=extname,"#{aws_base()} s3 cp s3:#{arg} $(output)")]
 end
 add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
              syntax="s3://uri")
@@ -320,7 +331,7 @@ def polly_protocol(~rlog,~maxtime,text) =
 
   cmd = "#{aws} --text #{quote(text)} --voice-id #{quote(voice_id)} $(output)"
 
-  ["process:#{extname},#{cmd}"]
+  [process_uri(extname=extname,cmd)]
 end
 add_protocol(static=true,"polly",polly_protocol,
              doc="Generate speech synthesis using AWS polly service. \
