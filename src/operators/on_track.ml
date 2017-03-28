@@ -61,8 +61,8 @@ let () =
             with the corresponding metadata as argument. \
             If there is no metadata at the beginning of track, the empty \
             list is passed. \
-            That function should be fast because it is ran in the main \
-            thread." ;
+            That function should be fast because it is executed in the \
+            main streaming thread." ;
       "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on new tracks."

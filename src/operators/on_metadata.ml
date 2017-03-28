@@ -51,8 +51,8 @@ let () =
         [false,"",Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)]
         Lang.unit_t,
       None,
-      Some ("Function called on every metadata packet in the stream."^
-            " It should be fast because it is ran in the main thread.") ;
+      Some "Function called on every metadata packet in the stream. \
+            It should be fast because it is executed in the main streaming thread." ;
       "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler on metadata packets."

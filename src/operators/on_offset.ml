@@ -110,7 +110,8 @@ let () =
       Lang.fun_t [false,"",Lang.float_t;false,"",Lang.metadata_t] Lang.unit_t,
       None,
       Some "Function to execute. First argument is the actual position within \
-            the current track, second is the latest metadata.";
+            the current track, second is the latest metadata. That function should be fast \
+            because it is executed in the main streaming thread." ;
       "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler when position in track is equal or \
