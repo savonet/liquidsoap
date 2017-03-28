@@ -5,7 +5,8 @@ register(name="Replay_gain path","protocol.replay_gain.path","#{configure.libdir
 
 # Register the replaygain protocol.
 # @flag hidden
-def replaygain_protocol(~rlog,arg,delay)
+def replaygain_protocol(~rlog,~maxtime,arg)
+ delay = maxtime - gettimeofday()
  # The extraction program
  extract_replaygain =
    get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
@@ -33,8 +34,8 @@ register(name="Process Environment",
 # [("input",<input file>),("output",<output file>),("colon",":")]
 # See say: protocol for an example.
 # @flag hidden
-def process_protocol(~rlog,arg,delay)
-  log = log(label="procol.process")
+def process_protocol(~rlog,~maxtime,arg)
+  log = log(label="protocol.process")
 
   def log(~level,s) =
     rlog(s)
@@ -65,6 +66,7 @@ def process_protocol(~rlog,arg,delay)
     env = list.map(get_env,
       get(default=["LANG","PATH"],"protocol.process.env"))
 
+    delay = maxtime - gettimeofday()
     if test_process(timeout=delay,env=env,cmd) then
       [output]
     else
@@ -77,6 +79,7 @@ def process_protocol(~rlog,arg,delay)
     resolve("")
   else
     r = request.create.raw(uri)
+    delay = maxtime - gettimeofday()
     if request.resolve(timeout=delay,r) then
       res = resolve(request.filename(r))
       request.destroy(r)
@@ -97,6 +100,63 @@ add_protocol(temporary=true, "process", process_protocol,
                   file name as returned while resolving @uri@.",
              syntax="process:<extname>,<cmd>[:uri]")
 
+register(name="External download protocol","protocol.external",())
+register(name="Path to curl","protocol.external.curl","curl")
+register(name="External protocols","protocol.external.protocols",["http","https","ftp"])
+
+# Resolve download protocols using curl
+# @flag hidden
+def download_protocol(proto,~rlog,~maxtime,arg) =
+  uri = "#{proto}:#{arg}"
+  curl = get(default="curl","protocol.external.curl")
+
+  log = log(label="procol.external")
+
+  def log(~level,s) =
+    rlog(s)
+    log(level=level,s)
+  end
+
+  uri = "#{proto}:#{arg}"
+  cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+  delay = maxtime - gettimeofday()
+  log(level=4,"Running #{cmd}")
+  x = run_process(timeout=delay,cmd)
+  extname =
+    if fst(snd(x)) != "exit" or snd(snd(x)) != "0" then
+      log(level=3,"Failed to fetch mime-type for #{uri}.")
+      "osb"
+    else
+      lines = string.split(separator="\\n",fst(fst(x)))
+      mime = string.case(lower=true,string.trim(list.hd(default="",lines)))
+      if mime == "audio/mpeg" then
+        "mp3"
+      elsif list.mem(mime,["application/ogg", "application/x-ogg",
+                           "audio/x-ogg", "audio/ogg", "video/ogg"]) then
+        "ogg"
+      elsif mime == "audio/x-flac" then
+        "flac"
+      elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
+        "mp4"
+      elsif list.mem(mime,["audio/vnd.wave", "audio/wav",
+                           "audio/wave", "audio/x-wav"]) then
+        "wav"
+      else
+        log(level=3,"No known file extension for mime: #{mime}")
+        "osb"
+      end
+    end
+  uri = "#{proto}$(colon)#{arg}"
+  ["process:#{extname},#{curl} -sL #{quote(uri)} -o $(output)"]
+end
+
+# Register download protocol
+# @flag hidden
+def add_download_protocol(proto) =
+  add_protocol(syntax="#{proto}://...",doc="Download files using curl",proto,download_protocol(proto))
+end
+list.iter(add_download_protocol,get(default=["http","https","ftp"],"protocol.external.protocols"))
+
 register(name="Youtube_dl protocol settings","protocol.youtube-dl",())
 register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")
 register(name="Fast resolution",descr="If false and json parsing support is enabled, \
@@ -107,7 +167,7 @@ register(name="Fast resolution",descr="If false and json parsing support is enab
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
 # @flag hidden
-def youtube_dl_protocol(~rlog,arg,delay)
+def youtube_dl_protocol(~rlog,~maxtime,arg)
   binary = get(default="youtube-dl","protocol.youtube-dl.path")
 
   def make_uri(title,id) =
@@ -133,6 +193,7 @@ def youtube_dl_protocol(~rlog,arg,delay)
       result
     else
       # check if playlist
+       delay = maxtime - gettimeofday()
       x = get_process_lines(timeout=delay,"#{binary} -j --flat-playlist #{arg}")
 
       if list.length(x) > 1 then
@@ -169,7 +230,7 @@ register(name="Text2wave path","protocol.text2wave.path","text2wave")
 
 # Register the text2wave: protocol using text2wav
 # @flag hidden
-def text2wave_protocol(~rlog,arg,delay) =
+def text2wave_protocol(~rlog,~maxtime,arg) =
   binary = get(default="text2wave","protocol.text2wave.path")
   ["process:wav,echo #{quote(arg)} | #{binary} -scale 1.9 > $(output)"]
 end
@@ -182,7 +243,7 @@ register(name="Sox path","protocol.say.sox_path","sox")
 
 # Register the legacy say: protocol using text2wav and sox
 # @flag hidden
-def say_protocol(~rlog,arg,delay) =
+def say_protocol(~rlog,~maxtime,arg) =
   sox = get(default="sox","protocol.say.sox_path")
   ["process:wav,#{sox} $(input) -c 2 $(output):text2wave:#{arg}"]
 end
@@ -228,7 +289,7 @@ end
 
 # Register the s3:// protocol 
 # @flag hidden
-def s3_protocol(~rlog,arg,delay) =
+def s3_protocol(~rlog,~maxtime,arg) =
   extname = file.extension(dir_sep="/",arg)
   ["process:#{extname},#{aws_base()} s3 cp s3:#{arg} $(output)"]
 end
@@ -238,7 +299,7 @@ add_protocol("s3",s3_protocol,doc="Fetch files from s3 using the AWS CLI",
 # Register the polly: protocol using AWS Polly
 # speech synthesis services. Syntax: polly:<text>
 # @flag hidden
-def polly_protocol(~rlog,text,delay) =
+def polly_protocol(~rlog,~maxtime,text) =
   aws = aws_base()
 
   format = get(default="mp3","protocol.aws.polly.format")

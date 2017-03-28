@@ -508,7 +508,7 @@ let () =
   in
   let protocol_t =
     Lang.fun_t
-      [false,"rlog",log_t; false,"",Lang.string_t ; false,"",Lang.float_t]
+      [false,"rlog",log_t; false,"maxtime",Lang.float_t ; false,"",Lang.string_t]
       (Lang.list_t Lang.string_t)
   in
     add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
@@ -543,8 +543,8 @@ let () =
              in
              let l = Lang.apply ~t:(Lang.list_t Lang.string_t)
                        f ["rlog",log;
-                          "",Lang.string arg;
-                          "",Lang.float timeout]
+                          "maxtime",Lang.float timeout;
+                          "",Lang.string arg]
              in
              List.map (fun s ->
                Request.indicator ~temporary (Lang.to_string s))
@@ -954,6 +954,14 @@ let () =
            Utils.StringCompat.lowercase_ascii string
           else
            Utils.StringCompat.uppercase_ascii string))
+
+let () =
+  add_builtin "string.trim" ~cat:String
+    ~descr:"Return a string without leading and trailing whitespace."
+    ["", Lang.string_t, None, None] Lang.string_t
+    (fun p ->
+       Lang.string (String.trim
+         (Lang.to_string (List.assoc "" p))))
 
 let () =
   add_builtin "string.capitalize" ~cat:String
@@ -1739,14 +1747,18 @@ let () =
              let on_start _ =
                `Stop
              in
+             let log = Dtools.Log.make ["lang";"run_process"] in
+             let log s = log#f 4 "%s" s in
              let p = Process_handler.run ~env ~on_start ~on_stop
-                       ~on_stdout ~on_stderr cmd
+                       ~on_stdout ~on_stderr ~log cmd
              in
              let timed_out =
                try
                  Tutils.wait_for [`Read out_pipe; `Delay timeout] ;
                  (-1.)
-               with Tutils.Timeout f -> Process_handler.stop p; f
+               with Tutils.Timeout f ->
+                 Process_handler.stop p;
+                 f
              in
              (timed_out, !status))
        in

@@ -349,10 +349,11 @@ let wait_for ?(log=fun _ -> ()) events =
       handler = handler
   } in
   let start_time =
-    mutexify m (fun () ->
-      Duppy.Task.add scheduler task;
-      Condition.wait c m;
-      Unix.gettimeofday ()) ()
+    Mutex.lock m;
+    Duppy.Task.add scheduler task;
+    let ret = Unix.gettimeofday () in
+    Condition.wait c m;
+    ret 
   in
   match !timed_out with
     | Some t ->
