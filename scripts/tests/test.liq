@@ -24,7 +24,7 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
   def check(m)
     fname = m["filename"]
     cur_seen = !seen
-    if cur_seen[fname] != "" then
+    if !iterations < nb_rounds and cur_seen[fname] != "" then
       test.fail()
     else
       if list.length(!seen) < nb_files-1 then
