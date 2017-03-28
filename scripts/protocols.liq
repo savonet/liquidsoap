@@ -107,7 +107,6 @@ register(name="External protocols","protocol.external.protocols",["http","https"
 # Resolve download protocols using curl
 # @flag hidden
 def download_protocol(proto,~rlog,~maxtime,arg) =
-  uri = "#{proto}:#{arg}"
   curl = get(default="curl","protocol.external.curl")
 
   log = log(label="procol.external")
