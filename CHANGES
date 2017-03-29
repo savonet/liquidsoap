@@ -91,6 +91,8 @@ Bugfixes:
 
 - Fix fade.{in,out} metadata handling for new fade duration and type.
 
+- Compute normalization regardless of child sources ready status in add() to avoid unexpected change of volume.
+
 
 1.2.1 (01-07-2016)
 ========
