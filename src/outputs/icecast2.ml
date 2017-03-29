@@ -173,7 +173,7 @@ let proto kind =
      Some "Encoding used to send metadata. If empty, defaults to \"UTF-8\" \
            for \"http(s)\" protocol and \"ISO-8859-1\" for \"icy\" \
            protocol." ;
-    "genre", Lang.string_t, Some (Lang.string "Misc"), None ;
+    "genre", Lang.string_t, Some (Lang.string ""), None ;
     "protocol", Lang.string_t, (Some (Lang.string "http")),
      Some "Protocol of the streaming server: \
           'http' or 'https' for Icecast, 'icy' for shoutcast." ;
@@ -185,9 +185,9 @@ let proto kind =
     "icy_metadata", Lang.string_t, Some (Lang.string "guess"),
      Some "Send new metadata using the ICY protocol. \
            One of: \"guess\", \"true\", \"false\"";
-    "url", Lang.string_t, Some (Lang.string "http://savonet.sf.net"), None ;
-    ("description", Lang.string_t,
-     Some (Lang.string "Liquidsoap Radio!"), None) ;
+    "url", Lang.string_t, Some (Lang.string ""), None ;
+    "description", Lang.string_t,
+     Some (Lang.string ""), None ;
     "on_connect",
     Lang.fun_t [] Lang.unit_t,
     Some (Lang.val_cst_fun [] Lang.unit),
