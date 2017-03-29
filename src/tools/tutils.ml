@@ -214,10 +214,10 @@ let new_queue ?priorities ~name () =
          | Some priorities ->
              Duppy.queue scheduler ~log:qlog ~priorities name
      with e ->
-       log#f 2 "Queue %s crashed with exception %s" name (Printexc.to_string e) ;
-       log#f 2 "%s" (Printexc.get_backtrace());
-       log#f 1 "PANIC: Liquidsoap has crashed, exiting.." ;
-       log#f 1 "Please report at: savonet-users@lists.sf.net" ;
+       log#f 2 "Queue %s crashed with exception %s\n\
+                %s" name (Printexc.to_string e) (Printexc.get_backtrace());
+       log#f 1 "PANIC: Liquidsoap has crashed, exiting.,\n\
+                Please report at: savonet-users@lists.sf.net" ;
        exit 1
    in
    ignore (create ~wait:false queue () name)
