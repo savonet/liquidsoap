@@ -542,15 +542,15 @@ let protocols = Plug.create ~doc:protocols_doc ~insensitive:true "protocols"
 
 let is_static s =
   if Sys.file_exists (home_unrelate s) then
-    Some true
+    true
   else
     match parse_uri s with
       | Some (proto,_) ->
           begin match protocols#get proto with
-            | Some handler -> Some handler.static
-            | None -> None
+            | Some handler -> handler.static
+            | None -> false
           end
-      | None -> None
+      | None -> false
 
 (** Resolving engine. *)
 

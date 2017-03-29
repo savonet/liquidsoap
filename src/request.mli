@@ -104,7 +104,7 @@ type protocol = {
 
 (** A static request [r] is such that every resolving leads to the same file.
   * Sometimes, it allows removing useless destroy/create/resolve. *)
-val is_static : string -> bool option
+val is_static : string -> bool
 
 (** Resolving can fail because an URI is invalid, or doesn't refer to a valid
   * audio file, or simply because there was no enough time left. *)

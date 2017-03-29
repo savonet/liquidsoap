@@ -71,32 +71,11 @@ let () =
        let val_uri = List.assoc "" p in
        let l,d,t,c = extract_queued_params p in
        let uri = Lang.to_string val_uri in
-         try match
-           (* Being static is not enough when the single() is being
-            * dynamically created: the creation must be immediate.
-            * For example, speech synthesis is static but long.
-            *
-            * The compromise here is to attempt resolution only in
-            * the initial loading phase, not in dynamically executed code.
-            * This is not such a solid design choice: we don't take the
-            * same precaution with other operators that take long to
-            * create or wake up, such as playlist.safe(). *)
-           if Clock.running () then None else Request.is_static uri
-         with
-           | Some true ->
-               let r = Request.create ~kind ~persistent:true uri in
-                 ((new unqueued ~kind r) :> source)
-           | None | Some false ->
-               ((new queued uri ~kind l d t c) :> source)
-         with
-           | Invalid_URI ->
-               raise (Lang.Invalid_value
-                        (val_uri,
-                         (Printf.sprintf
-                            "Could not get a valid media file of kind \
-                             %s from %S"
-                            (Frame.string_of_content_kind kind)
-                            uri))))
+       if Request.is_static uri then
+         let r = Request.create ~kind ~persistent:true uri in
+         ((new unqueued ~kind r) :> source)
+       else
+         ((new queued uri ~kind l d t c) :> source))
 
 let () =
   let k = Lang.univ_t 1 in
