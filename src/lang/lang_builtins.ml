@@ -2263,7 +2263,9 @@ let () =
     (fun p ->
        let timeout = Lang.to_float (List.assoc "timeout" p) in
        let r = Lang.to_request (List.assoc "" p) in
-         Lang.bool (Request.Resolved = Request.resolve r timeout))
+         Lang.bool (try
+           Request.Resolved = Request.resolve r timeout
+         with _ -> false))
 
 let () =
   add_builtin "request.metadata" ~cat:Liq
