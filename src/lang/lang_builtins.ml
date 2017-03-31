@@ -1757,7 +1757,7 @@ let () =
                  Tutils.wait_for [`Read out_pipe; `Delay timeout] ;
                  (-1.)
                with Tutils.Timeout f ->
-                 Process_handler.stop p;
+                 Process_handler.kill p;
                  f
              in
              (timed_out, !status))
