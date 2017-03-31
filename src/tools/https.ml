@@ -2,6 +2,13 @@ module Ssl_transport : Http.Transport_t with type connection = Ssl.socket =
 struct
   type connection = Ssl.socket
 
+  type event = [
+    | `Delay of float
+    | `Write of connection
+    | `Read of connection
+    | `Exception of connection
+  ]
+
   let default_port = 443
 
   let connect ?bind_address host port =
@@ -29,9 +36,14 @@ struct
 
   let disconnect = Ssl.shutdown
 
-  let wait_for ?log event socket timeout =
-    let unix_socket = Ssl.file_descr_of_socket socket in
-    Tutils.wait_for ?log event unix_socket timeout
+  let wait_for ?log events =
+    let events = List.map (function
+      | `Read s -> `Read (Ssl.file_descr_of_socket s)
+      | `Write s -> `Write (Ssl.file_descr_of_socket s)
+      | `Exception s -> `Exception (Ssl.file_descr_of_socket s)
+      | `Delay f -> `Delay f) events
+    in
+    Tutils.wait_for ?log events
 
   let read = Ssl.read
 
