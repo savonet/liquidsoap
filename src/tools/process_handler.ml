@@ -77,7 +77,11 @@ let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
 
 let _kill = function
   | Some {stdout;stdin;stderr;_} ->
-      ignore(Unix.close_process_full (stdout,stdin,stderr))
+     begin
+      try
+        ignore(Unix.close_process_full (stdout,stdin,stderr))
+      with _ -> ()
+     end
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
