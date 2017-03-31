@@ -68,9 +68,10 @@ val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
 exception Timeout of float
 
-(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
- * Raises [Timeout elapsed_time] if timeout is reached. *)
-val wait_for : ?log:(string -> unit) -> Duppy.Task.event list -> unit
+(* Wait for [`Read], [`Write] or [`Both] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout waited_time]
+ * if timeout is reached. *)
+val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> Unix.file_descr -> float -> unit
 
 (** [finalize ~k f] calls [f] and returns it result,
   * and always executes [k], even when [f] raises an exception. *)

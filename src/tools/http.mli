@@ -3,15 +3,9 @@
 module type Transport_t =
 sig
   type connection
-  type event = [
-    | `Delay of float
-    | `Write of connection
-    | `Read of connection
-    | `Exception of connection
-  ]
   val default_port : int
   val connect : ?bind_address:string -> string -> int -> connection
-  val wait_for : ?log:(string -> unit) -> event list -> unit
+  val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
   val write: connection -> Bytes.t -> int -> int -> int
   val read: connection -> Bytes.t -> int -> int -> int
   val disconnect: connection -> unit
@@ -25,13 +19,6 @@ module type Http_t =
   val string_of_error : error -> string
 
   type connection
-
-  type event = [
-    | `Delay of float
-    | `Write of connection
-    | `Read of connection
-    | `Exception of connection
-  ]
 
   type uri = {
     host: string;
@@ -76,7 +63,7 @@ module type Http_t =
   val write : connection -> Bytes.t -> int -> int -> int
 
   (** Wait until Read and/or Write will be non-blocking (mostly..) *)
-  val wait_for : ?log:(string -> unit) -> event list -> unit
+  val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
 
   (** Status of a request:
     * version of the HTTP protocol, status number and status message. *)
