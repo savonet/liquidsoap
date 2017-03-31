@@ -77,11 +77,7 @@ let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
 
 let _kill = function
   | Some {stdout;stdin;stderr;_} ->
-     begin
-      try
-        ignore(Unix.close_process_full (stdout,stdin,stderr))
-      with _ -> ()
-     end
+      ignore(Unix.close_process_full (stdout,stdin,stderr))
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
@@ -228,6 +224,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
               let {stdout;stdin;stderr} = get_process t in
               `Status (Unix.close_process_full (stdout,stdin,stderr))
             in
+            t.process <- None;
             restart_decision (on_stop status)
         | e ->
             log (Printf.sprintf "Error while running process: %s\n%s"
