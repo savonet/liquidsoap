@@ -327,7 +327,8 @@ let () = Utils.register_error_translator error_translator
  * [timeout] seconds on the given [socket]. Raises [Timeout]
  * if timeout is reached. *)
 let wait_for ?(log=fun _ -> ()) event socket timeout =
-  let max_time = Unix.gettimeofday () +. timeout in
+  let cur_time = Unix.gettimeofday () in
+  let max_time = cur_time +. timeout in
   let r, w = 
     match event with
       | `Read -> [socket],[]
@@ -342,7 +343,7 @@ let wait_for ?(log=fun _ -> ()) event socket timeout =
       if current_time >= max_time then
        begin
         log "Timeout!" ;
-        raise Timeout 
+        raise (Timeout (Unix.gettimeofday () -. cur_time))
        end
       else
         wait (min 1. (max_time -. current_time))
