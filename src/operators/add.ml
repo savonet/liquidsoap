@@ -86,7 +86,7 @@ object (self)
     (* Compute the list of ready sources, and their total weight *)
     let weight,sources =
       List.fold_left
-        (fun (t,l) (w,s) -> w+t,(w,s)::l)
+        (fun (t,l) (w,s) -> w+t,if s#is_ready then (w,s)::l else l)
         (0,[]) sources
     in
     let weight = float weight in
