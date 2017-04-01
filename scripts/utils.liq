@@ -257,7 +257,7 @@ end
 # @param command Command to test
 def test_process(~timeout=(-1.),~env=[],command) =
   res = run_process(timeout=timeout,env=env,command)
-  fst(snd(res)) == "exit" and snd(snd(res)) == "0"
+  snd(res) == ("exit","0")
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into

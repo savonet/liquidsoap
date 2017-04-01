@@ -67,10 +67,11 @@ def process_protocol(~rlog,~maxtime,arg)
       get(default=["LANG","PATH"],"protocol.process.env"))
 
     delay = maxtime - gettimeofday()
-    if test_process(timeout=delay,env=env,cmd) then
+    ret = run_process(timeout=delay,env=env,cmd)
+    if snd(ret) == ("exit","0") then
       [output]
     else
-      log(level=3,"Failed to execute: #{cmd}")
+      log(level=3,"Failed to execute #{cmd}: #{snd(ret)}")
       []
     end
   end
