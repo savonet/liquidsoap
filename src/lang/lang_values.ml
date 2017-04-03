@@ -431,11 +431,18 @@ struct
 
   type env = (string*value) list
 
+  let string_of_float f =
+    let s = string_of_float f in
+    if s.[String.length s -1] = '.' then
+      (s ^ "0")
+    else
+      s
+
   let rec print_value v = match v.value with
     | Unit     -> "()"
     | Bool i   -> string_of_bool i
     | Int i    -> string_of_int i
-    | Float f  -> Printf.sprintf "%.01f" f
+    | Float f  -> string_of_float f
     | String s -> Printf.sprintf "%S" s
     | Source _ -> "<source>"
     | Request _ -> "<request>"
