@@ -101,7 +101,7 @@ add_protocol(temporary=true, "process", process_protocol,
                   file name as returned while resolving @uri@.",
              syntax="process:<extname>,<cmd>[:uri]")
 
-# Create a process: uri, replacing @colon@ with @$(colon)@
+# Create a process: uri, replacing @:@ with @$(colon)@
 # @category Liquidsoap
 # @param cmd Command line to execute
 # @param ~extname Output file extension (with no leading '.')
