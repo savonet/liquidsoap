@@ -6,6 +6,7 @@ authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
 build: [
   ["./bootstrap"]
   ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
+  [make clean]
   [make]
 ]
 install: [
