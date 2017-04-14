@@ -940,6 +940,25 @@ let () =
        Lang.int (String.length string))
 
 let () =
+  add_builtin "string.sub" ~cat:String
+    ~descr:"Get a substring of a string. Returns \"\" if \
+            no such substring exists."
+    [ "", Lang.string_t, None, None;
+      "start", Lang.int_t, None, Some "Return a sub string \
+         starting at this position. First position is 0.";
+      "length", Lang.int_t, None, Some "Return a sub string \
+         of @length@ characters." ]
+    Lang.string_t
+    (fun p ->
+       let start = Lang.to_int (List.assoc "start" p) in
+       let len = Lang.to_int (List.assoc "length" p) in
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string
+         (try
+           String.sub string start len
+          with Invalid_argument _ -> ""))
+
+let () =
   add_builtin "string.case" ~cat:String
     ~descr:"Convert a string to lower or upper case."
     [ "lower", Lang.bool_t, Some (Lang.bool true),

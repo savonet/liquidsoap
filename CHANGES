@@ -33,6 +33,8 @@ New:
 
 - Added \<char code> syntax for strings (#368)
 
+- Added string.sub
+
 - Added run_process to run a process with optional environment and return (stdout,stderr,exit_status)
 
 - Added add_playlist_parser to register new playlist parsers
