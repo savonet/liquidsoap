@@ -205,7 +205,7 @@ add_protocol("youtube-dl", youtube_dl_protocol,
               doc="Resolve a request using youtube-dl.",
               syntax="youtube-dl:uri")
 
-register(name="Text2wave protocol settings","protocol.ffmpeg2wav",())
+register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
 register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
 register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
 
