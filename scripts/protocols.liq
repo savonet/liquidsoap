@@ -171,10 +171,6 @@ end
 
 register(name="Youtube_dl protocol settings","protocol.youtube-dl",())
 register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")
-register(name="Fast resolution",descr="If false and json parsing support is enabled, \
-  youtube-dl: request resolution also checks if provided uri is a playlist and \
-  uses video's title as title metadata. Disable if requests take too long to resolve.",
-  "protocol.youtube-dl.fast",false)
 
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
@@ -182,61 +178,49 @@ register(name="Fast resolution",descr="If false and json parsing support is enab
 def youtube_dl_protocol(~rlog,~maxtime,arg)
   binary = get(default="youtube-dl","protocol.youtube-dl.path")
 
-  def make_uri(title,id) =
-    tmp_wav = file.temp("liq-youtube",".wav")
-    tmp     = string.replace(pattern="wav$",fun (_) -> "%(ext)s",tmp_wav)
-    cmd     = "#{binary} --quiet -f bestaudio -x --audio-format wav \
-               -o #{quote(tmp)} #{quote(id)} && mv #{quote(tmp_wav)} $(output)"
+  delay = maxtime - gettimeofday()
+  x = get_process_lines(timeout=delay,"#{binary} --get-title --get-filename #{quote(arg)}")
 
-    process = process_uri(extname="wav",cmd)
-
-    if title != "" then
-      "annotate:title=#{quote(title)}:#{process}"
+  x =
+    if list.length(x) >= 2 then
+      x
     else
-      process
+      ["",".osb"]
     end
+
+  title = list.hd(default="",x)
+  ext   = file.extension(list.nth(default="",x,1))
+  ext   = string.sub(ext,start=1,length=string.length(ext)-1)
+
+  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) #{quote(arg)}"
+  process = process_uri(extname=ext,cmd)
+
+  if title != "" then
+    ["annotate:title=#{quote(title)}:#{process}"]
+  else
+    [process]
   end
-
-  result = [make_uri("",arg)]
-
-%ifdef of_json
-  result =
-    if get(default=false,"protocol.youtube-dl.fast") then
-      result
-    else
-      # check if playlist
-       delay = maxtime - gettimeofday()
-      x = get_process_lines(timeout=delay,"#{binary} -j --flat-playlist #{arg}")
-
-      if list.length(x) > 1 then
-        def make_uri(payload) =
-          x = of_json(default=[("k","v")],payload)
-          id = x["id"]
-          "youtube-dl:#{id}"
-        end
-
-        urls = string.concat(separator="\n",list.map(make_uri,x))
-        cmd = "echo #{quote(urls)} > $(output)"
-        [process_uri(extname="pls",cmd)]
-      else
-        x = of_json(default=[("k","v")],list.hd(default="",x))
-        id = x["id"]
-        title =
-          if x["fulltitle"] != "" then
-            x["fulltitle"]
-          else
-            x["title"]
-          end
-        [make_uri(title,id)]
-      end
-    end
-%endif
-
-  result
 end
 add_protocol("youtube-dl", youtube_dl_protocol,
-              doc="Resolve a request using youtube-dl. Needs ffmpeg in the path.",
+              doc="Resolve a request using youtube-dl.",
               syntax="youtube-dl:uri")
+
+register(name="Text2wave protocol settings","protocol.ffmpeg2wav",())
+register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
+register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
+
+# Register ffmpeg2wav
+# @flag hidden
+def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
+  ffmpeg   = get(default="ffmpeg","protocol.ffmpeg2wav.path")
+  channels = get(default=2,"protocol.ffmpeg2wav.channels")
+  cmd      = "#{ffmpeg} -y -i $(input) -ac #{channels} $(output)"
+
+  [process_uri(extname="wav",uri=arg,cmd)]
+end
+add_protocol("ffmpeg2wav",ffmpeg2wav_protocol,
+             doc="Decode any file to wave using ffmpeg",
+             syntax="ffmpeg2wav:uri")
 
 register(name="Text2wave protocol settings","protocol.text2wave",())
 register(name="Text2wave path","protocol.text2wave.path","text2wave")
