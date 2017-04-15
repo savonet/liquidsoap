@@ -164,6 +164,8 @@ type t = {
 
 let kind x = x.kind
 
+let initial_uri x = x.initial_uri
+
 let indicator ?(metadata=Hashtbl.create 10) ?temporary s = {
   string = home_unrelate s ;
   temporary = temporary = Some true ;
@@ -527,6 +529,8 @@ let get_decoder r =
 
 (** Plugins registration. *)
 
+type resolver = string -> log:(string->unit) -> float -> indicator list
+
 type protocol = {
   resolve : string -> log:(string->unit) -> float -> indicator list ;
   static : bool ;
@@ -538,15 +542,15 @@ let protocols = Plug.create ~doc:protocols_doc ~insensitive:true "protocols"
 
 let is_static s =
   if Sys.file_exists (home_unrelate s) then
-    Some true
+    true
   else
     match parse_uri s with
       | Some (proto,_) ->
           begin match protocols#get proto with
-            | Some handler -> Some handler.static
-            | None -> None
+            | Some handler -> handler.static
+            | None -> false
           end
-      | None -> None
+      | None -> false
 
 (** Resolving engine. *)
 

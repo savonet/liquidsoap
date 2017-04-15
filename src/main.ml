@@ -267,6 +267,7 @@ struct
 
   let descr_key t p =
     try
+      load_libs () ;
       print_string (descr ~prefix:(Conf.path_of_string p) t);
       exit 0
     with
@@ -283,14 +284,17 @@ struct
       "Describe a configuration key.";
       ["--conf-descr"],
       Arg.Unit (fun () ->
+        load_libs () ;
         print_string (descr t); exit 0),
       "Display a described table of the configuration keys.";
       ["--conf-descr-liqi"],
       Arg.Unit (fun () ->
+        load_libs () ;
         print_string (descr ~liqi:true t); exit 0),
       "Display a described table of the configuration keys in liqi (documentation wiki) format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
+        load_libs () ;
         print_string (dump t); exit 0),
       "Dump the configuration state";
     ]

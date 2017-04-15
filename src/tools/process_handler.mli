@@ -59,6 +59,11 @@ type pull = Bytes.t -> int -> int -> int
 
 type push = Bytes.t -> int -> int -> int
 
+type status = [
+  | `Exception of exn
+  | `Status of Unix.process_status
+]
+
 exception Finished
 
 (** Create a process handler. Decisions returned
@@ -71,7 +76,7 @@ val run : ?priority:Tutils.priority ->
           ?on_stdin:(push callback) ->
           ?on_stdout:(pull callback) ->
           ?on_stderr:(pull callback) ->
-          ?on_stop:(exn option -> bool) ->
+          ?on_stop:(status -> bool) ->
           ?log:(string->unit) ->
           string -> t
 

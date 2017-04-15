@@ -5,9 +5,6 @@ of liquidsoap.
 If you don't have one already, we can help you;
 but if you haven't, check the "corresponding page":download.html.
 
-On the day of the workshop we'll introduce the basic concepts,
-otherwise you can check out the "quick start":doc-svn/quick_start.html.
-
 h2. Run liquidsoap on one-liners
 
 A good way to test your install and get started
@@ -23,13 +20,15 @@ liquidsoap 'out(sine())'
 %%
 
 Did it work? If so, try to modify it:
-* Change the pitch. Hint: get the doc of @sine@ using @liquidsoap -h sine@ or "online":doc-svn/reference.html.
-* Use a different wave shape, or perhaps some white noise. Hint: look-up the "API":doc-svn/reference.html in the @Source / Input@ section.
+* Change the pitch. Hint: get the doc of @sine@ using @liquidsoap -h sine@ or "online":doc-dev/reference.html.
+* Use a different wave shape, or perhaps some white noise. Hint: look-up the "API":doc-dev/reference.html in the @Source / Input@ section.
 
 h3. Play a remote stream, discover fallibility
 
-Try to execute the liquidsoap expression
-@out(input.http("http://ice.rosebud-media.de:8000/88vier"))@.
+Try to execute the liquidsoap expression:
+%%(on2_p1_http_out.liq)
+out(input.http("http://ice.rosebud-media.de:8000/88vier"))
+%%
 You should now be listening to "Pi-Radio":http://piradio.de,
 unless you have no network connection, in which case the
 @input.http(...)@ source _fails_.
@@ -38,7 +37,9 @@ The output operator @out@ is okay with failure: it simply plays silence
 when the source fails, waiting for it to be ready again.
 But some operators are stricter.
 If you try
-@output.ao(input.http("http://ice.rosebud-media.de:8000/88vier"))@,
+%%(on2_p1_output_ao.liq)
+output.ao(input.http("http://ice.rosebud-media.de:8000/88vier"))
+%%
 the AO output (which uses libao to access your soundcard)
 warns you that there might be a failure.
 To ignore this problem, pass @fallible=true@ to the output.
@@ -62,7 +63,7 @@ Suppose we want to be able to request a particular file for playout
 instead of the automatically chosen files of the playlist.
 This is achieved by wrapping the playlist in a fallback choice
 with a request queue:
-%%
+%%(on2_p1_interactive.liq)
 out(fallback([request.queue(id="q"),playlist("music")]))
 %%
 
@@ -82,13 +83,13 @@ You have learned how to build a few sources, synthesizing sound from scratch,
 from a remote stream or from a list of files. Now, instead of playing the
 stream directly to your soundcard, we'll encode it and save it to a local
 file:
+%%(on2_p1_file_output.liq)
+output.file(%vorbis,"test.ogg",source)
 %%
-output.file(%vorbis,"test.ogg",<SOURCE>)
-%%
-Here @<SOURCE>@ is whatever you want, for example @sine()@.
+Here @source@ is whatever you want, for example @sine()@.
 
 You can tweak the options of the encoding format, or change the encoding
-format; the available options are listed "here":doc-svn/encoding_formats.html.
+format; the available options are listed "here":doc-dev/encoding_formats.html.
 You can change the number of channels (for example, using @%vorbis(mono)@)
 but this may create problems with a playlist or remote stream,
 because conversions are not implicit in liquidsoap;
@@ -117,7 +118,7 @@ h3. Running a script file
 
 Write the interactive example expression in a file, say @test.liq@.
 * You can run it using @liquidsoap -t - < test.liq@, you get the same behavior as before.
-* If you run it using @liquidsoap -t test.liq@ the logs will be written in @test.log@ in the default logging directory. This can fail as you may not have access to that directory. Change the directory using the setting (see "how to get help":doc-svn/help.html about that) @log.file.path@. Then use the settings @log.stdout@ and @log.file@ for logging to the terminal and not to a file.
+* If you run it using @liquidsoap -t test.liq@ the logs will be written in @test.log@ in the default logging directory. This can fail as you may not have access to that directory. Change the directory using the setting (see "how to get help":doc-dev/help.html about that) @log.file.path@. Then use the settings @log.stdout@ and @log.file@ for logging to the terminal and not to a file.
 * Finally, find the setting for getting rid of the @-t@ option on the command line.
 * You can also use @#!/usr/bin/liquidsoap@ (adapt the path) as the first line of your script to directly run @./test.liq@ instead of @liquidsoap test.liq@ (you need to @chmod +x test.liq@).
 
@@ -158,17 +159,20 @@ it has no source to stream.
 h3. Using variables
 
 Run the following script:
-%%
+%%(on2_p1_variables.liq)
 x = 42
 print(x)
 %%
 
-Pass @--no-pervasives -i@ on the command-line to see the type of @x@,
-inferred by liquidsoap
-(in addition to @-i@ we tell liquidsoap not to load its default libraries
- so that we don't see type information for them).
+As follows:
+%%
+% liquidsoap --no-pervasives -i /path/to/script.liq
+x     : int
+42
+No output defined, nothing to do.
+%%
 Try to obtain the following types
-(some help can be found "there":doc-svn/language.html):
+(some help can be found "there":doc-dev/language.html):
 * @float@
 * @bool@
 * @string@
@@ -176,7 +180,7 @@ Try to obtain the following types
 * @(bool*string)@ (a pair made of a boolean and a string)
 
 You can redefine a variable:
-%%
+%%(on2_p1_redef_var.liq)
 x = 42
 y = "42"
 x = (y,y)
@@ -187,7 +191,7 @@ print(z)
 h3. Defining a function
 
 Try this:
-%%
+%%(on2_p1_double.liq)
 def double(s)
   s ^ s
 end
@@ -201,7 +205,7 @@ to fix that problem.
 h3. Conditionals
 
 A simple example:
-%%
+%%(on2_p1_conditionals.liq)
 if "foo"=="bar" then
   print("This is madness.")
 else
@@ -210,7 +214,7 @@ end
 %%
 
 It can also be written as follows:
-%%
+%%(on2_p1_conditionals_bis.liq)
 print(
   if "foo"=="bar" then
     "This is madness."
@@ -232,7 +236,7 @@ You'll learn later how to use assignments when you really need them.
 h3. Sequencing, returning
 
 Here is a function that prints the date and returns 42:
-%%
+%%(on2_p1_print_date.liq)
 def f()
   print(get_process_output("date"))
   42
@@ -270,7 +274,7 @@ and each @Ai@ specifies one parameters:
 * optional labeled parameters are written @?label:T@.
 
 You will rarely have to define a function with labeled parameters,
-but if you're curious you can learn it "there":doc-svn/language.html.
+but if you're curious you can learn it "there":doc-dev/language.html.
 
 h3. What you cannot do
 

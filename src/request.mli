@@ -54,6 +54,9 @@ val create_raw :
 (** Return the kind of a media request, None for raw requests. *)
 val kind : t -> Frame.content_kind option
 
+(** Return the request's initial uri. *)
+val initial_uri : t -> string
+
 (** Destroying of a requests causes its file to be deleted if it's a temporary
   * one, for example a downloaded file. If the metadata ["persistent"] is
   * set to ["true"], destroying doesn't happen, unless [force] is set too.
@@ -92,14 +95,16 @@ val resolving_requests : unit -> int list
   * At each step [protocol.resolve first_uri timeout] is called,
   * and the function is expected to push the new URIs in the request. *)
 
+type resolver = string -> log:(string->unit) -> float -> indicator list
+
 type protocol = {
-  resolve : string -> log:(string->unit) -> float -> indicator list ;
+  resolve : resolver ;
   static : bool
 }
 
 (** A static request [r] is such that every resolving leads to the same file.
   * Sometimes, it allows removing useless destroy/create/resolve. *)
-val is_static : string -> bool option
+val is_static : string -> bool
 
 (** Resolving can fail because an URI is invalid, or doesn't refer to a valid
   * audio file, or simply because there was no enough time left. *)

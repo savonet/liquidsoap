@@ -36,6 +36,12 @@ Optionally, if SSL support was enabled:
 Obtaining a proper SSL certificate can be tricky. You may want to start with a self-signed certificate first.
 You can obtain a free, valid certificate at: "https://letsencrypt.org/":https://letsencrypt.org/
 
+To create a self-signed certificate for local testing you can use the following one-liner:
+
+%%(self_signed.sh)
+openssl req -x509 -newkey rsa:4096 -sha256 -nodes -keyout server.key -out server.crt -subj "/CN=localhost" -days 3650
+%%
+
 SSL can be enabled using of of the following @opam@ packages: @ssl@, @osx-secure-transport@.
 
 You also have per-source parameters. You can retreive them using the command 

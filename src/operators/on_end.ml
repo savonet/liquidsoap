@@ -65,7 +65,8 @@ let () =
         Lang.unit_t,
       None,
       Some "Function to execute. First argument is the remaining time, \
-            second is the latest metadata." ;
+            second is the latest metadata. That function should be fast \
+            because it is executed in the main streaming thread." ;
       "", Lang.source_t kind, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Call a given handler when there is less than \

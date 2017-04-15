@@ -437,10 +437,15 @@ let interpolate =
         interpolate (process_if s)
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
-let which =
-    fun ~path s ->
-      if Sys.file_exists s then s else
-        List.find Sys.file_exists (List.map (fun d -> Filename.concat d s) path)
+let which ~path s =
+  let test fname =
+    try
+      Unix.access fname [Unix.X_OK];
+      true
+    with _ -> false
+  in
+  if test s then s else
+    List.find test (List.map (fun d -> Filename.concat d s) path)
 
 (** Get current timezone. *)
 external timezone : unit -> int = "liquidsoap_get_timezone"
@@ -689,3 +694,39 @@ let float_of_extended_float bytes =
             f
         end
     end
+
+(* From OCaml *)
+let file_extension_len ~dir_sep name =
+  let rec check i0 i =
+    if i < 0 || name.[i] = dir_sep then 0
+    else if name.[i] = '.' then check i0 (i - 1)
+    else String.length name - i0
+  in
+  let rec search_dot i =
+    if i < 0 || name.[i] = dir_sep then 0
+    else if name.[i] = '.' then check i (i - 1)
+    else search_dot (i - 1)
+  in
+  search_dot (String.length name - 1)
+
+let file_extension ?(dir_sep=Filename.dir_sep) name =
+  let dir_sep = dir_sep.[0] in
+  let l = file_extension_len ~dir_sep name in
+  if l = 0 then "" else String.sub name (String.length name - l) l
+
+let quote s =
+  let quote = '"' in
+  let quotequote = "\\\"" in
+  let escp = '\\' in
+  let quoteescp = "\\\\" in
+  let l = String.length s in
+  let b = Buffer.create (l + 20) in
+  Buffer.add_char b quote;
+  for i = 0 to l - 1 do
+    match s.[i] with
+      | c when c = quote -> Buffer.add_string b quotequote
+      | c when c = escp -> Buffer.add_string b quoteescp
+      | c -> Buffer.add_char b c
+  done;
+  Buffer.add_char b quote;
+  Buffer.contents b

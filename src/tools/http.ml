@@ -1,9 +1,15 @@
 module type Transport_t =
 sig
   type connection
+  type event = [
+    | `Delay of float
+    | `Write of connection
+    | `Read of connection
+    | `Exception of connection
+  ]
   val default_port : int
   val connect : ?bind_address:string -> string -> int -> connection
-  val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
+  val wait_for : ?log:(string -> unit) -> event list -> unit
   val write: connection -> Bytes.t -> int -> int -> int
   val read: connection -> Bytes.t -> int -> int -> int
   val disconnect: connection -> unit
@@ -12,6 +18,12 @@ end
 module Unix_transport : Transport_t with type connection = Unix.file_descr =
 struct
   type connection = Unix.file_descr
+  type event = [
+    | `Delay of float
+    | `Write of connection
+    | `Read of connection
+    | `Exception of connection
+  ]
   exception Socket
   let connect ?bind_address host port =
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
@@ -51,6 +63,12 @@ sig
   exception Error of error
   val string_of_error : error -> string
   type connection
+  type event = [
+    | `Delay of float
+    | `Write of connection
+    | `Read of connection
+    | `Exception of connection
+  ]
   type uri = {
     host: string;
     port: int option;
@@ -68,7 +86,7 @@ sig
   val disconnect : connection -> unit
   val read : connection -> Bytes.t -> int -> int -> int
   val write : connection -> Bytes.t -> int -> int -> int
-  val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> connection -> float -> unit
+  val wait_for : ?log:(string -> unit) -> event list -> unit
   type status = string * int * string
   type headers = (string*string) list
   val read_crlf : ?log:(string -> unit) -> ?max:int -> ?count:int ->
@@ -139,6 +157,13 @@ struct
        | _ -> None
 
   type connection = Transport.connection
+
+  type event = [
+    | `Delay of float
+    | `Write of connection
+    | `Read of connection
+    | `Exception of connection
+  ]
 
   type uri = {
     host: string;
@@ -262,7 +287,7 @@ struct
     Pcre.get_substring s 1
   
   let read_with_timeout ?(log=fun _ -> ()) ~timeout socket buflen =
-    Transport.wait_for ~log `Read socket timeout;
+    Transport.wait_for ~log [`Read socket; `Delay timeout];
     match buflen with
       | Some buflen ->
           let buf = Bytes.create buflen in
@@ -301,7 +326,7 @@ struct
         (* This is quite ridiculous but we have 
          * no way to know how much data is available
          * in the socket.. *)
-        Transport.wait_for ~log `Read socket timeout;
+        Transport.wait_for ~log [`Read socket; `Delay timeout];
         let h = Transport.read socket c 0 1 in
           if h < 1 then
             stop := true
@@ -342,7 +367,7 @@ struct
   let request ?(log=fun _ -> ()) ~timeout socket request =
     if
       let len = String.length request in
-        Transport.wait_for ~log `Write socket timeout;
+        Transport.wait_for ~log [`Write socket; `Delay timeout];
         Transport.write socket request 0 len < len
     then
       raise Socket ;

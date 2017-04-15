@@ -182,6 +182,13 @@ type priority =
 
 let scheduler = Duppy.create ()
 
+let started  = ref false
+
+let started_m = Mutex.create ()
+
+let has_started = mutexify started_m (fun () ->
+  !started)
+
 let () =
   let name = "Duppy scheduler shutdown" in
   let f () =
@@ -207,18 +214,15 @@ let new_queue ?priorities ~name () =
          | Some priorities ->
              Duppy.queue scheduler ~log:qlog ~priorities name
      with e ->
-       log#f 2 "Queue %s crashed with exception %s" name (Printexc.to_string e) ;
-       log#f 2 "%s" (Printexc.get_backtrace());
-       log#f 1 "PANIC: Liquidsoap has crashed, exiting.." ;
-       log#f 1 "Please report at: savonet-users@lists.sf.net" ;
+       log#f 2 "Queue %s crashed with exception %s\n\
+                %s" name (Printexc.to_string e) (Printexc.get_backtrace());
+       log#f 1 "PANIC: Liquidsoap has crashed, exiting.,\n\
+                Please report at: savonet-users@lists.sf.net" ;
        exit 1
    in
    ignore (create ~wait:false queue () name)
 
 let create f x name = create ~wait:true f x name
-
-let start_non_blocking = ref false
-let need_non_blocking_queue () = start_non_blocking := true
 
 let () =
   (* A dtool atom to start
@@ -233,13 +237,14 @@ let () =
         let name = Printf.sprintf "fast queue #%d" i in
           new_queue ~name ~priorities:(fun x -> x = Maybe_blocking) ()
       done;
-      if !start_non_blocking then
-        for i = 1 to non_blocking_queues#get do
-          let name = Printf.sprintf "non-blocking queue #%d" i in
-          new_queue
-            ~priorities:(fun x -> x = Non_blocking)
-            ~name ()
-        done))
+      for i = 1 to non_blocking_queues#get do
+        let name = Printf.sprintf "non-blocking queue #%d" i in
+        new_queue
+          ~priorities:(fun x -> x = Non_blocking)
+          ~name ()
+      done;
+      mutexify started_m (fun () ->
+        started := true) ()))
 
 (** Replace stdout/err by a pipe, and install a Duppy task that pulls data
   * out of that pipe and logs it.
@@ -299,7 +304,6 @@ let () =
   ignore (Dtools.Init.at_start (fun () ->
     if Dtools.Init.conf_daemon#get then begin
       Dtools.Log.conf_stdout#set false ;
-      need_non_blocking_queue () ;
       start_forwarding ()
     end))
 
@@ -308,42 +312,49 @@ let wait c m f =
   mutexify m (fun () ->
     while not (f ()) do Condition.wait c m done) ()
 
-exception Timeout
+exception Timeout of float
 
 let error_translator =
   function
-    | Timeout ->
-        Some "Timeout while waiting on socket"
+    | Timeout f ->
+        Some (Printf.sprintf "Timed out after waiting for %.02f sec." f)
     | _ ->
         None
 
 let () = Utils.register_error_translator error_translator
 
-(* Wait for [`Read], [`Write] or [`Both] for at most
- * [timeout] seconds on the given [socket]. Raises [Timeout]
- * if timeout is reached. *)
-let wait_for ?(log=fun _ -> ()) event socket timeout =
-  let max_time = Unix.gettimeofday () +. timeout in
-  let r, w = 
-    match event with
-      | `Read -> [socket],[]
-      | `Write -> [],[socket]
-      | `Both -> [socket],[socket]
+(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
+ * Raises [Timeout elapsed_time] if timeout is reached. *)
+let wait_for ?(log=fun _ -> ()) events =
+  let timed_out = ref None in
+  let m = Mutex.create () in
+  let c = Condition.create () in
+  let handler = mutexify m (fun l ->
+    List.iter (function
+      | `Delay _ ->
+         timed_out := Some (Unix.gettimeofday ())
+      | _ -> ()) l;
+    Condition.signal c;
+    [])
   in
-  let rec wait t =
-    let l,l',_ = Unix.select r w [] t in
-    if l=[] && l'=[] then begin
-      log (Printf.sprintf "No network activity for %.02f second(s)." t);
-      let current_time = Unix.gettimeofday () in
-      if current_time >= max_time then
-       begin
-        log "Network activity timeout!" ;
-        raise Timeout 
-       end
-      else
-        wait (min 1. (max_time -. current_time))
-    end
-  in wait (min 1. timeout)
+  let task = {
+    Duppy.Task.
+      priority = Non_blocking;
+      events = events;
+      handler = handler
+  } in
+  let start_time =
+    Mutex.lock m;
+    Duppy.Task.add scheduler task;
+    let ret = Unix.gettimeofday () in
+    Condition.wait c m;
+    ret 
+  in
+  match !timed_out with
+    | Some t ->
+        log "Timeout reached!" ;
+        raise (Timeout (t -. start_time)) 
+    | _ -> ()
 
 (** Wait for some thread to crash *)
 let run = ref true

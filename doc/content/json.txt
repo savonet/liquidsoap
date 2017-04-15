@@ -27,7 +27,7 @@ be obtained by using the optional argument: @compact=true@.
 
 h3. Importing values using JSON.
 
-If compiled with json-wheel support, Liquidsoap can also
+If compiled with @yojson@ support, Liquidsoap can also
 parse JSON data into values. using @of_json@.
 
 The format is a subset of the format of exported values with the notable
@@ -63,7 +63,7 @@ Suppose that we want to receive a list of metadata, encoded as an object:
  "artist": "bar" }
 %%
 Then, you would use of_json with default value @[("error","fail")]@ and do:
-%%
+%%(json_parse.liq)
 # Parse metadata from json
 m = of_json(default= [("error","fail")], json_string)
 %%
@@ -85,7 +85,7 @@ If your JSON object is of mixed type, like this one:
 
 You can parse it in multiple steps. For instance:
 
-%%
+%%(json_multiple_parse.liq)
 # First parse key,value list:
 hint = [("key","value")]
 data = of_json(default=hint,payload)
@@ -94,6 +94,7 @@ print(data["uri"]) # "https://..."
 # Then key -> (key,value) list
 hint = [("list",[("key","value")])]
 data = of_json(default=hint,payload)
-print(data["metadata"]["title"]) # "foo"
+m    = data["metadata"]
+print(m["title"]) # "foo"
 %%
 

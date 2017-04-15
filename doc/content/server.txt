@@ -63,7 +63,7 @@ Sometimes it is useful to control a variable using telnet. A simple way to
 achive this is to use the @interactive.float@ function. For instance, in order
 to dynamically the volume of a source:
 
-%%
+%%(server_interactive_variables.liq)
 # Register a telnet variable named volume with 1 as initial value
 v = interactive.float("volume", 1.)
 
@@ -133,7 +133,7 @@ a SSH access to the command server: we create a SSH user that, when logging
 through SSH, has only access to the command server.
 
 First, we enable the unix socket for the command server in Liquidsoap:
-%%
+%%(server_socket_settings.liq)
 set("server.socket",true)
 set("server.socket.path","/path/to/socket")
 %%

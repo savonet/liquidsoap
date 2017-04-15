@@ -9,7 +9,7 @@ s = add(normalize=true,[
 output.dummy(s)
 
 add_timeout(3.,{
-  test.pass(termination=true)
+  test.pass()
   shutdown()
   (-1.)
 })

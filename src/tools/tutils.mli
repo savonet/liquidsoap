@@ -31,6 +31,7 @@
   raises an exception. *)
 val create : ('a -> unit) -> 'a -> string -> Thread.t
 val main : unit -> unit
+val has_started : unit -> bool
 val shutdown : unit -> unit
 
 (** Special exception allowed for "clean" termination of Tutils threads.
@@ -55,10 +56,6 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
-(** Ask for a special queue that treats exclusively non blocking tasks.
-  * This is need for things such as the server or harbor to run smoothly. *)
-val need_non_blocking_queue : unit -> unit
-
 (** {1 Misc} *)
 
 (** Waits for [f()] to become true on condition [c].
@@ -69,12 +66,11 @@ val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 (** Make a function work in critical section, protected by a given lock. *) 
 val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
-exception Timeout
+exception Timeout of float
 
-(* Wait for [`Read], [`Write] or [`Both] for at most
- * [timeout] seconds on the given [socket]. Raises [Timeout]
- * if timeout is reached. *)
-val wait_for : ?log:(string -> unit) -> [`Read|`Write|`Both] -> Unix.file_descr -> float -> unit
+(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
+ * Raises [Timeout elapsed_time] if timeout is reached. *)
+val wait_for : ?log:(string -> unit) -> Duppy.Task.event list -> unit
 
 (** [finalize ~k f] calls [f] and returns it result,
   * and always executes [k], even when [f] raises an exception. *)

@@ -75,7 +75,7 @@ it will fail).
 The replay gain metadata resolver is not enabled by default. You can do it 
 by adding the following code in your script:
 
-%%
+%%(enable_replaygain_metadata.liq)
 enable_replaygain_metadata ()
 %%
 

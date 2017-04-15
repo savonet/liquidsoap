@@ -7,7 +7,7 @@
 p = input.http("http://localhost:8000/nonexistent")
 o = output.dummy(fallible=true,p)
 
-on_shutdown({ test.pass(termination=true) })
+on_shutdown(test.pass)
 
 add_timeout(2.,{ source.shutdown(o) ; (-1.) })
 add_timeout(3.,{ output.dummy(fallible=true,p) ; (-1.) })

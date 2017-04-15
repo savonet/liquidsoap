@@ -82,20 +82,26 @@ class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:sou
   let on_stop = Tutils.mutexify mutex (fun e ->
     let ret = !next_stop in
     next_stop := `Nothing;
-    match e, ret with
-      | Some _ , _ -> restart_on_error
-      | None, `Sleep -> false
-      | None, `Break_and_metadata m ->
-          Generator.add_metadata abg m;
-          Generator.add_break abg;
-          true
-      | None, `Metadata m ->
-          Generator.add_metadata abg m;
-          true
-      | None, `Break ->
-          Generator.add_break abg;
-          true
-      | None, `Nothing -> restart)
+    match e with
+      | `Status s when s <> (Unix.WEXITED 0) ->
+           restart_on_error
+      | `Exception _ ->
+           restart_on_error
+      | _ ->
+        begin match ret with
+          | `Sleep -> false
+          | `Break_and_metadata m ->
+              Generator.add_metadata abg m;
+              Generator.add_break abg;
+              true
+          | `Metadata m ->
+              Generator.add_metadata abg m;
+              true
+          | `Break ->
+              Generator.add_break abg;
+              true
+          | `Nothing -> restart
+        end)
   in
 object(self)
   inherit source ~name:"pipe" kind

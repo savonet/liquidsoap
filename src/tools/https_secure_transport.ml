@@ -7,6 +7,13 @@ module SecureTransport_transport : Http.Transport_t with type connection = socke
 struct
   type connection = socket
 
+  type event = [
+    | `Delay of float
+    | `Write of connection
+    | `Read of connection
+    | `Exception of connection
+  ]
+
   let default_port = 443
 
   let connect ?bind_address host port =
@@ -48,8 +55,14 @@ struct
     SecureTransport.close h.ctx;
     Unix.close h.sock
 
-  let wait_for ?log event {sock} timeout =
-    Tutils.wait_for ?log event sock timeout
+  let wait_for ?log events =
+    let events = List.map (function
+      | `Read s -> `Read (Ssl.file_descr_of_socket s)
+      | `Write s -> `Write (Ssl.file_descr_of_socket s)
+      | `Exception s -> `Exception (Ssl.file_descr_of_socket s)
+      | `Delay f -> `Delay f) events
+    in
+    Tutils.wait_for ?log events
 
   let read {ctx} buf ofs len =
     SecureTransport.read ctx buf ofs len

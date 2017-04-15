@@ -91,8 +91,7 @@ $(call conditional_compilation,playlists,$(W_XMLPLAYLIST),playlists/playlist_xml
 
 protocols = \
 	protocols/annotate.ml \
-	protocols/mpd.ml \
-	protocols/extproto.ml
+	protocols/mpd.ml
 
 sources = \
 	sources/synthesized.ml sources/noise.ml sources/blank.ml \

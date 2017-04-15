@@ -273,7 +273,7 @@ struct
             | Some (socket,read,_) ->
                 begin
                  try
-                  Http.wait_for ~log `Read socket timeout;
+                  Http.wait_for ~log [`Read socket; `Delay timeout];
                   read len
                  with e -> self#log#f 2 "Error while reading from socket: \
                               %s" (Printexc.to_string e);

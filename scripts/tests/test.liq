@@ -1,15 +1,16 @@
 # End test successfully.
-def test.pass(~termination=false)
-  s = if termination then "If this terminates then " else "" end
-  print(s^"TEST PASSED")
+def test.pass()
   shutdown()
 end
 
 # End test with a failure.
 def test.fail()
-  print("TEST FAILED")
-  exit(1);
-  # shutdown()
+  exit(1)
+end
+
+# End test with signal 2
+def test.skip()
+  exit(2)
 end
 
 # Check that files are never repeated in source s, possibly by rounds. The
@@ -23,7 +24,7 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
   def check(m)
     fname = m["filename"]
     cur_seen = !seen
-    if cur_seen[fname] != "" then
+    if !iterations < nb_rounds and cur_seen[fname] != "" then
       test.fail()
     else
       if list.length(!seen) < nb_files-1 then

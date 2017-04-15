@@ -5,19 +5,14 @@ include $(top_srcdir)/Makefile.rules
 
 test: threesines
 	@for i in $(wildcard *.liq) ; do \
-	  echo -n "$$i... " ; $(top_srcdir)/src/liquidsoap -q ../pervasives.liq - < ./$$i || exit 1 ; \
+	  ./run_test.sh "$(top_srcdir)/src/liquidsoap --no-pervasives -q ../pervasives.liq -" $$i ; \
 	done
-	@echo -n "type_errors.pl... " ; \
-	  if (./type_errors.pl > /dev/null 2> /dev/null) ; then \
-	    echo "TEST PASSED (check manually the prettiness of messages)" ; \
-	  else \
-	    echo "TEST FAILED" ; exit 1 ; \
-	  fi
+	@./run_test.sh /usr/bin/perl ./type_errors.pl
 
 # Generate samples files in threesines directory
 
 threesines: threesines/a.wav threesines/b.wav threesines/c.wav
-MKSINE= ../../src/liquidsoap -q ../utils.liq \
+MKSINE= ../../src/liquidsoap  --no-pervasives -q ../utils.liq \
 	  "clock.assign_new(sync=false,[ \
 	  output.file(%wav,\"$$fname\",fallible=true,on_stop=shutdown, \
 	  once(sine(duration=2.,$$freq)))])"

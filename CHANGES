@@ -33,13 +33,29 @@ New:
 
 - Added \<char code> syntax for strings (#368)
 
+- Added string.sub
+
 - Added run_process to run a process with optional environment and return (stdout,stderr,exit_status)
+
+- Added add_playlist_parser to register new playlist parsers
 
 - Added optional static parameter to add_protocol
 
 - Added file.temp to create fresh temporary filename
 
+- Added process: protocol
+
+- Reimplemented curl-based fetch process using process:
+
+- Added s3:// protocol to fetch files from AWS S3 using the AWS CLI.
+
 - Added polly: protocol to enable speech synthesis using AWS polly. Generated files are mono so make sure you use audio_to_stereo().
+
+- Added youtube-dl: protocol to resolved requests using youtube-dl
+
+- Added which() to find an exectuable within the $PATH
+
+- Added register() to allow to register new configuration settings
 
 Changed:
 
@@ -76,6 +92,8 @@ Bugfixes:
 - Fix crash in external (download) protocol.
 
 - Fix fade.{in,out} metadata handling for new fade duration and type.
+
+- Compute normalization regardless of child sources ready status in add() to avoid unexpected change of volume.
 
 
 1.2.1 (01-07-2016)

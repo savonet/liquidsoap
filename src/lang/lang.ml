@@ -266,6 +266,23 @@ let metadata m =
 (** Runtime error, should eventually disappear. *)
 exception Invalid_value of value*string
 
+(** Helpers for defining protocols. *)
+
+let to_proto_doc ~syntax ~static doc =
+  let item = new Doc.item ~sort:false doc in
+  item#add_subsection "syntax" (Doc.trivial syntax);
+  item#add_subsection "static" (Doc.trivial (string_of_bool static));
+  item
+
+let add_protocol ~syntax ~doc ~static name resolver =
+  let doc = to_proto_doc ~syntax ~static doc in
+  let spec = {
+    Request.
+      static = static ;
+      resolve = resolver
+  } in
+  Request.protocols#register ~doc name spec
+
 (** Helpers for defining builtin functions. *)
 
 type proto = (string*t*value option*string option) list
@@ -290,7 +307,7 @@ let builtin_type p t =
   T.make
     (T.Arrow (List.map (fun (lbl,t,opt,_) -> (opt<>None,lbl,t)) p, t))
 
-let to_doc category flags main_doc proto return_t =
+let to_plugin_doc category flags main_doc proto return_t =
   let item = new Doc.item ~sort:false main_doc in
   let t = builtin_type proto return_t in
   let generalized = T.filter_vars (fun _ -> true) t in
@@ -317,7 +334,7 @@ let add_builtin ~category ~descr ?(flags=[]) name proto return_t f =
   in
   let generalized = T.filter_vars (fun _ -> true) t in
     Term.builtins#register
-      ~doc:(to_doc category flags descr proto return_t)
+      ~doc:(to_plugin_doc category flags descr proto return_t)
       name
       (generalized,value)
 
@@ -591,12 +608,15 @@ let to_product t = match t.value with
   | Product (a,b) -> (a,b)
   | _ -> assert false
 
-let to_metadata t = 
-  let pop v = 
+let to_metadata_list t =
+  let pop v =
     let f (a,b) = (to_string a,to_string b) in
     f (to_product v)
   in
-  let t = List.map pop (to_list t) in
+  List.map pop (to_list t)
+
+let to_metadata t = 
+  let t = to_metadata_list t in
   let metas = Hashtbl.create 10 in
   List.iter (fun (a,b) -> Hashtbl.add metas a b) t;
   metas

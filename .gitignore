@@ -43,3 +43,6 @@ doc/content/settings.txt
 autodoc/
 *.annot
 scripts/tests/threesines/
+src/test/JSON_parse
+src/test/is_url
+src/test/timezone

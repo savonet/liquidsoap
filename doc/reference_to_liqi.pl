@@ -24,9 +24,7 @@ die unless $operators ;
 sub text_of {
   my $n = shift ;
   # return XML::DOM::encodeText ($n->getData, '<&>"') ;
-  my $s = $n->getData ;
-  from_to($s,"iso-8859-3","utf-8") ;
-  return $s ;
+  return $n->getData ;
 }
 
 sub get_info {

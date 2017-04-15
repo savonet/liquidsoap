@@ -96,7 +96,7 @@ let print_constr = function
   | Getter t ->
       let t = print_ground t in
         Printf.sprintf "either %s or ()->%s" t t
-  | Dtools -> "bool, int, float, string or [string]"
+  | Dtools -> "unit, bool, int, float, string or [string]"
   | Arity_any -> "an arity"
   | Arity_fixed -> "a fixed arity"
 
@@ -480,7 +480,7 @@ let rec bind a0 b =
                  | Dtools ->
                      begin match b.descr with
                        | Ground g ->
-                           if not (List.mem g [Bool;Int;Float;String]) then
+                           if not (List.mem g [Unit;Bool;Int;Float;String]) then
                              raise (Unsatisfied_constraint (Dtools,b))
                        | List b' ->
                            begin match (deref b').descr with

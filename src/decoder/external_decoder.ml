@@ -125,7 +125,7 @@ let register_stdin name sdoc mimes test process =
              else None) ;
   let duration filename = 
     let process = 
-      Printf.sprintf "cat %s | %s" (Filename.quote filename) process
+      Printf.sprintf "cat %s | %s" (Utils.quote filename) process
     in
     duration process
   in

@@ -94,6 +94,57 @@ let () =
            | Some v -> Lang.string (Lang.print_value v))
 
 let () =
+  let rec f ~name ~descr ~final_key cur path = 
+    match path with
+      | el::rem ->
+          let cur =
+            try cur#path [el] with Dtools.Conf.Unbound _ ->
+              let name,descr,key = if rem = [] then (name,descr,final_key) else
+                (Utils.StringCompat.capitalize_ascii el,[],Dtools.Conf.void)
+              in
+              key ~p:(cur#plug el) name ~comments:descr
+          in
+          f ~name ~descr ~final_key cur rem
+      | [] -> cur
+  in
+  add_builtin ~cat:Liq "register" ~descr:"Register a new setting."
+    ["name",Lang.string_t,None, Some "Settings name";
+     "descr",Lang.string_t,Some (Lang.string ""), Some "Settings description";
+     "",Lang.string_t,None,Some "Setting key";
+     "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,
+     Some "Setting initial value"]
+    Lang.unit_t
+    (fun p ->
+       let name = Lang.to_string (List.assoc "name" p) in
+       let descr = Lang.to_string (List.assoc "descr" p) in
+       let descr = if descr = "" then [] else [descr] in
+       let path = Lang.to_string (Lang.assoc "" 1 p) in
+       let v = Lang.assoc "" 2 p in
+       let make b ?p ?l ?comments name  =
+         (b ?p ?l ?comments name)#ut
+       in
+       let final_key =
+         match v.Lang.value with
+           | Lang.String s ->
+               make (Dtools.Conf.string ~d:s)
+           | Lang.Int    s ->
+               make (Dtools.Conf.int ~d:s)
+           | Lang.Bool   s ->
+               make (Dtools.Conf.bool ~d:s)
+           | Lang.Float  s ->
+               make (Dtools.Conf.float ~d:s)
+           | Lang.List   l ->
+               let l = List.map Lang.to_string l in
+               make (Dtools.Conf.list ~d:l)
+           | Lang.Unit     ->
+               Dtools.Conf.void
+           | _ -> assert false
+       in
+       ignore(f ~name ~descr ~final_key
+         Configure.conf (Dtools.Conf.path_of_string path));
+       Lang.unit)
+
+let () =
   let set cast path v =
     try
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
@@ -114,6 +165,7 @@ let () =
          let s = Lang.assoc "" 1 p in
          let path = Lang.to_string s in
            try begin match (Lang.assoc "" 2 p).Lang.value with
+               | Lang.Unit     -> set Dtools.Conf.as_unit   path ()
                | Lang.String s -> set Dtools.Conf.as_string path s
                | Lang.Int    s -> set Dtools.Conf.as_int    path s
                | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
@@ -165,6 +217,8 @@ let () =
          let path = Lang.to_string (List.assoc "" p) in
          let v = List.assoc "default" p in
            match v.Lang.value with
+             | Lang.Unit ->
+                 Lang.unit
              | Lang.String s ->
                  Lang.string (get Dtools.Conf.as_string path s)
              | Lang.Int s ->
@@ -388,6 +442,17 @@ let () =
          Lang.unit)
 
 let () =
+  add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
+    ["dir_sep",Lang.string_t,Some (Lang.string Filename.dir_sep),
+     Some "Directory separator.";
+     "",Lang.string_t,None,None]
+    Lang.string_t
+    (fun p ->
+      let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
+      Lang.string (Utils.file_extension ~dir_sep
+        (Lang.to_string (List.assoc "" p))))
+
+let () =
   add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename in the temporary directory."
     ["",Lang.string_t,None,Some "File prefix";
      "",Lang.string_t,None, Some "File suffix"]
@@ -398,38 +463,93 @@ let () =
         (Lang.to_string (Lang.assoc "" 2 p))))
 
 let () =
+  let playlist_t =
+    Lang.list_t
+      (Lang.product_t Lang.metadata_t Lang.string_t)
+  in
+  let parser_t =
+    Lang.fun_t [true,"pwd",Lang.string_t;
+                false,"",Lang.string_t]
+               playlist_t           
+  in
+  add_builtin "add_playlist_parser" ~cat:Liq ~descr:"Register a new playlist parser."
+    ["format",Lang.string_t,None,Some "Playlist format. If possible, a mime-type.";
+     "strict",Lang.bool_t,None,Some "True if playlist format can be detected unambiguously.";
+     "",parser_t,None,Some "Playlist parser"]
+    Lang.unit_t
+    (fun p ->
+      let format = Lang.to_string (List.assoc "format" p) in
+      let strict = Lang.to_bool (List.assoc "strict" p) in
+      let fn = List.assoc "" p in
+      let fn ?pwd uri =
+        let args = ["",Lang.string uri] in
+        let args = match pwd with
+          | Some pwd -> ("pwd",Lang.string pwd)::args
+          | None -> args
+        in
+        let ret =
+          Lang.apply ~t:playlist_t fn args
+        in
+        List.map (fun el ->
+          let (m,s) = Lang.to_product el in
+          (Lang.to_metadata_list m, Lang.to_string s))
+          (Lang.to_list  ret)
+      in
+      Playlist_parser.parsers#register format
+        { Playlist_parser.strict = strict; Playlist_parser.parser = fn };
+      Lang.unit)
+
+let () =
+  let log_p =
+    ["", "", Lang.string_t, None]
+  in
+  let log_t =
+    Lang.fun_t [false,"",Lang.string_t] Lang.unit_t
+  in
   let protocol_t =
     Lang.fun_t
-      [false,"",Lang.string_t ; false,"",Lang.float_t]
+      [false,"rlog",log_t; false,"maxtime",Lang.float_t ; false,"",Lang.string_t]
       (Lang.list_t Lang.string_t)
   in
     add_builtin "add_protocol" ~cat:Liq ~descr:"Register a new protocol."
       ["temporary",Lang.bool_t,Some (Lang.bool false),
-       Some "if true, file removed when it is finished.";
+       Some "if true, file is removed when it is finished.";
        "static",Lang.bool_t,Some (Lang.bool false),
-       Some "if true, resolved requests are always available.";
-       "",Lang.string_t,None,None ;
-       "",protocol_t,None,None ]
+       Some "if true, then requests can be resolved once and for all. \
+             Typically, static protocols can be used to create infallible sources.";
+       "syntax",Lang.string_t,Some (Lang.string "Undocumented"),
+       Some "URI syntax.";
+       "doc",Lang.string_t,Some (Lang.string "Undocumented"),
+       Some "Protocol documentation.";
+       "",Lang.string_t,None,Some "Protocol name. Resolver will be called on \
+          uris of the form: @<protocol name>:...@." ;
+       "",protocol_t,None,Some "Protocol resolver. Receives a function to log protocol \
+          resolution, the @<arg>@ in @<protocol name>:<arg>@ and the max delay that \
+          resolution should take." ]
       Lang.unit_t
       (fun p ->
          let name = Lang.to_string (Lang.assoc "" 1 p) in
          let f = Lang.assoc "" 2 p in
          let temporary = Lang.to_bool (List.assoc "temporary" p) in
          let static = Lang.to_bool (List.assoc "static" p) in
-           Request.protocols#register name
-             { Request.static = static ;
-               Request.resolve =
-                 fun arg ~log:_ timeout ->
-                   let l =
-                     Lang.apply ~t:(Lang.list_t Lang.string_t)
-                       f ["",Lang.string arg;
-                          "",Lang.float timeout]
-                   in
-                     List.map
-                       (fun s ->
-                          Request.indicator ~temporary (Lang.to_string s))
-                       (Lang.to_list l) } ;
-           Lang.unit)
+         let doc = Lang.to_string (List.assoc "doc" p) in
+         let syntax = Lang.to_string (List.assoc "syntax" p) in
+         Lang.add_protocol ~syntax ~doc ~static name
+           (fun arg ~log timeout ->
+             let log = Lang.val_fun log_p ~ret_t:Lang.unit_t (fun p _ ->
+               let v = List.assoc "" p in
+               log (Lang.to_string v);
+               Lang.unit)
+             in
+             let l = Lang.apply ~t:(Lang.list_t Lang.string_t)
+                       f ["rlog",log;
+                          "maxtime",Lang.float timeout;
+                          "",Lang.string arg]
+             in
+             List.map (fun s ->
+               Request.indicator ~temporary (Lang.to_string s))
+             (Lang.to_list l)) ;
+         Lang.unit)
 
 let () =
   let t = "",Lang.int_t,None,None in
@@ -820,6 +940,25 @@ let () =
        Lang.int (String.length string))
 
 let () =
+  add_builtin "string.sub" ~cat:String
+    ~descr:"Get a substring of a string. Returns \"\" if \
+            no such substring exists."
+    [ "", Lang.string_t, None, None;
+      "start", Lang.int_t, None, Some "Return a sub string \
+         starting at this position. First position is 0.";
+      "length", Lang.int_t, None, Some "Return a sub string \
+         of @length@ characters." ]
+    Lang.string_t
+    (fun p ->
+       let start = Lang.to_int (List.assoc "start" p) in
+       let len = Lang.to_int (List.assoc "length" p) in
+       let string = Lang.to_string (List.assoc "" p) in
+       Lang.string
+         (try
+           String.sub string start len
+          with Invalid_argument _ -> ""))
+
+let () =
   add_builtin "string.case" ~cat:String
     ~descr:"Convert a string to lower or upper case."
     [ "lower", Lang.bool_t, Some (Lang.bool true),
@@ -834,6 +973,14 @@ let () =
            Utils.StringCompat.lowercase_ascii string
           else
            Utils.StringCompat.uppercase_ascii string))
+
+let () =
+  add_builtin "string.trim" ~cat:String
+    ~descr:"Return a string without leading and trailing whitespace."
+    ["", Lang.string_t, None, None] Lang.string_t
+    (fun p ->
+       Lang.string (String.trim
+         (Lang.to_string (List.assoc "" p))))
 
 let () =
   add_builtin "string.capitalize" ~cat:String
@@ -954,7 +1101,7 @@ let () =
     ["",Lang.string_t,None,None] Lang.string_t
     (fun p ->
        let s = Lang.to_string (List.assoc "" p) in
-         Lang.string (Filename.quote s))
+         Lang.string (Utils.quote s))
 
 (** Operations on lists. *)
 
@@ -1514,48 +1661,127 @@ let () =
        Lang.float (Unix.gettimeofday ()))
 
 let () =
+  add_builtin "which" ~cat:Sys
+    ~descr:"which(\"progname\") searches for an executable \
+            named \"progname\" using directories from the PATH \
+            environment variable and returns \"\" if it could not \
+            find one."
+    ["",Lang.string_t,None,None]
+    Lang.string_t
+    (fun p ->
+      Lang.string (try
+          Utils.which ~path:Configure.path (Lang.to_string (List.assoc "" p))
+        with Not_found -> ""))
+
+let () =
   let ret_t = Lang.product_t
     (Lang.product_t Lang.string_t Lang.string_t)
-    (Lang.product_t Lang.string_t Lang.int_t)
+    (Lang.product_t Lang.string_t Lang.string_t)
   in
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
-            ((stdout,stderr),status) where status is one of: \
-            (\"exit\",<code>), (\"killed\",<signal number>) or \
-            (\"stopped\",<signal number>)."
+            @((stdout,stderr),status)@ where status is one of: \
+            @(\"exit\",\"<code>\")@, @(\"killed\",\"<signal number>\")@, \
+            @(\"stopped\",\"<signal number>\")@, @(\"exception\",\"<exception description>\", \
+            @(\"timeout\",\"<run time>\")@."
     ["env",Lang.list_t Lang.string_t,
      Some (Lang.list ~t:Lang.string_t []),Some "Process environment";
-     "",Lang.string_t,None,None] ret_t
+     "timeout",Lang.float_t,Some (Lang.float (-1.)),
+     Some "Cancel process after @timeout@ has elapsed. Ignored if negative.";
+     "",Lang.string_t,None,Some "Command to run"] ret_t
     (fun p ->
        let env = Lang.to_list
          (List.assoc "env" p)
        in
+       let timeout = Lang.to_float
+         (List.assoc "timeout" p)
+       in
        let env = List.map Lang.to_string env in
        let env = Array.of_list env in
        let cmd = Lang.to_string (List.assoc "" p) in
-       let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
-       close_out out_ch;
-       let pull ch =
-         let buf = Buffer.create 1024 in
-         let rec f () =
-           try
-             Buffer.add_channel buf ch 1024;
-             f ()
-           with End_of_file -> Buffer.contents buf
+       let buflen = 1024 in
+       let out_buf = Buffer.create buflen in
+       let err_buf = Buffer.create buflen in
+       let on_done (timed_out,status) =
+         let stdout = Buffer.contents out_buf in
+         let stderr = Buffer.contents err_buf in
+         let status, arg =
+           match timed_out, status with
+             | f, _ when 0. <= f ->
+                "timeout", (string_of_float f)
+             | _, Some (`Exception e) ->
+                "exception", (Printexc.to_string e)
+             | _, Some (`Status s) ->
+                 begin match s with
+                   | Unix.WEXITED c -> "exit", (string_of_int c)
+                   | Unix.WSIGNALED s -> "killed", (string_of_int s)
+                   | Unix.WSTOPPED s -> "stopped", (string_of_int s)
+                 end
+             | _ -> assert false
          in
-         f ()
+         Lang.product
+           (Lang.product (Lang.string stdout) (Lang.string stderr))
+           (Lang.product (Lang.string status) (Lang.string arg))
        in
-       let stdout = pull in_chan in
-       let stderr = pull err_chan in
-       let status, code =
-         match Unix.close_process_full p with
-           | Unix.WEXITED c -> "exit",c
-           | Unix.WSIGNALED s -> "killed", s
-           | Unix.WSTOPPED s -> "stopped", s
+       let synchronous () =
+         let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
+         close_out out_ch;
+         let pull buf ch =
+           let rec f () =
+             try
+               Buffer.add_channel buf ch buflen;
+               f ()
+             with End_of_file -> ()
+           in
+           f ()
+         in
+         pull out_buf in_chan;
+         pull err_buf err_chan;
+         (-1.,Some (`Status (Unix.close_process_full p)))
        in
-       Lang.product
-         (Lang.product (Lang.string stdout) (Lang.string stderr))
-         (Lang.product (Lang.string status) (Lang.int code)))
+       let asynchronous () =
+         let out_pipe,in_pipe = Unix.pipe () in
+         Tutils.finalize ~k:(fun () ->
+           ignore(Unix.close in_pipe);
+           ignore(Unix.close out_pipe))
+           (fun () ->
+             let pull buf fn =
+               let bytes = Bytes.create buflen in
+               let ret = fn bytes 0 buflen in
+               Buffer.add_substring buf (Bytes.to_string bytes) 0 ret;
+              `Continue
+             in
+             let on_stdout = pull out_buf in
+             let on_stderr = pull err_buf in
+             let status = ref None in
+             let on_stop s =
+                status := Some s;
+                begin
+                  try
+                    ignore(Unix.write in_pipe " " 0 1);
+                  with _ -> ()
+                end;
+                false
+             in
+             let on_start _ =
+               `Stop
+             in
+             let log = Dtools.Log.make ["lang";"run_process"] in
+             let log s = log#f 4 "%s" s in
+             let p = Process_handler.run ~env ~on_start ~on_stop
+                       ~on_stdout ~on_stderr ~log cmd
+             in
+             let timed_out =
+               try
+                 Tutils.wait_for [`Read out_pipe; `Delay timeout] ;
+                 (-1.)
+               with Tutils.Timeout f ->
+                 Process_handler.kill p;
+                 f
+             in
+             (timed_out, !status))
+       in
+       on_done (if 0. <= timeout && Tutils.has_started() then asynchronous() else synchronous ()))      
 
 let () =
   let ret_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) in
@@ -2056,7 +2282,9 @@ let () =
     (fun p ->
        let timeout = Lang.to_float (List.assoc "timeout" p) in
        let r = Lang.to_request (List.assoc "" p) in
-         Lang.bool (Request.Resolved = Request.resolve r timeout))
+         Lang.bool (try
+           Request.Resolved = Request.resolve r timeout
+         with _ -> false))
 
 let () =
   add_builtin "request.metadata" ~cat:Liq

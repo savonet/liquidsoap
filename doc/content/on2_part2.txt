@@ -27,7 +27,7 @@ liquidsoap /path/to/radio.liq
 Thus, we do not define here daemonized script. In order to make
 things work smoothly, you should put the following lines at the beginning
 of @radio.liq@:
-%%
+%%(on2_p2_debug.liq)
 set("log.file",false)
 set("log.stdout",true)
 set("log.level",3)
@@ -41,7 +41,7 @@ in order to load our pre-defined functions:
 
 We will use the telnet server to interact with the radio.
 Thus, we enable the telnet server by adding the following line in @radio.liq@:
-%%
+%%(on_p2_telnet.liq)
 set("server.telnet",true)
 %%
 
@@ -57,7 +57,7 @@ is described by the following graph:
 
 This very simple stream is defined by the following content
 in @radio.liq@:
-%%
+%%(on2_p2_simple.liq)
 # The file source
 songs = playlist("/path/to/some/files/")
 
@@ -106,7 +106,7 @@ The @metadata@ type is actually @[(string*string)]@,
 i.e. a list of elements of the form @("label","value")@.
 
 Thus, we add the following in @library.liq@:
-%%
+%%(on2_p2_metadata.liq)
 # This function is called when
 # a new metadata block is passed in
 # the stream.
@@ -125,7 +125,7 @@ Now, we apply the @on_metadata@ operator with this function just
 before passing the final source to the output, so we write in @radio.liq@,
 before the output line:
 
-%%
+%%(on2_p2_on_metadata.liq)
 s = on_metadata(apply_metadata,s)
 %%
 
@@ -180,7 +180,7 @@ that contains a line of the form:
 annotate:type="song":/path/to/song.mp3
 %%
 And, we add in @library.liq@:
-%%
+%%(on2_p2_get_request.liq)
 # Our custom request function
 def get_request() = 
   # Get the URI
@@ -192,7 +192,7 @@ end
 
 Now, we replace the lines defining @songs@, @files@ and the line
 using the @rotate@ operator in @radio.liq@ with the following code:
-%%
+%%(on2_p2_request_dynamic.liq)
 s = request.dynamic(id="s",get_request)
 %%
 
@@ -228,7 +228,7 @@ My Awesome Liquidsoap Radio!
 %%
 
 Then, in @library.liq@, we add the following function:
-%%
+%%(on2_p2_update_title.liq)
 # This function updates the title metadata with
 # the content of "/tmp/metadata"
 def update_title(m) = 
@@ -249,7 +249,7 @@ end
 
 Finally, we apply @map_metadata@ to the source, just after the @request.dynamic@
 definition in @radio.liq@:
-%%
+%%(on2_p2_map_metadata.liq)
 s = map_metadata(update_title,s)
 %%
 
@@ -274,7 +274,7 @@ of the given sentence. Otherwise, you may record a (more serious) file and
 pass it to the single operator...
 
 First, we add the following in @library.liq@
-%%
+%%(on2_p2_infallible.liq)
 # This function turns a fallible
 # source into an infallible source
 # by playing a static single when
@@ -298,7 +298,7 @@ end
 
 Then, we add the following line in @radio.liq@, just before
 the output line:
-%%
+%%(on2_p2_my_safe.liq)
 s = my_safe(s)
 %%
 And we also remove the @fallible=true@ from the parameters of @output.icecast@.
@@ -320,7 +320,7 @@ formats. Therefore, we define a custom output function
 that defines all these outputs. 
 
 We add the following in @library.liq@:
-%%
+%%(on2_p2_outputs.liq)
 # A function that contains all the output
 # we want to create with the final stream
 def outputs(s) =
@@ -350,7 +350,7 @@ end
 %%
 
 And we replace the output line in @radio.liq@ by:
-%%
+%%(on2_p2_apply_outputs.liq)
 outputs(s)
 %%
 
@@ -408,7 +408,7 @@ another solution.
 The method we propose here consists in using @map_metadata@, which we have already seen
 to update the metadata with a @"replay_gain"@ metadata when we see the @"type"@ metadata
 with the value @"song"@. Thus, we add the following function in @library.liq@:
-%%
+%%(on2_p2_add_replaygain.liq)
 # This function takes a metadata,
 # check if it is of type "file"
 # and add the replay_gain metadata in
@@ -433,7 +433,7 @@ end
 %%
 
 And, we add the following line in @radio.liq@ after the @request.dynamic@ line:
-%%
+%%(on2_p2_replaygain_map.liq)
 s = map_metadata(add_replaygain,s)
 %%
 
@@ -443,7 +443,7 @@ the content of the @"replay_gain"@ metadata. Thus, only the tracks which have th
 metadata will be modified. 
 
 We add the following in @radio.liq@, after the line we just inserted:
-%%
+%%(on2_p2_replaygain_amplify.liq)
 s = amplify(override="replay_gain",1.,s)
 %%
 
@@ -485,7 +485,7 @@ A typical @smart_crossfade@ operator is defined in @utils.liq@
 but you may do much more things with a little bit of imagination.
 
 Here, we add the following in @library.liq@:
-%%
+%%(on2_p2_my_crossfade.liq)
 # Our custom crossfade that 
 # only crossfade between tracks
 def my_crossfade(s) = 
@@ -506,7 +506,7 @@ end
 
 Finally, we add the following line in @radio.liq@, just after the 
 @amplify@ operator:
-%%
+%%(on2_p2_my_crossfade_apply.liq)
 s = my_crossfade(s)
 %%
 
@@ -532,7 +532,7 @@ Typically, you use for the special source a @request.queue@ where you push a new
 jingle every time you want to use this feature. 
 
 We modify @radio.liq@ and add the following line just before @my_safe@:
-%%
+%%(on2_p2_special_source.liq)
 # A special source
 special = request.queue(id="special")
 # Smooth_add the special source
@@ -580,14 +580,14 @@ to send data and the other one @input.harbor@ to receive it. In this case, you w
 use the WAVE or FLAC format to send lossless data.
 
 We add a live source in @radio.liq@, anywhere before the outputs:
-%%
+%%(on2_p2_harbor_input.liq)
 live = input.harbor("live")
 %%
 
 **Note** @"live"@ is the name of the mountpoint that will be 
 associated to this source. The default parameters for the port,
 user and password are contained in the following settings:
-%%
+%%(on2_p2_harbor_conf.liq)
 set("harbor.password","hackme")
 set("harbor.port",8005)
 set("harbor.username","source")
@@ -596,7 +596,7 @@ set("harbor.username","source")
 We want the live source to be played as soon as it becomes available. Thus, we
 use a @fallback@ to combine it with the file-based source, and add the following code
 after @my_safe@ in @radio.liq@:
-%%
+%%(on2_p2_live_fallback.liq)
 s = fallback(track_sensitive=false, [live,s])
 %%
 
@@ -617,7 +617,7 @@ h4. Enabling shoutcast clients
 
 By default, shoutcast source clients are not supported. You can enable them by
 adding the following settings:
-%%
+%%(on2_p2_harbor_icy.liq)
 set("harbor.icy",true)
 %%
 
@@ -631,13 +631,13 @@ on different port.
 
 For instance, if we replace the definition of @live@ in @radio.liq@ with the 
 following:
-%%
+%%(on2_p2_harbor_multiple_ports.liq)
 live1 = input.harbor(port=9000,"/")
 live2 = input.harbor(port=7000,"/")
 %%
 
 And the @fallback@ line with:
-%%
+%%(on2_p2_harbor_multiple_fallbacks.liq)
 s = fallback(track_sensitive=false, [live1,live2,s]) 
 %%
 
@@ -671,7 +671,7 @@ This parameter contains functions of the type: @source * source -> source@,
 i.e. functions that take two sources as arguments, the old and new source,
 and returned a source that is the result of the desired transition. Finally,
 when defined as:
-%%
+%%(on2_p2_nice_transition_fallback.liq)
 fallback(transition=[f,g], [s1, s2])
 %%
 
@@ -681,7 +681,7 @@ We also use @source.skip@, which skips the file currently being played, in
 order to play a fresh file when switching back to the file-based source.
 
 First, we add the following code in @library.liq@:
-%%
+%%(on2_p2_nice_transition.liq)
 # Define a transition that fades out the
 # old source, adds a single, and then 
 # plays the new source
@@ -714,7 +714,7 @@ parameters of the @request.dynamic@ source.
 Then, we add the following code in @radio.liq@, where
 we defined the @fallback@ between the two live sources and 
 the file-based source:
-%%
+%%(on2_p2_live1_live2.liq)
 # The transition to live1
 jingle1 = single("say:And now, we present the awesome show number one!!")
 to_live1 = to_live(jingle1)
@@ -755,7 +755,7 @@ and DJ authentication into the framework of your choice. Here we illustrate
 this functionality with a custom functions. Thus, we add the following 
 in @library.liq@:
 
-%%
+%%(on2_p2_custom_auth.liq)
 # Our custom authentication
 # Note: the ICY protocol 
 # does not have any username and for 
@@ -773,7 +773,7 @@ end
 %%
 
 And we use it by replacing the @live1@ and @live2@ definitions by:
-%%
+%%(on2_p2_custom_auth_apply.liq)
 # Authentication for live 1:
 auth1 = harbor_auth(9000)
 live1 = input.harbor(port=9000,auth=auth1,"/")
