@@ -20,7 +20,7 @@ depends: [
   "pcre"
   "camomile"
   "dtools"
-  "duppy" {>= "0.5.0"}
+  "duppy" {>= "0.6.0"}
   "mm" {>= "0.2.1"}
 ]
 depopts: [
@@ -60,7 +60,7 @@ depopts: [
   "yojson"
 ]
 conflicts: [
-  "cry" {< "0.4.0"}
+  "cry" {< "0.5.0"}
   "taglib" {< "0.3.0"}
 ]
 available: [ ocaml-version >= "4.00" ]
