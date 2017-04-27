@@ -67,6 +67,10 @@ Changed:
 
 - Set conservative=true by default in cross() and smartcross()
 
+Deprecated (can be removed in any future version):
+
+- Dynamic plugins compilation, deprecated in favor of opam rebuild mechanism.
+
 Removed:
 
 - aac and aacplus encoders, removed in favor of fdk-aac.
