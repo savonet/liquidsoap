@@ -1,14 +1,14 @@
-.PHONY: doc upload reference all-subdirs
+.PHONY: doc upload all-subdirs
 
 SUBDIRS = content liqi
-DISTFILES = liquidsoap.1 Makefile reference_to_liqi.pl no-ref.txt \
+DISTFILES = liquidsoap.1 Makefile protocols_to_liqi.pl reference_to_liqi.pl no-ref.txt \
 	    template.html snippet.html
 DISTDIRS = orig
 PERL_DOM = $(shell perl -MXML::DOM -e1 > /dev/null 2>&1 && echo yes)
 
 CONTENT=$(wildcard content/*.txt)
 PRE_HTML=$(shell echo $(CONTENT:.txt=.html) | sed -e 's/content\//html\//g') \
-     html/reference.html html/settings.html
+     html/reference.html html/settings.html html/protocols.html
 HTML=html/scripts/index.html
 TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
 PDF=$(TEX:.tex=.pdf)
@@ -74,6 +74,17 @@ else
 	@cp no-ref.txt content/reference.txt
 endif
 
+content/protocols.txt: protocols_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
+ifeq ($(PERL_DOM),yes)
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --dynamic-plugins-dir ../src/plugins \
+	  --no-pervasives ../scripts/pervasives.liq --list-plugins-xml | \
+	  ./protocols_to_liqi.pl > $(@)
+else
+	@echo "-> You don't seem to have perl XML::DOM module installed."
+	@echo "-> protocols reference cannot be generated."
+	@cp no-protocols.txt content/protocols.txt
+endif
+
 content/settings.txt: ../src/liquidsoap
 	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../scripts/pervasives.liq \
 	--dynamic-plugins-dir ../src/plugins --conf-descr-liqi > $(@)
@@ -110,7 +121,7 @@ doc-install:
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
 
 clean-local:
-	rm -rf html $(TEX) content/reference.txt content/settings.txt content/*.txt.spell
+	rm -rf html $(TEX) content/reference.txt content/protocols.txt content/settings.txt content/*.txt.spell
 
 RCP=rsync -rLtCP --include="*.exe" --exclude="*.swp" --exclude="*.svn" \
 	--delete --stats
