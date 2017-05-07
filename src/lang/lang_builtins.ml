@@ -1727,13 +1727,16 @@ let () =
          let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
          close_out out_ch;
          let pull buf ch =
-           let rec f () =
-             try
-               Buffer.add_channel buf ch buflen;
-               f ()
-             with End_of_file -> ()
+           let tmp = Bytes.create 1024 in
+           let rec aux () =
+             let n = input ch tmp 0 1024 in
+               if n = 0 then () else
+                begin
+                 Buffer.add_substring buf tmp 0 n;
+                 aux()
+                end
            in
-           f ()
+           aux ()
          in
          pull out_buf in_chan;
          pull err_buf err_chan;
