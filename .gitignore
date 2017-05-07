@@ -41,6 +41,7 @@ src/liquidsoap
 doc/html
 doc/content/reference.txt
 doc/content/settings.txt
+doc/content/protocols.txt
 autodoc/
 *.annot
 scripts/tests/threesines/
