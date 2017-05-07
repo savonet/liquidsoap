@@ -525,8 +525,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},~filter=fun(_)->true,
   # A reference to know if the source has been stopped
   has_stopped = ref false
   # The next function
-  rec_next = ref ({request.create("")}) # trick to have recursion
-  def next () =
+  def rec next () =
     file =
       if list.length(!playlist) > 0 then
         ret = list.hd(default="",!playlist)
@@ -544,11 +543,9 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},~filter=fun(_)->true,
     if filter(request.metadata(r)) then
       r
     else
-      next = !rec_next
       next ()
     end
   end
-  rec_next := next
   # Instanciate the source
   source = request.dynamic(id=id,next)
   # Get its id.
