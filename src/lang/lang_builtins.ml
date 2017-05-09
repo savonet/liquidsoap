@@ -2390,7 +2390,7 @@ let () =
         done;
         assert false
       with
-      | Exit -> Lang.string !s)
+      | Exit -> close_in ic; Lang.string !s)
 
 let () =
   add_builtin "file.watch" ~cat:Sys
