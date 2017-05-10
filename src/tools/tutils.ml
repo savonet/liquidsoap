@@ -325,7 +325,7 @@ let () = Utils.register_error_translator error_translator
 
 (* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
  * Raises [Timeout elapsed_time] if timeout is reached. *)
-let wait_for ?(log=fun _ -> ()) events =
+let wait_for ~log events =
   let timed_out = ref None in
   let m = Mutex.create () in
   let c = Condition.create () in
@@ -355,6 +355,13 @@ let wait_for ?(log=fun _ -> ()) events =
         log "Timeout reached!" ;
         raise (Timeout (t -. start_time)) 
     | _ -> ()
+
+let wait_for ?(log=fun _ -> ()) events =
+  if has_started() then
+    wait_for ~log events
+  else
+    log "cannot wait_for if scheduler hasn't started!"
+  
 
 (** Wait for some thread to crash *)
 let run = ref true
