@@ -32,7 +32,7 @@ The function @icy.update_metadata@ implements a manual metadata update
 using the ICY mechanism. It can be used independently from the @icy_metadata@
 parameter described above, provided icecast supports ICY metadata for the intended stream.
 
-For instance the following script registers a telnet command name @metadata.update@ 
+For instance the following script registers a telnet command name @metadata.update@
 that can be used to manually update metadata:
 %%(icy_update_via_telnet.liq)
 def icy_update(v) =
@@ -41,7 +41,7 @@ def icy_update(v) =
   def split(l,v) =
     v = string.split(separator="=",v)
     if list.length(v) >= 2 then
-      list.append(l,[(list.nth(v,0),list.nth(v,1))])
+      list.append(l,[(list.nth(v,0,default=""),list.nth(v,1,default=""))])
     else
       l
     end
