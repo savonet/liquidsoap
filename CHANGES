@@ -7,6 +7,8 @@ Fixed:
 
 - Calls to wait_for while the scheduler isn't running (#442)
 
+- Revert default handling of environment in run_process, get_process_lines, get_process_output to passing calling process' environment by default.
+
 1.3.0 (27-04-2017)
 ======
 

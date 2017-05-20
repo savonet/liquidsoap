@@ -1678,14 +1678,20 @@ let () =
     (Lang.product_t Lang.string_t Lang.string_t)
     (Lang.product_t Lang.string_t Lang.string_t)
   in
+  let env_t =
+    Lang.product_t Lang.string_t Lang.string_t
+  in
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
             @((stdout,stderr),status)@ where status is one of: \
             @(\"exit\",\"<code>\")@, @(\"killed\",\"<signal number>\")@, \
             @(\"stopped\",\"<signal number>\")@, @(\"exception\",\"<exception description>\", \
             @(\"timeout\",\"<run time>\")@."
-    ["env",Lang.list_t Lang.string_t,
-     Some (Lang.list ~t:Lang.string_t []),Some "Process environment";
+    ["env",Lang.list_t env_t,
+     Some (Lang.list ~t:env_t []),Some "Process environment";
+     "inherit_env", Lang.bool_t,
+     Some (Lang.bool true), Some "Inherit calling process's environment when \
+       @env@ parameter is empty.";
      "timeout",Lang.float_t,Some (Lang.float (-1.)),
      Some "Cancel process after @timeout@ has elapsed. Ignored if negative.";
      "",Lang.string_t,None,Some "Command to run"] ret_t
@@ -1693,10 +1699,26 @@ let () =
        let env = Lang.to_list
          (List.assoc "env" p)
        in
+       let env = List.map (fun e ->
+         let (k,v) = Lang.to_product e in
+         Lang.to_string k, Lang.to_string v) env
+       in
+       let inherit_env = Lang.to_bool
+         (List.assoc "inherit_env" p)
+       in
+       let env =
+         if env = [] && inherit_env then
+           Utils.environment ()
+         else
+           env
+       in
        let timeout = Lang.to_float
          (List.assoc "timeout" p)
        in
-       let env = List.map Lang.to_string env in
+       let env = List.map
+         (fun (k,v) -> Printf.sprintf "%s=%s" k v)
+         env
+       in
        let env = Array.of_list env in
        let cmd = Lang.to_string (List.assoc "" p) in
        let buflen = 1024 in
@@ -1792,28 +1814,10 @@ let () =
     ~descr:"Return the process environment."
     [] ret_t
     (fun _ ->
-      let l = Unix.environment () in
-      (* Split at first occurence of '='. Return v,"" if
-       * no '=' could be found. *)
-      let split s =
-        try
-          let pos = String.index s '=' in
-          String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
-        with _ -> s,""
-      in
-      let l = Array.to_list l in
-      let l = List.map split l in
+      let l = Utils.environment () in
       let l = List.map (fun (x,y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x,y) -> Lang.product x y) l in
       Lang.list ~t:ret_t l)
-
-let () =
-  add_builtin "getenv" ~cat:Sys
-    ~descr:"Get the value associated to a variable in the process \
-            environment. Return \"\" if variable is not set."
-    ["",Lang.string_t,None,None] Lang.string_t
-    (fun p ->
-      Lang.string (Utils.getenv ~default:"" (Lang.to_string (List.assoc "" p))))
 
 let () =
   add_builtin "setenv" ~cat:Sys

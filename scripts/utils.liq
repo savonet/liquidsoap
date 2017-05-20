@@ -232,30 +232,40 @@ def helium(s)
 end
 %endif
 
+# Get the value associated to a variable in the process environment. Return ""
+# if variable is not set.
+# @category System
+def getenv(s) =
+  list.assoc(default="",s,environment())
+end
+
 # Perform a shell call and return its output.
 # @category System
 # @param ~timeout Cancel process after @timeout@ has elapsed. Ignored if negative.
 # @param ~env Process environment
+# @param ~inherit_env Inherit calling process's environment when @env@ parameter is empty.
 # @param command Command to run
-def get_process_output(~timeout=(-1.),~env=[],command) =
-  fst(fst(run_process(timeout=timeout,env=env,command)))
+def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+  fst(fst(run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)))
 end
 
 # Perform a shell call and return the list of its output lines.
 # @category System
 # @param ~timeout Cancel process after @timeout@ has elapsed. Ignored if negative.
 # @param ~env Process environment
+# @param ~inherit_env Inherit calling process's environment when @env@ parameter is empty.
 # @param command Command to run
-def get_process_lines(~timeout=(-1.),~env=[],command) =
-  string.split(separator="\\n",get_process_output(timeout=timeout,env=env,command))
+def get_process_lines(~timeout=(-1.),~env=[],~inherit_env=true,command) =
+  string.split(separator="\\n",get_process_output(timeout=timeout,env=env,inherit_env=inherit_env,command))
 end
 
 # Return true if process exited with 0 code.
 # @category System
 # @param ~timeout Cancel process after @timeout@ has elapsed. Ignored if negative.
 # @param ~env Process environment
+# @param ~inherit_env Inherit calling process's environment when @env@ parameter is empty.
 # @param command Command to test
-def test_process(~timeout=(-1.),~env=[],command) =
+def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
   res = run_process(timeout=timeout,env=env,command)
   snd(res) == ("exit","0")
 end

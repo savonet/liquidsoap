@@ -27,7 +27,11 @@ register(name="Process Environment",
          descr="List of environment variables \
                 passed down to the executed process.",
          "protocol.process.env",
-         ["LANG","PATH"])
+         [])
+register(name="Inherit Environment",
+         descr="Inherit calling process's environment when @env@ parameter is empty.",
+         "protocol.process.inherit_env",
+         true)
 
 # Register the process protocol. Syntax:
 # process:<output ext>,<cmd>:uri where <cmd> is interpolated with:
@@ -59,15 +63,16 @@ def process_protocol(~rlog,~maxtime,arg)
 
     log(level=4,"Executing #{cmd}")
 
-    def get_env(name) =
-       env = getenv(name)
-      "#{name}=#{env}"
+    env_vars = get(default=[],"protocol.process.env")
+    env = environment()
+    def get_env(k) =
+      (k,env[k])
     end
-    env = list.map(get_env,
-      get(default=["LANG","PATH"],"protocol.process.env"))
+    env = list.map(get_env,env_vars)
+    inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    ret = run_process(timeout=delay,env=env,cmd)
+    ret = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
     if snd(ret) == ("exit","0") then
       [output]
     else
@@ -129,10 +134,18 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     log(level=level,s)
   end
 
+  env_vars = get(default=[],"protocol.process.env")
+  env = environment()
+  def get_env(k) =
+    (k,env[k])
+  end
+  env = list.map(get_env,env_vars)
+  inherit_env = get(default=true,"protocol.process.inherit_env")
+
   cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
   delay = maxtime - gettimeofday()
   log(level=4,"Running #{cmd}")
-  x = run_process(timeout=delay,cmd)
+  x = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
   extname =
     if fst(snd(x)) != "exit" or snd(snd(x)) != "0" then
       log(level=3,"Failed to fetch mime-type for #{uri}.")

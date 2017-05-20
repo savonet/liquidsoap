@@ -730,3 +730,16 @@ let quote s =
   done;
   Buffer.add_char b quote;
   Buffer.contents b
+
+let environment () =
+  let l = Unix.environment () in
+  (* Split at first occurence of '='. Return v,"" if
+   * no '=' could be found. *)
+  let split s =
+    try
+      let pos = String.index s '=' in
+      String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
+    with _ -> s,""
+  in
+  let l = Array.to_list l in
+  List.map split l
