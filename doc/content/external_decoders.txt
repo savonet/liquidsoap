@@ -77,7 +77,7 @@ Its code is the following:
 %%(flac_decoder.liq)
   def test_flac(file) =
     if test_process("which metaflac") then
-      channels = list.hd(get_process_lines("metaflac \
+      channels = list.hd(default="",get_process_lines("metaflac \
                                             --show-channels #{quote(file)} \
                                             2>/dev/null"))
       # If the value is not an int, this returns 0 and we are ok :)
@@ -112,10 +112,10 @@ if test_process("which metaflac") then
     # Could be made better..
     def f(l',l)=
       if list.length(l) >= 2 then
-        list.append([(list.hd(l),list.nth(l,1))],l')
+        list.append([(list.hd(default="",l),list.nth(default="",l,1))],l')
       else
         if list.length(l) >= 1 then
-          list.append([(list.hd(l),"")],l')
+          list.append([(list.hd(default="",l),"")],l')
         else
           l'
         end
@@ -169,8 +169,8 @@ Its code is the following:
     faad_p = (fun (f) -> "faad -w #{quote(f)} 2>/dev/null")
     def test_faad(file) =
       if faad_test(file) then
-        channels = list.hd(get_process_lines("faad -i #{quote(file)} 2>&1 | \
-                                              grep 'ch,'"))
+        channels = list.hd(default="",get_process_lines("faad -i #{quote(file)} 2>&1 | \
+                                                         grep 'ch,'"))
         ret = string.extract(pattern=", (\d) ch,",channels)
         ret =
           if list.length(ret) == 0 then

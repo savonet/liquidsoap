@@ -73,7 +73,7 @@ def auth(user,password) =
   ret = get_process_lines("/path/to/script \
          --user=#{user} --password=#{password}")
   # Then get the first line of its output
-  ret = list.hd(ret)
+  ret = list.hd(default="",ret)
   # Finally returns the boolean represented 
   # by the output (bool_of_string can also 
   # be used)
