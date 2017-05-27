@@ -153,7 +153,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     else
       lines = string.split(separator="\\n",fst(fst(x)))
       mime = string.case(lower=true,string.trim(list.hd(default="",lines)))
-      if mime == "audio/mpeg" then
+      if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
         "mp3"
       elsif list.mem(mime,["application/ogg", "application/x-ogg",
                            "audio/x-ogg", "audio/ogg", "video/ogg"]) then

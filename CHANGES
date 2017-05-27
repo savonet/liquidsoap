@@ -5,6 +5,8 @@ New:
 
 - Allow any tags allowed in @"encoder.encoder.export"@ settings in vorbis streams (#418)
 
+- Allow @"audio/mp3"@ mime-type for mp3 in file resolution protocol. (#451)
+
 Fixed:
 
 - Fixed run_process, get_process_lines, get_process_output when compiling with OCaml <= 4.03 (#437, #439)
