@@ -127,15 +127,7 @@ let create_vorbis =
             | None -> "Unknown"
         in
         let metadata = 
-           (Vorbis.tags
-                ?title:(getd m "title" def_title)
-                ?artist:(get m "artist")
-                ?genre:(get m "genre")
-                ?date:(get m "date")
-                ?album:(get m "album")
-                ?tracknumber:(get m "tracknum")
-                ?comment:(get m "comment")
-                  ())
+            (Vorbis.tags m ())
         in
         let enc =
           (* For ABR, a value of -1 means unset.. *)

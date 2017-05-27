@@ -357,7 +357,7 @@ AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.6.2],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
 
 #
 # Opus
