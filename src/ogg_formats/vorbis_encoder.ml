@@ -106,28 +106,9 @@ let create_vorbis =
       let channels = vorbis.Encoder.Vorbis.channels in
       let samplerate = vorbis.Encoder.Vorbis.samplerate in
       let reset ogg_enc m =
-        let m =  (Encoder.Meta.to_metadata m) in
-        let get h k =
-          try
-            Some (Hashtbl.find h k)
-          with Not_found -> None
-        in
-        let getd h k d =
-         try
-          Some (Hashtbl.find h k)
-         with Not_found -> Some d
-        in
-        let def_title =
-          match get m "uri" with
-            | Some s -> let title = Filename.basename s in
-                (try
-                   String.sub title 0 (String.rindex title '.')
-                 with
-                   | Not_found -> title)
-            | None -> "Unknown"
-        in
+        let m =  Encoder.Meta.to_metadata m in
         let metadata = 
-            (Vorbis.tags m ())
+          Vorbis.tags m ()
         in
         let enc =
           (* For ABR, a value of -1 means unset.. *)

@@ -33,7 +33,7 @@ let rec watchdog () =
     Tutils.mutexify m (fun _ ->
       let events = Inotify.read fd in
       List.iter
-        (fun (wd,_,_,file) ->
+        (fun (wd,_,_,_) ->
           let f = List.assoc wd !handlers in
           f ()
         ) events;
