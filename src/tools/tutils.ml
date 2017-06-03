@@ -333,11 +333,11 @@ type event = [
  * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
  * if timeout is reached. *)
 let wait_for ?(log=fun _ -> ()) event timeout =
-  let current_time =
+  let start_time =
     Unix.gettimeofday ()
   in
   let max_time =
-    Unix.gettimeofday () +. timeout
+    start_time +. timeout
   in
   let r, w =
     match event with
@@ -348,14 +348,14 @@ let wait_for ?(log=fun _ -> ()) event timeout =
   let rec wait t =
     let l,l',_ = Unix.select r w [] t in
     if l=[] && l'=[] then begin
-      let new_time = Unix.gettimeofday () in
-      if new_time >= max_time then
+      let current_time = Unix.gettimeofday () in
+      if current_time >= max_time then
        begin
         log "Timeout reached!" ;
-        raise (Timeout (new_time -. current_time))
+        raise (Timeout (current_time -. start_time))
        end
       else
-        wait (min 1. (max_time -. new_time))
+        wait (min 1. (max_time -. current_time))
     end
   in
   wait (min 1. timeout)
