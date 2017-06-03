@@ -1798,7 +1798,7 @@ let () =
              in
              let timed_out =
                try
-                 Tutils.wait_for [`Read out_pipe; `Delay timeout] ;
+                 Tutils.wait_for (`Read out_pipe) timeout ;
                  (-1.)
                with Tutils.Timeout f ->
                  Process_handler.kill p;

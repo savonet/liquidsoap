@@ -126,7 +126,7 @@ struct
                        try
                          let fd = Harbor.file_descr_of_socket socket in
                          (* Wait for `Read event on socket. *)
-                         Tutils.wait_for ~log [`Read fd; `Delay timeout];
+                         Tutils.wait_for ~log (`Read fd) timeout;
                          (* Now read. *)
                          relay_read socket len
                         with

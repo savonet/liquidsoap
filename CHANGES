@@ -1,11 +1,18 @@
+x.y.z ()
+=====
+
+Fixed:
+
+- Revert `wait_for` implementation to pre-`1.3.0`, using a custom `select` loop (#453)
+
 1.3.1 (28-05-2017)
 =====
 
 New:
 
-- Allow any tags allowed in @"encoder.encoder.export"@ settings in vorbis streams (#418)
+- Allow any tags allowed in `"encoder.encoder.export"` settings in vorbis streams (#418)
 
-- Allow @"audio/mp3"@ mime-type for mp3 in file resolution protocol. (#451)
+- Allow `"audio/mp3"` mime-type for mp3 in file resolution protocol. (#451)
 
 Fixed:
 

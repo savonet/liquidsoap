@@ -55,14 +55,14 @@ struct
     SecureTransport.close h.ctx;
     Unix.close h.sock
 
-  let wait_for ?log events =
-    let events = List.map (function
-      | `Read s -> `Read (Ssl.file_descr_of_socket s)
-      | `Write s -> `Write (Ssl.file_descr_of_socket s)
-      | `Exception s -> `Exception (Ssl.file_descr_of_socket s)
-      | `Delay f -> `Delay f) events
+  let wait_for ?log event timeout =
+    let event =
+      match event with
+        | `Read s -> `Read (Ssl.file_descr_of_socket s)
+        | `Write s -> `Write (Ssl.file_descr_of_socket s)
+        | `Both s -> `Both (Ssl.file_descr_of_socket s)
     in
-    Tutils.wait_for ?log events
+    Tutils.wait_for ?log event timeout
 
   let read {ctx} buf ofs len =
     SecureTransport.read ctx buf ofs len

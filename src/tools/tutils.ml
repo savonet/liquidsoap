@@ -323,45 +323,42 @@ let error_translator =
 
 let () = Utils.register_error_translator error_translator
 
-(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
- * Raises [Timeout elapsed_time] if timeout is reached. *)
-let wait_for ~log events =
-  let timed_out = ref None in
-  let m = Mutex.create () in
-  let c = Condition.create () in
-  let handler = mutexify m (fun l ->
-    List.iter (function
-      | `Delay _ ->
-         timed_out := Some (Unix.gettimeofday ())
-      | _ -> ()) l;
-    Condition.signal c;
-    [])
-  in
-  let task = {
-    Duppy.Task.
-      priority = Non_blocking;
-      events = events;
-      handler = handler
-  } in
-  let start_time =
-    Mutex.lock m;
-    Duppy.Task.add scheduler task;
-    let ret = Unix.gettimeofday () in
-    Condition.wait c m;
-    ret 
-  in
-  match !timed_out with
-    | Some t ->
-        log "Timeout reached!" ;
-        raise (Timeout (t -. start_time)) 
-    | _ -> ()
+type event = [
+  | `Read of Unix.file_descr
+  | `Write of Unix.file_descr
+  | `Both of Unix.file_descr
+]
 
-let wait_for ?(log=fun _ -> ()) events =
-  if has_started() then
-    wait_for ~log events
-  else
-    log "cannot wait_for if scheduler hasn't started!"
-  
+(* Wait for [`Read socker], [`Write socket] or [`Both socket] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
+ * if timeout is reached. *)
+let wait_for ?(log=fun _ -> ()) event timeout =
+  let current_time =
+    Unix.gettimeofday ()
+  in
+  let max_time =
+    Unix.gettimeofday () +. timeout
+  in
+  let r, w =
+    match event with
+      | `Read socket -> [socket],[]
+      | `Write socket -> [],[socket]
+      | `Both socket -> [socket],[socket]
+  in
+  let rec wait t =
+    let l,l',_ = Unix.select r w [] t in
+    if l=[] && l'=[] then begin
+      let new_time = Unix.gettimeofday () in
+      if new_time >= max_time then
+       begin
+        log "Timeout reached!" ;
+        raise (Timeout (new_time -. current_time))
+       end
+      else
+        wait (min 1. (max_time -. new_time))
+    end
+  in
+  wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
 let run = ref true
