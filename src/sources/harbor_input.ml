@@ -71,8 +71,6 @@ struct
       self#register_command
         "stop" ~descr:"Stop current source client, if connected." stop ;
       self#register_command
-        "kick" ~descr:"Kick current source client, if connected." stop ;
-      self#register_command
         "status" ~descr:"Display current status."
         (Tutils.mutexify relay_m
          (fun _ ->
