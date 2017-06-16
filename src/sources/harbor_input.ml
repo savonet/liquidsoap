@@ -204,7 +204,7 @@ struct
           let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
           Pcre.get_substring sub 1
         with
-          | Not_found -> content_type
+          | Not_found -> mime
       in
       Generator.set_mode generator `Undefined ;
       match
