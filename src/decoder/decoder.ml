@@ -199,7 +199,7 @@ let test_file ?(log=log) ~mimes ~extensions fname =
         | None -> ext_ok, None
         | Some mime_type ->
             let mime = mime_type fname in
-              List.mem mime mimes, Some mime
+            List.mem mime mimes, Some mime
     in
       if ext_ok || mime_ok then
         true

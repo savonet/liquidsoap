@@ -199,6 +199,13 @@ struct
       Harbor.remove_source ~port ~mountpoint ()
   
     method register_decoder mime =
+      let mime =
+        try
+          let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
+          Pcre.get_substring sub 1
+        with
+          | Not_found -> content_type
+      in
       Generator.set_mode generator `Undefined ;
       match
         Decoder.get_stream_decoder mime kind

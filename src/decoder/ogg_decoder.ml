@@ -360,8 +360,8 @@ let () =
     (fun ~metadata:_ filename kind ->
         (* First, test file extension and mime *)
         if Decoder.test_file ~mimes:mime_types#get
-                               ~extensions:file_extensions#get
-                               ~log filename then
+                             ~extensions:file_extensions#get
+                             ~log filename then
          begin
           let content_type = get_type filename in
           let content_type =
