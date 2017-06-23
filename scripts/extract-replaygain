@@ -22,9 +22,15 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
     $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
     print "$1 dB\n" ;
 
+  } elsif (`which replaygain`) {
+
+    my $out = `replaygain --no-album "$file" 2> /dev/null; replaygain --show "$file" 2> /dev/null` ;
+    $out =~ /Track gain (.*) dB$/m || die ;
+    print "$1 dB\n" ;
+
   } else {
 
-    print STDERR "Cannot find mp3gain binary!\n";
+    print STDERR "Cannot find mp3gain nor replaygain binaries!\n";
 
   }
 
