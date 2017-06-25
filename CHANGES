@@ -5,6 +5,8 @@ Changed:
 
 - Removed `kick` telnet/server command, duplicate of `stop`.
 
+- Support `replaygain` for mp3 files, thanks to @d4h3r0 (#460)
+
 Fixed:
 
 - Revert `wait_for` implementation to pre-`1.3.0`, using a custom `select` loop (#453)
