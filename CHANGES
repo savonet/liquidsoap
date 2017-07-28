@@ -13,6 +13,8 @@ Fixed:
 
 - Handle mime-type arguments in input.harbor streams. (#456)
 
+- Tell ocaml to use the same C compiler at build and link time. Fixes build on FreeBSD when using C++-based bindings such as taglib. (#465)
+
 1.3.1 (28-05-2017)
 =====
 
