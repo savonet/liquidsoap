@@ -144,7 +144,7 @@ struct
   
   (** HTTP input *)
   
-  let url_expr = Str.regexp "^http://\\([^/]+\\)\\(/.*\\)?$"
+  let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp]://\\([^/]+\\)\\(/.*\\)?$"
   let host_expr = Str.regexp "^\\([^:]+\\):\\([0-9]+\\)$"
   let auth_split_expr = Str.regexp "^\\([^@]+\\)@\\(.+\\)$"
   

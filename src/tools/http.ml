@@ -248,7 +248,7 @@ struct
   (* exception Invalid_url *)
   
   let parse_url url =
-    let basic_rex = Pcre.regexp "^https?://([^/:]+)(:[0-9]+)?(/.*)?$" in
+    let basic_rex = Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://([^/:]+)(:[0-9]+)?(/.*)?$" in
     let sub =
       try
         Pcre.exec ~rex:basic_rex url
@@ -275,10 +275,10 @@ struct
     {host;port;path}
   
   let is_url path =
-    Pcre.pmatch ~pat:"^https?://.+" path
+    Pcre.pmatch ~pat:"^[Hh][Tt][Tt][Pp][sS]?://.+" path
   
   let dirname url =
-    let rex = Pcre.regexp "^(https?://.+/)[^/]*$" in
+    let rex = Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?://.+/)[^/]*$" in
     let s = Pcre.exec ~rex url in
     Pcre.get_substring s 1
   
