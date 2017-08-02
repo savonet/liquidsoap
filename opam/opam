@@ -56,6 +56,7 @@ depopts: [
   "lo"
   "inotify"
   "ssl"
+  "osx-secure-transport"
   "magic"
   "yojson"
 ]
