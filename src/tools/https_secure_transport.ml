@@ -8,10 +8,9 @@ struct
   type connection = socket
 
   type event = [
-    | `Delay of float
     | `Write of connection
     | `Read of connection
-    | `Exception of connection
+    | `Both of connection
   ]
 
   let default_port = 443
@@ -58,9 +57,9 @@ struct
   let wait_for ?log event timeout =
     let event =
       match event with
-        | `Read s -> `Read (Ssl.file_descr_of_socket s)
-        | `Write s -> `Write (Ssl.file_descr_of_socket s)
-        | `Both s -> `Both (Ssl.file_descr_of_socket s)
+        | `Read s -> `Read s.sock
+        | `Write s -> `Write s.sock
+        | `Both s -> `Both s.sock
     in
     Tutils.wait_for ?log event timeout
 
