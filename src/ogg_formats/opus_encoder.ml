@@ -21,10 +21,10 @@
  *****************************************************************************)
 
 let create_encoder ~opus ~comments () =
-  let samplerate = opus.Encoder.Opus.samplerate in
-  let channels = opus.Encoder.Opus.channels in
-  let frame_size = opus.Encoder.Opus.frame_size in
-  let application = match opus.Encoder.Opus.application with
+  let samplerate = opus.Opus_format.samplerate in
+  let channels = opus.Opus_format.channels in
+  let frame_size = opus.Opus_format.frame_size in
+  let application = match opus.Opus_format.application with
     | None -> `Audio
     | Some a -> a
   in
@@ -37,11 +37,11 @@ let create_encoder ~opus ~comments () =
          let x =
            Opus.Encoder.create ~comments ~channels ~samplerate ~application os
          in
-         Opus.Encoder.apply_control (`Set_bitrate opus.Encoder.Opus.bitrate) x;
-         begin match opus.Encoder.Opus.mode with
-           | Encoder.Opus.CBR ->
+         Opus.Encoder.apply_control (`Set_bitrate opus.Opus_format.bitrate) x;
+         begin match opus.Opus_format.mode with
+           | Opus_format.CBR ->
                Opus.Encoder.apply_control (`Set_vbr false) x
-           | Encoder.Opus.VBR b ->
+           | Opus_format.VBR b ->
                Opus.Encoder.apply_control (`Set_vbr true) x;
                Opus.Encoder.apply_control (`Set_vbr_constraint b) x
          end;
@@ -51,12 +51,12 @@ let create_encoder ~opus ~comments () =
                (fun value -> Opus.Encoder.apply_control (name value) x) 
                value)
          in 
-         maybe (fun (v) -> `Set_complexity v) opus.Encoder.Opus.complexity;
+         maybe (fun (v) -> `Set_complexity v) opus.Opus_format.complexity;
          maybe
            (fun (v) -> `Set_max_bandwidth v)
-           opus.Encoder.Opus.max_bandwidth ;
-         maybe (fun (v) -> `Set_signal v) opus.Encoder.Opus.signal;
-         Opus.Encoder.apply_control (`Set_dtx opus.Encoder.Opus.dtx) x;
+           opus.Opus_format.max_bandwidth ;
+         maybe (fun (v) -> `Set_signal v) opus.Opus_format.signal;
+         Opus.Encoder.apply_control (`Set_dtx opus.Opus_format.dtx) x;
          enc := Some x ;
          x
   in
@@ -119,19 +119,19 @@ let create_encoder ~opus ~comments () =
 
 let create_opus = 
   function 
-    | Encoder.Ogg.Opus opus -> 
+    | Ogg_format.Opus opus -> 
        let reset ogg_enc m =
          let comments = 
-           Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+           Utils.list_of_metadata (Meta_format.to_metadata m) 
          in 
          let enc =
            create_encoder ~opus ~comments ()
          in
-         Ogg_muxer.register_track ?fill:opus.Encoder.Opus.fill ogg_enc enc
+         Ogg_muxer.register_track ?fill:opus.Opus_format.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
-       let dst_freq = float opus.Encoder.Opus.samplerate in
-       let channels = opus.Encoder.Opus.channels in
+       let dst_freq = float opus.Opus_format.samplerate in
+       let channels = opus.Opus_format.channels in
        let encode =
          Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
        in

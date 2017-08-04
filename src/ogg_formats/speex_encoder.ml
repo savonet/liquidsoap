@@ -24,44 +24,44 @@ exception Internal
 exception Invalid_settings of string
 
 let create speex ~metadata () =
-  let frames_per_packet = speex.Encoder.Speex.frames_per_packet in
+  let frames_per_packet = speex.Speex_format.frames_per_packet in
   let mode = 
-    match speex.Encoder.Speex.mode with
-      | Encoder.Speex.Narrowband -> Speex.Narrowband
-      | Encoder.Speex.Wideband   -> Speex.Wideband
-      | Encoder.Speex.Ultra_wideband -> Speex.Ultra_wideband
+    match speex.Speex_format.mode with
+      | Speex_format.Narrowband -> Speex.Narrowband
+      | Speex_format.Wideband   -> Speex.Wideband
+      | Speex_format.Ultra_wideband -> Speex.Ultra_wideband
   in
   let vbr = 
-    match speex.Encoder.Speex.bitrate_control with
-      | Encoder.Speex.Vbr _ -> true
+    match speex.Speex_format.bitrate_control with
+      | Speex_format.Vbr _ -> true
       | _     -> false
   in
-  let channels = if speex.Encoder.Speex.stereo then 2 else 1 in
-  let rate = speex.Encoder.Speex.samplerate in
+  let channels = if speex.Speex_format.stereo then 2 else 1 in
+  let rate = speex.Speex_format.samplerate in
   let header =
     Speex.Header.init ~frames_per_packet ~mode
                       ~vbr ~nb_channels:channels ~rate ()
   in
   let enc = Speex.Encoder.init mode frames_per_packet in
   begin
-    match speex.Encoder.Speex.bitrate_control with
-      | Encoder.Speex.Vbr x -> 
+    match speex.Speex_format.bitrate_control with
+      | Speex_format.Vbr x -> 
           Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
           Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY x
-      | Encoder.Speex.Abr x ->
+      | Speex_format.Abr x ->
           Speex.Encoder.set enc Speex.SPEEX_SET_ABR 1;
           Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE x
-      | Encoder.Speex.Quality x ->
+      | Speex_format.Quality x ->
           Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY x
   end ;
   begin
-    match speex.Encoder.Speex.complexity with
+    match speex.Speex_format.complexity with
       | Some complexity ->
           Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity
       | _ -> ()
   end ;
-  if speex.Encoder.Speex.dtx then Speex.Encoder.set enc Speex.SPEEX_SET_DTX 1;
-  if speex.Encoder.Speex.vad then Speex.Encoder.set enc Speex.SPEEX_SET_VAD 1;
+  if speex.Speex_format.dtx then Speex.Encoder.set enc Speex.SPEEX_SET_DTX 1;
+  if speex.Speex_format.vad then Speex.Encoder.set enc Speex.SPEEX_SET_VAD 1;
   Speex.Encoder.set enc Speex.SPEEX_SET_SAMPLING_RATE rate;
   let frame_size = Speex.Encoder.get enc Speex.SPEEX_GET_FRAME_SIZE in
   let p1,p2 = Speex.Header.encode_header_packetout header metadata in
@@ -166,10 +166,10 @@ let create speex ~metadata () =
 
 let create_speex =
   function 
-   | Encoder.Ogg.Speex speex -> 
+   | Ogg_format.Speex speex -> 
       let reset ogg_enc m =
         let m = 
-          Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+          Utils.list_of_metadata (Meta_format.to_metadata m) 
         in
         let title =
           try
@@ -194,11 +194,11 @@ let create_speex =
         let enc =
           create speex ~metadata ()
         in
-        Ogg_muxer.register_track ?fill:speex.Encoder.Speex.fill ogg_enc enc
+        Ogg_muxer.register_track ?fill:speex.Speex_format.fill ogg_enc enc
       in
-      let channels = if speex.Encoder.Speex.stereo then 2 else 1 in
+      let channels = if speex.Speex_format.stereo then 2 else 1 in
       let src_freq = float (Frame.audio_of_seconds 1.) in
-      let dst_freq = float speex.Encoder.Speex.samplerate in
+      let dst_freq = float speex.Speex_format.samplerate in
       let encode = 
         Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () 
       in

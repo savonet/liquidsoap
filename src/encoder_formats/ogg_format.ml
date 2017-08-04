@@ -20,26 +20,22 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+type item =
+  | Speex of Speex_format.t
+  | Vorbis of Vorbis_format.t
+  | Flac of Flac_format.t
+  | Theora of Theora_format.t
+  | Opus of Opus_format.t
+type t = item list
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      channels = 2;
-      samplerate = 44100
-    }
-  in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+let to_string l =
+  Printf.sprintf "%%ogg(%s)"
+    (String.concat ","
+       (List.map
+          (function
+             | Vorbis v -> Vorbis_format.to_string v
+             | Flac   v -> Flac_format.to_string v
+             | Theora t -> Theora_format.to_string t
+             | Speex  s -> Speex_format.to_string s
+             | Opus   o -> Opus_format.to_string o)
+          l))

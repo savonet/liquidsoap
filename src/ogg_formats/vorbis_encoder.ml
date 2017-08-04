@@ -102,11 +102,11 @@ let create ~channels ~samplerate ~quality ~metadata () =
 
 let create_vorbis =
   function 
-   | Encoder.Ogg.Vorbis vorbis -> 
-      let channels = vorbis.Encoder.Vorbis.channels in
-      let samplerate = vorbis.Encoder.Vorbis.samplerate in
+   | Ogg_format.Vorbis vorbis -> 
+      let channels = vorbis.Vorbis_format.channels in
+      let samplerate = vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
-        let m =  Encoder.Meta.to_metadata m in
+        let m =  Meta_format.to_metadata m in
         let metadata = 
           Vorbis.tags m ()
         in
@@ -117,22 +117,22 @@ let create_vorbis =
               | Some x -> x
               | None   -> -1
           in
-          match vorbis.Encoder.Vorbis.mode with
-            | Encoder.Vorbis.ABR (min_rate,average_rate,max_rate) 
+          match vorbis.Vorbis_format.mode with
+            | Vorbis_format.ABR (min_rate,average_rate,max_rate) 
                 -> let min_rate,average_rate,max_rate = 
                      f min_rate, f average_rate, f max_rate
                    in
                    create_abr ~channels ~samplerate 
                               ~max_rate ~average_rate 
                               ~min_rate ~metadata ()
-            | Encoder.Vorbis.CBR bitrate 
+            | Vorbis_format.CBR bitrate 
                 -> create_cbr ~channels ~samplerate 
                               ~bitrate ~metadata ()
-            | Encoder.Vorbis.VBR quality 
+            | Vorbis_format.VBR quality 
                 -> create ~channels ~samplerate 
                           ~quality ~metadata ()
         in
-        Ogg_muxer.register_track ?fill:vorbis.Encoder.Vorbis.fill ogg_enc enc
+        Ogg_muxer.register_track ?fill:vorbis.Vorbis_format.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float samplerate in

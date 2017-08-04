@@ -22,7 +22,7 @@
 
 (** AVI encoder *)
 
-open Encoder.AVI
+open Avi_format
 
 module Img = Image.RGBA32
 

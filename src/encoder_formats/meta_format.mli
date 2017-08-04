@@ -20,26 +20,9 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+type export_metadata
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      channels = 2;
-      samplerate = 44100
-    }
-  in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+val export_metadata : Frame.metadata -> export_metadata
+val to_metadata : export_metadata -> Frame.metadata
+val empty_metadata : export_metadata
+val is_empty : export_metadata -> bool

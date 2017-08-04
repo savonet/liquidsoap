@@ -402,8 +402,8 @@ let () =
    ["",Lang.metadata_t,None,None] Lang.metadata_t
    (fun p ->
      Lang.metadata
-      (Encoder.Meta.to_metadata
-        (Encoder.Meta.export_metadata
+      (Meta_format.to_metadata
+        (Meta_format.export_metadata
           (Lang.to_metadata
             (List.assoc "" p)))))
 

@@ -20,26 +20,18 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+type t = { samplerate : int;
+           samplesize : int;
+           channels   : int;
+           duration   : float option;
+           header     : bool }
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      channels = 2;
-      samplerate = 44100
-    }
+let to_string w =
+  let duration =
+    match w.duration with
+      | None -> ""
+      | Some d -> Printf.sprintf ",duration=%f" d
   in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+  Printf.sprintf
+    "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
+    w.samplerate w.channels w.samplesize w.header duration

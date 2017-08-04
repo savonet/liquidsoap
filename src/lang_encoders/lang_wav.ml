@@ -24,7 +24,7 @@ open Lang_values
 open Lang_encoders
 
 let make params =
-  let defaults = { Encoder.WAV.
+  let defaults = { Wav_format.
                     channels   = 2 ;
                     samplesize = 16;
                     header = true;
@@ -35,25 +35,25 @@ let make params =
       (fun f ->
         function
           | ("stereo",{ term = Bool b; _ }) ->
-              { f with Encoder.WAV.channels = if b then 2 else 1 }
+              { f with Wav_format.channels = if b then 2 else 1 }
           | ("mono",{ term = Bool b; _ }) ->
-              { f with Encoder.WAV.channels = if b then 1 else 2 }
+              { f with Wav_format.channels = if b then 1 else 2 }
           | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.WAV.channels = 2 }
+              { f with Wav_format.channels = 2 }
           | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.WAV.channels = 1 }
+              { f with Wav_format.channels = 1 }
           | ("channels",{ term = Int c; _ }) ->
-              { f with Encoder.WAV.channels = c }
+              { f with Wav_format.channels = c }
           | ("duration",{ term = Float d; _ }) ->
-              { f with Encoder.WAV.duration = Some d }
+              { f with Wav_format.duration = Some d }
           | ("samplerate",{ term = Int i; _ }) ->
-              { f with Encoder.WAV.samplerate = i }
+              { f with Wav_format.samplerate = i }
           | ("samplesize",({ term = Int i; _ } as t)) ->
               if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
                 raise (Error (t,"invalid sample size")) ;
-              { f with Encoder.WAV.samplesize = i }
+              { f with Wav_format.samplesize = i }
           | ("header",{ term = Bool b; _ }) ->
-              { f with Encoder.WAV.header = b }
+              { f with Wav_format.header = b }
           | (_,t) -> raise (generic_error t))
       defaults params
   in

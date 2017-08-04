@@ -22,7 +22,7 @@
 
 (** External encoder *)
 
-open Encoder.External
+open External_encoder_format
 let encoder id ext =
   let log = Dtools.Log.make [id] in
 

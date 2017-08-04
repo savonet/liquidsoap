@@ -25,7 +25,7 @@ open Lang_encoders
 
 let make ?pos params =
   let defaults =
-    { Encoder.GStreamer.
+    { Gstreamer_format.
        channels  = 2;
        audio     = Some "lamemp3enc";
        has_video = true;
@@ -45,21 +45,21 @@ let make ?pos params =
       (fun f ->
         function
           | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.GStreamer.channels = i }
+              { f with Gstreamer_format.channels = i }
           | ("audio",{ term = String s; _}) ->
-              { f with Encoder.GStreamer.audio = perhaps s }
+              { f with Gstreamer_format.audio = perhaps s }
           | ("has_video",{ term = Bool b; _}) ->
-              { f with Encoder.GStreamer.has_video = b }
+              { f with Gstreamer_format.has_video = b }
           | ("video",{ term = String s; _}) ->
-              { f with Encoder.GStreamer.video = perhaps s }
+              { f with Gstreamer_format.video = perhaps s }
           | ("muxer",{ term = String s; _}) ->
-              { f with Encoder.GStreamer.muxer = perhaps s }
+              { f with Gstreamer_format.muxer = perhaps s }
           | ("metadata",{ term = String s; _}) ->
-              { f with Encoder.GStreamer.metadata = s }
+              { f with Gstreamer_format.metadata = s }
           | ("log",{ term = Int i; _}) ->
-              { f with Encoder.GStreamer.log = i }
+              { f with Gstreamer_format.log = i }
           | ("pipeline",{ term = String s; _}) ->
-              { f with Encoder.GStreamer.pipeline = perhaps s }
+              { f with Gstreamer_format.pipeline = perhaps s }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
@@ -68,17 +68,17 @@ let make ?pos params =
         t = T.fresh_evar ~level:(-1) ~pos ;
         term = Encoder (Encoder.GStreamer gstreamer) }
   in
-    if gstreamer.Encoder.GStreamer.pipeline = None &&
-       gstreamer.Encoder.GStreamer.audio <> None &&
-       gstreamer.Encoder.GStreamer.channels = 0
+    if gstreamer.Gstreamer_format.pipeline = None &&
+       gstreamer.Gstreamer_format.audio <> None &&
+       gstreamer.Gstreamer_format.channels = 0
     then
       raise
         (Error (dummy, "must have at least one audio channel when \
                         passing an audio pipeline"));
-    if gstreamer.Encoder.GStreamer.pipeline = None &&
-       gstreamer.Encoder.GStreamer.video <> None &&
-       gstreamer.Encoder.GStreamer.audio <> None &&
-       gstreamer.Encoder.GStreamer.muxer = None
+    if gstreamer.Gstreamer_format.pipeline = None &&
+       gstreamer.Gstreamer_format.video <> None &&
+       gstreamer.Gstreamer_format.audio <> None &&
+       gstreamer.Gstreamer_format.muxer = None
     then
       raise
         (Error (dummy, "must have a muxer when passing an audio and \

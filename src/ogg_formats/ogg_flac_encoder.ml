@@ -21,13 +21,13 @@
  *****************************************************************************)
 
 let create_encoder ~flac ~comments () =
-  let samplerate = flac.Encoder.Flac.samplerate in
+  let samplerate = flac.Flac_format.samplerate in
   let p = 
     { Flac.Encoder.
-       channels = flac.Encoder.Flac.channels ;
-       bits_per_sample = flac.Encoder.Flac.bits_per_sample ;
+       channels = flac.Flac_format.channels ;
+       bits_per_sample = flac.Flac_format.bits_per_sample ;
        sample_rate = samplerate ;
-       compression_level = Some (flac.Encoder.Flac.compression);
+       compression_level = Some (flac.Flac_format.compression);
        total_samples = None;
     }
   in
@@ -103,19 +103,19 @@ let create_encoder ~flac ~comments () =
 
 let create_flac = 
   function 
-    | Encoder.Ogg.Flac flac -> 
+    | Ogg_format.Flac flac -> 
        let reset ogg_enc m =
          let comments = 
-           Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+           Utils.list_of_metadata (Meta_format.to_metadata m) 
          in 
          let enc =
            create_encoder ~flac ~comments ()
          in
-         Ogg_muxer.register_track ?fill:flac.Encoder.Flac.fill ogg_enc enc
+         Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
-       let dst_freq = float flac.Encoder.Flac.samplerate in
-       let channels = flac.Encoder.Flac.channels in
+       let dst_freq = float flac.Flac_format.samplerate in
+       let channels = flac.Flac_format.channels in
        let encode =
          Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
        in

@@ -75,29 +75,29 @@ struct
   
   let create_encoder params =
     let encoder =
-      Fdkaac.Encoder.create params.Encoder.FdkAacEnc.channels
+      Fdkaac.Encoder.create params.Fdkaac_format.channels
     in
     let params = [
-      `Aot params.Encoder.FdkAacEnc.aot;
-      `Samplerate params.Encoder.FdkAacEnc.samplerate;
-      `Transmux params.Encoder.FdkAacEnc.transmux;
-      `Afterburner params.Encoder.FdkAacEnc.afterburner;
+      `Aot params.Fdkaac_format.aot;
+      `Samplerate params.Fdkaac_format.samplerate;
+      `Transmux params.Fdkaac_format.transmux;
+      `Afterburner params.Fdkaac_format.afterburner;
     ] @ (
-        if params.Encoder.FdkAacEnc.aot = `Mpeg_4 `AAC_ELD then
-          [`Sbr_mode params.Encoder.FdkAacEnc.sbr_mode]
+        if params.Fdkaac_format.aot = `Mpeg_4 `AAC_ELD then
+          [`Sbr_mode params.Fdkaac_format.sbr_mode]
         else [])
       @ (
-        match params.Encoder.FdkAacEnc.bitrate_mode with
+        match params.Fdkaac_format.bitrate_mode with
           | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]
-          | `Constant     -> [`Bitrate (params.Encoder.FdkAacEnc.bitrate*1000)])
+          | `Constant     -> [`Bitrate (params.Fdkaac_format.bitrate*1000)])
     in
     List.iter (Fdkaac.Encoder.set encoder) params;
     encoder
   
   let encoder aac =
     let enc = create_encoder aac in
-    let channels = aac.Encoder.FdkAacEnc.channels in
-    let samplerate = aac.Encoder.FdkAacEnc.samplerate in
+    let channels = aac.Fdkaac_format.channels in
+    let samplerate = aac.Fdkaac_format.samplerate in
     let samplerate_converter =
       Audio_converter.Samplerate.create channels
     in

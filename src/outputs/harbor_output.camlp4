@@ -456,13 +456,13 @@ struct
       (Utils.get_some encoder).Encoder.encode frame ofs len
   
     method insert_metadata m = 
-      let m = Encoder.Meta.to_metadata m in
+      let m = Meta_format.to_metadata m in
       let m = recode ~icy:true m in
       Tutils.mutexify metadata.metadata_m
         (fun () -> 
           metadata.metadata <- Some m) ();
       (Utils.get_some encoder).Encoder.insert_metadata 
-         (Encoder.Meta.export_metadata m);
+         (Meta_format.export_metadata m);
   
     method add_client ~protocol ~headers ~uri ~args s = 
       let ip = 
@@ -659,7 +659,7 @@ struct
       assert (encoder = None) ;
       let enc = data.factory self#id in
       encoder <- 
-         Some (enc (Encoder.Meta.empty_metadata)) ;
+         Some (enc (Meta_format.empty_metadata)) ;
       let handler ~protocol ~data:_ ~headers ~socket
                   uri =
         let rex = Pcre.regexp "^(.+)\\?(.+)$" in

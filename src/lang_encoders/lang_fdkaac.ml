@@ -25,7 +25,7 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    { Encoder.FdkAacEnc.
+    { Fdkaac_format.
         afterburner    = false;
         aot            = `Mpeg_4 `HE_AAC_v2;
         bitrate        = 64;
@@ -45,12 +45,12 @@ let make params =
       (fun f ->
         function
           | ("afterburner",{ term = Bool b; _}) ->
-              { f with Encoder.FdkAacEnc.afterburner = b }
+              { f with Fdkaac_format.afterburner = b }
           | ("aot",({ term = String s; _} as t)) ->
-              let aot = try Encoder.FdkAacEnc.aot_of_string s with
+              let aot = try Fdkaac_format.aot_of_string s with
                 | Not_found -> raise (Error (t,"invalid aot value"))
               in
-              { f with Encoder.FdkAacEnc.aot = aot }
+              { f with Fdkaac_format.aot = aot }
           | ("vbr",({ term = Int i; _} as t)) ->
               if not (List.mem i valid_vbr) then
                begin
@@ -61,11 +61,11 @@ let make params =
                 in
                 raise (Error (t,err));
                end;
-              { f with Encoder.FdkAacEnc.bitrate_mode = `Variable i }
+              { f with Fdkaac_format.bitrate_mode = `Variable i }
           | ("bitrate",{ term = Int i; _}) ->
-              { f with Encoder.FdkAacEnc.bitrate = i }
+              { f with Fdkaac_format.bitrate = i }
           | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.FdkAacEnc.channels = i }
+              { f with Fdkaac_format.channels = i }
           | ("samplerate",({ term = Int i; _} as t)) ->
               if not (List.mem i valid_samplerates) then
                begin
@@ -76,23 +76,23 @@ let make params =
                 in
                 raise (Error (t,err));
                end;
-              { f with Encoder.FdkAacEnc.samplerate = i }
+              { f with Fdkaac_format.samplerate = i }
           | ("sbr_mode",{ term = Bool b; _}) ->
-              { f with Encoder.FdkAacEnc.sbr_mode = b }
+              { f with Fdkaac_format.sbr_mode = b }
           | ("transmux",({ term = String s; _} as t)) ->
-              let transmux = try Encoder.FdkAacEnc.transmux_of_string s with
+              let transmux = try Fdkaac_format.transmux_of_string s with
                 | Not_found -> raise (Error (t,"invalid transmux value"))
               in
-              { f with Encoder.FdkAacEnc.transmux = transmux }
+              { f with Fdkaac_format.transmux = transmux }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.FdkAacEnc.channels = 1 }
+              { f with Fdkaac_format.channels = 1 }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.FdkAacEnc.channels = 2 }
+              { f with Fdkaac_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-  let aot = fdkaac.Encoder.FdkAacEnc.aot in
+  let aot = fdkaac.Fdkaac_format.aot in
     if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
-      if fdkaac.Encoder.FdkAacEnc.channels <> 2 then
+      if fdkaac.Fdkaac_format.channels <> 2 then
         failwith "HE-AAC v2 is only available with 2 channels.";
     Encoder.FdkAacEnc fdkaac

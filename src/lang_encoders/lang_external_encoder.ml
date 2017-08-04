@@ -25,13 +25,13 @@ open Lang_encoders
 
 let make params =
   let defaults =
-    { Encoder.External.
+    { External_encoder_format.
         channels = 2 ;
         samplerate = 44100 ;
         video = false ;
         header  = true ;
         restart_on_crash = false ;
-        restart = Encoder.External.No_condition ;
+        restart = External_encoder_format.No_condition ;
         process = "" }
   in
   let ext =
@@ -39,27 +39,27 @@ let make params =
       (fun f ->
         function
           | ("channels",{ term = Int c; _}) ->
-              { f with Encoder.External.channels = c }
+              { f with External_encoder_format.channels = c }
           | ("samplerate",{ term = Int i; _}) ->
-             { f with Encoder.External.samplerate = i }
+             { f with External_encoder_format.samplerate = i }
           | ("video",{ term = Bool h; _}) ->
-              { f with Encoder.External.video = h }
+              { f with External_encoder_format.video = h }
           | ("header",{ term = Bool h; _}) ->
-              { f with Encoder.External.header = h }
+              { f with External_encoder_format.header = h }
           | ("restart_on_crash",{ term = Bool h; _}) ->
-              { f with Encoder.External.restart_on_crash = h }
+              { f with External_encoder_format.restart_on_crash = h }
           | ("",{ term = Var s; _})
             when Utils.StringCompat.lowercase_ascii s = "restart_on_metadata" ->
-              { f with Encoder.External.restart = Encoder.External.Metadata }
+              { f with External_encoder_format.restart = External_encoder_format.Metadata }
           | ("restart_after_delay",{ term = Int i; _}) ->
-              { f with Encoder.External.restart = Encoder.External.Delay i }
+              { f with External_encoder_format.restart = External_encoder_format.Delay i }
           | ("process",{ term = String s; _}) ->
-              { f with Encoder.External.process = s }
+              { f with External_encoder_format.process = s }
           | ("",{ term = String s; _}) ->
-              { f with Encoder.External.process = s }
+              { f with External_encoder_format.process = s }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    if ext.Encoder.External.process = "" then
-      raise Encoder.External.No_process ;
+    if ext.External_encoder_format.process = "" then
+      raise External_encoder_format.No_process ;
     Encoder.External ext

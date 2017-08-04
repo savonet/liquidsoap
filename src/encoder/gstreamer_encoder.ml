@@ -22,7 +22,7 @@
 
 (** GStreamer encoder *)
 
-open Encoder.GStreamer
+open Gstreamer_format
 
 module GU = Gstreamer_utils
 module Img = Image.RGBA32
@@ -38,7 +38,7 @@ type gst =
   }
 
 let encoder ext =
-  let channels = Encoder.GStreamer.audio_channels ext in
+  let channels = Gstreamer_format.audio_channels ext in
   let mutex = Mutex.create () in
   (* Here "samples" are the number of buffers available in the GStreamer
      appsink *)
@@ -140,7 +140,7 @@ let encoder ext =
   in
 
   let insert_metadata m =
-    let m = Encoder.Meta.to_metadata m in
+    let m = Meta_format.to_metadata m in
     try
       let meta =
         Gstreamer.Tag_setter.of_element

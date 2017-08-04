@@ -20,26 +20,13 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
-
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      channels = 2;
-      samplerate = 44100
-    }
-  in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+type export_metadata = Frame.metadata
+let export_metadata m =
+  let ret = Hashtbl.create 10 in
+  let l = Encoder_formats.conf_export_metadata#get in
+  Hashtbl.iter (fun x y -> if List.mem (Utils.StringCompat.lowercase_ascii x) l then
+                           Hashtbl.add ret x y) m;
+  ret
+let to_metadata m = m
+let empty_metadata = Hashtbl.create 0
+let is_empty m = Hashtbl.length m == 0

@@ -24,21 +24,21 @@
 
 let encoder flac meta =
   let comments = 
-    Utils.list_of_metadata (Encoder.Meta.to_metadata meta) 
+    Utils.list_of_metadata (Meta_format.to_metadata meta) 
   in
-  let channels = flac.Encoder.Flac.channels in
+  let channels = flac.Flac_format.channels in
   let samplerate_converter =
     Audio_converter.Samplerate.create channels
   in
-  let samplerate = flac.Encoder.Flac.samplerate in
+  let samplerate = flac.Flac_format.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   let p =
     { Flac.Encoder.
        channels = channels ;
-       bits_per_sample = flac.Encoder.Flac.bits_per_sample ;
+       bits_per_sample = flac.Flac_format.bits_per_sample ;
        sample_rate = samplerate ;
-       compression_level = Some (flac.Encoder.Flac.compression);
+       compression_level = Some (flac.Flac_format.compression);
        total_samples = None;
     }
   in

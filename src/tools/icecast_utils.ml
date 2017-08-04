@@ -49,7 +49,7 @@ end
 module Icecast_v(M:Icecast_t) = 
 struct
   type encoder_data = {
-    factory : string -> Encoder.Meta.export_metadata -> Encoder.encoder;
+    factory : string -> Meta_format.export_metadata -> Encoder.encoder;
     format  : M.content;
     info    : M.info;
   }

@@ -25,7 +25,7 @@
 exception Found of string
 
 let render m = 
-  let m = Encoder.Meta.to_metadata m in
+  let m = Meta_format.to_metadata m in
   let t = Taglib.Inline.Id3v2.init () in
   let t = 
     Taglib.Inline.Id3v2.attach_frame t "TSSE" 
@@ -63,4 +63,4 @@ let render m =
   Taglib.Inline.Id3v2.render t
 
 let () = 
-  Encoder.MP3.id3v2_export := Some render
+  Mp3_format.id3v2_export := Some render

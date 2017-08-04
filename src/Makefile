@@ -1,6 +1,6 @@
 SUBDIRS=tools decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
-	visualization analyze synth harbor lang_encoders
+	visualization analyze synth harbor lang_encoders encoder_formats
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
@@ -159,6 +159,24 @@ lang_encoders = \
   lang/lang_encoders.ml \
   $(wildcard lang_encoders/*.ml)
 
+encoder_formats = \
+  encoder_formats.ml \
+  encoder_formats/meta_format.mli \
+  encoder_formats/meta_format.ml \
+  encoder_formats/avi_format.ml \
+  encoder_formats/external_encoder_format.ml \
+  encoder_formats/Fdkaac_format.ml \
+  encoder_formats/flac_format.ml \
+  encoder_formats/gstreamer_format.ml \
+  encoder_formats/mp3_format.ml \
+  encoder_formats/opus_format.ml \
+  encoder_formats/shine_format.ml \
+  encoder_formats/speex_format.ml \
+  encoder_formats/theora_format.ml \
+  encoder_formats/vorbis_format.ml \
+  encoder_formats/ogg_format.ml \
+  encoder_formats/wav_format.ml
+
 outputs = outputs/output.ml \
 	outputs/pipe_output.ml \
 	outputs/harbor_output.ml \
@@ -218,7 +236,7 @@ liquidsoap_sources= shutdown.ml \
 	$(tools) SVN.ml converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
-	playlist_parser.ml encoder/encoder.ml \
+	playlist_parser.ml $(encoder_formats) encoder.ml \
 	tools/server_builtins.ml
 
 # Some for camlimages

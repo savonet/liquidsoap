@@ -20,26 +20,33 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+exception No_process
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      channels = 2;
-      samplerate = 44100
-    }
+type restart_condition = Delay of int | Metadata | No_condition
+
+type t = {
+  channels            : int ;
+  samplerate          : int ;
+  video               : bool ;
+  header              : bool ;
+  restart_on_crash    : bool ;
+  restart             : restart_condition ;
+  process             : string
+}
+
+let to_string e =
+  let string_of_restart_condition c =
+    match c with
+      | Delay d         -> Printf.sprintf "restart_after_delay=%i" d
+      | Metadata        -> "restart_on_metadata"
+      | No_condition    -> ""
   in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+  Printf.sprintf "%%external(channels=%i,samplerate=%i,video=%b,header=%b,\
+                            restart_on_crash=%b,%s,process=%s)"
+    e.channels
+    e.samplerate
+    e.video
+    e.header
+    e.restart_on_crash
+    (string_of_restart_condition e.restart)
+    e.process

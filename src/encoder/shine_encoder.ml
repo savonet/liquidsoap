@@ -22,7 +22,7 @@
 
 (** Fixed-point MP3 encoder *)
 
-open Encoder.Shine
+open Shine_format
 module G = Generator.Generator
 
 let create_encoder ~samplerate ~bitrate ~channels =

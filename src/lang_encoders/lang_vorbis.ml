@@ -25,8 +25,8 @@ open Lang_encoders
 
 let make_cbr params =
   let defaults =
-    { Encoder.Vorbis.
-        mode = Encoder.Vorbis.CBR 128 ;
+    { Vorbis_format.
+        mode = Vorbis_format.CBR 128 ;
         channels = 2 ;
         fill = None;
         samplerate = 44100 ;
@@ -37,34 +37,34 @@ let make_cbr params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.samplerate = i }
+              { f with Vorbis_format.samplerate = i }
           | ("bitrate",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.mode = Encoder.Vorbis.CBR i }
+              { f with Vorbis_format.mode = Vorbis_format.CBR i }
           | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.channels = i }
+              { f with Vorbis_format.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.fill = Some i }
+              { f with Vorbis_format.fill = Some i }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.Vorbis.channels = 1 }
+              { f with Vorbis_format.channels = 1 }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.Vorbis.channels = 2 }
+              { f with Vorbis_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    Encoder.Ogg.Vorbis vorbis
+    Ogg_format.Vorbis vorbis
 
 let make_abr params =
   let defaults =
-    { Encoder.Vorbis.
-        mode = Encoder.Vorbis.ABR (None,None,None) ;
+    { Vorbis_format.
+        mode = Vorbis_format.ABR (None,None,None) ;
         channels = 2 ;
         fill = None ;
         samplerate = 44100 ;
     }
   in
   let get_rates x =
-    match x.Encoder.Vorbis.mode with
-      | Encoder.Vorbis.ABR (x,y,z) -> x,y,z
+    match x.Vorbis_format.mode with
+      | Vorbis_format.ABR (x,y,z) -> x,y,z
       | _ -> assert false
   in
   let vorbis =
@@ -72,33 +72,33 @@ let make_abr params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.samplerate = i }
+              { f with Vorbis_format.samplerate = i }
           | ("bitrate",{ term = Int i; _}) ->
               let (x,_,y) = get_rates f in
-              { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (x,Some i,y) }
+              { f with Vorbis_format.mode = Vorbis_format.ABR (x,Some i,y) }
           | ("max_bitrate",{ term = Int i; _}) ->
               let (x,y,_) = get_rates f in
-              { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (x,y,Some i) }
+              { f with Vorbis_format.mode = Vorbis_format.ABR (x,y,Some i) }
           | ("min_bitrate",{ term = Int i; _}) ->
               let (_,x,y) = get_rates f in
-              { f with Encoder.Vorbis.mode = Encoder.Vorbis.ABR (Some i,x,y) }
+              { f with Vorbis_format.mode = Vorbis_format.ABR (Some i,x,y) }
           | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.channels = i }
+              { f with Vorbis_format.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.fill = Some i }
+              { f with Vorbis_format.fill = Some i }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.Vorbis.channels = 1 }
+              { f with Vorbis_format.channels = 1 }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.Vorbis.channels = 2 }
+              { f with Vorbis_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    Encoder.Ogg.Vorbis vorbis
+    Ogg_format.Vorbis vorbis
 
 let make params =
   let defaults =
-    { Encoder.Vorbis.
-        mode = Encoder.Vorbis.VBR 0.3 ;
+    { Vorbis_format.
+        mode = Vorbis_format.VBR 0.3 ;
         channels = 2 ;
         fill = None ;
         samplerate = 44100 ;
@@ -109,25 +109,25 @@ let make params =
       (fun f ->
         function
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.samplerate = i }
+              { f with Vorbis_format.samplerate = i }
           | ("quality",({ term = Float q; _} as t)) ->
               if q<(-0.2) || q>1. then
                 raise (Error (t,"quality should be in [(-0.2)..1]")) ;
-              { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
+              { f with Vorbis_format.mode = Vorbis_format.VBR q }
           | ("quality",({ term = Int i; _} as t)) ->
               if i<>0 && i<>1 then
                 raise (Error (t,"quality should be in [-(0.2)..1]")) ;
               let q = float i in
-              { f with Encoder.Vorbis.mode = Encoder.Vorbis.VBR q }
+              { f with Vorbis_format.mode = Vorbis_format.VBR q }
           | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.channels = i }
+              { f with Vorbis_format.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
-              { f with Encoder.Vorbis.fill = Some i }
+              { f with Vorbis_format.fill = Some i }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.Vorbis.channels = 1 }
+              { f with Vorbis_format.channels = 1 }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.Vorbis.channels = 2 }
+              { f with Vorbis_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    Encoder.Ogg.Vorbis vorbis
+    Ogg_format.Vorbis vorbis

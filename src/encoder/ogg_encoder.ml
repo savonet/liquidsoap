@@ -27,7 +27,7 @@ type track =
     encode     : Ogg_muxer.t -> nativeint -> 
                  Frame.content -> int -> int -> unit ;
     reset      : Ogg_muxer.t -> 
-                 Encoder.Meta.export_metadata -> nativeint ;
+                 Meta_format.export_metadata -> nativeint ;
     mutable id : nativeint option
   }
 
@@ -89,65 +89,65 @@ let encoder ogg name meta =
     let ogg_enc = Ogg_muxer.create ~skeleton name in
     let create_track cur x = 
       match x with
-        | Encoder.Ogg.Vorbis x ->
+        | Ogg_format.Vorbis x ->
            begin 
             try
               let create_vorbis = 
                 Hashtbl.find encoders "vorbis"
               in
-              create_vorbis (Encoder.Ogg.Vorbis x) :: cur
+              create_vorbis (Ogg_format.Vorbis x) :: cur
             with
               | Not_found -> 
                   Ogg_muxer.log#f 3
                     "%s: Could not find any vorbis encoder." name ;
                   raise Not_found          
            end
-        | Encoder.Ogg.Opus x ->
+        | Ogg_format.Opus x ->
            begin
             try
               let create_opus =
                 Hashtbl.find encoders "opus"
               in
-              create_opus (Encoder.Ogg.Opus x) :: cur
+              create_opus (Ogg_format.Opus x) :: cur
             with
               | Not_found ->
                   Ogg_muxer.log#f 3
                     "%s: Could not find any opus encoder." name ;
                   raise Not_found
            end
-        | Encoder.Ogg.Flac x ->
+        | Ogg_format.Flac x ->
            begin
             try
               let create_flac =
                 Hashtbl.find encoders "flac"
               in
-              create_flac (Encoder.Ogg.Flac x) :: cur
+              create_flac (Ogg_format.Flac x) :: cur
             with
               | Not_found ->
                   Ogg_muxer.log#f 3
                     "%s: Could not find any flac encoder." name ;
                   raise Not_found
            end
-        | Encoder.Ogg.Theora x ->
+        | Ogg_format.Theora x ->
            begin
             try
               let create_theora =
                 Hashtbl.find encoders "theora"
               in
-              create_theora (Encoder.Ogg.Theora x) :: cur
+              create_theora (Ogg_format.Theora x) :: cur
             with
               | Not_found ->
                   Ogg_muxer.log#f 3 
                     "%s: Could not find any theora encoder." name ;
                   raise Not_found
            end
-        | Encoder.Ogg.Speex x ->
+        | Ogg_format.Speex x ->
            begin
             try
               let create_speex =
                 Hashtbl.find encoders "speex"
               in
-              create_speex (Encoder.Ogg.Speex x) :: cur
+              create_speex (Ogg_format.Speex x) :: cur
             with
               | Not_found ->
                   Ogg_muxer.log#f 3

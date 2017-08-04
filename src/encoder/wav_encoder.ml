@@ -22,7 +22,7 @@
 
 (** WAV encoder *)
 
-open Encoder.WAV
+open Wav_format
 
 let encoder wav =
   let channels = wav.channels in

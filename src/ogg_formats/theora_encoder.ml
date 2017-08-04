@@ -25,25 +25,25 @@ module P = Img.Pixel
 
 let create_encoder ~theora ~metadata () =
    let quality,bitrate =
-     match theora.Encoder.Theora.bitrate_control with
-       | Encoder.Theora.Bitrate x -> 0,x
-       | Encoder.Theora.Quality x -> x,0
+     match theora.Theora_format.bitrate_control with
+       | Theora_format.Bitrate x -> 0,x
+       | Theora_format.Quality x -> x,0
   in
-  let width              = Lazy.force theora.Encoder.Theora.width in
-  let height             = Lazy.force theora.Encoder.Theora.height in
-  let picture_width      = Lazy.force theora.Encoder.Theora.picture_width in
-  let picture_height     = Lazy.force theora.Encoder.Theora.picture_height in
-  let picture_x          = theora.Encoder.Theora.picture_x in
-  let picture_y          = theora.Encoder.Theora.picture_y in
-  let aspect_numerator   = theora.Encoder.Theora.aspect_numerator in
-  let aspect_denominator = theora.Encoder.Theora.aspect_denominator in
+  let width              = Lazy.force theora.Theora_format.width in
+  let height             = Lazy.force theora.Theora_format.height in
+  let picture_width      = Lazy.force theora.Theora_format.picture_width in
+  let picture_height     = Lazy.force theora.Theora_format.picture_height in
+  let picture_x          = theora.Theora_format.picture_x in
+  let picture_y          = theora.Theora_format.picture_y in
+  let aspect_numerator   = theora.Theora_format.aspect_numerator in
+  let aspect_denominator = theora.Theora_format.aspect_denominator in
   let fps = Frame.video_of_seconds 1. in
   let version_major,version_minor,version_subminor = Theora.version_number in
-  let keyframe_frequency = Some theora.Encoder.Theora.keyframe_frequency in
-  let vp3_compatible     = theora.Encoder.Theora.vp3_compatible in
-  let soft_target        = Some theora.Encoder.Theora.soft_target in
-  let buffer_delay       = theora.Encoder.Theora.buffer_delay in
-  let speed              = theora.Encoder.Theora.speed in
+  let keyframe_frequency = Some theora.Theora_format.keyframe_frequency in
+  let vp3_compatible     = theora.Theora_format.vp3_compatible in
+  let soft_target        = Some theora.Theora_format.soft_target in
+  let buffer_delay       = theora.Theora_format.buffer_delay in
+  let speed              = theora.Theora_format.speed in
   let info =
     {
      Theora.
@@ -165,15 +165,15 @@ let create_encoder ~theora ~metadata () =
 
 let create_theora = 
   function 
-    | Encoder.Ogg.Theora theora -> 
+    | Ogg_format.Theora theora -> 
        let reset ogg_enc m =
          let metadata = 
-           Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+           Utils.list_of_metadata (Meta_format.to_metadata m) 
          in 
          let enc =
            create_encoder ~theora ~metadata ()
          in
-         Ogg_muxer.register_track ?fill:theora.Encoder.Theora.fill ogg_enc enc
+         Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
        in
        { 
         Ogg_encoder.

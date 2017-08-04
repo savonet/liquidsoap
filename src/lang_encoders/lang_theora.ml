@@ -26,8 +26,8 @@ open Lang_encoders
 let make params =
   let defaults =
     {
-      Encoder.Theora.
-       bitrate_control    = Encoder.Theora.Quality 40 ;
+      Theora_format.
+       bitrate_control    = Theora_format.Quality 40 ;
        fill               = None ;
        width              = Frame.video_width ;
        height             = Frame.video_height ;
@@ -54,16 +54,16 @@ let make params =
               if i < 0 || i > 63 then
                 raise (Error (t,"Theora quality should be in 0..63")) ;
               { f with
-                  Encoder.Theora.bitrate_control = Encoder.Theora.Quality i }
+                  Theora_format.bitrate_control = Theora_format.Quality i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with
-                  Encoder.Theora.bitrate_control = Encoder.Theora.Bitrate i }
+                  Theora_format.bitrate_control = Theora_format.Bitrate i }
           | ("width",({ term = Int i; _} as t)) ->
               (* According to the doc: must be a multiple of 16, and less than 1048576. *)
               if i mod 16 <> 0 || i >= 1048576 then
                 raise (Error (t,"invalid frame width value \
                                  (should be a multiple of 16)")) ;
-              { f with Encoder.Theora.
+              { f with Theora_format.
                     width = Utils.LazyCompat.from_val i;
                     picture_width = Utils.LazyCompat.from_val i }
           | ("height",({ term = Int i; _} as t)) ->
@@ -71,62 +71,62 @@ let make params =
               if i mod 16 <> 0 || i >= 1048576 then
                 raise (Error (t,"invalid frame height value \
                                  (should be a multiple of 16)")) ;
-              { f with Encoder.Theora.
+              { f with Theora_format.
                     height = Utils.LazyCompat.from_val i;
                     picture_height = Utils.LazyCompat.from_val i }
           | ("picture_width",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than width. *)
-              if i > Utils.LazyCompat.force f.Encoder.Theora.width then
+              if i > Utils.LazyCompat.force f.Theora_format.width then
                 raise (Error (t,"picture width must not be larger than width")) ;
-              { f with Encoder.Theora.picture_width = Utils.LazyCompat.from_val i }
+              { f with Theora_format.picture_width = Utils.LazyCompat.from_val i }
           | ("picture_height",({ term = Int i; _} as t)) ->
               (* According to the doc: must not be larger than height. *)
-              if i > Utils.LazyCompat.force f.Encoder.Theora.height then
+              if i > Utils.LazyCompat.force f.Theora_format.height then
                 raise (Error (t,"picture height must not be larger than height")) ;
-              { f with Encoder.Theora.picture_height = Utils.LazyCompat.from_val i }
+              { f with Theora_format.picture_height = Utils.LazyCompat.from_val i }
           | ("picture_x",({ term = Int i; _} as t)) ->
               (* According to the doc: must be no larger than width-picture_width
                * or 255, whichever is smaller. *)
               if
                 i > min
-                     ((Utils.LazyCompat.force f.Encoder.Theora.width) -
-                      (Utils.LazyCompat.force f.Encoder.Theora.picture_width))
+                     ((Utils.LazyCompat.force f.Theora_format.width) -
+                      (Utils.LazyCompat.force f.Theora_format.picture_width))
                      255
               then
                 raise (Error (t,"picture x must not be larger than \
                                  width - picture width or 255, \
                                  whichever is smaller")) ;
-              { f with Encoder.Theora.picture_x = i }
+              { f with Theora_format.picture_x = i }
           | ("picture_y",({ term = Int i; _} as t)) ->
               (* According to the doc: must be no larger than width-picture_width
                * and frame_height-pic_height-pic_y must be no larger than 255. *)
               if
-                i > ((Utils.LazyCompat.force f.Encoder.Theora.height) -
-                     (Utils.LazyCompat.force f.Encoder.Theora.picture_height))
+                i > ((Utils.LazyCompat.force f.Theora_format.height) -
+                     (Utils.LazyCompat.force f.Theora_format.picture_height))
               then
                 raise (Error (t,"picture y must not be larger than height - \
                                  picture height"));
-              if (Utils.LazyCompat.force f.Encoder.Theora.picture_height) - i > 255 then
+              if (Utils.LazyCompat.force f.Theora_format.picture_height) - i > 255 then
                 raise (Error (t,"picture height - picture y must not be \
                                  larger than 255")) ;
-              { f with Encoder.Theora.picture_y = i }
+              { f with Theora_format.picture_y = i }
           | ("aspect_numerator",{ term = Int i; _}) ->
-              { f with Encoder.Theora.aspect_numerator = i }
+              { f with Theora_format.aspect_numerator = i }
           | ("aspect_denominator",{ term = Int i; _}) ->
-              { f with Encoder.Theora.aspect_denominator = i }
+              { f with Theora_format.aspect_denominator = i }
           | ("keyframe_frequency",{ term = Int i; _}) ->
-              { f with Encoder.Theora.keyframe_frequency = i }
+              { f with Theora_format.keyframe_frequency = i }
           | ("vp3_compatible",{ term = Bool i; _}) ->
-              { f with Encoder.Theora.vp3_compatible = Some i }
+              { f with Theora_format.vp3_compatible = Some i }
           | ("soft_target",{ term = Bool i; _}) ->
-              { f with Encoder.Theora.soft_target = i }
+              { f with Theora_format.soft_target = i }
           | ("buffer_delay",{ term = Int i; _}) ->
-              { f with Encoder.Theora.buffer_delay = Some i }
+              { f with Theora_format.buffer_delay = Some i }
           | ("speed",{ term = Int i; _}) ->
-              { f with Encoder.Theora.speed = Some i }
+              { f with Theora_format.speed = Some i }
           | ("bytes_per_page",{ term = Int i; _}) ->
-              { f with Encoder.Theora.fill = Some i }
+              { f with Theora_format.fill = Some i }
           | (_,t) -> raise (generic_error t))
       defaults params
   in
-    Encoder.Ogg.Theora theora
+    Ogg_format.Theora theora

@@ -240,7 +240,7 @@ object (self)
             ~infallible ~on_start ~on_stop
             ~content_kind ~output_kind ~name source autostart
 
-  method virtual private insert_metadata : Encoder.Meta.export_metadata -> unit
+  method virtual private insert_metadata : Meta_format.export_metadata -> unit
   method virtual private encode : Frame.t -> int -> int -> string
   method virtual private send : string -> unit
 
@@ -250,7 +250,7 @@ object (self)
         begin
           match Frame.get_metadata frame start with
             | None -> ()
-            | Some m -> self#insert_metadata (Encoder.Meta.export_metadata m)
+            | Some m -> self#insert_metadata (Meta_format.export_metadata m)
         end ;
         let data =
           self#encode frame start (stop-start)

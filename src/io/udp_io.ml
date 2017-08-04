@@ -43,7 +43,7 @@ object (self)
       socket_send <-
         Some (fun msg off len -> Unix.sendto socket msg off len [] portaddr) ;
       encoder <-
-        Some (encoder_factory self#id Encoder.Meta.empty_metadata)
+        Some (encoder_factory self#id Meta_format.empty_metadata)
 
   method private output_reset = self#output_start ; self#output_stop
 

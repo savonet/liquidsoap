@@ -20,26 +20,20 @@
 
  *****************************************************************************)
 
-open Lang_values
-open Lang_encoders
+let conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "encoder") "Encoder settings"
+    ~comments:["Settings for the encoder"]
 
-let make params =
-  let defaults =
-    {
-      Avi_format.
-      channels = 2;
-      samplerate = 44100
-    }
-  in
-  let avi =
-    List.fold_left
-      (fun f ->
-        function
-          | ("channels",{ term = Int c; _ }) ->
-              { f with Avi_format.channels = c }
-          | ("samplerate",{ term = Int i; _ }) ->
-              { f with Avi_format.samplerate = i }
-          | (_,t) -> raise (generic_error t))
-      defaults params
-  in
-  Encoder.AVI avi
+let conf_meta =
+  Dtools.Conf.void ~p:(conf#plug "encoder") "Metadata settings"
+    ~comments:["Settings for the encoded metadata."]
+
+(** The list of metadata fields that should be exported when encoding. *)
+let conf_export_metadata =
+  Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metdata"
+    ~d:["artist";"title";"album";"genre";"date";"tracknumber";
+    "comment";"track";"year";"dj";"next"]
+    ~comments:["The list of labels of exported metadata."]
+
+let string_of_stereo s =
+  if s then "stereo" else "mono"

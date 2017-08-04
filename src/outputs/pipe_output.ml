@@ -104,7 +104,7 @@ object (self)
       match current_metadata with
         | Some m -> 
             fun x -> 
-             subst (Hashtbl.find (Encoder.Meta.to_metadata m) x)
+             subst (Hashtbl.find (Meta_format.to_metadata m) x)
         | None -> fun _ -> raise Not_found
     in
     Utils.interpolate current_metadata s
@@ -119,7 +119,7 @@ object (self)
     let meta = 
       match current_metadata with
         | Some m -> m
-        | None -> Encoder.Meta.empty_metadata
+        | None -> Meta_format.empty_metadata
     in
     encoder <- Some (enc meta) ;
 

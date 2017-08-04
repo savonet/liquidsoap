@@ -25,7 +25,7 @@ open Lang_encoders
 
 let flac_gen params =
   let defaults =
-    { Encoder.Flac.
+    { Flac_format.
         channels = 2 ;
         fill = None;
         samplerate = 44100 ;
@@ -36,28 +36,28 @@ let flac_gen params =
       (fun f ->
         function
           | ("channels",{ term = Int i; _}) ->
-              { f with Encoder.Flac.channels = i }
+              { f with Flac_format.channels = i }
           | ("samplerate",{ term = Int i; _}) ->
-              { f with Encoder.Flac.samplerate = i }
+              { f with Flac_format.samplerate = i }
           | ("compression",({ term = Int i; _} as t)) ->
               if i < 0 || i >= 8 then
                 raise (Error (t,"invalid compression value")) ;
-              { f with Encoder.Flac.compression = i }
+              { f with Flac_format.compression = i }
           | ("bits_per_sample",({ term = Int i; _} as t)) ->
               if i <> 8 && i <> 16 && i <> 32 then
                 raise (Error (t,"invalid bits_per_sample value")) ;
-              { f with Encoder.Flac.bits_per_sample = i }
+              { f with Flac_format.bits_per_sample = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
-              { f with Encoder.Flac.fill = Some i }
+              { f with Flac_format.fill = Some i }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
-              { f with Encoder.Flac.channels = 1 }
+              { f with Flac_format.channels = 1 }
           | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
-              { f with Encoder.Flac.channels = 2 }
+              { f with Flac_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
 
 let make_ogg params =
-    Encoder.Ogg.Flac (flac_gen params)
+    Ogg_format.Flac (flac_gen params)
 
 let make params =
     Encoder.Flac (flac_gen params)
