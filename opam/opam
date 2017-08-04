@@ -24,6 +24,7 @@ depends: [
   "mm" {>= "0.2.1"}
 ]
 depopts: [
+  "shine"
   "cry"
   "ao"
   "portaudio"
@@ -32,7 +33,6 @@ depopts: [
   "bjack"
   "taglib"
   "lame"
-  "aacplus"
   "ogg"
   "vorbis"
   "theora"
@@ -41,8 +41,6 @@ depopts: [
   "flac"
   "fdkaac"
   "speex"
-  "schroedinger"
-  "voaacenc"
   "ladspa"
   "mad"
   "samplerate"
@@ -59,6 +57,7 @@ depopts: [
   "osx-secure-transport"
   "magic"
   "yojson"
+  "gstreamer"
 ]
 conflicts: [
   "cry" {< "0.5.0"}
