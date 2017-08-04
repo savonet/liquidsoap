@@ -21,20 +21,30 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_encoders
 
-(** Errors *)
-
-exception Error of (term*string)
-
-let invalid t =
-  match t.term with
-    | Int _ | Bool _ | Float _ | String _ -> false
-    | _ -> true
-
-let generic_error t : exn =
-  if invalid t then
-    match t.term with
-      | Var _ -> Error (t,"variables are forbidden in encoding formats")
-      | _ -> Error (t,"complex expressions are forbidden in encoding formats")
-  else
-    Error (t,"unknown parameter name or invalid parameter value")
+let make params =
+  let defaults =
+    { Encoder.Shine.
+        channels = 2 ;
+        samplerate = 44100 ;
+        bitrate = 128 }
+  in
+  let shine =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int i; _}) ->
+              { f with Encoder.Shine.channels = i }
+          | ("samplerate",{ term = Int i; _}) ->
+              { f with Encoder.Shine.samplerate = i }
+          | ("bitrate",{ term = Int i; _}) ->
+              { f with Encoder.Shine.bitrate = i }
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+              { f with Encoder.Shine.channels = 1 }
+          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+              { f with Encoder.Shine.channels = 2 }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    Encoder.Shine shine

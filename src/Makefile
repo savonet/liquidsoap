@@ -1,6 +1,6 @@
 SUBDIRS=tools decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
-	visualization analyze synth harbor
+	visualization analyze synth harbor lang_encoders
 
 DISTFILES = $(wildcard *.mli) Makefile $(wildcard *.ml) META.in
 
@@ -155,6 +155,10 @@ $(call conditional_compilation,encoders,$(W_FLAC),encoder/flac_encoder.ml)
 $(call conditional_compilation,encoders,$(W_FDKAAC),encoder/fdkaac_encoder_builtin.ml)
 $(call conditional_compilation,encoders,$(W_TAGLIB),encoder/taglib_id3v2.ml)
 
+lang_encoders = \
+  lang/lang_encoders.ml \
+  $(wildcard lang_encoders/*.ml)
+
 outputs = outputs/output.ml \
 	outputs/pipe_output.ml \
 	outputs/harbor_output.ml \
@@ -249,7 +253,7 @@ $(call conditional_compilation,io,$(W_GSTREAMER),io/gstreamer_io.ml)
 
 liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \
-	lang/lang_encoders.ml lang/lang_parser.ml lang/lang_lexer.ml \
+	$(lang_encoders) lang/lang_parser.ml lang/lang_lexer.ml \
 	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \

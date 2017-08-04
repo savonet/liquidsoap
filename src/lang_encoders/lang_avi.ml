@@ -21,20 +21,25 @@
  *****************************************************************************)
 
 open Lang_values
+open Lang_encoders
 
-(** Errors *)
-
-exception Error of (term*string)
-
-let invalid t =
-  match t.term with
-    | Int _ | Bool _ | Float _ | String _ -> false
-    | _ -> true
-
-let generic_error t : exn =
-  if invalid t then
-    match t.term with
-      | Var _ -> Error (t,"variables are forbidden in encoding formats")
-      | _ -> Error (t,"complex expressions are forbidden in encoding formats")
-  else
-    Error (t,"unknown parameter name or invalid parameter value")
+let make params =
+  let defaults =
+    {
+      Encoder.AVI.
+      channels = 2;
+      samplerate = 44100
+    }
+  in
+  let avi =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int c; _ }) ->
+              { f with Encoder.AVI.channels = c }
+          | ("samplerate",{ term = Int i; _ }) ->
+              { f with Encoder.AVI.samplerate = i }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+  Encoder.AVI avi

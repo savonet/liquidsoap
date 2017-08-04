@@ -1,0 +1,65 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2017 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
+
+open Lang_values
+open Lang_encoders
+
+let make params =
+  let defaults =
+    { Encoder.External.
+        channels = 2 ;
+        samplerate = 44100 ;
+        video = false ;
+        header  = true ;
+        restart_on_crash = false ;
+        restart = Encoder.External.No_condition ;
+        process = "" }
+  in
+  let ext =
+    List.fold_left
+      (fun f ->
+        function
+          | ("channels",{ term = Int c; _}) ->
+              { f with Encoder.External.channels = c }
+          | ("samplerate",{ term = Int i; _}) ->
+             { f with Encoder.External.samplerate = i }
+          | ("video",{ term = Bool h; _}) ->
+              { f with Encoder.External.video = h }
+          | ("header",{ term = Bool h; _}) ->
+              { f with Encoder.External.header = h }
+          | ("restart_on_crash",{ term = Bool h; _}) ->
+              { f with Encoder.External.restart_on_crash = h }
+          | ("",{ term = Var s; _})
+            when Utils.StringCompat.lowercase_ascii s = "restart_on_metadata" ->
+              { f with Encoder.External.restart = Encoder.External.Metadata }
+          | ("restart_after_delay",{ term = Int i; _}) ->
+              { f with Encoder.External.restart = Encoder.External.Delay i }
+          | ("process",{ term = String s; _}) ->
+              { f with Encoder.External.process = s }
+          | ("",{ term = String s; _}) ->
+              { f with Encoder.External.process = s }
+          | (_,t) -> raise (generic_error t))
+      defaults params
+  in
+    if ext.Encoder.External.process = "" then
+      raise Encoder.External.No_process ;
+    Encoder.External ext
