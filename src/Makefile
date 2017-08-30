@@ -165,7 +165,7 @@ encoder_formats = \
   encoder_formats/meta_format.ml \
   encoder_formats/avi_format.ml \
   encoder_formats/external_encoder_format.ml \
-  encoder_formats/Fdkaac_format.ml \
+  encoder_formats/fdkaac_format.ml \
   encoder_formats/flac_format.ml \
   encoder_formats/gstreamer_format.ml \
   encoder_formats/mp3_format.ml \
