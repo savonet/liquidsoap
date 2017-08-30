@@ -117,15 +117,6 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let on_stop =
       with_default (fun _ -> false) on_stop
     in
-    let on_stdout =
-      with_default (fun _ -> `Continue) on_stdout
-    in
-    let on_stderr =
-      with_default (fun _ -> `Continue) on_stderr
-    in
-    let on_stdin =
-      with_default (fun _ -> `Continue) on_stdin
-    in
     let create () =
       log "Starting process";
       let stdout,stdin,stderr =
@@ -150,11 +141,16 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         Unix.descr_of_in_channel process.stderr
       in
       let read_events =
-        [`Read out_pipe;`Read stdout;`Read stderr]
+        List.fold_left (fun cur (fd, callback) ->
+          if callback <> None then (`Read fd)::cur
+            else cur)
+          [`Read out_pipe]
+          [(stdout, on_stdout);(stderr, on_stderr)]
       in
       let continue_events =
-        if process.stopped then read_events else
+        if on_stdin <> None && not process.stopped then
           (`Write (Unix.descr_of_out_channel process.stdin))::read_events
+        else read_events
       in
       let events = match decision with
         | `Kill -> cleanup ~log t; []
@@ -195,6 +191,15 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       in
       let stdout =
         Unix.descr_of_in_channel process.stdout
+      in
+      let on_stdout =
+        with_default (fun _ -> `Continue) on_stdout
+      in
+      let on_stderr =
+        with_default (fun _ -> `Continue) on_stderr
+      in
+      let on_stdin =
+        with_default (fun _ -> `Continue) on_stdin
       in
       try
         let decision =
