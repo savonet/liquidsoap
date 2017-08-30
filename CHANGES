@@ -11,7 +11,7 @@ Changed:
 
 Fixed:
 
-- Fix scheduler loop causing high CPU usage when using External_process without some of the default callbacks. (#475)
+- Fix scheduler loop causing high CPU usage when using Process_handler without some of the default callbacks. (#475)
 
 - Revert `wait_for` implementation to pre-`1.3.0`, using a custom `select` loop (#453)
 
