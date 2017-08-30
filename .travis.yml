@@ -3,9 +3,5 @@ sudo: required
 services:
   - docker
 
-before_install:  
-  - sudo apt-get update
-  - sudo apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y docker-engine
-
 script:
   - docker build --no-cache --build-arg TRAVIS_COMMIT="$TRAVIS_COMMIT" -f .travis.docker-file .
