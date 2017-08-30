@@ -5,8 +5,8 @@ dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
 # Remove +scm and set scm_snapshot to false before releasing
-# Do not use $version below (and don't write AC_1N1T) before the next
-# line, since we grep for the literal version there
+# Do not use $version below before the next line, since we grep
+# for the literal version there
 AC_INIT([liquidsoap],[1.3.1])
 scm_snapshot=false
 version=1.3.1
