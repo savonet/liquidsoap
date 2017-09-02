@@ -297,7 +297,7 @@ OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
 liquidsoap_doc_sources= \
-	source.ml clock.ml encoder/encoder.ml \
+	source.ml clock.ml encoder.ml \
 	tools/plug.ml tools/http.ml \
 	decoder/decoder.ml request.ml outputs/output.ml \
 	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
