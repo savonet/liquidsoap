@@ -161,7 +161,6 @@ lang_encoders = \
 
 encoder_formats = \
   encoder_formats.ml \
-  encoder_formats/meta_format.mli \
   encoder_formats/meta_format.ml \
   encoder_formats/avi_format.ml \
   encoder_formats/external_encoder_format.ml \
