@@ -304,7 +304,9 @@ object (self)
     Unix.open_process_out process
 
   method close_chan chan =
-    ignore(Unix.close_process_out chan)
+    try
+      ignore(Unix.close_process_out chan)
+    with Sys_error msg when msg = "Broken pipe" -> ()
 end
 
 let () =

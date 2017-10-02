@@ -254,6 +254,7 @@ let start_forwarding () =
     let i,o = Unix.pipe () in
       Unix.dup2 o fd ;
       Unix.close o ;
+      Unix.set_close_on_exec i ;
       i
   in
   let in_stdout = reopen Unix.stdout in
