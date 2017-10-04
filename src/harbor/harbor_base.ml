@@ -29,6 +29,9 @@ let conf_harbor =
 let conf_harbor_bind_addr =
   Conf.string ~p:(conf_harbor#plug "bind_addr") ~d:"0.0.0.0"
     "IP address on which the harbor should listen."
+let conf_harbor_bind_addr6 =
+  Conf.string ~p:(conf_harbor#plug "bind_addr6") ~d:""
+    "IPv6 address on which the harbor should listen. Disabled if empty (default)."
 let conf_harbor_max_conn =
   Conf.int ~p:(conf_harbor#plug "max_connections") ~d:2
     "Maximun of pending source requests per port."

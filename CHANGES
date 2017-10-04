@@ -1,6 +1,10 @@
 x.y.z ()
 =====
 
+New:
+
+- Added IPv6 support for input.harbor.
+
 Fixed:
 
 - Fixed `mutexify`
