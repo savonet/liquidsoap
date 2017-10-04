@@ -1051,15 +1051,15 @@ struct
       Unix.listen sock max_conn ;
       `Read sock
     in
-    let bind_addresses =
+    let bind_addrs =
       List.fold_left (fun cur bind_addr ->
         if bind_addr <> "" then
           bind_addr :: cur
-        else cur) [] [conf_harbor_bind_addr#get; conf_harbor_bind_addr6#get]
+        else cur) [] conf_harbor_bind_addrs#get
     in
     let (in_s,out_s) = Unix.pipe () in
     let events =
-      `Read in_s :: List.map (open_socket port) bind_addresses
+      `Read in_s :: List.map (open_socket port) bind_addrs
     in
     Task.add Tutils.scheduler
       { Task.
