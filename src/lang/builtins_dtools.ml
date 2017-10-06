@@ -42,7 +42,7 @@ let () =
   add_builtin ~cat:Liq "register" ~descr:"Register a new setting."
     ["name",Lang.string_t,None, Some "Settings name";
      "descr",Lang.string_t,Some (Lang.string ""), Some "Settings description";
-     "on_set",Lang.fun_t [false,"",univ] Lang.unit_t,
+     "on_change",Lang.fun_t [false,"",univ] Lang.unit_t,
      Some (Lang.val_cst_fun ["",univ,None] Lang.unit),
      Some "Callback executed when the setting is changed.";
      "",Lang.string_t,None,Some "Setting key";
@@ -53,14 +53,14 @@ let () =
        let descr = Lang.to_string (List.assoc "descr" p) in
        let descr = if descr = "" then [] else [descr] in
        let path = Lang.to_string (Lang.assoc "" 1 p) in
-       let on_set =
-         Lang.to_fun ~t:Lang.unit_t (List.assoc "on_set" p)
+       let on_change =
+         Lang.to_fun ~t:Lang.unit_t (List.assoc "on_change" p)
        in
        let v = Lang.assoc "" 2 p in
        let make to_value b ?p ?l ?comments name  =
          let conf = b ?p ?l ?comments name in
-         conf#on_set (fun v ->
-           ignore(on_set ["",to_value v]));
+         conf#on_change (fun v ->
+           ignore(on_change ["",to_value v]));
          conf#ut
        in
        let final_key =
