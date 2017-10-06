@@ -15,8 +15,9 @@ Additionally, liquidsoap can handle many simulataneous harbor sources on differe
 with finer-grained authentication schemes that can be particularly useful when used with
 source clients designed for the shoutcast servers.
 
-If liquidsoap was compiled with SSL support enabled, it should also be able to
-use harbor over secure SSL connections.
+SSL support in harbor can be enabled using of of the following @opam@ packages: @ssl@, @osx-secure-transport@.
+If enabled using @ssl@, @input.harbor.ssl@ will be available. If enabled with @osx-secure-transport@, it will be
+@input.harbor.secure_transport@.
 
 h4. Parameters
 
@@ -29,20 +30,20 @@ The global parameters for harbor can be retreived using
 * @harbor.reverse_dns@: Perform reverse DNS lookup to get the client's hostname from its IP. Defaults to: @true@
 * @harbor.icy_formats@: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: @["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]@
 
-Optionally, if SSL support was enabled:
+If SSL support was enabled via @ssl@, you will have the following additional settings:
 * @harbor.ssl.certificate@: Path to the SSL certificate.
 * @harbor.ssl.private_key@: Path to the SSL private key (openssl only).
 * @harbor.ssl.password@: Optional password to unlock the private key.
 Obtaining a proper SSL certificate can be tricky. You may want to start with a self-signed certificate first.
 You can obtain a free, valid certificate at: "https://letsencrypt.org/":https://letsencrypt.org/
 
+If SSL support is enable via @osx-secure-transport@, you will have the same settings but named: @harbor.secure_transport.*@.
+
 To create a self-signed certificate for local testing you can use the following one-liner:
 
 %%(self_signed.sh)
 openssl req -x509 -newkey rsa:4096 -sha256 -nodes -keyout server.key -out server.crt -subj "/CN=localhost" -days 3650
 %%
-
-SSL can be enabled using of of the following @opam@ packages: @ssl@, @osx-secure-transport@.
 
 You also have per-source parameters. You can retreive them using the command 
 @liquidsoap -h input.harbor@. The most important one are:

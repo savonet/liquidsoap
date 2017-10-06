@@ -8,6 +8,7 @@ New:
 Changed:
 
 - Renamed secure transport harbor key paths to: harbor.secure_transport.*
+= Renamed secure transport I/O to: {input,output}.harbor.secure_transport.
 
 Fixed:
 

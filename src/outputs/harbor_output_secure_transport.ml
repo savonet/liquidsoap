@@ -24,8 +24,8 @@
 module SecureTransport_output =
 struct
   include Harbor_secure_transport.Transport
-  let source_name = "output.harbor.ssl"
-  let source_description = "Encode and output the stream using the SSL OSX harbor server."
+  let source_name = "output.harbor.secure_transport"
+  let source_description = "Encode and output the stream using the SecureTransport OSX harbor server."
 end
 
 module SecureTransport = Harbor_output.Make(SecureTransport_output)

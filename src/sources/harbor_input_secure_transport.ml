@@ -25,7 +25,7 @@ module SecureTransport_input =
 struct
   include Harbor_secure_transport
   let init () = ()
-  let source_name = "input.harbor.ssl"
+  let source_name = "input.harbor.secure_transport"
   let source_description = "Retrieves the given https stream from the harbor."
 end
 
