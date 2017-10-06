@@ -3,7 +3,7 @@ x.y.z ()
 
 New:
 
-- Added on_set to register()
+- Added on_change to register()
 - Added IPv6 support for input.harbor.
 
 Changed:
