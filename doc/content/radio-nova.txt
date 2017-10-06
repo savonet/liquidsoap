@@ -64,7 +64,7 @@ def add_meta_nova()
   new_title = snd(x)
   old_title = !title
   old_artist = !artist
-  if (old_title != new_title or old_title != new_title) and 
+  if (old_artist != new_artist or old_title != new_title) and 
      (new_title != "" or new_artist != "") 
   then
     log("Got new metas: #{new_artist} -- #{new_title}")
