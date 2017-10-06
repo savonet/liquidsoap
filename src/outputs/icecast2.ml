@@ -539,7 +539,7 @@ object (self)
       List.iter (fun (x,y) -> 
                       (* User-Agent has already been passed to Cry.. *)
                       if x <> "User-Agent" then 
-                        Hashtbl.add source.Cry.headers x y) headers;
+                        Hashtbl.replace source.Cry.headers x y) headers;
 
       try
         Cry.connect connection source ;
