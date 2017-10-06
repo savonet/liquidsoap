@@ -1,6 +1,10 @@
 x.y.z ()
 =====
 
+New:
+
+- Added on_set to register()
+
 Changed:
 
 - Renamed secure transport harbor key paths to: harbor.secure_transport.*

@@ -300,7 +300,7 @@ AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[0.3.4],[],[1],[],[1])
 
 #
 # Duppy
