@@ -28,17 +28,17 @@ type secure_transport_socket = Https_secure_transport.socket = {
 
 open Dtools
 
-let conf_harbor_ssl =
-  Conf.void ~p:(Harbor_base.conf_harbor#plug "ssl")
+let conf_harbor_secure_transport =
+  Conf.void ~p:(Harbor_base.conf_harbor#plug "secure_transport")
     "Harbor SSL settings."
-let conf_harbor_ssl_certificate =
-  Conf.string ~p:(conf_harbor_ssl#plug "certificate") ~d:""
+let conf_harbor_secure_transport_certificate =
+  Conf.string ~p:(conf_harbor_secure_transport#plug "certificate") ~d:""
     "Path to the server's SSL certificate. (mandatory)"
-let conf_harbor_ssl_private_key =
-  Conf.string ~p:(conf_harbor_ssl#plug "private_key") ~d:""
+let conf_harbor_secure_transport_private_key =
+  Conf.string ~p:(conf_harbor_secure_transport#plug "private_key") ~d:""
     "Path to the server's SSL private key. (mandatory)"
-let conf_harbor_ssl_password =
-  Conf.string ~p:(conf_harbor_ssl#plug "password") ~d:""
+let conf_harbor_secure_transport_password =
+  Conf.string ~p:(conf_harbor_secure_transport#plug "password") ~d:""
     "Path to the server's SSL password. (optional, blank if omited)"
 
 module Monad = Duppy.Monad
@@ -82,12 +82,12 @@ struct
                            SecureTransport.Stream
     in
     let password =
-      conf_harbor_ssl_password#get
+      conf_harbor_secure_transport_password#get
     in
     let password =
       if password = "" then None else Some password
     in
-    let cert = conf_harbor_ssl_certificate#get in
+    let cert = conf_harbor_secure_transport_certificate#get in
     let certs =
       SecureTransport.import_p12_certificate ?password cert
     in

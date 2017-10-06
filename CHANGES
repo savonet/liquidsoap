@@ -1,6 +1,10 @@
 x.y.z ()
 =====
 
+Changed:
+
+- Renamed secure transport harbor key paths to: harbor.secure_transport.*
+
 Fixed:
 
 - Fixed `mutexify`
