@@ -5,6 +5,8 @@ New:
 
 - Added on_change to register()
 
+- Added time(), localtime() and gmtime() to help with time-predicates (#481)
+
 Changed:
 
 - Renamed secure transport harbor key paths to: harbor.secure_transport.*
