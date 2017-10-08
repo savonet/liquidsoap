@@ -206,7 +206,7 @@ let mime_types =
 let file_extensions =
   Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "gstreamer")
     "File extensions used for guessing format handled by GStreamer"
-    ~d:["wmv";"avi";"mp4";"3gp";"webm";"mkv"]
+    ~d:["wma";"wmv";"avi";"mp4";"3gp";"webm";"mkv"]
 
 let create_file_decoder filename content_type kind =
   let mode =
