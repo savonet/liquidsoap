@@ -15,6 +15,8 @@ Changed:
 
 Fixed:
 
+- Fixed memory leak in `output.icecast` connection method. (#490)
+
 - Fixed `mutexify`
 
 - Make sure that metadata are always passed in incresing position order in `map_metadata` (#469)
