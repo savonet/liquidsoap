@@ -4,6 +4,7 @@ x.y.z ()
 New:
 
 - Added on_change to register()
+- Added IPv6 support for input.harbor.
 
 - Added time(), localtime() and gmtime() to help with time-predicates (#481)
 

@@ -942,114 +942,130 @@ struct
   let open_port ~icy port =
     log#f 4 "Opening port %d with icy = %b" port icy ;
     let max_conn = conf_harbor_max_conn#get in
-    let rec incoming ~port ~icy sock out_s e =
+    let process_client sock =
+      try
+        let (socket,caller) = T.accept sock in
+        let ip =
+          Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller
+        in
+        log#f 4 "New client on port %i: %s" port ip ;
+        let unix_socket = T.file_descr_of_socket socket in
+        Unix.setsockopt unix_socket Unix.TCP_NODELAY true;
+        let on_error e =
+          begin
+            match e with
+              | Duppy.Io.Io_error ->
+                   log#f 4 "Client %s disconnected" ip
+              | Duppy.Io.Timeout ->
+                   log#f 4 "Timeout while communicating \
+                            with client %s." ip
+              | Duppy.Io.Unix (c,p,m) ->
+                   log#f 4 "%s"
+                     (Printexc.to_string
+                        (Unix.Unix_error (c,p,m)))
+              | Duppy.Io.Unknown e ->
+                    log#f 4 "%s" (Printexc.to_string e)
+          end ;
+          (* Sending an HTTP response in case of timeout
+           * even though ICY connections are not HTTP.. *)
+          if e = Duppy.Io.Timeout then
+            Close (http_error_page 408 "Request Time-out"
+                     "The server timed out waiting for the request.")
+          else
+            Close ""
+          in
+          let h =
+            { Duppy.Monad.Io.
+               scheduler = Tutils.scheduler ;
+               socket    = socket ;
+               data      = "";
+               on_error  = on_error }
+          in
+          let reply r =
+              let close () =
+                try
+                  close socket
+                with
+                  | _ -> ()
+              in
+              let s,exec =
+                match r with
+                  | Relay (s,exec) -> s,exec
+                  | Close s -> s,close
+              in
+              let on_error e =
+                ignore(on_error e) ;
+                close ()
+              in
+              Duppy.Io.write ~timeout:conf_timeout#get
+                             ~priority:Tutils.Non_blocking
+                             ~on_error ~string:s ~exec
+                             Tutils.scheduler socket
+          in
+          duppy_run
+            handle_client ~port ~icy h
+          with
+            { return = reply ;
+              raise  = reply }
+        with
+          | e ->
+              log#f 2
+                "Failed to accept new client: %s"
+                (Printexc.to_string e)
+    in
+    let rec incoming ~port ~icy events out_s e =
         if List.mem (`Read out_s) e then
          begin
           try
-           Unix.close sock;
-           Unix.close out_s;
+           List.iter (function
+             | `Read s -> Unix.close s
+             | _ -> assert false) events;
            []
           with
             | _ -> []
          end
         else
          begin
-          (try
-             let (socket,caller) = T.accept sock in
-             let ip =
-               Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller
-             in
-             log#f 4 "New client on port %i: %s" port ip ;
-             let unix_socket = T.file_descr_of_socket socket in
-             Unix.setsockopt unix_socket Unix.TCP_NODELAY true;
-             let on_error e =
-               begin
-                match e with
-                  | Duppy.Io.Io_error ->
-                       log#f 4 "Client %s disconnected" ip
-                  | Duppy.Io.Timeout ->
-                       log#f 4 "Timeout while communicating \
-                                with client %s." ip
-                  | Duppy.Io.Unix (c,p,m) ->
-                       log#f 4 "%s"
-                         (Printexc.to_string
-                            (Unix.Unix_error (c,p,m)))
-                  | Duppy.Io.Unknown e ->
-                        log#f 4 "%s" (Printexc.to_string e)
-               end ;
-               (* Sending an HTTP response in case of timeout
-                * even though ICY connections are not HTTP.. *)
-               if e = Duppy.Io.Timeout then
-                 Close (http_error_page 408 "Request Time-out"
-                          "The server timed out waiting for the request.")
-               else
-                 Close ""
-             in
-             let h =
-               { Duppy.Monad.Io.
-                  scheduler = Tutils.scheduler ;
-                  socket    = socket ;
-                  data      = "";
-                  on_error  = on_error }
-             in
-             let reply r =
-                 let close () =
-                   try
-                     close socket
-                   with
-                     | _ -> ()
-                 in
-                 let s,exec =
-                   match r with
-                     | Relay (s,exec) -> s,exec
-                     | Close s -> s,close
-                 in
-                 let on_error e =
-                   ignore(on_error e) ;
-                   close ()
-                 in
-                 Duppy.Io.write ~timeout:conf_timeout#get
-                                ~priority:Tutils.Non_blocking
-                                ~on_error ~string:s ~exec
-                                Tutils.scheduler socket
-             in
-             duppy_run
-               handle_client ~port ~icy h
-             with
-               { return = reply ;
-                 raise  = reply }
-           with
-             | e ->
-                 log#f 2
-                   "Failed to accept new client: %s"
-                   (Printexc.to_string e)) ;
+          let get_sock = function
+            | `Read sock -> sock
+            | _ -> assert false
+          in
+          List.iter process_client (List.map get_sock e); 
           [{ Task.
               priority = Tutils.Non_blocking ;
-              events = [`Read sock; `Read out_s] ;
-              handler = (incoming ~port ~icy sock out_s) }]
+              events   = events ;
+              handler  = (incoming ~port ~icy events out_s) }]
          end
     in
-    let open_socket port =
-      let bind_addr = conf_harbor_bind_addr#get in
+    let open_socket port bind_addr =
       let bind_addr_inet =
         Unix.inet_addr_of_string bind_addr
       in
       let bind_addr = Unix.ADDR_INET(bind_addr_inet, port) in
-      let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+      let domain = Unix.domain_of_sockaddr bind_addr in
+      let sock = Unix.socket domain Unix.SOCK_STREAM 0 in
       Unix.setsockopt sock Unix.SO_REUSEADDR true ;
       (* Set TCP_NODELAY on the socket *)
       Unix.setsockopt sock Unix.TCP_NODELAY true;
       Unix.bind sock bind_addr;
       Unix.listen sock max_conn ;
-      sock
+      `Read sock
     in
-    let sock = open_socket port in
+    let bind_addrs =
+      List.fold_left (fun cur bind_addr ->
+        if bind_addr <> "" then
+          bind_addr :: cur
+        else cur) [] conf_harbor_bind_addrs#get
+    in
     let (in_s,out_s) = Unix.pipe () in
+    let events =
+      `Read in_s :: List.map (open_socket port) bind_addrs
+    in
     Task.add Tutils.scheduler
       { Task.
           priority = Tutils.Non_blocking ;
-          events   = [`Read sock; `Read in_s] ;
-          handler  = incoming ~port ~icy sock in_s} ;
+          events   = events ;
+          handler  = incoming ~port ~icy events in_s} ;
     out_s
 
   (* This, contrary to the find_xx functions

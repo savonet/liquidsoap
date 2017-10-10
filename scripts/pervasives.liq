@@ -7,3 +7,4 @@
 %include "http.liq"
 %include "video.liq"
 %include "gstreamer.liq"
+%include "deprecations.liq"

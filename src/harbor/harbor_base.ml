@@ -26,9 +26,9 @@ open Dtools
 let conf_harbor =
   Conf.void ~p:(Configure.conf#plug "harbor")
     "Harbor settings (Icecast/shoutcast stream receiver)."
-let conf_harbor_bind_addr =
-  Conf.string ~p:(conf_harbor#plug "bind_addr") ~d:"0.0.0.0"
-    "IP address on which the harbor should listen."
+let conf_harbor_bind_addrs =
+  Conf.list ~p:(conf_harbor#plug "bind_addrs") ~d:["0.0.0.0"]
+    "IP addresses on which the harbor should listen."
 let conf_harbor_max_conn =
   Conf.int ~p:(conf_harbor#plug "max_connections") ~d:2
     "Maximun of pending source requests per port."
