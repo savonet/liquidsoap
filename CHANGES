@@ -3,11 +3,17 @@ x.y.z ()
 
 New:
 
-- Added on_change to register()
+- Added `on_change` to `register`
 
-- Added IPv6 support for input.harbor. (#491)
+- Added IPv6 support for `input.harbor`. (#491)
 
-- Added time(), localtime() and gmtime() to help with time-predicates (#481)
+- Added `time`, `localtime` and `gmtime` to help with time-predicates (#481)
+
+- Added `on_start` to execute callback when liquidsoap starts.
+
+- Added `enable_external_ffmpeg_decoder` to enable ffmpeg-base external decoder.
+
+- Added `"decoder.external.{ffmpeg,ffprobe,flac,metaflac,faad,mpcdec}.path"` configuration settings.
 
 Changed:
 

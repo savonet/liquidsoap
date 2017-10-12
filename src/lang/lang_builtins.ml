@@ -1420,40 +1420,6 @@ let () =
          (Utils.reopen_out stderr)
 
 let () =
-  add_builtin "on_shutdown" ~cat:Sys
-    [ "", Lang.fun_t [] Lang.unit_t, None, None ]
-    Lang.unit_t
-    ~descr:"Register a function to be called when Liquidsoap shuts down."
-    (fun p ->
-       let f = List.assoc "" p in
-       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
-         (* TODO: this could happen after duppy and other threads are shut down, is that ok? *)
-         ignore (Shutdown.at_stop wrap_f) ;
-         Lang.unit)
-
-let () =
-  add_builtin "source.on_shutdown" ~cat:Sys
-    [ "", Lang.source_t (Lang.univ_t 1), None, None;
-      "", Lang.fun_t [] Lang.unit_t, None, None ]
-    Lang.unit_t
-    ~descr:"Register a function to be called when source shuts down."
-    (fun p ->
-       let s = Lang.to_source
-         (Lang.assoc "" 1 p)
-       in
-       let f = Lang.assoc "" 2 p in
-       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
-         s#on_shutdown wrap_f;
-         Lang.unit)
-
-let () =
-  add_builtin "source.is_up" ~cat:Sys
-    [ "", Lang.source_t (Lang.univ_t 1), None, None ]
-    Lang.bool_t
-    ~descr:"Check whether a source is up."
-    (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)
-
-let () =
   add_builtin "garbage_collect" ~cat:Liq
     ~descr:"Trigger full major garbage collection."
     [] Lang.unit_t
