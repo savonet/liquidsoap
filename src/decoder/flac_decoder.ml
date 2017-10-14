@@ -56,7 +56,7 @@ let create_decoder input =
   let decoder = Flac.Decoder.create dummy_c in
   let decoder,info,_ = Flac.Decoder.init decoder dummy_c in
   let sample_freq,_ = info.Flac.Decoder.sample_rate,
-                             info.Flac.Decoder.channels
+                      info.Flac.Decoder.channels
   in
   let processed = ref Int64.zero in
   { Decoder.
