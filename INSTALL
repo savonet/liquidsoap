@@ -29,7 +29,7 @@ Recommended dependencies :
 
 Optional dependencies :
 
-   ocaml-cry>=0.5.0          for sending to Shoutcast & Icecast
+   ocaml-cry>=0.6.0          for sending to Shoutcast & Icecast
    ocaml-ogg>=0.4.5          for Ogg codecs
    ocaml-vorbis>=0.6.1       for Ogg/Vorbis codec
    ocaml-opus>=0.1.0         for Ogg/Opus codec

@@ -8,7 +8,7 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Do not use $version below before the next line, since we grep
 # for the literal version there
 AC_INIT([liquidsoap],[1.3.3])
-scm_snapshot=true
+scm_snapshot=false
 version=1.3.3
 
 if test $scm_snapshot != "false"; then
@@ -328,7 +328,7 @@ fi
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.4.0])
+AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 
 # ocaml-mm
 #
