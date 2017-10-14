@@ -8,7 +8,7 @@ dnl $libdir/liquidsoap/$libs_dir_version
 # Do not use $version below before the next line, since we grep
 # for the literal version there
 AC_INIT([liquidsoap],[1.3.3])
-scm_snapshot=false
+scm_snapshot=true
 version=1.3.3
 
 if test $scm_snapshot != "false"; then
