@@ -3,6 +3,29 @@ AC_DEFUN([AC_BASE_CHECKS],
 
 dnl check for base compilers
 AC_CANONICAL_HOST()
+
+dnl Detect the target toolchain
+AC_MSG_CHECKING([target toolchain])
+case "${host_os}" in
+  linux*)
+    TARGET_TOOLCHAIN="linux"
+    ;;
+  mingw*)
+    TARGET_TOOLCHAIN="mingw"
+    ;;
+  cygwin*)
+    TARGET_TOOLCHAIN="cygwin"
+    ;;
+  darwin*)
+    TARGET_TOOLCHAIN="darwin"
+    ;;
+  *)
+    TARGET_TOOLCHAIN="other"
+    ;;
+esac
+AC_MSG_RESULT([$TARGET_TOOLCHAIN])
+AC_SUBST(TARGET_TOOLCHAIN)
+
 # AC_CANONICAL_HOST needs those files
 AUTOCONF_INSTALL_FILES="config.guess config.sub install-sh m4/*.m4"
 AC_SUBST(AUTOCONF_INSTALL_FILES)
@@ -12,7 +35,6 @@ AC_PROG_INSTALL()
 AC_CHECK_TOOL([AR],[ar],no)
 AC_SUBST(AR)
 AC_CHECK_OCAML_COMPILERS()
-
 
 dnl add some flags
 AC_DETECT_PIC_FLAGS()
