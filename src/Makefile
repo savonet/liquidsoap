@@ -75,6 +75,7 @@ decoders = \
 	decoder/image_decoder.ml decoder/image/ppm_decoder.ml \
 	decoder/external_decoder.ml decoder/raw_audio_decoder.ml
 
+$(call conditional_compilation,decoders,$(W_FFMPEG),decoder/ffmpeg_decoder.ml)
 $(call conditional_compilation,decoders,$(W_FLAC),decoder/flac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_FAAD),decoder/aac_decoder.ml)
 $(call conditional_compilation,decoders,$(W_OGG),decoder/ogg_decoder.ml)

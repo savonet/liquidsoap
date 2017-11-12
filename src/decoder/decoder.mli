@@ -74,6 +74,14 @@ val get_stream_decoder :
 module Buffered :
   functor (Generator : Generator.S) ->
     sig
+      (* This is the most recent API. [file_decoder]
+       * below uses it and might be deprecated at some
+       * point in the future. *)
+      val make_file_decoder : filename:string ->
+           kind:Frame.content_kind ->
+           remaining:(Frame.t -> int -> int) ->
+           Generator.t decoder -> Generator.t -> file_decoder
+
       val file_decoder :
         file ->
         Frame.content_kind ->

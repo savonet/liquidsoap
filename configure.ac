@@ -489,7 +489,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.1.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.2.0])
 
 #
 # Jack

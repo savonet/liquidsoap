@@ -300,7 +300,7 @@ let get_stream_decoder mime kind =
 module Buffered(Generator:Generator.S) =
 struct
 
-  let file_decoder filename kind create_decoder gen =
+  let  make_file_decoder ~filename ~kind ~remaining decoder gen =
     let frame_size = Lazy.force Frame.size in
     let prebuf =
       (* Amount of audio to decode in advance, in ticks.
@@ -321,32 +321,6 @@ struct
        * be useful. *)
       Frame.master_of_seconds 0.5
     in
-    let file_size = (Unix.stat filename).Unix.st_size in
-    let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
-    let proc_bytes = ref 0 in
-    let read len =
-      try
-        let s = Bytes.create len in
-        let i = Unix.read fd s 0 len in
-        proc_bytes := !proc_bytes + i;
-          s, i
-      with _ -> "", 0
-    in
-    let tell () = 
-      Unix.lseek fd 0 Unix.SEEK_CUR
-    in
-    let length () = (Unix.fstat fd).Unix.st_size in 
-    let lseek len = 
-      Unix.lseek fd len Unix.SEEK_SET
-    in
-    let input = 
-      { read = read;
-        tell = Some tell;
-        length = Some length;
-        lseek = Some lseek }
-    in
-    let decoder = create_decoder input in
-    let out_ticks = ref 0 in
     let decoding_done = ref false in
     let fill frame =
       (* We want to avoid trying to decode when
@@ -410,19 +384,7 @@ struct
             Frame.add_break frame offset ;
             0
         end else
-          let in_bytes = tell () in
-          let gen_len = Generator.length gen in
-            out_ticks := !out_ticks + Frame.position frame - offset ;
-            (* Compute an estimated number of remaining ticks. *)
-            if !proc_bytes = 0 then -1 else
-              let compression =
-                (float (!out_ticks+gen_len)) /. (float !proc_bytes)
-              in
-              let remaining_ticks =
-                (float gen_len) +.
-                (float (file_size - in_bytes)) *. compression
-              in
-                int_of_float remaining_ticks
+          remaining frame offset
     in
     let fseek len = 
       let gen_len = Generator.length gen in
@@ -440,6 +402,58 @@ struct
     in
       { fill = fill ;
         fseek = fseek;
-        close = fun () -> Unix.close fd }
+        close = fun () -> () }
+
+  let file_decoder filename kind create_decoder gen = 
+    let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
+    let file_size = (Unix.stat filename).Unix.st_size in
+    let proc_bytes = ref 0 in
+    let read len =
+      try
+        let s = Bytes.create len in
+        let i = Unix.read fd s 0 len in
+        proc_bytes := !proc_bytes + i;
+          s, i
+      with _ -> "", 0
+    in
+    let tell () =
+      Unix.lseek fd 0 Unix.SEEK_CUR
+    in
+    let length () = (Unix.fstat fd).Unix.st_size in
+    let lseek len =
+      Unix.lseek fd len Unix.SEEK_SET
+    in
+    let input =
+      { read = read;
+        tell = Some tell;
+        length = Some length;
+        lseek = Some lseek }
+    in
+    let decoder =
+      create_decoder input
+    in
+    let out_ticks = ref 0 in
+    let remaining frame offset =
+      let in_bytes = tell () in
+      let gen_len = Generator.length gen in
+        out_ticks := !out_ticks + Frame.position frame - offset ;
+        (* Compute an estimated number of remaining ticks. *)
+        if !proc_bytes = 0 then -1 else
+          let compression =
+            (float (!out_ticks+gen_len)) /. (float !proc_bytes)
+          in
+          let remaining_ticks =
+            (float gen_len) +.
+            (float (file_size - in_bytes)) *. compression
+          in
+            int_of_float remaining_ticks
+    in
+    let decoder =
+      make_file_decoder ~filename ~kind ~remaining decoder gen
+    in
+    {decoder with
+       close = fun () ->
+         begin try Unix.close fd with _ -> () end;
+         decoder.close ()} 
 
 end
