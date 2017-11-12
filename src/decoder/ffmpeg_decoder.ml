@@ -82,10 +82,12 @@ let create_decoder fname =
     Converter.create channel_layout ~in_sample_format sample_freq
                      target_channel_layout target_sample_rate
   in 
-  let remaining = ref (duration fname) in
+  let remaining = ref 
+    (Frame.master_of_seconds (duration fname))
+  in
   let m = Mutex.create () in
   let decr_remaining = Tutils.mutexify m (fun v ->
-    remaining := !remaining -. v)
+    remaining := !remaining - v)
   in
   let get_remaining = Tutils.mutexify m (fun () ->
     !remaining)
@@ -94,14 +96,14 @@ let create_decoder fname =
     let data = 
       Converter.convert converter frame
     in
-    decr_remaining (Frame.seconds_of_audio (Array.length data.(0)));
+    let consumed =
+      Frame.master_of_audio (Array.length data.(0))
+    in
+    decr_remaining consumed;
     let normalize pcm =
       pcm /. 10.
     in
     Array.map (Array.map normalize) data
-  in
-  let remaining _ _ =
-    Frame.master_of_seconds (get_remaining ())
   in
   let seek ticks =
     let position = Frame.seconds_of_master ticks in
@@ -125,12 +127,16 @@ let create_decoder fname =
   in
   { Decoder.
      seek = seek;
-     decode = decode }, remaining
+     decode = decode }, get_remaining
 
 let create_file_decoder filename kind =
   let generator = G.create `Audio in
   let decoder, remaining =
     create_decoder filename
+  in
+  let remaining frame offset =
+    let remaining = remaining () in
+    remaining + G.length generator + Frame.position frame - offset 
   in
   Buffered.make_file_decoder ~filename ~kind ~remaining decoder generator 
 
