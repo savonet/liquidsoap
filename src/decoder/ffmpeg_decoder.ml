@@ -43,6 +43,18 @@ module Converter = ConverterInput(FFmpeg.Swresample.PlanarFloatArray)
 module G = Generator.From_audio_video
 module Buffered = Decoder.Buffered(G)
 
+let duration file =
+  let container =
+    FFmpeg.Av.open_input file
+  in
+  let (index, stream, codec) =
+    FFmpeg.Av.find_best_audio_stream container
+  in
+  let duration =
+    FFmpeg.Av.get_duration stream FFmpeg.Avutil.Time_format.Millisecond
+  in
+  (Int64.to_float duration) /. 1000.
+
 let create_decoder fname =
   let container =
     FFmpeg.Av.open_input fname
@@ -70,14 +82,26 @@ let create_decoder fname =
     Converter.create channel_layout ~in_sample_format sample_freq
                      target_channel_layout target_sample_rate
   in 
+  let remaining = ref (duration fname) in
+  let m = Mutex.create () in
+  let decr_remaining = Tutils.mutexify m (fun v ->
+    remaining := !remaining -. v)
+  in
+  let get_remaining = Tutils.mutexify m (fun () ->
+    !remaining)
+  in
   let convert frame =
     let data = 
       Converter.convert converter frame
     in
+    decr_remaining (Frame.seconds_of_audio (Array.length data.(0)));
     let normalize pcm =
       pcm /. 10.
     in
     Array.map (Array.map normalize) data
+  in
+  let remaining _ _ =
+    Frame.master_of_seconds (get_remaining ())
   in
   let seek ticks =
     let position = Frame.seconds_of_master ticks in
@@ -101,14 +125,11 @@ let create_decoder fname =
   in
   { Decoder.
      seek = seek;
-     decode = decode }
+     decode = decode }, remaining
 
 let create_file_decoder filename kind =
   let generator = G.create `Audio in
-  let remaining frame offset = 
-    -1
-  in
-  let decoder =
+  let decoder, remaining =
     create_decoder filename
   in
   Buffered.make_file_decoder ~filename ~kind ~remaining decoder generator 
@@ -175,15 +196,6 @@ let check filename =
   match Configure.file_mime with
     | Some f -> List.mem (f filename) mime_types#get
     | None -> (try ignore (get_type filename) ; true with _ -> false)
-
-let duration file =
-  let container =
-    FFmpeg.Av.open_input file
-  in
-  let duration =
-    FFmpeg.Av.get_input_duration container FFmpeg.Avutil.Time_format.Millisecond
-  in
-  (Int64.to_float duration) /. 1000.
 
 let () =
   Request.dresolvers#register "FFMPEG" duration
