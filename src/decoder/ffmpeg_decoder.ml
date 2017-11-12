@@ -35,7 +35,7 @@ let mime_types =
 let file_extensions =
   Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
     "File extensions used for decoding with ffmpeg"
-    ~d:["mp3"] (* Test *)
+    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg"] (* Test *)
 
 module ConverterInput = FFmpeg.Swresample.Make(FFmpeg.Swresample.Frame)
 module Converter = ConverterInput(FFmpeg.Swresample.PlanarFloatArray)
@@ -91,13 +91,13 @@ let create_decoder fname =
     with Failure _ -> 0
   in
   let decode gen =
-    let content =
-      match FFmpeg.Av.read stream with
-        | FFmpeg.Av.Frame frame -> convert frame
-        | FFmpeg.Av.End_of_stream -> [|[||];[||]|]
-    in
-    G.set_mode gen `Audio ;
-    G.put_audio gen content 0 (Array.length content.(0))
+    match FFmpeg.Av.read stream with
+        | FFmpeg.Av.Frame frame ->
+            let content = convert frame in
+            G.set_mode gen `Audio ;
+            G.put_audio gen content 0 (Array.length content.(0))
+        | FFmpeg.Av.End_of_stream -> 
+            G.add_break gen
   in
   { Decoder.
      seek = seek;
