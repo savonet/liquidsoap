@@ -40,7 +40,7 @@ let flac_gen params =
           | ("samplerate",{ term = Int i; _}) ->
               { f with Flac_format.samplerate = i }
           | ("compression",({ term = Int i; _} as t)) ->
-              if i < 0 || i >= 8 then
+              if i < 0 || i > 8 then
                 raise (Error (t,"invalid compression value")) ;
               { f with Flac_format.compression = i }
           | ("bits_per_sample",({ term = Int i; _} as t)) ->
