@@ -51,7 +51,7 @@ let generic_queues =
       "a stalled download. But N stalled download can block N queues anyway."
     ]
 let fast_queues =
-  Conf.int ~p:(conf_scheduler#plug "fast_queues") ~d:1
+  Conf.int ~p:(conf_scheduler#plug "fast_queues") ~d:0
      "Fast queues"
      ~comments:[
        "Number of queues that are dedicated to fast tasks." ;
