@@ -51,7 +51,7 @@ let duration file =
     FFmpeg.Av.find_best_audio_stream container
   in
   let duration =
-    FFmpeg.Av.get_duration stream FFmpeg.Avutil.Time_format.Millisecond
+    FFmpeg.Av.get_duration stream ~format:`millisecond
   in
   (Int64.to_float duration) /. 1000.
 
@@ -110,19 +110,18 @@ let create_decoder fname =
     let position = Int64.of_float
       (position *. 1000.)
    in
-    let time_format = FFmpeg.Avutil.Time_format.Millisecond in
     try
-      FFmpeg.Av.seek stream time_format position [||];
+      FFmpeg.Av.seek stream `millisecond position [||];
       ticks
     with Failure _ -> 0
   in
   let decode gen =
     match FFmpeg.Av.read stream with
-        | FFmpeg.Av.Frame frame ->
+        | `frame frame ->
             let content = convert frame in
             G.set_mode gen `Audio ;
             G.put_audio gen content 0 (Array.length content.(0))
-        | FFmpeg.Av.End_of_stream -> 
+        | `end_of_stream -> 
             G.add_break gen
   in
   { Decoder.
