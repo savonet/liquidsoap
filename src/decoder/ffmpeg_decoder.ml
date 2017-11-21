@@ -140,9 +140,7 @@ let create_file_decoder filename kind =
   in
   Buffered.make_file_decoder ~filename ~kind ~remaining decoder generator 
 
-(* Get the number of channels of audio in a file.
- * This is done by decoding a first chunk of data, thus checking
- * that libmad can actually open the file -- which doesn't mean much. *)
+(* Get the number of channels of audio in a file. *)
 let get_type filename =
   let container =
     FFmpeg.Av.open_input filename
@@ -176,7 +174,6 @@ let () =
      else
        if kind.Frame.audio = Frame.Variable ||
           kind.Frame.audio = Frame.Succ Frame.Variable ||
-          (* libmad always respects the first two kinds *)
           if Frame.type_has_kind (get_type filename) kind then true else begin
             log#f 3
               "File %S has an incompatible number of channels."
