@@ -100,10 +100,7 @@ let create_decoder fname =
       Frame.master_of_audio (Array.length data.(0))
     in
     decr_remaining consumed;
-    let normalize pcm =
-      pcm /. 10.
-    in
-    Array.map (Array.map normalize) data
+    data
   in
   let seek ticks =
     let position = Frame.seconds_of_master ticks in
