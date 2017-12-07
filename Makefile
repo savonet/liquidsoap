@@ -43,6 +43,7 @@ else
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
 endif
+	@echo let \(\) = init_dyntools plugins_dir >> src/configure.ml
 	@echo let display_types = ref false >> src/configure.ml
 	@echo let exe_ext = \"$(EXEEXT)\" >> src/configure.ml
 	@echo "let vendor = \

@@ -380,7 +380,7 @@ let options = [
     (if Configure.dynlink then
         [["--dynamic-plugins-dir"],
             Arg.String (fun d ->
-            Dyntools.load_plugins_dir d),
+            Configure.load_plugins_dir d),
          "Directory where to look for plugins."]
       else
         [])

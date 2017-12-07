@@ -418,10 +418,17 @@ if test -z "${W_DYNLINK}"; then
   AC_MSG_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
   cat >> src/configure.ml <<EOCONF
 let dynlink = false
+let load_plugins_dir = fun _ -> assert false
+let init_dyntools = fun _ -> ()
 EOCONF
 else
   cat >> src/configure.ml <<EOCONF
 let dynlink = true
+let load_plugins_dir = Dyntools.load_plugins_dir
+let init_dyntools dir =
+  at_init (fun () ->
+    Dyntools.load_dynlinks ();
+    Dyntools.load_plugins_dir dir)
 EOCONF
 fi
 
