@@ -93,7 +93,11 @@ let pusher fd buf ofs len =
   Unix.write fd buf ofs len
 
 let puller in_pipe fd buf ofs len =
-  let ret = Unix.read fd buf ofs len in
+  let ret = 
+    try
+      Unix.read fd buf ofs len
+    with _ when Sys.os_type = "Win32" ->  0
+  in
   if ret = 0 then ignore(Unix.write in_pipe "2" 0 1);
   ret
 
