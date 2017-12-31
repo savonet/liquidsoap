@@ -100,7 +100,7 @@ let create_decoder fname =
       Frame.master_of_audio (Array.length data.(0))
     in
     decr_remaining consumed;
-    data
+    Array.init (Array.length data) (fun i -> Array.copy data.(i))
   in
   let seek ticks =
     let position = Frame.seconds_of_master ticks in
