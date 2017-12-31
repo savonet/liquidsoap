@@ -50,6 +50,16 @@ let force_start =
       "This should be reserved for advanced dynamic uses of liquidsoap."
     ]
 
+(* Should we allow to run as root? *)
+let allow_root =
+  Dtools.Conf.bool
+    ~p:(Dtools.Init.conf#plug "allow_root") ~d:false
+    "Allow liquidsoap to run as root"
+    ~comments:[
+      "This should be reserved for advanced dynamic uses of liquidsoap ";
+      "such as running inside an isolated environment like docker."
+    ]
+
 (* Do not run, don't even check the scripts. *)
 let parse_only = ref false
 
@@ -633,7 +643,7 @@ struct
       end else if Source.has_outputs () || force_start#get then
         if not !dont_run then begin
           check_directories () ;
-          Init.init ~prohibit_root:true main
+          Init.init ~prohibit_root:(not allow_root#get) main
         end else
           cleanup ()
       else
