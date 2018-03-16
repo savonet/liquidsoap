@@ -41,7 +41,7 @@ object (self)
     let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
     let portaddr = Unix.ADDR_INET (ipaddr, port) in
       socket_send <-
-        Some (fun msg off len -> Unix.sendto socket msg off len [] portaddr) ;
+        Some (fun msg off len -> Unix.sendto socket (Bytes.of_string msg) off len [] portaddr) ;
       encoder <-
         Some (encoder_factory self#id Meta_format.empty_metadata)
 
@@ -133,7 +133,7 @@ object (self)
         wait () ;
         let msg = Bytes.create len in
         let n,_ = Unix.recvfrom socket msg 0 len [] in
-          msg,n
+          Bytes.to_string msg,n
       in
       let input =
         { Decoder.

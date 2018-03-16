@@ -279,6 +279,7 @@ let start_forwarding () =
     let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in
+      let buffer = Bytes.to_string buffer in
       let rec split acc i =
         match
           try Some (String.index_from buffer i '\n') with Not_found -> None

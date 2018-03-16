@@ -58,13 +58,13 @@ class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:sou
                         ~sample_size:16 ()
   in
   let on_start push =
-    Process_handler.write header push;
+    Process_handler.write (Bytes.of_string header) push;
     `Continue
   in
   let abg = Generator.create ~log ~kind `Audio in
   let on_stdout pull =
     let sbuf = Process_handler.read 1024 pull in
-    let data = converter sbuf in
+    let data = converter (Bytes.to_string sbuf) in
     let len = Array.length data.(0) in
     let buffered = Generator.length abg in
     Generator.put_audio abg data 0 (Array.length data.(0));
@@ -74,7 +74,7 @@ class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:sou
       `Continue
   in
   let on_stderr stderr =
-    (!log_error) (Process_handler.read 1024 stderr);
+    (!log_error) (Bytes.to_string (Process_handler.read 1024 stderr));
     `Continue
   in
   let mutex = Mutex.create () in
@@ -126,7 +126,10 @@ object(self)
       let blen = Array.length buf.(0) in
       let slen_of_len len = 2 * len * Array.length buf in
       let slen = slen_of_len blen in
-      let sbuf = Bytes.create slen in
+      let sbuf =
+        Bytes.to_string
+          (Bytes.create slen)
+      in
       Audio.S16LE.of_audio buf 0 sbuf 0 blen;
       let metadata =
         List.sort (fun (pos,_) (pos',_) -> compare pos pos')
@@ -161,7 +164,7 @@ object(self)
       let ({sbuf;next;ofs;len} as chunk) = Queue.peek to_write in
       (* Select documentation: large write may still block.. *)
       let wlen = min 1024 len in
-      let ret = pusher sbuf ofs wlen in
+      let ret = pusher (Bytes.of_string sbuf) ofs wlen in
       if ret = len then begin
         Tutils.mutexify mutex (fun () -> next_stop := next) ();
         ignore(Queue.take to_write); 

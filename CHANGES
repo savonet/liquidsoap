@@ -13,6 +13,8 @@ Fixed:
 
 - Decouple dyntools compilation.
 
+- Support for OCaml >= 4.06
+
 1.3.3 (14-10-2017)
 =====
 

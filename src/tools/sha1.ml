@@ -19,7 +19,7 @@ module Int32 = struct
       Bytes.set ans i (char_of_int c);
       n := Int32.shift_right !n 8
     done;
-    ans
+    Bytes.to_string ans
 
   let bit n k =
     let mask = shift_left one k in
@@ -56,10 +56,10 @@ end
 let digest s =
   (* Pad string and append length. *)
   let len = String.length s in
-  let s = s ^ (Bytes.make 1 (char_of_int 0b10000000)) in
+  let s = s ^ (String.make 1 (char_of_int 0b10000000)) in
   let pad = 64 - ((len+1) mod 64) - 8 in
   let pad = if pad < 0 then pad + 64 else pad in
-  let pad = Bytes.make pad (char_of_int 0) in
+  let pad = String.make pad (char_of_int 0) in
   let slen =
     let ans = Bytes.create 8 in
     let len = ref (8*len) in
@@ -67,7 +67,7 @@ let digest s =
       Bytes.set ans i (char_of_int (!len land 0xff));
       len := !len lsr 8;
     done;
-    ans
+    Bytes.to_string ans
   in
   let s = s ^ pad ^ slen in
 

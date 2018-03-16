@@ -30,7 +30,7 @@ let load_image fname =
   let data = Bytes.create len in
   really_input ic data 0 len;
   close_in ic;
-  Img.of_PPM data
+  Img.of_PPM (Bytes.to_string data)
 
 let () =
   Decoder.image_file_decoders#register "ppm"

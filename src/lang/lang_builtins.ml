@@ -633,7 +633,7 @@ let register_escape_fun ~name ~descr ~escape
   let special_chars =
     Lang.list ~t:Lang.string_t
      (List.map Lang.string
-      (List.map (Bytes.make 1)
+      (List.map (String.make 1)
         special_chars))
   in
   let escape_char p _ =
@@ -672,7 +672,7 @@ let register_escape_fun ~name ~descr ~escape
        let escape_char c =
          Lang.to_string
           (Lang.apply f ~t:Lang.string_t
-             ["",Lang.string (Bytes.make 1 c)])
+             ["",Lang.string (String.make 1 c)])
        in
        Lang.string (escape ~special_char ~escape_char s))
 
@@ -1578,7 +1578,7 @@ let () =
              let n = input ch tmp 0 1024 in
                if n = 0 then () else
                 begin
-                 Buffer.add_substring buf tmp 0 n;
+                 Buffer.add_substring buf (Bytes.to_string tmp) 0 n;
                  aux()
                 end
            in
@@ -1607,7 +1607,7 @@ let () =
                 status := Some s;
                 begin
                   try
-                    ignore(Unix.write in_pipe " " 0 1);
+                    ignore(Unix.write in_pipe (Bytes.of_string " ") 0 1);
                   with _ -> ()
                 end;
                 false
@@ -2207,18 +2207,18 @@ let () =
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let ic = open_in f in
-      let s = ref "" in
+      let s = ref Bytes.empty in
       let buflen = 1024 in
       let buf = Bytes.create buflen in
       try
         while true do
           let n = input ic buf 0 buflen in
           if n = 0 then raise Exit;
-          s := !s ^ (if n = buflen then buf else Bytes.sub buf 0 n)
+          s := Bytes.cat !s (if n = buflen then buf else Bytes.sub buf 0 n)
         done;
         assert false
       with
-      | Exit -> close_in ic; Lang.string !s)
+      | Exit -> close_in ic; Lang.string (Bytes.to_string !s))
 
 let () =
   add_builtin "file.watch" ~cat:Sys

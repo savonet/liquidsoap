@@ -164,7 +164,8 @@ let get_type filename =
       let aacbuflen = 1024 in
       let aacbuf = Bytes.create aacbuflen in
       let _,rate,channels =
-        Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
+        let n = Unix.read fd aacbuf 0 aacbuflen in
+        Faad.init dec (Bytes.to_string aacbuf) 0 n
       in
         log#f 4
           "Libfaad recognizes %S as AAC (%dHz,%d channels)."

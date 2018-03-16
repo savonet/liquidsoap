@@ -32,7 +32,7 @@ class output ~kind ~clock_safe
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let blank () =
-    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
+    String.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
   inherit Output.output
