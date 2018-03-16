@@ -32,14 +32,14 @@ class output ~kind ~clock_safe
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let blank () =
-    String.make (samples_per_frame * channels * bytes_per_sample) '0'
+    Bytes.make (samples_per_frame * channels * bytes_per_sample) '0'
   in
 object (self)
   inherit Output.output
             ~infallible ~on_stop ~on_start ~content_kind:kind
             ~name:"output.jack" ~output_kind:"output.jack" source true
           as super
-  inherit [string] IoRing.output ~nb_blocks ~blank as ioring
+  inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
   method private set_clock =
     super#set_clock ;
@@ -78,7 +78,8 @@ object (self)
 
   method push_block data =
     let dev = self#get_device in
-    let len = String.length data in
+    let len = Bytes.length data in
+    let data = Bytes.to_string data in
     let remaining = ref (len - (Bjack.write dev data)) in
     while !remaining > 0 do
       Thread.delay (seconds_per_frame /. 2.) ;

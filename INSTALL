@@ -17,7 +17,7 @@ Mandatory dependencies :
 
    ocaml-dtools>=0.3.4
    ocaml-duppy>=0.6.0
-   ocaml-mm>=0.2.1
+   ocaml-mm>=0.4.0
    ocaml-pcre
    base-bytes, for OCaml compilers < 4.02
 

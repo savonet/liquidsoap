@@ -34,7 +34,7 @@ type next_stop = [
 ]
 
 type chunk = {
-  sbuf: string;
+  sbuf: Bytes.t;
   next: next_stop;
   mutable ofs: int;
   mutable len: int
@@ -126,10 +126,7 @@ object(self)
       let blen = Array.length buf.(0) in
       let slen_of_len len = 2 * len * Array.length buf in
       let slen = slen_of_len blen in
-      let sbuf =
-        Bytes.to_string
-          (Bytes.create slen)
-      in
+      let sbuf = Bytes.create slen in
       Audio.S16LE.of_audio buf 0 sbuf 0 blen;
       let metadata =
         List.sort (fun (pos,_) (pos',_) -> compare pos pos')
@@ -164,7 +161,7 @@ object(self)
       let ({sbuf;next;ofs;len} as chunk) = Queue.peek to_write in
       (* Select documentation: large write may still block.. *)
       let wlen = min 1024 len in
-      let ret = pusher (Bytes.of_string sbuf) ofs wlen in
+      let ret = pusher sbuf ofs wlen in
       if ret = len then begin
         Tutils.mutexify mutex (fun () -> next_stop := next) ();
         ignore(Queue.take to_write); 

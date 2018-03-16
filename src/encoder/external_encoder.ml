@@ -136,10 +136,8 @@ let encoder id ext =
           in
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
-          (*😳*)
-          let sbuf = Bytes.to_string sbuf in
           Audio.S16LE.of_audio b start sbuf 0 len;
-          sbuf
+          Bytes.to_string sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->

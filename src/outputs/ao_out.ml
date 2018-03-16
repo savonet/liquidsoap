@@ -99,7 +99,6 @@ object (self)
   method output_send wav =
     if not (Frame.is_partial wav) then
       let push data =
-        let data = Bytes.to_string data in
         let pcm = AFrame.content wav 0 in
           assert (Array.length pcm = channels) ;
           Audio.S16LE.of_audio pcm 0 data 0 (AFrame.size ())

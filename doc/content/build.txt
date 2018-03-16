@@ -47,7 +47,7 @@ libraries:
 * "ocamlfind":http://www.ocaml-programming.de/programming/findlib.html
 * ocaml-dtools (>= 0.3.4)
 * ocaml-duppy (>= 0.4.2)
-* ocaml-mm (>= 0.2.1)
+* ocaml-mm (>= 0.4.0)
 * "ocaml-pcre":https://github.com/mmottl/pcre-ocaml
 
 And also optional dependencies. For most of these, you also need
