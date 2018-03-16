@@ -34,7 +34,7 @@ EXEEXT = @EXEEXT@
 CAMLP4O = @CAMLP4O@
 
 liquidsoap_ocamlcflags= @liquidsoap_ocamlcflags@
-liquidsoap_ocamllflags= @liquidsoap_ocamllflags@  -cc "$(CC)" -cclib "$(LDFLAGS)"
+liquidsoap_ocamllflags= @liquidsoap_ocamllflags@ -cclib "$(LDFLAGS)"
 _DEP_OPTS= @_DEP_OPTS@
 
 # Make the building quiet

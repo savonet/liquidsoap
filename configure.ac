@@ -182,6 +182,11 @@ fi
 
 liquidsoap_ocamlcflags="$OCAMLFLAGS -ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
+
+if test "$OS_TYPE" \!= "Win32" ; then
+  liquidsoap_ocamllflags="$liquidsoap_ocamllflags -cc \"\$(CC)\""
+fi
+
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
