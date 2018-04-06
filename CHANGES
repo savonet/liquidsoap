@@ -7,6 +7,8 @@ New:
 
 Changed:
 
+- Depends on camomile > 1.0.0
+
 - Use `http{s}.head` when available to fetch remote file's mime type. (win32 port)
 
 Fixed:

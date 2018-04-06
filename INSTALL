@@ -23,7 +23,7 @@ Mandatory dependencies :
 
 Recommended dependencies :
 
-   camomile                 for charset recoding in metadata
+   camomile>=1.0.0          for charset recoding in metadata
    ocaml-magic>=0.6         for file type detection
    festival                 for speech synthesis
 
