@@ -5,6 +5,8 @@ New:
 
 - Add `"init.allow_root"` setting to allow running liquidsoap as root.
 
+- Added `on_track` callback for playlists. Can be used to force a reload.
+
 Changed:
 
 - Depends on camomile > 1.0.0
