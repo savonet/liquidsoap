@@ -30,7 +30,7 @@ module type Transport_t =
 sig
   type socket
   val file_descr_of_socket : socket -> Unix.file_descr
-  val read : socket -> int -> (string*int)
+  val read : socket -> int -> (bytes*int)
   val accept : Unix.file_descr -> socket * Unix.sockaddr
   val close : socket -> unit
 
@@ -77,7 +77,7 @@ sig
 
   (* Generic *)
   val file_descr_of_socket : socket -> Unix.file_descr
-  val read : socket -> int -> (string*int)
+  val read : socket -> int -> (Bytes.t*int)
   val close : socket -> unit
 
   (* Http Server *)
@@ -110,7 +110,7 @@ sig
     method virtual relay :
       string -> (string*string) list ->
       ?read:(socket ->
-      int -> (string * int)) ->
+      int -> (Bytes.t * int)) ->
       socket -> unit
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
     method virtual login : (string*(string -> string -> bool))
@@ -152,7 +152,7 @@ struct
     method virtual relay :
       string -> (string*string) list ->
       ?read:(socket ->
-      int -> (string * int)) ->
+      int -> (Bytes.t * int)) ->
       socket -> unit
     method virtual insert_metadata : (string, string) Hashtbl.t -> unit
     method virtual login : (string*(string -> string -> bool))
@@ -484,8 +484,11 @@ struct
          in
          let read = 
            if chunked then 
-             let read =
-               Http.read_chunked ~timeout:conf_timeout#get
+             let read connection =
+               let s, len =
+                 Http.read_chunked ~timeout:conf_timeout#get connection
+               in
+               Bytes.of_string s,len
              in
              Some (fun connection _ -> read connection)
            else
@@ -573,7 +576,7 @@ struct
       with _ -> error ()
     in
     duppy_do
-      duppy_write (Websocket.upgrade headers)
+      duppy_write Bytes.of_string (Websocket.upgrade headers)
     with
      { priority = Tutils.Non_blocking ;
        handler  = h ;
@@ -634,7 +637,7 @@ struct
         let len = min (Buffer.length binary_data) len in
         let data = Buffer.sub binary_data 0 len in
         Utils.buffer_drop binary_data len;
-        data, len
+        Bytes.of_string data, len
       in
       let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
       relayed "" f
@@ -909,7 +912,7 @@ struct
      | `Shout when icy ->
           duppy_do
              duppy_write
-                "OK2\r\nicy-caps:11\r\n\r\n"
+                Bytes.of_string "OK2\r\nicy-caps:11\r\n\r\n"
              with
                { priority = Tutils.Non_blocking ;
                  handler  = h ;
@@ -999,7 +1002,7 @@ struct
               in
               Duppy.Io.write ~timeout:conf_timeout#get
                              ~priority:Tutils.Non_blocking
-                             ~on_error ~string:s ~exec
+                             ~on_error ~string:(Bytes.of_string s) ~exec
                              Tutils.scheduler socket
           in
           duppy_run
@@ -1124,7 +1127,7 @@ struct
      begin
       log#f 3 "Nothing more on port %i: closing sockets." port ;
       let f in_s =
-        ignore(Unix.write in_s " " 0 1) ;
+        ignore(Unix.write in_s (Bytes.of_string " ") 0 1) ;
         Unix.close in_s
       in
       List.iter f socks ;
@@ -1153,7 +1156,7 @@ struct
      begin
       log#f 4 "Nothing more on port %i: closing sockets." port ;
       let f in_s =
-        ignore(Unix.write in_s " " 0 1) ;
+        ignore(Unix.write in_s (Bytes.of_string " ") 0 1) ;
         Unix.close in_s
       in
       List.iter f socks ;

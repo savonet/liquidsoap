@@ -146,11 +146,11 @@ object (self)
     let fd = Utils.get_some fd in
     let buf = AFrame.content_of_type ~channels frame 0 in
     let len = 2 * (Array.length buf) * (Array.length buf.(0)) in
-    let s = Bytes.create len in
+    let s = String.create len in
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;
-      Audio.S16LE.to_audio s 0 buf 0 (Audio.duration buf);
+      Audio.S16LE.to_audio (Bytes.to_string s) 0 buf 0 (Audio.duration buf);
       AFrame.add_break frame (AFrame.size ())
 
 end

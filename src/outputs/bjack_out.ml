@@ -39,7 +39,7 @@ object (self)
             ~infallible ~on_stop ~on_start ~content_kind:kind
             ~name:"output.jack" ~output_kind:"output.jack" source true
           as super
-  inherit [string] IoRing.output ~nb_blocks ~blank as ioring
+  inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
   method private set_clock =
     super#set_clock ;
@@ -78,7 +78,8 @@ object (self)
 
   method push_block data =
     let dev = self#get_device in
-    let len = String.length data in
+    let len = Bytes.length data in
+    let data = Bytes.to_string data in
     let remaining = ref (len - (Bjack.write dev data)) in
     while !remaining > 0 do
       Thread.delay (seconds_per_frame /. 2.) ;

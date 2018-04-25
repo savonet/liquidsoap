@@ -43,7 +43,7 @@ object (self)
   inherit Output.output  ~content_kind:kind
               ~infallible ~on_start ~on_stop
               ~name:"ao" ~output_kind:"output.ao" source start as super
-  inherit [string] IoRing.output ~nb_blocks ~blank as ioring
+  inherit [Bytes.t] IoRing.output ~nb_blocks ~blank as ioring
 
   method private set_clock =
     super#set_clock ;
@@ -94,7 +94,7 @@ object (self)
 
   method push_block data =
     let dev = self#get_device in
-    play dev data
+    play dev (Bytes.to_string data)
 
   method output_send wav =
     if not (Frame.is_partial wav) then

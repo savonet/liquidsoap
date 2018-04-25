@@ -34,12 +34,12 @@ let external_input process input =
   let on_stdin pusher =
     let s,read = input.Decoder.read 1024 in
     if read = 0 then `Stop else begin
-      Process_handler.write s pusher;
+      Process_handler.write (Bytes.of_string s) pusher;
       `Continue
     end
   in
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    log#f 5 "stderr: %s" (Bytes.to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let log = log#f 3 "%s" in
@@ -52,7 +52,7 @@ let external_input process input =
     try
       Process_handler.on_stdout process (fun stdout ->
         let s = Process_handler.read len stdout in
-        s,String.length s)
+        Bytes.to_string s,Bytes.length s)
     with Process_handler.Finished -> "",0
   in
   {Decoder.
@@ -165,7 +165,7 @@ let log = Dtools.Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    log#f 5 "stderr: %s" (Bytes.to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let command = process filename in
@@ -176,7 +176,7 @@ let external_input_oblivious process filename prebuf =
     try
       Process_handler.on_stdout process (fun stdout ->
         let s = Process_handler.read len stdout in
-        s,String.length s)
+        Bytes.to_string s,Bytes.length s)
     with Process_handler.Finished -> "",0
   in
   let close () =

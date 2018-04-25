@@ -142,33 +142,75 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
   env = list.map(get_env,env_vars)
   inherit_env = get(default=true,"protocol.process.inherit_env")
 
-  cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
-  delay = maxtime - gettimeofday()
-  log(level=4,"Running #{cmd}")
-  x = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
-  extname =
+  timeout = maxtime - gettimeofday()
+
+  # First define using curl.
+  def get_mime() =
+    cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
+    log(level=4,"Running #{cmd}")
+    x = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
     if fst(snd(x)) != "exit" or snd(snd(x)) != "0" then
       log(level=3,"Failed to fetch mime-type for #{uri}.")
-      "osb"
+      ""
     else
       lines = string.split(separator="\\n",fst(fst(x)))
-      mime = string.case(lower=true,string.trim(list.hd(default="",lines)))
-      if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
-        "mp3"
-      elsif list.mem(mime,["application/ogg", "application/x-ogg",
-                           "audio/x-ogg", "audio/ogg", "video/ogg"]) then
-        "ogg"
-      elsif mime == "audio/x-flac" then
-        "flac"
-      elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
-        "mp4"
-      elsif list.mem(mime,["audio/vnd.wave", "audio/wav",
-                           "audio/wave", "audio/x-wav"]) then
-        "wav"
+      string.case(lower=true,string.trim(list.hd(default="",lines)))
+    end
+  end
+
+  def head_mime(~name, ret) =
+    def get_mime() =
+      status = fst(fst(ret))
+      headers = snd(fst(ret))
+      code = snd(fst(status))
+      if 200 <= code and code < 300 then
+        headers["content-type"]
       else
-        log(level=3,"No known file extension for mime: #{mime}")
-        "osb"
+        log(level=3,"Failed to fetch mime-type for #{uri}.")
+        ""
       end
+    end
+    get_mime
+  end
+
+  sub = string.sub(uri,start=0,length=5)
+
+%ifdef https.head
+  get_mime =
+    if sub == "https" then
+      log(level=4,"Fetching https head for #{uri}")
+      head_mime(name="https",https.head(timeout=timeout,uri))
+    else
+      get_mime
+    end
+%endif
+
+  get_mime =
+    if sub != "https" then
+      log(level=4,"Fetching http head for #{uri}")
+      head_mime(name="http",http.head(timeout=timeout,uri))
+    else
+      get_mime
+    end
+
+  mime = get_mime()
+
+  extname =
+    if list.mem(mime, ["audio/mpeg", "audio/mp3"]) then
+      "mp3"
+    elsif list.mem(mime,["application/ogg", "application/x-ogg",
+                         "audio/x-ogg", "audio/ogg", "video/ogg"]) then
+      "ogg"
+    elsif mime == "audio/x-flac" then
+      "flac"
+    elsif list.mem(mime,["audio/mp4", "application/mp4"]) then
+      "mp4"
+    elsif list.mem(mime,["audio/vnd.wave", "audio/wav",
+                         "audio/wave", "audio/x-wav"]) then
+      "wav"
+    else
+      log(level=3,"No known file extension for mime: #{mime}")
+      "osb"
     end
   [process_uri(extname=extname,"#{curl} -sL #{quote(uri)} -o $(output)")]
 end

@@ -38,7 +38,7 @@ class jack_in ~kind ~clock_safe ~nb_blocks ~server =
   in
 object (self)
   inherit active_source ~name:"input.jack" kind as active_source
-  inherit [string] IoRing.input ~nb_blocks ~blank as ioring
+  inherit [Bytes.t] IoRing.input ~nb_blocks ~blank as ioring
 
   method set_clock =
     active_source#set_clock ;
@@ -89,7 +89,7 @@ object (self)
 
   method private pull_block block =
         let dev = self#get_device in
-        let length = String.length block in
+        let length = Bytes.length block in
         let ans = ref (Bjack.read dev length) in
           while String.length !ans < length do
             Thread.delay (seconds_per_frame /. 2.) ;
@@ -103,7 +103,7 @@ object (self)
     assert (0 = AFrame.position buf) ;
     let buffer = ioring#get_block in
     let fbuf = AFrame.content_of_type ~channels buf 0 in
-      Audio.S16LE.to_audio buffer 0 fbuf 0 samples_per_frame ;
+      Audio.S16LE.to_audio (Bytes.to_string buffer) 0 fbuf 0 samples_per_frame ;
       AFrame.add_break buf samples_per_frame
 
   method output = if AFrame.is_partial memo then self#get_frame memo

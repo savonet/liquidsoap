@@ -3,8 +3,8 @@ TESTS = $(TESTS_ML:.ml=)
 OCAML_CFLAGS = -I ../tools -I .. $(liquidsoap_ocamlcflags) -thread
 OCAML_LFLAGS = $(liquidsoap_ocamllflags) \
 		stdlib.cmx utils.cmx shutdown.cmx tutils.cmx \
-		file_watcher_mtime.cmx configure.cmx http.cmx JSON.cmx \
-		stream/frame.cmx avi.cmx dyntools.cmx \
+		file_watcher_mtime.cmx tools/dyntools.cmx configure.cmx http.cmx JSON.cmx \
+		stream/frame.cmx avi.cmx \
 		../tools/unix_c.o
 
 all: $(TESTS)

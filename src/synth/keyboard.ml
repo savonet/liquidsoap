@@ -76,7 +76,7 @@ object (self)
           let c =
             let c = Bytes.create 1 in
               ignore (Unix.read Unix.stdin c 0 1);
-              c.[0]
+              Bytes.get c 0
           in
             begin try
               self#log#f 3 "Playing note %d." (note_of_char c);

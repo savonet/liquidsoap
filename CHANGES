@@ -1,9 +1,23 @@
 x.y.z ()
 =====
 
+New:
+
+- Add `"init.allow_root"` setting to allow running liquidsoap as root.
+
+- Added `on_track` callback for playlists. Can be used to force a reload.
+
 Changed:
 
-- Set default fast queues configuration to `1`. (#492)
+- Depends on camomile > 1.0.0
+
+- Use `http{s}.head` when available to fetch remote file's mime type. (win32 port)
+
+Fixed:
+
+- Decouple dyntools compilation.
+
+- Support for OCaml >= 4.06
 
 1.3.3 (14-10-2017)
 =====

@@ -45,7 +45,7 @@ class external_input ~kind ~restart ~bufferize ~channels
   let abg = Generator.create ~log ~kind `Audio in
   let on_stdout in_chan =
     let s = Process_handler.read 1024 in_chan in
-    let data = converter s in
+    let data = converter (Bytes.to_string s) in
     let len = Array.length data.(0) in
     let buffered = Generator.length abg in
     Generator.put_audio abg data 0 (Array.length data.(0));
@@ -55,7 +55,7 @@ class external_input ~kind ~restart ~bufferize ~channels
       `Continue
   in
   let on_stderr in_chan =
-    (!log_error) (Process_handler.read 1024 in_chan);
+    (!log_error) (Bytes.to_string (Process_handler.read 1024 in_chan));
     `Continue
   in
   let on_stop = function
@@ -280,10 +280,10 @@ let () =
       in
       let get_data fd abg =
         match Avi.Read.chunk fd with
-        | `Frame (_, _, data) when Bytes.length data = 0 -> ()
+        | `Frame (_, _, data) when String.length data = 0 -> ()
         | `Frame (`Video, _, data) ->
-           if Bytes.length data <> width * height * 3 then
-             failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (Bytes.length data) (width * height * 3));
+           if String.length data <> width * height * 3 then
+             failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
           let data = Img.of_RGB24_string data width in
           (* Img.swap_rb data; *)
           (* Img.Effect.flip data; *)
@@ -342,7 +342,7 @@ let () =
         if r > 0 then
           (
             if r <> buflen then failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)." r buflen);
-            let data = Img.of_RGB24_string buf width in
+            let data = Img.of_RGB24_string (Bytes.to_string buf) width in
             (* Img.swap_rb data; *)
             (* Img.Effect.flip data; *)
             Generator.put_video abg [|[|data|]|] 0 1

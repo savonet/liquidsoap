@@ -189,6 +189,7 @@ struct
        let ret = Bytes.make (pad*16 + 1) ' ' in
        Bytes.set ret 0 (Char.chr pad) ;
        String.blit meta 0 ret 1 len ;
+       let ret = Bytes.to_string ret in
        if ret <> c.latest_meta then
         begin
          c.latest_meta <- ret ;
@@ -260,7 +261,7 @@ struct
            done
         | Some s ->
            duppy_write
-             s
+             Bytes.of_string s
            with
             { priority = Tutils.Non_blocking ;
               handler  = c.handler ;

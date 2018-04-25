@@ -41,11 +41,11 @@ struct
   (** Utility for reading icy metadata *)
   let read_metadata () = let old_chunk = ref "" in fun socket ->
     let size =
-      let buf = " " in
+      let buf = Bytes.of_string " " in
       let f : Http.connection -> Bytes.t -> int -> int -> int = Http.read in
       let s = f socket buf 0 1 in
         if s<>1 then raise Read_error ;
-        int_of_char buf.[0]
+        int_of_char (Bytes.get buf 0)
     in
     let size = 16*size in
     let chunk =
@@ -56,7 +56,7 @@ struct
             if p<=0 then raise Read_error ;
             read (pos+p)
       in
-        read 0
+      Bytes.to_string (read 0)
     in
     let h = Hashtbl.create 10 in
     let rec parse s =
@@ -86,25 +86,25 @@ struct
       end
   
   let read_line socket =
-    let ans = ref "" in
+    let ans = ref Bytes.empty in
     let c = Bytes.create 1 in
       if Http.read socket c 0 1 <> 1 then raise Read_error ;
-      while c <> "\n" do
-        ans := !ans ^ c;
+      while Bytes.get c 1 <> '\n' do
+        ans := Bytes.cat !ans c;
         if Http.read socket c 0 1 <> 1 then raise Read_error
       done;
-      String.sub !ans 0 (String.length !ans - 1)
+      Bytes.sub_string !ans 0 (Bytes.length !ans - 1)
   
   let read_chunk socket =
     let n = read_line socket in
     let n = Scanf.sscanf n "%x" (fun n -> n) in
-    let ans = ref "" in
-      while String.length !ans <> n do
-        let buf = Bytes.create (n - String.length !ans) in
-        let r = Http.read socket buf 0 (n - String.length !ans) in
-          ans := !ans ^ (String.sub buf 0 r)
+    let ans = ref Bytes.empty in
+      while Bytes.length !ans <> n do
+        let buf = Bytes.create (n - Bytes.length !ans) in
+        let r = Http.read socket buf 0 (n - Bytes.length !ans) in
+          ans := Bytes.cat !ans (Bytes.sub buf 0 r)
       done;
-      !ans
+      Bytes.to_string !ans
   
   let read_stream socket chunked metaint insert_metadata =
     let read_metadata = read_metadata () in
@@ -124,7 +124,7 @@ struct
             fun len ->
               let b = Bytes.create len in
               let r = read b 0 len in
-                if r < 0 then "",0 else b,r
+                if r < 0 then "",0 else Bytes.to_string b,r
         | Some metaint ->
             let readcnt = ref 0 in
               fun len ->
@@ -139,7 +139,7 @@ struct
                         | Some m -> insert_metadata m
                         | None -> ()
                     end ;
-                    b,r
+                    Bytes.to_string b,r
                   end
   
   (** HTTP input *)
