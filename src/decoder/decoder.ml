@@ -322,31 +322,6 @@ struct
        * be useful. *)
       Frame.master_of_seconds 0.5
     in
-    let file_size = (Unix.stat filename).Unix.st_size in
-    let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
-    let proc_bytes = ref 0 in
-    let read len =
-      try
-        let s = Bytes.create len in
-        let i = Unix.read fd s 0 len in
-        proc_bytes := !proc_bytes + i;
-        Bytes.to_string s, i
-      with _ -> "", 0
-    in
-    let tell () = 
-      Unix.lseek fd 0 Unix.SEEK_CUR
-    in
-    let length () = (Unix.fstat fd).Unix.st_size in 
-    let lseek len = 
-      Unix.lseek fd len Unix.SEEK_SET
-    in
-    let input = 
-      { read = read;
-        tell = Some tell;
-        length = Some length;
-        lseek = Some lseek }
-    in
-    let decoder = create_decoder input in
     let out_ticks = ref 0 in
     let decoding_done = ref false in
     let fill frame =
@@ -440,7 +415,7 @@ struct
         let s = Bytes.create len in
         let i = Unix.read fd s 0 len in
         proc_bytes := !proc_bytes + i;
-          s, i
+        Bytes.to_string s, i
       with _ -> "", 0
     in
     let tell () =
