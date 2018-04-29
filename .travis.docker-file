@@ -10,7 +10,6 @@ ARG TRAVIS_COMMIT
 
 RUN eval $(opam config env) && make update && \
     cd liquidsoap && git checkout $TRAVIS_COMMIT && cd .. && \
-    cd ocaml-ffmpeg && git checkout 0.1.2 && cd .. \
     ./bootstrap && ./configure && make clean && make && make doc
 
 WORKDIR /tmp/liquidsoap-full/liquidsoap
