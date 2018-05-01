@@ -70,6 +70,7 @@ let encoder wav =
         | _ -> failwith "unsupported sample size"
     in
     of_audio b start s 0 len;
+    let s = Bytes.to_string s in
     if !need_header then begin
       need_header := false ;
       header ^ s

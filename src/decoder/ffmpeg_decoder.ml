@@ -51,7 +51,7 @@ let duration file =
     FFmpeg.Av.find_best_audio_stream container
   in
   let duration =
-    FFmpeg.Av.get_duration stream ~format:`millisecond
+    FFmpeg.Av.get_duration stream ~format:`Millisecond
   in
   (Int64.to_float duration) /. 1000.
 
@@ -72,8 +72,7 @@ let create_decoder fname =
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
-  let target_channel_layout =
-    FFmpeg.Avutil.Channel_layout.CL_stereo
+  let target_channel_layout = `Stereo
   in
   let target_sample_rate =
     Lazy.force Frame.audio_rate
@@ -108,17 +107,17 @@ let create_decoder fname =
       (position *. 1000.)
    in
     try
-      FFmpeg.Av.seek stream `millisecond position [||];
+      FFmpeg.Av.seek stream `Millisecond position [||];
       ticks
     with Failure _ -> 0
   in
   let decode gen =
-    match FFmpeg.Av.read stream with
-        | `frame frame ->
+    match FFmpeg.Av.read_frame stream with
+        | `Frame frame ->
             let content = convert frame in
             G.set_mode gen `Audio ;
             G.put_audio gen content 0 (Array.length content.(0))
-        | `end_of_stream -> 
+        | `End_of_file -> 
             G.add_break gen
   in
   { Decoder.

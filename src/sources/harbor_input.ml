@@ -116,7 +116,7 @@ struct
         let buf,input = (fun len ->
           let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
            match socket with
-             | None -> "", 0
+             | None -> Bytes.empty, 0
              | Some socket ->
                  begin
                    try
@@ -135,12 +135,12 @@ struct
                    | e -> self#log#f 2 "Error while reading from client: \
                               %s" (Printexc.to_string e);
                      self#disconnect ~lock:false;
-                     "",0
+                     Bytes.empty,0
                  end) len;
         in
         begin
           match dump with
-            | Some b -> output_string b (String.sub buf 0 input)
+            | Some b -> output_string b (Bytes.sub_string buf 0 input)
             | None -> ()
         end ;
         begin
@@ -150,7 +150,7 @@ struct
                Printf.fprintf b "%f %d\n%!" time self#length
             | None -> ()
         end ;
-        buf,input
+        Bytes.to_string buf,input
       in
       let input =
         { Decoder.

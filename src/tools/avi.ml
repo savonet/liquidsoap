@@ -26,7 +26,7 @@ let word n =
   let s = Bytes.create 2 in
   Bytes.set s 0 (char_of_int (n land 0xff));
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8));
-  s
+  Bytes.to_string s
 
 let dword n =
   let s = Bytes.create 4 in
@@ -34,10 +34,10 @@ let dword n =
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8));
   Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16));
   Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24));
-  s
+  Bytes.to_string s
 
 let chunk id data =
-  let n = Bytes.length data in
+  let n = String.length data in
   let ans = id ^ dword n ^ data in
   if n mod 2 = 0 then
     ans
@@ -184,19 +184,19 @@ module Read = struct
     let k = Unix.read_retry f s 0 n in
     if k = 0 && n <> 0 then raise End_of_file;
     assert (k = n);
-    s
+    Bytes.to_string s
 
   let word f =
     let s = read 2 f in
-    int_of_char (Bytes.get s 0)
-    + int_of_char (Bytes.get s 1) lsl 8
+    int_of_char (String.get s 0)
+    + int_of_char (String.get s 1) lsl 8
 
   let dword f =
     let s = read 4 f in
-    int_of_char (Bytes.get s 0)
-    + int_of_char (Bytes.get s 1) lsl 8
-    + int_of_char (Bytes.get s 2) lsl 16
-    + int_of_char (Bytes.get s 3) lsl 24
+    int_of_char (String.get s 0)
+    + int_of_char (String.get s 1) lsl 8
+    + int_of_char (String.get s 2) lsl 16
+    + int_of_char (String.get s 3) lsl 24
 
   exception Invalid of string
 
@@ -354,14 +354,14 @@ module Read = struct
           | _ -> raise (Invalid "strf expected.")
         in
         let word s o =
-          int_of_char (Bytes.get s o)
-          + int_of_char (Bytes.get s (o+1)) lsl 8
+          int_of_char (String.get s o)
+          + int_of_char (String.get s (o+1)) lsl 8
         in
         let dword s o =
-          int_of_char (Bytes.get s o)
-          + int_of_char (Bytes.get s (o+1)) lsl 8
-          + int_of_char (Bytes.get s (o+2)) lsl 16
-          + int_of_char (Bytes.get s (o+3)) lsl 24
+          int_of_char (String.get s o)
+          + int_of_char (String.get s (o+1)) lsl 8
+          + int_of_char (String.get s (o+2)) lsl 16
+          + int_of_char (String.get s (o+3)) lsl 24
         in
         let word = word strf in
         let dword = dword strf in

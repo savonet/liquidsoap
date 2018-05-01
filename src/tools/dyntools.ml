@@ -101,8 +101,7 @@ let dynlink_list = Hashtbl.create 2
 
 exception Done of string
 
-(* A function to load external libraries (currently
- * lame) *)
+(* A function to load external libraries (currently lame) *)
 let load_dynlinks () =
   let rec check_list f cur =
     match cur with
@@ -139,8 +138,3 @@ let load_dynlinks () =
           dynload.load ()
   in
   Hashtbl.iter load_library dynlink_list
-
-let () =
-  Configure.at_init (fun () ->
-    load_dynlinks ();
-    load_plugins_dir Configure.plugins_dir)

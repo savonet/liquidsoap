@@ -93,7 +93,7 @@ object (self)
                 Pcm.set_format dev params Pcm.Format_s16_le ;
                 read_fun <-
                   (fun pcm buf ofs len ->
-                     let sbuf = Bytes.create (2 * 2 * len) in
+                     let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                      let r = Pcm.readi pcm sbuf 0 len in
                      Audio.S16LE.to_audio sbuf 0 buf ofs r;
                      r)

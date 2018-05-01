@@ -146,7 +146,12 @@ fi
 AC_CHECK_OCAML_COMPILERS()
 
 # Check for OS
-OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
+OCAMLC_SYSTEM=`$OCAMLFIND ocamlc -config | grep system | cut -d' ' -f 2`
+if test "$OCAMLC_SYSTEM" = "mingw" -o "$OCAMLC_SYSTEM" = "mingw64"; then
+  OS_TYPE="Win32"
+else
+  OS_TYPE="Unix"
+fi
 AC_SUBST(OS_TYPE)
 
 # Add -fPIC to CFLAGS for compatibility with x86_64
@@ -177,6 +182,11 @@ fi
 
 liquidsoap_ocamlcflags="$OCAMLFLAGS -ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
+
+if test "$OS_TYPE" \!= "Win32" ; then
+  liquidsoap_ocamllflags="$liquidsoap_ocamllflags -cc \"\$(CC)\""
+fi
+
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
@@ -333,7 +343,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.3.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1],[],[1])
 
 #
 # xmlplaylist
@@ -418,10 +428,17 @@ if test -z "${W_DYNLINK}"; then
   AC_MSG_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
   cat >> src/configure.ml <<EOCONF
 let dynlink = false
+let load_plugins_dir = fun _ -> assert false
+let init_dyntools = fun _ -> ()
 EOCONF
 else
   cat >> src/configure.ml <<EOCONF
 let dynlink = true
+let load_plugins_dir = Dyntools.load_plugins_dir
+let init_dyntools dir =
+  at_init (fun () ->
+    Dyntools.load_dynlinks ();
+    Dyntools.load_plugins_dir dir)
 EOCONF
 fi
 
@@ -607,7 +624,7 @@ fi
 AC_ARG_ENABLE([camomile],
   AS_HELP_STRING([--disable-camomile],[don't use camomile (no charset detection and conversion)]))
 
-AC_CHECK_OCAML_BINDING([camomile])
+AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
 
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
@@ -616,17 +633,9 @@ if test -z "$W_CAMOMILE" ; then
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
 else
-    camdir=`$OCAMLFIND query camomile -l | \
-      grep location | tr -d ' ' | cut -d':' -f 2`
-    camencoding=Camomile.CharEncoding
-    # Use Camomile with environment variables if
-    # available
-    if test -f $camdir/camomileLibraryDyn.cmi ; then
-      if test -z "$w_CUSTOM_PATH"; then
-        camencoding=CamomileLibraryDyn.$camencoding
-      else
-        camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
-        cat >> src/configure.ml <<EOCONF
+    if test -n "$w_CUSTOM_PATH"; then
+      camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
+      cat >> src/configure.ml <<EOCONF
 module CamomileConfig = 
 struct
   let datadir = Filename.concat (get_dir "camomile") "database"
@@ -635,14 +644,8 @@ struct
   let unimapdir = Filename.concat (get_dir "camomile") "mappings"
 end
 EOCONF
-      fi
     else
-      if test -n "$w_CUSTOM_PATH"; then
-        AC_MSG_ERROR([Your camomile module is too old to support loading from a custom path.. Please upgrade it or disable custom path loading.])
-      fi
-      if test -f $camdir/camomileLibrary.cmi ; then
-        camencoding=CamomileLibrary.Default.$camencoding
-      fi
+      camencoding=CamomileLibraryDefault.Camomile.CharEncoding
     fi
     cat >> src/configure.ml <<EOCONF
 module C = $camencoding

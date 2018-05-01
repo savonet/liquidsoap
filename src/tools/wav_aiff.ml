@@ -22,9 +22,9 @@
 
 type 'a read_ops =
   {
-    really_input : 'a -> string -> int -> int -> unit ;
+    really_input : 'a -> Bytes.t -> int -> int -> unit ;
     input_byte   : 'a -> int;
-    input        : 'a -> string -> int -> int -> int ;
+    input        : 'a -> Bytes.t -> int -> int -> int ;
     seek         : 'a -> int -> unit;
     close        : 'a -> unit;
   }
@@ -73,7 +73,7 @@ let read_header read_ops ic =
   let read_string ic n =
     let ans = Bytes.create n in
     really_input ic ans 0 n;
-    ans
+    Bytes.to_string ans
   in
   let format =
     match read_string ic 4 with
@@ -237,8 +237,9 @@ let duration w =
 let short_string i =
   let up = i/256 in
   let down = i-256*up in
-  (Bytes.make 1 (char_of_int down))^
-  (Bytes.make 1 (char_of_int up))
+  Bytes.to_string (Bytes.cat
+    (Bytes.make 1 (char_of_int down))
+    (Bytes.make 1 (char_of_int up)))
 
 let int_string n =
   let s = Bytes.create 4 in
@@ -246,7 +247,7 @@ let int_string n =
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8)) ;
   Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16)) ;
   Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24)) ;
-  s
+  Bytes.to_string s
 
 let wav_header ?len ~channels ~sample_rate ~sample_size () =
   (* The data lengths are set to their maximum possible values. *)

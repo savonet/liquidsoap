@@ -43,9 +43,9 @@ type continuation = [
 
 type 'a callback = 'a -> continuation
 
-type pull = string -> int -> int -> int
+type pull = Bytes.t -> int -> int -> int
 
-type push = string -> int -> int -> int
+type push = Bytes.t -> int -> int -> int
 
 type status = [
   | `Exception of exn
@@ -59,13 +59,17 @@ let get_process {process;_} =
     | Some process -> process
     | None -> raise Finished
 
+let stop_c,kill_c,done_c =
+  let fn = Bytes.make 1 in
+  fn '0', fn '1', fn '2'  
+
 let stop t = Tutils.mutexify t.mutex (fun () ->
   if t.process = None then raise Finished;
-  ignore(Unix.write t.in_pipe "0" 0 1)) ()
+  ignore(Unix.write t.in_pipe stop_c 0 1)) ()
 
 let kill t = Tutils.mutexify t.mutex (fun () ->
   if t.process = None then raise Finished;
-  ignore(Unix.write t.in_pipe "1" 0 1)) ()
+  ignore(Unix.write t.in_pipe kill_c 0 1)) ()
 
 let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
   let process = get_process t in
@@ -93,8 +97,12 @@ let pusher fd buf ofs len =
   Unix.write fd buf ofs len
 
 let puller in_pipe fd buf ofs len =
-  let ret = Unix.read fd buf ofs len in
-  if ret = 0 then ignore(Unix.write in_pipe "2" 0 1);
+  let ret = 
+    try
+      Unix.read fd buf ofs len
+    with _ when Sys.os_type = "Win32" ->  0
+  in
+  if ret = 0 then ignore(Unix.write in_pipe done_c 0 1);
   ret
 
 let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log command =
@@ -172,13 +180,13 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       | false -> cleanup ~log t; []
     in
     let on_pipe () =
-      let buf = " " in
+      let buf = Bytes.make 1 ' ' in
       let ret = Unix.read out_pipe buf 0 1 in
       if ret <> 1 then assert false;
       match buf with
-        | "0" -> `Stop 
-        | "1" -> `Kill
-        | "2" -> raise Finished 
+        | buf when buf = stop_c -> `Stop 
+        | buf when buf = kill_c -> `Kill
+        | buf when buf = done_c -> raise Finished 
         | _ -> assert false
     in
     let rec handler l =
@@ -244,10 +252,10 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
 let read buflen pull =
   let buf = Bytes.create buflen in
   let ret = pull buf 0 buflen in
-  String.sub buf 0 ret 
+  Bytes.sub buf 0 ret 
 
 let write data push =
-  let len = String.length data in
+  let len = Bytes.length data in
   let rec f pos =
     if pos < len then
       f (pos+(push data pos (len-pos)))

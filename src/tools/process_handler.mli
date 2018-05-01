@@ -90,9 +90,9 @@ val kill : t -> unit
 
 val stopped : t -> bool
 
-val read : int -> pull -> string
+val read : int -> pull -> bytes
 
-val write : string -> push -> unit
+val write : bytes -> push -> unit
 
 (** Synchronous (blocking) write on the process' stdin. Raises [Finished]
   * if the process has been stopped/killed. *)

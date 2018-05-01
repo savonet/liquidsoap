@@ -77,7 +77,9 @@
       (try parse 0 with _ -> ()) ;
       cut ()
 
-  let process_string s = process_bytes (Bytes.of_string s)
+  let process_string s =
+    Bytes.to_string
+      (process_bytes (Bytes.of_string s))
 }
 
 let decimal_literal =

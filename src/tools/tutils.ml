@@ -51,7 +51,7 @@ let generic_queues =
       "a stalled download. But N stalled download can block N queues anyway."
     ]
 let fast_queues =
-  Conf.int ~p:(conf_scheduler#plug "fast_queues") ~d:1
+  Conf.int ~p:(conf_scheduler#plug "fast_queues") ~d:0
      "Fast queues"
      ~comments:[
        "Number of queues that are dedicated to fast tasks." ;
@@ -279,6 +279,7 @@ let start_forwarding () =
     let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in
+      let buffer = Bytes.to_string buffer in
       let rec split acc i =
         match
           try Some (String.index_from buffer i '\n') with Not_found -> None

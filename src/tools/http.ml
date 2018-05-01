@@ -188,7 +188,7 @@ struct
         let s = Bytes.create 2 in
           Bytes.set s 0 (hex_digits.( (k lsr 4) land 15 )) ;
           Bytes.set s 1 (hex_digits.( k land 15 )) ;
-          s
+          Bytes.to_string s
   
   let url_encode ?(plus=true) s =
     Pcre.substitute
@@ -218,7 +218,7 @@ struct
                   if String.length s < 3 then raise UrlDecoding ;
                   let k1 = of_hex1 s.[1] in
                   let k2 = of_hex1 s.[2] in
-                    Bytes.make 1 (Char.chr ((k1 lsl 4) lor k2))
+                    String.make 1 (Char.chr ((k1 lsl 4) lor k2))
                 end)
       s
   
@@ -288,7 +288,7 @@ struct
       | Some buflen ->
           let buf = Bytes.create buflen in
           let n = Transport.read socket buf 0 buflen in
-            String.sub buf 0 n
+            Bytes.sub_string buf 0 n
       | None ->
           let buflen = 1024 in
           let buf = Bytes.create buflen in
@@ -296,7 +296,7 @@ struct
           let n = ref buflen in
             while !n <> 0 do
               n := Transport.read socket buf 0 buflen;
-              ans := !ans ^ Bytes.sub buf 0 !n
+              ans := !ans ^ Bytes.sub_string buf 0 !n
             done;
             !ans
   
@@ -328,10 +328,11 @@ struct
             stop := true
           else
             (
-              Buffer.add_string ans c;
-              if c = "\n" then
+              let c = Bytes.get c 1 in
+              Buffer.add_char ans c;
+              if c = '\n' then
                 incr count_n
-              else if c <> "\r" then
+              else if c <> '\r' then
                 count_n := 0
             );
           incr n
@@ -350,7 +351,7 @@ struct
       assert(0 < rem);
       let s = Bytes.create rem in
       let n = Transport.read socket s 0 rem in
-      Buffer.add_substring buf s 0 n;
+      Buffer.add_substring buf (Bytes.to_string s) 0 n;
       if Buffer.length buf = len then
         Buffer.contents buf
       else
@@ -364,7 +365,7 @@ struct
     if
       let len = String.length request in
         Transport.wait_for ~log (`Write socket) timeout;
-        Transport.write socket request 0 len < len
+        Transport.write socket (Bytes.of_string request) 0 len < len
     then
       raise Socket ;
     let header = read_crlf ~log ~timeout socket in

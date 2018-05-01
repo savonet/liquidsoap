@@ -281,8 +281,8 @@ let handle_client socket ip =
     duppy_do
       duppy_write
        (* "BEGIN\r\n"; *)
-       ans ;
-       "\r\nEND\r\n"
+       Bytes.of_string ans ;
+       Bytes.of_string "\r\nEND\r\n"
       with
         { priority = Tutils.Non_blocking ;
           handler  = h ;
@@ -319,7 +319,7 @@ let handle_client socket ip =
            in
            Duppy.Io.write ~timeout:(get_timeout ())
                           ~priority:Tutils.Non_blocking ~on_error
-                          ~exec Tutils.scheduler ~string:msg
+                          ~exec Tutils.scheduler ~string:(Bytes.of_string msg)
                           socket
          | _ ->
              log#f 3 "Client %s disconnected without saying goodbye..!" ip;
