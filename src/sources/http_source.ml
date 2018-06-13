@@ -89,7 +89,7 @@ struct
     let ans = ref Bytes.empty in
     let c = Bytes.create 1 in
       if Http.read socket c 0 1 <> 1 then raise Read_error ;
-      while Bytes.get c 1 <> '\n' do
+      while Bytes.get c 0 <> '\n' do
         ans := Bytes.cat !ans c;
         if Http.read socket c 0 1 <> 1 then raise Read_error
       done;
