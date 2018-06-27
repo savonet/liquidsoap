@@ -1741,32 +1741,6 @@ let () =
          else
            Lang.string default)
 
-let () =
-  add_builtin "server.register" ~cat:Interaction
-    ~descr:"Register a command. You can then execute this function \
-            through the server, either telnet or socket."
-    [ "namespace",Lang.string_t,Some (Lang.string ""),None ;
-      "description",Lang.string_t,
-      Some (Lang.string "No documentation available."),
-      Some "A description of your command." ;
-      "usage",Lang.string_t,Some (Lang.string ""),None ;
-      "",Lang.string_t,None,None ;
-      "",Lang.fun_t [false,"",Lang.string_t] Lang.string_t,None,None ]
-    Lang.unit_t
-    (fun p ->
-       let namespace = Lang.to_string (List.assoc "namespace" p) in
-       let descr = Lang.to_string (List.assoc "description" p) in
-       let usage = Lang.to_string (List.assoc "usage" p) in
-       let command = Lang.to_string (Lang.assoc "" 1 p) in
-       let f = Lang.assoc "" 2 p in
-       let f x =
-         Lang.to_string (Lang.apply ~t:Lang.string_t f ["",Lang.string x])
-       in
-       let ns = (Pcre.split ~pat:"\\." namespace) in
-       let usage = if usage = "" then command ^ " <variable>" else usage in
-           Server.add ~ns ~usage ~descr command f ;
-         Lang.unit)
-
 (** Data conversions. *)
 
 let () =
