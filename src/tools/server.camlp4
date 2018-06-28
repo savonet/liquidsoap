@@ -326,7 +326,7 @@ let handle_client socket ip =
         | Partial_write opts ->
             duppy_do
               duppy_write
-                opts.write
+                Bytes.of_string opts.write
               with
                 { priority = Tutils.Non_blocking ;
                   handler  = h;
