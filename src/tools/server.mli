@@ -72,6 +72,7 @@ val unregister : namespace -> unit
 (** Specialized implementation of conditions to use in server commands. *)
 type condition = {
   wait:      (unit -> string) -> unit;
+  signal:    unit -> unit;
   broadcast: unit -> unit
 }
 

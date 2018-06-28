@@ -184,7 +184,8 @@
 %token BEGIN END REC GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
-%token SERVER_PAUSE SERVER_WRITE
+%token SERVER_WAIT
+%token SERVER_WRITE
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
@@ -335,7 +336,11 @@ expr:
                                          mk (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
-  | SERVER_PAUSE exprs THEN exprs END { let wait = $2 in
+  | SERVER_WAIT exprs THEN exprs END {  let condition = $2 in
+                                        let op = mk ~pos:(1,1) (Var "fst") in
+                                        let wait =
+                                          mk (App (op,["",condition]))
+                                        in
                                         let after =
                                           mk_fun ~pos:(2,3) [] $4
                                         in

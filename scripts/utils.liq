@@ -889,3 +889,15 @@ def overlap_sources(~id="",~normalize=false,
   send_to_main_source := fst(x)
   snd(x)
 end
+
+# @flag hidden
+def server.signal(x) =
+  signal = fst(snd(x))
+  signal()
+end
+
+# @flag hidden
+def server.broadcast(x) =
+  broadcast = snd(snd(x))
+  broadcast()
+end

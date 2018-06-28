@@ -59,12 +59,13 @@ let () =
   let resume_t =
     Lang.fun_t [] Lang.unit_t
   in
-  add_builtin "server.wait" ~cat:Interaction
-    ~descr:"Create a pair of functions @(wait,resume)@ used to suspend and resume \
-            server command execution. Useful in conjonction with @server.write()@ \
-            to write interactive commands."
+  add_builtin "server.condition" ~cat:Interaction
+    ~descr:"Create a pair of functions @(wait,(signal,broadcast))@ used to suspend and resume \
+            server command execution. Used to write interactive server commands \
+            through @server.wait@, @server.signal@, @server.broadcast@ and \
+            @server.write@."
     []
-    (Lang.product_t wait_t resume_t)
+    (Lang.product_t wait_t (Lang.product_t resume_t resume_t))
     (fun _ ->
       let opts = Server.condition () in
       let wait = Lang.val_fun
@@ -77,12 +78,14 @@ let () =
             Lang.to_string (after []));
           Lang.string "")
       in
-      let resume = Lang.val_fun [] ~ret_t:Lang.unit_t
+      let resume fn = Lang.val_fun [] ~ret_t:Lang.unit_t
         (fun _ _ ->
-          opts.Server.broadcast ();
+          fn ();
           Lang.unit)
       in
-      Lang.product wait resume)
+      Lang.product wait (Lang.product
+        (resume opts.Server.signal)
+        (resume opts.Server.broadcast)))
 
 let () =
   let after_t =

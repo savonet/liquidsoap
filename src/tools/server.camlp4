@@ -146,6 +146,7 @@ let remove ~ns cmd =
 (* That's if you want to have your command wait. *)
 type condition = {
   wait:      (unit -> string) -> unit;
+  signal:    unit -> unit;
   broadcast: unit -> unit
 }
 
@@ -171,13 +172,19 @@ let condition () =
   let wait resume =
     raise (Server_wait {mutex;condition;resume})
   in
+  let signal () =
+    Duppy.Monad.run
+      ~return:(fun () -> ())
+      ~raise:(fun exn -> raise exn)
+      (Duppy_c.signal condition)
+  in
   let broadcast () =
     Duppy.Monad.run
       ~return:(fun () -> ())
       ~raise:(fun exn -> raise exn)
       (Duppy_c.broadcast condition)
   in
-  {wait;broadcast}
+  {wait;signal;broadcast}
 
 type write = {
   write: string;
