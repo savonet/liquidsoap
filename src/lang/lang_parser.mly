@@ -337,20 +337,17 @@ expr:
                                                       "else",else_b;
                                                       "then",then_b])) }
   | SERVER_WAIT exprs THEN exprs END {  let condition = $2 in
-                                        let op = mk ~pos:(1,1) (Var "fst") in
-                                        let wait =
-                                          mk (App (op,["",condition]))
-                                        in
+                                        let op = mk ~pos:(1,1) (Var "server.wait") in
                                         let after =
                                           mk_fun ~pos:(2,3) [] $4
                                         in
-                                          mk (App (wait, ["",after])) }
+                                          mk (App (op, ["",condition;"",after])) }
   | SERVER_WRITE expr THEN exprs END { let data = $2 in
                                        let after =
                                          mk_fun ~pos:(3,4) [] $4
                                        in
                                        let op = mk ~pos:(1,1) (Var "server.write") in
-                                          mk (App (op, ["after",after;"",data])) }
+                                          mk (App (op, ["",data;"",after])) }
   | expr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
   | expr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),

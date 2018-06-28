@@ -7,6 +7,10 @@ New:
 
 - Added `on_track` callback for playlists. Can be used to force a reload.
 
+- Added `server.condition`, `server.wait`, `server.broadcast` and `server.signal`. Used to control server command execution.
+
+- Added `server.write` to write interactive server commands in conjunction with the above functions. (#544, #568)
+
 Changed:
 
 - Depends on camomile > 1.0.0

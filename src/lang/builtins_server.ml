@@ -88,19 +88,47 @@ let () =
         (resume opts.Server.broadcast)))
 
 let () =
+  let resume_t =
+    Lang.fun_t [] Lang.string_t
+  in
+  let wait_t =
+    Lang.fun_t [false,"",resume_t] Lang.string_t
+  in
+  let condition_t =
+    Lang.product_t wait_t (Lang.univ_t 1)
+  in
+  add_builtin "server.wait" ~cat:Interaction
+    ~descr:"Wait on a server condition. Used to write interactive \
+            server command. Should be used via the syntactic sugar: \
+            @server.wait <condition> then <after> end@"
+    ["",condition_t,None,Some "condition";
+     "",resume_t,None,Some "code to execute when resuming"]
+    Lang.string_t
+  (fun p ->
+    let cond = Lang.assoc "" 1 p in
+    let (wait,_) = Lang.to_product cond in
+    let wait =
+      Lang.to_fun ~t:Lang.string_t wait
+    in
+    let resume =
+      Lang.assoc "" 2 p
+    in
+    wait ["",resume])
+
+let () =
   let after_t =
     Lang.fun_t [] Lang.string_t
   in
   add_builtin "server.write" ~cat:Interaction
-    ~descr:"Execute a partial write while executing a server command."
-    ~flags:[Lang.Hidden]
-    ["after",after_t,None,Some "function to run after write";
-     "",Lang.string_t,None,Some "string to write"]
+    ~descr:"Execute a partial write while executing a server command. Should be used \
+            via the syntactic sugar: @server.write <string> then <after> end@"
+    ["",Lang.string_t,None,Some "string to write";
+     "",after_t,None,Some "function to run after write"]
     Lang.string_t
     (fun p ->
-       let data = Lang.to_string (List.assoc "" p) in
+       let data = Lang.to_string (Lang.assoc "" 1 p) in
        let after =
-         Lang.to_fun ~t:Lang.string_t (List.assoc "after" p)
+         Lang.to_fun ~t:Lang.string_t (Lang.assoc "" 2 p)
        in
        Server.write ~after:(fun () ->
          Lang.to_string (after [])) data;
