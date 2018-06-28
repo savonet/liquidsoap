@@ -145,8 +145,8 @@ let remove ~ns cmd =
 
 (* That's if you want to have your command wait. *)
 type condition = {
-  wait:   (unit -> string) -> unit;
-  signal: unit -> unit
+  wait:      (unit -> string) -> unit;
+  broadcast: unit -> unit
 }
 
 module Mutex_control = struct
@@ -171,13 +171,13 @@ let condition () =
   let wait resume =
     raise (Server_wait {mutex;condition;resume})
   in
-  let signal () =
+  let broadcast () =
     Duppy.Monad.run
       ~return:(fun () -> ())
       ~raise:(fun exn -> raise exn)
-      (Duppy_c.signal condition)
+      (Duppy_c.broadcast condition)
   in
-  {wait;signal}
+  {wait;broadcast}
 
 type partial_write = {
   write: string;

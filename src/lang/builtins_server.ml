@@ -79,7 +79,7 @@ let () =
       in
       let resume = Lang.val_fun [] ~ret_t:Lang.unit_t
         (fun _ _ ->
-          opts.Server.signal ();
+          opts.Server.broadcast ();
           Lang.unit)
       in
       Lang.product wait resume)
