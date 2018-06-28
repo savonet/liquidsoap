@@ -179,14 +179,14 @@ let condition () =
   in
   {wait;broadcast}
 
-type partial_write = {
+type write = {
   write: string;
   after: unit -> string
 }
 
-exception Partial_write of partial_write
+exception Partial_write of write
 
-let partial_write ~after write =
+let write ~after write =
   raise (Partial_write {write;after})
 
 let unregister ns =

@@ -79,7 +79,7 @@ type condition = {
 val condition : unit -> condition
 
 (** Partial response write without returning. *)
-val partial_write : after:(unit -> string) -> string -> unit
+val write : after:(unit -> string) -> string -> unit
 
 (** [add ~ns ~descr command f] adds a new command [command] in a given namespace ~ns.
   * When the command is called, the function [f] is executed with the argument of

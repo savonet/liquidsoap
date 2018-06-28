@@ -61,7 +61,7 @@ let () =
   in
   add_builtin "server.wait" ~cat:Interaction
     ~descr:"Create a pair of functions @(wait,resume)@ used to suspend and resume \
-            server command execution. Useful in conjonction with @server.partial_write()@ \
+            server command execution. Useful in conjonction with @server.write()@ \
             to write interactive commands."
     []
     (Lang.product_t wait_t resume_t)
@@ -88,7 +88,7 @@ let () =
   let after_t =
     Lang.fun_t [] Lang.string_t
   in
-  add_builtin "server.partial_write" ~cat:Interaction
+  add_builtin "server.write" ~cat:Interaction
     ~descr:"Execute a partial write while executing a server command."
     ~flags:[Lang.Hidden]
     ["after",after_t,None,Some "function to run after write";
@@ -99,6 +99,6 @@ let () =
        let after =
          Lang.to_fun ~t:Lang.string_t (List.assoc "after" p)
        in
-       Server.partial_write ~after:(fun () ->
+       Server.write ~after:(fun () ->
          Lang.to_string (after [])) data;
        Lang.string "")

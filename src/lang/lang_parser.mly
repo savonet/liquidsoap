@@ -344,7 +344,7 @@ expr:
                                        let after =
                                          mk_fun ~pos:(3,4) [] $4
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.partial_write") in
+                                       let op = mk ~pos:(1,1) (Var "server.write") in
                                           mk (App (op, ["after",after;"",data])) }
   | expr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
