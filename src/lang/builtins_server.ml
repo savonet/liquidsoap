@@ -90,6 +90,7 @@ let () =
   in
   add_builtin "server.partial_write" ~cat:Interaction
     ~descr:"Execute a partial write while executing a server command."
+    ~flags:[Lang.Hidden]
     ["after",after_t,None,Some "function to run after write";
      "",Lang.string_t,None,Some "string to write"]
     Lang.string_t

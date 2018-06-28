@@ -140,6 +140,9 @@ rule token = parse
   | "elsif"  { ELSIF }
   | "->"     { YIELDS }
 
+  | "server.pause" { SERVER_PAUSE }
+  | "server.write" { SERVER_WRITE }
+
   | "%ogg"    { OGG }
   | "%vorbis" { VORBIS }
   | "%opus"   { OPUS }

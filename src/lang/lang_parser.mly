@@ -184,6 +184,7 @@
 %token BEGIN END REC GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
+%token SERVER_PAUSE SERVER_WRITE
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
@@ -334,6 +335,17 @@ expr:
                                          mk (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
+  | SERVER_PAUSE exprs THEN exprs END { let wait = $2 in
+                                        let after =
+                                          mk_fun ~pos:(2,3) [] $4
+                                        in
+                                          mk (App (wait, ["",after])) }
+  | SERVER_WRITE expr THEN exprs END { let data = $2 in
+                                       let after =
+                                         mk_fun ~pos:(3,4) [] $4
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.partial_write") in
+                                          mk (App (op, ["after",after;"",data])) }
   | expr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
   | expr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
