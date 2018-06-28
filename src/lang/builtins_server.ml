@@ -70,11 +70,11 @@ let () =
       let wait = Lang.val_fun
         ["", "", after_t, None] ~ret_t:Lang.string_t
         (fun p _ ->
-          let resume =
-            Lang.to_fun ~t:Lang.unit_t (List.assoc "" p)
+          let after =
+            Lang.to_fun ~t:Lang.string_t (List.assoc "" p)
           in
           opts.Server.wait (fun () ->
-            Lang.to_string (resume []));
+            Lang.to_string (after []));
           Lang.string "")
       in
       let resume = Lang.val_fun [] ~ret_t:Lang.unit_t
