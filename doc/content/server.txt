@@ -158,8 +158,8 @@ end
 
 h5. Control flow
 
-You can pause and resume telnet commands using an API similar to Unix conditions:
-* @server.condition()@ create a condition variable
+You can pause and resume server commands using an API similar to Unix conditions:
+* @server.condition()@ creates a condition variable
 * @server.wait@ pauses a server command. See below for details
 * @server.signal(c)@ resumes one waiting command
 * @server.broadcast(c)@ resumes all waiting commands
@@ -168,6 +168,8 @@ You can pause and resume telnet commands using an API similar to Unix conditions
 %%(server_wait.liq)
 server.wait c then
   log("Command has resumed!")
+  # Do more stuff then send the final response:
+  "Done!"
 end
 %%
 
@@ -178,7 +180,7 @@ In the following, we define two commands:
 ** @"exit"@: terminate command
 ** @"read"@: read one line from the client and print it back
 ** Otherwise, the client prints the received value
-* @send <value>@: when executing this command, the client sends <value> to all waiting clients.
+* @send <value>@: when executing this command, the client sends @<value>@ to all waiting clients.
 
 %%(reader_writer.liq)
 c = server.condition()
@@ -193,7 +195,7 @@ def wait(_) =
         if value == "exit" then
           "All done!"
         elsif value == "read" then
-        server.write "Write me sumething mister..\n" then
+          server.write "Write me sumething mister..\n" then
             server.readline ret then
               server.write "Read: #{ret}\n" then
                 fn()
