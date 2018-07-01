@@ -186,15 +186,24 @@ let condition () =
   in
   {wait;signal;broadcast}
 
-type write = {
-  write: string;
-  after: unit -> string
+type ('a,'b) interruption = {
+  payload: 'a;
+  after: 'b -> string
 }
 
-exception Partial_write of write
+type write = (string,unit) interruption
 
-let write ~after write =
-  raise (Partial_write {write;after})
+exception Write of write
+
+let write ~after payload =
+  raise (Write {payload;after})
+
+type read = (Duppy.Io.marker,string) interruption
+
+exception Read of read
+
+let read ~after payload =
+  raise (Read {payload;after})
 
 let unregister ns =
   Tutils.mutexify lock
@@ -281,7 +290,8 @@ let exec s =
       command args
     with
       | Server_wait opts -> raise (Server_wait opts)
-      | Partial_write opts -> raise (Partial_write opts)
+      | Write opts -> raise (Write opts)
+      | Read opts -> raise (Read opts)
       | Exit -> raise Exit
       | Not_found -> "ERROR: unknown command, type \"help\" to get a \
                       list of commands."
@@ -330,16 +340,26 @@ let handle_client socket ip =
              Duppy_c.wait opts.condition opts.mutex;
              run opts.resume
            done
-        | Partial_write opts ->
+        | Write opts ->
             duppy_do
               duppy_write
-                Bytes.of_string opts.write
+                Bytes.of_string opts.payload
               with
                 { priority = Tutils.Non_blocking ;
                   handler  = h;
                   timeout = get_timeout () };
               run opts.after
             done
+        | Read opts ->
+            duppy ret =
+              duppy_read
+                opts.payload 
+              with
+                { priority = Tutils.Non_blocking ;
+                  handler  = h;
+                  timeout = get_timeout () }
+           in
+           run (fun () -> opts.after ret)
         | e -> duppy_raise e
     in
     duppy ans =

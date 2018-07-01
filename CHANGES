@@ -9,7 +9,7 @@ New:
 
 - Added `server.condition`, `server.wait`, `server.broadcast` and `server.signal`. Used to control server command execution.
 
-- Added `server.write` to write interactive server commands in conjunction with the above functions. (#544, #568)
+- Added `server.write`, `server.read{chars,line}` to write interactive server commands in conjunction with the above functions. (#544, #568)
 
 Changed:
 
