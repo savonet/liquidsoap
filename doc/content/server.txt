@@ -124,7 +124,7 @@ Writing a partial response is done using the following syntactic sugar:
 %%(server_write.liq)
 server.write "string to write" then
   log("string done writting!")
-  # Do more stuf then send the final response:
+  # Do more stuff then send the final response:
   "Done!"
 end
 %%
@@ -133,7 +133,7 @@ Read a value can be done 3 different ways. Most simple one is @server.readline@:
 %%(server_readline.liq)
 server.readline ret then
   log("Read line: #{ret}")
-  # Do more stuf then send the final response:
+  # Do more stuff then send the final response:
   "Done!"
 end
 %%
@@ -142,7 +142,7 @@ Then you can read a fixed number of characters:
 %%(server_readchars.liq)
 server.readchars 15 : ret then
   log("Read 15 characters: #{ret}")
-  # Do more stuf then send the final response:
+  # Do more stuff then send the final response:
   "Done!"
 end
 %%
@@ -151,7 +151,7 @@ Finally, you can read until reaching a marker, which can be any string or regula
 %%(server_read.liq)
 server.read "OVER[\r\n]+" :  ret then
   log("Read until OVER: #{ret}")
-  # Do more stuf then send the final response:
+  # Do more stuff then send the final response:
   "Done!"
 end
 %%
