@@ -889,3 +889,19 @@ def overlap_sources(~id="",~normalize=false,
   send_to_main_source := fst(x)
   snd(x)
 end
+
+# Restart one server client waiting on the given condition
+# @param c condition
+# @category Interaction
+def server.signal(c) =
+  signal = fst(snd(c))
+  signal()
+end
+
+# Restart all server clients waiting on the given condition
+# @param c condition
+# @category Interaction
+def server.broadcast(x) =
+  broadcast = snd(snd(x))
+  broadcast()
+end

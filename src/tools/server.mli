@@ -69,6 +69,22 @@ val register : namespace -> string -> namespace
 (** Release a namespace, deleting all associated commands. *)
 val unregister : namespace -> unit
 
+(** Specialized implementation of conditions to use in server commands. *)
+type condition = {
+  wait:      (unit -> string) -> unit;
+  signal:    unit -> unit;
+  broadcast: unit -> unit
+}
+
+(** [condition ()] instantiates a server command condition. *)
+val condition : unit -> condition
+
+(** Partial response write without returning. *)
+val write : after:(unit -> string) -> string -> unit
+
+(** Read from the client. *)
+val read : after:(string -> string) -> Duppy.Io.marker -> unit
+
 (** [add ~ns ~descr command f] adds a new command [command] in a given namespace ~ns.
   * When the command is called, the function [f] is executed with the argument of
   * the command as parameter. The return value of [f] is then displayed. ~descr is
