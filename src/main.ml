@@ -643,12 +643,29 @@ struct
       end else if Source.has_outputs () || force_start#get then
         if not !dont_run then begin
           check_directories () ;
-          Init.init ~prohibit_root:(not allow_root#get) main
+          let msg_of_err = function
+            | `User -> "root euid (user)"
+            | `Group -> "root guid (group)"
+            | `Both -> "root euid & guid (user & group)"
+          in
+          let on_error e =
+            Printf.eprintf "init: security exit, %s. Override with set(\"init.allow_root\",true)\n" (msg_of_err e);
+            cleanup ();
+            exit (-1)
+          in
+          begin try
+            Init.init ~prohibit_root:(not allow_root#get) main
+          with
+            | Init.Root_prohibited e -> on_error e
+          end
         end else
           cleanup ()
       else
         (* If there's no output and no secondary task has been performed,
          * warn the user that his scripts didn't define any output. *)
         if not !secondary_task then
-          Printf.printf "No output defined, nothing to do.\n"
+          begin
+            cleanup ();
+            Printf.printf "No output defined, nothing to do.\n"
+          end
 end

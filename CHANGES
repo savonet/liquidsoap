@@ -17,6 +17,8 @@ Changed:
 
 - Use `http{s}.head` when available to fetch remote file's mime type. (win32 port)
 
+- Better log messages for root exit and buffer override.
+
 Fixed:
 
 - Decouple dyntools compilation.
