@@ -38,6 +38,11 @@ let () =
   Configure.conf#plug "init" Init.conf ;
   Configure.conf#plug "log" Log.conf
 
+(* Set log to stdout by default *)
+let () =
+  Log.conf_stdout#set_d (Some true);
+  Log.conf_file#set_d (Some false)
+
 (* Should we not run the active sources? *)
 let dont_run = ref false
 
@@ -104,12 +109,8 @@ let do_eval, eval =
     load_libs () ;
     match src with
       | `StdIn ->
-          Log.conf_stdout#set_d (Some true) ;
-          Log.conf_file#set_d (Some false) ;
           Lang.from_in_channel ~lib ~parse_only:!parse_only stdin
       | `Expr_or_File expr when (not (Sys.file_exists expr)) ->
-          Log.conf_stdout#set_d (Some true) ;
-          Log.conf_file#set_d (Some false) ;
           Lang.from_string ~lib ~parse_only:!parse_only expr
       | `Expr_or_File f ->
           let basename = Filename.basename f in
