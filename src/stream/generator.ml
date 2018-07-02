@@ -687,7 +687,7 @@ struct
           let len = Super.length t.gen + extra - len in
           let len_time = Frame.seconds_of_master len in
           t.log
-            (Printf.sprintf "Buffer overrun: Dropping %.2fs." len_time);
+            (Printf.sprintf "Buffer overrun: Dropping %.2fs. Consider increasing the max buffer size!" len_time);
           Super.remove t.gen len
       | _ -> ()
 
