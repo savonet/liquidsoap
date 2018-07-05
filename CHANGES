@@ -11,6 +11,8 @@ New:
 
 - Added `server.write`, `server.read{chars,line}` to write interactive server commands in conjunction with the above functions. (#544, #568)
 
+- Added `output.youtube.live` as a wrapper around `output.gstreamer.audio_video` to stream live to Youtube (#498)
+
 Changed:
 
 - Depends on camomile > 1.0.0
