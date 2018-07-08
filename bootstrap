@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 if [ -d m4 ]; then
   OPTIONS="-I m4"
