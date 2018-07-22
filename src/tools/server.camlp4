@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2018 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -143,6 +143,68 @@ let remove ~ns cmd =
     (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
     ()
 
+(* That's if you want to have your command wait. *)
+type condition = {
+  wait:      (unit -> string) -> unit;
+  signal:    unit -> unit;
+  broadcast: unit -> unit
+}
+
+module Mutex_control = struct
+  type priority = Tutils.priority
+  let scheduler = Tutils.scheduler
+  let priority  = Tutils.Non_blocking
+end
+module Duppy_m = Duppy.Monad.Mutex.Factory(Mutex_control)
+module Duppy_c = Duppy.Monad.Condition.Factory(Duppy_m)
+
+type server_condition = {
+  condition: Duppy_c.condition;
+  mutex:     Duppy_m.mutex;
+  resume:    unit -> string;
+}
+
+exception Server_wait of server_condition 
+
+let condition () =
+  let mutex = Duppy_m.create () in
+  let condition = Duppy_c.create () in
+  let wait resume =
+    raise (Server_wait {mutex;condition;resume})
+  in
+  let signal () =
+    Duppy.Monad.run
+      ~return:(fun () -> ())
+      ~raise:(fun exn -> raise exn)
+      (Duppy_c.signal condition)
+  in
+  let broadcast () =
+    Duppy.Monad.run
+      ~return:(fun () -> ())
+      ~raise:(fun exn -> raise exn)
+      (Duppy_c.broadcast condition)
+  in
+  {wait;signal;broadcast}
+
+type ('a,'b) interruption = {
+  payload: 'a;
+  after: 'b -> string
+}
+
+type write = (string,unit) interruption
+
+exception Write of write
+
+let write ~after payload =
+  raise (Write {payload;after})
+
+type read = (Duppy.Io.marker,string) interruption
+
+exception Read of read
+
+let read ~after payload =
+  raise (Read {payload;after})
+
 let unregister ns =
   Tutils.mutexify lock
     (fun () ->
@@ -227,6 +289,9 @@ let exec s =
       let command,_,_ = Tutils.mutexify lock (Hashtbl.find commands) s in
       command args
     with
+      | Server_wait opts -> raise (Server_wait opts)
+      | Write opts -> raise (Write opts)
+      | Read opts -> raise (Read opts)
       | Exit -> raise Exit
       | Not_found -> "ERROR: unknown command, type \"help\" to get a \
                       list of commands."
@@ -260,20 +325,46 @@ let handle_client socket ip =
   let process =
     duppy req =
      duppy_read
-      Duppy.Io.Split "[\r\n]+"
+       Duppy.Io.Split "[\r\n]+"
      with
        { priority = Tutils.Non_blocking ;
          handler  = h ;
          timeout = get_timeout () }
     in
+    let rec run exec =
+      try
+        duppy_return (exec ())
+      with
+        | Server_wait opts ->
+           duppy_do
+             Duppy_c.wait opts.condition opts.mutex;
+             run opts.resume
+           done
+        | Write opts ->
+            duppy_do
+              duppy_write
+                Bytes.of_string opts.payload
+              with
+                { priority = Tutils.Non_blocking ;
+                  handler  = h;
+                  timeout = get_timeout () };
+              run opts.after
+            done
+        | Read opts ->
+            duppy ret =
+              duppy_read
+                opts.payload 
+              with
+                { priority = Tutils.Non_blocking ;
+                  handler  = h;
+                  timeout = get_timeout () }
+           in
+           run (fun () -> opts.after ret)
+        | e -> duppy_raise e
+    in
     duppy ans =
       duppy_exec
-       begin
-        try
-          duppy_return (exec req)
-        with
-          | e -> duppy_raise e
-       end
+        run (fun () -> exec req)
       with
         { priority = Tutils.Maybe_blocking ;
           handler  = h }

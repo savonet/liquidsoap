@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2018 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -687,7 +687,7 @@ struct
           let len = Super.length t.gen + extra - len in
           let len_time = Frame.seconds_of_master len in
           t.log
-            (Printf.sprintf "Buffer overrun: Dropping %.2fs." len_time);
+            (Printf.sprintf "Buffer overrun: Dropping %.2fs. Consider increasing the max buffer size!" len_time);
           Super.remove t.gen len
       | _ -> ()
 

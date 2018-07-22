@@ -328,7 +328,7 @@ struct
             stop := true
           else
             (
-              let c = Bytes.get c 1 in
+              let c = Bytes.get c 0 in
               Buffer.add_char ans c;
               if c = '\n' then
                 incr count_n

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2018 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,6 +37,11 @@ let usage =
 let () =
   Configure.conf#plug "init" Init.conf ;
   Configure.conf#plug "log" Log.conf
+
+(* Set log to stdout by default *)
+let () =
+  Log.conf_stdout#set_d (Some true);
+  Log.conf_file#set_d (Some false)
 
 (* Should we not run the active sources? *)
 let dont_run = ref false
@@ -104,12 +109,8 @@ let do_eval, eval =
     load_libs () ;
     match src with
       | `StdIn ->
-          Log.conf_stdout#set_d (Some true) ;
-          Log.conf_file#set_d (Some false) ;
           Lang.from_in_channel ~lib ~parse_only:!parse_only stdin
       | `Expr_or_File expr when (not (Sys.file_exists expr)) ->
-          Log.conf_stdout#set_d (Some true) ;
-          Log.conf_file#set_d (Some false) ;
           Lang.from_string ~lib ~parse_only:!parse_only expr
       | `Expr_or_File f ->
           let basename = Filename.basename f in
@@ -457,7 +458,7 @@ let options = [
     Arg.Unit (fun () ->
                 Printf.printf
                   "Liquidsoap %s%s\n\
-                   Copyright (c) 2003-2017 Savonet team\n\
+                   Copyright (c) 2003-2018 Savonet team\n\
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
                    See <http://liquidsoap.fm> for more information.\n"
@@ -643,12 +644,29 @@ struct
       end else if Source.has_outputs () || force_start#get then
         if not !dont_run then begin
           check_directories () ;
-          Init.init ~prohibit_root:(not allow_root#get) main
+          let msg_of_err = function
+            | `User -> "root euid (user)"
+            | `Group -> "root guid (group)"
+            | `Both -> "root euid & guid (user & group)"
+          in
+          let on_error e =
+            Printf.eprintf "init: security exit, %s. Override with set(\"init.allow_root\",true)\n" (msg_of_err e);
+            cleanup ();
+            exit (-1)
+          in
+          begin try
+            Init.init ~prohibit_root:(not allow_root#get) main
+          with
+            | Init.Root_prohibited e -> on_error e
+          end
         end else
           cleanup ()
       else
         (* If there's no output and no secondary task has been performed,
          * warn the user that his scripts didn't define any output. *)
         if not !secondary_task then
-          Printf.printf "No output defined, nothing to do.\n"
+          begin
+            cleanup ();
+            Printf.printf "No output defined, nothing to do.\n"
+          end
 end

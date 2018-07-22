@@ -7,17 +7,29 @@ New:
 
 - Added `on_track` callback for playlists. Can be used to force a reload.
 
+- Added `server.condition`, `server.wait`, `server.broadcast` and `server.signal`. Used to control server command execution.
+
+- Added `server.write`, `server.read{chars,line}` to write interactive server commands in conjunction with the above functions. (#544, #568)
+
+- Added `output.youtube.live` as a wrapper around `output.gstreamer.audio_video` to stream live to Youtube (#498)
+
 Changed:
 
 - Depends on camomile > 1.0.0
 
 - Use `http{s}.head` when available to fetch remote file's mime type. (win32 port)
 
+- Better log messages for root exit and buffer override.
+
+- Switch default log to stdout.
+
 Fixed:
 
 - Decouple dyntools compilation.
 
 - Support for OCaml >= 4.06
+
+- File descriptor leak in `output.icecast` (#548)
 
 1.3.3 (14-10-2017)
 =====
@@ -50,7 +62,7 @@ Fixed:
 
 - Fixed `mutexify`
 
-- Make sure that metadata are always passed in incresing position order in `map_metadata` (#469)
+- Make sure that metadata are always passed in increasing position order in `map_metadata` (#469)
 
 1.3.2 (02-09-2017)
 =====

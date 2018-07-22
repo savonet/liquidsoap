@@ -1,7 +1,7 @@
 /*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2018 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -184,6 +184,8 @@
 %token BEGIN END REC GETS TILD QUESTION
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
+%token SERVER_WAIT
+%token SERVER_WRITE SERVER_READ SERVER_READCHARS SERVER_READLINE
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
@@ -334,6 +336,43 @@ expr:
                                          mk (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
+  | SERVER_WAIT exprs THEN exprs END {  let condition = $2 in
+                                        let op = mk ~pos:(1,1) (Var "server.wait") in
+                                        let after =
+                                          mk_fun ~pos:(2,3) [] $4
+                                        in
+                                          mk (App (op, ["",condition;"",after])) }
+
+  | SERVER_WRITE expr THEN exprs END { let data = $2 in
+                                       let after =
+                                         mk_fun ~pos:(3,4) [] $4
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.write") in
+                                         mk (App (op, ["",after;"",data])) }
+
+  | SERVER_READ expr COLON VAR THEN exprs END {
+                                       let marker = $2 in
+                                       let after =
+                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.read") in
+                                         mk (App (op, ["",after;"",marker])) }
+
+  | SERVER_READCHARS expr COLON VAR THEN exprs END {
+                                       let len = $2 in
+                                       let after =
+                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.readchars") in
+                                         mk (App (op, ["",after;"",len])) }
+
+  | SERVER_READLINE VAR THEN exprs END {
+                                       let after =
+                                         mk_fun ~pos:(5,6) ["",$2,mk_ty "string" [],None] $4
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.readline") in
+                                         mk (App (op, ["",after])) }
+
   | expr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
   | expr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
@@ -429,6 +468,44 @@ cexpr:
                                          mk (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
+
+  | SERVER_WAIT exprs THEN exprs END {  let condition = $2 in
+                                        let op = mk ~pos:(1,1) (Var "server.wait") in
+                                        let after =
+                                          mk_fun ~pos:(2,3) [] $4
+                                        in
+                                          mk (App (op, ["",condition;"",after])) }
+
+  | SERVER_WRITE expr THEN exprs END { let data = $2 in
+                                       let after =
+                                         mk_fun ~pos:(3,4) [] $4
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.write") in
+                                         mk (App (op, ["",after;"",data])) }
+
+  | SERVER_READ expr COLON VAR THEN exprs END {
+                                       let marker = $2 in
+                                       let after =
+                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.read") in
+                                         mk (App (op, ["",after;"",marker])) }
+
+  | SERVER_READCHARS expr COLON VAR THEN exprs END {
+                                       let len = $2 in
+                                       let after =
+                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.readchars") in
+                                         mk (App (op, ["",after;"",len])) }
+
+  | SERVER_READLINE VAR THEN exprs END {
+                                       let after =
+                                         mk_fun ~pos:(5,6) ["",$2,mk_ty "string" [],None] $4
+                                       in
+                                       let op = mk ~pos:(1,1) (Var "server.readline") in
+                                         mk (App (op, ["",after])) }
+
   | cexpr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
                                                 ["",$1;"",$3])) }
   | cexpr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
