@@ -78,6 +78,7 @@ module Buffered :
        * below uses it and might be deprecated at some
        * point in the future. *)
       val make_file_decoder : filename:string ->
+           close:(unit -> unit) ->
            kind:Frame.content_kind ->
            remaining:(Frame.t -> int -> int) ->
            Generator.t decoder -> Generator.t -> file_decoder

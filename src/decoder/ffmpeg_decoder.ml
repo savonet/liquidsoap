@@ -47,20 +47,25 @@ let duration file =
   let container =
     FFmpeg.Av.open_input file
   in
-  let (index, stream, codec) =
-    FFmpeg.Av.find_best_audio_stream container
-  in
-  let duration =
-    FFmpeg.Av.get_duration stream ~format:`Millisecond
-  in
-  (Int64.to_float duration) /. 1000.
+  Utils.ensure (fun () -> FFmpeg.Av.close container)
+    (fun () ->
+      let (_, stream, _) =
+        FFmpeg.Av.find_best_audio_stream container
+      in
+      let duration =
+        FFmpeg.Av.get_duration stream ~format:`Millisecond
+      in
+      (Int64.to_float duration) /. 1000.)
 
 let create_decoder fname =
+  let remaining = ref
+    (Frame.master_of_seconds (duration fname))
+  in
   let container =
     FFmpeg.Av.open_input fname
   in
   (* Only audio for now *)
-  let (index, stream, codec) =
+  let (_, stream, codec) =
     FFmpeg.Av.find_best_audio_stream container
   in
   let sample_freq =
@@ -72,24 +77,22 @@ let create_decoder fname =
   let channel_layout =
     FFmpeg.Avcodec.Audio.get_channel_layout codec
   in
-  let target_channel_layout = `Stereo
-  in
   let target_sample_rate =
     Lazy.force Frame.audio_rate
   in
   let converter =
     Converter.create channel_layout ~in_sample_format sample_freq
-                     target_channel_layout target_sample_rate
+                     channel_layout target_sample_rate
   in 
-  let remaining = ref 
-    (Frame.master_of_seconds (duration fname))
-  in
-  let m = Mutex.create () in
-  let decr_remaining = Tutils.mutexify m (fun v ->
-    remaining := !remaining - v)
-  in
-  let get_remaining = Tutils.mutexify m (fun () ->
-    !remaining)
+  let decr_remaining, get_remaining =
+    let m = Mutex.create () in
+    let decr_remaining = Tutils.mutexify m (fun v ->
+      remaining := !remaining - v)
+    in
+    let get_remaining = Tutils.mutexify m (fun () ->
+      !remaining)
+    in
+    decr_remaining, get_remaining
   in
   let convert frame =
     let data = 
@@ -105,7 +108,7 @@ let create_decoder fname =
     let position = Frame.seconds_of_master ticks in
     let position = Int64.of_float
       (position *. 1000.)
-   in
+    in
     try
       FFmpeg.Av.seek stream `Millisecond position [||];
       ticks
@@ -113,48 +116,53 @@ let create_decoder fname =
   in
   let decode gen =
     match FFmpeg.Av.read_frame stream with
-        | `Frame frame ->
-            let content = convert frame in
-            G.set_mode gen `Audio ;
-            G.put_audio gen content 0 (Array.length content.(0))
-        | `End_of_file -> 
-            G.add_break gen
+      | `Frame frame ->
+          let content = convert frame in
+          G.set_mode gen `Audio ;
+          G.put_audio gen content 0 (Array.length content.(0))
+      | `End_of_file -> 
+          G.add_break gen
+  in
+  let close () =
+    FFmpeg.Av.close container
   in
   { Decoder.
      seek = seek;
-     decode = decode }, get_remaining
+     decode = decode }, close, get_remaining
 
 let create_file_decoder filename kind =
   let generator = G.create `Audio in
-  let decoder, remaining =
+  let decoder, close, remaining =
     create_decoder filename
   in
   let remaining frame offset =
     let remaining = remaining () in
     remaining + G.length generator + Frame.position frame - offset 
   in
-  Buffered.make_file_decoder ~filename ~kind ~remaining decoder generator 
+  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator 
 
 (* Get the number of channels of audio in a file. *)
 let get_type filename =
   let container =
     FFmpeg.Av.open_input filename
   in
-  let (index, stream, codec) =
-    FFmpeg.Av.find_best_audio_stream container
-  in
-  let channels =
-    FFmpeg.Avcodec.Audio.get_nb_channels codec
-  in
-  let rate =
-    FFmpeg.Avcodec.Audio.get_sample_rate codec
-  in
-  log#f 4 "ffmpeg recognizes %S as: (%dHz,%d channels)."
-    filename rate channels ;
-  {Frame.
-     audio = channels ;
-     video = 0 ;
-     midi  = 0 }
+  Utils.ensure (fun () -> FFmpeg.Av.close container)
+    (fun () ->
+      let (_, _, codec) =
+        FFmpeg.Av.find_best_audio_stream container
+      in
+      let channels =
+        FFmpeg.Avcodec.Audio.get_nb_channels codec
+      in
+      let rate =
+        FFmpeg.Avcodec.Audio.get_sample_rate codec
+      in
+      log#f 4 "ffmpeg recognizes %S as: (%dHz,%d channels)."
+        filename rate channels ;
+      {Frame.
+         audio = channels ;
+         video = 0 ;
+         midi  = 0 })
 
 let () =
   Decoder.file_decoders#register
@@ -186,7 +194,9 @@ let get_tags file =
   let container =
     FFmpeg.Av.open_input file
   in
-  FFmpeg.Av.get_input_metadata container
+  Utils.ensure (fun () -> FFmpeg.Av.close container)
+    (fun () ->
+      FFmpeg.Av.get_input_metadata container)
 
 let () = Request.mresolvers#register "FFMPEG" get_tags
 

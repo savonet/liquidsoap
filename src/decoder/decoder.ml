@@ -301,7 +301,7 @@ let get_stream_decoder mime kind =
 module Buffered(Generator:Generator.S) =
 struct
 
-  let  make_file_decoder ~filename ~kind ~remaining decoder gen =
+  let  make_file_decoder ~filename ~close ~kind ~remaining decoder gen =
     let frame_size = Lazy.force Frame.size in
     let prebuf =
       (* Amount of audio to decode in advance, in ticks.
@@ -322,7 +322,6 @@ struct
        * be useful. *)
       Frame.master_of_seconds 0.5
     in
-    let out_ticks = ref 0 in
     let decoding_done = ref false in
     let fill frame =
       (* We want to avoid trying to decode when
@@ -404,7 +403,7 @@ struct
     in
       { fill = fill ;
         fseek = fseek;
-        close = fun () -> () }
+        close = close }
 
   let file_decoder filename kind create_decoder gen = 
     let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
@@ -450,12 +449,8 @@ struct
           in
             int_of_float remaining_ticks
     in
-    let decoder =
-      make_file_decoder ~filename ~kind ~remaining decoder gen
+    let close () =
+      Unix.close fd
     in
-    {decoder with
-       close = fun () ->
-         begin try Unix.close fd with _ -> () end;
-         decoder.close ()} 
-
+    make_file_decoder ~filename ~close ~kind ~remaining decoder gen
 end
