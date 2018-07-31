@@ -757,7 +757,7 @@ fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad],[0.3.0])
+AC_CHECK_OCAML_BINDING([faad],[0.4.0])
 AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
 AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
 AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])

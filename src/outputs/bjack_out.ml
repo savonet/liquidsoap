@@ -79,7 +79,7 @@ object (self)
   method push_block data =
     let dev = self#get_device in
     let len = Bytes.length data in
-    let data = Bytes.to_string data in
+    let data = Bytes.unsafe_to_string data in
     let remaining = ref (len - (Bjack.write dev data)) in
     while !remaining > 0 do
       Thread.delay (seconds_per_frame /. 2.) ;

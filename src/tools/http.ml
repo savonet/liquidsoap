@@ -188,7 +188,7 @@ struct
         let s = Bytes.create 2 in
           Bytes.set s 0 (hex_digits.( (k lsr 4) land 15 )) ;
           Bytes.set s 1 (hex_digits.( k land 15 )) ;
-          Bytes.to_string s
+          Bytes.unsafe_to_string s
   
   let url_encode ?(plus=true) s =
     Pcre.substitute
@@ -351,7 +351,7 @@ struct
       assert(0 < rem);
       let s = Bytes.create rem in
       let n = Transport.read socket s 0 rem in
-      Buffer.add_substring buf (Bytes.to_string s) 0 n;
+      Buffer.add_subbytes buf s 0 n;
       if Buffer.length buf = len then
         Buffer.contents buf
       else

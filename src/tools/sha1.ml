@@ -19,7 +19,7 @@ module Int32 = struct
       Bytes.set ans i (char_of_int c);
       n := Int32.shift_right !n 8
     done;
-    Bytes.to_string ans
+    Bytes.unsafe_to_string ans
 
   let bit n k =
     let mask = shift_left one k in
@@ -67,7 +67,7 @@ let digest s =
       Bytes.set ans i (char_of_int (!len land 0xff));
       len := !len lsr 8;
     done;
-    Bytes.to_string ans
+    Bytes.unsafe_to_string ans
   in
   let s = s ^ pad ^ slen in
 

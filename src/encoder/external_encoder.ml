@@ -54,7 +54,7 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.to_string (Process_handler.read 1024 puller));
+    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let on_start pusher =
@@ -81,7 +81,7 @@ let encoder id ext =
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin
-      match Bytes.to_string (Process_handler.read 1024 puller) with
+      match Bytes.unsafe_to_string (Process_handler.read 1024 puller) with
         | "" when !is_stop -> Condition.signal condition
         | s -> Buffer.add_string buf s
     end;
@@ -137,7 +137,7 @@ let encoder id ext =
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio b start sbuf 0 len;
-          Bytes.to_string sbuf
+          Bytes.unsafe_to_string sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->

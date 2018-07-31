@@ -150,7 +150,7 @@ struct
                Printf.fprintf b "%f %d\n%!" time self#length
             | None -> ()
         end ;
-        Bytes.to_string buf,input
+        Bytes.unsafe_to_string buf,input
       in
       let input =
         { Decoder.

@@ -26,7 +26,7 @@ let word n =
   let s = Bytes.create 2 in
   Bytes.set s 0 (char_of_int (n land 0xff));
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8));
-  Bytes.to_string s
+  Bytes.unsafe_to_string s
 
 let dword n =
   let s = Bytes.create 4 in
@@ -34,7 +34,7 @@ let dword n =
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8));
   Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16));
   Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24));
-  Bytes.to_string s
+  Bytes.unsafe_to_string s
 
 let chunk id data =
   let n = String.length data in
@@ -184,7 +184,7 @@ module Read = struct
     let k = Unix.read_retry f s 0 n in
     if k = 0 && n <> 0 then raise End_of_file;
     assert (k = n);
-    Bytes.to_string s
+    Bytes.unsafe_to_string s
 
   let word f =
     let s = read 2 f in
