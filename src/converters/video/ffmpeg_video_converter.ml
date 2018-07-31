@@ -43,22 +43,22 @@ let format_of frame =
   | P.RGB fmt ->
     (
       match fmt with
-      | P.RGB24  -> Avutil.Pixel_format.RGB24
-      | P.BGR24  -> Avutil.Pixel_format.BGR24
-      | P.RGB32  -> Avutil.Pixel_format.RGBA
-      | P.BGR32  -> Avutil.Pixel_format.BGRA
-      | P.RGBA32 -> Avutil.Pixel_format.RGBA
+      | P.RGB24  -> `Rgb24
+      | P.BGR24  -> `Bgr24
+      | P.RGB32  -> `Rgba
+      | P.BGR32  -> `Bgra
+      | P.RGBA32 -> `Rgba
     )
   | P.YUV fmt ->
     (
       match fmt with
-      | P.YUV422  -> Avutil.Pixel_format.YUV422p
-      | P.YUV444  -> Avutil.Pixel_format.YUV444p
-      | P.YUV411  -> Avutil.Pixel_format.YUV411p
-      | P.YUV410  -> Avutil.Pixel_format.YUV410p
-      | P.YUVJ420 -> Avutil.Pixel_format.YUV420p
-      | P.YUVJ422 -> Avutil.Pixel_format.YUVJ422p
-      | P.YUVJ444 -> Avutil.Pixel_format.YUVJ444p
+      | P.YUV422  -> `Yuv422p
+      | P.YUV444  -> `Yuv444p
+      | P.YUV411  -> `Yuv411p
+      | P.YUV410  -> `Yuv410p
+      | P.YUVJ420 -> `Yuv420p
+      | P.YUVJ422 -> `Yuvj422p
+      | P.YUVJ444 -> `Yuvj444p
     )
 
 type fmt = Avutil.Pixel_format.t * int * int
