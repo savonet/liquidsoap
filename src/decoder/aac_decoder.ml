@@ -88,7 +88,9 @@ let create_decoder input =
   let dec = Faad.create () in
   (* 1024 bytes seems usually enough to initiate the decoder.. *)
   let (aacbuf,len) = input.Decoder.read 1024 in
-  let offset, sample_freq, chans = Faad.init dec aacbuf 0 len in
+  let offset, sample_freq, chans =
+    Faad.init dec (Bytes.unsafe_of_string aacbuf) 0 len
+  in
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
   let input,drop,pos =
