@@ -57,6 +57,8 @@ let duration file =
       in
       (Int64.to_float duration) /. 1000.)
 
+ exception End_of_file
+
 let create_decoder fname =
   let remaining = ref
     (Frame.master_of_seconds (duration fname))
@@ -87,7 +89,6 @@ let create_decoder fname =
   let decr_remaining, get_remaining =
     let m = Mutex.create () in
     let decr_remaining = Tutils.mutexify m (fun v ->
-      Printf.printf "Remaining: %d\n%!" (!remaining - v);
       remaining := !remaining - v)
     in
     let get_remaining = Tutils.mutexify m (fun () ->
@@ -122,8 +123,8 @@ let create_decoder fname =
           G.set_mode gen `Audio ;
           G.put_audio gen content 0 (Array.length content.(0))
       | `End_of_file -> 
-          Printf.printf "EOF!\n%!";
-          G.add_break gen
+          G.add_break gen;
+          raise End_of_file
   in
   let close () =
     FFmpeg.Av.close container
