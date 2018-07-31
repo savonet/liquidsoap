@@ -934,6 +934,7 @@ cat <<EOMSG
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
+   - Avcodec (ffmpeg)  : $w_FFMPEG
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LASTFM
 
