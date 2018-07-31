@@ -125,7 +125,7 @@ let create_decoder input =
         let aacbuf,len = input.Decoder.read aacbuflen in
         if len = aacbuflen then
          begin
-          let pos,data = Faad.decode dec aacbuf 0 len in
+          let pos,data = Faad.decode dec (Bytes.unsafe_of_string aacbuf) 0 len in
           begin try
             processed := !processed + Array.length data.(0)
           with _ -> () end;
@@ -240,7 +240,7 @@ struct
     let dec = Faad.create () in
     let read len =
       let ret,len = input.Decoder.read len in
-      ret,0,len
+      Bytes.unsafe_of_string ret,0,len
     in
     let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in
