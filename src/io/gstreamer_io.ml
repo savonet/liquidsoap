@@ -142,7 +142,7 @@ object (self)
           let len = Frame.audio_of_master len in
           let data = Bytes.create (2*channels*len) in
           Audio.S16LE.of_audio pcm 0 data 0 len;
-          let gstbuf = Gstreamer.Buffer.of_string (Bytes.to_string data) 0 (Bytes.length data) in
+          let gstbuf = Gstreamer.Buffer.of_string (Bytes.unsafe_to_string data) 0 (Bytes.length data) in
           Gstreamer.Buffer.set_presentation_time gstbuf now;
           Gstreamer.Buffer.set_duration gstbuf nanolen;
           Gstreamer.App_src.push_buffer (Utils.get_some audio_src) gstbuf
@@ -346,7 +346,7 @@ object (self)
       let data = Bytes.create (2*channels*len) in
       Audio.S16LE.of_audio pcm 0 data 0 len;
       Tutils.mutexify audio_buffer_mutex (fun () ->
-        Queue.push (Bytes.to_string data) audio_buffer;
+        Queue.push (Bytes.unsafe_to_string data) audio_buffer;
         Condition.signal audio_buffer_condition) ();
 
       (* Read video. *)

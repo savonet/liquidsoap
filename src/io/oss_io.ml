@@ -150,7 +150,7 @@ object (self)
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;
-      Audio.S16LE.to_audio (Bytes.to_string s) 0 buf 0 (Audio.duration buf);
+      Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 (Audio.duration buf);
       AFrame.add_break frame (AFrame.size ())
 
 end

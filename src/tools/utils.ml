@@ -244,7 +244,7 @@ let read_all filename =
     let ret = input channel tmp 0 1024 in
     if ret > 0 then
      begin
-      Buffer.add_substring contents (Bytes.to_string tmp) 0 ret ;
+      Buffer.add_subbytes contents tmp 0 ret ;
       read ()
      end
   in
@@ -555,7 +555,7 @@ let decode64 s =
     let len = List.length result in
     let s = Bytes.make len ' ' in
       ignore (List.fold_left (fun i c -> Bytes.set s i c ; i-1) (len-1) result) ;
-      Bytes.to_string s
+      Bytes.unsafe_to_string s
 
 (** Base 64 encoding. *)
 let encode64 s =
@@ -580,7 +580,7 @@ let encode64 s =
       Bytes.set dst (4*(n/3)-1) '='
     end else if extra = 2 then
       Bytes.set dst (4*(n/3)-1) '=' ;
-    Bytes.to_string dst
+    Bytes.unsafe_to_string dst
 
 (** Get a file/uri extension. *)
 (* This is not garanteed to work 100% but should

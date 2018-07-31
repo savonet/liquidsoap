@@ -1578,7 +1578,7 @@ let () =
              let n = input ch tmp 0 1024 in
                if n = 0 then () else
                 begin
-                 Buffer.add_substring buf (Bytes.to_string tmp) 0 n;
+                 Buffer.add_subbytes buf tmp 0 n;
                  aux()
                 end
            in
@@ -1597,7 +1597,7 @@ let () =
              let pull buf fn =
                let bytes = Bytes.create buflen in
                let ret = fn bytes 0 buflen in
-               Buffer.add_substring buf (Bytes.to_string bytes) 0 ret;
+               Buffer.add_subbytes buf bytes 0 ret;
               `Continue
              in
              let on_stdout = pull out_buf in
@@ -2192,7 +2192,7 @@ let () =
         done;
         assert false
       with
-      | Exit -> close_in ic; Lang.string (Bytes.to_string !s))
+      | Exit -> close_in ic; Lang.string (Bytes.unsafe_to_string !s))
 
 let () =
   add_builtin "file.watch" ~cat:Sys

@@ -329,7 +329,7 @@ struct
         let s = Bytes.create len in
         let i = Unix.read fd s 0 len in
         proc_bytes := !proc_bytes + i;
-        Bytes.to_string s, i
+        Bytes.unsafe_to_string s, i
       with _ -> "", 0
     in
     let tell () = 

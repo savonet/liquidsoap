@@ -94,7 +94,7 @@ object (self)
 
   method push_block data =
     let dev = self#get_device in
-    play dev (Bytes.to_string data)
+    play dev (Bytes.unsafe_to_string data)
 
   method output_send wav =
     if not (Frame.is_partial wav) then

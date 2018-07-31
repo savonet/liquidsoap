@@ -90,7 +90,7 @@ object (self)
                       (fun pcm buf ofs len ->
                          let sbuf = Bytes.create (2 * len * Array.length buf) in
                          Audio.S16LE.of_audio buf ofs sbuf 0 len;
-                         Pcm.writei pcm (Bytes.to_string sbuf) 0 len
+                         Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                       )
              );
              Pcm.set_channels dev params buffer_chans ;

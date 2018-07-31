@@ -133,7 +133,7 @@ object (self)
         wait () ;
         let msg = Bytes.create len in
         let n,_ = Unix.recvfrom socket msg 0 len [] in
-          Bytes.to_string msg,n
+          Bytes.unsafe_to_string msg,n
       in
       let input =
         { Decoder.

@@ -56,7 +56,7 @@ struct
             if p<=0 then raise Read_error ;
             read (pos+p)
       in
-      Bytes.to_string (read 0)
+      Bytes.unsafe_to_string (read 0)
     in
     let h = Hashtbl.create 10 in
     let rec parse s =
@@ -104,7 +104,7 @@ struct
         let r = Http.read socket buf 0 (n - Bytes.length !ans) in
           ans := Bytes.cat !ans (Bytes.sub buf 0 r)
       done;
-      Bytes.to_string !ans
+      Bytes.unsafe_to_string !ans
   
   let read_stream socket chunked metaint insert_metadata =
     let read_metadata = read_metadata () in
@@ -124,7 +124,7 @@ struct
             fun len ->
               let b = Bytes.create len in
               let r = read b 0 len in
-                if r < 0 then "",0 else Bytes.to_string b,r
+                if r < 0 then "",0 else Bytes.unsafe_to_string b,r
         | Some metaint ->
             let readcnt = ref 0 in
               fun len ->
@@ -139,7 +139,7 @@ struct
                         | Some m -> insert_metadata m
                         | None -> ()
                     end ;
-                    Bytes.to_string b,r
+                    Bytes.unsafe_to_string b,r
                   end
   
   (** HTTP input *)

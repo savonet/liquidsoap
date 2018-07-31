@@ -59,7 +59,7 @@ let xml_escape s =
 let print_xml item =
   let rec print_xml indent doc =
     let prefix =
-      Bytes.to_string
+      Bytes.unsafe_to_string
         (Bytes.make indent ' ')
       in
       Printf.printf "%s<info>%s</info>\n" prefix (xml_escape doc#get_doc) ;
@@ -79,7 +79,7 @@ let print_xml item =
 let print : item -> unit =
   let rec print indent doc =
     let prefix =
-      Bytes.to_string
+      Bytes.unsafe_to_string
         (Bytes.make indent ' ')
       in
       Printf.printf "%s%s\n" prefix doc#get_doc ;
