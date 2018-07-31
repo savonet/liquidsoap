@@ -87,6 +87,7 @@ let create_decoder fname =
   let decr_remaining, get_remaining =
     let m = Mutex.create () in
     let decr_remaining = Tutils.mutexify m (fun v ->
+      Printf.printf "Remaining: %d\n%!" (!remaining - v);
       remaining := !remaining - v)
     in
     let get_remaining = Tutils.mutexify m (fun () ->
@@ -121,6 +122,7 @@ let create_decoder fname =
           G.set_mode gen `Audio ;
           G.put_audio gen content 0 (Array.length content.(0))
       | `End_of_file -> 
+          Printf.printf "EOF!\n%!";
           G.add_break gen
   in
   let close () =
