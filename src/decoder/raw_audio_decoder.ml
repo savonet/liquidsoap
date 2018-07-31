@@ -22,7 +22,7 @@
 
 (** Decode raw data *)
 
-open Stdlib
+open Extralib
 
 let log = Dtools.Log.make ["decoder";"raw"]
 

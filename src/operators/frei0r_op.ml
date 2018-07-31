@@ -22,7 +22,7 @@
 
 open Source
 open Dtools
-open Stdlib
+open Extralib
 
 module Img = Image.RGBA32
 

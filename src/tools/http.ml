@@ -137,7 +137,7 @@ module Make(Transport:Transport_t) =
 struct
   (* Some structured exceptions *)
   
-  include Stdlib
+  include Extralib
   
   type error = Socket | Response | UrlDecoding
   exception Error of error

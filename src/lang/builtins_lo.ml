@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Dtools
-open Stdlib
+open Extralib
 
 module S = LO.Server
 

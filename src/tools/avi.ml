@@ -20,7 +20,7 @@
 
 *****************************************************************************)
 
-open Stdlib
+open Extralib
 
 let word n =
   let s = Bytes.create 2 in

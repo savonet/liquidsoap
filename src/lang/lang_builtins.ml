@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Stdlib
+open Extralib
 
 type category = Sys | Math | String | List | Bool | Pair
               | Liq | Control | Interaction | Other
