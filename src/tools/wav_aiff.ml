@@ -61,7 +61,7 @@ let error_translator = function
     Some (Printf.sprintf "IFF File error: %s" x)
   | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 (* open file and verify it has the right format *)
 

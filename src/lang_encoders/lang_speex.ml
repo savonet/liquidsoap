@@ -63,13 +63,13 @@ let make params =
                         bitrate_control =
                          Speex_format.Vbr q }
           | ("mode",{ term = Var s; _})
-            when Utils.StringCompat.lowercase_ascii s = "wideband" ->
+            when String.lowercase_ascii s = "wideband" ->
               { f with Speex_format.mode = Speex_format.Wideband }
           | ("mode",{ term = Var s; _})
-            when Utils.StringCompat.lowercase_ascii s = "narrowband" ->
+            when String.lowercase_ascii s = "narrowband" ->
               { f with Speex_format.mode = Speex_format.Narrowband }
           | ("mode",{ term = Var s; _})
-            when Utils.StringCompat.lowercase_ascii s = "ultra-wideband" ->
+            when String.lowercase_ascii s = "ultra-wideband" ->
               { f with Speex_format.mode = Speex_format.Ultra_wideband }
           | ("frames_per_packet",{ term = Int i; _}) ->
               { f with Speex_format.frames_per_packet = i }
@@ -84,9 +84,9 @@ let make params =
               { f with Speex_format.dtx = b }
           | ("vad", { term = Bool b; _}) ->
               { f with Speex_format.vad = b }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Speex_format.stereo = false }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Speex_format.stereo = true }
           | (_,t) -> raise (generic_error t))
       defaults params

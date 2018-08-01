@@ -10,6 +10,7 @@ dnl $libdir/liquidsoap/$libs_dir_version
 AC_INIT([liquidsoap],[1.3.3])
 scm_snapshot=true
 version=1.3.3
+min_ocaml_version=4.03.0
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -250,6 +251,11 @@ OCAML_REVISION="`echo $OCAML_VERSION | cut -d'.' -f 3`"
 AC_SUBST(OCAML_REVISION)
 AC_MSG_CHECKING([for ocamlc version])
 AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
+
+AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
+if test -z "${VERSION_OK}"; then
+  AC_MSG_ERROR([version 4.03.0 or more of the OCaml compiler is required to build liquidsoap])
+fi
 
 AC_SUBST(BYTE)
 

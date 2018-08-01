@@ -70,9 +70,9 @@ let mp3_base f =
            | Some g -> { f with Mp3_format.id3v2 = Some g })
     | ("id3v2",{ term = Bool false; _ }) ->
         { f with Mp3_format.id3v2 = None }
-    | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+    | ("",{ term = Var s; _ }) when String.lowercase_ascii s = "mono" ->
         { f with Mp3_format.stereo = false }
-    | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+    | ("",{ term = Var s; _ }) when String.lowercase_ascii s = "stereo" ->
         { f with Mp3_format.stereo = true }
     | (_,t) -> raise (generic_error t)
 

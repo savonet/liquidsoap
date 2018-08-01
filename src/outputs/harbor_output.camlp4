@@ -329,7 +329,7 @@ struct
                "ISO-8859-1"
              else
                "UTF-8"
-          | s -> Utils.StringCompat.uppercase_ascii s
+          | s -> String.uppercase_ascii s
       in
       let f = Configure.recode_tag ~out_enc in
       let meta = Hashtbl.create (Hashtbl.length m) in

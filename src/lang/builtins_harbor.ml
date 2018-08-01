@@ -31,7 +31,7 @@ end
 
 module Make(Harbor:T) =
 struct
-  let name_up = Utils.StringCompat.uppercase_ascii Harbor.name
+  let name_up = String.uppercase_ascii Harbor.name
   let () =
     Lang_builtins.add_builtin ("harbor." ^ Harbor.name ^ ".register") ~cat:Liq
       ~descr:(Printf.sprintf 

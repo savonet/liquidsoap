@@ -388,7 +388,7 @@ let expand_define tokenizer =
       (
         match tokenizer lexbuf with
         | Lang_parser.VAR x ->
-          if x <> Utils.StringCompat.uppercase_ascii x then raise Parsing.Parse_error;
+          if x <> String.uppercase_ascii x then raise Parsing.Parse_error;
           (
             match tokenizer lexbuf with
             | Lang_parser.INT _

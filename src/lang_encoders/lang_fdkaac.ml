@@ -84,9 +84,9 @@ let make params =
                 | Not_found -> raise (Error (t,"invalid transmux value"))
               in
               { f with Fdkaac_format.transmux = transmux }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Fdkaac_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Fdkaac_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params

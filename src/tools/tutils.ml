@@ -323,7 +323,7 @@ let error_translator =
     | _ ->
         None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 type event = [
   | `Read of Unix.file_descr

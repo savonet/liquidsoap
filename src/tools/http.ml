@@ -167,7 +167,7 @@ struct
     path: string
   }
   
-  let () = Utils.register_error_translator error_translator
+  let () = Printexc.register_printer error_translator
   
   let raise e = raise (Error e)
 
@@ -389,7 +389,7 @@ struct
           (fun fields line ->
              try
                let (!!) = Pcre.get_substring (Pcre.exec ~pat line) in
-                 (Utils.StringCompat.lowercase_ascii !!1, !!2) :: fields
+                 (String.lowercase_ascii !!1, !!2) :: fields
              with
                | Not_found -> fields)
           [] header
@@ -478,7 +478,7 @@ struct
       let max =
         try
           let (_,len) = List.find (fun (l,_) ->
-            Utils.StringCompat.lowercase_ascii l = "content-length")
+            String.lowercase_ascii l = "content-length")
             headers
           in
           int_of_string len

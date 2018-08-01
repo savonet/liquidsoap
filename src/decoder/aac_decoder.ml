@@ -30,7 +30,7 @@ let error_translator =
         Some (Printf.sprintf "Faad error: %s" (Faad.error_message x))
     | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 exception End_of_stream
 

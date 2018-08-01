@@ -40,9 +40,9 @@ let make params =
               { f with Shine_format.samplerate = i }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Shine_format.bitrate = i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Shine_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Shine_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params

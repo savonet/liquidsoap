@@ -40,7 +40,7 @@ let error_translator e =
          Some (Printf.sprintf "Alsa error: %s" (Alsa.string_of_error e))
      | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "alsa")
