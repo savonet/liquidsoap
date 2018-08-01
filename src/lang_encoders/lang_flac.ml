@@ -49,9 +49,9 @@ let flac_gen params =
               { f with Flac_format.bits_per_sample = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Flac_format.fill = Some i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Flac_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Flac_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params

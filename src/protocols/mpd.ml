@@ -116,7 +116,7 @@ let search read write field v =
         file := f
       else if Str.string_match re_metadata s 0 then
         let field = Str.matched_group 1 s in
-        let field = Utils.StringCompat.lowercase_ascii field in
+        let field = String.lowercase_ascii field in
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
           metadata := (field, value) :: !metadata

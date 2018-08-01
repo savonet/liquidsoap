@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Stdlib
+open Extralib
 
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus

@@ -33,7 +33,7 @@ let error_translator e =
                 "Pulseaudio error: %s" (Pulseaudio.string_of_error n))
      | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 class virtual base ~client ~device =
   let device = 

@@ -28,7 +28,7 @@ let error_translator =
        Some (Cry.string_of_error e)
     | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 type icecast_info = 
   {
@@ -289,7 +289,7 @@ class output ~kind p =
            "ISO-8859-1"
          else
            "UTF-8"
-      | s -> Utils.StringCompat.uppercase_ascii s
+      | s -> String.uppercase_ascii s
   in
 
   let source = Lang.assoc "" 2 p in

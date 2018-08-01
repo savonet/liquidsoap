@@ -49,7 +49,7 @@ struct
   type socket = secure_transport_socket
   let read {ctx} buf ofs len =
     SecureTransport.read ctx buf ofs len
-  let read_retry = Stdlib.read_retry read
+  let read_retry = Extralib.read_retry read
   let write {ctx} buf ofs len =
     SecureTransport.write ctx buf ofs len
 end

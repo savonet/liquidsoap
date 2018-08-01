@@ -29,7 +29,7 @@ let () =
           let cur =
             try cur#path [el] with Dtools.Conf.Unbound _ ->
               let name,descr,key = if rem = [] then (name,descr,final_key) else
-                (Utils.StringCompat.capitalize_ascii el,[],Dtools.Conf.void)
+                (String.capitalize_ascii el,[],Dtools.Conf.void)
               in
               key ~p:(cur#plug el) name ~comments:descr
           in

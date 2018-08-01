@@ -38,9 +38,9 @@ let make params =
               { f with Wav_format.channels = if b then 2 else 1 }
           | ("mono",{ term = Bool b; _ }) ->
               { f with Wav_format.channels = if b then 1 else 2 }
-          | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _ }) when String.lowercase_ascii s = "stereo" ->
               { f with Wav_format.channels = 2 }
-          | ("",{ term = Var s; _ }) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _ }) when String.lowercase_ascii s = "mono" ->
               { f with Wav_format.channels = 1 }
           | ("channels",{ term = Int c; _ }) ->
               { f with Wav_format.channels = c }

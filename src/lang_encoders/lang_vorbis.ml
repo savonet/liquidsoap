@@ -44,9 +44,9 @@ let make_cbr params =
               { f with Vorbis_format.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Vorbis_format.fill = Some i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Vorbis_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Vorbis_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -86,9 +86,9 @@ let make_abr params =
               { f with Vorbis_format.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Vorbis_format.fill = Some i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Vorbis_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Vorbis_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params
@@ -123,9 +123,9 @@ let make params =
               { f with Vorbis_format.channels = i }
           | ("bytes_per_page",{ term = Int i; _}) ->
               { f with Vorbis_format.fill = Some i }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Vorbis_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Vorbis_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params

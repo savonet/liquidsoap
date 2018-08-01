@@ -35,7 +35,7 @@ let render m =
     try
       Hashtbl.iter
         (fun k x ->
-          if (Utils.StringCompat.uppercase_ascii l) = (Utils.StringCompat.uppercase_ascii k) then
+          if (String.uppercase_ascii l) = (String.uppercase_ascii k) then
            raise (Found x)) m ;
      t
     with

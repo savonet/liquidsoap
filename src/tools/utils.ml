@@ -122,45 +122,6 @@ struct
   include Lazy
 end
 
-exception Not_implemented
-
-module type StringWrapper =
-sig
-  include module type of String
-  val capitalize : string -> string
-  val uncapitalize : string -> string
-  val lowercase : string -> string
-  val uppercase : string -> string
-end
-
-module StringWrapper : StringWrapper =
-struct
-  let capitalize _ = raise Not_implemented
-  let uncapitalize _ = raise Not_implemented
-  let lowercase _ = raise Not_implemented
-  let uppercase _ = raise Not_implemented
-  let () =
-    let e f = try ignore(f "") with Not_implemented -> () in
-    e capitalize; e uncapitalize;
-    e lowercase; e uppercase
-  include String
-end
-
-module StringCompat =
-struct
-  let capitalize_ascii = StringWrapper.capitalize
-  let uncapitalize_ascii = StringWrapper.uncapitalize
-  let lowercase_ascii = StringWrapper.lowercase
-  let uppercase_ascii = StringWrapper.uppercase
-
-  let () =
-    let e f = try ignore(f "") with Not_implemented -> () in
-    e capitalize_ascii; e uncapitalize_ascii;
-    e lowercase_ascii; e uppercase_ascii
-
-  include String
-end
-
 (** Unescape a string. *)
 let unescape s =
   try
@@ -272,15 +233,6 @@ let buffer_drop buffer len =
       Buffer.reset buffer ;
       Buffer.add_string buffer tmp
 
-(* Exception translation and backtrace printing.
- * We provide first a default implementation
- * and override it with Printexc's implementation
- * if present.. *)
-
-let error_translators = Queue.create ()
-
-let register_error_translator x = Queue.push x error_translators
-
 let unix_translator = 
   function
     | Unix.Unix_error (code,name,param) ->
@@ -288,14 +240,8 @@ let unix_translator =
                                            name param)
     | _ -> None
 
-let () = register_error_translator unix_translator
-
-let exception_printer e =
-  Queue.fold
-    (fun cur f -> if cur <> None then cur else f e)
-    None error_translators
-
-let () = Printexc.register_printer exception_printer
+let () =
+  Printexc.register_printer unix_translator
 
 (** Perfect Fisher-Yates shuffle
   * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
@@ -601,7 +547,7 @@ let get_ext s =
  try
   let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
   let ret = Pcre.exec ~rex s in
-  StringCompat.lowercase_ascii (Pcre.get_substring ret 1)
+  String.lowercase_ascii (Pcre.get_substring ret 1)
  with
    | _ -> raise Not_found
 
@@ -637,7 +583,7 @@ let normalize_parameter_string s =
   let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
   let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
-  let s = StringCompat.lowercase_ascii s in
+  let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
   let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
   s

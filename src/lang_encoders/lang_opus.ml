@@ -105,9 +105,9 @@ let make params =
               { f with Opus_format.fill = Some i }
           | ("dtx",{ term = Bool b; _}) ->
               { f with Opus_format.dtx = b }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "mono" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "mono" ->
               { f with Opus_format.channels = 1 }
-          | ("",{ term = Var s; _}) when Utils.StringCompat.lowercase_ascii s = "stereo" ->
+          | ("",{ term = Var s; _}) when String.lowercase_ascii s = "stereo" ->
               { f with Opus_format.channels = 2 }
           | (_,t) -> raise (generic_error t))
       defaults params

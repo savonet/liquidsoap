@@ -22,7 +22,7 @@
 
 (** Decode files and streams using GStreamer. *)
 
-open Stdlib
+open Extralib
 
 module GU = Gstreamer_utils
 module Img = Image.RGBA32

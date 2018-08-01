@@ -33,7 +33,7 @@ struct
            Some "Error while reading http stream."
        | _ -> None
   
-  let () = Utils.register_error_translator error_translator
+  let () = Printexc.register_printer error_translator
   
   (** Types for playlist handling *)
   type playlist_mode =  Random | First | Randomize | Normal

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-open Stdlib
+open Extralib
 open Gstreamer
 
 module GU = Gstreamer_utils

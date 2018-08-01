@@ -24,7 +24,7 @@ type export_metadata = Frame.metadata
 let export_metadata m =
   let ret = Hashtbl.create 10 in
   let l = Encoder_formats.conf_export_metadata#get in
-  Hashtbl.iter (fun x y -> if List.mem (Utils.StringCompat.lowercase_ascii x) l then
+  Hashtbl.iter (fun x y -> if List.mem (String.lowercase_ascii x) l then
                            Hashtbl.add ret x y) m;
   ret
 let to_metadata m = m

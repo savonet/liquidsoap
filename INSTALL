@@ -15,11 +15,11 @@ Libraries not developed by Savonet are:
 
 Mandatory dependencies :
 
-   ocaml-dtools>=0.3.4
+   OCaml compiler >= 4.03.0
+   ocaml-dtools>=0.4.0
    ocaml-duppy>=0.6.0
    ocaml-mm>=0.4.0
    ocaml-pcre
-   base-bytes, for OCaml compilers < 4.02
 
 Recommended dependencies :
 
@@ -31,7 +31,7 @@ Optional dependencies :
 
    ocaml-cry>=0.6.0          for sending to Shoutcast & Icecast
    ocaml-ogg>=0.4.5          for Ogg codecs
-   ocaml-vorbis>=0.6.1       for Ogg/Vorbis codec
+   ocaml-vorbis>=0.7.0       for Ogg/Vorbis codec
    ocaml-opus>=0.1.0         for Ogg/Opus codec
    ocaml-theora>=0.3.0       for Ogg/Theora codec
    ocaml-speex>=0.2.0        for Ogg/Speex codec
@@ -40,7 +40,7 @@ Optional dependencies :
    ocaml-lame>=0.3.2         for MP3 encoding
    ocaml-shine>=0.1.0        for fixed-point MP3 encoding
    ocaml-taglib>=0.3.1       for MP3ID3 metadata access
-   ocaml-faad>=0.3.2         for AAC stream decoding
+   ocaml-faad>=0.4.0         for AAC stream decoding
    ocaml-fdkaac>=0.1.0       for AAC(+) encoding
    camlimages>=4.0.0         for image decoding
    ocaml-sdl                 for display, font & image support

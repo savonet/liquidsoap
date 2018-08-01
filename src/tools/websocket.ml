@@ -14,7 +14,7 @@ module Unix_transport =
 struct
   type socket = Unix.file_descr
   let read = Unix.read
-  let read_retry = Stdlib.Unix.read_retry
+  let read_retry = Extralib.Unix.read_retry
   let write = Unix.write
 end
 
