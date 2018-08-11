@@ -203,6 +203,7 @@ tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
   $(if $(W_DYNLINK),tools/dyntools.ml) \
   configure.ml tools/process_handler.ml \
+	$(if $(W_FFMPEG),tools/ffmpeg_config.ml) \
 	tools/http.ml \
   $(if $(W_SSL),tools/https.ml) \
   $(if $(W_OSX_SECURE_TRANSPORT),tools/https_secure_transport.ml) \
