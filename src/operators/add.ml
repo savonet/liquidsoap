@@ -77,7 +77,7 @@ object (self)
    * Normally, all active sources are proposed to fill the buffer as much as
    * wanted, even if they end a track -- this is quite needed. There is an
    * exception when there is only one active source, then the end of tracks
-   * are not hidden anymore, which is happy for transitions, for example. *)
+   * are not hidden anymore, which is useful for transitions, for example. *)
 
   val tmp = Frame.create kind
 

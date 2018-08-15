@@ -345,7 +345,7 @@ object (self)
   (** Contrary to cross.ml, the transition is only created (and stored in
     * the source instance variable) after that status has moved from `Limit to
     * `After. If is_ready becomes false at this point, source.ml will end the
-    * track before that the transition (or bare end of track) gets a chance
+    * track before the transition (or bare end of track) gets a chance
     * to be played. *)
   method is_ready = source#is_ready || status = `Limit
 

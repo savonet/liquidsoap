@@ -505,17 +505,11 @@ object (self)
      *
      * This makes the whole protocol a bit sloppy as it weakens constraints
      * tying #is_ready and #get, preventing the detection of "bad" calls
-     * of #get without prior check of #is_ready. To compensate this we issue
-     * a detailed warning.
+     * of #get without prior check of #is_ready.
      *
      * This fix makes it really important to keep #is_ready = true during a
      * track, otherwise the track will be ended without the source noticing! *)
     let silent_end_track () =
-      self#log#f 3
-        "Warning: #get called when not #is_ready! \
-         This is normal if an operator using this source has been unused \
-         while the source has gone unavailable. If unsure about this warning, \
-         you are very welcome to report it and ask for clarifications." ;
       Frame.add_break buf (Frame.position buf)
     in
     if not caching then begin
