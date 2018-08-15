@@ -28,11 +28,15 @@ module GU = Gstreamer_utils
 module Img = Image.RGBA32
 let log = Dtools.Log.make ["decoder";"gstreamer"]
 
+let master_of_time time =
+  Frame.master_of_seconds ((Int64.to_float (Int64.div time 100000L)) *. 0.0001)
+
+let time_of_master tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_master tick) *. 10000.)) 100000L
+
 type gst =
   {
     bin : Gstreamer.Element.t;
-    src : Gstreamer.App_src.t;
-    src_mutex : Mutex.t; (** Mutex for feeding data. *)
     audio_sink : Gstreamer.App_sink.t option;
     video_sink : Gstreamer.App_sink.t option;
   }
@@ -40,7 +44,7 @@ type gst =
 (** Generic decoder. *)
 (* TODO: we should share some code with Ogg_decoder... *)
 module Make (Generator : Generator.S_Asio) = struct
-  let create_decoder ?(merge_tracks=false) _ ~channels mode input =
+  let create_decoder ?(merge_tracks=false) _ ~channels mode fname =
     let decode_audio = mode = `Both || mode = `Audio in
     let decode_video = mode = `Both || mode = `Video in
 
@@ -52,8 +56,8 @@ module Make (Generator : Generator.S_Asio) = struct
     let gst =
       let audio_pipeline =
         if decode_audio then
-          Printf.sprintf " t. ! queue ! %s ! %s"
-            (GU.Pipeline.decode_audio ())
+          Printf.sprintf " d. ! queue ! %s ! %s"
+            (GU.Pipeline.convert_audio ())
             (GU.Pipeline.audio_sink ~channels "audio_sink")
         else
           ""
@@ -61,19 +65,18 @@ module Make (Generator : Generator.S_Asio) = struct
       let video_pipeline =
         if decode_video then
           Printf.sprintf
-            " t. ! queue ! %s ! %s"
-            (GU.Pipeline.decode_video ())
+            " d. ! queue ! %s ! %s"
+            (GU.Pipeline.convert_video ())
             (GU.Pipeline.video_sink "video_sink")
         else
           ""
       in
       let pipeline =
-        Printf.sprintf "appsrc name=src ! tee name=t%s%s"
-          audio_pipeline video_pipeline
+        Printf.sprintf "filesrc location=%S ! decodebin name=d%s%s"
+          fname audio_pipeline video_pipeline
       in
       log#f 5 "Gstreamer pipeline: %s." pipeline;
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
-      let src = Gstreamer.App_src.of_element (Gstreamer.Bin.get_by_name bin "src") in
       let audio_sink =
         if decode_audio then
           let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "audio_sink") in
@@ -90,8 +93,7 @@ module Make (Generator : Generator.S_Asio) = struct
         else
           None
       in
-      let src_mutex = Mutex.create () in
-      { bin; src; src_mutex; audio_sink; video_sink }
+      { bin; audio_sink; video_sink }
     in
 
     let width = Lazy.force Frame.video_width in
@@ -108,21 +110,6 @@ module Make (Generator : Generator.S_Asio) = struct
       Generator.set_mode buffer mode;
       ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_playing)
     in
-
-    let feed_data buflen =
-      Mutex.lock gst.src_mutex;
-      let buf,buflen = input.Decoder.read buflen in
-      let buf = String.sub buf 0 buflen in
-      if buflen = 0 then
-        (
-          log#f 5 "End of stream.";
-          Gstreamer.App_src.end_of_stream gst.src
-        )
-      else
-        Gstreamer.App_src.push_buffer_string gst.src buf;
-      Mutex.unlock gst.src_mutex
-    in
-    Gstreamer.App_src.on_need_data gst.src feed_data;
 
     let decode buffer =
       if not !started then
@@ -164,13 +151,9 @@ module Make (Generator : Generator.S_Asio) = struct
 
     let seek off =
       try
-        (* TODO: fix seek at some point... *)
-        ignore (raise Gstreamer.Failure);
-        let off =
-          Int64.of_float (Frame.seconds_of_master off *. 1000000000.)
-        in
-        let pos =
-          let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
+        let off = time_of_master off in
+        let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
+        let new_pos =
           Gstreamer.Element.seek_simple
             gst.bin
             Gstreamer.Format.Time
@@ -178,19 +161,21 @@ module Make (Generator : Generator.S_Asio) = struct
              Gstreamer.Event.Seek_flag_key_unit;
              Gstreamer.Event.Seek_flag_skip]
             (Int64.add pos off);
+          ignore(Gstreamer.Element.get_state gst.bin);
           Gstreamer.Element.position gst.bin Gstreamer.Format.Time
         in
-        Frame.master_of_seconds (Int64.to_float pos /. 1000000000.)
+        master_of_time (Int64.sub new_pos pos) 
       with
-      | Gstreamer.Failure ->
-        log#f 3 "Seek failed!";
-        0
+       | exn ->
+           log#f 3 "Seek failed: %s" (Printexc.to_string exn);
+           log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace ());
+           0
     in
 
     { Decoder.
       decode = decode;
       seek = seek;
-    }
+    }, gst.bin
 end
 
 module G = Generator.From_audio_video
@@ -217,10 +202,24 @@ let create_file_decoder filename content_type kind =
   in
   let channels = content_type.Frame.audio in
   let generator = G.create mode in
-  Buffered.file_decoder
-    filename kind
-    (D.create_decoder ~channels ~merge_tracks:true `File mode)
-    generator
+  let decoder, bin =
+    D.create_decoder ~channels ~merge_tracks:true `File mode filename
+  in
+  let remaining frame offset =
+    let pos =
+      master_of_time
+        (Gstreamer.Element.position bin Gstreamer.Format.Time)
+    in
+    let duration =
+      master_of_time
+        (Gstreamer.Element.duration bin Gstreamer.Format.Time)
+    in
+    duration - pos + G.length generator + Frame.position frame - offset
+  in
+  let close () =
+    ignore(Gstreamer.Element.set_state bin Gstreamer.Element.State_null)
+  in
+  Buffered.make_file_decoder ~filename ~close ~kind ~remaining decoder generator
 
 (** Get the type of a file's content. For now it is a bit imprecise:
   * we always pretend that audio content has the expected number of
@@ -301,6 +300,7 @@ let () =
 
 (** Stream decoder *)
 
+(*
 module D_stream = Make(Generator.From_audio_video_plus)
 
 let () =
@@ -320,6 +320,7 @@ let () =
         Some (D_stream.create_decoder ~channels `Stream mode)
       else
         None)
+*)
 
 (** Metadata *)
 

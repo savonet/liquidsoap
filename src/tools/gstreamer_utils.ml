@@ -6,10 +6,6 @@ let conf_gstreamer =
   Conf.void ~p:(Configure.conf#plug "gstreamer")
     "Media decoding/endcoding through gstreamer."
 
-let conf_debug =
-  Conf.int ~p:(conf_gstreamer#plug "debug_level") ~d:0
-    "Debug level (bewteen 0 and 5)."
-
 let conf_max_buffers =
   Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
     "Maximal number of buffers."
@@ -22,10 +18,16 @@ let add_borders () = conf_add_borders#get
 
 let () =
   Configure.at_init (fun () ->
+    let debug =
+      try
+        int_of_string
+          (Sys.getenv "LIQ_GST_DEBUG_LEVEL")
+      with _ -> 0
+    in
     Gstreamer.init ~argv:[|
       "Liquidsoap";
       "--gst-debug-spew";
-      Printf.sprintf "--gst-debug-level=%d" conf_debug#get
+      Printf.sprintf "--gst-debug-level=%d" debug
     |] ();
   let major, minor, micro, nano = Gstreamer.version () in
   let log = Dtools.Log.make ["gstreamer";"loader"] in

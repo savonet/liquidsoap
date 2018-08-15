@@ -27,6 +27,8 @@ Changed:
 
 - Switch default log to stdout.
 
+- Disabled Gstreamer stream decoder.
+
 Fixed:
 
 - Decouple dyntools compilation.
@@ -36,6 +38,10 @@ Fixed:
 - File descriptor leak in `output.icecast` (#548)
 
 - Fixed URL regexp for `input.https` (#593)
+
+- Gstreamer file decoder with video.
+
+- Gstreamer seek on file decoder.
 
 1.3.3 (14-10-2017)
 =====
