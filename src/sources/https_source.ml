@@ -20,7 +20,13 @@
 
  *****************************************************************************)
 
-module Input_https = Http_source.Make(Https)
+module Config =
+struct
+  module Http = Https
+  let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp][sS]://\\([^/]+\\)\\(/.*\\)?$"
+end
+
+module Input_https = Http_source.Make(Config)
 
 let () =
   Input_https.register "https"

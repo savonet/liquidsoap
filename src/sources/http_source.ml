@@ -19,9 +19,17 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
+
+module type Config_t =
+sig
+  module Http : Http.Http_t
+  val url_expr : Str.regexp
+end
   
-module Make(Http:Http.Http_t) =
+module Make(Config:Config_t) =
 struct
+  open Config
+
   exception Internal
   exception Read_error
   
@@ -144,7 +152,6 @@ struct
   
   (** HTTP input *)
   
-  let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp]://\\([^/]+\\)\\(/.*\\)?$"
   let host_expr = Str.regexp "^\\([^:]+\\):\\([0-9]+\\)$"
   let auth_split_expr = Str.regexp "^\\([^@]+\\)@\\(.+\\)$"
   
@@ -697,7 +704,13 @@ struct
               :> Source.source))
 end
 
-module Input_http = Make(Http)
+module Config =
+struct
+  module Http = Http
+  let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp]://\\([^/]+\\)\\(/.*\\)?$"
+end
+
+module Input_http = Make(Config)
 
 let () =
   Input_http.register "http"
