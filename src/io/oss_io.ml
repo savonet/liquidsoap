@@ -146,7 +146,7 @@ object (self)
     let fd = Utils.get_some fd in
     let buf = AFrame.content_of_type ~channels frame 0 in
     let len = 2 * (Array.length buf) * (Array.length buf.(0)) in
-    let s = String.create len in
+    let s = Bytes.create len in
     let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r) ;
