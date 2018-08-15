@@ -25,6 +25,9 @@ open Source
 module Generator = Generator.From_frames
 module Generated = Generated.Make(Generator)
 
+let finalise_slave_clock slave_clock source =
+  Clock.forget source#clock slave_clock
+
 (** [rms_width], [inhibit] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
@@ -111,7 +114,7 @@ object (self)
       (fun s -> Clock.unify slave_clock s#clock)
       transition ;
     (* Make sure the slave clock can be garbage collected, cf. cue_cut(). *)
-    Gc.finalise (fun self -> Clock.forget self#clock slave_clock) self
+    Gc.finalise (finalise_slave_clock slave_clock) self
 
   val mutable master_time = 0
   val mutable last_slave_tick = 0 (* in master time *)
