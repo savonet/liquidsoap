@@ -130,7 +130,7 @@ let load_dynlinks () =
       with
         | Dynlink.Error e ->
             dyn_log#f 3 "Error while loading dynamic %s at %s" name path;
-            dyn_log#f 4 "%s" (Dynlink.error_message e)) dynload.path;
+            dyn_log#f 3 "%s" (Dynlink.error_message e)) dynload.path;
      dyn_log#f 3 "Could not find dynamic module for %s." name
     with
       | Done path ->
