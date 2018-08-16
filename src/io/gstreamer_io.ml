@@ -134,7 +134,7 @@ object (self)
     if not (Frame.is_partial frame) then
       let _, content = Frame.content frame 0 in
       let len = Lazy.force Frame.size in
-      let nanolen = Int64.of_float (Frame.seconds_of_master len *. 1000000000.) in
+      let nanolen = Gstreamer_utils.time_of_master len in
       if has_audio then
         (
           let pcm = content.Frame.audio in
@@ -233,133 +233,6 @@ let () =
       (new output ~kind ~clock_safe ~infallible ~on_start ~on_stop source start ("",None,Some pipeline) :> Source.source)
     )
 
-(* An asynchronous version of the output. The problem with the above version is
-   that push_buffer is blocking and we sometimes have deadlocks when audio and
-   video are not synced. *)
-class output_audio_video ~kind ~clock_safe
-  ~infallible ~on_start ~on_stop
-  source start (pipeline,audio_pipeline,video_pipeline)
-  =
-  let channels = (Frame.type_of_kind kind).Frame.audio in
-object (self)
-  inherit Output.output  ~content_kind:kind
-    ~infallible ~on_start ~on_stop
-    ~name:"output.gstreamer_audio_video" ~output_kind:"gstreamer" source start as super
-
-  method private set_clock =
-    super#set_clock;
-    if clock_safe then
-      Clock.unify self#clock
-        (Clock.create_known ((gst_clock ()):>Clock.clock))
-
-  method output_start =
-    let bin,_,_ = self#get_gst in
-    begin
-     try
-      ignore (Element.set_state bin Element.State_playing)
-     with
-       | e ->
-           ignore (Element.set_state bin Element.State_null);
-           raise e
-    end;
-    if clock_safe then (gst_clock ())#register_blocking_source
-
-  method output_stop =
-    let bin,audio_src,video_src = self#get_gst in
-    App_src.end_of_stream audio_src;
-    App_src.end_of_stream video_src;
-    ignore (Element.set_state bin Element.State_null);
-    if clock_safe then (gst_clock ())#unregister_blocking_source
-
-  val mutable gst = None
-
-  method private get_gst =
-    match gst with
-    | Some gst -> gst
-    | None ->
-      let pipeline =
-        Printf.sprintf "%s ! %s %s ! %s %s"
-          (GU.Pipeline.audio_src ~channels "audio_src")
-          audio_pipeline
-          (GU.Pipeline.video_src "video_src")
-          video_pipeline
-          pipeline
-      in
-      self#log#f 5 "GStreamer pipeline: %s" pipeline;
-      let bin = Pipeline.parse_launch pipeline in
-      let audio_src = App_src.of_element (Bin.get_by_name bin "audio_src") in
-      let video_src = App_src.of_element (Bin.get_by_name bin "video_src") in
-      App_src.on_need_data audio_src self#feed_audio;
-      App_src.on_need_data video_src self#feed_video;
-      gst <- Some (bin, audio_src, video_src);
-      self#get_gst
-
-  val mutable audio_now = Int64.zero
-  val mutable video_now = Int64.zero
-  val audio_buffer = Queue.create ()
-  val video_buffer = Queue.create ()
-  val audio_buffer_mutex = Mutex.create ()
-  val video_buffer_mutex = Mutex.create ()
-  val audio_buffer_condition = Condition.create ()
-  val video_buffer_condition = Condition.create ()
-
-  method feed_audio _ =
-    let _, audio_src, _ = self#get_gst in
-    Tutils.mutexify audio_buffer_mutex (fun () ->
-      while Queue.is_empty audio_buffer do
-        Condition.wait audio_buffer_condition audio_buffer_mutex
-      done;
-      let data = Queue.pop audio_buffer in
-      let len = String.length data in
-      let nanolen = Int64.of_float (Frame.seconds_of_audio (len / (2 * channels)) *. 1000000000.) in
-      let gstbuf = Gstreamer.Buffer.of_string data 0 len in
-      Gstreamer.Buffer.set_presentation_time gstbuf audio_now;
-      Gstreamer.Buffer.set_duration gstbuf nanolen;
-      Gstreamer.App_src.push_buffer audio_src gstbuf;
-      audio_now <- Int64.add audio_now nanolen) ()
-
-  method feed_video _ =
-    let _, _, video_src = self#get_gst in
-    Tutils.mutexify video_buffer_mutex (fun () ->
-      while Queue.is_empty video_buffer do
-        Condition.wait video_buffer_condition video_buffer_mutex
-      done;
-      let img = Queue.pop video_buffer in
-      let data = Img.data img in
-      let len = Bigarray.Array1.dim data in
-      let nanolen = Int64.of_float (Frame.seconds_of_video 1 *. 1000000000.) in
-      let gstbuf = Gstreamer.Buffer.of_data data 0 len in
-      Gstreamer.Buffer.set_presentation_time gstbuf video_now;
-      Gstreamer.Buffer.set_duration gstbuf nanolen;
-      Gstreamer.App_src.push_buffer video_src gstbuf;
-      video_now <- Int64.add video_now nanolen) ()
-
-  method output_send frame =
-    if not (Frame.is_partial frame) then
-      let _, content = Frame.content frame 0 in
-      let len = Lazy.force Frame.size in
-
-      (* Read audio. *)
-      let pcm = content.Frame.audio in
-      assert (Array.length pcm = channels);
-      let len = Frame.audio_of_master len in
-      let data = Bytes.create (2*channels*len) in
-      Audio.S16LE.of_audio pcm 0 data 0 len;
-      Tutils.mutexify audio_buffer_mutex (fun () ->
-        Queue.push (Bytes.unsafe_to_string data) audio_buffer;
-        Condition.signal audio_buffer_condition) ();
-
-      (* Read video. *)
-      let buf = content.Frame.video.(0) in
-      Tutils.mutexify video_buffer_mutex (fun () ->
-        for i = 0 to Array.length buf - 1 do
-          Queue.push buf.(i) video_buffer
-        done;
-        Condition.signal video_buffer_condition) ()
-
-  method output_reset = ()
-end
-
 let () =
   let kind =
     Lang.any_fixed_with ~audio:1 ~video:1 ()
@@ -382,9 +255,6 @@ let () =
           "blocking",
           Lang.bool_t, Some (Lang.bool true),
           Some "Pushing buffers is blocking.";
-          "asynchronous",
-          Lang.bool_t, Some (Lang.bool false),
-          Some "Use asynchronous implementation (GStreamer is pulling from us).";
           "", Lang.source_t kind, None, None
         ])
     ~category:Lang.Output
@@ -398,7 +268,6 @@ let () =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let blocking = Lang.to_bool (List.assoc "blocking" p) in
-      let asynchronous = Lang.to_bool (List.assoc "asynchronous" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
@@ -408,10 +277,7 @@ let () =
         fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
       in
       let source = List.assoc "" p in
-      if asynchronous then
-        (new output_audio_video ~kind ~clock_safe ~infallible ~on_start ~on_stop source start (pipeline,audio_pipeline,video_pipeline) :> Source.source)
-      else
-        (new output ~kind ~clock_safe ~infallible ~on_start ~on_stop ~blocking source start (pipeline,Some audio_pipeline,Some video_pipeline) :> Source.source)
+      (new output ~kind ~clock_safe ~infallible ~on_start ~on_stop ~blocking source start (pipeline,Some audio_pipeline,Some video_pipeline) :> Source.source)
     )
 
 (***** Input *****)

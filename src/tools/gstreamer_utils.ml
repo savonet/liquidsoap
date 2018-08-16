@@ -107,3 +107,15 @@ let render_image pipeline =
   let img = Img.make width height buf in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img
+
+let master_of_time time =
+  Frame.master_of_seconds ((Int64.to_float (Int64.div time 100000L)) *. 0.0001)
+
+let time_of_master tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_master tick) *. 10000.)) 100000L
+
+let time_of_audio tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_audio tick) *. 10000.)) 100000L
+
+let time_of_video tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_video tick) *. 10000.)) 100000L

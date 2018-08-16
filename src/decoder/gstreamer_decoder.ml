@@ -28,12 +28,6 @@ module GU = Gstreamer_utils
 module Img = Image.RGBA32
 let log = Dtools.Log.make ["decoder";"gstreamer"]
 
-let master_of_time time =
-  Frame.master_of_seconds ((Int64.to_float (Int64.div time 100000L)) *. 0.0001)
-
-let time_of_master tick =
-  Int64.mul (Int64.of_float ((Frame.seconds_of_master tick) *. 10000.)) 100000L
-
 type gst =
   {
     bin : Gstreamer.Element.t;
@@ -151,7 +145,7 @@ module Make (Generator : Generator.S_Asio) = struct
 
     let seek off =
       try
-        let off = time_of_master off in
+        let off = Gstreamer_utils.time_of_master off in
         let pos = Gstreamer.Element.position gst.bin Gstreamer.Format.Time in
         let new_pos =
           Gstreamer.Element.seek_simple
@@ -164,7 +158,7 @@ module Make (Generator : Generator.S_Asio) = struct
           ignore(Gstreamer.Element.get_state gst.bin);
           Gstreamer.Element.position gst.bin Gstreamer.Format.Time
         in
-        master_of_time (Int64.sub new_pos pos) 
+        Gstreamer_utils.master_of_time (Int64.sub new_pos pos) 
       with
        | exn ->
            log#f 3 "Seek failed: %s" (Printexc.to_string exn);
@@ -207,11 +201,11 @@ let create_file_decoder filename content_type kind =
   in
   let remaining frame offset =
     let pos =
-      master_of_time
+      Gstreamer_utils.master_of_time
         (Gstreamer.Element.position bin Gstreamer.Format.Time)
     in
     let duration =
-      master_of_time
+      Gstreamer_utils.master_of_time
         (Gstreamer.Element.duration bin Gstreamer.Format.Time)
     in
     duration - pos + G.length generator + Frame.position frame - offset
