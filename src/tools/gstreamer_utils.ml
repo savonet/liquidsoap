@@ -50,9 +50,9 @@ module Pipeline = struct
     Printf.sprintf "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d"
       channels rate
 
-  let audio_src ~channels ?(block=true) ?(format=Gstreamer.Format.Time) name =
-    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s"
-      name block (audio_format channels) (Gstreamer.Format.to_string format)
+  let audio_src ~channels ?(maxBytes=10*1024) ?(block=true) ?(format=Gstreamer.Format.Time) name =
+    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s max-bytes=%d"
+      name block (audio_format channels) (Gstreamer.Format.to_string format) maxBytes
 
   let audio_sink ?(drop=false) ?(sync=false) ?max_buffers ~channels name =
     let max_buffers =
@@ -72,12 +72,12 @@ module Pipeline = struct
       "video/x-raw,format=RGBA,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
       width height fps
 
-  let video_src ?(block=true) ?(format=Gstreamer.Format.Time) name =
+  let video_src ?(block=true) ?(maxBytes=10*1024) ?(format=Gstreamer.Format.Time) name =
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
     let blocksize = width * height * 4 in
-    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s blocksize=%d"
-      name block (video_format ()) (Gstreamer.Format.to_string format) blocksize
+    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s blocksize=%d max-bytes=%d"
+      name block (video_format ()) (Gstreamer.Format.to_string format) blocksize maxBytes
 
   let video_sink ?(drop=false) ?(sync=false) ?max_buffers name =
     let max_buffers =

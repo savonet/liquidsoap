@@ -153,12 +153,12 @@ let encoder ext =
       | Not_found -> ()
   in
 
-  let now = ref Int64.zero in
+  let presentation_time = ref Int64.zero in
   let nano = 1_000_000_000. in
   let vduration = Int64.of_float (Frame.seconds_of_video 1 *. nano) in
 
   let encode frame start len =
-    let nanolen = Int64.of_float (Frame.seconds_of_master len *. nano) in
+    let duration = Int64.of_float (Frame.seconds_of_master len *. nano) in
     let videochans = if gst.video_src <> None then 1 else 0 in
     let content =
       Frame.content_of_type frame start
@@ -176,10 +176,8 @@ let encoder ext =
       let pcm = content.Frame.audio in
       let data = Bytes.create (2*channels*alen) in
       Audio.S16LE.of_audio pcm astart data 0 alen;
-      let gstbuf = Gstreamer.Buffer.of_string (Bytes.unsafe_to_string data) 0 (Bytes.length data) in
-      Gstreamer.Buffer.set_presentation_time gstbuf !now;
-      Gstreamer.Buffer.set_duration gstbuf nanolen;
-      Gstreamer.App_src.push_buffer (Utils.get_some gst.audio_src) gstbuf;
+      Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time ~duration
+        (Utils.get_some gst.audio_src) data 0 (Bytes.length data);
      end;
     if videochans > 0 then
      begin
@@ -190,17 +188,15 @@ let encoder ext =
       let vlen = Frame.video_of_master len in
       for i = vstart to vstart+vlen-1 do
         let data = Img.data vbuf.(i) in
-        let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
-        let ptime =
-          Int64.add !now (Int64.mul (Int64.of_int i) vduration)
+        let presentation_time =
+          Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration)
         in
-        Gstreamer.Buffer.set_presentation_time gstbuf ptime;
-        Gstreamer.Buffer.set_duration gstbuf vduration;
-        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) gstbuf;
+        Gstreamer.App_src.push_buffer_data ~presentation_time ~duration:vduration
+          (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
       done;
      end;
     (* Return result. *)
-    now := Int64.add !now nanolen;
+    presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then
       ""
     else

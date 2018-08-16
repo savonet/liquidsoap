@@ -473,7 +473,7 @@ AC_CHECK_OCAML_BINDING([shine],[0.2.0])
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.2.0])
+AC_CHECK_OCAML_BINDING([gstreamer],[0.3.0])
 
 #
 # frei0r

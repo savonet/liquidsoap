@@ -127,14 +127,14 @@ object (self)
       gst <- Some (bin, audio_src, video_src);
       self#get_gst
 
-  val mutable now = Int64.zero
+  val mutable presentation_time = Int64.zero
 
   method output_send frame =
     let _, audio_src, video_src = self#get_gst in
     if not (Frame.is_partial frame) then
       let _, content = Frame.content frame 0 in
       let len = Lazy.force Frame.size in
-      let nanolen = Gstreamer_utils.time_of_master len in
+      let duration = Gstreamer_utils.time_of_master len in
       if has_audio then
         (
           let pcm = content.Frame.audio in
@@ -142,23 +142,17 @@ object (self)
           let len = Frame.audio_of_master len in
           let data = Bytes.create (2*channels*len) in
           Audio.S16LE.of_audio pcm 0 data 0 len;
-          let gstbuf = Gstreamer.Buffer.of_string (Bytes.unsafe_to_string data) 0 (Bytes.length data) in
-          Gstreamer.Buffer.set_presentation_time gstbuf now;
-          Gstreamer.Buffer.set_duration gstbuf nanolen;
-          Gstreamer.App_src.push_buffer (Utils.get_some audio_src) gstbuf
+          Gstreamer.App_src.push_buffer_bytes ~duration ~presentation_time (Utils.get_some audio_src) data 0 (Bytes.length data)
         );
       if has_video then
         (
           let buf = content.Frame.video.(0) in
           for i = 0 to Array.length buf - 1 do
             let data = Img.data buf.(i) in
-            let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
-            Gstreamer.Buffer.set_presentation_time gstbuf now;
-            Gstreamer.Buffer.set_duration gstbuf nanolen;
-            Gstreamer.App_src.push_buffer (Utils.get_some video_src) gstbuf
+            Gstreamer.App_src.push_buffer_data ~duration ~presentation_time  (Utils.get_some video_src) data 0 (Bigarray.Array1.dim data)
           done;
         );
-      now <- Int64.add now nanolen
+      presentation_time <- Int64.add presentation_time duration
 
   method output_reset = ()
 end
