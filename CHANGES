@@ -29,6 +29,8 @@ Changed:
 
 - Disabled Gstreamer stream decoder.
 
+- Removed asynchronous mode for `output.gstreamer.audio_video`
+
 Fixed:
 
 - Decouple dyntools compilation.
