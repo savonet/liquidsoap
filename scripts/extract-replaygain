@@ -42,6 +42,12 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
     use_replaygain()
   }
 
+  } else {
+
+    print STDERR "Cannot find replaygain!\n";
+
+  }
+
 } elsif (($file =~ /\.ogg$/i) || (test_mime() =~ /application\/ogg/)) {
 
   if ((`which vorbisgain`) && (`which ogginfo`)) {
