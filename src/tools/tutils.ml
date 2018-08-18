@@ -93,6 +93,8 @@ let seems_locked =
       end else
         true
 
+let log = Log.make ["threads"]
+
 (** Manage a set of threads and make sure they terminate correctly,
   * i.e. not by raising an exception. *)
 
@@ -108,21 +110,20 @@ let all = ref (Set.empty)
 let running s id = Set.mem (s,id) !all
 
 let join_all () =
-  try
-    while true do
-      let id =
-        Mutex.lock lock ;
-        snd (Set.choose !all)
+  let rec f () =
+    try
+      let id = mutexify lock (fun () ->
+        let name, id = Set.choose !all in
+        log#f 3 "Shuting down thread %s" name;
+        id) ()
       in
-        Mutex.unlock lock ;
-        Thread.join id
-    done
-  with
-    | Not_found -> Mutex.unlock lock
+      Thread.join id;
+      f ()
+    with Not_found -> ()
+  in
+  f ()
 
 let no_problem = Condition.create ()
-
-let log = Log.make ["threads"]
 
 exception Exit
 
@@ -189,11 +190,16 @@ let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () ->
   !started)
 
+let scheduler_queues = Queue.create ()
+
 let scheduler_shutdown_atom =
   Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
     log#f 3 "Shutting down scheduler...";
     Duppy.stop scheduler;
-    log#f 3 "Scheduler shut down.")
+    log#f 3 "Scheduler shut down.";
+    log#f 3 "Shutting down queues...";
+    Queue.iter Thread.join scheduler_queues;
+    log#f 3 "Queues shut down")
 
 let scheduler_log n =
   if scheduler_log#get then
@@ -217,7 +223,7 @@ let new_queue ?priorities ~name () =
                 Please report at: savonet-users@lists.sf.net" ;
        exit 1
    in
-   ignore (create ~wait:false queue () name)
+   Queue.push (create ~wait:false queue () name) scheduler_queues
 
 let create f x name = create ~wait:true f x name
 
