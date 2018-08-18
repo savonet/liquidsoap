@@ -33,6 +33,8 @@ Changed:
 
 - Reworked `smartcross` internal logic (#596)
 
+- Enabled `replaygain` on `m4a` files, thanks to @gilou (#604)
+
 Fixed:
 
 - Decouple dyntools compilation.
