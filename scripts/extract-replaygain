@@ -14,6 +14,13 @@ sub test_mime {
   return $mime;
 }
 
+sub use_replaygain {
+  my $out = `replaygain --no-album "$file" 2> /dev/null; replaygain --show "$file" 2> /dev/null` ;
+  $out =~ /Track gain (.*) dB$/m || die ;
+  print "$1 dB\n" ;
+
+}
+
 if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
 
   if (`which mp3gain`) {
@@ -23,14 +30,21 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
     print "$1 dB\n" ;
 
   } elsif (`which replaygain`) {
-
-    my $out = `replaygain --no-album "$file" 2> /dev/null; replaygain --show "$file" 2> /dev/null` ;
-    $out =~ /Track gain (.*) dB$/m || die ;
-    print "$1 dB\n" ;
-
+    use_replaygain()
   } else {
 
     print STDERR "Cannot find mp3gain nor replaygain binaries!\n";
+
+  }
+
+} elsif(($file =~ /\.m4a$/i) || (test_mime() =~ /audio\/x-m4a/)) {
+  if (`which replaygain`) {
+    use_replaygain()
+  }
+
+  } else {
+
+    print STDERR "Cannot find replaygain!\n";
 
   }
 
