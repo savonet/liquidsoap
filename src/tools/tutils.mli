@@ -56,6 +56,8 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
+val scheduler_shutdown_atom : Dtools.Init.t
+
 (** {1 Misc} *)
 
 (** Waits for [f()] to become true on condition [c].

@@ -30,8 +30,7 @@ let () =
     (fun p ->
        let f = List.assoc "" p in
        let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
-         (* TODO: this could happen after duppy and other threads are shut down, is that ok? *)
-         ignore (Shutdown.at_stop wrap_f) ;
+         ignore (Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom] wrap_f) ;
          Lang.unit)
 
 let () =

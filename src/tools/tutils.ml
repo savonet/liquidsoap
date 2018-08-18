@@ -189,14 +189,11 @@ let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () ->
   !started)
 
-let () =
-  let name = "Duppy scheduler shutdown" in
-  let f () =
+let scheduler_shutdown_atom =
+  Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
     log#f 3 "Shutting down scheduler...";
     Duppy.stop scheduler;
-    log#f 3 "Scheduler shut down."
-  in
-  Shutdown.duppy_atom := Some (Dtools.Init.at_stop ~name f)
+    log#f 3 "Scheduler shut down.")
 
 let scheduler_log n =
   if scheduler_log#get then

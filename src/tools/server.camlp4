@@ -459,7 +459,7 @@ let start_socket () =
     if Sys.file_exists socket_path then Unix.unlink socket_path ;
     Unix.bind sock bind_addr;
     Unix.listen sock max_conn;
-    ignore (Shutdown.at_stop
+    ignore (Init.make ~after:[Tutils.scheduler_shutdown_atom]
               (fun () ->
                  log#f 3 "Unlink %s" socket_name ;
                  Unix.unlink socket_path)) ;
@@ -481,13 +481,12 @@ let start_telnet () =
   let () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
-    Shutdown.at_stop
+    ignore (Init.make ~after:[Tutils.scheduler_shutdown_atom]
       ~name:"Server shutdown"
-      ~depends:[Shutdown.duppy_scheduler ()]
       (fun () ->
         log#f 3 "Closing socket.";
         Unix.close sock
-      )
+      ))
   in
   (* Set TCP_NODELAY on the socket *)
   Unix.setsockopt sock Unix.TCP_NODELAY true;

@@ -594,7 +594,7 @@ struct
       Request.clean () ;
       log#f 3 "Freeing memory..." ;
       Gc.full_major ();
-      if !Shutdown.restart then
+      if !Configure.restart then
         (
           log#f 3 "Restarting..." ;
           Unix.execv Sys.executable_name Sys.argv
@@ -625,8 +625,7 @@ struct
       Tutils.main ()
     in
       (* We join threads, then shutdown duppy, then do the final task. *)
-      ignore (Init.at_stop ~before:[Shutdown.duppy_scheduler ()] cleanup_threads);
-      Shutdown.final_atom := Some (Init.at_stop ~depends:[Shutdown.duppy_scheduler ()] cleanup_final);
+      ignore (Init.make ~before:[Tutils.scheduler_shutdown_atom] cleanup_threads);
       startup ();
       if !interactive then begin
         load_libs () ;

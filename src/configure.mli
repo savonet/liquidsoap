@@ -3,6 +3,8 @@
 (** String describing the version. *)
 val version : string
 
+val restart : bool ref
+
 (** Is this build a SVN snapshot ? *)
 val scm_snapshot : bool
 

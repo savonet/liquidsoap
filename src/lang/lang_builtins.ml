@@ -1384,13 +1384,13 @@ let () =
   add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
     [] Lang.unit_t
     (fun _ ->
-      Shutdown.restart := false ;
+      Configure.restart := false ;
       Tutils.shutdown () ;
       Lang.unit) ;
   add_builtin "restart" ~cat:Sys ~descr:"Restart the application."
     [] Lang.unit_t
     (fun _ ->
-      Shutdown.restart := true ;
+      Configure.restart := true ;
       Tutils.shutdown () ;
       Lang.unit);
   add_builtin "exit" ~cat:Sys
