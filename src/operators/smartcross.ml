@@ -28,11 +28,11 @@ module Generated = Generated.Make(Generator)
 let finalise_slave_clock slave_clock source =
   Clock.forget source#clock slave_clock
 
-(** [rms_width], [inhibit] and [minimum_length] are all in samples.
+(** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross ~kind (s:source)
-            ~cross_length ~rms_width ~inhibit ~minimum_length
+            ~cross_length ~rms_width ~minimum_length
             ~conservative ~active transition =
   let channels = float (Frame.type_of_kind kind).Frame.audio in
 object (self)
@@ -74,14 +74,15 @@ object (self)
     before_metadata <- after_metadata ;
     after_metadata <- None
 
-  (* The played source: [s] at first, then a combination of tracks by [f].
-   * We _need_ exclusive control on that source, since we are going to
-   * pull data from it at a higher rate around track limits. *)
-  val mutable source = s
+  (* The played source. We _need_ exclusive control on that source,
+   * since we are going to pull data from it at a higher rate around
+   * track limits. *)
+  val source = s
+  (* Give a default value for the transition source. *)
+  val mutable transition_source = (new Switch.fallback ~kind (fun () -> false) []:>source) 
 
   method private wake_up _ =
-    s#get_ready ~dynamic:true [(self:>source)] ;
-    source <- s ;
+    source#get_ready ~dynamic:true [(self:>source)] ;
     source#get_ready [(self:>source)] ;
     Lang.iter_sources
       (fun s -> s#get_ready ~dynamic:true [(self:>source)])
@@ -124,6 +125,8 @@ object (self)
    * even if we're not in active mode. *)
   val mutable needs_tick = false
 
+  val mutable status = `Idle
+
   method private slave_tick =
     (Clock.get source#clock)#end_tick ;
     source#after_output ;
@@ -145,7 +148,15 @@ object (self)
         master_time <- master_clock#get_tick
       end
 
-  val mutable status = `Idle
+  method private save_last_metadata mode buf_frame =
+    let compare x y = - (compare (fst x) (fst y)) in
+    let l = List.sort compare (AFrame.get_all_metadata buf_frame) in
+    match l, mode with
+      | (_,m)::_, `Before ->
+          before_metadata <- Some m;
+      | (_,m)::_, `After ->
+          after_metadata <- Some m;
+      | _ -> ()
 
   method private get_frame frame =
     match status with
@@ -153,6 +164,7 @@ object (self)
           let rem = if conservative then 0 else source#remaining in
             if rem < 0 || rem > cross_length then begin
               source#get frame ;
+              self#save_last_metadata `Before buf_frame ;
               needs_tick <- true
             end else begin
               self#log#f 4 "Buffering end of track..." ;
@@ -184,18 +196,21 @@ object (self)
             (* If not, finish this track, which requires our callers
              * to wait that we become ready again. *)
             Frame.add_break frame (Frame.position frame)
-      | `After size ->
-          (* The work is done, we are now playing the transition.
-           * We have to keep playing it without checking for a new track limit
-           * for [size] samples. *)
-          if size<=0 then begin
+      | `After ->
+          transition_source#get frame ;
+          needs_tick <- true ;
+          if Frame.is_partial frame then
+           begin
             status <- `Idle ;
-            self#get_frame frame
-          end else
-            let position = AFrame.position frame in
-              source#get frame ;
-              needs_tick <- true ;
-              status <- `After (size-(AFrame.position frame)+position)
+            if source#is_ready then
+             begin
+              Frame.set_breaks frame
+                (match Frame.breaks frame with
+                   | _::l -> l
+                   | _ -> assert false) ;
+              self#get_frame frame
+             end
+           end
 
   (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
    * where [d=AFrame.size-1]. *)
@@ -205,6 +220,7 @@ object (self)
     if not (Frame.is_partial buf_frame) then self#slave_tick ;
     let start = Frame.position buf_frame in
     let stop = source#get buf_frame ; Frame.position buf_frame in
+    self#save_last_metadata `Before buf_frame ;
     let content =
       let end_pos,c = Frame.content buf_frame start in
         assert (end_pos>=stop) ;
@@ -236,28 +252,28 @@ object (self)
 
   (* Analyze the beginning of a new track. *)
   method private analyze_after =
-    let todo = ref rms_width in
-    let first = ref true in
-      while !todo > 0 do
+    let before_len =
+      Generator.length gen_before
+    in
+    let rec f () =
+      let start = Frame.position buf_frame in
+      let stop = source#get buf_frame ; Frame.position buf_frame in
+      let content =
+        let end_pos,c = Frame.content buf_frame start in
+          assert (end_pos>=stop) ;
+          c
+      in
 
-        if not (Frame.is_partial buf_frame) then self#slave_tick ;
-        let start = Frame.position buf_frame in
-        let stop = source#get buf_frame ; Frame.position buf_frame in
-        let content =
-          let end_pos,c = Frame.content buf_frame start in
-            assert (end_pos>=stop) ;
-            c
-        in
+      Generator.feed gen_after
+        ~metadata:(Frame.get_all_metadata buf_frame)
+        content start (stop-start) ;
 
-        Generator.feed gen_after
-          ~metadata:(Frame.get_all_metadata buf_frame)
-          content start (stop-start) ;
+      let after_len =
+        Generator.length gen_after
+      in
 
-        if !first then begin
-          after_metadata <- AFrame.get_metadata buf_frame start ;
-          first := false
-        end ;
-
+      if after_len <= rms_width then
+       begin
         let pcm = content.Frame.audio in
         for i = start to stop - 1 do
           let squares =
@@ -268,11 +284,19 @@ object (self)
           in
             rms_after <- rms_after +. squares ;
             rmsi_after <- rmsi_after + 1
-        done ;
-        todo := !todo - AFrame.position buf_frame ;
-        (* Not sure how to handle end-of-track at this point... *)
-        if AFrame.is_partial buf_frame then todo := 0
-      done
+        done
+       end ;
+
+      self#save_last_metadata `After buf_frame ;
+
+      if not (AFrame.is_partial buf_frame) then
+       begin
+        self#slave_tick ;
+        if after_len < before_len then
+          f ()
+       end ;
+    in
+    f ()
 
   (* Sum up analysis and build the transition *)
   method private create_transition =
@@ -285,12 +309,11 @@ object (self)
     let compound =
       Clock.collect_after
         (fun () ->
-           let before = new Generated.consumer ~kind gen_before in
+           let before =
+             new Generated.consumer ~kind gen_before
+           in
            let after =
-             let beginning =
-               new Generated.consumer ~kind gen_after
-             in
-               new Sequence.sequence ~kind ~merge:true [beginning;s]
+             new Generated.consumer ~kind gen_after
            in
            let () =
              before#set_id (self#id ^ "_before") ;
@@ -319,7 +342,8 @@ object (self)
                (Frame.seconds_of_master (Generator.length gen_before))
                (Frame.seconds_of_master (Generator.length gen_after)) ;
              if Generator.length gen_before >
-                  Frame.master_of_audio minimum_length then
+                  Frame.master_of_audio minimum_length &&
+                Generator.length gen_before <= Generator.length gen_after then
                f before after
              else begin
                self#log#f 3 "Not enough data for crossing." ;
@@ -330,29 +354,36 @@ object (self)
              compound)
     in
       compound#get_ready [(self:>source)] ;
-      source#leave (self:>source) ;
-      source <- compound ;
-      status <- `After inhibit ;
+      transition_source <- compound ;
+      Clock.unify source#clock transition_source#clock ;
+      status <- `After ;
       self#reset_analysis
 
   method remaining =
+    let with_buf buf =
+      let rem = source#remaining in
+      if rem<0 then -1 else
+        source#remaining +
+          Generator.length buf
+    in
     match status with
-      | `Idle | `After _ -> source#remaining
-      | `Limit -> 0 (* TODO -1? *)
-      | `Before ->
-          let rem = source#remaining in
-            if rem<0 then -1 else
-              source#remaining +
-              Generator.length gen_before
+      | `Idle -> source#remaining
+      | `Limit -> -1
+      | `After -> with_buf gen_after
+      | `Before -> with_buf gen_before
 
   (** Contrary to cross.ml, the transition is only created (and stored in
     * the source instance variable) after that status has moved from `Limit to
     * `After. If is_ready becomes false at this point, source.ml will end the
     * track before the transition (or bare end of track) gets a chance
     * to be played. *)
-  method is_ready = source#is_ready || status = `Limit
+  method is_ready = source#is_ready || List.mem status [`Limit;`After]
 
-  method abort_track = source#abort_track
+  method abort_track =
+    if status = `After && transition_source#is_ready then
+      transition_source#abort_track
+    else
+      source#abort_track
 
 end
 
@@ -361,13 +392,6 @@ let () =
   Lang.add_operator "smart_cross"
     [ "duration", Lang.float_t, Some (Lang.float 5.),
       Some "Duration in seconds of the crossed end of track." ;
-
-      "inhibit", Lang.float_t, Some (Lang.float (-1.)),
-      Some "Minimum delay between two transitions. It is useful in order to \
-            avoid that a transition is triggered on top of another when \
-            an end-of-track occurs in the first one. Negative values mean \
-            <code>duration+1</code>. \
-            Warning: zero inhibition can cause infinite loops." ;
 
       "minimum", Lang.float_t, (Some (Lang.float (-1.))),
       Some "Minimum duration (in sec.) for a cross: \
@@ -420,10 +444,6 @@ let () =
        let minimum = Lang.to_float (List.assoc "minimum" p) in
        let minimum_length = Frame.audio_of_seconds minimum in
 
-       let inhibit = Lang.to_float (List.assoc "inhibit" p) in
-       let inhibit = if inhibit < 0. then duration +. 1. else inhibit in
-       let inhibit = Frame.audio_of_seconds inhibit in
-
        let rms_width = Lang.to_float (List.assoc "width" p) in
        let rms_width = Frame.audio_of_seconds rms_width in
 
@@ -434,4 +454,4 @@ let () =
 
        let source = Lang.to_source (Lang.assoc "" 2 p) in
          new cross ~kind source transition ~conservative ~active
-               ~cross_length ~rms_width ~inhibit ~minimum_length)
+               ~cross_length ~rms_width ~minimum_length)

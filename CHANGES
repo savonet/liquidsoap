@@ -31,6 +31,8 @@ Changed:
 
 - Removed asynchronous mode for `output.gstreamer.audio_video`
 
+- Reworked `smartcross` internal logic (#596)
+
 Fixed:
 
 - Decouple dyntools compilation.
