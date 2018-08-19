@@ -32,7 +32,6 @@ let log = Dtools.Log.make ["encoder"; "gstreamer"]
 type gst =
   {
     bin : Gstreamer.Pipeline.t;
-    flush : unit -> unit;
     audio_src : Gstreamer.App_src.t option;
     video_src : Gstreamer.App_src.t option;
     sink : Gstreamer.App_sink.t;
@@ -57,14 +56,6 @@ let encoder ext =
   in
 
   let gst =
-    let context =
-      Gstreamer.Context.create ()
-    in
-    let flush () =
-      while Gstreamer.Context.pending context do
-        Gstreamer.Context.iterate ~may_block:true context
-      done
-    in
     let pipeline =
       match ext.pipeline with
         | Some p -> p
@@ -102,10 +93,6 @@ let encoder ext =
     in
     log#f ext.log "Gstreamer encoder pipeline: %s" pipeline;
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
-    let bus =
-      Gstreamer.Bus.of_element bin
-    in
-    Gstreamer.Bus.attach_context bus context;
     let audio_src =
       try
         Some
@@ -125,7 +112,7 @@ let encoder ext =
     let sink = Gstreamer.App_sink.of_element (Gstreamer.Bin.get_by_name bin "sink") in
     Gstreamer.App_sink.on_new_sample sink on_sample;
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing);
-    { bin; flush; audio_src; video_src; sink }
+    { bin; audio_src; video_src; sink }
   in
 
   let stop () =
@@ -134,7 +121,7 @@ let encoder ext =
       begin
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
-       gst.flush ();
+       GU.flush gst.bin;
        let buf = Buffer.create 1024 in
        begin
         try
@@ -150,7 +137,7 @@ let encoder ext =
       ""
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-   gst.flush ();
+   GU.flush gst.bin;
    ret
   in
 
@@ -164,7 +151,7 @@ let encoder ext =
       Hashtbl.iter
         (Gstreamer.Tag_setter.add_tag meta Gstreamer.Tag_setter.Replace)
         m;
-      gst.flush()
+      GU.flush gst.bin
     with
       | Not_found -> ()
   in
@@ -211,7 +198,7 @@ let encoder ext =
           (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
       done;
      end;
-    gst.flush ();
+    GU.flush gst.bin;
     (* Return result. *)
     presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then

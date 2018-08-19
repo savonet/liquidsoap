@@ -31,15 +31,9 @@ let log = Dtools.Log.make ["decoder";"gstreamer"]
 type gst =
   {
     bin : Gstreamer.Element.t;
-    context : Gstreamer.Context.t;
     audio_sink : Gstreamer.App_sink.t option;
     video_sink : Gstreamer.App_sink.t option;
   }
-
-let flush context =
-  while Gstreamer.Context.pending context do
-    Gstreamer.Context.iterate ~may_block:true context
-  done
 
 (** Generic decoder. *)
 (* TODO: we should share some code with Ogg_decoder... *)
@@ -54,10 +48,6 @@ module Make (Generator : Generator.S_Asio) = struct
     let gst_max_buffers = GU.max_buffers () in
 
     let gst =
-      let context =
-        Gstreamer.Context.create ()
-      in
-
       let audio_pipeline =
         if decode_audio then
           Printf.sprintf " d. ! queue ! %s ! %s"
@@ -97,11 +87,7 @@ module Make (Generator : Generator.S_Asio) = struct
         else
           None
       in
-      let bus =
-        Gstreamer.Bus.of_element bin
-      in
-      Gstreamer.Bus.attach_context bus context;
-      { bin; context; audio_sink; video_sink }
+      { bin; audio_sink; video_sink }
     in
 
     let width = Lazy.force Frame.video_width in
@@ -155,7 +141,7 @@ module Make (Generator : Generator.S_Asio) = struct
           let stream = [|img|] in
           Generator.put_video buffer [|stream|] 0 (Array.length stream)
         );
-      flush gst.context
+      GU.flush gst.bin
     in
 
     let seek off =
@@ -173,7 +159,7 @@ module Make (Generator : Generator.S_Asio) = struct
           ignore(Gstreamer.Element.get_state gst.bin);
           Gstreamer.Element.position gst.bin Gstreamer.Format.Time
         in
-        flush gst.context;
+        GU.flush gst.bin;
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos) 
       with
        | exn ->
@@ -184,7 +170,7 @@ module Make (Generator : Generator.S_Asio) = struct
 
   let close () =
     ignore(Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-    flush gst.context
+    GU.flush gst.bin
   in
 
     { Decoder.
@@ -244,17 +230,12 @@ let get_type ~channels filename =
         "%s ! %s ! fakesink"
         filesrc (GU.Pipeline.decode_audio ())
     in
-    let context = Gstreamer.Context.create () in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
-    let bus =
-      Gstreamer.Bus.of_element bin
-    in
-    Gstreamer.Bus.attach_context bus context;
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
-    flush context;
+    GU.flush bin;
     let _, state, _ = Gstreamer.Element.get_state bin in
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    flush context;
+    GU.flush bin;
     if state = Gstreamer.Element.State_paused then
       (
         log#f 5 "File %s has audio." filename;
@@ -280,7 +261,7 @@ let get_type ~channels filename =
       else
         0
     with
-    | Gstreamer.Failure -> 0
+    | Gstreamer.Failed -> 0
   in
   { Frame. video; audio; midi = 0 }
 
@@ -354,40 +335,35 @@ let get_tags file =
   let pipeline =
     Printf.sprintf "filesrc location=\"%s\" ! decodebin ! fakesink" file
   in
-  let context = Gstreamer.Context.create () in
   let bin = Gstreamer.Pipeline.parse_launch pipeline in
-  let bus =
-    Gstreamer.Bus.of_element bin
-  in
-  Gstreamer.Bus.attach_context bus context;
+  let bus = Gstreamer.Bus.of_element bin in
   (* Go in paused state. *)
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
-  flush context;
+  GU.flush bin;
   (* Wait for the state to complete. *)
   ignore (Gstreamer.Element.get_state bin);
   let ans = ref [] in
   try
     while true do
       let msg =
-        Gstreamer.Bus.pop_filtered bus
-          [Gstreamer.Message.Error; Gstreamer.Message.Tag]
+        Gstreamer.Bus.pop_filtered bus [`Error;`Tag]
       in
       let msg = match msg with Some msg -> msg | None -> raise Exit in
-      let typ = Gstreamer.Message.message_type msg in
-      if typ <> Gstreamer.Message.Tag then raise Exit;
-      let tags = Gstreamer.Message.parse_tag msg in
-      List.iter
-        (fun (l,v) ->
-          match v with
-          | [v] -> ans := (l,v) :: !ans
-          | _ -> ()
-        ) tags
+      match msg.Gstreamer.Bus.payload with
+        | `Error _ -> GU.handler msg; raise Exit
+        | `Tag tags ->
+            List.iter
+              (fun (l,v) ->
+                match v with
+                  | [v] -> ans := (l,v) :: !ans
+                  | _ -> ()) tags
+        | _ -> assert false
     done;
     assert false
   with
   | Exit ->
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    flush context;
+    GU.flush bin;
     List.rev !ans
 
 let () = Request.mresolvers#register "GSTREAMER" get_tags

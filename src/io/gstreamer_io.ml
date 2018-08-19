@@ -53,12 +53,6 @@ class output ~kind ~clock_safe
     | None -> false, ""
   in
   let channels = (Frame.type_of_kind kind).Frame.audio in
-  let context = Gstreamer.Context.create () in
-  let flush () =
-    while Gstreamer.Context.pending context do
-      Gstreamer.Context.iterate ~may_block:true context
-    done
-  in
 object (self)
   inherit Output.output  ~content_kind:kind
     ~infallible ~on_start ~on_stop
@@ -88,7 +82,7 @@ object (self)
     if has_video then
       App_src.end_of_stream (Utils.get_some video_src);
     ignore (Element.set_state bin Element.State_null);
-    flush ();
+    GU.flush bin;
     if clock_safe then (gst_clock ())#unregister_blocking_source
 
   val mutable gst = None
@@ -117,8 +111,6 @@ object (self)
       in
       self#log#f 5 "GStreamer pipeline: %s" pipeline;
       let bin = Pipeline.parse_launch pipeline in
-      let bus = Gstreamer.Bus.of_element bin in
-      Gstreamer.Bus.attach_context bus context;
       let audio_src =
         if has_audio then
           let audio_src = App_src.of_element (Bin.get_by_name bin "audio_src") in
@@ -139,7 +131,7 @@ object (self)
   val mutable presentation_time = Int64.zero
 
   method output_send frame =
-    let _, audio_src, video_src = self#get_gst in
+    let bin, audio_src, video_src = self#get_gst in
     if not (Frame.is_partial frame) then
       let _, content = Frame.content frame 0 in
       let len = Lazy.force Frame.size in
@@ -162,7 +154,7 @@ object (self)
           done;
         );
       presentation_time <- Int64.add presentation_time duration;
-      flush ()
+      GU.flush bin
 
   method output_reset = ()
 end
@@ -320,12 +312,6 @@ class audio_video_input p kind (pipeline,audio_pipeline,video_pipeline) =
       ~log:(fun x -> !rlog x) ~kind
       content 
   in
-  let context = Gstreamer.Context.create () in
-  let flush () =
-    while Gstreamer.Context.pending context do
-      Gstreamer.Context.iterate ~may_block:true context
-    done
-  in
 object (self)
   inherit Source.source ~name:"input.gstreamer.audio_video" kind as super
 
@@ -405,8 +391,6 @@ object (self)
         in
         log#f 5 "GStreamer pipeline: %s" pipeline;
         let bin =  Pipeline.parse_launch pipeline in
-        let bus = Gstreamer.Bus.of_element bin in
-        Gstreamer.Bus.attach_context bus context;
         let wrap_sink sink pull =
           let m = Mutex.create () in
           let counter = ref 0 in
@@ -490,7 +474,7 @@ object (self)
       self#fill_audio;
       self#fill_video;
       Generator.fill gen frame;
-      flush ()
+      GU.flush self#get_device.bin
     with
       | Gstreamer.End_of_stream ->
          ready <- false
