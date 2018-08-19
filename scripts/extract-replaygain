@@ -40,7 +40,6 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
 } elsif(($file =~ /\.m4a$/i) || (test_mime() =~ /audio\/x-m4a/)) {
   if (`which replaygain`) {
     use_replaygain()
-  }
 
   } else {
 
