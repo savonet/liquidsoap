@@ -141,7 +141,7 @@ module Make (Generator : Generator.S_Asio) = struct
           let stream = [|img|] in
           Generator.put_video buffer [|stream|] 0 (Array.length stream)
         );
-      GU.flush gst.bin
+      GU.flush ~log gst.bin
     in
 
     let seek off =
@@ -159,7 +159,7 @@ module Make (Generator : Generator.S_Asio) = struct
           ignore(Gstreamer.Element.get_state gst.bin);
           Gstreamer.Element.position gst.bin Gstreamer.Format.Time
         in
-        GU.flush gst.bin;
+        GU.flush ~log gst.bin;
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos) 
       with
        | exn ->
@@ -170,7 +170,7 @@ module Make (Generator : Generator.S_Asio) = struct
 
   let close () =
     ignore(Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-    GU.flush gst.bin
+    GU.flush ~log gst.bin
   in
 
     { Decoder.
@@ -232,10 +232,10 @@ let get_type ~channels filename =
     in
     let bin = Gstreamer.Pipeline.parse_launch pipeline in
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
-    GU.flush bin;
+    GU.flush ~log bin;
     let _, state, _ = Gstreamer.Element.get_state bin in
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    GU.flush bin;
+    GU.flush ~log bin;
     if state = Gstreamer.Element.State_paused then
       (
         log#f 5 "File %s has audio." filename;
@@ -339,7 +339,7 @@ let get_tags file =
   let bus = Gstreamer.Bus.of_element bin in
   (* Go in paused state. *)
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_paused);
-  GU.flush bin;
+  GU.flush ~log bin;
   (* Wait for the state to complete. *)
   ignore (Gstreamer.Element.get_state bin);
   let ans = ref [] in
@@ -350,7 +350,7 @@ let get_tags file =
       in
       let msg = match msg with Some msg -> msg | None -> raise Exit in
       match msg.Gstreamer.Bus.payload with
-        | `Error _ -> GU.handler msg; raise Exit
+        | `Error _ -> GU.handler ~log msg; raise Exit
         | `Tag tags ->
             List.iter
               (fun (l,v) ->
@@ -363,7 +363,7 @@ let get_tags file =
   with
   | Exit ->
     ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
-    GU.flush bin;
+    GU.flush ~log bin;
     List.rev !ans
 
 let () = Request.mresolvers#register "GSTREAMER" get_tags

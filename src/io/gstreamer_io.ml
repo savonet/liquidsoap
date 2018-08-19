@@ -82,7 +82,7 @@ object (self)
     if has_video then
       App_src.end_of_stream (Utils.get_some video_src);
     ignore (Element.set_state bin Element.State_null);
-    GU.flush bin;
+    GU.flush ~log:self#log bin;
     if clock_safe then (gst_clock ())#unregister_blocking_source
 
   val mutable gst = None
@@ -154,7 +154,7 @@ object (self)
           done;
         );
       presentation_time <- Int64.add presentation_time duration;
-      GU.flush bin
+      GU.flush ~log:self#log bin
 
   method output_reset = ()
 end
@@ -474,7 +474,7 @@ object (self)
       self#fill_audio;
       self#fill_video;
       Generator.fill gen frame;
-      GU.flush self#get_device.bin
+      GU.flush ~log:self#log self#get_device.bin
     with
       | Gstreamer.End_of_stream ->
          ready <- false

@@ -120,9 +120,7 @@ let time_of_audio tick =
 let time_of_video tick =
   Int64.mul (Int64.of_float ((Frame.seconds_of_video tick) *. 10000.)) 100000L
 
-let log = Log.make ["gstreamer";"bus"]
-
-let handler msg =
+let handler ~(log:Dtools.Log.t) msg =
   let source = msg.Gstreamer.Bus.source in
   match msg.Gstreamer.Bus.payload with
     | `Error err -> log#f 2 "[%s] Error: %s" source err
@@ -140,11 +138,11 @@ let handler msg =
         log#f 4 "[%s] State change: %s -> %s%s" source o n p
     | _ -> assert false
 
-let flush ?(types=[`Error;`Warning;`Info;`State_changed]) ?(handler=handler) bin =
+let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(handler=handler) bin =
   let bus = Gstreamer.Bus.of_element bin in
   let rec f () =
     match Gstreamer.Bus.pop_filtered bus types with 
-      | Some msg -> handler msg; f ()
+      | Some msg -> handler ~log msg; f ()
       | None -> ()
   in
   f ()

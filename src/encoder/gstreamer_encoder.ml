@@ -121,7 +121,7 @@ let encoder ext =
       begin
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
-       GU.flush gst.bin;
+       GU.flush ~log gst.bin;
        let buf = Buffer.create 1024 in
        begin
         try
@@ -137,7 +137,7 @@ let encoder ext =
       ""
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
-   GU.flush gst.bin;
+   GU.flush ~log gst.bin;
    ret
   in
 
@@ -151,7 +151,7 @@ let encoder ext =
       Hashtbl.iter
         (Gstreamer.Tag_setter.add_tag meta Gstreamer.Tag_setter.Replace)
         m;
-      GU.flush gst.bin
+      GU.flush ~log gst.bin
     with
       | Not_found -> ()
   in
@@ -198,7 +198,7 @@ let encoder ext =
           (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
       done;
      end;
-    GU.flush gst.bin;
+    GU.flush ~log gst.bin;
     (* Return result. *)
     presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then
