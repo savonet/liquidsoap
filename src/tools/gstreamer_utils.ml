@@ -146,3 +146,16 @@ let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(handler=handler
       | None -> ()
   in
   f ()
+
+let () =
+  let loop =
+    Gstreamer.Loop.create ()
+  in
+  let main () =
+    Gstreamer.Loop.run loop
+  in
+  ignore(Dtools.Init.at_start (fun () ->
+    ignore(Tutils.create main () "gstreamer_main_loop")));
+  ignore(Dtools.Init.at_stop ~before:[Tutils.scheduler_shutdown_atom]
+    (fun () -> Gstreamer.Loop.quit loop))
+
