@@ -626,6 +626,7 @@ struct
     in
       (* We join threads, then shutdown duppy, then do the final task. *)
       ignore (Init.make ~before:[Tutils.scheduler_shutdown_atom] cleanup_threads);
+      ignore (Init.make ~after:[Dtools.Init.stop] cleanup_final);
       startup ();
       if !interactive then begin
         load_libs () ;
