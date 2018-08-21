@@ -385,7 +385,15 @@ struct
             Frame.add_break frame offset ;
             0
         end else
-          remaining frame offset
+          try
+            if not !decoding_done then
+              remaining frame offset
+            else
+              0
+          with e ->
+            log#f 4 "Error while getting decoder's remaining time: %s" (Printexc.to_string e);
+            decoding_done := true;
+            0
     in
     let fseek len = 
       let gen_len = Generator.length gen in
