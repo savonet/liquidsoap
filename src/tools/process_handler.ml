@@ -54,6 +54,9 @@ type status = [
 
 exception Finished
 
+(* Used to wrap exception raised in callbacks. *)
+exception Wrapped of exn
+
 let get_process {process;_} =
   match process with
     | Some process -> process
@@ -200,14 +203,20 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       let stdout =
         Unix.descr_of_in_channel process.stdout
       in
+      let wrap f x =
+        try f x with exn -> raise (Wrapped exn)
+      in
       let on_stdout =
-        with_default (fun _ -> `Continue) on_stdout
+        wrap
+          (with_default (fun _ -> `Continue) on_stdout)
       in
       let on_stderr =
-        with_default (fun _ -> `Continue) on_stderr
+        wrap
+          (with_default (fun _ -> `Continue) on_stderr)
       in
       let on_stdin =
-        with_default (fun _ -> `Continue) on_stdin
+        wrap
+          (with_default (fun _ -> `Continue) on_stdin)
       in
       try
         let decision =
@@ -244,10 +253,16 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             t.process <- None;
             restart_decision (on_stop (`Status status))
         | e ->
-            log (Printf.sprintf "Error while running process: %s\n%s"
-              (Printexc.to_string e)
-              (Printexc.get_backtrace ()));
-            restart_decision (on_stop (`Exception e))
+            let f e =
+              log (Printf.sprintf "Error while running process: %s\n%s"
+                (Printexc.to_string e)
+                (Printexc.get_backtrace ()));
+            in
+            match e with
+              | Wrapped e -> f e; raise e
+              | _ ->
+                 f e;
+                 restart_decision (on_stop (`Exception e))
     in
     let fd = Unix.descr_of_out_channel (get_process t).stdin in
     Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
