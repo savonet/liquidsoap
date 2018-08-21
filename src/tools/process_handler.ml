@@ -232,13 +232,17 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         get_task decision
       with 
         | Finished ->
-            log "Process exited";
-            let status =
-              let {stdout;stdin;stderr} = get_process t in
-              `Status (Unix.close_process_full (stdout,stdin,stderr))
+            let {stdout;stdin;stderr} = get_process t in
+            let status = Unix.close_process_full (stdout,stdin,stderr) in
+            let descr =
+              match status with
+                | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
+                | Unix.WSIGNALED s -> Printf.sprintf "Process was killed by signal %d" s
+                | Unix.WSTOPPED s -> Printf.sprintf "Process was stopped by signal %d" s
             in
+            log descr;
             t.process <- None;
-            restart_decision (on_stop status)
+            restart_decision (on_stop (`Status status))
         | e ->
             log (Printf.sprintf "Error while running process: %s\n%s"
               (Printexc.to_string e)
