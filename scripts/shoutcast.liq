@@ -8,6 +8,7 @@
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
 # @param ~icy_id Shoutcast source ID. Only supported by Shoutcast v2.
 # @param ~dumpfile Dump stream to file, for debugging purpose. Disabled if empty.
+# @param ~encoding Encoding used to send metadata.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
@@ -23,7 +24,7 @@ def output.shoutcast(
   ~id="output.shoutcast",~start=true,
   ~host="localhost",~port=8000,
   ~user="",~password="hackme",
-  ~genre="",~url="",~name="",
+  ~genre="",~url="",~name="",~encoding="ISO-8859-1",
   ~public=true,~icy_id=1, ~format="",~dj={""},
   ~dumpfile="", ~icy_metadata="guess",
   ~on_connect={()}, ~on_disconnect={()},
@@ -53,7 +54,7 @@ def output.shoutcast(
     on_connect=on_connect, on_disconnect=on_disconnect,
     host=host, port=port, user=user, password=password,
     genre=genre, url=url, description="UNUSED",
-    public=public, dumpfile=dumpfile,encoding="ISO-8859-1",
+    public=public, dumpfile=dumpfile,encoding=encoding,
     name=name, protocol="icy",on_error=on_error,
     fallible=fallible,on_start=on_start,on_stop=on_stop,
     s)

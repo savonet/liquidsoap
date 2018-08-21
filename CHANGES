@@ -35,6 +35,8 @@ Changed:
 
 - Enabled `replaygain` on `m4a` files, thanks to @gilou (#604)
 
+- Added `encoding` parameter to `output.shoutcast` to allow alternative string encoding for metadata updates (#411)
+
 Fixed:
 
 - Decouple dyntools compilation.
