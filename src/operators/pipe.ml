@@ -222,7 +222,7 @@ let proto =
     "restart", Lang.bool_t, Some (Lang.bool true),
     Some "Restart process when exited.";
 
-    "restart_on_error", Lang.bool_t, Some (Lang.bool false),
+    "restart_on_error", Lang.bool_t, Some (Lang.bool true),
     Some "Restart process when exited with error.";
 
     "", Lang.source_t (Lang.kind_type_of_kind_format ~fresh:2 k), None, None
