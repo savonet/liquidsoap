@@ -45,9 +45,10 @@ Fixed:
 
 - Fixed URL regexp for `input.https` (#593)
 
-- Gstreamer file decoder with video.
-
-- Gstreamer seek on file decoder.
+- Multiple gstreamer fixes: 
+  - File decoder with video.
+  - Memory leaks (#516, #511, #434, #318)
+  - Process freeze (#608, 278)
 
 - Duppy crash on exit (#160)
 
