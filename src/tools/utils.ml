@@ -38,17 +38,6 @@ let some_or none = function
   | Some x -> x
   | None   -> none
 
-let ensure g f =
-  let ret =
-    try
-      f ();
-    with e ->
-      begin try g () with _ -> () end;
-      raise e
-  in
-  g ();
-  ret
-
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale"
 

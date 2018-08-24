@@ -47,7 +47,7 @@ let duration file =
   let container =
     FFmpeg.Av.open_input file
   in
-  Utils.ensure (fun () -> FFmpeg.Av.close container)
+  Tutils.finalize ~k:(fun () -> FFmpeg.Av.close container)
     (fun () ->
       let (_, stream, _) =
         FFmpeg.Av.find_best_audio_stream container
@@ -149,7 +149,7 @@ let get_type filename =
   let container =
     FFmpeg.Av.open_input filename
   in
-  Utils.ensure (fun () -> FFmpeg.Av.close container)
+  Tutils.finalize ~k:(fun () -> FFmpeg.Av.close container)
     (fun () ->
       let (_, _, codec) =
         FFmpeg.Av.find_best_audio_stream container
@@ -197,7 +197,7 @@ let get_tags file =
   let container =
     FFmpeg.Av.open_input file
   in
-  Utils.ensure (fun () -> FFmpeg.Av.close container)
+  Tutils.finalize ~k:(fun () -> FFmpeg.Av.close container)
     (fun () ->
       FFmpeg.Av.get_input_metadata container)
 
