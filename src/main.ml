@@ -563,7 +563,6 @@ struct
 
     (* Now that the paths have their definitive value, expand <shortcuts>. *)
     let subst conf = conf#set (Configure.subst_vars conf#get) in
-    subst Log.conf_file_path ;
     subst Init.conf_daemon_pidfile_path ;
 
     let check_dir conf_path kind =
@@ -579,7 +578,10 @@ struct
             exit 1
     in
       if Log.conf_file#get then
-        check_dir Log.conf_file_path "Log" ;
+        begin
+          subst Log.conf_file_path ;
+          check_dir Log.conf_file_path "Log"
+        end;
       if Init.conf_daemon#get && Init.conf_daemon_pidfile#get then
         check_dir Init.conf_daemon_pidfile_path "PID"
 
@@ -640,6 +642,7 @@ struct
             (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ())) ".log"
         in
         Log.conf_file_path#set_d (Some default_log) ;
+        Log.conf_file#set true ;
         ignore (Init.at_stop (fun _ -> Sys.remove default_log)) ;
         check_directories () ;
         ignore (Thread.create Lang.interactive ()) ;
