@@ -25,7 +25,7 @@ Changed:
 
 - Better log messages for root exit and buffer override.
 
-- Switch default log to stdout.
+- Switch default log to stdout. Set to file when `log.file.path` is set (#612)
 
 - Disabled Gstreamer stream decoder.
 

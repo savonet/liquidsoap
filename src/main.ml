@@ -41,7 +41,10 @@ let () =
 (* Set log to stdout by default *)
 let () =
   Log.conf_stdout#set_d (Some true);
-  Log.conf_file#set_d (Some false)
+  Log.conf_file#set_d (Some false);
+  Log.conf_file_path#on_change (fun _ ->
+    Log.conf_stdout#set_d (Some false);
+    Log.conf_file#set_d (Some true))
 
 (* Should we not run the active sources? *)
 let dont_run = ref false
