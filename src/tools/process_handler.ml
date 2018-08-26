@@ -21,6 +21,8 @@
  *****************************************************************************)
 
 type _t = {
+  in_pipe:  Unix.file_descr;
+  out_pipe: Unix.file_descr;
   stdin:    out_channel;
   stderr:   in_channel;
   stdout:   in_channel;
@@ -28,8 +30,6 @@ type _t = {
 }
 
 type t = {
-  out_pipe: Unix.file_descr;
-  in_pipe:  Unix.file_descr;
   mutex:    Mutex.t;
   mutable process: _t option
 }
@@ -67,12 +67,16 @@ let stop_c,kill_c,done_c =
   fn '0', fn '1', fn '2'  
 
 let stop t = Tutils.mutexify t.mutex (fun () ->
-  if t.process = None then raise Finished;
-  ignore(Unix.write t.in_pipe stop_c 0 1)) ()
+  match t.process with
+    | None -> raise Finished
+    | Some {in_pipe} ->
+        ignore(Unix.write in_pipe stop_c 0 1)) ()
 
 let kill t = Tutils.mutexify t.mutex (fun () ->
-  if t.process = None then raise Finished;
-  ignore(Unix.write t.in_pipe kill_c 0 1)) ()
+  match t.process with
+    | None -> raise Finished
+    | Some {in_pipe} ->
+        ignore(Unix.write in_pipe kill_c 0 1)) ()
 
 let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
   let process = get_process t in
@@ -83,18 +87,19 @@ let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
   end) ()
 
 let _kill = function
-  | Some {stdout;stdin;stderr;_} ->
-      ignore(Unix.close_process_full (stdout,stdin,stderr))
+  | Some {stdout;stdin;stderr;in_pipe;out_pipe} ->
+      let silent f = try f () with _ -> () in
+      List.iter silent [(fun () -> Unix.close in_pipe);
+                        (fun () -> Unix.close out_pipe);
+                        (fun () ->
+          ignore(Unix.close_process_full (stdout,stdin,stderr)))]
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
   log "Cleaning up process";
-  let {in_pipe;out_pipe;process;_} = t in
+  let {process;_} = t in
   t.process <- None;
-  let kill () = _kill process in
-  let silent f = try f () with _ -> () in
-  List.iter silent [(fun () -> Unix.close in_pipe);
-    (fun () -> Unix.close out_pipe); kill]) ()
+  _kill process) ()
 
 let pusher fd buf ofs len =
   Unix.write fd buf ofs len
@@ -133,12 +138,12 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       let stdout,stdin,stderr =
         Unix.open_process_full command env
       in
-      {stdin;stdout;stderr;stopped=false}
+      let out_pipe,in_pipe = Unix.pipe () in
+      {in_pipe;out_pipe;stdin;stdout;stderr;stopped=false}
     in
     let process = create () in
-    let out_pipe,in_pipe = Unix.pipe () in
     let mutex = Mutex.create () in
-    let t = {in_pipe;out_pipe;mutex;process=Some process} in
+    let t = {mutex;process=Some process} in
     let create = Tutils.mutexify t.mutex (fun () ->
       _kill t.process;
       t.process <- Some (create ()))
@@ -155,7 +160,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         List.fold_left (fun cur (fd, callback) ->
           if callback <> None then (`Read fd)::cur
             else cur)
-          [`Read out_pipe]
+          [`Read process.out_pipe]
           [(stdout, on_stdout);(stderr, on_stderr)]
       in
       let continue_events =
@@ -167,7 +172,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         | `Kill -> cleanup ~log t; []
         | `Stop -> send_stop ~log t; read_events
         | `Continue -> continue_events
-        | `Delay d -> [`Delay d; `Read out_pipe]
+        | `Delay d -> [`Delay d; `Read process.out_pipe]
       in
       { Duppy.Task.
           priority = priority;
@@ -182,7 +187,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
           [get_task handler (on_start (pusher fd))]
       | false -> cleanup ~log t; []
     in
-    let on_pipe () =
+    let on_pipe out_pipe =
       let buf = Bytes.make 1 ' ' in
       let ret = Unix.read out_pipe buf 0 1 in
       if ret <> 1 then assert false;
@@ -220,10 +225,10 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       in
       try
         let decision =
-          if List.mem (`Read out_pipe) l then on_pipe () else
+          if List.mem (`Read process.out_pipe) l then on_pipe process.out_pipe else
             let decisions = List.fold_left (fun cur -> function
-              | `Read fd when fd = stdout -> (on_stdout (puller t.in_pipe fd))::cur
-              | `Read fd -> (on_stderr (puller t.in_pipe fd))::cur
+              | `Read fd when fd = stdout -> (on_stdout (puller process.in_pipe fd))::cur
+              | `Read fd -> (on_stderr (puller process.in_pipe fd))::cur
               | `Write fd -> (on_stdin (pusher fd))::cur
               | `Delay _ -> cur) [] l
             in
@@ -241,7 +246,9 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         get_task decision
       with 
         | Finished ->
-            let {stdout;stdin;stderr} = get_process t in
+            let {in_pipe;out_pipe;stdout;stdin;stderr} = get_process t in
+            ignore(Unix.close in_pipe);
+            ignore(Unix.close out_pipe);
             let status = Unix.close_process_full (stdout,stdin,stderr) in
             let descr =
               match status with
@@ -281,21 +288,30 @@ let write data push =
   in
   f 0
 
-let on_stdout t = Tutils.mutexify t.mutex (fun fn ->
-  let fd = Unix.descr_of_in_channel (get_process t).stdout in
-  fn (puller t.in_pipe fd))
+let on_stdout t fn =
+  let process = Tutils.mutexify t.mutex (fun () ->
+    get_process t) ()
+  in
+  let fd = Unix.descr_of_in_channel process.stdout in
+  fn (puller process.in_pipe fd)
 
-let on_stdin t = Tutils.mutexify t.mutex (fun fn ->
-  match t.process with
-    | Some process ->
-        if process.stopped then raise Finished;
-        let fd = Unix.descr_of_out_channel process.stdin in
-        fn (pusher fd)
-    | None -> raise Finished)
+let on_stdin t fn = 
+  let process = Tutils.mutexify t.mutex (fun () ->
+    match t.process with
+      | Some process ->
+          if process.stopped then raise Finished;
+          process
+      | None -> raise Finished) ()
+  in
+  let fd = Unix.descr_of_out_channel process.stdin in
+  fn (pusher fd)
 
-let on_stderr t = Tutils.mutexify t.mutex (fun fn ->
-  let fd = Unix.descr_of_in_channel (get_process t).stderr in
-  fn (puller t.in_pipe fd))
+let on_stderr t fn =
+  let process = Tutils.mutexify t.mutex (fun () ->
+    get_process t) ()
+  in
+  let fd = Unix.descr_of_in_channel process.stderr in
+  fn (puller process.in_pipe fd)
 
 let stopped t = Tutils.mutexify t.mutex (fun () ->
   try
