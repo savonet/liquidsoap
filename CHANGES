@@ -54,6 +54,8 @@ Fixed:
 
 - Duppy crash on exit (#160)
 
+- Fixed audio glitches when using the `pipe` operator (#614)
+
 1.3.3 (14-10-2017)
 =====
 
