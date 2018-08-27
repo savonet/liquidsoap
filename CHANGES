@@ -37,6 +37,8 @@ Changed:
 
 - Added `encoding` parameter to `output.shoutcast` to allow alternative string encoding for metadata updates (#411)
 
+- Deprecated `rewrite_metadata`
+
 Fixed:
 
 - Decouple dyntools compilation.

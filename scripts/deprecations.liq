@@ -13,3 +13,21 @@ def deprecated() =
 end
 
 deprecated()
+
+# @flag hidden
+def rewrite_metadata(l,~insert_missing=true,
+                       ~update=true,~strip=false,
+                       s)
+  log(label="lang.deprecated",level=2,
+      "WARNING: \"rewrite_metadata\"  is deprecated! Please use \"map_metadata\"")
+  def map(m)
+    def apply(x)
+      label = fst(x)
+      value = snd(x)
+      (label,value % m)
+    end
+    list.map(apply,l)
+  end
+  map_metadata(map,insert_missing=insert_missing,
+               update=update,strip=strip,s)
+end

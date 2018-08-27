@@ -31,38 +31,6 @@ def list.filter_assoc(k,l)
   list.filter(fun (el) -> fst(el) == k, l)
 end
 
-# Rewrite metadata on the fly using a list of (target,rules).
-# @category Source / Track Processing
-# @param l \
-#    List of (target,value) rewriting rules.
-# @param ~insert_missing \
-#    Treat track beginnings without metadata as having empty ones. \
-#    The operational order is: \
-#    create empty if needed, map and strip if enabled.
-# @param ~update \
-#    Only update metadata. \
-#    If false, only returned values will be set as metadata.
-# @param ~strip \
-#    Completly remove empty metadata. \
-#    Operates on both empty values and empty metadata chunk.
-def rewrite_metadata(l,~insert_missing=true,
-                       ~update=true,~strip=false,
-                       s)
-  # We don't need to return all values, since
-  # map_metadata only update returned values.
-  # So, we simply apply all rewrite rules !
-  def map(m)
-    def apply(x)
-      label = fst(x)
-      value = snd(x)
-      (label,value % m)
-    end
-    list.map(apply,l)
-  end
-  map_metadata(map,insert_missing=insert_missing,
-               update=update,strip=strip,s)
-end
-
 # Add a skip function to a source when it does not have one by default.
 # @category Interaction
 # @param s The source to attach the command to.
