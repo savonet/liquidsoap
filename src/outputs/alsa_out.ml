@@ -23,7 +23,6 @@
 (* Buffered ALSA output *)
 
 open Alsa
-open Dtools
 
 class output ~kind ~clock_safe ~infallible
              ~on_stop ~on_start ~start dev source =
