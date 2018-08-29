@@ -118,6 +118,8 @@ Fixed:
 
 - Fix compilation with osx-secure-transport enabled.
 
+- Fix deadlock calling logging functions from within `Gc.finalise` (#609)
+
 1.3.1 (28-05-2017)
 =====
 
