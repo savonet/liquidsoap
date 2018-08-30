@@ -225,7 +225,7 @@ let register_plugins () =
       List.iter add plugin_dirs ;
       List.rev !ans
   in
-    List.iter register_plugin plugins
+  List.iter (register_plugin ~log_errors:false) plugins
 
 let dssi_init =
   let inited = ref false in
