@@ -52,6 +52,7 @@ object (self)
   val restart_m = Mutex.create ()
   val mutable restarting = false
   val mutable retry_in = -1.
+  val task_m = Mutex.create ()
   val mutable task = None
   val mutable element_m = Mutex.create ()
   val mutable element = None
@@ -113,18 +114,24 @@ object (self)
       -1.
 
   method private register_task ~priority scheduler =
-    task <- Some (Duppy.Async.add ~priority scheduler (fun () ->
-      self#restart_task))
+    Tutils.mutexify task_m (fun () ->
+      task <- Some (Duppy.Async.add ~priority scheduler (fun () ->
+        self#restart_task))) ()
 
   method private stop_task =
-    match task with
-      | None -> ()
-      | Some t ->
-          Duppy.Async.stop t;
-          task <- None
+    Tutils.mutexify task_m (fun () ->
+      match task with
+        | None -> ()
+        | Some t ->
+            Duppy.Async.stop t;
+            task <- None) ()
     
   method private restart =
-    Duppy.Async.wake_up (Utils.get_some task)
+    Tutils.mutexify task_m (fun () ->
+      match task with
+        | None -> ()
+        | Some t ->
+            Duppy.Async.wake_up t) ()
 
   method private on_error exn =
     let delay = on_error exn in
@@ -172,13 +179,8 @@ object (self)
 
   method output_start =
     let el = self#get_element in
-    begin
-     try
-      ignore (Element.set_state el.bin Element.State_playing);
-      self#register_task ~priority:Tutils.Blocking Tutils.scheduler
-     with e ->
-       self#on_error e
-    end;
+    ignore (Element.set_state el.bin Element.State_playing);
+    self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
     if clock_safe then (gst_clock ())#register_blocking_source
 
   method output_stop =
@@ -188,16 +190,17 @@ object (self)
         match element with
           | None -> fun () -> ()
           | Some el ->
+            element <- None;
             fun () ->
               if has_audio then
                 App_src.end_of_stream (Utils.get_some el.audio);
               if has_video then
                 App_src.end_of_stream (Utils.get_some el.video);
               ignore (Element.set_state el.bin Element.State_null);
-              GU.flush ~log:self#log el.bin;
-              if clock_safe then (gst_clock ())#unregister_blocking_source) ()
+              GU.flush ~log:self#log el.bin) ()
     in
-    todo ()
+    todo ();
+    if clock_safe then (gst_clock ())#unregister_blocking_source
 
   method private make_element =
     let pipeline =
@@ -494,6 +497,7 @@ object (self)
       Tutils.mutexify element_m (fun () ->
         match element with
           | Some el ->
+              element <- None;
               (fun () ->
                 ignore (Element.set_state el.bin Element.State_null);
                 GU.flush ~log:self#log el.bin)
