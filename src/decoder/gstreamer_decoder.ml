@@ -350,7 +350,7 @@ let get_tags file =
       in
       let msg = match msg with Some msg -> msg | None -> raise Exit in
       match msg.Gstreamer.Bus.payload with
-        | `Error _ -> GU.handler ~log msg; raise Exit
+        | `Error _ -> GU.handler ~log ~on_error:(fun _ -> ()) msg; raise Exit
         | `Tag tags ->
             List.iter
               (fun (l,v) ->
