@@ -264,6 +264,9 @@ object (self)
      * If the ID changes, and [log] has already been initialized, reset it. *)
     if log != source_log then self#create_log
 
+  initializer
+    Gc.finalise (fun s -> source_log#f 4 "Garbage collected %s." s#id) self
+
   (** Is the source infallible, i.e. is it always guaranteed that there
     * will be always be a next track immediately available. *)
   method virtual stype : source_t
