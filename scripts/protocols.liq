@@ -234,7 +234,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   binary = get(default="youtube-dl","protocol.youtube-dl.path")
 
   delay = maxtime - gettimeofday()
-  x = get_process_lines(timeout=delay,"#{binary} --get-title --get-filename #{quote(arg)}")
+  x = get_process_lines(timeout=delay,"#{binary} --get-title --get-filename -- #{quote(arg)}")
 
   x =
     if list.length(x) >= 2 then
@@ -247,7 +247,7 @@ def youtube_dl_protocol(~rlog,~maxtime,arg)
   ext   = file.extension(list.nth(default="",x,1))
   ext   = string.sub(ext,start=1,length=string.length(ext)-1)
 
-  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) #{quote(arg)}"
+  cmd   = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{quote(arg)}"
   process = process_uri(extname=ext,cmd)
 
   if title != "" then
