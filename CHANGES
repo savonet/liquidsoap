@@ -15,6 +15,8 @@ New:
 
 - Added `output.youtube.live` as a wrapper around `output.gstreamer.audio_video` to stream live to Youtube (#498)
 
+- Added metadata extraction to `ffmpeg2wav` protocol (#623).
+
 Changed:
 
 - Depends on OCaml >= 4.03.0

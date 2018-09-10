@@ -263,15 +263,55 @@ add_protocol("youtube-dl", youtube_dl_protocol,
 register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
 register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
 register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
+register(name="Extract metadata","protocol.ffmpeg2wav.metadata",true)
 
 # Register ffmpeg2wav
 # @flag hidden
 def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
   ffmpeg   = get(default="ffmpeg","protocol.ffmpeg2wav.path")
   channels = get(default=2,"protocol.ffmpeg2wav.channels")
-  cmd      = "#{ffmpeg} -y -i $(input) -ac #{channels} $(output)"
+  metadata = get(default=true,"protocol.ffmpeg2wav.metadata")
 
-  [process_uri(extname="wav",uri=arg,cmd)]
+  log = log(label="protocol.ffmpeg2wav")
+
+  def log(~level,s) =
+    rlog(s)
+    log(level=level,s)
+  end
+
+  def parse_metadata () =
+    cmd = "#{ffmpeg} -i #{quote(arg)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
+    delay = maxtime - gettimeofday()
+    log(level=4,"Executing #{cmd}")
+    lines = get_process_lines(timeout=delay,cmd)
+    def f(cur,line) =
+      m = string.split(separator="=",line)
+      if list.length(m) >= 2 then
+        key = list.hd(default="",m)
+        value = string.concat(separator="=",list.tl(m))
+        list.add("#{key}=#{quote(value)}",cur)
+      else
+        cur
+      end
+    end
+    string.concat(separator=",",list.fold(f,[],lines))
+  end
+
+  annotate = if metadata then
+    metadata = parse_metadata()
+    if string.length(metadata) > 0 then
+      "annotate:#{metadata}:"
+    else
+      ""
+    end
+  else
+    ""
+  end
+
+  cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} $(output)"
+  uri = process_uri(extname="wav",uri=arg,cmd)
+
+  ["#{annotate}#{uri}"]
 end
 add_protocol("ffmpeg2wav",ffmpeg2wav_protocol,
              doc="Decode any file to wave using ffmpeg",
