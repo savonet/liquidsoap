@@ -279,8 +279,8 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     log(level=level,s)
   end
 
-  def parse_metadata () =
-    cmd = "#{ffmpeg} -i #{quote(arg)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
+  def parse_metadata(file) =
+    cmd = "#{ffmpeg} -i #{quote(file)} -f ffmetadata - 2>/dev/null | grep -v '^;'"
     delay = maxtime - gettimeofday()
     log(level=4,"Executing #{cmd}")
     lines = get_process_lines(timeout=delay,cmd)
@@ -294,24 +294,45 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
         cur
       end
     end
-    string.concat(separator=",",list.fold(f,[],lines))
-  end
-
-  annotate = if metadata then
-    metadata = parse_metadata()
-    if string.length(metadata) > 0 then
-      "annotate:#{metadata}:"
+    m = string.concat(separator=",",list.fold(f,[],lines))
+    if string.length(m) > 0 then
+      "annotate:#{m}:"
     else
       ""
     end
-  else
-    ""
   end
 
-  cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} $(output)"
-  uri = process_uri(extname="wav",uri=arg,cmd)
+  r = request.create.raw(arg)
+  delay = maxtime - gettimeofday()
+  if request.resolve(timeout=delay,r) then
+    res = request.filename(r)
 
-  ["#{annotate}#{uri}"]
+    annotate = if metadata then
+      parse_metadata(res)
+    else
+      ""
+    end
+   
+    # Now parse the audio
+    wav = file.temp("liq-process", ".wav")
+    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{quote(wav)}"
+    uri = process_uri(extname="wav",uri=res,cmd)
+
+    wav_r = request.create.raw(uri)
+    delay = maxtime - gettimeofday()
+    if request.resolve(timeout=delay,wav_r) then
+      request.destroy(r)
+      request.destroy(wav_r)
+      ["#{annotate}#{wav}"]
+    else
+      log(level=3,"Failed to resolve #{uri}")
+      request.destroy(r)
+      []
+    end
+  else
+    log(level=3,"Failed to resolve #{arg}")
+    []
+  end
 end
 add_protocol("ffmpeg2wav",ffmpeg2wav_protocol,
              doc="Decode any file to wave using ffmpeg",
