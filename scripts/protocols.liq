@@ -233,8 +233,17 @@ register(name="Youtube-dl path","protocol.youtube-dl.path","youtube-dl")
 def youtube_dl_protocol(~rlog,~maxtime,arg)
   binary = get(default="youtube-dl","protocol.youtube-dl.path")
 
+  log = log(label="protocol.youtube-dl")
+
+  def log(~level,s) =
+    rlog(s)
+    log(level=level,s)
+  end
+
   delay = maxtime - gettimeofday()
-  x = get_process_lines(timeout=delay,"#{binary} --get-title --get-filename -- #{quote(arg)}")
+  cmd = "#{binary} --get-title --get-filename -- #{quote(arg)}"
+  log(level=4,"Executing #{cmd}")
+  x = get_process_lines(timeout=delay,cmd)
 
   x =
     if list.length(x) >= 2 then
