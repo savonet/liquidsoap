@@ -260,6 +260,15 @@ add_protocol("youtube-dl", youtube_dl_protocol,
               doc="Resolve a request using youtube-dl.",
               syntax="youtube-dl:uri")
 
+# Register tmp
+# @flag hidden
+def tmp_protocol(~rlog,~maxtime,arg) =
+  [arg]
+end
+add_protocol("tmp",tmp_protocol,
+             doc="Mark the given uri as temporary. Useful when chaining protocols",
+             temporary=true,syntax="tmp:uri")
+
 register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
 register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
 register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
@@ -323,7 +332,7 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
     if request.resolve(timeout=delay,wav_r) then
       request.destroy(r)
       request.destroy(wav_r)
-      ["#{annotate}#{wav}"]
+      ["#{annotate}tmp:#{wav}"]
     else
       log(level=3,"Failed to resolve #{uri}")
       request.destroy(r)
