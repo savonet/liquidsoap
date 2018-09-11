@@ -19,7 +19,7 @@ src/configure.ml
 *.cm*
 *.o
 *~
-src/SVN.ml
+src/REVISION.ml
 src/auto_clean
 src/lang/lang_lexer.ml
 src/lang/lang_parser.ml

@@ -7,7 +7,6 @@
      headers.
  [] Check version in configure.ac, README and INSTALL.
  [] Check version and contents in the man pages (mainly doc/liquidsoap.1).
- [] Check files in liquidsoap_doc_sources in the Makefile.
  [] Update dependencies in INSTALL.
  [] Fill-in CHANGES, with the release date.
  [] make clean

@@ -236,7 +236,7 @@ $(call conditional_compilation,builtins,$(W_MAGIC),lang/builtins_magic.ml)
 $(call conditional_compilation,builtins,$(W_CRY),lang/builtins_cry.ml)
 
 liquidsoap_sources= \
-	$(tools) SVN.ml converters/audio_converter.ml $(stream) \
+	$(tools) REVISION.ml converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml $(encoder_formats) encoder.ml \
@@ -299,47 +299,31 @@ configure.ml:
 OCAML_CFLAGS= -thread $(patsubst %,-I %,$(SUBDIRS))
 DEP_OPTS= $(patsubst %,-I %,$(SUBDIRS))
 
-liquidsoap_doc_sources= \
-	source.ml clock.ml encoder.ml \
-	tools/plug.ml tools/http.ml \
-	decoder/decoder.ml request.ml outputs/output.ml \
-	lang/lang.ml lang/lang_types.ml lang/lang_values.ml \
-	tools/server.ml tools/tutils.ml playlist_parser.ml \
-	tools/doc.ml tools/ioRing.ml \
-	tools/dyntools.ml tools/JSON.ml \
-	converters/audio_converter.ml converters/video_converter.ml \
-	ogg_formats/ogg_muxer.ml \
-	sources/generated.ml sources/request_source.ml sources/synthesized.ml \
-	operators/switch.ml \
-	configure.ml \
-	stream/frame.ml stream/aFrame.ml \
-	stream/vFrame.ml stream/mFrame.ml stream/generator.ml
-
 # Compute something like " (trunk/liquidsoap@rev1234)" when .svn is present,
-SVN.ml: Makefile $(liquidsoap_sources:SVN.ml=)
+REVISION.ml: Makefile $(liquidsoap_sources:REVISION.ml=)
 	if test -e ../.git && which git > /dev/null ; then \
 	  url=`git remote -v | grep origin | grep fetch | sed 's/origin//' | sed 's/ (.*)//' | tr -d '\t'` ; \
 	  head=`git rev-parse HEAD` ; \
           date=`date +%Y%m%d:%H%M%S`; \
-	  echo "let rev = \" ($$url@$$head:$$date)\"" > SVN.ml ; \
+	  echo "let rev = \" ($$url@$$head:$$date)\"" > REVISION.ml ; \
 	elif test -d .svn && which svn > /dev/null ; then \
 	  url=`LC_ALL=C svn info | grep URL | \
 	       sed -e 's:.*svnroot/savonet/\(.*\)/src:\1:'`; \
 	  revision=`LC_ALL=C svn info | grep Revision | \
 	            sed -e 's/Revision: \(.*\)/\1/'`  ; \
-	  echo "let rev = \" ($$url@rev$$revision)\"" > SVN.ml ; \
+	  echo "let rev = \" ($$url@rev$$revision)\"" > REVISION.ml ; \
 	elif test -d ../../.hg && which hg > /dev/null ; then \
 	  branch=`hg branch`; \
 	  revision=`LC_ALL=C hg parents | grep changeset: | \
 	       sed -e 's/changeset: *['0'-'9']*:\([^ ]*\).*/\1/'`; \
           date=`date +%Y%m%d:%H%M%S`; \
-	  echo "let rev = \" ($$branch@$$revision:$$date)\"" > SVN.ml ; \
+	  echo "let rev = \" ($$branch@$$revision:$$date)\"" > REVISION.ml ; \
 	else \
-	  echo "let rev = \"\"" > SVN.ml ; \
+	  echo "let rev = \"\"" > REVISION.ml ; \
 	fi
 
 clean-local:
-	rm -f SVN.ml
+	rm -f REVISION.ml
 
 install-plugin-%:
 	$(INSTALL_DATA) plugins/$*.$(s) $(libdir)/liquidsoap/$(libs_dir_version)/plugins

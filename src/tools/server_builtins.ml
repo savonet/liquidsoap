@@ -23,7 +23,7 @@
 let () =
   let add = Server.add ~ns:[] in
     add "version" ~descr:"Display liquidsoap version."
-        (fun _ -> "Liquidsoap "^Configure.version^SVN.rev) ;
+        (fun _ -> "Liquidsoap "^Configure.version^REVISION.rev) ;
     add "request.all"
       ~descr:"Get the identifiers of all requests, in use or not. \
               Destroyed requests will remain there only for some limited time."

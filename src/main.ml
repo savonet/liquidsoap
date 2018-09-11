@@ -465,7 +465,7 @@ let options = [
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
                    See <http://liquidsoap.info> for more information.\n"
-                   Configure.version SVN.rev ;
+                   Configure.version REVISION.rev ;
                 exit 0),
     "Display liquidsoap's version." ;
 
@@ -497,7 +497,7 @@ let expand_options options =
 module Make(Runner : Runner_t) =
 struct
   let () =
-    log#f 3 "Liquidsoap %s%s" Configure.version SVN.rev ;
+    log#f 3 "Liquidsoap %s%s" Configure.version REVISION.rev ;
     log#f 3 "Using:%s" Configure.libs_versions ;
     if Configure.scm_snapshot then
       List.iter (log#f 2 "%s")
