@@ -14,7 +14,7 @@ components working together.
 Copyright 2003-2018 Savonet team
 
 * Email     : savonet-users@lists.sourceforge.net
-* Homepage  : http://liquidsoap.fm
+* Homepage  : http://liquidsoap.info
 * Bugreports: https://github.com/savonet/liquidsoap/issues
 
 Installation
@@ -25,7 +25,7 @@ See the [INSTALL](INSTALL) file.
 Documentation
 -------------
 
-Some documentation is available on [our website](http://liquidsoap.fm) and HTML
+Some documentation is available on [our website](http://liquidsoap.info) and HTML
 documentation is included in the distribution: doc/html/index.html.
 
 License

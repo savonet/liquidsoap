@@ -62,7 +62,7 @@ h4@specific. Specific tutorials
 * "Dynamic source creation":dynamic_sources.html: dynamically create sources using server requests.
 * "Smart crossfading":smartcrossfade.html: define custom crossfade transitions.
 * "Using in production":in_production.html: integrate liquidsoap scripts in a production environment.
-* "Liquid Flows":flows.html: add your radio to the "webpage":http://flows.liquidsoap.fm/ of proud users.
+* "Liquid Flows":flows.html: add your radio to the "webpage":http://flows.liquidsoap.info/ of proud users.
 * "Videos streams":video.html: why restrict yourself to sound only?
 
 h4@users. User scripts
