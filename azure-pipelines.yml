@@ -1,0 +1,6 @@
+pool:
+  vmImage: 'Ubuntu 16.04'
+
+steps:
+- script: docker build --no-cache --build-arg COMMIT=$(Build.SourceVersion) -f .azure.docker-file .
+  displayName: 'Run CI script'
