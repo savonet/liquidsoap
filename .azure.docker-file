@@ -6,10 +6,10 @@ USER opam
 
 WORKDIR /tmp/liquidsoap-full
 
-ARG TRAVIS_COMMIT
+ARG COMMIT
 
 RUN eval $(opam config env) && make update && \
-     cd liquidsoap && git checkout $TRAVIS_COMMIT && \
+     cd liquidsoap && git checkout $COMMIT && \
      cd .. && ./bootstrap && ./configure && \
      make clean && make && cd liquidsoap && make doc
 
