@@ -3,6 +3,8 @@ x.y.z ()
 
 Changed:
 
+- Remove dynamic plugin build option.
+
 - Added `"extinf_duration"` to parsed `#EXTINF` metadata.
 
 Fixed:

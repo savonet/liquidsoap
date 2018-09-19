@@ -304,25 +304,25 @@ fi
 # Bytes
 #
 
-AC_CHECK_OCAML_BINDING([bytes],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([bytes],[],[],[1])
 
 #
 # PCRE
 #
 
-AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
 
 #
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1])
 
 # Small hack..
 if test -z "${with_duppy_syntax_dir}"; then
@@ -330,7 +330,7 @@ if test -z "${with_duppy_syntax_dir}"; then
     with_duppy_syntax_dir=${with_duppy_dir}
   fi
 fi
-AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.2],[],[],[],[1],[duppy])
+AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.2],[],[],[],[duppy])
 if test -n "${w_DUPPY_SYNTAX}"; then
   if test "${CAMLP4O}" != "no"; then
     if test -z "${DUPPY_SYNTAX_path}"; then
@@ -349,7 +349,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1])
 
 #
 # xmlplaylist
@@ -402,13 +402,13 @@ AC_CHECK_OCAML_BINDING([flac],[0.1.2])
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
-AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
 
 #
 # Dynlink
 #
 
-AC_CHECK_OCAML_BINDING([dynlink],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([dynlink])
 # Dynlink may be for bytecode only..
 AC_MSG_CHECKING([whether ocaml compiler supports dynlink])
 if test -n "${W_DYNLINK}"; then
@@ -434,17 +434,13 @@ if test -z "${W_DYNLINK}"; then
   AC_MSG_WARN([no dynlink module: liquidsoap will not be able to load dynamic plugins!])
   cat >> src/configure.ml <<EOCONF
 let dynlink = false
-let load_plugins_dir = fun _ -> assert false
-let init_dyntools = fun _ -> ()
 EOCONF
 else
   cat >> src/configure.ml <<EOCONF
 let dynlink = true
-let load_plugins_dir = Dyntools.load_plugins_dir
-let init_dyntools dir =
+let () =
   at_init (fun () ->
-    Dyntools.load_dynlinks ();
-    Dyntools.load_plugins_dir dir)
+    Dyntools.load_dynlinks ())
 EOCONF
 fi
 
@@ -550,23 +546,14 @@ AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
 
 AC_ARG_ENABLE([oss],AS_HELP_STRING([--disable-oss],[don't use OSS]))
 
-AC_ARG_ENABLE([oss-dynamic-plugin],
-   AS_HELP_STRING([--enable-oss-dynamic-plugin],[Compile oss as an optional plugin.]))
-
 if test "x$enable_oss" != "xno" ; then
   AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
 fi
 
 if test "a$W_OSS" = "ayes" ; then
-  if test "x$enable_oss_dynamic_plugin" = "xyes"; then
-        W_OSS=oss
-        w_OSS=plugin
-        PLUGINS="$PLUGINS oss"
-  else
-        w_OSS=yes
-  fi
+  w_OSS=yes
 else
-        w_OSS=no
+  w_OSS=no
 fi
 AC_SUBST(W_OSS)
 
@@ -588,7 +575,7 @@ fi
 # SecureTransport (OSX)
 #
 
-AC_CHECK_OCAML_BINDING([osx-secure-transport],[],[])
+AC_CHECK_OCAML_BINDING([osx-secure-transport])
 
 #
 # Magic
@@ -749,7 +736,7 @@ EOCONF
 
 # Yojson
 
-AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([yojson])
 
 if test -z "${W_YOJSON}"; then
 cat >> src/configure.ml <<__BLAH__
@@ -878,8 +865,6 @@ AC_SUBST(cmo)
 AC_SUBST(cmi)
 AC_SUBST(cmxs)
 AC_SUBST(shared_flag)
-AC_SUBST(PLUGINS)
-AC_SUBST(PLUGINS_DATA)
 
 echo
 

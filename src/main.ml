@@ -389,17 +389,9 @@ let options = [
 
     ["--debug"],
     Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
-    "Print debugging log messages." ]
-    @
-    (if Configure.dynlink then
-        [["--dynamic-plugins-dir"],
-            Arg.String (fun d ->
-            Configure.load_plugins_dir d),
-         "Directory where to look for plugins."]
-      else
-        [])
-    @
-    [["--strict"],
+    "Print debugging log messages." ;
+
+    ["--strict"],
     Arg.Set Lang_values.strict,
     "Execute script code in strict mode, issuing fatal errors \
      instead of warnings in some cases. Currently: unused variables \

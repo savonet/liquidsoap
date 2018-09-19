@@ -24,12 +24,6 @@ val findlib_path : string list
 (** Is dynlink available? *)
 val dynlink : bool
 
-(** Load plugins directory *)
-val load_plugins_dir : string -> unit
-
-(** Where to look for dynamically loadable modules (cmxs). *)
-val plugins_dir : string
-
 (** Where to look for private executables. *)
 val bin_dir : string
 

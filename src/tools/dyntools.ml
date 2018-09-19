@@ -30,66 +30,6 @@ let dynlink_suffix =
   else
     ".cma"
 
-let load_plugins_dir d =
-  (* We need to allow unsafe modules
-   * for plugins to work in liquidsoap.
-   * Otherwise, plugins that load C stubs
-   * will not be available.. Additionaly,
-   * this function does nothing in native mode.. *)
-  Dynlink.allow_unsafe_modules true;
-  try
-    let dir = Unix.opendir d in
-    let rec files cur =
-      try
-        let f = Unix.readdir dir in
-        let f = Printf.sprintf "%s/%s" d f in
-        if Filename.check_suffix f dynlink_suffix then
-           files (f :: cur)
-        else
-           files cur
-      with
-        | End_of_file -> cur
-    in
-    let files = files [] in
-    Unix.closedir dir;
-    (* Brute force dependency method:
-     * Try to load plugins in any order
-     * and stop when the list does not shrink.. *)
-    let load ~report cur file =
-     try
-       Dynlink.loadfile file;
-       dyn_log#f 2 "Loaded plugin file %s." file;
-       cur
-      with
-        | Dynlink.Error e when report ->
-            dyn_log#f 2 "Could not load plugin file %s: %s."
-             file (Dynlink.error_message e);
-            cur
-        | e ->
-             if report then
-              begin
-                dyn_log#f 2 "Unknown error while loading plugin file %s: %s"
-                  file (Printexc.to_string e) ;
-                cur
-              end
-             else
-              file :: cur
-    in
-    let rec try_load files =
-      let new_files =
-        List.fold_left (load ~report:false) [] files
-      in
-      if List.length new_files = List.length files then
-        (* Run a last time to report errors.. *)
-        ignore(List.fold_left (load ~report:true) [] files)
-      else
-        (* List has shrinked, run again.. *)
-        try_load new_files
-    in
-    try_load files
-  with
-    | _ -> dyn_log#f 2 "Could not load plugins in directory %s." d
-
 type dynload =
   { path : string list;
     (* Files are registered *without*
