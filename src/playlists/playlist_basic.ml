@@ -36,6 +36,26 @@ let test_text s =
             assert false
           end
 
+ let parse_extinf s =
+   try
+     let rex =
+       Pcre.regexp "#EXTINF:\\d+,(.*)"
+     in
+     let sub = Pcre.exec ~rex s in
+     let song =
+       Pcre.get_substring sub 1
+     in
+     let lines =
+       Pcre.split ~pat:" - " song
+     in
+     match lines with
+       | artist::title::[] ->
+           ["artist", Utils.trim artist;
+            "title", Utils.trim title]
+       | _ ->
+           ["song", Utils.trim song]
+   with Not_found -> []
+
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
   test_text string ;
@@ -51,18 +71,7 @@ let parse_mpegurl ?pwd string =
   let rec get_urls cur lines =
     match lines with
       | x :: y :: lines when is_info x && not (skip_line y) ->
-          let metadata =
-            match List.rev (Utils.split ~sep:',' x) with
-              | x :: _ ->
-                 begin
-                  match Utils.split ~sep:'-' x with
-                    | title :: artist :: [] ->
-                        ["title",  Utils.trim title;
-                         "artist", Utils.trim artist]
-                    | _ -> ["title", x]
-                 end
-              | _ -> []
-          in
+          let metadata = parse_extinf x in
           get_urls ((metadata, Playlist_parser.get_file ?pwd y) :: cur) lines
       | x :: lines when not (skip_line x) ->
           get_urls (([], Playlist_parser.get_file ?pwd x) :: cur) lines
@@ -82,8 +91,8 @@ let parse_scpls ?pwd string =
       (fun s ->
            try
 	     let rex = Pcre.regexp ~flags:[`CASELESS] "file\\d*\\s*=\\s*(.*)\\s*" in
-             let sub = Pcre.exec ~rex:rex s in
-             Pcre.get_substring sub 1
+       let sub = Pcre.exec ~rex s in
+       Pcre.get_substring sub 1
 	   with Not_found -> ""
       )
       lines

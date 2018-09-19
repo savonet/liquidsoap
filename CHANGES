@@ -1,3 +1,10 @@
+x.y.z ()
+=====
+
+Fixed:
+
+- Enhanced `#EXTINF` parsing in ambigious cases (#625)
+
 1.3.4 (10-09-2018)
 =====
 
