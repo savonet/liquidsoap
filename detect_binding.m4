@@ -26,13 +26,6 @@ done])
 m4_defun([AC_MSG_RESULT_NOT],
   [ifelse([$1],[],[AC_MSG_RESULT($2)],[AC_MSG_ERROR($2)])])
 
-m4_defun([AC_COND_PLUGIN],
-  [ifelse([$1],[],
-[AC_ARG_ENABLE([$2-dynamic-plugin],
-   AC_HELP_STRING(
-      [--enable-$2-dynamic-plugin],
-      [Compile $2 as an optional dynamic plugin.]))])])
-
 AC_DEFUN([AC_CHECK_OCAML_BINDING],[dnl
 
 m4_define([BINDING],[m4_translit([$1],['a-z.-'],['A-Z__'])])
@@ -43,8 +36,7 @@ dnl $2 = PKG_VERSION
 dnl $3 = PKG_DEPS
 dnl $4 = PKG_MANDATORY
 dnl $5 = PKG_USED (for instance sdl.mixer au lieu of sdl. Should only be used for bindings not provided by us..)
-dnl $6 = DYNAMIC_PLUGIN
-dnl $7 = PKG_CMA (used for duppy.syntax and flac.ogg when locally compiled..)
+dnl $6 = PKG_CMA (used for duppy.syntax and flac.ogg when locally compiled..)
 
 if test -n "$5"; then
   BINDING_PKGS="$5"
@@ -57,8 +49,6 @@ AC_ARG_WITH([binding()-dir],
       [--with-binding()-dir=path],
       [look for ocaml-binding() library in "path" (autodetected by default)]))
 
-AC_COND_PLUGIN([$6],[$1])
-
 dnl Version stuff
 m4_define([VERSION_CHECK],[ifelse([$2],[],[],[ >= $2])])
 
@@ -68,27 +58,12 @@ OCAML_CHECK="${OCAMLFIND} query $1"
 
 dnl This (horrible) macro does the following:
 dnl Detect optional binding
-dnl If builtin and provided by ocamlfind,
+dnl If provided by ocamlfind,
 dnl fills liquidsoap_ocamlcflags with "-package deps" for
 dnl each dependency
-dnl If builtin and provided by us, fills
+dnl If provided by us, fills
 dnl liquidsoap_ocamlcflags with "-I /path/to/ocaml-foo/src"
 dnl and liquidsoap_ocamllfflags with "foo.cmxa"
-dnl If plugin and provided by ocamlfind,
-dnl fills plugin_packages with "deps"
-dnl If plugin and provided by us, fills
-dnl plugin_ocamlcflags with "-I /path/to/ocaml-foo/src"
-dnl and plugin_ocamllflags with "foo.cmxa"
-dnl Ultimately, plugin_ocamlcflags and plugin_ocamllflags
-dnl are added to the global $PLUGINS_DATA variable and 
-dnl $PLUGINS is updated with the name of this plugin.
-dnl W_plugin is set to "yes" for builtin compilation
-dnl and "binding" for plugin compilation.
-
-if test "x$enable_[]binding()_dynamic_plugin" = "xyes" ; then
-  BINDING()_SHARED="yes"
-  PLUGINS="$PLUGINS binding()"
-fi
 
 AC_OCAML_CHECK_DEPS([$3])
 if test -z $DEPS_CHECK; then
@@ -103,14 +78,9 @@ else
          if test -z "${VERSION_OK}"; then
            AC_MSG_RESULT_NOT([$4],[requires version >= $2 found ${[]BINDING()_version}.])
          else
-           if test -z "${[]BINDING()_SHARED}"; then
-             BINDING()_PACKAGES="`${OCAMLFIND} query -separator " " -format "-package %p" $BINDING_PKGS 2>/dev/null`"
-             liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} ${[]BINDING()_PACKAGES}"
-             W_[]BINDING()=yes
-           else
-             []binding()_packages="`${OCAMLFIND} query -r -separator " " -format "%p" $BINDING_PKGS 2>/dev/null`"
-             W_[]BINDING()=[]binding()
-           fi
+           BINDING()_PACKAGES="`${OCAMLFIND} query -separator " " -format "-package %p" $BINDING_PKGS 2>/dev/null`"
+           liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} ${[]BINDING()_PACKAGES}"
+           W_[]BINDING()=yes
            LIBS_VERSIONS="${LIBS_VERSIONS} $1=$[]BINDING()_version"
            AC_MSG_RESULT(ok)
          fi
@@ -140,28 +110,18 @@ else
       BINDING()_PACKAGES="`${OCAMLFIND} query -separator " " -format "-package %p" $BINGING_PKGS 2>/dev/null`"
       echo ${with_[]binding()_dir} | grep ^/ > /dev/null 2>&1 \
           || with_[]binding()_dir=${PWD}/${with_[]binding()_dir}
-      if test -z "${[]BINDING()_SHARED}"; then
-        liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_[]binding()_dir} ${[]BINDING()_PACKAGES}"
-      else
-        []binding()_ocamlcflags="-I ${with_[]binding()_dir} ${[]BINDING()_PACKAGES}"
-      fi
+      liquidsoap_ocamlcflags="${liquidsoap_ocamlcflags} -I ${with_[]binding()_dir} ${[]BINDING()_PACKAGES}"
       # We need to recurse here because
       # some package may not be registered using ocamlfind
-      if test -n "$7"; then
-        BINDING()_CMA=$7.${cma}
+      if test -n "$6"; then
+        BINDING()_CMA=$6.${cma}
       else
         BINDING()_CMA=$1.${cma}
       fi
       for i in ${[]BINDING()_requires}; do
         BINDING()_PACKAGES="${[]BINDING()_PACKAGES} `${OCAMLFIND} query -separator " " -format "-package %p" $i 2>/dev/null`"
       done
-      if test -z "${[]BINDING()_SHARED}"; then
-        liquidsoap_ocamllflags="${liquidsoap_ocamllflags} ${[]BINDING()_PACKAGES} ${[]BINDING()_CMA}"
-        W_[]BINDING()=yes
-      else
-        []binding()_ocamllflags="${[]BINDING()_PACKAGES} ${[]BINDING()_CMA}"
-        W_[]BINDING()=[]binding()
-      fi
+      liquidsoap_ocamllflags="${liquidsoap_ocamllflags} ${[]BINDING()_PACKAGES} ${[]BINDING()_CMA}"
       LIBS_VERSIONS="${LIBS_VERSIONS} $1=$[]BINDING()_version"
       AC_MSG_RESULT(ok)
     fi
@@ -172,15 +132,7 @@ AC_SUBST(W_[]BINDING())
 if test -z "${W_[]BINDING()}" ; then
     w_[]BINDING()="no (requires $1)"
 else
-    if test -z "${[]BINDING()_SHARED}"; then
-      w_[]BINDING()=yes
-    else
-      PLUGINS_DATA="$PLUGINS_DATA
-[]binding()_ocamlcflags=${[]binding()_ocamlcflags}
-[]binding()_ocamllflags=${[]binding()_ocamllflags}
-[]binding()_packages=${[]binding()_packages}"
-      w_[]BINDING()=plugin
-    fi
+    w_[]BINDING()=yes
 fi])
 
 
