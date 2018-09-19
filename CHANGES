@@ -5,6 +5,8 @@ New:
 
 - Added a bunch of base mathematics primitive, `exp`, `log`, `cos`, `sine`, ...
 
+- Added `"extinf_duration"` to parsed `#EXTINF` metadata.
+
 Fixed:
 
 - Fixed inotify watch semantics (#677)

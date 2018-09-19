@@ -39,21 +39,26 @@ let test_text s =
  let parse_extinf s =
    try
      let rex =
-       Pcre.regexp "#EXTINF:\\d+,(.*)"
+       Pcre.regexp "#EXTINF:(\\d+),(.*)"
      in
      let sub = Pcre.exec ~rex s in
-     let song =
+     let duration =
        Pcre.get_substring sub 1
+     in
+     let song =
+       Pcre.get_substring sub 2
      in
      let lines =
        Pcre.split ~pat:" - " song
      in
      match lines with
        | artist::title::[] ->
-           ["artist", Utils.trim artist;
+           ["extinf_duration", duration;
+            "artist", Utils.trim artist;
             "title", Utils.trim title]
        | _ ->
-           ["song", Utils.trim song]
+           ["extinf_duration", duration;
+            "song", Utils.trim song]
    with Not_found -> []
 
 (* This parser cannot detect the format !! *)
