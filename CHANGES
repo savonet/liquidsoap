@@ -1,6 +1,10 @@
 x.y.z ()
 =====
 
+Changed:
+
+- Added `"extinf_duration"` to parsed `#EXTINF` metadata.
+
 Fixed:
 
 - Enhanced `#EXTINF` parsing in ambigious cases (#625)
