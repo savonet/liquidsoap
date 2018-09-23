@@ -591,15 +591,17 @@ struct
       Request.clean () ;
       log#f 3 "Freeing memory..." ;
       Gc.full_major ();
-      if !Configure.restart then
-        (
-          log#f 3 "Restarting..." ;
-          Unix.execv Sys.executable_name Sys.argv
-        )
     in
     let cleanup () =
       cleanup_threads ();
       cleanup_final ()
+    in
+    let after_stop () =
+      if !Configure.restart then
+       begin
+        log#f 3 "Restarting..." ;
+         Unix.execv Sys.executable_name Sys.argv
+       end
     in
     let main () =
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
@@ -623,7 +625,8 @@ struct
     in
       (* We join threads, then shutdown duppy, then do the final task. *)
       ignore (Init.make ~before:[Tutils.scheduler_shutdown_atom] cleanup_threads);
-      ignore (Init.make ~after:[Dtools.Init.stop] cleanup_final);
+      ignore (Init.make ~before:[Dtools.Log.stop] cleanup_final);
+      ignore (Init.make ~after:[Dtools.Init.stop] after_stop); 
       startup ();
       if !interactive then begin
         load_libs () ;
