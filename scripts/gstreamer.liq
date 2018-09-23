@@ -65,17 +65,27 @@ def gstreamer.rtp.mpeg4(~host="127.0.0.1",~port=5000,source)
   output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}", source)
 end
 
-# Stream live on youtube.
+# Stream live on youtube. You need the following Gstreamer plugins: flvmux, rtmpsink, x264enc and a suitable AAC encoder (see @audio_encoder@ params).
 # @param ~id Source ID
+# @param ~video_bitrate Video bitrate
+# @param ~audio_encoder Audio encoder. Can be one of: "fdkaacenc", "voaacenc"
+# @param ~audio_bitrate Audio bitrate
 # @param ~url Server URL
 # @param ~key Secret key
 # @param source Source to stream
 # @category Source / Output
-def output.youtube.live(~id="",~url,~key,source) =
-  video_pipeline = "videoconvert ! timeoverlay ! x264enc bitrate=2000 ! \
+def output.youtube.live(~id="",
+  ~video_bitrate=2000,
+  ~audio_encoder="fdkaacenc",
+  ~audio_bitrate=128000,
+  ~url="rtmp://a.rtmp.youtube.com/live2",
+  ~key,
+  source) =
+  video_pipeline = "videoconvert ! \
+      x264enc bitrate=#{video_bitrate} byte-stream=false key-int-max=60 bframes=0 aud=true tune=zerolatency ! \
       video/x-h264,profile=main ! queue ! mux."
-  audio_pipeline = "audioconvert ! voaacenc bitrate=128000 ! queue ! mux."
-  pipeline = "flvmuxstreamable=1 name=mux ! rtmpsink location=\"#{url}/#{key}\""
+  audio_pipeline = "audioconvert ! #{audio_encoder} bitrate=#{audio_bitrate} ! queue ! mux."
+  pipeline = "flvmux streamable=true name=mux ! rtmpsink location=\"#{url}/#{key} app=live2\""
 
   output.gstreamer.audio_video(id=id,video_pipeline=video_pipeline,
     audio_pipeline=audio_pipeline,pipeline=pipeline,source)
