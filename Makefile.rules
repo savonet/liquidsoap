@@ -110,10 +110,6 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
 		$(c_link)
 endif
 
-%.ml: %.camlp4
-	$(V)echo CAMLP4O $<
-	$(V)$(CAMLP4O) -printer Camlp4OCamlPrinter -impl $< > $@
-
 %.ml: %.mll
 	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
 	$(V)echo OCAMLLEX $<

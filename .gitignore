@@ -25,9 +25,6 @@ src/lang/lang_lexer.ml
 src/lang/lang_parser.ml
 src/lang/lang_parser.mli
 src/*_depend
-src/outputs/harbor_output.camlp4.ml
-src/tools/harbor.camlp4.ml
-src/tools/server.camlp4.ml
 doc/liqi/auto_clean
 doc/liqi/liqi
 doc/liqi/liqi_depend

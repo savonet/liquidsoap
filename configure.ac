@@ -324,22 +324,6 @@ AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
 
 AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1])
 
-# Small hack..
-if test -z "${with_duppy_syntax_dir}"; then
-  if test "${CAMLP4O}" != "no" ; then
-    with_duppy_syntax_dir=${with_duppy_dir}
-  fi
-fi
-AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.2],[],[],[],[duppy])
-if test -n "${w_DUPPY_SYNTAX}"; then
-  if test "${CAMLP4O}" != "no"; then
-    if test -z "${DUPPY_SYNTAX_path}"; then
-      DUPPY_SYNTAX_path=`${OCAMLFIND} query duppy`
-    fi
-    CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
-  fi
-fi
-
 #
 # Cry
 #
