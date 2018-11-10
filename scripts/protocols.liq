@@ -367,12 +367,12 @@ def text2wave_protocol(~rlog,~maxtime,arg) =
 end
 add_protocol(static=true,"text2wave",text2wave_protocol,
              doc="Generate speech synthesis using text2wave. Result may be mono.",
-             syntax="text2wav:Text to read")
+             syntax="text2wav2:Text to read")
 
 register(name="Say protocol settings","protocol.say",())
 register(name="Sox path","protocol.say.sox_path","sox")
 
-# Register the legacy say: protocol using text2wav and sox
+# Register the legacy say: protocol using text2wave and sox
 # @flag hidden
 def say_protocol(~rlog,~maxtime,arg) =
   sox = get(default="sox","protocol.say.sox_path")
