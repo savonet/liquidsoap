@@ -16,3 +16,11 @@ A clear and concise description of what you expected to happen.
 **Version details**
  - OS: [e.g. Debian, OSX]
  - Version [e.g. `1.3.4`]
+
+**Install method**
+Did you install via `opam`? Using your distribution's packages? From source?
+
+**Common issues**
+Can't decode or encode in some audio format? Check if you have [installed the correct dependencies](https://www.liquidsoap.info/download.html)
+
+
