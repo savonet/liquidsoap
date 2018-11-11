@@ -6,16 +6,17 @@ used for netradios and webtvs. It has tons of features, it's free and it's
 open-source!
 
 Liquidsoap is a powerful and flexible language for describing your streams. It
-offers a rich collection of operators that you can combine at will, giving you
-more power than you need for creating or transforming streams. But liquidsoap is
-still very light and easy to use, in the Unix tradition of simple strong
-components working together.
+offers a rich collection of operators that you can combine to create and transform
+streams. Liquidsoap is very light and easy to use, in the Unix tradition of simple 
+strong components working together.
 
 Copyright 2003-2018 Savonet team
 
-* Email     : savonet-users@lists.sourceforge.net
-* Homepage  : http://liquidsoap.info
-* Bugreports: https://github.com/savonet/liquidsoap/issues
+|     |             |
+| ------------ | -------------------------------------------- |
+| Mailing list | savonet-users@lists.sourceforge.net          |
+| Homepage     | http://liquidsoap.info                       |
+| Bug reports  | https://github.com/savonet/liquidsoap/issues |
 
 Installation
 ------------
@@ -25,8 +26,7 @@ See the [INSTALL](INSTALL) file.
 Documentation
 -------------
 
-Some documentation is available on [our website](http://liquidsoap.info) and HTML
-documentation is included in the distribution: doc/html/index.html.
+HTML documentation is in doc/html/index.html ([mirrored](https://www.liquidsoap.info/doc-1.3.4/documentation.html) on the [Savonet website](http://liquidsoap.info))
 
 License
 -------
