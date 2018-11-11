@@ -12,9 +12,11 @@ strong components working together.
 
 Copyright 2003-2018 Savonet team
 
-* Email     : savonet-users@lists.sourceforge.net
-* Homepage  : http://liquidsoap.info
-* Bugreports: https://github.com/savonet/liquidsoap/issues
+|     |             |
+| ------------ | -------------------------------------------- |
+| Mailing list | savonet-users@lists.sourceforge.net          |
+| Homepage     | http://liquidsoap.info                       |
+| Bug reports  | https://github.com/savonet/liquidsoap/issues |
 
 Installation
 ------------
