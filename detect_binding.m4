@@ -122,6 +122,7 @@ else
         BINDING()_PACKAGES="${[]BINDING()_PACKAGES} `${OCAMLFIND} query -separator " " -format "-package %p" $i 2>/dev/null`"
       done
       liquidsoap_ocamllflags="${liquidsoap_ocamllflags} ${[]BINDING()_PACKAGES} ${[]BINDING()_CMA}"
+      W_[]BINDING()=yes
       LIBS_VERSIONS="${LIBS_VERSIONS} $1=$[]BINDING()_version"
       AC_MSG_RESULT(ok)
     fi
