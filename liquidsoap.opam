@@ -1,21 +1,11 @@
-opam-version: "1.2"
+opam-version: "2.0"
 version: "dev"
 maintainer: "romain.beauxis@gmail.com"
-homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
-build: [
-  ["./bootstrap"]
-  ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
-  [make clean]
-  [make]
-]
-install: [
-  [make "install"]
-]
-remove: [
-  ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
-]
+homepage: "https://github.com/savonet/liquidsoap"
+bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
+  "ocaml" {>= "4.03"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.1"}
   "duppy" {>= "0.6.0"}
@@ -56,7 +46,7 @@ depopts: [
   "theora"
   "vorbis"
   "xmlplaylist"
-  "yojson" 
+  "yojson"
 ]
 conflicts: [
   "alsa" {< "0.2.1"}
@@ -91,6 +81,28 @@ conflicts: [
   "vorbis" {< "0.7.0"}
   "xmlplaylist" {< "0.1.3"}
 ]
-available: [ ocaml-version >= "4.03" ]
-bug-reports: "https://github.com/savonet/liquidsoap/issues"
-dev-repo: "https://github.com/savonet/liquidsoap.git"
+flags: light-uninstall
+build: [
+  ["./bootstrap"]
+  [
+    "./configure"
+    "--prefix"
+    prefix
+    "--sbindir=%{lib}%/liquidsoap/sbin"
+    "--libexecdir=%{lib}%/liquidsoap/libexec"
+    "--sysconfdir=%{lib}%/liquidsoap/etc"
+    "--sharedstatedir=%{lib}%/liquidsoap/com"
+    "--localstatedir=%{lib}%/liquidsoap/var"
+    "--libdir=%{lib}%/liquidsoap/lib"
+    "--includedir=%{lib}%/liquidsoap/include"
+    "--datarootdir=%{lib}%/liquidsoap/share"
+    "--disable-graphics"
+    "--with-user=dummy"
+    "--with-group=dummy"
+  ]
+  [make clean]
+  [make]
+]
+install: [make "install"]
+remove: ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
+dev-repo: "git+https://github.com/savonet/liquidsoap.git"
