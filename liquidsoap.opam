@@ -100,8 +100,8 @@ build: [
     "--with-user=dummy"
     "--with-group=dummy"
   ]
-  [make clean]
-  [make]
+  [make "clean"]
+  [make "all"]
 ]
 install: [make "install"]
 remove: ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
