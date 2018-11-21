@@ -316,11 +316,15 @@ let handle_client socket ip =
                  Duppy.Monad.bind (Duppy_c.wait opts.condition opts.mutex)
                    (fun () -> run opts.resume)
              | Write opts ->
+                 (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
+                 Unix.setsockopt socket Unix.TCP_NODELAY false;
                  Duppy.Monad.bind
                    (Duppy.Monad.Io.write ?timeout: (Some (get_timeout ()))
                       ~priority: Tutils.Non_blocking h
                       (Bytes.of_string opts.payload))
-                   (fun () -> run opts.after)
+                   (fun () ->
+                     Unix.setsockopt socket Unix.TCP_NODELAY true;
+                     run opts.after)
              | Read opts ->
                  let __pa_duppy_0 =
                    Duppy.Monad.Io.read ?timeout: (Some (get_timeout ()))
