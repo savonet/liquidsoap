@@ -13,6 +13,8 @@ Fixed:
 
 - Fixed `output.youtube.live` (#630)
 
+- Make sure server writes are synchronous (#643)
+
 1.3.4 (10-09-2018)
 =====
 
