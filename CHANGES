@@ -1,6 +1,12 @@
 x.y.z ()
 =====
 
+New:
+
+- Added `(to_){string,float,int,bool}_getter` operators to handle getters in script side.
+
+- Made `p` parameter in `smooth_add` a `float` getter (#601)
+
 Changed:
 
 - Remove dynamic plugin build option.

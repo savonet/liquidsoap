@@ -81,6 +81,30 @@ let () =
 
 let log = Lang.log
 
+let add_getters name get_t type_t to_get to_val =
+  add_builtin ~cat:Liq ("to_" ^ name ^ "_getter")
+    ~descr:("Return a function from a " ^ name ^ " getter")
+    ["",get_t 1,None,None]
+    (Lang.fun_t [] type_t)
+    (fun p ->
+      let getter =
+        to_get
+          (Lang.assoc "" 1 p)
+      in
+      Lang.val_fun [] ~ret_t:type_t (fun _ _ ->
+        to_val (getter ())));
+  add_builtin ~cat:Liq (name ^ "_getter")
+    ~descr:("Create a " ^ name ^ " getter")
+    ["",get_t 1,None,None]
+    (get_t 2)
+    (fun p -> List.assoc "" p)
+
+let () =
+  add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter Lang.string;
+  add_getters "float" Lang.float_getter_t Lang.float_t Lang.to_float_getter Lang.float;
+  add_getters "int" Lang.int_getter_t Lang.int_t Lang.to_int_getter Lang.int;
+  add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter Lang.bool
+
 let () =
   add_builtin ~cat:Liq "eval"
     ~descr:"Evaluate a string as an expression in the toplevel environment."
