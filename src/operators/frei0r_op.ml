@@ -172,7 +172,7 @@ end
 (** Make a list of parameters. *)
 let params plugin info =
   (* This is only to get default parameters... *)
-  let instance = Frei0r.create plugin 1 1 in
+  let instance = Frei0r.create plugin 8 8 in
   let utv = ref 0 in
   let liq_params =
     List.init

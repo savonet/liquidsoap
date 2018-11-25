@@ -10,6 +10,8 @@ Fixed:
 
 - Make sure server writes are synchronous (#643)
 
+- Fixed crash when loading some frei0r plugins (#435)
+
 1.3.4 (10-09-2018)
 =====
 
