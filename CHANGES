@@ -7,6 +7,8 @@ New:
 
 - Made `p` parameter in `smooth_add` a `float` getter (#601)
 
+- Added a bunch of base mathematics primitive, `exp`, `log`, `cos`, `sine`, ...
+
 Changed:
 
 - Remove dynamic plugin build option.
