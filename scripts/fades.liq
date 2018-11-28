@@ -4,7 +4,7 @@
 # @param ~start Start value.
 # @param ~stop Stop value.
 # @param ~duration Duration in seconds.
-# @param s Source clock
+# @param s
 def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,s) =
   log = log(label="mkfade")
 
