@@ -32,9 +32,11 @@ object (self)
   inherit operator ~name:"sequence" kind sources
 
   val mutable sources = sources
-  initializer assert (sources <> [])
 
-  method stype = (List.hd (List.rev sources))#stype
+  method stype =
+    match sources with
+      | hd::_ -> hd#stype
+      | [] -> Source.Fallible
 
   method private wake_up activation =
     List.iter
@@ -72,7 +74,9 @@ object (self)
             sources <- [hd] ;
             List.iter (fun (s:source) -> s#leave (self:>source)) tl
     end ;
-    (List.hd sources)#abort_track
+    match sources with
+      | hd::_ -> hd#abort_track
+      | _ -> ()
 
   method private get_frame buf =
     if head_ready then begin
