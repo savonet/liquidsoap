@@ -39,7 +39,7 @@ object(self)
     s#get ab ;
     self#save_latest_metadata ab ;
     let rem = Frame.seconds_of_master s#remaining in
-    if (not executed) && ((0. <= rem && rem <= delay) || Frame.is_partial ab) then
+    if (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab) then
     begin
       ignore(Lang.apply ~t:Lang.unit_t f ["",Lang.float rem;
                                           "",Lang.metadata latest_metadata]) ;
@@ -55,7 +55,7 @@ end
 let () =
   let kind = Lang.univ_t 1 in
   Lang.add_operator "on_end"
-    [ "delay", Lang.float_t,
+    [ "delay", Lang.float_getter_t 1,
       Some (Lang.float 5.),
       Some "Execute handler when remaining time is less or \
             equal to this value." ;
@@ -73,7 +73,7 @@ let () =
             a given amount of time remaining before then end of track."
     ~kind:(Lang.Unconstrained kind)
     (fun p kind ->
-       let delay = Lang.to_float (List.assoc "delay" p) in
+       let delay = Lang.to_float_getter (List.assoc "delay" p) in
        let f = Lang.assoc "" 1 p in
        let s = Lang.to_source (Lang.assoc "" 2 p) in
          new on_end ~kind ~delay f s)
