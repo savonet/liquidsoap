@@ -68,16 +68,37 @@ def fade.out.base(~id,~duration,~override_duration,
   fn = ref (fun () -> 1.)
   type = ref type
   duration = ref duration
+  finished = ref false
+  start_time = ref 0.
 
-  def apply() =
-    fn = !fn
-    fn()
-  end
+  s =
+    if final then
+      # In final mode, fading starts right away and the
+      # source becomes unavailable once finished. Thus we want:
+      # - to have exactly !delay available data (add blank)
+      # - to finish after !delay has been consumed (switch)
+      # - to become unavailable after that (sequence to failing source)
+      is_finished = fun () -> not !finished
+      s = switch(track_sensitive=false,[(is_finished,s)])
+      b = sequence([blank(duration=!duration),fallback([])])
+      add(normalize=false,[s,b])
+    else
+      s
+    end
 
   def start_fade(d,_) =
     log("Fading out with #{d}s remaining..")
+    start_time := source.time(s)
     duration = if d < !duration then d else !duration end
     fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)
+  end
+
+  def apply() =
+    if final and (not !finished) and !duration <= source.time(s) - !start_time then
+      finished := true
+    end
+    fn = !fn
+    fn()
   end
 
   def stop_fade(_) =
@@ -87,24 +108,19 @@ def fade.out.base(~id,~duration,~override_duration,
   def update_fade(m) =
     if m[override_duration] != "" then
       duration := float_of_string(default=!duration,m[override_duration])
+      log("New fade duration: #{!duration}")
     end
 
     if m[override_type] != "" then
       type := m[override_type]
+      log("New fade type: #{!type}")
     end
   end
 
-  s =
-    if final then
-      start_fade(!duration,())
-      sequence([s,fallback([])])
-    else
-      delay = fun () -> !duration
-      s = on_end(delay=delay,start_fade,s)
-      on_track(stop_fade,s)
-    end
-
   s = on_metadata(update_fade,s)
+  delay = fun () -> !duration
+  s = on_end(delay=delay,start_fade,s)
+  on_track(stop_fade,s)
   amplify(id=id,apply,s)
 end
 
@@ -133,7 +149,7 @@ end
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.final(~id="fade.final",~duration=3.,
-             ~override_duration="liq_fade_out",
+             ~override_duration="liq_fade_final",
              ~override_type="liq_fade_type",
              ~type="lin",s) =
   fade.out.base(id=id,duration=duration,
@@ -172,7 +188,7 @@ def fade.in.base(~id,~duration,~override_duration,~override_type,
 
     if m[override_type] != "" then
       type := m[override_type]
-      log("New fade type: #{type}")
+      log("New fade type: #{!type}")
     end
   end
 
@@ -207,7 +223,7 @@ end
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.initial(~id="fade.in",~duration=3.,
-            ~override_duration="liq_fade_in",
+            ~override_duration="liq_fade_initial",
             ~override_type="liq_fade_type",
             ~type="lin",s) =
   fade.in.base(id=id,duration=duration,
