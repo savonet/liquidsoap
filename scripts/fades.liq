@@ -81,11 +81,7 @@ def fade.out.base(~id,~duration,~override_duration,
   end
 
   def stop_fade(_) =
-    if final then
-      fn := fun () -> 0.
-    else
-      fn := fun () -> 1.
-    end
+    fn := fun () -> 1.
   end
 
   def update_fade(m) =
@@ -98,18 +94,18 @@ def fade.out.base(~id,~duration,~override_duration,
     end
   end
 
-  delay = fun () -> !duration
-  s = on_end(delay=delay,start_fade,s)
-  s = on_track(stop_fade,s)
-  s = on_metadata(update_fade,s)
-  s = amplify(id=id,apply,s)
+  s =
+    if final then
+      start_fade(!duration,())
+      sequence([s,fallback([])])
+    else
+      delay = fun () -> !duration
+      s = on_end(delay=delay,start_fade,s)
+      on_track(stop_fade,s)
+    end
 
-  if final then
-    start_fade(!duration,())
-    sequence([s,sequence([])])
-  else
-    s
-  end
+  s = on_metadata(update_fade,s)
+  amplify(id=id,apply,s)
 end
 
 # Fade the end of tracks.

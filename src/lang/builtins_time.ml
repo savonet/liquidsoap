@@ -82,7 +82,10 @@ let () =
           (List.assoc "" p)
       in
       let ticks =
-        (Source.Clock_variables.get s#clock)#get_tick
+        if Source.Clock_variables.is_known s#clock then
+          (Source.Clock_variables.get s#clock)#get_tick
+        else
+          0
       in
       let frame_position =
         (Lazy.force Frame.duration) *. (float ticks)
