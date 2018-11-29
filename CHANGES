@@ -9,11 +9,17 @@ New:
 
 - Added a bunch of base mathematics primitive, `exp`, `log`, `cos`, `sine`, ...
 
+- Added `source.time` to get a source's clock time.
+
 Changed:
 
 - Remove dynamic plugin build option.
 
 - Added `"extinf_duration"` to parsed `#EXTINF` metadata.
+
+- Made `on_end` delay a float getter.
+
+- Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
 
 Fixed:
 
