@@ -35,7 +35,7 @@ let mime_types =
 let file_extensions =
   Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
     "File extensions used for decoding with ffmpeg"
-    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg"] (* Test *)
+    ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma"] (* Test *)
 
 module ConverterInput = FFmpeg.Swresample.Make(FFmpeg.Swresample.Frame)
 module Converter = ConverterInput(FFmpeg.Swresample.PlanarFloatArray)
