@@ -28,20 +28,13 @@ module Img = Image.RGBA32
 
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
-let get_again s buf =
-  s#get buf ;
-  Frame.set_breaks buf
-    (match Frame.breaks buf with
-       | pos::_::l -> pos::l
-       | _ -> assert false)
-
 (** Add/mix several sources together.
   * If [renorm], renormalize the PCM channels.
   * The [video_init] (resp. [video_loop]) parameter is used to pre-process
   * the first layer (resp. next layers) in the sum; this generalization
   * is used to add either as an overlay or as a tiling. *)
 class add ~kind ~renorm (sources: (int*source) list) video_init video_loop =
-object (self)
+object
   inherit operator ~name:"add" kind (List.map snd sources)
 
   (* We want the sources at the beginning of the list to
@@ -117,24 +110,9 @@ object (self)
                tmp
              end
            in
+           s#get buffer;
+           let already = Frame.position buffer in
            let c = (float w)/.weight in
-
-             if List.length sources = 1 then
-               s#get buffer
-             else begin
-               (* If there is more than one source we fill greedily. *)
-               s#get buffer ;
-               let get_count = ref 0 in
-               while Frame.is_partial buffer && s#is_ready do
-                 incr get_count ;
-                 if !get_count > Lazy.force Frame.size then
-                   self#log#f 2
-                     "Warning: there may be an infinite sequence of empty tracks!" ;
-                 get_again s buffer
-               done
-             end ;
-
-             let already = Frame.position buffer in
                if c<>1. && renorm then
                  Audio.amplify
                    c
