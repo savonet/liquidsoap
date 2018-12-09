@@ -70,6 +70,7 @@ end
 module Transport =
 struct
   type socket = secure_transport_socket
+  let name = "secure_transport"
   let file_descr_of_socket {sock} = sock
   let read {ctx} len =
     let buf = Bytes.create len in

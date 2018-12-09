@@ -77,6 +77,7 @@ let get_ctx =
 module Transport =
 struct
   type socket = Ssl.socket
+  let name = "ssl"
   let file_descr_of_socket = Ssl.file_descr_of_socket
   let read socket len =
     let buf = Bytes.create len in

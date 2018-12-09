@@ -28,6 +28,8 @@ module type Monad_t = module type of Monad with module Io := Monad.Io
 module type Transport_t = sig
   type socket
 
+  val name : string
+
   val file_descr_of_socket : socket -> Unix.file_descr
 
   val read : socket -> int -> bytes * int
@@ -54,6 +56,8 @@ end
 
 module Unix_transport = struct
   type socket = Unix.file_descr
+
+  let name = "unix"
 
   let file_descr_of_socket socket = socket
 
@@ -171,6 +175,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let read = T.read
 
   let close = T.close
+
+  let protocol_name =
+    match T.name with
+      | "unix" -> "HTTP"
+      | "ssl" -> "HTTPS"
+      | "secure_transport" -> "HTTPS"
+      | _ -> assert false
 
   (* Define what we need as a source *)
 
@@ -727,7 +738,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | `Http_11 -> "HTTP/1.1"
       | _ -> assert false
     in
-    log#f 4 "HTTP %s request on %s." smethod base_uri ;
+    log#f 4 "%s %s request on %s." protocol_name smethod base_uri ;
     let args = Http.args_split args in
     (* Filter out password *)
     let log_args =
@@ -737,7 +748,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Hashtbl.remove log_args "pass" ;
         log_args
     in
-    Hashtbl.iter (fun h v -> log#f 4 "HTTP Arg: %s, value: %s." h v) log_args ;
+    Hashtbl.iter (log#f 4 "%s Arg: %s, value: %s." protocol_name) log_args ;
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
     let f (verb, reg_uri) handler =
@@ -761,7 +772,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
           (handler ~protocol ~data ~headers ~socket:h.Duppy.Monad.Io.socket uri)
     | e ->
-        log#f 4 "HTTP %s request on uri '%s' failed: %s" smethod
+        log#f 4 "%s %s request on uri '%s' failed: %s" protocol_name smethod
           (Printexc.to_string e) uri ;
         ans_500 ()
 
