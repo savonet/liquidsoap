@@ -30,6 +30,7 @@ let create_encoder ~opus ~comments () =
   in
   let pending = ref [||] in
   let enc = ref None in
+  let started  = ref false in
   let get_enc os = 
     match !enc with
       | Some x -> x
@@ -72,6 +73,7 @@ let create_encoder ~opus ~comments () =
     Ogg_muxer.flush_pages os
   in
   let data_encoder data os _ =
+    started := true;
     let enc = get_enc os in
     let data =
       Array.map (fun buf ->
@@ -96,6 +98,14 @@ let create_encoder ~opus ~comments () =
         (fun channel -> Array.sub channel ret ((Array.length channel) - ret))
         data
   in
+  let empty_data () = { Ogg_muxer.
+    offset = 0;
+    length = 1;
+    data =
+      Array.make
+         (Lazy.force Frame.audio_channels)
+         (Array.make 1 0.)
+  } in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then
@@ -105,6 +115,9 @@ let create_encoder ~opus ~comments () =
   in
   let end_of_stream os =
     let enc = get_enc os in
+    (* Assert that at least some data was encoded.. *)
+    if not !started then
+      data_encoder (empty_data ()) os ();
     Opus.Encoder.eos enc
   in
   {
