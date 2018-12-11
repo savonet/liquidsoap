@@ -27,6 +27,8 @@ Fixed:
 
 - Fixed compilation with `osx-secure-transport`
 
+- Fixed invalid opus stream generated when no data was ever encoded (#180)
+
 1.3.4 (10-09-2018)
 =====
 
