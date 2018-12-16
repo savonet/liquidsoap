@@ -1,3 +1,4 @@
+%include "fades.liq"
 %include "utils.liq"
 %include "protocols.liq"
 %include "externals.liq"

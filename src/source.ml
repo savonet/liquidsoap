@@ -483,6 +483,7 @@ object (self)
 
   (* In caching mode, remember what has been given during the current tick *)
   val memo = Frame.create content_kind
+  method get_memo = memo
 
   (* [#get buf] completes the frame with the next data in the stream.
    * Depending on whether caching is enabled or not,

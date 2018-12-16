@@ -81,6 +81,10 @@ object
   (** What kind of content does this source produce. *)
   method kind : Frame.content_kind
 
+  (** Frame currently being filled. *)
+  val memo : Frame.t
+  method get_memo : Frame.t
+
   (** Number of frames left in the current track. Defaults to -1=infinity. *)
   method virtual remaining : int
 
@@ -132,7 +136,6 @@ end
 and virtual active_source : ?name:string -> Frame.content_kind ->
 object
   inherit source
-  val memo : Frame.t
 
   (** Special init phase for outputs. This method is called by Root after the
     * standard get_ready propagation, after the Root clock is started.

@@ -73,4 +73,24 @@ let () =
          (Lang.to_float (Lang.assoc "" 1 p))
       in
       let fn = Lang.assoc "" 2 p in
-      execute fn tm)
+      execute fn tm);
+  add_builtin ~cat:Liq "source.time" ~descr:"Get a source's time, based on its assigned clock"
+    ["",Lang.source_t (Lang.univ_t 1),None,None]
+    Lang.float_t (fun p ->
+      let s =
+        Lang.to_source
+          (List.assoc "" p)
+      in
+      let ticks =
+        if Source.Clock_variables.is_known s#clock then
+          (Source.Clock_variables.get s#clock)#get_tick
+        else
+          0
+      in
+      let frame_position =
+        (Lazy.force Frame.duration) *. (float ticks)
+      in
+      let in_frame_position =
+        Frame.seconds_of_master (Frame.position s#get_memo)
+      in
+      Lang.float (frame_position +. in_frame_position))
