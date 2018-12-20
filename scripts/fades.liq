@@ -60,7 +60,7 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,s) =
   fade
 end
 
-# flag @hidden
+# @flag hidden
 def fade.out.base(~id,~duration,~override_duration,
                   ~override_type,~type,~final,s) =
   log = log(label=source.id(s),level=4)
