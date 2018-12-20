@@ -206,20 +206,14 @@ let print_doc ?snippet_template ~subst ~basedir f =
                  | None -> extract_suffix title
                  | Some x -> x
              in
-             fprintf f "<pre class=\"syntax %s\">%s</pre>\n" klass !!body;
-             fprintf f "<div align=\"right\">\n\
-                        <a href=\"scripts/%s\">\n\
-                          <img class=\"grab\" src=\"%simages/grab.png\" \
-                               alt=\"Grab the code!\">\n\
-                        </a>\n\
-                        </div></p>\n" title basedir
+             fprintf f "<figure class=\"highlight\"><pre><code class=\"language-%s\">%s</code></pre></figure>\n" klass !!body;
          | Snippet (None, body, language) ->
              let klass =
                match language with
                  | None -> ""
                  | Some x -> x
              in
-             fprintf f "<pre class=\"syntax %s\">%s</pre>\n" klass !!body)
+             fprintf f "<figure class=\"highlight\"><pre><code class=\"language-%s\">%s</code></pre></figure>\n" klass !!body)
       doc ;
     regenerate_snippet_index ()
 
