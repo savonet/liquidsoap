@@ -55,7 +55,7 @@ let watch : File_watcher.watch = fun e file f ->
     let fd = Utils.get_some !fd in
     let event_conv = function
       | `Modify ->
-          [Inotify.S_Modify; Inotify.S_Moved_to;
+          [Inotify.S_Modify; Inotify.S_Moved_to; Inotify.S_Moved_from;
            Inotify.S_Delete; Inotify.S_Create]
     in
     let e =
