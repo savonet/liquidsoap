@@ -54,9 +54,15 @@ let watch : File_watcher.watch = fun e file f ->
       end;
     let fd = Utils.get_some !fd in
     let event_conv = function
-      | `Modify -> Inotify.S_Modify
+      | `Modify ->
+          [Inotify.S_Modify; Inotify.S_Moved_to
+           Inotify.S_Delete; Inotify.S_Create]
     in
-    let wd = Inotify.add_watch fd file (List.map event_conv e) in
+    let e =
+      List.flatten
+        (List.map event_conv e)
+    in
+    let wd = Inotify.add_watch fd file e in
     handlers := (wd,f) :: !handlers;
     let unwatch =
       Tutils.mutexify m (fun () ->

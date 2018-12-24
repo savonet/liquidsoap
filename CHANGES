@@ -23,6 +23,8 @@ Changed:
 
 Fixed:
 
+- Fixed inotify watch semantics (#677)
+
 - Enhanced `#EXTINF` parsing in ambigious cases (#625)
 
 - Fixed `output.youtube.live` (#630)
