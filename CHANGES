@@ -7,19 +7,24 @@ New:
 
 - Made `p` parameter in `smooth_add` a `float` getter (#601)
 
-- Added a bunch of base mathematics primitive, `exp`, `log`, `cos`, `sine`, ...
-
 - Added `source.time` to get a source's clock time.
 
 Changed:
 
 - Remove dynamic plugin build option.
 
-- Added `"extinf_duration"` to parsed `#EXTINF` metadata.
-
 - Made `on_end` delay a float getter.
 
 - Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
+
+1.3.5 ()
+=======
+
+New:
+
+- Added a bunch of base mathematics primitive, `exp`, `log`, `cos`, `sine`, ...
+
+- Added `"extinf_duration"` to parsed `#EXTINF` metadata.
 
 Fixed:
 
