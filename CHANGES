@@ -17,8 +17,8 @@ Changed:
 
 - Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
 
-1.3.5 ()
-=======
+1.3.5 (25-12-2018)
+=====
 
 New:
 
