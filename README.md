@@ -10,7 +10,7 @@ offers a rich collection of operators that you can combine to create and transfo
 streams. Liquidsoap is very light and easy to use, in the Unix tradition of simple 
 strong components working together.
 
-Copyright 2003-2018 Savonet team
+Copyright 2003-2019 Savonet team
 
 |     |             |
 | ------------ | -------------------------------------------- |
@@ -26,7 +26,7 @@ See the [INSTALL](INSTALL) file.
 Documentation
 -------------
 
-HTML documentation is in doc/html/index.html ([mirrored](https://www.liquidsoap.info/doc-1.3.4/documentation.html) on the [Savonet website](http://liquidsoap.info))
+HTML documentation is in doc/html/index.html ([mirrored](https://www.liquidsoap.info/doc.html) on the [Savonet website](http://liquidsoap.info))
 
 License
 -------
