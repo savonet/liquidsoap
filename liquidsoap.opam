@@ -1,66 +1,81 @@
-opam-version: "1.2"
+opam-version: "2.0"
 version: "dev"
 maintainer: "romain.beauxis@gmail.com"
-homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
-build: [
-  ["./bootstrap"]
-  ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
-  [make clean]
-  [make]
-]
-install: [
-  [make "install"]
-]
-remove: [
-  ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
-]
+homepage: "https://github.com/savonet/liquidsoap"
+bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "ocamlfind"
-  "pcre"
+  "ocaml" {>= "4.03"}
   "camomile" {>= "1.0.0"}
-  "dtools" {>= "0.3.4"}
+  "dtools" {>= "0.4.1"}
   "duppy" {>= "0.6.0"}
   "mm" {>= "0.4.0"}
+  "ocamlfind" {build}
+  "pcre"
 ]
 depopts: [
-  "shine"
-  "cry"
-  "ao"
-  "portaudio"
   "alsa"
-  "pulseaudio"
+  "ao"
   "bjack"
-  "taglib"
-  "lame"
-  "ogg"
-  "vorbis"
-  "theora"
-  "opus"
-  "faad"
-  "flac"
-  "fdkaac"
-  "speex"
-  "ladspa"
-  "mad"
-  "samplerate"
-  "soundtouch"
-  "gavl"
-  "ffmpeg"
-  "frei0r"
+  "cry"
   "dssi"
-  "xmlplaylist"
+  "faad"
+  "fdkaac"
+  "ffmpeg"
+  "flac"
+  "frei0r"
+  "gavl"
+  "inotify"
+  "ladspa"
+  "lame"
   "lastfm"
   "lo"
-  "inotify"
-  "ssl"
-  "osx-secure-transport"
+  "mad"
   "magic"
+  "ogg"
+  "opus"
+  "osx-secure-transport"
+  "portaudio"
+  "pulseaudio"
+  "samplerate"
+  "shine"
+  "soundtouch"
+  "speex"
+  "ssl"
+  "taglib"
+  "theora"
+  "vorbis"
+  "xmlplaylist"
   "yojson"
-  "gstreamer"
 ]
 conflicts: [
-  "cry" {< "0.5.0"}
+  "alsa" {< "0.2.1"}
+  "ao" {< "0.2.0"}
+  "bjack" {>= "0.1.3"}
+  "cry" {< "0.6.0"}
+  "dssi" {< "0.1.1"}
+  "faad" {< "0.4.0"}
+  "fdkaac" {< "0.2.1"}
+  "ffmpeg" {< "0.2.0"}
+  "flac" {< "0.1.2"}
+  "frei0r" {< "0.1.0"}
+  "gavl" {< "0.1.4"}
+  "inotify" {< "1.0"}
+  "ladspa" {< "0.1.4"}
+  "lame" {< "0.3.2"}
+  "lastfm" {< "0.3.0"}
+  "lo" {< "0.1.0"}
+  "mad" {< "0.1.4"}
+  "magic" {< "0.6"}
+  "ogg" {< "0.5.0"}
+  "opus" {< "0.1.1"}
+  "portaudio" {< "0.2.0"}
+  "pulseaudio" {< "0.1.2"}
+  "samplerate" {< "0.1.1"}
+  "shine" {< "0.2.0"}
+  "soundtouch" {< "0.1.7"}
+  "speex" {< "0.2.1"}
+  "ssl" {< "0.5.2"}
   "taglib" {< "0.3.0"}
   "theora" {< "0.3.1"}
   "vorbis" {< "0.7.0"}
@@ -88,6 +103,6 @@ build: [
   [make "clean"]
   [make "all"]
 ]
-available: [ ocaml-version >= "4.03" ]
-bug-reports: "https://github.com/savonet/liquidsoap/issues"
-dev-repo: "https://github.com/savonet/liquidsoap.git"
+install: [make "install"]
+remove: ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
+dev-repo: "git+https://github.com/savonet/liquidsoap.git"
