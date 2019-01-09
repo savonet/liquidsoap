@@ -68,7 +68,7 @@ def fade.out.base(~id,~duration,~override_duration,
   type = ref type
   duration = ref duration
   finished = ref false
-  start_time = ref 0.
+  start_time = ref (-1.)
 
   s =
     if final then
@@ -93,7 +93,7 @@ def fade.out.base(~id,~duration,~override_duration,
   end
 
   def apply() =
-    if final and (not !finished) and !duration <= source.time(s) - !start_time then
+    if !start_time >= 0. and final and (not !finished) and !duration <= source.time(s) - !start_time then
       finished := true
     end
     fn = !fn
