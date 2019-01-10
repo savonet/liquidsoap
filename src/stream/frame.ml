@@ -621,7 +621,7 @@ let get_chunk ab from =
              * for packets like those forged by add, with a fake first break,
              * but isn't needed (yet) and is painful to implement. *)
             copy_chunk 0
-          else if foffset < i && i > p then begin
+          else if foffset <= p && i > p then begin
             copy_chunk i
           end else
             aux i tl

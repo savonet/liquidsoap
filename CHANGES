@@ -17,6 +17,10 @@ Changed:
 
 - Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
 
+Fixed:
+
+- Fixed crash when copying frame content (#684)
+
 1.3.5 (25-12-2018)
 =====
 
