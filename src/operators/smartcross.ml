@@ -80,6 +80,7 @@ object (self)
   val source = s
   (* Give a default value for the transition source. *)
   val mutable transition_source = (new Switch.fallback ~kind (fun () -> false) []:>source) 
+  val mutable pending_after = Generator.create ()
 
   method private wake_up _ =
     source#get_ready ~dynamic:true [(self:>source)] ;
@@ -199,7 +200,7 @@ object (self)
       | `After ->
           transition_source#get frame ;
           needs_tick <- true ;
-          if Frame.is_partial frame then
+          if Generator.length pending_after = 0 && Frame.is_partial frame then
            begin
             status <- `Idle ;
             if source#is_ready then
@@ -355,6 +356,7 @@ object (self)
     in
       compound#get_ready [(self:>source)] ;
       transition_source <- compound ;
+      pending_after <- gen_after ;
       Clock.unify source#clock transition_source#clock ;
       status <- `After ;
       self#reset_analysis
