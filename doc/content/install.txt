@@ -71,7 +71,7 @@ compile and install liquidsoap in a single @configure@, @make@ and @make
 install@ procedure. You will still need the corresponding C libraries and their
 development files, though.
 
-You will then have to "build the source":doc-dev/build.html.
+You will then have to "build the source":build.html.
 
 h3@latest. Latest development version
 
@@ -111,4 +111,4 @@ After that, you should synchronize the repository from time to time using
 make update
 </pre>
 
-Some more explanations can be found in the "build instructions":doc-dev/build.html.
+Some more explanations can be found in the "build instructions":build.html.
