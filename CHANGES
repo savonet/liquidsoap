@@ -21,6 +21,8 @@ Fixed:
 
 - Fixed smart_crossfade transitions skipping data after track marks. (#683, #652)
 
+- Fixed `input.pulseaudio` parameters.
+
 - Fixed crash when copying frame content (#684)
 
 1.3.5 (25-12-2018)
