@@ -195,7 +195,7 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
   let proto =
-    (Output.proto @ [ "client", Lang.string_t, 
+    ([ "client", Lang.string_t, 
         Some (Lang.string "liquidsoap"), None ;
       "device", Lang.string_t,
         Some (Lang.string ""), 
@@ -205,7 +205,7 @@ let () =
         Some "Force the use of the dedicated Pulseaudio clock." ])
   in
   Lang.add_operator "output.pulseaudio" ~active:true
-    (proto @ ["", Lang.source_t k, None, None])
+    (Output.proto @ proto @ ["", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
