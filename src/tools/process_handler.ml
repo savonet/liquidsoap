@@ -23,9 +23,11 @@
 type _t = {
   in_pipe:  Unix.file_descr;
   out_pipe: Unix.file_descr;
+  pid:      int;
   stdin:    out_channel;
   stderr:   in_channel;
   stdout:   in_channel;
+  mutable status: Unix.process_status option;
   mutable stopped: bool
 }
 
@@ -92,7 +94,7 @@ let _kill = function
       List.iter silent [(fun () -> Unix.close in_pipe);
                         (fun () -> Unix.close out_pipe);
                         (fun () ->
-          ignore(Extralib.Unix.close_process_full (stdout,stdin,stderr)))]
+          ignore(Extralib.close_process_full (stdout,stdin,stderr)))]
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
@@ -135,23 +137,24 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     in
     let create () =
       log "Starting process";
-      let stdout,stdin,stderr =
-        Extralib.Unix.open_process_full command env
-      in
-      let pid =
-        Extralib.Unix.process_full_pid (stdout,stdin,stderr)
+      let pid,stdout,stdin,stderr =
+        Extralib.open_process_full command env
       in
       let out_pipe,in_pipe = Unix.pipe () in
-      ignore(Thread.create (fun () ->
-        try
-          ignore(Extralib.Unix.waitpid_non_intr pid);
-          ignore(Unix.write in_pipe done_c 0 1)
-        with _ -> ()) ());
-      {in_pipe;out_pipe;stdin;stdout;stderr;stopped=false}
+      {in_pipe;out_pipe;pid;stdin;stdout;stderr;stopped=false;status=None}
     in
     let process = create () in
     let mutex = Mutex.create () in
     let t = {mutex;process=Some process} in
+    ignore(Thread.create (fun () ->
+      try
+        let _,status =
+          Extralib.waitpid_non_intr process.pid
+        in
+        Tutils.mutexify t.mutex (fun () ->
+          process.status <- Some status) ();
+        ignore(Unix.write process.in_pipe done_c 0 1)
+      with _ -> ()) ());
     let create = Tutils.mutexify t.mutex (fun () ->
       _kill t.process;
       t.process <- Some (create ()))
@@ -254,10 +257,17 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         get_task decision
       with 
         | Finished ->
-            let {in_pipe;out_pipe;stdout;stdin;stderr} = get_process t in
+            let {in_pipe;out_pipe;pid;stdout;stdin;stderr;status}  =
+              get_process t
+            in
             ignore(Unix.close in_pipe);
             ignore(Unix.close out_pipe);
-            let status = Extralib.Unix.close_process_full (stdout,stdin,stderr) in
+            Extralib.close_process_full (stdout,stdin,stderr);
+            let status =
+              match status with
+                | Some status -> status
+                | None -> snd (Extralib.waitpid_non_intr pid)
+            in
             let descr =
               match status with
                 | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
