@@ -150,10 +150,11 @@ module Unix = struct
   let open_process_full cmd =
     open_process_shell open_process_args_full cmd
 
-  let find_proc_id fun_name proc =
+  let find_proc_id ?(remove=false) fun_name proc =
     try
       let pid = Hashtbl.find popen_processes proc in
-      Hashtbl.remove popen_processes proc;
+      if remove then
+        Hashtbl.remove popen_processes proc;
       pid
     with Not_found ->
       raise(Unix_error(EBADF, fun_name, ""))
@@ -164,7 +165,7 @@ module Unix = struct
 
   let close_process_full (inchan, outchan, errchan) =
     let pid =
-      find_proc_id "close_process_full"
+      find_proc_id ~remove:true "close_process_full"
                  (Process_full(inchan, outchan, errchan)) in
     close_in inchan;
     begin try close_out outchan with Sys_error _ -> () end;
