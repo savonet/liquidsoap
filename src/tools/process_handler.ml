@@ -92,7 +92,7 @@ let _kill = function
       List.iter silent [(fun () -> Unix.close in_pipe);
                         (fun () -> Unix.close out_pipe);
                         (fun () ->
-          ignore(Unix.close_process_full (stdout,stdin,stderr)))]
+          ignore(Extralib.Unix.close_process_full (stdout,stdin,stderr)))]
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
@@ -136,9 +136,17 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let create () =
       log "Starting process";
       let stdout,stdin,stderr =
-        Unix.open_process_full command env
+        Extralib.Unix.open_process_full command env
+      in
+      let pid =
+        Extralib.Unix.process_full_pid (stdout,stdin,stderr)
       in
       let out_pipe,in_pipe = Unix.pipe () in
+      ignore(Thread.create (fun () ->
+        try
+          ignore(Extralib.Unix.waitpid_non_intr pid);
+          ignore(Unix.write in_pipe done_c 0 1)
+        with _ -> ()) ());
       {in_pipe;out_pipe;stdin;stdout;stderr;stopped=false}
     in
     let process = create () in
@@ -249,7 +257,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             let {in_pipe;out_pipe;stdout;stdin;stderr} = get_process t in
             ignore(Unix.close in_pipe);
             ignore(Unix.close out_pipe);
-            let status = Unix.close_process_full (stdout,stdin,stderr) in
+            let status = Extralib.Unix.close_process_full (stdout,stdin,stderr) in
             let descr =
               match status with
                 | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
