@@ -94,7 +94,7 @@ let _kill = function
       List.iter silent [(fun () -> Unix.close in_pipe);
                         (fun () -> Unix.close out_pipe);
                         (fun () ->
-          ignore(Extralib.close_process_full (stdout,stdin,stderr)))]
+          ignore(Process_utils.close_process (stdout,stdin,stderr)))]
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
@@ -138,7 +138,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let create () =
       log "Starting process";
       let pid,stdout,stdin,stderr =
-        Extralib.open_process_full command env
+        Process_utils.open_process command env
       in
       let out_pipe,in_pipe = Unix.pipe () in
       {in_pipe;out_pipe;pid;stdin;stdout;stderr;stopped=false;status=None}
@@ -149,7 +149,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     ignore(Thread.create (fun () ->
       try
         let _,status =
-          Extralib.waitpid_non_intr process.pid
+          Process_utils.waitpid process.pid
         in
         Tutils.mutexify t.mutex (fun () ->
           process.status <- Some status) ();
@@ -262,11 +262,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             in
             ignore(Unix.close in_pipe);
             ignore(Unix.close out_pipe);
-            Extralib.close_process_full (stdout,stdin,stderr);
+            Process_utils.close_process (stdout,stdin,stderr);
             let status =
               match status with
                 | Some status -> status
-                | None -> snd (Extralib.waitpid_non_intr pid)
+                | None -> snd (Process_utils.waitpid pid)
             in
             let descr =
               match status with
