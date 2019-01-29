@@ -1,4 +1,4 @@
-1.4.0 ()
+x.y.z ()
 =====
 
 New:
@@ -9,6 +9,8 @@ New:
 
 - Added `source.time` to get a source's clock time.
 
+- Added support for `aacgain`, thanks to @mdurys (#702)
+
 Changed:
 
 - Remove dynamic plugin build option.
@@ -16,9 +18,6 @@ Changed:
 - Made `on_end` delay a float getter.
 
 - Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
-
-1.3.6 (23-01-2019)
-=====
 
 Fixed:
 
