@@ -39,7 +39,7 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
     use_replaygain()
   } else {
 
-    print STDERR "Cannot find mp3gain nor replaygain binaries!\n";
+    print STDERR "Cannot find mp3gain, aacgain nor replaygain binaries!\n";
 
   }
 
