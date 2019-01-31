@@ -29,11 +29,17 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
     $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
     print "$1 dB\n" ;
 
+  } elsif (`which aacgain`) {
+
+    my $out = `aacgain -q "$file" 2> /dev/null` ;
+    $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
+    print "$1 dB\n" ;
+
   } elsif (`which replaygain`) {
     use_replaygain()
   } else {
 
-    print STDERR "Cannot find mp3gain nor replaygain binaries!\n";
+    print STDERR "Cannot find mp3gain, aacgain nor replaygain binaries!\n";
 
   }
 

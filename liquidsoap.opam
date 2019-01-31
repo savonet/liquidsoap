@@ -47,7 +47,7 @@ depopts: [
   "lo"
   "mad"
   "magic"
-  "ocamlsdl"
+  "sdl-liquidsoap"
   "ogg"
   "opus"
   "osx-secure-transport"

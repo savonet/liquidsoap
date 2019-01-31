@@ -9,6 +9,8 @@ New:
 
 - Added `source.time` to get a source's clock time.
 
+- Added support for `aacgain`, thanks to @mdurys (#702)
+
 Changed:
 
 - Remove dynamic plugin build option.
