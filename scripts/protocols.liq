@@ -10,9 +10,9 @@ def replaygain_protocol(~rlog,~maxtime,arg)
  # The extraction program
  extract_replaygain =
    get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
- x = get_process_lines(timeout=delay,"#{extract_replaygain} #{quote(arg)}")
- if list.hd(default="",x) != "" then
-  ["annotate:replay_gain=\"#{list.hd(default='',x)}\":#{arg}"]
+ ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
+ if ret != "" then
+  ["annotate:replay_gain=\"#{ret}\":#{arg}"]
  else
   [arg]
  end
