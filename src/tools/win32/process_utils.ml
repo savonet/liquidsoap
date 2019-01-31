@@ -1,14 +1,15 @@
 open Unix
 
+type t = {
+  pid:    int;
+  stdin:  out_channel;
+  stdout: in_channel;
+  stderr: in_channel
+}
+
 (* Adapted from win32unix/unix.ml *)
 
-let waitpid = Unix.waitpid []
-
-let make_process_env env =
-  Array.iter
-    (fun s -> if String.contains s '\000' then raise(Unix_error(EINVAL, "", s)))
-    env;
-  String.concat "\000" (Array.to_list env) ^ "\000"
+let wait {pid;_} = Unix.waitpid [] pid
 
 let open_process_cmdline prog args env =
   let (in_read, in_write) = pipe ~cloexec:true () in
@@ -19,9 +20,9 @@ let open_process_cmdline prog args env =
     try pipe ~cloexec:true ()
     with e -> close in_read; close in_write;
               close out_read; close out_write; raise e in
-  let inchan = in_channel_of_descr in_read in
-  let outchan = out_channel_of_descr out_write in
-  let errchan = in_channel_of_descr err_read in
+  let stdin = out_channel_of_descr out_write in
+  let stdout = in_channel_of_descr in_read in
+  let stderr = in_channel_of_descr err_read in
   let pid = 
     begin
       try
@@ -37,7 +38,7 @@ let open_process_cmdline prog args env =
   close out_read;
   close in_write;
   close err_write;
-  (pid, inchan, outchan, errchan)
+  {pid; stdin; stdout; stderr}
 
 let open_process_shell fn cmd =
   let shell =
@@ -48,5 +49,5 @@ let open_process_shell fn cmd =
 let open_process cmd =
   open_process_shell open_process_cmdline cmd
 
-let close_process (inchan, outchan, errchan) =
-  close_in inchan; close_out outchan; close_in errchan;
+let close_process {stdin; stdout; stderr; _} =
+  close_out stdin; close_in stdout; close_in stderr;

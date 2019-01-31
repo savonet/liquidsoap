@@ -1,12 +1,19 @@
 open Unix
 
+type t = {
+  pid:    int;
+  stdin:  out_channel;
+  stdout: in_channel;
+  stderr: in_channel
+}
+
 (* Adapted from unix.ml *)
 
 let shell = "/bin/sh"
 
-let rec waitpid pid =
-  try Unix.waitpid [] pid
-  with Unix_error (EINTR, _, _) -> waitpid pid
+let rec wait ({pid;_} as p) =
+  try waitpid [] pid
+  with Unix_error (EINTR, _, _) -> wait p
 
 let rec file_descr_not_standard fd =
   let fd = Obj.magic fd in
@@ -46,9 +53,9 @@ let open_process_args prog args env =
     try pipe ~cloexec:true ()
     with e -> close in_read; close in_write;
               close out_read; close out_write; raise e in
-  let inchan = in_channel_of_descr in_read in
-  let outchan = out_channel_of_descr out_write in
-  let errchan = in_channel_of_descr err_read in
+  let stdin = out_channel_of_descr out_write in
+  let stdout = in_channel_of_descr in_read in
+  let stderr = in_channel_of_descr err_read in
   let pid =
     try
       open_proc prog args (Some env) out_read in_write err_write
@@ -61,7 +68,7 @@ let open_process_args prog args env =
   close out_read;
   close in_write;
   close err_write;
-  (pid, inchan, outchan, errchan)
+  {pid; stdin; stdout; stderr}
 
 let open_process_shell fn cmd =
   fn shell [|shell; "-c"; cmd|]
@@ -69,7 +76,7 @@ let open_process_shell fn cmd =
 let open_process cmd =
   open_process_shell open_process_args cmd
 
-let close_process (inchan, outchan, errchan) =
-  close_in inchan;
-  begin try close_out outchan with Sys_error _ -> () end;
-  close_in errchan
+let close_process {stdin; stdout; stderr; _} =
+  begin try close_out stdin with Sys_error _ -> () end;
+  close_in stdout;
+  close_in stderr

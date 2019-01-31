@@ -1,4 +1,6 @@
-SUBDIRS=tools tools/win32 tools/unix \
+SUBDIRS=tools \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix) \
 	decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization analyze synth harbor lang_encoders encoder_formats
@@ -169,8 +171,8 @@ io = io/udp_io.ml \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
-	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32/process_utils.ml) \
-	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix/process_utils.ml) \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32/process_utils.mli tools/win32/process_utils.ml) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix/process_utils.mli tools/unix/process_utils.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
@@ -270,7 +272,7 @@ REVISION.ml: Makefile $(liquidsoap_sources:REVISION.ml=)
 	fi
 
 clean-local:
-	rm -f REVISION.ml
+	rm -f REVISION.ml src/tools/win32/process_utils.mli
 
 install-local: all-auto
 	$(INSTALL) -d $(bindir)
