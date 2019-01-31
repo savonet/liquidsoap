@@ -21,6 +21,12 @@ sub use_replaygain {
 
 }
 
+sub use_aacgain {
+  my $out = `aacgain -q "$file" 2> /dev/null` ;
+  $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
+  print "$1 dB\n" ;
+}
+
 if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
 
   if (`which mp3gain`) {
@@ -30,11 +36,7 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
     print "$1 dB\n" ;
 
   } elsif (`which aacgain`) {
-
-    my $out = `aacgain -q "$file" 2> /dev/null` ;
-    $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
-    print "$1 dB\n" ;
-
+    use_aacgain()
   } elsif (`which replaygain`) {
     use_replaygain()
   } else {
@@ -46,10 +48,11 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
 } elsif(($file =~ /\.m4a$/i) || (test_mime() =~ /audio\/x-m4a/)) {
   if (`which replaygain`) {
     use_replaygain()
-
+  } elsif (`which aacgain`) {
+    use_aacgain()
   } else {
 
-    print STDERR "Cannot find replaygain!\n";
+    print STDERR "Cannot find aacgain or replaygain!\n";
 
   }
 
