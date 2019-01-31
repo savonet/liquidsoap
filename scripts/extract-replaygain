@@ -42,7 +42,7 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
   } else {
 
     print STDERR "Cannot find mp3gain, aacgain nor replaygain binaries!\n";
-
+    exit 1;
   }
 
 } elsif(($file =~ /\.m4a$/i) || (test_mime() =~ /audio\/x-m4a/)) {
@@ -53,7 +53,7 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
   } else {
 
     print STDERR "Cannot find aacgain or replaygain!\n";
-
+    exit 1;
   }
 
 } elsif (($file =~ /\.ogg$/i) || (test_mime() =~ /application\/ogg/)) {
@@ -68,7 +68,7 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
   } else {
 
     print STDERR "Cannot find vorbisgain or ogginfo!\n";
-
+    exit 1;
   }
 
 } elsif (($file =~ /\.flac$/i) || (test_mime() =~ /audio\/x-flac/)) {
@@ -94,11 +94,11 @@ if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
   } else {
 
     print STDERR "Cannot find metaflac!\n";
-
+    exit 1;
   }
 
 } else {
 
   print STDERR "File format not supported...\n";
-
+  exit 1;
 }
