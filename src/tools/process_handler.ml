@@ -23,9 +23,8 @@
 type _t = {
   in_pipe:  Unix.file_descr;
   out_pipe: Unix.file_descr;
-  stdin:    out_channel;
-  stderr:   in_channel;
-  stdout:   in_channel;
+  p:        Process_utils.t;
+  mutable status: Unix.process_status option;
   mutable stopped: bool
 }
 
@@ -83,16 +82,16 @@ let send_stop ~log t = Tutils.mutexify t.mutex (fun () ->
   if not process.stopped then begin
     log "Closing process's stdin";
     process.stopped <- true;
-    try close_out process.stdin with _ -> ()
+    try close_out process.p.Process_utils.stdin with _ -> ()
   end) ()
 
 let _kill = function
-  | Some {stdout;stdin;stderr;in_pipe;out_pipe} ->
+  | Some {p;in_pipe;out_pipe} ->
       let silent f = try f () with _ -> () in
       List.iter silent [(fun () -> Unix.close in_pipe);
                         (fun () -> Unix.close out_pipe);
                         (fun () ->
-          ignore(Unix.close_process_full (stdout,stdin,stderr)))]
+          ignore(Process_utils.close_process p))]
   | None -> ()
 
 let cleanup ~log t = Tutils.mutexify t.mutex (fun () ->
@@ -135,15 +134,24 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     in
     let create () =
       log "Starting process";
-      let stdout,stdin,stderr =
-        Unix.open_process_full command env
+      let p =
+        Process_utils.open_process command env
       in
       let out_pipe,in_pipe = Unix.pipe () in
-      {in_pipe;out_pipe;stdin;stdout;stderr;stopped=false}
+      {in_pipe;out_pipe;p;stopped=false;status=None}
     in
     let process = create () in
     let mutex = Mutex.create () in
     let t = {mutex;process=Some process} in
+    ignore(Thread.create (fun () ->
+      try
+        let _,status =
+          Process_utils.wait process.p
+        in
+        Tutils.mutexify t.mutex (fun () ->
+          process.status <- Some status) ();
+        ignore(Unix.write process.in_pipe done_c 0 1)
+      with _ -> ()) ());
     let create = Tutils.mutexify t.mutex (fun () ->
       _kill t.process;
       t.process <- Some (create ()))
@@ -151,10 +159,10 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let get_task handler decision =
       let process = get_process t in
       let stdout =
-        Unix.descr_of_in_channel process.stdout
+        Unix.descr_of_in_channel process.p.Process_utils.stdout
       in
       let stderr =
-        Unix.descr_of_in_channel process.stderr
+        Unix.descr_of_in_channel process.p.Process_utils.stderr
       in
       let read_events =
         List.fold_left (fun cur (fd, callback) ->
@@ -165,7 +173,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       in
       let continue_events =
         if on_stdin <> None && not process.stopped then
-          (`Write (Unix.descr_of_out_channel process.stdin))::read_events
+          (`Write (Unix.descr_of_out_channel process.p.Process_utils.stdin))::read_events
         else read_events
       in
       let events = match decision with
@@ -183,7 +191,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let restart_decision handler = function
       | true ->
           create ();
-          let fd = Unix.descr_of_out_channel (get_process t).stdin in 
+          let fd = Unix.descr_of_out_channel (get_process t).p.Process_utils.stdin in 
           [get_task handler (on_start (pusher fd))]
       | false -> cleanup ~log t; []
     in
@@ -206,7 +214,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         restart_decision handler
       in
       let stdout =
-        Unix.descr_of_in_channel process.stdout
+        Unix.descr_of_in_channel process.p.Process_utils.stdout
       in
       let wrap f x =
         try f x with exn -> raise (Wrapped exn)
@@ -246,10 +254,17 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         get_task decision
       with 
         | Finished ->
-            let {in_pipe;out_pipe;stdout;stdin;stderr} = get_process t in
+            let {in_pipe;out_pipe;p;status}  =
+              get_process t
+            in
             ignore(Unix.close in_pipe);
             ignore(Unix.close out_pipe);
-            let status = Unix.close_process_full (stdout,stdin,stderr) in
+            Process_utils.close_process p;
+            let status =
+              match status with
+                | Some status -> status
+                | None -> snd (Process_utils.wait p)
+            in
             let descr =
               match status with
                 | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
@@ -271,7 +286,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
                  f e;
                  restart_decision (on_stop (`Exception e))
     in
-    let fd = Unix.descr_of_out_channel (get_process t).stdin in
+    let fd = Unix.descr_of_out_channel (get_process t).p.Process_utils.stdin in
     Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
     t
 
@@ -292,7 +307,7 @@ let on_stdout t fn =
   let process = Tutils.mutexify t.mutex (fun () ->
     get_process t) ()
   in
-  let fd = Unix.descr_of_in_channel process.stdout in
+  let fd = Unix.descr_of_in_channel process.p.Process_utils.stdout in
   fn (puller process.in_pipe fd)
 
 let on_stdin t fn = 
@@ -303,14 +318,14 @@ let on_stdin t fn =
           process
       | None -> raise Finished) ()
   in
-  let fd = Unix.descr_of_out_channel process.stdin in
+  let fd = Unix.descr_of_out_channel process.p.Process_utils.stdin in
   fn (pusher fd)
 
 let on_stderr t fn =
   let process = Tutils.mutexify t.mutex (fun () ->
     get_process t) ()
   in
-  let fd = Unix.descr_of_in_channel process.stderr in
+  let fd = Unix.descr_of_in_channel process.p.Process_utils.stderr in
   fn (puller process.in_pipe fd)
 
 let stopped t = Tutils.mutexify t.mutex (fun () ->
