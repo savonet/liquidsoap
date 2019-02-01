@@ -1,11 +1,14 @@
 1.3.7 ()
-======
 
 Changed:
 
 - Better log message when request download times out (#708)
 
 - Drop `log.level` for `ffmpeg` messages to `5`
+
+Fixed:
+
+- Timeout when executing external processes (#691)
 
 - Set buffering only when frame is partial in time_wrap.ml. Makes it work with crossfade transitions (#695)
 
@@ -14,6 +17,8 @@ Changed:
 1.3.6 (23-01-2019)
 =====
 
+- Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
+
 Fixed:
 
 - Fixed smart_crossfade transitions skipping data after track marks. (#683, #652)
@@ -21,6 +26,8 @@ Fixed:
 - Fixed `input.pulseaudio` parameters.
 
 - Fixed crash when copying frame content (#684)
+
+- Timeout when executing external processes (#691)
 
 1.3.5 (25-12-2018)
 =======

@@ -175,6 +175,10 @@ plugins/dllliquidsoap_%.so:
 	$(V)echo OCAMLMKLIB -o plugins/dllliquidsoap_$*.so
 	$(V)$(OCAMLMKLIB) -o plugins/liquidsoap_$* $($*_c_sources:.c=.o)
 
+tools/win32/process_utils.mli: tools/unix/process_utils.mli
+	$(V)echo CP $< $@
+	$(V)cp -f $< $@
+
 %.ml: %.camlp4
 	$(V)echo CAMLP4O $<
 	$(V)$(CAMLP4O) -printer Camlp4OCamlPrinter -impl $< > $@
