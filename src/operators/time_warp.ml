@@ -66,7 +66,7 @@ struct
         (fun () ->
            assert (not c.buffering) ;
            Generator.fill c.generator frame ;
-           if Generator.length c.generator = 0 then begin
+           if Frame.is_partial frame || Generator.length c.generator = 0 then begin
              self#log#f 3 "Buffer emptied, start buffering..." ;
              c.buffering <- true
            end)
