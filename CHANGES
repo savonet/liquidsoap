@@ -19,9 +19,7 @@ Changed:
 
 - Made `on_end` delay a float getter.
 
-- Reimplemented `fade.{in,out}` as scripted operators. (#664)
-
-- Removed `fade.{initial,final}`.
+- Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
 
 - Removed `cross`/`crossfade` operators, superseeded by `smart_cross`/`smart_crossfade`
 

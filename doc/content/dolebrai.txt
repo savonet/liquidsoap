@@ -203,9 +203,9 @@ def dole_fade (~start_next=3.,~fade_in=3.,~fade_out=3.,
   end
 
   cross(transition,
-               width=width,
-               duration=start_next,conservative=conservative,
-               s)
+        width=width,
+        duration=start_next,conservative=conservative,
+        s)
 end
 
 def audio_process(s)

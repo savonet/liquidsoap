@@ -313,7 +313,7 @@ h5. Switch-based transitions
 
 The switch-based operators (<code>switch</code>, <code>fallback</code> and <code>random</code>) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two <code>source</code> parameters: the child which is about to be left, and the new selected child. The default transition is <code>fun (a,b) -> b</code>, it simply relays the new selected child source.
 
-Transitions have limited duration, defined by the @transition_length@ parameter. Transition duration can be overriden by passing a metadata. Default field for it is @liq_transition_length@ but it can also be set to a different value via the @override@ parameter.  
+Transitions have limited duration, defined by the @transition_length@ parameter. Transition duration can be overriden by passing a metadata. Default field for it is @"liq_transition_length"@ but it can also be set to a different value via the @override@ parameter.  
 
 Here are some possible transition functions:
 
@@ -331,7 +331,9 @@ def crossfade(a,b)
                        fade.in(duration=10.,b) ]),
             fade.out(duration=10.,a) ])
 
-  map_metadata(add_transition_length,transition)
+  # Transition can have multiple tracks so only pass the metadata
+  # once.
+  map_first_track(map_metadata(add_transition_length),transition)
 end
 
 # Partially apply next to give it a jingle source.
@@ -339,8 +341,8 @@ end
 # At the same time it fades in the new source.
 # Use metadata override to make sure transition is long enough.
 def next(j,a,b)
+  # This assumes that the jingle is 6 seconds long
   def add_transition_length(_) =
-    # This assumes that the jingle is 6 seconds long 
     [("liq_transition_length","15.")]
   end
 
@@ -352,7 +354,7 @@ def next(j,a,b)
 	    sequence([fade.out(duration=9.,a),
 	              j,blank()]) ])
 
-  map_metadata(add_transition_length,transition)
+  map_first_track(map_metadata(add_transition_length),transition)
 end
 
 # A transition, which does a cross-fading from A to B
@@ -394,7 +396,7 @@ The three parameters given here are only default values, and will be overriden b
 
 For an advanced crossfading function, you can see the "crossfade documentation":crossfade.html
 
-4.  Alsa unbuffered output 
+h4.  Alsa unbuffered output 
 
 You can use "Liquidsoap":index.html to capture and play through alsa with a minimal delay. This particulary useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
 

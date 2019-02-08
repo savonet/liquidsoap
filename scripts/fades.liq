@@ -112,6 +112,23 @@ def fade.out(~id="fade.out",~duration=3.,
   amplify(id=id,apply,s)
 end
 
+# Fade a stream to silence.
+# @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+def fade.final(~id="fade.out",~duration=3.,
+             ~override_duration="liq_fade_out",
+             ~override_type="liq_fade_type",
+             ~type="lin",s) =
+  max_duration(id=id,duration,
+    fade.out(duration=duration,override_duration=override_duration,
+             override_type=override_type,type=type,s))
+end
+
+
 # Fade the beginning of tracks.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
@@ -154,6 +171,22 @@ def fade.in(~id="fade.in",~duration=3.,
   s = on_metadata(update_fade,s)
 
   amplify(id=id,apply,s)
+end
+
+# Fade the beginning of a stream.
+# @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+def fade.initial(~id="fade.in",~duration=3.,
+            ~override_duration="liq_fade_initial",
+            ~override_type="liq_fade_type",
+            ~type="lin",s) =
+  map_first_track(id=id,
+    fade.in(duration=duration,override_duration=override_duration,
+            override_type=override_type,type=type),s)
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in

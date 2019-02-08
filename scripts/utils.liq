@@ -385,6 +385,15 @@ def once(s)
   sequence([s,fail()])
 end
 
+# Apply a function to the first track of a source
+# @category Source / Track Processing
+# @param ~id Force the value of the source ID.
+# @param fn The applied function.
+# @param s The input source.
+def map_first_track(~id="",fn,s)
+  sequence(id=id,[fn(s),s])
+end
+
 # Custom playlist source written using the script language.  Will read directory
 # or playlist, play all files and stop.  Returns a pair @(reload,source)@ where
 # @reload@ is a function of type @(?uri:string)->unit@ used to reload the source

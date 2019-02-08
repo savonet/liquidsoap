@@ -35,8 +35,8 @@ Liquidsoap also includes a ready-to-use operator defined using <code>cross</code
 #                      a premature end-of-track.
 # @param s             The input source.
 def crossfade (~start_next=5.,~fade_in=3.,
-                     ~fade_out=3., ~width=2.,
-		     ~conservative=false,s)
+               ~fade_out=3., ~width=2.,
+               ~conservative=false,s)
   high   = -20.
   medium = -32.
   margin = 4.
@@ -103,8 +103,8 @@ def crossfade (~start_next=5.,~fade_in=3.,
   end
 
   cross(width=width, duration=start_next, 
-              conservative=conservative,
-              transition,s)
+        conservative=conservative,
+        transition,s)
 end
 %%
 
