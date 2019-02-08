@@ -17,7 +17,15 @@ Changed:
 
 - Made `on_end` delay a float getter.
 
-- Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
+- Reimplemented `fade.{in,out}` as scripted operators. (#664)
+
+- Removed `fade.{initial,final}`.
+
+- Removed `cross`/`crossfade` operators, superseeded by `smart_cross`/`smart_crossfade`
+
+- Rename `smart_cross`/`smart_crossfade` operators as `cross`/`crossfade`
+
+- Rewrite `smooth_add` to use new `mkcross` functions.
 
 - Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
 

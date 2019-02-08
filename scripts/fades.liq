@@ -60,30 +60,22 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,s) =
   fade
 end
 
-# @flag hidden
-def fade.out.base(~id,~duration,~override_duration,
-                  ~override_type,~type,~final,s) =
+# Fade the end of tracks.
+# @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+def fade.out(~id="fade.out",~duration=3.,
+             ~override_duration="liq_fade_out",
+             ~override_type="liq_fade_type",
+             ~type="lin",s) =
   log = log(label=source.id(s),level=4)
   fn = ref (fun () -> 1.)
   type = ref type
   duration = ref duration
-  finished = ref false
   start_time = ref (-1.)
-
-  s =
-    if final then
-      # In final mode, fading starts right away and the
-      # source becomes unavailable once finished. Thus we want:
-      # - to have exactly !delay available data (add blank)
-      # - to finish after !delay has been consumed (switch)
-      # - to become unavailable after that (sequence to failing source)
-      is_finished = fun () -> not !finished
-      s = switch(track_sensitive=false,[(is_finished,s)])
-      b = sequence([blank(duration=!duration),fallback([])])
-      add(normalize=false,[s,b])
-    else
-      s
-    end
 
   def start_fade(d,_) =
     log("Fading out with #{d}s remaining..")
@@ -93,9 +85,6 @@ def fade.out.base(~id,~duration,~override_duration,
   end
 
   def apply() =
-    if !start_time >= 0. and final and (not !finished) and !duration <= source.time(s) - !start_time then
-      finished := true
-    end
     fn = !fn
     fn()
   end
@@ -123,48 +112,21 @@ def fade.out.base(~id,~duration,~override_duration,
   amplify(id=id,apply,s)
 end
 
-# Fade the end of tracks.
+# Fade the beginning of tracks.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.out(~id="fade.out",~duration=3.,
-             ~override_duration="liq_fade_out",
-             ~override_type="liq_fade_type",
-             ~type="lin",s) =
-  fade.out.base(id=id,duration=duration,
-                override_duration=override_duration,
-                override_type=override_type,
-                type=type,final=false,s)
-end
-
-# Fade a stream to silence.
-# @category Source / Sound Processing
-# @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
-# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.final(~id="fade.final",~duration=3.,
-             ~override_duration="liq_fade_final",
-             ~override_type="liq_fade_type",
-             ~type="lin",s) =
-  fade.out.base(id=id,duration=duration,
-                override_duration=override_duration,
-                override_type=override_type,
-                type=type,final=true,s)
-end
-
-# @flag hidden
-def fade.in.base(~id,~duration,~override_duration,~override_type,
-                 ~type,~initial,s) =
+def fade.in(~id="fade.in",~duration=3.,
+            ~override_duration="liq_fade_in",
+            ~override_type="liq_fade_type",
+            ~type="lin",s) =
   log = log(label=source.id(s),level=4)
   fn = ref (fun () -> 0.)
   duration = ref duration
   type = ref type
-  started = ref false
 
   def apply() =
     fn = !fn
@@ -172,11 +134,8 @@ def fade.in.base(~id,~duration,~override_duration,~override_type,
   end
 
   def start_fade(_) =
-    if not (initial and !started) then
-      log("Fading in..")
-      fn := mkfade(start=0.,stop=1.,type=!type,duration=!duration,s)
-      started := true
-    end
+    log("Fading in..")
+    fn := mkfade(start=0.,stop=1.,type=!type,duration=!duration,s)
   end
 
   def update_fade(m) =
@@ -197,56 +156,6 @@ def fade.in.base(~id,~duration,~override_duration,~override_type,
   amplify(id=id,apply,s)
 end
 
-# Fade the beginning of tracks.
-# @category Source / Sound Processing
-# @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
-# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.in(~id="fade.in",~duration=3.,
-            ~override_duration="liq_fade_in",
-            ~override_type="liq_fade_type",
-            ~type="lin",s) =
-  fade.in.base(id=id,duration=duration,
-               override_duration=override_duration,
-               override_type=override_type,
-               type=type,initial=false,s)
-end
-
-# Fade the beginning of a stream.
-# @category Source / Sound Processing
-# @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
-# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.initial(~id="fade.in",~duration=3.,
-            ~override_duration="liq_fade_initial",
-            ~override_type="liq_fade_type",
-            ~type="lin",s) =
-  fade.in.base(id=id,duration=duration,
-               override_duration=override_duration,
-               override_type=override_type,
-               type=type,initial=false,s)
-end
-
-# Simple crossfade.
-# @category Source / Track Processing
-# @param ~start_next Duration in seconds of the crossed end of track.
-# @param ~fade_in Duration of the fade in for next track.
-# @param ~fade_out Duration of the fade out for previous track.
-# @param ~conservative Always prepare for a premature end-of-track.
-# @param s The source to use.
-def crossfade(~id="",~conservative=true,
-              ~start_next=5.,~fade_in=3.,~fade_out=3.,
-              s)
-  s = fade.in(duration=fade_in,s)
-  s = fade.out(duration=fade_out,s)
-  fader = fun (a,b) -> add(normalize=false,[b,a])
-  cross(id=id,conservative=conservative,duration=start_next,fader,s)
-end
-
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Track Processing
@@ -262,14 +171,14 @@ end
 # @param ~margin       Margin to detect sources that have too different \
 #                      sound level for crossing.
 # @param s             The input source.
-def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
+def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
                      ~default=(fun (a,b) -> sequence([a, b])),
                      ~high=-15., ~medium=-32., ~margin=4.,
                      ~width=2.,~conservative=true,s)
   fade.out = fade.out(type="sin",duration=fade_out)
   fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
-  log = log(label="smart_crossfade")
+  log = log(label="crossfade")
 
   def transition(a,b,ma,mb,sa,sb)
 
@@ -326,8 +235,8 @@ def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
     end
   end
 
-  smart_cross(width=width, duration=start_next, conservative=conservative,
-              transition,s)
+  cross(width=width, duration=start_next, conservative=conservative,
+        transition,s)
 end
 
 # Mixes two streams, with faded transitions between the state when only the
@@ -339,23 +248,40 @@ end
 # @param ~normal  The normal source, which could be called the carrier too.
 # @param ~special The special source.
 def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
-  d = delay
-  fade.final = fade.final(duration=d*2.)
-  fade.initial = fade.initial(duration=d*2.)
   p = to_float_getter(p)
-  q = fun () -> 1. - p ()
-  c = amplify
-  fallback(track_sensitive=false,
-           [special,normal],
-           transitions=[
-             fun(normal,special)->
-               add(normalize=false,
-                   [c(p,normal),
-                    c(q,fade.final(type="sin",normal)),
-                    sequence([blank(duration=d),c(q,special)])]),
-             fun(special,normal)->
-               add(normalize=false,
-                   [c(p,normal),
-                    c(q,fade.initial(type="sin",normal))])
-           ])
+  last_p = ref p()
+
+  def c(fn,s) =
+    def v() =
+      fn = !fn
+      fn()
+    end
+    amplify(v,s)
+  end
+
+  special_volume = ref fun () -> 0.
+  special = c(special_volume,special)
+
+  normal_volume = ref fun () -> 1.
+  normal = c(normal_volume,normal)
+
+  def to_special(b,special) =
+    last_p := p()
+    q = 1. - !last_p
+    normal_volume := mkfade(start=1.,stop=!last_p,normal)
+    special_volume := mkfade(stop=q,special)
+    special
+  end
+
+  def to_blank(special,b)
+    normal_volume := mkfade(start=!last_p,normal)
+    special_volume := mkfade(start=1.-!last_p,special)
+    sequence([special,b])
+  end
+
+  special = fallback(track_sensitive=false,
+               transitions=[to_special,to_blank],
+               [special,blank()])
+
+  add(normalize=false,[normal,special])
 end
