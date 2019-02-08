@@ -87,14 +87,16 @@ object (self)
     source#get_ready [(self:>source)] ;
     Lang.iter_sources
       (fun s -> s#get_ready ~dynamic:true [(self:>source)])
-      transition
+      transition ;
+    transition_source#get_ready ~dynamic:true [(self:>source)]
 
   method private sleep =
     source#leave (self:>source) ;
     s#leave ~dynamic:true (self:>source) ;
     Lang.iter_sources
       (fun s -> s#leave ~dynamic:true (self:>source))
-      transition
+      transition ;
+    transition_source#leave ~dynamic:true (self:>source)
 
   (** See cross.ml for the details of clock management. *)
 
@@ -355,6 +357,7 @@ object (self)
              compound)
     in
       compound#get_ready [(self:>source)] ;
+      transition_source#leave (self:>source) ;
       transition_source <- compound ;
       pending_after <- gen_after ;
       Clock.unify source#clock transition_source#clock ;
