@@ -11,6 +11,8 @@ New:
 
 - Added support for `aacgain`, thanks to @mdurys (#702)
 
+- Added `max_duration` to limit a source's duration.
+
 Changed:
 
 - Remove dynamic plugin build option.
@@ -28,6 +30,8 @@ Changed:
 - Rewrite `smooth_add` to use new `mkcross` functions.
 
 - Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
+
+- Added `transition_length` to `switch`-based operators to limit transition lengths and allow garbage collection of transition sources.
 
 Fixed:
 

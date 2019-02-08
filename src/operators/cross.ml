@@ -79,7 +79,8 @@ object (self)
    * track limits. *)
   val source = s
   (* Give a default value for the transition source. *)
-  val mutable transition_source = (new Switch.fallback ~kind (fun () -> false) []:>source) 
+  val mutable transition_source =
+    (new Switch.fallback ~transition_length:0 ~kind (fun () -> false) []:>source) 
   val mutable pending_after = Generator.create ()
 
   method private wake_up _ =
