@@ -24,7 +24,7 @@
  *  that the underlying source is cleaned up when it's done
  *  pulling. Used in switch-based transitions to avoid infinite
  *  stack of sources. *)
-class max_duration ~kind ~duration source =
+class max_duration ~kind ~override_meta ~duration source =
 object(self)
   inherit Source.operator ~name:"max_duration" kind [] as super
 
@@ -49,10 +49,24 @@ object(self)
       | _, -1 -> -1
       | rem,rem' -> min rem rem'
 
+  method private check_for_override ~offset buf =
+    List.iter (fun (p,m) ->
+      if p >= offset then
+        Hashtbl.iter (fun lbl v ->
+          if lbl = override_meta then
+            try
+              let v = float_of_string v in
+              remaining <- Frame.master_of_seconds v;
+              self#log#f 4 "Overriding remaining value: %.02f." v
+            with _ ->
+              self#log#f 3 "Invalid remaining override value: %s." v) m)
+                (Frame.get_all_metadata buf)
+
   method private get_frame buf =
-    let start = Frame.position buf in
+    let offset = Frame.position buf in
     s#get buf ;
-    remaining <- remaining - Frame.position buf + start;
+    self#check_for_override ~offset buf ;
+    remaining <- remaining - Frame.position buf + offset;
     if remaining <= 0 then
      begin
       s#leave ~dynamic:true (self:>Source.source);
@@ -64,12 +78,18 @@ end
 let () =
   let k = Lang.univ_t 1 in
   Lang.add_operator "max_duration"
-    [ "", Lang.float_t, None, Some "Maximum duration";
+    [ "override", Lang.string_t, Some (Lang.string "liq_remaining"),
+      Some "Metadata field which, if present and containing a float, \
+            overrides the remaining play time.";
+      "", Lang.float_t, None, Some "Maximum duration";
       "", Lang.source_t k, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Limit source duration"
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
+      let override_meta =
+        Lang.to_string (List.assoc "override" p)
+      in
       let duration =
         Frame.master_of_seconds
           (Lang.to_float (Lang.assoc "" 1 p))
@@ -77,4 +97,4 @@ let () =
       let s =
         Lang.to_source (Lang.assoc "" 2 p)
       in
-      new max_duration ~kind ~duration s) 
+      new max_duration ~kind ~override_meta ~duration s) 
