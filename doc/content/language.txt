@@ -125,7 +125,7 @@ A function type is noted as <code>(arg_types) -> return_type</code>. Labeled arg
 %%(lang_fun_def.liq)
 fun (from,to,~jingle=default) ->
   add ([ sequence([single(jingle), fallback([])]),
-         fade.initial(to) ])
+         fade.in(to) ])
 %%
 
 

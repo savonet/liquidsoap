@@ -145,14 +145,14 @@ end
 # === Basic sources ===
 
 # Custom crossfade to deal with jingles..
-def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
+def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
                      ~default=(fun (a,b) -> sequence([a, b])),
                      ~high=-15., ~medium=-32., ~margin=4.,
                      ~width=2.,~conservative=false,s)
   fade.out = fade.out(type="sin",duration=fade_out)
   fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
-  log = log(label="smart_crossfade")
+  log = log(label="crossfade")
 
   def transition(a,b,ma,mb,sa,sb)
 
@@ -212,7 +212,7 @@ def smart_crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
     end
   end
 
-  smart_cross(width=width, duration=start_next, conservative=conservative,
+  cross(width=width, duration=start_next, conservative=conservative,
               transition,s)
 end
 
@@ -259,7 +259,7 @@ def channel_radiopilote(~skip=true,name)
                            ^quote(meta["file_id"]) ^ "'"), source)
 
   # Finally apply a smart crossfading
-  smart_crossfade(source)
+  crossfade(source)
 end
 
 # Basic source
@@ -296,10 +296,10 @@ def mklive(source) =
   def trans(old,new) =
     if source.id(new) == source.id(live) then 
       log("Transition to live!")
-      add([new,fade.final(old)])
+      add([new,fade.out(old)])
     elsif source.id(old) == source.id(live) then
       log("Transitioning from live!")
-      add([fade.initial(new),old])    
+      add([fade.in(new),old])    
     else
       log("Dummy transition")
       new

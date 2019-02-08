@@ -155,7 +155,7 @@ liquidsoap 'out(normalize(playlist("playlist_file")))'
 
 %%(out_smartcross.sh)
 # ... same, but also add smart cross-fading
-liquidsoap 'out(smart_crossfade(
+liquidsoap 'out(crossfade(
                   normalize(playlist("playlist_file"))))'
 %%
 

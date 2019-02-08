@@ -36,7 +36,7 @@ s = amplify(1.,override="replay_gain",s)
 %%
 
 You may also take care of not losing the information brought by the metadata. This may be the case for instance if you
-use @smart_crossfade@ before applying normalization. Hence, normalization should be done as soon as possible 
+use @crossfade@ before applying normalization. Hence, normalization should be done as soon as possible 
 in the script, if possible just after the initial source.
 
 h5. Computing and retrieving the data

@@ -311,38 +311,57 @@ There are two kinds of transitions. Transitions between two different children o
 
 h5. Switch-based transitions
 
-The switch-based operators (<code>switch</code>, <code>fallback</code> and <code>random</code>) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two <code>source</code> parameters: the child which is about to be left, and the new selected child. The default transition is <code>fun (a,b) -> b</code>, it simply relays the new selected child source. Other possible transition functions:
+The switch-based operators (<code>switch</code>, <code>fallback</code> and <code>random</code>) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two <code>source</code> parameters: the child which is about to be left, and the new selected child. The default transition is <code>fun (a,b) -> b</code>, it simply relays the new selected child source.
+
+Transitions have limited duration, defined by the @transition_length@ parameter. Transition duration can be overriden by passing a metadata. Default field for it is @liq_transition_length@ but it can also be set to a different value via the @override@ parameter.  
+
+Here are some possible transition functions:
 
 %%(simple_crossfade.liq)
 # A simple (long) cross-fade
+# Use metadata override to make sure transition is long enough.
 def crossfade(a,b)
-  add(normalize=false,
-	  [ sequence([ blank(duration=5.),
-	               fade.initial(duration=10.,b) ]),
-	    fade.final(duration=10.,a) ])
+  def add_transition_length(_) =
+    [("liq_transition_length","15.")]
+  end
+
+  transition =
+    add(normalize=false,
+          [ sequence([ blank(duration=5.),
+                       fade.in(duration=10.,b) ]),
+            fade.out(duration=10.,a) ])
+
+  map_metadata(add_transition_length,transition)
 end
 
 # Partially apply next to give it a jingle source.
 # It will fade out the old source, then play the jingle.
 # At the same time it fades in the new source.
+# Use metadata override to make sure transition is long enough.
 def next(j,a,b)
-  add(normalize=false,
+  def add_transition_length(_) =
+    # This assumes that the jingle is 6 seconds long 
+    [("liq_transition_length","15.")]
+  end
+
+  transition =
+    add(normalize=false,
 	  [ sequence(merge=true,
 	             [ blank(duration=3.),
-	               fade.initial(duration=6.,b) ]),
-	    sequence([fade.final(duration=9.,a),
-	              j,fallback([])]) ])
+	               fade.in(duration=6.,b) ]),
+	    sequence([fade.out(duration=9.,a),
+	              j,blank()]) ])
+
+  map_metadata(add_transition_length,transition)
 end
 
-# A similar transition,
-# which does a cross-fading from A to B
-# and adds a jingle
+# A transition, which does a cross-fading from A to B
+# No need to override duration as default value (5 seconds)
+# is over crossade duration (3 seconds)
 def transition(j,a,b)
   add(normalize=false,
-	  [ fade.initial(b),
-	    sequence(merge=true,
-	            [blank(duration=1.),j,fallback([])]),
-	    fade.final(a) ])
+	  [ fade.in(duration=3.,b),
+	    fade.out(duration=3.,a) ])
 end
 %%
 
@@ -361,9 +380,7 @@ The <code>cross()</code> operator allows arbitrary transitions between tracks of
 
 %%(crossfade.liq)
 def crossfade(~start_next,~fade_in,~fade_out,s)
-  s = fade.in(duration=fade_in,s)
-  s = fade.out(duration=fade_out,s)
-  fader = fun (a,b) -> add(normalize=false,[b,a])
+  fader = fun (_,_,_,_,a,b) -> add(normalize=false,[fade.in(b),fade.out(a)])
   cross(duration=start_next,fader,s)
 end
 my_source =
@@ -375,48 +392,9 @@ The <code>crossfade()</code> function is already in liquidsoap. Unless you need 
 The fade-in and fade-out parameters indicate the duraction of the fading effects. The start-next parameters tells how much overlap there will be between the two tracks. If you want a long cross-fading with a smaller overlap, you should use a sequence to stick some blank section before the beginning of <code>b</code> in <code>fader</code>.
 The three parameters given here are only default values, and will be overriden by values coming from the metadata tags <code>liq_fade_in</code>, <code>liq_fade_out</code> and <code>liq_start_next</code>.
 
-For an advanced crossfading function, you can see the "smart crossfade documentation":smartcrossfade.html
+For an advanced crossfading function, you can see the "crossfade documentation":crossfade.html
 
-h5. How to get transitions on a mix?
-
-If you <code>add()</code> a special source on top of your normal stream, you might notice that the re-normalization is not smooth at all: if the special source suddenly becomes available, the normal one will be re-normalized immediately, which is not very nice to hear, especially if the special source starts with a low noise level. The <code>add()</code> operator does not support transitions but there is a solution for this kind of situation. Use a <code>fallback()</code> in order to get transitions, and simply keep playing the normal source in the transition. Here is the code.
-
-%%(smooth_add.liq)
-# Mixes two streams, with faded transitions between the state when only the
-# normal stream is available and when the special stream gets added on top of
-# it.
-# @category Source / Track Processing
-# @param ~delay   Delay before starting the special source.
-# @param ~p       Portion of amplitude of the normal source in the mix.
-# @param ~normal  The normal source, which could be called the carrier too.
-# @param ~special The special source.
-def smooth_add(~delay=0.5,~p=0.2,~normal,~special)
-  d = delay
-  fade.final = fade.final(duration=d*2.)
-  fade.initial = fade.initial(duration=d*2.)
-  q = 1. - p
-  c = amplify
-  fallback(track_sensitive=false,
-           [special,normal],
-           transitions=[
-             fun(normal,special)->
-               add(normalize=false,
-                   [c(p,normal),
-                    c(q,fade.final(type="sin",normal)),
-                    sequence([blank(duration=d),c(q,special)])]),
-             fun(special,normal)->
-               add(normalize=false,
-                   [c(p,normal),
-                    c(q,fade.initial(type="sin",normal))])
-           ])
-end
-%%
-
-The first transition is used when the special source becomes available. It sums the special source (after a delay <code>d</code>) together with a reduced version of <code>normal</code> (<code>c(p,normal)</code>) and its faded-out complement (<code>c(q,normal)</code>). As a result the amplitude of <code>normal</code> will smoothly move from <code>1=p q</code> down to <code>p</code>.
-
-The second transition is called when <code>special</code> becomes unavailable. This time, the reduced version of <code>normal</code> is mixed with its faded-in complement.
-
-h4.  Alsa unbuffered output 
+4.  Alsa unbuffered output 
 
 You can use "Liquidsoap":index.html to capture and play through alsa with a minimal delay. This particulary useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
 
