@@ -79,17 +79,30 @@ object (self)
    * track limits. *)
   val source = s
   (* Give a default value for the transition source. *)
-  val mutable transition_source =
-    (new Switch.fallback ~transition_length:0 ~kind (fun () -> false) []:>source) 
+  val mutable transition_source = None
   val mutable pending_after = Generator.create ()
+
+  method private prepare_transition_source s =
+    let s =
+      (s:>source)
+    in
+    s#get_ready ~dynamic:true [(self:>source)] ;
+    Clock.unify source#clock s#clock ;
+    transition_source <- Some s
+
+  method cleanup_transition_source =
+    match transition_source with
+      | None -> ()
+      | Some s ->
+          s#leave ~dynamic:true (self:>source) ;
+          transition_source <- None
 
   method private wake_up _ =
     source#get_ready ~dynamic:true [(self:>source)] ;
     source#get_ready [(self:>source)] ;
     Lang.iter_sources
       (fun s -> s#get_ready ~dynamic:true [(self:>source)])
-      transition ;
-    transition_source#get_ready ~dynamic:true [(self:>source)]
+      transition
 
   method private sleep =
     source#leave (self:>source) ;
@@ -97,7 +110,7 @@ object (self)
     Lang.iter_sources
       (fun s -> s#leave ~dynamic:true (self:>source))
       transition ;
-    transition_source#leave ~dynamic:true (self:>source)
+    self#cleanup_transition_source
 
   (** See cross.ml for the details of clock management. *)
 
@@ -201,11 +214,12 @@ object (self)
              * to wait that we become ready again. *)
             Frame.add_break frame (Frame.position frame)
       | `After ->
-          transition_source#get frame ;
+          (Utils.get_some transition_source)#get frame ;
           needs_tick <- true ;
           if Generator.length pending_after = 0 && Frame.is_partial frame then
            begin
             status <- `Idle ;
+            self#cleanup_transition_source ;
             if source#is_ready then
              begin
               Frame.set_breaks frame
@@ -357,11 +371,10 @@ object (self)
              Clock.unify compound#clock s#clock ;
              compound)
     in
-      compound#get_ready [(self:>source)] ;
-      transition_source#leave (self:>source) ;
-      transition_source <- compound ;
+      compound#get_ready ~dynamic:true [(self:>source)] ;
+      self#cleanup_transition_source ;
+      self#prepare_transition_source compound ;
       pending_after <- gen_after ;
-      Clock.unify source#clock transition_source#clock ;
       status <- `After ;
       self#reset_analysis
 
@@ -386,8 +399,8 @@ object (self)
   method is_ready = source#is_ready || List.mem status [`Limit;`After]
 
   method abort_track =
-    if status = `After && transition_source#is_ready then
-      transition_source#abort_track
+    if status = `After && (Utils.get_some transition_source)#is_ready then
+      (Utils.get_some transition_source)#abort_track
     else
       source#abort_track
 
@@ -459,5 +472,8 @@ let () =
        let active = Lang.to_bool (List.assoc "active" p) in
 
        let source = Lang.to_source (Lang.assoc "" 2 p) in
+       let c =
          new cross ~kind source transition ~conservative ~active
-               ~cross_length ~rms_width ~minimum_length)
+               ~cross_length ~rms_width ~minimum_length
+       in
+       (c:>source))
