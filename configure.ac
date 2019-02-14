@@ -381,7 +381,7 @@ AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.2])
+AC_CHECK_OCAML_BINDING([flac],[0.1.5])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
