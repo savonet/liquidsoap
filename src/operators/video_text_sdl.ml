@@ -36,7 +36,7 @@ let get_font font size =
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in
   let font = get_font font size in
-  let ts = Sdlttf.render_text_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
+  let ts = Sdlttf.render_utf8_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
   let w, h =
     let si = Sdlvideo.surface_info ts in
     si.Sdlvideo.w, si.Sdlvideo.h
