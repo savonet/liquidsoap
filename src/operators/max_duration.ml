@@ -26,17 +26,20 @@
  *  stack of sources. *)
 class max_duration ~kind ~override_meta ~duration source =
 object(self)
-  inherit Source.operator ~name:"max_duration" kind [] as super
+  inherit Source.operator ~name:"max_duration" kind []
 
   val mutable remaining = duration
   val mutable s : Source.source = source
 
-  method get_ready ?dynamic activation =
-    super#get_ready ?dynamic activation ;
-    s#get_ready ~dynamic:true [(self:>Source.source)]
-  method leave ?dynamic src =
-    super#leave ?dynamic src;
-    s#leave ~dynamic:true (self:>Source.source)
+  method private set_clock =
+    Clock.unify self#clock s#clock
+
+  method private wake_up activation =
+    let activation = (self:>Source.operator)::activation in
+    s#get_ready activation
+
+  method private sleep = 
+    s#leave (self:>Source.operator)
 
   method stype = Source.Fallible
   method is_ready =
@@ -69,9 +72,9 @@ object(self)
     remaining <- remaining - Frame.position buf + offset;
     if remaining <= 0 then
      begin
-      s#leave ~dynamic:true (self:>Source.source);
+      s#leave (self:>Source.source);
       s <- ((new Blank.empty ~kind):>Source.source);
-      s#get_ready ~dynamic:true [(self:>Source.source)]
+      s#get_ready [(self:>Source.source)]
      end
 end
 
@@ -97,4 +100,4 @@ let () =
       let s =
         Lang.to_source (Lang.assoc "" 2 p)
       in
-      new max_duration ~kind ~override_meta ~duration s) 
+      new max_duration ~kind ~override_meta ~duration s)
