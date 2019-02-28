@@ -77,7 +77,8 @@ let () =
             current track. Well-formed values are floats in decimal notation \
             (e.g. '0.7') which are taken as normal/linear multiplicative \
             factors; values can be passed in decibels with the suffix 'dB' \
-            (e.g. '-8.2 dB', but the spaces do not matter)." ;
+            (e.g. '-8.2 dB', but the spaces do not matter). Set to empty string \
+            \"\" to disable." ;
       "", Lang.source_t k, None, None ]
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.SoundProcessing

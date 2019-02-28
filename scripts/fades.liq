@@ -120,7 +120,7 @@ def fade.out.base(~id,~duration,~override_duration,
   delay = fun () -> !duration
   s = on_end(delay=delay,start_fade,s)
   s = on_track(stop_fade,s)
-  amplify(id=id,apply,s)
+  amplify(id=id,override="",apply,s)
 end
 
 # Fade the end of tracks.
@@ -194,7 +194,7 @@ def fade.in.base(~id,~duration,~override_duration,~override_type,
   s = on_track(start_fade,s)
   s = on_metadata(update_fade,s)
 
-  amplify(id=id,apply,s)
+  amplify(id=id,override="",apply,s)
 end
 
 # Fade the beginning of tracks.
@@ -344,7 +344,7 @@ def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
   fade.initial = fade.initial(duration=d*2.)
   p = to_float_getter(p)
   q = fun () -> 1. - p ()
-  c = amplify
+  c = amplify(override="")
   fallback(track_sensitive=false,
            [special,normal],
            transitions=[
