@@ -184,7 +184,10 @@ let print_doc ?snippet_template ~subst ~basedir f =
              fprintf f "<h%d><a name=%S>%s</a></h%d>\n" n a !s n
          | Paragraph p -> print_paragraph pprinter f p
          | Image (title,url) ->
-             fprintf f "<img alt=%S src=\"%s%s\" />" title basedir url
+             if String.length url > 0 && url.[0] = '/' then
+               fprintf f "<img alt=%S src=\"%s%s\" />" title basedir url
+             else
+               fprintf f "<img alt=%S src=\"%s\" />" title url
          | Antiquote aq -> fprintf f "%s" aq
          | Snippet (Some title,body, language) ->
              add_snippet title ;

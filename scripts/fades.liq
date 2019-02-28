@@ -109,7 +109,7 @@ def fade.out(~id="fade.out",~duration=3.,
   delay = fun () -> !duration
   s = on_end(delay=delay,start_fade,s)
   s = on_track(stop_fade,s)
-  amplify(id=id,apply,s)
+  amplify(id=id,override="",apply,s)
 end
 
 # Fade a stream to silence.
@@ -170,7 +170,7 @@ def fade.in(~id="fade.in",~duration=3.,
   s = on_track(start_fade,s)
   s = on_metadata(update_fade,s)
 
-  amplify(id=id,apply,s)
+  amplify(id=id,override="",apply,s)
 end
 
 # Fade the beginning of a stream.
@@ -289,7 +289,7 @@ def smooth_add(~delay=0.5,~p=float_getter(0.2),~normal,~special)
       fn = !fn
       fn()
     end
-    amplify(v,s)
+    amplify(override="",v,s)
   end
 
   special_volume = ref fun () -> 0.

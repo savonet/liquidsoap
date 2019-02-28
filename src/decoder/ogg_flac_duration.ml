@@ -45,7 +45,7 @@ let duration file =
             Ogg.Stream.put_page os page
         in
         let callbacks = Ogg_flac.Decoder.get_callbacks (fun _ -> ()) in
-        let dec = Ogg_flac.Decoder.create packet os callbacks in
+        let dec = Ogg_flac.Decoder.create packet os in
         let rec info () =
          try
           Flac.Decoder.init dec callbacks

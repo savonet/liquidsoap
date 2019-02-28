@@ -12,7 +12,7 @@ let conf_verbosity =
                "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\""]
 
 let conf_level =
-  Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:4
+  Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:5
 
 
 let () =
