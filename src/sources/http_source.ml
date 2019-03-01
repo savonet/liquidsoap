@@ -365,7 +365,7 @@ struct
       in
       let request =
         Printf.sprintf
-          "%sUser-Agent: %s\r\n%sIcy-MetaData:1\r\n\r\n"
+          "%sUser-Agent: %s\r\n%sIcy-MetaData: 1\r\n\r\n"
           req user_agent auth
       in
       try
