@@ -775,7 +775,7 @@ AC_ARG_WITH([default-font],
                            [sets the default TTF font for video.add_text()]))
 if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
   if test -z "$with_default_font" ; then
-    DEFAULT_FONT=/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf
+    DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
   else
     DEFAULT_FONT=$with_default_font
   fi
