@@ -105,9 +105,9 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	$(if $(W_FREI0R),operators/frei0r_op.ml) \
+	$(if $(W_GD),operators/video_text_gd.ml) \
 	$(if $(W_SDL),operators/video_text_sdl.ml) \
-	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml) \
-	$(if $(W_GD),operators/video_text_gd.ml)
+	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
