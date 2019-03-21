@@ -5,6 +5,12 @@ Changed:
 
 - Better log message when request download times out (#708)
 
+- Drop `log.level` for `ffmpeg` messages to `5`
+
+- Set buffering only when frame is partial in time_wrap.ml. Makes it work with crossfade transitions (#695)
+
+- Changed `Icy-MetaData:1` to `Icy-MetaData: 1` in HTTP source headers. Fixes some shoutcast implementations (#727)
+
 1.3.6 (23-01-2019)
 =====
 
