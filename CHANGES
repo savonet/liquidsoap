@@ -29,6 +29,8 @@ Fixed:
 
 - Changed `Icy-MetaData:1` to `Icy-MetaData: 1` in HTTP source headers. Fixes some shoutcast implementations (#727)
 
+- The `ratio` parameter of `compress` and `limit` is a float getter. (#745)
+
 1.3.6 (23-01-2019)
 =====
 
