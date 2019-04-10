@@ -33,6 +33,8 @@ Changed:
 
 Fixed:
 
+- Lack of documentation for `cross`/`crossfade` (#743)
+
 - Timeout when executing external processes (#691)
 
 - Set buffering only when frame is partial in time_wrap.ml. Makes it work with crossfade transitions (#695)
