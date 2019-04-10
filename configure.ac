@@ -10,7 +10,7 @@ dnl $libdir/liquidsoap/$libs_dir_version
 AC_INIT([liquidsoap],[1.4.0+scm])
 scm_snapshot=true
 version=1.4.0
-min_ocaml_version=4.03.0
+min_ocaml_version=4.05.0
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"

@@ -30,6 +30,8 @@ Changed:
 
 Changed:
 
+- Depends on OCaml >= 4.05.0
+
 - Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
 
 - Better log message when request download times out (#708)
