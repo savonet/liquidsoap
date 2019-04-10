@@ -337,13 +337,24 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
    
     # Now parse the audio
     wav = file.temp("liq-process", ".wav")
+
     replaygain_filter =
       if replaygain then
-        "-af volume=replaygain=track"
+        # The extraction program
+        extract_replaygain =
+          get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+        delay = maxtime - gettimeofday()
+        ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
+        if ret != "" then
+          "-af \"volume=#{ret}\""
+        else
+          ""
+        end
       else
         ""
       end
     cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{replaygain_filter} #{quote(wav)}"
+
     uri = process_uri(extname="wav",uri=res,cmd)
 
     wav_r = request.create.raw(uri)
