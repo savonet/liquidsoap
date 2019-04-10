@@ -150,7 +150,8 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     log(level=4,"Running #{cmd}")
     x = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
     if fst(snd(x)) != "exit" or snd(snd(x)) != "0" then
-      log(level=3,"Failed to fetch mime-type for #{uri}.")
+      log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
+      log(level=4,"Process return status: #{x}")
       ""
     else
       lines = string.split(separator="\\n",fst(fst(x)))
@@ -167,6 +168,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
         headers["content-type"]
       else
         log(level=3,"Failed to fetch mime-type for #{uri}.")
+        log(level=4,"Request response: #{ret}")
         ""
       end
     end

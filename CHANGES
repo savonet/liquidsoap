@@ -23,15 +23,28 @@ Changed:
 
 - Reimplemented `extract-replaygain` using `ffmpeg`, added an optional replay gain option to the `ffmpeg2wav` protocol. Thanks to @Yamakaky for contributing on this. (#749)
 
+- The `ratio` parameter of `compress` and `limit` is a float getter. (#745)
+
+1.3.7 (09-04-2019)
+=====
+
+Changed:
+
+- Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
+
+- Better log message when request download times out (#708)
+
+- Drop `log.level` for `ffmpeg` messages to `5`
+
 Fixed:
 
-- Timeout when executing external processes (#691)
+- Timeout when executing external processes (#691, #736, #726, #708)
 
 - Set buffering only when frame is partial in time_wrap.ml. Makes it work with crossfade transitions (#695)
 
 - Changed `Icy-MetaData:1` to `Icy-MetaData: 1` in HTTP source headers. Fixes some shoutcast implementations (#727)
 
-- The `ratio` parameter of `compress` and `limit` is a float getter. (#745)
+- Fixed deadlock in `input.http` source status command (#367)
 
 1.3.6 (23-01-2019)
 =====

@@ -248,10 +248,17 @@ struct
                 \"polling\" (attempting to connect to the HTTP stream) \
                 or \"connected <url>\" (connected to <url>, buffering or \
                 playing back the stream)."
-         (Tutils.mutexify socket_m (fun _ ->
-           match socket with
-             | Some (_,_,url) -> "connected " ^ url
-             | None -> if relaying then "polling" else "stopped")) ;
+         (fun _ ->
+           match Mutex.try_lock socket_m with
+             | false -> "A state change is currently happening. Try later!"
+             | true ->
+               let ret =
+                 match socket with
+                   | Some (_,_,url) -> "connected " ^ url
+                   | None -> if relaying then "polling" else "stopped"
+               in
+               Mutex.unlock socket_m;
+               ret);
       self#register_command "buffer_length" ~usage:"buffer_length"
                             ~descr:"Get the buffer's length, in seconds."
         (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
