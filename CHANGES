@@ -10,7 +10,7 @@ Changed:
 
 Fixed:
 
-- Timeout when executing external processes (#691)
+- Timeout when executing external processes (#691, #736, #726, #708)
 
 - Set buffering only when frame is partial in time_wrap.ml. Makes it work with crossfade transitions (#695)
 
