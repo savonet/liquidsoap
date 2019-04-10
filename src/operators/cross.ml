@@ -32,7 +32,7 @@ let finalise_slave_clock slave_clock source =
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross ~kind (s:source)
-            ~cross_length ~rms_width ~minimum_length
+            ~cross_length ~duration_override ~rms_width ~minimum_length
             ~conservative ~active transition =
   let channels = float (Frame.type_of_kind kind).Frame.audio in
 object (self)
@@ -41,6 +41,7 @@ object (self)
   (* This actually depends on [f], we have to trust the user here. *)
   method stype = s#stype
 
+  val mutable cross_length = cross_length
   (* We need to store the end of a track, and compute the power of the signal
    * before the end of track. For doing so we need to remember a sliding window
    * of samples, maintain the sum of squares, and the number of samples in that
@@ -175,6 +176,18 @@ object (self)
           after_metadata <- Some m;
       | _ -> ()
 
+  method private update_cross_length frame =
+    let pos = Frame.position frame in
+    List.iter (fun (p,m) ->
+     if p>=pos then
+       match Utils.hashtbl_get m duration_override with
+         | None -> ()
+         | Some v ->
+             try
+               let l = float_of_string v in
+               cross_length <- Frame.master_of_seconds l
+             with _ -> ()) (Frame.get_all_metadata frame)
+
   method private get_frame frame =
     match status with
       | `Idle ->
@@ -182,6 +195,7 @@ object (self)
             if rem < 0 || rem > cross_length then begin
               source#get frame ;
               self#save_last_metadata `Before buf_frame ;
+              self#update_cross_length frame ;
               needs_tick <- true
             end else begin
               self#log#f 4 "Buffering end of track..." ;
@@ -412,6 +426,10 @@ let () =
     [ "duration", Lang.float_t, Some (Lang.float 5.),
       Some "Duration in seconds of the crossed end of track." ;
 
+      "duration_override", Lang.string_t, Some (Lang.string "liq_cross_duration"),
+      Some "Metadata field which, if present and containing a float, \
+            overrides the 'duration' parameter for current track." ;
+
       "minimum", Lang.float_t, (Some (Lang.float (-1.))),
       Some "Minimum duration (in sec.) for a cross: \
             If the track ends without any warning (e.g. in case of skip) \
@@ -458,6 +476,7 @@ let () =
             the end of track."
     (fun p kind ->
        let duration = Lang.to_float (List.assoc "duration" p) in
+       let duration_override = Lang.to_string (List.assoc "duration_override" p) in
        let cross_length = Frame.master_of_seconds duration in
 
        let minimum = Lang.to_float (List.assoc "minimum" p) in
@@ -474,6 +493,6 @@ let () =
        let source = Lang.to_source (Lang.assoc "" 2 p) in
        let c =
          new cross ~kind source transition ~conservative ~active
-               ~cross_length ~rms_width ~minimum_length
+               ~cross_length ~rms_width ~minimum_length ~duration_override
        in
        (c:>source))
