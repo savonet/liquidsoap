@@ -1,6 +1,6 @@
 SUBDIRS=tools \
-	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32) \
-	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix) \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),win32) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),unix) \
 	decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization analyze synth harbor lang_encoders encoder_formats
@@ -199,8 +199,8 @@ $(call conditional_compilation,io,$(W_PULSEAUDIO),io/pulseaudio_io.ml)
 $(call conditional_compilation,io,$(W_PORTAUDIO),io/portaudio_io.ml)
 
 tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
-	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32/process_utils.mli tools/win32/process_utils.ml) \
-	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix/process_utils.mli tools/unix/process_utils.ml) \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),win32/process_utils.mli win32/process_utils.ml) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),unix/process_utils.mli unix/process_utils.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
