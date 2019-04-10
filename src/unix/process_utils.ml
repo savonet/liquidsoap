@@ -29,9 +29,9 @@ let perform_redirections new_stdin new_stdout new_stderr =
   (*  The three dup2 close the original stdin, stdout, stderr,
       which are the descriptors possibly left open
       by file_descr_not_standard *)
-  dup2 ~cloexec:false new_stdin stdin;
-  dup2 ~cloexec:false new_stdout stdout;
-  dup2 ~cloexec:false new_stderr stderr;
+  dup2 new_stdin stdin;
+  dup2 new_stdout stdout;
+  dup2 new_stderr stderr;
   safe_close new_stdin;
   safe_close new_stdout;
   safe_close new_stderr
@@ -45,12 +45,12 @@ let open_proc prog args envopt input output error =
     | id -> id
 
 let open_process_args prog args env =
-  let (in_read, in_write) = pipe ~cloexec:true () in
+  let (in_read, in_write) = pipe () in
   let (out_read, out_write) =
-    try pipe ~cloexec:true ()
+    try pipe ()
     with e -> close in_read; close in_write; raise e in
   let (err_read, err_write) =
-    try pipe ~cloexec:true ()
+    try pipe ()
     with e -> close in_read; close in_write;
               close out_read; close out_write; raise e in
   let stdin = out_channel_of_descr out_write in
