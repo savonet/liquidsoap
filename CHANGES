@@ -21,6 +21,8 @@ Changed:
 
 - Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
 
+- Reimplemented `extract-replaygain` using `ffmpeg`, added an optional replay gain option to the `ffmpeg2wav` protocol. Thanks to @Yamakaky for contributing on this. (#749)
+
 Fixed:
 
 - Timeout when executing external processes (#691)

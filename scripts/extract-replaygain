@@ -1,104 +1,23 @@
-#!/usr/bin/perl -w
+#!/bin/sh
+set -e
 
-use strict ;
+FFMPEG=`which ffmpeg`
 
-my $file = $ARGV[0] || die ;
-my $mime;
+if test -z "$FFMPEG"; then
+	echo "ffmpeg must be installed"
+	exit 1
+fi
 
-sub test_mime {
-  if (!$mime) {
-    if (`which file`) {
-      $mime = `file -b --mime-type "$file"`;
-    }
-  }
-  return $mime;
-}
+SED=`which gsed`
 
-sub use_replaygain {
-  my $out = `replaygain --no-album "$file" 2> /dev/null; replaygain --show "$file" 2> /dev/null` ;
-  $out =~ /Track gain (.*) dB$/m || die ;
-  print "$1 dB\n" ;
+if test -z "$SED"; then
+  SED=`which sed`
+fi
 
-}
+if test -z "$SED"; then
+  echo "sed or gsed much be installed"
+  exit 1
+fi
 
-sub use_aacgain {
-  my $out = `aacgain -q "$file" 2> /dev/null` ;
-  $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
-  print "$1 dB\n" ;
-}
+$FFMPEG -i "$1" -filter replaygain -f null /dev/null 2>&1 | $SED -n -r 's/.* track_gain = ([-+]?[0-9]+\.[0-9]+ dB).*/\1/p'
 
-if (($file =~ /\.mp3$/i) || (test_mime() =~ /audio\/mpeg/))  {
-
-  if (`which mp3gain`) {
-
-    my $out = `mp3gain -q "$file" 2> /dev/null` ;
-    $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
-    print "$1 dB\n" ;
-
-  } elsif (`which aacgain`) {
-    use_aacgain()
-  } elsif (`which replaygain`) {
-    use_replaygain()
-  } else {
-
-    print STDERR "Cannot find mp3gain, aacgain nor replaygain binaries!\n";
-    exit 1;
-  }
-
-} elsif(($file =~ /\.m4a$/i) || (test_mime() =~ /audio\/x-m4a/)) {
-  if (`which replaygain`) {
-    use_replaygain()
-  } elsif (`which aacgain`) {
-    use_aacgain()
-  } else {
-
-    print STDERR "Cannot find aacgain or replaygain!\n";
-    exit 1;
-  }
-
-} elsif (($file =~ /\.ogg$/i) || (test_mime() =~ /application\/ogg/)) {
-
-  if ((`which vorbisgain`) && (`which ogginfo`)) {
-
-    system("vorbisgain -q -f \"$file\" 2>/dev/null >/dev/null") ;
-    my $info = `ogginfo "$file"` ;
-    $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ || die ;
-    print "$1 dB\n" ;
-
-  } else {
-
-    print STDERR "Cannot find vorbisgain or ogginfo!\n";
-    exit 1;
-  }
-
-} elsif (($file =~ /\.flac$/i) || (test_mime() =~ /audio\/x-flac/)) {
-
-  if (`which metaflac`) {
-
-    my $info = `metaflac --show-tag=REPLAYGAIN_TRACK_GAIN "$file"` ;
-    $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/;
-    if (defined($1)) {
-
-        print "$1 dB\n" ;
-
-    } else {
-
-      system("metaflac --add-replay-gain \"$file\" \
-              2>/dev/null >/dev/null") ;
-      $info = `metaflac --show-tag=REPLAYGAIN_TRACK_GAIN "$file"` ;
-      $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ || die "Error in $file" ;
-      print "$1 dB\n" ;
-
-    }
-
-  } else {
-
-    print STDERR "Cannot find metaflac!\n";
-    exit 1;
-  }
-
-} else {
-
-  print STDERR "File format not supported...\n";
-  exit 1;
-}
