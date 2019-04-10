@@ -26,7 +26,7 @@ s = single("ffmpeg2wav:/path/to/file.mp3")
 ...
 %%
 
-With the @ffmpeg2wav@ protocol, files and entirely decoded to @WAV@ format using the @ffmpeg@ binary. When the @"protocol.ffmpeg2wav.replaygain"@ setting is set to @true@, it will also apply
+With the @ffmpeg2wav@ protocol, files are entirely decoded to @WAV@ format using the @ffmpeg@ binary. When the @"protocol.ffmpeg2wav.replaygain"@ setting is set to @true@, it will also apply
 the replay gain amplification while decoding.
 
 The protocol requires @ffmpeg@ in the path, which can be set via @set("protocol.ffmpeg2wav.path","...")@.
