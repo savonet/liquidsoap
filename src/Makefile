@@ -1,6 +1,6 @@
 SUBDIRS=tools \
-	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32) \
-	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix) \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),win32) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),unix) \
 	decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization analyze synth harbor lang_encoders encoder_formats
@@ -105,9 +105,9 @@ operators = \
 	$(if $(W_SOUNDTOUCH),operators/st_bpm.ml) \
 	$(if $(W_LADSPA),operators/ladspa_op.ml) \
 	$(if $(W_FREI0R),operators/frei0r_op.ml) \
+	$(if $(W_GD),operators/video_text_gd.ml) \
 	$(if $(W_SDL),operators/video_text_sdl.ml) \
-	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml) \
-	$(if $(W_GD),operators/video_text_gd.ml)
+	$(if $(W_GSTREAMER),operators/video_text_gstreamer.ml)
 
 conversions = \
 	conversions/audio_to_stereo.ml conversions/drop.ml conversions/id.ml \
@@ -171,8 +171,8 @@ io = io/udp_io.ml \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
-	$(if $(filter-out "Unix","$(OS_TYPE)"),tools/win32/process_utils.mli tools/win32/process_utils.ml) \
-	$(if $(filter-out "Win32","$(OS_TYPE)"),tools/unix/process_utils.mli tools/unix/process_utils.ml) \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),win32/process_utils.mli win32/process_utils.ml) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),unix/process_utils.mli unix/process_utils.ml) \
 	tools/rqueue.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \

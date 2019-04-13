@@ -20,7 +20,7 @@ Libraries not developed by Savonet are:
 
 Mandatory dependencies:
 
-   OCaml compiler        >= 4.03.0
+   OCaml compiler        >= 4.05.0
    ocaml-dtools          >= 0.4.0
    ocaml-duppy           >= 0.6.0
    ocaml-mm              >= 0.4.0

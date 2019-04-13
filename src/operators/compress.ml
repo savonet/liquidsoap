@@ -108,7 +108,7 @@ let compress p kind =
 
 let () =
   Lang.add_operator "compress"
-    (("ratio", Lang.float_t, Some (Lang.float 2.),
+    (("ratio", Lang.float_getter_t 6, Some (Lang.float 2.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
     ~kind:(Lang.Unconstrained k)
@@ -116,7 +116,7 @@ let () =
     ~descr:"Compress the signal."
     compress;
   Lang.add_operator "limit"
-    (("ratio", Lang.float_t, Some (Lang.float 20.),
+    (("ratio", Lang.float_getter_t 6, Some (Lang.float 20.),
       Some "Gain reduction ratio (n:1).")
      ::proto)
     ~kind:(Lang.Unconstrained k)

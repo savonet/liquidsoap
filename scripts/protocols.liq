@@ -150,7 +150,8 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
     log(level=4,"Running #{cmd}")
     x = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
     if fst(snd(x)) != "exit" or snd(snd(x)) != "0" then
-      log(level=3,"Failed to fetch mime-type for #{uri}.")
+      log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
+      log(level=4,"Process return status: #{x}")
       ""
     else
       lines = string.split(separator="\\n",fst(fst(x)))
@@ -167,6 +168,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
         headers["content-type"]
       else
         log(level=3,"Failed to fetch mime-type for #{uri}.")
+        log(level=4,"Request response: #{ret}")
         ""
       end
     end
@@ -282,6 +284,7 @@ register(name="ffmpeg2wav protocol settings","protocol.ffmpeg2wav",())
 register(name="Path to ffmpeg","protocol.ffmpeg2wav.path","ffmpeg")
 register(name="Number of channels","protocol.ffmpeg2wav.channels",2)
 register(name="Extract metadata","protocol.ffmpeg2wav.metadata",true)
+register(name="Adjust replaygain","protocol.ffmpeg2wav.replaygain",false)
 
 # Register ffmpeg2wav
 # @flag hidden
@@ -289,6 +292,7 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
   ffmpeg   = get(default="ffmpeg","protocol.ffmpeg2wav.path")
   channels = get(default=2,"protocol.ffmpeg2wav.channels")
   metadata = get(default=true,"protocol.ffmpeg2wav.metadata")
+  replaygain = get(default=false,"protocol.ffmpeg2wav.replaygain")
 
   log = log(label="protocol.ffmpeg2wav")
 
@@ -333,7 +337,24 @@ def ffmpeg2wav_protocol(~rlog,~maxtime,arg) =
    
     # Now parse the audio
     wav = file.temp("liq-process", ".wav")
-    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{quote(wav)}"
+
+    replaygain_filter =
+      if replaygain then
+        # The extraction program
+        extract_replaygain =
+          get(default="#{configure.libdir}/extract-replaygain","protocol.replay_gain.path")
+        delay = maxtime - gettimeofday()
+        ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,arg)
+        if ret != "" then
+          "-af \"volume=#{ret}\""
+        else
+          ""
+        end
+      else
+        ""
+      end
+    cmd = "#{ffmpeg} -y -i $(input) -ac #{channels} #{replaygain_filter} #{quote(wav)}"
+
     uri = process_uri(extname="wav",uri=res,cmd)
 
     wav_r = request.create.raw(uri)

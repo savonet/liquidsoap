@@ -24,7 +24,6 @@ src/auto_clean
 src/lang/lang_lexer.ml
 src/lang/lang_parser.ml
 src/lang/lang_parser.mli
-src/tools/win32/process_utils.mli
 src/*_depend
 doc/liqi/auto_clean
 doc/liqi/liqi
