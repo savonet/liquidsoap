@@ -9,8 +9,6 @@ New:
 
 - Added `source.time` to get a source's clock time.
 
-- Added support for `aacgain`, thanks to @mdurys (#702)
-
 - Added `max_duration` to limit a source's duration.
 
 Changed:
