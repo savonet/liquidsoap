@@ -18,7 +18,6 @@ liquidsoap, you may want to read the "custom path":custom-path.html page.
 h4@general. General tutorials
 
 * "Quickstart":quick_start.html: where anyone should start.
-* "ON2 tutorial":on2.html: a in-depth tutorial of Liquidsoap from scratch.
 * "Complete case analysis":complete_case.html: an example that is not a toy.
 * "Advanced":advanced.html: overview of more advanced features for serious usage.
 * "How to find help":help.html about operators, settings, server commands, etc.

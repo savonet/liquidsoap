@@ -6,7 +6,7 @@ h4. Basic operator
 
 Liquidsoap includes an advanced crossfading operator. Using it, you can code which transition you want for your songs, according to the average volume level (in dB) computed on the end of the ending track and the beginning of the new one.
 
-The low level operator is <code>smart_cross</code>. With it, you can register a function that returns the transition you like. The arguments passed to this function are:
+The low level operator is <code>cross</code>. With it, you can register a function that returns the transition you like. The arguments passed to this function are:
 
 * volume level for previous track
 * volume level for next track
@@ -19,9 +19,9 @@ You can find its documentation in the "language reference":reference.html.
 
 h4. Example
 
-Liquidsoap also includes a ready-to-use operator defined using <code>smart_cross</code>, it is called <code>smart_crossfade</code> and is defined in the pervasive helper script <code>utils.liq</code>. Its code is:
+Liquidsoap also includes a ready-to-use operator defined using <code>cross</code>, it is called <code>crossfade</code> and is defined in the pervasive helper script <code>utils.liq</code>. Its code is:
 
-%%(smart_crossfade.liq)
+%%(crossfade.liq)
 # Crossfade between tracks, 
 # taking the respective volume levels 
 # into account in the choice of the 
@@ -34,16 +34,16 @@ Liquidsoap also includes a ready-to-use operator defined using <code>smart_cross
 # @param ~conservative Always prepare for
 #                      a premature end-of-track.
 # @param s             The input source.
-def smart_crossfade (~start_next=5.,~fade_in=3.,
-                     ~fade_out=3., ~width=2.,
-		     ~conservative=false,s)
+def crossfade (~start_next=5.,~fade_in=3.,
+               ~fade_out=3., ~width=2.,
+               ~conservative=false,s)
   high   = -20.
   medium = -32.
   margin = 4.
   fade.out = fade.out(type="sin",duration=fade_out)
   fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b,a])
-  log = log(label="smart_crossfade")
+  log = log(label="crossfade")
 
   def transition(a,b,ma,mb,sa,sb)
 
@@ -102,9 +102,9 @@ def smart_crossfade (~start_next=5.,~fade_in=3.,
     end
   end
 
-  smart_cross(width=width, duration=start_next, 
-              conservative=conservative,
-              transition,s)
+  cross(width=width, duration=start_next, 
+        conservative=conservative,
+        transition,s)
 end
 %%
 

@@ -202,10 +202,10 @@ def dole_fade (~start_next=3.,~fade_in=3.,~fade_out=3.,
     end
   end
 
-  smart_cross(transition,
-               width=width,
-               duration=start_next,conservative=conservative,
-               s)
+  cross(transition,
+        width=width,
+        duration=start_next,conservative=conservative,
+        s)
 end
 
 def audio_process(s)

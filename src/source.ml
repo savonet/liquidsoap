@@ -501,7 +501,7 @@ object (self)
      * - A starts streaming again, needs to receive an EOT before
      *   having to worry about availability.
      *
-     *   Another important example is smart_crossfade, if e.g. a transition
+     *   Another important example is crossfade, if e.g. a transition
      *   returns a failling source.
      *
      * So we add special cases where, instead of calling #get_frame, we

@@ -121,7 +121,7 @@ sustain=sequence(merge=true,[
 
 ###########################################
 # PROCESSING
-topOfTheHour=smart_crossfade(fade_out=0.5,fade_in=0.5,topOfTheHour)
+topOfTheHour=crossfade(fade_out=0.5,fade_in=0.5,topOfTheHour)
 sustain=nrj(sustain)
 #####
 

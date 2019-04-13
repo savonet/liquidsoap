@@ -1,5 +1,5 @@
-%include "fades.liq"
 %include "utils.liq"
+%include "fades.liq"
 %include "protocols.liq"
 %include "externals.liq"
 %include "shoutcast.liq"

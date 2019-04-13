@@ -83,8 +83,8 @@ let register =
             (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
       None, Some "A function that returns new metadata." ;
       "update", Lang.bool_t, Some (Lang.bool true),
-      Some "Only update metadata. If false, only returned values \
-            will be set as metadata." ;
+      Some "Update metadata. If false, existing metadata are cleared and \
+            only returned values are set as new metadata." ;
       "strip", Lang.bool_t, Some (Lang.bool false),
       Some "Completely remove empty metadata. Operates on both empty values \
             and empty metadata chunk.";
