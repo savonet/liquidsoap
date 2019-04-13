@@ -191,11 +191,12 @@ object (self)
   method private get_frame frame =
     match status with
       | `Idle ->
-          let p = Frame.position frame in
           let rem = if conservative then 0 else source#remaining in
             if rem < 0 || rem > cross_length then begin
+              let p = Frame.position frame in
               source#get frame ;
               self#save_last_metadata `Before buf_frame ;
+              self#update_cross_length frame p;
               needs_tick <- true
             end else begin
               self#log#f 4 "Buffering end of track..." ;
@@ -208,8 +209,7 @@ object (self)
               if status <> `Limit then
                 self#log#f 4 "More buffering will be needed." ;
               self#get_frame frame
-            end;
-            self#update_cross_length frame p
+            end
       | `Before ->
           (* We started buffering but the track didn't end.
            * Play the beginning of the buffer while filling it more. *)
@@ -254,6 +254,7 @@ object (self)
     let start = Frame.position buf_frame in
     let stop = source#get buf_frame ; Frame.position buf_frame in
     self#save_last_metadata `Before buf_frame ;
+    self#update_cross_length buf_frame start;
     let content =
       let end_pos,c = Frame.content buf_frame start in
         assert (end_pos>=stop) ;
@@ -321,6 +322,7 @@ object (self)
        end ;
 
       self#save_last_metadata `After buf_frame ;
+      self#update_cross_length buf_frame start ;
 
       if not (AFrame.is_partial buf_frame) then
        begin
