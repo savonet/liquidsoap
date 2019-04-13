@@ -176,8 +176,7 @@ object (self)
           after_metadata <- Some m;
       | _ -> ()
 
-  method private update_cross_length frame =
-    let pos = Frame.position frame in
+  method private update_cross_length frame pos =
     List.iter (fun (p,m) ->
      if p>=pos then
        match Utils.hashtbl_get m duration_override with
@@ -185,17 +184,18 @@ object (self)
          | Some v ->
              try
                let l = float_of_string v in
+               self#log#f 4 "Setting crossfade duration to %.2fs" l;
                cross_length <- Frame.master_of_seconds l
              with _ -> ()) (Frame.get_all_metadata frame)
 
   method private get_frame frame =
     match status with
       | `Idle ->
+          let p = Frame.position frame in
           let rem = if conservative then 0 else source#remaining in
             if rem < 0 || rem > cross_length then begin
               source#get frame ;
               self#save_last_metadata `Before buf_frame ;
-              self#update_cross_length frame ;
               needs_tick <- true
             end else begin
               self#log#f 4 "Buffering end of track..." ;
@@ -208,7 +208,8 @@ object (self)
               if status <> `Limit then
                 self#log#f 4 "More buffering will be needed." ;
               self#get_frame frame
-            end
+            end;
+            self#update_cross_length frame p
       | `Before ->
           (* We started buffering but the track didn't end.
            * Play the beginning of the buffer while filling it more. *)
