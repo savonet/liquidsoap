@@ -214,7 +214,7 @@ object (self)
           (* We started buffering but the track didn't end.
            * Play the beginning of the buffer while filling it more. *)
           let len = Generator.length gen_before in
-          if len < cross_length then
+          if len <= cross_length then
             self#buffering (cross_length-len) ;
           Generator.fill gen_before frame
       | `Limit ->
