@@ -195,7 +195,7 @@ object (self)
             if rem < 0 || rem > cross_length then begin
               let p = Frame.position frame in
               source#get frame ;
-              self#save_last_metadata `Before buf_frame ;
+              self#save_last_metadata `Before frame ;
               self#update_cross_length frame p;
               needs_tick <- true
             end else begin
