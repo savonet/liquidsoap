@@ -102,7 +102,7 @@ object (self)
            * before the aux source gets the frame. *)
           let restore = Frame.hide_contents frame in
           let master,end_master = get master_layer master in
-          let _ = Frame.hide_contents frame in
+          let (_:unit->unit) = Frame.hide_contents frame in
           let aux,end_aux = get aux_layer aux in
           let end_pos = min end_master end_aux in
           let new_content = mux_content master aux in

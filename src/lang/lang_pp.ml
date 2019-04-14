@@ -84,7 +84,7 @@ let preprocess tokenizer =
       | Lang_parser.PP_IFENCODER | Lang_parser.PP_IFNENCODER as tok ->
           let fmt = get_encoder_format tokenizer lexbuf in
           let has_enc =
-            try let _ = Encoder.get_factory fmt in true with Not_found -> false
+            try let (_:Encoder.factory) = Encoder.get_factory fmt in true with Not_found -> false
           in
           let test =
             if tok = Lang_parser.PP_IFENCODER then fun x -> x else not

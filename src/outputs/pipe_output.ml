@@ -195,7 +195,7 @@ object (self)
     let chan = Utils.get_some chan in
     output_string chan b ;
     if flush then
-      Pervasives.flush chan 
+      Stdlib.flush chan 
 
   method close_pipe =
     self#close_chan (Utils.get_some chan);

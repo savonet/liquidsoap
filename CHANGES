@@ -13,6 +13,8 @@ New:
 
 Changed:
 
+- Depends on OCaml >= 4.07.0
+
 - Remove dynamic plugin build option.
 
 - Made `on_end` delay a float getter.
@@ -47,8 +49,6 @@ Fixed:
 =====
 
 Changed:
-
-- Depends on OCaml >= 4.05.0
 
 - Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
 

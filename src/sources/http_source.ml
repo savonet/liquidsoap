@@ -190,7 +190,7 @@ struct
           ~bind_address ~autostart ~bufferize ~max ~timeout
           ~debug ~on_connect ~on_disconnect ?(logfile=None)
           ~user_agent url =
-    let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
+    let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
     (* We need a temporary log until the source has an ID. *)
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in

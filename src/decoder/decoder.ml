@@ -270,13 +270,13 @@ let get_image_file_decoder filename =
         | Some img ->
           log#f 3 "Method %S accepted %S." name filename;
           ans := Some img;
-          raise Pervasives.Exit
+          raise Stdlib.Exit
         | None -> ()
       ) (get_decoders conf_image_file_decoders image_file_decoders);
     log#f 3 "Unable to decode %S!" filename;
     !ans
   with
-  | Pervasives.Exit -> !ans
+  | Stdlib.Exit -> !ans
 
 exception Exit_decoder of stream_decoder
 
