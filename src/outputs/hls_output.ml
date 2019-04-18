@@ -109,12 +109,12 @@ class hls_output p =
   let codecs = List.assoc "codecs" p in
   let bitrates =
     let l = List.map Lang.to_int (Lang.to_list bitrates) in
-    if List.length l <> List.length streams then raise (Lang.Invalid_value (bitrates, "There should be as many bitrates as streams"));
+    if List.length l > 0 && List.length l <> List.length streams then raise (Lang.Invalid_value (bitrates, "There should be as many bitrates as streams"));
     Array.of_list l
   in
   let codecs =
     let l = List.map Lang.to_string (Lang.to_list codecs) in
-    if List.length l <> List.length streams then raise (Lang.Invalid_value (codecs, "There should be as many codecs as streams"));
+    if List.length l > 0 && List.length l <> List.length streams then raise (Lang.Invalid_value (codecs, "There should be as many codecs as streams"));
     Array.of_list l
   in
   let streams =
