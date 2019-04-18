@@ -109,6 +109,13 @@ let extension = function
   | FdkAacEnc _ -> "aac"
   | _ -> "audio"
 
+(** Bitrate estimation in bits per second. *)
+let bitrate = function
+  | MP3 w -> Mp3_format.bitrate w
+  | Shine w -> Shine_format.bitrate w
+  | FdkAacEnc w -> Fdkaac_format.bitrate w
+  | _ -> failwith "Unknown bitrate."
+
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 
   * (triggers flushing). 

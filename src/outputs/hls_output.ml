@@ -47,13 +47,23 @@ let hls_proto kind =
            The default value is however displayed in decimal \
            (0o666 = 6*8^2 + 4*8 + 4 = 412)." ;
 
+     "bitrates",
+     Lang.list_t Lang.int_t,
+     Some (Lang.list ~t:Lang.int_t []),
+     Some "Bitrates of the streams (in bits per second).";
+
+     "codecs",
+     Lang.list_t Lang.string_t,
+     Some (Lang.list ~t:Lang.string_t []),
+     Some "Codecs (according to RFC 6381) of the streams.";
+
      "",
      Lang.string_t,
      None,
      Some "Directory for generated files." ;
 
      "",
-     Lang.list_t (Lang.uple_t [Lang.string_t; Lang.format_t kind; Lang.int_t; Lang.string_t]),
+     Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
      None,
      Some "List of specifications for each stream: name, format, bandwidth (bits per second), optional parameters (unused for now).";
 
@@ -89,30 +99,51 @@ class hls_output p =
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
   let () = if not (Sys.file_exists directory) || not (Sys.is_directory directory) then raise (Lang.Invalid_value (Lang.assoc "" 1 p, "The target directory does not exist")) in
   let streams =
-    let v = Lang.assoc "" 2 p in
-    let streams = Lang.to_list v in
+    let streams = Lang.assoc "" 2 p in
+    let l = Lang.to_list streams in
+    if l = [] then raise (Lang.Invalid_value (streams, "The list of streams cannot be empty"));
+    l
+  in
+  let bitrates = List.assoc "bitrates" p in
+  let codecs = List.assoc "codecs" p in
+  let bitrates =
+    let l = List.map Lang.to_int (Lang.to_list bitrates) in
+    if List.length l <> List.length streams then raise (Lang.Invalid_value (bitrates, "There should be as many bitrates as streams"));
+    Array.of_list l
+  in
+  let codecs =
+    let l = List.map Lang.to_string (Lang.to_list codecs) in
+    if List.length l <> List.length streams then raise (Lang.Invalid_value (codecs, "There should be as many codecs as streams"));
+    Array.of_list l
+  in
+  let streams =
+    let i = ref (-1) in
     let f s =
-      match Lang.to_uple s with
-      | [n; f; b; _] ->
-         let hls_format = Lang.to_format f in
-         let hls_encoder_factory =
-           try Encoder.get_factory hls_format
-           with Not_found -> raise (Lang.Invalid_value (f, "Unsupported format"))
-         in
-         let hls_codec = Encoder.rfc6381 hls_format in (* TODO: from the format, see RFC 6381 *)
-         {
-           hls_name = Lang.to_string n;
-           hls_format;
-           hls_encoder_factory;
-           hls_encoder = None;
-           hls_bandwidth = Lang.to_int b;
-           hls_codec;
-           hls_oc = None;
-         }
-      | _ -> assert false
+      incr i;
+      let name, fmt = Lang.to_product s in
+      let hls_name = Lang.to_string name in
+      let hls_format = Lang.to_format fmt in
+      let hls_bandwidth =
+        if Array.length bitrates > 0 then bitrates.(!i) else Encoder.bitrate hls_format
+      in
+      let hls_encoder_factory =
+        try Encoder.get_factory hls_format
+        with Not_found -> raise (Lang.Invalid_value (fmt, "Unsupported format"))
+      in
+      let hls_codec =
+        if Array.length codecs > 0 then codecs.(!i) else Encoder.rfc6381 hls_format
+      in
+      {
+        hls_name;
+        hls_format;
+        hls_encoder_factory;
+        hls_encoder = None;
+        hls_bandwidth;
+        hls_codec;
+        hls_oc = None;
+      }
     in
     let streams = List.map f streams in
-    if streams = [] then raise (Lang.Invalid_value (v, "The list of streams cannot be empty"));
     streams
   in
   let source = Lang.assoc "" 3 p in
@@ -122,136 +153,136 @@ class hls_output p =
   let segment_nb = Lang.to_int (List.assoc "segments" p) in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
-object (self)
-  val mutable current_filename = None
+  object (self)
+    val mutable current_filename = None
 
-  inherit
-    Output.encoded
-      ~infallible ~on_start ~on_stop ~autostart
-      ~output_kind:"output.file" ~name
-      ~content_kind:kind source
+    inherit
+      Output.encoded
+        ~infallible ~on_start ~on_stop ~autostart
+        ~output_kind:"output.file" ~name
+        ~content_kind:kind source
 
-  (** Current segment *)
-  val mutable segment = -1
+    (** Current segment *)
+    val mutable segment = -1
 
-  (** Available segments *)
-  val mutable segments = []
+    (** Available segments *)
+    val mutable segments = []
 
-  (** Opening date for current segment. *)
-  val mutable open_date = 0.
-  val mutable current_metadata = None
+    (** Opening date for current segment. *)
+    val mutable open_date = 0.
+    val mutable current_metadata = None
 
-  method segment_name ?(relative=false) ?(segment=segment) stream =
-    Printf.sprintf "%s%s_%d.%s" (if relative then "" else directory^"/") stream.hls_name segment (Encoder.extension stream.hls_format)
+    method segment_name ?(relative=false) ?(segment=segment) stream =
+      Printf.sprintf "%s%s_%d.%s" (if relative then "" else directory^"/") stream.hls_name segment (Encoder.extension stream.hls_format)
 
-  method is_open =
-    (List.hd streams).hls_oc <> None
+    method is_open =
+      (List.hd streams).hls_oc <> None
 
-  method open_pipes =
-    List.iter (fun s ->
-        segment <- segment + 1;
-        let mode = [Open_wronly; Open_creat; Open_trunc] in
-        let oc = open_out_gen mode file_perm (self#segment_name s) in
-        set_binary_mode_out oc true;
-        s.hls_oc <- Some oc;
-      ) streams;
-    segments <- segment :: segments;
-    while List.length segments > segment_nb do
-      (* TODO: be more efficient *)
-      let l = List.rev segments in
-      let rm = List.hd l in
-      segments <- List.rev (List.tl l);
-      List.iter (fun s -> Unix.unlink (self#segment_name ~segment:rm s)) streams
-    done;
-    open_date <- Unix.gettimeofday ()
+    method open_pipes =
+      List.iter (fun s ->
+          segment <- segment + 1;
+          let mode = [Open_wronly; Open_creat; Open_trunc] in
+          let oc = open_out_gen mode file_perm (self#segment_name s) in
+          set_binary_mode_out oc true;
+          s.hls_oc <- Some oc;
+        ) streams;
+      segments <- segment :: segments;
+      while List.length segments > segment_nb do
+        (* TODO: be more efficient *)
+        let l = List.rev segments in
+        let rm = List.hd l in
+        segments <- List.rev (List.tl l);
+        List.iter (fun s -> Unix.unlink (self#segment_name ~segment:rm s)) streams
+      done;
+      open_date <- Unix.gettimeofday ()
 
-  method write_pipe s b =
-    let oc = Utils.get_some s.hls_oc in
-    output_string oc b
+    method write_pipe s b =
+      let oc = Utils.get_some s.hls_oc in
+      output_string oc b
 
-  method close_pipes =
-    List.iter (fun s ->
-        close_out (Utils.get_some s.hls_oc);
-        s.hls_oc <- None
-      ) streams
-
-  method write_playlists =
-    List.iter (fun s ->
-        let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm (directory^"/"^s.hls_name^".m3u8") in
-        output_string oc "#EXTM3U\n";
-        output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (segment_duration +. 1.)));
-        output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (List.last segments));
-        output_string oc "#EXT-X-PLAYLIST-TYPE:VOD\n";
-        List.iter (fun segment ->
-            output_string oc (Printf.sprintf "#EXTINF:%d,\n" (int_of_float (segment_duration +. 0.5)));
-            output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
-          ) (List.rev segments);
-        (* output_string oc "#EXT-X-ENDLIST\n"; *)
-        close_out oc
-      ) streams;
-    let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm (directory^"/"^playlist) in
-    output_string oc "#EXTM3U\n";
-    List.iter (fun s ->
-        let line =
-          Printf.sprintf
-            "#EXT-X-STREAM-INF:AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d,CODECS=\"%s\"\n"
-            s.hls_bandwidth s.hls_bandwidth s.hls_codec
-        in
-        output_string oc line;
-        output_string oc (s.hls_name^".m3u8\n")
-      ) streams;
-    close_out oc
-
-  method output_start =
-    List.iter (fun s ->
-        assert (not (self#is_open && s.hls_encoder = None));
-        let enc = s.hls_encoder_factory self#id in
-        let meta = match current_metadata with
-          | Some m -> m
-          | None -> Meta_format.empty_metadata
-        in
-        s.hls_encoder <- Some (enc meta)
-      ) streams;
-    self#open_pipes;
-    self#write_playlists
-
-  method output_stop =
-    let flush =
-      List.map (fun s ->
-          let b = (Utils.get_some s.hls_encoder).Encoder.stop () in
-          s.hls_encoder <- None;
-          b
+    method close_pipes =
+      List.iter (fun s ->
+          close_out (Utils.get_some s.hls_oc);
+          s.hls_oc <- None
         ) streams
-    in
-    self#send flush;
-    self#close_pipes
 
-  method output_reset = ()
+    method write_playlists =
+      List.iter (fun s ->
+          let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm (directory^"/"^s.hls_name^".m3u8") in
+          output_string oc "#EXTM3U\n";
+          output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (segment_duration +. 1.)));
+          output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (List.last segments));
+          output_string oc "#EXT-X-PLAYLIST-TYPE:VOD\n";
+          List.iter (fun segment ->
+              output_string oc (Printf.sprintf "#EXTINF:%d,\n" (int_of_float (segment_duration +. 0.5)));
+              output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
+            ) (List.rev segments);
+          (* output_string oc "#EXT-X-ENDLIST\n"; *)
+          close_out oc
+        ) streams;
+      let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm (directory^"/"^playlist) in
+      output_string oc "#EXTM3U\n";
+      List.iter (fun s ->
+          let line =
+            Printf.sprintf
+              "#EXT-X-STREAM-INF:AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d,CODECS=\"%s\"\n"
+              s.hls_bandwidth s.hls_bandwidth s.hls_codec
+          in
+          output_string oc line;
+          output_string oc (s.hls_name^".m3u8\n")
+        ) streams;
+      close_out oc
 
-  val mutable reopening = false
+    method output_start =
+      List.iter (fun s ->
+          assert (not (self#is_open && s.hls_encoder = None));
+          let enc = s.hls_encoder_factory self#id in
+          let meta = match current_metadata with
+            | Some m -> m
+            | None -> Meta_format.empty_metadata
+          in
+          s.hls_encoder <- Some (enc meta)
+        ) streams;
+      self#open_pipes;
+      self#write_playlists
 
-  method encode frame ofs len =
-    List.map (fun s ->
-        let enc = Utils.get_some s.hls_encoder in
-        enc.Encoder.encode frame ofs len
-      ) streams
+    method output_stop =
+      let flush =
+        List.map (fun s ->
+            let b = (Utils.get_some s.hls_encoder).Encoder.stop () in
+            s.hls_encoder <- None;
+            b
+          ) streams
+      in
+      self#send flush;
+      self#close_pipes
 
-  method send b =
-    if not self#is_open then self#open_pipes;
-    List.iter2 self#write_pipe streams b;
-    if not reopening && Unix.gettimeofday () > segment_duration +. open_date then
-      begin
-        self#log#f 5 "New segment..." ;
-        (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
-        reopening <- true;
-        self#output_stop;
-        self#output_start;
-        reopening <- false;
-      end
+    method output_reset = ()
 
-  method insert_metadata m =
-    List.iter (fun s -> (Utils.get_some s.hls_encoder).Encoder.insert_metadata m) streams
-end
+    val mutable reopening = false
+
+    method encode frame ofs len =
+      List.map (fun s ->
+          let enc = Utils.get_some s.hls_encoder in
+          enc.Encoder.encode frame ofs len
+        ) streams
+
+    method send b =
+      if not self#is_open then self#open_pipes;
+      List.iter2 self#write_pipe streams b;
+      if not reopening && Unix.gettimeofday () > segment_duration +. open_date then
+        begin
+          self#log#f 5 "New segment..." ;
+          (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
+          reopening <- true;
+          self#output_stop;
+          self#output_start;
+          reopening <- false;
+        end
+
+    method insert_metadata m =
+      List.iter (fun s -> (Utils.get_some s.hls_encoder).Encoder.insert_metadata m) streams
+  end
 
 let () =
   let kind = Lang.univ_t 1 in

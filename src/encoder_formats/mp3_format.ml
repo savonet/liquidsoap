@@ -80,3 +80,8 @@ let to_string m =
     m.samplerate
     (m.id3v2 <> None)
 
+let bitrate m =
+  match m.bitrate_control with
+  | VBR n -> n * 1000
+  | CBR n -> n * 1000
+  | ABR abr -> abr.mean_bitrate * 1000
