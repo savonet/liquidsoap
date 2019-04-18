@@ -48,6 +48,14 @@ let list_t t  = T.make (T.List t)
 let of_list_t t = match (T.deref t).T.descr with
   | T.List t -> t
   | _ -> assert false
+let rec uple_t = function
+  | [] -> unit_t
+  | [t] -> t
+  | t::l -> product_t t (uple_t l)
+let rec of_uple_t t = match (T.deref t).T.descr with
+  | T.Ground T.Unit -> []
+  | T.Product (t,t') -> t::(of_uple_t t')
+  | _ -> assert false
 
 let metadata_t = list_t (product_t string_t string_t)
 
@@ -599,6 +607,11 @@ let to_int_getter t = match t.value with
        | Int n -> n
        | _ -> assert false)
   | _ -> assert false
+
+let rec to_uple t = match t.value with
+  | Product (a,b) -> a::(to_uple b)
+  | Unit -> []
+  | _ -> [t]
 
 let to_list t = match t.value with
   | List l -> l

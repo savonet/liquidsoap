@@ -62,6 +62,11 @@
       cached := Some (fn());
       mk ?pos (RFun (fv,args,fn))
 
+  let rec mk_uple = function
+    | [] -> mk Unit
+    | [x] -> x
+    | x::l -> mk (Product(x,mk_uple l))
+
   let mk_enc e = mk (Encoder e)
 
   (** Time intervals *)
@@ -315,8 +320,9 @@ expr:
   | AVI app_opt                      { mk_enc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk Unit }
-  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
+//  | LPAR RPAR                        { mk Unit }
+//  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
+  | LPAR inner_list RPAR             { mk_uple $2 }
   | VAR                              { mk (Var $1) }
   | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
   | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),
@@ -447,8 +453,9 @@ cexpr:
   | AVI app_opt                      { mk_enc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk Unit }
-  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
+//  | LPAR RPAR                        { mk Unit }
+//  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
+  | LPAR inner_list RPAR             { mk_uple $2 }
   | VAR                              { mk (Var $1) }
   | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
   | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),

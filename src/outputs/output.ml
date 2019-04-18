@@ -241,8 +241,8 @@ object (self)
             ~content_kind ~output_kind ~name source autostart
 
   method virtual private insert_metadata : Meta_format.export_metadata -> unit
-  method virtual private encode : Frame.t -> int -> int -> string
-  method virtual private send : string -> unit
+  method virtual private encode : Frame.t -> int -> int -> 'a
+  method virtual private send : 'a -> unit
 
   method private output_send frame =
     let rec output_chunks frame =

@@ -175,6 +175,7 @@ val to_request : value -> Request.t
 val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_list : value -> value list
+val to_uple : value -> value list
 val to_product : value -> value * value
 val to_metadata_list : value -> (string*string) list
 val to_metadata : value -> Frame.metadata
@@ -198,6 +199,8 @@ val of_product_t : t -> t * t
 
 val list_t     : t -> t
 val of_list_t  : t -> t
+val uple_t     : t list -> t
+val of_uple_t  : t -> t list
 
 val zero_t     : t
 val variable_t : t

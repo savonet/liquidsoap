@@ -83,9 +83,9 @@ object
 
   method private output_send : Frame.t -> unit
 
-  method virtual private encode : Frame.t -> int -> int -> string
+  method virtual private encode : Frame.t -> int -> int -> 'a
   method virtual private insert_metadata : Meta_format.export_metadata -> unit
-  method virtual private send : string -> unit
+  method virtual private send : 'a -> unit
 
   method virtual private output_reset : unit
   method virtual private output_start : unit
