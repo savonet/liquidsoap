@@ -96,7 +96,7 @@ let string_of_format = function
 let rfc6381 = function
   | MP3 _ | Shine _ -> "mp4a.40.34"
   | FdkAacEnc _ -> "mp4a.40.2"
-  | _ -> failwith "Unknown RFC6381 format."
+  | _ -> raise Not_found
 
 (** Proposed extension for files. *)
 let extension = function
@@ -114,7 +114,7 @@ let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
-  | _ -> failwith "Unknown bitrate."
+  | _ -> raise Not_found
 
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 

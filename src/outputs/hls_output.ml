@@ -82,6 +82,7 @@ type hls_stream_desc =
     mutable hls_oc : out_channel option; (** currently encoded file *)
   }
 
+open Dtools
 open Extralib
 
 (* TODO: can we share more with other classes? *)
@@ -117,6 +118,7 @@ class hls_output p =
     Array.of_list l
   in
   let streams =
+    let log = Log.make ["output.hls"] in
     let i = ref (-1) in
     let f s =
       incr i;
@@ -124,14 +126,24 @@ class hls_output p =
       let hls_name = Lang.to_string name in
       let hls_format = Lang.to_format fmt in
       let hls_bandwidth =
-        if Array.length bitrates > 0 then bitrates.(!i) else Encoder.bitrate hls_format
+        if Array.length bitrates > 0 then bitrates.(!i) else
+          try
+            Encoder.bitrate hls_format
+          with Not_found ->
+            log#f 2 "Bitrate not found, defaulting to 128000, please specify bitrates.";
+             128000
       in
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
         with Not_found -> raise (Lang.Invalid_value (fmt, "Unsupported format"))
       in
       let hls_codec =
-        if Array.length codecs > 0 then codecs.(!i) else Encoder.rfc6381 hls_format
+        if Array.length codecs > 0 then codecs.(!i) else
+          try
+            Encoder.rfc6381 hls_format
+          with Not_found ->
+            log#f 2 "Codec not found, defaulting to mp4a.40.34, please specify codecs.";
+            "mp4a.40.34"
       in
       {
         hls_name;
