@@ -476,8 +476,6 @@ object (self)
 
   method write_playlists =
     List.iter (fun s ->
-        Printf.printf "writing %s\n%!" (directory^"/"^s.hls_name^".m3u8");
-        Printf.printf "segments: %s\n%!" (String.concat ", " (List.map string_of_int segments));
         let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm (directory^"/"^s.hls_name^".m3u8") in
         output_string oc "#EXTM3U\n";
         output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (segment_duration +. 1.)));
