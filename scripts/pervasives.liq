@@ -6,6 +6,7 @@
 %include "lastfm.liq"
 %include "flows.liq"
 %include "http.liq"
+%include "hls.liq"
 %include "video.liq"
 %include "gstreamer.liq"
 %include "deprecations.liq"

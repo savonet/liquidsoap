@@ -188,11 +188,11 @@ object (self)
                   | x ->
                       begin match Playlist_parser.parsers#get x with
                         | Some plugin ->
-                            (x,plugin.Playlist_parser.parser content)
+                            (x,plugin.Playlist_parser.parser ~pwd content)
                         | None ->
                             self#log#f 3
                               "Unknown mime type, trying autodetection." ;
-                            Playlist_parser.search_valid content
+                            Playlist_parser.search_valid ~pwd content
                       end
               in
                 self#log#f 3 "Playlist treated as format %s" format  ;

@@ -2180,7 +2180,11 @@ let () =
 
 let () =
   add_builtin "playlist.parse" ~cat:Liq
-    ["", Lang.string_t,None,None]
+    [
+      "path",Lang.string_t,Some (Lang.string ""),Some "Default path for files.";
+      "mime",Lang.string_t,Some (Lang.string ""),Some "Mime type for the playlist";
+      "", Lang.string_t,None,None
+    ]
     (Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t))
     ~descr:"Try to parse a local playlist. \
             Return a list of (metadata,URI) items, where metadata is a list \
@@ -2189,10 +2193,26 @@ let () =
        let f = Lang.to_string (List.assoc "" p) in
        let f = Utils.home_unrelate f in
        let content = Utils.read_all f in
-       let pwd     = Filename.dirname f in
+       let pwd     =
+         let pwd = Lang.to_string (List.assoc "path" p) in
+         if pwd = "" then Filename.dirname f else pwd
+       in
        let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
+       let mime = Lang.to_string (List.assoc "mime" p) in
          try
-           let _,l = Playlist_parser.search_valid ~pwd content in
+           let _,l =
+             if mime = "" then
+               Playlist_parser.search_valid ~pwd content
+             else
+               (
+                 match Playlist_parser.parsers#get mime with
+                 | Some plugin ->
+                    (mime,plugin.Playlist_parser.parser ~pwd content)
+                 | None ->
+                    log#f 3 "Unknown mime type, trying autodetection." ;
+                    Playlist_parser.search_valid ~pwd content
+               )
+           in
            let process m =
              let f (n,v) =
                Lang.product (Lang.string n) (Lang.string v)
