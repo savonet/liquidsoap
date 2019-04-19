@@ -256,7 +256,7 @@ let common kind = [
 
   "override", Lang.string_t, Some (Lang.string "liq_transition_length"),
   Some "Metadata field which, if present and containing a float, \
-        overrides the 'transition_length` parameter.";
+        overrides the @transition_length@ parameter.";
 
   "replay_metadata", Lang.bool_t, Some (Lang.bool true),
   Some "Replay the last metadata of a child when switching to it \
