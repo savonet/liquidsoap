@@ -284,7 +284,7 @@ object (self)
       Generator.add_break gen_before ;
       status <- `Limit
     end else
-      if n>0 then self#buffering (n - AFrame.position buf_frame)
+      if n>0 then self#buffering (n - stop + start)
 
   (* Analyze the beginning of a new track. *)
   method private analyze_after =
