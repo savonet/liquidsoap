@@ -3,6 +3,8 @@
 
 New:
 
+- Added `output.hls` to natively stream in HLS (#758).
+
 - Added `(to_){string,float,int,bool}_getter` operators to handle getters in script side.
 
 - Made `p` parameter in `smooth_add` a `float` getter (#601)

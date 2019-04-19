@@ -152,7 +152,7 @@ encoder_formats = \
   encoder_formats/wav_format.ml
 
 outputs = outputs/output.ml \
-	outputs/pipe_output.ml \
+	outputs/pipe_output.ml outputs/hls_output.ml \
 	outputs/harbor_output.ml \
   $(if $(W_SSL),outputs/harbor_output_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),outputs/harbor_output_secure_transport.ml) \

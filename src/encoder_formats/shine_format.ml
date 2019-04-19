@@ -31,3 +31,6 @@ let to_string m =
     m.channels
     m.samplerate
     m.bitrate
+
+let bitrate m =
+  m.bitrate * 1000

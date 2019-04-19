@@ -287,7 +287,7 @@ let () =
     ~category:Lang.Output
     ~descr:"Output the source stream to a file."
     (fun p _ ->
-         ((new file_output p):>Source.source))
+      ((new file_output p):>Source.source))
 
 (** External output *)
 
@@ -318,4 +318,3 @@ let () =
     ~descr:"Send the stream to a process' standard input."
     (fun p _ ->
          ((new external_output p):>Source.source))
-

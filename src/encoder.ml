@@ -93,6 +93,29 @@ let string_of_format = function
   | External w -> External_encoder_format.to_string w
   | GStreamer w -> Gstreamer_format.to_string w
 
+let rfc6381 = function
+  | MP3 _ | Shine _ -> "mp4a.40.34"
+  | FdkAacEnc _ -> "mp4a.40.2"
+  | _ -> raise Not_found
+
+(** Proposed extension for files. *)
+let extension = function
+  | WAV _ -> "wav"
+  | AVI _ -> "avi"
+  | Ogg _ -> "ogg"
+  | MP3 _ -> "mp3"
+  | Shine _ -> "mp3"
+  | Flac _ -> "flac"
+  | FdkAacEnc _ -> "aac"
+  | _ -> "audio"
+
+(** Bitrate estimation in bits per second. *)
+let bitrate = function
+  | MP3 w -> Mp3_format.bitrate w
+  | Shine w -> Shine_format.bitrate w
+  | FdkAacEnc w -> Fdkaac_format.bitrate w
+  | _ -> raise Not_found
+
 (** An encoder, once initialized, is something that consumes
   * frames, insert metadata and that you eventually close 
   * (triggers flushing). 
