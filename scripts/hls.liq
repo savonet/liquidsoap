@@ -19,7 +19,7 @@ def input.hls(~id="",uri)
       # Find sequence number
       m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\d+)",file.contents(pl))
       pl_sequence = list.assoc(default="","1",m)
-      log(label=id,"Seqence: "^pl_sequence)
+      log(label=id,"Sequence: "^pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
       # Fill the files
       files = playlist.parse(path=dirname(!playlist_uri)^"/",pl)
