@@ -335,12 +335,44 @@ let () =
         (Lang.to_string (List.assoc "" p))))
 
 let () =
-  add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename in the temporary directory."
+  add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
+  ["",Lang.string_t,None,None]
+  Lang.unit_t
+  (fun p ->
+    try
+      Unix.unlink (Lang.to_string (List.assoc "" p));
+      Lang.unit
+    with _ -> Lang.unit)
+
+let () =
+  add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
+  ["",Lang.string_t,None,None]
+  Lang.unit_t
+  (fun p ->
+    try
+      Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
+      Lang.unit
+    with _ -> Lang.unit)
+
+let () =
+  add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename. \
+    The temporary file is created empty, with permissions 0o600 (readable and writable only by the file owner)."
     ["",Lang.string_t,None,Some "File prefix";
      "",Lang.string_t,None, Some "File suffix"]
     Lang.string_t
     (fun p ->
       Lang.string (Filename.temp_file
+        (Lang.to_string (Lang.assoc "" 1 p))
+        (Lang.to_string (Lang.assoc "" 2 p))))
+
+let () =
+  add_builtin "file.temp_dir" ~cat:Sys ~descr:"Return a fresh temporary directory name. \
+    The temporary directory is created empty, with permissions 0o700 (readable, writable and listable only by the file owner)."
+    ["",Lang.string_t,None,Some "Directory prefix";
+     "",Lang.string_t,None, Some "Directory suffix"]
+    Lang.string_t
+    (fun p ->
+      Lang.string (Extralib.Filename.mk_temp_dir
         (Lang.to_string (Lang.assoc "" 1 p))
         (Lang.to_string (Lang.assoc "" 2 p))))
 

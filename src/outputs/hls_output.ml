@@ -29,7 +29,7 @@ let hls_proto kind =
      Some (Lang.string "stream.m3u8"),
      Some "Playlist name (m3u8 extension is recommended).";
 
-     "segment",
+     "segment_duration",
      Lang.float_t,
      Some (Lang.float 10.),
      Some "Segment duration (in seconds).";
@@ -65,7 +65,7 @@ let hls_proto kind =
      "",
      Lang.list_t (Lang.product_t Lang.string_t (Lang.format_t kind)),
      None,
-     Some "List of specifications for each stream: name, format, bandwidth (bits per second), optional parameters (unused for now).";
+     Some "List of specifications for each stream: (name, format).";
 
      "", Lang.source_t kind, None, None
   ])
@@ -159,7 +159,7 @@ class hls_output p =
   let source = Lang.assoc "" 3 p in
   let playlist = Lang.to_string (List.assoc "playlist" p) in
   let name = playlist in (* better choice? *)
-  let segment_duration = Lang.to_float (List.assoc "segment" p) in
+  let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_nb = Lang.to_int (List.assoc "segments" p) in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
@@ -299,5 +299,5 @@ let () =
   Lang.add_operator "output.file.hls" (hls_proto kind) ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
-    ~descr:"Output the source stream to an HTTP live stream."
+    ~descr:"Output the source stream to an HTTP live stream served from a local directory."
     (fun p _ -> ((new hls_output p):>Source.source))

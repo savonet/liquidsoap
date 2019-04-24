@@ -3,7 +3,7 @@
 
 New:
 
-- Added `input.hls` to read HLS stream (#59, #295, #296).
+- Added `input.{file,harbor}.hls` to read HLS stream (#59, #295, #296).
 
 - Added `output.hls` to natively stream in HLS (#758).
 
@@ -14,6 +14,10 @@ New:
 - Added `source.time` to get a source's clock time.
 
 - Added `max_duration` to limit a source's duration.
+
+- Added `file.temp_dir` to create temporary directories.
+
+- Added `file.{unlink,rmdir}` to remove, resp., file and directories.
 
 Changed:
 
