@@ -119,14 +119,12 @@ class hls_output p =
   in
   let streams =
     let log = Log.make ["output.hls"] in
-    let i = ref (-1) in
-    let f s =
-      incr i;
+    let f i s =
       let name, fmt = Lang.to_product s in
       let hls_name = Lang.to_string name in
       let hls_format = Lang.to_format fmt in
       let hls_bandwidth =
-        if Array.length bitrates > 0 then bitrates.(!i) else
+        if Array.length bitrates > 0 then bitrates.(i) else
           try
             Encoder.bitrate hls_format
           with Not_found ->
@@ -138,7 +136,7 @@ class hls_output p =
         with Not_found -> raise (Lang.Invalid_value (fmt, "Unsupported format"))
       in
       let hls_codec =
-        if Array.length codecs > 0 then codecs.(!i) else
+        if Array.length codecs > 0 then codecs.(i) else
           try
             Encoder.rfc6381 hls_format
           with Not_found ->
@@ -155,7 +153,7 @@ class hls_output p =
         hls_oc = None;
       }
     in
-    let streams = List.map f streams in
+    let streams = List.mapi f streams in
     streams
   in
   let source = Lang.assoc "" 3 p in
@@ -298,7 +296,7 @@ class hls_output p =
 
 let () =
   let kind = Lang.univ_t 1 in
-  Lang.add_operator "output.hls" (hls_proto kind) ~active:true
+  Lang.add_operator "output.file.hls" (hls_proto kind) ~active:true
     ~kind:(Lang.Unconstrained kind)
     ~category:Lang.Output
     ~descr:"Output the source stream to an HTTP live stream."
