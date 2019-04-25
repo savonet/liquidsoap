@@ -10,8 +10,6 @@ def input.hls(~id="",~reload=10.,uri)
   sequence = ref 0
   # A reference to the uri
   playlist_uri = ref uri
-  # A reference to know if the source has been stopped
-  has_stopped = ref false
   # The load function
   def load_playlist () =
     pl = request.create.raw(!playlist_uri)
@@ -64,9 +62,6 @@ def input.hls(~id="",~reload=10.,uri)
         ret
       else
         # Playlist finished
-        if not !has_stopped then
-          has_stopped := true
-        end
         ""
       end
     request.create(file)
