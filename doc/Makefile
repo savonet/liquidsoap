@@ -63,10 +63,10 @@ liqi/liqi: all-subdirs
 	@echo "Go to the toplevel and type 'make'"
 	exit 1
 
-content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
+content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../lib/utils.liq
 ifeq ($(PERL_DOM),yes)
 	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../scripts/pervasives.liq --list-plugins-xml | \
+	  --no-pervasives ../lib/pervasives.liq --list-plugins-xml | \
 	  ./reference_to_liqi.pl > $(@)
 else
 	@echo "-> You don't seem to have perl XML::DOM module installed."
@@ -74,10 +74,10 @@ else
 	@cp no-ref.txt content/reference.txt
 endif
 
-content/protocols.txt: protocols_to_liqi.pl ../src/liquidsoap ../scripts/utils.liq
+content/protocols.txt: protocols_to_liqi.pl ../src/liquidsoap ../lib/utils.liq
 ifeq ($(PERL_DOM),yes)
 	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../scripts/pervasives.liq --list-plugins-xml | \
+	  --no-pervasives ../lib/pervasives.liq --list-plugins-xml | \
 	  ./protocols_to_liqi.pl > $(@)
 else
 	@echo "-> You don't seem to have perl XML::DOM module installed."
@@ -86,7 +86,7 @@ else
 endif
 
 content/settings.txt: ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../scripts/pervasives.liq \
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq \
 	--conf-descr-liqi > $(@)
 
 VERSION="`../src/liquidsoap --version | head -n 1`"
