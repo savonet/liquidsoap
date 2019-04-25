@@ -66,6 +66,19 @@ def input.hls(~id="",~reload=10.,uri)
       end
     request.create(file)
   end
+  # Find the stream in cases there are many
+  def find_stream () =
+    pl = request.create.raw(!playlist_uri)
+    if request.resolve(pl) then
+      pl = request.filename(pl)
+      # Find sequence number
+      m = string.extract(pattern="#EXT-X-STREAM-INF[^\n]*\n([^\n]*)\n",file.contents(pl))
+      new_uri = list.assoc(default=!playlist_uri,"1",m)
+      playlist_uri := new_uri
+      log(label=id,"Playlist: " ^ !playlist_uri)
+    end
+  end
+  find_stream ()
   # Instanciate the source
   source = request.dynamic(id=id,next)
   # Populate the playlist
