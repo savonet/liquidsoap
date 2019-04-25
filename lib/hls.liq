@@ -1,8 +1,9 @@
 # Play an HLS stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
+# @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI
-def input.hls(~id="",uri)
+def input.hls(~id="",~reload=10.,uri)
   # A reference to the playlist
   playlist = ref []
   # Sequence number of the first element of the playlist
@@ -51,6 +52,7 @@ def input.hls(~id="",uri)
       playlist := []
     end
     request.destroy(pl)
+    reload
   end
   # The next function
   def rec next () =
@@ -67,14 +69,12 @@ def input.hls(~id="",uri)
         end
         ""
       end
-    # Look for new files
-    load_playlist()
     request.create(file)
   end
   # Instanciate the source
   source = request.dynamic(id=id,next)
   # Populate the playlist
-  load_playlist()
+  add_timeout(0., load_playlist)
   # Return
   source
 end
