@@ -47,6 +47,8 @@ Changed:
 
 - The `ratio` parameter of `compress` and `limit` is a float getter. (#745)
 
+- Removed `rewrite_metadata` which had been deprecated for a while now.
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)

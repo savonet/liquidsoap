@@ -69,8 +69,6 @@ h4@users. User scripts
 * "Bubble":bubble.html: a simple example of a database interface as a custom protocol.
 * "Geekradio":geekradio.html
 * "RadioPi":radiopi.html
-* "Dolebraï":dolebrai.html
-* "Kube":kube.html
 * "Frequence3":frequence3.html
 * "Listen to Radio Nova":radio-nova.html
 * "Video with a single static image":video-static.html
