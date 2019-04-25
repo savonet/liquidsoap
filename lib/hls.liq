@@ -18,7 +18,7 @@ def input.hls(~id="",~reload=10.,uri)
       # Find sequence number
       m = string.extract(pattern="#EXT-X-MEDIA-SEQUENCE:(\d+)",file.contents(pl))
       pl_sequence = list.assoc(default="","1",m)
-      log(label=id,"Sequence: "^pl_sequence)
+      log(label=id,level=4,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
       # Fill the files
       files = playlist.parse(path=dirname(!playlist_uri)^"/",pl)
@@ -46,7 +46,7 @@ def input.hls(~id="",~reload=10.,uri)
         aux(pl_sequence, files)
       end
     else
-      log(label=id,"Couldn't read playlist: request resolution failed.")
+      log(label=id,level=1,"Couldn't read playlist: request resolution failed.")
       playlist := []
     end
     request.destroy(pl)
