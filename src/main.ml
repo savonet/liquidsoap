@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -38,6 +38,14 @@ let () =
   Configure.conf#plug "init" Init.conf ;
   Configure.conf#plug "log" Log.conf
 
+(* Set log to stdout by default *)
+let () =
+  Log.conf_stdout#set_d (Some true);
+  Log.conf_file#set_d (Some false);
+  Log.conf_file_path#on_change (fun _ ->
+    Log.conf_stdout#set_d (Some false);
+    Log.conf_file#set_d (Some true))
+
 (* Should we not run the active sources? *)
 let dont_run = ref false
 
@@ -48,6 +56,16 @@ let force_start =
     "Start liquidsoap even without any active source"
     ~comments:[
       "This should be reserved for advanced dynamic uses of liquidsoap."
+    ]
+
+(* Should we allow to run as root? *)
+let allow_root =
+  Dtools.Conf.bool
+    ~p:(Dtools.Init.conf#plug "allow_root") ~d:false
+    "Allow liquidsoap to run as root"
+    ~comments:[
+      "This should be reserved for advanced dynamic uses of liquidsoap ";
+      "such as running inside an isolated environment like docker."
     ]
 
 (* Do not run, don't even check the scripts. *)
@@ -94,12 +112,8 @@ let do_eval, eval =
     load_libs () ;
     match src with
       | `StdIn ->
-          Log.conf_stdout#set_d (Some true) ;
-          Log.conf_file#set_d (Some false) ;
           Lang.from_in_channel ~lib ~parse_only:!parse_only stdin
       | `Expr_or_File expr when (not (Sys.file_exists expr)) ->
-          Log.conf_stdout#set_d (Some true) ;
-          Log.conf_file#set_d (Some false) ;
           Lang.from_string ~lib ~parse_only:!parse_only expr
       | `Expr_or_File f ->
           let basename = Filename.basename f in
@@ -375,17 +389,9 @@ let options = [
 
     ["--debug"],
     Arg.Unit (fun () -> Log.conf_level#set (max 4 Log.conf_level#get)),
-    "Print debugging log messages." ]
-    @
-    (if Configure.dynlink then
-        [["--dynamic-plugins-dir"],
-            Arg.String (fun d ->
-            Dyntools.load_plugins_dir d),
-         "Directory where to look for plugins."]
-      else
-        [])
-    @
-    [["--strict"],
+    "Print debugging log messages." ;
+
+    ["--strict"],
     Arg.Set Lang_values.strict,
     "Execute script code in strict mode, issuing fatal errors \
      instead of warnings in some cases. Currently: unused variables \
@@ -447,11 +453,11 @@ let options = [
     Arg.Unit (fun () ->
                 Printf.printf
                   "Liquidsoap %s%s\n\
-                   Copyright (c) 2003-2017 Savonet team\n\
+                   Copyright (c) 2003-2019 Savonet team\n\
                    Liquidsoap is open-source software, \
                    released under GNU General Public License.\n\
-                   See <http://liquidsoap.fm> for more information.\n"
-                   Configure.version SVN.rev ;
+                   See <http://liquidsoap.info> for more information.\n"
+                   Configure.version REVISION.rev ;
                 exit 0),
     "Display liquidsoap's version." ;
 
@@ -483,7 +489,7 @@ let expand_options options =
 module Make(Runner : Runner_t) =
 struct
   let () =
-    log#f 3 "Liquidsoap %s%s" Configure.version SVN.rev ;
+    log#f 3 "Liquidsoap %s%s" Configure.version REVISION.rev ;
     log#f 3 "Using:%s" Configure.libs_versions ;
     if Configure.scm_snapshot then
       List.iter (log#f 2 "%s")
@@ -549,7 +555,6 @@ struct
 
     (* Now that the paths have their definitive value, expand <shortcuts>. *)
     let subst conf = conf#set (Configure.subst_vars conf#get) in
-    subst Log.conf_file_path ;
     subst Init.conf_daemon_pidfile_path ;
 
     let check_dir conf_path kind =
@@ -565,7 +570,10 @@ struct
             exit 1
     in
       if Log.conf_file#get then
-        check_dir Log.conf_file_path "Log" ;
+        begin
+          subst Log.conf_file_path ;
+          check_dir Log.conf_file_path "Log"
+        end;
       if Init.conf_daemon#get && Init.conf_daemon_pidfile#get then
         check_dir Init.conf_daemon_pidfile_path "PID"
 
@@ -583,15 +591,17 @@ struct
       Request.clean () ;
       log#f 3 "Freeing memory..." ;
       Gc.full_major ();
-      if !Shutdown.restart then
-        (
-          log#f 3 "Restarting..." ;
-          Unix.execv Sys.executable_name Sys.argv
-        )
     in
     let cleanup () =
       cleanup_threads ();
       cleanup_final ()
+    in
+    let after_stop () =
+      if !Configure.restart then
+       begin
+        log#f 3 "Restarting..." ;
+         Unix.execv Sys.executable_name Sys.argv
+       end
     in
     let main () =
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
@@ -614,8 +624,9 @@ struct
       Tutils.main ()
     in
       (* We join threads, then shutdown duppy, then do the final task. *)
-      ignore (Init.at_stop ~before:[Shutdown.duppy_scheduler ()] cleanup_threads);
-      Shutdown.final_atom := Some (Init.at_stop ~depends:[Shutdown.duppy_scheduler ()] cleanup_final);
+      ignore (Init.make ~before:[Tutils.scheduler_shutdown_atom] cleanup_threads);
+      ignore (Init.make ~before:[Dtools.Log.stop] cleanup_final);
+      ignore (Init.make ~after:[Dtools.Init.stop] after_stop); 
       startup ();
       if !interactive then begin
         load_libs () ;
@@ -626,6 +637,7 @@ struct
             (Printf.sprintf "liquidsoap-%d-" (Unix.getpid ())) ".log"
         in
         Log.conf_file_path#set_d (Some default_log) ;
+        Log.conf_file#set true ;
         ignore (Init.at_stop (fun _ -> Sys.remove default_log)) ;
         check_directories () ;
         ignore (Thread.create Lang.interactive ()) ;
@@ -633,12 +645,29 @@ struct
       end else if Source.has_outputs () || force_start#get then
         if not !dont_run then begin
           check_directories () ;
-          Init.init ~prohibit_root:true main
+          let msg_of_err = function
+            | `User -> "root euid (user)"
+            | `Group -> "root guid (group)"
+            | `Both -> "root euid & guid (user & group)"
+          in
+          let on_error e =
+            Printf.eprintf "init: security exit, %s. Override with set(\"init.allow_root\",true)\n" (msg_of_err e);
+            cleanup ();
+            exit (-1)
+          in
+          begin try
+            Init.init ~prohibit_root:(not allow_root#get) main
+          with
+            | Init.Root_prohibited e -> on_error e
+          end
         end else
           cleanup ()
       else
         (* If there's no output and no secondary task has been performed,
          * warn the user that his scripts didn't define any output. *)
         if not !secondary_task then
-          Printf.printf "No output defined, nothing to do.\n"
+          begin
+            cleanup ();
+            Printf.printf "No output defined, nothing to do.\n"
+          end
 end

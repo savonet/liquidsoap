@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,7 +25,7 @@
 exception Found of string
 
 let render m = 
-  let m = Encoder.Meta.to_metadata m in
+  let m = Meta_format.to_metadata m in
   let t = Taglib.Inline.Id3v2.init () in
   let t = 
     Taglib.Inline.Id3v2.attach_frame t "TSSE" 
@@ -35,7 +35,7 @@ let render m =
     try
       Hashtbl.iter
         (fun k x ->
-          if (Utils.StringCompat.uppercase_ascii l) = (Utils.StringCompat.uppercase_ascii k) then
+          if (String.uppercase_ascii l) = (String.uppercase_ascii k) then
            raise (Found x)) m ;
      t
     with
@@ -63,4 +63,4 @@ let render m =
   Taglib.Inline.Id3v2.render t
 
 let () = 
-  Encoder.MP3.id3v2_export := Some render
+  Mp3_format.id3v2_export := Some render

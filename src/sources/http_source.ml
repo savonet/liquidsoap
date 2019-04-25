@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,12 +16,20 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
+
+module type Config_t =
+sig
+  module Http : Http.Http_t
+  val url_expr : Str.regexp
+end
   
-module Make(Http:Http.Http_t) =
+module Make(Config:Config_t) =
 struct
+  open Config
+
   exception Internal
   exception Read_error
   
@@ -33,7 +41,7 @@ struct
            Some "Error while reading http stream."
        | _ -> None
   
-  let () = Utils.register_error_translator error_translator
+  let () = Printexc.register_printer error_translator
   
   (** Types for playlist handling *)
   type playlist_mode =  Random | First | Randomize | Normal
@@ -41,11 +49,11 @@ struct
   (** Utility for reading icy metadata *)
   let read_metadata () = let old_chunk = ref "" in fun socket ->
     let size =
-      let buf = " " in
+      let buf = Bytes.of_string " " in
       let f : Http.connection -> Bytes.t -> int -> int -> int = Http.read in
       let s = f socket buf 0 1 in
         if s<>1 then raise Read_error ;
-        int_of_char buf.[0]
+        int_of_char (Bytes.get buf 0)
     in
     let size = 16*size in
     let chunk =
@@ -56,7 +64,7 @@ struct
             if p<=0 then raise Read_error ;
             read (pos+p)
       in
-        read 0
+      Bytes.unsafe_to_string (read 0)
     in
     let h = Hashtbl.create 10 in
     let rec parse s =
@@ -86,25 +94,25 @@ struct
       end
   
   let read_line socket =
-    let ans = ref "" in
+    let ans = ref Bytes.empty in
     let c = Bytes.create 1 in
       if Http.read socket c 0 1 <> 1 then raise Read_error ;
-      while c <> "\n" do
-        ans := !ans ^ c;
+      while Bytes.get c 0 <> '\n' do
+        ans := Bytes.cat !ans c;
         if Http.read socket c 0 1 <> 1 then raise Read_error
       done;
-      String.sub !ans 0 (String.length !ans - 1)
+      Bytes.sub_string !ans 0 (Bytes.length !ans - 1)
   
   let read_chunk socket =
     let n = read_line socket in
     let n = Scanf.sscanf n "%x" (fun n -> n) in
-    let ans = ref "" in
-      while String.length !ans <> n do
-        let buf = Bytes.create (n - String.length !ans) in
-        let r = Http.read socket buf 0 (n - String.length !ans) in
-          ans := !ans ^ (String.sub buf 0 r)
+    let ans = ref Bytes.empty in
+      while Bytes.length !ans <> n do
+        let buf = Bytes.create (n - Bytes.length !ans) in
+        let r = Http.read socket buf 0 (n - Bytes.length !ans) in
+          ans := Bytes.cat !ans (Bytes.sub buf 0 r)
       done;
-      !ans
+      Bytes.unsafe_to_string !ans
   
   let read_stream socket chunked metaint insert_metadata =
     let read_metadata = read_metadata () in
@@ -124,7 +132,7 @@ struct
             fun len ->
               let b = Bytes.create len in
               let r = read b 0 len in
-                if r < 0 then "",0 else b,r
+                if r < 0 then "",0 else Bytes.unsafe_to_string b,r
         | Some metaint ->
             let readcnt = ref 0 in
               fun len ->
@@ -139,12 +147,11 @@ struct
                         | Some m -> insert_metadata m
                         | None -> ()
                     end ;
-                    b,r
+                    Bytes.unsafe_to_string b,r
                   end
   
   (** HTTP input *)
   
-  let url_expr = Str.regexp "^http://\\([^/]+\\)\\(/.*\\)?$"
   let host_expr = Str.regexp "^\\([^:]+\\):\\([0-9]+\\)$"
   let auth_split_expr = Str.regexp "^\\([^@]+\\)@\\(.+\\)$"
   
@@ -183,7 +190,7 @@ struct
           ~bind_address ~autostart ~bufferize ~max ~timeout
           ~debug ~on_connect ~on_disconnect ?(logfile=None)
           ~user_agent url =
-    let max_ticks = Frame.master_of_seconds (Pervasives.max max bufferize) in
+    let max_ticks = Frame.master_of_seconds (Stdlib.max max bufferize) in
     (* We need a temporary log until the source has an ID. *)
     let log_ref = ref (fun _ -> ()) in
     let log = (fun x -> !log_ref x) in
@@ -241,10 +248,17 @@ struct
                 \"polling\" (attempting to connect to the HTTP stream) \
                 or \"connected <url>\" (connected to <url>, buffering or \
                 playing back the stream)."
-         (Tutils.mutexify socket_m (fun _ ->
-           match socket with
-             | Some (_,_,url) -> "connected " ^ url
-             | None -> if relaying then "polling" else "stopped")) ;
+         (fun _ ->
+           match Mutex.try_lock socket_m with
+             | false -> "A state change is currently happening. Try later!"
+             | true ->
+               let ret =
+                 match socket with
+                   | Some (_,_,url) -> "connected " ^ url
+                   | None -> if relaying then "polling" else "stopped"
+               in
+               Mutex.unlock socket_m;
+               ret);
       self#register_command "buffer_length" ~usage:"buffer_length"
                             ~descr:"Get the buffer's length, in seconds."
         (fun _ -> Printf.sprintf "%.2f" (Frame.seconds_of_audio self#length))
@@ -273,7 +287,7 @@ struct
             | Some (socket,read,_) ->
                 begin
                  try
-                  Http.wait_for ~log [`Read socket; `Delay timeout];
+                  Http.wait_for ~log (`Read socket) timeout;
                   read len
                  with e -> self#log#f 2 "Error while reading from socket: \
                               %s" (Printexc.to_string e);
@@ -358,7 +372,7 @@ struct
       in
       let request =
         Printf.sprintf
-          "%sUser-Agent: %s\r\n%sIcy-MetaData:1\r\n\r\n"
+          "%sUser-Agent: %s\r\n%sIcy-MetaData: 1\r\n\r\n"
           req user_agent auth
       in
       try
@@ -697,7 +711,13 @@ struct
               :> Source.source))
 end
 
-module Input_http = Make(Http)
+module Config =
+struct
+  module Http = Http
+  let url_expr = Str.regexp "^[Hh][Tt][Tt][Pp]://\\([^/]+\\)\\(/.*\\)?$"
+end
+
+module Input_http = Make(Config)
 
 let () =
   Input_http.register "http"

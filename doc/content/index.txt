@@ -27,7 +27,7 @@ It guides you through these pages,
 starting with the "quickstart tour":quick_start.html.
 
 Liquidsoap is an open-source sofware
-from the "Savonet":http://liquidsoap.fm project.
+from the "Savonet":http://liquidsoap.info project.
 
 h3. Features
 

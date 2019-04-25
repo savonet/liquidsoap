@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** GStreamer encoder *)
 
-open Encoder.GStreamer
+open Gstreamer_format
 
 module GU = Gstreamer_utils
 module Img = Image.RGBA32
@@ -38,7 +38,7 @@ type gst =
   }
 
 let encoder ext =
-  let channels = Encoder.GStreamer.audio_channels ext in
+  let channels = Gstreamer_format.audio_channels ext in
   let mutex = Mutex.create () in
   (* Here "samples" are the number of buffers available in the GStreamer
      appsink *)
@@ -121,6 +121,7 @@ let encoder ext =
       begin
        Utils.maydo Gstreamer.App_src.end_of_stream gst.audio_src;
        Utils.maydo Gstreamer.App_src.end_of_stream gst.video_src;
+       GU.flush ~log gst.bin;
        let buf = Buffer.create 1024 in
        begin
         try
@@ -136,11 +137,12 @@ let encoder ext =
       ""
    in
    ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
+   GU.flush ~log gst.bin;
    ret
   in
 
   let insert_metadata m =
-    let m = Encoder.Meta.to_metadata m in
+    let m = Meta_format.to_metadata m in
     try
       let meta =
         Gstreamer.Tag_setter.of_element
@@ -148,17 +150,18 @@ let encoder ext =
       in
       Hashtbl.iter
         (Gstreamer.Tag_setter.add_tag meta Gstreamer.Tag_setter.Replace)
-        m
+        m;
+      GU.flush ~log gst.bin
     with
       | Not_found -> ()
   in
 
-  let now = ref Int64.zero in
+  let presentation_time = ref Int64.zero in
   let nano = 1_000_000_000. in
   let vduration = Int64.of_float (Frame.seconds_of_video 1 *. nano) in
 
   let encode frame start len =
-    let nanolen = Int64.of_float (Frame.seconds_of_master len *. nano) in
+    let duration = Int64.of_float (Frame.seconds_of_master len *. nano) in
     let videochans = if gst.video_src <> None then 1 else 0 in
     let content =
       Frame.content_of_type frame start
@@ -176,10 +179,8 @@ let encoder ext =
       let pcm = content.Frame.audio in
       let data = Bytes.create (2*channels*alen) in
       Audio.S16LE.of_audio pcm astart data 0 alen;
-      let gstbuf = Gstreamer.Buffer.of_string data 0 (Bytes.length data) in
-      Gstreamer.Buffer.set_presentation_time gstbuf !now;
-      Gstreamer.Buffer.set_duration gstbuf nanolen;
-      Gstreamer.App_src.push_buffer (Utils.get_some gst.audio_src) gstbuf;
+      Gstreamer.App_src.push_buffer_bytes ~presentation_time:!presentation_time ~duration
+        (Utils.get_some gst.audio_src) data 0 (Bytes.length data);
      end;
     if videochans > 0 then
      begin
@@ -190,17 +191,16 @@ let encoder ext =
       let vlen = Frame.video_of_master len in
       for i = vstart to vstart+vlen-1 do
         let data = Img.data vbuf.(i) in
-        let gstbuf = Gstreamer.Buffer.of_data data 0 (Bigarray.Array1.dim data) in
-        let ptime =
-          Int64.add !now (Int64.mul (Int64.of_int i) vduration)
+        let presentation_time =
+          Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration)
         in
-        Gstreamer.Buffer.set_presentation_time gstbuf ptime;
-        Gstreamer.Buffer.set_duration gstbuf vduration;
-        Gstreamer.App_src.push_buffer (Utils.get_some gst.video_src) gstbuf;
+        Gstreamer.App_src.push_buffer_data ~presentation_time ~duration:vduration
+          (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
       done;
      end;
+    GU.flush ~log gst.bin;
     (* Return result. *)
-    now := Int64.add !now nanolen;
+    presentation_time := Int64.add !presentation_time duration;
     if !samples = 0 then
       ""
     else

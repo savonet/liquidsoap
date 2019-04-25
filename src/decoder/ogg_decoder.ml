@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -167,7 +167,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
         let metas = Hashtbl.create 10 in
         List.iter 
           (fun (x,y) -> 
-            Hashtbl.add metas (Utils.StringCompat.lowercase_ascii x) y)
+            Hashtbl.add metas (String.lowercase_ascii x) y)
             m;
         Hashtbl.add metas "vendor" v;
         Generator.add_metadata buffer metas
@@ -360,8 +360,8 @@ let () =
     (fun ~metadata:_ filename kind ->
         (* First, test file extension and mime *)
         if Decoder.test_file ~mimes:mime_types#get
-                               ~extensions:file_extensions#get
-                               ~log filename then
+                             ~extensions:file_extensions#get
+                             ~log filename then
          begin
           let content_type = get_type filename in
           let content_type =

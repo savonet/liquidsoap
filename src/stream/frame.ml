@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -429,7 +429,9 @@ let get_metadata b t =
 let free_metadata b t =
   b.metadata <- List.filter (fun (tt,_) -> t<>tt) b.metadata
 let free_all_metadata b = b.metadata <- []
-let get_all_metadata b = List.filter (fun (x,_) -> x <> -1) b.metadata
+let get_all_metadata b =
+  List.sort (fun (x,_) (y,_) -> compare x y)
+    (List.filter (fun (x,_) -> x <> -1) b.metadata)
 let set_all_metadata b l = b.metadata <- l
 let get_past_metadata b =
   try Some (List.assoc (-1) b.metadata) with Not_found -> None
@@ -619,7 +621,7 @@ let get_chunk ab from =
              * for packets like those forged by add, with a fake first break,
              * but isn't needed (yet) and is painful to implement. *)
             copy_chunk 0
-          else if foffset < i && i > p then begin
+          else if foffset <= p && i > p then begin
             copy_chunk i
           end else
             aux i tl

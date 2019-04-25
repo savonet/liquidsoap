@@ -77,14 +77,10 @@ _OCAML_LFLAGS=$($(PROG)_ocamllflags)
 
 -include $(PROG)_depend
 
-# Include plugin sources for dependencies computation..
-plugins_sources=
-$(foreach plug,$($(PROG)_PLUGINS),$(eval plugins_sources+=$($(plug)_sources)))
-
-$(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers) $(plugins_sources)
+$(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers)
 	$(V)echo OCAMLDEP
 	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
-		$($(PROG)_sources) $($(PROG)_headers) $(plugins_sources) > $@
+		$($(PROG)_sources) $($(PROG)_headers) > $@
 
 dll$(PROG).so: $($(PROG)_c_files:.c=.o)
 	$(V)echo OCAMLMKLIB -o dll$(PROG).so
@@ -105,7 +101,7 @@ ifdef $(PROG)_c_files
   endif
 endif
 
-$(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs) $($(PROG)_PLUGINS:%=plugins/%.$(s))
+$(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
 	$(V)echo $(OCAMLCOMP) -o $(PROG)$(EXEEXT)
 	$(V)$(OCAMLC) -o $(PROG)$(EXEEXT) \
 		$(_OCAML_CFLAGS) $(OCAML_CFLAGS) \
@@ -114,69 +110,9 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs) $($(PROG)_PLUGINS:%=plu
 		$(c_link)
 endif
 
-# Compute C dependencies
-# Apparently, dynamic modules cannot
-# use the custom mode..
-plug_c_link = \
-$(if $($(1)_c_sources),\
- $(if $(BYTE),\
-   $(eval $(1)_clink = dllliquidsoap_$(1).so),\
-   $(eval $(1)_clink = $$($(1)_c_sources:.c=.o))))
-$(foreach plug,$($(PROG)_PLUGINS),$(call plug_c_link,$(plug)))
-plug_c_objs = \
-$(if $($(1)_c_sources),\
- $(if $(BYTE),\
-    $(eval $(1)_c_objs = $$($(1)_c_sources:.c=.o) plugins/dllliquidsoap_$(1).so),\
-    $(eval $(1)_c_objs = $$($(1)_c_sources:.c=.o))))
-$(foreach plug,$($(PROG)_PLUGINS),$(call plug_c_objs,$(plug)))
-
-# Compute plugins dependencies
-plug_deps = \
-$(eval plugins/$(1).$$(s): $$($(1)_sources:.ml=.$$(o)) $$($(1)_c_objs))
-$(foreach plug,$($(PROG)_PLUGINS),$(call plug_deps,$(plug)))
-
-# Compute plugins dependencies that are not already
-# linked with liquidsoap
-plug_packages = \
-  $(if $(findstring $(2),$($(PROG)_ocamllflags) $($(PROG)_ocamlcflags)),$(eval $(1)_dontlink += $(2)),$(eval $(1)_ocamllflags += -package $(2)))
-$(foreach plug,$($(PROG)_PLUGINS),\
-    $(foreach package,$($(plug)_packages),$(call plug_packages,$(plug),$(package))))
-
-# In order to avoid loading multiple times
-# the same module, we need to avoid the following
-# link:
-vorbis_dontlink += ogg
-speex_dontlink += ogg
-theora_dontlink += ogg
-flac_dontlink += ogg
-flac_ogg_dontlink += ogg flac
-lastfm_dontlink += xmlm xmlplaylist
-
-# Lo name is too generic for the above test to pass
-lo_dontlink =
-lo_ocamllflags += -package lo
-
-# Here is how compilation of .ml files work:
-# We concatenate all {C,L}FLAGS for .ml compilation.
-# However, when linking the final objects, we seperate them back.
-_OCAML_ALL_CFLAGS=$(_OCAML_CFLAGS)
-_OCAML_ALL_LFLAGS=$(_OCAML_LFLAGS)
-$(foreach plug,$($(PROG)_PLUGINS),$(eval _OCAML_ALL_CFLAGS+=$($(plug)_ocamlcflags)))
-$(foreach plug,$($(PROG)_PLUGINS),$(eval _OCAML_ALL_CFLAGS+=$($(plug)_packages:%=-package %)))
-$(foreach plug,$($(PROG)_PLUGINS),$(eval _OCAML_ALL_LFLAGS+=$($(plug)_ocamllflags)))
-
-plugins/%.$(s):
-	$(V)echo $(OCAMLCOMP) ${shared_flag} $@
-	$(V)$(OCAMLC) ${shared_flag} -linkpkg $($*_ocamlcflags) $($*_ocamllflags) \
-		$($*_clink) $($*_sources:.ml=.$(o)) -dontlink "$($*_dontlink)" -o $@
-
-plugins/dllliquidsoap_%.so:
-	$(V)echo OCAMLMKLIB -o plugins/dllliquidsoap_$*.so
-	$(V)$(OCAMLMKLIB) -o plugins/liquidsoap_$* $($*_c_sources:.c=.o)
-
-%.ml: %.camlp4
-	$(V)echo CAMLP4O $<
-	$(V)$(CAMLP4O) -printer Camlp4OCamlPrinter -impl $< > $@
+tools/win32/process_utils.mli: tools/unix/process_utils.mli
+	$(V)echo CP $< $@
+	$(V)cp -f $< $@
 
 %.ml %.mli: %.mly
 	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
@@ -185,10 +121,10 @@ plugins/dllliquidsoap_%.so:
 
 %.$(o): %.ml
 	$(V)echo $(OCAMLCOMP) -c $<
-	$(V)$(OCAMLC) $(_OCAML_ALL_CFLAGS) $(OCAML_CFLAGS) -c $<
+	$(V)$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) -c $<
 %.$(i): %.mli
 	$(V)echo $(OCAMLCOMP) -c $<
-	$(V)$(OCAMLC) $(_OCAML_ALL_CFLAGS) $(OCAML_CFLAGS) -c $<
+	$(V)$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) -c $<
 
 %.o: %.c
 	$(V)echo CC -c $<

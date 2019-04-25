@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Source
 open Dtools
-open Stdlib
+open Extralib
 
 module Img = Image.RGBA32
 
@@ -172,7 +172,7 @@ end
 (** Make a list of parameters. *)
 let params plugin info =
   (* This is only to get default parameters... *)
-  let instance = Frei0r.create plugin 1 1 in
+  let instance = Frei0r.create plugin 8 8 in
   let utv = ref 0 in
   let liq_params =
     List.init
@@ -305,7 +305,7 @@ let register_plugin fname =
   in
   let explanation =
     let e = info.Frei0r.explanation in
-    let e = Utils.StringCompat.capitalize_ascii e in
+    let e = String.capitalize_ascii e in
     let e = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") e in
     if e = "" then e else
       if e.[String.length e - 1] = '.' then

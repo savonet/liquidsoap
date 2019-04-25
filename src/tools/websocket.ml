@@ -14,7 +14,7 @@ module Unix_transport =
 struct
   type socket = Unix.file_descr
   let read = Unix.read
-  let read_retry = Stdlib.Unix.read_retry
+  let read_retry = Extralib.Unix.read_retry
   let write = Unix.write
 end
 
@@ -97,16 +97,16 @@ struct
       let len = String.length f.data in
       let b0 = (bit f.fin lsl 7) lor (bit f.rsv1 lsl 6) lor (bit f.rsv2 lsl 5) lor f.opcode in
       let b0 = char_of_int b0 in
-      let b0 = Bytes.make 1 b0 in
+      let b0 = String.make 1 b0 in
       let blen =
         if len <= 125 then
-          Bytes.make 1 (char_of_int len)
+         String.make 1 (char_of_int len)
         else if len <= 0xffff then
           let ans = Bytes.create 3 in
           Bytes.set ans 0 '\126';
           Bytes.set ans 1 (char_of_int (len lsr 8));
           Bytes.set ans 2 (char_of_int (len land 0xff));
-          ans
+          Bytes.unsafe_to_string ans
         else
           let ans = Bytes.create 5 in
           Bytes.set ans 0 '\127';
@@ -114,7 +114,7 @@ struct
           Bytes.set ans 2 (char_of_int ((len lsr 16) land 0xff));
           Bytes.set ans 3 (char_of_int ((len lsr 8) land 0xff));
           Bytes.set ans 4 (char_of_int (len land 0xff));
-          ans
+          Bytes.unsafe_to_string ans
       in
       b0 ^ blen ^ f.data
   
@@ -124,7 +124,7 @@ struct
         let c = Bytes.create 1 in
         let n = T.read s c 0 1 in
         assert (n = 1);
-        c.[0]
+        Bytes.get c 0
       in
       let read_byte () =
         int_of_char (read_char ())
@@ -164,15 +164,15 @@ struct
           for i = 0 to 3 do
             Bytes.set key i (read_char ())
           done;
-          key
+          Bytes.unsafe_to_string key
         else
           ""
       in
       let unmask key s =
-        if key <> "" then
+        if String.length key > 0 then
           for i = 0 to Bytes.length s - 1 do
-            let c = int_of_char s.[i] in
-            let k = int_of_char key.[i mod 4] in
+            let c = int_of_char (Bytes.get s i) in
+            let k = int_of_char (String.get key (i mod 4)) in
             let c = c lxor k in
             let c = char_of_int c in
             Bytes.set s i c
@@ -182,6 +182,7 @@ struct
       let n = T.read_retry s data 0 length in
       assert (n = length);
       unmask masking_key data;
+      let data = Bytes.unsafe_to_string data in
       { fin = fin; rsv1 = rsv1; rsv2 = rsv2; rsv3 = rsv3; opcode = opcode; data = data }
   end
   
@@ -224,7 +225,7 @@ struct
             let nn = Bytes.create 2 in
             Bytes.set nn 0 (char_of_int (n lsr 8));
             Bytes.set nn 1 (char_of_int (n land 0xff));
-            nn ^ msg
+            (Bytes.unsafe_to_string nn) ^ msg
         in
         { frame with Frame. opcode = 0x8; data = data }
       | `Ping data -> { frame with Frame. opcode = 0x9; data = data }
@@ -235,7 +236,7 @@ struct
   
   let write s data =
     let frame = to_string data in
-    let n = T.write s frame 0 (String.length frame) in
+    let n = T.write s (Bytes.of_string frame) 0 (String.length frame) in
     assert (n = String.length frame)
 end
 

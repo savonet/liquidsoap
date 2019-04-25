@@ -220,11 +220,14 @@ Where @aot@ is one of: @"mpeg4_aac_lc"@, @"mpeg4_he_aac"@, @"mpeg4_he_aac_v2"@,
 @"mpeg4_aac_ld"@, @"mpeg4_aac_eld"@, @"mpeg2_aac_lc"@, @"mpeg2_he_aac"@ or
 @"mpeg2_he_aac_v2"@
 
-And @transmux@ is one of: @"raw"@, @"adif"@, @"adts"@, @"latm"@, @"latm_out_of_band"@ or
+@transmux@ is one of: @"raw"@, @"adif"@, @"adts"@, @"latm"@, @"latm_out_of_band"@ or
 @"loas"@.
 
-You can consult fdk-aac's "github repository":https://github.com/mstorsjo/fdk-aac for more details
+Bitrate can be either constant by passing: @bitrate=64@ or variable: @vbr=<1-5>@
+
+You can consult the "Hydrogenaudio knowledge base":http://wiki.hydrogenaud.io/index.php?title=Fraunhofer_FDK_AAC for more details
 on configuration values and meanings.
+
 h4. Gstreamer
 
 The @%gstreamer@ encoder can be used to encode streams using the @gstreamer@ multimedia framework.

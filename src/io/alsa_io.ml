@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -77,11 +77,11 @@ object (self)
                     (fun pcm buf ofs len ->
                        let sbuf = Bytes.create (2 * len * Array.length buf) in
                        Audio.S16LE.of_audio buf ofs sbuf 0 len;
-                       Pcm.writei pcm sbuf 0 len
+                       Pcm.writei pcm (Bytes.unsafe_to_string sbuf) 0 len
                     );
                     read <-
                     (fun pcm buf ofs len ->
-                       let sbuf = Bytes.create (2 * 2 * len) in
+                       let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                        let r = Pcm.readi pcm sbuf 0 len in
                        Audio.S16LE.to_audio sbuf 0 buf ofs r;
                        r
@@ -97,11 +97,11 @@ object (self)
                            let sbuf =
                              Array.init
                                channels
-                               (fun _ -> Bytes.create (2 * len))
+                               (fun _ -> String.make (2 * len) (Char.chr 0))
                            in
                            for c = 0 to Audio.channels buf - 1 do
                              Audio.S16LE.of_audio
-                               [|buf.(c)|] ofs sbuf.(c) 0 len
+                               [|buf.(c)|] ofs (Bytes.of_string sbuf.(c)) 0 len
                            done;
                            Pcm.writen pcm sbuf 0 len
                         );
@@ -110,7 +110,7 @@ object (self)
                            let sbuf =
                              Array.init
                                channels
-                               (fun _ -> Bytes.create (2 * len))
+                               (fun _ -> String.make (2 * len) (Char.chr 0))
                            in
                            let r = Pcm.readn pcm sbuf 0 len in
                            for c = 0 to Audio.channels buf - 1 do

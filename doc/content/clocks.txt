@@ -49,7 +49,7 @@ in order to produce a stream at a given speed,
 a source might need to obtain data from another source at
 a different rate. This is obvious for an operator that speeds up or
 slows down audio (<code>stretch</code>). But it also holds more subtly
-for <code>cross</code>, <code>smart_cross</code> as well as the
+for <code>cross</code>, <code>cross</code> as well as the
 derived operators: during the lapse of time where the operator combines
 data from an end of track with the beginning of the other other,
 the crossing operator needs twice as much stream data. After ten tracks,

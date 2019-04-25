@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@ exception Not_a_iff_file of string
 
 type 'a read_ops =
   {
-    really_input : 'a -> string -> int -> int -> unit ;
+    really_input : 'a -> Bytes.t -> int -> int -> unit ;
     input_byte   : 'a -> int ;
-    input        : 'a -> string -> int -> int -> int ;
+    input        : 'a -> Bytes.t -> int -> int -> int ;
     (* Seek bytes from the _current_ stream position. *)
     seek         : 'a -> int -> unit;
     close        : 'a -> unit

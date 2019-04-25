@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -36,7 +36,7 @@ object (self)
       List.iter
         (fun (i,m) ->
            if i>=p then begin
-             self#log#f 4 "Got metadata at position %d: calling handler..." i ;
+             self#log#f 5 "Got metadata at position %d: calling handler..." i ;
              ignore (Lang.apply ~t:Lang.unit_t f ["",Lang.metadata m])
            end)
         (Frame.get_all_metadata ab)

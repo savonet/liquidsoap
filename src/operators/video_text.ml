@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,9 +25,9 @@ open Source
 module Img = Image.RGBA32
 
 class text ~kind
-  init render_text ttf ttf_size color dx dy speed cycle meta text (source:source) =
+  init render_text ttf ttf_size color tx ty speed cycle meta text (source:source) =
   let () = init () in
-  let video_height = Lazy.force Frame.video_height in
+  (* let video_height = Lazy.force Frame.video_height in *)
   let video_width = Lazy.force Frame.video_width in
 object (self)
   inherit operator ~name:"video.add_text" kind [source]
@@ -40,8 +40,8 @@ object (self)
 
   val mutable text_frame = None
 
-  val mutable pos_x = dx
-  val mutable pos_y = dy
+  val mutable pos_x = tx ()
+  val mutable pos_y = ty ()
 
   val mutable font = None
 
@@ -51,17 +51,13 @@ object (self)
     let w, h, get_pixel = render_text ~font:ttf ~size:ttf_size text in
     let tf = Img.create w h in
     let tr, tg, tb = Image.RGB8.Color.of_int color in
-      if dy < 0 then
-        pos_y <- video_height + dy - h;
-      if dx < 0 then
-        pos_x <- video_width + dx - w;
-      for y = 0 to h - 1 do
-        for x = 0 to w - 1 do
-          let a = get_pixel x y in
-            Img.set_pixel tf x y (tr, tg, tb, a)
-        done
-      done;
-      text_frame <- Some tf
+    for y = 0 to h - 1 do
+      for x = 0 to w - 1 do
+        let a = get_pixel x y in
+        Img.set_pixel tf x y (tr, tg, tb, a)
+      done
+    done;
+    text_frame <- Some tf
 
   method get_text_frame =
     match text_frame with
@@ -91,74 +87,86 @@ object (self)
                       (Frame.get_all_metadata ab) ;
                     !ans
           in
-            if cur_text <> text then begin
+          if cur_text <> text then
+            (
               cur_text <- text ;
-              self#render_text cur_text ;
-              if pos_x = -tfw then pos_x <- video_width
-            end ;
+              self#render_text cur_text
+            ) ;
             for i = off to off + len - 1 do
-              if pos_x <> -tfw then
-                Img.add tf rgb.(i) ~x:pos_x ~y:pos_y ;
-                pos_x <- pos_x - speed ;
-                if pos_x < -tfw then
-                  if cycle then
-                    pos_x <- video_width
-                  else
-                    pos_x <- -tfw (* avoid overflows *)
+              if speed = 0 then
+                (
+                  Img.add tf rgb.(i) ~x:pos_x ~y:pos_y ;
+                  pos_x <- tx () ;
+                  pos_y <- ty ()
+                )
+              else
+                (
+                  if pos_x <> -tfw then Img.add tf rgb.(i) ~x:pos_x ~y:pos_y ;
+                  pos_x <- pos_x - speed ;
+                  if pos_x < -tfw then
+                    if cycle then
+                      pos_x <- video_width
+                    else
+                      pos_x <- -tfw (* avoid overflows *)
+                )
             done
-
 end
 
 let register name init render_text =
   let k =
     Lang.kind_type_of_kind_format ~fresh:2 (Lang.any_fixed_with ~video:1 ())
   in
-  Lang.add_operator ("video.add_text."^name)
-    [
-      "font", Lang.string_t,
-      Some (Lang.string Configure.default_font),
-      Some "Path to ttf font file.";
+  let add_operator op =
+    Lang.add_operator op
+      [
+        "font", Lang.string_t,
+        Some (Lang.string Configure.default_font),
+        Some "Path to ttf font file.";
 
-      "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
+        "size", Lang.int_t, Some (Lang.int 18), Some "Font size.";
 
-      (* TODO background color, possibly transparent *)
-      "color", Lang.int_t, Some (Lang.int 0xffffff),
-      Some "Text color (in 0xRRGGBB format).";
+        (* TODO background color, possibly transparent *)
+        "color", Lang.int_t, Some (Lang.int 0xffffff),
+        Some "Text color (in 0xRRGGBB format).";
 
-      "x", Lang.int_t, Some (Lang.int (-1)),
-      Some "x offset (negative means from right).";
-      "y", Lang.int_t, Some (Lang.int (-5)),
-      Some "y offset (negative means from bottom).";
+        "x", Lang.int_getter_t 1, Some (Lang.int 10),
+        Some "x offset.";
+        "y", Lang.int_getter_t 2, Some (Lang.int 10),
+        Some "y offset.";
 
-      "speed", Lang.int_t, Some (Lang.int 70),
-      Some "Speed in pixels per second (0 means no scrolling).";
+        "speed", Lang.int_t, Some (Lang.int 70),
+        Some "Horizontal speed in pixels per second (0 means no scrolling and update according to x and y in case they are variable).";
+        "cycle", Lang.bool_t, Some (Lang.bool true),
+        Some "Cycle text when it reaches left boundary.";
 
-      "cycle", Lang.bool_t, Some (Lang.bool true), Some "Cycle text.";
-      "metadata", Lang.string_t, Some (Lang.string ""),
-      Some "Change text on a particular metadata \
-            (empty string means disabled).";
+        "metadata", Lang.string_t, Some (Lang.string ""),
+        Some "Change text on a particular metadata \
+              (empty string means disabled).";
 
-      "", Lang.string_getter_t 1, None, Some "Text to display.";
-      "", Lang.source_t k, None, None
-    ]
-    ~kind:(Lang.Unconstrained k)
-    ~category:Lang.VideoProcessing
-    ~descr:"Display a text (using the SDL library)."
-    (fun p kind ->
-       let f v = List.assoc v p in
-       let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
-         Lang.to_string (f "font"),
-         Lang.to_int (f "size"),
-         Lang.to_int (f "color"),
-         Lang.to_int (f "x"),
-         Lang.to_int (f "y"),
-         Lang.to_int (f "speed"),
-         Lang.to_bool (f "cycle"),
-         Lang.to_string (f "metadata"),
-         Lang.to_string_getter (Lang.assoc "" 1 p),
-         Lang.to_source (Lang.assoc "" 2 p)
-       in
-       let speed = speed / (Lazy.force Frame.video_rate) in
-       let meta = if meta = "" then None else Some meta in
-         ((new text ~kind init render_text ttf ttf_size color x y speed
-                    cycle meta txt source):>Source.source))
+        "", Lang.string_getter_t 1, None, Some "Text to display.";
+        "", Lang.source_t k, None, None
+      ]
+      ~kind:(Lang.Unconstrained k)
+      ~category:Lang.VideoProcessing
+      ~descr:"Display a text."
+      (fun p kind ->
+        let f v = List.assoc v p in
+        let ttf, ttf_size, color, x, y, speed, cycle, meta, txt, source =
+          Lang.to_string (f "font"),
+          Lang.to_int (f "size"),
+          Lang.to_int (f "color"),
+          Lang.to_int_getter (f "x"),
+          Lang.to_int_getter (f "y"),
+          Lang.to_int (f "speed"),
+          Lang.to_bool (f "cycle"),
+          Lang.to_string (f "metadata"),
+          Lang.to_string_getter (Lang.assoc "" 1 p),
+          Lang.to_source (Lang.assoc "" 2 p)
+        in
+        let speed = speed / (Lazy.force Frame.video_rate) in
+        let meta = if meta = "" then None else Some meta in
+        ((new text ~kind init render_text ttf ttf_size color x y speed
+            cycle meta txt source):>Source.source))
+  in
+  add_operator ("video.add_text."^name);
+  add_operator "video.add_text"

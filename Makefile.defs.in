@@ -34,7 +34,7 @@ EXEEXT = @EXEEXT@
 CAMLP4O = @CAMLP4O@
 
 liquidsoap_ocamlcflags= @liquidsoap_ocamlcflags@
-liquidsoap_ocamllflags= @liquidsoap_ocamllflags@  -cclib "$(LDFLAGS)"
+liquidsoap_ocamllflags= @liquidsoap_ocamllflags@ -cclib "$(LDFLAGS)"
 _DEP_OPTS= @_DEP_OPTS@
 
 # Make the building quiet
@@ -60,10 +60,6 @@ OCAML_MAJOR=@OCAML_MAJOR@
 OCAML_MINOR=@OCAML_MINOR@
 OCAML_REVISION=@OCAML_REVISION@
 OCAML_HAS_FIRST_CLASS_MODULES=@OCAML_HAS_FIRST_CLASS_MODULES@
-
-liquidsoap_PLUGINS=@PLUGINS@
-
-@PLUGINS_DATA@
 
 W_MM=@W_MM@
 W_CRY=@W_CRY@

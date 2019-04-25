@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -34,12 +34,43 @@ type next_stop = [
 ]
 
 type chunk = {
-  sbuf: string;
+  sbuf: Bytes.t;
   next: next_stop;
   mutable ofs: int;
   mutable len: int
 }
 
+exception Not_enough_data
+
+let read_header =
+  let really_input buf s ofs len =
+    if Buffer.length buf < len then
+      raise Not_enough_data;
+    Buffer.blit buf 0 s ofs len;
+    Utils.buffer_drop buf len
+  in
+  let b = Bytes.create 1 in
+  let input_byte buf =
+    if Buffer.length buf < 1 then
+      raise Not_enough_data;
+    Buffer.blit buf 0 b 0 1;
+    Utils.buffer_drop buf 1;
+    Char.code (Bytes.get b 0)
+  in
+  let input buf s ofs len =
+    let len =
+      max (Buffer.length buf) len
+    in
+    Buffer.blit buf 0 s ofs len;
+    Utils.buffer_drop buf len;
+    len
+  in
+  let seek _ _ = assert false in
+  let close _ = () in
+  Wav_aiff.read_header {Wav_aiff.
+    really_input;input_byte;input;seek;close
+  }
+    
 class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:source) =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
@@ -49,22 +80,38 @@ class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:sou
   let audio_src_rate = float sample_rate in
   let channels = (Frame.type_of_kind kind).Frame.audio in
   let abg_max_len = Frame.audio_of_seconds max in
-  let converter =
-    Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
-                           ~audio_src_rate
+  let samplesize = ref 16 in
+  let converter = ref
+    (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
+                            ~audio_src_rate)
   in
   let header = 
-    Wav_aiff.wav_header ~channels ~sample_rate
-                        ~sample_size:16 ()
+    Bytes.unsafe_of_string
+      (Wav_aiff.wav_header ~channels ~sample_rate
+                           ~sample_size:16 ())
   in
   let on_start push =
     Process_handler.write header push;
     `Continue
   in
   let abg = Generator.create ~log ~kind `Audio in
-  let on_stdout pull =
-    let sbuf = Process_handler.read 1024 pull in
-    let data = converter sbuf in
+  let buf = Buffer.create 1024 in
+  let mutex = Mutex.create () in
+  let next_stop = ref `Nothing in
+  let is_first = ref true in
+  let process_data () =
+    (* Round to a multiple of sample_size * channels *)
+    let len =
+      let ratio =
+        !samplesize * channels
+      in
+      (Buffer.length buf / ratio) * ratio
+    in
+    let data =
+      Buffer.sub buf 0 len
+    in
+    Utils.buffer_drop buf len;
+    let data = !converter data in
     let len = Array.length data.(0) in
     let buffered = Generator.length abg in
     Generator.put_audio abg data 0 (Array.length data.(0));
@@ -73,35 +120,65 @@ class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:sou
     else
       `Continue
   in
+  let on_stdout pull =
+    Buffer.add_bytes buf
+      (Process_handler.read 1024 pull);
+    let done_with_header =
+      Tutils.mutexify mutex (fun () ->
+        if !is_first then
+          let contents = Buffer.contents buf in
+          try
+            let wav = read_header buf in
+            if Wav_aiff.channels wav <> channels then
+              failwith "Invalid channels from pipe process!";
+            samplesize := Wav_aiff.sample_size wav;
+            converter :=
+              Rutils.create_from_iff ~format:`Wav ~channels
+                ~samplesize:!samplesize
+                ~audio_src_rate:(float (Wav_aiff.sample_rate wav));
+            is_first := false;
+            true
+           with Not_enough_data ->
+             Buffer.reset buf;
+             Buffer.add_string buf contents;
+             false
+        else true) ()
+    in
+    if done_with_header then process_data () else `Continue
+  in
   let on_stderr stderr =
-    (!log_error) (Process_handler.read 1024 stderr);
+    (!log_error) (Bytes.unsafe_to_string (Process_handler.read 1024 stderr));
     `Continue
   in
-  let mutex = Mutex.create () in
-  let next_stop = ref `Nothing in
   let on_stop = Tutils.mutexify mutex (fun e ->
     let ret = !next_stop in
     next_stop := `Nothing;
-    match e with
-      | `Status s when s <> (Unix.WEXITED 0) ->
-           restart_on_error
-      | `Exception _ ->
-           restart_on_error
-      | _ ->
-        begin match ret with
-          | `Sleep -> false
-          | `Break_and_metadata m ->
-              Generator.add_metadata abg m;
-              Generator.add_break abg;
-              true
-          | `Metadata m ->
-              Generator.add_metadata abg m;
-              true
-          | `Break ->
-              Generator.add_break abg;
-              true
-          | `Nothing -> restart
-        end)
+    is_first := true;
+    ignore(process_data ());
+    Buffer.reset buf;
+    let should_restart =
+      match e with
+        | `Status s when s <> (Unix.WEXITED 0) ->
+             restart_on_error
+        | `Exception _ ->
+             restart_on_error
+        | _ ->
+            true
+    in
+    match should_restart, ret with
+      | false, _ -> false
+      | _, `Sleep -> false
+      | _, `Break_and_metadata m ->
+          Generator.add_metadata abg m;
+          Generator.add_break abg;
+          true
+      | _, `Metadata m ->
+          Generator.add_metadata abg m;
+          true
+      | _, `Break ->
+          Generator.add_break abg;
+          true
+      | _, `Nothing -> restart)
   in
 object(self)
   inherit source ~name:"pipe" kind
@@ -222,7 +299,7 @@ let proto =
     "restart", Lang.bool_t, Some (Lang.bool true),
     Some "Restart process when exited.";
 
-    "restart_on_error", Lang.bool_t, Some (Lang.bool false),
+    "restart_on_error", Lang.bool_t, Some (Lang.bool true),
     Some "Restart process when exited with error.";
 
     "", Lang.source_t (Lang.kind_type_of_kind_format ~fresh:2 k), None, None

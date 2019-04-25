@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -109,45 +109,6 @@ struct
     ignore(from_fun (fun () -> ()));
     ignore(from_val ())
   include Lazy
-end
-
-exception Not_implemented
-
-module type StringWrapper =
-sig
-  include module type of String
-  val capitalize : string -> string
-  val uncapitalize : string -> string
-  val lowercase : string -> string
-  val uppercase : string -> string
-end
-
-module StringWrapper : StringWrapper =
-struct
-  let capitalize _ = raise Not_implemented
-  let uncapitalize _ = raise Not_implemented
-  let lowercase _ = raise Not_implemented
-  let uppercase _ = raise Not_implemented
-  let () =
-    let e f = try ignore(f "") with Not_implemented -> () in
-    e capitalize; e uncapitalize;
-    e lowercase; e uppercase
-  include String
-end
-
-module StringCompat =
-struct
-  let capitalize_ascii = StringWrapper.capitalize
-  let uncapitalize_ascii = StringWrapper.uncapitalize
-  let lowercase_ascii = StringWrapper.lowercase
-  let uppercase_ascii = StringWrapper.uppercase
-
-  let () =
-    let e f = try ignore(f "") with Not_implemented -> () in
-    e capitalize_ascii; e uncapitalize_ascii;
-    e lowercase_ascii; e uppercase_ascii
-
-  include String
 end
 
 (** Unescape a string. *)
@@ -244,7 +205,7 @@ let read_all filename =
     let ret = input channel tmp 0 1024 in
     if ret > 0 then
      begin
-      Buffer.add_substring contents tmp 0 ret ;
+      Buffer.add_subbytes contents tmp 0 ret ;
       read ()
      end
   in
@@ -261,15 +222,6 @@ let buffer_drop buffer len =
       Buffer.reset buffer ;
       Buffer.add_string buffer tmp
 
-(* Exception translation and backtrace printing.
- * We provide first a default implementation
- * and override it with Printexc's implementation
- * if present.. *)
-
-let error_translators = Queue.create ()
-
-let register_error_translator x = Queue.push x error_translators
-
 let unix_translator = 
   function
     | Unix.Unix_error (code,name,param) ->
@@ -277,14 +229,8 @@ let unix_translator =
                                            name param)
     | _ -> None
 
-let () = register_error_translator unix_translator
-
-let exception_printer e =
-  Queue.fold
-    (fun cur f -> if cur <> None then cur else f e)
-    None error_translators
-
-let () = Printexc.register_printer exception_printer
+let () =
+  Printexc.register_printer unix_translator
 
 (** Perfect Fisher-Yates shuffle
   * (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
@@ -555,7 +501,7 @@ let decode64 s =
     let len = List.length result in
     let s = Bytes.make len ' ' in
       ignore (List.fold_left (fun i c -> Bytes.set s i c ; i-1) (len-1) result) ;
-      s
+      Bytes.unsafe_to_string s
 
 (** Base 64 encoding. *)
 let encode64 s =
@@ -580,7 +526,7 @@ let encode64 s =
       Bytes.set dst (4*(n/3)-1) '='
     end else if extra = 2 then
       Bytes.set dst (4*(n/3)-1) '=' ;
-    dst
+    Bytes.unsafe_to_string dst
 
 (** Get a file/uri extension. *)
 (* This is not garanteed to work 100% but should
@@ -590,7 +536,7 @@ let get_ext s =
  try
   let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
   let ret = Pcre.exec ~rex s in
-  StringCompat.lowercase_ascii (Pcre.get_substring ret 1)
+  String.lowercase_ascii (Pcre.get_substring ret 1)
  with
    | _ -> raise Not_found
 
@@ -626,7 +572,7 @@ let normalize_parameter_string s =
   let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
   let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
   let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
-  let s = StringCompat.lowercase_ascii s in
+  let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
   let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_"^s else s in
   s
@@ -730,3 +676,16 @@ let quote s =
   done;
   Buffer.add_char b quote;
   Buffer.contents b
+
+let environment () =
+  let l = Unix.environment () in
+  (* Split at first occurence of '='. Return v,"" if
+   * no '=' could be found. *)
+  let split s =
+    try
+      let pos = String.index s '=' in
+      String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
+    with _ -> s,""
+  in
+  let l = Array.to_list l in
+  List.map split l

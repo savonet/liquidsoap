@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,20 +16,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 let create_encoder ~opus ~comments () =
-  let samplerate = opus.Encoder.Opus.samplerate in
-  let channels = opus.Encoder.Opus.channels in
-  let frame_size = opus.Encoder.Opus.frame_size in
-  let application = match opus.Encoder.Opus.application with
+  let samplerate = opus.Opus_format.samplerate in
+  let channels = opus.Opus_format.channels in
+  let frame_size = opus.Opus_format.frame_size in
+  let application = match opus.Opus_format.application with
     | None -> `Audio
     | Some a -> a
   in
   let pending = ref [||] in
   let enc = ref None in
+  let started  = ref false in
   let get_enc os = 
     match !enc with
       | Some x -> x
@@ -37,11 +38,11 @@ let create_encoder ~opus ~comments () =
          let x =
            Opus.Encoder.create ~comments ~channels ~samplerate ~application os
          in
-         Opus.Encoder.apply_control (`Set_bitrate opus.Encoder.Opus.bitrate) x;
-         begin match opus.Encoder.Opus.mode with
-           | Encoder.Opus.CBR ->
+         Opus.Encoder.apply_control (`Set_bitrate opus.Opus_format.bitrate) x;
+         begin match opus.Opus_format.mode with
+           | Opus_format.CBR ->
                Opus.Encoder.apply_control (`Set_vbr false) x
-           | Encoder.Opus.VBR b ->
+           | Opus_format.VBR b ->
                Opus.Encoder.apply_control (`Set_vbr true) x;
                Opus.Encoder.apply_control (`Set_vbr_constraint b) x
          end;
@@ -51,12 +52,12 @@ let create_encoder ~opus ~comments () =
                (fun value -> Opus.Encoder.apply_control (name value) x) 
                value)
          in 
-         maybe (fun (v) -> `Set_complexity v) opus.Encoder.Opus.complexity;
+         maybe (fun (v) -> `Set_complexity v) opus.Opus_format.complexity;
          maybe
            (fun (v) -> `Set_max_bandwidth v)
-           opus.Encoder.Opus.max_bandwidth ;
-         maybe (fun (v) -> `Set_signal v) opus.Encoder.Opus.signal;
-         Opus.Encoder.apply_control (`Set_dtx opus.Encoder.Opus.dtx) x;
+           opus.Opus_format.max_bandwidth ;
+         maybe (fun (v) -> `Set_signal v) opus.Opus_format.signal;
+         Opus.Encoder.apply_control (`Set_dtx opus.Opus_format.dtx) x;
          enc := Some x ;
          x
   in
@@ -72,6 +73,7 @@ let create_encoder ~opus ~comments () =
     Ogg_muxer.flush_pages os
   in
   let data_encoder data os _ =
+    started := true;
     let enc = get_enc os in
     let data =
       Array.map (fun buf ->
@@ -96,6 +98,14 @@ let create_encoder ~opus ~comments () =
         (fun channel -> Array.sub channel ret ((Array.length channel) - ret))
         data
   in
+  let empty_data () = { Ogg_muxer.
+    offset = 0;
+    length = 1;
+    data =
+      Array.make
+         (Lazy.force Frame.audio_channels)
+         (Array.make 1 0.)
+  } in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then
@@ -105,6 +115,9 @@ let create_encoder ~opus ~comments () =
   in
   let end_of_stream os =
     let enc = get_enc os in
+    (* Assert that at least some data was encoded.. *)
+    if not !started then
+      data_encoder (empty_data ()) os ();
     Opus.Encoder.eos enc
   in
   {
@@ -119,19 +132,19 @@ let create_encoder ~opus ~comments () =
 
 let create_opus = 
   function 
-    | Encoder.Ogg.Opus opus -> 
+    | Ogg_format.Opus opus -> 
        let reset ogg_enc m =
          let comments = 
-           Utils.list_of_metadata (Encoder.Meta.to_metadata m) 
+           Utils.list_of_metadata (Meta_format.to_metadata m) 
          in 
          let enc =
            create_encoder ~opus ~comments ()
          in
-         Ogg_muxer.register_track ?fill:opus.Encoder.Opus.fill ogg_enc enc
+         Ogg_muxer.register_track ?fill:opus.Opus_format.fill ogg_enc enc
        in
        let src_freq = float (Frame.audio_of_seconds 1.) in
-       let dst_freq = float opus.Encoder.Opus.samplerate in
-       let channels = opus.Encoder.Opus.channels in
+       let dst_freq = float opus.Opus_format.samplerate in
+       let channels = opus.Opus_format.channels in
        let encode =
          Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
        in

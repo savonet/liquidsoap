@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -102,40 +102,13 @@ let create ~channels ~samplerate ~quality ~metadata () =
 
 let create_vorbis =
   function 
-   | Encoder.Ogg.Vorbis vorbis -> 
-      let channels = vorbis.Encoder.Vorbis.channels in
-      let samplerate = vorbis.Encoder.Vorbis.samplerate in
+   | Ogg_format.Vorbis vorbis -> 
+      let channels = vorbis.Vorbis_format.channels in
+      let samplerate = vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
-        let m =  (Encoder.Meta.to_metadata m) in
-        let get h k =
-          try
-            Some (Hashtbl.find h k)
-          with Not_found -> None
-        in
-        let getd h k d =
-         try
-          Some (Hashtbl.find h k)
-         with Not_found -> Some d
-        in
-        let def_title =
-          match get m "uri" with
-            | Some s -> let title = Filename.basename s in
-                (try
-                   String.sub title 0 (String.rindex title '.')
-                 with
-                   | Not_found -> title)
-            | None -> "Unknown"
-        in
+        let m =  Meta_format.to_metadata m in
         let metadata = 
-           (Vorbis.tags
-                ?title:(getd m "title" def_title)
-                ?artist:(get m "artist")
-                ?genre:(get m "genre")
-                ?date:(get m "date")
-                ?album:(get m "album")
-                ?tracknumber:(get m "tracknum")
-                ?comment:(get m "comment")
-                  ())
+          Vorbis.tags m ()
         in
         let enc =
           (* For ABR, a value of -1 means unset.. *)
@@ -144,22 +117,22 @@ let create_vorbis =
               | Some x -> x
               | None   -> -1
           in
-          match vorbis.Encoder.Vorbis.mode with
-            | Encoder.Vorbis.ABR (min_rate,average_rate,max_rate) 
+          match vorbis.Vorbis_format.mode with
+            | Vorbis_format.ABR (min_rate,average_rate,max_rate) 
                 -> let min_rate,average_rate,max_rate = 
                      f min_rate, f average_rate, f max_rate
                    in
                    create_abr ~channels ~samplerate 
                               ~max_rate ~average_rate 
                               ~min_rate ~metadata ()
-            | Encoder.Vorbis.CBR bitrate 
+            | Vorbis_format.CBR bitrate 
                 -> create_cbr ~channels ~samplerate 
                               ~bitrate ~metadata ()
-            | Encoder.Vorbis.VBR quality 
+            | Vorbis_format.VBR quality 
                 -> create ~channels ~samplerate 
                           ~quality ~metadata ()
         in
-        Ogg_muxer.register_track ?fill:vorbis.Encoder.Vorbis.fill ogg_enc enc
+        Ogg_muxer.register_track ?fill:vorbis.Vorbis_format.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float samplerate in

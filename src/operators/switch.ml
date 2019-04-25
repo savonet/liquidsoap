@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -44,10 +44,12 @@ type child = {
   * or only at track limits (sensitive). *)
 type track_mode = Sensitive | Insensitive
 
-class virtual switch ~kind ~name
+class virtual switch ~kind ~name ~override_meta ~transition_length
   ?(mode=(fun () -> true)) ?(replay_meta=true) (cases : child list) =
 object (self)
   inherit operator ~name kind (List.map (fun x -> x.source) cases)
+
+  val mutable transition_length = transition_length
 
   val mutable selected : (child*source) option = None
 
@@ -169,6 +171,12 @@ object (self)
                          [ "",Lang.source old_source ;
                            "",Lang.source new_source ])
                   in
+                  let s =
+                    new Max_duration.max_duration ~kind ~override_meta ~duration:transition_length s
+                  in
+                  let s =
+                    new Sequence.sequence ~kind ~merge:true [s;new_source]
+                  in
                     Clock.unify s#clock self#clock ;
                     s#get_ready activation ;
                     selected <- Some (c,s)
@@ -243,6 +251,13 @@ let common kind = [
   "track_sensitive", Lang.bool_getter_t 0, Some (Lang.bool true),
   Some "Re-select only on end of tracks." ;
 
+  "transition_length", Lang.float_t, Some (Lang.float 5.),
+  Some "Maximun transition duration.";
+
+  "override", Lang.string_t, Some (Lang.string "liq_transition_length"),
+  Some "Metadata field which, if present and containing a float, \
+        overrides the @transition_length@ parameter.";
+
   "replay_metadata", Lang.bool_t, Some (Lang.bool true),
   Some "Replay the last metadata of a child when switching to it \
         in the middle of a track." ;
@@ -280,7 +295,14 @@ let extract_common ~kind p l =
         tr
   in
   let replay = Lang.to_bool (List.assoc "replay_metadata" p) in
-    replay,ts,tr
+  let tl =
+    Frame.master_of_seconds
+      (Lang.to_float (List.assoc "transition_length" p))
+  in
+  let override_meta =
+    Lang.to_string (List.assoc "override" p)
+  in
+    replay,ts,tr,tl,override_meta
 
 (** Switch: switch according to user-defined predicates. *)
 
@@ -292,11 +314,11 @@ let trivially_true = function
 
 let third (_,_,s) = s
 
-class lang_switch ~kind
+class lang_switch ~kind ~override_meta ~transition_length
   mode ?replay_meta (children : (Lang.value * bool * child) list) =
 object
   inherit
-    switch ~name:"switch" ~kind ~mode ?replay_meta (List.map third children)
+    switch ~name:"switch" ~kind ~mode ~override_meta ~transition_length ?replay_meta (List.map third children)
 
   method private select =
     let selected s =
@@ -351,7 +373,7 @@ let () =
                   pred, Lang.to_source s)
            (Lang.to_list (List.assoc "" p))
          in
-         let replay_meta,ts,tr =
+         let replay_meta,ts,tr,tl,override_meta =
            extract_common ~kind p (List.length children)
          in
          let singles =
@@ -376,13 +398,13 @@ let () =
                           (List.assoc "single" p,
                            "there should be exactly one flag per children"))
          in
-           new lang_switch ~kind ~replay_meta ts children)
+           new lang_switch ~kind ~replay_meta ~override_meta ~transition_length:tl ts children)
 
 (** Fallback selector: switch to the first ready source. *)
-class fallback ~kind ?replay_meta mode children =
+class fallback ~kind ~override_meta ~transition_length ?replay_meta mode children =
 object
 
-  inherit switch ~name:"fallback" ~kind ~mode ?replay_meta children
+  inherit switch ~name:"fallback" ~kind ~mode ~override_meta ~transition_length ?replay_meta children
 
   method private select =
     try Some (List.find (fun s -> s.source#is_ready) children) with
@@ -410,7 +432,7 @@ let () =
       ~kind:(Lang.Unconstrained kind)
       (fun p kind ->
          let children = Lang.to_source_list (List.assoc "" p) in
-         let replay_meta,ts,tr =
+         let replay_meta,ts,tr,tl,override_meta =
            extract_common ~kind p (List.length children)
          in
          let children =
@@ -418,14 +440,14 @@ let () =
              (fun t s -> { transition = t ; cur_meta = None ; source = s })
              tr children
          in
-           new fallback ~kind ~replay_meta ts children)
+           new fallback ~kind ~replay_meta ~override_meta ~transition_length:tl ts children)
 
 (** Random switch *)
 exception Found of child
-class random ~kind ?replay_meta strict mode children =
+class random ~kind ~override_meta ~transition_length ?replay_meta strict mode children =
   let name = if strict then "rotate" else "random" in
 object
-  inherit switch ~name ~kind ?replay_meta ~mode (List.map snd children)
+  inherit switch ~name ~kind ~override_meta ~transition_length ?replay_meta ~mode (List.map snd children)
 
   val mutable pos = -1
 
@@ -468,7 +490,7 @@ let () =
       ~kind:(Lang.Unconstrained kind)
       (fun p kind ->
          let children = Lang.to_source_list (List.assoc "" p) in
-         let replay_meta,ts,tr =
+         let replay_meta,ts,tr,tl,override_meta =
            extract_common ~kind p (List.length children)
          in
          let weights =
@@ -491,7 +513,7 @@ let () =
                 (fun tr s -> { transition = tr ; source = s ; cur_meta = None })
                 tr children)
          in
-           new random ~kind ~replay_meta strict ts children)
+           new random ~kind ~replay_meta ~override_meta ~transition_length:tl strict ts children)
   in
     add "random" false
       "At the beginning of every track, select a random ready child."

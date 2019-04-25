@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -83,8 +83,8 @@ let register =
             (Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
       None, Some "A function that returns new metadata." ;
       "update", Lang.bool_t, Some (Lang.bool true),
-      Some "Only update metadata. If false, only returned values \
-            will be set as metadata." ;
+      Some "Update metadata. If false, existing metadata are cleared and \
+            only returned values are set as new metadata." ;
       "strip", Lang.bool_t, Some (Lang.bool false),
       Some "Completely remove empty metadata. Operates on both empty values \
             and empty metadata chunk.";

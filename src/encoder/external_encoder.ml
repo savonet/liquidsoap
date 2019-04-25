@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** External encoder *)
 
-open Encoder.External
+open External_encoder_format
 let encoder id ext =
   let log = Dtools.Log.make [id] in
 
@@ -54,11 +54,11 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let on_start pusher =
-    Process_handler.write header pusher;
+    Process_handler.write (Bytes.of_string header) pusher;
     `Continue
   in
   let on_stop = function
@@ -81,7 +81,7 @@ let encoder id ext =
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin
-      match (Process_handler.read 1024 puller) with
+      match Bytes.unsafe_to_string (Process_handler.read 1024 puller) with
         | "" when !is_stop -> Condition.signal condition
         | s -> Buffer.add_string buf s
     end;
@@ -137,12 +137,12 @@ let encoder id ext =
           let slen = 2 * len * Array.length b in
           let sbuf = Bytes.create slen in
           Audio.S16LE.of_audio b start sbuf 0 len;
-          sbuf
+          Bytes.unsafe_to_string sbuf
        end
     in
     Tutils.mutexify mutex (fun () ->
       try
-        Process_handler.on_stdin process (Process_handler.write sbuf);
+        Process_handler.on_stdin process (Process_handler.write (Bytes.of_string sbuf));
       with Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart -> ()) ();
     flush_buffer ()

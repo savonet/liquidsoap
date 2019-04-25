@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -24,10 +24,9 @@ open Source
 
 module Img = Image.RGBA32
 
-(** Fade-in at the beginning of every frame.
-  * The [duration] is in seconds.
-  * If the initial flag is set, only the first/current track is faded in. *)
-class fade_in ~kind ?(meta="liq_video_fade_in") ?(initial=false) duration
+(** Fade-in at the beginning of every track.
+  * The [duration] is in seconds. *)
+class fade_in ~kind ?(meta="liq_video_fade_in") duration
               fader fadefun source =
 object
   inherit operator ~name:"video.fade.in" kind [source]
@@ -69,7 +68,7 @@ object
               0
         | `Play (fade,fadefun,length,count) -> fade,fadefun,length,count
     in
-      if not initial && Frame.is_partial ab then state <- `Idle ;
+      if Frame.is_partial ab then state <- `Idle ;
       match video_content with
         | None -> ()
         | Some (rgb,off,len) ->
@@ -84,76 +83,63 @@ object
 
 end
 
-(** Fade-out after every frame.
-  * If the final flag is set, the fade-out happens as of instantiation
-  * and the source becomes unavailable once it's finished. *)
-class fade_out ~kind ?(meta="liq_video_fade_out") ?(final=false) duration fader fadefun source =
+(** Fade-out after every frame. *)
+class fade_out ~kind ?(meta="liq_video_fade_out") duration fader fadefun source =
 object
   inherit operator ~name:"video.fade.out" kind [source]
 
-  method stype = if final then Fallible else source#stype
+  method stype = source#stype
   method abort_track = source#abort_track
 
   (* Fade-out length (in video frames) for the current track.
    * The value is set at the beginning of every track, depending on metadata. *)
   val mutable cur_length = None
 
-  (* Remaining frames, used only in final mode, untouched otherwise. *)
-  val mutable remaining = Frame.video_of_seconds duration
-
-  method remaining =
-    if final then Frame.master_of_video remaining else source#remaining
-  method is_ready = (remaining > 0 || not final) && source#is_ready
+  method remaining = source#remaining
+  method is_ready = source#is_ready
 
   method private get_frame ab =
-    if final && remaining <= 0 then
-      (* This happens in final mode at the end of the remaining time. *)
-      Frame.add_break ab (Frame.position ab)
-    else
-      let n = Frame.video_of_master source#remaining in
-      let off_ticks = Frame.position ab in
-      let video_content = VFrame.get_content ab source in
-      (** In video frames: [length] of the fade. *)
-      let fade,fadefun,length =
-        match cur_length with
-          | Some (f,g,l) -> f,g,l
-          | None ->
-              (* Set the length at the beginning of a track *)
-              let duration =
-                match Frame.get_metadata ab off_ticks with
-                  | None -> duration
-                  | Some m ->
-                      match Utils.hashtbl_get m meta with
-                        | None -> duration
-                        | Some d -> (try float_of_string d with _ -> duration)
-              in
-              let l = Frame.video_of_seconds duration in
-              let f = fader l in
-              let g = fadefun () in
-                cur_length <- Some (f,g,l) ;
-                f,g,l
-      in
-        (* Reset the length at the end of a track *)
-        if Frame.is_partial ab then cur_length <- None ;
-        (* Do the actual processing of video samples *)
-        match video_content with
-          | None -> ()
-          | Some (rgb,off,len) ->
-              (* Process the buffer *)
-              begin match
-                if final then Some remaining else
-                  if n>=0 && n<length then Some n else None
-              with
-                | Some n ->
-                    let rgb = rgb.(0) in
-                      for i=0 to len-1 do
-                        let m = fade (n-i) in
-                          fadefun rgb.(off+i) m
-                      done
-                | None -> ()
-              end ;
-              if final then remaining <- remaining - len
-
+    let n = Frame.video_of_master source#remaining in
+    let off_ticks = Frame.position ab in
+    let video_content = VFrame.get_content ab source in
+    (** In video frames: [length] of the fade. *)
+    let fade,fadefun,length =
+      match cur_length with
+        | Some (f,g,l) -> f,g,l
+        | None ->
+            (* Set the length at the beginning of a track *)
+            let duration =
+              match Frame.get_metadata ab off_ticks with
+                | None -> duration
+                | Some m ->
+                    match Utils.hashtbl_get m meta with
+                      | None -> duration
+                      | Some d -> (try float_of_string d with _ -> duration)
+            in
+            let l = Frame.video_of_seconds duration in
+            let f = fader l in
+            let g = fadefun () in
+              cur_length <- Some (f,g,l) ;
+              f,g,l
+    in
+      (* Reset the length at the end of a track *)
+      if Frame.is_partial ab then cur_length <- None ;
+      (* Do the actual processing of video samples *)
+      match video_content with
+        | None -> ()
+        | Some (rgb,off,len) ->
+            (* Process the buffer *)
+            begin match
+              if n>=0 && n<length then Some n else None
+            with
+              | Some n ->
+                  let rgb = rgb.(0) in
+                    for i=0 to len-1 do
+                      let m = fade (n-i) in
+                        fadefun rgb.(off+i) m
+                    done
+              | None -> ()
+            end 
 end
 
 (** Lang interface *)
@@ -272,13 +258,6 @@ let () =
        let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
          new fade_in ~kind ~meta d f t s) ;
-  Lang.add_operator "video.fade.initial" proto
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.VideoProcessing
-    ~descr:"Fade the beginning of a stream."
-    (fun p kind ->
-       let d,f,t,s = extract p in
-         new fade_in ~kind ~initial:true d f t s) ;
   Lang.add_operator
     "video.fade.out"
     (("override", Lang.string_t, Some (Lang.string "liq_video_fade_out"),
@@ -291,11 +270,4 @@ let () =
     (fun p kind ->
        let d,f,t,s = extract p in
        let meta = Lang.to_string (List.assoc "override" p) in
-         new fade_out ~kind ~meta d f t s) ;
-  Lang.add_operator "video.fade.final" proto
-    ~kind:(Lang.Unconstrained kind)
-    ~category:Lang.VideoProcessing
-    ~descr:"Fade a stream to black."
-    (fun p kind ->
-       let d,f,t,s = extract p in
-         new fade_out ~kind ~final:true d f t s)
+         new fade_out ~kind ~meta d f t s)

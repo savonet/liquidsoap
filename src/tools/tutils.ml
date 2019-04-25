@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -93,6 +93,8 @@ let seems_locked =
       end else
         true
 
+let log = Log.make ["threads"]
+
 (** Manage a set of threads and make sure they terminate correctly,
   * i.e. not by raising an exception. *)
 
@@ -108,21 +110,20 @@ let all = ref (Set.empty)
 let running s id = Set.mem (s,id) !all
 
 let join_all () =
-  try
-    while true do
-      let id =
-        Mutex.lock lock ;
-        snd (Set.choose !all)
+  let rec f () =
+    try
+      let id = mutexify lock (fun () ->
+        let name, id = Set.choose !all in
+        log#f 3 "Shuting down thread %s" name;
+        id) ()
       in
-        Mutex.unlock lock ;
-        Thread.join id
-    done
-  with
-    | Not_found -> Mutex.unlock lock
+      Thread.join id;
+      f ()
+    with Not_found -> ()
+  in
+  f ()
 
 let no_problem = Condition.create ()
-
-let log = Log.make ["threads"]
 
 exception Exit
 
@@ -189,14 +190,16 @@ let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () ->
   !started)
 
-let () =
-  let name = "Duppy scheduler shutdown" in
-  let f () =
+let scheduler_queues = Queue.create ()
+
+let scheduler_shutdown_atom =
+  Dtools.Init.at_stop ~name:"Scheduler shutdown" (fun () ->
     log#f 3 "Shutting down scheduler...";
     Duppy.stop scheduler;
-    log#f 3 "Scheduler shut down."
-  in
-  Shutdown.duppy_atom := Some (Dtools.Init.at_stop ~name f)
+    log#f 3 "Scheduler shut down.";
+    log#f 3 "Shutting down queues...";
+    Queue.iter Thread.join scheduler_queues;
+    log#f 3 "Queues shut down")
 
 let scheduler_log n =
   if scheduler_log#get then
@@ -220,7 +223,7 @@ let new_queue ?priorities ~name () =
                 Please report at: savonet-users@lists.sf.net" ;
        exit 1
    in
-   ignore (create ~wait:false queue () name)
+   Queue.push (create ~wait:false queue () name) scheduler_queues
 
 let create f x name = create ~wait:true f x name
 
@@ -254,6 +257,7 @@ let start_forwarding () =
     let i,o = Unix.pipe () in
       Unix.dup2 o fd ;
       Unix.close o ;
+      Unix.set_close_on_exec i ;
       i
   in
   let in_stdout = reopen Unix.stdout in
@@ -278,6 +282,7 @@ let start_forwarding () =
     let buffer = Bytes.create len in
     let rec f (acc:string list) _ =
       let n = Unix.read fd buffer 0 len in
+      let buffer = Bytes.unsafe_to_string buffer in
       let rec split acc i =
         match
           try Some (String.index_from buffer i '\n') with Not_found -> None
@@ -321,40 +326,44 @@ let error_translator =
     | _ ->
         None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
-(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
- * Raises [Timeout elapsed_time] if timeout is reached. *)
-let wait_for ?(log=fun _ -> ()) events =
-  let timed_out = ref None in
-  let m = Mutex.create () in
-  let c = Condition.create () in
-  let handler = mutexify m (fun l ->
-    List.iter (function
-      | `Delay _ ->
-         timed_out := Some (Unix.gettimeofday ())
-      | _ -> ()) l;
-    Condition.signal c;
-    [])
-  in
-  let task = {
-    Duppy.Task.
-      priority = Non_blocking;
-      events = events;
-      handler = handler
-  } in
+type event = [
+  | `Read of Unix.file_descr
+  | `Write of Unix.file_descr
+  | `Both of Unix.file_descr
+]
+
+(* Wait for [`Read socker], [`Write socket] or [`Both socket] for at most
+ * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
+ * if timeout is reached. *)
+let wait_for ?(log=fun _ -> ()) event timeout =
   let start_time =
-    Mutex.lock m;
-    Duppy.Task.add scheduler task;
-    let ret = Unix.gettimeofday () in
-    Condition.wait c m;
-    ret 
+    Unix.gettimeofday ()
   in
-  match !timed_out with
-    | Some t ->
+  let max_time =
+    start_time +. timeout
+  in
+  let r, w =
+    match event with
+      | `Read socket -> [socket],[]
+      | `Write socket -> [],[socket]
+      | `Both socket -> [socket],[socket]
+  in
+  let rec wait t =
+    let l,l',_ = Unix.select r w [] t in
+    if l=[] && l'=[] then begin
+      let current_time = Unix.gettimeofday () in
+      if current_time >= max_time then
+       begin
         log "Timeout reached!" ;
-        raise (Timeout (t -. start_time)) 
-    | _ -> ()
+        raise (Timeout (current_time -. start_time))
+       end
+      else
+        wait (min 1. (max_time -. current_time))
+    end
+  in
+  wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
 let run = ref true

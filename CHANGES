@@ -1,5 +1,260 @@
-x.y.z ()
-========
+1.4.0 ()
+=====
+
+New:
+
+- Added `input.{file,harbor}.hls` to read HLS stream (#59, #295, #296).
+
+- Added `output.hls` to natively stream in HLS (#758).
+
+- Added `(to_){string,float,int,bool}_getter` operators to handle getters in script side.
+
+- Made `p` parameter in `smooth_add` a `float` getter (#601)
+
+- Added `source.time` to get a source's clock time.
+
+- Added `max_duration` to limit a source's duration.
+
+- Added `file.temp_dir` to create temporary directories.
+
+- Added `file.{unlink,rmdir}` to remove, resp., file and directories.
+
+Changed:
+
+- Depends on OCaml >= 4.07.0
+
+- Remove dynamic plugin build option.
+
+- Made `on_end` delay a float getter.
+
+- Reimplemented `fade.{in,initial,out,final}` as scripted operators. (#664)
+
+- Removed `cross`/`crossfade` operators, superseeded by `smart_cross`/`smart_crossfade`
+
+- Rename `smart_cross`/`smart_crossfade` operators as `cross`/`crossfade`
+
+- Rewrite `smooth_add` to use new `mkcross` functions.
+
+- Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
+
+- Added `transition_length` to `switch`-based operators to limit transition lengths and allow garbage collection of transition sources.
+
+- SDL renders text in UTF-8. (#712)
+
+- Made `x` and `y` parameters in `video.add_text` `float` getters. (#730)
+
+- Reimplemented `extract-replaygain` using `ffmpeg`, added an optional replay gain option to the `ffmpeg2wav` protocol. Thanks to @Yamakaky for contributing on this. (#749)
+
+- The `ratio` parameter of `compress` and `limit` is a float getter. (#745)
+
+- Removed `rewrite_metadata` which had been deprecated for a while now.
+
+Fixed:
+
+- Lack of documentation for `cross`/`crossfade` (#743)
+
+- Fixed before metadata being lost during crossfade not in conservative mode.
+
+1.3.7 (09-04-2019)
+=====
+
+Changed:
+
+- Reimplemented `open_process_full` to get a hand on `pid` and finer-grained closing workflow (#703)
+
+- Better log message when request download times out (#708)
+
+- Drop `log.level` for `ffmpeg` messages to `5`
+
+Fixed:
+
+- Timeout when executing external processes (#691, #736, #726, #708)
+
+- Set buffering only when frame is partial in time_wrap.ml. Makes it work with crossfade transitions (#695)
+
+- Changed `Icy-MetaData:1` to `Icy-MetaData: 1` in HTTP source headers. Fixes some shoutcast implementations (#727)
+
+- Fixed deadlock in `input.http` source status command (#367)
+
+1.3.6 (23-01-2019)
+=====
+
+Fixed:
+
+- Fixed smart_crossfade transitions skipping data after track marks. (#683, #652)
+
+- Fixed `input.pulseaudio` parameters.
+
+- Fixed crash when copying frame content (#684)
+
+1.3.5 (25-12-2018)
+=====
+
+New:
+
+- Added a bunch of base mathematics primitive, `exp`, `log`, `cos`, `sine`, ...
+
+- Added `"extinf_duration"` to parsed `#EXTINF` metadata.
+
+Fixed:
+
+- Fixed inotify watch semantics (#677)
+
+- Enhanced `#EXTINF` parsing in ambigious cases (#625)
+
+- Fixed `output.youtube.live` (#630)
+
+- Make sure server writes are synchronous (#643)
+
+- Fixed crash when loading some frei0r plugins (#435)
+
+- Fixed compilation with `osx-secure-transport`
+
+- Fixed invalid opus stream generated when no data was ever encoded (#180)
+
+1.3.4 (10-09-2018)
+=====
+
+New:
+
+- Added `FFMPEG` decoder using the new `ocaml-ffmpeg` API. Thanks for @gndl for the hard work there. 
+
+- Added `"init.allow_root"` setting to allow running liquidsoap as root.
+
+- Added `on_track` callback for playlists. Can be used to force a reload.
+
+- Added `server.condition`, `server.wait`, `server.broadcast` and `server.signal`. Used to control server command execution.
+
+- Added `server.write`, `server.read{chars,line}` to write interactive server commands in conjunction with the above functions. (#544, #568)
+
+- Added `output.youtube.live` as a wrapper around `output.gstreamer.audio_video` to stream live to Youtube (#498)
+
+- Added metadata extraction to `ffmpeg2wav` protocol (#623).
+
+Changed:
+
+- Depends on OCaml >= 4.03.0
+
+- Depends on camomile > 1.0.0
+
+- Use `http{s}.head` when available to fetch remote file's mime type. (win32 port)
+
+- Better log messages for root exit and buffer override.
+
+- Switch default log to stdout. Set to file when `log.file.path` is set (#612)
+
+- Disabled Gstreamer stream decoder.
+
+- Removed asynchronous mode for `output.gstreamer.audio_video`
+
+- Reworked `smartcross` internal logic (#596)
+
+- Enabled `replaygain` on `m4a` files, thanks to @gilou (#604)
+
+- Added `encoding` parameter to `output.shoutcast` to allow alternative string encoding for metadata updates (#411)
+
+- Deprecated `rewrite_metadata`
+
+Fixed:
+
+- Decouple dyntools compilation.
+
+- Support for OCaml >= 4.06
+
+- File descriptor leak in `output.icecast` (#548)
+
+- Fixed URL regexp for `input.https` (#593)
+
+- Multiple gstreamer fixes: 
+  - File decoder with video.
+  - Memory leaks (#516, #511, #434, #318)
+  - Process freeze (#608, 278)
+
+- Duppy crash on exit (#160)
+
+- Fixed audio glitches when using the `pipe` operator (#614)
+
+- Deadlock in external decoder. (#611)
+
+1.3.3 (14-10-2017)
+=====
+
+New:
+
+- Added `on_change` to `register`
+
+- Added IPv6 support for `input.harbor`. (#491)
+
+- Added `time`, `localtime` and `gmtime` to help with time-predicates (#481)
+
+- Added `on_start` to execute callback when liquidsoap starts.
+
+- Added `enable_external_ffmpeg_decoder` to enable ffmpeg-base external decoder.
+
+- Added `"decoder.external.{ffmpeg,ffprobe,flac,metaflac,faad,mpcdec}.path"` configuration settings.
+
+Changed:
+
+- Renamed secure transport harbor key paths to: harbor.secure_transport.*
+
+- Renamed secure transport I/O to: {input,output}.harbor.secure_transport.
+
+- Added `.wma` to `gstreamer` file decoder file extensions (#483)
+
+Fixed:
+
+- Fixed memory leak in `output.icecast` connection method. (#490)
+
+- Fixed `mutexify`
+
+- Make sure that metadata are always passed in increasing position order in `map_metadata` (#469)
+
+1.3.2 (02-09-2017)
+=====
+
+Changed:
+
+- Removed `kick` telnet/server command, duplicate of `stop`.
+
+- Support `replaygain` for mp3 files, thanks to @d4h3r0 (#460)
+
+- Implement `input.harbor.ssl` using SecureTransport for OSX.
+
+Fixed:
+
+- Fix scheduler loop causing high CPU usage when using Process_handler without some of the default callbacks. (#475)
+
+- Revert `wait_for` implementation to pre-`1.3.0`, using a custom `select` loop (#453)
+
+- Handle mime-type arguments in input.harbor streams. (#456)
+
+- Tell ocaml to use the same C compiler at build and link time. Fixes build on FreeBSD when using C++-based bindings such as taglib. (#465)
+
+- Accept any capitalization of HTTP(S) as regular HTTP URL (#464)
+
+- Fix compilation with osx-secure-transport enabled.
+
+- Fix deadlock calling logging functions from within `Gc.finalise` (#609)
+
+1.3.1 (28-05-2017)
+=====
+
+New:
+
+- Allow any tags allowed in `"encoder.encoder.export"` settings in vorbis streams (#418)
+
+- Allow `"audio/mp3"` mime-type for mp3 in file resolution protocol. (#451)
+
+Fixed:
+
+- Fixed run_process, get_process_lines, get_process_output when compiling with OCaml <= 4.03 (#437, #439)
+
+- Calls to wait_for while the scheduler isn't running (#442)
+
+- Revert default handling of environment in run_process, get_process_lines, get_process_output to passing calling process' environment by default.
+
+1.3.0 (27-04-2017)
+=====
 
 New:
 
@@ -66,6 +321,10 @@ Changed:
 - Moved get_process_lines and get_process_output to utils.liq, added optional env parameter
 
 - Set conservative=true by default in cross() and smartcross()
+
+Deprecated (can be removed in any future version):
+
+- Dynamic plugins compilation, deprecated in favor of opam rebuild mechanism.
 
 Removed:
 

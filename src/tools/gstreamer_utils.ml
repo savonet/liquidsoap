@@ -6,10 +6,6 @@ let conf_gstreamer =
   Conf.void ~p:(Configure.conf#plug "gstreamer")
     "Media decoding/endcoding through gstreamer."
 
-let conf_debug =
-  Conf.int ~p:(conf_gstreamer#plug "debug_level") ~d:0
-    "Debug level (bewteen 0 and 5)."
-
 let conf_max_buffers =
   Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
     "Maximal number of buffers."
@@ -22,10 +18,16 @@ let add_borders () = conf_add_borders#get
 
 let () =
   Configure.at_init (fun () ->
+    let debug =
+      try
+        int_of_string
+          (Sys.getenv "LIQ_GST_DEBUG_LEVEL")
+      with _ -> 0
+    in
     Gstreamer.init ~argv:[|
       "Liquidsoap";
       "--gst-debug-spew";
-      Printf.sprintf "--gst-debug-level=%d" conf_debug#get
+      Printf.sprintf "--gst-debug-level=%d" debug
     |] ();
   let major, minor, micro, nano = Gstreamer.version () in
   let log = Dtools.Log.make ["gstreamer";"loader"] in
@@ -48,9 +50,9 @@ module Pipeline = struct
     Printf.sprintf "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d"
       channels rate
 
-  let audio_src ~channels ?(block=true) ?(format=Gstreamer.Format.Time) name =
-    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s"
-      name block (audio_format channels) (Gstreamer.Format.to_string format)
+  let audio_src ~channels ?(maxBytes=10*1024) ?(block=true) ?(format=Gstreamer.Format.Time) name =
+    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s max-bytes=%d"
+      name block (audio_format channels) (Gstreamer.Format.to_string format) maxBytes
 
   let audio_sink ?(drop=false) ?(sync=false) ?max_buffers ~channels name =
     let max_buffers =
@@ -70,12 +72,12 @@ module Pipeline = struct
       "video/x-raw,format=RGBA,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
       width height fps
 
-  let video_src ?(block=true) ?(format=Gstreamer.Format.Time) name =
+  let video_src ?(block=true) ?(maxBytes=10*1024) ?(format=Gstreamer.Format.Time) name =
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
     let blocksize = width * height * 4 in
-    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s blocksize=%d"
-      name block (video_format ()) (Gstreamer.Format.to_string format) blocksize
+    Printf.sprintf "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s blocksize=%d max-bytes=%d"
+      name block (video_format ()) (Gstreamer.Format.to_string format) blocksize maxBytes
 
   let video_sink ?(drop=false) ?(sync=false) ?max_buffers name =
     let max_buffers =
@@ -105,3 +107,55 @@ let render_image pipeline =
   let img = Img.make width height buf in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img
+
+let master_of_time time =
+  Frame.master_of_seconds ((Int64.to_float (Int64.div time 100000L)) *. 0.0001)
+
+let time_of_master tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_master tick) *. 10000.)) 100000L
+
+let time_of_audio tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_audio tick) *. 10000.)) 100000L
+
+let time_of_video tick =
+  Int64.mul (Int64.of_float ((Frame.seconds_of_video tick) *. 10000.)) 100000L
+
+let handler ~(log:Dtools.Log.t) ~on_error msg =
+  let source = msg.Gstreamer.Bus.source in
+  match msg.Gstreamer.Bus.payload with
+    | `Error err -> log#f 2 "[%s] Error: %s" source err; on_error err
+    | `Warning err -> log#f 3 "[%s] Warning: %s" source err
+    | `Info err -> log#f 4 "[%s] Info: %s" source err
+    | `State_changed (o,n,p) ->
+        let f = Gstreamer.Element.string_of_state in
+        let o = f o in
+        let n = f n in
+        let p =
+          match p with
+            | Gstreamer.Element.State_void_pending -> ""
+            | _ -> Printf.sprintf " (pending: %s)" (f p)
+        in
+        log#f 5 "[%s] State change: %s -> %s%s" source o n p
+    | _ -> assert false
+
+let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(on_error=fun _ -> ()) bin =
+  let bus = Gstreamer.Bus.of_element bin in
+  let rec f () =
+    match Gstreamer.Bus.pop_filtered bus types with 
+      | Some msg -> handler ~log ~on_error msg; f ()
+      | None -> ()
+  in
+  f ()
+
+let () =
+  let loop =
+    Gstreamer.Loop.create ()
+  in
+  let main () =
+    Gstreamer.Loop.run loop
+  in
+  ignore(Dtools.Init.at_start (fun () ->
+    ignore(Tutils.create main () "gstreamer_main_loop")));
+  ignore(Dtools.Init.at_stop (fun () ->
+    Gstreamer.Loop.quit loop))
+

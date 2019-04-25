@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -34,12 +34,12 @@ let external_input process input =
   let on_stdin pusher =
     let s,read = input.Decoder.read 1024 in
     if read = 0 then `Stop else begin
-      Process_handler.write s pusher;
+      Process_handler.write (Bytes.of_string s) pusher;
       `Continue
     end
   in
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let log = log#f 3 "%s" in
@@ -52,7 +52,7 @@ let external_input process input =
     try
       Process_handler.on_stdout process (fun stdout ->
         let s = Process_handler.read len stdout in
-        s,String.length s)
+        Bytes.unsafe_to_string s,Bytes.length s)
     with Process_handler.Finished -> "",0
   in
   {Decoder.
@@ -165,7 +165,7 @@ let log = Dtools.Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Process_handler.read 1024 puller);
+    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let command = process filename in
@@ -176,7 +176,7 @@ let external_input_oblivious process filename prebuf =
     try
       Process_handler.on_stdout process (fun stdout ->
         let s = Process_handler.read len stdout in
-        s,String.length s)
+        Bytes.unsafe_to_string s,Bytes.length s)
     with Process_handler.Finished -> "",0
   in
   let close () =

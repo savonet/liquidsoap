@@ -2,14 +2,13 @@ module type Transport_t =
 sig
   type connection
   type event = [
-    | `Delay of float
     | `Write of connection
     | `Read of connection
-    | `Exception of connection
+    | `Both of connection
   ]
   val default_port : int
   val connect : ?bind_address:string -> string -> int -> connection
-  val wait_for : ?log:(string -> unit) -> event list -> unit
+  val wait_for : ?log:(string -> unit) -> event -> float -> unit
   val write: connection -> Bytes.t -> int -> int -> int
   val read: connection -> Bytes.t -> int -> int -> int
   val disconnect: connection -> unit
@@ -19,10 +18,9 @@ module Unix_transport : Transport_t with type connection = Unix.file_descr =
 struct
   type connection = Unix.file_descr
   type event = [
-    | `Delay of float
     | `Write of connection
     | `Read of connection
-    | `Exception of connection
+    | `Both of connection
   ]
   exception Socket
   let connect ?bind_address host port =
@@ -64,10 +62,9 @@ sig
   val string_of_error : error -> string
   type connection
   type event = [
-    | `Delay of float
     | `Write of connection
     | `Read of connection
-    | `Exception of connection
+    | `Both of connection
   ]
   type uri = {
     host: string;
@@ -86,7 +83,7 @@ sig
   val disconnect : connection -> unit
   val read : connection -> Bytes.t -> int -> int -> int
   val write : connection -> Bytes.t -> int -> int -> int
-  val wait_for : ?log:(string -> unit) -> event list -> unit
+  val wait_for : ?log:(string -> unit) -> event -> float -> unit
   type status = string * int * string
   type headers = (string*string) list
   val read_crlf : ?log:(string -> unit) -> ?max:int -> ?count:int ->
@@ -140,7 +137,7 @@ module Make(Transport:Transport_t) =
 struct
   (* Some structured exceptions *)
   
-  include Stdlib
+  include Extralib
   
   type error = Socket | Response | UrlDecoding
   exception Error of error
@@ -159,10 +156,9 @@ struct
   type connection = Transport.connection
 
   type event = [
-    | `Delay of float
     | `Write of connection
     | `Read of connection
-    | `Exception of connection
+    | `Both of connection
   ]
 
   type uri = {
@@ -171,7 +167,7 @@ struct
     path: string
   }
   
-  let () = Utils.register_error_translator error_translator
+  let () = Printexc.register_printer error_translator
   
   let raise e = raise (Error e)
 
@@ -192,7 +188,7 @@ struct
         let s = Bytes.create 2 in
           Bytes.set s 0 (hex_digits.( (k lsr 4) land 15 )) ;
           Bytes.set s 1 (hex_digits.( k land 15 )) ;
-          s
+          Bytes.unsafe_to_string s
   
   let url_encode ?(plus=true) s =
     Pcre.substitute
@@ -222,7 +218,7 @@ struct
                   if String.length s < 3 then raise UrlDecoding ;
                   let k1 = of_hex1 s.[1] in
                   let k2 = of_hex1 s.[2] in
-                    Bytes.make 1 (Char.chr ((k1 lsl 4) lor k2))
+                    String.make 1 (Char.chr ((k1 lsl 4) lor k2))
                 end)
       s
   
@@ -252,7 +248,7 @@ struct
   (* exception Invalid_url *)
   
   let parse_url url =
-    let basic_rex = Pcre.regexp "^https?://([^/:]+)(:[0-9]+)?(/.*)?$" in
+    let basic_rex = Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://([^/:]+)(:[0-9]+)?(/.*)?$" in
     let sub =
       try
         Pcre.exec ~rex:basic_rex url
@@ -279,20 +275,20 @@ struct
     {host;port;path}
   
   let is_url path =
-    Pcre.pmatch ~pat:"^https?://.+" path
+    Pcre.pmatch ~pat:"^[Hh][Tt][Tt][Pp][sS]?://.+" path
   
   let dirname url =
-    let rex = Pcre.regexp "^(https?://.+/)[^/]*$" in
+    let rex = Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?://.+/)[^/]*$" in
     let s = Pcre.exec ~rex url in
     Pcre.get_substring s 1
   
   let read_with_timeout ?(log=fun _ -> ()) ~timeout socket buflen =
-    Transport.wait_for ~log [`Read socket; `Delay timeout];
+    Transport.wait_for ~log (`Read socket) timeout;
     match buflen with
       | Some buflen ->
           let buf = Bytes.create buflen in
           let n = Transport.read socket buf 0 buflen in
-            String.sub buf 0 n
+            Bytes.sub_string buf 0 n
       | None ->
           let buflen = 1024 in
           let buf = Bytes.create buflen in
@@ -300,7 +296,7 @@ struct
           let n = ref buflen in
             while !n <> 0 do
               n := Transport.read socket buf 0 buflen;
-              ans := !ans ^ Bytes.sub buf 0 !n
+              ans := !ans ^ Bytes.sub_string buf 0 !n
             done;
             !ans
   
@@ -326,16 +322,17 @@ struct
         (* This is quite ridiculous but we have 
          * no way to know how much data is available
          * in the socket.. *)
-        Transport.wait_for ~log [`Read socket; `Delay timeout];
+        Transport.wait_for ~log (`Read socket) timeout;
         let h = Transport.read socket c 0 1 in
           if h < 1 then
             stop := true
           else
             (
-              Buffer.add_string ans c;
-              if c = "\n" then
+              let c = Bytes.get c 0 in
+              Buffer.add_char ans c;
+              if c = '\n' then
                 incr count_n
-              else if c <> "\r" then
+              else if c <> '\r' then
                 count_n := 0
             );
           incr n
@@ -354,7 +351,7 @@ struct
       assert(0 < rem);
       let s = Bytes.create rem in
       let n = Transport.read socket s 0 rem in
-      Buffer.add_substring buf s 0 n;
+      Buffer.add_subbytes buf s 0 n;
       if Buffer.length buf = len then
         Buffer.contents buf
       else
@@ -367,8 +364,8 @@ struct
   let request ?(log=fun _ -> ()) ~timeout socket request =
     if
       let len = String.length request in
-        Transport.wait_for ~log [`Write socket; `Delay timeout];
-        Transport.write socket request 0 len < len
+        Transport.wait_for ~log (`Write socket) timeout;
+        Transport.write socket (Bytes.of_string request) 0 len < len
     then
       raise Socket ;
     let header = read_crlf ~log ~timeout socket in
@@ -392,7 +389,7 @@ struct
           (fun fields line ->
              try
                let (!!) = Pcre.get_substring (Pcre.exec ~pat line) in
-                 (Utils.StringCompat.lowercase_ascii !!1, !!2) :: fields
+                 (String.lowercase_ascii !!1, !!2) :: fields
              with
                | Not_found -> fields)
           [] header
@@ -481,7 +478,7 @@ struct
       let max =
         try
           let (_,len) = List.find (fun (l,_) ->
-            Utils.StringCompat.lowercase_ascii l = "content-length")
+            String.lowercase_ascii l = "content-length")
             headers
           in
           int_of_string len

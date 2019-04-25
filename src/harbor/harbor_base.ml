@@ -17,7 +17,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 *****************************************************************************)
 
@@ -26,9 +26,9 @@ open Dtools
 let conf_harbor =
   Conf.void ~p:(Configure.conf#plug "harbor")
     "Harbor settings (Icecast/shoutcast stream receiver)."
-let conf_harbor_bind_addr =
-  Conf.string ~p:(conf_harbor#plug "bind_addr") ~d:"0.0.0.0"
-    "IP address on which the harbor should listen."
+let conf_harbor_bind_addrs =
+  Conf.list ~p:(conf_harbor#plug "bind_addrs") ~d:["0.0.0.0"]
+    "IP addresses on which the harbor should listen."
 let conf_harbor_max_conn =
   Conf.int ~p:(conf_harbor#plug "max_connections") ~d:2
     "Maximun of pending source requests per port."

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** AVI encoder *)
 
-open Encoder.AVI
+open Avi_format
 
 module Img = Image.RGBA32
 
@@ -50,7 +50,7 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     in
     let data = Bytes.create (2*channels*alen) in
     Audio.S16LE.of_audio pcm astart data 0 alen;
-    Avi.audio_chunk data
+    Avi.audio_chunk (Bytes.unsafe_to_string data)
   in
   let video =
     let vbuf = content.Frame.video in

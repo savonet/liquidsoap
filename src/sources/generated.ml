@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -115,32 +115,32 @@ object (self)
 
   method private get_frame ab =
     Tutils.mutexify generator_lock (fun () ->
-    let was_buffering = buffering in
-    let pos = Frame.position ab in
-    buffering <- false ;
-    if should_fail then begin
-      self#log#f 4 "Performing skip." ;
-      should_fail <- false ;
-      if empty_on_abort then Generator.clear generator ;
-      Frame.add_break ab (Frame.position ab)
-    end else begin
-      Generator.fill generator ab ;
-      (* Currently, we don't enter the buffering phase between tracks
-       * even when there's not enough data in the buffer. This is mostly
-       * historical because there was initially no breaks in generators.
-       * This may sometimes be better to do it (to avoid a lag breaking
-       * the new track) but not always (a total disconnection should cause
-       * the start of a new track anyway, since the content after it
-       * has nothing to do with the content before the connection). *)
-      if Frame.is_partial ab then
-        self#log#f 4 "End of track." ;
-      if Generator.length generator = 0 then begin
-        self#log#f 4 "Buffer emptied, buffering needed." ;
-        buffering <- true
-      end;
-      if self#save_metadata ab && was_buffering && replay_meta then
-        self#replay_metadata pos ab;
-    end) ()
+      let was_buffering = buffering in
+      let pos = Frame.position ab in
+      buffering <- false ;
+      if should_fail then begin
+        self#log#f 4 "Performing skip." ;
+        should_fail <- false ;
+        if empty_on_abort then Generator.clear generator ;
+        Frame.add_break ab (Frame.position ab)
+      end else begin
+        Generator.fill generator ab ;
+        (* Currently, we don't enter the buffering phase between tracks
+         * even when there's not enough data in the buffer. This is mostly
+         * historical because there was initially no breaks in generators.
+         * This may sometimes be better to do it (to avoid a lag breaking
+         * the new track) but not always (a total disconnection should cause
+         * the start of a new track anyway, since the content after it
+         * has nothing to do with the content before the connection). *)
+        if Frame.is_partial ab then
+          self#log#f 4 "End of track." ;
+        if Generator.length generator = 0 then begin
+          self#log#f 4 "Buffer emptied, buffering needed." ;
+          buffering <- true
+        end;
+        if self#save_metadata ab && was_buffering && replay_meta then
+          self#replay_metadata pos ab;
+      end) ()
 
 end
 

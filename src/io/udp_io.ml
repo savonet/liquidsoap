@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -41,9 +41,9 @@ object (self)
     let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
     let portaddr = Unix.ADDR_INET (ipaddr, port) in
       socket_send <-
-        Some (fun msg off len -> Unix.sendto socket msg off len [] portaddr) ;
+        Some (fun msg off len -> Unix.sendto socket (Bytes.of_string msg) off len [] portaddr) ;
       encoder <-
-        Some (encoder_factory self#id Encoder.Meta.empty_metadata)
+        Some (encoder_factory self#id Meta_format.empty_metadata)
 
   method private output_reset = self#output_start ; self#output_stop
 
@@ -133,7 +133,7 @@ object (self)
         wait () ;
         let msg = Bytes.create len in
         let n,_ = Unix.recvfrom socket msg 0 len [] in
-          msg,n
+          Bytes.unsafe_to_string msg,n
       in
       let input =
         { Decoder.

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -483,6 +483,7 @@ object (self)
 
   (* In caching mode, remember what has been given during the current tick *)
   val memo = Frame.create content_kind
+  method get_memo = memo
 
   (* [#get buf] completes the frame with the next data in the stream.
    * Depending on whether caching is enabled or not,
@@ -500,22 +501,19 @@ object (self)
      * - A starts streaming again, needs to receive an EOT before
      *   having to worry about availability.
      *
+     *   Another important example is crossfade, if e.g. a transition
+     *   returns a failling source.
+     *
      * So we add special cases where, instead of calling #get_frame, we
      * call silent_end_track to properly end a track by inserting a break.
      *
      * This makes the whole protocol a bit sloppy as it weakens constraints
      * tying #is_ready and #get, preventing the detection of "bad" calls
-     * of #get without prior check of #is_ready. To compensate this we issue
-     * a detailed warning.
+     * of #get without prior check of #is_ready.
      *
      * This fix makes it really important to keep #is_ready = true during a
      * track, otherwise the track will be ended without the source noticing! *)
     let silent_end_track () =
-      self#log#f 3
-        "Warning: #get called when not #is_ready! \
-         This is normal if an operator using this source has been unused \
-         while the source has gone unavailable. If unsure about this warning, \
-         you are very welcome to report it and ask for clarifications." ;
       Frame.add_break buf (Frame.position buf)
     in
     if not caching then begin

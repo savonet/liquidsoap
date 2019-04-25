@@ -2,7 +2,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,18 +17,26 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
+
+type secure_transport_socket = Https_secure_transport.socket = {
+  ctx: SecureTransport.t;
+  sock: Unix.file_descr
+}
 
 open Dtools
 
 let conf_harbor_secure_transport =
-  Conf.void ~p:(Harbor_base.conf_harbor#plug "ssl")
-    "Harbor SSL (OSX SecureTransport implementation) settings."
+  Conf.void ~p:(Harbor_base.conf_harbor#plug "secure_transport")
+    "Harbor SSL settings."
 let conf_harbor_secure_transport_certificate =
   Conf.string ~p:(conf_harbor_secure_transport#plug "certificate") ~d:""
     "Path to the server's SSL certificate. (mandatory)"
+let conf_harbor_secure_transport_private_key =
+  Conf.string ~p:(conf_harbor_secure_transport#plug "private_key") ~d:""
+    "Path to the server's SSL private key. (mandatory)"
 let conf_harbor_secure_transport_password =
   Conf.string ~p:(conf_harbor_secure_transport#plug "password") ~d:""
     "Path to the server's SSL password. (optional, blank if omited)"
@@ -36,49 +44,43 @@ let conf_harbor_secure_transport_password =
 module Monad = Duppy.Monad
 module type Monad_t = module type of Monad with module Io := Monad.Io
 
-type handler = Https_secure_transport.socket = {
-  ctx: SecureTransport.t;
-  sock: Unix.file_descr
-}
-
-let read {ctx} buf ofs len =
-  SecureTransport.read ctx buf ofs len
-let read_retry = Stdlib.read_retry read
-let write {ctx} buf ofs len =
-  SecureTransport.write ctx buf ofs len
-let sock {sock} = sock
-
 module Websocket_transport =
 struct
-  type socket = handler
-  let read = read
-  let read_retry = Stdlib.read_retry read
-  let write = write
+  type socket = secure_transport_socket
+  let read {ctx} buf ofs len =
+    SecureTransport.read ctx buf ofs len
+  let read_retry = Extralib.read_retry read
+  let write {ctx} buf ofs len =
+    SecureTransport.write ctx buf ofs len
 end
 
-module Duppy_transport : Duppy.Transport_t with type t = handler =
+module Duppy_transport : Duppy.Transport_t with type t = secure_transport_socket =
 struct
-  type t = handler
+  type t = secure_transport_socket
   type bigarray = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-  let sock = sock
-  let read = read
-  let write = write
+  let sock {sock} = sock
+  let read {ctx} buf ofs len =
+    SecureTransport.read ctx buf ofs len
+  let write {ctx} buf ofs len =
+    SecureTransport.write ctx buf ofs len
   let ba_write _ _ _ _ =
     failwith "Not implemented!"
 end
 
 module Transport =
 struct
-  type socket = handler
-  let file_descr_of_socket = sock
-  let read socket len =
+  type socket = secure_transport_socket
+  let name = "secure_transport"
+  let file_descr_of_socket {sock} = sock
+  let read {ctx} len =
     let buf = Bytes.create len in
-    let n = read socket buf 0 len in
+    let n = SecureTransport.read ctx buf 0 len in
     buf, n
   let accept sock =
     let (sock, caller) = Unix.accept sock in
     let ctx =
-      SecureTransport.init SecureTransport.Server SecureTransport.Stream
+      SecureTransport.init SecureTransport.Server
+                           SecureTransport.Stream
     in
     let password =
       conf_harbor_secure_transport_password#get
@@ -87,15 +89,15 @@ struct
       if password = "" then None else Some password
     in
     let cert = conf_harbor_secure_transport_certificate#get in
-    begin match SecureTransport.import_p12_certificate ?password cert with
-      | cert::_ -> SecureTransport.set_certificate ctx cert
-      | [] -> failwith "No certificate found in p12 file!"
-    end;
+    let certs =
+      SecureTransport.import_p12_certificate ?password cert
+    in
+    List.iter (SecureTransport.set_certificate ctx) certs;
     SecureTransport.set_connection ctx sock;
-    ({ctx;sock}, caller)
-  let close {ctx;sock} = 
-    SecureTransport.close ctx;
-    Unix.close sock
+    SecureTransport.handshake ctx;
+    let socket = {sock;ctx} in
+    (socket, caller)
+  let close {ctx} = SecureTransport.close ctx
 
   module Duppy =
   struct
@@ -111,6 +113,6 @@ struct
   module Websocket = Websocket.Make(Websocket_transport)
 end
 
-module SecureTransport = Harbor.Make(Transport)
+module Ssl = Harbor.Make(Transport)
 
-include SecureTransport
+include Ssl

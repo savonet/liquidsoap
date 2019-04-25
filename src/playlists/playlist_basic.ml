@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -36,6 +36,31 @@ let test_text s =
             assert false
           end
 
+ let parse_extinf s =
+   try
+     let rex =
+       Pcre.regexp "#EXTINF:(\\d+),(.*)"
+     in
+     let sub = Pcre.exec ~rex s in
+     let duration =
+       Pcre.get_substring sub 1
+     in
+     let song =
+       Pcre.get_substring sub 2
+     in
+     let lines =
+       Pcre.split ~pat:" - " song
+     in
+     match lines with
+       | artist::title::[] ->
+           ["extinf_duration", duration;
+            "artist", Utils.trim artist;
+            "title", Utils.trim title]
+       | _ ->
+           ["extinf_duration", duration;
+            "song", Utils.trim song]
+   with Not_found -> []
+
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
   test_text string ;
@@ -51,18 +76,7 @@ let parse_mpegurl ?pwd string =
   let rec get_urls cur lines =
     match lines with
       | x :: y :: lines when is_info x && not (skip_line y) ->
-          let metadata =
-            match List.rev (Utils.split ~sep:',' x) with
-              | x :: _ ->
-                 begin
-                  match Utils.split ~sep:'-' x with
-                    | title :: artist :: [] ->
-                        ["title",  Utils.trim title;
-                         "artist", Utils.trim artist]
-                    | _ -> ["title", x]
-                 end
-              | _ -> []
-          in
+          let metadata = parse_extinf x in
           get_urls ((metadata, Playlist_parser.get_file ?pwd y) :: cur) lines
       | x :: lines when not (skip_line x) ->
           get_urls (([], Playlist_parser.get_file ?pwd x) :: cur) lines
@@ -75,15 +89,15 @@ let parse_scpls ?pwd string =
   test_text string ;
   let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
   (* Format check, raise Not_found if invalid *)
-  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (Utils.StringCompat.lowercase_ascii string)) ;
+  ignore(Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]" (String.lowercase_ascii string)) ;
   let lines = split_lines string in
   let urls =
     List.map
       (fun s ->
            try
 	     let rex = Pcre.regexp ~flags:[`CASELESS] "file\\d*\\s*=\\s*(.*)\\s*" in
-             let sub = Pcre.exec ~rex:rex s in
-             Pcre.get_substring sub 1
+       let sub = Pcre.exec ~rex s in
+       Pcre.get_substring sub 1
 	   with Not_found -> ""
       )
       lines

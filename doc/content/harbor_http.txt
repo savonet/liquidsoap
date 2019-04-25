@@ -76,7 +76,7 @@ harbor.http.register(port=8005,method="GET",
                      redirect_icecast)
 %%
 
-Another alternative, less recommanded, is to
+Another alternative, less recommended, is to
 directly fetch the page's content from the Icecast server:
 %%(icecast_proxy.liq)
 # Serve all files other
@@ -108,7 +108,7 @@ harbor.http.register(port=8005,method="GET",
                      proxy_icecast)
 %%
 
-This method is not recommenced because some servers may not
+This method is not recommended because some servers may not
 close the socket after serving a request, causing @nc@ and
 liquidsoap to hang.
 

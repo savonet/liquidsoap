@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -60,7 +60,7 @@ let connect () =
     let n = ref buflen in
     while !n = buflen do
       n := Unix.recv socket buf 0 buflen [];
-      ans := !ans ^ String.sub buf 0 !n
+      ans := !ans ^ Bytes.sub_string buf 0 !n
     done;
     if conf_debug#get then Printf.printf "R: %s%!" !ans;
     !ans
@@ -68,7 +68,7 @@ let connect () =
   let write s =
     let len = String.length s in
     if conf_debug#get then Printf.printf "W: %s%!" s;
-    let l = Unix.send socket s 0 len [] in
+    let l = Unix.send socket (Bytes.of_string s) 0 len [] in
     assert (l = len)
   in
   Unix.connect socket sockaddr;
@@ -116,7 +116,7 @@ let search read write field v =
         file := f
       else if Str.string_match re_metadata s 0 then
         let field = Str.matched_group 1 s in
-        let field = Utils.StringCompat.lowercase_ascii field in
+        let field = String.lowercase_ascii field in
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
           metadata := (field, value) :: !metadata

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -104,7 +104,7 @@ object (self)
       match current_metadata with
         | Some m -> 
             fun x -> 
-             subst (Hashtbl.find (Encoder.Meta.to_metadata m) x)
+             subst (Hashtbl.find (Meta_format.to_metadata m) x)
         | None -> fun _ -> raise Not_found
     in
     Utils.interpolate current_metadata s
@@ -119,7 +119,7 @@ object (self)
     let meta = 
       match current_metadata with
         | Some m -> m
-        | None -> Encoder.Meta.empty_metadata
+        | None -> Meta_format.empty_metadata
     in
     encoder <- Some (enc meta) ;
 
@@ -195,7 +195,7 @@ object (self)
     let chan = Utils.get_some chan in
     output_string chan b ;
     if flush then
-      Pervasives.flush chan 
+      Stdlib.flush chan 
 
   method close_pipe =
     self#close_chan (Utils.get_some chan);
@@ -287,7 +287,7 @@ let () =
     ~category:Lang.Output
     ~descr:"Output the source stream to a file."
     (fun p _ ->
-         ((new file_output p):>Source.source))
+      ((new file_output p):>Source.source))
 
 (** External output *)
 
@@ -304,7 +304,9 @@ object (self)
     Unix.open_process_out process
 
   method close_chan chan =
-    ignore(Unix.close_process_out chan)
+    try
+      ignore(Unix.close_process_out chan)
+    with Sys_error msg when msg = "Broken pipe" -> ()
 end
 
 let () =
@@ -316,4 +318,3 @@ let () =
     ~descr:"Send the stream to a process' standard input."
     (fun p _ ->
          ((new external_output p):>Source.source))
-

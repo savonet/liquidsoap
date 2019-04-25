@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,7 +30,7 @@ let error_translator =
         Some (Printf.sprintf "Faad error: %s" (Faad.error_message x))
     | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 exception End_of_stream
 
@@ -88,7 +88,9 @@ let create_decoder input =
   let dec = Faad.create () in
   (* 1024 bytes seems usually enough to initiate the decoder.. *)
   let (aacbuf,len) = input.Decoder.read 1024 in
-  let offset, sample_freq, chans = Faad.init dec aacbuf 0 len in
+  let offset, sample_freq, chans =
+    Faad.init dec (Bytes.unsafe_of_string aacbuf) 0 len
+  in
   let processed = ref 0 in
   let aacbuflen = Faad.min_bytes_per_channel * chans in
   let input,drop,pos =
@@ -123,7 +125,7 @@ let create_decoder input =
         let aacbuf,len = input.Decoder.read aacbuflen in
         if len = aacbuflen then
          begin
-          let pos,data = Faad.decode dec aacbuf 0 len in
+          let pos,data = Faad.decode dec (Bytes.unsafe_of_string aacbuf) 0 len in
           begin try
             processed := !processed + Array.length data.(0)
           with _ -> () end;
@@ -164,7 +166,8 @@ let get_type filename =
       let aacbuflen = 1024 in
       let aacbuf = Bytes.create aacbuflen in
       let _,rate,channels =
-        Faad.init dec aacbuf 0 (Unix.read fd aacbuf 0 aacbuflen)
+        let n = Unix.read fd aacbuf 0 aacbuflen in
+        Faad.init dec aacbuf 0 n
       in
         log#f 4
           "Libfaad recognizes %S as AAC (%dHz,%d channels)."
@@ -237,7 +240,7 @@ struct
     let dec = Faad.create () in
     let read len =
       let ret,len = input.Decoder.read len in
-      ret,0,len
+      Bytes.unsafe_of_string ret,0,len
     in
     let mp4 = Faad.Mp4.openfile ?seek:input.Decoder.lseek read in
     let resampler = Rutils.create_audio () in

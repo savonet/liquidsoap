@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -40,29 +40,29 @@ let mk_tokenizer ?(fname="") lexbuf () =
 (* TODO: also parse optional arguments? *)
 let get_encoder_format tokenizer =
   let ogg_item = function
-    | Lang_parser.VORBIS -> Lang_encoders.vorbis []
-    | Lang_parser.VORBIS_CBR -> Lang_encoders.vorbis_cbr []
-    | Lang_parser.VORBIS_ABR -> Lang_encoders.vorbis_abr []
-    | Lang_parser.THEORA -> Lang_encoders.theora []
-    | Lang_parser.SPEEX -> Lang_encoders.speex []
-    | Lang_parser.OPUS -> Lang_encoders.opus []
-    | Lang_parser.FLAC -> Lang_encoders.ogg_flac []
+    | Lang_parser.VORBIS -> Lang_vorbis.make []
+    | Lang_parser.VORBIS_CBR -> Lang_vorbis.make_cbr []
+    | Lang_parser.VORBIS_ABR -> Lang_vorbis.make_abr []
+    | Lang_parser.THEORA -> Lang_theora.make []
+    | Lang_parser.SPEEX -> Lang_speex.make []
+    | Lang_parser.OPUS -> Lang_opus.make []
+    | Lang_parser.FLAC -> Lang_flac.make_ogg []
     | _ -> failwith "ogg format expected"
   in
   let is_ogg_item token =
     try let _ = ogg_item token in true with _ -> false
   in
     match tokenizer() with
-    | Lang_parser.MP3,_,_ -> Lang_encoders.mp3_cbr []
-    | Lang_parser.MP3_VBR,_,_ -> Lang_encoders.mp3_vbr []
-    | Lang_parser.MP3_ABR,_,_ -> Lang_encoders.mp3_vbr []
-    | Lang_parser.SHINE,_,_   -> Lang_encoders.shine []
-    | Lang_parser.FDKAAC,_,_ -> Lang_encoders.fdkaac []
-    | Lang_parser.FLAC,_,_ -> Lang_encoders.flac []
-    | Lang_parser.EXTERNAL,_,_ -> Lang_encoders.external_encoder []
-    | Lang_parser.GSTREAMER,_,_ -> Lang_encoders.gstreamer []
-    | Lang_parser.WAV,_,_ -> Lang_encoders.wav []
-    | ogg,_,_ when is_ogg_item ogg ->
+    | Lang_parser.MP3 -> Lang_mp3.make_cbr []
+    | Lang_parser.MP3_VBR -> Lang_mp3.make_vbr []
+    | Lang_parser.MP3_ABR -> Lang_mp3.make_vbr []
+    | Lang_parser.SHINE   -> Lang_shine.make []
+    | Lang_parser.FDKAAC -> Lang_fdkaac.make []
+    | Lang_parser.FLAC -> Lang_flac.make []
+    | Lang_parser.EXTERNAL -> Lang_external_encoder.make []
+    | Lang_parser.GSTREAMER -> Lang_gstreamer.make []
+    | Lang_parser.WAV -> Lang_wav.make []
+    | ogg when is_ogg_item ogg ->
       let ogg = ogg_item ogg in
         Encoder.Ogg [ogg]
     (* TODO *)
@@ -101,7 +101,7 @@ let eval_ifdefs tokenizer =
       | Lang_parser.PP_IFENCODER,_,_ | Lang_parser.PP_IFNENCODER,_,_ as tok ->
           let fmt = get_encoder_format tokenizer in
           let has_enc =
-            try let _ = Encoder.get_factory fmt in true with Not_found -> false
+            try let (_:Encoder.factory) = Encoder.get_factory fmt in true with Not_found -> false
           in
           let test =
             if fst(tok) = Lang_parser.PP_IFENCODER then fun x -> x else not
@@ -373,8 +373,8 @@ let expand_define tokenizer =
     | Lang_parser.PP_DEFINE,startp,endp ->
       (
         match tokenizer() with
-        | Lang_parser.VAR def_name,_,_ ->
-          if def_name <> Utils.StringCompat.uppercase_ascii def_name then raise Parsing.Parse_error;
+        | Lang_parser.VAR x ->
+          if x <> String.uppercase_ascii x then raise Parsing.Parse_error;
           (
             match tokenizer () with
             | Lang_parser.INT _,_,_

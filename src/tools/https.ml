@@ -3,10 +3,9 @@ struct
   type connection = Ssl.socket
 
   type event = [
-    | `Delay of float
     | `Write of connection
     | `Read of connection
-    | `Exception of connection
+    | `Both of connection
   ]
 
   let default_port = 443
@@ -36,14 +35,14 @@ struct
 
   let disconnect = Ssl.shutdown
 
-  let wait_for ?log events =
-    let events = List.map (function
-      | `Read s -> `Read (Ssl.file_descr_of_socket s)
-      | `Write s -> `Write (Ssl.file_descr_of_socket s)
-      | `Exception s -> `Exception (Ssl.file_descr_of_socket s)
-      | `Delay f -> `Delay f) events
+  let wait_for ?log event timeout =
+    let event =
+      match event with
+        | `Read s -> `Read (Ssl.file_descr_of_socket s)
+        | `Write s -> `Write (Ssl.file_descr_of_socket s)
+        | `Both s -> `Both (Ssl.file_descr_of_socket s)
     in
-    Tutils.wait_for ?log events
+    Tutils.wait_for ?log event timeout
 
   let read = Ssl.read
 

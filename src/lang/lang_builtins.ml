@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-open Stdlib
+open Extralib
 
 type category = Sys | Math | String | List | Bool | Pair
               | Liq | Control | Interaction | Other
@@ -81,6 +81,30 @@ let () =
 
 let log = Lang.log
 
+let add_getters name get_t type_t to_get to_val =
+  add_builtin ~cat:Liq ("to_" ^ name ^ "_getter")
+    ~descr:("Return a function from a " ^ name ^ " getter")
+    ["",get_t 1,None,None]
+    (Lang.fun_t [] type_t)
+    (fun p ->
+      let getter =
+        to_get
+          (Lang.assoc "" 1 p)
+      in
+      Lang.val_fun [] ~ret_t:type_t (fun _ _ ->
+        to_val (getter ())));
+  add_builtin ~cat:Liq (name ^ "_getter")
+    ~descr:("Create a " ^ name ^ " getter")
+    ["",get_t 1,None,None]
+    (get_t 2)
+    (fun p -> List.assoc "" p)
+
+let () =
+  add_getters "string" Lang.string_getter_t Lang.string_t Lang.to_string_getter Lang.string;
+  add_getters "float" Lang.float_getter_t Lang.float_t Lang.to_float_getter Lang.float;
+  add_getters "int" Lang.int_getter_t Lang.int_t Lang.to_int_getter Lang.int;
+  add_getters "bool" Lang.bool_getter_t Lang.bool_t Lang.to_bool_getter Lang.bool
+
 let () =
   add_builtin ~cat:Liq "eval"
     ~descr:"Evaluate a string as an expression in the toplevel environment."
@@ -92,148 +116,6 @@ let () =
          match Lang.eval s with
            | None -> Lang.string ""
            | Some v -> Lang.string (Lang.print_value v))
-
-let () =
-  let rec f ~name ~descr ~final_key cur path = 
-    match path with
-      | el::rem ->
-          let cur =
-            try cur#path [el] with Dtools.Conf.Unbound _ ->
-              let name,descr,key = if rem = [] then (name,descr,final_key) else
-                (Utils.StringCompat.capitalize_ascii el,[],Dtools.Conf.void)
-              in
-              key ~p:(cur#plug el) name ~comments:descr
-          in
-          f ~name ~descr ~final_key cur rem
-      | [] -> cur
-  in
-  add_builtin ~cat:Liq "register" ~descr:"Register a new setting."
-    ["name",Lang.string_t,None, Some "Settings name";
-     "descr",Lang.string_t,Some (Lang.string ""), Some "Settings description";
-     "",Lang.string_t,None,Some "Setting key";
-     "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,
-     Some "Setting initial value"]
-    Lang.unit_t
-    (fun p ->
-       let name = Lang.to_string (List.assoc "name" p) in
-       let descr = Lang.to_string (List.assoc "descr" p) in
-       let descr = if descr = "" then [] else [descr] in
-       let path = Lang.to_string (Lang.assoc "" 1 p) in
-       let v = Lang.assoc "" 2 p in
-       let make b ?p ?l ?comments name  =
-         (b ?p ?l ?comments name)#ut
-       in
-       let final_key =
-         match v.Lang.value with
-           | Lang.String s ->
-               make (Dtools.Conf.string ~d:s)
-           | Lang.Int    s ->
-               make (Dtools.Conf.int ~d:s)
-           | Lang.Bool   s ->
-               make (Dtools.Conf.bool ~d:s)
-           | Lang.Float  s ->
-               make (Dtools.Conf.float ~d:s)
-           | Lang.List   l ->
-               let l = List.map Lang.to_string l in
-               make (Dtools.Conf.list ~d:l)
-           | Lang.Unit     ->
-               Dtools.Conf.void
-           | _ -> assert false
-       in
-       ignore(f ~name ~descr ~final_key
-         Configure.conf (Dtools.Conf.path_of_string path));
-       Lang.unit)
-
-let () =
-  let set cast path v =
-    try
-      (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
-    with
-      | Dtools.Conf.Unbound (_, _) ->
-          log#f 2 "WARNING: there is no configuration key named %S!" path
-  in
-    add_builtin ~cat:Liq "set"
-      ~descr:"Change some setting. \
-              Use <code>liquidsoap --conf-descr</code> and \
-              <code>liquidsoap --conf-descr-key KEY</code> on \
-              the command-line to get some information \
-                                    about available settings."
-      ["",Lang.string_t,None,None;
-       "",Lang.univ_t ~constraints:[Lang_types.Dtools] 1,None,None]
-      Lang.unit_t
-      (fun p ->
-         let s = Lang.assoc "" 1 p in
-         let path = Lang.to_string s in
-           try begin match (Lang.assoc "" 2 p).Lang.value with
-               | Lang.Unit     -> set Dtools.Conf.as_unit   path ()
-               | Lang.String s -> set Dtools.Conf.as_string path s
-               | Lang.Int    s -> set Dtools.Conf.as_int    path s
-               | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
-               | Lang.Float  s -> set Dtools.Conf.as_float  path s
-               | Lang.List   l ->
-                   let l = List.map Lang.to_string l in
-                     set Dtools.Conf.as_list path l
-               | _ -> assert false
-             end ;
-             Lang.unit
-           with Dtools.Conf.Mismatch _ ->
-             let t =
-               Configure.conf#path
-                 (Dtools.Conf.path_of_string path)
-             in
-             let kind =
-               match t#kind with
-                 | Some "unit" -> "of type unit"
-                 | Some "int" -> "of type int"
-                 | Some "float" -> "of type float"
-                 | Some "bool" -> "of type bool"
-                 | Some "string" -> "of type string"
-                 | Some "list" -> "of type [string]"
-                 | _ -> "untyped"
-             in
-             let msg =
-               Printf.sprintf
-                 "key %S is %s, thus cannot be set to %s"
-                 (Lang.to_string s)
-                 kind (Lang.print_value (Lang.assoc "" 2 p))
-             in
-               raise (Lang.Invalid_value (s,msg)))
-
-let () =
-  let get cast path v =
-    try
-      (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#get
-    with
-      | Dtools.Conf.Unbound (_, _) ->
-          log#f 2 "WARNING: there is no configuration key named %S!" path ;
-          v
-  in
-  let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] 1 in
-    add_builtin "get" ~cat:Liq ~descr:"Get a setting's value."
-      ["default",univ,None,None;
-       "",Lang.string_t,None,None]
-      univ
-      (fun p ->
-         let path = Lang.to_string (List.assoc "" p) in
-         let v = List.assoc "default" p in
-           match v.Lang.value with
-             | Lang.Unit ->
-                 Lang.unit
-             | Lang.String s ->
-                 Lang.string (get Dtools.Conf.as_string path s)
-             | Lang.Int s ->
-                 Lang.int (get Dtools.Conf.as_int path s)
-             | Lang.Bool s ->
-                 Lang.bool (get Dtools.Conf.as_bool path s)
-             | Lang.Float s ->
-                 Lang.float (get Dtools.Conf.as_float path s)
-             | Lang.List l ->
-                 let l = List.map Lang.to_string l in
-                   Lang.list ~t:Lang.string_t
-                     (List.map
-                        Lang.string
-                        (get Dtools.Conf.as_list path l))
-             | _ -> assert false)
 
 let () =
   add_builtin "clock.assign_new" ~cat:Liq
@@ -402,8 +284,8 @@ let () =
    ["",Lang.metadata_t,None,None] Lang.metadata_t
    (fun p ->
      Lang.metadata
-      (Encoder.Meta.to_metadata
-        (Encoder.Meta.export_metadata
+      (Meta_format.to_metadata
+        (Meta_format.export_metadata
           (Lang.to_metadata
             (List.assoc "" p)))))
 
@@ -453,12 +335,44 @@ let () =
         (Lang.to_string (List.assoc "" p))))
 
 let () =
-  add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename in the temporary directory."
+  add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
+  ["",Lang.string_t,None,None]
+  Lang.unit_t
+  (fun p ->
+    try
+      Unix.unlink (Lang.to_string (List.assoc "" p));
+      Lang.unit
+    with _ -> Lang.unit)
+
+let () =
+  add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
+  ["",Lang.string_t,None,None]
+  Lang.unit_t
+  (fun p ->
+    try
+      Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
+      Lang.unit
+    with _ -> Lang.unit)
+
+let () =
+  add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename. \
+    The temporary file is created empty, with permissions 0o600 (readable and writable only by the file owner)."
     ["",Lang.string_t,None,Some "File prefix";
      "",Lang.string_t,None, Some "File suffix"]
     Lang.string_t
     (fun p ->
       Lang.string (Filename.temp_file
+        (Lang.to_string (Lang.assoc "" 1 p))
+        (Lang.to_string (Lang.assoc "" 2 p))))
+
+let () =
+  add_builtin "file.temp_dir" ~cat:Sys ~descr:"Return a fresh temporary directory name. \
+    The temporary directory is created empty, with permissions 0o700 (readable, writable and listable only by the file owner)."
+    ["",Lang.string_t,None,Some "Directory prefix";
+     "",Lang.string_t,None, Some "Directory suffix"]
+    Lang.string_t
+    (fun p ->
+      Lang.string (Extralib.Filename.mk_temp_dir
         (Lang.to_string (Lang.assoc "" 1 p))
         (Lang.to_string (Lang.assoc "" 2 p))))
 
@@ -574,97 +488,6 @@ let () =
                   Lang.bool (not (b <= t && t < a))
           | _ -> assert false)
 
-(** Math *)
-
-let () =
-  let t = Lang.int_t in
-    add_builtin "mod" ~cat:Math
-      ~descr:"Integer remainder. If y is not zero, x == (x / y) * y + x mod y, \
-              and abs(x mod y) <= abs(y)-1."
-      ["",t,None,None;"",t,None,None] t
-      (fun p ->
-         match p with
-         | ["",{Lang.value=Lang.Int a;_};"",{Lang.value=Lang.Int b;_}] ->
-               Lang.int (a mod b)
-           | _ -> assert false)
-
-let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
-    add_builtin "~-" ~cat:Math ~descr:"Returns the opposite of its argument."
-      ["",t,None,None] t
-      (function
-         | ["",{ Lang.value = Lang.Int i;_}] -> Lang.int (~- i)
-         | ["",{ Lang.value = Lang.Float i;_}] -> Lang.float (~-. i)
-         | _ -> assert false)
-
-let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
-    add_builtin "abs" ~cat:Math ~descr:"Absolute value."
-      [ "",t,None,None ] t
-      (fun p ->
-         match (snd (List.hd p)).Lang.value with
-           | Lang.Int i   -> Lang.int (abs i)
-           | Lang.Float i -> Lang.float (abs_float i)
-           | _ -> assert false)
-
-let () =
-  let t = Lang.univ_t ~constraints:[Lang_types.Num] 1 in
-  let register_op doc name op_int op_float =
-    add_builtin name ~cat:Math ~descr:(Printf.sprintf "%s of numbers." doc)
-      ["",t,None,None;"",t,None,None] t
-      (fun p ->
-         match p with
-           | ["",{Lang.value=Lang.Int a;_};"",{Lang.value=Lang.Int b;_}] ->
-               Lang.int (op_int a b)
-           | ["",{Lang.value=Lang.Float a;_};"",{Lang.value=Lang.Float b;_}] ->
-               Lang.float (op_float a b)
-           | _ -> assert false)
-  in
-    register_op "Multiplication" "*" ( * ) ( *. ) ;
-    register_op "Division" "/" (/) (/.) ;
-    register_op "Addition" "+" (+) (+.) ;
-    register_op "Substraction " "-" (-) (-.) ;
-    register_op "Exponentiation" "pow"
-      (fun a b -> int_of_float ((float_of_int a) ** float_of_int b)) ( ** )
-
-let () =
-  add_builtin "random.float" ~cat:Math ~descr:"Generate a random value."
-    (* TODO better default values *)
-    ["min",Lang.float_t,Some (Lang.float (-1000000.)),None;
-     "max",Lang.float_t,Some (Lang.float ( 1000000.)),None]
-    Lang.float_t
-    (fun p ->
-       let min = Lang.to_float (List.assoc "min" p) in
-       let max = Lang.to_float (List.assoc "max" p) in
-         Lang.float (Random.float (max -. min) +. min))
-
-let () =
-  add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
-    ["min",Lang.float_t,Some (Lang.int min_int),None;
-     "max",Lang.float_t,Some (Lang.int max_int),None]
-    Lang.int_t
-    (fun p ->
-       let min = Lang.to_int (List.assoc "min" p) in
-       let max = Lang.to_int (List.assoc "max" p) in
-         Lang.int (Random.int (max - min) + min))
-
-let () =
-  add_builtin "random.bool" ~cat:Bool ~descr:"Generate a random value."
-    [] Lang.bool_t
-    (fun _ -> Lang.bool (Random.bool ()))
-
-let () =
-  add_builtin "max_int" ~cat:Math ~descr:"Maximal representable integer."
-    ~flags:[Lang.Hidden]
-    [] Lang.int_t
-    (fun _ -> Lang.int max_int)
-
-let () =
-  add_builtin "min_int" ~cat:Math ~descr:"Minimal representable integer."
-    ~flags:[Lang.Hidden]
-    [] Lang.int_t
-    (fun _ -> Lang.int min_int)
-
 (** Comparison and boolean connectives *)
 
 let compare_value a b =
@@ -775,7 +598,7 @@ let register_escape_fun ~name ~descr ~escape
   let special_chars =
     Lang.list ~t:Lang.string_t
      (List.map Lang.string
-      (List.map (Bytes.make 1)
+      (List.map (String.make 1)
         special_chars))
   in
   let escape_char p _ =
@@ -814,7 +637,7 @@ let register_escape_fun ~name ~descr ~escape
        let escape_char c =
          Lang.to_string
           (Lang.apply f ~t:Lang.string_t
-             ["",Lang.string (Bytes.make 1 c)])
+             ["",Lang.string (String.make 1 c)])
        in
        Lang.string (escape ~special_char ~escape_char s))
 
@@ -970,9 +793,9 @@ let () =
        let string = Lang.to_string (List.assoc "" p) in
        Lang.string
          (if lower then
-           Utils.StringCompat.lowercase_ascii string
+           String.lowercase_ascii string
           else
-           Utils.StringCompat.uppercase_ascii string))
+           String.uppercase_ascii string))
 
 let () =
   add_builtin "string.trim" ~cat:String
@@ -998,9 +821,9 @@ let () =
        let string = Lang.to_string (List.assoc "" p) in
        let f s =
            if cap then
-             Utils.StringCompat.capitalize_ascii s
+             String.capitalize_ascii s
            else
-             Utils.StringCompat.uncapitalize_ascii s
+             String.uncapitalize_ascii s
       in
       Lang.string
       (if space_sensitive then
@@ -1526,13 +1349,13 @@ let () =
   add_builtin "shutdown" ~cat:Sys ~descr:"Shutdown the application."
     [] Lang.unit_t
     (fun _ ->
-      Shutdown.restart := false ;
+      Configure.restart := false ;
       Tutils.shutdown () ;
       Lang.unit) ;
   add_builtin "restart" ~cat:Sys ~descr:"Restart the application."
     [] Lang.unit_t
     (fun _ ->
-      Shutdown.restart := true ;
+      Configure.restart := true ;
       Tutils.shutdown () ;
       Lang.unit);
   add_builtin "exit" ~cat:Sys
@@ -1562,40 +1385,6 @@ let () =
          (Utils.reopen_out stderr)
 
 let () =
-  add_builtin "on_shutdown" ~cat:Sys
-    [ "", Lang.fun_t [] Lang.unit_t, None, None ]
-    Lang.unit_t
-    ~descr:"Register a function to be called when Liquidsoap shuts down."
-    (fun p ->
-       let f = List.assoc "" p in
-       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
-         (* TODO: this could happen after duppy and other threads are shut down, is that ok? *)
-         ignore (Shutdown.at_stop wrap_f) ;
-         Lang.unit)
-
-let () =
-  add_builtin "source.on_shutdown" ~cat:Sys
-    [ "", Lang.source_t (Lang.univ_t 1), None, None;
-      "", Lang.fun_t [] Lang.unit_t, None, None ]
-    Lang.unit_t
-    ~descr:"Register a function to be called when source shuts down."
-    (fun p ->
-       let s = Lang.to_source
-         (Lang.assoc "" 1 p)
-       in
-       let f = Lang.assoc "" 2 p in
-       let wrap_f = fun () -> ignore (Lang.apply ~t:Lang.unit_t f []) in
-         s#on_shutdown wrap_f;
-         Lang.unit)
-
-let () =
-  add_builtin "source.is_up" ~cat:Sys
-    [ "", Lang.source_t (Lang.univ_t 1), None, None ]
-    Lang.bool_t
-    ~descr:"Check whether a source is up."
-    (fun p -> Lang.bool (Lang.to_source (Lang.assoc "" 1 p))#is_up)
-
-let () =
   add_builtin "garbage_collect" ~cat:Liq
     ~descr:"Trigger full major garbage collection."
     [] Lang.unit_t
@@ -1614,14 +1403,14 @@ let () =
       let v = List.assoc "" p in
       match v.Lang.value with
         | Lang.Fun (p,args,env,body) ->
-            let v = {v with Lang.value =
-              Lang.Fun (p,[],env,body)}
-            in
             let fn args t = Tutils.mutexify m (fun () ->
-              let args = List.map (fun (x,(_,y)) ->
-                (x,y)) args
+              let env =
+                List.rev_append args env
               in
-              Lang.apply ~t v args) ()
+              let v = {v with Lang.value =
+                Lang.Fun ([],[],env,body)}
+              in
+              Lang.apply ~t v []) ()
             in
             { v with Lang.value =
                 Lang.FFI (p, args, fn) }
@@ -1678,14 +1467,20 @@ let () =
     (Lang.product_t Lang.string_t Lang.string_t)
     (Lang.product_t Lang.string_t Lang.string_t)
   in
+  let env_t =
+    Lang.product_t Lang.string_t Lang.string_t
+  in
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
             @((stdout,stderr),status)@ where status is one of: \
             @(\"exit\",\"<code>\")@, @(\"killed\",\"<signal number>\")@, \
-            @(\"stopped\",\"<signal number>\")@, @(\"exception\",\"<exception description>\", \
+            @(\"stopped\",\"<signal number>\")@, @(\"exception\",\"<exception description>\")@, \
             @(\"timeout\",\"<run time>\")@."
-    ["env",Lang.list_t Lang.string_t,
-     Some (Lang.list ~t:Lang.string_t []),Some "Process environment";
+    ["env",Lang.list_t env_t,
+     Some (Lang.list ~t:env_t []),Some "Process environment";
+     "inherit_env", Lang.bool_t,
+     Some (Lang.bool true), Some "Inherit calling process's environment when \
+       @env@ parameter is empty.";
      "timeout",Lang.float_t,Some (Lang.float (-1.)),
      Some "Cancel process after @timeout@ has elapsed. Ignored if negative.";
      "",Lang.string_t,None,Some "Command to run"] ret_t
@@ -1693,10 +1488,26 @@ let () =
        let env = Lang.to_list
          (List.assoc "env" p)
        in
+       let env = List.map (fun e ->
+         let (k,v) = Lang.to_product e in
+         Lang.to_string k, Lang.to_string v) env
+       in
+       let inherit_env = Lang.to_bool
+         (List.assoc "inherit_env" p)
+       in
+       let env =
+         if env = [] && inherit_env then
+           Utils.environment ()
+         else
+           env
+       in
        let timeout = Lang.to_float
          (List.assoc "timeout" p)
        in
-       let env = List.map Lang.to_string env in
+       let env = List.map
+         (fun (k,v) -> Printf.sprintf "%s=%s" k v)
+         env
+       in
        let env = Array.of_list env in
        let cmd = Lang.to_string (List.assoc "" p) in
        let buflen = 1024 in
@@ -1727,13 +1538,16 @@ let () =
          let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
          close_out out_ch;
          let pull buf ch =
-           let rec f () =
-             try
-               Buffer.add_channel buf ch buflen;
-               f ()
-             with End_of_file -> ()
+           let tmp = Bytes.create 1024 in
+           let rec aux () =
+             let n = input ch tmp 0 1024 in
+               if n = 0 then () else
+                begin
+                 Buffer.add_subbytes buf tmp 0 n;
+                 aux()
+                end
            in
-           f ()
+           aux ()
          in
          pull out_buf in_chan;
          pull err_buf err_chan;
@@ -1748,7 +1562,7 @@ let () =
              let pull buf fn =
                let bytes = Bytes.create buflen in
                let ret = fn bytes 0 buflen in
-               Buffer.add_substring buf (Bytes.to_string bytes) 0 ret;
+               Buffer.add_subbytes buf bytes 0 ret;
               `Continue
              in
              let on_stdout = pull out_buf in
@@ -1758,7 +1572,7 @@ let () =
                 status := Some s;
                 begin
                   try
-                    ignore(Unix.write in_pipe " " 0 1);
+                    ignore(Unix.write in_pipe (Bytes.of_string " ") 0 1);
                   with _ -> ()
                 end;
                 false
@@ -1773,7 +1587,7 @@ let () =
              in
              let timed_out =
                try
-                 Tutils.wait_for [`Read out_pipe; `Delay timeout] ;
+                 Tutils.wait_for (`Read out_pipe) timeout ;
                  (-1.)
                with Tutils.Timeout f ->
                  Process_handler.kill p;
@@ -1789,28 +1603,10 @@ let () =
     ~descr:"Return the process environment."
     [] ret_t
     (fun _ ->
-      let l = Unix.environment () in
-      (* Split at first occurence of '='. Return v,"" if
-       * no '=' could be found. *)
-      let split s =
-        try
-          let pos = String.index s '=' in
-          String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
-        with _ -> s,""
-      in
-      let l = Array.to_list l in
-      let l = List.map split l in
+      let l = Utils.environment () in
       let l = List.map (fun (x,y) -> (Lang.string x, Lang.string y)) l in
       let l = List.map (fun (x,y) -> Lang.product x y) l in
       Lang.list ~t:ret_t l)
-
-let () =
-  add_builtin "getenv" ~cat:Sys
-    ~descr:"Get the value associated to a variable in the process \
-            environment. Return \"\" if variable is not set."
-    ["",Lang.string_t,None,None] Lang.string_t
-    (fun p ->
-      Lang.string (Utils.getenv ~default:"" (Lang.to_string (List.assoc "" p))))
 
 let () =
   add_builtin "setenv" ~cat:Sys
@@ -1909,32 +1705,6 @@ let () =
            Lang.string (List.nth opts i)
          else
            Lang.string default)
-
-let () =
-  add_builtin "server.register" ~cat:Interaction
-    ~descr:"Register a command. You can then execute this function \
-            through the server, either telnet or socket."
-    [ "namespace",Lang.string_t,Some (Lang.string ""),None ;
-      "description",Lang.string_t,
-      Some (Lang.string "No documentation available."),
-      Some "A description of your command." ;
-      "usage",Lang.string_t,Some (Lang.string ""),None ;
-      "",Lang.string_t,None,None ;
-      "",Lang.fun_t [false,"",Lang.string_t] Lang.string_t,None,None ]
-    Lang.unit_t
-    (fun p ->
-       let namespace = Lang.to_string (List.assoc "namespace" p) in
-       let descr = Lang.to_string (List.assoc "description" p) in
-       let usage = Lang.to_string (List.assoc "usage" p) in
-       let command = Lang.to_string (Lang.assoc "" 1 p) in
-       let f = Lang.assoc "" 2 p in
-       let f x =
-         Lang.to_string (Lang.apply ~t:Lang.string_t f ["",Lang.string x])
-       in
-       let ns = (Pcre.split ~pat:"\\." namespace) in
-       let usage = if usage = "" then command ^ " <variable>" else usage in
-           Server.add ~ns ~usage ~descr command f ;
-         Lang.unit)
 
 (** Data conversions. *)
 
@@ -2376,18 +2146,18 @@ let () =
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let ic = open_in f in
-      let s = ref "" in
+      let s = ref Bytes.empty in
       let buflen = 1024 in
       let buf = Bytes.create buflen in
       try
         while true do
           let n = input ic buf 0 buflen in
           if n = 0 then raise Exit;
-          s := !s ^ (if n = buflen then buf else Bytes.sub buf 0 n)
+          s := Bytes.cat !s (if n = buflen then buf else Bytes.sub buf 0 n)
         done;
         assert false
       with
-      | Exit -> Lang.string !s)
+      | Exit -> close_in ic; Lang.string (Bytes.unsafe_to_string !s))
 
 let () =
   add_builtin "file.watch" ~cat:Sys
@@ -2442,7 +2212,11 @@ let () =
 
 let () =
   add_builtin "playlist.parse" ~cat:Liq
-    ["", Lang.string_t,None,None]
+    [
+      "path",Lang.string_t,Some (Lang.string ""),Some "Default path for files.";
+      "mime",Lang.string_t,Some (Lang.string ""),Some "Mime type for the playlist";
+      "", Lang.string_t,None,None
+    ]
     (Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t))
     ~descr:"Try to parse a local playlist. \
             Return a list of (metadata,URI) items, where metadata is a list \
@@ -2451,10 +2225,26 @@ let () =
        let f = Lang.to_string (List.assoc "" p) in
        let f = Utils.home_unrelate f in
        let content = Utils.read_all f in
-       let pwd     = Filename.dirname f in
+       let pwd     =
+         let pwd = Lang.to_string (List.assoc "path" p) in
+         if pwd = "" then Filename.dirname f else pwd
+       in
        let ret_item_t = Lang.product_t Lang.metadata_t Lang.string_t in
+       let mime = Lang.to_string (List.assoc "mime" p) in
          try
-           let _,l = Playlist_parser.search_valid ~pwd content in
+           let _,l =
+             if mime = "" then
+               Playlist_parser.search_valid ~pwd content
+             else
+               (
+                 match Playlist_parser.parsers#get mime with
+                 | Some plugin ->
+                    (mime,plugin.Playlist_parser.parser ~pwd content)
+                 | None ->
+                    log#f 3 "Unknown mime type, trying autodetection." ;
+                    Playlist_parser.search_valid ~pwd content
+               )
+           in
            let process m =
              let f (n,v) =
                Lang.product (Lang.string n) (Lang.string v)

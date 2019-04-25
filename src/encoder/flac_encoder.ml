@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -24,26 +24,28 @@
 
 let encoder flac meta =
   let comments = 
-    Utils.list_of_metadata (Encoder.Meta.to_metadata meta) 
+    Utils.list_of_metadata (Meta_format.to_metadata meta) 
   in
-  let channels = flac.Encoder.Flac.channels in
+  let channels = flac.Flac_format.channels in
   let samplerate_converter =
     Audio_converter.Samplerate.create channels
   in
-  let samplerate = flac.Encoder.Flac.samplerate in
+  let samplerate = flac.Flac_format.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   let p =
     { Flac.Encoder.
        channels = channels ;
-       bits_per_sample = flac.Encoder.Flac.bits_per_sample ;
+       bits_per_sample = flac.Flac_format.bits_per_sample ;
        sample_rate = samplerate ;
-       compression_level = Some (flac.Encoder.Flac.compression);
+       compression_level = Some (flac.Flac_format.compression);
        total_samples = None;
     }
   in
   let buf = Buffer.create 1024 in
-  let write = Buffer.add_string buf in
+  let write = fun chunk ->
+    Buffer.add_bytes buf chunk
+  in
   let cb = Flac.Encoder.get_callbacks write in
   let enc = Flac.Encoder.create ~comments p cb in
   let enc = ref enc in

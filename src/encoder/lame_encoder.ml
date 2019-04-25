@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,14 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** MP3 encoder *)
 
 open Encoder
-open Encoder.MP3
+open Mp3_format
 
 module type Lame_t = 
 sig
@@ -123,40 +123,40 @@ struct
       let enc = Lame.create_encoder () in
       (* Input settings *)
       Lame.set_in_samplerate enc (Lazy.force Frame.audio_rate) ;
-      Lame.set_num_channels enc (if mp3.Encoder.MP3.stereo then 2 else 1) ;
+      Lame.set_num_channels enc (if mp3.Mp3_format.stereo then 2 else 1) ;
       (* Internal quality *)
-      Lame.set_quality enc mp3.Encoder.MP3.internal_quality ;
+      Lame.set_quality enc mp3.Mp3_format.internal_quality ;
       (* Output settings *)
       begin
-        if not mp3.Encoder.MP3.stereo then
+        if not mp3.Mp3_format.stereo then
           Lame.set_mode enc Lame.Mono
         else
-          match mp3.Encoder.MP3.stereo_mode with
-            | Encoder.MP3.Default -> ()
-            | Encoder.MP3.Stereo -> Lame.set_mode enc Lame.Stereo
-            | Encoder.MP3.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo
+          match mp3.Mp3_format.stereo_mode with
+            | Mp3_format.Default -> ()
+            | Mp3_format.Stereo -> Lame.set_mode enc Lame.Stereo
+            | Mp3_format.Joint_stereo -> Lame.set_mode enc Lame.Joint_stereo
       end;
       begin                  
-        match mp3.Encoder.MP3.bitrate_control with
-          | Encoder.MP3.VBR quality ->
+        match mp3.Mp3_format.bitrate_control with
+          | Mp3_format.VBR quality ->
                Lame.set_vbr_mode enc Lame.Vbr_mtrh ;
                Lame.set_vbr_quality enc quality
-          | Encoder.MP3.CBR br ->
+          | Mp3_format.CBR br ->
                Lame.set_brate enc br
-          | Encoder.MP3.ABR abr ->
+          | Mp3_format.ABR abr ->
                Lame.set_vbr_mode enc Lame.Vbr_abr ;
-               Lame.set_vbr_mean_bitrate enc abr.Encoder.MP3.mean_bitrate ;
-               Lame.set_vbr_hard_min enc abr.Encoder.MP3.hard_min ;
-               (match abr.Encoder.MP3.min_bitrate with
+               Lame.set_vbr_mean_bitrate enc abr.Mp3_format.mean_bitrate ;
+               Lame.set_vbr_hard_min enc abr.Mp3_format.hard_min ;
+               (match abr.Mp3_format.min_bitrate with
                   | Some br -> 
                       Lame.set_vbr_min_bitrate enc br
                   | None -> ()) ;
-               (match abr.Encoder.MP3.max_bitrate with
+               (match abr.Mp3_format.max_bitrate with
                   | Some br ->
                       Lame.set_vbr_max_bitrate enc br
                   | None -> ()) ;
       end;
-      Lame.set_out_samplerate enc mp3.Encoder.MP3.samplerate ;
+      Lame.set_out_samplerate enc mp3.Mp3_format.samplerate ;
       Lame.init_params enc;
       enc
     in
@@ -167,19 +167,19 @@ struct
       let position = ref 0 in
       let msg_position = ref 0 in
       let msg_interval = 
-        Frame.audio_of_seconds mp3.Encoder.MP3.msg_interval 
+        Frame.audio_of_seconds mp3.Mp3_format.msg_interval 
       in
-      let msg = Printf.sprintf "%s%c" mp3.Encoder.MP3.msg '\000' in
+      let msg = Printf.sprintf "%s%c" mp3.Mp3_format.msg '\000' in
       let msg_len = String.length msg * 8 in
       let is_sync = ref true in
       sync enc ;
-      let channels = if mp3.Encoder.MP3.stereo then 2 else 1 in
+      let channels = if mp3.Mp3_format.stereo then 2 else 1 in
       let encode frame start len =
         let start = Frame.audio_of_master start in
         let b = AFrame.content_of_type ~channels frame start in
         let len = Frame.audio_of_master len in
         position := !position + len;
-        if mp3.Encoder.MP3.msg <> "" && !position > msg_interval then
+        if mp3.Mp3_format.msg <> "" && !position > msg_interval then
          begin
           match !is_sync with
             | false  -> sync enc; is_sync := true
@@ -213,7 +213,7 @@ struct
              (fun m ->
                match !id3v2 with
                  | Waiting ->
-                     if not (Encoder.Meta.is_empty m) then 
+                     if not (Meta_format.is_empty m) then 
                        id3v2 := Rendered (f m)
                  | _ -> ())
           | None -> (fun _ -> ())

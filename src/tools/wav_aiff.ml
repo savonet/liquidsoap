@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,15 +16,15 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 type 'a read_ops =
   {
-    really_input : 'a -> string -> int -> int -> unit ;
+    really_input : 'a -> Bytes.t -> int -> int -> unit ;
     input_byte   : 'a -> int;
-    input        : 'a -> string -> int -> int -> int ;
+    input        : 'a -> Bytes.t -> int -> int -> int ;
     seek         : 'a -> int -> unit;
     close        : 'a -> unit;
   }
@@ -61,7 +61,7 @@ let error_translator = function
     Some (Printf.sprintf "IFF File error: %s" x)
   | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 (* open file and verify it has the right format *)
 
@@ -73,7 +73,7 @@ let read_header read_ops ic =
   let read_string ic n =
     let ans = Bytes.create n in
     really_input ic ans 0 n;
-    ans
+    Bytes.unsafe_to_string ans
   in
   let format =
     match read_string ic 4 with
@@ -237,8 +237,9 @@ let duration w =
 let short_string i =
   let up = i/256 in
   let down = i-256*up in
-  (Bytes.make 1 (char_of_int down))^
-  (Bytes.make 1 (char_of_int up))
+  Bytes.unsafe_to_string (Bytes.cat
+    (Bytes.make 1 (char_of_int down))
+    (Bytes.make 1 (char_of_int up)))
 
 let int_string n =
   let s = Bytes.create 4 in
@@ -246,7 +247,7 @@ let int_string n =
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8)) ;
   Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16)) ;
   Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24)) ;
-  s
+  Bytes.unsafe_to_string s
 
 let wav_header ?len ~channels ~sample_rate ~sample_size () =
   (* The data lengths are set to their maximum possible values. *)

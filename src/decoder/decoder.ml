@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -199,7 +199,7 @@ let test_file ?(log=log) ~mimes ~extensions fname =
         | None -> ext_ok, None
         | Some mime_type ->
             let mime = mime_type fname in
-              List.mem mime mimes, Some mime
+            List.mem mime mimes, Some mime
     in
       if ext_ok || mime_ok then
         true
@@ -247,8 +247,9 @@ let get_file_decoder ~metadata filename kind =
     | Exit (name,f) ->
         Some (name,
               fun () ->
-                try f () with _ ->
-                  log#f 2 "Decoder %S betrayed us on %S!" name filename ;
+                try f () with exn ->
+                  log#f 2 "Decoder %S betrayed us on %S! Error: %s"
+                     name filename (Printexc.to_string exn);
                   dummy)
 
 (** Get a valid image decoder creator for [filename]. *)
@@ -269,13 +270,13 @@ let get_image_file_decoder filename =
         | Some img ->
           log#f 3 "Method %S accepted %S." name filename;
           ans := Some img;
-          raise Pervasives.Exit
+          raise Stdlib.Exit
         | None -> ()
       ) (get_decoders conf_image_file_decoders image_file_decoders);
     log#f 3 "Unable to decode %S!" filename;
     !ans
   with
-  | Pervasives.Exit -> !ans
+  | Stdlib.Exit -> !ans
 
 exception Exit_decoder of stream_decoder
 
@@ -300,7 +301,7 @@ let get_stream_decoder mime kind =
 module Buffered(Generator:Generator.S) =
 struct
 
-  let file_decoder filename kind create_decoder gen =
+  let make_file_decoder ~filename ~close ~kind ~remaining decoder gen =
     let frame_size = Lazy.force Frame.size in
     let prebuf =
       (* Amount of audio to decode in advance, in ticks.
@@ -321,32 +322,6 @@ struct
        * be useful. *)
       Frame.master_of_seconds 0.5
     in
-    let file_size = (Unix.stat filename).Unix.st_size in
-    let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
-    let proc_bytes = ref 0 in
-    let read len =
-      try
-        let s = Bytes.create len in
-        let i = Unix.read fd s 0 len in
-        proc_bytes := !proc_bytes + i;
-          s, i
-      with _ -> "", 0
-    in
-    let tell () = 
-      Unix.lseek fd 0 Unix.SEEK_CUR
-    in
-    let length () = (Unix.fstat fd).Unix.st_size in 
-    let lseek len = 
-      Unix.lseek fd len Unix.SEEK_SET
-    in
-    let input = 
-      { read = read;
-        tell = Some tell;
-        length = Some length;
-        lseek = Some lseek }
-    in
-    let decoder = create_decoder input in
-    let out_ticks = ref 0 in
     let decoding_done = ref false in
     let fill frame =
       (* We want to avoid trying to decode when
@@ -410,19 +385,15 @@ struct
             Frame.add_break frame offset ;
             0
         end else
-          let in_bytes = tell () in
-          let gen_len = Generator.length gen in
-            out_ticks := !out_ticks + Frame.position frame - offset ;
-            (* Compute an estimated number of remaining ticks. *)
-            if !proc_bytes = 0 then -1 else
-              let compression =
-                (float (!out_ticks+gen_len)) /. (float !proc_bytes)
-              in
-              let remaining_ticks =
-                (float gen_len) +.
-                (float (file_size - in_bytes)) *. compression
-              in
-                int_of_float remaining_ticks
+          try
+            if not !decoding_done then
+              remaining frame offset
+            else
+              0
+          with e ->
+            log#f 4 "Error while getting decoder's remaining time: %s" (Printexc.to_string e);
+            decoding_done := true;
+            0
     in
     let fseek len = 
       let gen_len = Generator.length gen in
@@ -440,6 +411,54 @@ struct
     in
       { fill = fill ;
         fseek = fseek;
-        close = fun () -> Unix.close fd }
+        close = close }
 
+  let file_decoder filename kind create_decoder gen = 
+    let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
+    let file_size = (Unix.stat filename).Unix.st_size in
+    let proc_bytes = ref 0 in
+    let read len =
+      try
+        let s = Bytes.create len in
+        let i = Unix.read fd s 0 len in
+        proc_bytes := !proc_bytes + i;
+        Bytes.to_string s, i
+      with _ -> "", 0
+    in
+    let tell () =
+      Unix.lseek fd 0 Unix.SEEK_CUR
+    in
+    let length () = (Unix.fstat fd).Unix.st_size in
+    let lseek len =
+      Unix.lseek fd len Unix.SEEK_SET
+    in
+    let input =
+      { read = read;
+        tell = Some tell;
+        length = Some length;
+        lseek = Some lseek }
+    in
+    let decoder =
+      create_decoder input
+    in
+    let out_ticks = ref 0 in
+    let remaining frame offset =
+      let in_bytes = tell () in
+      let gen_len = Generator.length gen in
+        out_ticks := !out_ticks + Frame.position frame - offset ;
+        (* Compute an estimated number of remaining ticks. *)
+        if !proc_bytes = 0 then -1 else
+          let compression =
+            (float (!out_ticks+gen_len)) /. (float !proc_bytes)
+          in
+          let remaining_ticks =
+            (float gen_len) +.
+            (float (file_size - in_bytes)) *. compression
+          in
+            int_of_float remaining_ticks
+    in
+    let close () =
+      Unix.close fd
+    in
+    make_file_decoder ~filename ~close ~kind ~remaining decoder gen
 end

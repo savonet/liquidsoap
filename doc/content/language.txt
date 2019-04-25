@@ -56,6 +56,7 @@ You can form expressions by using:
 * Shorter definitions using the equality: <code>pi = 3.14</code>. This is never an assignment, only a new local definition!
 * Conditionals @if expr then expr else expr end@, or more generally @if expr then expr (elsif expr then expr)* (else expr)? end@. The @else@ block can be omitted if the purpose of the conditional is not to compute a value (_e.g._ an integer or a list of strings) but only to have a side effect (_e.g._ printing something in one case, not doing anything in the other).
 * Sequencing: expressions may be sequenced, just juxtapose them. Usually one puts one expression per line. Optionally, they can be separated by a semicolon. The evaluation of a sequence triggers that of all of its sub-expressions, its value is that of the last sub-expression. Accordingly, the type of a sequence is that of its last sub-expression.
+* Variable references are defined as: @reference = ref "some string"@. New values can be set via: @reference := "new value"@. The contents of a reference can be retrieved by @!reference@.
 * Parenthesis can be used to delimit explicitly expressions. In some places where only expressions can be written, as opposed to sequences of expressions, the @begin .. end@ block can be used to explicitly form a simple expression from a sequence. This notably happens with the simple form of definitions without @def .. end@, and in the body of anonymous functions. For example <code>fun (x) -> f1(x) ; f2(x)</code> will be read as <code>(fun (x) -> f1(x)) ; f2(x)</code> not as <code>fun (x) -> begin f1(x) ; f2(x) end</code>.
 * Code blocks: <code>{ expr }</code> is a shortcut for <code>fun () -> expr</code>.
 
@@ -124,7 +125,7 @@ A function type is noted as <code>(arg_types) -> return_type</code>. Labeled arg
 %%(lang_fun_def.liq)
 fun (from,to,~jingle=default) ->
   add ([ sequence([single(jingle), fallback([])]),
-         fade.initial(to) ])
+         fade.in(to) ])
 %%
 
 

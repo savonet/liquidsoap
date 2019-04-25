@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -102,7 +102,7 @@ object (self)
            * before the aux source gets the frame. *)
           let restore = Frame.hide_contents frame in
           let master,end_master = get master_layer master in
-          let _ = Frame.hide_contents frame in
+          let (_:unit->unit) = Frame.hide_contents frame in
           let aux,end_aux = get aux_layer aux in
           let end_pos = min end_master end_aux in
           let new_content = mux_content master aux in

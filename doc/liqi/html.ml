@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liqi, a simple wiki-like langage
-  Copyright 2008-2017 Savonet team
+  Copyright 2008-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -184,7 +184,10 @@ let print_doc ?snippet_template ~subst ~basedir f =
              fprintf f "<h%d><a name=%S>%s</a></h%d>\n" n a !s n
          | Paragraph p -> print_paragraph pprinter f p
          | Image (title,url) ->
-             fprintf f "<img alt=%S src=\"%s%s\" />" title basedir url
+             if String.length url > 0 && url.[0] = '/' then
+               fprintf f "<img alt=%S src=\"%s%s\" />" title basedir url
+             else
+               fprintf f "<img alt=%S src=\"%s\" />" title url
          | Antiquote aq -> fprintf f "%s" aq
          | Snippet (Some title,body, language) ->
              add_snippet title ;
@@ -206,20 +209,14 @@ let print_doc ?snippet_template ~subst ~basedir f =
                  | None -> extract_suffix title
                  | Some x -> x
              in
-             fprintf f "<pre class=\"syntax %s\">%s</pre>\n" klass !!body;
-             fprintf f "<div align=\"right\">\n\
-                        <a href=\"scripts/%s\">\n\
-                          <img class=\"grab\" src=\"%simages/grab.png\" \
-                               alt=\"Grab the code!\">\n\
-                        </a>\n\
-                        </div></p>\n" title basedir
+             fprintf f "<figure class=\"highlight\"><pre><code class=\"language-%s\">%s</code></pre></figure>\n" klass !!body;
          | Snippet (None, body, language) ->
              let klass =
                match language with
                  | None -> ""
                  | Some x -> x
              in
-             fprintf f "<pre class=\"syntax %s\">%s</pre>\n" klass !!body)
+             fprintf f "<figure class=\"highlight\"><pre><code class=\"language-%s\">%s</code></pre></figure>\n" klass !!body)
       doc ;
     regenerate_snippet_index ()
 

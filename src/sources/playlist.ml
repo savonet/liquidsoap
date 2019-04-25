@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -74,7 +74,8 @@ let rec list_files (log : Log.t) dir =
 
 (** The [timeout] (and [mime]) parameters apply to the playlist request,
   * i.e. the playlist_uri, not the media files from the playlist. *)
-class virtual vplaylist ~mime ~reload ~random ~timeout ~prefix playlist_uri =
+class virtual vplaylist ~on_track ~mime ~reload 
+                        ~random ~timeout ~prefix playlist_uri =
 object (self)
 
   method virtual register_command : descr:string ->
@@ -187,11 +188,11 @@ object (self)
                   | x ->
                       begin match Playlist_parser.parsers#get x with
                         | Some plugin ->
-                            (x,plugin.Playlist_parser.parser content)
+                            (x,plugin.Playlist_parser.parser ~pwd content)
                         | None ->
                             self#log#f 3
                               "Unknown mime type, trying autodetection." ;
-                            Playlist_parser.search_valid content
+                            Playlist_parser.search_valid ~pwd content
                       end
               in
                 self#log#f 3 "Playlist treated as format %s" format  ;
@@ -293,16 +294,20 @@ object (self)
     * satisfying system (cf. #reload_playlist's comment) that not
     * only prevents multiple automatic reloads but completely gets
     * rid of reload overlaps, which requires more duppy synchronization. *)
-  method private may_autoreload round_done =
+  method private may_autoreload ~force_reload round_done =
     assert (Tutils.seems_locked mylock) ;
-    match reload with
-      | Never | Watch -> ()
-      | Every_N_seconds n ->
+    (* TODO: this logic here doesn't reset on forced reload
+     * (also happens through server/telnet. *)
+    match force_reload, reload with
+      | true, _ ->
+          self#reload_playlist `Other
+      | _, Never | _, Watch -> ()
+      | _, Every_N_seconds n ->
           if Unix.time () -. reload_t > n then begin
             reload_t <- Unix.time () ;
             self#reload_playlist `Other
           end
-      | Every_N_rounds n ->
+      | _, Every_N_rounds n ->
           if round_done then round_c <- round_c - 1 ;
           if round_c <= 0 then begin
             round_c <- n ;
@@ -319,35 +324,48 @@ object (self)
           | Randomize ->
               index_played <- index_played + 1 ;
               let pos = index_played in
+              let last =
+                index_played >= Array.length !playlist - 1
+              in
+              let force_reload =
+                on_track ~last pos
+              in
               let uri = !playlist.(index_played) in
               let round =
-                if index_played < Array.length !playlist - 1 then
-                  false
-                else begin
+                if last then begin
                   index_played <- -1 ;
                   Utils.randomize !playlist ;
                   true
-                end
+                end else
+                  false
               in
-                self#may_autoreload round ;
+                self#may_autoreload ~force_reload round ;
                 pos,uri
           | Random ->
               index_played <- Random.int (Array.length !playlist) ;
-              self#may_autoreload false ;
+              let force_reload =
+                on_track ~last:false index_played
+              in
+              self#may_autoreload ~force_reload false ;
               index_played,!playlist.(index_played)
           | Normal ->
               index_played <- index_played + 1 ;
               let pos = index_played in
+              let last =
+                index_played >= Array.length !playlist - 1
+              in
+              let force_reload =
+                on_track ~last pos
+              in
               let uri = !playlist.(index_played) in
               let round =
-                if index_played < Array.length !playlist - 1 then
-                  false
-                else begin
+                if last then begin
                   index_played <- -1 ;
                   true
-                end
+                end else
+                  false
               in
-                self#may_autoreload round ;
+                self#may_autoreload ~force_reload round ;
                 pos,uri
       in
       let metadata =
@@ -366,7 +384,7 @@ object (self)
         end
     in
       if !playlist = [||] then begin
-        self#may_autoreload true ;
+        self#may_autoreload ~force_reload:false true ;
         Mutex.unlock mylock ;
         None
       end else get_uri ()
@@ -424,7 +442,7 @@ object (self)
 end
 
 (** Standard playlist, with a queue. *)
-class playlist ~kind
+class playlist ~kind ~on_track
   ~mime ~reload ~random ~check_next
   ~length ~default_duration ~timeout ~prefix ~conservative
   uri =
@@ -432,7 +450,7 @@ object (self)
 
   (* Some day it might be useful to set distinct timeout parameters
    * for the playlist and media requests... or maybe not. *)
-  inherit vplaylist ~mime ~reload ~random ~timeout ~prefix uri as pl
+  inherit vplaylist ~on_track ~mime ~reload ~random ~timeout ~prefix uri as pl
   inherit Request_source.queued ~kind ~name:"playlist"
             ~length ~default_duration ~timeout ~conservative () as super
 
@@ -463,12 +481,12 @@ end
 
 (** Safe playlist, without queue and playing only local files,
   * which never fails. *)
-class safe_playlist ~kind
-  ~mime ~reload ~random ~prefix local_playlist =
+class safe_playlist ~kind ~on_track ~mime ~reload
+                    ~random ~prefix local_playlist =
 object (self)
 
-  inherit vplaylist
-    ~mime ~reload ~random ~timeout:10. ~prefix local_playlist as pl
+  inherit vplaylist ~on_track ~mime ~reload 
+                    ~random ~timeout:10. ~prefix local_playlist as pl
   inherit Request_source.unqueued ~kind ~name:"playlist.safe" as super
 
   method wake_up =
@@ -536,6 +554,13 @@ let () =
       Some (Lang.string ""),
       Some "Default MIME type for the playlist. \
             Empty string means automatic detection." ;
+
+      "on_track",
+      Lang.fun_t [false,"last",Lang.bool_t;false,"",Lang.int_t] Lang.bool_t,
+      Some (Lang.val_cst_fun ["",Lang.int_t,None;"last",Lang.bool_t,None] (Lang.bool false)),
+      Some "Function to execute when playlist is about to play its next track. \
+            Receives track position in the playlist and wether this is the last track. \
+            Force a reload by returning @true@ in this function. " ;
 
       "prefix",
       Lang.string_t,
@@ -608,11 +633,18 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
+         let on_track = List.assoc "on_track" params in
+         let on_track ~last pos =
+           Lang.to_bool
+             (Lang.apply ~t:Lang.bool_t on_track [
+               "last", Lang.bool last; "", Lang.int pos
+             ])
+         in
          let check_next = List.assoc "check_next" params in
          let length,default_duration,timeout,conservative =
                 Request_source.extract_queued_params params
          in
-           ((new playlist ~kind ~mime ~reload ~random
+           ((new playlist ~kind ~mime ~reload ~random ~on_track
                           ~length ~default_duration ~prefix ~timeout
                           ~check_next ~conservative uri):>source)) ;
 
@@ -635,5 +667,12 @@ let () =
              (Lang.to_string (e "")),
              (Lang.to_string (e "prefix"))
          in
+         let on_track = List.assoc "on_track" params in
+         let on_track ~last pos =
+           Lang.to_bool
+             (Lang.apply ~t:Lang.bool_t on_track [
+               "last", Lang.bool last; "", Lang.int pos
+             ])
+         in
            ((new safe_playlist ~kind ~mime ~reload ~prefix
-                               ~random uri):>source))
+                               ~on_track ~random uri):>source))

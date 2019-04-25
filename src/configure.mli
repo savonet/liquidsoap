@@ -3,6 +3,8 @@
 (** String describing the version. *)
 val version : string
 
+val restart : bool ref
+
 (** Is this build a SVN snapshot ? *)
 val scm_snapshot : bool
 
@@ -21,9 +23,6 @@ val findlib_path : string list
 
 (** Is dynlink available? *)
 val dynlink : bool
-
-(** Where to look for dynamically loadable modules (cmxs). *)
-val plugins_dir : string
 
 (** Where to look for private executables. *)
 val bin_dir : string

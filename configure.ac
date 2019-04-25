@@ -5,11 +5,12 @@ dnl which is used as the final component of the standard .liq libdir,
 dnl $libdir/liquidsoap/$libs_dir_version
 
 # Remove +scm and set scm_snapshot to false before releasing
-# Do not use $version below (and don't write AC_1N1T) before the next
-# line, since we grep for the literal version there
-AC_INIT([liquidsoap],[1.2.1])
+# Do not use $version below before the next line, since we grep
+# for the literal version there
+AC_INIT([liquidsoap],[1.4.0+scm])
 scm_snapshot=true
-version=1.2.1
+version=1.4.0
+min_ocaml_version=4.07.0
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -146,7 +147,12 @@ fi
 AC_CHECK_OCAML_COMPILERS()
 
 # Check for OS
-OS_TYPE=`$OCAMLFIND ocamlc -config | grep os_type | tr -d ' ' | cut -d':' -f 2`
+OCAMLC_SYSTEM=`$OCAMLFIND ocamlc -config | grep system | cut -d' ' -f 2`
+if test "$OCAMLC_SYSTEM" = "mingw" -o "$OCAMLC_SYSTEM" = "mingw64"; then
+  OS_TYPE="Win32"
+else
+  OS_TYPE="Unix"
+fi
 AC_SUBST(OS_TYPE)
 
 # Add -fPIC to CFLAGS for compatibility with x86_64
@@ -177,6 +183,11 @@ fi
 
 liquidsoap_ocamlcflags="$OCAMLFLAGS -ccopt \"\$(CFLAGS)\""
 liquidsoap_ocamllflags="-linkpkg -package unix -package threads -package str -package bigarray"
+
+if test "$OS_TYPE" \!= "Win32" ; then
+  liquidsoap_ocamllflags="$liquidsoap_ocamllflags -cc \"\$(CC)\""
+fi
+
 requires="unix threads str"
 if test "$enable_debugging" \!= "no" ; then
   CFLAGS="$CFLAGS -g"
@@ -241,6 +252,11 @@ AC_SUBST(OCAML_REVISION)
 AC_MSG_CHECKING([for ocamlc version])
 AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
+AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
+if test -z "${VERSION_OK}"; then
+  AC_MSG_ERROR([version 4.03.0 or more of the OCaml compiler is required to build liquidsoap])
+fi
+
 AC_SUBST(BYTE)
 
 AC_ARG_ENABLE([custom-path],
@@ -276,25 +292,25 @@ AC_SUBST(W_CUSTOM_PATH)
 # Graphics
 #
 
-AC_ARG_ENABLE([graphics],AS_HELP_STRING([--disable-graphics],[don't use the graphics library]))
-if test "x$enable_graphics" = "xno" ; then
+AC_ARG_ENABLE([graphics],AS_HELP_STRING([--enable-graphics],[use the graphics library]))
+if test "x$enable_graphics" = "xyes" ; then
+  AC_CHECK_OCAML_BINDING([graphics])
+else
    W_GRAPHICS=""
    w_GRAPHICS="no"
-else
-   AC_CHECK_OCAML_BINDING([graphics])
 fi
 
 #
 # Bytes
 #
 
-AC_CHECK_OCAML_BINDING([bytes],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([bytes],[],[],[1])
 
 #
 # PCRE
 #
 
-AC_CHECK_OCAML_BINDING([pcre],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
 
 #
 # SEDLEX
@@ -318,40 +334,24 @@ AC_SUBST(MENHIR)
 # Dtools
 #
 
-AC_CHECK_OCAML_BINDING([dtools],[0.3.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([dtools],[0.4.0],[],[1])
 
 #
 # Duppy
 #
 
-AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1],[],[1])
-
-# Small hack..
-if test -z "${with_duppy_syntax_dir}"; then
-  if test "${CAMLP4O}" != "no" ; then
-    with_duppy_syntax_dir=${with_duppy_dir}
-  fi
-fi
-AC_CHECK_OCAML_BINDING([duppy.syntax],[0.4.2],[],[],[],[1],[duppy])
-if test -n "${w_DUPPY_SYNTAX}"; then
-  if test "${CAMLP4O}" != "no"; then
-    if test -z "${DUPPY_SYNTAX_path}"; then
-      DUPPY_SYNTAX_path=`${OCAMLFIND} query duppy`
-    fi
-    CAMLP4O="${CAMLP4O} ${DUPPY_SYNTAX_path}/pa_duppy.cmo"
-  fi
-fi
+AC_CHECK_OCAML_BINDING([duppy],[0.6.0],[],[1])
 
 #
 # Cry
 #
 
-AC_CHECK_OCAML_BINDING([cry],[0.4.0])
+AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.3.0],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1])
 
 #
 # xmlplaylist
@@ -375,7 +375,7 @@ AC_CHECK_OCAML_BINDING([ogg],[0.5.0])
 # Vorbis
 #
 
-AC_CHECK_OCAML_BINDING([vorbis],[0.6.2],[ogg])
+AC_CHECK_OCAML_BINDING([vorbis],[0.7.0],[ogg])
 
 #
 # Opus
@@ -399,18 +399,18 @@ AC_CHECK_OCAML_BINDING([mad],[0.4.4])
 # Flac
 #
 
-AC_CHECK_OCAML_BINDING([flac],[0.1.2])
+AC_CHECK_OCAML_BINDING([flac],[0.1.5])
 # Small hack..
 if test -z "${with_flac_ogg_dir}"; then
   with_flac_ogg_dir=${with_flac_dir}
 fi
-AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[],[flac])
+AC_CHECK_OCAML_BINDING([flac.ogg],[],[ogg flac],[],[],[flac])
 
 #
 # Dynlink
 #
 
-AC_CHECK_OCAML_BINDING([dynlink],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([dynlink])
 # Dynlink may be for bytecode only..
 AC_MSG_CHECKING([whether ocaml compiler supports dynlink])
 if test -n "${W_DYNLINK}"; then
@@ -440,6 +440,9 @@ EOCONF
 else
   cat >> src/configure.ml <<EOCONF
 let dynlink = true
+let () =
+  at_init (fun () ->
+    Dyntools.load_dynlinks ())
 EOCONF
 fi
 
@@ -468,7 +471,7 @@ AC_CHECK_OCAML_BINDING([shine],[0.2.0])
 # Gstreamer
 #
 
-AC_CHECK_OCAML_BINDING([gstreamer],[0.2.0])
+AC_CHECK_OCAML_BINDING([gstreamer],[0.3.0])
 
 #
 # frei0r
@@ -507,7 +510,7 @@ AC_CHECK_OCAML_BINDING([gavl],[0.1.4])
 # FFMPEG
 #
 
-AC_CHECK_OCAML_BINDING([ffmpeg],[0.1.0])
+AC_CHECK_OCAML_BINDING([ffmpeg],[0.2.0])
 
 #
 # Jack
@@ -545,23 +548,14 @@ AC_CHECK_OCAML_BINDING([taglib],[0.3.0])
 
 AC_ARG_ENABLE([oss],AS_HELP_STRING([--disable-oss],[don't use OSS]))
 
-AC_ARG_ENABLE([oss-dynamic-plugin],
-   AS_HELP_STRING([--enable-oss-dynamic-plugin],[Compile oss as an optional plugin.]))
-
 if test "x$enable_oss" != "xno" ; then
   AC_CHECK_HEADERS([sys/soundcard.h],[W_OSS="yes"])
 fi
 
 if test "a$W_OSS" = "ayes" ; then
-  if test "x$enable_oss_dynamic_plugin" = "xyes"; then
-        W_OSS=oss
-        w_OSS=plugin
-        PLUGINS="$PLUGINS oss"
-  else
-        w_OSS=yes
-  fi
+  w_OSS=yes
 else
-        w_OSS=no
+  w_OSS=no
 fi
 AC_SUBST(W_OSS)
 
@@ -583,7 +577,7 @@ fi
 # SecureTransport (OSX)
 #
 
-AC_CHECK_OCAML_BINDING([osx-secure-transport],[],[])
+AC_CHECK_OCAML_BINDING([osx-secure-transport])
 
 #
 # Magic
@@ -625,7 +619,7 @@ fi
 AC_ARG_ENABLE([camomile],
   AS_HELP_STRING([--disable-camomile],[don't use camomile (no charset detection and conversion)]))
 
-AC_CHECK_OCAML_BINDING([camomile])
+AC_CHECK_OCAML_BINDING([camomile],[1.0.0])
 
 if test -z "$W_CAMOMILE" ; then
   if test "x$enable_camomile" = "xno" ; then
@@ -634,17 +628,9 @@ if test -z "$W_CAMOMILE" ; then
     AC_MSG_ERROR([Camomile provides charset detection and conversions. It is strongly advised to enable those features. If you really don't want this, use --disable-camomile.])
   fi
 else
-    camdir=`$OCAMLFIND query camomile -l | \
-      grep location | tr -d ' ' | cut -d':' -f 2`
-    camencoding=Camomile.CharEncoding
-    # Use Camomile with environment variables if
-    # available
-    if test -f $camdir/camomileLibraryDyn.cmi ; then
-      if test -z "$w_CUSTOM_PATH"; then
-        camencoding=CamomileLibraryDyn.$camencoding
-      else
-        camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
-        cat >> src/configure.ml <<EOCONF
+    if test -n "$w_CUSTOM_PATH"; then
+      camencoding="CamomileLibrary.CharEncoding.Configure(CamomileConfig)"
+      cat >> src/configure.ml <<EOCONF
 module CamomileConfig = 
 struct
   let datadir = Filename.concat (get_dir "camomile") "database"
@@ -653,14 +639,8 @@ struct
   let unimapdir = Filename.concat (get_dir "camomile") "mappings"
 end
 EOCONF
-      fi
     else
-      if test -n "$w_CUSTOM_PATH"; then
-        AC_MSG_ERROR([Your camomile module is too old to support loading from a custom path.. Please upgrade it or disable custom path loading.])
-      fi
-      if test -f $camdir/camomileLibrary.cmi ; then
-        camencoding=CamomileLibrary.Default.$camencoding
-      fi
+      camencoding=CamomileLibraryDefault.Camomile.CharEncoding
     fi
     cat >> src/configure.ml <<EOCONF
 module C = $camencoding
@@ -758,7 +738,7 @@ EOCONF
 
 # Yojson
 
-AC_CHECK_OCAML_BINDING([yojson],[],[],[],[],[1])
+AC_CHECK_OCAML_BINDING([yojson])
 
 if test -z "${W_YOJSON}"; then
 cat >> src/configure.ml <<__BLAH__
@@ -772,7 +752,7 @@ fi
 
 # OCaml bindings
 
-AC_CHECK_OCAML_BINDING([faad],[0.3.0])
+AC_CHECK_OCAML_BINDING([faad],[0.4.0])
 AC_CHECK_OCAML_BINDING([soundtouch],[0.1.7])
 AC_CHECK_OCAML_BINDING([portaudio],[0.2.0])
 AC_CHECK_OCAML_BINDING([pulseaudio],[0.1.2])
@@ -813,7 +793,7 @@ AC_ARG_WITH([default-font],
                            [sets the default TTF font for video.add_text()]))
 if test "$w_SDL" = "yes" -o "$w_GD" = "yes" ; then
   if test -z "$with_default_font" ; then
-    DEFAULT_FONT=/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf
+    DEFAULT_FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
   else
     DEFAULT_FONT=$with_default_font
   fi
@@ -887,8 +867,6 @@ AC_SUBST(cmo)
 AC_SUBST(cmi)
 AC_SUBST(cmxs)
 AC_SUBST(shared_flag)
-AC_SUBST(PLUGINS)
-AC_SUBST(PLUGINS_DATA)
 
 echo
 
@@ -949,6 +927,7 @@ cat <<EOMSG
    - Flac (ogg)        : $w_FLAC_OGG
    - MP3               : $w_MAD
    - AAC               : $w_FAAD
+   - Avcodec (ffmpeg)  : $w_FFMPEG
    - XML playlists     : $w_XMLPLAYLIST
    - Lastfm            : $w_LASTFM
 

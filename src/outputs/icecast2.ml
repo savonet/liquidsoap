@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -28,7 +28,7 @@ let error_translator =
        Some (Cry.string_of_error e)
     | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 type icecast_info = 
   {
@@ -56,81 +56,81 @@ struct
     function
         | Encoder.MP3 m ->
             let quality,bitrate = 
-              match m.Encoder.MP3.bitrate_control with
-                | Encoder.MP3.CBR x -> None,(Some x)
-                | Encoder.MP3.ABR x -> None,(Some x.Encoder.MP3.mean_bitrate)
-                | Encoder.MP3.VBR q -> (Some (string_of_int q)),None
+              match m.Mp3_format.bitrate_control with
+                | Mp3_format.CBR x -> None,(Some x)
+                | Mp3_format.ABR x -> None,(Some x.Mp3_format.mean_bitrate)
+                | Mp3_format.VBR q -> (Some (string_of_int q)),None
             in
             { quality = quality ;
               bitrate = bitrate ;
-              samplerate = Some m.Encoder.MP3.samplerate ;
-              channels = Some (if m.Encoder.MP3.stereo then 2 else 1)
+              samplerate = Some m.Mp3_format.samplerate ;
+              channels = Some (if m.Mp3_format.stereo then 2 else 1)
             }
         | Encoder.Shine m ->
             { quality = None ;
-              bitrate = Some m.Encoder.Shine.bitrate ;
-              samplerate = Some m.Encoder.Shine.samplerate ;
-              channels = Some m.Encoder.Shine.channels
+              bitrate = Some m.Shine_format.bitrate ;
+              samplerate = Some m.Shine_format.samplerate ;
+              channels = Some m.Shine_format.channels
             }
         | Encoder.FdkAacEnc m ->
             { quality = None ;
-              bitrate = Some m.Encoder.FdkAacEnc.bitrate ;
-              samplerate = Some m.Encoder.FdkAacEnc.samplerate ;
-              channels = Some m.Encoder.FdkAacEnc.channels
+              bitrate = Some m.Fdkaac_format.bitrate ;
+              samplerate = Some m.Fdkaac_format.samplerate ;
+              channels = Some m.Fdkaac_format.channels
             }
         | Encoder.External m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.Encoder.External.samplerate ;
-              channels = Some m.Encoder.External.channels
+              samplerate = Some m.External_encoder_format.samplerate ;
+              channels = Some m.External_encoder_format.channels
             }
         | Encoder.GStreamer m ->
             { quality    = None ;
               bitrate    = None ;
               samplerate = None ;
-              channels   = Some (Encoder.GStreamer.audio_channels m)
+              channels   = Some (Gstreamer_format.audio_channels m)
             }
         | Encoder.Flac m ->
-            { quality = Some (string_of_int m.Encoder.Flac.compression) ;
+            { quality = Some (string_of_int m.Flac_format.compression) ;
               bitrate = None ;
-              samplerate = Some m.Encoder.Flac.samplerate ;
-              channels = Some m.Encoder.Flac.channels
+              samplerate = Some m.Flac_format.samplerate ;
+              channels = Some m.Flac_format.channels
             }
         | Encoder.WAV m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.Encoder.WAV.samplerate ;
-              channels = Some m.Encoder.WAV.channels
+              samplerate = Some m.Wav_format.samplerate ;
+              channels = Some m.Wav_format.channels
             }
         | Encoder.AVI m ->
             { quality = None ;
               bitrate = None ;
-              samplerate = Some m.Encoder.AVI.samplerate ;
-              channels = Some m.Encoder.AVI.channels
+              samplerate = Some m.Avi_format.samplerate ;
+              channels = Some m.Avi_format.channels
             }
         | Encoder.Ogg o ->
             match o with
-              | [Encoder.Ogg.Vorbis
-                   {Encoder.Vorbis.channels=n;
-                                   mode=Encoder.Vorbis.VBR q;
+              | [Ogg_format.Vorbis
+                   {Vorbis_format.channels=n;
+                                   mode=Vorbis_format.VBR q;
                                    samplerate=s;_}]
                 ->
                   { quality = Some (string_of_float q) ;
                     bitrate = None ;
                     samplerate = Some s ;
                     channels = Some n }
-              | [Encoder.Ogg.Vorbis
-                   {Encoder.Vorbis.channels=n;
-                                   mode=Encoder.Vorbis.ABR (_,b,_);
+              | [Ogg_format.Vorbis
+                   {Vorbis_format.channels=n;
+                                   mode=Vorbis_format.ABR (_,b,_);
                                    samplerate=s;_}]
                 ->
                   { quality = None ;
                     bitrate = b ;
                     samplerate = Some s ;
                     channels = Some n }
-              | [Encoder.Ogg.Vorbis
-                   {Encoder.Vorbis.channels=n;
-                                   mode=Encoder.Vorbis.CBR b;
+              | [Ogg_format.Vorbis
+                   {Vorbis_format.channels=n;
+                                   mode=Vorbis_format.CBR b;
                                    samplerate=s;_}]
                 ->
                   { quality = None ;
@@ -289,7 +289,7 @@ class output ~kind p =
            "ISO-8859-1"
          else
            "UTF-8"
-      | s -> Utils.StringCompat.uppercase_ascii s
+      | s -> String.uppercase_ascii s
   in
 
   let source = Lang.assoc "" 2 p in
@@ -413,7 +413,7 @@ object (self)
           (k,(Hashtbl.find h k))::l
         with _ -> (k,d)::l
       in
-      let m = Encoder.Meta.to_metadata m in
+      let m = Meta_format.to_metadata m in
       let def_title =
         match get m [] "uri" with
           | (_,s)::_ -> let title = Filename.basename s in
@@ -502,7 +502,7 @@ object (self)
     assert (encoder = None) ;
     let enc = data.factory self#id in
     encoder <- 
-       Some (enc (Encoder.Meta.empty_metadata)) ; 
+       Some (enc (Meta_format.empty_metadata)) ; 
     assert (Cry.get_status connection = Cry.Disconnected) ;
     begin match dumpfile with
       | Some f -> dump <- Some (open_out_bin f)
@@ -539,7 +539,7 @@ object (self)
       List.iter (fun (x,y) -> 
                       (* User-Agent has already been passed to Cry.. *)
                       if x <> "User-Agent" then 
-                        Hashtbl.add source.Cry.headers x y) headers;
+                        Hashtbl.replace source.Cry.headers x y) headers;
 
       try
         Cry.connect connection source ;

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,6 +56,8 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
+val scheduler_shutdown_atom : Dtools.Init.t
+
 (** {1 Misc} *)
 
 (** Waits for [f()] to become true on condition [c].
@@ -68,9 +70,15 @@ val mutexify : Mutex.t -> ('a -> 'b) -> ('a -> 'b)
 
 exception Timeout of float
 
-(* Wait some events: [`Read socket], [`Write socket] or [`Delay timeout]
+type event = [
+  | `Read of Unix.file_descr
+  | `Write of Unix.file_descr
+  | `Both of Unix.file_descr
+]
+
+(* Wait some events: [`Read socket], [`Write socket] or [`Both timeout]
  * Raises [Timeout elapsed_time] if timeout is reached. *)
-val wait_for : ?log:(string -> unit) -> Duppy.Task.event list -> unit
+val wait_for : ?log:(string -> unit) -> event -> float -> unit
 
 (** [finalize ~k f] calls [f] and returns it result,
   * and always executes [k], even when [f] raises an exception. *)

@@ -19,17 +19,11 @@ src/configure.ml
 *.cm*
 *.o
 *~
-src/SVN.ml
+src/REVISION.ml
 src/auto_clean
 src/lang/lang_parser.ml
 src/lang/lang_parser.mli
 src/*_depend
-src/outputs/harbor_output.camlp4.ml
-src/tools/harbor.camlp4.ml
-src/tools/server.camlp4.ml
-src/outputs/harbor_output.ml
-src/harbor/harbor.ml
-src/tools/server.ml
 doc/liqi/auto_clean
 doc/liqi/liqi
 doc/liqi/liqi_depend
@@ -40,6 +34,7 @@ src/liquidsoap
 doc/html
 doc/content/reference.txt
 doc/content/settings.txt
+doc/content/protocols.txt
 autodoc/
 *.annot
 scripts/tests/threesines/

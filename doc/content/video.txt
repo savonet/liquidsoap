@@ -120,7 +120,7 @@ Let's design an "anonymizer" effect: I want to blur my face and change my voice
 so that nobody will recognise me in the street after seeing the youtube
 video. Here is what we are going to achieve:
 
-`antiquotation`<center><iframe width="560" height="315" src="http://www.youtube.com/embed/E7Fb0wV3h5Q" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
+`antiquotation`<center><iframe width="560" height="315" src="//www.youtube.com/embed/E7Fb0wV3h5Q" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
 
 This video was produced thanks to the following script:
 
@@ -164,7 +164,7 @@ In this example we are going to use OSC integration in order to modify the
 parameters in realtime. There are many OSC clients around, for instance I used
 "TouchOSC":http://hexler.net/software/touchosc :
 
-`antiquotation`<center><iframe width="560" height="315" src="http://www.youtube.com/embed/EX1PTjiuuXY" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
+`antiquotation`<center><iframe width="560" height="315" src="//www.youtube.com/embed/EX1PTjiuuXY" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
 
 Here is how the video was made:
 
@@ -199,7 +199,7 @@ h4@bluescreen. Blue screen
 
 You want to show yourself in front of a video of a bunny, as in
 
-`antiquotation`<center><iframe width="640" height="360" src="http://www.youtube.com/embed/zHikXRNMQu4?feature=player_detailpage" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
+`antiquotation`<center><iframe width="640" height="360" src="//www.youtube.com/embed/zHikXRNMQu4?feature=player_detailpage" frameborder="0" allowfullscreen></iframe></center>`antiquotation`
 
 The idea is to film yourself in front of a blue screen, make this blue screen
 transparent and put the resulting video in front of the bunny video (actually, I

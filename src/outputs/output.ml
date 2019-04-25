@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -240,9 +240,9 @@ object (self)
             ~infallible ~on_start ~on_stop
             ~content_kind ~output_kind ~name source autostart
 
-  method virtual private insert_metadata : Encoder.Meta.export_metadata -> unit
-  method virtual private encode : Frame.t -> int -> int -> string
-  method virtual private send : string -> unit
+  method virtual private insert_metadata : Meta_format.export_metadata -> unit
+  method virtual private encode : Frame.t -> int -> int -> 'a
+  method virtual private send : 'a -> unit
 
   method private output_send frame =
     let rec output_chunks frame =
@@ -250,7 +250,7 @@ object (self)
         begin
           match Frame.get_metadata frame start with
             | None -> ()
-            | Some m -> self#insert_metadata (Encoder.Meta.export_metadata m)
+            | Some m -> self#insert_metadata (Meta_format.export_metadata m)
         end ;
         let data =
           self#encode frame start (stop-start)

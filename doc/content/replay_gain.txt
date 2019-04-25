@@ -17,7 +17,24 @@ On the other hand, replay gain has its drawbacks. First, it requires an initial 
 
 h5. How to use replay gain in Liquidsoap
 
-In theory, there are two independant parts: computing the replay gain and tagging the files with that information, and retrieving the gain from the metadata when playing the file, in order to renormalize it. In practice, everybody will want to use the same script that triggers the computation if needed even if they do not need that part, because the replay gain metadata is stored in some exotic format that liquidsoap does not support directly yet. Instead, it relies on the replay gain computation tools to extract them.
+One easy way to enable replay gain is to use the @ffmpeg2wav@ protocol:
+%%(replaygain_protocol.liq)
+set("protocol.ffmpeg2wav.replaygain",true)
+
+s = single("ffmpeg2wav:/path/to/file.mp3")
+
+...
+%%
+
+With the @ffmpeg2wav@ protocol, files are entirely decoded to @WAV@ format using the @ffmpeg@ binary. When the @"protocol.ffmpeg2wav.replaygain"@ setting is set to @true@, it will also apply
+the replay gain amplification while decoding.
+
+The protocol requires @ffmpeg@ in the path, which can be set via @set("protocol.ffmpeg2wav.path","...")@.
+
+The @ffmpeg2wav@ protocol is handy but it is also limited. For instance, it decodes and analyzes whole files, which can be a problem if you are using
+large audio files. Aditionally, you might want to exclude certain files, e.g. jingles from this processing.
+
+If you need more finer-grained control or do not wish to use the @ffmpeg2wav@ protocol, you can see the method below.
 
 h5. Renormalizing according to some metadata field
 
@@ -36,21 +53,17 @@ s = amplify(1.,override="replay_gain",s)
 %%
 
 You may also take care of not losing the information brought by the metadata. This may be the case for instance if you
-use @smart_crossfade@ before applying normalization. Hence, normalization should be done as soon as possible 
+use @crossfade@ before applying normalization. Hence, normalization should be done as soon as possible 
 in the script, if possible just after the initial source.
 
 h5. Computing and retrieving the data
 
 In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool.
 
-Liquidsoap provides a script for extracting the replay gain value from @mp3@, @ogg/vorbis@ and @flac@ files. It requires the tools 
-@mp3gain@ (resp. @vorbisgain@ and @ogginfo@, resp. @metaflac@) for @mp3@ (resp. @ogg/vorbis@, resp. @flac@) files processing, and will affect your files: 
-after the first computation of the replay gain, that information will be stored in the metadata.
+Liquidsoap provides a script for extracting the replay gain value which requires @ffmpeg@.
 
-Optionally, this script can also use the @file@ binary in order to detect the content of an audio file not only using its extension, which is necessary
-with, for instance, protocols that download files across the network, such as @ftp@.
+There are at least two ways to use it in your liquidsoap script:
 
-Then, there are at least two ways to use it in your liquidsoap script:
 using the replay gain metadata resolver, or the @replay_gain@ protocol.
 
 The metadata solution is uniform: without changing anything, _all_ your

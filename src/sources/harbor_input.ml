@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -71,8 +71,6 @@ struct
       self#register_command
         "stop" ~descr:"Stop current source client, if connected." stop ;
       self#register_command
-        "kick" ~descr:"Kick current source client, if connected." stop ;
-      self#register_command
         "status" ~descr:"Display current status."
         (Tutils.mutexify relay_m
          (fun _ ->
@@ -118,7 +116,7 @@ struct
         let buf,input = (fun len ->
           let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
            match socket with
-             | None -> "", 0
+             | None -> Bytes.empty, 0
              | Some socket ->
                  begin
                    try
@@ -126,7 +124,7 @@ struct
                        try
                          let fd = Harbor.file_descr_of_socket socket in
                          (* Wait for `Read event on socket. *)
-                         Tutils.wait_for ~log [`Read fd; `Delay timeout];
+                         Tutils.wait_for ~log (`Read fd) timeout;
                          (* Now read. *)
                          relay_read socket len
                         with
@@ -137,12 +135,12 @@ struct
                    | e -> self#log#f 2 "Error while reading from client: \
                               %s" (Printexc.to_string e);
                      self#disconnect ~lock:false;
-                     "",0
+                     Bytes.empty,0
                  end) len;
         in
         begin
           match dump with
-            | Some b -> output_string b (String.sub buf 0 input)
+            | Some b -> output_string b (Bytes.sub_string buf 0 input)
             | None -> ()
         end ;
         begin
@@ -152,7 +150,7 @@ struct
                Printf.fprintf b "%f %d\n%!" time self#length
             | None -> ()
         end ;
-        buf,input
+        Bytes.unsafe_to_string buf,input
       in
       let input =
         { Decoder.
@@ -201,6 +199,13 @@ struct
       Harbor.remove_source ~port ~mountpoint ()
   
     method register_decoder mime =
+      let mime =
+        try
+          let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
+          Pcre.get_substring sub 1
+        with
+          | Not_found -> mime
+      in
       Generator.set_mode generator `Undefined ;
       match
         Decoder.get_stream_decoder mime kind

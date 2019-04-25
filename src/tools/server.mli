@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -68,6 +68,22 @@ val register : namespace -> string -> namespace
 
 (** Release a namespace, deleting all associated commands. *)
 val unregister : namespace -> unit
+
+(** Specialized implementation of conditions to use in server commands. *)
+type condition = {
+  wait:      (unit -> string) -> unit;
+  signal:    unit -> unit;
+  broadcast: unit -> unit
+}
+
+(** [condition ()] instantiates a server command condition. *)
+val condition : unit -> condition
+
+(** Partial response write without returning. *)
+val write : after:(unit -> string) -> string -> unit
+
+(** Read from the client. *)
+val read : after:(string -> string) -> Duppy.Io.marker -> unit
 
 (** [add ~ns ~descr command f] adds a new command [command] in a given namespace ~ns.
   * When the command is called, the function [f] is executed with the argument of

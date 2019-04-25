@@ -1,4 +1,4 @@
-SUBDIRS= src examples doc gui scripts
+SUBDIRS= src examples doc gui scripts lib
 DISTFILES = CHANGES COPYING INSTALL README \
 	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh
@@ -30,19 +30,18 @@ ifneq ($(CUSTOM_PATH),yes)
 	@echo let rundir = \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let logdir = \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 	@echo let libs_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
-	@echo let plugins_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)/plugins\" >> src/configure.ml
 	@echo let bin_dir = \"$(libdir)/liquidsoap/$(libs_dir_version)\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \"$(localstatedir)/run/liquidsoap\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \"$(localstatedir)/log/liquidsoap\" >> src/configure.ml
 else
 	@echo let rundir = get_dir \"run\" >> src/configure.ml
 	@echo let logdir = get_dir \"logs\" >> src/configure.ml
-	@echo let plugins_dir = get_dir \"plugins\" >> src/configure.ml
 	@echo let libs_dir = get_dir \"libs\" >> src/configure.ml
 	@echo let bin_dir = get_dir \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<sysrundir\>\" \".\" >> src/configure.ml
 	@echo let \(\) = add_subst \"\<syslogdir\>\" \".\" >> src/configure.ml
 endif
+	@echo let restart = ref false >> src/configure.ml
 	@echo let display_types = ref false >> src/configure.ml
 	@echo let exe_ext = \"$(EXEEXT)\" >> src/configure.ml
 	@echo "let vendor = \
@@ -79,10 +78,8 @@ endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
-	for l in externals.liq lastfm.liq utils.liq shoutcast.liq flows.liq video.liq \
-		       http.liq http_codes.liq pervasives.liq protocols.liq gstreamer.liq ; \
-	do \
-	  $(INSTALL_DATA) scripts/$$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
+	find lib | grep '\.liq$$' | while read l; do \
+	  $(INSTALL_DATA) $$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
 	$(INSTALL_DATA) examples/radio.liq \

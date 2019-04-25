@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -93,7 +93,7 @@ object (self)
                 Pcm.set_format dev params Pcm.Format_s16_le ;
                 read_fun <-
                   (fun pcm buf ofs len ->
-                     let sbuf = Bytes.create (2 * 2 * len) in
+                     let sbuf = String.make (2 * 2 * len) (Char.chr 0) in
                      let r = Pcm.readi pcm sbuf 0 len in
                      Audio.S16LE.to_audio sbuf 0 buf ofs r;
                      r)

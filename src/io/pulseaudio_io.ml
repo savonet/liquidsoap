@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2017 Savonet team
+  Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -33,7 +33,7 @@ let error_translator e =
                 "Pulseaudio error: %s" (Pulseaudio.string_of_error n))
      | _ -> None
 
-let () = Utils.register_error_translator error_translator
+let () = Printexc.register_printer error_translator
 
 class virtual base ~client ~device =
   let device = 
@@ -195,7 +195,7 @@ let () =
     Lang.kind_type_of_kind_format ~fresh:1 (Lang.any_fixed_with ~audio:1 ())
   in
   let proto =
-    (Output.proto @ [ "client", Lang.string_t, 
+    ([ "client", Lang.string_t, 
         Some (Lang.string "liquidsoap"), None ;
       "device", Lang.string_t,
         Some (Lang.string ""), 
@@ -205,7 +205,7 @@ let () =
         Some "Force the use of the dedicated Pulseaudio clock." ])
   in
   Lang.add_operator "output.pulseaudio" ~active:true
-    (proto @ ["", Lang.source_t k, None, None])
+    (Output.proto @ proto @ ["", Lang.source_t k, None, None])
     ~kind:(Lang.Unconstrained k)
     ~category:Lang.Output
     ~descr:"Output the source's stream to a portaudio output device."
