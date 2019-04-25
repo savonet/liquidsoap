@@ -73,8 +73,7 @@ def input.hls(~id="",~reload=10.,uri)
       pl = request.filename(pl)
       # Find sequence number
       m = string.extract(pattern="#EXT-X-STREAM-INF[^\n]*\n([^\n]*)\n",file.contents(pl))
-      new_uri = list.assoc(default=!playlist_uri,"1",m)
-      playlist_uri := new_uri
+      playlist_uri := list.assoc(default=!playlist_uri,"1",m)
       log(label=id,"Playlist: " ^ !playlist_uri)
     end
   end
