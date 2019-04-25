@@ -66,7 +66,7 @@ def input.hls(~id="",~reload=10.,uri)
       end
     request.create(file)
   end
-  # Find the stream in cases there are many
+  # Find the stream in case there are many
   def find_stream () =
     pl = request.create.raw(!playlist_uri)
     if request.resolve(pl) then
