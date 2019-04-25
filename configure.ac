@@ -316,7 +316,7 @@ AC_CHECK_OCAML_BINDING([pcre],[],[],[1])
 # SEDLEX
 #
 
-AC_CHECK_OCAML_BINDING([sedlex],[],[],[1],[],[1])
+AC_CHECK_OCAML_BINDING([sedlex],[],[],[1],[sedlex sedlex.ppx],[1])
 
 #
 # MENHIR

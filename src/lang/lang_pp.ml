@@ -52,7 +52,8 @@ let get_encoder_format tokenizer =
   let is_ogg_item token =
     try let _ = ogg_item token in true with _ -> false
   in
-    match tokenizer() with
+    let token,_,_ = tokenizer() in
+    match token with
     | Lang_parser.MP3 -> Lang_mp3.make_cbr []
     | Lang_parser.MP3_VBR -> Lang_mp3.make_vbr []
     | Lang_parser.MP3_ABR -> Lang_mp3.make_vbr []
@@ -373,8 +374,8 @@ let expand_define tokenizer =
     | Lang_parser.PP_DEFINE,startp,endp ->
       (
         match tokenizer() with
-        | Lang_parser.VAR x ->
-          if x <> String.uppercase_ascii x then raise Parsing.Parse_error;
+        | Lang_parser.VAR def_name,_,_ ->
+          if def_name <> String.uppercase_ascii def_name then raise Parsing.Parse_error;
           (
             match tokenizer () with
             | Lang_parser.INT _,_,_

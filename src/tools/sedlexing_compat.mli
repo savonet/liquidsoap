@@ -13,7 +13,7 @@ type lexbuf = {
 }
 
 val start: lexbuf -> unit
-val next: lexbuf -> int
+val next: lexbuf -> Uchar.t option
 val mark: lexbuf -> int -> unit
 val backtrack: lexbuf -> int
 
