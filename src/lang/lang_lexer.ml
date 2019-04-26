@@ -65,10 +65,13 @@ let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
 let var_char =
-  [%sedlex.regexp? alphabetic|'_']
+  [%sedlex.regexp? alphabetic | other_alphabetic | '_']
+
+let var_lit =
+  [%sedlex.regexp? var_char, Star(var_char | decimal_digit | '.' | '\'')]
 
 let var =
-  [%sedlex.regexp? var_char, Star(var_char|decimal_digit|'.'|'\'')]
+  [%sedlex.regexp? var_lit|so|math|other_math]
 
 let time =
   [%sedlex.regexp?
