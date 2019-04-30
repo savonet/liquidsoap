@@ -86,7 +86,12 @@ module Utf8 = struct
             gen ()
         | len, c when len = c ->
             position := -1;
-            None
+            (* This means that the last read was a full
+             * chunk. Safe to try a new one right away. *)
+            if len = chunk_size then
+              gen ()
+            else
+              None
         | len, _ ->
             position := len+1;
             Some (Bytes.get buf len)
