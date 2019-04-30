@@ -169,7 +169,7 @@ end
 # @param ~pattern Pattern to use
 # @param s The source to use
 def say_metadata
-  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\", $(title)\").")'
+  p = 'say:$(if $(artist),"It was $(artist)$(if $(title),\\", $(title)\\").")'
   fun (s,~pattern=p) ->
     append(s,fun (m) -> request.queue(queue=[request.create(pattern % m)],
                                       interactive=false))
@@ -242,7 +242,7 @@ end
 # @category String
 # @param uri Url to split
 def url.split(uri) =
-  ret = string.extract(pattern="([^\?]*)\?(.*)",uri)
+  ret = string.extract(pattern="([^\\?]*)\\?(.*)",uri)
   args = ret["2"]
   if args != "" then
     (ret["1"],url.split_args(ret["2"]))
@@ -261,11 +261,11 @@ def server.insert_metadata(~id="",s) =
   insert = fst(x)
   s = snd(x)
   def insert(s) =
-    l = string.split(separator='([^=]+\s*=\s*"(\\"|[^"])*")\s*,\s*',s)
+    l = string.split(separator='([^=]+\\s*=\\s*"(\\"|[^"])*")\\s*,\\s*',s)
     def f(l,x) =
       sub = fun (s) -> string.replace(pattern='\\"',fun (_) -> '"',s)
       if x != "" then
-        ret = string.extract(pattern='([^=]+)\s*=\s*"((?:\\"|[^"])*)"',x)
+        ret = string.extract(pattern='([^=]+)\\s*=\\s*"((?:\\"|[^"])*)"',x)
         if ret["1"] != "" then
           list.append(l,[(ret["1"],
                           sub(ret["2"]))])
@@ -606,7 +606,7 @@ def log_clocks(~delay=0.,~interval=1.,logfile)
   # Get the current clocks
   clocks = list.map(fst,get_clock_status())
   # Column headers
-  system("echo \# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
+  system("echo \\# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
   def report()
     status = get_clock_status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)

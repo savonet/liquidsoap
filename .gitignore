@@ -21,7 +21,6 @@ src/configure.ml
 *~
 src/REVISION.ml
 src/auto_clean
-src/lang/lang_lexer.ml
 src/lang/lang_parser.ml
 src/lang/lang_parser.mli
 src/*_depend
@@ -42,3 +41,4 @@ scripts/tests/threesines/
 src/test/JSON_parse
 src/test/is_url
 src/test/timezone
+*.conflicts

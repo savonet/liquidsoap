@@ -173,7 +173,7 @@ io = io/udp_io.ml \
 tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	$(if $(filter-out "Unix","$(OS_TYPE)"),win32/process_utils.mli win32/process_utils.ml) \
 	$(if $(filter-out "Win32","$(OS_TYPE)"),unix/process_utils.mli unix/process_utils.ml) \
-	tools/rqueue.ml \
+	tools/rqueue.ml tools/sedlexing_compat.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \

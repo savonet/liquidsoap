@@ -82,7 +82,7 @@ def enable_external_mpc_decoder() =
       get_channels(file)
     else
       # Otherwise test file extension
-      ret = string.extract(pattern='\.(.+)$',file)
+      ret = string.extract(pattern='\\.(.+)$',file)
       if list.length(ret) != 0 then
         ext = ret["1"]
         if list.mem(ext,mpc_filexts) then
@@ -215,7 +215,7 @@ def enable_external_faad_decoder() =
       true
     else
       # Otherwise test file extension
-      ret = string.extract(pattern='\.(.+)$',file)
+      ret = string.extract(pattern='\\.(.+)$',file)
       if list.length(ret) != 0 then
         ext = ret["1"]
         list.mem(ext,aac_filexts)
@@ -234,7 +234,7 @@ def enable_external_faad_decoder() =
         channels = list.hd(default="",
                            get_process_lines("#{faad} -i #{quote(file)} 2>&1 | \
                                               grep 'ch,'"))
-        ret = string.extract(pattern=", (\d) ch,",channels)
+        ret = string.extract(pattern=", (\\d) ch,",channels)
         ret =
           if list.length(ret) == 0 then
             # If we pass the faad_test, chances are high that the file will
@@ -256,7 +256,7 @@ def enable_external_faad_decoder() =
                      #{quote(file)} 2>&1")
         # Yea, this is ugly programming (again)!
         def get_meta(l,s)=
-          ret = string.extract(pattern="^(\w+):\s(.+)$",s)
+          ret = string.extract(pattern="^(\\w+):\\s(.+)$",s)
           if list.length(ret) > 0 then
             list.append([(ret["1"],ret["2"])],l)
           else

@@ -24,16 +24,10 @@
 
   open Lang_values
 
-  (** Parsing locations. *)
-  let curpos ?pos () =
-    match pos with
-      | None -> Parsing.symbol_start_pos (), Parsing.symbol_end_pos ()
-      | Some (i,j) -> Parsing.rhs_start_pos i, Parsing.rhs_end_pos j
-
   (** Create a new value with an unknown type. *)
-  let mk ?pos e =
+  let mk ~pos e =
     let kind =
-      T.fresh_evar ~level:(-1) ~pos:(Some (curpos ?pos ()))
+      T.fresh_evar ~level:(-1) ~pos:(Some pos)
     in
       if Lang_values.debug then
         Printf.eprintf "%s (%s): assigned type var %s\n"
@@ -42,27 +36,22 @@
           (T.print kind) ;
       { t = kind ; term = e }
 
-  let mk_fun ?pos args body =
+  let mk_fun ~pos args body =
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let fv = Lang_values.free_vars ~bound body in
-      mk ?pos (Fun (fv,args,body))
+      mk ~pos (Fun (fv,args,body))
 
-  let mk_rec_fun ?pos doc name args body =
+  let mk_rec_fun ~pos doc name args body =
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let fv = Lang_values.free_vars ~bound body in
-    let cached = ref None in
     let rec fn () =
-      match !cached with
-        | Some t -> t
-        | None ->
-            let fnv = mk ?pos (RFun (fv,args,fn)) in
-            mk ?pos (Let {doc=doc;var=name;gen=[];
-                          def=fnv;body=body})
+      let fnv = mk ~pos (RFun (fv,args,fn)) in
+      mk ~pos (Let {doc=doc;var=name;gen=[];
+                    def=fnv;body=body})
     in
-      cached := Some (fn());
-      mk ?pos (RFun (fv,args,fn))
+      mk ~pos (RFun (fv,args,fn))
 
-  let mk_enc e = mk (Encoder e)
+  let mk_enc ~pos e = mk ~pos (Encoder e)
 
   (** Time intervals *)
 
@@ -70,11 +59,11 @@
 
   (** Given a date specified as a list of four values (whms),
     * return a date in seconds from the beginning of the week. *)
-  let date =
+  let date ~pos =
     let to_int = function None -> 0 | Some i -> i in
     let rec aux = function
       | None::tl -> aux tl
-      | [] -> raise (Parse_error (curpos (), "Invalid time."))
+      | [] -> raise (Parse_error (pos, "Invalid time."))
       | l ->
           let a = Array.of_list l in
           let n = Array.length a in
@@ -108,23 +97,23 @@
   let duration d =
     time_units.(Array.length time_units - 1 - last_index (List.rev d))
 
-  let between d1 d2 =
+  let between ~pos d1 d2 =
     let p1 = precision d1 in
     let p2 = precision d2 in
-    let t1 = date d1 in
-    let t2 = date d2 in
+    let t1 = date ~pos d1 in
+    let t2 = date ~pos d2 in
       if p1<>p2 then
-        raise (Parse_error (curpos (),
+        raise (Parse_error (pos,
                             "Invalid time interval: precisions differ."));
       (t1,t2,p1)
 
-  let during d =
-    let t,d,p = date d, duration d, precision d in
+  let during ~pos d =
+    let t,d,p = date ~pos d, duration d, precision d in
       (t,t+d,p)
 
-  let mk_time_pred (a,b,c) =
-    let args = List.map (fun x -> "", mk (Int x)) [a;b;c] in
-      mk (App (mk (Var "time_in_mod"), args))
+  let mk_time_pred ~pos (a,b,c) =
+    let args = List.map (fun x -> "", mk ~pos (Int x)) [a;b;c] in
+      mk ~pos (App (mk ~pos (Var "time_in_mod"), args))
 
   let mk_var_mult bin mul =
     if bin <> "+" then raise Parsing.Parse_error else
@@ -132,7 +121,7 @@
       let mul = Frame.add_mul Frame.Variable mul in
       Lang_values.type_of_mul ~pos:None ~level:(-1) mul
 
-  let mk_ty name args =
+  let mk_ty ~pos name args =
     match name with
       | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
       | "unit" -> Lang_types.make (Lang_types.Ground Lang_types.Unit)
@@ -147,12 +136,12 @@
             match args with
               | ["",a;"",v;"",m] -> a,v,m
               | l when List.length l > 3 ->
-                  raise (Parse_error (curpos (), "Invalid type parameters."))
+                  raise (Parse_error (pos, "Invalid type parameters."))
               | l ->
                   List.iter
                     (fun (lbl,_) ->
                       if not (List.mem lbl ["audio";"video";"midi"]) then
-                        raise (Parse_error (curpos (),
+                        raise (Parse_error (pos,
                                             "Invalid type parameters.")))
                     l ;
                   let assoc x =
@@ -165,7 +154,7 @@
             Lang_values.source_t
               ~active:(name <> "source")
               (Lang_values.frame_kind_t audio video midi)
-      | _ -> raise (Parse_error (curpos (), "Unknown type constructor."))
+      | _ -> raise (Parse_error (pos, "Unknown type constructor."))
 
 %}
 
@@ -226,9 +215,11 @@
 %%
 
 program:
-  | EOF { mk Unit }
+  | error { raise (Parse_error (($symbolstartpos, $endpos), "Syntax error!")) } 
+  | EOF { mk ~pos:($symbolstartpos, $endpos) Unit }
   | exprs EOF { $1 }
 interactive:
+  | error { raise (Parse_error (($symbolstartpos, $endpos), "Syntax error!")) }
   | exprs SEQSEQ { $1 }
   | EOF { raise End_of_file }
 
@@ -250,34 +241,34 @@ g: | {} | GETS {}
  * eg. after SEQ. */
 exprs:
   | expr s                   { $1 }
-  | expr cexprs              { mk (Seq ($1,$2)) }
-  | expr SEQ exprs           { mk (Seq ($1,$3)) }
+  | expr cexprs              { mk ~pos:($symbolstartpos, $endpos) (Seq ($1,$2)) }
+  | expr SEQ exprs           { mk ~pos:($symbolstartpos, $endpos) (Seq ($1,$3)) }
   | binding s                { let doc,name,def = $1 in
-                                 mk (Let { doc=doc ; var=name ;
+                                 mk ~pos:($symbolstartpos, $endpos) (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
-                                           body = mk Unit }) }
+                                           body = mk ~pos:($symbolstartpos, $endpos) Unit }) }
   | binding cexprs           { let doc,name,def = $1 in
-                                 mk (Let { doc=doc ; var=name ;
+                                 mk ~pos:($symbolstartpos, $endpos) (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
                                            body = $2 }) }
   | binding SEQ exprs        { let doc,name,def = $1 in
-                                 mk (Let { doc=doc ; var=name ;
+                                 mk ~pos:($symbolstartpos, $endpos) (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
                                            body = $3 }) }
 cexprs:
   | cexpr s                  { $1 }
-  | cexpr cexprs             { mk (Seq ($1,$2)) }
-  | cexpr SEQ exprs          { mk (Seq ($1,$3)) }
+  | cexpr cexprs             { mk ~pos:($symbolstartpos, $endpos) (Seq ($1,$2)) }
+  | cexpr SEQ exprs          { mk ~pos:($symbolstartpos, $endpos) (Seq ($1,$3)) }
   | binding s                { let doc,name,def = $1 in
-                                 mk (Let { doc=doc ; var=name ;
+                                 mk ~pos:($symbolstartpos, $endpos) (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
-                                           body = mk Unit }) }
+                                           body = mk ~pos:($symbolstartpos, $endpos) Unit }) }
   | binding cexprs           { let doc,name,def = $1 in
-                                 mk (Let { doc=doc ; var=name ;
+                                 mk ~pos:($symbolstartpos, $endpos) (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
                                            body = $2 }) }
   | binding SEQ exprs        { let doc,name,def = $1 in
-                                 mk (Let { doc=doc ; var=name ;
+                                 mk ~pos:($symbolstartpos, $endpos) (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
                                            body = $3 }) }
 
@@ -288,110 +279,119 @@ cexprs:
 expr:
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ;
                                        $2 }
-  | MINUS FLOAT                      { mk (Float (-. $2)) }
-  | MINUS INT                        { mk (Int (- $2)) }
-  | MINUS LPAR expr RPAR             { mk (App (mk ~pos:(1,1) (Var "~-"),
+  | MINUS FLOAT                      { mk ~pos:($symbolstartpos, $endpos) (Float (-. $2)) }
+  | MINUS INT                        { mk ~pos:($symbolstartpos, $endpos) (Int (- $2)) }
+  | MINUS LPAR expr RPAR             { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var "~-"),
                                                 ["", $3])) }
   | LPAR expr RPAR                   { $2 }
-  | INT                              { mk (Int $1) }
-  | NOT expr                         { mk (App (mk ~pos:(1,1) (Var "not"),
+  | INT                              { mk ~pos:($symbolstartpos, $endpos) (Int $1) }
+  | NOT expr                         { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var "not"),
                                                 ["", $2])) }
-  | BOOL                             { mk (Bool $1) }
-  | FLOAT                            { mk (Float  $1) }
-  | STRING                           { mk (String $1) }
-  | list                             { mk (List $1) }
-  | REF expr                         { mk (Ref $2) }
-  | GET expr                         { mk (Get $2) }
-  | expr SET expr                    { mk (Set ($1,$3)) }
-  | MP3 app_opt                      { mk_enc (Lang_mp3.make_cbr $2) }
-  | MP3_VBR app_opt                  { mk_enc (Lang_mp3.make_vbr $2) }
-  | MP3_ABR app_opt                  { mk_enc (Lang_mp3.make_abr $2) }
-  | SHINE app_opt                    { mk_enc (Lang_shine.make $2) }
-  | FDKAAC app_opt                   { mk_enc (Lang_fdkaac.make $2) }
-  | FLAC app_opt                     { mk_enc (Lang_flac.make $2) }
-  | EXTERNAL app_opt                 { mk_enc (Lang_external_encoder.make $2) }
-  | GSTREAMER app_opt                { mk_enc (Lang_gstreamer.make ~pos:(curpos ()) $2) }
-  | WAV app_opt                      { mk_enc (Lang_wav.make $2) }
-  | AVI app_opt                      { mk_enc (Lang_avi.make $2) }
-  | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
-  | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk Unit }
-  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
-  | VAR                              { mk (Var $1) }
-  | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
-  | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),
+  | BOOL                             { mk ~pos:($symbolstartpos, $endpos) (Bool $1) }
+  | FLOAT                            { mk ~pos:($symbolstartpos, $endpos) (Float  $1) }
+  | STRING                           { mk ~pos:($symbolstartpos, $endpos) (String $1) }
+  | list                             { mk ~pos:($symbolstartpos, $endpos) (List $1) }
+  | REF expr                         { mk ~pos:($symbolstartpos, $endpos) (Ref $2) }
+  | GET expr                         { mk ~pos:($symbolstartpos, $endpos) (Get $2) }
+  | expr SET expr                    { mk ~pos:($symbolstartpos, $endpos) (Set ($1,$3)) }
+  | MP3 app_opt                      { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_mp3.make_cbr $2) }
+  | MP3_VBR app_opt                  { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_mp3.make_vbr $2) }
+  | MP3_ABR app_opt                  { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_mp3.make_abr $2) }
+  | SHINE app_opt                    { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_shine.make $2) }
+  | FDKAAC app_opt                   { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_fdkaac.make $2) }
+  | FLAC app_opt                     { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_flac.make $2) }
+  | EXTERNAL app_opt                 { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_external_encoder.make $2) }
+  | GSTREAMER app_opt                { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_gstreamer.make ~pos:($symbolstartpos, $endpos) $2) }
+  | WAV app_opt                      { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_wav.make $2) }
+  | AVI app_opt                      { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_avi.make $2) }
+  | OGG LPAR ogg_items RPAR          { mk ~pos:($symbolstartpos, $endpos) (Encoder (Encoder.Ogg $3)) }
+  | top_level_ogg_item               { mk ~pos:($symbolstartpos, $endpos) (Encoder (Encoder.Ogg [$1])) }
+  | LPAR RPAR                        { mk ~pos:($symbolstartpos, $endpos) Unit }
+  | LPAR expr COMMA expr RPAR        { mk ~pos:($symbolstartpos, $endpos) (Product ($2,$4)) }
+  | VAR                              { mk ~pos:($symbolstartpos, $endpos) (Var $1) }
+  | VARLPAR app_list RPAR            { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var $1),$2)) }
+  | VARLBRA expr RBRA                { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var "_[_]"),
                                            ["",$2;
-                                            "",mk ~pos:(1,1) (Var $1)])) }
+                                            "",mk ~pos:($startpos($1),$endpos($1)) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr
-                                     { mk_fun $3 $6 }
-  | LCUR exprs RCUR                  { mk_fun [] $2 }
+                                     { mk_fun ~pos:($symbolstartpos, $endpos) $3 $6 }
+  | LCUR exprs RCUR                  { mk_fun ~pos:($symbolstartpos, $endpos) [] $2 }
   | IF exprs THEN exprs if_elsif END
                                      { let cond = $2 in
                                        let then_b =
-                                         mk_fun ~pos:(3,4) [] $4
+                                         mk_fun ~pos:($startpos($3),$endpos($4)) [] $4
                                        in
                                        let else_b = $5 in
-                                       let op = mk ~pos:(1,1) (Var "if") in
-                                         mk (App (op,["",cond;
+                                       let op = mk ~pos:($startpos($1),$endpos($1)) (Var "if") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
   | SERVER_WAIT exprs THEN exprs END {  let condition = $2 in
-                                        let op = mk ~pos:(1,1) (Var "server.wait") in
+                                        let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.wait") in
                                         let after =
-                                          mk_fun ~pos:(2,3) [] $4
+                                          mk_fun ~pos:($startpos($4),$endpos($4)) [] $4
                                         in
-                                          mk (App (op, ["",condition;"",after])) }
+                                          mk ~pos:($symbolstartpos, $endpos) (App (op, ["",condition;"",after])) }
 
   | SERVER_WRITE expr THEN exprs END { let data = $2 in
                                        let after =
-                                         mk_fun ~pos:(3,4) [] $4
+                                         mk_fun ~pos:($startpos($4),$endpos($4)) [] $4
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.write") in
-                                         mk (App (op, ["",after;"",data])) }
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.write") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after;"",data])) }
 
   | SERVER_READ expr COLON VAR THEN exprs END {
                                        let marker = $2 in
-                                       let after =
-                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       let arg =
+                                         mk_ty ~pos:($startpos($4),$endpos($4)) "string" []
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.read") in
-                                         mk (App (op, ["",after;"",marker])) }
+                                       let after =
+                                         mk_fun ~pos:($startpos($6),$endpos($6)) ["",$4,arg,None] $6
+                                       in
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.read") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after;"",marker])) }
 
   | SERVER_READCHARS expr COLON VAR THEN exprs END {
                                        let len = $2 in
-                                       let after =
-                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       let arg =
+                                         mk_ty ~pos:($startpos($4),$endpos($4)) "string" []
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.readchars") in
-                                         mk (App (op, ["",after;"",len])) }
+                                       let after =
+                                         mk_fun ~pos:($startpos($6),$endpos($6)) ["",$4,arg,None] $6
+                                       in
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.readchars") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after;"",len])) }
 
   | SERVER_READLINE VAR THEN exprs END {
-                                       let after =
-                                         mk_fun ~pos:(5,6) ["",$2,mk_ty "string" [],None] $4
+                                       let arg =
+                                         mk_ty ~pos:($startpos($4),$endpos($4)) "string" []
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.readline") in
-                                         mk (App (op, ["",after])) }
+                                       let after =
+                                         mk_fun ~pos:($startpos($4),$endpos($4)) ["",$2,arg,None] $4
+                                       in
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.readline") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after])) }
 
-  | expr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN0 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | expr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN1 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | expr BIN2 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN2 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | expr BIN3 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | expr BIN3 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | expr TIMES expr                { mk (App (mk ~pos:(2,2) (Var "*"),
+  | expr TIMES expr                { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var "*"),
                                                 ["",$1;"",$3])) }
-  | expr MINUS expr                { mk (App (mk ~pos:(2,2) (Var "-"),
+  | expr MINUS expr                { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var "-"),
                                                 ["",$1;"",$3])) }
-  | INTERVAL                       { mk_time_pred (between (fst $1) (snd $1)) }
-  | TIME                           { mk_time_pred (during $1) }
+  | INTERVAL                       { mk_time_pred ~pos:($symbolstartpos, $endpos) (between ~pos:($symbolstartpos, $endpos) (fst $1) (snd $1)) }
+  | TIME                           { mk_time_pred ~pos:($symbolstartpos, $endpos) (during ~pos:($symbolstartpos, $endpos) $1) }
 
 ty:
-  | VAR                       { mk_ty $1 [] }
-  | VARLPAR ty_args RPAR      { mk_ty $1 $2 }
-  | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some (curpos())) $3 }
+  | VAR                       { mk_ty ~pos:($symbolstartpos, $endpos) $1 [] }
+  | VARLPAR ty_args RPAR      { mk_ty ~pos:($symbolstartpos, $endpos) $1 $2 }
+  | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some ($symbolstartpos, $endpos)) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
   | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
   | INT                       { Lang_values.type_of_int $1 }
@@ -426,100 +426,109 @@ cexpr:
   | LPAR expr RPAR                   { $2 }
   | LPAR expr COLON ty RPAR          { Lang_types.(<:) $2.Lang_values.t $4 ;
                                        $2 }
-  | INT                              { mk (Int $1) }
-  | NOT expr                         { mk (App (mk ~pos:(1,1) (Var "not"),
+  | INT                              { mk ~pos:($symbolstartpos, $endpos) (Int $1) }
+  | NOT expr                         { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var "not"),
                                                 ["", $2])) }
-  | BOOL                             { mk (Bool $1) }
-  | FLOAT                            { mk (Float  $1) }
-  | STRING                           { mk (String $1) }
-  | list                             { mk (List $1) }
-  | REF expr                         { mk (Ref $2) }
-  | GET expr                         { mk (Get $2) }
-  | cexpr SET expr                   { mk (Set ($1,$3)) }
-  | MP3 app_opt                      { mk_enc (Lang_mp3.make_cbr $2) }
-  | MP3_VBR app_opt                  { mk_enc (Lang_mp3.make_vbr $2) }
-  | MP3_ABR app_opt                  { mk_enc (Lang_mp3.make_abr $2) }
-  | SHINE app_opt                    { mk_enc (Lang_shine.make $2) }
-  | FLAC app_opt                     { mk_enc (Lang_flac.make $2) }
-  | FDKAAC app_opt                   { mk_enc (Lang_fdkaac.make $2) }
-  | EXTERNAL app_opt                 { mk_enc (Lang_external_encoder.make $2) }
-  | WAV app_opt                      { mk_enc (Lang_wav.make $2) }
-  | AVI app_opt                      { mk_enc (Lang_avi.make $2) }
-  | OGG LPAR ogg_items RPAR          { mk (Encoder (Encoder.Ogg $3)) }
-  | top_level_ogg_item               { mk (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk Unit }
-  | LPAR expr COMMA expr RPAR        { mk (Product ($2,$4)) }
-  | VAR                              { mk (Var $1) }
-  | VARLPAR app_list RPAR            { mk (App (mk ~pos:(1,1) (Var $1),$2)) }
-  | VARLBRA expr RBRA                { mk (App (mk ~pos:(1,1) (Var "_[_]"),
+  | BOOL                             { mk ~pos:($symbolstartpos, $endpos) (Bool $1) }
+  | FLOAT                            { mk ~pos:($symbolstartpos, $endpos) (Float  $1) }
+  | STRING                           { mk ~pos:($symbolstartpos, $endpos) (String $1) }
+  | list                             { mk ~pos:($symbolstartpos, $endpos) (List $1) }
+  | REF expr                         { mk ~pos:($symbolstartpos, $endpos) (Ref $2) }
+  | GET expr                         { mk ~pos:($symbolstartpos, $endpos) (Get $2) }
+  | cexpr SET expr                   { mk ~pos:($symbolstartpos, $endpos) (Set ($1,$3)) }
+  | MP3 app_opt                      { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_mp3.make_cbr $2) }
+  | MP3_VBR app_opt                  { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_mp3.make_vbr $2) }
+  | MP3_ABR app_opt                  { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_mp3.make_abr $2) }
+  | SHINE app_opt                    { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_shine.make $2) }
+  | FDKAAC app_opt                   { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_fdkaac.make $2) }
+  | FLAC app_opt                     { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_flac.make $2) }
+  | EXTERNAL app_opt                 { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_external_encoder.make $2) }
+  | GSTREAMER app_opt                { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_gstreamer.make ~pos:($symbolstartpos, $endpos) $2) }
+  | WAV app_opt                      { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_wav.make $2) }
+  | AVI app_opt                      { mk_enc ~pos:($symbolstartpos, $endpos) (Lang_avi.make $2) }
+  | OGG LPAR ogg_items RPAR          { mk ~pos:($symbolstartpos, $endpos) (Encoder (Encoder.Ogg $3)) }
+  | top_level_ogg_item               { mk ~pos:($symbolstartpos, $endpos) (Encoder (Encoder.Ogg [$1])) }
+  | LPAR RPAR                        { mk ~pos:($symbolstartpos, $endpos) Unit }
+  | LPAR expr COMMA expr RPAR        { mk ~pos:($symbolstartpos, $endpos) (Product ($2,$4)) }
+  | VAR                              { mk ~pos:($symbolstartpos, $endpos) (Var $1) } 
+  | VARLPAR app_list RPAR            { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var $1),$2)) }
+  | VARLBRA expr RBRA                { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($1),$endpos($1)) (Var "_[_]"),
                                            ["",$2;
-                                            "",mk ~pos:(1,1) (Var $1)])) }
+                                            "",mk ~pos:($startpos($1),$endpos($1)) (Var $1)])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr
-                                     { mk_fun $3 $6 }
-  | LCUR exprs RCUR                  { mk_fun [] $2 }
+                                     { mk_fun ~pos:($symbolstartpos, $endpos) $3 $6 }
+  | LCUR exprs RCUR                  { mk_fun ~pos:($symbolstartpos, $endpos) [] $2 }
   | IF exprs THEN exprs if_elsif END
                                      { let cond = $2 in
                                        let then_b =
-                                         mk_fun ~pos:(3,4) [] $4
+                                         mk_fun ~pos:($startpos($3),$endpos($4)) [] $4
                                        in
                                        let else_b = $5 in
-                                       let op = mk ~pos:(1,1) (Var "if") in
-                                         mk (App (op,["",cond;
+                                       let op = mk ~pos:($startpos($1),$endpos($1)) (Var "if") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op,["",cond;
                                                       "else",else_b;
                                                       "then",then_b])) }
-
   | SERVER_WAIT exprs THEN exprs END {  let condition = $2 in
-                                        let op = mk ~pos:(1,1) (Var "server.wait") in
+                                        let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.wait") in
                                         let after =
-                                          mk_fun ~pos:(2,3) [] $4
+                                          mk_fun ~pos:($startpos($4),$endpos($4)) [] $4
                                         in
-                                          mk (App (op, ["",condition;"",after])) }
+                                          mk ~pos:($symbolstartpos, $endpos) (App (op, ["",condition;"",after])) }
 
   | SERVER_WRITE expr THEN exprs END { let data = $2 in
                                        let after =
-                                         mk_fun ~pos:(3,4) [] $4
+                                         mk_fun ~pos:($startpos($4),$endpos($4)) [] $4
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.write") in
-                                         mk (App (op, ["",after;"",data])) }
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.write") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after;"",data])) }
 
   | SERVER_READ expr COLON VAR THEN exprs END {
                                        let marker = $2 in
-                                       let after =
-                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       let arg =
+                                         mk_ty ~pos:($startpos($4),$endpos($4)) "string" []
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.read") in
-                                         mk (App (op, ["",after;"",marker])) }
+                                       let after =
+                                         mk_fun ~pos:($startpos($6),$endpos($6)) ["",$4,arg,None] $6
+                                       in
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.read") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after;"",marker])) }
 
   | SERVER_READCHARS expr COLON VAR THEN exprs END {
                                        let len = $2 in
-                                       let after =
-                                         mk_fun ~pos:(5,6) ["",$4,mk_ty "string" [],None] $6
+                                       let arg =
+                                         mk_ty ~pos:($startpos($4),$endpos($4)) "string" []
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.readchars") in
-                                         mk (App (op, ["",after;"",len])) }
+                                       let after =
+                                         mk_fun ~pos:($startpos($6),$endpos($6)) ["",$4,arg,None] $6
+                                       in
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.readchars") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after;"",len])) }
 
   | SERVER_READLINE VAR THEN exprs END {
-                                       let after =
-                                         mk_fun ~pos:(5,6) ["",$2,mk_ty "string" [],None] $4
+                                       let arg =
+                                         mk_ty ~pos:($startpos($4),$endpos($4)) "string" []
                                        in
-                                       let op = mk ~pos:(1,1) (Var "server.readline") in
-                                         mk (App (op, ["",after])) }
+                                       let after =
+                                         mk_fun ~pos:($startpos($4),$endpos($4)) ["",$2,arg,None] $4
+                                       in
+                                       let op = mk ~pos:($symbolstartpos, $endpos) (Var "server.readline") in
+                                         mk ~pos:($symbolstartpos, $endpos) (App (op, ["",after])) }
 
-  | cexpr BIN0 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | cexpr BIN0 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr BIN1 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | cexpr BIN1 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr BIN2 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | cexpr BIN2 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr BIN3 expr                 { mk (App (mk ~pos:(2,2) (Var $2),
+  | cexpr BIN3 expr                 { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var $2),
                                                 ["",$1;"",$3])) }
-  | cexpr TIMES expr                { mk (App (mk ~pos:(2,2) (Var "*"),
+  | cexpr TIMES expr                { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var "*"),
                                                 ["",$1;"",$3])) }
-  | cexpr MINUS expr                { mk (App (mk ~pos:(2,2) (Var "-"),
+  | cexpr MINUS expr                { mk ~pos:($symbolstartpos, $endpos) (App (mk ~pos:($startpos($2),$endpos($2)) (Var "-"),
                                                 ["",$1;"",$3])) }
-  | INTERVAL                       { mk_time_pred (between (fst $1) (snd $1)) }
-  | TIME                           { mk_time_pred (during $1) }
+  | INTERVAL                       { mk_time_pred ~pos:($symbolstartpos, $endpos) (between ~pos:($symbolstartpos, $endpos) (fst $1) (snd $1)) }
+  | TIME                           { mk_time_pred ~pos:($symbolstartpos, $endpos) (during ~pos:($symbolstartpos, $endpos) $1) }
 
 list:
   | LBRA inner_list RBRA { $2 }
@@ -549,14 +558,14 @@ binding:
     }
   | DEF VARLPAR arglist RPAR g exprs END {
       let arglist = $3 in
-      let body = mk_fun arglist $6 in
+      let body = mk_fun ~pos:($symbolstartpos, $endpos) arglist $6 in
         $1,$2,body
     }
   | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
       let name = $3 in
       let arglist = $4 in
-      let body = mk_rec_fun doc name arglist $7 in
+      let body = mk_rec_fun ~pos:($symbolstartpos, $endpos) doc name arglist $7 in
         doc,name,body
     }
 
@@ -566,10 +575,10 @@ arglist:
   | arg COMMA arglist { $1::$3 }
 arg:
   | TILD VAR opt { $2,$2,
-                   T.fresh_evar ~level:(-1) ~pos:(Some (curpos ~pos:(2,2) ())),
+                   T.fresh_evar ~level:(-1) ~pos:(Some ($startpos($2), $endpos($2))),
                    $3 }
   | VAR opt      { "",$1,
-                   T.fresh_evar ~level:(-1) ~pos:(Some (curpos ~pos:(1,1) ())),
+                   T.fresh_evar ~level:(-1) ~pos:(Some ($startpos($1), $endpos($1))),
                    $2 }
 opt:
   | GETS expr { Some $2 }
@@ -578,16 +587,16 @@ opt:
 if_elsif:
   | ELSIF exprs THEN exprs if_elsif { let cond = $2 in
                                       let then_b =
-                                        mk_fun ~pos:(3,4) [] $4
+                                        mk_fun ~pos:($startpos($3), $endpos($4)) [] $4
                                       in
                                       let else_b = $5 in
-                                      let op = mk ~pos:(1,1) (Var "if") in
-                                        mk_fun []
-                                          (mk (App (op,["",cond;
+                                      let op = mk ~pos:($startpos($1),$endpos($1)) (Var "if") in
+                                        mk_fun ~pos:($symbolstartpos, $endpos) []
+                                          (mk ~pos:($symbolstartpos, $endpos) (App (op,["",cond;
                                                         "else",else_b;
                                                         "then",then_b]))) }
-  | ELSE exprs                      { mk_fun ~pos:(1,2) [] $2 }
-  |                                 { mk_fun [] (mk Unit) }
+  | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
+  |                                 { mk_fun ~pos:($symbolstartpos, $endpos) [] (mk ~pos:($symbolstartpos, $endpos) Unit) }
 
 app_opt:
   | %prec no_app { [] }

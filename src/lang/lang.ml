@@ -661,17 +661,17 @@ exception Error
 let report_error lexbuf f =
   let print_error error =
     flush_all () ;
-    let start = lexbuf.Lexing.lex_curr_p in
+    let start = lexbuf.Sedlexing_compat.lex_curr_p in
       Printf.printf "%sine %d, char %d"
         (if start.Lexing.pos_fname="" then "L" else
            Printf.sprintf "File %S, l" start.Lexing.pos_fname)
         start.Lexing.pos_lnum
         (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
-      if lexbuf.Lexing.lex_curr_pos - lexbuf.Lexing.lex_start_pos <= 0 then
+      let buf = Sedlexing_compat.Utf8.lexeme lexbuf in
+      if buf = "" then
         Printf.printf ": %s!\n" error
       else
-        Printf.printf
-          " before %S: %s!\n" (Lexing.lexeme lexbuf) error
+        Printf.printf " before %S: %s!\n" buf error
   in
     try f () with
       | Failure s when s = "lexing: empty token" -> print_error "Empty token" ; raise Error
@@ -784,23 +784,29 @@ let report_error lexbuf f =
           raise Error
       | e -> print_error "Unknown error" ; raise e
 
+let mk_expr ~pwd processor lexbuf =
+  let processor =
+    MenhirLib.Convert.Simplified.traditional2revised processor
+  in
+  let tokenizer =
+    Lang_pp.mk_tokenizer ~pwd lexbuf
+  in
+  Tutils.mutexify parse_lock processor tokenizer
+
 let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
-  let lexbuf = Lexing.from_channel in_chan in
-    assert (lexbuf.Lexing.lex_start_p = lexbuf.Lexing.lex_curr_p) ;
+  let lexbuf = Sedlexing_compat.Utf8.from_channel in_chan in
+    assert (lexbuf.Sedlexing_compat.lex_start_p = lexbuf.Sedlexing_compat.lex_curr_p) ;
     begin match ns with
       | Some ns ->
-          lexbuf.Lexing.lex_start_p <- { lexbuf.Lexing.lex_start_p with
+          lexbuf.Sedlexing_compat.lex_start_p <- { lexbuf.Sedlexing_compat.lex_start_p with
                                              Lexing.pos_fname = ns } ;
-          lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
+          lexbuf.Sedlexing_compat.lex_curr_p <- { lexbuf.Sedlexing_compat.lex_curr_p with
                                              Lexing.pos_fname = ns }
       | None -> ()
     end ;
     try report_error lexbuf (fun () ->
-      let tokenizer = Lang_pp.token dir in
-      let program =
-        Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
-      in
-        if not parse_only then type_and_run ~lib program)
+      let expr = mk_expr ~pwd:dir Lang_parser.program lexbuf in
+        if not parse_only then type_and_run ~lib expr)
     with Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
@@ -827,10 +833,9 @@ let from_string ?parse_only ~lib expr =
 
 let eval s =
   try
-    let lexbuf = Lexing.from_string s in
-    let tokenizer = Lang_pp.token "/nonexistent" in
+    let lexbuf = Sedlexing_compat.Utf8.from_string s in
     let expr =
-      Tutils.mutexify parse_lock (Lang_parser.program tokenizer) lexbuf
+      mk_expr ~pwd:"/nonexistent" Lang_parser.program lexbuf
     in
       Clock.collect_after
         (fun () ->
@@ -847,7 +852,7 @@ let from_in_channel ?parse_only ~lib x =
 
 let interactive () =
   Format.printf
-    "\nWelcome to the EXPERIMENTAL liquidsoap interactive loop.\n\n\
+    "\nWelcome to the liquidsoap interactive loop.\n\n\
      You may enter any sequence of expressions, terminated by \";;\".\n\
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), \
@@ -856,20 +861,17 @@ let interactive () =
     Format.printf
       "Logs can be found in %S.\n@."
       Dtools.Log.conf_file_path#get ;
-  let lexbuf = Lexing.from_channel stdin in
+  let lexbuf =
+    Sedlexing_compat.Utf8.from_interactive_channel stdin
+  in
   let rec loop () =
     Format.printf "# %!" ;
     if
       try
         report_error lexbuf (fun () ->
-        let tokenizer = Lang_pp.token (Unix.getcwd ()) in
-        let expr =
-          Tutils.finalize
-            ~k:(fun () -> Lexing.flush_input lexbuf)
-            (fun () ->
-               Tutils.mutexify parse_lock
-                 (Lang_parser.interactive tokenizer) lexbuf)
-        in
+          let expr =
+            mk_expr ~pwd:(Unix.getcwd ()) Lang_parser.interactive lexbuf
+          in
           Term.check ~ignored:false expr ;
           Term.check_unused ~lib:true expr ;
           Clock.collect_after
