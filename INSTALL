@@ -25,6 +25,8 @@ Mandatory dependencies:
    ocaml-duppy           >= 0.6.0
    ocaml-mm              >= 0.4.0
    ocaml-pcre
+   menhir
+   sedlex
 
 Recommended dependencies:
 
