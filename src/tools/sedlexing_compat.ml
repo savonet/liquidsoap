@@ -62,8 +62,39 @@ let backtrack lexbuf =
 
 module Utf8 = struct
   let from_channel ch =
-    make (Sedlexing.Utf8.from_channel ch) 
+    let stream = Stream.of_channel ch in
+    let gen () =
+      try Some (Stream.next stream) with Stream.Failure -> None
+    in
+    make (Sedlexing.Utf8.from_gen gen)
+
+  (* See ocaml-community/sedlex#45 *)
+  let from_interactive_channel ch =
+    let chunk_size = 512 in
+    let buf = Bytes.create chunk_size in
+    let cached = ref (-1) in
+    let position = ref (-1) in
+    let rec gen () =
+      match !position, !cached  with
+        | _, 0 ->
+            None
+        | -1, _ ->
+            begin
+              position := 0;
+              cached := input ch buf 0 chunk_size
+            end;
+            gen ()
+        | len, c when len = c ->
+            position := -1;
+            None
+        | len, _ ->
+            position := len+1;
+            Some (Bytes.get buf len)
+    in
+    make (Sedlexing.Utf8.from_gen gen)
+
   let from_string s =
     make (Sedlexing.Utf8.from_string s)
+
   let lexeme {lexbuf} = Sedlexing.Utf8.lexeme lexbuf
 end

@@ -852,7 +852,7 @@ let from_in_channel ?parse_only ~lib x =
 
 let interactive () =
   Format.printf
-    "\nWelcome to the EXPERIMENTAL liquidsoap interactive loop.\n\n\
+    "\nWelcome to the liquidsoap interactive loop.\n\n\
      You may enter any sequence of expressions, terminated by \";;\".\n\
      Each input will be fully processed: parsing, type-checking,\n\
      evaluation (forces default types), \
@@ -861,7 +861,9 @@ let interactive () =
     Format.printf
       "Logs can be found in %S.\n@."
       Dtools.Log.conf_file_path#get ;
-  let lexbuf = Sedlexing_compat.Utf8.from_channel stdin in
+  let lexbuf =
+    Sedlexing_compat.Utf8.from_interactive_channel stdin
+  in
   let rec loop () =
     Format.printf "# %!" ;
     if

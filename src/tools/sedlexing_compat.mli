@@ -19,6 +19,7 @@ val backtrack: lexbuf -> int
 
 module Utf8 : sig
   val from_channel : in_channel -> lexbuf
+  val from_interactive_channel : in_channel -> lexbuf
   val from_string : string -> lexbuf
   val lexeme: lexbuf -> string
 end
