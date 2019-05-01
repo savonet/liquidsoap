@@ -782,6 +782,7 @@ let report_error lexbuf f =
                (Utils.get_some pos))
             a b ;
           raise Error
+      | End_of_file -> raise End_of_file
       | e -> print_error "Unknown error" ; raise e
 
 let mk_expr ~pwd processor lexbuf =
