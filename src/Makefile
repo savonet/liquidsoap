@@ -203,13 +203,14 @@ synth = synth/keyboard.ml synth/synth_op.ml \
 builtins = lang/lang_builtins.ml lang/builtins_json.ml \
            lang/builtins_harbor.ml lang/builtins_dtools.ml \
            lang/builtins_time.ml lang/builtins_callbacks.ml \
-					 lang/builtins_server.ml lang/builtins_math.ml \
-					 $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \
-					 $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_https_secure_transport.ml lang/builtins_harbor_secure_transport.ml) \
-					 $(if $(W_LO),lang/builtins_lo.ml) \
-					 $(if $(W_MAGIC),lang/builtins_magic.ml) \
-					 $(if $(W_CRY),lang/builtins_cry.ml) \
-					 $(if $(W_LASTFM),lang/builtins_lastfm.ml)
+           lang/builtins_server.ml lang/builtins_math.ml \
+	   lang/builtins_resolvers.ml \
+           $(if $(W_SSL),lang/builtins_https.ml lang/builtins_harbor_ssl.ml) \
+           $(if $(W_OSX_SECURE_TRANSPORT),lang/builtins_https_secure_transport.ml lang/builtins_harbor_secure_transport.ml) \
+           $(if $(W_LO),lang/builtins_lo.ml) \
+           $(if $(W_MAGIC),lang/builtins_magic.ml) \
+           $(if $(W_CRY),lang/builtins_cry.ml) \
+           $(if $(W_LASTFM),lang/builtins_lastfm.ml)
 
 liquidsoap_sources= \
 	$(tools) REVISION.ml converters/audio_converter.ml $(stream) \
