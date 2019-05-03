@@ -114,8 +114,13 @@ tools/win32/process_utils.mli: tools/unix/process_utils.mli
 	$(V)echo CP $< $@
 	$(V)cp -f $< $@
 
+%.ml: %.mll
+	@echo $(<:.mll=.mli) $(<:.mll=.ml) >> auto_clean
+	$(V)echo OCAMLLEX $<
+	$(V)$(OCAMLLEX) $<
+
 %.ml %.mli: %.mly
-	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
+	@echo $(<:.mly=.mli) $(<:.mly=.ml) $(<:.mly=.conflicts) >> auto_clean
 	$(V)echo MENHIR $<
 	$(V)$(MENHIR) --unused-tokens --explain $<
 
