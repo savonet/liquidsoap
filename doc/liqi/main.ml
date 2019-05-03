@@ -52,7 +52,7 @@ let pp =
               | t -> t
             end
 
-type fmt = [`HTML | `LATEX_FULL | `LATEX]
+type fmt = [`HTML | `LATEX_FULL | `LATEX | `MARKDOWN]
 
 let infile = ref "stdin"
 let outfile = ref "stdout"
@@ -84,6 +84,9 @@ let () =
         "--latex",
             Arg.Unit (fun () -> outfmt := `LATEX),
             "Output LaTeX files (for inclusion).";
+        "--markdown",
+            Arg.Unit (fun () -> outfmt := `MARKDOWN),
+            "Output markdown files (for inclusion).";
         "--basedir",
             Arg.Set_string basedir,
             "Relative path (from output file) to directory where to find \
@@ -137,3 +140,4 @@ let () =
             ~basedir:(!basedir^"/") outchan ?title doc
       | `LATEX -> Latex.print false outchan doc
       | `LATEX_FULL -> Latex.print true outchan doc
+      | `MARKDOWN -> Markdown.print outchan doc
