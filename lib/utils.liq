@@ -547,42 +547,6 @@ def exec_at(~freq=1.,~pred,f)
   add_timeout(freq,check)
 end
 
-# @flag hidden
-def exec_replaygain(~extract_replaygain="#{configure.libdir}/extract-replaygain",
-                       ~delay,file)
-  log = log(label="extract.replaygain",level=4)
-  x = run_process("#{extract_replaygain} #{quote(file)}")
-  stdout = string.replace(pattern='\\n',fun (_) -> "",fst(fst(x)))
-  stderr = string.replace(pattern='\\n',fun (_) -> "",snd(fst(x)))
-  if snd(x) == ("exit","0") then
-    stdout
-  else
-    log("Replaygain extraction failed: #{stderr}")
-    ""
-  end
-end
-
-# Enable replay gain metadata resolver. This resolver will process any file
-# decoded by liquidsoap and add a replay_gain metadata when this value could be
-# computed. For a finer-grained replay gain processing, use the replay_gain
-# protocol.
-# @category Liquidsoap
-# @param ~delay Maximum delay for extracting metadata
-# @param ~extract_replaygain The extraction program
-def enable_replaygain_metadata(
-       ~delay=(-1.),
-       ~extract_replaygain="#{configure.libdir}/extract-replaygain")
-  def replaygain_metadata(file)
-    ret = exec_replaygain(delay=delay,extract_replaygain=extract_replaygain,file)
-    if ret != "" then
-      [("replay_gain",ret)]
-    else
-      []
-    end
-  end
-  add_metadata_resolver("replay_gain", replaygain_metadata)
-end
-
 # Assign a new clock to the given source (and to other time-dependent sources)
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.

@@ -21,6 +21,10 @@ New:
 
 - Added `file.{unlink,rmdir}` to remove, resp., file and directories.
 
+- Added `file.write` to write content to a file.
+
+- Added `youtube-pl:<ID>` protocol to resolve and parse youtube playlists (or any playlist supported by `youtube-dl`) (#761)
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
@@ -36,6 +40,14 @@ Changed:
 - Removed `cross`/`crossfade` operators, superseeded by `smart_cross`/`smart_crossfade`
 
 - Rename `smart_cross`/`smart_crossfade` operators as `cross`/`crossfade`
+
+- Rename `file.duration` as `request.duration`
+
+- Removed duplicate `is_directory`
+
+- Rename `{basename,dirname}` as `path.{is_directory,basename,dirname}`
+
+- Empty playlists return by scripted resolvers is now considered a failure to resolve.
 
 - Rewrite `smooth_add` to use new `mkcross` functions.
 

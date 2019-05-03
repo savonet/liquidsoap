@@ -271,6 +271,18 @@ add_protocol("youtube-dl", youtube_dl_protocol,
               doc="Resolve a request using youtube-dl.",
               syntax="youtube-dl:uri")
 
+# Register the youtube-pl protocol.
+# Syntax: youtube-pl:<ID>
+# @flag hidden
+def youtube_pl_protocol(~rlog,~maxtime,arg)
+  tmp = file.temp("youtube-pl","")
+  file.write(data="youtube-pl:#{arg}",tmp)
+  [tmp]
+end
+add_protocol("youtube-pl", youtube_pl_protocol,
+              doc="Resolve a request as a youtube playlist using youtube-dl.",
+              temporary=true,syntax="youtube-pl:uri") 
+
 # Register tmp
 # @flag hidden
 def tmp_protocol(~rlog,~maxtime,arg) =

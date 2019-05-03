@@ -66,7 +66,8 @@ let () =
                 false,"",Lang.string_t]
                playlist_t
   in
-  add_builtin "add_playlist_parser" ~cat:Liq ~descr:"Register a new playlist parser."
+  add_builtin "add_playlist_parser" ~cat:Liq ~descr:"Register a new playlist parser. \
+    An empty playlist is considered as a failure to resolve."
     ["format",Lang.string_t,None,Some "Playlist format. If possible, a mime-type.";
      "strict",Lang.bool_t,None,Some "True if playlist format can be detected unambiguously.";
      "",parser_t,None,Some "Playlist parser"]
@@ -82,12 +83,13 @@ let () =
           | None -> args
         in
         let ret =
-          Lang.apply ~t:playlist_t fn args
+          Lang.to_list
+            (Lang.apply ~t:playlist_t fn args)
         in
+        if ret = [] then raise Not_found;
         List.map (fun el ->
           let (m,s) = Lang.to_product el in
-          (Lang.to_metadata_list m, Lang.to_string s))
-          (Lang.to_list  ret)
+          (Lang.to_metadata_list m, Lang.to_string s)) ret
       in
       Playlist_parser.parsers#register format
         { Playlist_parser.strict = strict; Playlist_parser.parser = fn };

@@ -21,7 +21,7 @@ def input.hls(~id="",~reload=10.,uri)
       log(label=id,level=4,"Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0,pl_sequence)
       # Fill the files
-      files = playlist.parse(path=dirname(!playlist_uri)^"/",pl)
+      files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
       def file_request(el) =
         meta = fst(el)
         file = snd(el)

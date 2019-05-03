@@ -290,59 +290,6 @@ let () =
             (List.assoc "" p)))))
 
 let () =
-  add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."
-    ["dir_sep",Lang.string_t,Some (Lang.string Filename.dir_sep),
-     Some "Directory separator.";
-     "",Lang.string_t,None,None]
-    Lang.string_t
-    (fun p ->
-      let dir_sep = Lang.to_string (List.assoc "dir_sep" p) in
-      Lang.string (Utils.file_extension ~dir_sep
-        (Lang.to_string (List.assoc "" p))))
-
-let () =
-  add_builtin "file.unlink" ~cat:Sys ~descr:"Remove a file."
-  ["",Lang.string_t,None,None]
-  Lang.unit_t
-  (fun p ->
-    try
-      Unix.unlink (Lang.to_string (List.assoc "" p));
-      Lang.unit
-    with _ -> Lang.unit)
-
-let () =
-  add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
-  ["",Lang.string_t,None,None]
-  Lang.unit_t
-  (fun p ->
-    try
-      Extralib.Unix.rm_dir (Lang.to_string (List.assoc "" p));
-      Lang.unit
-    with _ -> Lang.unit)
-
-let () =
-  add_builtin "file.temp" ~cat:Sys ~descr:"Return a fresh temporary filename. \
-    The temporary file is created empty, with permissions 0o600 (readable and writable only by the file owner)."
-    ["",Lang.string_t,None,Some "File prefix";
-     "",Lang.string_t,None, Some "File suffix"]
-    Lang.string_t
-    (fun p ->
-      Lang.string (Filename.temp_file
-        (Lang.to_string (Lang.assoc "" 1 p))
-        (Lang.to_string (Lang.assoc "" 2 p))))
-
-let () =
-  add_builtin "file.temp_dir" ~cat:Sys ~descr:"Return a fresh temporary directory name. \
-    The temporary directory is created empty, with permissions 0o700 (readable, writable and listable only by the file owner)."
-    ["",Lang.string_t,None,Some "Directory prefix";
-     "",Lang.string_t,None, Some "Directory suffix"]
-    Lang.string_t
-    (fun p ->
-      Lang.string (Extralib.Filename.mk_temp_dir
-        (Lang.to_string (Lang.assoc "" 1 p))
-        (Lang.to_string (Lang.assoc "" 2 p))))
-
-let () =
   let t = "",Lang.int_t,None,None in
     add_builtin "time_in_mod" ~cat:Other ~flags:[Lang.Hidden]
       ~descr:("INTERNAL: time_in_mod(a,b,c) checks that the unix time T "^
@@ -1988,104 +1935,15 @@ let () =
          Lang.unit)
 
 let () =
-  add_builtin "file.duration" ~cat:Liq
+  add_builtin "request.duration" ~cat:Liq
     ["",Lang.string_t,None,None] Lang.float_t
     ~descr:"Compute the duration in seconds of audio data contained in \
-            a file. The computation may be expensive. \
+            a request. The computation may be expensive. \
             Returns -1. if computation failed, typically if the file was \
             not recognized as valid audio."
     (fun p ->
        let f = Lang.to_string (List.assoc "" p) in
          Lang.float (try Request.duration f with Not_found -> -1.))
-
-let () =
-  add_builtin "file.exists" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.bool_t
-    ~descr:"Returns true if the file or directory exists."
-    (fun p ->
-       let f = Lang.to_string (List.assoc "" p) in
-       Lang.bool (Sys.file_exists f))
-
-let () =
-  add_builtin "file.is_directory" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.bool_t
-    ~descr:"Returns true if the file exists and is a directory."
-    (fun p ->
-       let f = Lang.to_string (List.assoc "" p) in
-       Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
-
-let () =
-  (* This is not named "file.read" because we might want to use that for a
-     proper file API, with descriptors, etc. *)
-  add_builtin "file.contents" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.string_t
-    ~descr:"Read the whole contents of a file."
-    (fun p ->
-      let f = Lang.to_string (List.assoc "" p) in
-      let ic = open_in f in
-      let s = ref Bytes.empty in
-      let buflen = 1024 in
-      let buf = Bytes.create buflen in
-      try
-        while true do
-          let n = input ic buf 0 buflen in
-          if n = 0 then raise Exit;
-          s := Bytes.cat !s (if n = buflen then buf else Bytes.sub buf 0 n)
-        done;
-        assert false
-      with
-      | Exit -> close_in ic; Lang.string (Bytes.unsafe_to_string !s))
-
-let () =
-  add_builtin "file.watch" ~cat:Sys
-    [
-      "",Lang.string_t,None,Some "File to watch.";
-      "",Lang.fun_t [] Lang.unit_t,None,Some "Handler function.";
-    ]
-    (Lang.fun_t [] Lang.unit_t)
-    ~descr:"Call a function when a file is modified. Returns unwatch function."
-    (fun p ->
-       let fname = Lang.to_string (List.assoc_nth "" 0 p) in
-       let fname = Utils.home_unrelate fname in
-       let f = List.assoc_nth "" 1 p in
-       let f () = ignore (Lang.apply ~t:Lang.unit_t f []) in
-       let watch = !Configure.file_watcher in
-       let unwatch = watch [`Modify] fname f in
-       Lang.val_fun [] ~ret_t:Lang.unit_t
-         (fun _ _ -> unwatch (); Lang.unit))
-
-let () =
-  add_builtin "is_directory" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.bool_t
-    ~descr:"Returns true if the directory exists."
-    (fun p ->
-       let f = Lang.to_string (List.assoc "" p) in
-         Lang.bool (Sys.is_directory f))
-
-let () =
-  add_builtin "basename" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.string_t
-    ~descr:"Get the base name of a path."
-    (fun p ->
-       let f = Lang.to_string (List.assoc "" p) in
-         Lang.string (Filename.basename f))
-
-let () =
-  add_builtin "dirname" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.string_t
-    ~descr:"Get the directory name of a path."
-    (fun p ->
-       let f = Lang.to_string (List.assoc "" p) in
-         Lang.string (Filename.dirname f))
-
-let () =
-  add_builtin "path.concat" ~cat:Sys
-    ["",Lang.string_t,None,None; "",Lang.string_t,None,None;] Lang.string_t
-    ~descr:"Concatenate two paths, using the appropriate directory separator."
-    (fun p ->
-       let f = Lang.to_string (Lang.assoc "" 1 p) in
-       let s = Lang.to_string (Lang.assoc "" 2 p) in
-         Lang.string (Filename.concat f s))
 
 let () =
   add_builtin "playlist.parse" ~cat:Liq
