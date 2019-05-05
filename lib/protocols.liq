@@ -276,8 +276,11 @@ add_protocol("youtube-dl", youtube_dl_protocol,
 # @flag hidden
 def youtube_pl_protocol(~rlog,~maxtime,arg)
   tmp = file.temp("youtube-pl","")
-  file.write(data="youtube-pl:#{arg}",tmp)
-  [tmp]
+  if file.write(data="youtube-pl:#{arg}",tmp) then
+    [tmp]
+  else
+    []
+  end
 end
 add_protocol("youtube-pl", youtube_pl_protocol,
               doc="Resolve a request as a youtube playlist using youtube-dl.",
