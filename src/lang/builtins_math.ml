@@ -113,8 +113,8 @@ let () =
 
 let () =
   add_builtin "random.int" ~cat:Math ~descr:"Generate a random value."
-    ["min",Lang.float_t,Some (Lang.int min_int),None;
-     "max",Lang.float_t,Some (Lang.int max_int),None]
+    ["min",Lang.int_t,Some (Lang.int (1-(1 lsl 29))),None;
+     "max",Lang.int_t,Some (Lang.int (1 lsl 29)),None]
     Lang.int_t
     (fun p ->
        let min = Lang.to_int (List.assoc "min" p) in
