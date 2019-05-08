@@ -1,4 +1,5 @@
 %include "utils.liq"
+%include "playlist.liq"
 %include "resolvers.liq"
 %include "fades.liq"
 %include "protocols.liq"
