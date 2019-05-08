@@ -72,11 +72,11 @@ sources = \
 	sources/req_simple.ml sources/playlist.ml \
 	sources/req_queue.ml sources/req_equeue.ml \
 	sources/generated.ml sources/http_source.ml \
-  $(if $(W_SSL),sources/https_source.ml) \
-  $(if $(W_OSX_SECURE_TRANSPORT),sources/https_secure_transport_source.ml) \
+	$(if $(W_SSL),sources/https_source.ml) \
+	$(if $(W_OSX_SECURE_TRANSPORT),sources/https_secure_transport_source.ml) \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
-  $(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
-  $(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
+	$(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
+	$(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
 	sources/external_input.ml \
 	tools/liqMM.ml \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
@@ -154,7 +154,7 @@ encoder_formats = \
 outputs = outputs/output.ml \
 	outputs/pipe_output.ml outputs/hls_output.ml \
 	outputs/harbor_output.ml \
-  $(if $(W_SSL),outputs/harbor_output_ssl.ml) \
+	$(if $(W_SSL),outputs/harbor_output_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),outputs/harbor_output_secure_transport.ml) \
 	$(if $(W_AO),outputs/ao_out.ml) \
 	$(if $(W_CRY),outputs/icecast2.ml) \
@@ -171,15 +171,15 @@ io = io/udp_io.ml \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
 tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
-	$(if $(filter-out "Unix","$(OS_TYPE)"),win32/process_utils.mli win32/process_utils.ml) \
-	$(if $(filter-out "Win32","$(OS_TYPE)"),unix/process_utils.mli unix/process_utils.ml) \
+	$(if $(filter-out "Unix","$(OS_TYPE)"),win32/process_utils.ml) \
+	$(if $(filter-out "Win32","$(OS_TYPE)"),unix/process_utils.ml) \
 	tools/rqueue.ml tools/sedlexing_compat.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
 	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
-  $(if $(W_DYNLINK),tools/dyntools.ml) \
-  configure.ml tools/process_handler.ml \
+	$(if $(W_DYNLINK),tools/dyntools.ml) \
+	configure.ml tools/process_handler.ml \
 	$(if $(W_FFMPEG),tools/ffmpeg_config.ml) \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
@@ -273,7 +273,7 @@ REVISION.ml: Makefile $(liquidsoap_sources:REVISION.ml=)
 	fi
 
 clean-local:
-	rm -f REVISION.ml src/tools/win32/process_utils.mli
+	rm -f REVISION.ml
 
 install-local: all-auto
 	$(INSTALL) -d $(bindir)
