@@ -47,16 +47,6 @@ let hls_proto kind =
            The default value is however displayed in decimal \
            (0o666 = 6*8^2 + 4*8 + 4 = 412)." ;
 
-     "bitrates",
-     Lang.list_t Lang.int_t,
-     Some (Lang.list ~t:Lang.int_t []),
-     Some "Bitrates of the streams (in bits per second).";
-
-     "codecs",
-     Lang.list_t Lang.string_t,
-     Some (Lang.list ~t:Lang.string_t []),
-     Some "Codecs (according to RFC 6381) of the streams.";
-
      "",
      Lang.string_t,
      None,
@@ -82,7 +72,6 @@ type hls_stream_desc =
     mutable hls_oc : out_channel option; (** currently encoded file *)
   }
 
-open Dtools
 open Extralib
 
 (* TODO: can we share more with other classes? *)
@@ -105,43 +94,26 @@ class hls_output p =
     if l = [] then raise (Lang.Invalid_value (streams, "The list of streams cannot be empty"));
     l
   in
-  let bitrates = List.assoc "bitrates" p in
-  let codecs = List.assoc "codecs" p in
-  let bitrates =
-    let l = List.map Lang.to_int (Lang.to_list bitrates) in
-    if List.length l > 0 && List.length l <> List.length streams then raise (Lang.Invalid_value (bitrates, "There should be as many bitrates as streams"));
-    Array.of_list l
-  in
-  let codecs =
-    let l = List.map Lang.to_string (Lang.to_list codecs) in
-    if List.length l > 0 && List.length l <> List.length streams then raise (Lang.Invalid_value (codecs, "There should be as many codecs as streams"));
-    Array.of_list l
-  in
   let streams =
-    let log = Log.make ["output.hls"] in
-    let f i s =
+    let f s =
       let name, fmt = Lang.to_product s in
       let hls_name = Lang.to_string name in
       let hls_format = Lang.to_format fmt in
       let hls_bandwidth =
-        if Array.length bitrates > 0 then bitrates.(i) else
-          try
-            Encoder.bitrate hls_format
-          with Not_found ->
-            log#f 2 "Bitrate not found, defaulting to 128000, please specify bitrates.";
-             128000
+        try
+          Encoder.bitrate hls_format
+        with Not_found ->
+          raise (Lang.Invalid_value (fmt, "Unsupported format"))
       in
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
         with Not_found -> raise (Lang.Invalid_value (fmt, "Unsupported format"))
       in
       let hls_codec =
-        if Array.length codecs > 0 then codecs.(i) else
-          try
-            Encoder.rfc6381 hls_format
-          with Not_found ->
-            log#f 2 "Codec not found, defaulting to mp4a.40.34, please specify codecs.";
-            "mp4a.40.34"
+        try
+          Encoder.rfc6381 hls_format
+        with Not_found ->
+          raise (Lang.Invalid_value (fmt, "Unsupported format"))  
       in
       {
         hls_name;
@@ -153,7 +125,7 @@ class hls_output p =
         hls_oc = None;
       }
     in
-    let streams = List.mapi f streams in
+    let streams = List.map f streams in
     streams
   in
   let source = Lang.assoc "" 3 p in

@@ -87,10 +87,9 @@ def input.hls(~id="",~reload=10.,uri)
 end
 
 # @flag hidden
-def output.harbor.hls.base(~id,~bitrates,~codecs,~fallible,
-                           ~on_start,~on_stop,~playlist,
-                           ~segment_duration,~segments,~start,
-                           ~port,~path,serve,formats,s)
+def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
+                           ~playlist,~segment_duration,~segments,
+                           ~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
 
   on_shutdown(fun () -> file.rmdir(tmp_dir))
@@ -127,17 +126,15 @@ def output.harbor.hls.base(~id,~bitrates,~codecs,~fallible,
   end
   list.iter(register, ["OPTIONS","GET"])
 
-  output.file.hls(id=id,bitrates=bitrates,codecs=codecs,fallible=fallible,
-                  on_start=on_start,on_stop=on_stop,playlist=playlist,
+  output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
+                  playlist=playlist,start=start,
                   segment_duration=segment_duration,segments=segments,
-                  start=start,tmp_dir,formats,s)
+                  tmp_dir,formats,s)
 end
 
 # Output the source stream to an HTTP live stream served from the harbor HTTP server.
 # @category Source / Output
 # @param ~id Force the value of the source ID.
-# @param ~bitrates Bitrates of the streams (in bits per second).
-# @param ~codecs Codecs (according to RFC 6381) of the streams.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
@@ -148,22 +145,19 @@ end
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
-def output.harbor.hls(~id="",~bitrates=[],~codecs=[],~fallible=false,
-                      ~on_start={()},~on_stop={()},~playlist="stream.m3u8",
+def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
                       ~segment_duration=10.,~segments=10,~start=true,
-                      ~port=8000,~path="/",formats,s)
-  output.harbor.hls.base(id=id,bitrates=bitrates,codecs=codecs,fallible=fallible,
-                         on_start=on_start,on_stop=on_stop,playlist=playlist,
+                      ~playlist="stream.m3u8",~port=8000,~path="/",formats,s)
+  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
-                         start=start,port=port,path=path,harbor.http.register,formats,s)
+                         start=start,port=port,path=path,playlist=playlist,
+                         harbor.http.register,formats,s)
 end
 
 %ifdef harbor.https.register
 # Output the source stream to an HTTP live stream served from the harbor HTTPS server.
 # @category Source / Output
 # @param ~id Force the value of the source ID.
-# @param ~bitrates Bitrates of the streams (in bits per second).
-# @param ~codecs Codecs (according to RFC 6381) of the streams.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
@@ -174,13 +168,12 @@ end
 # @param ~port Port for incoming harbor (https) connections.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
-def output.harbor.hls.https(~id="",~bitrates=[],~codecs=[],~fallible=false,
-                            ~on_start={()},~on_stop={()},~playlist="stream.m3u8",
+def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()}
                             ~segment_duration=10.,~segments=10,~start=true,
-                            ~port=8000,~path="/",formats,s)
-  output.harbor.hls.base(id=id,bitrates=bitrates,codecs=codecs,fallible=fallible,
-                         on_start=on_start,on_stop=on_stop,playlist=playlist,
+                            ~port=8000,~path="/",~playlist="stream.m3u8",formats,s)
+  output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
-                         start=start,port=port,path=path,harbor.https.register,formats,s)
+                         start=start,port=port,path=path,playlist=playlist,
+                         harbor.https.register,formats,s)
 end
 %endif

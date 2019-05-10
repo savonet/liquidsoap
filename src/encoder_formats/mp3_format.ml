@@ -82,6 +82,6 @@ let to_string m =
 
 let bitrate m =
   match m.bitrate_control with
-  | VBR n -> n * 1000
+  | VBR _ -> raise Not_found
   | CBR n -> n * 1000
   | ABR abr -> abr.mean_bitrate * 1000
