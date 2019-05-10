@@ -168,7 +168,7 @@ end
 # @param ~port Port for incoming harbor (https) connections.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
-def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()}
+def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_duration=10.,~segments=10,~start=true,
                             ~port=8000,~path="/",~playlist="stream.m3u8",formats,s)
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
