@@ -150,10 +150,14 @@ AC_CHECK_OCAML_COMPILERS()
 OCAMLC_SYSTEM=`$OCAMLFIND ocamlc -config | grep system | cut -d' ' -f 2`
 if test "$OCAMLC_SYSTEM" = "mingw" -o "$OCAMLC_SYSTEM" = "mingw64"; then
   OS_TYPE="Win32"
+  WIN32_HOST="yes"
 else
   OS_TYPE="Unix"
+  UNIX_HOST="yes"
 fi
 AC_SUBST(OS_TYPE)
+AC_SUBST(WIN32_HOST)
+AC_SUBST(UNIX_HOST)
 
 # Add -fPIC to CFLAGS for compatibility with x86_64
 if test "$OS_TYPE" \!= "Win32" ; then
