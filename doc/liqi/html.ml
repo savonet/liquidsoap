@@ -167,8 +167,8 @@ let print_doc ?snippet_template ~subst ~basedir f =
   let pprinter =
     {
       print_paragraph = (fun f p x -> Printf.fprintf f "<p>\n%a</p>\n" p x);
-      print_list = (fun f p x -> Printf.fprintf f "<ul>\n%a</ul>\n" p x);
-      print_item = (fun f p x -> Printf.fprintf f "<li>\n%a</li>\n" p x);
+      print_list = (fun ~cur:_ f p x -> Printf.fprintf f "<ul>\n%a</ul>\n" p x);
+      print_item = (fun ~cur:_ f p x -> Printf.fprintf f "<li>\n%a</li>\n" p x);
       print_line = print_line;
     }
   in

@@ -68,8 +68,8 @@ let print_doc f =
   let pprinter =
     {
       print_paragraph = (fun f p x -> Printf.fprintf f "%a\n" p x);
-      print_list = (fun f p x -> Printf.fprintf f "\\begin{itemize}\n%a\n\\end{itemize}\n" p x);
-      print_item = (fun f p x -> Printf.fprintf f "\\item %a\n" p x);
+      print_list = (fun ~cur:_ f p x -> Printf.fprintf f "\\begin{itemize}\n%a\n\\end{itemize}\n" p x);
+      print_item = (fun ~cur:_ f p x -> Printf.fprintf f "\\item %a\n" p x);
       print_line = print_line;
     }
   in

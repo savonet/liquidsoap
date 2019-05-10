@@ -60,12 +60,16 @@ let rec print_line f l =
        | Bf l -> fprintf f "**%a**" print_line l)
     l
 
+let mk_ident n =
+  String.concat ""
+    (Array.to_list (Array.make (n-1) " "))
+
 let print_doc f =
   let pprinter =
     {
       print_paragraph = (fun f p x -> Printf.fprintf f "%a\n" p x);
-      print_list = (fun f p x -> Printf.fprintf f "%a\n" p x);
-      print_item = (fun f p x -> Printf.fprintf f "* %a\n" p x);
+      print_list = (fun ~cur f p x -> Printf.fprintf f "%a\n" p x);
+      print_item = (fun ~cur f p x -> Printf.fprintf f "%s* %a\n" (mk_ident cur) p x);
       print_line = print_line;
     }
   in

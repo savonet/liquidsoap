@@ -48,8 +48,8 @@ let sub_p = sub_p []
 
 type 'a paragraph_printer = {
   print_paragraph : out_channel -> (out_channel -> 'a -> unit) -> 'a -> unit;
-  print_list : out_channel -> (out_channel -> 'a -> unit) -> 'a -> unit;
-  print_item : out_channel -> (out_channel -> 'a -> unit) -> 'a -> unit;
+  print_list : cur:int -> out_channel -> (out_channel -> 'a -> unit) -> 'a -> unit;
+  print_item : cur:int -> out_channel -> (out_channel -> 'a -> unit) -> 'a -> unit;
   print_line : out_channel -> pitem list -> unit;
 }
 
@@ -69,7 +69,7 @@ let rec print_paragraph pprinter ?(cur=0) f = function
        else
          if i=cur then
            let p1,p2 = sub_p (fun j -> j>i) tl in
-             pprinter.print_item f
+             pprinter.print_item ~cur f
                (fun f p1 ->
                   pprinter.print_line f l ;
                   print_paragraph ~cur pprinter f p1)
@@ -78,5 +78,5 @@ let rec print_paragraph pprinter ?(cur=0) f = function
          else
            let p1,p2 = sub_p (fun j -> j>=i) p in
              assert (i>cur) ;
-             pprinter.print_list f (print_paragraph pprinter ~cur:i) p1 ;
+             pprinter.print_list ~cur f (print_paragraph pprinter ~cur:i) p1 ;
              print_paragraph pprinter ~cur f p2
