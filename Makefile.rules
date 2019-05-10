@@ -110,10 +110,6 @@ $(PROG)$(EXEEXT): $($(PROG)_sources:.ml=.$(o)) $(c_objs)
 		$(c_link)
 endif
 
-tools/win32/process_utils.mli: tools/unix/process_utils.mli
-	$(V)echo CP $< $@
-	$(V)cp -f $< $@
-
 %.ml: %.mll
 	@echo $(<:.mll=.mli) $(<:.mll=.ml) >> auto_clean
 	$(V)echo OCAMLLEX $<
