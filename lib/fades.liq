@@ -193,6 +193,10 @@ end
 # the choice of the transition.
 # @category Source / Track Processing
 # @param ~start_next   Crossing duration, if any.
+# @param ~override_duration \
+#                      Metadata field which, if present and containing a \
+#                      float, overrides the 'duration' parameter for current \
+#                      track. 
 # @param ~fade_in      Fade-in duration, if any.
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
@@ -204,10 +208,11 @@ end
 # @param ~margin       Margin to detect sources that have too different \
 #                      sound level for crossing.
 # @param s             The input source.
-def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
-                     ~default=(fun (a,b) -> sequence([a, b])),
-                     ~high=-15., ~medium=-32., ~margin=4.,
-                     ~width=2.,~conservative=true,s)
+def crossfade(~start_next=5.,~override_duration="liq_cross_duration",
+              ~fade_in=3.,~fade_out=3.,
+              ~default=(fun (a,b) -> sequence([a, b])),
+              ~high=-15., ~medium=-32., ~margin=4.,
+              ~width=2.,~conservative=true,s)
   fade.out = fade.out(type="sin",duration=fade_out)
   fade.in  = fade.in(type="sin",duration=fade_in)
   add = fun (a,b) -> add(normalize=false,[b, a])
