@@ -28,6 +28,7 @@ let make params =
     { Fdkaac_format.
         afterburner    = false;
         aot            = `Mpeg_4 `HE_AAC_v2;
+        bandwidth      = `Auto;
         bitrate        = 64;
         bitrate_mode   = `Constant;
         channels       = 2;
@@ -62,6 +63,10 @@ let make params =
                 raise (Error (t,err));
                end;
               { f with Fdkaac_format.bitrate_mode = `Variable i }
+          | ("bandwidth", { term = Int i; _ }) ->
+              { f with Fdkaac_format.bandwidth = `Fixed i }
+          | ("bandwidth", { term = String s; _ }) when String.lowercase_ascii s = "auto" ->
+              { f with Fdkaac_format.bandwidth = `Auto }
           | ("bitrate",{ term = Int i; _}) ->
               { f with Fdkaac_format.bitrate = i }
           | ("channels",{ term = Int i; _}) ->

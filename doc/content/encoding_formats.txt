@@ -213,12 +213,14 @@ This encoder can do both AAC and AAC+.
 
 Its syntax is:
 %%(fdkaac_enc.liq)
-%fdkaac(channels=2, samplerate=44100, bitrate=64, afterburner=false, aot="mpeg2_he_aac_v2", transmux="adts", sbr_mode=false)
+%fdkaac(channels=2, samplerate=44100, bandwidth="auto", bitrate=64, afterburner=false, aot="mpeg2_he_aac_v2", transmux="adts", sbr_mode=false)
 %%
 
 Where @aot@ is one of: @"mpeg4_aac_lc"@, @"mpeg4_he_aac"@, @"mpeg4_he_aac_v2"@,
 @"mpeg4_aac_ld"@, @"mpeg4_aac_eld"@, @"mpeg2_aac_lc"@, @"mpeg2_he_aac"@ or
 @"mpeg2_he_aac_v2"@
+
+@bandwidth@ is one of: @"auto"@, any supported integer value.
 
 @transmux@ is one of: @"raw"@, @"adif"@, @"adts"@, @"latm"@, @"latm_out_of_band"@ or
 @"loas"@.

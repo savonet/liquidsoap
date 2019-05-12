@@ -40,6 +40,12 @@ type aot =
      | `Mpeg_2 of mpeg2_aac
   ]
 
+type bandwidth =
+  [
+    | `Auto
+    | `Fixed of int
+  ]
+
 type bitrate_mode =
   [
      | `Constant
@@ -59,6 +65,7 @@ type transmux =
 type t = {
   afterburner    : bool;
   aot            : aot;
+  bandwidth      : bandwidth;
   bitrate_mode   : bitrate_mode;
   bitrate        : int;
   channels       : int;

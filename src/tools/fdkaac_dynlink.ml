@@ -30,7 +30,7 @@ sig
       type param =
           [ `Afterburner of bool
           | `Aot of aot
-          | `Bandwidth of bool
+          | `Bandwidth of int
           | `Bitrate of int
           | `Bitrate_mode of bitrate_mode
           | `Granule_length of int

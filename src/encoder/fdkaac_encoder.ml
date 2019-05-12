@@ -54,7 +54,7 @@ module type Fdkaac_t =
         type param =
             [ `Afterburner of bool
             | `Aot of aot
-            | `Bandwidth of bool
+            | `Bandwidth of int
             | `Bitrate of int
             | `Bitrate_mode of bitrate_mode
             | `Granule_length of int
@@ -77,8 +77,13 @@ struct
     let encoder =
       Fdkaac.Encoder.create params.Fdkaac_format.channels
     in
+    let bandwidth = match params.Fdkaac_format.bandwidth with
+      | `Auto -> 0
+      | `Fixed b -> b
+    in
     let params = [
       `Aot params.Fdkaac_format.aot;
+      `Bandwidth bandwidth;
       `Samplerate params.Fdkaac_format.samplerate;
       `Transmux params.Fdkaac_format.transmux;
       `Afterburner params.Fdkaac_format.afterburner;
