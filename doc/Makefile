@@ -10,6 +10,7 @@ CONTENT=$(wildcard content/*.txt)
 PRE_HTML=$(shell echo $(CONTENT:.txt=.html) | sed -e 's/content\//html\//g') \
      html/reference.html html/settings.html html/protocols.html
 HTML=html/scripts/index.html
+MD=$(addprefix md/,$(notdir $(CONTENT:.txt=.md)))
 TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
 PDF=$(TEX:.tex=.pdf)
 
@@ -22,6 +23,10 @@ LIQI_DEPS = liqi/liqi template.html snippet.html
 doc: html
 
 html: $(HTML)
+
+md: $(MD)
+
+.PHONY: md
 
 pdf: liqref.pdf
 
@@ -54,8 +59,13 @@ tex/%.pdf: tex/%.tex
 	@echo Converting $(<) to $(@)...
 	@cd tex; pdflatex ../$(<)
 
+md/%.md: content/%.txt
+	@echo Converting $(<) to $(@)
+	@mkdir -p md
+	@./liqi/liqi --markdown -i $(<) -o $(@)
+
 liqi/liqi: all-subdirs
-	@# If I don't put anything here, make tries to build liqi/liqi
+	@# If I don\'t put anything here, make tries to build liqi/liqi
 	@# from liqi/liqi.o by using gcc
 
 ../src/liquidsoap:
