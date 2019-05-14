@@ -73,22 +73,28 @@ let print_doc f =
       print_line = print_line;
     }
   in
-    List.iter
-      (function
-         | Header (n,_,s) ->
-             fprintf f "%s %s\n"
-               (String.concat "" (Array.to_list (Array.make n "#")))
-               !s
-         | Paragraph p -> print_paragraph pprinter f p
-         | Image (title,url) -> fprintf f "![%s](%s)" title url
-         | Antiquote s -> fprintf f "%s" s 
-         | Snippet (_,body,language) ->
-             let language = match language with
-               | Some l -> l
-               | None -> ""
-             in
-             fprintf f "```%s\n%s```\n\n" language body
-      )
+  let hlevel_base = ref (-1) in
+  List.iter
+    (function
+     | Header (n,_,s) ->
+        (* First level is the basic level. *)
+        if hlevel_base.contents < 0 then hlevel_base := n;
+        let n = n - hlevel_base.contents + 1 in
+        assert (n > 0);
+        if n = 1 || n = 2 then
+          fprintf f "%s\n%s\n" !s (String.make (String.length !s) (if n = 1 then '=' else '-'))
+        else
+          fprintf f "%s %s\n" (String.make n '#') !s
+     | Paragraph p -> print_paragraph pprinter f p
+     | Image (title,url) -> fprintf f "![%s](%s)" title url
+     | Antiquote s -> fprintf f "%s" s
+     | Snippet (_,body,language) ->
+        let language = match language with
+          | Some l -> l
+          | None -> ""
+        in
+        fprintf f "```%s\n%s```\n\n" language body
+    )
 
 let print f doc =
   fprintf f "%a\n" print_doc doc
