@@ -23,6 +23,9 @@
 open Liqi
 open Printf
 
+(** reStructuredText. *)
+let rst = ref false
+
 let opening_quotes = ref false
 
 let r_quotes = Str.regexp "\""
@@ -55,7 +58,17 @@ let rec print_line f l =
              fprintf f "```\n%s```\n" s
            else
              fprintf f "`%s`" s
-       | HRef (txt,url) -> fprintf f "[%s](%s)" !txt url
+       | HRef (txt,url) ->
+          let lurl = String.length url in
+          if rst.contents then
+            if lurl > 7 && String.sub url 0 7 = "http://" then
+              fprintf f "`%s <%s>`" txt url
+            else if lurl > 5 && String.sub url (lurl-5) 5 = ".html" then
+              fprintf f ":doc:`%s`" (String.sub url 0 (lurl-5))
+            else
+              fprintf f "[%s](%s)" !txt url
+          else
+            fprintf f "[%s](%s)" !txt url
        | Em l -> fprintf f "*%a*" print_line l
        | Bf l -> fprintf f "**%a**" print_line l)
     l

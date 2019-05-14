@@ -87,6 +87,9 @@ let () =
         "--markdown",
             Arg.Unit (fun () -> outfmt := `MARKDOWN),
             "Output markdown files (for inclusion).";
+        "--rst",
+            Arg.Unit (fun () -> Markdown.rst := true; outfmt := `MARKDOWN),
+            "Output markdown files (for inclusion).";
         "--basedir",
             Arg.Set_string basedir,
             "Relative path (from output file) to directory where to find \

@@ -11,6 +11,7 @@ PRE_HTML=$(shell echo $(CONTENT:.txt=.html) | sed -e 's/content\//html\//g') \
      html/reference.html html/settings.html html/protocols.html
 HTML=html/scripts/index.html
 MD=$(addprefix md/,$(notdir $(CONTENT:.txt=.md)))
+RST=$(addprefix rst/,$(notdir $(CONTENT:.txt=.rst)))
 TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
 PDF=$(TEX:.tex=.pdf)
 
@@ -24,9 +25,9 @@ doc: html
 
 html: $(HTML)
 
-md: $(MD)
+md: liqi/liqi $(MD)
 
-.PHONY: md
+rst: liqi/liqi $(RST)
 
 pdf: liqref.pdf
 
@@ -63,6 +64,11 @@ md/%.md: content/%.txt
 	@echo Converting $(<) to $(@)
 	@mkdir -p md
 	@./liqi/liqi --markdown -i $(<) -o $(@)
+
+rst/%.rst: content/%.txt
+	@echo Converting $(<) to $(@)
+	@mkdir -p rst
+	@./liqi/liqi --rst -i $(<) -o $(@)
 
 liqi/liqi: all-subdirs
 	@# If I don\'t put anything here, make tries to build liqi/liqi
