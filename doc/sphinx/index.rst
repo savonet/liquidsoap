@@ -23,7 +23,6 @@ Welcome to Liquidsoap's documentation!
    crossfade
    custom-path
    documentation
-..   dynamic_sources
    encoding_formats
    external_decoders
    external_encoders
@@ -67,6 +66,7 @@ Welcome to Liquidsoap's documentation!
    video
    video-static
    windows
+..   dynamic_sources
 
 Indices and tables
 ==================

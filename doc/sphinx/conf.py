@@ -53,7 +53,7 @@ source_suffix = ['.rst', '.md']
 import recommonmark
 from recommonmark.parser import CommonMarkParser
 from recommonmark.transform import AutoStructify
-source_parsers = {'.md': CommonMarkParser}
+#source_parsers = {'.md': CommonMarkParser}
 
 # The master toctree document.
 master_doc = 'index'
