@@ -24,6 +24,7 @@ clean:
 md:
 	@$(MAKE) -C .. $@
 	@cp ../md/*.md .
+	@chmod -w *.md
 	-@ln -s index.md liquidsoap.md
 
 .PHONY: md
