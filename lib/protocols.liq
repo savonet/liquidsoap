@@ -418,6 +418,8 @@ add_protocol(static=true,"say",say_protocol,
 register(name="AWS protocols settings","protocol.aws",())
 register(name="Profile",descr="Use a specific profile from your credential file.",
          "protocol.aws.profile","")
+register(name="Endpoint URL",descr="Alternative endpoint URL (useful for other S3 implementations).",
+         "protocol.aws.endpoint","")
 register(name="Region",descr="AWS Region",
          "protocol.aws.region","")
 register(name="Binary",descr="Path to aws CLI binary",
@@ -438,6 +440,15 @@ def aws_base() =
   aws =
     if region !="" then
       "#{aws} --region #{region}"
+    else
+      aws
+    end
+
+  endpoint = get(default="","protocol.aws.endpoint")
+
+  aws =
+    if endpoint !="" then
+      "#{aws} --endpoint-url #{quote(endpoint)}"
     else
       aws
     end
