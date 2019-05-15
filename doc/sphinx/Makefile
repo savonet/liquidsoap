@@ -23,6 +23,7 @@ clean:
 
 md:
 	@$(MAKE) -C .. $@
+	@chmod +w *.md
 	@cp ../md/*.md .
 	@chmod -w *.md
 	-@ln -s index.md liquidsoap.md
