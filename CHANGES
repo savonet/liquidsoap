@@ -75,6 +75,8 @@ Fixed:
 
 - Correct types and default values for `random.int` (#767).
 
+- Allow changing pipeline in gstreamer functions. (#762)
+
 1.3.7 (09-04-2019)
 =====
 

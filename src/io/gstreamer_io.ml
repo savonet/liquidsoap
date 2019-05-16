@@ -103,9 +103,9 @@ object (self)
           self#log#f 4 "Done restarting pipeline";
         retry_in
       with exn ->
-        retry_in <- on_error exn;
         self#log#f 3 "Error while restarting pipeline: %s" (Printexc.to_string exn);
         self#log#f 4 "Backtrace: %s" (Printexc.get_backtrace ());
+        retry_in <- on_error exn;
         self#log#f 3 "Will retry again in %.02f" retry_in;
         Tutils.mutexify restart_m (fun () ->
           restarting <- false) ();
@@ -462,8 +462,7 @@ object (self)
   method stype = Source.Fallible
   method remaining = -1
 
-  (* Source is ready when ready = true
-   * and gst has some audio or some video. *)
+  (* Source is ready when ready = true and gst has some audio or some video. *)
   val mutable ready = true
   method is_ready =
     let pending = function
@@ -477,7 +476,7 @@ object (self)
          (pending self#get_element.video))
     with
     | e ->
-      log#f 4 "Error when trying checking if ready: %s" (Printexc.to_string e);
+      log#f 4 "Error when trying to check if ready: %s" (Printexc.to_string e);
       false
 
   method abort_track = ()
@@ -485,11 +484,12 @@ object (self)
   method wake_up activations =
     super#wake_up activations;
     try
-      ignore (Element.set_state self#get_element.bin Element.State_playing);
       self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
+      ignore (Element.set_state self#get_element.bin Element.State_playing)
     with
-      | exn ->
-          self#on_error exn
+    | exn ->
+       self#log#f 4 "Error setting state to playing: %s" (Printexc.to_string exn);
+       self#on_error exn
 
   method sleep =
     self#stop_task;
@@ -511,26 +511,26 @@ object (self)
      if has_audio then
        Printf.sprintf
          "%s %s ! %s ! %s"
-         pipeline
-         (Utils.get_some audio_pipeline)
+         (pipeline ())
+         (Utils.get_some audio_pipeline ())
          (GU.Pipeline.decode_audio ())
          (GU.Pipeline.audio_sink ~channels "audio_sink")
      else
-       pipeline
+       pipeline ()
    in
    let pipeline =
      if has_video then
        Printf.sprintf
          "%s %s ! %s ! %s"
          pipeline
-         (Utils.get_some video_pipeline)
+         (Utils.get_some video_pipeline ())
          (GU.Pipeline.decode_video ())
          (GU.Pipeline.video_sink "video_sink")
      else
        pipeline
    in
    log#f 5 "GStreamer pipeline: %s" pipeline;
-   let bin =  Pipeline.parse_launch pipeline in
+   let bin = Pipeline.parse_launch pipeline in
    let wrap_sink sink pull =
      let m = Mutex.create () in
      let counter = ref 0 in
@@ -640,11 +640,11 @@ let () =
   in
   let proto = input_proto @ 
     [
-      "pipeline", Lang.string_t, Some (Lang.string ""),
+      "pipeline", Lang.string_getter_t 1, Some (Lang.string ""),
       Some "Main GStreamer pipeline.";
-      "audio_pipeline", Lang.string_t, Some (Lang.string "audiotestsrc"),
+      "audio_pipeline", Lang.string_getter_t 2, Some (Lang.string "audiotestsrc"),
       Some "Audio pipeline to input from.";
-      "video_pipeline", Lang.string_t, Some (Lang.string "videotestsrc"),
+      "video_pipeline", Lang.string_getter_t 3, Some (Lang.string "videotestsrc"),
       Some "Video pipeline to input from.";
     ]
   in
@@ -654,16 +654,16 @@ let () =
     ~flags:[]
     ~descr:"Stream audio+video from a GStreamer pipeline."
     (fun p kind ->
-      let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
-      let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
+      let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
+      let audio_pipeline = Lang.to_string_getter (List.assoc "audio_pipeline" p) in
+      let video_pipeline = Lang.to_string_getter (List.assoc "video_pipeline" p) in
       ((new audio_video_input p kind (pipeline,Some audio_pipeline,Some video_pipeline)):>Source.source))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_any in
   let proto = input_proto @ 
     [
-      "pipeline", Lang.string_t, Some (Lang.string "audiotestsrc"),
+      "pipeline", Lang.string_getter_t 1, Some (Lang.string "audiotestsrc"),
       Some "GStreamer pipeline to input from.";
     ]
   in
@@ -673,14 +673,14 @@ let () =
     ~flags:[]
     ~descr:"Stream audio from a GStreamer pipeline."
     (fun p kind ->
-      let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      ((new audio_video_input p kind ("",Some pipeline,None)):>Source.source))
+      let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
+      ((new audio_video_input p kind ((fun()->""),Some pipeline,None)):>Source.source))
 
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 (Lang.video_n 1) in
   let proto = input_proto @ 
     [
-      "pipeline", Lang.string_t, Some (Lang.string "videotestsrc"),
+      "pipeline", Lang.string_getter_t 1, Some (Lang.string "videotestsrc"),
       Some "GStreamer pipeline to input from.";
     ]
   in
@@ -690,5 +690,5 @@ let () =
     ~flags:[]
     ~descr:"Stream video from a GStreamer pipeline."
     (fun p kind ->
-      let pipeline = Lang.to_string (List.assoc "pipeline" p) in
-      ((new audio_video_input p kind ("",None,Some pipeline)):>Source.source))
+      let pipeline = Lang.to_string_getter (List.assoc "pipeline" p) in
+      ((new audio_video_input p kind ((fun()->""),None,Some pipeline)):>Source.source))

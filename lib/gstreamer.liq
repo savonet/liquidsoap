@@ -4,8 +4,9 @@
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~device V4L2 device to use.
-def input.v4l2(~id="",~device="/dev/video0")
-  pipeline = "v4l2src device=#{device}"
+# @param ~on_error Callback executed when an error happens.
+def input.v4l2(~id="",~device={"/dev/video0"},~on_error={3.})
+  pipeline = "v4l2src device=#{device()}"
   input.gstreamer.video(id=id, pipeline=pipeline)
 end
 
@@ -13,18 +14,20 @@ end
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~device V4L2 device to use.
-def input.v4l2_with_audio(~id="",~device="/dev/video0")
+# @param ~on_error Callback executed when an error happens.
+def input.v4l2_with_audio(~id="",~device={"/dev/video0"},~on_error={3.})
   audio_pipeline = "autoaudiosrc"
-  video_pipeline = "v4l2src device=#{device}"
+  video_pipeline = "v4l2src device=#{device()}"
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline)
 end
 
 # Play an http live stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
+# @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
-def gstreamer.hls(~id="",uri) =
-  pipeline = "souphttpsrc location=#{uri} ! tee name=t"
+def gstreamer.hls(~id="",~on_error={3.},uri) =
+  pipeline = {"souphttpsrc location=#{uri()} ! tee name=t"}
   audio_pipeline = "t. ! queue"
   video_pipeline = "t. ! queue"
   input.gstreamer.audio_video(id=id, pipeline=pipeline, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline)
