@@ -25,7 +25,7 @@ New:
 
 - Added `youtube-pl:<ID>` protocol to resolve and parse youtube playlists (or any playlist supported by `youtube-dl`) (#761)
 
-- Added `protocol.aws.endpoint` setting for the `s3://` protocol. (#778)
+- Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to @RecursiveGreen. (#778)
 
 Changed:
 
