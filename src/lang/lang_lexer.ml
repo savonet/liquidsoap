@@ -70,6 +70,9 @@ let var_char =
 let var_lit =
   [%sedlex.regexp? var_char, Star(var_char | decimal_digit | '.' | '\'')]
 
+let var_ref =
+  [%sedlex.regexp? "ref", (var_char | '.'), Star(var_char | decimal_digit | '.' | '\'')]
+
 let var =
   [%sedlex.regexp? var_lit|so|math|other_math]
 
@@ -171,6 +174,7 @@ let rec token lexbuf = match%sedlex lexbuf with
   | "mod"                          -> BIN3 (Sedlexing.Utf8.lexeme lexbuf)
   | "*"                            -> TIMES
 
+  | var_ref -> VAR (Sedlexing.Utf8.lexeme lexbuf)
   | "ref" -> REF
   | "!"   -> GET
   | ":="  -> SET
