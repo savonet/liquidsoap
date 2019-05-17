@@ -71,7 +71,7 @@ let var_lit =
   [%sedlex.regexp? var_char, Star(var_char | decimal_digit | '.' | '\'')]
 
 let var_ref =
-  [%sedlex.regexp? "ref", (var_char | '.'), Star(var_char | decimal_digit | '.' | '\'')]
+  [%sedlex.regexp? "ref", Plus(var_char | decimal_digit | '.' | '\'')]
 
 let var =
   [%sedlex.regexp? var_lit|so|math|other_math]
