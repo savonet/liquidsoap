@@ -115,6 +115,7 @@ let print_functions_md doc =
   List.iter
     (fun (cat, ff) ->
       Printf.printf "## %s\n\n" cat;
+      let ff = List.sort (fun (f,_) (f',_) -> compare f f') !ff in
       List.iter
         (fun (f,desc) ->
           let flags = List.filter (fun (n,_) -> n = "_flag") desc in
@@ -144,7 +145,7 @@ let print_functions_md doc =
               if List.mem "experimental" flags then Printf.printf "\nThis function is experimental.\n";
               Printf.printf "\n"
             )
-        ) !ff
+        ) ff
     ) by_cat
 
 let print_protocols_md doc =
