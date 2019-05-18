@@ -449,6 +449,14 @@ let options = [
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
 
+    ["--list-functions-md"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_functions_md (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "Documentation of all functions in markdown." ;
+
     ["--no-pervasives"],
     Arg.Clear pervasives,
     Printf.sprintf

@@ -79,6 +79,13 @@ liqi/liqi: all-subdirs
 	@echo "Go to the toplevel and type 'make'"
 	exit 1
 
+reference.pdf:
+	echo "# Liquidsoap reference\n\n" > reference.md;
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
+	  --no-pervasives ../lib/pervasives.liq --list-functions-md >> reference.md
+	pandoc reference.md -o reference.pdf
+	rm -f reference.md
+
 content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../lib/utils.liq
 ifeq ($(PERL_DOM),yes)
 	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
@@ -138,21 +145,6 @@ doc-install:
 
 clean-local:
 	rm -rf html $(TEX) content/reference.txt content/protocols.txt content/settings.txt content/*.txt.spell
-
-RCP=rsync -rLtCP --include="*.exe" --exclude="*.swp" --exclude="*.svn" \
-	--delete --stats
-RHOST=shell.sf.net:/home/groups/s/sa/savonet/htdocs/new/liq-svn
-upload: update
-	cd html ; $(RCP) . $(RHOST)
-	ssh $(USER)@shell.sf.net "chgrp -R savonet \
-	                            /home/groups/s/sa/savonet/htdocs \
-	                            > /dev/null 2>&1"
-	ssh $(USER)@shell.sf.net "find /home/groups/s/sa/savonet/htdocs \
-	                            -type d -exec chmod 2775 '{}' ';' \
-	                            > /dev/null 2>&1"
-	ssh $(USER)@shell.sf.net "find /home/groups/s/sa/savonet/htdocs \
-	                            -type f -exec chmod  664 '{}' ';' \
-	                            > /dev/null 2>&1"
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules

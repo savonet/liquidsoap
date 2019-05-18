@@ -76,17 +76,76 @@ let print_xml item =
     print_xml 1 item ;
     Printf.printf "</all>\n"
 
-let print_json item =
-  let rec json doc =
-    let ss = doc#get_subsections in
-    if ss = [] then `String doc#get_doc
-    else
-      let ss = List.map (fun (k,v) -> k, json v) ss in
-      let info = doc#get_doc in
-      let ss = if info = "(no doc)" then ss else ("info", `String info)::ss in
-      `Assoc ss
+let rec to_json doc =
+  let ss = doc#get_subsections in
+  let sanitize s =
+    let s = Bytes.of_string s in
+    for i = 0 to Bytes.length s - 1 do
+      if Bytes.get s i = '@' then s.[i] <- '`'
+    done;
+    Bytes.to_string s
   in
-  Printf.printf "%s\n" (JSON.to_string (json item))
+  if ss = [] then `String (sanitize doc#get_doc)
+  else
+    let ss = List.map (fun (k,v) -> k, to_json v) ss in
+    let info = doc#get_doc in
+    let ss = if info = "(no doc)" then ss else ("_info", `String (sanitize info))::ss in
+    `Assoc ss
+
+let print_json item =
+  Printf.printf "%s\n" (JSON.to_string (to_json item))
+
+let print_functions_md doc =
+  let doc = to_json doc in
+  let to_assoc = function `Assoc l -> l | _ -> assert false in
+  let to_string = function `String s -> s | _ -> assert false in
+  let doc = List.assoc "scripting values" (to_assoc doc) in
+  let doc = List.tl (to_assoc doc) in
+  let by_cat = ref [] in
+  let add (f,desc) =
+    let desc = to_assoc desc in
+    let cat = try to_string (List.assoc "_category" desc) with Not_found -> "" in
+    if not (List.mem_assoc cat !by_cat) then by_cat := (cat, ref []) :: !by_cat;
+    let ff = List.assoc cat !by_cat in
+    ff := (f,desc) :: !ff
+  in
+  List.iter add doc;
+  let by_cat = List.sort (fun (c,_) (c',_) -> compare c c') !by_cat in
+  let by_cat = List.filter (fun (c,_) -> c <> "") by_cat in
+  List.iter
+    (fun (cat, ff) ->
+      Printf.printf "## %s\n\n" cat;
+      List.iter
+        (fun (f,desc) ->
+          let flags = List.filter (fun (n,_) -> n = "_flag") desc in
+          let flags = List.map (fun (_,f) -> to_string f) flags in
+          if not (List.mem "hidden" flags) then
+            (
+              Printf.printf "### `%s`\n\n" f;
+              Printf.printf "%s\n" (to_string (List.assoc "_info" desc));
+              Printf.printf "```\n%s\n```\n\n" (to_string (List.assoc "_type" desc));
+              let args = List.filter (fun (n,_) -> n <> "_info" && n <> "_category" && n <> "_type" && n <> "_flag") desc in
+              let args =
+                List.map
+                  (fun (n,v) ->
+                    let v = to_assoc v in
+                    let s = try to_string (List.assoc "_info" v) with Not_found -> "" in
+                    let t = to_string (List.assoc "type" v) in
+                    let d = to_string (List.assoc "default" v) in
+                    n,s,t,d
+                  ) args
+              in
+              List.iter
+                (fun (n,s,t,d) ->
+                  let d = if d = "" then "" else ", which defaults to `"^d^"`" in
+                  let s = if s = "" then "" else ": "^s in
+                  Printf.printf "- `%s` (of type `%s`%s)%s\n" n t d s
+                ) args;
+              if List.mem "experimental" flags then Printf.printf "\nThis function is experimental.\n";
+              Printf.printf "\n"
+            )
+        ) !ff
+    ) by_cat
 
 let print : item -> unit =
   let rec print indent doc =
