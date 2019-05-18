@@ -27,11 +27,22 @@ end
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
 def gstreamer.hls(~id="",~on_error=fun(_)->3.,uri) =
-  def uri() = to_string_getter(uri)() end
+  uri = to_string_getter(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\" ! tee name=t"}
   audio_pipeline = "t. ! queue"
   video_pipeline = "t. ! queue"
   input.gstreamer.audio_video(id=id, pipeline=pipeline, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline, on_error=on_error)
+end
+
+# Play an audio-only http live stream.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param ~on_error Callback executed when an error happens.
+# @param uri URI of the HLS stream index.
+def gstreamer.hls.audio(~id="",~on_error=fun(_)->3.,uri) =
+  uri = to_string_getter(uri)
+  pipeline = {"souphttpsrc location=\"#{uri()}\""}
+  input.gstreamer.audio(id=id, pipeline=pipeline, on_error=on_error)
 end
 
 # Encode an x264 video file using gstreamer
