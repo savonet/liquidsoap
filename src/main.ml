@@ -430,6 +430,16 @@ let options = [
        supported formats and protocols), \
        output as XML." ;
 
+    ["--list-plugins-json"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_json (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "List all plugins (builtin scripting values, \
+       supported formats and protocols), \
+       output as JSON." ;
+
     ["--list-plugins"],
     Arg.Unit (fun () ->
                 secondary_task := true ;

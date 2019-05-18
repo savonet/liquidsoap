@@ -76,6 +76,18 @@ let print_xml item =
     print_xml 1 item ;
     Printf.printf "</all>\n"
 
+let print_json item =
+  let rec json doc =
+    let ss = doc#get_subsections in
+    if ss = [] then `String doc#get_doc
+    else
+      let ss = List.map (fun (k,v) -> k, json v) ss in
+      let info = doc#get_doc in
+      let ss = if info = "(no doc)" then ss else ("info", `String info)::ss in
+      `Assoc ss
+  in
+  Printf.printf "%s\n" (JSON.to_string (json item))
+
 let print : item -> unit =
   let rec print indent doc =
     let prefix =

@@ -9,3 +9,5 @@ type json =
   ]
 
 val from_string : string -> json
+
+val to_string : json -> string

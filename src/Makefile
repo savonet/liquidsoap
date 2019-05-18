@@ -170,13 +170,13 @@ io = io/udp_io.ml \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/extralib.ml tools/doc.ml tools/utils.ml tools/plug.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/doc.ml tools/utils.ml tools/plug.ml \
 	$(if $(WIN32_HOST),win32/process_utils.ml) \
 	$(if $(UNIX_HOST),unix/process_utils.ml) \
 	tools/rqueue.ml tools/sedlexing_compat.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
-	tools/wav_aiff.ml tools/tutils.ml tools/JSON.ml \
+	tools/wav_aiff.ml tools/tutils.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
 	configure.ml tools/process_handler.ml \

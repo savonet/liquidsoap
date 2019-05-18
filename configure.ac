@@ -750,7 +750,7 @@ module JSON = JSON
 __BLAH__
 else
 cat >> src/configure.ml <<__BLAH__
-module JSON = struct include Yojson.Basic let from_string s = from_string s end
+module JSON = struct include Yojson.Basic let from_string s = from_string s let to_string j = pretty_to_string j end
 __BLAH__
 fi
 
