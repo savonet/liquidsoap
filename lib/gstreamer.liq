@@ -27,6 +27,7 @@ end
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
 def gstreamer.hls(~id="",~on_error=fun(_)->3.,uri) =
+  def uri() = to_string_getter(uri)() end
   pipeline = {"souphttpsrc location=\"#{uri()}\" ! tee name=t"}
   audio_pipeline = "t. ! queue"
   video_pipeline = "t. ! queue"
