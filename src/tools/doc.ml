@@ -147,6 +147,22 @@ let print_functions_md doc =
         ) !ff
     ) by_cat
 
+let print_protocols_md doc =
+  let doc = to_json doc in
+  let to_assoc = function `Assoc l -> l | _ -> assert false in
+  let to_string = function `String s -> s | _ -> assert false in
+  let doc = List.assoc "protocols" (to_assoc doc) in
+  let doc = List.tl (to_assoc doc) in
+  List.iter
+    (fun (p, v) ->
+      let v = to_assoc v in
+      let info = to_string (List.assoc "_info" v) in
+      let syntax = to_string (List.assoc "syntax" v) in
+      let static = to_string (List.assoc "static" v) in
+      let static = if static = "true" then " This protocol is static." else "" in
+      Printf.printf "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p info syntax static
+    ) doc
+
 let print : item -> unit =
   let rec print indent doc =
     let prefix =

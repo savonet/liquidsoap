@@ -457,6 +457,14 @@ let options = [
     Printf.sprintf
       "Documentation of all functions in markdown." ;
 
+    ["--list-protocols-md"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_protocols_md (Plug.plugs:Doc.item)),
+    Printf.sprintf
+      "Documentation of all protocols in markdown." ;
+
     ["--no-pervasives"],
     Arg.Clear pervasives,
     Printf.sprintf
