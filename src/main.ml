@@ -256,7 +256,7 @@ struct
       | _ -> ""
       end ^ String.concat "" subs
     in
-    aux 2 (string_of_path prefix) (t#path prefix)
+    aux 1 (string_of_path prefix) (t#path prefix)
 
   let descr_key t p =
     try
