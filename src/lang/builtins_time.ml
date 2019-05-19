@@ -52,7 +52,7 @@ let () =
   in
   add_builtin ~cat:Sys "localtime" ~descr:"Convert a time in seconds into a date in \
           the local time zone and execute passed callback with the result. Fields meaning \
-          same as POSIX's @tm struct@. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
+          same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
     ["",Lang.float_t,None,None;
      "",fn_t,None,None]
     univ (fun p ->
@@ -64,7 +64,7 @@ let () =
       execute fn tm);
   add_builtin ~cat:Sys "gmtime" ~descr:"Convert a time in seconds into a date in \
           the UTC time zone and execute passed callback with the result. Fields meaning \
-          same as POSIX's @tm struct@. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
+          same as POSIX's `tm struct`. Warning: \"year\" is: year - 1900, i.e. 117 for 2017!"
     ["",Lang.float_t,None,None;
      "",fn_t,None,None]
     univ (fun p ->

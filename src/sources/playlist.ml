@@ -560,7 +560,7 @@ let () =
       Some (Lang.val_cst_fun ["",Lang.int_t,None;"last",Lang.bool_t,None] (Lang.bool false)),
       Some "Function to execute when playlist is about to play its next track. \
             Receives track position in the playlist and wether this is the last track. \
-            Force a reload by returning @true@ in this function. " ;
+            Force a reload by returning `true` in this function. " ;
 
       "prefix",
       Lang.string_t,

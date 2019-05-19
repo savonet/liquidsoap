@@ -78,13 +78,7 @@ let print_xml item =
 
 let rec to_json doc =
   let ss = doc#get_subsections in
-  let sanitize s =
-    let s = Bytes.of_string s in
-    for i = 0 to Bytes.length s - 1 do
-      if Bytes.get s i = '@' then s.[i] <- '`'
-    done;
-    Bytes.to_string s
-  in
+  let sanitize s = s in
   if ss = [] then `String (sanitize doc#get_doc)
   else
     let ss = List.map (fun (k,v) -> k, to_json v) ss in
