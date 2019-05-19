@@ -24,12 +24,6 @@ src/auto_clean
 src/lang/lang_parser.ml
 src/lang/lang_parser.mli
 src/*_depend
-doc/liqi/auto_clean
-doc/liqi/liqi
-doc/liqi/liqi_depend
-doc/liqi/liqi_lexer.ml
-doc/liqi/liqi_parser.ml
-doc/liqi/liqi_parser.mli
 src/liquidsoap
 doc/html
 doc/content/reference.txt

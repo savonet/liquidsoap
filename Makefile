@@ -17,7 +17,6 @@ pre-distclean: clean
 
 test:
 	$(MAKE) -C src/test test
-	$(MAKE) -C doc test
 	$(MAKE) -C scripts/tests test
 
 # Build liquidsoap as it will be used for building the doc

@@ -232,52 +232,31 @@ struct
     in
       aux (string_of_path prefix) (t#path prefix)
 
-  let descr ?(liqi=false) ?(prefix=[]) t =
+  let descr ?(prefix=[]) t =
     let rec aux level prefix t =
       let p s = if prefix = "" then s else prefix ^ "." ^ s in
-      let subs =
-        List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs
-      in
-      let title,default,set,comment =
-        if liqi then
-          Printf.sprintf "h%d. %s\n",
-          Printf.sprintf "Default: @%s@\n",
-          Printf.sprintf "%%%%\n\
-                          set(%S,%s)\n\
-                          %%%%\n",
-          (fun l -> String.concat ""
-                     (List.map (fun s -> Printf.sprintf "%s\n" s) l))
-        else
-          (fun _ ->
-             if t#kind = None then
-               Printf.sprintf "### %s\n\n"
-             else
-               Printf.sprintf "## %s\n"),
-          Printf.sprintf "# Default: %s\n",
-          Printf.sprintf "set(%S,%s)\n",
-          (fun l -> Printf.sprintf "# Comments:\n%s"
-                  (String.concat ""
-                    (List.map (fun s -> Printf.sprintf "#  %s\n" s) l)))
-      in
-        begin match t#kind, get_string t with
-        | None, None -> title level t#descr
-        | Some _, Some p ->
-            title level t#descr ^
-            begin match get_d_string t with
-              | None -> ""
-              | Some d -> default d
-            end ^
-            set prefix p ^
-            begin match t#comments with
-              | [] -> ""
-              | l -> comment l
-            end ^
-            "\n"
-        | _ -> ""
-        end ^
-        String.concat "" subs
+      let subs = List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs in
+      let title n s = Printf.sprintf "%s %s\n\n" (String.make n '#') s in
+      begin match t#kind, get_string t with
+      | None, None -> title level t#descr
+      | Some _, Some p ->
+         let comments =
+           match t#comments with
+           | [] -> ""
+           | l -> String.concat "\n" l ^ "\n"
+         in
+         let set = Printf.sprintf "```\nset(%S,%s)\n```\n" prefix p in
+         title level t#descr ^ comments ^ set ^ "\n"
+         (*
+           begin match get_d_string t with
+           | None -> ""
+           | Some d -> default d
+           end
+          *)
+      | _ -> ""
+      end ^ String.concat "" subs
     in
-      aux 2 (string_of_path prefix) (t#path prefix)
+    aux 2 (string_of_path prefix) (t#path prefix)
 
   let descr_key t p =
     try
@@ -301,11 +280,6 @@ struct
         load_libs () ;
         print_string (descr t); exit 0),
       "Display a described table of the configuration keys.";
-      ["--conf-descr-liqi"],
-      Arg.Unit (fun () ->
-        load_libs () ;
-        print_string (descr ~liqi:true t); exit 0),
-      "Display a described table of the configuration keys in liqi (documentation wiki) format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
         load_libs () ;

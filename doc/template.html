@@ -4,36 +4,64 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
   <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
-  <title>Liquidsoap :: @title@</title>
-  <link href="@rel@css/style.css" type="text/css" rel="stylesheet" />
+$for(author-meta)$
+  <meta name="author" content="$author-meta$" />
+$endfor$
+$if(date-meta)$
+  <meta name="dcterms.date" content="$date-meta$" />
+$endif$
+$if(keywords)$
+  <meta name="keywords" content="$for(keywords)$$keywords$$sep$, $endfor$" />
+$endif$
+  <title>Liquidsoap :: $pagetitle$</title>
+  <link href="css/style.css" type="text/css" rel="stylesheet" />
+$if(highlighting-css)$
+  <style type="text/css">
+$highlighting-css$
+  </style>
+$endif$
+$for(css)$
+  <link rel="stylesheet" href="$css$" />
+$endfor$
+$if(math)$
+  $math$
+$endif$
+$for(header-includes)$
+  $header-includes$
+$endfor$
 </head>
 <body>
+$for(include-before)$
+$include-before$
+$endfor$
 <div id="wrapper">
   <div id="header">
     <div id="logo">
-      <h1>Liquidsoap</h1>
-      <h2>audio stream generation</h2>
+      <!-- <h1>Liquidsoap</h1> -->
+      <!-- <h2>audio stream generation</h2> -->
     </div>
   <div>
    <ul id="menu">
      <li id="menu-about">
-       <a href="@rel@index.html">about</a></li>
+       <a href="index.html">about</a></li>
      <li id="menu-doc-index">
-       <a href="@rel@documentation.html">documentation</a></li>
+       <a href="documentation.html">documentation</a></li>
      <li id="menu-doc-api">
-       <a href="@rel@reference.html">API</a></li>
-     <li id="menu-doc-snippets">
-       <a href="@rel@scripts/index.html">snippets</a></li>
+       <a href="reference.html">API</a></li>
      <li id="menu-developers">
        <a href="https://github.com/savonet/liquidsoap/issues">developers</a></li>
    </ul>
   </div>
   </div>
   <div id="content"><div>
-  @body@
+  $body$
   </div></div>
   <div>
-    <div id="footer"> 2003-2019 Savonet team</div>
+    <div id="footer">2003-2019 the Savonet team</div>
   </div>
   </div>
-</body></html>
+$for(include-after)$
+$include-after$
+$endfor$
+</body>
+</html>

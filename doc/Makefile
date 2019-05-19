@@ -1,139 +1,44 @@
 .PHONY: doc upload all-subdirs
 
-SUBDIRS = content liqi
-DISTFILES = liquidsoap.1 Makefile protocols_to_liqi.pl reference_to_liqi.pl no-ref.txt \
-	    template.html snippet.html
+SUBDIRS = content
+DISTFILES = liquidsoap.1 Makefile template.html snippet.html
 DISTDIRS = orig
-PERL_DOM = $(shell perl -MXML::DOM -e1 > /dev/null 2>&1 && echo yes)
 
-CONTENT=$(wildcard content/*.txt)
-PRE_HTML=$(shell echo $(CONTENT:.txt=.html) | sed -e 's/content\//html\//g') \
-     html/reference.html html/settings.html html/protocols.html
-HTML=html/scripts/index.html
-MD=$(addprefix md/,$(notdir $(CONTENT:.txt=.md)))
-RST=$(addprefix rst/,$(notdir $(CONTENT:.txt=.rst)))
-TEX=$(shell echo $(CONTENT:.txt=.tex) | sed -e 's/content\//tex\//g')
-PDF=$(TEX:.tex=.pdf)
+MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
+HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
+PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
-LIQI = cd html && ../liqi/liqi \
-	     --template ../template.html --snippet-template ../snippet.html \
-		 --subst rel:
-LIQI_DEPS = liqi/liqi template.html snippet.html
+doc: md html
 
-# PDF is not ready for end-users yet.
-doc: html
+md: $(MD)
 
 html: $(HTML)
 
-md: liqi/liqi $(MD)
+pdf: $(PDF)
 
-rst: liqi/liqi $(RST)
-
-pdf: liqref.pdf
-
-liqref.pdf: tex/liqref.tex $(TEX)
-	@echo Compiling liqref.pdf...
-	@cd tex; pdflatex -interaction nonstopmode liqref.tex
-
-html/scripts/index.html: html/scripts/index.txt $(LIQI_DEPS)
-	@echo Generating $(@)...
-	@#Has to be called from html to put scripts in the right place
-	$(LIQI) --subst rel:../ -i ../$(<) -o ../$(@)
-
-# I have to tell make that index.txt will be there
-# once the HTML have been generated.
-# Also ensures that the index is built last even with a concurrent make run.
-html/scripts/index.txt: $(PRE_HTML)
-
-html/%.html: content/%.txt $(LIQI_DEPS)
+html/%.html: content/%.md template.html
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
-	@#Has to be called from html to put scripts in the right place
-	@$(LIQI) -i ../$(<) -o ../$(@)
+	@pandoc $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
-tex/%.tex: content/%.txt liqi/liqi
+pdf/%.pdf: content/%.md
+	@mkdir -p pdf
 	@echo Converting $(<) to $(@)...
-	@test -d tex || mkdir tex
-	@./liqi/liqi --latex -i $(<) -o $(@)
+	@pandoc $< -o $@
 
-tex/%.pdf: tex/%.tex
-	@echo Converting $(<) to $(@)...
-	@cd tex; pdflatex ../$(<)
+content/protocols.md:
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --list-protocols-md >> $@
 
-md/%.md: content/%.txt
-	@echo Converting $(<) to $(@)
-	@mkdir -p md
-	@./liqi/liqi --markdown -i $(<) -o $(@)
+content/reference.md:
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --list-functions-md >> $@
 
-rst/%.rst: content/%.txt
-	@echo Converting $(<) to $(@)
-	@mkdir -p rst
-	@./liqi/liqi --rst -i $(<) -o $(@)
+content/settings.md: ../src/liquidsoap
+	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --conf-descr > $@
 
-liqi/liqi: all-subdirs
-	@# If I don\'t put anything here, make tries to build liqi/liqi
-	@# from liqi/liqi.o by using gcc
-
-../src/liquidsoap:
-	@echo "Liquidsoap does not seem to be built. You have to build it before."
-	@echo "Go to the toplevel and type 'make'"
-	exit 1
-
-reference.pdf:
-	echo "# Liquidsoap reference\n\n" > reference.md;
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../lib/pervasives.liq --list-functions-md >> reference.md
-	pandoc reference.md -o reference.pdf
-	rm -f reference.md
-
-content/reference.txt: reference_to_liqi.pl ../src/liquidsoap ../lib/utils.liq
-ifeq ($(PERL_DOM),yes)
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../lib/pervasives.liq --list-plugins-xml | \
-	  ./reference_to_liqi.pl > $(@)
-else
-	@echo "-> You don't seem to have perl XML::DOM module installed."
-	@echo "-> Language reference cannot be generated."
-	@cp no-ref.txt content/reference.txt
-endif
-
-content/protocols.txt: protocols_to_liqi.pl ../src/liquidsoap ../lib/utils.liq
-ifeq ($(PERL_DOM),yes)
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap \
-	  --no-pervasives ../lib/pervasives.liq --list-plugins-xml | \
-	  ./protocols_to_liqi.pl > $(@)
-else
-	@echo "-> You don't seem to have perl XML::DOM module installed."
-	@echo "-> protocols reference cannot be generated."
-	@cp no-protocols.txt content/protocols.txt
-endif
-
-content/settings.txt: ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq \
-	--conf-descr-liqi > $(@)
+reference.pdf: content/reference.md
+	pandoc $< -o $@
 
 VERSION="`../src/liquidsoap --version | head -n 1`"
-
-test: html
-	@echo "Testing code snippets with \033[1m$(VERSION)\033[0m"
-	@echo ""
-	@find html/scripts | grep '\.liq' | sort \
-	  | ./scripts/test_snippets "`pwd`/../src/liquidsoap -p"
-	@echo ""
-	@echo "Testing shell scripts.."
-	@echo "Please remember that it does not test liq syntax used inline.."
-	@echo ""
-	@find html/scripts | grep '\.sh' | sort | ./scripts/test_snippets "sh -n"
-	@echo ""
-	@echo "Testing perl scripts.."
-	@echo ""
-	@find html/scripts | grep '\.pl' | sort | ./scripts/test_snippets "perl -c"
-
-spell-check: $(CONTENT:.txt=.txt.spell)
-
-content/%.txt.spell: content/%.txt
-	-aspell -d en_US-w_accents -c $(<)
-	touch $(@)
 
 doc-install:
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
@@ -144,7 +49,30 @@ doc-install:
 	$(INSTALL_DATA) liquidsoap.1 $(mandir)/man1
 
 clean-local:
-	rm -rf html $(TEX) content/reference.txt content/protocols.txt content/settings.txt content/*.txt.spell
+	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
+
+../src/liquidsoap:
+	@echo "Liquidsoap does not seem to be built. You have to build it before."
+	@echo "Go to the toplevel and type 'make'"
+	@exit 1
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
+
+############ SPHINX DOC #########################
+
+# You can set these variables from the command line.
+SPHINXOPTS    =
+SPHINXBUILD   = sphinx-build
+SOURCEDIR     = .
+BUILDDIR      = _build
+
+sphinx-html:
+	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+# Catch-all target: route all unknown targets to Sphinx using the new
+# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+# %: Makefile md
+#	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: md

@@ -15,7 +15,7 @@ liquidsoap, you may want to read the [custom path](custom-path.html) page.
 
 General tutorials
 -----------------
-* [Quickstart](quick_start.html): :doc:`quickstart` where anyone should start.
+* [Quickstart](quick_start.html): where anyone should start.
 * [Complete case analysis](complete_case.html): an example that is not a toy.
 * [Advanced](advanced.html): overview of more advanced features for serious usage.
 * [How to find help](help.html) about operators, settings, server commands, etc.
