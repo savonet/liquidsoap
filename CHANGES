@@ -27,6 +27,8 @@ New:
 
 - Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to @RecursiveGreen. (#778)
 
+- Added support for sandboxing `run_process` calls. Set safe defaults.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0

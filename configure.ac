@@ -139,6 +139,27 @@ let big_endian = false
 __BLAH__
 fi
 
+AC_PATH_PROG([BWRAP],[bwrap],[])
+AC_PATH_PROG([SANDBOX_EXEC],[sandbox-exec],[])
+
+SANDBOX_TOOL=disabled
+SANDBOX_BINARY="requires bwrap (linux) or sanxbox-exec (OSX)"
+
+if test -n "${SANDBOX_EXEC}"; then
+  SANDBOX_TOOL=sandbox-exec
+  SANDBOX_BINARY=$SANDBOX_EXEC
+fi
+
+if test -n "${BWRAP}"; then
+  SANDBOX_TOOL=bwrap
+  SANDBOX_BINARY=$BWRAP
+fi
+
+cat >> src/configure.ml <<__BLAH__
+let sandbox_tool = "$SANDBOX_TOOL"
+let sandbox_binary = "$SANDBOX_BINARY"
+__BLAH__
+
 #
 # OCaml stuff
 #
@@ -911,15 +932,17 @@ cat <<EOMSG
  ${BYTE_COMP}${CAMLP4O_COMP}
  ---------------------------------------------------------------- Installation
 
- prefix         : $prefix
- exec_prefix    : $exec_prefix
- binary         : $bindir
- configuration  : $sysconfdir/liquidsoap
- logging        : $localstatedir/log/liquidsoap
- PIDs           : $localstatedir/run/liquidsoap
- logrotate conf : $sysconfdir/logrotate.d
- man page       : $mandir/man1
- doc            : $datadir/doc
+ prefix          : $prefix
+ exec_prefix     : $exec_prefix
+ binary          : $bindir
+ configuration   : $sysconfdir/liquidsoap
+ logging         : $localstatedir/log/liquidsoap
+ PIDs            : $localstatedir/run/liquidsoap
+ logrotate conf  : $sysconfdir/logrotate.d
+ man page        : $mandir/man1
+ doc             : $datadir/doc
+ sandbox         : $SANDBOX_TOOL
+ sanxboxg binary : $SANDBOX_BINARY
 
  -------------------------------------------------------------------- Features
 
