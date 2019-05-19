@@ -606,3 +606,18 @@ def server.broadcast(x) =
   broadcast = snd(snd(x))
   broadcast()
 end
+
+# Read the whole contents of a file.
+# @category System
+def file.contents(f) =
+  fn = file.read(f)
+  def rec f(cur) =
+    s = fn()
+    if s == "" then
+      cur
+    else
+      f("#{cur}#{s}")
+    end
+  end
+  f("")
+end

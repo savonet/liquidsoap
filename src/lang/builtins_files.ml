@@ -95,32 +95,32 @@ let () =
        Lang.bool (try Sys.is_directory f with Sys_error _ -> false))
 
 let () =
-  (* This is not named "file.read" because we might want to use that for a
-     proper file API, with descriptors, etc. *)
-  add_builtin "file.contents" ~cat:Sys
-    ["",Lang.string_t,None,None] Lang.string_t
-    ~descr:"Read the whole contents of a file."
+  add_builtin "file.read" ~cat:Sys
+    ["",Lang.string_t,None,None] (Lang.fun_t [] Lang.string_t)
+    ~descr:"Read the content of a file. Returns a function of type `()->string`. \
+            File is done reading when function returns the empty string `\"\"`."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
+      let mk_fn fn =
+        Lang.val_fun [] ~ret_t:Lang.string_t
+          (fun _ _ -> Lang.string (fn ()))
+      in
       try
-        let ic = open_in_bin f in
-        let s = ref Bytes.empty in
+        let ic = ref (Some (open_in_bin f)) in
         let buflen = 1024 in
         let buf = Bytes.create buflen in
-        begin
-          try
-            while true do
-              let n = input ic buf 0 buflen in
-              if n = 0 then raise Exit;
-              s := Bytes.cat !s (if n = buflen then buf else Bytes.sub buf 0 n)
-            done;
-            assert false
-          with
-            | Exit -> close_in ic; Lang.string (Bytes.unsafe_to_string !s)
-        end;
+        let fn () =
+          match !ic with
+            | Some c ->
+                let n = input c buf 0 buflen in
+                if n = 0 then (close_in c; ic := None);
+                Bytes.sub_string buf 0 n
+            | None -> ""
+        in
+        mk_fn fn
       with e ->
         log#f 3 "Error while reading file %S: %s" f (Printexc.to_string e);
-        Lang.string "")
+        mk_fn (fun () ->  ""))
 
 let () =
   add_builtin "file.write" ~cat:Sys
