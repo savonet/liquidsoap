@@ -81,7 +81,7 @@ let rec to_json doc =
   let sanitize s =
     let s = Bytes.of_string s in
     for i = 0 to Bytes.length s - 1 do
-      if Bytes.get s i = '@' then s.[i] <- '`'
+      if Bytes.get s i = '@' then Bytes.set s i '`'
     done;
     Bytes.to_string s
   in
