@@ -5,8 +5,9 @@ can use the function `harbor.http.register` to register
 HTTP handlers. Its parameters are are follow:
 
 ```
-harbor.http.register(port=8080,method="GET",uri,handler)```
- where:
+harbor.http.register(port=8080,method="GET",uri,handler)
+```
+where:
 
 * `port` is the port where to receive incoming connections
 * `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`

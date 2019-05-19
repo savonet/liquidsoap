@@ -1,5 +1,5 @@
 Introduction 
-=============
+------------
 You can use an external program to create a source that will read data coming out 
 of the standard output (`stdout`) of this program. Contrary to the external file decoders,
 data will be buffered and played when a sufficient amount was accumulated.
@@ -9,7 +9,7 @@ channels and samplerate can be specified. There is no need of any wav header in 
 though it should work too.
 
 Basic operator
-==============
+--------------
 The basic operator for creating an external stream is `input.external`. Its parameters are:
 
 * `buffer`: Duration of the pre-buffered data.
@@ -23,7 +23,7 @@ The last parameter is unlabeled. It is a string containing the command that will
 run the external program.
 
 Wrappers
-========
+--------
 A wrapper, `input.mplayer`, is defined to use mplayer as the external decoder.
 Its code is:
 
@@ -47,5 +47,4 @@ def input.mplayer(~id="input.mplayer",
                     2>/dev/null")
 end
 ```
-
 

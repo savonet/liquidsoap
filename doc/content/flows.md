@@ -34,7 +34,7 @@ All this is relatively informal for now, but may be tightened in future
 developments of Flows.
 
 Getting information from flows
-==============================
+------------------------------
 If you develop a website and registered your radio as explained above, flows can
 be used as a convenient way to retrieve metadata in javascript, get a list of
 friendly radios, etc. The flows service currently consists of a list of radios

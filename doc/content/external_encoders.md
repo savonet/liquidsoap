@@ -1,12 +1,12 @@
 Introduction
-============
+------------
 You can use any external program that accepts wav or raw PCM data to encode audio data and use the resulting compressed 
 stream as an output, either to a file, a pipe, or even icecast.
 
 When using an external encoding process, uncompressed PCM data will be sent to the process through its standard input (`stdin`), and encoded data will be read through its standard output (`stdout`). When using a process that does only file input or output, `/dev/stdin` and `/dev/stdout` can be used, though this may generate issues if the encoding process expects to be able to go backward/forward in the file.
 
 External encoders
-=================
+-----------------
 The main operators that can be used with external encoders are:
 
 * `output.file`
@@ -48,7 +48,7 @@ you should also use the following options of `output.icecast`:
 * `format`: Content-type (mime) of the data sent to icecast. For instance, for ogg data, it is one of ``application/ogg'', ``audio/ogg'' or ``video/ogg'' and for mp3 data it is ``audio/mpeg''.
 
 Video support
-=============
+-------------
 Videos can also be encoded by programs able to read files in avi format from
 standard input. To use it, the flag `video=true` of `%external` should be
 used. For instance, a compresed avi file can be generated with `ffmpeg` using
