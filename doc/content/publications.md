@@ -1,3 +1,7 @@
+---
+header-includes: |
+  \DeclareUnicodeCharacter{03BB}{$\lambda$}
+...
 The theory behind Liquidsoap
 ============================
 Presentations

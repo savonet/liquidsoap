@@ -1,3 +1,7 @@
+---
+header-includes: |
+  \DeclareUnicodeCharacter{03C0}{$\pi$}
+...
 Basically streaming videos does not change anything compared to streaming audio:
 you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
