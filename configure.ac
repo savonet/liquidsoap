@@ -932,17 +932,17 @@ cat <<EOMSG
  ${BYTE_COMP}${CAMLP4O_COMP}
  ---------------------------------------------------------------- Installation
 
- prefix          : $prefix
- exec_prefix     : $exec_prefix
- binary          : $bindir
- configuration   : $sysconfdir/liquidsoap
- logging         : $localstatedir/log/liquidsoap
- PIDs            : $localstatedir/run/liquidsoap
- logrotate conf  : $sysconfdir/logrotate.d
- man page        : $mandir/man1
- doc             : $datadir/doc
- sandbox         : $SANDBOX_TOOL
- sanxboxg binary : $SANDBOX_BINARY
+ prefix         : $prefix
+ exec_prefix    : $exec_prefix
+ binary         : $bindir
+ configuration  : $sysconfdir/liquidsoap
+ logging        : $localstatedir/log/liquidsoap
+ PIDs           : $localstatedir/run/liquidsoap
+ logrotate conf : $sysconfdir/logrotate.d
+ man page       : $mandir/man1
+ doc            : $datadir/doc
+ sandbox        : $SANDBOX_TOOL
+ sanxbox binary : $SANDBOX_BINARY
 
  -------------------------------------------------------------------- Features
 
