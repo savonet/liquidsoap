@@ -67,7 +67,8 @@ a source can belong to only one box,
 and all sources of a box produce streams at the same rate.
 For example, 
 ```
-output.icecast(fallback([crossfade(playlist(...)),jingles]))```
+output.icecast(fallback([crossfade(playlist(...)),jingles]))
+```
 
 yields the following graph:
 
