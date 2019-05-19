@@ -99,7 +99,10 @@ let declare mode suffix format fun_ret_t f_ans =
     ~descr:("Get current "^doc^" of the source. \
             Returns a pair @(f,s)@ where s is a new source and \
             @f@ is a function of type @() -> float@ and \
-            returns the current "^doc^" of the source.")
+            returns the current "^doc^" of the source, with \
+            @0.0 <= "^doc^" <= 1.0@. Some operators like `amplify` \
+            and `compress` can produce amplitudes greater than 1.0 \
+            if misconfigured, inducing clipping in the output.")
     [
       "id", Lang.string_t,Some (Lang.string ""), Some "Force the value of the source ID.";
       "duration", Lang.float_getter_t 2, Some (Lang.float 0.5), Some "Duration of the window (in seconds). A value <= 0, means that computation should not be performed.";
