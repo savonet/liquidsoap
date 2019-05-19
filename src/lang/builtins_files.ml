@@ -47,6 +47,18 @@ let () =
     with _ -> Lang.unit)
 
 let () =
+  add_builtin "file.size" ~cat:Sys ~descr:"File size in bytes."
+  ["",Lang.string_t,None,None]
+  Lang.int_t
+  (fun p ->
+    try
+      let ic = open_in (Lang.to_string (List.assoc "" p)) in
+      let ret = in_channel_length ic in
+      close_in ic;
+      Lang.int ret
+    with _ -> Lang.int 0)
+
+let () =
   add_builtin "file.rmdir" ~cat:Sys ~descr:"Remove a directory and its content."
   ["",Lang.string_t,None,None]
   Lang.unit_t
