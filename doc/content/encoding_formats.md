@@ -1,5 +1,5 @@
-Presentation
-============
+Encoding formats
+================
 Encoders are used to define formats into which raw sources should be encoded by 
 an output. Syntax for encoder is: `%encoder(parameters...)` or, if you use
 default parameters, `%encoder`.

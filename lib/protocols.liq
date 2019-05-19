@@ -20,7 +20,7 @@ end
 add_protocol("replay_gain", replaygain_protocol,
              syntax="replay_gain:uri",
              doc="Compute replaygain value using the extract-replaygain script. \
-                  Adds returned value as @\"replay_gain\"@ metadata")
+                  Adds returned value as `\"replay_gain\"` metadata")
 
 register(name="Process protocol settings","protocol.process",())
 register(name="Process Environment",
@@ -29,7 +29,7 @@ register(name="Process Environment",
          "protocol.process.env",
          [])
 register(name="Inherit Environment",
-         descr="Inherit calling process's environment when @env@ parameter is empty.",
+         descr="Inherit calling process's environment when `env` parameter is empty.",
          "protocol.process.inherit_env",
          true)
 
@@ -98,15 +98,15 @@ def process_protocol(~rlog,~maxtime,arg)
 end
 add_protocol(temporary=true, "process", process_protocol,
              doc="Resolve a request using an arbitrary process. \
-                  @<cmd>@ is interpolated with: \
-                  @[(\"input\",<input>),(\"output\",<output>),\
-                  (\"colon\",\":\")]@. @uri@ is an optional child request, \
-                  @<output>@ is the name of a fresh temporary file and has \
-                  extension @.<extname>@. @<input>@ is an optional input \
-                  file name as returned while resolving @uri@.",
+                  `<cmd>` is interpolated with: \
+                  `[(\"input\",<input>),(\"output\",<output>),\
+                  (\"colon\",\":\")]`. `uri` is an optional child request, \
+                  `<output>` is the name of a fresh temporary file and has \
+                  extension `.<extname>`. `<input>` is an optional input \
+                  file name as returned while resolving `uri`.",
              syntax="process:<extname>,<cmd>[:uri]")
 
-# Create a process: uri, replacing @:@ with @$(colon)@
+# Create a process: uri, replacing `:` with `$(colon)`
 # @category Liquidsoap
 # @param cmd Command line to execute
 # @param ~extname Output file extension (with no leading '.')

@@ -1,7 +1,7 @@
 # Custom playlist source written using the script language.  Will read directory
-# or playlist, play all files and stop.  Returns a pair @(reload,source)@ where
-# @reload@ is a function of type @(?uri:string)->unit@ used to reload the source
-# and @source@ is the actual source. The reload function can optionally be
+# or playlist, play all files and stop.  Returns a pair `(reload,source)` where
+# `reload` is a function of type `(?uri:string)->unit` used to reload the source
+# and `source` is the actual source. The reload function can optionally be
 # called with a new playlist URI. Otherwise, it reloads the previous URI.
 # @category Source / Input
 # @param ~id Force the value of the source ID.

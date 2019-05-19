@@ -45,8 +45,9 @@ server.register(namespace=source.id(s),
                 "seek",seek)
 ```
 
-Cue points.
-===========
+Cue points
+----------
+
 Sources that support seeking can also be used to implement cue points.
 The basic operator for this is `cue_cut`. Its has type:
 

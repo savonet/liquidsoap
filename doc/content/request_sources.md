@@ -16,7 +16,7 @@ feed this queue in the background.
 This process is described here.
 
 Common parameters
-=================
+-----------------
 Queued request sources maintain an *estimated remaining time*,
 and trigger a new request resolution when this remaining time
 goes below their `length` parameter.
@@ -42,7 +42,7 @@ generally, it prepares things more in advance, which is good when
 resolution is long (*e.g.*, heavily loaded server, remote files).
 
 Request.dynamic
-===============
+---------------
 This source takes a custom function for creating its new requests.
 This function, of type `()->request`,
 can for example call an external program.
@@ -76,7 +76,7 @@ s = request.dynamic(my_request_function)
 ```
 
 Queues
-======
+------
 Liquidsoap features two sources which provide request queues that
 can be directly manipulated by the user, via the server interface:
 `request.queue` and `request.equeue`.

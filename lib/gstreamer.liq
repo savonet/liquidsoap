@@ -80,7 +80,7 @@ def gstreamer.rtp.mpeg4(~host="127.0.0.1",~port=5000,source)
   output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}", source)
 end
 
-# Stream live on youtube. You need the following Gstreamer plugins: flvmux, rtmpsink, x264enc and a suitable AAC encoder (see @audio_encoder@ params).
+# Stream live on youtube. You need the following Gstreamer plugins: flvmux, rtmpsink, x264enc and a suitable AAC encoder (see `audio_encoder` params).
 # @param ~id Source ID
 # @param ~video_bitrate Video bitrate
 # @param ~audio_encoder Audio encoder. Can be one of: "fdkaacenc", "voaacenc"

@@ -252,9 +252,9 @@ let () =
               to his standard output (stdout) and read \
               data from the file it receives. The estimated \
               remaining duration for this decoder will be \
-              unknown until the @buffer@ last seconds of the file. \
+              unknown until the `buffer` last seconds of the file. \
               If possible, it is recommended \
-              to decode from stdin and use @add_decoder@."
+              to decode from stdin and use `add_decoder`."
       ["name",Lang.string_t,None,Some "Format/decoder's name." ;
        "description",Lang.string_t,None,Some "Description of the decoder.";
        test_arg;
@@ -472,7 +472,7 @@ let () =
   register_escape_fun ~name:"string.escape"
                       ~descr:"Escape special charaters in a \
                               string. String is parsed char by char. \
-                              See @string.utf8.escape@ for an UTF8-aware \
+                              See `string.utf8.escape` for an UTF8-aware \
                               parsing function."
                       ~escape ~escape_char:Utils.escape_char ;
   let escape ~special_char ~escape_char f s =
@@ -594,7 +594,7 @@ let () =
       "start", Lang.int_t, None, Some "Return a sub string \
          starting at this position. First position is 0.";
       "length", Lang.int_t, None, Some "Return a sub string \
-         of @length@ characters." ]
+         of `length` characters." ]
     Lang.string_t
     (fun p ->
        let start = Lang.to_int (List.assoc "start" p) in

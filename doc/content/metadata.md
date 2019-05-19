@@ -69,9 +69,11 @@ you can connect to the server (either telnet or socket) and execute commands
 like
 
 ```
-ID.insert key1="val1",key2="val2",...```
+ID.insert key1="val1",key2="val2",...
+```
 
 ### In Liquidsoap
+
 Sometimes it is desirable to change the metadata dynamically when an event
 occurs. In this case, the function `insert_metadata` (not to be confused with
 `server.insert_metadata` above) can be used: when applied to a source it returns
@@ -117,6 +119,5 @@ output.icecast(%mp3,mount="test.mp3",s)
 We can then change the title of the stream by sending OSC messages, for instance
 
 ```
-oscsend localhost 7777 "/metadata" ss "title" "The new title"```
-
-
+oscsend localhost 7777 "/metadata" ss "title" "The new title"
+```

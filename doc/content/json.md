@@ -1,5 +1,6 @@
-Exporting values using JSON.
-============================
+Exporting values using JSON
+---------------------------
+
 Liquidsoap can export any language value in JSON using `json_of`.
 
 The format is the following :
@@ -28,8 +29,9 @@ The two particular cases are:
 Output format is pretty printed by default. A compact output can
 be obtained by using the optional argument: `compact=true`.
 
-Importing values using JSON.
-============================
+Importing values using JSON
+---------------------------
+
 If compiled with `yojson` support, Liquidsoap can also
 parse JSON data into values. using `of_json`.
 

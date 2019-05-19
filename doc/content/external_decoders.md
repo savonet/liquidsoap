@@ -1,18 +1,18 @@
-Introduction
-============
+## Introduction
+
 You can use external programs in liquidsoap to decode audio files. The program must be able to
 output WAV data to its standard output (`stdout`) and, posssibly, read encoded data from its 
 standard input.
 
 Please note that this feature is not available under Windows.
 
-Basic operators
-===============
+## Basic operators
+
 External decoders are registered using the `add_decoder` and `add_oblivious_decoder` operators. 
 They are invoked the following way: 
 
-add_decoder
------------
+### add_decoder
+
 ```
 add_decoder(name="my_decoder",description="My custom decoder",
             test,decoder)
@@ -30,8 +30,8 @@ by the decoders registered using `add_oblivious_decoder`. The important paramete
 
 * `decoder` is the string containing the shell command to run to execute the decoding process.
 
-add_oblivious_decoder
----------------------
+### add_oblivious_decoder
+
 `add_oblivious_decoder` is very similar to `add_decoder`. The main difference is that the
 decoding program reads encoded data directly from the local files and not its standard input.
 Decoders registered using this operator do not have a reliable estimation of the remaining
@@ -55,8 +55,8 @@ by the decoders registered using `add_oblivious_decoder`. The important paramete
 
 * `decoder` is a function that receives the name of the file that should be decoded and returns a string containing the shell command to run to execute the decoding process.
 
-add_metadata_resolver
----------------------
+### add_metadata_resolver
+
 You may also register new metadata resolvers using the `add_metadata_resolver` operator. It is invoked the
 following way: `add_metadata_resolver(format,resolver)`, where:
 
@@ -64,15 +64,13 @@ following way: `add_metadata_resolver(format,resolver)`, where:
 * `resolver` is a function `f` that returns a list of metadata of the form: `(label, value)`. It is invoked the following way: `f(format=name,file)`, where: * `format` contains the name of the format, as returned by the decoder that accepted to decode the file. `f` may return immediately if this is not an expected value.
  * `file` is the name of the file to decode.
 
+## Wrappers
 
-
-Wrappers
-========
 On top of the basic operators, wrappers have been written for some common decoders. This includes the `flac` and 
 `faad` decoders, by default. All the operators are defined in `externals.liq`.
 
-The FLAC decoder
-----------------
+### The FLAC decoder
+
 The flac decoder uses the `flac` command line. It is enabled if the binary can be found in the current `$PATH`.
 
 Its code is the following:
@@ -130,8 +128,8 @@ if test_process("which metaflac") then
 end
 ```
 
-The faad decoder
-----------------
+### The faad decoder
+
 The faad decoder uses the `faad` program, if found in the `$PATH`. 
 It can decode AAC and AAC+ audio files. This program does not support
 reading encoded data from its standard input so the decoder is 

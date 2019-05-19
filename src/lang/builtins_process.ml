@@ -37,15 +37,15 @@ let () =
   in
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
-            @((stdout,stderr),status)@ where status is one of: \
-            @(\"exit\",\"<code>\")@, @(\"killed\",\"<signal number>\")@, \
-            @(\"stopped\",\"<signal number>\")@, @(\"exception\",\"<exception description>\")@, \
-            @(\"timeout\",\"<run time>\")@."
+            `((stdout,stderr),status)` where status is one of: \
+            `(\"exit\",\"<code>\")`, `(\"killed\",\"<signal number>\")`, \
+            `(\"stopped\",\"<signal number>\")`, `(\"exception\",\"<exception description>\")`, \
+            `(\"timeout\",\"<run time>\")`."
     ["env",Lang.list_t env_t,
      Some (Lang.list ~t:env_t []),Some "Process environment";
      "inherit_env", Lang.bool_t,
      Some (Lang.bool true), Some "Inherit calling process's environment when \
-       @env@ parameter is empty.";
+       `env` parameter is empty.";
      "sandbox_tmp", Lang.string_t, Some (Lang.string Sandbox.conf_tmp#get),
      Some "Temporary directory for sandboxing.";
      "sandbox_rw", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_rw#get)),
@@ -55,7 +55,7 @@ let () =
      "sandbox_network", Lang.bool_t, Some (Lang.bool true),
      Some "Enable or disable network inside sandboxed environment.";
      "timeout", Lang.float_t,Some (Lang.float (-1.)),
-     Some "Cancel process after @timeout@ has elapsed. Ignored if negative.";
+     Some "Cancel process after `timeout` has elapsed. Ignored if negative.";
      "",Lang.string_t,None,Some "Command to run"] ret_t
     (fun p ->
        let env = Lang.to_list

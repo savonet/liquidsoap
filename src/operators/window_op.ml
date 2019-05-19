@@ -97,10 +97,10 @@ let declare mode suffix format fun_ret_t f_ans =
   Lang.add_builtin (name^suffix)
     ~category:(Lang.string_of_category Lang.Visualization)
     ~descr:("Get current "^doc^" of the source. \
-            Returns a pair @(f,s)@ where s is a new source and \
-            @f@ is a function of type @() -> float@ and \
+            Returns a pair `(f,s)` where s is a new source and \
+            `f` is a function of type `() -> float` and \
             returns the current "^doc^" of the source, with \
-            @0.0 <= "^doc^" <= 1.0@. Some operators like `amplify` \
+            `0.0 <= "^doc^" <= 1.0`. Some operators like `amplify` \
             and `compress` can produce amplitudes greater than 1.0 \
             if misconfigured, inducing clipping in the output.")
     [

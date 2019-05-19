@@ -128,7 +128,7 @@ let () =
      "append",Lang.bool_t,Some (Lang.bool false),Some "Append data if file exists.";
      "perms",Lang.int_t,Some (Lang.int 0o644),Some "Default file rights if created";
      "",Lang.string_t,None,Some "Path to write to"] Lang.bool_t
-    ~descr:"Write data to a file. Returns @true@ if successful."
+    ~descr:"Write data to a file. Returns `true` if successful."
     (fun p ->
       let data = Lang.to_string (List.assoc "data" p) in
       let append = Lang.to_bool (List.assoc "append" p) in

@@ -118,9 +118,9 @@ let () =
        "doc",Lang.string_t,Some (Lang.string "Undocumented"),
        Some "Protocol documentation.";
        "",Lang.string_t,None,Some "Protocol name. Resolver will be called on \
-          uris of the form: @<protocol name>:...@." ;
+          uris of the form: `<protocol name>:...`." ;
        "",protocol_t,None,Some "Protocol resolver. Receives a function to log protocol \
-          resolution, the @<arg>@ in @<protocol name>:<arg>@ and the max delay that \
+          resolution, the `<arg>` in `<protocol name>:<arg>` and the max delay that \
           resolution should take." ]
       Lang.unit_t
       (fun p ->
