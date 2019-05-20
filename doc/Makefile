@@ -3,6 +3,7 @@
 SUBDIRS = content
 DISTFILES = liquidsoap.1 Makefile template.html snippet.html
 DISTDIRS = orig
+LIQUIDSOAP = ../src/liquidsoap
 
 MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
@@ -26,19 +27,19 @@ pdf/%.pdf: content/%.md
 	@echo Converting $(<) to $(@)...
 	@pandoc $< -o $@
 
-content/protocols.md:
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --list-protocols-md >> $@
+content/protocols.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --list-protocols-md > $@
 
-content/reference.md:
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --list-functions-md >> $@
+content/reference.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --list-functions-md > $@
 
-content/settings.md: ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --conf-descr > $@
+content/settings.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --conf-descr > $@
 
 reference.pdf: content/reference.md
 	pandoc $< -o $@
 
-VERSION="`../src/liquidsoap --version | head -n 1`"
+VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
 doc-install:
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
@@ -51,7 +52,7 @@ doc-install:
 clean-local:
 	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
 
-../src/liquidsoap:
+$(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."
 	@echo "Go to the toplevel and type 'make'"
 	@exit 1
