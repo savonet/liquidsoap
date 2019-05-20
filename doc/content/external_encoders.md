@@ -16,7 +16,7 @@ In order to use external encoders with these operators, you have to use the
 `%external` [encoding format](encoding_formats.html).
 Its syntax is:
 
-```
+```liquidsoap
 %external(channels=2,samplerate=44100,header=true,
           restart_on_crash=false,
           restart_on_metadata,
@@ -53,10 +53,8 @@ Videos can also be encoded by programs able to read files in avi format from
 standard input. To use it, the flag `video=true` of `%external` should be
 used. For instance, a compresed avi file can be generated with `ffmpeg` using
 
-```
+```liquidsoap
 output.file(
   %external(process="ffmpeg -i pipe:0 -f avi pipe:1",video=true),
   "/tmp/test.avi", s)
 ```
-
-

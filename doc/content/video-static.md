@@ -11,7 +11,7 @@ Well, that is fairly easy!
 
 Here is the code:
 
-```
+```liquidsoap
  # Log to stdout
  set("log.file",false)
  set("log.stdout",true)

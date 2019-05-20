@@ -13,7 +13,7 @@ They are invoked the following way:
 
 ### add_decoder
 
-```
+```liquidsoap
 add_decoder(name="my_decoder",description="My custom decoder",
             test,decoder)
 ```
@@ -38,7 +38,7 @@ Decoders registered using this operator do not have a reliable estimation of the
 time. You should use `add_oblivious_decoder` only if your decoding program is not able
 to read the encoded data from its standard input.
 
-```
+```liquidsoap
 add_oblivious_decoder(name="my_decoder",description="My custom decoder",
                       buffer=5., test,decoder)
 ```
@@ -75,7 +75,7 @@ The flac decoder uses the `flac` command line. It is enabled if the binary can b
 
 Its code is the following:
 
-```
+```liquidsoap
   def test_flac(file) =
     if test_process("which metaflac") then
       channels = list.hd(default="",get_process_lines("metaflac \
@@ -102,7 +102,7 @@ Its code is the following:
 
 Additionaly, a metadata resolver is registered when the `metaflac` command can be found in the `$PATH`:
 
-```
+```liquidsoap
 if test_process("which metaflac") then
   log(level=3,"Found metaflac binary: \
                enabling flac external metadata resolver.")
@@ -137,7 +137,7 @@ registered using `add_oblivious_decoder`.
 
 Its code is the following:
 
-```
+```liquidsoap
   aac_mimes = ["audio/aac", "audio/aacp", "audio/3gpp", "audio/3gpp2", "audio/mp4",
                "audio/MP4A-LATM", "audio/mpeg4-generic", "audio/x-hx-aac-adts"]
   aac_filexts = ["m4a", "m4b", "m4p", "m4v",

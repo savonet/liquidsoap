@@ -65,7 +65,7 @@ source clients should set their connection port to `n+1`.
 The `auth` function is a function, that takes a pair `(user,password)` and returns a boolean representing whether the user 
 should be granted access or not. Typical example can be:
 
-```
+```liquidsoap
 def auth(user,password) = 
   # Call an external process to check 
   # the credentials:
@@ -106,7 +106,7 @@ The source client may use any of the recognized audio input codec. Hence, when u
 
 A sample code can be:
 
-```
+```liquidsoap
 set("harbor.bind_addr","0.0.0.0")
 
 # Some code...

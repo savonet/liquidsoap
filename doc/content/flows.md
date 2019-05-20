@@ -6,7 +6,7 @@ In order to register your radio on this page, a simple
 operator called `register_flow` is provided. If your stream is called `stream`,
 just wrap it as follows before outputting it:
 
-```
+```liquidsoap
 stream = register_flow(
   radio="My radio",
   website="http://my.web.site/",

@@ -9,6 +9,7 @@ quite complex features, which they were at that time fulfilling using dirty tric
 Using Liquidsoap now allow them to do all they want in an integrated way, but also provided new features.
 
 ### The migration process
+
 Quite easy actually. They used to have many instances Ices2, each of these calling a Perl script to get the next song. 
 Other scripts were used for switching channels to live shows.
 
@@ -20,9 +21,7 @@ Liquidsoap handles download automatically.
 
 Each file is given by an external script, `radiopilote-getnext`,
 whose answer looks as follows (except that it's on a single line):
-
 ```
-
 annotate:file_id="3541",length="400.613877551",\
   type="chansons",title="John Holt - Holigan",\
   artist="RadioPi - Canal reggae",\
@@ -31,8 +30,7 @@ annotate:file_id="3541",length="400.613877551",\
 ```
 
 Note that we use annotate to pass some variables to liquidsoap...
-
-```
+```liquidsoap
 #!/usr/bin/liquidsoap
 
 # Standard settings

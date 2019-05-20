@@ -19,7 +19,7 @@ Example
 -------
 Liquidsoap also includes a ready-to-use operator defined using `cross`, it is called `crossfade` and is defined in the pervasive helper script `utils.liq`. Its code is:
 
-```
+```liquidsoap
 # Crossfade between tracks, 
 # taking the respective volume levels 
 # into account in the choice of the 

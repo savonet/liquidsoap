@@ -34,7 +34,7 @@ parameter described above, provided icecast supports ICY metadata for the intend
 For instance the following script registers a telnet command name `metadata.update`
 that can be used to manually update metadata:
 
-```
+```liquidsoap
 def icy_update(v) =
   # Parse the argument
   l = string.split(separator=",",v)

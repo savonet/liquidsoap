@@ -4,7 +4,7 @@ The harbor server can be used as a HTTP server. You
 can use the function `harbor.http.register` to register
 HTTP handlers. Its parameters are are follow:
 
-```
+```liquidsoap
 harbor.http.register(port=8080,method="GET",uri,handler)
 ```
 where:
@@ -87,7 +87,7 @@ Some source clients using the harbor may also request pages that
 are served by an icecast server, for instance listeners statistics.
 In this case, you can register the following handler:
 
-```
+```liquidsoap
 # Redirect all files other
 # than /admin.* to icecast,
 # located at localhost:8000
@@ -110,7 +110,7 @@ harbor.http.register(port=8005,method="GET",
 Another alternative, less recommended, is to
 directly fetch the page's content from the Icecast server:
 
-```
+```liquidsoap
 # Serve all files other
 # than /admin.* by fetching data
 # from Icecast, located at localhost:8000
@@ -150,7 +150,7 @@ You can use harbor to register HTTP services to
 fecth/set the metadata of a source. For instance, 
 using the [JSON export function](json.html) `json_of`:
 
-```
+```liquidsoap
 meta = ref []
 
 # s = some source
@@ -211,8 +211,7 @@ Set metadata
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
-```
-
+```liquidsoap
 # s = some source
 
 # x is of type ((metadata)->unit)*source

@@ -62,10 +62,11 @@
         <!-- Identifiers and keywords. -->
         <keyword String="Keywords"                 context="#stay" attribute="Keyword" />
         <keyword String="Operators"                context="#stay" attribute="Operator" />
-        <keyword String="Types"                    context="#stay" attribute="Type" />
+        <!-- <keyword String="Types"                    context="#stay" attribute="Type" /> -->
         <keyword String="Annotation"               context="#stay" attribute="Annotation" />
         <RegExpr String="%[a-zA-Z]+"               context="#stay" attribute="Format" />
         <RegExpr String="&IDENT;\("                context="IsFunction" attribute="Function" lookAhead="true" />
+        <RegExpr String="&IDENT;="                 context="IsLabel" attribute="Label" lookAhead="true" />
         <RegExpr String="&IDENT;"                  context="#stay" attribute="Identifier" />
 
         <!-- Numeric constants. -->
@@ -76,6 +77,9 @@
 
       <context name="IsFunction" lineEndContext="#pop" attribute="Function">
         <RegExpr attribute="Function" context="#pop" String="&IDENT;" />
+      </context>
+      <context name="IsLabel" lineEndContext="#pop" attribute="Label">
+        <RegExpr attribute="Label" context="#pop" String="&IDENT;" />
       </context>
 
       <context name="String" lineEndContext="#stay" attribute="String">
@@ -88,8 +92,10 @@
       <itemData name="Identifier"              defStyleNum="dsNormal"   />
       <itemData name="Keyword"                 defStyleNum="dsKeyword"  />
       <itemData name="Operator"                defStyleNum="dsKeyword" />
-      <itemData name="Function"                defStyleNum="dsFunction" />
-      <itemData name="Type"                    defStyleNum="dsDataType" />
+      <!-- <itemData name="Function"                defStyleNum="dsFunction" /> -->
+      <!-- <itemData name="Type"                    defStyleNum="dsDataType" /> -->
+      <itemData name="Function"                defStyleNum="dsDataType" />
+      <itemData name="Label"                   defStyleNum="dsVariable" />
 
       <itemData name="Decimal"                 defStyleNum="dsDecVal"   />
       <itemData name="Hexadecimal"             defStyleNum="dsBaseN"   />
@@ -101,7 +107,7 @@
       <itemData name="Format"                  defStyleNum="dsOthers"   />
 
       <itemData name="Comment"                 defStyleNum="dsComment"  />
-      <itemData name="Annotation"                  defStyleNum="dsAnnotation" />
+      <itemData name="Annotation"              defStyleNum="dsAnnotation" />
     </itemDatas>
   </highlighting>
 

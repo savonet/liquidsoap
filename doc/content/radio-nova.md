@@ -6,7 +6,6 @@ Introduction
 via Icecast. However, they don't include the metadata (probably to avoid rippers..).
 
 Still, these metadata are available on their webpage:
-
 ```
 14:29 toots@leonard /tmp% wget -q http://www.novaplanet.com -O - | grep 'scroll_play'
    scroll_play("ESTHER PHILLIPS","DISPOSABLE SOCIETY", 'playing_now', '0');
@@ -17,7 +16,7 @@ script will perform this.
 
 The script
 ----------
-```
+```liquidsoap
 #!/usr/bin/liquidsoap
 # Liquidsoap script to listen to radio nova, grabbing metadata
 # on the webpage.

@@ -12,7 +12,6 @@ For example, the error might indicate that a value of type `int` has been passed
 A type error can also show that you're trying to use a source of a certain content type (e.g., audio) in a place where another content type (e.g., pure video) is required. In that case the last error in the list is not the most useful one, but you will read something like this above:
 
 ```
-
 At ...:
   this value has type
     source(audio=?A+1,video=0,midi=0)
@@ -26,7 +25,6 @@ Sometimes, the type error actually indicates a mistake in the order or labels of
 Finally, a type error can indicate that you have forgotten to pass a mandatory parameter to some function. For example, on the code `fallback([crossfade(x),...])`, liquidsoap will complain as follows:
 
 ```
-
 At line ...:
   this value has type
     (?id:string, ~start_next:float, ~fade_in:float,
@@ -40,16 +38,19 @@ At line ...:
 Indeed, `fallback` expects a source, but `crossfade(x)` is still a function expecting the parameters `start_next`, `fade_in` and `fade_out`.
 
 ### That source is fallible!
+
 See the [quickstart](quick_start.html), or read more about 
 [sources](sources.html).
 
 ### Clock error
+
 Read about [clocks](clocks.html) for the errors
 `a source cannot belong to two clocks`
 and
 `cannot unify two nested clocks`.
 
 ### We must catchup x.xx!
+
 This error means that a clock is getting late in liquidsoap. This can
 be caused by an overloaded CPU, if your script is doing too much encoding
 or processing: in that case, you should reduce the load on your machine
@@ -58,9 +59,11 @@ some lag, for example a network lag will cause the icecast output to
 hang, making the clock late.
 
 The first kind of latency is problematic because it tends to accumulate,
-eventually leading to the restarting of outputs: ```
+eventually leading to the restarting of outputs:
+```
 Too much latency!
-Resetting active source...```
+Resetting active source...
+```
 
 
 The second kind of latency can often be ignored: if you are streaming to
@@ -75,6 +78,7 @@ its output to icecast (which again is sensitive to network lags).
 For more details on those techniques, read about [clocks](clocks.html).
 
 ### Unable to decode ``file'' as {audio=2;video=0;midi=0}!
+
 This log message informs you that liquidsoap failed to decode a file, not 
 necessarily because it cannot handle the file, but also possibly because
 the file does not contain the expected media type. For example, if video
@@ -89,10 +93,10 @@ to allow any kind of audio on its input, and produce stereo as expected
 on its output.
 
 ### Exceptions
+
 Liquidsoap dies with messages such as these by the end of the log:
 
 ```
-
 ... [threads:1] Thread "XXX" aborts with exception YYY!
 ... [stderr:3] Thread 2 killed on uncaught exception YYY.
 ... [stderr:3] Raised at file ..., line ..., etc.
@@ -109,12 +113,13 @@ caught or handled in any way at the level of liquidsoap scripts.
 
 Troubleshooting
 ---------------
+
 ### Pulseaudio
+
 When using ALSA input or output or, more generaly any audio input or output 
 that is not using pulseaudio, you should disable pulseaudio, which is often installed
 by default. Pulseaudio emulates ALSA but this also generates bugs, 
 in particular errors of this form:
-
 ```
 Alsa.Unknown_error(1073697252)!
 ```
@@ -138,7 +143,7 @@ In this case, the card we want to use is: device `0`, subdevice `0`, thus:
 `hw:0,0`. We now create a file `/etc/asound.conf` (or `~/.asoundrc` for single-user
 configuration) that contains the following:
 
-```
+```liquidsoap
 pcm.liquidsoap {
         type plug
         slave { pcm "hw:0,0" }
@@ -152,7 +157,7 @@ your own PCM device.
 
 Once you have created this device, you can use it in liquidsoap as follows:
 
-```
+```liquidsoap
 input.alsa(device="pcm.liquidsoap", ...)
 ```
 
@@ -176,6 +181,7 @@ apt-get remove pulseaudio libasound2-plugins
 ```
 
 ### Listeners are disconnected at the end of every track
+
 Several media players, including renowned ones, do not properly support
 Ogg/Vorbis streams: they treat the end of a track as an end of file,
 resulting in the disconnection.
@@ -191,6 +197,7 @@ and also not passing any metadata
 (which is also a result of the previous snippet).
 
 ### Encoding blank
+
 Encoding pure silence is often too effective for streaming: data is so
 compressed that there is nothing to send to listeners, whose clients
 eventually disconnect. Therefore, it is a good idea to use a non-silent
@@ -199,6 +206,7 @@ also achieve various effects using synthesis sources such as
 `noise()`, `sine()`, etc.
 
 ### Temporary files
+
 Liquidsoap relies on OCaml's `Filename.tmp_dir_name` variable to store temporary 
 files. It is documented as follows:
 

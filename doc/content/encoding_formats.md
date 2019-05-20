@@ -21,9 +21,9 @@ or `output.file` is something like
 This means that your source will have to have the same type as your format.
 
 For example if you write
+```liquidsoap
+output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))
 ```
-output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))```
-
 then the playlist source will have to stream stereo audio.
 Thus it will reject mono and video files.
 
@@ -38,8 +38,7 @@ You can store an atomic format in a variable, it is a value like another:
 `fmt = %mp3`. However, an atomic format is an atomic constant despite its
 appearance. You cannot use a variable for one of its parameters: for
 example
-
-```
+```liquidsoap
 x = 44100
 %vorbis(samplerate=x)
 ```
@@ -94,8 +93,7 @@ Examples:
 
 * Contstant `128` kbps bitrate encoding: `%mp3(bitrate=128)`
 * Variable bitrate with quality `6` and samplerate of `22050` Hz: `%mp3.vbr(quality=7,samplerate=22050)`
-* Average bitrate with mean of `128` kbps, maximun bitrate `192` kbps and `id3v2` tags: ```
-%mp3.abr(bitrate=128,max_bitrate=192,id3v2=true)```
+* Average bitrate with mean of `128` kbps, maximun bitrate `192` kbps and `id3v2` tags: `%mp3.abr(bitrate=128,max_bitrate=192,id3v2=true)`
 
 
 Optionally, liquidsoap can insert a message within mp3 data. You can set its value using the `msg` parameter.
@@ -106,13 +104,13 @@ Shine
 Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM. 
 It is named `%shine` or `%mp3.fxp` and its parameters are:
 
-```
+```liquidsoap
 %shine(channels=2,samplerate=44100,bitrate=128)
 ```
 
 WAV
 ---
-```
+```liquidsoap
 %wav(stereo=true, channels=2, samplesize=16, header=true, duration=10.)
 ```
 
@@ -135,13 +133,14 @@ of `%ogg(%vorbis(...))`.
 All ogg encoders have a `bytes_per_page` parameter, which can be used to
 try to limit ogg logical pages size. For instance:
 
-```
+```liquidsoap
 # Try to limit vorbis pages size to 1024 bytes
 %vorbis(bytes_per_page=1024)
 ```
 
 ### Vorbis
-```
+
+```liquidsoap
 # Variable bitrate
 %vorbis(samplerate=44100, channels=2, quality=0.3)
 % Average bitrate
@@ -154,6 +153,7 @@ Quality ranges from -0.2 to 1,
 but quality -0.2 is only available with the aotuv implementation of libvorbis.
 
 ### Opus
+
 Opus is a lossy audio compression made especially suitable for interactive real-time applications 
 over the Internet. Liquidsoap supports Opus data encapsulated into Ogg streams.
 
@@ -173,7 +173,8 @@ their meanings and values.
 * `signal`: one of `"voice"` or `"music"`
 
 ### Theora
-```
+
+```liquidsoap
 %theora(quality=40,width=640,height=480,
         picture_width=255,picture_height=255,
         picture_x=0, picture_y=0,
@@ -188,7 +189,8 @@ The default dimensions are liquidsoap's default,
 from the settings `frame.video.height/width`.
 
 ### Speex
-```
+
+```liquidsoap
 %speex(stereo=false, samplerate=44100, quality=7,
        mode=wideband, # One of: wideband|narrowband|ultra-wideband
        frames_per_packet=1,
@@ -198,6 +200,7 @@ from the settings `frame.video.height/width`.
 You can also control quality using `abr=x` or `vbr=y`.
 
 ### Flac
+
 The flac encoding format comes in two flavors:
 
 * `%flac` is the native flac format, useful for file output but not for streaming purpose
@@ -205,7 +208,7 @@ The flac encoding format comes in two flavors:
 
 The parameters are:
 
-```
+```liquidsoap
 %flac(samplerate=44100, 
       channels=2, 
       compression=5, 
@@ -219,19 +222,16 @@ FDK-AAC
 This encoder can do both AAC and AAC+.
 
 Its syntax is:
-
-```
+```liquidsoap
 %fdkaac(channels=2, samplerate=44100, bandwidth="auto", bitrate=64, afterburner=false, aot="mpeg2_he_aac_v2", transmux="adts", sbr_mode=false)
 ```
-
 Where `aot` is one of: `"mpeg4_aac_lc"`, `"mpeg4_he_aac"`, `"mpeg4_he_aac_v2"`,
 `"mpeg4_aac_ld"`, `"mpeg4_aac_eld"`, `"mpeg2_aac_lc"`, `"mpeg2_he_aac"` or
 `"mpeg2_he_aac_v2"`
 
 `bandwidth` is one of: `"auto"`, any supported integer value.
 
-`transmux` is one of: `"raw"`, `"adif"`, `"adts"`, `"latm"`, `"latm_out_of_band"` or
-`"loas"`.
+`transmux` is one of: `"raw"`, `"adif"`, `"adts"`, `"latm"`, `"latm_out_of_band"` or `"loas"`.
 
 Bitrate can be either constant by passing: `bitrate=64` or variable: `vbr=<1-5>`
 
@@ -246,7 +246,7 @@ formats available to your operating system.
 
 The encoder's parameters are as follows:
 
-```
+```liquidsoap
 %gstreamer(channels=2,
            audio="lamemp3enc",
            has_video=true,
@@ -264,7 +264,7 @@ External encoders
 -----------------
 For a detailed presentation of external encoders, see [this page](external_encoders.html).
 
-```
+```liquidsoap
 %external(channels=2,samplerate=44100,header=true,
           restart_on_crash=false,
           restart_on_metadata,

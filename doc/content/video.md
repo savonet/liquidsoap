@@ -270,8 +270,10 @@ a=rtpmap:96 MP4V-ES/90000
 
 Frequently asked questions
 ==========================
-audio=1+_
----------
+
+`audio=1+_`
+-----------
+
 When I try
 
 ```liquidsoap

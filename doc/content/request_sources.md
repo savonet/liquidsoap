@@ -60,8 +60,7 @@ until a valid audio file is obtained.
 
 An example that takes the output of an external script as an URI
 to create a new request can be:
-
-```
+```liquidsoap
 def my_request_function() = 
   # Get the first line of my external process
   result =
