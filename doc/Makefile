@@ -56,7 +56,7 @@ $(LIQUIDSOAP):
 	@exit 1
 
 language.dtd:
-	wget https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd
+	curl https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd -o $@
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules
