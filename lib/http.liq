@@ -88,7 +88,7 @@ def http_response_stream(
 end
 
 # @flag hidden
-def habor.http.static.base(serve,~path,~port,directory) =
+def harbor.http.static.base(serve,~path,~port,directory) =
   path =
     if string.sub(path,start=0,length=1) != "/" then
       "/#{path}"
@@ -128,7 +128,7 @@ end
 # @param ~path Base path for hls URIs.
 # @param directory Local path to be served
 def harbor.http.static(~port=8000,~path="/",directory) =
-  habor.http.static.base(harbor.http.register,path=path,port=port,directory)
+  harbor.http.static.base(harbor.http.register,path=path,port=port,directory)
 end
 
 %ifdef harbor.https.register
@@ -138,6 +138,6 @@ end
 # @param ~path Base path for hls URIs.
 # @param directory Local path to be served
 def harbor.https.static(~port=8000,~path="/",directory) =
-  habor.http.static.base(harbor.http.register,path=path,port=port,directory)
+  harbor.http.static.base(harbor.http.register,path=path,port=port,directory)
 end
 %endif
