@@ -6,7 +6,7 @@ Bubble has been designed to be interfaced with liquidsoap to provide a protocol 
 
 To add the bubble protocol to liquidsoap, we use the following code:
 
-```
+```liquidsoap
 bubble = "/home/dbaelde/savonet/bubble/src/bubble-query " ^
          "-d /var/local/cache/bubble/bubble.sql "
 add_protocol(

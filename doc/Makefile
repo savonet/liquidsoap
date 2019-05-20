@@ -4,6 +4,7 @@ SUBDIRS = content
 DISTFILES = liquidsoap.1 Makefile template.html snippet.html
 DISTDIRS = orig
 LIQUIDSOAP = ../src/liquidsoap
+PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
 MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
@@ -17,15 +18,15 @@ html: $(HTML)
 
 pdf: $(PDF)
 
-html/%.html: content/%.md template.html
+html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
-	@pandoc $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
+	@$(PANDOC) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
-pdf/%.pdf: content/%.md
+pdf/%.pdf: content/%.md language.dtd
 	@mkdir -p pdf
 	@echo Converting $(<) to $(@)...
-	@pandoc $< -o $@
+	@$(PANDOC) $< -o $@
 
 content/protocols.md: $(LIQUIDSOAP)
 	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --list-protocols-md > $@
@@ -35,9 +36,6 @@ content/reference.md: $(LIQUIDSOAP)
 
 content/settings.md: $(LIQUIDSOAP)
 	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --conf-descr > $@
-
-reference.pdf: content/reference.md
-	pandoc $< -o $@
 
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
@@ -56,6 +54,9 @@ $(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."
 	@echo "Go to the toplevel and type 'make'"
 	@exit 1
+
+language.dtd:
+	wget https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules

@@ -6,8 +6,7 @@ Basically streaming videos does not change anything compared to streaming audio:
 you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
 vorbis as codecs for audio and video) you can simply type:
-
-```
+```liquidsoap
 source = single("video.avi")
 
 output.icecast(
@@ -42,16 +41,14 @@ Transitions
 Transitions at the beginning or at the end of video can be achieved using
 `video.fade.in` and `video.fade.out`. For instance, fading at the beginning of
 videos is done by
-
-```
+```liquidsoap
 source = video.fade.in(transition="fade",duration=3.,source)
 ```
 
 Adding a logo
 -------------
 You can add a logo (any image) using the `video.add_image` operator, as follows:
-
-```
+```liquidsoap
 source = video.add_image(
        width=30,height=30,
        x=10,y=10,
@@ -63,8 +60,7 @@ Inputting from a webcam
 -----------------------
 If your computer has a webcam, it can be used as a source thanks to the
 `input.v4l2` operator. For instance:
-
-```
+```liquidsoap
 output.sdl(input.v4l2())
 ```
 
@@ -72,8 +68,7 @@ Video in video
 --------------
 Suppose that you have two video sources `source` and `source2` and you want to
 display a small copy of `source2` on top of `source`. This can be achieved by
-
-```
+```liquidsoap
 source2 = video.scale(scale=0.2,x=10,y=10,source2)
 source = add([source,source2])
 ```
@@ -81,8 +76,7 @@ source = add([source,source2])
 Scrolling text
 --------------
 Adding scrolling text at the bottom of your video is as easy as
-
-```
+```liquidsoap
 source = video.add_text.sdl(
        font="/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf",
        "Hello world!", source)
@@ -106,8 +100,7 @@ You can say that a specific color should be transparent using
 `video.transparent`. For instance, you can put yourself in front of a blue
 screen (whose RGB color should be around 0x0000ff) and replace the blue screen
 by an image of the weather using
-
-```
+```liquidsoap
 img = single("weather.jpg")
 cam = input.v4l2()
 cam = video.transparent(color=0x0000ff,precision=0.2,cam)
@@ -124,7 +117,7 @@ video. Here is what we are going to achieve:
 
 <center><iframe width="560" height="315" src="//www.youtube.com/embed/E7Fb0wV3h5Q" frameborder="0" allowfullscreen></iframe></center>This video was produced thanks to the following script:
 
-```
+```liquidsoap
 # Input from webcam
 cam = input.v4l2()
 
@@ -166,7 +159,7 @@ parameters in realtime. There are many OSC clients around, for instance I used
 
 <center><iframe width="560" height="315" src="//www.youtube.com/embed/EX1PTjiuuXY" frameborder="0" allowfullscreen></iframe></center>Here is how the video was made:
 
-```
+```liquidsoap
 # Set the OSC port to match TouchOSC's default port
 set("osc.port",8000)
 
@@ -201,7 +194,7 @@ You want to show yourself in front of a video of a bunny, as in
 transparent and put the resulting video in front of the bunny video (actually, I
 don't have a blue screen at home, only a white wall but it still kinda works).
 
-```
+```liquidsoap
 # The video of the bunny
 s = single("big_buck_bunny_720p_stereo.ogg")
 # Input from the webcam
@@ -225,7 +218,7 @@ Gstreamer codecs can be used to encode videos and audio as any natively
 supported format. For instance, suppose that you want to stream using harbor in
 x264 / mp3. This can be achieved as follows:
 
-```
+```liquidsoap
 # Set the values for video size and fps.
 # On my standard computer, higher values means
 # that we cannot encode in realtime.
@@ -260,7 +253,7 @@ using GStreamer as output (as opposed to simply a codec as above) might be a
 good idea. For instance, suppose that you want to stream mp4 video using
 RTP. This can be done as follows:
 
-```
+```liquidsoap
 s = single("test.mp4")
 output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=127.0.0.1 port=5000", s)
 ```
@@ -281,15 +274,12 @@ audio=1+_
 ---------
 When I try
 
-```
+```liquidsoap
 s = input.v4l2_with_audio()
 output.sdl(s)
 ```
-
 I get the error
-
 ```
-
 At line 2, char 13:
   this value has type
     active_source(audio=1+_,...) (inferred at ../scripts/gstreamer.liq, line 20, char 30-121)
@@ -315,7 +305,7 @@ which means that it wants 0 audio channel, 1 video channel and 0 midi
 channel. The solution to correct the script is simply to remove the audio
 channel using the `drop_audio` operator:
 
-```
+```liquidsoap
 s = input.v4l2_with_audio()
 output.sdl(drop_audio(s))
 ```
@@ -327,7 +317,7 @@ Default size for videos
 Internally, Liquidsoap uses a video format which is the same for all frames. You
 can change it by doing
 
-```
+```liquidsoap
 set("frame.video.width",320)
 set("frame.video.height",240)
 set("frame.video.samplerate",24)
@@ -342,13 +332,13 @@ Most videos need to be rescaled to the Liquidsoap internal format. The default
 converter is the GAVL library but you can choose other (such as `native` or
 `ffmpeg`) by
 
-```
+```liquidsoap
 set("video.converter.preferred", "ffmpeg")
 ```
 
 If you are using `gavl`, you can change the scaling mode by
 
-```
+```liquidsoap
 set("video.converter.gavl.scale_mode", "quadratic")
 ```
 

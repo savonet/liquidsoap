@@ -66,7 +66,7 @@ One simply needs to add boxes representing clocks:
 a source can belong to only one box,
 and all sources of a box produce streams at the same rate.
 For example, 
-```
+```liquidsoap
 output.icecast(fallback([crossfade(playlist(...)),jingles]))
 ```
 
@@ -90,9 +90,7 @@ which is what this section is for.
 ### Disjoint clocks
 On the following example, liquidsoap will issue the fatal error
 `a source cannot belong to two clocks`:
-
-```
-
+```liquidsoap
 s = playlist("~/media/audio")
 output.alsa(s) # perhaps for monitoring
 output.icecast(mount="radio.ogg",%vorbis,crossfade(s))
@@ -111,9 +109,7 @@ and `crossfade`'s clock.
 ### Nested clocks
 On the following example, liquidsoap will issue the fatal error
 `cannot unify two nested clocks`:
-
-```
-
+```liquidsoap
 jingles = playlist("jingles.lst")
 music = rotate([1,10],[jingles,playlist("remote.lst")])
 safe = rotate([1,10],[jingles,single("local.ogg")])
@@ -154,9 +150,7 @@ nasty situation, which indeed could be turned into a real mess
 by adding just a little more complexity. To obtain the desired effect
 without requiring illegal clock assignments, it suffices to
 create two jingle sources, one for each clock:
-
-```
-
+```liquidsoap
 music = rotate([1,10],[playlist("jingles.lst"),
                        playlist("remote.lst")])
 safe  = rotate([1,10],[playlist("jingles.lst"),
@@ -186,7 +180,7 @@ by `clock.assign_new()`.
 If you want to run an output as fast as your CPU allows,
 just attach it to a new clock without synchronization:
 
-```
+```liquidsoap
 clock.assign_new(sync=false,[output.file(%vorbis,"audio.ogg",source)])
 ```
 
@@ -227,9 +221,7 @@ use at your own risk, as this might create bad latency interferences.
 Currently, `output.icecast` does not require to belong
 to any particular clock. This allows to stream according to the
 soundcard's internal clock, like in most other tools:
-in ```
-output.icecast(%vorbis,mount="live.ogg",input.alsa())```
-,
+in `output.icecast(%vorbis,mount="live.ogg",input.alsa())`,
 the ALSA clock will drive the streaming of the soundcard input via
 icecast.
 
@@ -244,9 +236,7 @@ latencies and glitches, while in theory it could be perfect.
 To fix this you can explicitly separate Icecast (high latency,
 low quality acceptable) from the backup and soundcard input (low latency,
 high quality wanted):
-
-```
-
+```liquidsoap
 input = input.oss()
 
 clock.assign_new(id="icecast",
@@ -286,9 +276,7 @@ you can put each of them in a separate clock.
 For example the following script takes one file and encodes it as MP3
 twice. You should run it as `liquidsoap EXPR -- FILE`
 and observe that it fully exploits two cores:
-
-```
-
+```liquidsoap
 def one()
   clock.assign_new(sync=false,
         [output.file(%mp3,"/dev/null",single(argv(1)))])

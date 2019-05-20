@@ -11,9 +11,10 @@ We will develop here a more complex example, according to the following specific
 
 Once you've managed to describe what you want in such a modular way, you're half the way. More precisely, you should think of a diagram such as the following, through which the audio streams flow, following the arrows. The nodes can modify the stream using some basic operators: switching and mixing in our case. The final nodes, the ends of the paths, are outputs: they are in charge of pulling the data out of the graph and send it to the world. In our case, we only have outputs to icecast, using two different formats.
 
-![Graph for 'radio.liq'](images/liqgraph.png)Now here is how to write that in [Liquidsoap](index.html).
+![Graph for 'radio.liq'](images/liqgraph.png)
 
-```
+Now here is how to write that in [Liquidsoap](index.html).
+```liquidsoap
 #!/usr/bin/liquidsoap
 
 # Lines starting with # are comments, they are ignored.
@@ -76,7 +77,7 @@ To try this example you need to edit the file names. In order to witness the swi
 
 To try the transition to a live show you need to start a new stream on the `live.ogg` mount of your server. You can send a playlist to it using examples from the [quickstart](quick_start.html). To start a real live show from soundcard input you can use `darkice`, or simply liquidsoap if you have a working ALSA input, with:
 
-```
+```liquidsoap
 liquidsoap 'output.icecast(%vorbis, 
   mount="live.ogg",host="...",password="...",input.alsa())'
 ```

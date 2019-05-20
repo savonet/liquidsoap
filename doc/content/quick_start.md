@@ -50,7 +50,7 @@ In a radio-like stream, silence is not the prefered solution, and you
 will probably prefer to `fallback` on an infallible
 ``security'' source:
 
-```
+```liquidsoap
 fallback([your_fallible_source_here, single("failure.ogg")])
 ```
 
@@ -73,7 +73,7 @@ ignored. You can also put remote files' URLs, if your liquidsoap has
 [support](help.html#plugins) for the corresponding protocols.
 Then just run:
 
-```
+```liquidsoap
 liquidsoap 'out(playlist("playlist.pls"))'
 ```
 
@@ -92,7 +92,7 @@ You may already have an Icecast server. Otherwise you can install and configure 
 
 We are now going to send an audio stream, encoded as Ogg Vorbis, to an Icecast server:
 
-```
+```liquidsoap
 liquidsoap \
   'output.icecast(%vorbis,
      host = "localhost", port = 8000,
@@ -104,7 +104,7 @@ The main difference with the previous is that we used `output.icecast` instead o
 
 Streaming to Shoutcast is quite similar, using the `output.shoutcast` function:
 
-```
+```liquidsoap
 liquidsoap 'output.shoutcast(%mp3,
                 host="localhost", port = 8000,
 	        password = "changeme",
@@ -114,7 +114,7 @@ liquidsoap 'output.shoutcast(%mp3,
 ### Input from another streaming server
 Liquidsoap can use another stream as an audio source. This may be useful if you do some live shows.
 
-```
+```liquidsoap
 liquidsoap '
   out(input.http("http://dolebrai.net:8000/dolebrai.ogg"))'
 ```
@@ -122,11 +122,11 @@ liquidsoap '
 ### Input from the soundcard
 If you're lucky and have a working ALSA support, try one of these... but beware that ALSA may not work out of the box.
 
-```
+```liquidsoap
 liquidsoap 'output.alsa(input.alsa())'
 ```
 
-```
+```liquidsoap
 liquidsoap 'output.alsa(bufferize = false,
                         input.alsa(bufferize = false))'
 ```
@@ -135,12 +135,12 @@ liquidsoap 'output.alsa(bufferize = false,
 You can play with many more examples. Here are a few more. To build your own, 
 lookup the [API documentation](reference.html) to check what functions are available, and what parameters they accept.
 
-```
+```liquidsoap
 # Listen to your playlist, but normalize the volume
 liquidsoap 'out(normalize(playlist("playlist_file")))'
 ```
 
-```
+```liquidsoap
 # ... same, but also add smart cross-fading
 liquidsoap 'out(crossfade(
                   normalize(playlist("playlist_file"))))'
@@ -152,22 +152,19 @@ We have seen how to create a very basic stream using one-line expressions. If yo
 
 To run the script:
 
-```
-
+```liquidsoap
 liquidsoap myscript.liq
 ```
 
 On UNIX, you can also put `#!/path/to/your/liquidsoap` as the first line of your script (``shebang''). Don't forget to make the file executable:
 
 ```
-
 chmod u+x myscript.liq
 ```
 
 Then you'll be able to run it like this:
 
 ```
-
 ./myscript.liq
 ```
 
@@ -179,7 +176,8 @@ In this section, we build a basic radio station that plays songs randomly chosen
 
 Before reading the code of the corresponding liquidsoap script, it might be useful to visualize the streaming process with the following tree-like diagram. The idea is that the audio streams flows through this diagram, following the arrows. In this case the nodes (`fallback` and `random`) select one of the incoming streams and relay it. The final node `output.icecast` is an output: it actively pulls the data out of the graph and sends it to the world.
 
-![Graph for 'basic-radio.liq'](images/basic-radio-graph.png)```
+![Graph for 'basic-radio.liq'](images/basic-radio-graph.png)
+```liquidsoap
 #!/usr/bin/liquidsoap
 # Log dir
 set("log.file.path","/tmp/basic-radio.log")
@@ -198,7 +196,7 @@ radio = random(weights = [1, 4],[jingles, radio])
 # And finally the security
 radio = fallback(track_sensitive = false, [radio, security])
 
- # Stream it out
+# Stream it out
 output.icecast(%vorbis,
   host = "localhost", port = 8000,
   password = "hackme", mount = "basic-radio.ogg",
