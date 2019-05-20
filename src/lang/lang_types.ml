@@ -22,6 +22,9 @@
 
 let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None
 
+(** Pretty-print getters as {t}. *)
+let pretty_getters = ref true
+
 (* Type information comes attached to the AST from the parsing,
  * with appropriate sharing of the type variables. Then the type inference
  * performs in-place unification.
@@ -305,6 +308,8 @@ let print_repr f t =
               vars
        in
        aux 0 t
+    | `EVar (_,[Getter a]) | `UVar (_,[Getter a]) when !pretty_getters ->
+       Format.fprintf f "{%s}" (print_ground a) ; vars
     | `EVar (name,c) | `UVar (name,c) ->
        Format.fprintf f "%s" name ;
        if c<>[] then DS.add (name,c) vars else vars
@@ -341,6 +346,8 @@ let print_repr f t =
   Format.fprintf f "@[" ;
   begin match t with
   (* We're only printing a variable: ignore its [repr]esentation. *)
+  | `EVar (_,[Getter a]) | `UVar (_,[Getter a]) when !pretty_getters ->
+     Format.fprintf f "{%s}" (print_ground a)
   | `EVar (_,c) when c <> [] ->
      Format.fprintf f "something that is %s"
        (String.concat " and " (List.map print_constr c))
