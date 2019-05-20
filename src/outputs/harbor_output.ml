@@ -477,7 +477,7 @@ module Make (T : T) = struct
                     Buffer.reset buffer )
                   () ;
                 on_disconnect ip ;
-                Harbor.Close "" ) }
+                Harbor.Close (Harbor.mk_simple "")) }
         in
         Duppy.Monad.bind
           (Duppy.Monad.catch

@@ -23,9 +23,13 @@ New:
 
 - Added `file.write` to write content to a file.
 
+- Added `file.read` to read contents of a file without loading all of it in memory.
+
 - Added `youtube-pl:<ID>` protocol to resolve and parse youtube playlists (or any playlist supported by `youtube-dl`) (#761)
 
 - Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to @RecursiveGreen. (#778)
+
+- Added `harbor.{http,https}.static` to serve static path.
 
 Changed:
 
@@ -66,6 +70,8 @@ Changed:
 - The `ratio` parameter of `compress` and `limit` is a float getter. (#745)
 
 - Removed `rewrite_metadata` which had been deprecated for a while now.
+
+- Allow string getter for `harbor` HTTP responses.
 
 Fixed:
 

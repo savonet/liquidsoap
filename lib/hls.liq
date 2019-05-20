@@ -94,37 +94,7 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
 
   on_shutdown(fun () -> file.rmdir(tmp_dir))
 
-  path =
-    if string.sub(path,start=0,length=1) != "/" then
-      "/#{path}"
-    else
-      path
-    end
-
-  def handler(~method,~protocol,~data,~headers,uri)
-    ret = string.extract(pattern="^#{path}([^?]*)",uri)
-
-    if list.length(ret) == 0 then
-      http_response(protocol=protocol,code=404,data="Not Found!")
-    else
-      match = list.hd(default=("1","foo"),ret)
-      file = path.concat(tmp_dir, snd(match))
-      if file.exists(file) then
-        if method == "OPTIONS" then
-          http_response(protocol=protocol,code=200)
-        else
-          http_response(protocol=protocol,code=200,data=file.contents(file))
-        end
-      else
-        http_response(protocol=protocol,code=404,data="Not Found!")
-      end
-    end      
-  end
-
-  def register(method)
-    serve(port=port,method=method,"^#{path}",handler(method=method))
-  end
-  list.iter(register, ["OPTIONS","GET"])
+  serve(port=port,path=path,tmp_dir)
 
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                   playlist=playlist,start=start,
@@ -148,13 +118,16 @@ end
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
                       ~segment_duration=10.,~segments=10,~start=true,
                       ~playlist="stream.m3u8",~port=8000,~path="/",formats,s)
+  def serve(~port,~path,dir) =
+    harbor.http.static(port=port,path=path,dir)
+  end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
                          start=start,port=port,path=path,playlist=playlist,
-                         harbor.http.register,formats,s)
+                         serve,formats,s)
 end
 
-%ifdef harbor.https.register
+%ifdef harbor.https.static
 # Output the source stream to an HTTP live stream served from the harbor HTTPS server.
 # @category Source / Output
 # @param ~id Force the value of the source ID.
@@ -171,9 +144,12 @@ end
 def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_duration=10.,~segments=10,~start=true,
                             ~port=8000,~path="/",~playlist="stream.m3u8",formats,s)
+  def serve(~port,~path,dir) =
+    harbor.https.static(port=port,path=path,dir)
+  end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
                          start=start,port=port,path=path,playlist=playlist,
-                         harbor.https.register,formats,s)
+                         serve,formats,s)
 end
 %endif

@@ -52,7 +52,7 @@ let () =
   Lang.int_t
   (fun p ->
     try
-      let ic = open_in (Lang.to_string (List.assoc "" p)) in
+      let ic = open_in_bin (Lang.to_string (List.assoc "" p)) in
       let ret = in_channel_length ic in
       close_in ic;
       Lang.int ret

@@ -19,7 +19,8 @@ where:
 
 ```
 (~protocol:string, ~data:string, 
- ~headers:[(string*string)], string)->string))->unit
+ ~headers:[(string*string)], string)->'a))->unit
+where 'a is either string or ()->string
 ```
 
 where:
@@ -43,8 +44,12 @@ Content-Length: 35\r\n\
 (`\r\n` should always be used for line return
 in HTTP content)
 
-For convenience, a `http_response` function is provided to 
-create a HTTP response string. It has the following type:
+The handler is a _string getter_, which means that it can be of either type `string` or type `()->string`.
+The former is used to returned the response in one call while the later can be used to returned bigger response
+without having to load the whole response string in memory, for instane in the case of a file.
+
+For convenience, two functions, `http_response` and `http_response_stream` are provided to 
+create a HTTP response string. `http_response` has the following type:
 
 ```
 (?protocol:string,?code:int,?headers:[(string*string)],
@@ -57,6 +62,21 @@ where:
 * `code` is the response code (default `200`)
 * `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
 * `data` is an optional response data (default `""`)
+
+`http_response_stream` has the following type:
+
+```
+(?protocol:string,?code:int,?headers:[(string*string)],
+ data_len:int,data:()->string)->string
+```
+
+where:
+
+* `protocol` is the HTTP protocol of the response (default `HTTP/1.1`)
+* `code` is the response code (default `200`)
+* `headers` is the response headers. It defaults to `[]` but an appropriate `"Content-Length"` header is added if not set by the user and `data` is not empty.
+* `data_len` is the length of the streamed response
+* `data` is the response stream
 
 Thess functions can be used to create your own HTTP interface. Some examples
 are:
