@@ -158,7 +158,7 @@ request.dynamic(
         get_process_lines("cat "^quote("playlist.pls"))) })
 ```
 
-Of course a more interesting behaviour is obtained with a more interesting program than ``cat''.
+Of course a more interesting behaviour is obtained with a more interesting program than `cat`.
 
 Another way of using an external program is to define a new protocol which uses it to resolve URIs. `add_protocol` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program, that's how we use [bubble](bubble.html) for example:
 
@@ -201,8 +201,8 @@ radio = fallback(track_sensitive=false,
 output.icecast(%vorbis, radio,mount="test",host="host")
 ```
 
-This script, when launched, will start a local server, here bound to ``0.0.0.0''. This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point ``/live'' to login.
-Then if you start a source client and tell it to stream to your server, on port 8080, with password ``hackme'', the live source will become available and the radio will stream it immediately.
+This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
+Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
 
 Adding new commands
 -------------------
