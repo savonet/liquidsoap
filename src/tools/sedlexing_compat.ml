@@ -48,7 +48,6 @@ let start lexbuf =
 let next lexbuf =
   let c = Sedlexing.next lexbuf.lexbuf in
   incr_curr lexbuf;
-  (* '\n' = 10 *)
   if c = Some (Uchar.of_char '\n') then new_line lexbuf;
   c
 
