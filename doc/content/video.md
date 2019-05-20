@@ -32,12 +32,12 @@ size of videos have a great impact on computations; if your machine cannot
 handle a stream (i.e. it's always catching up) you can try to encode to smaller
 videos for a start.
 
-Useful tips & tricks
-====================
+## Useful tips & tricks
+
 Video is a really exciting world where there are lots of cool stuff to do.
 
-Transitions
------------
+### Transitions
+
 Transitions at the beginning or at the end of video can be achieved using
 `video.fade.in` and `video.fade.out`. For instance, fading at the beginning of
 videos is done by
@@ -45,8 +45,8 @@ videos is done by
 source = video.fade.in(transition="fade",duration=3.,source)
 ```
 
-Adding a logo
--------------
+### Adding a logo
+
 You can add a logo (any image) using the `video.add_image` operator, as follows:
 ```liquidsoap
 source = video.add_image(
@@ -56,16 +56,16 @@ source = video.add_image(
        source)
 ```
 
-Inputting from a webcam
------------------------
+### Inputting from a webcam
+
 If your computer has a webcam, it can be used as a source thanks to the
 `input.v4l2` operator. For instance:
 ```liquidsoap
 output.sdl(input.v4l2())
 ```
 
-Video in video
---------------
+### Video in video
+
 Suppose that you have two video sources `source` and `source2` and you want to
 display a small copy of `source2` on top of `source`. This can be achieved by
 ```liquidsoap
@@ -73,8 +73,8 @@ source2 = video.scale(scale=0.2,x=10,y=10,source2)
 source = add([source,source2])
 ```
 
-Scrolling text
---------------
+### Scrolling text
+
 Adding scrolling text at the bottom of your video is as easy as
 ```liquidsoap
 source = video.add_text.sdl(
@@ -85,8 +85,8 @@ source = video.add_text.sdl(
 You might need to change the `font` parameter so that it matches a font file
 present on your system.
 
-Effects
--------
+### Effects
+
 There are many of effects that you can use to add some fun to your videos:
 `video.greyscale`, `video.sepia`, `video.lomo`, etc. [Read the
 documentation](reference.html) to find out about them. If you have compiled
@@ -94,8 +94,8 @@ Liquidsoap with [frei0r](http://www.piksel.org/frei0r/) support, and have
 installed frei0r plugins, they will be named `video.frei0r.*`. You can have a
 list of those supported on your installation as usual, using `liquidsoap --list-plugins`.
 
-Presenting weather forecast
----------------------------
+### Presenting weather forecast
+
 You can say that a specific color should be transparent using
 `video.transparent`. For instance, you can put yourself in front of a blue
 screen (whose RGB color should be around 0x0000ff) and replace the blue screen
@@ -107,10 +107,10 @@ cam = video.transparent(color=0x0000ff,precision=0.2,cam)
 source = add([img,cam])
 ```
 
-Detailed examples
-=================
-The anonymizer
---------------
+## Detailed examples
+
+### The anonymizer
+
 Let's design an ``anonymizer'' effect: I want to blur my face and change my voice
 so that nobody will recognise me in the street after seeing the youtube
 video. Here is what we are going to achieve:
@@ -151,8 +151,8 @@ s = mksafe(s)
 output.file(%ogg(%theora(quality=63),%vorbis), "anonymous.ogv", s)
 ```
 
-Controlling with OSC
---------------------
+### Controlling with OSC
+
 In this example we are going to use OSC integration in order to modify the
 parameters in realtime. There are many OSC clients around, for instance I used
 [TouchOSC](http://hexler.net/software/touchosc) :
@@ -186,8 +186,8 @@ output.pulseaudio(fallible=true,s)
 output.sdl(fallible=true,drop_audio(s))
 ```
 
-Blue screen
------------
+### Blue screen
+
 You want to show yourself in front of a video of a bunny, as in
 
 <center><iframe width="640" height="360" src="//www.youtube.com/embed/zHikXRNMQu4?feature=player_detailpage" frameborder="0" allowfullscreen></iframe></center>The idea is to film yourself in front of a blue screen, make this blue screen
@@ -212,8 +212,8 @@ s = add([s,cam])
 output.sdl(fallible=true,drop_audio(s))
 ```
 
-Encoding with GStreamer codecs
-------------------------------
+### Encoding with GStreamer codecs
+
 Gstreamer codecs can be used to encode videos and audio as any natively
 supported format. For instance, suppose that you want to stream using harbor in
 x264 / mp3. This can be achieved as follows:
@@ -245,8 +245,8 @@ The video can be read after that at
 `output.icecast` or `output.file` could have been used instead of
 `output.harbor` depending on your needs.
 
-Streaming with GStreamer
-------------------------
+### Streaming with GStreamer
+
 The usual way to stream a video is using icecast, as for audio. However, it can
 happen that you want to use weired formats or ways to to stream. In this case,
 using GStreamer as output (as opposed to simply a codec as above) might be a
@@ -268,11 +268,10 @@ c=IN IP4 127.0.0.1
 a=rtpmap:96 MP4V-ES/90000
 ```
 
-Frequently asked questions
-==========================
+## Frequently asked questions
 
-`audio=1+_`
------------
+
+### `audio=1+_`
 
 When I try
 
@@ -312,10 +311,10 @@ s = input.v4l2_with_audio()
 output.sdl(drop_audio(s))
 ```
 
-Advanced parameters
-===================
-Default size for videos
------------------------
+## Advanced parameters
+
+### Default size for videos
+
 Internally, Liquidsoap uses a video format which is the same for all frames. You
 can change it by doing
 
@@ -328,8 +327,8 @@ set("frame.video.samplerate",24)
 Using higher values result in higher quality videos produced, but this also
 means more computations to perform!
 
-Converters
-----------
+### Converters
+
 Most videos need to be rescaled to the Liquidsoap internal format. The default
 converter is the GAVL library but you can choose other (such as `native` or
 `ffmpeg`) by
