@@ -133,7 +133,7 @@ let print_functions_md doc =
               Printf.printf "Arguments:\n\n";
               List.iter
                 (fun (n,s,t,d) ->
-                  let d = if d = "" then "" else ", which defaults to `"^d^"`" in
+                  let d = if d = "None" then "" else ", which defaults to `"^d^"`" in
                   let s = if s = "" then "" else ": "^s in
                   Printf.printf "- `%s` (of type `%s`%s)%s\n" n t d s
                 ) args;
