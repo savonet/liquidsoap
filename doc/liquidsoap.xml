@@ -64,7 +64,7 @@
         <keyword String="Operators"                context="#stay" attribute="Operator" />
         <!-- <keyword String="Types"                    context="#stay" attribute="Type" /> -->
         <keyword String="Annotation"               context="#stay" attribute="Annotation" />
-        <RegExpr String="%[a-zA-Z]+"               context="#stay" attribute="Format" />
+        <RegExpr String="%[a-zA-Z0-9]+"            context="#stay" attribute="Format" />
         <RegExpr String="&IDENT;\("                context="IsFunction" attribute="Function" lookAhead="true" />
         <RegExpr String="&IDENT;="                 context="IsLabel" attribute="Label" lookAhead="true" />
         <RegExpr String="&IDENT;"                  context="#stay" attribute="Identifier" />
