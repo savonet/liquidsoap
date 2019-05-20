@@ -15,3 +15,9 @@ end
 def ref.set(r, x) =
   r := x
 end
+
+# Create a getter from a reference.
+# @category Liquidsoap
+def ref.getter(r) =
+  fun () -> !r
+end
