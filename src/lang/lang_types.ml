@@ -22,7 +22,7 @@
 
 let debug = Utils.getenv_opt "LIQUIDSOAP_DEBUG_LANG" <> None
 
-(** Pretty-print getters as {t}. *)
+(** Pretty-print getters as t | ()->t. *)
 let pretty_getters = ref true
 
 (* Type information comes attached to the AST from the parsing,
@@ -98,7 +98,10 @@ let print_constr = function
   | Ord -> "an orderable type"
   | Getter t ->
      let t = print_ground t in
-     Printf.sprintf "either %s or ()->%s" t t
+     if !pretty_getters then
+       Printf.sprintf "%s | ()->%s" t t
+     else
+       Printf.sprintf "either %s or ()->%s" t t
   | Dtools -> "unit, bool, int, float, string or [string]"
   | Arity_any -> "an arity"
   | Arity_fixed -> "a fixed arity"
@@ -309,7 +312,8 @@ let print_repr f t =
        in
        aux 0 t
     | `EVar (_,[Getter a]) | `UVar (_,[Getter a]) when !pretty_getters ->
-       Format.fprintf f "{%s}" (print_ground a) ; vars
+       let t = print_ground a in
+       Format.fprintf f "%s | ()->%s" t t ; vars
     | `EVar (name,c) | `UVar (name,c) ->
        Format.fprintf f "%s" name ;
        if c<>[] then DS.add (name,c) vars else vars
@@ -347,7 +351,8 @@ let print_repr f t =
   begin match t with
   (* We're only printing a variable: ignore its [repr]esentation. *)
   | `EVar (_,[Getter a]) | `UVar (_,[Getter a]) when !pretty_getters ->
-     Format.fprintf f "{%s}" (print_ground a)
+     let t = print_ground a in
+     Format.fprintf f "%s | ()->%s" t t
   | `EVar (_,c) when c <> [] ->
      Format.fprintf f "something that is %s"
        (String.concat " and " (List.map print_constr c))
