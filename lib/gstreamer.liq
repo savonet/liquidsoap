@@ -21,6 +21,17 @@ def input.v4l2_with_audio(~id="",~device="/dev/video0",~on_error=fun(_)->3.)
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline, on_error=on_error)
 end
 
+# Play a single audio file using GStreamer.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param ~on_error Callback executed when an error happens.
+# @param uri URI of the file to be played.
+def gstreamer.single.audio(~id="",~on_error=fun(_)->3.,uri) =
+  uri = to_string_getter(uri)
+  input.gstreamer.audio(pipeline="filesrc location=\"#{uri()}\"")
+end
+
+
 # Play an http live stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.

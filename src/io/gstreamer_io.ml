@@ -627,7 +627,7 @@ let input_proto =
           If returned value is positive, connection will be tried again after \
           this amount of time (in seconds)." ;
     "restart", Lang.bool_t, Some (Lang.bool true),
-    Some "Restart input on end of stream event";
+    Some "Restart input on end of stream event.";
     "max", Lang.float_t, Some (Lang.float 10.),
     Some "Maximum duration of the buffered data." ;
   ]
