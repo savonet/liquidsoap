@@ -46,13 +46,13 @@ let () =
      "inherit_env", Lang.bool_t,
      Some (Lang.bool true), Some "Inherit calling process's environment when \
        `env` parameter is empty.";
-     "sandbox_tmp", Lang.string_t, Some (Lang.string Sandbox.conf_tmp#get),
+     "tmpdir", Lang.string_t, Some (Lang.string Sandbox.conf_tmp#get),
      Some "Temporary directory for sandboxing.";
-     "sandbox_rw", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_rw#get)),
+     "rwdirs", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_rw#get)),
      Some "Read/write directories for sandboxing.";
-     "sandbox_ro", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_ro#get)),
+     "rodirs", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_ro#get)),
      Some "Read-only directories for sandboxing.";
-     "sandbox_network", Lang.bool_t, Some (Lang.bool true),
+     "network", Lang.bool_t, Some (Lang.bool true),
      Some "Enable or disable network inside sandboxed environment.";
      "timeout", Lang.float_t,Some (Lang.float (-1.)),
      Some "Cancel process after `timeout` has elapsed. Ignored if negative.";
@@ -66,18 +66,18 @@ let () =
          Lang.to_string k, Lang.to_string v) env
        in
        let sandbox_tmp =
-         Lang.to_string (List.assoc "sandbox_tmp" p)
+         Lang.to_string (List.assoc "tmpdir" p)
        in
        let sandbox_rw =
          List.map Lang.to_string
-           (Lang.to_list (List.assoc "sandbox_rw" p))
+           (Lang.to_list (List.assoc "rwdirs" p))
        in
        let sandbox_ro =
          List.map Lang.to_string
-           (Lang.to_list (List.assoc "sandbox_ro" p))
+           (Lang.to_list (List.assoc "rodirs" p))
        in
        let sandbox_network =
-         Lang.to_bool (List.assoc "sandbox_network" p)
+         Lang.to_bool (List.assoc "network" p)
        in
        let inherit_env = Lang.to_bool
          (List.assoc "inherit_env" p)
