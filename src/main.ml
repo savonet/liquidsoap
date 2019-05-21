@@ -366,7 +366,7 @@ let options = [
     "Print debugging log messages." ;
 
     ["--strict"],
-    Arg.Set Lang_values.strict,
+    Arg.Set Lang_errors.strict,
     "Execute script code in strict mode, issuing fatal errors \
      instead of warnings in some cases. Currently: unused variables \
      and ignored expressions. " ]

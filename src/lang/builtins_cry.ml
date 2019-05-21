@@ -88,7 +88,7 @@ let () =
           | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
           | "https" -> Cry.Https Cry.Source
           | _      -> 
-              raise (Lang.Invalid_value (v, "protocol should be one of: \
+              raise (Lang_errors.Invalid_value (v, "protocol should be one of: \
                                              'icy', 'http' or 'https'."))
       in
       let mount =

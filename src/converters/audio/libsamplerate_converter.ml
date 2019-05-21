@@ -44,7 +44,7 @@ let quality_of_string v =
     | "fast" -> Samplerate.Conv_fastest
     | "zero_order" -> Samplerate.Conv_zero_order_hold
     | "linear" -> Samplerate.Conv_linear
-    | _ -> raise (Lang.Invalid_value 
+    | _ -> raise (Lang_errors.Invalid_value 
                     (Lang.string v,
                       "libsamplerate quality must be one of: \
                        \"best\", \

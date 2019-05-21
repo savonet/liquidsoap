@@ -239,7 +239,7 @@ class output ~kind p =
         | "source" -> Cry.Source
         | "put"    -> Cry.Put
         | "post"   -> Cry.Post
-        | _ -> raise (Lang.Invalid_value
+        | _ -> raise (Lang_errors.Invalid_value
                    (v, "Valid values are: 'source' \
                        'put' or 'post'.")) 
     in  
@@ -249,7 +249,7 @@ class output ~kind p =
       | "https" -> Cry.Https verb
       | "icy" -> Cry.Icy
       | _ ->
-          raise (Lang.Invalid_value
+          raise (Lang_errors.Invalid_value
                    (v, "Valid values are 'http' (icecast) \
                         and 'icy' (shoutcast)"))
   in
@@ -261,7 +261,7 @@ class output ~kind p =
          | "true"  -> `True
          | "false" -> `False
          | _ ->
-               raise (Lang.Invalid_value
+               raise (Lang_errors.Invalid_value
                        (v, "Valid values are 'guess', \
                            'true' or 'false'"))
     in
@@ -276,7 +276,7 @@ class output ~kind p =
                        x = ogg_audio ||
                        x = ogg_video -> false
       | _, _ ->
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                     (List.assoc "icy_metadata" p,
                      "Could not guess icy_metadata for this format, \
                      please specify either 'true' or 'false'."))
@@ -304,7 +304,7 @@ class output ~kind p =
   let mount, name =
     match protocol, name, mount with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
-        raise (Lang.Invalid_value
+        raise (Lang_errors.Invalid_value
                  (List.assoc "mount" p,
                   "Either name or mount must be defined for icecast sources."))
       | Cry.Icy, name, _ when name = no_name ->

@@ -53,7 +53,7 @@ let print_single_pos l =
   let line,col = l.Lexing.pos_lnum, (l.Lexing.pos_cnum-l.Lexing.pos_bol) in
   Printf.sprintf "%sline %d, character %d" file line (col+1)
 
-let print_pos ?(prefix="At ") (start,stop) =
+let print_pos ?(prefix="at ") (start,stop) =
   let prefix =
     match start.Lexing.pos_fname with
     | "" -> prefix
@@ -558,7 +558,10 @@ let print ?generalized t : string =
   Format.fprintf Format.str_formatter "@?" ;
   Format.flush_str_formatter ()
 
-let print_type_error (flipped,ta,tb,a,b) =
+let print_type_error error_header (flipped,ta,tb,a,b) =
+  error_header (match ta.pos with
+     | None -> "At unknown position"
+     | Some p -> print_pos p) ;
   let inferred_pos a =
     let dpos = (deref a).pos in
     if a.pos = dpos then "" else
@@ -567,11 +570,7 @@ let print_type_error (flipped,ta,tb,a,b) =
       | Some p -> " (inferred at " ^ print_pos ~prefix:"" p ^ ")"
   in
   let ta,tb,a,b = if flipped then tb,ta,b,a else ta,tb,a,b in
-  Format.printf
-    "@[<hv 2>%s:@ this value has type@;<1 2>%a%s@ "
-    (match ta.pos with
-     | None -> "At unknown position"
-     | Some p -> print_pos p)
+  Format.printf  "this value has type@;<1 2>%a%s@ "
     print_repr a
     (inferred_pos ta) ;
   Format.printf

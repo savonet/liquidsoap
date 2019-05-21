@@ -77,7 +77,7 @@ class virtual piped_output p =
       Encoder.get_factory format
     with
       | Not_found ->
-          raise (Lang.Invalid_value (format_val,"Unsupported format"))
+          raise (Lang_errors.Invalid_value (format_val,"Unsupported format"))
   in
   let source = Lang.assoc "" 3 p in
   let name = Lang.to_string (Lang.assoc "" 2 p) in

@@ -263,9 +263,6 @@ let metadata m =
        (fun k v l -> (product (string k) (string v))::l)
        m [])
 
-(** Runtime error, should eventually disappear. *)
-exception Invalid_value of value*string
-
 (** Helpers for defining protocols. *)
 
 let to_proto_doc ~syntax ~static doc =
@@ -382,9 +379,6 @@ let string_of_category x = "Source / " ^ match x with
   * and at this point the type might still not be known completely
   * so we have to force its value withing the acceptable range. *)
 
-exception Clock_conflict of (T.pos option * string * string)
-exception Clock_loop of (T.pos option * string * string)
-
 let add_operator
       ~category ~descr ?(flags=[])
       ?(active=false) name proto ~kind f =
@@ -418,9 +412,9 @@ let add_operator
   let f env t =
     try f env t with
       | Source.Clock_conflict (a,b) ->
-          raise (Clock_conflict (t.T.pos,a,b))
+          raise (Lang_errors.Clock_conflict (t.T.pos,a,b))
       | Source.Clock_loop (a,b) ->
-          raise (Clock_loop (t.T.pos,a,b))
+          raise (Lang_errors.Clock_loop (t.T.pos,a,b))
   in
   let fresh = (* TODO *) 1 in
   let kind_type = kind_type_of_kind_format ~fresh kind in
@@ -654,137 +648,6 @@ let type_and_run ~lib ast =
   * parsing at a time. *)
 let parse_lock = Mutex.create ()
 
-(** Exception raised by report_error after an error has been displayed.
-  * Unknown errors are re-raised, so that their content is not totally lost. *)
-exception Error
-
-let report_error lexbuf f =
-  let print_error error =
-    flush_all () ;
-    let start = lexbuf.Sedlexing_compat.lex_curr_p in
-      Printf.printf "%sine %d, char %d"
-        (if start.Lexing.pos_fname="" then "L" else
-           Printf.sprintf "File %S, l" start.Lexing.pos_fname)
-        start.Lexing.pos_lnum
-        (1+start.Lexing.pos_cnum-start.Lexing.pos_bol) ;
-      let buf = Sedlexing_compat.Utf8.lexeme lexbuf in
-      if buf = "" then
-        Printf.printf ": %s!\n" error
-      else
-        Printf.printf " before %S: %s!\n" buf error
-  in
-    try f () with
-      | Failure s when s = "lexing: empty token" -> print_error "Empty token" ; raise Error
-      | Parsing.Parse_error -> print_error "Parse error" ; raise Error
-      | Lang_values.Parse_error (pos,s) ->
-        let pos = T.print_pos pos in
-        Format.printf "@[<2>%s:@ %s@]@." pos s;
-        raise Error
-      | Term.Unbound (pos,s) ->
-          let pos = T.print_pos (Utils.get_some pos) in
-            Format.printf
-              "@[<2>%s:@ the variable %s@ used here@ has not been@ \
-                 previously@ defined.@]@."
-            pos s ;
-            raise Error
-      | T.Type_Error explain ->
-          flush_all () ;
-          T.print_type_error explain ;
-          raise Error
-      | Term.No_label (f,lbl,first,x) ->
-          let pos_f =
-            T.print_pos ~prefix:"at " (Utils.get_some f.Term.t.T.pos)
-          in
-          let pos_x = T.print_pos (Utils.get_some x.Term.t.T.pos) in
-            flush_all () ;
-            Format.printf
-              "@[<2>%s:@ cannot apply@ that parameter@ \
-               because@ the function@ (%s)@ "
-              pos_x pos_f ;
-            Format.printf
-              "has %s@ %s!@]@."
-              (if first then "no" else "no more")
-              (if lbl="" then "unlabeled argument" else
-                 Format.sprintf "argument labeled %S" lbl) ;
-            raise Error
-      | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
-          flush_all () ;
-          Format.printf
-            "@[<2>%s:@ This term@ would evaluate to@ a function@ \
-               which@ would then be dropped.@ \
-               This is usually@ the sign@ of@ an unintended@ \
-               partial application:@ some arguments@ may \
-               be@ missing.@]@."
-            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          raise Error
-      | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
-          flush_all () ;
-          Format.printf
-            "@[<2>%s:@ This term@ would evaluate to@ a (passive) source@ \
-               which@ would then be dropped.@ \
-               This is@ usually@ the sign of@ a@ misunderstanding:@ \
-               only active@ sources@ are animated@ on their own;@ \
-               dangling@ passive sources@ are just dead code.@]@."
-            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          raise Error
-      | Term.Ignored tm ->
-          flush_all () ;
-          Format.printf
-            "@[<2>%s:@ The result of@ evaluating this term@ \
-               would be@ dropped,@ but@ it does not@ have type@ \
-               unit or active_source.@ Use ignore(...)@ if you meant@ to@ \
-               drop it,@ \
-               otherwise@ this is a sign@ that@ \
-               your script@ does not do@ what you intend.@]@."
-            (T.print_pos (Utils.get_some tm.Term.t.T.pos)) ;
-          raise Error
-      | Term.Unused_variable (s,pos) ->
-          flush_all () ;
-          Format.printf
-            "@[<2>At %s:@ The variable@ %s@ defined here\
-               @ is not used@ anywhere@ in@ its scope.@ \
-               Use ignore(...)@ instead of@ %s = ...@ if@ you meant@ \
-               to not use it.@ \
-               Otherwise,@ this may be a typo@ or a sign that@ your script@ \
-               does not do@ what you intend.@]@."
-            (T.print_single_pos pos) s s ;
-          raise Error
-      | Invalid_value (v,msg) ->
-          Format.printf
-            "@[<2>%s:@ %s.@]@."
-            (T.print_pos ~prefix:"Invalid value at "
-               (Utils.get_some v.t.T.pos))
-            msg ;
-          raise Error
-      | Lang_encoders.Error (v,s) ->
-          Format.printf
-            "@[<2>Error in encoding format at@ %s:@ %s.@]@."
-            (T.print_pos ~prefix:""
-               (Utils.get_some v.Lang_values.t.T.pos))
-            s ;
-          raise Error
-      | Failure s ->
-          Format.printf "Error: %s!@." s ;
-          raise Error
-      | Clock_conflict (pos,a,b) ->
-          (* TODO better printing of clock errors: we don't have position
-           *   information, use the source's ID *)
-          Format.printf
-            "@[<2>%s:@ a source cannot@ belong to@ two clocks@ (%s,@ %s).@]@."
-            (T.print_pos ~prefix:"Error when initializing source at "
-               (Utils.get_some pos))
-            a b ;
-          raise Error
-      | Clock_loop (pos,a,b) ->
-          Format.printf
-            "@[<2>%s:@ cannot unify@ two@ nested clocks@ (%s,@ %s).@]@."
-            (T.print_pos ~prefix:"Error when initializing source at "
-               (Utils.get_some pos))
-            a b ;
-          raise Error
-      | End_of_file -> raise End_of_file
-      | e -> print_error "Unknown error" ; raise e
-
 let mk_expr ~pwd processor lexbuf =
   let processor =
     MenhirLib.Convert.Simplified.traditional2revised processor
@@ -805,10 +668,10 @@ let from_in_channel ?(dir=Unix.getcwd()) ?(parse_only=false) ~ns ~lib in_chan =
                                              Lexing.pos_fname = ns }
       | None -> ()
     end ;
-    try report_error lexbuf (fun () ->
+    try Lang_errors.report lexbuf (fun () ->
       let expr = mk_expr ~pwd:dir Lang_parser.program lexbuf in
         if not parse_only then type_and_run ~lib expr)
-    with Error -> exit 1
+    with Lang_errors.Error -> exit 1
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -869,7 +732,7 @@ let interactive () =
     Format.printf "# %!" ;
     if
       try
-        report_error lexbuf (fun () ->
+        Lang_errors.report lexbuf (fun () ->
           let expr =
             mk_expr ~pwd:(Unix.getcwd ()) Lang_parser.interactive lexbuf
           in
@@ -877,16 +740,19 @@ let interactive () =
           Term.check_unused ~lib:true expr ;
           Clock.collect_after
             (fun () ->
-               ignore (Term.eval_toplevel ~interactive:true expr)) ;
-          true)
+               ignore (Term.eval_toplevel ~interactive:true expr)));
+          true
       with
         | End_of_file ->
             Format.printf "Bye bye!@." ;
             false
-        | Error ->
+        | Lang_errors.Error ->
             true
         | e ->
-            Format.printf "Exception: %s!@." (Printexc.to_string e) ;
+            let e =
+              Console.colorize [`white;`bold] (Printexc.to_string e)
+            in
+            Format.printf "Exception: %s!@." e ;
             true
     then
       loop ()
