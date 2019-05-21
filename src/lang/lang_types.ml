@@ -579,7 +579,7 @@ let print_type_error error_header (flipped,ta,tb,a,b) =
     (match tb.pos with
      | None -> ""
      | Some p ->
-        Printf.sprintf " (the type of the value at %s)"
+        Printf.sprintf " the type of the value at %s"
           (print_pos ~prefix:"" p))
     print_repr b
     (inferred_pos tb)
