@@ -604,9 +604,13 @@ object (self)
       GU.flush ~log:self#log ~on_error:(fun err -> raise (Flushing_error err)) el.bin
     with
       | Gstreamer.End_of_stream ->
+          self#log#f 4 "End of stream.";
           ready <- false;
           if restart then
-            self#restart
+            (
+              self#log#f 4 "Restarting.";
+              self#restart
+            )
       | exn ->
           self#log#f 3 "Error while processing input data: %s" (Printexc.to_string exn);
           self#log#f 4 "Stacktrace: %s" (Printexc.get_backtrace ());
