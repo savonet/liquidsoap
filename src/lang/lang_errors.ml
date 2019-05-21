@@ -105,14 +105,14 @@ let report lexbuf f =
           if !strict then raise Error
       | Invalid_value (v,msg) ->
           error_header (T.print_pos (Utils.get_some v.Term.V.t.T.pos));
-          Format.printf "Invalid value:@ %s@.]@." msg;
+          Format.printf "Invalid value:@ %s@]@." msg;
           raise Error
       | Lang_encoders.Error (v,s) ->
           error_header (T.print_pos (Utils.get_some v.Lang_values.t.T.pos));
-          Format.printf "Error in encoding format: %s@.]@." s;
+          Format.printf "%s@]@." (String.capitalize_ascii s);
           raise Error
       | Failure s ->
-          print_error (Printf.sprintf "failure: %s" s);
+          print_error (Printf.sprintf "Failure: %s" s);
           raise Error
       | Clock_conflict (pos,a,b) ->
           (* TODO better printing of clock errors: we don't have position
