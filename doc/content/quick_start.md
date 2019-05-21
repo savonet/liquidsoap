@@ -12,7 +12,7 @@ The chain is made of:
 
 ![Internet radio toolchain](images/schema-webradio-inkscape.png)The stream is always passed from the stream generator to the server, whether or not there are listeners. It is then sent by the server to every listener. The more listeners you have, the more bandwidth you need.
 
-If you use Icecast, you can broadcast more than one audio feed using the same server. Each audio feed or stream is identified by its ``mount point'' on the server. If you connect to the `foo.ogg` mount point, the URL of your stream will be [http://localhost:8000/foo.ogg](http://localhost:8000/foo.ogg) -- assuming that your Icecast is on localhost on port 8000. If you need further information on this you might want to read Icecast's [documentation](http://www.icecast.org). A proper setup of a streaming server is required for running Liquidsoap.
+If you use Icecast, you can broadcast more than one audio feed using the same server. Each audio feed or stream is identified by its "mount point" on the server. If you connect to the `foo.ogg` mount point, the URL of your stream will be [http://localhost:8000/foo.ogg](http://localhost:8000/foo.ogg) -- assuming that your Icecast is on localhost on port 8000. If you need further information on this you might want to read Icecast's [documentation](http://www.icecast.org). A proper setup of a streaming server is required for running Liquidsoap.
 
 Now, let's create an audio stream.
 
@@ -33,7 +33,7 @@ Otherwise, it is *fallible*, something can go wrong.
 By default, an output requires that its input source is infallible,
 otherwise it complains that ``That source is fallible!''
 
-For example, a normal <code>playlist</code>is fallible.
+For example, a normal `playlist` is fallible.
 Firstly, because it could contain only invalid files, or at least spend too
 much time on invalid files for preparing a valid one on time.
 Moreover, a playlist could contain remote files, which may not
@@ -156,7 +156,7 @@ To run the script:
 liquidsoap myscript.liq
 ```
 
-On UNIX, you can also put `#!/path/to/your/liquidsoap` as the first line of your script (``shebang''). Don't forget to make the file executable:
+On UNIX, you can also put `#!/path/to/your/liquidsoap` as the first line of your script ("shebang"). Don't forget to make the file executable:
 
 ```
 chmod u+x myscript.liq
