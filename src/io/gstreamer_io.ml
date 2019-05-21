@@ -87,7 +87,9 @@ object (self)
         Tutils.mutexify element_m (fun () ->
           begin match element with
             | None -> ()
-            | Some el -> ignore (Element.set_state el.bin Element.State_null)
+            | Some el ->
+               ignore (Element.set_state el.bin Element.State_null);
+               ignore (Element.get_state el.bin)
           end;
           let el = self#make_element in
           element <- Some el;
@@ -180,6 +182,7 @@ object (self)
   method output_start =
     let el = self#get_element in
     ignore (Element.set_state el.bin Element.State_playing);
+    ignore (Element.get_state el.bin);
     self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
     if clock_safe then (gst_clock ())#register_blocking_source
 
@@ -197,6 +200,7 @@ object (self)
               if has_video then
                 App_src.end_of_stream (Utils.get_some el.video);
               ignore (Element.set_state el.bin Element.State_null);
+              ignore (Element.get_state el.bin);
               GU.flush ~log:self#log el.bin) ()
     in
     todo ();
@@ -446,7 +450,7 @@ object (self)
     let change_state s _ =
       try
         Printf.sprintf "Done. State change returned: %s"
-          (string_of_state_change (Element.set_state self#get_element.bin s) )
+          (string_of_state_change (Element.set_state self#get_element.bin s))
       with
         | e ->
             Printf.sprintf "Error while changing state: %s\n" (Printexc.to_string e)
@@ -485,7 +489,8 @@ object (self)
     super#wake_up activations;
     try
       self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
-      ignore (Element.set_state self#get_element.bin Element.State_playing)
+      ignore (Element.set_state self#get_element.bin Element.State_playing);
+      ignore (Element.get_state self#get_element.bin)
     with
     | exn ->
        self#log#f 4 "Error setting state to playing: %s" (Printexc.to_string exn);
@@ -500,6 +505,7 @@ object (self)
               element <- None;
               (fun () ->
                 ignore (Element.set_state el.bin Element.State_null);
+                ignore (Element.get_state el.bin);
                 GU.flush ~log:self#log el.bin)
           | None -> fun () -> ()) ()
     in
