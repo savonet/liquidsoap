@@ -36,10 +36,10 @@ let position pos =
   Console.colorize [`white;`bold] (String.capitalize_ascii pos)
 
 let error_header idx pos =
-  Format.printf "@[<7>%s:\n%s %i: " (position pos) error idx
+  Format.printf "@[%s:\n%s %i: " (position pos) error idx
 
 let warning_header idx pos =
-  Format.printf "@[<9>%s:\n%s %i: " (position pos) warning idx
+  Format.printf "@[%s:\n%s %i: " (position pos) warning idx
 
 (** Exception raised by report_error after an error has been displayed.
   * Unknown errors are re-raised, so that their content is not totally lost. *)
