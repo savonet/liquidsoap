@@ -49,7 +49,7 @@ let list = chunk "LIST"
 let header ~channels ~samplerate () =
   (* Writing in two steps because 0xffffffff cannot be represented on 32 bits
      architectures. *)
-  let dword_max () = ignore(word 0xffff); word 0xffff in
+  let dword_max () = word 0xffff ^ word 0xffff in
   let video_rate = Lazy.force Frame.video_rate in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
