@@ -133,7 +133,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       with_default (fun _ -> false) on_stop
     in
     let create () =
-      log "Starting process";
+      log ("Starting process: "^command);
       let p =
         Process_utils.open_process command env
       in
