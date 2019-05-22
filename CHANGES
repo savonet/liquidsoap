@@ -27,7 +27,7 @@ New:
 
 - Added `protocol.aws.endpoint` setting for the `s3://` protocol, thanks to @RecursiveGreen. (#778)
 
-- Added support for sandboxing `run_process` calls. Set safe defaults.
+- Added support for sandboxing `run_process` calls. Set safe defaults. (#785)
 
 Changed:
 
