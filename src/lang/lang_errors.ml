@@ -93,10 +93,22 @@ let report lexbuf f =
               (if lbl="" then "unlabeled argument" else
                  Format.sprintf "argument labeled %S" lbl) ;
           raise Error
+      | Term.Ignored tm when Term.is_fun (T.deref tm.Term.t) ->
+          flush_all () ;
+          warning_header (T.print_pos (Utils.get_some tm.Term.t.T.pos));
+          Format.printf "This function application is partial,@ \
+                         maybe some arguments are missing.@]@.";
+          if !strict then raise Error
+      | Term.Ignored tm when Term.is_source (T.deref tm.Term.t) ->
+          flush_all () ;
+          warning_header (T.print_pos (Utils.get_some tm.Term.t.T.pos));
+          Format.printf "This source is unused, maybe it needs to@ \
+                         be connected to an output.@]@.";
+          if !strict then raise Error
       | Term.Ignored tm ->
           flush_all () ;
           warning_header (T.print_pos (Utils.get_some tm.Term.t.T.pos));
-          Format.printf "Ignored value.@]@.";
+          Format.printf "This expression should have type unit.@]@.";
           if !strict then raise Error
       | Term.Unused_variable (s,pos) ->
           flush_all () ;
