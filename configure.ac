@@ -258,7 +258,7 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
 if test -z "${VERSION_OK}"; then
-  AC_MSG_ERROR([version 4.03.0 or more of the OCaml compiler is required to build liquidsoap])
+  AC_MSG_ERROR([version 4.07.0 or greater of the OCaml compiler is required to build liquidsoap])
 fi
 
 AC_SUBST(BYTE)
