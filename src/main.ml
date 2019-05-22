@@ -232,7 +232,7 @@ struct
     in
       aux (string_of_path prefix) (t#path prefix)
 
-  let descr ?(prefix=[]) t =
+  let descr ?(md=false) ?(prefix=[]) t =
     let rec aux level prefix t =
       let p s = if prefix = "" then s else prefix ^ "." ^ s in
       let subs = List.map (function s -> aux (level+1) (p s) (t#path [s])) t#subs in
@@ -245,7 +245,12 @@ struct
            | [] -> ""
            | l -> String.concat "\n" l ^ "\n"
          in
-         let set = Printf.sprintf "```\nset(%S,%s)\n```\n" prefix p in
+         let set =
+           if md then
+             Printf.sprintf "```liquidsoap\nset(%S,%s)\n```\n" prefix p
+           else
+             Printf.sprintf "\n    set(%S,%s)\n\n" prefix p
+         in
          title level t#descr ^ comments ^ set ^ "\n"
          (*
            begin match get_d_string t with
@@ -280,6 +285,11 @@ struct
         load_libs () ;
         print_string (descr t); exit 0),
       "Display a described table of the configuration keys.";
+      ["--conf-descr-md"],
+      Arg.Unit (fun () ->
+        load_libs () ;
+        print_string (descr ~md:true t); exit 0),
+      "Display configuration keys in markdown format.";
       ["--conf-dump"],
       Arg.Unit (fun () ->
         load_libs () ;

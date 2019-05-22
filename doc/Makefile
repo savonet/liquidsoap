@@ -35,7 +35,7 @@ content/reference.md: $(LIQUIDSOAP)
 	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --list-functions-md > $@
 
 content/settings.md: $(LIQUIDSOAP)
-	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --conf-descr > $@
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --conf-descr-md > $@
 
 VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
