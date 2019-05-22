@@ -28,7 +28,7 @@ end
 # @param uri URI of the file to be played.
 def gstreamer.single.audio(~id="",~on_error=fun(_)->3.,uri) =
   uri = to_string_getter(uri)
-  input.gstreamer.audio(pipeline="filesrc location=\"#{uri()}\"")
+  input.gstreamer.audio(pipeline={"filesrc location=\"#{uri()}\""})
 end
 
 
