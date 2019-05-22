@@ -438,13 +438,13 @@ end
 #                  be used to ensure that the logger starts only after \
 #                  the clocks are created.
 # @param unlabeled Path of the log file.
-def log_clocks(~delay=0.,~interval=1.,logfile)
+def clock.log(~delay=0.,~interval=1.,logfile)
   # Get the current clocks
-  clocks = list.map(fst,get_clock_status())
+  clocks = list.map(fst,clock.status())
   # Column headers
   system("echo \\# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
   def report()
-    status = get_clock_status()
+    status = clock.status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
     system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
