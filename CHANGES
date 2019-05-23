@@ -73,6 +73,8 @@ Changed:
 
 - Allow string getter for `harbor` HTTP responses.
 
+- Renamed `get_clock_status` to `clock.status` and `log_clocks` to `clock.log`.
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
