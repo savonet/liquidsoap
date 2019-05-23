@@ -16,36 +16,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
  *****************************************************************************)
 
-let init () =
-  Sdl_utils.init [];
-  Sdl_utils.ttf_init ()
+(** Runtime error, should eventually disappear. *)
+exception Invalid_value of Lang_values.V.value*string
 
-let get_font font size =
-  try
-    Sdlttf.open_font font size
-  with
-    | Sdlttf.SDLttf_exception s ->
-      raise (Lang_errors.Invalid_value (Lang.string font, s))
-    | e ->
-      raise (Lang_errors.Invalid_value (Lang.string font, Printexc.to_string e))
+exception Clock_conflict of (Lang_types.pos option * string * string)
+exception Clock_loop of (Lang_types.pos option * string * string)
 
-let render_text ~font ~size text =
-  let text = if text = "" then " " else text in
-  let font = get_font font size in
-  let ts = Sdlttf.render_utf8_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
-  let w, h =
-    let si = Sdlvideo.surface_info ts in
-    si.Sdlvideo.w, si.Sdlvideo.h
-  in
-  let get_pixel x y =
-    let r, _, _ = Sdlvideo.get_pixel_color ts ~x ~y in
-    r
-  in
-  w, h, get_pixel
+(** Exception raised by report_error after an error has been displayed.
+  * Unknown errors are re-raised, so that their content is not totally lost. *)
+exception Error
 
-let () =
-  Video_text.register "sdl" init render_text
+(** Raise errors for warnings. *)
+val strict : bool ref
+
+val report : Sedlexing_compat.lexbuf -> (unit -> unit) -> unit

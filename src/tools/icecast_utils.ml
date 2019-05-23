@@ -85,7 +85,7 @@ struct
     let encoder_factory =
       try Encoder.get_factory enc with
         | Not_found ->
-            raise (Lang.Invalid_value
+            raise (Lang_errors.Invalid_value
                      (v, "No encoder found for that format"))
     in
     let format =
@@ -93,7 +93,7 @@ struct
         if f <> "" then M.format_of_content f else
           match format with
             | Some x -> x
-            | None   -> raise (Lang.Invalid_value (Lang.assoc "" 1 p,
+            | None   -> raise (Lang_errors.Invalid_value (Lang.assoc "" 1 p,
                                                  "No format (mime) found, \
                                                   please specify one."))
     in

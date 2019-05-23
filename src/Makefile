@@ -170,7 +170,8 @@ io = io/udp_io.ml \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/extralib.ml tools/JSON.ml tools/doc.ml tools/utils.ml tools/plug.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
+        tools/utils.ml tools/plug.ml \
 	$(if $(WIN32_HOST),win32/process_utils.ml) \
 	$(if $(UNIX_HOST),unix/process_utils.ml) \
 	tools/rqueue.ml tools/sedlexing_compat.ml \
@@ -179,7 +180,7 @@ tools = tools/extralib.ml tools/JSON.ml tools/doc.ml tools/utils.ml tools/plug.m
 	tools/wav_aiff.ml tools/tutils.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
-	configure.ml tools/process_handler.ml \
+	configure.ml tools/console.ml tools/process_handler.ml \
 	$(if $(W_FFMPEG),tools/ffmpeg_config.ml) \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
@@ -225,7 +226,8 @@ liquidsoap_sources= \
 liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \
 	$(lang_encoders) lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
+	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml \
+        tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \

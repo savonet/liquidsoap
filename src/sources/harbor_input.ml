@@ -183,7 +183,7 @@ struct
           Harbor.add_source ~port ~mountpoint ~icy (self:>Harbor.source) ;
         with
           | Harbor.Registered ->
-             raise (Lang.Invalid_value
+             raise (Lang_errors.Invalid_value
                       (List.assoc "" p,
                        (* TODO: raise two script values ? *)
                        let port = Lang.to_int (List.assoc "port" p) in
@@ -435,7 +435,7 @@ struct
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let max = Lang.to_float (List.assoc "max" p) in
          if bufferize >= max then
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                     (List.assoc "max" p,
                      "Maximum buffering inferior to pre-buffered data"));
          let on_connect l =

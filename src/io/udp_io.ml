@@ -201,7 +201,7 @@ let () =
            let fmt = Lang.assoc "" 1 p in
              try Encoder.get_factory (Lang.to_format fmt) with
                | Not_found ->
-                   raise (Lang.Invalid_value
+                   raise (Lang_errors.Invalid_value
                             (fmt,
                              "Cannot get a stream encoder for that format"))
          in
@@ -229,7 +229,7 @@ let () =
          let mime = Lang.to_string (Lang.assoc "" 1 p) in
            match Decoder.get_stream_decoder mime kind with
              | None ->
-                 raise (Lang.Invalid_value
+                 raise (Lang_errors.Invalid_value
                           ((Lang.assoc "" 1 p),
                            "Cannot get a stream decoder for this MIME"))
              | Some decoder_factory ->

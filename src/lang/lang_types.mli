@@ -66,7 +66,7 @@ val generalizable : level:int -> t -> (int*constraints) list
 
 type explanation
 exception Type_Error of explanation
-val print_type_error : explanation -> unit
+val print_type_error : (string -> unit) -> explanation -> unit
 val ( <: ) : t -> t -> unit
 val ( >: ) : t -> t -> unit
 

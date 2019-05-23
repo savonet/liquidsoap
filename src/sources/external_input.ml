@@ -116,7 +116,7 @@ let () =
          let bufferize = Lang.to_float (List.assoc "buffer" p) in
          let channels = Lang.to_int (List.assoc "channels" p) in
          if not (Frame.mul_eq_int kind.Frame.audio channels) then
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                    (List.assoc "channels" p,
                     "Incompatible number of channels, \
                      please use a conversion operator.")) ;

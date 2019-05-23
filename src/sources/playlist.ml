@@ -581,13 +581,13 @@ let () =
       if ss = "watch" then Watch
       else
         (
-          if arg < 0 then raise (Lang.Invalid_value (i,"must be positive")) ;
+          if arg < 0 then raise (Lang_errors.Invalid_value (i,"must be positive")) ;
           if arg = 0 then Never else
             begin match ss with
             | "rounds"  -> Every_N_rounds arg
             | "seconds" -> Every_N_seconds (float_of_int arg)
             | _ ->
-              raise (Lang.Invalid_value
+              raise (Lang_errors.Invalid_value
                        (s,"valid values are 'rounds', 'seconds' and 'watch'"))
             end
         )
@@ -598,7 +598,7 @@ let () =
       | "randomize" -> Randomize
       | "normal" -> Normal
       | _ ->
-          raise (Lang.Invalid_value
+          raise (Lang_errors.Invalid_value
                    (s,"valid values are 'random', 'randomize' and 'normal'"))
   in
   let check_next k =
