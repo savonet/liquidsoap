@@ -89,6 +89,10 @@ Fixed:
 
 - Script deadlock after a long time, most likely related to old crossfade transitions (#755)
 
+- AVI export fixed. (#789)
+
+- `%external` does not stop processes anymore on each metadata. (#789)
+
 1.3.7 (09-04-2019)
 =====
 
