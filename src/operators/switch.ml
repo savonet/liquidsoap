@@ -286,7 +286,7 @@ let extract_common ~kind p l =
   let tr =
     let tr = Lang.to_list (List.assoc "transitions" p) in
     let ltr = List.length tr in
-      if ltr > l then raise (Lang.Invalid_value
+      if ltr > l then raise (Lang_errors.Invalid_value
                                ((List.assoc "transitions" p),
                                 "Too many transitions")) ;
       if ltr < l then
@@ -394,7 +394,7 @@ let () =
          let children =
            try List.map2 (fun (d,s) single -> d,single,s) children singles with
              | Invalid_argument s when s = "List.map2" ->
-                 raise (Lang.Invalid_value
+                 raise (Lang_errors.Invalid_value
                           (List.assoc "single" p,
                            "there should be exactly one flag per children"))
          in
@@ -503,7 +503,7 @@ let () =
          let children =
            if List.length weights <> List.length children then
              raise
-               (Lang.Invalid_value
+               (Lang_errors.Invalid_value
                   ((List.assoc "weights" p),
                    "there should be as many weights as sources")) ;
            List.map2

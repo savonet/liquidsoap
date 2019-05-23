@@ -20,32 +20,17 @@
 
  *****************************************************************************)
 
-let init () =
-  Sdl_utils.init [];
-  Sdl_utils.ttf_init ()
+type text_style =
+  [ `bold
+  | `underline
+  | `crossed
+  | `black
+  | `red
+  | `green
+  | `yellow
+  | `blue
+  | `magenta
+  | `cyan
+  | `white ]
 
-let get_font font size =
-  try
-    Sdlttf.open_font font size
-  with
-    | Sdlttf.SDLttf_exception s ->
-      raise (Lang_errors.Invalid_value (Lang.string font, s))
-    | e ->
-      raise (Lang_errors.Invalid_value (Lang.string font, Printexc.to_string e))
-
-let render_text ~font ~size text =
-  let text = if text = "" then " " else text in
-  let font = get_font font size in
-  let ts = Sdlttf.render_utf8_shaded font text ~bg:Sdlvideo.black ~fg:Sdlvideo.white in
-  let w, h =
-    let si = Sdlvideo.surface_info ts in
-    si.Sdlvideo.w, si.Sdlvideo.h
-  in
-  let get_pixel x y =
-    let r, _, _ = Sdlvideo.get_pixel_color ts ~x ~y in
-    r
-  in
-  w, h, get_pixel
-
-let () =
-  Video_text.register "sdl" init render_text
+val colorize : text_style list -> string -> string

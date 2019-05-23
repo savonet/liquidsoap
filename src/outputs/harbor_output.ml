@@ -314,13 +314,13 @@ module Make (T : T) = struct
     let () =
       if chunk > buflen then
         raise
-          (Lang.Invalid_value
+          (Lang_errors.Invalid_value
              ( List.assoc "buffer" p
              , "Maximum buffering inferior to chunk length" ))
       else () ;
       if burst > buflen then
         raise
-          (Lang.Invalid_value
+          (Lang_errors.Invalid_value
              ( List.assoc "buffer" p
              , "Maximum buffering inferior to burst length" ))
       else ()

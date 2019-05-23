@@ -141,7 +141,7 @@ let () =
                  (Lang.to_string s)
                  kind (Lang.print_value (Lang.assoc "" 2 p))
              in
-               raise (Lang.Invalid_value (s,msg)))
+               raise (Lang_errors.Invalid_value (s,msg)))
 
 let () =
   let get cast path v =

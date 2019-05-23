@@ -30,9 +30,9 @@ type t = Lang_types.t
 (** {2 Values} *)
 
 (** A typed value. *)
-type value = { mutable t : t ; value : in_value }
+type value = Lang_values.V.value = { mutable t : t ; value : in_value }
 and full_env = (string * ((int*Lang_types.constraints) list * value)) list
-and in_value =
+and in_value = Lang_values.V.in_value =
   | Unit
   | Bool    of bool
   | Int     of int
@@ -265,13 +265,6 @@ val val_cst_fun : (string * t * value option) list -> value -> value
 val metadata : Frame.metadata -> value
 
 (** {2 Errors raised by other modules} *)
-
-exception Invalid_value of value * string
-
-(** More informative version of clocks exceptions from Source,
-  * used for re-raising and displaying better error messages *)
-exception Clock_conflict of (Lang_types.pos option * string * string)
-exception Clock_loop of (Lang_types.pos option * string * string)
 
 (** {2 Main script evaluation} *)
 
