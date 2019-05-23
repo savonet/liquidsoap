@@ -99,10 +99,15 @@ let encoder id ext =
                         ~on_stderr ~log ext.process 
   in
 
-  let insert_metadata = Tutils.mutexify mutex (fun _ -> 
-    if ext.restart = Metadata then
-      is_metadata_restart := true;
-      Process_handler.stop process)
+  let insert_metadata =
+    Tutils.mutexify mutex
+      (fun _ ->
+        if ext.restart = Metadata then
+          (
+            is_metadata_restart := true;
+            Process_handler.stop process
+          )
+      )
   in
 
   let converter =
