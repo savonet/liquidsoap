@@ -26,3 +26,4 @@ val export_metadata : Frame.metadata -> export_metadata
 val to_metadata : export_metadata -> Frame.metadata
 val empty_metadata : export_metadata
 val is_empty : export_metadata -> bool
+val to_string : export_metadata -> string
