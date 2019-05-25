@@ -124,7 +124,7 @@ let () =
     [
       "target", Lang.float_getter_t 1, Some (Lang.float (-13.)),
       Some "Desired RMS (dB).";
-      "window", Lang.float_t, Some (Lang.float 0.1),
+      "rms_window", Lang.float_t, Some (Lang.float 0.1),
       Some "Duration of the window used to compute \
             the current RMS power (second).";
       "k_up", Lang.float_getter_t 2, Some (Lang.float 0.005),
