@@ -135,7 +135,7 @@ let () =
       | (hd::_) as sources ->
          let sync = Lang.to_bool (List.assoc "sync" p) in
          let id = Lang.to_string (List.assoc "id" p) in
-         let id =  if id = "" then (Lang.to_source hd)#id else id in
+         let id = if id = "" then (Lang.to_source hd)#id else id in
          let clock = new Clock.wallclock ~sync id in
          List.iter
            (fun s ->

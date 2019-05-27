@@ -107,7 +107,7 @@ end
   *   - a list of sub-clocks, used during unification's occurs-check
   *     to avoid cycles which would result in unsound behavior
   *     e.g. add([s,cross(f,s)]).
-  * Clock constants are objects of type proto_clock, but need to also
+  * Clock constants are objects of type [proto_clock], but need to also
   * maintain the information attached to variables.
   *
   * The unification algorithm can be described as follows, ignoring
@@ -130,12 +130,14 @@ end
   *      end up with two occurrences of the same subclock.
   *)
 
+(** Clock variables. *)
 type 'a var =
-  | Link of 'a link_t ref
-  | Known of ('a,'a var) proto_clock
+  | Link of 'a link_t ref (** a universal variable *)
+  | Known of ('a,'a var) proto_clock (** a constant variable *)
+(** Contents of a clock variable. *)
 and 'a link_t =
-  | Unknown of 'a list * 'a var list
-  | Same_as of 'a var
+  | Unknown of 'a list * 'a var list (** the clock variable is unknown but depends on other variables *)
+  | Same_as of 'a var (** the clock variable is subtituted by another *)
 
 let create_known c =
   Known c
