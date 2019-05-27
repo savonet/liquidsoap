@@ -80,6 +80,8 @@ def input.hls(~id="",~reload=10.,uri)
   find_stream ()
   # Instanciate the source
   source = request.dynamic(id=id,next)
+  # Merge the tracks
+  source = merge_tracks(source)
   # Populate the playlist
   add_timeout(0., load_playlist)
   # Return
