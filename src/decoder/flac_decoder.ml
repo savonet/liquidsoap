@@ -22,8 +22,6 @@
 
 (** Decode and read metadata from flac files. *)
 
-open Dtools
-
 let log = Log.make ["decoder";"flac"]
 
 exception End_of_stream
@@ -116,12 +114,12 @@ end
 
 (** Configuration keys for flac. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "flac")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "flac")
     "Mime-types used for guessing FLAC format"
     ~d:["audio/x-flac"]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "flac")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "flac")
     "File extensions used for guessing FLAC format"
     ~d:["flac"]
 
@@ -207,7 +205,7 @@ let () =
           else
             None)
 
-let log = Dtools.Log.make ["metadata";"flac"]
+let log = Log.make ["metadata";"flac"]
 
 let get_tags file =
   if not (Decoder.test_file ~mimes:mime_types#get

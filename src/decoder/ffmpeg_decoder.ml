@@ -22,18 +22,16 @@
 
 (** Decode and read metadata using ffmpeg. *)
 
-open Dtools
-
 let log = Log.make ["decoder";"ffmpeg"]
 
 (** Configuration keys for ffmpeg. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
     "Mime-types used for decoding with ffmpeg"
     ~d:[]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
     "File extensions used for decoding with ffmpeg"
     ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma"] (* Test *)
 

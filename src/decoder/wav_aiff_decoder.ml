@@ -22,7 +22,7 @@
 
 (** Decode WAV files. *)
 
-let log = Dtools.Log.make ["decoder";"wav/aiff"]
+let log = Log.make ["decoder";"wav/aiff"]
 
 (** {1 Generic decoder} *)
 

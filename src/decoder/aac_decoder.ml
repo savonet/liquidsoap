@@ -22,8 +22,6 @@
 
 (** Decode and read metadatas of AAC files. *)
 
-open Dtools
-
 let error_translator =
   function
     | Faad.Error x ->
@@ -140,12 +138,12 @@ let create_decoder input =
 end
 
 let aac_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "aac")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "aac")
     "Mime-types used for guessing AAC format"
     ~d:["audio/aac"; "audio/aacp"; "audio/x-hx-aac-adts"]
 
 let aac_file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "aac")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "aac")
     "File extensions used for guessing AAC format"
     ~d:["aac"]
 
@@ -298,12 +296,12 @@ let get_type filename =
              midi  = 0 })
 
 let mp4_mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mp4")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "mp4")
     "Mime-types used for guessing MP4 format"
     ~d:["audio/mp4"; "application/mp4"]
 
 let mp4_file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "mp4")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "mp4")
     "File extensions used for guessing MP4 format"
     ~d:["m4a"; "m4b"; "m4p"; "m4v";
         "m4r"; "3gp"; "mp4"]
@@ -342,7 +340,7 @@ let () =
     else
     None)
 
-let log = Dtools.Log.make ["metadata";"mp4"]
+let log = Log.make ["metadata";"mp4"]
 
 let get_tags file =
   if not (Decoder.test_file ~mimes:mp4_mime_types#get

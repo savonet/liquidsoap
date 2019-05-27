@@ -48,7 +48,7 @@ object (self)
 
   val mutable cur_meta : Request.metadata option = None
 
-  method virtual private log : Dtools.Log.t
+  method virtual private log : Log.t
 
   method seek len =
     if not seek || len <= 0 then 0 else

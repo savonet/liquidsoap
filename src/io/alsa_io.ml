@@ -37,7 +37,7 @@ class virtual base ~kind dev mode =
   let periods = Alsa_settings.periods#get in
 object (self)
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 
   val mutable alsa_rate = -1
 

@@ -58,8 +58,6 @@
   * The WAV decoder doesn't fit the approx duration computation. (Toots: is that true?)
   * The MIDI decoder doesn't use a buffer. TODO look at this carefully. *)
 
-open Dtools
-
 let log = Log.make ["decoder"]
 
 (** A local file is simply identified by its filename. *)

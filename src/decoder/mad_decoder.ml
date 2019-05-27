@@ -22,8 +22,6 @@
 
 (** Decode mpeg audio files using libmad. *)
 
-open Dtools
-
 let log = Log.make ["decoder";"mad"]
 
 let init input =
@@ -136,12 +134,12 @@ module D = Make(G)
 
 (** Configuration keys for mad. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "mad")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "mad")
     "Mime-types used for guessing mpeg audio format"
     ~d:["audio/mpeg"; "audio/MPA"]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "mad")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "mad")
     "File extensions used for guessing mpeg audio format"
     ~d:["mp3"; "mp2"; "mp1"]
 

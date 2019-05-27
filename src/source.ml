@@ -223,7 +223,7 @@ let rec forget var subclock =
 
 (** {1 Sources} *)
 
-open Dtools
+(* open Dtools *)
 
 let source_log = Log.make ["source"]
 

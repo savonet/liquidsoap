@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-val log : Dtools.Log.t
+val log : Log.t
 
 type file = string
 type stream = string
@@ -59,7 +59,7 @@ val conf_mime_types      : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
 
 (** Test file extension and mime if available *)
-val test_file : ?log:Dtools.Log.t ->
+val test_file : ?log:Log.t ->
                 mimes:string list ->
                 extensions:string list ->
                 string -> bool
