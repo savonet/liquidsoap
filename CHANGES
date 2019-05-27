@@ -79,6 +79,8 @@ Changed:
 
 - Renamed `rms_window` parameter of `compress` to `window`. (#796)
 
+- Added `chop` operator.
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
