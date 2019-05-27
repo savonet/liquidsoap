@@ -75,7 +75,7 @@ let proto =
     "knee", Lang.float_getter_t 4, Some (Lang.float 1.),
     Some "Knee radius (dB).";
 
-    "rms_window", Lang.float_t, Some (Lang.float 0.1),
+    "window", Lang.float_t, Some (Lang.float 0.1),
     Some "Window for computing RMS (in sec).";
 
     "gain", Lang.float_getter_t 5, Some (Lang.float 0.),
@@ -92,7 +92,7 @@ let compress p kind =
     Lang.to_float_getter (f "threshold"),
     Lang.to_float_getter (f "ratio"),
     Lang.to_float_getter (f "knee"),
-    Lang.to_float (f "rms_window"),
+    Lang.to_float (f "window"),
     Lang.to_float_getter (f "gain"),
     Lang.to_source (f "")
   in

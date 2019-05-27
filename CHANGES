@@ -77,6 +77,8 @@ Changed:
 
 - Renamed `get_clock_status` to `clock.status` and `log_clocks` to `clock.log`.
 
+- Renamed `rms_window` parameter of `compress` to `window`. (#796)
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
