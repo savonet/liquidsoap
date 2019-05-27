@@ -719,11 +719,7 @@ let () =
 
 let () =
   add_builtin "%" ~cat:String
-    ~descr:"<code>pattern % [...,(k,v),...]</code> \
-            changes in the pattern occurences of:\n\
-             \ - <code>$(k)</code> into <code>v</code>;\n\
-             \ - <code>$(if $(k2),\"a\",\"b\")</code> into \
-                 \"a\" if k2 is found in the list, \"b\" otherwise."
+    ~descr:"`pattern % [...,(k,v),...]` changes in the pattern occurences of:\n\n- `$(k)` into `v`\n- `$(if $(k2),\"a\",\"b\")\ into \"a\" if k2 is found in the list, \"b\" otherwise."
     ["",Lang.string_t,None,None ;
      "",Lang.metadata_t,None,None]
     Lang.string_t
