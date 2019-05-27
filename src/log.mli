@@ -4,7 +4,7 @@ type t =
     critical : 'a. ('a, unit, string, unit) format4 -> 'a;
     severe : 'a. ('a, unit, string, unit) format4 -> 'a;
     important : 'a. ('a, unit, string, unit) format4 -> 'a;
-    information : 'a. ('a, unit, string, unit) format4 -> 'a;
+    info : 'a. ('a, unit, string, unit) format4 -> 'a;
     warning : 'a. ('a, unit, string, unit) format4 -> 'a;
     debug : 'a. ('a, unit, string, unit) format4 -> 'a;
   >

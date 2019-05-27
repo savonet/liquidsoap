@@ -28,7 +28,7 @@ type t =
     critical : 'a. ('a, unit, string, unit) format4 -> 'a;
     severe : 'a. ('a, unit, string, unit) format4 -> 'a;
     important : 'a. ('a, unit, string, unit) format4 -> 'a;
-    information : 'a. ('a, unit, string, unit) format4 -> 'a;
+    info : 'a. ('a, unit, string, unit) format4 -> 'a;
     warning : 'a. ('a, unit, string, unit) format4 -> 'a;
     debug : 'a. ('a, unit, string, unit) format4 -> 'a;
   >
@@ -49,7 +49,7 @@ let make path : t =
     method important : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 3
 
     (** The advanced user should be interested in this. *)
-    method information : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 4
+    method info : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 4
 
     (** By the way. *)
     method warning : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 5
