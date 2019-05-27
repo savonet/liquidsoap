@@ -120,12 +120,16 @@ val string_of_category : category -> string
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
 
+(** Description of how many channels of given type an operator requires. *)
 type lang_kind_format =
-  | Fixed of int | Variable of int | Any_fixed of int
+  | Fixed of int (** exactly [n] channels *)
+  | Any_fixed of int (** a fixed number of channels which is at least [n] *)
+  | Variable of int (** a variable number of channel which always at least [n] *)
+(** Description of all the channels an operator requires. *)
 type lang_kind_formats =
-  | Unconstrained of t
+  | Unconstrained of t (** no requirements *)
   | Constrained of
-      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields (** specification of requirements for audio, video, etc. *)
 
 val any_fixed : lang_kind_formats
 val any_fixed_with :

@@ -131,7 +131,7 @@ let frame_kind_of_kind_type t =
   * [Variable n] means any (possibly variable) number of channels that
   *   is [>=n]. *)
 type lang_kind_format =
-  | Fixed of int | Variable of int | Any_fixed of int
+  | Fixed of int | Any_fixed of int | Variable of int
 type lang_kind_formats =
   | Unconstrained of t
   | Constrained of
