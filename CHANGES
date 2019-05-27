@@ -81,6 +81,8 @@ Changed:
 
 - Added `chop` operator.
 
+- Keep master tracks' boundaries in `mux_*` functions. (#795)
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
