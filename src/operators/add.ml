@@ -128,7 +128,7 @@ object (self)
                while Frame.is_partial buffer && s#is_ready do
                  incr get_count ;
                  if !get_count > Lazy.force Frame.size then
-                   self#log#f 2
+                   self#log#severe
                      "Warning: there may be an infinite sequence of empty tracks!" ;
                  get_again s buffer
                done
@@ -213,7 +213,7 @@ let () =
        let renorm = Lang.to_bool (List.assoc "normalize" p) in
          if List.length weights <> List.length sources then
            raise
-             (Lang.Invalid_value
+             (Lang_errors.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
          new add ~kind ~renorm
@@ -284,7 +284,7 @@ let () =
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then
            raise
-             (Lang.Invalid_value
+             (Lang_errors.Invalid_value
                 ((List.assoc "weights" p),
                  "there should be as many weights as sources")) ;
          new add ~kind ~renorm

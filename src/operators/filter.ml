@@ -109,7 +109,7 @@ let () =
           | "high" -> High_pass
           | "band" -> Band_pass
           | "notch" -> Notch
-          | _ -> raise (Lang.Invalid_value
+          | _ -> raise (Lang_errors.Invalid_value
                           (mode,
                            "valid values are low|high|band|notch"))
       in

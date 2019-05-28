@@ -2,13 +2,13 @@ Cookbook
 ========
 The recipes show how to build a source with a particular feature. You can try short snippets by wrapping the code in an `out(..)` operator and passing it directly to liquidsoap:
 
-```
+```liquidsoap
 liquidsoap -v 'out(recipe)'
 ```
 
 For longer recipes, you might want to create a short script:
 
-```
+```liquidsoap
 #!/usr/bin/liquidsoap -v
 
 set("log.file.path","/tmp/<script>.log")
@@ -24,13 +24,13 @@ Files
 -----
 A source which infinitely repeats the same URI:
 
-```
+```liquidsoap
 single("/my/default.ogg")
 ```
 
 A source which plays a playlist of requests -- a playlist is a file with an URI per line.
 
-```
+```liquidsoap
 # Shuffle, play every URI, start over.
 playlist("/my/playlist.txt")
 # Do not randomize
@@ -44,9 +44,9 @@ When building your stream, you'll often need to make it unfallible. Usually, you
 
 Transcoding
 -----------
-[Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of ``source'' streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. Also keep in mind a limitation inherent to OCaml: one [Liquidsoap](index.html) instance can only use a single processor or core. You can easily work around this limitation by launching multiple [Liquidsoap](index.html) instances, and thus take advantage of that 8-core Xeon server laying around in the dust in your garage.
+[Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. Also keep in mind a limitation inherent to OCaml: one [Liquidsoap](index.html) instance can only use a single processor or core. You can easily work around this limitation by launching multiple [Liquidsoap](index.html) instances, and thus take advantage of that 8-core Xeon server laying around in the dust in your garage.
 
-```
+```liquidsoap
 # Input the stream,
 # from an Icecast server or any other source
 url = "http://streaming.example.com:8000/your-stream.ogg"
@@ -80,7 +80,7 @@ to encode the file as quickly as possible.
 Finally, we use the `on_stop` handler to shutdown
 liquidsoap when streaming is finished.
 
-```
+```liquidsoap
 # The input file,
 # any format supported by liquidsoap
 input = "/tmp/input.mp3"
@@ -102,7 +102,7 @@ output.file(%vorbis, output,fallible=true,
 
 Scheduling
 ----------
-```
+```liquidsoap
 # A fallback switch
 fallback([playlist("http://my/playlist"),
           single("/my/jingle.ogg")])
@@ -117,7 +117,7 @@ It can be useful to have a special playlist that is played at least every 20 min
 You may think of a promotional playlist for instance.
 Here is the recipe:
 
-```
+```liquidsoap
 # (1200 sec = 20 min)
 timed_promotions = delay(1200.,promotions)
 main_source = fallback([timed_promotions,other_source])
@@ -127,7 +127,7 @@ Where promotions is a source selecting the file to be promoted.
 
 Handle special events: mix or switch
 ------------------------------------
-```
+```liquidsoap
 # Add a jingle to your normal source
 # at the beginning of every hour:
 add([normal,switch([({0m0s},jingle)])])
@@ -135,7 +135,7 @@ add([normal,switch([({0m0s},jingle)])])
 
 Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and skip tracks from the normal source if they contain too much silence.
 
-```
+```liquidsoap
 stripped_stream = 
   strip_blank(input.http("http://myicecast:8080/live.ogg"))
 fallback(track_sensitive=false,
@@ -151,18 +151,18 @@ This is explained in the documentation for [request-based sources](request_sourc
 
 For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
-```
+```liquidsoap
 request.dynamic(
   { request.create("bar:foo",
       indicators=
         get_process_lines("cat "^quote("playlist.pls"))) })
 ```
 
-Of course a more interesting behaviour is obtained with a more interesting program than ``cat''.
+Of course a more interesting behaviour is obtained with a more interesting program than `cat`.
 
 Another way of using an external program is to define a new protocol which uses it to resolve URIs. `add_protocol` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program, that's how we use [bubble](bubble.html) for example:
 
-```
+```liquidsoap
 add_protocol("bubble",
   fun (arg,delay) ->
     get_process_lines("/usr/bin/bubble-query "^quote(arg)))
@@ -180,7 +180,7 @@ This can be very useful to relay a live stream without polling the Icecast serve
 
 An example can be:
 
-```
+```liquidsoap
 # Serveur settings
 set("harbor.bind_addr","0.0.0.0")
 
@@ -201,8 +201,8 @@ radio = fallback(track_sensitive=false,
 output.icecast(%vorbis, radio,mount="test",host="host")
 ```
 
-This script, when launched, will start a local server, here bound to ``0.0.0.0''. This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point ``/live'' to login.
-Then if you start a source client and tell it to stream to your server, on port 8080, with password ``hackme'', the live source will become available and the radio will stream it immediately.
+This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
+Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
 
 Adding new commands
 -------------------
@@ -211,7 +211,7 @@ You can add more commands to interact with your script through telnet or the ser
 For instance, the following code, available in the standard API, attaches a `source.skip` command 
 to a source. It is useful when the original source do not have a built-in skip command.
 
-```
+```liquidsoap
 # Add a skip function to a source
 # when it does not have one
 # by default
@@ -238,7 +238,7 @@ It is sometimes useful (or even legally necessary) to keep a backup of an audio
 stream. Storing all the stream in one file can be very impractical. In order to
 save a file per hour in wav format, the following script can be used:
 
-```
+```liquidsoap
 # A source to dump
 # s = ...
 
@@ -259,7 +259,7 @@ two server/telnet commands, `dump.start <filename>`
 and `dump.stop` to dump the content of source s
 into the file given as argument
 
-```
+```liquidsoap
 # A source to dump
 # s = (...) 
 
@@ -314,7 +314,7 @@ Transitions have limited duration, defined by the `transition_length` parameter.
 
 Here are some possible transition functions:
 
-```
+```liquidsoap
 # A simple (long) cross-fade
 # Use metadata override to make sure transition is long enough.
 def crossfade(a,b)
@@ -366,7 +366,7 @@ end
 
 Finally, we build a source which plays a playlist, and switches to the live show as soon as it starts, using the `transition` function as a transition. At the end of the live, the playlist comes back with a cross-fading.
 
-```
+```liquidsoap
 fallback(track_sensitive=false,
 	     transitions=[ crossfade, transition(jingle) ],
 	     [ input.http("http://localhost:8000/live.ogg"),
@@ -376,7 +376,7 @@ fallback(track_sensitive=false,
 ### Cross-based transitions
 The `cross()` operator allows arbitrary transitions between tracks of a same source. Here is how to use it in order to get a cross-fade:
 
-```
+```liquidsoap
 def crossfade(~start_next,~fade_in,~fade_out,s)
   fade.in = fade.in(duration=fade_in)
   fade.out = fade.out(duration=fade_out)
@@ -409,13 +409,12 @@ liquidsoap -v --debug 'input.alsa(bufferize=false)'
 Unless you're lucky, the logs are full of lines like the following:
 
 ```
-
 Could not set buffer size to 'frame.size' (1920 samples), got 2048.
 ```
 
 The solution is then to fix the captured frame size to this value, which seems specific to your hardware. Let's try this script:
 
-```
+```liquidsoap
 # Set correct frame size:
 set("frame.audio.size",2048)
 
@@ -424,9 +423,7 @@ output.alsa(bufferize=false,input)
 ```
 
 If everything goes right, you may hear on your output the captured sound without any delay ! If you want to test the difference, just run the same script with `bufferize=true` (or without this parameter since it is the default). The setting will be acknowledged in the log as follows:
-
 ```
-
 Targetting 'frame.audio.size': 2048 audio samples = 2048 ticks.
 ```
 

@@ -128,7 +128,7 @@ object
     ?indicators:(Request.indicator list) -> string ->
     Request.t
 
-  method private log : Dtools.Log.t
+  method private log : Log.t
 
 end
 

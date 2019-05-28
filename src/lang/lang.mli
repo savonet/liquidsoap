@@ -22,7 +22,7 @@
 
 (** Values and types of the liquidsoap language. *)
 
-val log : Dtools.Log.t
+val log : Log.t
 
 (** The type of a value. *)
 type t = Lang_types.t
@@ -30,9 +30,9 @@ type t = Lang_types.t
 (** {2 Values} *)
 
 (** A typed value. *)
-type value = { mutable t : t ; value : in_value }
+type value = Lang_values.V.value = { mutable t : t ; value : in_value }
 and full_env = (string * ((int*Lang_types.constraints) list * value)) list
-and in_value =
+and in_value = Lang_values.V.in_value =
   | Unit
   | Bool    of bool
   | Int     of int
@@ -120,12 +120,16 @@ val string_of_category : category -> string
 (** Get a string representation of a [doc_flag]. *)
 val string_of_flag : doc_flag -> string
 
+(** Description of how many channels of given type an operator requires. *)
 type lang_kind_format =
-  | Fixed of int | Variable of int | Any_fixed of int
+  | Fixed of int (** exactly [n] channels *)
+  | Any_fixed of int (** a fixed number of channels which is at least [n] *)
+  | Variable of int (** a variable number of channel which always at least [n] *)
+(** Description of all the channels an operator requires. *)
 type lang_kind_formats =
-  | Unconstrained of t
+  | Unconstrained of t (** no requirements *)
   | Constrained of
-      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields
+      (lang_kind_format,lang_kind_format,lang_kind_format) Frame.fields (** specification of requirements for audio, video, etc. *)
 
 val any_fixed : lang_kind_formats
 val any_fixed_with :
@@ -265,13 +269,6 @@ val val_cst_fun : (string * t * value option) list -> value -> value
 val metadata : Frame.metadata -> value
 
 (** {2 Errors raised by other modules} *)
-
-exception Invalid_value of value * string
-
-(** More informative version of clocks exceptions from Source,
-  * used for re-raising and displaying better error messages *)
-exception Clock_conflict of (Lang_types.pos option * string * string)
-exception Clock_loop of (Lang_types.pos option * string * string)
 
 (** {2 Main script evaluation} *)
 

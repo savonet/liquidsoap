@@ -22,7 +22,7 @@
 
 open Source
 
-let log = Dtools.Log.make ["input";"jack"]
+let log = Log.make ["input";"jack"]
 
 let bjack_clock =
   Tutils.lazy_cell (fun () -> new Clock.self_sync "bjack")

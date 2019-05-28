@@ -61,7 +61,7 @@ object (self)
         assert (layer_end = Lazy.force Frame.size) ;
         restore () ;
         if src != content then
-          self#log#f 4 "Copy-avoiding optimization isn't working!" ;
+          self#log#info "Copy-avoiding optimization isn't working!" ;
         src
     in
     let len = Frame.position frame - start in

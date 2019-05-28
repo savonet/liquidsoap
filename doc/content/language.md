@@ -63,8 +63,7 @@ if expr then expr (elsif expr then expr)* (else expr)? end```
  evaluates to `((s2,s3),s1)`.
 
 **Function.** The return value of a function is the evaluation of its body where parameters have been substituted by their values. Accordingly, the type of the body is the return type of the function. If the body is a sequence, the return value will thus be its last expression, and the return type its type.
-
-```
+```liquidsoap
 def foo ()
   a = bar()
   b = 1
@@ -75,8 +74,7 @@ end
 ```
 
 Recursive functions can be defined using the `rec` keyword:
-
-```
+```liquidsoap
 def rec fact(n) =
   if n == 1 then
     1
@@ -89,8 +87,7 @@ end
 **Type of an application.** The type of an application is the return type of function if all mandatory arguments are applied. With the function `foo` previously defined, `foo()` is a string. Otherwise, the application is ``partial'', and the expression still has a function type.
 
 **Partial application.** Application of arguments can be partial. For example if `f` takes two integer arguments, `f(3)` is the function waiting for the second argument. This can be useful to instantiate once for all dummy parameters of a function:
-
-```
+```liquidsoap
 out = output.icecast(%vorbis, host="streamer",port="8080",
                             password="sesame")
 # out is a function waiting for the other parameters
@@ -123,7 +120,7 @@ A function type is noted as `(arg_types) -> return_type`. Labeled arguments are 
 (source,source,?jingle:string) -> source```
 .
 
-```
+```liquidsoap
 fun (from,to,~jingle=default) ->
   add ([ sequence([single(jingle), fallback([])]),
          fade.in(to) ])
@@ -147,8 +144,7 @@ It is possible to use 24 (resp. 60) as the upper bound for hours (resp. seconds 
 Time intervals can be either of the form `DATE-DATE` or simply `DATE`. Their meaning should be intuitive: `10h-10h30` is valid everyday between 10:00 and 10:30; `0m` is valid during the first minute of every hour.
 
 This is typically used for specifying switch predicates:
-
-```
+```liquidsoap
 switch([
   ({ 20h-22h30 }, prime_time),
   ({ 1w }, monday_source),
@@ -162,15 +158,13 @@ Includes
 You can include other files,
 to compose complex configurations from
 multiple blocks of utility or configuration directives.
-
-```
+```liquidsoap
 # Store passwords in another configuration file,
 # so that the main config can be safely version-controlled.
 %include "passwords.liq"
 
 # Use the definitions from the other file here.
 ```
-
 In the command `%include "file"` the path is relative to
 the script file. In `%include &lt;file&gt;`, it is relative
 to the library directory of liquidsoap.

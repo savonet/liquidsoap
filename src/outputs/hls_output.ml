@@ -87,11 +87,11 @@ class hls_output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let directory = Lang.to_string (Lang.assoc "" 1 p) in
-  let () = if not (Sys.file_exists directory) || not (Sys.is_directory directory) then raise (Lang.Invalid_value (Lang.assoc "" 1 p, "The target directory does not exist")) in
+  let () = if not (Sys.file_exists directory) || not (Sys.is_directory directory) then raise (Lang_errors.Invalid_value (Lang.assoc "" 1 p, "The target directory does not exist")) in
   let streams =
     let streams = Lang.assoc "" 2 p in
     let l = Lang.to_list streams in
-    if l = [] then raise (Lang.Invalid_value (streams, "The list of streams cannot be empty"));
+    if l = [] then raise (Lang_errors.Invalid_value (streams, "The list of streams cannot be empty"));
     l
   in
   let streams =
@@ -103,17 +103,17 @@ class hls_output p =
         try
           Encoder.bitrate hls_format
         with Not_found ->
-          raise (Lang.Invalid_value (fmt, "Unsupported format"))
+          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
       in
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
-        with Not_found -> raise (Lang.Invalid_value (fmt, "Unsupported format"))
+        with Not_found -> raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
       in
       let hls_codec =
         try
           Encoder.rfc6381 hls_format
         with Not_found ->
-          raise (Lang.Invalid_value (fmt, "Unsupported format"))  
+          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))  
       in
       {
         hls_name;
@@ -254,7 +254,7 @@ class hls_output p =
       List.iter2 self#write_pipe streams b;
       if not reopening && Unix.gettimeofday () > segment_duration +. open_date then
         begin
-          self#log#f 5 "New segment..." ;
+          self#log#warning "New segment..." ;
           (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
           reopening <- true;
           self#output_stop;

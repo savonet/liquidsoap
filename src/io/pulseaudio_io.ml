@@ -43,7 +43,7 @@ object
   val client_name = client
   val dev = device
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 end
 
 class output ~infallible ~start ~on_start ~on_stop ~kind p =

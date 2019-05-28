@@ -33,9 +33,6 @@ let debug =
   with
     | Not_found -> false
 
-(** Should some warnings be considered as fatal errors? *)
-let strict = ref false
-
 (** {2 Kinds} *)
 
 (* In a sense this could move to Lang_types, but I like to keep that
@@ -303,12 +300,7 @@ let check_unused ~lib tm =
              * and functions when at toplevel (sort of a lib situation...) *)
             if not (can_ignore def.t || (toplevel && is_fun def.t)) then
               let start_pos = fst (Utils.get_some tm.t.T.pos) in
-                if !strict then
-                  raise (Unused_variable (s,start_pos))
-                else
-                  Printf.printf
-                    "Warning: unused variable %s at %s.\n%!"
-                    s (T.print_single_pos start_pos)
+                raise (Unused_variable (s,start_pos))
           end ;
           if mask then Vars.add s v else v
   in
@@ -539,14 +531,6 @@ let rec value_restriction t = match t.term with
 exception Unbound of T.pos option * string
 exception Ignored of term
 
-let raise_ignored e =
-  if !strict then
-    raise (Ignored e)
-  else
-    Printf.printf
-      "Warning: ignored expression at %s.\n%!"
-      (T.print_pos ~prefix:"" (Utils.get_some e.t.T.pos))
-
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
   * passed to the function [f] because the latter has no label [lbl].
   * The [first] information tells whether [lbl=x] is the first parameter with
@@ -650,7 +634,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       e.t >: mkg T.Unit
   | Seq (a,b) ->
       check ~env ~level a ;
-      if not (can_ignore a.t) then raise_ignored a ;
+      if not (can_ignore a.t) then raise (Ignored a) ;
       check ~print_toplevel ~level ~env b ;
       e.t >: b.t
   | App (a,l) ->
@@ -764,7 +748,7 @@ let check ?(ignored=false) e =
       if print_toplevel && (T.deref e.t).T.descr <> T.Ground T.Unit then
         add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t) ;
-      if ignored && not (can_ignore e.t) then raise_ignored e ;
+      if ignored && not (can_ignore e.t) then raise (Ignored e) ;
       pop_tasks ()
     with
       | e -> pop_tasks () ; raise e

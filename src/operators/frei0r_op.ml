@@ -372,7 +372,7 @@ let register_plugins () =
       | End_of_file -> Unix.closedir dir
     with
     | Unix.Unix_error (e,_,_) ->
-      log#f 4 "Error while loading directory %s: %s"
+      log#info "Error while loading directory %s: %s"
         plugins_dir (Unix.error_message e)
   in
   List.iter add plugin_dirs

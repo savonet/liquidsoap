@@ -24,8 +24,7 @@ source `s` and `source.seek(s,(-4.))` will seek 4 seconds backward.
 Since seeking is currently only supported by request-based sources, it is recommended
 to hook the function as close as possible to the original source. Here is an example
 that implements a server/telnet seek function:
-
-```
+```liquidsoap
 # A playlist source
 s = playlist("/path/to/music")
 
@@ -68,7 +67,7 @@ The values of cue-in and cue-out points are given in absolute
 position through the source's metadata. For instance, the following
 source will cue-in at 10 seconds and cue-out at 45 seconds on all its tracks:
 
-```
+```liquidsoap
 s = playlist(prefix="annotate:liq_cue_in=\"10.\",liq_cue_out=\"45\":",
              "/path/to/music")
 

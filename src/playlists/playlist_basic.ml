@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["playlist";"basic"]
+let log = Log.make ["playlist";"basic"]
 
 let split_lines buf =
   Pcre.split ~pat:"[\r\n]+" buf
@@ -31,7 +31,7 @@ let test_text s =
     | Some get_mime ->
         let mime = get_mime s in
           if not (Pcre.pmatch ~pat:"text/.*" mime) then begin
-            log#f 3 "Wrong mime type %s for playlist!" mime ;
+            log#important "Wrong mime type %s for playlist!" mime ;
             (* TODO this shouldn't be an assert false, it can happen *)
             assert false
           end

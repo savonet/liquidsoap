@@ -75,15 +75,15 @@ let get_encoder_format tokenizer =
  * First a pre-processor which evaluates %ifdefs. *)
 let eval_ifdefs tokenizer =
   let state = ref 0 in
-  let rec token() =
+  let rec token () =
     let go_on () =
       incr state ;
-      token()
+      token ()
     in
     let rec skip () =
-      match tokenizer() with
-      | Lang_parser.PP_ENDIF,_,_ -> token()
-      | _ -> skip ()
+      match tokenizer () with
+        | Lang_parser.PP_ENDIF,_,_ -> token()
+        | _ -> skip ()
     in
     match tokenizer() with
       | Lang_parser.PP_IFDEF,_,_ | Lang_parser.PP_IFNDEF,_,_ as tok ->
@@ -109,9 +109,9 @@ let eval_ifdefs tokenizer =
           in
             if test has_enc then go_on () else skip ()
       | Lang_parser.PP_ENDIF,_,_ ->
-          if !state=0 then failwith "no %ifdef to end here" ;
+          if !state = 0 then failwith "no %ifdef to end here" ;
           decr state ;
-          token()
+          token ()
       | x -> x
   in
     token
@@ -133,7 +133,7 @@ let includer dir tokenizer =
   in
   let rec token () =
     match peek () () with
-      | Lang_parser.PP_INCLUDE fname,startp,_ ->
+      | Lang_parser.PP_INCLUDE fname,_,curp ->
           let fname = Utils.home_unrelate fname in
           let fname =
             if Filename.is_relative fname then
@@ -145,13 +145,13 @@ let includer dir tokenizer =
             try open_in fname with
               | Sys_error _ ->
                   flush_all () ;
-                    Printf.printf "%sine %d, char %d: cannot %%include, "
-                      (if startp.Lexing.pos_fname="" then "L" else
-                         Printf.sprintf "File %S, l" startp.Lexing.pos_fname)
-                      startp.Lexing.pos_lnum
-                      (1+startp.Lexing.pos_cnum-startp.Lexing.pos_bol) ;
-                    Printf.printf "file %S doesn't exist.\n" fname ;
-                    exit 1
+                  Printf.printf "%sine %d, char %d: cannot %%include, "
+                    (if curp.Lexing.pos_fname="" then "L" else
+                       Printf.sprintf "File %S, l" curp.Lexing.pos_fname)
+                    curp.Lexing.pos_lnum
+                    (1+curp.Lexing.pos_cnum-curp.Lexing.pos_bol) ;
+                  Printf.printf "file %S doesn't exist.\n" fname ;
+                  exit 1
           in
           let lexbuf = Sedlexing_compat.Utf8.from_channel channel in
           let tokenizer = mk_tokenizer ~fname lexbuf in
@@ -299,18 +299,22 @@ let parse_comments tokenizer =
     in
     let main,special,params = parse_doc ([],[],[]) doc in
     let main = List.rev main and params = List.rev params in
+    (* Disabling smart concatenation because it does not play well with itemize and ```. *)
+    (*
     let rec smart_concat = function
       | [] -> ""
       | [line] -> line
       | line::lines ->
-          if line = "" || line.[String.length line - 1] = '.' then
-            line ^ "\n" ^ smart_concat lines
-          else if line.[String.length line - 1] = ' ' then
-            line ^ smart_concat lines
-          else
-            line ^ " " ^ smart_concat lines
+         if line = "" || line.[String.length line - 1] = '.' then
+           line ^ "\n" ^ smart_concat lines
+         else if line.[String.length line - 1] = ' ' then
+           line ^ smart_concat lines
+         else
+           line ^ " " ^ smart_concat lines
     in
     let main = smart_concat main in
+    *)
+    let main = String.concat "\n" main in
     let doc =
       let sort = false in
         if main = "" then Doc.none ~sort () else Doc.trivial ~sort main
@@ -344,18 +348,18 @@ let strip_newlines tokenizer =
     match !state with
       | None ->
           begin match tokenizer () with
-            | Lang_parser.PP_ENDL,_,_ -> token()
+            | Lang_parser.PP_ENDL,_,_ -> token ()
             | (Lang_parser.VAR _,_,_) as v ->
                 state := Some v ;
                 token()
             | x -> x
           end
-      | Some ((Lang_parser.VAR var,startp,_) as v) ->
+      | Some ((Lang_parser.VAR var,_,_) as v) ->
           begin match tokenizer() with
-            | Lang_parser.LPAR,_,endp ->
+            | Lang_parser.LPAR,startp,endp ->
                 state := None ;
                 Lang_parser.VARLPAR var,startp,endp
-            | Lang_parser.LBRA,_,endp ->
+            | Lang_parser.LBRA,startp,endp ->
                 state := None ;
                 Lang_parser.VARLBRA var,startp,endp
             | Lang_parser.PP_ENDL,_,_ ->
@@ -364,7 +368,7 @@ let strip_newlines tokenizer =
           end
       | Some x -> state := None ; x
   in
-    token
+  token
 
 (* Inline %define x value. *)
 let expand_define tokenizer =

@@ -65,10 +65,10 @@ object (self)
   val mutable yv = [||]
 
   initializer
-    self#log#f 4 "Initializing..." ;
-    self#log#f 4 "Alpha 1: %.013f (warped: %.013f)" raw_alpha1 warped_alpha1 ;
-    self#log#f 4 "Alpha 2: %.013f (warped: %.013f)" raw_alpha2 warped_alpha2 ;
-    self#log#f 4 "Q: %.013f" qfactor ;
+    self#log#info "Initializing..." ;
+    self#log#info "Alpha 1: %.013f (warped: %.013f)" raw_alpha1 warped_alpha1 ;
+    self#log#info "Alpha 2: %.013f (warped: %.013f)" raw_alpha2 warped_alpha2 ;
+    self#log#info "Q: %.013f" qfactor ;
     let cor a = {re = a ; im = 0.}
     and ( +~ ), ( -~ ), ( *~ ), ( /~ ) =
       Complex.add, Complex.sub, Complex.mul, Complex.div
@@ -109,10 +109,10 @@ object (self)
       begin match filter_family with
         | Butterworth ->
             (* Compute S-plane poles (Butterworth) *)
-            self#log#f 4 "This is a Butterworth filter." ;
+            self#log#info "This is a Butterworth filter." ;
             let choosepole z =
               if (z.re < 0.) then begin
-                self#log#f 4 "z = %+.013f %+.013f i." z.re z.im ;
+                self#log#info "z = %+.013f %+.013f i." z.re z.im ;
                 if polemask mod 2 == 0 then begin
                   splane_poles <- Array.append splane_poles [|z|] ;
                   splane_numpoles <- splane_numpoles + 1
@@ -120,7 +120,7 @@ object (self)
                 polemask <- polemask lsl 1
               end
             in
-              self#log#f 4 "Theta:" ;
+              self#log#info "Theta:" ;
               for i = 0 to (2 * order) - 1 do
                 let theta =
                   match (order mod 2) with
@@ -129,7 +129,7 @@ object (self)
                         ((float_of_int i +. 0.5) *. Utils.pi) /. (float_of_int order)
                     | _ -> assert false
                 in
-                  self#log#f 4
+                  self#log#info
                     "%d: %+.013f --> %+.013f %+.013f i."
                     i theta (cos theta) (sin theta) ;
                   choosepole ({re = cos(theta) ; im = sin(theta)})
@@ -140,7 +140,7 @@ object (self)
               begin match filter_type with
                 | Band_stop ->
                     (* Band-stop filter *)
-                    self#log#f 4 "This is a band-stop filter." ;
+                    self#log#info "This is a band-stop filter." ;
                     let w0 = sqrt (w1 *~ w2)
                       and bw = w2 -~ w1
                     in
@@ -165,7 +165,7 @@ object (self)
                       yv <- Array.make_matrix channels (order * 2 + 1) 0.
                 | Band_pass ->
                     (* Band-pass filter *)
-                    self#log#f 4 "This is a band-pass filter." ;
+                    self#log#info "This is a band-pass filter." ;
                     let w0 = sqrt (w1 *~ w2)
                       and bw = w2 -~ w1
                     in
@@ -188,7 +188,7 @@ object (self)
                       yv <- Array.make_matrix channels (order * 2 + 1) 0.
                 | High_pass ->
                     (* Hi-pass filter *)
-                    self#log#f 4 "This is a hi-pass filter." ;
+                    self#log#info "This is a hi-pass filter." ;
                     for i = 0 to splane_numpoles - 1 do
                       splane_poles.(i) <- w1 /~ splane_poles.(i) ;
                     done;
@@ -201,7 +201,7 @@ object (self)
                     yv <- Array.make_matrix channels (order + 1) 0.
                 | Low_pass ->
                     (* Lo-pass filter *)
-                    self#log#f 4 "This is a lo-pass filter." ;
+                    self#log#info "This is a lo-pass filter." ;
                     for i = 0 to splane_numpoles - 1 do
                       splane_poles.(i) <- splane_poles.(i) *~ w1 ;
                     done;
@@ -211,16 +211,16 @@ object (self)
                 | _ -> assert false
               end ;
               (* Compute Z-plane zeros & poles using bilinear transform *)
-              self#log#f 4 "S-Plane zeros:" ;
-              self#log#f 4 "%s"
+              self#log#info "S-Plane zeros:" ;
+              self#log#info "%s"
                 (String.concat "\n"
                    (Array.to_list
                       (Array.mapi
                          (fun i a ->
                             Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
                          splane_zeros))) ;
-              self#log#f 4 "S-Plane poles:" ;
-              self#log#f 4 "%s"
+              self#log#info "S-Plane poles:" ;
+              self#log#info "%s"
                 (String.concat "\n"
                    (Array.to_list
                       (Array.mapi
@@ -246,8 +246,8 @@ object (self)
                                     [|{re = -1.0 ; im = 0.}|] ;
                   zplane_numzeros <- zplane_numzeros + 1
                 done;
-                self#log#f 4 "Z-Plane zeros:" ;
-                self#log#f 4 "%s"
+                self#log#info "Z-Plane zeros:" ;
+                self#log#info "%s"
                   (String.concat "\n"
                      (Array.to_list
                         (Array.mapi
@@ -255,8 +255,8 @@ object (self)
                               Printf.sprintf "%d: %+.013f %+.013f i."
                                 i a.re a.im)
                            zplane_zeros))) ;
-                self#log#f 4 "Z-Plane poles:" ;
-                self#log#f 4 "%s"
+                self#log#info "Z-Plane poles:" ;
+                self#log#info "%s"
                   (String.concat "\n"
                      (Array.to_list
                         (Array.mapi
@@ -268,14 +268,14 @@ object (self)
             (* Compute Z-plane zeros and poles (Resonator).
              * Let's assume we're creating a bandpass filter,
              * we'll transform later if needed. *)
-            self#log#f 4 "This is a Resonator filter." ;
+            self#log#info "This is a Resonator filter." ;
             zplane_numpoles <- 2 ;
             zplane_numzeros <- 2 ;
             zplane_zeros <- [|cor 1. ; cor (-1.)|] ;
             (* where we want the peak to be *)
             let theta = 2. *. Utils.pi *. raw_alpha1 in
               if (qfactor == infinity) then begin
-                self#log#f 4 "Infinite Q factor!" ;
+                self#log#info "Infinite Q factor!" ;
                 (* oscillator *)
                 let zp = {re = cos theta ; im = sin theta } in
                   zplane_poles <- [|zp ; Complex.conj zp|]
@@ -313,7 +313,7 @@ object (self)
               begin match filter_type with
                   | Band_stop ->
                       (* Band-stop filter *)
-                      self#log#f 4 "This is a band-stop filter." ;
+                      self#log#info "This is a band-stop filter." ;
                       (* compute Z-plane pole & zero positions for bandstop
                       resonator (notch filter) *)
                       (* place zeros exactly *)
@@ -321,7 +321,7 @@ object (self)
                         zplane_poles <- [|zp ; Complex.conj zp|]
                   | All_pass ->
                       (* All-pass filter *)
-                      self#log#f 4 "This is an all-pass filter." ;
+                      self#log#info "This is an all-pass filter." ;
                       (* compute Z-plane pole & zero positions for allpass
                       resonator *)
                       zplane_zeros.(0) <- zplane_poles.(0) /~
@@ -333,19 +333,19 @@ object (self)
               end
       end ;
       (* Now expand the polynomials *)
-      self#log#f 4 "Expanding polynomials..." ;
+      self#log#info "Expanding polynomials..." ;
       topcoeffs <- expand zplane_zeros zplane_numzeros ;
       botcoeffs <- expand zplane_poles zplane_numpoles ;
-      self#log#f 4 "Top coeffs:" ;
-      self#log#f 4 "%s"
+      self#log#info "Top coeffs:" ;
+      self#log#info "%s"
         (String.concat "\n"
            (Array.to_list
               (Array.mapi
                  (fun i a ->
                     Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
                  topcoeffs))) ;
-      self#log#f 4 "Bottom coeffs:" ;
-      self#log#f 4 "%s"
+      self#log#info "Bottom coeffs:" ;
+      self#log#info "%s"
         (String.concat "\n"
            (Array.to_list
               (Array.mapi
@@ -365,8 +365,8 @@ object (self)
                 | All_pass -> Complex.norm fc_gain
                 | High_pass -> Complex.norm hf_gain
                 | Low_pass -> Complex.norm dc_gain end ;
-      self#log#f 4 "Gains:" ;
-      self#log#f 4 "DC=%+.013f Centre=%+.013f HF=%+.013f Final=%+.013f."
+      self#log#info "Gains:" ;
+      self#log#info "DC=%+.013f Centre=%+.013f HF=%+.013f Final=%+.013f."
         (Complex.norm dc_gain) (Complex.norm fc_gain)
         (Complex.norm hf_gain) gain ;
       (* X-coeffs *)
@@ -374,8 +374,8 @@ object (self)
         xcoeffs <- Array.append xcoeffs
                      [|topcoeffs.(i).re /. botcoeffs.(zplane_numpoles).re|] ;
       done;
-      self#log#f 4 "Xcoeffs:" ;
-      self#log#f 4 "%s"
+      self#log#info "Xcoeffs:" ;
+      self#log#info "%s"
         (String.concat "\n"
            (Array.to_list
               (Array.mapi
@@ -386,14 +386,14 @@ object (self)
         ycoeffs <- Array.append ycoeffs
               [|(0. -. (botcoeffs.(i).re) /. botcoeffs.(zplane_numpoles).re)|] ;
       done;
-      self#log#f 4 "Ycoeffs:" ;
-      self#log#f 4 "%s"
+      self#log#info "Ycoeffs:" ;
+      self#log#info "%s"
         (String.concat "\n"
            (Array.to_list
               (Array.mapi
                  (fun i a -> Printf.sprintf "%d: %+.013f." i a)
                  ycoeffs))) ;
-      self#log#f 4 "Initialization done."
+      self#log#info "Initialization done."
 
   (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
 

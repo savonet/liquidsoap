@@ -17,7 +17,7 @@ of them.
 In particular, the `process:` protocol can use an external command to prepare resolve a request. Here's an example
 using the AWS command-line to download a file from S3:
 
-```
+```liquidsoap
 def s3_protocol(~rlog,~maxtime,arg) =
   extname = file.extension(dir_sep="/",arg)
   [process_uri(extname=extname,"aws s3 cp s3:#{arg} $(output)")]
@@ -33,7 +33,7 @@ suitable file.
 
 This makes it possible to create your own custom resolution chain, including for instance cue-points. Here's an example:
 
-```
+```liquidsoap
 def cue_protocol(~rlog,~maxtime,arg) =
   [process_uri(extname="wav",uri=uri,"ffmpeg -y -i $(input) -af -ss 10 -t 30 $(output)")]
 end
@@ -44,7 +44,7 @@ This protocol returns 30s of data from the input file, stating at the 10s mark.
 
 Likewise, you can apply a normalization program:
 
-```
+```liquidsoap
 def normalization_protocol(~rlog,~maxtime,arg) =
   # "normalize" command here is just an example..
   [process_uri(extname="wav",uri=arg,"normalize $(inpuit)")]
@@ -52,9 +52,11 @@ end
 add_protocol("normalize",normalization_protoco)
 ```
 
-Now, you can push requests of the form: ```
-normalize:cue_cut:http://www.server.com/file.mp3```
- and the file will be cut and normalized
+Now, you can push requests of the form:
+```
+normalize:cue_cut:http://www.server.com/file.mp3
+```
+and the file will be cut and normalized
 before being played by liquidsoap.
 
 When defining custom protocols, you should pay attention to two variables:
@@ -141,9 +143,7 @@ in the standard directory are truncated and compressed if they grow too big.
 
 It is not very convenient to detect errors when using the init script.
 We advise users to check their scripts after modification (use
-```
-liquidsoap --check /etc/liquidsoap/script.liq```
-)
+`liquidsoap --check /etc/liquidsoap/script.liq`)
 before effectively restarting the daemon.
 
 

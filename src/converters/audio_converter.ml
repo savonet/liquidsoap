@@ -22,7 +22,7 @@
 
 (** External audio samplerate conversion utilities. *)
 
-let log = Dtools.Log.make ["audio";"converter"]
+let log = Log.make ["audio";"converter"]
 
 (* TODO: is it the right place for this ? *)
 let audio_conf =
@@ -93,11 +93,11 @@ struct
          let preferred = preferred_conf#get in
          match converters#get preferred with
            | Some _ ->
-              log#f 4 "Using preferred samplerate converter: %s." preferred;
+              log#info "Using preferred samplerate converter: %s." preferred;
            | None ->
-              log#f 4 "Couldn't find preferred samplerate converter: %s."
+              log#info "Couldn't find preferred samplerate converter: %s."
                 preferred;
               let (n,_) = List.hd converters#get_all in
-              log#f 4 "Using %s samplerate converter" n))
+              log#info "Using %s samplerate converter" n))
 
 end

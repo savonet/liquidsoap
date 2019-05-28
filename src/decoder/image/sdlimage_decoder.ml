@@ -23,11 +23,11 @@
 module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 
-let log = Dtools.Log.make ["decoder";"sdlimage"]
+let log = Log.make ["decoder";"sdlimage"]
 
 let load_image filename =
   let surface = Sdlloader.load_image filename in
-  log#f 4 "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface);
+  log#info "SDL loaded %S as %dbpp." filename (Sdlvideo.surface_bpp surface);
   match Sdlvideo.surface_bpp surface with
   | 8 -> Sdl_utils.from_8 surface
   | 24 -> Sdl_utils.from_24 surface

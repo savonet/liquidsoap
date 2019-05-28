@@ -3,12 +3,14 @@
 SUBDIRS = content
 DISTFILES = liquidsoap.1 Makefile template.html snippet.html
 DISTDIRS = orig
+LIQUIDSOAP = ../src/liquidsoap
+PANDOC = pandoc --syntax-definition=liquidsoap.xml --highlight=pygments
 
 MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/settings.md
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
 PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
-doc: md html
+doc: md html pdf
 
 md: $(MD)
 
@@ -16,29 +18,26 @@ html: $(HTML)
 
 pdf: $(PDF)
 
-html/%.html: content/%.md template.html
+html/%.html: content/%.md template.html language.dtd
 	@echo Converting $(<) to $(@)...
 	@test -d html || (mkdir -p html/scripts ; cp -RfL orig/* html)
-	@pandoc $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
+	@$(PANDOC) $< --metadata pagetitle="`basename '$<'`" --template=template.html -o $@
 
-pdf/%.pdf: content/%.md
+pdf/%.pdf: content/%.md language.dtd
 	@mkdir -p pdf
 	@echo Converting $(<) to $(@)...
-	@pandoc $< -o $@
+	@$(PANDOC) $< -o $@
 
-content/protocols.md:
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --list-protocols-md >> $@
+content/protocols.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --list-protocols-md > $@
 
-content/reference.md:
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --list-functions-md >> $@
+content/reference.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --list-functions-md > $@
 
-content/settings.md: ../src/liquidsoap
-	CAML_LD_LIBRARY_PATH=../src:../src/plugins ../src/liquidsoap --no-pervasives ../lib/pervasives.liq --conf-descr > $@
+content/settings.md: $(LIQUIDSOAP)
+	$(LIQUIDSOAP) --no-pervasives ../lib/pervasives.liq --conf-descr-md > $@
 
-reference.pdf: content/reference.md
-	pandoc $< -o $@
-
-VERSION="`../src/liquidsoap --version | head -n 1`"
+VERSION="`$(LIQUIDSOAP) --version | head -n 1`"
 
 doc-install:
 	$(INSTALL)  -d $(datadir)/doc/$(DISTDIR)/html
@@ -51,10 +50,13 @@ doc-install:
 clean-local:
 	rm -rf html pdf content/reference.md content/protocols.md content/settings.md
 
-../src/liquidsoap:
+$(LIQUIDSOAP):
 	@echo "Liquidsoap does not seem to be built. You have to build it before."
 	@echo "Go to the toplevel and type 'make'"
 	@exit 1
+
+language.dtd:
+	curl https://raw.githubusercontent.com/jgm/highlighting-kate/master/xml/language.dtd -o $@
 
 top_srcdir=..
 include $(top_srcdir)/Makefile.rules

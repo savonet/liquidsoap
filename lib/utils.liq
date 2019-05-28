@@ -423,7 +423,7 @@ end
 # and return the source. It is a conveniency wrapper around clock.assign_new(),
 # allowing more concise scripts in some cases.
 # @category Liquidsoap
-# @param ~sync Do not synchronize the clock on regular wallclock time, \
+# @param ~sync When `false`, do not synchronize the clock on regular wallclock time, \
 #              but try to run as fast as possible (CPU burning mode).
 def clock(~sync=true,~id="",s)
   clock.assign_new(sync=sync,id=id,[s])
@@ -438,13 +438,13 @@ end
 #                  be used to ensure that the logger starts only after \
 #                  the clocks are created.
 # @param unlabeled Path of the log file.
-def log_clocks(~delay=0.,~interval=1.,logfile)
+def clock.log(~delay=0.,~interval=1.,logfile)
   # Get the current clocks
-  clocks = list.map(fst,get_clock_status())
+  clocks = list.map(fst,clock.status())
   # Column headers
   system("echo \\# #{string.concat(separator=' ',clocks)} > #{(logfile:string)}")
   def report()
-    status = get_clock_status()
+    status = clock.status()
     status = list.map(fun (x) -> (fst(x),string_of(snd(x))), status)
     status = list.map(fun (c) -> status[c], clocks)
     system("echo #{string.concat(separator=' ',status)} >> #{logfile}")
@@ -605,4 +605,55 @@ end
 def server.broadcast(x) =
   broadcast = snd(snd(x))
   broadcast()
+end
+
+# Read the whole contents of a file.
+# @category System
+def file.contents(f) =
+  fn = file.read(f)
+  def rec f(cur) =
+    s = fn()
+    if s == "" then
+      cur
+    else
+      f("#{cur}#{s}")
+    end
+  end
+  f("")
+end
+
+# Log a critical message
+# @category Liquidsoap
+def log.critical(~label="lang",msg) =
+  log(label=label,level=1,msg)
+end
+
+# Log a severe message
+# @category Liquidsoap
+def log.severe(~label="lang",msg) =
+  log(label=label,level=2,msg)
+end
+
+# Log an important message
+# @category Liquidsoap
+def log.important(~label="lang",msg) =
+  log(label=label,level=3,msg)
+end
+
+# Log a normal message
+# @category Liquidsoap
+def log.info(~label="lang",msg) =
+  log(label=label,level=4,msg)
+end
+
+# Log a warning message
+# @category Liquidsoap
+def log.warning(~label="lang",msg) =
+  log(label=label,level=5,msg)
+end
+
+# Log a debug message
+# @category Liquidsoap
+def log.debug(~label="lang",msg) =
+  log(label=label,level=6,msg)
 end

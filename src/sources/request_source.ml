@@ -58,11 +58,11 @@ object (self)
         | Some cur ->
             begin match Request.get_filename cur.req with
               | None ->
-                  self#log#f 1
+                  self#log#critical
                     "Finished with a non-existent file?! \
                      Something may have been moved or destroyed \
                      during decoding. It is VERY dangerous, avoid it!"
-              | Some f -> self#log#f 3 "Finished with %S." f
+              | Some f -> self#log#important "Finished with %S." f
             end ;
             cur.close () ;
             Request.destroy cur.req ;
@@ -80,7 +80,7 @@ object (self)
     assert (current = None) ;
     match self#get_next_file with
       | None ->
-          self#log#f 5 "Failed to prepare track: no file." ;
+          self#log#warning "Failed to prepare track: no file." ;
           false
       | Some req when Request.is_ready req ->
           assert (Frame.kind_sub_kind
@@ -90,7 +90,7 @@ object (self)
            * the request, and it can be decoded. *)
           let file = Utils.get_some (Request.get_filename req) in
           let decoder = Utils.get_some (Request.get_decoder req) in
-            self#log#f 3 "Prepared %S (RID %d)." file (Request.get_id req) ;
+            self#log#important "Prepared %S (RID %d)." file (Request.get_id req) ;
             (* We use this mutex to avoid seeking and filling at
              * the same time.. *)
             let m = Mutex.create () in
@@ -108,7 +108,7 @@ object (self)
             true
       | Some req ->
           (* We got an unresolved request.. this shoudn't actually happen *)
-          self#log#f 1
+          self#log#critical
             "Failed to prepare track: request not ready." ;
           Request.destroy req ;
           false
@@ -256,13 +256,13 @@ object (self)
          state <- `Tired) () ;
     (* Make sure the task is awake so that it can see our signal. *)
     Duppy.Async.wake_up (Utils.get_some task) ;
-    self#log#f 4 "Waiting for feeding task to stop..." ;
+    self#log#info "Waiting for feeding task to stop..." ;
     Tutils.wait state_cond state_lock (fun () -> state = `Sleeping) ;
     Duppy.Async.stop (Utils.get_some task) ;
     task <- None ;
     (* No more feeding task, we can go to sleep. *)
     super#sleep ;
-    self#log#f 4 "Cleaning up request queue..." ;
+    self#log#info "Cleaning up request queue..." ;
     begin try
       Mutex.lock qlock ;
       while true do
@@ -364,7 +364,7 @@ object (self)
                   if n = 0 then () else
                     let r = Queue.take retrieved in
                       if r.expired then begin
-                        self#log#f 4 "Dropping expired request." ;
+                        self#log#info "Dropping expired request." ;
                         Request.destroy r.request
                       end else
                         Queue.add r retrieved ;
@@ -375,7 +375,7 @@ object (self)
                   Queue.add
                     { request = req ; duration = len ; expired = false }
                     retrieved ;
-                  self#log#f 4
+                  self#log#info
                     "Remaining: %.1fs, queued: %.1fs, adding: %.1fs (RID %d)"
                     (Frame.seconds_of_master self#remaining)
                     queue_length len (Request.get_id req) ;
@@ -396,7 +396,7 @@ object (self)
     let ans =
       try
         let r = Queue.take retrieved in
-          self#log#f 4
+          self#log#info
             "Remaining: %.1fs, queued: %.1fs, taking: %.1fs"
             (Frame.seconds_of_master self#remaining)
             queue_length r.duration ;
@@ -404,7 +404,7 @@ object (self)
           Some r.request
       with
         | Queue.Empty ->
-            self#log#f 5 "Queue is empty!" ;
+            self#log#warning "Queue is empty!" ;
             None
     in
       Mutex.unlock qlock ;
@@ -432,7 +432,7 @@ object (self)
     Mutex.unlock qlock ;
     if self#available_length < min_queue_length then begin
       if not already_short then
-        self#log#f 4 "Expirations made the queue too short, feeding..." ;
+        self#log#info "Expirations made the queue too short, feeding..." ;
       (* Notify in any case, notifying twice never hurts. *)
       self#notify_new_request
     end

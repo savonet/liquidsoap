@@ -29,9 +29,9 @@ let get_font font size =
     Sdlttf.open_font font size
   with
     | Sdlttf.SDLttf_exception s ->
-      raise (Lang.Invalid_value (Lang.string font, s))
+      raise (Lang_errors.Invalid_value (Lang.string font, s))
     | e ->
-      raise (Lang.Invalid_value (Lang.string font, Printexc.to_string e))
+      raise (Lang_errors.Invalid_value (Lang.string font, Printexc.to_string e))
 
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in

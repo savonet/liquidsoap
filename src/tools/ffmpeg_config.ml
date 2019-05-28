@@ -1,4 +1,4 @@
-let log = Dtools.Log.make ["ffmpeg"]
+let log = Log.make ["ffmpeg"]
 
 let conf_ffmpeg =
   Dtools.Conf.void ~p:(Configure.conf#plug "ffmpeg") "FFMPEG configuration"
@@ -28,7 +28,7 @@ let () =
         | "verbose" -> `Verbose
         | "debug" -> `Debug
         | _ ->
-            log#f 2 "Invalid value for \"ffmpeg.log.verbosity\"!";
+            log#severe "Invalid value for \"ffmpeg.log.verbosity\"!";
             `Quiet
     in
     let level = conf_level#get in

@@ -73,7 +73,7 @@ Suppose that we want to receive a list of metadata, encoded as an object:
 
 Then, you would use of_json with default value `[("error","fail")]` and do:
 
-```
+```liquidsoap
 # Parse metadata from json
 m = of_json(default= [("error","fail")], json_string)
 ```
@@ -96,7 +96,7 @@ If your JSON object is of mixed type, like this one:
 
 You can parse it in multiple steps. For instance:
 
-```
+```liquidsoap
 # First parse key,value list:
 hint = [("key","value")]
 data = of_json(default=hint,payload)

@@ -26,8 +26,7 @@ Wrappers
 --------
 A wrapper, `input.mplayer`, is defined to use mplayer as the external decoder.
 Its code is:
-
-```
+```liquidsoap
 # Stream data from mplayer
 # @category Source / Input
 # @param s data URI.

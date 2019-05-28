@@ -77,7 +77,7 @@ class virtual piped_output p =
       Encoder.get_factory format
     with
       | Not_found ->
-          raise (Lang.Invalid_value (format_val,"Unsupported format"))
+          raise (Lang_errors.Invalid_value (format_val,"Unsupported format"))
   in
   let source = Lang.assoc "" 3 p in
   let name = Lang.to_string (Lang.assoc "" 2 p) in
@@ -147,7 +147,7 @@ object (self)
          (Unix.gettimeofday () > reload_delay +. open_date &&
           (Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []))) then
           begin
-            self#log#f 3 "Re-opening output pipe..." ;
+            self#log#important "Re-opening output pipe..." ;
             (* #output_stop can trigger #send,
              * the [reopening] flag avoids loops *)
             reopening <- true ;

@@ -132,7 +132,7 @@ object (self)
                                      float (Lazy.force Frame.master_rate)))
                           with
                             | _ ->
-                                self#log#f 2
+                                self#log#severe
                                   "Ill-formed metadata %s=%S!"
                                   key content ;
                                 None
@@ -149,20 +149,20 @@ object (self)
                       match cue_in with
                         | Some i when i <= 0L ->
                             if i < 0L then
-                              self#log#f 2 "Ignoring negative cue-in point." ;
+                              self#log#severe "Ignoring negative cue-in point." ;
                             None
                         | i -> i
                     in
                     let cue_out =
                       match cue_in, cue_out with
                         | Some i, Some o when o < i ->
-                            self#log#f 2
+                            self#log#severe
                               "Ignoring cue-out point before cue-in. \
                                Note that cue-out should be given \
                                relative to the beginning of the file." ;
                             None
                         | None, Some o when o < 0L ->
-                            self#log#f 2 "Ignoring negative cue-out point." ;
+                            self#log#severe "Ignoring negative cue-out point." ;
                             None
                         | _, cue_out -> cue_out
                     in
@@ -173,7 +173,7 @@ object (self)
               match cue_in with
                 | None | Some 0L -> Int64.of_int delta_pos, cue_out
                 | Some seek_time ->
-                    self#log#f 3 "Cueing in..." ;
+                    self#log#important "Cueing in..." ;
                     let seek_pos = Int64.to_int seek_time - delta_pos in
                     let seeked_pos = source#seek seek_pos in
                     let cue_out =
@@ -181,15 +181,15 @@ object (self)
                         let position = Int64.of_int (delta_pos + seeked_pos) in
                           match cue_out with
                             | Some o when position > o ->
-                                self#log#f 3
+                                self#log#important
                                   "Initial seek reached %i ticks \
                                    past cue-out point!"
                                   (Int64.to_int (position -- o)) ;
                                 Some position
                           | _ ->
                               if seeked_pos = 0 then
-                                self#log#f 2 "Could not seek to cue point!" ;
-                              self#log#f 4
+                                self#log#severe "Could not seek to cue point!" ;
+                              self#log#info
                                 "Seeked %i ticks instead of %i."
                                 seeked_pos seek_pos ;
                               cue_out
@@ -213,7 +213,7 @@ object (self)
       (* Perform cue-out if needed *)
       match in_track_state with
         | Some (elapsed,cue_out) when elapsed > cue_out ->
-            self#log#f 3 "Cueing out..." ;
+            self#log#important "Cueing out..." ;
             (* We're going to end the track, notify the source to do the
              * same unless it is already over. *)
             if not (Frame.is_partial buf) then source#abort_track ;
@@ -246,7 +246,7 @@ object (self)
         | _ ->
             if Frame.is_partial buf then begin
               if in_track_state <> None then
-                self#log#f 3 "End of track before cue-out point." ;
+                self#log#important "End of track before cue-out point." ;
               track_state <- None
             end
 end

@@ -24,8 +24,7 @@ All sources, operators and outputs are listed in the
 How does it work?
 -----------------
 To clarify the picture let's study in more details an example:
-
-```
+```liquidsoap
 radio =
   output.icecast(
     %vorbis,mount="test.ogg",

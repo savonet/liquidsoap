@@ -239,7 +239,7 @@ class output ~kind p =
         | "source" -> Cry.Source
         | "put"    -> Cry.Put
         | "post"   -> Cry.Post
-        | _ -> raise (Lang.Invalid_value
+        | _ -> raise (Lang_errors.Invalid_value
                    (v, "Valid values are: 'source' \
                        'put' or 'post'.")) 
     in  
@@ -249,7 +249,7 @@ class output ~kind p =
       | "https" -> Cry.Https verb
       | "icy" -> Cry.Icy
       | _ ->
-          raise (Lang.Invalid_value
+          raise (Lang_errors.Invalid_value
                    (v, "Valid values are 'http' (icecast) \
                         and 'icy' (shoutcast)"))
   in
@@ -261,7 +261,7 @@ class output ~kind p =
          | "true"  -> `True
          | "false" -> `False
          | _ ->
-               raise (Lang.Invalid_value
+               raise (Lang_errors.Invalid_value
                        (v, "Valid values are 'guess', \
                            'true' or 'false'"))
     in
@@ -276,7 +276,7 @@ class output ~kind p =
                        x = ogg_audio ||
                        x = ogg_video -> false
       | _, _ ->
-           raise (Lang.Invalid_value
+           raise (Lang_errors.Invalid_value
                     (List.assoc "icy_metadata" p,
                      "Could not guess icy_metadata for this format, \
                      please specify either 'true' or 'false'."))
@@ -304,7 +304,7 @@ class output ~kind p =
   let mount, name =
     match protocol, name, mount with
       | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
-        raise (Lang.Invalid_value
+        raise (Lang_errors.Invalid_value
                  (List.assoc "mount" p,
                   "Either name or mount must be defined for icecast sources."))
       | Cry.Icy, name, _ when name = no_name ->
@@ -445,7 +445,7 @@ object (self)
           | Cry.Connected _ ->
               (try 
                  Cry.update_metadata ~charset:out_enc connection m 
-               with e -> self#log#f 3 "Metadata update may have failed with \
+               with e -> self#log#important "Metadata update may have failed with \
                                        error: %s" 
                              (Printexc.to_string e))
           | Cry.Disconnected -> ()
@@ -471,14 +471,14 @@ object (self)
               | None -> () 
           with
             | e ->
-                self#log#f 2 "Error while sending data: %s!" (Printexc.to_string e) ;
+                self#log#severe "Error while sending data: %s!" (Printexc.to_string e) ;
                 let delay = on_error e in
                 if delay >= 0. then
                  begin
                   (* Ask for a restart after [restart_time]. *)
                   self#icecast_stop ;
                   restart_time <- Unix.time () +. delay ;
-                  self#log#f 3
+                  self#log#important
                     "Will try to reconnect in %.02f seconds."
                     delay
                  end
@@ -513,7 +513,7 @@ object (self)
         | Cry.Icy_id id -> Printf.sprintf "sid#%d" id
         | Cry.Icecast_mount mount -> mount
     in
-    self#log#f 3 "Connecting mount %s for %s@%s..." display_mount user host ;
+    self#log#important "Connecting mount %s for %s@%s..." display_mount user host ;
     let audio_info = Hashtbl.create 10 in
     let f x y z =
       match x with
@@ -543,18 +543,18 @@ object (self)
 
       try
         Cry.connect connection source ;
-        self#log#f 3 "Connection setup was successful." ;
+        self#log#important "Connection setup was successful." ;
         (* Execute on_connect hook. *)
         on_connect () ;
       with
         (* In restart mode, no_connect and no_login are not fatal.
          * The output will just try to reconnect later. *)
         | e ->
-            self#log#f 2 "Connection failed: %s" (Printexc.to_string e) ;
+            self#log#severe "Connection failed: %s" (Printexc.to_string e) ;
             let delay = on_error e in
             if delay >= 0. then
              begin
-              self#log#f 3
+              self#log#important
                 "Will try again in %.02f sec."
                 delay ;
               self#icecast_stop ;
@@ -573,7 +573,7 @@ object (self)
     begin match Cry.get_status connection with
       | Cry.Disconnected -> ()
       | Cry.Connected _ ->
-          self#log#f 3 "Closing connection..." ;
+          self#log#important "Closing connection..." ;
           Cry.close connection ;
           on_disconnect () ;
     end ;

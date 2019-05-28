@@ -22,7 +22,7 @@
 
  (** Ogg Stream Encoder *)
 
-let log = Dtools.Log.make ["ogg.muxer"]
+let log = Log.make ["ogg.muxer"]
 
 exception Invalid_data
 exception Invalid_usage
@@ -200,12 +200,12 @@ let create ~skeleton id =
 let register_track ?fill encoder track_encoder =
   if encoder.state = Streaming then
    begin
-    log#f 4 "%s: Invalid new track: ogg stream already started.." encoder.id;
+    log#info "%s: Invalid new track: ogg stream already started.." encoder.id;
     raise Invalid_usage
    end;
   if encoder.state = Eos then
    begin
-    log#f 4 "%s: Starting new sequentialized ogg stream." encoder.id;
+    log#info "%s: Starting new sequentialized ogg stream." encoder.id;
     if encoder.skeleton <> None then
       encoder.skeleton <- Some (init_skeleton encoder);
     encoder.state <- Bos;
@@ -251,8 +251,8 @@ let register_track ?fill encoder track_encoder =
 (** Start streams, set state to Streaming. *)
 let streams_start encoder =
   if Hashtbl.length encoder.tracks = 0 then
-    log#f 4 "%s: Starting stream with no ogg track.." encoder.id;
-  log#f 4 "%s: Starting all streams" encoder.id;
+    log#info "%s: Starting stream with no ogg track.." encoder.id;
+  log#info "%s: Starting all streams" encoder.id;
   (** Add skeleton informations first. *)
   begin
     match encoder.skeleton with
@@ -395,7 +395,7 @@ let encode encoder id data =
    streams_start encoder;
  if encoder.state = Eos then
    begin
-    log#f 4 "%s: Cannot encode: ogg stream finished.." encoder.id;
+    log#info "%s: Cannot encode: ogg stream finished.." encoder.id;
     raise Invalid_usage
    end;
  let queue_add src p = 
@@ -426,21 +426,21 @@ let end_of_track encoder id =
   let track = Hashtbl.find encoder.tracks id in
   if encoder.state = Bos then
    begin
-    log#f 4 "%s: Stream finished without calling streams_start !" encoder.id; 
+    log#info "%s: Stream finished without calling streams_start !" encoder.id; 
     streams_start encoder
    end;
    match track with
        | Video_track x ->
            if not (Ogg.Stream.eos x.os) then
             begin
-             log#f 4 "%s: Setting end of track %nx." encoder.id id; 
+             log#info "%s: Setting end of track %nx." encoder.id id; 
              x.stream_end x.os
             end;
            add_available x encoder
        | Audio_track x -> 
            if not (Ogg.Stream.eos x.os) then
             begin
-             log#f 4 "%s: Setting end of track %nx." encoder.id id;
+             log#info "%s: Setting end of track %nx." encoder.id id;
              x.stream_end x.os
             end;
            add_available x encoder
@@ -462,7 +462,7 @@ let eos encoder =
     streams_start encoder;
   if Hashtbl.length encoder.tracks <> 0 then
     raise Invalid_usage ;
-  log#f 4 "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
+  log#info "%s: Every ogg logical tracks have ended: setting end of stream." encoder.id;
   Buffer.reset encoder.header ;
   encoder.position <- 0.;
   encoder.state <- Eos

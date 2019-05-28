@@ -13,7 +13,6 @@ Play a synthesized sound
 ------------------------
 Simply execute the following command,
 and you should hear a 440Hz sound on your soundcard:
-
 ```
 liquidsoap 'out(sine())'
 ```
@@ -26,8 +25,7 @@ Did it work? If so, try to modify it:
 Play a remote stream, discover fallibility
 ------------------------------------------
 Try to execute the liquidsoap expression:
-
-```
+```liquidsoap
 out(input.http("http://ice.rosebud-media.de:8000/88vier"))
 ```
 
@@ -39,8 +37,7 @@ The output operator `out` is okay with failure: it simply plays silence
 when the source fails, waiting for it to be ready again.
 But some operators are stricter.
 If you try
-
-```
+```liquidsoap
 output.ao(input.http("http://ice.rosebud-media.de:8000/88vier"))
 ```
 
@@ -67,8 +64,7 @@ Suppose we want to be able to request a particular file for playout
 instead of the automatically chosen files of the playlist.
 This is achieved by wrapping the playlist in a fallback choice
 with a request queue:
-
-```
+```liquidsoap
 out(fallback([request.queue(id="q"),playlist("music")]))
 ```
 
@@ -89,8 +85,7 @@ You have learned how to build a few sources, synthesizing sound from scratch,
 from a remote stream or from a list of files. Now, instead of playing the
 stream directly to your soundcard, we'll encode it and save it to a local
 file:
-
-```
+```liquidsoap
 output.file(%vorbis,"test.ogg",source)
 ```
 
@@ -168,14 +163,11 @@ it has no source to stream.
 Using variables
 ---------------
 Run the following script:
-
-```
+```liquidsoap
 x = 42
 print(x)
 ```
-
 As follows:
-
 ```
 % liquidsoap --no-pervasives -i /path/to/script.liq
 x     : int
@@ -183,8 +175,7 @@ x     : int
 No output defined, nothing to do.
 ```
 
-Try to obtain the following types
-(some help can be found [there](language.html)):
+Try to obtain the following types (some help can be found [there](language.html)):
 
 * `float`
 * `bool`
@@ -193,8 +184,7 @@ Try to obtain the following types
 * `(bool*string)` (a pair made of a boolean and a string)
 
 You can redefine a variable:
-
-```
+```liquidsoap
 x = 42
 y = "42"
 x = (y,y)
@@ -204,9 +194,9 @@ print(z)
 
 Defining a function
 -------------------
-Try this:
 
-```
+Try this:
+```liquidsoap
 def double(s)
   s ^ s
 end
@@ -220,8 +210,7 @@ to fix that problem.
 Conditionals
 ------------
 A simple example:
-
-```
+```liquidsoap
 if "foo"=="bar" then
   print("This is madness.")
 else
@@ -230,8 +219,7 @@ end
 ```
 
 It can also be written as follows:
-
-```
+```liquidsoap
 print(
   if "foo"=="bar" then
     "This is madness."
@@ -253,8 +241,7 @@ You'll learn later how to use assignments when you really need them.
 Sequencing, returning
 ---------------------
 Here is a function that prints the date and returns 42:
-
-```
+```liquidsoap
 def f()
   print(get_process_output("date"))
   42
@@ -300,5 +287,3 @@ What you cannot do
 Liquidsoap does not have `while` and `for` loops, nor recursion.
 This is mostly because they are not really needed (yet...), notably
 since functions like `list.map` and `list.iter` are often a good replacement.
-
-

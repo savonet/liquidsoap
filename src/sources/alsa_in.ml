@@ -79,7 +79,7 @@ object (self)
     match device with
       | Some d -> d
       | None ->
-          self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+          self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm alsa_device [Pcm.Capture] [] in
           let params = Pcm.get_params dev in
           begin try
@@ -88,7 +88,7 @@ object (self)
           with
             | _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                self#log#f 2 "Falling back on interleaved S16LE";
+                self#log#severe "Falling back on interleaved S16LE";
                 Pcm.set_access dev params Pcm.Access_rw_interleaved ;
                 Pcm.set_format dev params Pcm.Format_s16_le ;
                 read_fun <-
@@ -121,12 +121,12 @@ object (self)
         begin
          match e with
            | Buffer_xrun ->
-               self#log#f 2 "Overrun!"
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+               self#log#severe "Overrun!"
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end ;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then
          begin
-          self#log#f 2 "Trying to recover.." ;
+          self#log#severe "Trying to recover.." ;
           Pcm.recover dev e
          end
         else raise e

@@ -98,7 +98,7 @@ let encoder ogg name meta =
               create_vorbis (Ogg_format.Vorbis x) :: cur
             with
               | Not_found -> 
-                  Ogg_muxer.log#f 3
+                  Ogg_muxer.log#important
                     "%s: Could not find any vorbis encoder." name ;
                   raise Not_found          
            end
@@ -111,7 +111,7 @@ let encoder ogg name meta =
               create_opus (Ogg_format.Opus x) :: cur
             with
               | Not_found ->
-                  Ogg_muxer.log#f 3
+                  Ogg_muxer.log#important
                     "%s: Could not find any opus encoder." name ;
                   raise Not_found
            end
@@ -124,7 +124,7 @@ let encoder ogg name meta =
               create_flac (Ogg_format.Flac x) :: cur
             with
               | Not_found ->
-                  Ogg_muxer.log#f 3
+                  Ogg_muxer.log#important
                     "%s: Could not find any flac encoder." name ;
                   raise Not_found
            end
@@ -137,7 +137,7 @@ let encoder ogg name meta =
               create_theora (Ogg_format.Theora x) :: cur
             with
               | Not_found ->
-                  Ogg_muxer.log#f 3 
+                  Ogg_muxer.log#important 
                     "%s: Could not find any theora encoder." name ;
                   raise Not_found
            end
@@ -150,7 +150,7 @@ let encoder ogg name meta =
               create_speex (Ogg_format.Speex x) :: cur
             with
               | Not_found ->
-                  Ogg_muxer.log#f 3
+                  Ogg_muxer.log#important
                     "%s: Could not find any speex encoder." name ;
                   raise Not_found
            end

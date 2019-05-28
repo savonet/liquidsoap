@@ -48,7 +48,7 @@ local to each source/request/format, but global in liquidsoap.
 You can change it using the `frame.audio/video.*`
 settings, shown here with their default values:
 
-```
+```liquidsoap
 set("frame.audio.samplerate",44100)
 set("frame.video.width",320)
 set("frame.video.height",240)
@@ -65,7 +65,6 @@ For example, if you try to send an ALSA input to a SDL input using
 `output.sdl(input.alsa())`, you'll get the following:
 
 ```
-
 At line 1, char 22-23:
   this value has type
     source(audio=?A+1,video=0,midi=0)
@@ -91,14 +90,11 @@ to fix it. Often, it suffices to perform a few explicit conversions.
 
 Consider another example involving the SDL output, where we also try
 to use AO to output the audio content of a video:
-```
-output.ao(output.sdl(single("file.ogv")))```
-.
+`liquidsoap output.ao(output.sdl(single("file.ogv")))`.
 This won't work, because the SDL output expects a pure video stream,
 but AO wants some audio. The solution is to split the stream in
 two, dropping the irrelevant content:
-
-```
+```liquidsoap
 s = single("file.ogv")
 output.sdl(drop_audio(s))
 output.ao(drop_video(s))
@@ -138,8 +134,7 @@ you'll see that liquidsoap decides that stereo audio should be used,
 and consequently the ALSA I/O will be initialized with two channels.
 If you want to use a different number of channels,
 for example mono, you can explicitly specify it using:
-
-```
+```liquidsoap
 output.alsa((input.alsa():source(1,0,0)))
 ```
 
@@ -155,11 +150,9 @@ script.
 Usually, the outputs pretty much determine what sources should contain.
 A critical ingredient here is often the
 [encoding format](encoding_formats.html). For example, in
-
-```
+```liquidsoap
 output.icecast(%vorbis,mount="some.ogg",s)
 ```
-
 `%vorbis` has type `format(2,0,0)`, hence `s`
 should have type `source(2,0,0)`. This works in more complex
 examples, when the types are guessed successively for several intermediate

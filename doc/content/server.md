@@ -60,32 +60,25 @@ Interactive variables
 Sometimes it is useful to control a variable using telnet. A simple way to
 achive this is to use the `interactive.float` function. For instance, in order
 to dynamically the volume of a source:
-
-```
+```liquidsoap
 # Register a telnet variable named volume with 1 as initial value
 v = interactive.float("volume", 1.)
 
 # Change the volume accordingly
 source = amplify(v, source)
 ```
-
 The first line registers the variable volume on the telnet. Its value can be
 changed using the telnet command
-
-```
+```liquidsoap
 var.set volume = 0.5
 ```
-
 and it can be retrieved using
-
-```
+```liquidsoap
 var.get volume
 ```
-
 Similarly, we can switch between two tracks using `interactive.bool` and
 `switch` as follows:
-
-```
+```liquidsoap
 # Activate the telnet server
 set("server.telnet",true)
 
@@ -117,39 +110,33 @@ There main commands are:
 * `server.condition`, `server.wait`, `server.signal` and `server.broadcast` to control the execution of the command
 
 ### Read/Write
-Writing a partial response is done using the following syntactic sugar:
 
-```
+Writing a partial response is done using the following syntactic sugar:
+```liquidsoap
 server.write "string to write" then
   log("string done writting!")
   # Do more stuff then send the final response:
   "Done!"
 end
 ```
-
 Read a value can be done 3 different ways. Most simple one is `server.readline`:
-
-```
+```liquidsoap
 server.readline ret then
   log("Read line: #{ret}")
   # Do more stuff then send the final response:
   "Done!"
 end
 ```
-
 Then you can read a fixed number of characters:
-
-```
+```liquidsoap
 server.readchars 15 : ret then
   log("Read 15 characters: #{ret}")
   # Do more stuff then send the final response:
   "Done!"
 end
 ```
-
 Finally, you can read until reaching a marker, which can be any string or regular expression:
-
-```
+```liquidsoap
 server.read "OVER[\r\n]+" :  ret then
   log("Read until OVER: #{ret}")
   # Do more stuff then send the final response:
@@ -158,6 +145,7 @@ end
 ```
 
 ### Control flow
+
 You can pause and resume server commands using an API similar to Unix conditions:
 
 * `server.condition()` creates a condition variable
@@ -167,7 +155,7 @@ You can pause and resume server commands using an API similar to Unix conditions
 
 `server.wait` is used through a syntactic sugar:
 
-```
+```liquidsoap
 server.wait c then
   log("Command has resumed!")
   # Do more stuff then send the final response:
@@ -176,16 +164,16 @@ end
 ```
 
 ### Full example
+
 In the following, we define two commands:
 
-* `wait`: when executing the command, the client waits for a message. Message can be one of: * `"exit"`: terminate command
- * `"read"`: read one line from the client and print it back
- * Otherwise, the client prints the received value
-
-
+* `wait`: when executing the command, the client waits for a message. Message can be one of:
+  * `"exit"`: terminate command
+  * `"read"`: read one line from the client and print it back
+  * Otherwise, the client prints the received value
 * `send <value>`: when executing this command, the client sends `<value>` to all waiting clients.
 
-```
+```liquidsoap
 c = server.condition()
 
 value = ref ""
@@ -228,7 +216,7 @@ Example of use:
 
 `send`:
 
-```
+```liquidsoap
 Connected to localhost.
 Escape character is '^]'.
 send foo
@@ -244,7 +232,7 @@ END
 
 `wait`:
 
-```
+```liquidsoap
 Connected to localhost.
 Escape character is '^]'.
 wait
@@ -283,8 +271,7 @@ a SSH access to the command server: we create a SSH user that, when logging
 through SSH, has only access to the command server.
 
 First, we enable the unix socket for the command server in Liquidsoap:
-
-```
+```liquidsoap
 set("server.socket",true)
 set("server.socket.path","/path/to/socket")
 ```
@@ -292,8 +279,7 @@ set("server.socket.path","/path/to/socket")
 When started, liquidsoap will create a socket file `/path/to/socket`
 that can be used to interact with the command server. For instance,
 if your user has read and write rights on the socket file, you can do
-
-```
+```liquidsoap
 socat /path/to/socket -
 ```
 
@@ -302,8 +288,7 @@ The interface is then exactly the same has for the telnet server.
 We define now a new ``shell''. This shell is in fact the invokation of the socat
 command. Thus, we create a `/usr/local/bin/liq_shell` file with the following
 content:
-
-```
+```bash
 #!/bin/sh
 # We test if the file is a socket, readable and writable.
 if [ -S /path/to/socket ] && [ -w /path/to/socket ] && \
@@ -318,7 +303,6 @@ fi
 We set this file as executable, and we add it in the list of shells in `/etc/shells`.
 
 Now, we create a user with the `liq_shell` as its shell:
-
 ```
 adduser --shell /usr/local/bin/liq_shell liq-user
 ```
@@ -327,7 +311,6 @@ You also need to make sure that `liq-user` has read and write rights
 on the socket file.
 
 Finally, when logging through ssh with `liq-user`, we get:
-
 ```
 11:27 toots@leonard % ssh liq-user@localhost
 liq-user@localhost's password:
@@ -374,5 +357,3 @@ that you are using a mainstream secure application, here SSH.
 This example may be adapted similarly to use an online HTTP login 
 mechanism, which is probably the most comment type of mechanism
 intented for the command line server.
-
-

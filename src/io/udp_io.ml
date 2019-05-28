@@ -86,7 +86,7 @@ object (self)
       ~on_start:ignore ~on_stop:ignore
       ~autostart:true
 
-  initializer log_ref := (fun s -> self#log#f 3 "%s" s)
+  initializer log_ref := (fun s -> self#log#important "%s" s)
 
   val mutable kill_feeding = None
   val mutable wait_feeding = None
@@ -158,9 +158,9 @@ object (self)
               Unix.close socket ;
               begin match e with
                 | Failure s ->
-                    self#log#f 2 "Feeding stopped: %s." s
+                    self#log#severe "Feeding stopped: %s." s
                 | e ->
-                    self#log#f 2 "Feeding stopped: %s."
+                    self#log#severe "Feeding stopped: %s."
                       (Printexc.to_string e)
               end ;
               if should_stop () then
@@ -201,7 +201,7 @@ let () =
            let fmt = Lang.assoc "" 1 p in
              try Encoder.get_factory (Lang.to_format fmt) with
                | Not_found ->
-                   raise (Lang.Invalid_value
+                   raise (Lang_errors.Invalid_value
                             (fmt,
                              "Cannot get a stream encoder for that format"))
          in
@@ -229,7 +229,7 @@ let () =
          let mime = Lang.to_string (Lang.assoc "" 1 p) in
            match Decoder.get_stream_decoder mime kind with
              | None ->
-                 raise (Lang.Invalid_value
+                 raise (Lang_errors.Invalid_value
                           ((Lang.assoc "" 1 p),
                            "Cannot get a stream decoder for this MIME"))
              | Some decoder_factory ->

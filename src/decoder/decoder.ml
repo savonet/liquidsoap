@@ -58,8 +58,6 @@
   * The WAV decoder doesn't fit the approx duration computation. (Toots: is that true?)
   * The MIDI decoder doesn't use a buffer. TODO look at this carefully. *)
 
-open Dtools
-
 let log = Log.make ["decoder"]
 
 (** A local file is simply identified by its filename. *)
@@ -129,7 +127,7 @@ let get_decoders conf decoders =
   let f cur name =
     match decoders#get name with
       | Some p -> (name,p)::cur
-      | None   -> log#f 2 "Cannot find decoder %s" name;
+      | None   -> log#severe "Cannot find decoder %s" name;
                   cur
   in
   List.fold_left f [] (List.rev conf#get)
@@ -183,7 +181,7 @@ let conf_file_extensions =
 
 let test_file ?(log=log) ~mimes ~extensions fname =
   if not (Sys.file_exists fname) then begin
-    log#f 4 "File %S does not exist!" fname ;
+    log#info "File %S does not exist!" fname ;
     false
   end else 
     let ext_ok =
@@ -205,9 +203,9 @@ let test_file ?(log=log) ~mimes ~extensions fname =
         true
       else begin
         if not mime_ok && mime <> None then
-          log#f 4 "Invalid MIME type for %S: %s!" fname (Utils.get_some mime) ;
+          log#info "Invalid MIME type for %S: %s!" fname (Utils.get_some mime) ;
         if not ext_ok then
-          log#f 4 "Invalid file extension for %S!" fname ;
+          log#info "Invalid file extension for %S!" fname ;
         false
       end
 
@@ -225,21 +223,21 @@ let get_file_decoder ~metadata filename kind =
   try
     List.iter
       (fun (name,decoder) ->
-         log#f 4 "Trying method %S for %S..." name filename ;
+         log#info "Trying method %S for %S..." name filename ;
          match
            try decoder ~metadata filename kind with
              | e ->
-                 log#f 4
+                 log#info
                    "Decoder %S failed on %S: %s!"
                    name filename (Printexc.to_string e) ;
                  None
          with
            | Some f ->
-               log#f 3 "Method %S accepted %S." name filename ;
+               log#important "Method %S accepted %S." name filename ;
                raise (Exit (name,f))
            | None -> ()) (get_decoders conf_file_decoders 
                                        file_decoders) ;
-    log#f 3
+    log#important
       "Unable to decode %S as %s!"
       filename (Frame.string_of_content_kind kind) ;
     None
@@ -248,7 +246,7 @@ let get_file_decoder ~metadata filename kind =
         Some (name,
               fun () ->
                 try f () with exn ->
-                  log#f 2 "Decoder %S betrayed us on %S! Error: %s"
+                  log#severe "Decoder %S betrayed us on %S! Error: %s"
                      name filename (Printexc.to_string exn);
                   dummy)
 
@@ -258,22 +256,22 @@ let get_image_file_decoder filename =
   try
     List.iter
       (fun (name,decoder) ->
-        log#f 4 "Trying method %S for %S..." name filename;
+        log#info "Trying method %S for %S..." name filename;
         match
           try decoder filename with
           | e ->
-            log#f 4
+            log#info
               "Decoder %S failed on %S: %s!"
               name filename (Printexc.to_string e);
             None
         with
         | Some img ->
-          log#f 3 "Method %S accepted %S." name filename;
+          log#important "Method %S accepted %S." name filename;
           ans := Some img;
           raise Stdlib.Exit
         | None -> ()
       ) (get_decoders conf_image_file_decoders image_file_decoders);
-    log#f 3 "Unable to decode %S!" filename;
+    log#important "Unable to decode %S!" filename;
     !ans
   with
   | Stdlib.Exit -> !ans
@@ -284,14 +282,14 @@ let get_stream_decoder mime kind =
   try
     List.iter
       (fun (name,decoder) ->
-         log#f 4 "Trying method %S for %S..." name mime ;
+         log#info "Trying method %S for %S..." name mime ;
          match try decoder mime kind with _ -> None with
            | Some f ->
-               log#f 3 "Method %S accepted %S." name mime ;
+               log#important "Method %S accepted %S." name mime ;
                raise (Exit_decoder f)
            | None -> ()) (get_decoders conf_stream_decoders
                                        stream_decoders);
-    log#f 3 "Unable to decode stream of type %S!" mime ;
+    log#important "Unable to decode stream of type %S!" mime ;
     None
   with
     | Exit_decoder f -> Some f
@@ -339,7 +337,7 @@ struct
           done
         with
           | e ->
-             log#f 4 "Decoding %S ended: %s." filename (Printexc.to_string e) ;
+             log#info "Decoding %S ended: %s." filename (Printexc.to_string e) ;
              decoding_done := true ;
              if conf_debug#get then raise e
         end ;
@@ -358,13 +356,13 @@ struct
           not (c_end = frame_size && Frame.type_has_kind c_type kind)
         then begin
           if c_end = frame_size then
-            log#f 2
+            log#severe
               "Decoder of %S produced %s, but %s was expected!"
               filename
               (Frame.string_of_content_type c_type)
               (Frame.string_of_content_kind kind)
           else
-            log#f 2
+            log#severe
               "Decoder of %S produced non-uniform data: \
                %s at %d, %s at %d! (End at %d)."
               filename
@@ -391,7 +389,7 @@ struct
             else
               0
           with e ->
-            log#f 4 "Error while getting decoder's remaining time: %s" (Printexc.to_string e);
+            log#info "Error while getting decoder's remaining time: %s" (Printexc.to_string e);
             decoding_done := true;
             0
     in

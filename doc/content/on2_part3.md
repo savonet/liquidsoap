@@ -27,8 +27,7 @@ of its inputs; the best way to use it is through liGuidsoap.
 Audio volume
 ------------
 You can visualize the audio volume on screen using `visu.volume`:
-
-```
+```liquidsoap
 d = 1.
 t = "lin"
 s = fade.in(duration=d,type=t,
@@ -50,13 +49,13 @@ together with `drop_audio` and `drop_video` at the right places
 
 Slideshow
 ---------
+
 The following script displays a slideshow of images,
 while playing a playlist of audio files.
 Pass it the images playlist/directory as the first argument on the command
 line (after `--`) and (optionally) the audio playlist/directory as the
 second argument.
-
-```
+```liquidsoap
 def images
   video.fade.in(duration=1.,video.fade.out(duration=1.,
     video.add_text(metadata="filename","<no filename>",
@@ -85,10 +84,10 @@ with a selected list avoiding too large sizes or too exotic formats.
 
 Audio volume
 ------------
+
 You can render the audio volume visualization as a video stream,
 that you can then process as any other video stream:
-
-```
+```liquidsoap
 d = 1.
 t = "lin"
 s = fade.in(duration=d,type=t,
@@ -103,8 +102,7 @@ TODO: the youtube encoder
 Transitions
 -----------
 Playing a video file `video.ogv` is simply achieved by
-
-```
+```liquidsoap
 s = single("video.ogv")
 output.sdl(s)
 ```
@@ -112,42 +110,33 @@ output.sdl(s)
 There are many useful (or not) effects in Liquidsoap which can be used to modify
 the video. These should be inserted between the first and the second line of
 the script above. For example, the image can be converted to sepia by adding
-
-```
+```liquidsoap
 s = video.sepia(s)
 ```
-
 Common operations include adding a logo (stored in a PPM image file 
 `image.ppm`):
-
-```
+```liquidsoap
 s = video.add_image(width=30, height=30, x=10, y=10, file="image.ppm", s)
 ```
-
 and displaying a scrolling text:
-
-```
+```liquidsoap
 s = video.add_text("Hello people!", s)
 ```
-
 Try modifying the scrolling text example so that you can modify the contents of
 the text over the telnet interface.
 
 Very similarly to audio transitions (fade in, fade out, etc.) there are some
 video transitions implemented. For example fading in the video is simply done using
-
-```
+```liquidsoap
 s = video.fade.in(s)
 ```
-
 The kind of transition that should be used is controlled by the `transition`
 parameter of `video.fade.in`. Try `disc` for example, as well as the others
 that you can find in the documentation.
 
 Of course, the `add` operator of liquidsoap also works on video streams. So, in
 order to add a rotating image on a video you could use
-
-```
+```liquidsoap
 s = add([s,
          video.rotate(
            video.add_image(
@@ -158,7 +147,7 @@ s = add([s,
 
 Overloaded demo
 ---------------
-```
+```liquidsoap
 file = single("bus.ogg")
 
 istring = interactive.string
@@ -222,8 +211,7 @@ which means to convert them to wave sound. Various operators can be used for
 this, each corresponding to a different instrument. For example, a synthesizer
 with sawtooth waves is provided by the operator `synth.saw`. A mini-keyboard
 synthesizer can thus be programmed using the following script
-
-```
+```liquidsoap
 s = input.keyboard.sdl()
 s = synth.saw(s)
 out(s)
@@ -246,8 +234,7 @@ should be used (with the `synth.saw` operator, only the first channel will be
 synthesized).
 
 So, a MIDI file named `file.mid` can be played using the following script
-
-```
+```liquidsoap
 s = single("file.mid")
 s = midi.remove([9],s)
 s = mux_audio(audio=blank(),s)
@@ -269,7 +256,6 @@ ideas... we would be glad hear yours too!
 For example, we thought it would be nice to be able to play chords in
 Liquidsoap. This is actually pretty simple using metadata. First, describe your
 sequence of chords in a file named `chords.txt` with the following contents:
-
 ```
 1 "chord" "C"
 2 "chord" "Am"
@@ -285,8 +271,7 @@ file format for metadata is supported natively by Liquidsoap. Now, the metadata
 containing the chord names can be converted to MIDI notes by using the `chord`
 operator. The sequence of chords above can thus be heard using the following
 script:
-
-```
+```liquidsoap
 s = single("chord.txt")
 s = midi.chord(s)
 s = mux_audio(audio=blank(),s)

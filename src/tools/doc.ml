@@ -117,8 +117,8 @@ let print_functions_md doc =
           if not (List.mem "hidden" flags) then
             (
               Printf.printf "### `%s`\n\n" f;
-              Printf.printf "%s\n" (to_string (List.assoc "_info" desc));
-              Printf.printf "```\n%s\n```\n\n" (to_string (List.assoc "_type" desc));
+              Printf.printf "%s\n\n" (to_string (List.assoc "_info" desc));
+              Printf.printf "Type:\n```\n%s\n```\n\n" (to_string (List.assoc "_type" desc));
               let args = List.filter (fun (n,_) -> n <> "_info" && n <> "_category" && n <> "_type" && n <> "_flag") desc in
               let args =
                 List.map
@@ -130,9 +130,10 @@ let print_functions_md doc =
                     n,s,t,d
                   ) args
               in
+              Printf.printf "Arguments:\n\n";
               List.iter
                 (fun (n,s,t,d) ->
-                  let d = if d = "" then "" else ", which defaults to `"^d^"`" in
+                  let d = if d = "None" then "" else ", which defaults to `"^d^"`" in
                   let s = if s = "" then "" else ": "^s in
                   Printf.printf "- `%s` (of type `%s`%s)%s\n" n t d s
                 ) args;

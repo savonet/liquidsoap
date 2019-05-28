@@ -22,7 +22,7 @@
 
 open Lang_builtins
 
-let log = Dtools.Log.make ["lastfm";"submit"]
+let log = Log.make ["lastfm";"submit"]
 
 let () =
   let f name stype descr =
@@ -70,7 +70,7 @@ let () =
                | "recommendation" -> Liqfm.Recommendation
                | "unknown" -> Liqfm.Unknown
                | _ -> 
-                  raise (Lang.Invalid_value 
+                  raise (Lang_errors.Invalid_value 
                       (List.assoc "source" p,
                        "unknown lastfm submission mode"))
            else
@@ -80,7 +80,7 @@ let () =
          let length = 
            if length = false && mode = Liqfm.User then
              begin
-               log#f 2 "length information is required for \"user\" \
+               log#severe "length information is required for \"user\" \
                         sources, setting to true.";
                true
              end

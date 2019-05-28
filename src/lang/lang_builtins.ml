@@ -112,45 +112,43 @@ let () =
     ["",Lang.string_t,None,None]
     Lang.string_t
     (fun p ->
-       let s = Lang.to_string (Lang.assoc "" 1 p) in
-         match Lang.eval s with
-           | None -> Lang.string ""
-           | Some v -> Lang.string (Lang.print_value v))
+      let s = Lang.to_string (Lang.assoc "" 1 p) in
+      match Lang.eval s with
+      | None -> Lang.string ""
+      | Some v -> Lang.string (Lang.print_value v))
 
 let () =
   add_builtin "clock.assign_new" ~cat:Liq
     ~descr:"Create a new clock and assign it to a list of sources."
     [ ("id", Lang.string_t, Some (Lang.string ""),
-       Some "Identifier for the new clock. The default empty string means \
-             that the identifier of the first source will be used.") ;
+       Some "Identifier for the new clock. The default empty string means that \
+             the identifier of the first source will be used.") ;
       ("sync", Lang.bool_t, Some (Lang.bool true),
-        Some "Do not synchronize the clock on regular wallclock time, \
-              but try to run as fast as possible (CPU burning mode).") ;
+       Some "Do not synchronize the clock on regular wallclock time, but try to \
+             run as fast as possible (CPU burning mode).") ;
       ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None,
        Some "List of sources to which the new clock will be assigned") ]
     Lang.unit_t
     (fun p ->
-       match Lang.to_list (List.assoc "" p) with
-         | [] -> Lang.unit
-         | (hd::_) as sources ->
-             let sync = Lang.to_bool (List.assoc "sync" p) in
-             let id = Lang.to_string (List.assoc "id" p) in
-             let id =  if id = "" then (Lang.to_source hd)#id else id in
-             let clock = new Clock.wallclock ~sync id in
-               List.iter
-                 (fun s ->
-                    try
-                      let s = Lang.to_source s in
-                        Clock.unify s#clock (Clock.create_known clock)
-                    with
-                      | Source.Clock_conflict (a,b) ->
-                          raise (Lang.Clock_conflict
-                                   (s.Lang.t.Lang_types.pos,a,b))
-                      | Source.Clock_loop (a,b) ->
-                          raise (Lang.Clock_loop
-                                   (s.Lang.t.Lang_types.pos,a,b)))
-                 sources ;
-               Lang.unit)
+      match Lang.to_list (List.assoc "" p) with
+      | [] -> Lang.unit
+      | (hd::_) as sources ->
+         let sync = Lang.to_bool (List.assoc "sync" p) in
+         let id = Lang.to_string (List.assoc "id" p) in
+         let id = if id = "" then (Lang.to_source hd)#id else id in
+         let clock = new Clock.wallclock ~sync id in
+         List.iter
+           (fun s ->
+             try
+               let s = Lang.to_source s in
+               Clock.unify s#clock (Clock.create_known clock)
+             with
+             | Source.Clock_conflict (a,b) ->
+                raise (Lang_errors.Clock_conflict (s.Lang.t.Lang_types.pos,a,b))
+             | Source.Clock_loop (a,b) ->
+                raise (Lang_errors.Clock_loop (s.Lang.t.Lang_types.pos,a,b)))
+           sources;
+         Lang.unit)
 
 let () =
   add_builtin "clock.unify" ~cat:Liq
@@ -158,46 +156,44 @@ let () =
     [ ("", Lang.list_t (Lang.source_t (Lang.univ_t 1)), None, None) ]
     Lang.unit_t
     (fun p ->
-       let l = List.assoc "" p in
-         try
-           match Lang.to_source_list l with
-             | [] -> Lang.unit
-             | hd::tl ->
-                 List.iter (fun s -> Clock.unify hd#clock s#clock) tl ;
-                 Lang.unit
-         with
-           | Source.Clock_conflict (a,b) ->
-               raise (Lang.Clock_conflict
-                        (l.Lang.t.Lang_types.pos,a,b))
-           | Source.Clock_loop (a,b) ->
-               raise (Lang.Clock_loop
-                        (l.Lang.t.Lang_types.pos,a,b)))
+      let l = List.assoc "" p in
+      try
+        match Lang.to_source_list l with
+        | [] -> Lang.unit
+        | hd::tl ->
+           List.iter (fun s -> Clock.unify hd#clock s#clock) tl;
+           Lang.unit
+      with
+      | Source.Clock_conflict (a,b) ->
+         raise (Lang_errors.Clock_conflict (l.Lang.t.Lang_types.pos,a,b))
+      | Source.Clock_loop (a,b) ->
+         raise (Lang_errors.Clock_loop (l.Lang.t.Lang_types.pos,a,b)))
 
 let () =
   let t = Lang.product_t Lang.string_t Lang.int_t in
-    add_builtin "get_clock_status" ~cat:Liq
-      ~descr:"Get the current time for all allocated clocks."
-      []
-      (Lang.list_t t)
-      (fun _ ->
-         let l =
-           Clock.fold
-             (fun clock l ->
-                Lang.product
-                  (Lang.string clock#id)
-                  (Lang.int clock#get_tick)
-                :: l)
-             []
-         in
-         let l =
-           Lang.product
-             (Lang.string "uptime")
-             (Lang.int
-                (int_of_float
-                   (Utils.uptime () /. Lazy.force Frame.duration)))
-           :: l
-         in
-           Lang.list ~t l)
+  add_builtin "clock.status" ~cat:Liq
+    ~descr:"Get the current time for all allocated clocks."
+    []
+    (Lang.list_t t)
+    (fun _ ->
+      let l =
+        Clock.fold
+          (fun clock l ->
+            Lang.product
+              (Lang.string clock#id)
+              (Lang.int clock#get_tick)
+            :: l)
+          []
+      in
+      let l =
+        Lang.product
+          (Lang.string "uptime")
+          (Lang.int
+             (int_of_float
+                (Utils.uptime () /. Lazy.force Frame.duration)))
+        :: l
+      in
+      Lang.list ~t l)
 
 let () =
   if Sys.os_type <> "Win32" then
@@ -723,11 +719,7 @@ let () =
 
 let () =
   add_builtin "%" ~cat:String
-    ~descr:"<code>pattern % [...,(k,v),...]</code> \
-            changes in the pattern occurences of:\n\
-             \ - <code>$(k)</code> into <code>v</code>;\n\
-             \ - <code>$(if $(k2),\"a\",\"b\")</code> into \
-                 \"a\" if k2 is found in the list, \"b\" otherwise."
+    ~descr:"`pattern % [...,(k,v),...]` changes in the pattern occurences of:\n\n- `$(k)` into `v`\n- `$(if $(k2),\"a\",\"b\")\ into \"a\" if k2 is found in the list, \"b\" otherwise."
     ["",Lang.string_t,None,None ;
      "",Lang.metadata_t,None,None]
     Lang.string_t
@@ -1317,7 +1309,7 @@ let () =
        let msg = Lang.to_string (List.assoc "" p) in
        let label = Lang.to_string (List.assoc "label" p) in
        let level = Lang.to_int (List.assoc "level" p) in
-         (Dtools.Log.make [label])#f level "%s" msg ;
+         (Log.make [label])#f level "%s" msg ;
          Lang.unit)
 
 let () =
@@ -1840,7 +1832,7 @@ let () =
                  | Some plugin ->
                     (mime,plugin.Playlist_parser.parser ~pwd content)
                  | None ->
-                    log#f 3 "Unknown mime type, trying autodetection." ;
+                    log#important "Unknown mime type, trying autodetection." ;
                     Playlist_parser.search_valid ~pwd content
                )
            in
@@ -2033,7 +2025,7 @@ let () =
 type request = Get | Post | Put | Head | Delete
 
 let add_http_request http name descr request =
-  let log = Dtools.Log.make [name] in
+  let log = Log.make [name] in
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let status_t =
@@ -2087,7 +2079,7 @@ let add_http_request http name descr request =
               | Delete -> Http.Delete
           in 
           let log s =
-            log#f 4 "%s" s
+            log#info "%s" s
           in
           Http.full_request ~log ~timeout ~headers
                             ~uri ~request ()

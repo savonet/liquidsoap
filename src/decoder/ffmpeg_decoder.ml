@@ -22,18 +22,16 @@
 
 (** Decode and read metadata using ffmpeg. *)
 
-open Dtools
-
 let log = Log.make ["decoder";"ffmpeg"]
 
 (** Configuration keys for ffmpeg. *)
 let mime_types =
-  Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
+  Dtools.Conf.list ~p:(Decoder.conf_mime_types#plug "ffmpeg")
     "Mime-types used for decoding with ffmpeg"
     ~d:[]
 
 let file_extensions =
-  Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
+  Dtools.Conf.list ~p:(Decoder.conf_file_extensions#plug "ffmpeg")
     "File extensions used for decoding with ffmpeg"
     ~d:["mp3";"mp4";"m4a";"wav";"flac";"ogg";"wma"] (* Test *)
 
@@ -160,7 +158,7 @@ let get_type filename =
       let rate =
         FFmpeg.Avcodec.Audio.get_sample_rate codec
       in
-      log#f 4 "ffmpeg recognizes %S as: (%dHz,%d channels)."
+      log#info "ffmpeg recognizes %S as: (%dHz,%d channels)."
         filename rate channels ;
       {Frame.
          audio = channels ;
@@ -181,7 +179,7 @@ let () =
        if kind.Frame.audio = Frame.Variable ||
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           if Frame.type_has_kind (get_type filename) kind then true else begin
-            log#f 3
+            log#important
               "File %S has an incompatible number of channels."
               filename ;
             false
@@ -191,7 +189,7 @@ let () =
        else
          None)
 
-let log = Dtools.Log.make ["metadata";"ffmpeg"]
+let log = Log.make ["metadata";"ffmpeg"]
 
 let get_tags file =
   let container =

@@ -17,7 +17,6 @@ files. However, if it not possible to modify the files for some reason, the
 metadata. For instance, in the playlist
 
 ```
-
 annotate:title="Title 1",artist="Artist 1":music1.mp3
 annotate:title="Title 2",artist="Artist 2":music2.mp3
 ```
@@ -33,7 +32,7 @@ is also useful in more complex cases.
 
 A simple example using it:
 
-```
+```liquidsoap
 # A function applied to each metadata chunk
 def append_title(m) =
   # Grab the current title
@@ -43,7 +42,7 @@ def append_title(m) =
   [("title","#{title} - www.station.com")]
 end
 
-# Apply map_metadata to s using append_title
+# Apply map_metadata to s using append_title
 s = map_metadata(append_title, s)
 ```
 
@@ -85,7 +84,7 @@ OSC protocol. When a pair of strings ``title'' ``The new title'' is recieved on
 `/metadata`, we want to change the title of the stream accordingly. This can be
 achieved as follows.
 
-```
+```liquidsoap
 # Our main music source
 s = playlist("...")
 s = mksafe(s)

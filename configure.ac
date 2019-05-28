@@ -279,7 +279,7 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
 if test -z "${VERSION_OK}"; then
-  AC_MSG_ERROR([version 4.03.0 or more of the OCaml compiler is required to build liquidsoap])
+  AC_MSG_ERROR([version 4.07.0 or greater of the OCaml compiler is required to build liquidsoap])
 fi
 
 AC_SUBST(BYTE)
@@ -696,7 +696,7 @@ let get_encoding () =
           custom_encoding := Some e ;
           e
 
-let camolog = Dtools.Log.make [["camomile"]]
+let camolog = Log.make [["camomile"]]
 
 exception Input_encoding of string
 exception Output_encoding of string
@@ -726,21 +726,21 @@ let recode_tag ?in_enc ?out_enc s =
           else
             C.name_of in_enc
         in
-        camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
+        camolog#important "Failed to convert %S from %s to %s (%s)!"
           s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
         s
   with
     | Unknown_encoding e ->
-          camolog#f 3 "Failed to convert %S: unknown encoding %s"
+          camolog#important "Failed to convert %S: unknown encoding %s"
               s e ; s
     | Input_encoding e -> 
-          camolog#f 3 "Failed to convert %S: unknown input encoding %s"
+          camolog#important "Failed to convert %S: unknown input encoding %s"
               s e ; s
     | Output_encoding e ->        
-          camolog#f 3 "Failed to convert %S: unknown output encoding %s"
+          camolog#important "Failed to convert %S: unknown output encoding %s"
               s e ; s
     | e ->
-          camolog#f 3 "Failed to convert %S: unknown error %s"
+          camolog#important "Failed to convert %S: unknown error %s"
               s (Printexc.to_string e) ; s
 
 let env_has key = try ignore (Sys.getenv key) ; true with Not_found -> false

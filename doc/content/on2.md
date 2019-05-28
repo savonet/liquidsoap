@@ -2,8 +2,11 @@ Savonet was at the [ON2: Test Signals](http://testsignals.org/) conference in
 Berlin, on October 22-23 2010. We presented Liquidsoap, but also held the first
 Liquidsoap workshop.
 
-<center><iframe src="//player.vimeo.com/video/16528307" width="400" height="300" frameborder="0"></iframe></center>Liquidsoap Workshop
+<center><iframe src="//player.vimeo.com/video/16528307" width="400" height="300" frameborder="0"></iframe></center>
+
+Liquidsoap Workshop
 ===================
+
 Below is a list of topics that we covered, proposing problems,
 guiding you through solving them and discussing various solutions.
 

@@ -8,7 +8,7 @@ annoying to get that on air. The `skip_blank` operator skips the
 current track when a too long blank is detected, which avoids that. The typical
 usage is simple:
 
-```
+```liquidsoap
 # Wrap it with a blank skipper
 source = skip_blank(source)
 ```
@@ -23,7 +23,7 @@ listeners get some silence again. To avoid that problem we made the
 (i.e. declare it as unavailable), which perfectly suits the typical setup used
 for live shows:
 
-```
+```liquidsoap
 interlude = single("/path/to/sorryfortheblank.ogg")
 # After 5 sec of blank the microphone stream is ignored,
 # which causes the stream to fallback to interlude.
@@ -42,7 +42,7 @@ more about liquidsoap's notion of [source](sources.html).
 Finally, if you need to do some custom action when there's too much blank, we
 have `on_blank`:
 
-```
+```liquidsoap
 def handler()
   system("/path/to/your/script to do whatever you want")
 end

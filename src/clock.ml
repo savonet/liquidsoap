@@ -28,7 +28,7 @@ include Source.Clock_variables
 
 let create_known s = create_known (s:>Source.clock)
 
-let log = Dtools.Log.make ["clock"]
+let log = Log.make ["clock"]
 let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
@@ -77,10 +77,10 @@ let allow_streaming_errors =
 
 let leave (s:active_source) =
   try s#leave (s:>source) with e ->
-    log#f 2 "Error when leaving output %s: %s!"
+    log#severe "Error when leaving output %s: %s!"
       s#id (Printexc.to_string e) ;
     List.iter
-      (log#f 3 "%s")
+      (log#important "%s")
       (Pcre.split ~pat:"\n" (Printexc.get_backtrace ()))
 
 (** Base clock class. *)
@@ -91,7 +91,7 @@ object (self)
 
   method id = id
 
-  val log = Dtools.Log.make ["clock";id]
+  val log = Log.make ["clock";id]
 
   (** List of outputs, together with a flag indicating their status:
     *   `New, `Starting, `Aborted, `Active, `Old
@@ -159,11 +159,11 @@ object (self)
           (fun (e,a) s ->
              try s#output ; e,s::a with
                | exn ->
-                   log#f 2
+                   log#severe
                      "Source %s failed while streaming: %s!"
                      s#id (Printexc.to_string exn) ;
                    List.iter
-                     (log#f 3 "%s")
+                     (log#important "%s")
                      (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                    leave s ;
                    s::e,a)
@@ -215,15 +215,15 @@ object (self)
     fun () ->
     let to_start =
       if to_start <> [] then
-        log#f 4 "Starting %d sources..." (List.length to_start) ;
+        log#info "Starting %d sources..." (List.length to_start) ;
       List.map
         (fun (s:active_source) ->
            try s#get_ready [(s:>source)] ; `Woken_up s with
              | e ->
-                 log#f 2 "Error when starting %s: %s!"
+                 log#severe "Error when starting %s: %s!"
                    s#id (Printexc.to_string e) ;
                  List.iter
-                  (log#f 3 "%s")
+                  (log#important "%s")
                   (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                  leave s ;
                  `Error s)
@@ -236,10 +236,10 @@ object (self)
            | `Woken_up (s:active_source) ->
                try s#output_get_ready ; `Started s with
                  | e ->
-                     log#f 2 "Error when starting output %s: %s!"
+                     log#severe "Error when starting output %s: %s!"
                        s#id (Printexc.to_string e) ;
                      List.iter
-                       (log#f 3 "%s")
+                       (log#important "%s")
                        (Pcre.split ~pat:"\n" (Printexc.get_backtrace ())) ;
                      leave s ;
                      `Error s)
@@ -273,7 +273,7 @@ object (self)
     in
       if !started <> `Yes && errors <> [] then Tutils.shutdown () ;
       if leaving <> [] then begin
-        log#f 4 "Stopping %d sources..." (List.length leaving) ;
+        log#info "Stopping %d sources..." (List.length leaving) ;
         List.iter (fun (s:active_source) -> leave s) leaving
       end ;
       errors
@@ -335,9 +335,9 @@ object (self)
       -. time ()
     in
       if sync then
-        log#f 3 "Streaming loop starts, synchronized with wallclock."
+        log#important "Streaming loop starts, synchronized with wallclock."
       else
-        log#f 3 "Streaming loop starts, synchronized by active sources." ;
+        log#important "Streaming loop starts, synchronized by active sources." ;
       let rec loop () =
         (* Stop running if there is no output. *)
         if outputs = [] then () else
@@ -349,7 +349,7 @@ object (self)
           end else begin
             incr acc ;
             if rem < max_latency then begin
-              log#f 2 "Too much latency! Resetting active sources..." ;
+              log#severe "Too much latency! Resetting active sources..." ;
               List.iter
                 (function
                    | (`Active,s) when s#is_active -> s#output_reset
@@ -362,7 +362,7 @@ object (self)
               (rem <= -1. || !acc >= 100) && !last_latency_log +. 1. < time ()
             then begin
               last_latency_log := time () ;
-              log#f 2 "We must catchup %.2f seconds%s!"
+              log#severe "We must catchup %.2f seconds%s!"
                 (-. rem)
                 (if !acc <= 100 then "" else
                    " (we've been late for 100 rounds)") ;
@@ -376,7 +376,7 @@ object (self)
       in
         loop () ;
         do_running (fun () -> running <- false) ;
-        log#f 3 "Streaming loop stopped."
+        log#important "Streaming loop stopped."
 
   val thread_name = "wallclock_" ^ id
 
@@ -413,7 +413,7 @@ object
     Tutils.mutexify bs_lock
       (fun () ->
          if blocking_sources = 0 then begin
-           log#f 4 "Delegating clock to active sources." ;
+           log#info "Delegating clock to active sources." ;
            sync <- false
          end ;
          blocking_sources <- blocking_sources + 1)
@@ -425,7 +425,7 @@ object
          blocking_sources <- blocking_sources - 1 ;
          if blocking_sources = 0 then begin
            sync <- true ;
-           log#f 4 "All active sources stopped, synching with wallclock."
+           log#info "All active sources stopped, synching with wallclock."
          end)
       ()
 end
@@ -489,7 +489,7 @@ let gc_alarm =
     fun () ->
       let nb_clocks = Clocks.count clocks in
         if nb_clocks <> !last_displayed then begin
-          log#f 4 "Currently %d clocks allocated." nb_clocks ;
+          log#info "Currently %d clocks allocated." nb_clocks ;
           last_displayed := nb_clocks
         end
 
@@ -524,7 +524,7 @@ let collect ~must_lock =
          * trivial (empty) collections terminating before us,
          * which defeats the purpose of the flag. *)
         started := `Soon ;
-        fun () -> ( log#f 4 "Main phase starts." ; started := `Yes )
+        fun () -> ( log#info "Main phase starts." ; started := `Yes )
       end
     in
       Mutex.unlock lock ;

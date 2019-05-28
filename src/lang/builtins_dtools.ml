@@ -94,7 +94,7 @@ let () =
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#set v
     with
       | Dtools.Conf.Unbound (_, _) ->
-          log#f 2 "WARNING: there is no configuration key named %S!" path
+          log#severe "WARNING: there is no configuration key named %S!" path
   in
     add_builtin ~cat:Liq "set"
       ~descr:"Change some setting. \
@@ -141,7 +141,7 @@ let () =
                  (Lang.to_string s)
                  kind (Lang.print_value (Lang.assoc "" 2 p))
              in
-               raise (Lang.Invalid_value (s,msg)))
+               raise (Lang_errors.Invalid_value (s,msg)))
 
 let () =
   let get cast path v =
@@ -149,7 +149,7 @@ let () =
       (cast (Configure.conf#path (Dtools.Conf.path_of_string path)))#get
     with
       | Dtools.Conf.Unbound (_, _) ->
-          log#f 2 "WARNING: there is no configuration key named %S!" path ;
+          log#severe "WARNING: there is no configuration key named %S!" path ;
           v
   in
   let univ = Lang.univ_t ~constraints:[Lang_types.Dtools] 1 in

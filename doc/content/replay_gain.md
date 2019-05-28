@@ -15,9 +15,9 @@ Because it is track-based, replay gain does not suffer from the typical problems
 On the other hand, replay gain has its drawbacks. First, it requires an initial computation that is a bit costly. This computation can be done once for all for local files -- subsequent calls can then retrieve the result from the metadata. Although not impossible in theory, there is no recipe for liquidsoap to offer the same feature on remote files.
 
 ### How to use replay gain in Liquidsoap
-One easy way to enable replay gain is to use the `ffmpeg2wav` protocol:
 
-```
+One easy way to enable replay gain is to use the `ffmpeg2wav` protocol:
+```liquidsoap
 set("protocol.ffmpeg2wav.replaygain",true)
 
 s = single("ffmpeg2wav:/path/to/file.mp3")
@@ -28,7 +28,10 @@ s = single("ffmpeg2wav:/path/to/file.mp3")
 With the `ffmpeg2wav` protocol, files are entirely decoded to `WAV` format using the `ffmpeg` binary. When the `"protocol.ffmpeg2wav.replaygain"` setting is set to `true`, it will also apply
 the replay gain amplification while decoding.
 
-The protocol requires `ffmpeg` in the path, which can be set via `set("protocol.ffmpeg2wav.path","...")`.
+The protocol requires `ffmpeg` in the path, which can be set via
+```liquidsoap
+set("protocol.ffmpeg2wav.path","...")
+```
 
 The `ffmpeg2wav` protocol is handy but it is also limited. For instance, it decodes and analyzes whole files, which can be a problem if you are using
 large audio files. Aditionally, you might want to exclude certain files, e.g. jingles from this processing.
@@ -36,11 +39,11 @@ large audio files. Aditionally, you might want to exclude certain files, e.g. ji
 If you need more finer-grained control or do not wish to use the `ffmpeg2wav` protocol, you can see the method below.
 
 ### Renormalizing according to some metadata field
+
 The `amplify()` operator can behave according to metadata. Its `override` parameter indicates a metadata field that, when present and well-formed, overrides the amplification factor. Well formed fields are floats (e.g. `2` or `0.7`) for linear amplification factors and floats postfixed with `dB` (e.g. `-2 dB`) for logarithmic ones.
 
 For replay gain implementation, the `amplify` operator would typically be added immediately on top of the basic tracks source, before transitions or other audio processing operators. We follow these lines in the next example, where the `replay_gain` field is used to carry the information:
-
-```
+```liquidsoap
 list    = playlist("~/playlist")
 default = single("~/default.ogg")
 
@@ -55,6 +58,7 @@ use `crossfade` before applying normalization. Hence, normalization should be do
 in the script, if possible just after the initial source.
 
 ### Computing and retrieving the data
+
 In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool.
 
 Liquidsoap provides a script for extracting the replay gain value which requires `ffmpeg`.
@@ -84,9 +88,8 @@ it will fail).
 
 The replay gain metadata resolver is not enabled by default. You can do it 
 by adding the following code in your script:
-
-```
-enable_replaygain_metadata ()
+```liquidsoap
+enable_replaygain_metadata()
 ```
 
 The `replay_gain` protocol is enabled by default.

@@ -22,7 +22,7 @@
 
 open Lang_builtins
 
-let log = Dtools.Log.make ["icy";"update_metadata"]
+let log = Log.make ["icy";"update_metadata"]
 
 let () =
   let user_agent = Lang.product (Lang.string "User-Agent")
@@ -88,7 +88,7 @@ let () =
           | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
           | "https" -> Cry.Https Cry.Source
           | _      -> 
-              raise (Lang.Invalid_value (v, "protocol should be one of: \
+              raise (Lang_errors.Invalid_value (v, "protocol should be one of: \
                                              'icy', 'http' or 'https'."))
       in
       let mount =
@@ -104,7 +104,7 @@ let () =
            ~mount ~headers metas
        with
          | e ->
-             log#f 2
+             log#severe
                "Manual metadata update failed: %s"
                (Printexc.to_string e)
       end ;

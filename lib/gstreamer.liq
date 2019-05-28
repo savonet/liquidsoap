@@ -21,6 +21,17 @@ def input.v4l2_with_audio(~id="",~device="/dev/video0",~on_error=fun(_)->3.)
   input.gstreamer.audio_video(id=id, audio_pipeline=audio_pipeline, video_pipeline=video_pipeline, on_error=on_error)
 end
 
+# Play a single audio file using GStreamer.
+# @category Source / Input
+# @param ~id Force the value of the source ID.
+# @param ~on_error Callback executed when an error happens.
+# @param uri URI of the file to be played.
+def gstreamer.single.audio(~id="",~on_error=fun(_)->3.,uri) =
+  uri = to_string_getter(uri)
+  input.gstreamer.audio(pipeline={"filesrc location=\"#{uri()}\""})
+end
+
+
 # Play an http live stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -69,12 +80,14 @@ def gstreamer.encode_mp3(fname, source)
   output.gstreamer.audio(pipeline="audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"", source)
 end
 
-# Broadcast a video in RTP. In order to play it, save the following in xxx.sdp
-# and use vlc xxx.sdp:
+# Broadcast a video in RTP. In order to play it, save the following in `xxx.sdp`
+# and use `vlc xxx.sdp`:
+# ```
 # v=0
 # m=video 5000 RTP/AVP 96
 # c=IN IP4 127.0.0.1
 # a=rtpmap:96 MP4V-ES/90000
+# ```
 # @category Source / Output
 def gstreamer.rtp.mpeg4(~host="127.0.0.1",~port=5000,source)
   output.gstreamer.video(pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}", source)

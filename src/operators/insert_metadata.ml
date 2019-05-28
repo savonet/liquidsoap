@@ -36,7 +36,7 @@ object
   val lock_m = Mutex.create ()
   val mutable ns = []
 
-  method insert_metadata m =
+  method insert_metadata m : unit =
     Mutex.lock lock_m ;
     metadata <- Some m ;
     Mutex.unlock lock_m
@@ -52,7 +52,6 @@ object
               Frame.set_metadata buf p m ;
               metadata <- None
           | None -> ())
-
 end
 
 let () =
@@ -65,9 +64,9 @@ let () =
   Lang.add_builtin "insert_metadata"
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:"Dynamically insert metadata in a stream. \
-            Returns a pair (f,s) where s is a new source and \
-            f is a function of type (metadata)->unit, used to \
-            insert metadata in s."
+            Returns a pair `(f,s)` where s is a new source and \
+            `f` is a function of type `(metadata)->unit`, used to \
+            insert metadata in `s`."
     [ "id",Lang.string_t,Some (Lang.string ""),
       Some "Force the value of the source ID.";
       "",Lang.source_t kind,None,None ] return_t

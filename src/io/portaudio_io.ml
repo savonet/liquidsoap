@@ -33,7 +33,7 @@ object (self)
       initialized := true
     end
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 
   (* TODO: inline this to be more efficient? *)
   method handle lbl f =
@@ -45,10 +45,10 @@ object (self)
       | Portaudio.Unanticipated_host_error ->
           let n, s = Portaudio.get_last_host_error () in
             if n = 0 then
-              self#log#f 3
+              self#log#important
                 "Unanticipated host error in %s. (ignoring)" lbl
             else
-              self#log#f 3
+              self#log#important
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
 end
 

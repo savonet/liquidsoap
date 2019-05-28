@@ -38,6 +38,7 @@ object
   method unregister_blocking_source : unit
 end
 
+(** Indicates whether the application has started to run or not. *)
 val running : unit -> bool
 
 (** {2 Global clock management} *)

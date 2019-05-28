@@ -101,7 +101,7 @@ let () =
          Svc.run main
         with
           | e ->
-              Main.log#f 2 "Error while running service: %s"
+              Main.log#severe "Error while running service: %s"
                              (Printexc.to_string e)
        end
     | `None -> main ()

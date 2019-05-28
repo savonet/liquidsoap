@@ -1,18 +1,16 @@
-open Dtools
-
 module Img = Image.RGBA32
 
 let conf_gstreamer =
-  Conf.void ~p:(Configure.conf#plug "gstreamer")
+  Dtools.Conf.void ~p:(Configure.conf#plug "gstreamer")
     "Media decoding/endcoding through gstreamer."
 
 let conf_max_buffers =
-  Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
+  Dtools.Conf.int ~p:(conf_gstreamer#plug "max_buffers") ~d:10
     "Maximal number of buffers."
 let max_buffers () = conf_max_buffers#get
 
 let conf_add_borders =
-  Conf.bool ~p:(conf_gstreamer#plug "add_borders") ~d:true
+  Dtools.Conf.bool ~p:(conf_gstreamer#plug "add_borders") ~d:true
     "Add borders in order to keep video aspect ratio."
 let add_borders () = conf_add_borders#get
 
@@ -30,8 +28,8 @@ let () =
       Printf.sprintf "--gst-debug-level=%d" debug
     |] ();
   let major, minor, micro, nano = Gstreamer.version () in
-  let log = Dtools.Log.make ["gstreamer";"loader"] in
-  log#f 3 "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
+  let log = Log.make ["gstreamer";"loader"] in
+  log#important "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
 
 module Pipeline = struct
   let convert_audio () =
@@ -120,12 +118,12 @@ let time_of_audio tick =
 let time_of_video tick =
   Int64.mul (Int64.of_float ((Frame.seconds_of_video tick) *. 10000.)) 100000L
 
-let handler ~(log:Dtools.Log.t) ~on_error msg =
+let handler ~(log:Log.t) ~on_error msg =
   let source = msg.Gstreamer.Bus.source in
   match msg.Gstreamer.Bus.payload with
-    | `Error err -> log#f 2 "[%s] Error: %s" source err; on_error err
-    | `Warning err -> log#f 3 "[%s] Warning: %s" source err
-    | `Info err -> log#f 4 "[%s] Info: %s" source err
+    | `Error err -> log#severe "[%s] Error: %s" source err; on_error err
+    | `Warning err -> log#important "[%s] Warning: %s" source err
+    | `Info err -> log#info "[%s] Info: %s" source err
     | `State_changed (o,n,p) ->
         let f = Gstreamer.Element.string_of_state in
         let o = f o in
@@ -135,7 +133,7 @@ let handler ~(log:Dtools.Log.t) ~on_error msg =
             | Gstreamer.Element.State_void_pending -> ""
             | _ -> Printf.sprintf " (pending: %s)" (f p)
         in
-        log#f 5 "[%s] State change: %s -> %s%s" source o n p
+        log#warning "[%s] State change: %s -> %s%s" source o n p
     | _ -> assert false
 
 let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(on_error=fun _ -> ()) bin =

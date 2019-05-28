@@ -22,7 +22,7 @@
 
 open Lang_builtins
 
-let log = Dtools.Log.make ["lang";"run_process"]
+let log = Log.make ["lang";"run_process"]
 
 let () =
   let ret_t = Lang.product_t
@@ -125,7 +125,6 @@ let () =
            (Lang.product (Lang.string status) (Lang.string arg))
        in
        let synchronous () =
-         log#f 4 "Executing %s" cmd;
          let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in
          close_out out_ch;
          let pull buf ch =
@@ -171,8 +170,7 @@ let () =
              let on_start _ =
                `Stop
              in
-             log#f 4 "Executing %s" cmd;
-             let log s = log#f 4 "%s" s in
+             let log s = log#info "%s" s in
              let p = Process_handler.run ~env ~on_start ~on_stop
                        ~on_stdout ~on_stderr ~log cmd
              in

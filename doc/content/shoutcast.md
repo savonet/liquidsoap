@@ -11,8 +11,7 @@ using FDK-AAC or using an [external encoder](external_encoders.html). The recomm
 
 Shoutcast output are done using the `output.shoutcast` operator with the appropriate parameters.
 An example is:
-
-```
+```liquidsoap
 source = single("audiofile.ogg")
 
 output.shoutcast(%mp3, host="shoutcast.example.org",
@@ -28,12 +27,10 @@ A side note for those of you who feel they ``need'' to use Shoutcast for non-tec
 directory service...): you can still benefit from Icecast's power by streaming to an Icecast server, and then relaying 
 it through a shoutcast server.
 
-In order to do that, you have to alias the root mountpoint (```/`'') to your MP3 mountpoint in your icecast server 
+In order to do that, you have to alias the root mountpoint ("`/`") to your MP3 mountpoint in your icecast server 
 configuration, like this:
-
 ```
-
-&lt;alias source="/" dest="/mystream.mp3" /&gt;
+<alias source="/" dest="/mystream.mp3" />
 ```
 
 Be careful that icecast often aliases the status page (`/status.xsl`) with the `/`. In this case, comment 

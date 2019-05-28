@@ -20,7 +20,7 @@ commented in order to help reading the code..
 
 New here's the code:
 
-```
+```liquidsoap
 # First, we create a list referencing the dynamic sources:
 dyn_sources = ref []
 

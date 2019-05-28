@@ -5,8 +5,7 @@ Liquidsoap can parse CUE sheets as playlists and use them in your request-based 
 
 Here's for instance an example of a simple code to split a CUE sheet into several mp3 files
 with `id3v2` tags:
-
-```
+```liquidsoap
  # Log to stdout
  set("log.file",false)
  set("log.stdout",true)

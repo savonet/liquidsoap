@@ -30,3 +30,5 @@ let export_metadata m =
 let to_metadata m = m
 let empty_metadata = Hashtbl.create 0
 let is_empty m = Hashtbl.length m == 0
+let to_string m =
+  "{ " ^ Hashtbl.fold (fun k v s -> Printf.sprintf "%s\"%s\": \"%s\"" (if s = "" then "" else s ^ " , ") k v) m "" ^ " }"

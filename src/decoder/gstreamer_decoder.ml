@@ -26,7 +26,7 @@ open Extralib
 
 module GU = Gstreamer_utils
 module Img = Image.RGBA32
-let log = Dtools.Log.make ["decoder";"gstreamer"]
+let log = Log.make ["decoder";"gstreamer"]
 
 type gst =
   {
@@ -42,8 +42,8 @@ module Make (Generator : Generator.S_Asio) = struct
     let decode_audio = mode = `Both || mode = `Audio in
     let decode_video = mode = `Both || mode = `Video in
 
-    log#f 4 "Using %s." (Gstreamer.version_string ());
-    log#f 5 "Decode A/V: %B/%B." decode_audio decode_video;
+    log#info "Using %s." (Gstreamer.version_string ());
+    log#warning "Decode A/V: %B/%B." decode_audio decode_video;
 
     let gst_max_buffers = GU.max_buffers () in
 
@@ -69,7 +69,7 @@ module Make (Generator : Generator.S_Asio) = struct
         Printf.sprintf "filesrc location=%S ! decodebin name=d%s%s"
           fname audio_pipeline video_pipeline
       in
-      log#f 5 "Gstreamer pipeline: %s." pipeline;
+      log#warning "Gstreamer pipeline: %s." pipeline;
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
       let audio_sink =
         if decode_audio then
@@ -163,8 +163,8 @@ module Make (Generator : Generator.S_Asio) = struct
         Gstreamer_utils.master_of_time (Int64.sub new_pos pos) 
       with
        | exn ->
-           log#f 3 "Seek failed: %s" (Printexc.to_string exn);
-           log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace ());
+           log#important "Seek failed: %s" (Printexc.to_string exn);
+           log#info "Backtrace:\n%s" (Printexc.get_backtrace ());
            0
     in
 
@@ -238,7 +238,7 @@ let get_type ~channels filename =
     GU.flush ~log bin;
     if state = Gstreamer.Element.State_paused then
       (
-        log#f 5 "File %s has audio." filename;
+        log#warning "File %s has audio." filename;
         channels
       )
     else
@@ -255,7 +255,7 @@ let get_type ~channels filename =
       ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
       if state = Gstreamer.Element.State_paused then
         (
-          log#f 5 "File %s has video." filename;
+          log#warning "File %s has video." filename;
           1
         )
       else

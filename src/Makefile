@@ -87,7 +87,7 @@ operators = \
 	operators/on_metadata.ml operators/store_metadata.ml \
 	operators/on_track.ml operators/on_end.ml operators/delay.ml \
 	operators/max_duration.ml operators/sequence.ml operators/add.ml \
-	operators/switch.ml operators/cross.ml \
+	operators/switch.ml operators/cross.ml operators/chop.ml \
 	operators/compress_exp.ml operators/pitch.ml operators/pipe.ml \
 	operators/fir_filter.ml operators/iir_filter.ml operators/filter_rc.ml \
 	operators/biquad_filter.ml operators/cuepoint.ml \
@@ -170,7 +170,8 @@ io = io/udp_io.ml \
 	$(if $(W_ALSA),io/alsa_io.ml) \
 	$(if $(W_GSTREAMER),io/gstreamer_io.ml)
 
-tools = tools/extralib.ml tools/JSON.ml tools/doc.ml tools/utils.ml tools/plug.ml \
+tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
+        tools/utils.ml tools/plug.ml \
 	$(if $(WIN32_HOST),win32/process_utils.ml) \
 	$(if $(UNIX_HOST),unix/process_utils.ml) \
 	tools/rqueue.ml tools/sedlexing_compat.ml \
@@ -179,7 +180,7 @@ tools = tools/extralib.ml tools/JSON.ml tools/doc.ml tools/utils.ml tools/plug.m
 	tools/wav_aiff.ml tools/tutils.ml \
 	tools/file_watcher.ml tools/file_watcher_mtime.ml \
 	$(if $(W_DYNLINK),tools/dyntools.ml) \
-	configure.ml tools/process_handler.ml \
+	configure.ml tools/console.ml tools/process_handler.ml \
 	$(if $(W_FFMPEG),tools/ffmpeg_config.ml) \
 	tools/http.ml \
 	$(if $(W_SSL),tools/https.ml) \
@@ -214,7 +215,7 @@ builtins = lang/lang_builtins.ml lang/builtins_json.ml \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml)
 
 liquidsoap_sources= \
-	$(tools) REVISION.ml converters/audio_converter.ml $(stream) \
+	tools/log.ml $(tools) REVISION.ml converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml $(encoder_formats) encoder.ml \
@@ -226,7 +227,8 @@ liquidsoap_sources= \
 liquidsoap_sources += \
 	lang/lang_types.ml lang/lang_values.ml \
 	$(lang_encoders) lang/lang_parser.ml lang/lang_lexer.ml \
-	lang/lang_pp.ml lang/lang.ml tools/start_stop.ml tools/ioRing.ml \
+	lang/lang_pp.ml lang/lang_errors.ml lang/lang.ml \
+        tools/start_stop.ml tools/ioRing.ml \
 	tools/icecast_utils.ml tools/avi.ml \
 	$(video_converters) $(audio_converters) $(ogg_demuxer) $(protocols) \
 	$(sources) $(conversions) $(outputs) $(operators) \

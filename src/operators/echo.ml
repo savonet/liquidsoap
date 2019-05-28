@@ -80,7 +80,7 @@ let () =
        let feedback =
          (* Check the initial value, wrap the getter with a converter. *)
          if feedback () > 0. then
-           raise (Lang.Invalid_value (f "feedback",
+           raise (Lang_errors.Invalid_value (f "feedback",
                                       "feedback should be negative"));
          fun () -> Audio.lin_of_dB (feedback ())
        in

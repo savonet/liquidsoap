@@ -80,7 +80,7 @@ object (self)
                   ans := (t,n,m) :: !ans
                 with
                   | Not_found ->
-                    self#log#f 3 "Could not parse chord '%s'." c
+                    self#log#important "Could not parse chord '%s'." c
               ) (Hashtbl.find_all m metadata_name)
           ) meta;
         List.rev !ans
@@ -115,7 +115,7 @@ object (self)
                  | "dim" ->
                      play t [c;c+3;c+6]
                  | m ->
-                     self#log#f 5 "Unknown mode: %s\n%!" m
+                     self#log#warning "Unknown mode: %s\n%!" m
              );
         ) chords
 end
