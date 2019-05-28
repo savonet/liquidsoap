@@ -471,6 +471,14 @@ let resolving_requests () =
 (** Creation *)
 
 let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
+  (* Find instantaneous request loops *)
+  let () =
+    let n = Pool.size () in
+    if n mod 1000 = 0 then
+      log#severe
+        "There are currently %d RIDs! Please check that you don't have a loop on \
+         empty/unavailable requests and decrease request.grace_time." n
+  in
   let rid,register = Pool.add () in
   let t = {
     id = rid ;

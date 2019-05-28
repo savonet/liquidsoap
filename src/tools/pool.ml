@@ -38,6 +38,7 @@ sig
   val fold : (int -> t -> 'a -> 'a) -> 'a -> 'a
   val iter : (int -> t -> unit) -> unit
   val remove : int -> unit
+  val size : unit -> int
 end
 
 module Make (P:T) : (S with type t = P.t) =
@@ -52,6 +53,9 @@ struct
 
   let m = Mutex.create ()
   let h : (int,entry) Hashtbl.t = Hashtbl.create 100
+
+  let size =
+    Tutils.mutexify m (fun () -> Hashtbl.length h)
 
   let find =
     Tutils.mutexify m
