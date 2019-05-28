@@ -499,10 +499,10 @@ let expand_options options =
 module Make(Runner : Runner_t) =
 struct
   let () =
-    log#f 3 "Liquidsoap %s%s" Configure.version REVISION.rev ;
-    log#f 3 "Using:%s" Configure.libs_versions ;
+    log#important "Liquidsoap %s%s" Configure.version REVISION.rev ;
+    log#important "Using:%s" Configure.libs_versions ;
     if Configure.scm_snapshot then
-      List.iter (log#f 2 "%s")
+      List.iter (log#severe "%s")
         ["";
          "DISCLAIMER: This version of Liquidsoap has been";
          "compiled from a snapshot of the development code.";
@@ -590,16 +590,16 @@ struct
   (* Now that outputs have been defined, we can start the main loop. *)
   let () =
     let cleanup_threads () =
-      log#f 3 "Shutdown started!" ;
+      log#important "Shutdown started!" ;
       Clock.stop () ;
-      log#f 3 "Waiting for threads to terminate..." ;
+      log#important "Waiting for threads to terminate..." ;
       Tutils.join_all ();
-      log#f 3 "Threads terminated."
+      log#important "Threads terminated."
     in
     let cleanup_final () =
-      log#f 3 "Cleaning downloaded files..." ;
+      log#important "Cleaning downloaded files..." ;
       Request.clean () ;
-      log#f 3 "Freeing memory..." ;
+      log#important "Freeing memory..." ;
       Gc.full_major ();
     in
     let cleanup () =
@@ -609,7 +609,7 @@ struct
     let after_stop () =
       if !Configure.restart then
        begin
-        log#f 3 "Restarting..." ;
+        log#important "Restarting..." ;
          Unix.execv Sys.executable_name Sys.argv
        end
     in

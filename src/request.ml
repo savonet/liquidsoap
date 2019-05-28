@@ -268,7 +268,7 @@ let rec pop_indicator t =
         Unix.unlink i.string
       with
         | e ->
-            log#f 2 "Unlink failed: %S" (Printexc.to_string e)
+            log#severe "Unlink failed: %S" (Printexc.to_string e)
       end ;
     t.decoder <- None ;
     if repop then pop_indicator t
@@ -287,7 +287,7 @@ let get_decoders conf decoders =
   let f cur name =
     match decoders#get name with
       | Some p -> (name,p)::cur
-      | None   -> log#f 2 "Cannot find decoder %s" name;
+      | None   -> log#severe "Cannot find decoder %s" name;
                   cur
   in
   List.fold_left f [] (List.rev conf#get)
@@ -334,7 +334,7 @@ let local_check t =
       let name = indicator.string in
       let metadata = get_all_metadata t in
         if not (file_is_readable name) then begin
-          log#f 3 "Read permission denied for %S!" name ;
+          log#important "Read permission denied for %S!" name ;
           add_log t "Read permission denied!" ;
           pop_indicator t
         end else
@@ -583,7 +583,7 @@ let resolve t timeout =
                     handler.resolve ~log:(add_log t) arg maxtime
                   in
                     if production = [] then begin
-                      log#f 4
+                      log#info
                         "Failed to resolve %S! \
                          For more info, see server command 'trace %d'."
                         i.string t.id ;
@@ -591,7 +591,7 @@ let resolve t timeout =
                     end else
                       push_indicators t production
               | None ->
-                  log#f 3 "Unknown protocol %S in URI %S!" proto i.string ;
+                  log#important "Unknown protocol %S in URI %S!" proto i.string ;
                   add_log t "Unknown protocol!" ;
                   pop_indicator t
             end
@@ -617,7 +617,7 @@ let resolve t timeout =
   in
   let excess = (Unix.time ()) -. maxtime in
     if excess > 0. then
-      log#f 2 "Time limit exceeded by %.2f secs!" excess ;
+      log#severe "Time limit exceeded by %.2f secs!" excess ;
     t.resolving <- None ;
     if result <> Resolved then t.status <- Idle else t.status <- Ready ;
     result

@@ -48,7 +48,7 @@ let color =
     | "never" -> false
     | "auto" -> Lazy.force auto
     | _ ->
-        log#f 3 "Invalid color configuration, usin default \"auto\"";
+        log#important "Invalid color configuration, usin default \"auto\"";
         Lazy.force auto
 
 type text_style =

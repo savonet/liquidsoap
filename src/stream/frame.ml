@@ -168,23 +168,23 @@ let size =
              let master = !!master_rate in
              let granularity = lcm (master/audio) (master/video) in
              let target =
-               log#f 3
+               log#important
                  "Using %dHz audio, %dHz video, %dHz master."
                  audio video master ;
-               log#f 3
+               log#important
                  "Frame size must be a multiple of %d ticks = \
                   %d audio samples = %d video samples."
                  granularity
                  (audio_of_master granularity)
                  (video_of_master granularity) ;
                try let d = conf_audio_size#get in
-                     log#f 3
+                     log#important
                        "Targetting 'frame.audio.size': \
                         %d audio samples = %d ticks."
                        d (master_of_audio d) ;
                      master_of_audio d
                with Conf.Undefined _ ->
-                     log#f 3
+                     log#important
                        "Targetting 'frame.duration': \
                         %.2fs = %d audio samples = %d ticks."
                        conf_duration#get
@@ -193,7 +193,7 @@ let size =
                      master_of_seconds conf_duration#get
              in
              let s = upper_multiple granularity (max 1 target) in
-               log#f 3
+               log#important
                  "Frames last %.2fs = \
                     %d audio samples = %d video samples = %d ticks."
                  (seconds_of_master s) (audio_of_master s)

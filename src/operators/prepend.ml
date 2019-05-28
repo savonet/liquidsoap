@@ -51,7 +51,7 @@ object (self)
                       Lang.list ~t:(Lang.product_t Lang.string_t Lang.string_t) []
               in
                 if inhibit then begin
-                  self#log#f 4 "Prepending disabled from metadata \
+                  self#log#info "Prepending disabled from metadata \
                                 (\"liq_prepend\"=\"false\")." ;
                   state <- `Buffer peek ;
                   self#get_frame buf
@@ -60,7 +60,7 @@ object (self)
                   let prepend = Lang.to_source (Lang.apply ~t f ["",lang_m]) in
                     self#register prepend ;
                     if not prepend#is_ready then begin
-                      self#log#f 3
+                      self#log#important
                         "Candidate to prepending not ready. Abort!" ;
                       state <- `Buffer peek ;
                       self#unregister prepend

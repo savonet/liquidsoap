@@ -60,9 +60,9 @@ object(self)
             try
               let v = float_of_string v in
               remaining <- Frame.master_of_seconds v;
-              self#log#f 4 "Overriding remaining value: %.02f." v
+              self#log#info "Overriding remaining value: %.02f." v
             with _ ->
-              self#log#f 3 "Invalid remaining override value: %s." v) m)
+              self#log#important "Invalid remaining override value: %s." v) m)
                 (Frame.get_all_metadata buf)
 
   method private get_frame buf =

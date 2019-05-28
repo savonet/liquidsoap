@@ -103,7 +103,7 @@ object (self)
           done;
           let f = samples_per_second /. float !wl_opt in
           let f = if f > freq_max then 0. else f in
-            self#log#f 3 "Found frequency: %.02f (%s)\n%!"
+            self#log#important "Found frequency: %.02f (%s)\n%!"
               f (string_of_note (note_of_freq f))
 end
 

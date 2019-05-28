@@ -1397,7 +1397,7 @@ let () =
                `Stop
              in
              let log = Log.make ["lang";"run_process"] in
-             let log s = log#f 4 "%s" s in
+             let log s = log#info "%s" s in
              let p = Process_handler.run ~env ~on_start ~on_stop
                        ~on_stdout ~on_stderr ~log cmd
              in
@@ -1968,7 +1968,7 @@ let () =
                  | Some plugin ->
                     (mime,plugin.Playlist_parser.parser ~pwd content)
                  | None ->
-                    log#f 3 "Unknown mime type, trying autodetection." ;
+                    log#important "Unknown mime type, trying autodetection." ;
                     Playlist_parser.search_valid ~pwd content
                )
            in
@@ -2215,7 +2215,7 @@ let add_http_request http name descr request =
               | Delete -> Http.Delete
           in 
           let log s =
-            log#f 4 "%s" s
+            log#info "%s" s
           in
           Http.full_request ~log ~timeout ~headers
                             ~uri ~request ()

@@ -50,7 +50,7 @@ object (self)
     Frame.advance databuf
 
   initializer
-    self#log#f 3 "Using soundtouch %s." (Soundtouch.get_version_string st)
+    self#log#important "Using soundtouch %s." (Soundtouch.get_version_string st)
 
   method stype       = source#stype
 

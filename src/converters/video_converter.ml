@@ -65,8 +65,8 @@ let () =
       let preferred = preferred_converter_conf#get in
       match video_converters#get preferred with
         | None ->
-            log#f 4 "Couldn't find preferred video converter: %s." preferred
-        | _ -> log#f 4 "Using preferred video converter: %s." preferred)) 
+            log#info "Couldn't find preferred video converter: %s." preferred
+        | _ -> log#info "Using preferred video converter: %s." preferred)) 
 
 
 let find_converter src dst = 
@@ -79,19 +79,19 @@ let find_converter src dst =
             if List.mem src sf && List.mem dst df then
               raise (Exit (f ()))
             else
-              log#f 4 "Default video converter %s cannot do %s->%s."
+              log#info "Default video converter %s cannot do %s->%s."
                 preferred
                 (Img.Pixel.string_of_format src)
                 (Img.Pixel.string_of_format dst)
     end;   
     List.iter
       (fun (name,(sf,df,f)) ->
-           log#f 4 "Trying %s video converter..." name ;
+           log#info "Trying %s video converter..." name ;
            if List.mem src sf && List.mem dst df then
              raise (Exit (f ()))
            else ())
       video_converters#get_all;
-    log#f 4 "Couldn't find a video converter from format %s to format %s." 
+    log#info "Couldn't find a video converter from format %s to format %s." 
       (Img.Pixel.string_of_format src)
       (Img.Pixel.string_of_format dst);
     raise Not_found

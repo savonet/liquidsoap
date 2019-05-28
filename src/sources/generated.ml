@@ -66,7 +66,7 @@ object (self)
       if buffering then begin
         (* We have some data, but not enough for safely starting to play it. *)
         if bufferize > 0 && r <= bufferize then
-          self#log#f 6 "Not ready: need more buffering (%i/%i)." r bufferize ;
+          self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize ;
         r > bufferize
       end else begin
         (* This only happens if the end of track has not been played yet,
@@ -74,7 +74,7 @@ object (self)
          * that we're not accumulating data, but it means that we don't know
          * yet that we'll stop playing it until the buffer is full enough. *)
         if r = 0 then
-          self#log#f 4 "Not ready for a new track: empty buffer." ;
+          self#log#info "Not ready for a new track: empty buffer." ;
         r > 0
       end
 
@@ -119,7 +119,7 @@ object (self)
       let pos = Frame.position ab in
       buffering <- false ;
       if should_fail then begin
-        self#log#f 4 "Performing skip." ;
+        self#log#info "Performing skip." ;
         should_fail <- false ;
         if empty_on_abort then Generator.clear generator ;
         Frame.add_break ab (Frame.position ab)
@@ -133,9 +133,9 @@ object (self)
          * the start of a new track anyway, since the content after it
          * has nothing to do with the content before the connection). *)
         if Frame.is_partial ab then
-          self#log#f 4 "End of track." ;
+          self#log#info "End of track." ;
         if Generator.length generator = 0 then begin
-          self#log#f 4 "Buffer emptied, buffering needed." ;
+          self#log#info "Buffer emptied, buffering needed." ;
           buffering <- true
         end;
         if self#save_metadata ab && was_buffering && replay_meta then

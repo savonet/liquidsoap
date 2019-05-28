@@ -67,7 +67,7 @@ struct
            assert (not c.buffering) ;
            Generator.fill c.generator frame ;
            if Frame.is_partial frame || Generator.length c.generator = 0 then begin
-             self#log#f 3 "Buffer emptied, start buffering..." ;
+             self#log#important "Buffer emptied, start buffering..." ;
              c.buffering <- true
            end)
 
@@ -257,7 +257,7 @@ struct
           let salen = scale alen in
           fill buf aofs alen salen;
           Frame.add_break frame (ofs+len);
-          (* self#log#f 5 "filled %d from %d (x %f)" len ofs scaling; *)
+          (* self#log#warning "filled %d from %d (x %f)" len ofs scaling; *)
 
           (* Fill in metadata *)
           let md = MG.metadata c.mg (scale len) in
@@ -267,8 +267,8 @@ struct
 
           (* If there is no data left, we should buffer again. *)
           if RB.read_space c.rb = 0 then begin
-            self#log#f 3 "Buffer emptied, start buffering...";
-            self#log#f 5 "Current scaling factor is x%f." scaling;
+            self#log#important "Buffer emptied, start buffering...";
+            self#log#warning "Current scaling factor is x%f." scaling;
             MG.advance c.mg (MG.length c.mg); (* sync just in case *)
             c.buffering <- true
           end)

@@ -98,13 +98,13 @@ let search_valid ?pwd string =
     let plugins = List.sort compare plugins in
     List.iter
       (fun (format,plugin) ->
-           log#f 4 "Trying %s parser" format ;
+           log#info "Trying %s parser" format ;
 	   match try Some (plugin.parser ?pwd string) with _ -> None
 	      with
 	        | Some d -> raise (Exit (format,d))
 		| None -> () )
       plugins;
-    log#f 3 "No format found";
+    log#important "No format found";
     raise Not_found
   with
     | Exit (format,d) -> format,d

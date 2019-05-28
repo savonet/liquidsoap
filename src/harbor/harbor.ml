@@ -343,7 +343,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     let __pa_duppy_0 =
       try Duppy.Monad.return (find_source "/" (port - 1)) with Not_found ->
-        log#f 4 "ICY error: no / mountpoint" ;
+        log#info "ICY error: no / mountpoint" ;
         simple_reply "No / mountpoint\r\n\r\n"
     in
     Duppy.Monad.bind __pa_duppy_0 (fun s ->
@@ -353,7 +353,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
            let user = if requested_user = "" then user else requested_user in
            if auth_f user password then Duppy.Monad.return (`Shout, "/", `Icy)
            else (
-             log#f 4 "ICY error: invalid password" ;
+             log#info "ICY error: invalid password" ;
              simple_reply "Invalid password\r\n\r\n" )) )
 
   let parse_http_request_line r =
@@ -370,7 +370,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           | s when protocol = `Source -> `Xaudiocast_uri s
           | _ -> raise Not_found )
     with e ->
-      log#f 4 "Invalid request line %s: %s" r (Printexc.to_string e) ;
+      log#info "Invalid request line %s: %s" r (Printexc.to_string e) ;
       simple_reply "HTTP 500 Invalid request\r\n\r\n"
 
   let parse_headers headers =
@@ -389,17 +389,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         headers
     in
     List.iter
-      (fun (h, v) -> log#f 4 "Header: %s, value: %s." h v)
+      (fun (h, v) -> log#info "Header: %s, value: %s." h v)
       display_headers ;
     headers
 
   let auth_check ~auth_f user pass =
     (* OK *)
     if conf_pass_verbose#get then
-      log#f 4 "Requested username: %s, password: %s." user pass
+      log#info "Requested username: %s, password: %s." user pass
     else () ;
     if not (auth_f user pass) then raise Not_authenticated else () ;
-    log#f 4 "Client logged in." ;
+    log#info "Client logged in." ;
     Duppy.Monad.return ()
 
   let http_auth_check ?args ~login headers =
@@ -441,10 +441,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       auth_check ~auth_f user pass
     with
     | Not_authenticated ->
-        log#f 4 "Returned 401: wrong auth." ;
+        log#info "Returned 401: wrong auth." ;
         http_reply "Wrong Authentication data"
     | Not_found ->
-        log#f 4 "Returned 401: bad authentication." ;
+        log#info "Returned 401: bad authentication." ;
         http_reply "No login / password supplied."
 
   let exec_http_auth_check ?args ~login h headers =
@@ -456,7 +456,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let source_port = if smethod = `Shout then port - 1 else port in
     let __pa_duppy_0 =
       try Duppy.Monad.return (find_source uri source_port) with Not_found ->
-        log#f 4 "Request failed: no mountpoint '%s'!" uri ;
+        log#info "Request failed: no mountpoint '%s'!" uri ;
         simple_reply
           (http_error_page 404 "Not found" "This mountpoint isn't available.")
     in
@@ -476,7 +476,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 | `Post -> "POST (source)"
                 | `Xaudiocast -> "X-AUDIOCAST"
               in
-              log#f 4 "%s request on %s." sproto uri ;
+              log#info "%s request on %s." sproto uri ;
               let stype =
                 try assoc_uppercase "CONTENT-TYPE" headers with
                 | Not_found when smethod = `Shout || smethod = `Xaudiocast ->
@@ -499,8 +499,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 else None
               in
               let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
-              log#f 4 "Adding source on mountpoint %S with type %S." uri stype ;
-              log#f 5 "Relaying %s." (string_of_protocol hprotocol) ;
+              log#info "Adding source on mountpoint %S with type %S." uri stype ;
+              log#warning "Relaying %s." (string_of_protocol hprotocol) ;
               let protocol =
                 match hprotocol with
                 | `Icy -> "ICY"
@@ -511,24 +511,24 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f
             with
             | Mount_taken ->
-                log#f 4 "Returned 403: Mount taken" ;
+                log#info "Returned 403: Mount taken" ;
                 simple_reply
                   (http_error_page 403
                      "Mountpoint already taken\r\n\
                       WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
                      "Mountpoint in use")
             | Not_found ->
-                log#f 4 "Returned 404 for '%s'." uri ;
+                log#info "Returned 404 for '%s'." uri ;
                 simple_reply
                   (http_error_page 404 "Not found"
                      "This mountpoint isn't available.")
             | Unknown_codec ->
-                log#f 4 "Returned 501: unknown audio codec" ;
+                log#info "Returned 501: unknown audio codec" ;
                 simple_reply
                   (http_error_page 501 "Not Implemented"
                      "This stream's format is not recognized.")
             | e ->
-                log#f 4 "Returned 500 for '%s': %s" uri (Printexc.to_string e) ;
+                log#info "Returned 500 for '%s': %s" uri (Printexc.to_string e) ;
                 simple_reply
                   (http_error_page 500 "Internal Server Error"
                      "The server could not handle your request.") ) )
@@ -560,7 +560,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       try
         match Websocket.read s with
         | `Text s -> (
-            log#f 5 "Hello packet: %s\n%!" s ;
+            log#warning "Hello packet: %s\n%!" s ;
             match extract_packet s with
             | "hello", data ->
                 let data = Utils.get_some data in
@@ -582,12 +582,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             (read_hello h.Duppy.Monad.Io.socket)
         in
         Duppy.Monad.bind __pa_duppy_0 (fun (stype, huri, user, password) ->
-            log#f 4 "Mime type: %s" stype ;
-            log#f 4 "Mount point: %s" huri ;
+            log#info "Mime type: %s" stype ;
+            log#info "Mount point: %s" huri ;
             let __pa_duppy_0 =
               try Duppy.Monad.return (find_source huri port)
               with Not_found ->
-                log#f 4 "Request failed: no mountpoint '%s'!" huri ;
+                log#info "Request failed: no mountpoint '%s'!" huri ;
                 simple_reply (websocket_error 1011 "This mountpoint isn't available.")
             in
             Duppy.Monad.bind __pa_duppy_0 (fun source ->
@@ -595,7 +595,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 let __pa_duppy_0 =
                   try auth_check ~auth_f user password
                   with Not_authenticated ->
-                    log#f 4 "Authentication failed!" ;
+                    log#info "Authentication failed!" ;
                     simple_reply (websocket_error 1011 "Authentication failed.")
                 in
                 Duppy.Monad.bind __pa_duppy_0 (fun () ->
@@ -606,7 +606,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                       | `Text s -> (
                         match extract_packet s with
                         | "metadata", data ->
-                            log#f 5 "Metadata packet: %s\n%!" s ;
+                            log#warning "Metadata packet: %s\n%!" s ;
                             let data = Utils.get_some data in
                             let m =
                               List.map
@@ -644,17 +644,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let handle_http_request ~hmethod ~hprotocol ~data ~port h uri headers =
     let ans_404 () =
-      log#f 4 "Returned 404 for '%s'." uri ;
+      log#info "Returned 404 for '%s'." uri ;
       simple_reply (http_error_page 404 "Not found" "This page isn't available.")
     in
     let ans_500 () =
-      log#f 4 "Returned 500 for '%s'." uri ;
+      log#info "Returned 500 for '%s'." uri ;
       simple_reply
         (http_error_page 500 "Internal Server Error"
            "There was an error processing your request.")
     in
     let ans_401 () =
-      log#f 4 "Returned 401 for '%s': wrong auth." uri ;
+      log#info "Returned 401 for '%s': wrong auth." uri ;
       simple_reply
         (http_error_page 401 "Authentication Failed"
            "Wrong Authentication data")
@@ -670,12 +670,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               let mount =
                 try Hashtbl.find args "mount" with Not_found -> "/"
               in
-              log#f 4 "Request to update metadata for mount %s on port %i"
+              log#info "Request to update metadata for mount %s on port %i"
                 mount port ;
               let __pa_duppy_0 =
                 try Duppy.Monad.return (find_source mount port)
                 with Not_found ->
-                  log#f 4
+                  log#info
                     "Returned 401 for '%s': No mountpoint '%s' on port %d." uri
                     mount port ;
                   simple_reply
@@ -692,7 +692,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                                (Utils.get_some s#get_mime_type)
                                conf_icy_metadata#get)
                         then (
-                          log#f 4
+                          log#info
                             "Returned 405 for '%s': Source format does not \
                              support ICY metadata update"
                             uri ;
@@ -751,7 +751,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | `Http_11 -> "HTTP/1.1"
       | _ -> assert false
     in
-    log#f 4 "%s %s request on %s." protocol_name smethod base_uri ;
+    log#info "%s %s request on %s." protocol_name smethod base_uri ;
     let args = Http.args_split args in
     (* Filter out password *)
     let log_args =
@@ -761,13 +761,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Hashtbl.remove log_args "pass" ;
         log_args
     in
-    Hashtbl.iter (log#f 4 "%s Arg: %s, value: %s." protocol_name) log_args ;
+    Hashtbl.iter (log#info "%s Arg: %s, value: %s." protocol_name) log_args ;
     (* First, try with a registered handler. *)
     let handler, _ = find_handler port in
     let f (verb, reg_uri) handler =
       let rex = Pcre.regexp reg_uri in
       if (verb :> verb) = hmethod && Pcre.pmatch ~rex uri then (
-        log#f 4 "Found handler '%s %s' on port %d." smethod reg_uri port ;
+        log#info "Found handler '%s %s' on port %d." smethod reg_uri port ;
         raise (Handled handler) )
       else ()
     in
@@ -785,7 +785,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Duppy.Monad.Io.exec ~priority:Tutils.Maybe_blocking h
           (handler ~protocol ~data ~headers ~socket:h.Duppy.Monad.Io.socket uri)
     | e ->
-        log#f 4 "%s %s request on uri '%s' failed: %s" protocol_name smethod
+        log#info "%s %s request on uri '%s' failed: %s" protocol_name smethod
           (Printexc.to_string e) uri ;
         ans_500 ()
 
@@ -840,7 +840,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                     let __pa_duppy_0 =
                       try Duppy.Monad.return (find_source uri port)
                       with Not_found ->
-                        log#f 4 "Request failed: no mountpoint '%s'!" uri ;
+                        log#info "Request failed: no mountpoint '%s'!" uri ;
                         simple_reply
                           (http_error_page 404 "Not found"
                              "This mountpoint isn't available.")
@@ -904,7 +904,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                         handle_source_request ~port ~auth:true ~smethod:`Shout
                           hprotocol h huri headers ) )
             | _ ->
-                log#f 4 "Returned 501: not implemented" ;
+                log#info "Returned 501: not implemented" ;
                 simple_reply
                   (http_error_page 501 "Not Implemented"
                      "The server did not understand your request.") ) )
@@ -912,23 +912,23 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* {1 The server} *)
   (* Open a port and listen to it. *)
   let open_port ~icy port =
-    log#f 4 "Opening port %d with icy = %b" port icy ;
+    log#info "Opening port %d with icy = %b" port icy ;
     let max_conn = conf_harbor_max_conn#get in
     let process_client sock =
       try
         let socket, caller = T.accept sock in
         let ip = Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller in
-        log#f 4 "New client on port %i: %s" port ip ;
+        log#info "New client on port %i: %s" port ip ;
         let unix_socket = T.file_descr_of_socket socket in
         Unix.setsockopt unix_socket Unix.TCP_NODELAY true ;
         let on_error e =
           ( match e with
-          | Duppy.Io.Io_error -> log#f 4 "Client %s disconnected" ip
+          | Duppy.Io.Io_error -> log#info "Client %s disconnected" ip
           | Duppy.Io.Timeout ->
-              log#f 4 "Timeout while communicating with client %s." ip
+              log#info "Timeout while communicating with client %s." ip
           | Duppy.Io.Unix (c, p, m) ->
-              log#f 4 "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-          | Duppy.Io.Unknown e -> log#f 4 "%s" (Printexc.to_string e) ) ;
+              log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
+          | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e) ) ;
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
           if e = Duppy.Io.Timeout then
@@ -965,7 +965,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         in
         Duppy.Monad.run ~return:reply ~raise:reply (handle_client ~port ~icy h)
       with e ->
-        log#f 2 "Failed to accept new client: %s" (Printexc.to_string e)
+        log#severe "Failed to accept new client: %s" (Printexc.to_string e)
     in
     let rec incoming ~port ~icy events out_s e =
       if List.mem (`Read out_s) e then
@@ -1035,18 +1035,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       if Hashtbl.mem handler.sources mountpoint then raise Registered else () ;
       handler.sources
     in
-    log#f 3 "Adding mountpoint '%s' on port %i" mountpoint port ;
+    log#important "Adding mountpoint '%s' on port %i" mountpoint port ;
     Hashtbl.add sources mountpoint source
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
     let handler, socks = Hashtbl.find opened_ports port in
     assert (Hashtbl.mem handler.sources mountpoint) ;
-    log#f 3 "Removing mountpoint '%s' on port %i" mountpoint port ;
+    log#important "Removing mountpoint '%s' on port %i" mountpoint port ;
     Hashtbl.remove handler.sources mountpoint ;
     if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
     then (
-      log#f 3 "Nothing more on port %i: closing sockets." port ;
+      log#important "Nothing more on port %i: closing sockets." port ;
       let f in_s =
         ignore (Unix.write in_s (Bytes.of_string " ") 0 1) ;
         Unix.close in_s
@@ -1058,10 +1058,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* Add http_handler... *)
   let add_http_handler ~port ~verb ~uri h =
     let handler = get_handler ~icy:false port in
-    log#f 3 "Adding handler for '%s %s' on port %i" (string_of_verb verb) uri
+    log#important "Adding handler for '%s %s' on port %i" (string_of_verb verb) uri
       port ;
     if Hashtbl.mem handler.http (verb, uri) then
-      log#f 3 "WARNING: Handler already registered, old one removed!"
+      log#important "WARNING: Handler already registered, old one removed!"
     else () ;
     Hashtbl.replace handler.http (verb, uri) h
 
@@ -1069,12 +1069,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let remove_http_handler ~port ~verb ~uri () =
     let handler, socks = Hashtbl.find opened_ports port in
     assert (Hashtbl.mem handler.http (verb, uri)) ;
-    log#f 3 "Removing handler for '%s %s' on port %i" (string_of_verb verb) uri
+    log#important "Removing handler for '%s %s' on port %i" (string_of_verb verb) uri
       port ;
     Hashtbl.remove handler.http (verb, uri) ;
     if Hashtbl.length handler.sources = 0 && Hashtbl.length handler.http = 0
     then (
-      log#f 4 "Nothing more on port %i: closing sockets." port ;
+      log#info "Nothing more on port %i: closing sockets." port ;
       let f in_s =
         ignore (Unix.write in_s (Bytes.of_string " ") 0 1) ;
         Unix.close in_s

@@ -72,8 +72,8 @@ object (self)
 
   method wake_up _ =
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s";
-    log_error := self#log#f 5 "%s";
+    log_ref := self#log#important "%s";
+    log_error := self#log#warning "%s";
     process <- Some (Process_handler.run ~on_stop ~on_stdout 
                                          ~on_stderr ~log command)
 
@@ -156,12 +156,12 @@ object (self)
 
   method wake_up _ =
     (* Now we can create the log function *)
-    log_ref := self#log#f 3 "%s" ;
-    self#log#f 2 "Starting process.";
+    log_ref := self#log#important "%s" ;
+    self#log#severe "Starting process.";
     let (_, in_d) as x = create () in
     let rec process ((in_e,in_d) as x) l =
       let do_restart s restart f =
-        self#log#f 2 "%s" s;
+        self#log#severe "%s" s;
         begin
           try
             ignore (Unix.close_process_in in_e);
@@ -170,7 +170,7 @@ object (self)
         end;
         if restart then
           begin
-            self#log#f 2 "Restarting process.";
+            self#log#severe "Restarting process.";
             let ((_,in_d) as x) = create () in
             [{ Duppy.Task.
                priority = priority;
@@ -181,7 +181,7 @@ object (self)
         else
           begin
             f ();
-            self#log#f 2 "Task exited.";
+            self#log#severe "Task exited.";
             []
           end
       in

@@ -39,10 +39,10 @@ let external_input process input =
     end
   in
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#warning "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
-  let log = log#f 3 "%s" in
+  let log = log#important "%s" in
   (* reading from input is blocking.. *)
   let priority = Tutils.Blocking in
   let process =
@@ -165,12 +165,12 @@ let log = Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#warning "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let command = process filename in
   let process =
-    Process_handler.run ~on_stderr ~log:(log#f 3 "%s") command
+    Process_handler.run ~on_stderr ~log:(log#important "%s") command
   in
   let read len =
     try
@@ -201,7 +201,7 @@ let external_input_oblivious process filename prebuf =
          done
        with
          | e ->
-             log#f 4 "Decoding %s ended: %s." command (Printexc.to_string e) ;
+             log#info "Decoding %s ended: %s." command (Printexc.to_string e) ;
              close ()
        end ;
      Generator.fill gen frame ;

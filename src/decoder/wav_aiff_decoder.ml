@@ -109,7 +109,7 @@ let create ?header input =
         | `Wav -> "WAV"
         | `Aiff -> "AIFF"
     in
-      log#f 4
+      log#info
         "%s header read (%d Hz, %d bits, %d bytes), starting decoding..."
         format_descr samplerate samplesize datalen;
       header := Some (format,samplesize,channels,(float samplerate),datalen);
@@ -164,7 +164,7 @@ let get_type filename =
            let channels  = Wav_aiff.channels header in
            let sample_rate = Wav_aiff.sample_rate header in
            let ok_message s =
-             log#f 4
+             log#info
                "%S recognized as WAV file (%s,%dHz,%d channels)."
                  filename s sample_rate channels ;
            in
@@ -174,7 +174,7 @@ let get_type filename =
              | 24 -> ok_message "s24le"; channels
              | 32 -> ok_message "s32le"; channels
              | _ ->
-                log#f 4 "Only 8, 16, 24 and 32 bit WAV files \
+                log#info "Only 8, 16, 24 and 32 bit WAV files \
                          are supported at the moment.." ;
                 0
          in
@@ -209,7 +209,7 @@ let () =
          if Frame.type_has_kind file_type kind then
            Some (fun () -> create_file_decoder filename kind)
          else begin
-           log#f 3
+           log#important
              "WAV file %S has content type %s but %s was expected."
              filename
              (Frame.string_of_content_type file_type)
@@ -240,7 +240,7 @@ let () =
          if Frame.type_has_kind file_type kind then
            Some (fun () -> create_file_decoder filename kind)
          else begin
-           log#f 3
+           log#important
              "AIFF file %S has content type %s but %s was expected."
              filename
              (Frame.string_of_content_type file_type)

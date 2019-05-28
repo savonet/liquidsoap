@@ -29,7 +29,7 @@ let () =
     |] ();
   let major, minor, micro, nano = Gstreamer.version () in
   let log = Log.make ["gstreamer";"loader"] in
-  log#f 3 "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
+  log#important "Loaded GStreamer %d.%d.%d %d" major minor micro nano)
 
 module Pipeline = struct
   let convert_audio () =
@@ -121,9 +121,9 @@ let time_of_video tick =
 let handler ~(log:Log.t) ~on_error msg =
   let source = msg.Gstreamer.Bus.source in
   match msg.Gstreamer.Bus.payload with
-    | `Error err -> log#f 2 "[%s] Error: %s" source err; on_error err
-    | `Warning err -> log#f 3 "[%s] Warning: %s" source err
-    | `Info err -> log#f 4 "[%s] Info: %s" source err
+    | `Error err -> log#severe "[%s] Error: %s" source err; on_error err
+    | `Warning err -> log#important "[%s] Warning: %s" source err
+    | `Info err -> log#info "[%s] Info: %s" source err
     | `State_changed (o,n,p) ->
         let f = Gstreamer.Element.string_of_state in
         let o = f o in
@@ -133,7 +133,7 @@ let handler ~(log:Log.t) ~on_error msg =
             | Gstreamer.Element.State_void_pending -> ""
             | _ -> Printf.sprintf " (pending: %s)" (f p)
         in
-        log#f 5 "[%s] State change: %s -> %s%s" source o n p
+        log#warning "[%s] State change: %s -> %s%s" source o n p
     | _ -> assert false
 
 let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(on_error=fun _ -> ()) bin =

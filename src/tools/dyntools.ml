@@ -69,12 +69,12 @@ let load_dynlinks () =
         end
       with
         | Dynlink.Error e ->
-            dyn_log#f 3 "Error while loading dynamic %s at %s" name path;
-            dyn_log#f 3 "%s" (Dynlink.error_message e)) dynload.path;
-     dyn_log#f 3 "Could not find dynamic module for %s." name
+            dyn_log#important "Error while loading dynamic %s at %s" name path;
+            dyn_log#important "%s" (Dynlink.error_message e)) dynload.path;
+     dyn_log#important "Could not find dynamic module for %s." name
     with
       | Done path ->
-          dyn_log#f 3 "Loaded dynamic %s from %s" name path;
+          dyn_log#important "Loaded dynamic %s from %s" name path;
           dynload.load ()
   in
   Hashtbl.iter load_library dynlink_list

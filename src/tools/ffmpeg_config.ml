@@ -28,7 +28,7 @@ let () =
         | "verbose" -> `Verbose
         | "debug" -> `Debug
         | _ ->
-            log#f 2 "Invalid value for \"ffmpeg.log.verbosity\"!";
+            log#severe "Invalid value for \"ffmpeg.log.verbosity\"!";
             `Quiet
     in
     let level = conf_level#get in

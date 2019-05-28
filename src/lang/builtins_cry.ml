@@ -104,7 +104,7 @@ let () =
            ~mount ~headers metas
        with
          | e ->
-             log#f 2
+             log#severe
                "Manual metadata update failed: %s"
                (Printexc.to_string e)
       end ;

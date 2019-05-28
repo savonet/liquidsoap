@@ -131,7 +131,7 @@ let () =
         in
         mk_fn fn
       with e ->
-        log#f 3 "Error while reading file %S: %s" f (Printexc.to_string e);
+        log#important "Error while reading file %S: %s" f (Printexc.to_string e);
         mk_fn (fun () ->  ""))
 
 let () =
@@ -158,7 +158,7 @@ let () =
          close_out oc;
          Lang.bool true
       with e ->
-        log#f 3 "Error while writing file %S: %s" f (Printexc.to_string e);
+        log#important "Error while writing file %S: %s" f (Printexc.to_string e);
         Lang.bool false)
  
 let () =

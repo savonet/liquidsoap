@@ -41,7 +41,7 @@ module Liq_http =
               ~host ~url ~request () =
   try
     let log s =
-      log#f 4 "%s" s
+      log#info "%s" s
     in
     let timeout = 
       match timeout with
@@ -101,7 +101,7 @@ let init host =
  let submissions = Queue.create () in
  (* A mutex to manage thread concurrency *)
  let submit_m = Mutex.create () in
- let reason = log#f 3 "Lastfm Submission failed: %s" in
+ let reason = log#important "Lastfm Submission failed: %s" in
  (* Define a new task *)
  let do_submit () =
    try
@@ -116,7 +116,7 @@ let init host =
           | NowPlaying -> "nowplaying"
       in
       let (h,p) = host in
-      log#f 4 "Submiting %s -- %s with mode: %s to %s:%i" 
+      log#info "Submiting %s -- %s with mode: %s to %s:%i" 
          artist track s h p;
       try
         let duration () =
@@ -138,7 +138,7 @@ let init host =
                with
                  | Not_found -> raise Duration
                  | Failure "int_of_string" ->
-                     log#f 2 "Metadata 'rid' is not associated to an integer!" ;
+                     log#severe "Metadata 'rid' is not associated to an integer!" ;
                      raise Duration
         in
         let duration = 
@@ -175,15 +175,15 @@ let init host =
         (login,stype,song) :: songs
       with
         | Duration ->
-            log#f 4 "could not submit track %s -- %s, no duration available"
+            log#info "could not submit track %s -- %s, no duration available"
               artist track ;
             songs
         | Error e ->
-            log#f 4 "could not submit track %s -- %s, %s"
+            log#info "could not submit track %s -- %s, %s"
               artist track (string_of_error e) ;
             songs
         | e ->
-            log#f 4 "could not submit track %s -- %s: unknown error %s"
+            log#info "could not submit track %s -- %s: unknown error %s"
               artist track (Printexc.to_string e) ;
             songs
      in

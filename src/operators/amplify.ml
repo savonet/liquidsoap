@@ -48,7 +48,7 @@ object (self)
                      with
                        | _ -> float_of_string s
                    in
-                     self#log#f 3 "Overriding amplification: %f." k ;
+                     self#log#important "Overriding amplification: %f." k ;
                      override <- Some k
                  with _ -> ())
               (AFrame.get_all_metadata buf)
@@ -61,7 +61,7 @@ object (self)
             (AFrame.content buf offset) offset
             ((AFrame.position buf)-offset);
         if AFrame.is_partial buf && override <> None then begin
-          self#log#f 3 "End of the current overriding." ;
+          self#log#important "End of the current overriding." ;
           override <- None
         end
 

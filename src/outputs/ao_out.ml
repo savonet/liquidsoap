@@ -74,7 +74,7 @@ object (self)
               find_driver driver
            in
            let dev =
-             self#log#f 3
+             self#log#important
                "Opening %s (%d channels)..."
                driver.Ao.name channels ;
              open_live ~driver ~options ?channels_matrix

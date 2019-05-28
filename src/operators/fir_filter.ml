@@ -44,7 +44,7 @@ object (self)
   val mutable temp = Array.make 2048 {re = 0. ; im = 0.}
 
   initializer
-    self#log#f 4
+    self#log#info
       "Init: alpha=%+.013f beta=%+.013f \
              F1=%+.013f F2=%+.013f \
              tau=%+.013f zeros=%d."
@@ -104,15 +104,15 @@ object (self)
         xcoeffs <- Array.mapi
                      (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.)
                      xcoeffs;
-        self#log#f 4 "Xcoeffs: %s"
+        self#log#info "Xcoeffs: %s"
           (String.concat "\n"
              (Array.to_list
                 (Array.mapi
                    (fun i a -> Printf.sprintf "%d: %+.013f." i a)
                    xcoeffs))) ;
         gain <- Array.fold_left (+.) 0. xcoeffs ;
-        self#log#f 4 "Gain: %+.013f." gain ;
-        self#log#f 4 "Init done."
+        self#log#info "Gain: %+.013f." gain ;
+        self#log#info "Init done."
 
   (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
 

@@ -123,7 +123,7 @@ object (self)
     source#get buf ;
     if Frame.is_partial buf && source#is_ready then
       let pos = Frame.position buf in
-        self#log#f 4 "End of track: merging." ;
+        self#log#info "End of track: merging." ;
         self#get_frame buf ;
         Frame.set_breaks buf
           (Utils.remove_one ((=) pos) (Frame.breaks buf))

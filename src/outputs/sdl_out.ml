@@ -40,7 +40,7 @@ object (self)
     ignore (Sdlvideo.set_video_mode
               ~w:video_width ~h:video_height
               ~bpp:32 [`ANYFORMAT;`DOUBLEBUF]) ;
-    self#log#f 4 "Initialized SDL video surface with %dbpp."
+    self#log#info "Initialized SDL video surface with %dbpp."
       (Sdlvideo.surface_bpp (Sdlvideo.get_video_surface ()))
 
   (** We don't care about latency. *)

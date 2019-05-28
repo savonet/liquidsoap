@@ -102,7 +102,7 @@ struct
        * as the "title" field if "title" is not provided. *)
       if not (Hashtbl.mem m "title") then
         (try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
-      self#log#f 3 "New metadata chunk %s -- %s."
+      self#log#important "New metadata chunk %s -- %s."
         (try Hashtbl.find m "artist" with _ -> "?")
         (try Hashtbl.find m "title" with _ -> "?") ;
       Generator.add_metadata generator m
@@ -110,7 +110,7 @@ struct
     method get_mime_type = mime_type
   
     method feed =
-      self#log#f 3 "Decoding..." ;
+      self#log#important "Decoding..." ;
       let t0 = Unix.gettimeofday () in
       let read len =
         let buf,input = (fun len ->
@@ -132,7 +132,7 @@ struct
                      in
                      f ()
                    with
-                   | e -> self#log#f 2 "Error while reading from client: \
+                   | e -> self#log#severe "Error while reading from client: \
                               %s" (Printexc.to_string e);
                      self#disconnect ~lock:false;
                      Bytes.empty,0
@@ -172,7 +172,7 @@ struct
           | e ->
               (* Feeding has stopped: adding a break here. *)
               Generator.add_break ~sync:`Drop generator ;
-              self#log#f 2 "Feeding stopped: %s." (Printexc.to_string e) ;
+              self#log#severe "Feeding stopped: %s." (Printexc.to_string e) ;
               self#disconnect ~lock:true;
               if debug then raise e
   
@@ -192,7 +192,7 @@ struct
                         mountpointpoint '%s' and port %i." mountpoint port))
       end ;
       (* Now we can create the log function *)
-      log_ref := fun (s) -> self#log#f 3 "%s" s
+      log_ref := fun (s) -> self#log#important "%s" s
   
     method private sleep =
       self#disconnect ~lock:true;
@@ -226,7 +226,7 @@ struct
             begin try
               dump <- Some (open_out_bin (Utils.home_unrelate f))
             with e ->
-              self#log#f 2 "Could not open dump file: %s" (Printexc.to_string e)
+              self#log#severe "Could not open dump file: %s" (Printexc.to_string e)
             end
         | None -> ()
       end ;
@@ -235,7 +235,7 @@ struct
             begin try
               logf <- Some (open_out_bin (Utils.home_unrelate f))
             with e ->
-              self#log#f 2 "Could not open log file: %s" (Printexc.to_string e)
+              self#log#severe "Could not open log file: %s" (Printexc.to_string e)
             end
         | None -> ()
       end ;
