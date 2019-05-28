@@ -20,7 +20,7 @@ def register_flow(~server="",~user="default",~password="default",
   # If the server is "", we get the server from sf.net
   server =
     if server == "" then
-      server = http.get("http://savonet.sourceforge.net/flows_server")
+      server = http.get("http://liquidsoap.info/flows_server")
       html_status = snd(fst(fst(fst(server))))
       if html_status == 200 then
         snd(server)
