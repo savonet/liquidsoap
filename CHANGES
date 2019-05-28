@@ -31,6 +31,8 @@ New:
 
 - Added `harbor.{http,https}.static` to serve static path.
 
+- Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in code as well (#800, #801, #802)
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
