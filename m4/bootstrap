@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+if [ -d m4 ]; then
+  OPTIONS="-I m4"
+  aclocal -I m4
+fi
+autoreconf -f -i $OPTIONS $1
+# autoconf maintainers have not yet implemented
+# a function to install missing files from autoconf
+# itself, so we need to fake a call to automake here..
+automake -a -c -f 2>/dev/null || true
+if [ -d examples ]; then
+  if [ -f examples/configure.ac ]; then
+    cd examples
+    autoreconf -f -i
+  fi
+fi
