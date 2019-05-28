@@ -26,7 +26,7 @@ module Img = Image.RGBA32
 module Gen = Image.Generic
 module P = Gen.Pixel
 
-let log = Dtools.Log.make ["decoder";"ogg"]
+let log = Log.make ["decoder";"ogg"]
 
 (** Generic decoder *)
 

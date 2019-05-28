@@ -33,7 +33,7 @@ object (self)
       initialized := true
     end
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 
   (* TODO: inline this to be more efficient? *)
   method handle lbl f =

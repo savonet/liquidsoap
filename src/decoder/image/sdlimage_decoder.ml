@@ -23,7 +23,7 @@
 module Img = Image.RGBA32
 module P = Image.Generic.Pixel
 
-let log = Dtools.Log.make ["decoder";"sdlimage"]
+let log = Log.make ["decoder";"sdlimage"]
 
 let load_image filename =
   let surface = Sdlloader.load_image filename in

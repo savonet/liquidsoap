@@ -22,7 +22,7 @@
 
 (** External audio samplerate conversion utilities. *)
 
-let log = Dtools.Log.make ["audio";"converter"]
+let log = Log.make ["audio";"converter"]
 
 (* TODO: is it the right place for this ? *)
 let audio_conf =

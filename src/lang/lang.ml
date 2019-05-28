@@ -26,7 +26,7 @@ module T = Lang_types
 
 type t = T.t
 
-let log = Dtools.Log.make ["lang"]
+let log = Log.make ["lang"]
 
 (** Type construction *)
 

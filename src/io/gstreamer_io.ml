@@ -26,7 +26,7 @@ open Gstreamer
 module GU = Gstreamer_utils
 module Img = Image.RGBA32
 
-let log = Dtools.Log.make ["io";"gstreamer"]
+let log = Log.make ["io";"gstreamer"]
 let gst_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "gstreamer")
 
 let string_of_state_change = function
@@ -57,7 +57,7 @@ object (self)
   val mutable element_m = Mutex.create ()
   val mutable element = None
 
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
 
   method virtual make_element : ('a, 'b) element
 

@@ -28,7 +28,7 @@ object (self)
 
   method virtual private id : string
   method virtual private set_id : ?definitive:bool -> string -> unit
-  method virtual private log : Dtools.Log.t
+  method virtual private log : Log.t
 
   method virtual private start : unit
   method virtual private stop : unit

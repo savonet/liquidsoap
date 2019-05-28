@@ -1,4 +1,4 @@
-let log = Dtools.Log.make ["ffmpeg"]
+let log = Log.make ["ffmpeg"]
 
 let conf_ffmpeg =
   Dtools.Conf.void ~p:(Configure.conf#plug "ffmpeg") "FFMPEG configuration"

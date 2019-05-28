@@ -22,7 +22,7 @@
 
 open Lang_builtins
 
-let log = Dtools.Log.make ["icy";"update_metadata"]
+let log = Log.make ["icy";"update_metadata"]
 
 let () =
   let user_agent = Lang.product (Lang.string "User-Agent")

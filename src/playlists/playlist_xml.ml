@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["playlist";"xml"]
+let log = Log.make ["playlist";"xml"]
 
 let conf_xml =
   Dtools.Conf.list ~p:(Playlist_parser.conf_mime_types#plug "xml")

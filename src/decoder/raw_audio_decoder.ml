@@ -24,7 +24,7 @@
 
 open Extralib
 
-let log = Dtools.Log.make ["decoder";"raw"]
+let log = Log.make ["decoder";"raw"]
 
 (** {1 Generic decoder} *)
 

@@ -28,7 +28,7 @@ include Source.Clock_variables
 
 let create_known s = create_known (s:>Source.clock)
 
-let log = Dtools.Log.make ["clock"]
+let log = Log.make ["clock"]
 let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
@@ -91,7 +91,7 @@ object (self)
 
   method id = id
 
-  val log = Dtools.Log.make ["clock";id]
+  val log = Log.make ["clock";id]
 
   (** List of outputs, together with a flag indicating their status:
     *   `New, `Starting, `Aborted, `Active, `Old

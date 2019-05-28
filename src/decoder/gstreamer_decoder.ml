@@ -26,7 +26,7 @@ open Extralib
 
 module GU = Gstreamer_utils
 module Img = Image.RGBA32
-let log = Dtools.Log.make ["decoder";"gstreamer"]
+let log = Log.make ["decoder";"gstreamer"]
 
 type gst =
   {

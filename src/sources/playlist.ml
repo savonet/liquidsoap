@@ -23,7 +23,6 @@
 (** Streaming a playlist *)
 
 open Source
-open Dtools
 
 (* Random: every file is choosed randomly.
  * Randomize: the playlist is shuffled, then read linearly,
@@ -133,7 +132,7 @@ object (self)
     ?persistent:bool ->
     ?indicators:(Request.indicator list) -> string ->
     Request.t
-  method virtual log : Dtools.Log.t
+  method virtual log : Log.t
   method virtual private expire : (Request.t -> bool) -> unit
 
   (** How to get the playlist. *)

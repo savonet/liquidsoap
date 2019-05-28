@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["decoder";"puremeta"]
+let log = Log.make ["decoder";"puremeta"]
 
 exception Error
 

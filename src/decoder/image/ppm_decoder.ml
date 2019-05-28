@@ -22,7 +22,7 @@
 
 module Img = Image.RGBA32
 
-let log = Dtools.Log.make ["decoder";"ppm"]
+let log = Log.make ["decoder";"ppm"]
 
 let load_image fname =
   let ic = open_in_bin fname in

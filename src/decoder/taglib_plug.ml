@@ -22,7 +22,7 @@
 
 exception Invalid_file
 
-let log = Dtools.Log.make ["decoder";"taglib"]
+let log = Log.make ["decoder";"taglib"]
 
 (** Configuration keys for taglib. *)
 let mime_types =

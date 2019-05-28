@@ -223,8 +223,6 @@ let rec forget var subclock =
 
 (** {1 Sources} *)
 
-open Dtools
-
 let source_log = Log.make ["source"]
 
 (** Has any output been created? This is used by Main to decide if
