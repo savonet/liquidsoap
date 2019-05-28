@@ -33,6 +33,8 @@ New:
 
 - Added `log.{critical,severe,important,info,warning,debug}`. Use aliases in code as well (#800, #801, #802)
 
+- Added `sleep` function.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0

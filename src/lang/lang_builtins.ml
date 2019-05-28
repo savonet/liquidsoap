@@ -1183,6 +1183,15 @@ let () =
       let n = Lang.to_int (List.assoc "" p) in
       exit n)
 
+let () =
+  add_builtin "sleep" ~cat:Sys
+    ~descr:"Sleep for a given amount of seconds (beware that it freezes the thread executing it)."
+    ["", Lang.float_t, None, Some "Number of seconds of sleep."] Lang.unit_t
+    (fun p ->
+      let t = Lang.to_float (List.assoc "" p) in
+      let t = int_of_float (t +. 0.5) in
+      Unix.sleep t;
+      Lang.unit)
 
 let () =
   let reopen name descr f =
@@ -1194,11 +1203,11 @@ let () =
         Lang.unit)
   in
   reopen "reopen.stdin" "Reopen standard input on the given file"
-         (Utils.reopen_in stdin) ;
+    (Utils.reopen_in stdin) ;
   reopen "reopen.stdout" "Reopen standard output on the given file"
-         (Utils.reopen_out stdout) ;
+    (Utils.reopen_out stdout) ;
   reopen "reopen.stderr" "Reopen standard error on the given file"
-         (Utils.reopen_out stderr)
+    (Utils.reopen_out stderr)
 
 let () =
   add_builtin "garbage_collect" ~cat:Liq
