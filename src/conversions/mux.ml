@@ -32,10 +32,24 @@
   *    source because this mode requires doing tricks to it, and sharing
   *    would have funny effects.
   *  - Auxiliary: same with exchanged roles.
-  *  - Symmetric: The sources have a symmetric role, we loose all track
+  *  - None: The sources have a symmetric role, we loose all track
   *    information, filling as much as possible. If one of the sources
-  *    is not ready anymore, extra data from the other is dropped. *)
-type mode = Master | Auxiliary | Symmetric
+  *    is not ready anymore, extra data from the other is dropped.
+  *  - Both: We get tracks from both sources.
+  *)
+type mode = Merge | Master | Auxiliary | Both
+
+let mode_of_string = function
+  | "none" -> Merge
+  | "master" -> Master
+  | "auxiliary" -> Auxiliary
+  | "both" -> Both
+  | s -> failwith ("Unknown track mode: "^s)
+let get_mode p = mode_of_string (Lang.to_string (List.assoc "mode" p))
+let mode_help =
+  "Track mode, specifying where the tracks are taken from \
+   (none|master|auxiliary|both). Modes other than `\"none\"` might induce a \
+   slight desynchronization between sources."
 
 class mux ~kind ~mode ~master ~master_layer ~aux ~aux_layer mux_content =
   let dest_type = Frame.type_of_kind kind in
@@ -98,7 +112,7 @@ object (self)
     let restore = Frame.hide_contents frame in
     let new_content, end_pos =
       match mode with
-      | Symmetric ->
+      | Merge ->
          (* We get as much info as possible from one source, save the content,
             repeat the operation for the other, then merge the contents. If one
             source produces more than the other, extra data is dropped. This
@@ -107,6 +121,13 @@ object (self)
          let master,end_master = get `Full master_layer master in
          let (_:unit->unit) = Frame.hide_contents frame in
          let aux,end_aux = get `Full aux_layer aux in
+         let end_pos = min end_master end_aux in
+         let new_content = mux_content master aux in
+         new_content, end_pos
+      | Both ->
+         let master,end_master = get `Once master_layer master in
+         let (_:unit->unit) = Frame.hide_contents frame in
+         let aux,end_aux = get `Once aux_layer aux in
          let end_pos = min end_master end_aux in
          let new_content = mux_content master aux in
          new_content, end_pos
@@ -144,6 +165,7 @@ let () =
       ~descr:"Add video channnels to a stream."
       ~kind:(Lang.Unconstrained out_t)
       [
+        "mode", Lang.string_t, Some (Lang.string "master"), Some mode_help;
         "video", Lang.source_t aux_t, None, None ;
         "", Lang.source_t master_t, None, None ;
       ]
@@ -155,7 +177,7 @@ let () =
          let mux_content master aux =
            { master with Frame.video = aux.Frame.video }
          in
-         let mode = Master in
+         let mode = get_mode p in
          new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let () =
@@ -170,6 +192,7 @@ let () =
       ~descr:"Mux an audio stream into an audio-free stream."
       ~kind:(Lang.Unconstrained out_t)
       [
+        "mode", Lang.string_t, Some (Lang.string "master"), Some mode_help;
         "audio", Lang.source_t aux_t, None, None ;
         "", Lang.source_t master_t, None, None ;
       ]
@@ -181,7 +204,7 @@ let () =
          let mux_content master aux =
            { master with Frame.audio = aux.Frame.audio }
          in
-         let mode = Master in
+         let mode = get_mode p in
          new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let add_audio_mux label n =
@@ -196,6 +219,7 @@ let add_audio_mux label n =
       ~descr:("Mux a "^label^" audio stream into another stream.")
       ~kind:(Lang.Unconstrained out_t)
       [
+        "mode", Lang.string_t, Some (Lang.string "master"), Some mode_help;
         label, Lang.source_t aux_t, None, None ;
         "", Lang.source_t master_t, None, None ;
       ]
@@ -222,7 +246,7 @@ let add_audio_mux label n =
            in
              { master with Frame.audio = audio }
          in
-         let mode = Master in
+         let mode = get_mode p in
          new mux ~kind ~mode ~master ~aux ~master_layer ~aux_layer mux_content)
 
 let () =
