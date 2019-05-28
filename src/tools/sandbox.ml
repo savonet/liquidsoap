@@ -114,7 +114,7 @@ let cmd ?tmp ?rw ?ro ?network cmd =
       | "disabled" -> disabled
       | "sandbox-exec" -> sandbox_exec
       | "bwrap" -> bwrap
-      | v -> raise (Lang.Invalid_value ((Lang.string v), "Invalid sandbox tool"))
+      | v -> raise (Lang_errors.Invalid_value ((Lang.string v), "Invalid sandbox tool"))
   in
   let f d v =
     match v with
