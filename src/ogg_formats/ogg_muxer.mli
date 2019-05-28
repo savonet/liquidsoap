@@ -22,7 +22,7 @@
 
  (** Ogg Stream Encoder *)
 
-val log : Dtools.Log.t
+val log : Log.t
 
  (** {2 Types} *)
 

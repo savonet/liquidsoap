@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["lang";"json"]
+let log = Log.make ["lang";"json"]
 
 exception Failed
 

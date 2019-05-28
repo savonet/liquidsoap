@@ -1400,7 +1400,7 @@ let () =
              let on_start _ =
                `Stop
              in
-             let log = Dtools.Log.make ["lang";"run_process"] in
+             let log = Log.make ["lang";"run_process"] in
              let log s = log#f 4 "%s" s in
              let p = Process_handler.run ~env ~on_start ~on_stop
                        ~on_stdout ~on_stderr ~log cmd
@@ -1449,7 +1449,7 @@ let () =
        let msg = Lang.to_string (List.assoc "" p) in
        let label = Lang.to_string (List.assoc "label" p) in
        let level = Lang.to_int (List.assoc "level" p) in
-         (Dtools.Log.make [label])#f level "%s" msg ;
+         (Log.make [label])#f level "%s" msg ;
          Lang.unit)
 
 let () =
@@ -2165,7 +2165,7 @@ let () =
 type request = Get | Post | Put | Head | Delete
 
 let add_http_request http name descr request =
-  let log = Dtools.Log.make [name] in
+  let log = Log.make [name] in
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let status_t =

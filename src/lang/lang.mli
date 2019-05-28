@@ -22,7 +22,7 @@
 
 (** Values and types of the liquidsoap language. *)
 
-val log : Dtools.Log.t
+val log : Log.t
 
 (** The type of a value. *)
 type t = Lang_types.t

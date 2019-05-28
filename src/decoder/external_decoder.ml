@@ -25,7 +25,7 @@
 (** First, an external decoder that receives
   * on its stdin. *)
 
-let log = Dtools.Log.make ["decoder";"external"]
+let log = Log.make ["decoder";"external"]
 
 (** This function is used to wrap around the "real" input.
   * It pipes its data to the external process and read
@@ -161,7 +161,7 @@ let register_stdin name sdoc mimes test process =
   * of the buffer when the external decoder
   * has exited. *)
 
-let log = Dtools.Log.make ["decoder";"external";"oblivious"]
+let log = Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
   let on_stderr puller =

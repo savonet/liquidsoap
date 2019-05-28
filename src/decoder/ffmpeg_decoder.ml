@@ -189,7 +189,7 @@ let () =
        else
          None)
 
-let log = Dtools.Log.make ["metadata";"ffmpeg"]
+let log = Log.make ["metadata";"ffmpeg"]
 
 let get_tags file =
   let container =

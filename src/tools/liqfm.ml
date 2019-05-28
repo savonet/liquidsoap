@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["liqfm"]
+let log = Log.make ["liqfm"]
 
 (* A custom implementation of HTTP 
  * requests. *)
@@ -90,7 +90,7 @@ type task =
           bool * (string, string) Hashtbl.t) Queue.t ;
   }
 
-let log = Dtools.Log.make ["audioscrobbler"]
+let log = Log.make ["audioscrobbler"]
 
 exception Duration
 

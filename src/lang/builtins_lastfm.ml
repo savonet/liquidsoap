@@ -22,7 +22,7 @@
 
 open Lang_builtins
 
-let log = Dtools.Log.make ["lastfm";"submit"]
+let log = Log.make ["lastfm";"submit"]
 
 let () =
   let f name stype descr =

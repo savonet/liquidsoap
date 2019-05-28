@@ -24,7 +24,7 @@
 
 open External_encoder_format
 let encoder id ext =
-  let log = Dtools.Log.make [id] in
+  let log = Log.make [id] in
 
   let is_metadata_restart = ref false in
   let is_stop = ref false in

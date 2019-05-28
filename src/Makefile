@@ -214,7 +214,7 @@ builtins = lang/lang_builtins.ml lang/builtins_json.ml \
            $(if $(W_LASTFM),lang/builtins_lastfm.ml)
 
 liquidsoap_sources= \
-	$(tools) REVISION.ml log.ml converters/audio_converter.ml $(stream) \
+	log.ml $(tools) REVISION.ml converters/audio_converter.ml $(stream) \
 	decoder/decoder.ml request.ml tools/server.ml \
         source.ml clock.ml tools/rutils.ml \
 	playlist_parser.ml $(encoder_formats) encoder.ml \

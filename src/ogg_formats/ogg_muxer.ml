@@ -22,7 +22,7 @@
 
  (** Ogg Stream Encoder *)
 
-let log = Dtools.Log.make ["ogg.muxer"]
+let log = Log.make ["ogg.muxer"]
 
 exception Invalid_data
 exception Invalid_usage

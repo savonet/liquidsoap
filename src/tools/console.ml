@@ -22,7 +22,7 @@
 
 (* Some of the code below was borrowed from opam. *)
 
-let log = Dtools.Log.make ["console"]
+let log = Log.make ["console"]
 
 let conf_console =
   Dtools.Conf.void ~p:(Configure.conf#plug "console")

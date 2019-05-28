@@ -23,7 +23,7 @@
 open Lang_builtins
 open Extralib
 
-let log = Dtools.Log.make ["lang.file"]
+let log = Log.make ["lang.file"]
 
 let () =
   add_builtin "file.extension" ~cat:Sys ~descr:"Returns a file's extension."

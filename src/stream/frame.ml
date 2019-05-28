@@ -155,7 +155,7 @@ let seconds_of_master d = float d /. float !!master_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
 
-let log = Dtools.Log.make ["frame"]
+let log = Log.make ["frame"]
 
 (** The frame size (in master ticks) should allow for an integer
   * number of samples of all types (audio, video).

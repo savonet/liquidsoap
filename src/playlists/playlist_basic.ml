@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["playlist";"basic"]
+let log = Log.make ["playlist";"basic"]
 
 let split_lines buf =
   Pcre.split ~pat:"[\r\n]+" buf
