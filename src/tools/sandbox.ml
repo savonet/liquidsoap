@@ -79,10 +79,12 @@ let disabled = {
 
 let sandbox_exec = {
   init = (fun ~tmp:_ ~network -> Printf.sprintf
-    "(version 1)(allow default)(%s network*)(deny file-write*)\
-     (allow network* (remote unix))\
+    "(version 1)(allow default)%s(deny file-write*)\
      (allow file-write* (literal \"/dev/null\") (literal \"/dev/dtracehelper\"))"
-    (if network then "allow" else" deny"));
+    (if network then
+       "(allow network*)"
+     else
+       "(allow network*)(allow network* (remote unix))"));
   mount = (fun t ~flag path ->
     match flag with
       | `Ro ->
