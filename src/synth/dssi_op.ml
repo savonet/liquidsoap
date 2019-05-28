@@ -22,7 +22,6 @@
 
 open Source
 open Dssi
-open Dtools
 
 let log = Log.make ["DSSI synthesizer"]
 

@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Source
-open Dtools
 open Extralib
 
 module Img = Image.RGBA32

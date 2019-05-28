@@ -22,7 +22,6 @@
 
 open Source
 open Ladspa
-open Dtools
 
 type t = Float | Int | Bool
 
