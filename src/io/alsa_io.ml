@@ -50,7 +50,7 @@ object (self)
     (fun pcm buf ofs len -> Pcm.readn_float pcm buf ofs len)
 
   method open_device =
-    self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+    self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
     try
       let dev =
         match pcm with
@@ -68,7 +68,7 @@ object (self)
           with
             | _ ->
                 (* If we can't get floats we fallback on interleaved s16le *)
-                self#log#f 2 "Falling back on interleaved S16LE";
+                self#log#severe "Falling back on interleaved S16LE";
                 handle "format" (Pcm.set_format dev params) Pcm.Format_s16_le;
                 (
                   try
@@ -88,7 +88,7 @@ object (self)
                     )
                   with
                     | Alsa.Invalid_argument ->
-                        self#log#f 2 "Falling back on non-interleaved S16LE";
+                        self#log#severe "Falling back on non-interleaved S16LE";
                         handle "access"
                           (Pcm.set_access dev params)
                           Pcm.Access_rw_noninterleaved;
@@ -143,21 +143,21 @@ object (self)
         in
           alsa_rate <- rate;
           if rate <> samples_per_second then
-            self#log#f 3
+            self#log#important
               "Could not set sample rate to 'frequency' (%d Hz), got %d."
               samples_per_second rate ;
           if bufsize <> samples_per_frame then
-            self#log#f 3
+            self#log#important
               "Could not set buffer size to 'frame.size' (%d samples), got %d."
               samples_per_frame bufsize ;
-          self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
+          self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
             alsa_rate bufsize (Pcm.get_frame_size params) periods ;
           (
           try
             Pcm.set_params dev params
           with
             | Alsa.Invalid_argument as e ->
-                self#log#f 1
+                self#log#critical
                   "Setting alsa parameters failed (invalid argument)!";
                 raise e
           );
@@ -226,7 +226,7 @@ object (self)
         let r = ref 0 in
           while !r < Array.length buf.(0) do
             if !r <> 0 then
-              self#log#f 4
+              self#log#info
                 "Partial write (%d instead of %d)! \
                  Selecting another buffer size or device can help."
                 !r (Array.length buf.(0));
@@ -237,14 +237,14 @@ object (self)
           begin
            match e with
              | Buffer_xrun -> 
-                 self#log#f 2
+                 self#log#severe
                    "Underrun! \
                     You may minimize them by increasing the buffer size."
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
           end ;
           if e = Buffer_xrun || e = Suspended || e = Interrupted then
            begin
-            self#log#f 2 "Trying to recover.." ;
+            self#log#severe "Trying to recover.." ;
             Pcm.recover pcm e ;
             self#output
            end
@@ -288,7 +288,7 @@ object (self)
         let r = ref 0 in
           while !r < samples_per_frame do
             if !r <> 0 then
-              self#log#f 4
+              self#log#info
                    "Partial read (%d instead of %d)! \
                     Selecting another buffer size or device can help."
                 !r (Array.length buf.(0));
@@ -300,14 +300,14 @@ object (self)
           begin
            match e with
              | Buffer_xrun ->
-                 self#log#f 2
+                 self#log#severe
                    "Overrun! \
                     You may minimize them by increasing the buffer size."
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
           end ;
           if e = Buffer_xrun || e = Suspended || e = Interrupted then
            begin
-            self#log#f 2 "Trying to recover.." ;
+            self#log#severe "Trying to recover.." ;
             Pcm.recover pcm e ;
             self#output
            end

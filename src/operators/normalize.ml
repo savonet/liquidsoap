@@ -80,7 +80,7 @@ object
               begin
                 let rmsl = sqrt (rms.(0) /. (float_of_int rmsi)) in
                 let rmsr = sqrt (rms.(1) /. (float_of_int rmsi)) in
-                  self#log#f 4
+                  self#log#info
                     "%6.02f  *  %4.02f  ->  %6.02f    |    \
                     %6.02f  *  %4.02f  ->  %6.02f"
                     (Sutils.dB_of_lin rmsl)

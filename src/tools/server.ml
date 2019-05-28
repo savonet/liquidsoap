@@ -20,10 +20,9 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
-open Dtools
 
 let conf =
-  Conf.void
+  Dtools.Conf.void
     ~p:(Configure.conf#plug "server")
     "Server configuration"
     ~comments:
@@ -31,7 +30,7 @@ let conf =
       ; "which can be used through several interfaces." ]
 
 let conf_timeout =
-  Conf.float ~p:(conf#plug "timeout") ~d:30.
+  Dtools.Conf.float ~p:(conf#plug "timeout") ~d:30.
     "Timeout for read/write operations."
     ~comments:["A negative value disables timeout."]
 
@@ -40,7 +39,7 @@ let get_timeout () =
   if t < 0. then infinity else t
 
 let conf_socket =
-  Conf.bool ~p:(conf#plug "socket") ~d:false
+  Dtools.Conf.bool ~p:(conf#plug "socket") ~d:false
     "Support for communication via a UNIX domain socket interface"
     ~comments:
       [ "The main advantage of this method is that you can set very precisely"
@@ -49,7 +48,7 @@ let conf_socket =
          unix:<path>\"." ]
 
 let conf_socket_path =
-  Conf.string ~p:(conf_socket#plug "path") ~d:"<sysrundir>/<script>.sock"
+  Dtools.Conf.string ~p:(conf_socket#plug "path") ~d:"<sysrundir>/<script>.sock"
     "Path of the UNIX domain socket"
     ~comments:
       [ "In this filename, <pid>, <script> and <sysrundir> are replaced by "
@@ -58,7 +57,7 @@ let conf_socket_path =
       ]
 
 let conf_socket_perms =
-  Conf.int
+  Dtools.Conf.int
     ~p:(conf_socket#plug "permissions")
     ~d:0o600 "Socket permissions, up to umask"
     ~comments:
@@ -67,7 +66,7 @@ let conf_socket_perms =
       ; "For example, the default value 384 is the decimal for 0o600." ]
 
 let conf_telnet =
-  Conf.bool ~p:(conf#plug "telnet") ~d:false
+  Dtools.Conf.bool ~p:(conf#plug "telnet") ~d:false
     "Support for communication via a telnet interface"
     ~comments:
       [ "This allows you to communicate with the server via a telnet interface,"
@@ -80,17 +79,17 @@ let conf_telnet =
       ; "from localhost (using the bind_addr param) or set up a firewall." ]
 
 let conf_telnet_bind_addr =
-  Conf.string
+  Dtools.Conf.string
     ~p:(conf_telnet#plug "bind_addr")
     ~d:"127.0.0.1"
     "Network mask from which the telnet server should accept connections"
 
 let conf_telnet_port =
-  Conf.int ~p:(conf_telnet#plug "port") ~d:1234
+  Dtools.Conf.int ~p:(conf_telnet#plug "port") ~d:1234
     "Port on which the telnet server should listen"
 
 let conf_telnet_revdns =
-  Conf.bool
+  Dtools.Conf.bool
     ~p:(conf_telnet#plug "revdns")
     ~d:false
     "Perform reverse DNS lookup to get the client's hostname from its IP."
@@ -141,7 +140,7 @@ let add ~ns ?usage ~descr cmd handler =
     (fun () ->
       let name = prefix_ns cmd ns in
       if Hashtbl.mem commands name then
-        log#f 2
+        log#severe
           "Server command %s already registered! Previous definition replaced.."
           name
       else () ;
@@ -288,10 +287,10 @@ let handle_client socket ip =
     ( match e with
     | Duppy.Io.Io_error -> ()
     | Duppy.Io.Timeout ->
-        log#f 4 "Timeout reached while communicating to client %s." ip
+        log#info "Timeout reached while communicating to client %s." ip
     | Duppy.Io.Unix (c, p, m) ->
-        log#f 4 "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-    | Duppy.Io.Unknown e -> log#f 3 "%s" (Printexc.to_string e) ) ;
+        log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
+    | Duppy.Io.Unknown e -> log#important "%s" (Printexc.to_string e) ) ;
     Duppy e
   in
   let h =
@@ -354,7 +353,7 @@ let handle_client socket ip =
       | (Exit | Duppy Duppy.Io.Timeout) as e ->
           let on_error e =
             ignore (on_error e) ;
-            log#f 3 "Client %s disconnected while saying goodbye..!" ip ;
+            log#important "Client %s disconnected while saying goodbye..!" ip ;
             close ()
           in
           let msg =
@@ -364,14 +363,14 @@ let handle_client socket ip =
             | _ -> assert false
           in
           let exec () =
-            log#f 3 "Client %s disconnected." ip ;
+            log#important "Client %s disconnected." ip ;
             close ()
           in
           Duppy.Io.write ~timeout:(get_timeout ())
             ~priority:Tutils.Non_blocking ~on_error ~exec Tutils.scheduler
             ~string:(Bytes.of_string msg) socket
       | _ ->
-          log#f 3 "Client %s disconnected without saying goodbye..!" ip ;
+          log#important "Client %s disconnected without saying goodbye..!" ip ;
           close ()
     in
     Duppy.Monad.run ~return:run ~raise process
@@ -393,10 +392,10 @@ let start_socket () =
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
-        log#f 3 "New client %s." ip ;
+        log#important "New client %s." ip ;
         handle_client socket ip
       with e ->
-        log#f 2 "Failed to accept new client: %S" (Printexc.to_string e) ) ;
+        log#severe "Failed to accept new client: %S" (Printexc.to_string e) ) ;
     [ { Duppy.Task.priority= Tutils.Non_blocking
       ; events= [`Read sock]
       ; handler= incoming } ]
@@ -410,8 +409,8 @@ let start_socket () =
   Unix.bind sock bind_addr ;
   Unix.listen sock max_conn ;
   ignore
-    (Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
-         log#f 3 "Unlink %s" socket_name ;
+    (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom] (fun () ->
+         log#important "Unlink %s" socket_name ;
          Unix.unlink socket_path )) ;
   Unix.chmod socket_path rights ;
   Duppy.Task.add Tutils.scheduler
@@ -429,9 +428,9 @@ let start_telnet () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
     ignore
-      (Init.make ~after:[Tutils.scheduler_shutdown_atom]
+      (Dtools.Init.make ~after:[Tutils.scheduler_shutdown_atom]
          ~name:"Server shutdown" (fun () ->
-           log#f 3 "Closing socket." ; Unix.close sock ))
+           log#important "Closing socket." ; Unix.close sock ))
   in
   (* Set TCP_NODELAY on the socket *)
   Unix.setsockopt sock Unix.TCP_NODELAY true ;
@@ -441,10 +440,10 @@ let start_telnet () =
         let ip =
           Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller
         in
-        log#f 3 "New client: %s." ip ;
+        log#important "New client: %s." ip ;
         handle_client socket ip
       with e ->
-        log#f 2 "Failed to accept new client: %S" (Printexc.to_string e) ) ;
+        log#severe "Failed to accept new client: %S" (Printexc.to_string e) ) ;
     [ { Duppy.Task.priority= Tutils.Non_blocking
       ; events= [`Read sock]
       ; handler= incoming } ]

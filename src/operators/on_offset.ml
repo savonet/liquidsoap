@@ -44,7 +44,7 @@ object(self)
   val mutable executed = false
 
   method private execute =
-    self#log#f 4 "Executing on_offset callback.";
+    self#log#info "Executing on_offset callback.";
     let pos =
       (Int64.to_float elapsed) /. (float (Lazy.force Frame.master_rate))
     in
@@ -61,13 +61,13 @@ object(self)
         with Failure _ -> raise (Invalid_override pos)
       in
       let ticks = ticks_of_offset pos in
-      self#log#f 4 "Setting new offset to %.02fs (%Li ticks)" pos ticks;
+      self#log#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
       offset <- ticks
     with
       | Failure _
       | Not_found -> ()
       | Invalid_override pos ->
-          self#log#f 3 "Invalid value for override metadata: %s" pos
+          self#log#important "Invalid value for override metadata: %s" pos
 
   method private get_frame ab =
     let pos =

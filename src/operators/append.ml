@@ -60,7 +60,7 @@ object (self)
                               Frame.set_breaks buf
                                 (Utils.remove_one ((=) pos) (Frame.breaks buf))
                         end else begin
-                          self#log#f 3
+                          self#log#important
                             "Track ends and append source is not ready: \
                              won't append." ;
                           self#unregister append ;
@@ -69,7 +69,7 @@ object (self)
                       else
                         state <- `Replay (Some append)
                 | _ ->
-                    self#log#f 3 "No metadata at beginning of track: \
+                    self#log#important "No metadata at beginning of track: \
                                   won't append." ;
                     state <- if finished then `Idle else `Replay None
               end
@@ -87,7 +87,7 @@ object (self)
                   Frame.set_breaks buf
                     (Utils.remove_one ((=) pos) (Frame.breaks buf))
             end else begin
-              self#log#f 3
+              self#log#important
                 "Track ends and append source is not ready: won't append." ;
               state <- `Idle ;
               self#unregister a

@@ -57,7 +57,7 @@ object (self)
         in_track <- true ;
         match Frame.get_metadata buf p with
           | None ->
-              self#log#f 3 "Inserting missing metadata." ;
+              self#log#important "Inserting missing metadata." ;
               let h = Hashtbl.create 10 in
                 Frame.set_metadata buf p h
           | Some _ -> ()

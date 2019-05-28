@@ -83,7 +83,7 @@ object (self)
     in
     if should_run then
       try
-        self#log#f 3 "Restarting pipeline";
+        self#log#important "Restarting pipeline";
         Tutils.mutexify element_m (fun () ->
           begin match element with
             | None -> ()
@@ -100,15 +100,15 @@ object (self)
         Tutils.mutexify restart_m (fun () ->
           restarting <- false) ();
         if retry_in >= 0. then
-          self#log#f 4 "An error occured while restarting pipeline, will retry in %.02f" retry_in
+          self#log#info "An error occured while restarting pipeline, will retry in %.02f" retry_in
         else
-          self#log#f 4 "Done restarting pipeline";
+          self#log#info "Done restarting pipeline";
         retry_in
       with exn ->
-        self#log#f 3 "Error while restarting pipeline: %s" (Printexc.to_string exn);
-        self#log#f 4 "Backtrace: %s" (Printexc.get_backtrace ());
+        self#log#important "Error while restarting pipeline: %s" (Printexc.to_string exn);
+        self#log#info "Backtrace: %s" (Printexc.get_backtrace ());
         retry_in <- on_error exn;
-        self#log#f 3 "Will retry again in %.02f" retry_in;
+        self#log#important "Will retry again in %.02f" retry_in;
         Tutils.mutexify restart_m (fun () ->
           restarting <- false) ();
         retry_in
@@ -225,7 +225,7 @@ object (self)
       else
         pipeline
     in
-    self#log#f 5 "GStreamer pipeline: %s" pipeline;
+    self#log#warning "GStreamer pipeline: %s" pipeline;
     let bin = Pipeline.parse_launch pipeline in
     let audio_src =
       if has_audio then
@@ -272,8 +272,8 @@ object (self)
         presentation_time <- Int64.add presentation_time duration;
         GU.flush ~log:self#log ~on_error:(fun err -> raise (Flushing_error err)) el.bin
       with e ->
-        self#log#f 3 "Error while processing output data: %s" (Printexc.to_string e);
-        self#log#f 4 "Stacktrace: %s" (Printexc.get_backtrace ());
+        self#log#important "Error while processing output data: %s" (Printexc.to_string e);
+        self#log#info "Stacktrace: %s" (Printexc.get_backtrace ());
         self#on_error e
 
   method output_reset = ()
@@ -446,7 +446,7 @@ object (self)
   inherit [string sink, Gstreamer.data sink] element_factory ~on_error
 
   initializer
-    rlog := (fun s -> self#log#f 3 "%s" s);
+    rlog := (fun s -> self#log#important "%s" s);
     let change_state s _ =
       try
         Printf.sprintf "Done. State change returned: %s"
@@ -480,7 +480,7 @@ object (self)
          (pending self#get_element.video))
     with
     | e ->
-      log#f 4 "Error when trying to check if ready: %s" (Printexc.to_string e);
+      log#info "Error when trying to check if ready: %s" (Printexc.to_string e);
       false
 
   method abort_track = ()
@@ -493,7 +493,7 @@ object (self)
       ignore (Element.get_state self#get_element.bin)
     with
     | exn ->
-       self#log#f 4 "Error setting state to playing: %s" (Printexc.to_string exn);
+       self#log#info "Error setting state to playing: %s" (Printexc.to_string exn);
        self#on_error exn
 
   method sleep =
@@ -535,7 +535,7 @@ object (self)
      else
        pipeline
    in
-   log#f 5 "GStreamer pipeline: %s" pipeline;
+   log#warning "GStreamer pipeline: %s" pipeline;
    let bin = Pipeline.parse_launch pipeline in
    let wrap_sink sink pull =
      let m = Mutex.create () in
@@ -610,16 +610,16 @@ object (self)
       GU.flush ~log:self#log ~on_error:(fun err -> raise (Flushing_error err)) el.bin
     with
       | Gstreamer.End_of_stream ->
-          self#log#f 4 "End of stream.";
+          self#log#info "End of stream.";
           ready <- false;
           if restart then
             (
-              self#log#f 4 "Restarting.";
+              self#log#info "Restarting.";
               self#restart
             )
       | exn ->
-          self#log#f 3 "Error while processing input data: %s" (Printexc.to_string exn);
-          self#log#f 4 "Stacktrace: %s" (Printexc.get_backtrace ());
+          self#log#important "Error while processing input data: %s" (Printexc.to_string exn);
+          self#log#info "Stacktrace: %s" (Printexc.get_backtrace ());
           self#on_error exn
 end
 

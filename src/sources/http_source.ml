@@ -265,7 +265,7 @@ struct
   
     (* Insert metadata *)
     method insert_metadata m =
-      self#log#f 3
+      self#log#important
         "New metadata chunk: %s -- %s."
         (try Hashtbl.find m "artist" with _ -> "?")
         (try Hashtbl.find m "title" with _ -> "?") ;
@@ -275,7 +275,7 @@ struct
     method feeding should_stop create_decoder =
       let read =
         let log s =
-          self#log#f 4 "%s" s
+          self#log#info "%s" s
         in
         (* Socket can't be closed while waiting on it. *)
         (fun len ->
@@ -289,7 +289,7 @@ struct
                  try
                   Http.wait_for ~log (`Read socket) timeout;
                   read len
-                 with e -> self#log#f 2 "Error while reading from socket: \
+                 with e -> self#log#severe "Error while reading from socket: \
                               %s" (Printexc.to_string e);
                            self#disconnect_no_lock;
                            "",0
@@ -328,16 +328,16 @@ struct
               Generator.add_break ~sync:`Drop generator ;
               begin match e with
                 | Failure s ->
-                    self#log#f 2 "Feeding stopped: %s" s
+                    self#log#severe "Feeding stopped: %s" s
                 | G.Incorrect_stream_type ->
-                  self#log#f 2 "Feeding stopped: the decoded stream was not of \
+                  self#log#severe "Feeding stopped: the decoded stream was not of \
                                 the right type. The typical situation is when \
                                 you expect a stereo stream whereas the \
                                 stream is mono (in this case the situation can \
                                 easily be solved by using the audio_to_stereo \
                                 operator to convert the stream to a stereo one)."
                 | e ->
-                    self#log#f 2 "Feeding stopped: %s" (Printexc.to_string e)
+                    self#log#severe "Feeding stopped: %s" (Printexc.to_string e)
               end ;
               begin match logf with
                 | Some f -> close_out f ; logf <- None
@@ -380,10 +380,10 @@ struct
           Tutils.mutexify socket_m (fun () ->
             if socket <> None then
               failwith "Cannot connect while already connected..";
-            self#log#f 4 "Connecting to <%s://%s:%d%s>..." protocol host port mount ;
+            self#log#info "Connecting to <%s://%s:%d%s>..." protocol host port mount ;
             let s = Http.connect ?bind_address host port in
             let log s =
-              self#log#f 4 "%s" s
+              self#log#info "%s" s
             in
             let (_, fields as ret) =
               Http.request ~log ~timeout s request
@@ -399,7 +399,7 @@ struct
               with _ -> false
             in
             if chunked then
-              self#log#f 4 "Chunked HTTP/1.1 transfer" ;
+              self#log#info "Chunked HTTP/1.1 transfer" ;
             (* read_stream has a state, so we must create it here.. *)
             let read =
               read_stream s chunked metaint self#insert_metadata
@@ -421,7 +421,7 @@ struct
                with
                  | Not_found -> content_type
         in
-        self#log#f 4 "Content-type %S." content_type ;
+        self#log#info "Content-type %S." content_type ;
         if status = 301 || status = 302 || 
            status = 303 || status = 307
         then begin
@@ -437,11 +437,11 @@ struct
             else
               location
           in
-          self#log#f 4 "Redirected to %s" location;
+          self#log#info "Redirected to %s" location;
           raise (Redirection location)
         end ;
         if status <> 200 then begin
-          self#log#f 4 "Could not get file: %s" status_msg;
+          self#log#info "Could not get file: %s" status_msg;
           raise Internal
         end ;
         on_connect fields ;
@@ -483,7 +483,7 @@ struct
           playlist_process playlist
         in
           try
-            self#log#f 4
+            self#log#info
               "Trying playlist parser for mime %s" content_type ;
             match Playlist_parser.parsers#get content_type with
               | None -> raise Not_found
@@ -515,13 +515,13 @@ struct
                           logf <-
                             Some (open_out_bin (Utils.home_unrelate f))
                         with e ->
-                          self#log#f 2
+                          self#log#severe
                             "Could not open log file: %s"
                             (Printexc.to_string e)
                         end
                     | None -> ()
                   end ;
-                  self#log#f 3 "Decoding..." ;
+                  self#log#important "Decoding..." ;
                   Generator.set_rewrite_metadata generator
                     (fun m -> Hashtbl.add m "source_url" url ; m) ;
                   self#feeding
@@ -533,11 +533,11 @@ struct
             self#connect poll_should_stop location
         | Http.Error e ->
             self#disconnect;
-            self#log#f 4 "Connection failed: %s!" (Http.string_of_error e) ;
+            self#log#info "Connection failed: %s!" (Http.string_of_error e) ;
             if debug then raise (Http.Error e)
         | e ->
             self#disconnect;
-            self#log#f 4 "Connection failed: %s" (Printexc.to_string e) ;
+            self#log#info "Connection failed: %s" (Printexc.to_string e) ;
             if debug then raise e
   
     (* Take care of (re)starting the decoding *)
@@ -555,7 +555,7 @@ struct
     method wake_up act =
       super#wake_up act ;
       (* Now we can create the log function *)
-      log_ref := (fun s -> self#log#f 3 "%s" s) ;
+      log_ref := (fun s -> self#log#important "%s" s) ;
       (* Wait for the old polling thread to return, then create a new one. *)
       assert (kill_polling = None) ;
       begin match wait_polling with

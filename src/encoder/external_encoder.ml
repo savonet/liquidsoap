@@ -54,7 +54,7 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#f 5 "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#warning "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let on_start pusher =
@@ -66,18 +66,18 @@ let encoder id ext =
       begin match s with
         | Unix.WEXITED 0 -> ()
         | Unix.WEXITED c ->
-            log#f 3 "Process exited with code %d" c
+            log#important "Process exited with code %d" c
         | Unix.WSIGNALED s ->
-            log#f 3 "Process was killed by signal %d" s
+            log#important "Process was killed by signal %d" s
         | Unix.WSTOPPED s ->
-            log#f 3 "Process was stopped by signal %d" s
+            log#important "Process was stopped by signal %d" s
       end;
       restart_decision ()
    | `Exception e ->
-      log#f 3 "Error: %s" (Printexc.to_string e);
+      log#important "Error: %s" (Printexc.to_string e);
       restart_decision ()
   in
-  let log = log#f 3 "%s" in
+  let log = log#important "%s" in
 
   let on_stdout = Tutils.mutexify mutex (fun puller ->
     begin

@@ -84,7 +84,7 @@ object (self)
       done;
       let _, c = Frame.content frame pos in
       let end_pos = Frame.position frame in
-      if inicon != c then self#log#f 5 "Copy-avoiding optimization isn't working!";
+      if inicon != c then self#log#warning "Copy-avoiding optimization isn't working!";
       Frame.set_breaks frame breaks;
       c, end_pos
     in

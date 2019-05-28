@@ -190,18 +190,18 @@ let register_plugin ?(log_errors=false) pname =
                (
                  register_descr pname n d o;
                  if log_errors then
-                   log#f 3 "Registered DSSI plugin: %s." (Ladspa.Descriptor.label ladspa_descr)
+                   log#important "Registered DSSI plugin: %s." (Ladspa.Descriptor.label ladspa_descr)
                )
              else
                if log_errors then
-                 log#f 3 "Plugin %s has inputs, don't know how to handle them for now." (Ladspa.Descriptor.label ladspa_descr)
+                 log#important "Plugin %s has inputs, don't know how to handle them for now." (Ladspa.Descriptor.label ladspa_descr)
         ) descr
       (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
       (* Plugin.unload p *)
   with
     | Plugin.Not_a_plugin ->
       if log_errors then
-        log#f 3 "File \"%s\" is not a plugin!" pname
+        log#important "File \"%s\" is not a plugin!" pname
 
 let register_plugins () =
   let plugins =
@@ -219,7 +219,7 @@ let register_plugins () =
             | End_of_file -> Unix.closedir dir
       with
         | Unix.Unix_error (e,_,_) ->
-            log#f 4 "Error while loading directory %s: %s"
+            log#info "Error while loading directory %s: %s"
               plugins_dir (Unix.error_message e)
     in
       List.iter add plugin_dirs ;

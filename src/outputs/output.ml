@@ -130,7 +130,7 @@ object (self)
     source#get_ready ((self:>operator)::activation) ;
     if infallible then
       while not source#is_ready do
-        self#log#f 3 "Waiting for %S to be ready..." source#id ;
+        self#log#important "Waiting for %S to be ready..." source#id ;
         Thread.delay 1. ;
       done
 
@@ -169,7 +169,7 @@ object (self)
       while Frame.is_partial memo && self#is_ready do
         incr get_count ;
         if !get_count > Lazy.force Frame.size then
-          self#log#f 2
+          self#log#severe
             "Warning: there may be an infinite sequence of empty tracks!" ;
         source#get memo
       done ;
@@ -179,7 +179,7 @@ object (self)
       (* Output that frame *)
       self#output_send memo ;
       if Frame.is_partial memo then begin
-        self#log#f 3 "Source failed (no more tracks) stopping output..." ;
+        self#log#important "Source failed (no more tracks) stopping output..." ;
         request_stop <- true
       end
     end ;
@@ -191,7 +191,7 @@ object (self)
     super#after_output ;
     (* Perform skip if needed *)
     if skip then begin
-      self#log#f 3 "Performing user-requested skip" ;
+      self#log#important "Performing user-requested skip" ;
       skip <- false ;
       self#abort_track
     end

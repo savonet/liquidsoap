@@ -184,7 +184,7 @@ object (self)
          | Some v ->
              try
                let l = float_of_string v in
-               self#log#f 4 "Setting crossfade duration to %.2fs" l;
+               self#log#info "Setting crossfade duration to %.2fs" l;
                cross_length <- Frame.master_of_seconds l
              with _ -> ()) (Frame.get_all_metadata frame)
 
@@ -199,7 +199,7 @@ object (self)
               self#update_cross_length frame p;
               needs_tick <- true
             end else begin
-              self#log#f 4 "Buffering end of track..." ;
+              self#log#info "Buffering end of track..." ;
               status <- `Before ;
               Frame.set_breaks buf_frame [Frame.position frame] ;
               Frame.set_all_metadata buf_frame
@@ -207,7 +207,7 @@ object (self)
                    | Some x -> [-1,x] | None -> []) ;
               self#buffering cross_length ;
               if status <> `Limit then
-                self#log#f 4 "More buffering will be needed." ;
+                self#log#info "More buffering will be needed." ;
               self#get_frame frame
             end
       | `Before ->
@@ -374,7 +374,7 @@ object (self)
                Lang.to_source (Lang.apply ~t transition params)
            in
            let compound =
-             self#log#f 3 "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
+             self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
                db_before db_after
                (Frame.seconds_of_master (Generator.length gen_before))
                (Frame.seconds_of_master (Generator.length gen_after)) ;
@@ -383,7 +383,7 @@ object (self)
                 Generator.length gen_before <= Generator.length gen_after then
                f before after
              else begin
-               self#log#f 3 "Not enough data for crossing." ;
+               self#log#important "Not enough data for crossing." ;
                ((new Sequence.sequence ~kind [before;after]):>source)
              end
            in

@@ -71,7 +71,7 @@ object (self)
     match device with
       | Some d -> d
       | None ->
-          self#log#f 3 "Using ALSA %s." (Alsa.get_version ()) ;
+          self#log#important "Using ALSA %s." (Alsa.get_version ()) ;
           let dev = Pcm.open_pcm dev [Pcm.Playback] [] in
           let params = Pcm.get_params dev in
           let bufsize,periods =
@@ -82,7 +82,7 @@ object (self)
                with
                  | _ ->
                     (* If we can't get floats we fallback on interleaved s16le *)
-                    self#log#f 2 "Falling back on interleaved S16LE";
+                    self#log#severe "Falling back on interleaved S16LE";
                     Pcm.set_access dev params Pcm.Access_rw_interleaved ;
                     Pcm.set_format dev params Pcm.Format_s16_le ;
                     alsa_write <-
@@ -109,7 +109,7 @@ object (self)
              bufsize,
              (fst (Pcm.get_periods_max params))
           in
-          self#log#f 3 "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
+          self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
             alsa_rate bufsize (Pcm.get_frame_size params) periods ;
           Pcm.set_params dev params ;
           device <- Some dev ;
@@ -137,12 +137,12 @@ object (self)
         begin
          match e with
            | Buffer_xrun ->
-               self#log#f 2 "Underrun!"
-             | _ -> self#log#f 2 "Alsa error: %s" (string_of_error e)
+               self#log#severe "Underrun!"
+             | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end ;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then
          begin
-          self#log#f 2 "Trying to recover.." ;
+          self#log#severe "Trying to recover.." ;
           Pcm.recover dev e
          end
         else raise e

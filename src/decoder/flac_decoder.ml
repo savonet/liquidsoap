@@ -147,7 +147,7 @@ let get_type filename =
          let rate,channels = info.Flac.Decoder.sample_rate,
                              info.Flac.Decoder.channels
          in
-           log#f 4
+           log#info
              "Libflac recognizes %S as FLAC (%dHz,%d channels)."
              filename rate channels ;
            { Frame.
@@ -170,7 +170,7 @@ let () =
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           (* libmad always respects the first two kinds *)
           if Frame.type_has_kind (get_type filename) kind then true else begin
-            log#f 3
+            log#important
               "File %S has an incompatible number of channels."
               filename ;
             false

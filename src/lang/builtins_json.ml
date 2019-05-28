@@ -104,5 +104,5 @@ let () =
        of_json default.Lang.t json
      with
        | e ->
-          log#f 4 "JSON parsing failed: %s" (Printexc.to_string e);
+          log#info "JSON parsing failed: %s" (Printexc.to_string e);
           default)

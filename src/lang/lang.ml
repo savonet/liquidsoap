@@ -506,7 +506,7 @@ let iter_sources f v =
         in
           static_analysis_failed := r :: !static_analysis_failed ;
           if may_have_source then
-            log#f 2 "WARNING! \
+            log#severe "WARNING! \
                      Found a reference, potentially containing sources, \
                      inside a dynamic source-producing function. \
                      Static analysis cannot be performed: \

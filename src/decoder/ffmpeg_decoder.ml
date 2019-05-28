@@ -158,7 +158,7 @@ let get_type filename =
       let rate =
         FFmpeg.Avcodec.Audio.get_sample_rate codec
       in
-      log#f 4 "ffmpeg recognizes %S as: (%dHz,%d channels)."
+      log#info "ffmpeg recognizes %S as: (%dHz,%d channels)."
         filename rate channels ;
       {Frame.
          audio = channels ;
@@ -179,7 +179,7 @@ let () =
        if kind.Frame.audio = Frame.Variable ||
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           if Frame.type_has_kind (get_type filename) kind then true else begin
-            log#f 3
+            log#important
               "File %S has an incompatible number of channels."
               filename ;
             false

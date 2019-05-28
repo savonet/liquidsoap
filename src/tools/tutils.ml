@@ -202,7 +202,7 @@ let scheduler_shutdown_atom =
 let scheduler_log n =
   if scheduler_log#get then
     let log = Log.make [n] in
-    fun m -> log#f 4 "%s" m
+    fun m -> log#info "%s" m
   else
     fun _ -> ()
 
@@ -263,11 +263,11 @@ let start_forwarding () =
   (* Without the eta-expansion, the timestamp is computed once for all. *)
   let log_stdout =
     let log = Log.make ["stdout"] in
-      fun s -> log#f 3 "%s" s
+      fun s -> log#important "%s" s
   in
   let log_stderr =
     let log = Log.make ["stderr"] in
-      fun s -> log#f 3 "%s" s
+      fun s -> log#important "%s" s
   in
   let forward fd log =
     let task ~priority f =

@@ -69,8 +69,8 @@ let get_tags fname =
   with
     | Invalid_file -> []
     | e ->
-       log#f 4 "Error while decoding file tags: %s" (Printexc.to_string e);       
-       log#f 4 "Backtrace:\n%s" (Printexc.get_backtrace());
+       log#info "Error while decoding file tags: %s" (Printexc.to_string e);       
+       log#info "Backtrace:\n%s" (Printexc.get_backtrace());
        raise Not_found
 
 let () = Request.mresolvers#register "TAGLIB" get_tags

@@ -116,7 +116,7 @@ let video_resample () =
         (Utils.get_some !resampler) buf off len
       end
 
-let demuxer_log x = log#f 5 "%s" x
+let demuxer_log x = log#warning "%s" x
 
 module Make (Generator:Generator.S_Asio) =
 struct
@@ -286,7 +286,7 @@ let create_decoder ?(merge_tracks=false) source mode input =
     with
       | Ogg_demuxer.End_of_stream
       | Ogg.End_of_stream ->
-          log#f 4 "End of track reached while seeking!" ;
+          log#info "End of track reached while seeking!" ;
           0
   in
   { Decoder.
@@ -336,7 +336,7 @@ let get_type filename =
            else 
             0
          in
-           log#f 4
+           log#info
              "File %S recognized as audio=%d video=%d."
              filename audio video ;
            { Frame.

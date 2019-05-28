@@ -175,7 +175,7 @@ let get_type filename =
                | Mad.Layer_II  -> "II"
                | Mad.Layer_III -> "III"
            in
-           log#f 4
+           log#info
              "Libmad recognizes %S as mpeg audio \
               (layer %s, %ikbps, %dHz, %d channels)."
              filename
@@ -208,7 +208,7 @@ let () =
           kind.Frame.audio = Frame.Succ Frame.Variable ||
           (* libmad always respects the first two kinds *)
           if Frame.type_has_kind (get_type filename) kind then true else begin
-             log#f 3
+             log#important
                "File %S has an incompatible number of channels."
                filename ;
              false

@@ -22,7 +22,6 @@
 
 open Source
 open Request_source
-open Dtools
 
 exception Invalid_URI
 
@@ -32,7 +31,7 @@ object (self)
   inherit Request_source.unqueued ~name:"single" ~kind as super
 
   method wake_up x =
-    self#log#f 3 "%S is static, resolving once for all..." (Request.initial_uri r) ;
+    self#log#important "%S is static, resolving once for all..." (Request.initial_uri r) ;
     if Request.Resolved <> Request.resolve r 60. then
       raise Invalid_URI ;
     let filename = Utils.get_some (Request.get_filename r) in
@@ -105,7 +104,7 @@ object (self)
         Some req
     with
       | e ->
-          log#f 2 "Failed to obtain a media request!" ;
+          log#severe "Failed to obtain a media request!" ;
           raise e
 end
 

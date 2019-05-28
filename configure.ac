@@ -675,7 +675,7 @@ let get_encoding () =
           custom_encoding := Some e ;
           e
 
-let camolog = Dtools.Log.make [["camomile"]]
+let camolog = Log.make [["camomile"]]
 
 exception Input_encoding of string
 exception Output_encoding of string
@@ -705,21 +705,21 @@ let recode_tag ?in_enc ?out_enc s =
           else
             C.name_of in_enc
         in
-        camolog#f 3 "Failed to convert %S from %s to %s (%s)!"
+        camolog#important "Failed to convert %S from %s to %s (%s)!"
           s in_enc (C.name_of out_enc) (Printexc.to_string e) ;
         s
   with
     | Unknown_encoding e ->
-          camolog#f 3 "Failed to convert %S: unknown encoding %s"
+          camolog#important "Failed to convert %S: unknown encoding %s"
               s e ; s
     | Input_encoding e -> 
-          camolog#f 3 "Failed to convert %S: unknown input encoding %s"
+          camolog#important "Failed to convert %S: unknown input encoding %s"
               s e ; s
     | Output_encoding e ->        
-          camolog#f 3 "Failed to convert %S: unknown output encoding %s"
+          camolog#important "Failed to convert %S: unknown output encoding %s"
               s e ; s
     | e ->
-          camolog#f 3 "Failed to convert %S: unknown error %s"
+          camolog#important "Failed to convert %S: unknown error %s"
               s (Printexc.to_string e) ; s
 
 let env_has key = try ignore (Sys.getenv key) ; true with Not_found -> false

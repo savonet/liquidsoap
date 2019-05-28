@@ -36,7 +36,7 @@ object (self)
       List.iter
         (fun (i,m) ->
            if i>=p then begin
-             self#log#f 5 "Got metadata at position %d: calling handler..." i ;
+             self#log#warning "Got metadata at position %d: calling handler..." i ;
              ignore (Lang.apply ~t:Lang.unit_t f ["",Lang.metadata m])
            end)
         (Frame.get_all_metadata ab)
