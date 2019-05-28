@@ -40,20 +40,20 @@ let make path : t =
     method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a = log#f
 
     (** The program will not function after that. *)
-    method critical : 'a. ('a, unit, string, unit) format4 -> 'a = log#critical
+    method critical : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 1
 
     (** The behavior of the program will be strongly affected. *)
-    method severe : 'a. ('a, unit, string, unit) format4 -> 'a = log#severe
+    method severe : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 2
 
     (** The user should now about this. *)
-    method important : 'a. ('a, unit, string, unit) format4 -> 'a = log#important
+    method important : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 3
 
     (** The advanced user should be interested in this. *)
-    method info : 'a. ('a, unit, string, unit) format4 -> 'a = log#info
+    method info : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 4
 
     (** By the way. *)
-    method warning : 'a. ('a, unit, string, unit) format4 -> 'a = log#warning
+    method warning : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 5
 
     (** If you are debugging. *)
-    method debug : 'a. ('a, unit, string, unit) format4 -> 'a = log#debug
+    method debug : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 6
   end

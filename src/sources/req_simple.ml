@@ -22,7 +22,6 @@
 
 open Source
 open Request_source
-open Dtools
 
 exception Invalid_URI
 

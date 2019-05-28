@@ -675,7 +675,7 @@ let get_encoding () =
           custom_encoding := Some e ;
           e
 
-let camolog = Dtools.Log.make [["camomile"]]
+let camolog = Log.make [["camomile"]]
 
 exception Input_encoding of string
 exception Output_encoding of string

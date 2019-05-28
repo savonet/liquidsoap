@@ -24,12 +24,10 @@
   * [src/protocols] plugins provide ways
   * to resolve URIs: fetch, generate, ... *)
 
-open Dtools
-
 let conf =
-  Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
+  Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 let grace_time =
-  Conf.float ~p:(conf#plug "grace_time") ~d:600.
+  Dtools.Conf.float ~p:(conf#plug "grace_time") ~d:600.
     "Time (in seconds) after which a destroyed request cannot be accessed anymore."
 
 let log = Log.make ["request"]
@@ -300,12 +298,12 @@ let mresolvers =
     ~doc:mresolvers_doc ~insensitive:true "metadata formats"
 
 let conf_override_metadata =
-  Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
+  Dtools.Conf.bool ~p:(conf_metadata_decoders#plug "override") ~d:false
       "Allow metadata resolvers to override metadata already \
        set through annotate: or playlist resolution for instance."
 
 let conf_duration =
-  Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
+  Dtools.Conf.bool ~p:(conf_metadata_decoders#plug "duration") ~d:false
     "Compute duration in the \"duration\" metadata, if the metadata is not \
      already present. This can take a long time and the use of this option is \
      not recommended: the proper way is to have a script precompute the \
