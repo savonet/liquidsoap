@@ -20,7 +20,8 @@
 
  *****************************************************************************)
 
-val conf_tmp : string Dtools.Conf.t
-val conf_rw  : string list Dtools.Conf.t
-val conf_ro  : string list Dtools.Conf.t
-val cmd      : ?tmp:string -> ?rw:(string list) -> ?ro:(string list) -> ?network:bool -> string -> string
+val conf_tmp     : string Dtools.Conf.t
+val conf_rw      : string list Dtools.Conf.t
+val conf_ro      : string list Dtools.Conf.t
+val conf_network : bool Dtools.Conf.t 
+val cmd          : ?tmp:string -> ?rw:(string list) -> ?ro:(string list) -> ?network:bool -> string -> string
