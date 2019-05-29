@@ -12,8 +12,9 @@ strong components working together.
 
 Copyright 2003-2019 Savonet team
 
-|     |             |
+|              |                                              |
 | ------------ | -------------------------------------------- |
+| Slack Chat   | http://slack.liquidsoap.info/                |
 | Mailing list | savonet-users@lists.sourceforge.net          |
 | Homepage     | http://liquidsoap.info                       |
 | Bug reports  | https://github.com/savonet/liquidsoap/issues |
