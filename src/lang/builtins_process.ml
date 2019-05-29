@@ -52,7 +52,7 @@ let () =
      Some "Read/write directories for sandboxing.";
      "rodirs", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_ro#get)),
      Some "Read-only directories for sandboxing.";
-     "network", Lang.bool_t, Some (Lang.bool true),
+     "network", Lang.bool_t, Some (Lang.bool Sandbox.conf_network#get),
      Some "Enable or disable network inside sandboxed environment.";
      "timeout", Lang.float_t,Some (Lang.float (-1.)),
      Some "Cancel process after `timeout` has elapsed. Ignored if negative.";
