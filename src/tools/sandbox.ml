@@ -110,10 +110,10 @@ let cmd ?tmp ?rw ?ro ?network cmd =
   let network = f conf_network#get network in
   let t = sandboxer.init ~tmp ~network in
   let t =
-    sandboxer.mount t ~flag:`Rw tmp
+    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Ro path) t ro
   in
   let t =
-    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Ro path) t ro
+    sandboxer.mount t ~flag:`Rw tmp
   in
   let t =
     List.fold_left (fun t path -> sandboxer.mount t ~flag:`Rw path) t rw
