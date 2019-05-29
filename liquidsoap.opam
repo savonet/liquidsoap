@@ -16,7 +16,7 @@ remove: [
   ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
 ]
 depends: [
-  "ocaml" {>= "4.03"}
+  "ocaml" {>= "4.07"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.1"}
   "duppy" {>= "0.8.0"}
