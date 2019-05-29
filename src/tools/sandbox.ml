@@ -80,9 +80,9 @@ let disabled = {
 
 let bwrap = {
   init = (fun ~tmp ~network -> Printf.sprintf
-    "%s --new-session --proc /proc --dev /dev \
+    "--new-session --proc /proc --dev /dev \
      --setenv TMPDIR %S --setenv TMP %S --setenv TEMPDIR %S --setenv TEMP %S \
-     --tmpfs /run" (if network then "" else "--unshare-net") tmp tmp tmp tmp);
+     --tmpfs /run %s" (if network then "" else "--unshare-net") tmp tmp tmp tmp);
   mount = (fun t ~flag path ->
     match flag with
       | `Ro ->
