@@ -98,19 +98,6 @@ let hashtbl_get : ('a,'b) Hashtbl.t -> 'a -> 'b option =
   fun h k ->
     try Some (Hashtbl.find h k) with Not_found -> None
 
-(* Backward-compatible API.. *)
-
-module LazyCompat =
-struct
-  let from_fun f = lazy (f ())
-  let from_val v = lazy v
-  (* Make compiler happy.. *)
-  let () =
-    ignore(from_fun (fun () -> ()));
-    ignore(from_val ())
-  include Lazy
-end
-
 (** Unescape a string. *)
 let unescape s =
   try

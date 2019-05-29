@@ -24,12 +24,11 @@ module Img = Image.RGBA32
 module Gen = Image.Generic
 
 (** Converter used to resize images. *)
-let converter =
-  Utils.LazyCompat.from_fun
-    (fun () ->
-      Video_converter.find_converter
-        (Gen.Pixel.RGB Gen.Pixel.RGBA32)
-        (Gen.Pixel.RGB Gen.Pixel.RGBA32))
+let converter = lazy
+  ((fun () ->
+    Video_converter.find_converter
+      (Gen.Pixel.RGB Gen.Pixel.RGBA32)
+      (Gen.Pixel.RGB Gen.Pixel.RGBA32)) ())
 
 (** Function to retrieve width an height from parameters. *)
 (* TODO: put this in some library as it can be used in many other places... *)
