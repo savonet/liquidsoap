@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Dtools.Log.make ["sandbox"]
+let log = Log.make ["sandbox"]
 
 let conf_sandbox =
   Dtools.Conf.void ~p:(Configure.conf#plug "sandbox")
@@ -53,13 +53,14 @@ let conf_network =
 let () =
   ignore(Dtools.Init.at_start (fun () ->
     if conf_tool#get = "disabled" then
-      log#f 3 "Sandboxing disabled"
+      log#important "Sandboxing disabled"
     else
      begin
-      log#f 3 "Sandboxing using %s at %s" conf_tool#get conf_binary#get;
-      log#f 3 "Temporary directory: %s" conf_tmp#get;
-      log#f 3 "Read/write directories: %s" (String.concat ", " conf_rw#get);  
-      log#f 3 "Read-only directories: %s" (String.concat ", " conf_ro#get)
+      log#important "Sandboxing using %s at %s" conf_tool#get conf_binary#get;
+      log#important "Temporary directory: %s" conf_tmp#get;
+      log#important "Read/write directories: %s" (String.concat ", " conf_rw#get);  
+      log#important "Read-only directories: %s" (String.concat ", " conf_ro#get);
+      log#important "Network allowed: %b" conf_network#get
      end
   ))
 
@@ -76,23 +77,6 @@ let disabled = {
   mount = (fun t ~flag:_ _ -> t);
   cmd = fun _ cmd -> cmd
 } 
-
-let sandbox_exec = {
-  init = (fun ~tmp:_ ~network -> Printf.sprintf
-    "(version 1)(allow default)%s(deny file-write*)\
-     (allow file-write* (literal \"/dev/null\") (literal \"/dev/dtracehelper\"))"
-    (if network then
-       "(allow network*)"
-     else
-       "(allow network*)(allow network* (remote unix))"));
-  mount = (fun t ~flag path ->
-    match flag with
-      | `Ro ->
-          Printf.sprintf "%s(deny file-write* (subpath %S))" t path
-      | `Rw ->
-          Printf.sprintf "%s(allow file-write* (subpath %S))" t path);
-  cmd = Printf.sprintf "%s -p %S %s" conf_binary#get
-}
 
 let bwrap = {
   init = (fun ~tmp ~network -> Printf.sprintf
@@ -112,7 +96,6 @@ let cmd ?tmp ?rw ?ro ?network cmd =
   let sandboxer =
     match conf_tool#get with
       | "disabled" -> disabled
-      | "sandbox-exec" -> sandbox_exec
       | "bwrap" -> bwrap
       | v -> raise (Lang_errors.Invalid_value ((Lang.string v), "Invalid sandbox tool"))
   in
@@ -130,10 +113,10 @@ let cmd ?tmp ?rw ?ro ?network cmd =
     sandboxer.mount t ~flag:`Rw tmp
   in
   let t =
-    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Rw path) t rw
+    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Ro path) t ro
   in
   let t =
-    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Ro path) t ro
+    List.fold_left (fun t path -> sandboxer.mount t ~flag:`Rw path) t rw
   in
   sandboxer.cmd t cmd
    

@@ -140,15 +140,9 @@ __BLAH__
 fi
 
 AC_PATH_PROG([BWRAP],[bwrap],[])
-AC_PATH_PROG([SANDBOX_EXEC],[sandbox-exec],[])
 
 SANDBOX_TOOL=disabled
-SANDBOX_BINARY="requires bwrap (linux) or sandbox-exec (OSX)"
-
-if test -n "${SANDBOX_EXEC}"; then
-  SANDBOX_TOOL=sandbox-exec
-  SANDBOX_BINARY=$SANDBOX_EXEC
-fi
+SANDBOX_BINARY="requires bwrap"
 
 if test -n "${BWRAP}"; then
   SANDBOX_TOOL=bwrap
