@@ -46,14 +46,15 @@ let () =
      "inherit_env", Lang.bool_t,
      Some (Lang.bool true), Some "Inherit calling process's environment when \
        `env` parameter is empty.";
-     "tmpdir", Lang.string_t, Some (Lang.string Sandbox.conf_tmp#get),
-     Some "Temporary directory for sandboxing.";
-     "rwdirs", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_rw#get)),
-     Some "Read/write directories for sandboxing.";
-     "rodirs", path_t, Some (Lang.list ~t:Lang.string_t (List.map Lang.string Sandbox.conf_ro#get)),
-     Some "Read-only directories for sandboxing.";
-     "network", Lang.bool_t, Some (Lang.bool Sandbox.conf_network#get),
-     Some "Enable or disable network inside sandboxed environment.";
+     "tmpdir", Lang.string_t, Some (Lang.string "default"),
+     Some "Temporary directory for sandboxing. `\"default\"` is sandbox default.";
+     "rwdirs", path_t, Some (Lang.list ~t:Lang.string_t [Lang.string "default"]),
+     Some "Read/write directories for sandboxing. `\"default\"` expands to sandbox default.";
+     "rodirs", path_t, Some (Lang.list ~t:Lang.string_t [Lang.string "default"]),
+     Some "Read-only directories for sandboxing. `\"default\"` expands to sandbox default.";
+     "network", Lang.string_t, Some (Lang.string "default"),
+     Some "Enable or disable network inside sandboxed environment. One of: `\"default\"`, \
+           `\"true\"` or `\"false\"`. `\"default\"` is sandbox default.";
      "timeout", Lang.float_t,Some (Lang.float (-1.)),
      Some "Cancel process after `timeout` has elapsed. Ignored if negative.";
      "",Lang.string_t,None,Some "Command to run"] ret_t
@@ -68,16 +69,39 @@ let () =
        let sandbox_tmp =
          Lang.to_string (List.assoc "tmpdir" p)
        in
+       let sandbox_tmp =
+         if sandbox_tmp = "default" then
+           Sandbox.conf_tmp#get
+         else
+           sandbox_tmp
+       in
        let sandbox_rw =
          List.map Lang.to_string
            (Lang.to_list (List.assoc "rwdirs" p))
+       in
+       let sandbox_rw = List.fold_left
+         (fun cur el ->
+           if el = "default" then
+             cur@Sandbox.conf_rw#get
+           else el::cur) [] sandbox_rw
        in
        let sandbox_ro =
          List.map Lang.to_string
            (Lang.to_list (List.assoc "rodirs" p))
        in
+       let sandbox_rw = List.fold_left
+         (fun cur el ->
+           if el = "default" then
+             cur@Sandbox.conf_ro#get
+           else el::cur) [] sandbox_rw
+       in
        let sandbox_network =
-         Lang.to_bool (List.assoc "network" p)
+         let v = List.assoc "network" p in
+         match Lang.to_string v with
+           | "default" -> Sandbox.conf_network#get
+           | "true" -> true
+           | "false" -> false
+           | _ -> raise (Lang_errors.Invalid_value (v, "should be one of: \"default\", \"true\" or \"false\"")) 
        in
        let inherit_env = Lang.to_bool
          (List.assoc "inherit_env" p)
