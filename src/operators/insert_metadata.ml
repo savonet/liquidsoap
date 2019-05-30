@@ -23,7 +23,7 @@
 open Source
 exception Error
 
-class insert_metadata ~kind ~newtrack source =
+class insert_metadata ~kind source =
 object (self)
   inherit operator ~name:"insert_metadata" kind [source]
 
@@ -33,20 +33,25 @@ object (self)
   method abort_track = source#abort_track
 
   val mutable metadata = None
+  val mutable newtrack = false
   val lock_m = Mutex.create ()
   val mutable ns = []
 
-  method insert_metadata m : unit =
+  method insert_metadata nt m : unit =
     Mutex.lock lock_m ;
     metadata <- Some m ;
+    newtrack <- nt ;
     Mutex.unlock lock_m
 
-  method has_metadata =
+  method private has_metadata =
     Tutils.mutexify lock_m (fun () -> metadata <> None) ()
+
+  method private insert_track =
+    Tutils.mutexify lock_m (fun () -> newtrack && metadata <> None) ()
 
   method private get_frame buf =
     let p = Frame.position buf in
-    if newtrack && self#has_metadata then
+    if self#insert_track then
       Frame.add_break buf p
     else
       source#get buf;
@@ -55,6 +60,7 @@ object (self)
         match metadata with
         | Some m ->
            Frame.set_metadata buf p m;
+           newtrack <- false ;
            metadata <- None
         | None -> ()) ()
 end
@@ -63,14 +69,17 @@ let () =
   let kind = Lang.univ_t 1 in
   let return_t =
     Lang.product_t
-      (Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t)
+      (Lang.fun_t [true,"newtrack",Lang.bool_t;
+                   false,"",Lang.metadata_t] Lang.unit_t)
       (Lang.source_t kind)
   in
   Lang.add_builtin "insert_metadata"
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:"Dynamically insert metadata in a stream. Returns a pair `(f,s)` \
             where s is a new source and `f` is a function of type \
-            `(metadata)->unit`, used to insert metadata in `s`."
+            `(?newtrack,metadata)->unit`, used to insert metadata in `s`. \
+            `f` also inserts a new track with the given metadata if passed \
+            `newtrack=true`."
     [ "id",Lang.string_t,Some (Lang.string ""),
       Some "Force the value of the source ID.";
       "",Lang.source_t kind,None,None ] return_t
@@ -81,44 +90,17 @@ let () =
       let kind =
         Lang.frame_kind_of_kind_type (Lang.of_source_t t)
       in
-      let s = new insert_metadata ~kind ~newtrack:false s in
+      let s = new insert_metadata ~kind s in
       if id <> "" then s#set_id id ;
       let f =
-        Lang.val_fun ["","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
+        Lang.val_fun ["newtrack","newtrack",Lang.bool_t, Some (Lang.bool false);
+                      "","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
           (fun p _ ->
-            s#insert_metadata (Lang.to_metadata (List.assoc "" p));
-            Lang.unit)
-      in
-      Lang.product f (Lang.source (s :> Source.source)))
-
-let () =
-  let kind = Lang.univ_t 1 in
-  let return_t =
-    Lang.product_t
-      (Lang.fun_t [false,"",Lang.metadata_t] Lang.unit_t)
-      (Lang.source_t kind)
-  in
-  Lang.add_builtin "insert_track"
-    ~category:(Lang.string_of_category Lang.TrackProcessing)
-    ~descr:"Dynamically insert tracks in a stream. Returns a pair `(f,s)` where \
-            s is a new source and `f` is a function of type `(metadata)->unit`, \
-            used to insert track with given metadata in `s`."
-    [ "id",Lang.string_t,Some (Lang.string ""),
-      Some "Force the value of the source ID.";
-      "",Lang.source_t kind,None,None ] return_t
-    (fun p t ->
-      let s = Lang.to_source (List.assoc "" p) in
-      let id = Lang.to_string (List.assoc "id" p) in
-      let (_,t) = Lang.of_product_t t in
-      let kind =
-        Lang.frame_kind_of_kind_type (Lang.of_source_t t)
-      in
-      let s = new insert_metadata ~kind ~newtrack:true s in
-      if id <> "" then s#set_id id ;
-      let f =
-        Lang.val_fun ["","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
-          (fun p _ ->
-            s#insert_metadata (Lang.to_metadata (List.assoc "" p));
+            let m = Lang.to_metadata (List.assoc "" p) in
+            let newtrack =
+               Lang.to_bool (List.assoc "newtrack" p)
+            in
+            s#insert_metadata newtrack m;
             Lang.unit)
       in
       Lang.product f (Lang.source (s :> Source.source)))
