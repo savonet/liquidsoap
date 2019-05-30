@@ -1,4 +1,4 @@
-.PHONY: doc upload all-subdirs
+.PHONY: md doc upload all-subdirs
 
 SUBDIRS = content
 DISTFILES = liquidsoap.1 Makefile template.html snippet.html
@@ -76,5 +76,3 @@ sphinx-html:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 # %: Makefile md
 #	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-.PHONY: md
