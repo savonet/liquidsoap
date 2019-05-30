@@ -477,7 +477,8 @@ let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
     if n mod 1000 = 0 then
       log#severe
         "There are currently %d RIDs! Please check that you don't have a loop on \
-         empty/unavailable requests and decrease request.grace_time." n
+         empty/unavailable requests, or creating requests without destroying \
+         them. Decreasing request.grace_time can also help." n
   in
   let rid,register = Pool.add () in
   let t = {
