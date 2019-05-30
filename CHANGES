@@ -89,6 +89,8 @@ Changed:
 
 - Keep master tracks' boundaries in `mux_*` functions. (#795)
 
+- Added `insert_track`.
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
