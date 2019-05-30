@@ -10,7 +10,7 @@ MD=$(wildcard content/*.md) content/protocols.md content/reference.md content/se
 HTML=$(addprefix html/,$(notdir $(MD:.md=.html)))
 PDF=$(addprefix pdf/,$(notdir $(MD:.md=.pdf)))
 
-doc: md html pdf
+doc: md html
 
 md: $(MD)
 
