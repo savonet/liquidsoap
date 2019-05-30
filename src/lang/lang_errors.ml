@@ -33,7 +33,7 @@ let error    = Console.colorize [`red;`bold] "Error"
 let warning  = Console.colorize [`yellow;`bold] "Warning"
 
 let position pos =
-  Console.colorize [`blue;`bold] (String.capitalize_ascii pos)
+  Console.colorize [`white;`bold] (String.capitalize_ascii pos)
 
 let error_header idx pos =
   Format.printf "@[%s:\n%s %i: " (position pos) error idx
