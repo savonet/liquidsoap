@@ -657,3 +657,19 @@ end
 def log.debug(~label="lang",msg) =
   log(label=label,level=6,msg)
 end
+
+# Regularly insert track boundaries in a stream (useful for testing tracks).
+# @param duration Duration of a track (in seconds).
+# @category Source / Track Processing
+def chop(~duration=float_getter(3.),s) =
+  duration=to_float_getter(duration)
+  is = insert_track(s)
+  insert = fst(is)
+  s = snd(is)
+  def f () =
+    insert([])
+    duration()
+  end
+  add_timeout(duration(), f)
+  s
+end
