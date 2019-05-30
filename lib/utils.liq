@@ -587,7 +587,8 @@ def overlap_sources(~id="",~normalize=false,
 
   # Set send_to_main_source
   x = insert_metadata(source)
-  send_to_main_source := fst(x)
+  f = fst(x)
+  send_to_main_source := fun (m) -> f(m)
   snd(x)
 end
 
@@ -663,11 +664,11 @@ end
 # @category Source / Track Processing
 def chop(~duration=float_getter(3.),s) =
   duration=to_float_getter(duration)
-  is = insert_track(s)
+  is = insert_metadata(s)
   insert = fst(is)
   s = snd(is)
   def f () =
-    insert([])
+    insert(newtrack=true,[])
     duration()
   end
   add_timeout(duration(), f)
