@@ -89,7 +89,7 @@ Changed:
 
 - Keep master tracks' boundaries in `mux_*` functions. (#795)
 
-- Added `newtrack` optional argument to callback in `insert_metadata`.
+- Added `new_track` optional argument to callback in `insert_metadata`.
 
 Fixed:
 

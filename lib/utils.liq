@@ -668,7 +668,7 @@ def chop(~duration=float_getter(3.),s) =
   insert = fst(is)
   s = snd(is)
   def f () =
-    insert(newtrack=true,[])
+    insert(new_track=true,[])
     duration()
   end
   add_timeout(duration(), f)

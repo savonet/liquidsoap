@@ -33,21 +33,21 @@ object (self)
   method abort_track = source#abort_track
 
   val mutable metadata = None
-  val mutable newtrack = false
+  val mutable new_track = false
   val lock_m = Mutex.create ()
   val mutable ns = []
 
   method insert_metadata nt m : unit =
     Mutex.lock lock_m ;
     metadata <- Some m ;
-    newtrack <- nt ;
+    new_track <- nt ;
     Mutex.unlock lock_m
 
   method private has_metadata =
     Tutils.mutexify lock_m (fun () -> metadata <> None) ()
 
   method private insert_track =
-    Tutils.mutexify lock_m (fun () -> newtrack && metadata <> None) ()
+    Tutils.mutexify lock_m (fun () -> new_track && metadata <> None) ()
 
   method private get_frame buf =
     let p = Frame.position buf in
@@ -60,7 +60,7 @@ object (self)
         match metadata with
         | Some m ->
            Frame.set_metadata buf p m;
-           newtrack <- false ;
+           new_track <- false ;
            metadata <- None
         | None -> ()) ()
 end
@@ -69,7 +69,7 @@ let () =
   let kind = Lang.univ_t 1 in
   let return_t =
     Lang.product_t
-      (Lang.fun_t [true,"newtrack",Lang.bool_t;
+      (Lang.fun_t [true,"new_track",Lang.bool_t;
                    false,"",Lang.metadata_t] Lang.unit_t)
       (Lang.source_t kind)
   in
@@ -77,9 +77,9 @@ let () =
     ~category:(Lang.string_of_category Lang.TrackProcessing)
     ~descr:"Dynamically insert metadata in a stream. Returns a pair `(f,s)` \
             where s is a new source and `f` is a function of type \
-            `(?newtrack,metadata)->unit`, used to insert metadata in `s`. \
+            `(?new_track,metadata)->unit`, used to insert metadata in `s`. \
             `f` also inserts a new track with the given metadata if passed \
-            `newtrack=true`."
+            `new_track=true`."
     [ "id",Lang.string_t,Some (Lang.string ""),
       Some "Force the value of the source ID.";
       "",Lang.source_t kind,None,None ] return_t
@@ -93,14 +93,14 @@ let () =
       let s = new insert_metadata ~kind s in
       if id <> "" then s#set_id id ;
       let f =
-        Lang.val_fun ["newtrack","newtrack",Lang.bool_t, Some (Lang.bool false);
+        Lang.val_fun ["new_track","new_track",Lang.bool_t, Some (Lang.bool false);
                       "","",Lang.metadata_t,None] ~ret_t:Lang.unit_t
           (fun p _ ->
             let m = Lang.to_metadata (List.assoc "" p) in
-            let newtrack =
-               Lang.to_bool (List.assoc "newtrack" p)
+            let new_track =
+               Lang.to_bool (List.assoc "new_track" p)
             in
-            s#insert_metadata newtrack m;
+            s#insert_metadata new_track m;
             Lang.unit)
       in
       Lang.product f (Lang.source (s :> Source.source)))
