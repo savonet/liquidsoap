@@ -267,7 +267,7 @@ let params_of_descr d =
                        | None -> ()
                      end ;
                      bounds :=
-                     !bounds ^ "<code>" ^ (Utils.normalize_parameter_string (Descriptor.port_name d p)) ^ "</code>";
+                     !bounds ^ "`" ^ (Utils.normalize_parameter_string (Descriptor.port_name d p)) ^ "`";
                      begin match max with
                        | Some f ->
                            begin match t with

@@ -38,7 +38,7 @@ let () =
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
             `((stdout,stderr),status)` where status is one of: \
-            `(\"exit\",\"<code>\")`, `(\"killed\",\"<signal number>\")`, \
+            `(\"exit\",\"`\")`, `(\"killed\",\"<signal number>\")`, \
             `(\"stopped\",\"<signal number>\")`, `(\"exception\",\"<exception description>\")`, \
             `(\"timeout\",\"<run time>\")`."
     ["env",Lang.list_t env_t,

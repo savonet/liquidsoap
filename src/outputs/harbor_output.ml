@@ -105,8 +105,8 @@ module Make (T : T) = struct
                [("", Lang.string_t, None); ("", Lang.string_t, None)]
                (Lang.bool false))
         , Some
-            "Authentication function. <code>f(login,password)</code> returns \
-             <code>true</code> if the user should be granted access for this \
+            "Authentication function. `f(login,password)` returns \
+             `true` if the user should be granted access for this \
              login. Override any other method if used." )
       ; ( "buffer"
         , Lang.int_t

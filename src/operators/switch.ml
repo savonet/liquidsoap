@@ -272,7 +272,7 @@ let common kind = [
   Lang.list_t transition_t,
   Some (Lang.list ~t:transition_t []),
   Some "Transition functions, \
-        padded with <code>fun (x,y) -> y</code> functions."
+        padded with `fun (x,y) -> y` functions."
 ]
 
 let default_transition k =
@@ -355,7 +355,7 @@ let () =
   let proto =
     [ "single", Lang.list_t Lang.bool_t, Some (Lang.list ~t:Lang.bool_t []),
       Some "Forbid the selection of a branch for two tracks in a row. \
-            The empty list stands for <code>[false,...,false]</code>." ;
+            The empty list stands for `[false,...,false]`." ;
       "", Lang.list_t (Lang.product_t pred_t (Lang.source_t kind)), None,
       Some "Sources with the predicate telling when they can be played." ]
   in
@@ -483,7 +483,7 @@ let () =
   let add name strict descr weight_descr =
     let kind = Lang.univ_t 1 in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
-      (common  kind @
+      (common kind @
        [ "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
          Some weight_descr ;
          "", Lang.list_t (Lang.source_t kind), None, None ])

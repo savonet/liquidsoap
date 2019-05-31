@@ -98,8 +98,8 @@ let () =
   in
     add_builtin ~cat:Liq "set"
       ~descr:"Change some setting. \
-              Use <code>liquidsoap --conf-descr</code> and \
-              <code>liquidsoap --conf-descr-key KEY</code> on \
+              Use `liquidsoap --conf-descr` and \
+              `liquidsoap --conf-descr-key KEY` on \
               the command-line to get some information \
                                     about available settings."
       ["",Lang.string_t,None,None;

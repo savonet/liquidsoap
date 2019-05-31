@@ -1091,7 +1091,7 @@ let () =
   add_builtin "add_timeout" ~cat:Control
     [ "fast", Lang.bool_t, Some (Lang.bool true),
       Some
-        "Set to <code>false</code> if the execution of the code can take long \
+        "Set to `false` if the execution of the code can take long \
          in order to lower its priority below that of request resolutions and \
          fast timeouts. \
          This is only effective if you set a dedicated queue for fast tasks, \
@@ -1342,12 +1342,12 @@ let () =
       Lang.string_t
       ~descr:"\
    Parse command line options:\n\
-   <code>getopt(\"-o\")</code> returns \"1\" if \"-o\" was passed \
+   `getopt(\"-o\")` returns \"1\" if \"-o\" was passed \
    without any parameter, \"0\" otherwise.\n\
-   <code>getopt(default=\"X\",\"-o\")</code> returns \"Y\" if \"-o Y\" \
+   `getopt(default=\"X\",\"-o\")` returns \"Y\" if \"-o Y\" \
    was passed, \"X\" otherwise.\n\
    The result is removed from the list of arguments, affecting subsequent\n\
-   calls to <code>argv()</code> and <code>getopt()</code>."
+   calls to `argv()` and `getopt()`."
       (fun p ->
          let default = Lang.to_string (List.assoc "default" p) in
          let name = Lang.to_string (List.assoc "" p) in

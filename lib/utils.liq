@@ -397,7 +397,7 @@ end
 # Restrict a source to play only when a predicate is true.
 # @category Source / Track Processing
 # @param pred The predicate, typically a time interval such as \
-#             <code>{10h-10h30}</code>.
+#             `{10h-10h30}`.
 def at(pred,s)
   switch([(pred,s)])
 end
@@ -407,7 +407,7 @@ end
 # @category System
 # @param ~freq Frequency for checking the predicate, in seconds.
 # @param ~pred Predicate indicating when to execute the function, \
-#              typically a time interval such as <code>{10h-10h30}</code>.
+#              typically a time interval such as `{10h-10h30}`.
 # @param f Function to execute when the predicate is true.
 def exec_at(~freq=1.,~pred,f)
   def check()
@@ -469,12 +469,12 @@ def skip_blank(~id="",~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensit
 end
 
 # Same operator as rotate but merges tracks from each sources.
-# For instance, <code>rotate.merge([intro,main,outro])</code> creates a source
-# that plays a sequence <code>[intro,main,outro]</code> as single track and loops back.
+# For instance, `rotate.merge([intro,main,outro])` creates a source
+# that plays a sequence `[intro,main,outro]` as single track and loops back.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
-# @param ~transitions Transition functions, padded with <code>fun (x,y) -> y</code> functions.
+# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
 def rotate.merge(~id="",~track_sensitive=true,~transitions=[],~weights=[],sources)

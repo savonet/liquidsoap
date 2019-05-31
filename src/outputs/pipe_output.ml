@@ -46,7 +46,7 @@ let pipe_proto kind arg_doc =
        None,
        Some (arg_doc ^
              " Some strftime conversion specifiers are available: \
-             <code>%SMHdmY</code>. You can also use <code>$(..)</code> \
+             `%SMHdmY`. You can also use `$(..)` \
              interpolation notation for metadata.") ;
 
        "", Lang.source_t kind, None, None ])
