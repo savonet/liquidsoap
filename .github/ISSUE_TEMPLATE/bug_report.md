@@ -1,6 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
@@ -22,5 +25,3 @@ Did you install via `opam`? Using your distribution's packages? From source?
 
 **Common issues**
 Can't decode or encode in some audio format? Check if you have [installed the correct dependencies](https://www.liquidsoap.info/download.html)
-
-
