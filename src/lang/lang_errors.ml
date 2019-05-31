@@ -30,10 +30,10 @@ exception Clock_conflict of (T.pos option * string * string)
 exception Clock_loop of (T.pos option * string * string)
 
 let error    = Console.colorize [`red;`bold] "Error"
-let warning  = Console.colorize [`yellow;`bold] "Warning"
+let warning  = Console.colorize [`magenta;`bold] "Warning"
 
 let position pos =
-  Console.colorize [`blue;`bold] (String.capitalize_ascii pos)
+  Console.colorize [`bold] (String.capitalize_ascii pos)
 
 let error_header idx pos =
   Format.printf "@[%s:\n%s %i: " (position pos) error idx
