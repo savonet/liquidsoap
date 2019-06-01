@@ -118,5 +118,9 @@ let cmd ?tmp ?rw ?ro ?network cmd =
   let t =
     List.fold_left (fun t path -> sandboxer.mount t ~flag:`Rw path) t rw
   in
-  sandboxer.cmd t cmd
+  let cmd =
+    sandboxer.cmd t cmd
+  in
+  log#debug "Command: %s" cmd;
+  cmd
    
