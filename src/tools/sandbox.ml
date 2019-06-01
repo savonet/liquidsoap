@@ -82,7 +82,7 @@ let bwrap = {
   init = (fun ~tmp ~network -> Printf.sprintf
     "--new-session --proc /proc --dev /dev \
      --setenv TMPDIR %S --setenv TMP %S --setenv TEMPDIR %S --setenv TEMP %S \
-     --tmpfs /run %s" (if network then "" else "--unshare-net") tmp tmp tmp tmp);
+     --tmpfs /run %s" tmp tmp tmp tmp (if network then "" else "--unshare-net"));
   mount = (fun t ~flag path ->
     match flag with
       | `Ro ->
