@@ -89,11 +89,11 @@ let () =
          List.map Lang.to_string
            (Lang.to_list (List.assoc "rodirs" p))
        in
-       let sandbox_rw = List.fold_left
+       let sandbox_ro = List.fold_left
          (fun cur el ->
            if el = "default" then
              cur@Sandbox.conf_ro#get
-           else el::cur) [] sandbox_rw
+           else el::cur) [] sandbox_ro
        in
        let sandbox_network =
          let v = List.assoc "network" p in
