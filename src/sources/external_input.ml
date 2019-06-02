@@ -50,7 +50,7 @@ class external_input ~kind ~restart ~bufferize ~channels
     let buffered = Generator.length abg in
     Generator.put_audio abg data 0 (Array.length data.(0));
     if abg_max_len < buffered+len then
-      `Delay (Frame.seconds_of_audio (buffered+len-abg_max_len))
+      `Delay (Frame.seconds_of_audio (buffered+len-3*abg_max_len/4))
     else
       `Continue
   in
