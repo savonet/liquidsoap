@@ -661,14 +661,15 @@ end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
 # @param duration Duration of a track (in seconds).
+# @param metadata Metadata for tracks
 # @category Source / Track Processing
-def chop(~duration=float_getter(3.),s) =
+def chop(~duration=float_getter(3.),~metadata=[],s) =
   duration=to_float_getter(duration)
   is = insert_metadata(s)
   insert = fst(is)
   s = snd(is)
   def f () =
-    insert(new_track=true,[])
+    insert(new_track=true, metadata)
     duration()
   end
   add_timeout(duration(), f)
