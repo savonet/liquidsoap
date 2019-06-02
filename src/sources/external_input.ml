@@ -73,7 +73,7 @@ object (self)
   method wake_up _ =
     (* Now we can create the log function *)
     log_ref := self#log#important "%s";
-    log_error := self#log#warning "%s";
+    log_error := self#log#info "%s";
     process <- Some (Process_handler.run ~on_stop ~on_stdout 
                                          ~on_stderr ~log command)
 
@@ -156,12 +156,13 @@ object (self)
 
   method wake_up _ =
     (* Now we can create the log function *)
-    log_ref := self#log#important "%s" ;
-    self#log#severe "Starting process.";
+    log_ref := self#log#info "%s" ;
+    self#log#warning "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
+    self#log#important "Starting process.";
     let (_, in_d) as x = create () in
     let rec process ((in_e,in_d) as x) l =
       let do_restart s restart f =
-        self#log#severe "%s" s;
+        self#log#important "%s" s;
         begin
           try
             ignore (Unix.close_process_in in_e);
@@ -170,7 +171,7 @@ object (self)
         end;
         if restart then
           begin
-            self#log#severe "Restarting process.";
+            self#log#important "Restarting process.";
             let ((_,in_d) as x) = create () in
             [{ Duppy.Task.
                priority = priority;
@@ -181,7 +182,7 @@ object (self)
         else
           begin
             f ();
-            self#log#severe "Task exited.";
+            self#log#important "Task exited.";
             []
           end
       in
@@ -190,7 +191,8 @@ object (self)
           if should_stop then raise (Finished ("Source stoped: closing process.",false));
           let len = Generator.length abg - abg_max_len in
           if len >= 0 then
-            let delay = Frame.seconds_of_audio len in
+            (* Wait until buffer is 3/4 full *)
+            let delay = Frame.seconds_of_master (abg_max_len / 4 + len) in
             [`Delay delay]
           else
             begin
