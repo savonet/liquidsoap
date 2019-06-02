@@ -1,3 +1,18 @@
+# Width for all video frames.
+def video.frame.width() =
+  get(default=-1,"frame.video.width")
+end
+
+# Height for all video frames.
+def video.frame.width() =
+  get(default=-1,"frame.video.height")
+end
+
+# Rate for all video frames.
+def video.frame.rate() =
+  get(default=-1,"frame.video.samplerate")
+end
+
 # Add a static image on the first video channel.
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
