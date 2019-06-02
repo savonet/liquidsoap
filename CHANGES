@@ -91,6 +91,8 @@ Changed:
 
 - Added `new_track` optional argument to callback in `insert_metadata`.
 
+- Use getters for weights of `rotate`. (#808)
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
