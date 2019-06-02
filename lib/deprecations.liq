@@ -2,7 +2,7 @@
 # @flag hidden
 def deprecated() =
   def on_change_harbor_bind_addr(v) =
-    log(label="lang.deprecated",level=2,
+    log.severe(label="lang.deprecated",
         "WARNING: \"harbor.bind_addr\" is deprecated! Please use \"harbor.bind_addrs\"")
     set("harbor.bind_addrs",[v])
   end

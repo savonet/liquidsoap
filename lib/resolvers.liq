@@ -1,7 +1,7 @@
 # @flag hidden
 def exec_replaygain(~extract_replaygain="#{configure.libdir}/extract-replaygain",
                        ~delay,file)
-  log = log(label="extract.replaygain",level=4)
+  log = log.info(label="extract.replaygain")
   x = run_process("#{extract_replaygain} #{quote(file)}")
   stdout = string.replace(pattern='\\n',fun (_) -> "",fst(fst(x)))
   stderr = string.replace(pattern='\\n',fun (_) -> "",snd(fst(x)))
