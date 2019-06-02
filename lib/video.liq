@@ -1,14 +1,17 @@
 # Width for all video frames.
+# @category Source / Video Processing
 def video.frame.width() =
   get(default=-1,"frame.video.width")
 end
 
 # Height for all video frames.
+# @category Source / Video Processing
 def video.frame.width() =
   get(default=-1,"frame.video.height")
 end
 
 # Rate for all video frames.
+# @category Source / Video Processing
 def video.frame.rate() =
   get(default=-1,"frame.video.samplerate")
 end
