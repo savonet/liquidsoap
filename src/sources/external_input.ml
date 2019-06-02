@@ -233,6 +233,8 @@ end
 (* TODO: factorize some code with input.external.rawvideo *)
 
 (***** AVI *****)
+
+let log = Log.make ["input"; "external"]
   
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_video_any in
@@ -293,7 +295,11 @@ let () =
         | `Frame (`Audio, _, data) ->
            let converter = Utils.get_some !audio_converter in
            let data = converter data in
-           Generator.put_audio abg data 0 (Array.length data.(0))
+           if kind.Frame.audio = Frame.Zero then
+             log#info "Received audio data whereas the type indicates that there \
+                       are no audio channels, ingoring it."
+           else
+             Generator.put_audio abg data 0 (Array.length data.(0))
         | _ -> failwith "Invalid chunk."
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
