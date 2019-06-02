@@ -457,7 +457,7 @@ object
   method private select =
     let (ready_list,n) =
       List.fold_left
-        (fun (l,k) (w,s) -> if s.source#is_ready then (s,w)::l,(k+w) else l,k)
+        (fun (l,k) (w,s) -> let w = w() in if s.source#is_ready then (s,w)::l,(k+w) else l,k)
         ([],0) children
     in
       if n = 0 then None else
@@ -484,7 +484,7 @@ let () =
     let kind = Lang.univ_t 1 in
     Lang.add_operator name ~descr ~category:Lang.TrackProcessing
       (common kind @
-       [ "weights", Lang.list_t Lang.int_t, Some (Lang.list ~t:Lang.int_t []),
+       [ "weights", Lang.list_t (Lang.int_getter_t 2), Some (Lang.list ~t:(Lang.int_getter_t 2) []),
          Some weight_descr ;
          "", Lang.list_t (Lang.source_t kind), None, None ])
       ~kind:(Lang.Unconstrained kind)
@@ -494,11 +494,11 @@ let () =
            extract_common ~kind p (List.length children)
          in
          let weights =
-           List.map Lang.to_int (Lang.to_list (List.assoc "weights" p))
+           List.map Lang.to_int_getter (Lang.to_list (List.assoc "weights" p))
          in
          let weights =
            if weights <> [] then weights else
-             Utils.make_list (List.length children) 1
+             Utils.make_list (List.length children) (fun () -> 1)
          in
          let children =
            if List.length weights <> List.length children then
