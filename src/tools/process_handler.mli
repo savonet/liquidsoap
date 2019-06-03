@@ -39,24 +39,25 @@
   * from at least one of these two outputs in order to make sure that the module
   * properly detects when the process has exited. *)
 
+(** A process. *)
 type t
 
-(** Type for continuation decision.
-  * [`Stop] triggers a asynchronous process stop,
-  *         closing the process' stdin and waiting
-  *         for termination.
-  * [`Kill] kills the process immediately. *)
+(** Type for continuation decision. *)
 type continuation = [
   | `Continue
-  | `Stop
-  | `Kill
-  | `Delay of float
+  | `Stop (** triggers an asynchronous process stop, closing the process' stdin
+             and waiting for termination *)
+  | `Kill (** kill the process immediately *)
+  | `Delay of float (** wait for a given amount of seconds *)
 ]
 
+(** A call back. *)
 type 'a callback = 'a -> continuation
 
+(** Function for reading data. *)
 type pull = Bytes.t -> int -> int -> int
 
+(** Function for writing data. *)
 type push = Bytes.t -> int -> int -> int
 
 type status = [
@@ -64,12 +65,13 @@ type status = [
   | `Status of Unix.process_status
 ]
 
+(** Trying to performed an operation on a stopped process. *)
 exception Finished
 
-(** Create a process handler. Decisions returned
-  * by the callbacks are applied synchronously, i.e.
-  * when returning [`Stop], the process' stdin is closed
-  * immediately after the callback has returned. *)
+(** Create a process handler. Decisions returned by the callbacks are applied
+   synchronously, i.e. when returning [`Stop], the process' stdin is closed
+   immediately after the callback has returned. The process is restarted when
+   the function [on_stop] returns [true]. *)
 val run : ?priority:Tutils.priority ->
           ?env:(string array) -> 
           ?on_start:(push callback) ->
@@ -80,28 +82,31 @@ val run : ?priority:Tutils.priority ->
           ?log:(string->unit) ->
           string -> t
 
-(** Asynchronous stop. The process' stdin will be closed
-  * some time in the future. *)
+(** Asynchronous stop. The process' stdin will be closed some time in the
+   future. *)
 val stop : t -> unit
 
-(** Asynchronous kill. The process will be killed some
-  * time in the future. *)
+(** Asynchronous kill. The process will be killed some time in the future. *)
 val kill : t -> unit
 
+(** Whether the process was stopped. *)
 val stopped : t -> bool
 
+(** Read a given number of bytes (the result might be smaller than the requested
+   number of bytes). *)
 val read : int -> pull -> bytes
 
+(** Write bytes. *)
 val write : bytes -> push -> unit
 
-(** Synchronous (blocking) write on the process' stdin. Raises [Finished]
-  * if the process has been stopped/killed. *)
+(** Synchronous (blocking) write on the process' stdin. Raises [Finished] if the
+   process has been stopped/killed. *)
 val on_stdin : t -> (push -> 'a) -> 'a
 
-(** Synchronous (blocking) read on the process' stdout. Raises [Finished]
-  * if the process has been stopped/killed. *)
+(** Synchronous (blocking) read on the process' stdout. Raises [Finished] if the
+   process has been stopped/killed. *)
 val on_stdout : t -> (pull -> 'a) -> 'a
 
-(** Synchronous (blocking) read on the process' stdout. Raises [Finished]
-  * if the process has been stopped/killed. *)
+(** Synchronous (blocking) read on the process' stdout. Raises [Finished] if the
+   process has been stopped/killed. *)
 val on_stderr : t -> (pull -> 'a) -> 'a
