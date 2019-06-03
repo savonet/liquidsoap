@@ -52,6 +52,7 @@ object (self)
 
   method private sleep =
     active_source#sleep ;
+    ioring#sleep ;
     if clock_safe then (bjack_clock ())#unregister_blocking_source
 
   method stype = Infallible
