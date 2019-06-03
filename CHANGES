@@ -37,6 +37,8 @@ New:
 
 - Added `sleep` function.
 
+- Added `available` function.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
