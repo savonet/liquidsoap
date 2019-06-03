@@ -676,12 +676,3 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
   add_timeout(duration(), f)
   s
 end
-
-# Make a source available or not depending on a boolean.
-# @param a Whether the source is available (`true`) or not (`false`).
-# @param s The stream.
-# @category Source / Track Processing
-def available(a=bool_getter(true), s) =
-  # TODO: this could be done more efficiently in OCaml
-  switch(track_sensitive=false, [(to_bool_getter(a) , s)])
-end
