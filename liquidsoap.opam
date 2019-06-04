@@ -24,7 +24,7 @@ depends: [
   "mm" {>= "0.4.0"}
   "ocamlfind" {build}
   "pcre"
-  "sedlex"
+  "sedlex" {>= "2.0"}
 ]
 depopts: [
   "alsa"
