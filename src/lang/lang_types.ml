@@ -260,7 +260,7 @@ let print_repr f t =
               List.fold_left
                 (fun (first,has_ellipsis,vars) (lbl,t) ->
                   if t=`Ellipsis then false,true,vars else begin
-                      if not first then Format.fprintf f "," ;
+                      if not first then Format.fprintf f ",@ " ;
                       Format.fprintf f "%s=" lbl ;
                       let vars = print ~par:false vars t in
                       false,has_ellipsis,vars
@@ -283,11 +283,17 @@ let print_repr f t =
          end
     | `Ground g -> Format.fprintf f "%s" (print_ground g) ; vars
     | `Product (a,b) ->
-       Format.fprintf f "@[<1>(" ;
+       if par then
+         Format.fprintf f "@[<1>("
+       else
+         Format.fprintf f "@[<0>" ;
        let vars = print ~par:true vars a in
-       Format.fprintf f "*@," ;
+       Format.fprintf f " *@ " ;
        let vars = print ~par:true vars b in
-       Format.fprintf f ")@]" ;
+       if par then
+         Format.fprintf f ")@]"
+       else
+         Format.fprintf f "@]" ;
        vars
     | `List t ->
        Format.fprintf f "@[<1>[" ;
@@ -326,15 +332,15 @@ let print_repr f t =
        let _,vars =
          List.fold_left
            (fun (first,vars) (opt,lbl,kind) ->
-             if not first then Format.fprintf f ",@," ;
+             if not first then Format.fprintf f ",@ " ;
              if opt then Format.fprintf f "?" ;
-             if lbl <> "" then Format.fprintf f "%s:" lbl ;
+             if lbl <> "" then Format.fprintf f "%s : " lbl ;
              let vars = print ~par:true vars kind in
              false, vars)
            (true,vars)
            p
        in
-       Format.fprintf f ")@]->@," ;
+       Format.fprintf f ")@] ->@ " ;
        let vars = print ~par:false vars t in
        if par then Format.fprintf f ")@]" else Format.fprintf f "@]" ;
        vars
