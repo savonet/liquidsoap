@@ -115,13 +115,15 @@ end
 # @param ~segments Number of segments to keep.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~port Port for incoming harbor (http) connections.
+# @params ~headers Default response headers.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
                       ~segment_duration=10.,~segments=10,~start=true,
-                      ~playlist="stream.m3u8",~port=8000,~path="/",formats,s)
+                      ~playlist="stream.m3u8",~port=8000,~path="/",
+                      ~headers=[("Access-Control-Allow-Origin","*")],formats,s)
   def serve(~port,~path,dir) =
-    harbor.http.static(port=port,path=path,dir)
+    harbor.http.static(port=port,path=path,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,
@@ -141,13 +143,15 @@ end
 # @param ~segments Number of segments to keep.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~port Port for incoming harbor (https) connections.
+# @params ~headers Default response headers.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
                             ~segment_duration=10.,~segments=10,~start=true,
-                            ~port=8000,~path="/",~playlist="stream.m3u8",formats,s)
+                            ~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],
+                            ~playlist="stream.m3u8",formats,s)
   def serve(~port,~path,dir) =
-    harbor.https.static(port=port,path=path,dir)
+    harbor.https.static(port=port,path=path,headers=headers,dir)
   end
   output.harbor.hls.base(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
                          segment_duration=segment_duration,segments=segments,

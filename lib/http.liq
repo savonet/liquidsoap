@@ -88,7 +88,7 @@ def http_response_stream(
 end
 
 # @flag hidden
-def harbor.http.static.base(serve,~path,~port,directory) =
+def harbor.http.static.base(serve,~path,~port,~headers,directory) =
   path =
     if string.sub(path,start=0,length=1) != "/" then
       "/#{path}"
@@ -100,18 +100,18 @@ def harbor.http.static.base(serve,~path,~port,directory) =
     ret = string.extract(pattern="^#{path}([^?]*)",uri)
 
     if list.length(ret) == 0 then
-      http_response(protocol=protocol,code=404,data="Not Found!")
+      http_response(protocol=protocol,code=404,headers=headers,data="Not Found!")
     else
       match = list.hd(default=("1","foo"),ret)
       file = path.concat(directory, snd(match))
       if file.exists(file) then
         if method == "OPTIONS" then
-          http_response(protocol=protocol,code=200)
+          http_response(protocol=protocol,code=200,headers=headers)
         else
-          http_response_stream(protocol=protocol,code=200,data_len=file.size(file),data=file.read(file))
+          http_response_stream(protocol=protocol,code=200,headers=headers,data_len=file.size(file),data=file.read(file))
         end
       else
-        http_response(protocol=protocol,code=404,data="Not Found!")
+        http_response(protocol=protocol,code=404,headers=headers,data="Not Found!")
       end
     end
   end
@@ -126,9 +126,10 @@ end
 # @category Interaction
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path for hls URIs.
+# @param ~headers Default response headers.
 # @param directory Local path to be served
-def harbor.http.static(~port=8000,~path="/",directory) =
-  harbor.http.static.base(harbor.http.register,path=path,port=port,directory)
+def harbor.http.static(~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.http.register,path=path,port=port,headers=headers,directory)
 end
 
 %ifdef harbor.https.register
@@ -136,8 +137,9 @@ end
 # @category Interaction
 # @param ~port Port for incoming harbor (https) connections.
 # @param ~path Base path for hls URIs.
+# @param ~headers Default response headers.
 # @param directory Local path to be served
-def harbor.https.static(~port=8000,~path="/",directory) =
-  harbor.http.static.base(harbor.http.register,path=path,port=port,directory)
+def harbor.https.static(~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],directory) =
+  harbor.http.static.base(harbor.http.register,path=path,port=port,headers=headers,directory)
 end
 %endif
