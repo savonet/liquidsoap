@@ -115,7 +115,7 @@ end
 # @param ~segments Number of segments to keep.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~port Port for incoming harbor (http) connections.
-# @params ~headers Default response headers.
+# @param ~headers Default response headers.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls(~id="",~fallible=false,~on_start={()},~on_stop={()},
@@ -143,7 +143,7 @@ end
 # @param ~segments Number of segments to keep.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~port Port for incoming harbor (https) connections.
-# @params ~headers Default response headers.
+# @param ~headers Default response headers.
 # @param ~path Base path for hls URIs.
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls.https(~id="",~fallible=false,~on_start={()},~on_stop={()},
