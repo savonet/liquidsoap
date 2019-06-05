@@ -470,15 +470,20 @@ let resolving_requests () =
 
 (** Creation *)
 
+let leak_warning =
+  Dtools.Conf.int ~p:(conf#plug "leak_warning") ~d:100
+    "Number of requests at which a leak warning should be issued."
+
 let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
-    if n mod 1000 = 0 then
+    if n mod leak_warning#get = 0 then
       log#severe
-        "There are currently %d RIDs! Please check that you don't have a loop on \
-         empty/unavailable requests, or creating requests without destroying \
-         them. Decreasing request.grace_time can also help." n
+        "There are currently %d RIDs, possible request leak! Please check that \
+         you don't have a loop on empty/unavailable requests, or creating \
+         requests without destroying them. Decreasing request.grace_time can \
+         also help." n
   in
   let rid,register = Pool.add () in
   let t = {
