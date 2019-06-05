@@ -20,17 +20,16 @@
 
  *****************************************************************************)
 
-open Dtools
 open Extralib
 
 module S = LO.Server
 
 let conf_osc =
-  Conf.void ~p:(Configure.conf#plug "osc")
+  Dtools.Conf.void ~p:(Configure.conf#plug "osc")
     "Interactions through the OSC protocol."
 
 let conf_port =
-  Conf.int ~p:(conf_osc#plug "port") ~d:7777
+  Dtools.Conf.int ~p:(conf_osc#plug "port") ~d:7777
     "Port for OSC server."
 
 (* (path,type),handler *)
@@ -70,6 +69,14 @@ let start_server () =
     let s = S.create port handler in
     server := Some s;
     ignore (Thread.create (fun () -> while true do S.recv s done) ())
+
+let _ =
+  Dtools.Init.make ~before:[Tutils.scheduler_shutdown_atom]
+    (fun () ->
+      match !server with
+      | Some s -> S.stop s; server := None
+      | None -> ()
+    )
 
 let register name osc_t liq_t =
   let val_array vv =
