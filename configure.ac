@@ -779,7 +779,7 @@ AC_CHECK_OCAML_BINDING([ladspa],[0.1.4])
 AC_CHECK_OCAML_BINDING([dssi],[0.1.0])
 AC_CHECK_OCAML_BINDING([sdl],[],[],[],[sdl.sdlmixer sdl.sdlttf sdl.sdlimage])
 AC_CHECK_OCAML_BINDING([camlimages],[4.0.0],[],[],[camlimages.all_formats])
-AC_CHECK_OCAML_BINDING([lo],[0.1.0])
+AC_CHECK_OCAML_BINDING([lo],[0.1.2])
 AC_CHECK_OCAML_BINDING([gd])
 
 # Winsvc (to run as a service)
