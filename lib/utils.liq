@@ -678,10 +678,14 @@ def chop(~duration=float_getter(3.),~metadata=[],s) =
 end
 
 # Make a source available or not depending on a boolean.
-# @param a Whether the source is available (`true`) or not (`false`).
+# @param ~id The source ID
+# @param ~active Whether the source should be pulled when not available
+# @param ~track_sensitive Re-select only on end of tracks.
+# @param ~available Whether the source is available (`true`) or not (`false`).
 # @param s The stream.
 # @category Source / Track Processing
-def available(a=bool_getter(true), s) =
-  # TODO: this could be done more efficiently in OCaml
-  switch(track_sensitive=false, [(to_bool_getter(a) , s)])
+def available(~id="available",~track_sensitive=bool_getter(true),~active=bool_getter(false),~available=bool_getter(true),s) =
+  output.dummy(switch([(to_bool_getter(active),s)]),fallible=true)
+
+  switch(id=id,track_sensitive=to_bool_getter(track_sensitive),[(to_bool_getter(available),s)])
 end
