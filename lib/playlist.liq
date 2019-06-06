@@ -5,11 +5,16 @@
 # called with a new playlist URI. Otherwise, it reloads the previous URI.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
+# @param ~default_duration When unknown, assume this duration (in sec.) for files.
+# @param ~length How much audio (in sec.) should be queued in advance.
+# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
 # @param ~random Randomize playlist content
 # @param ~on_done Function to execute when the playlist is finished
 # @param ~filter Filter out some files depending on metadata
 # @param uri Playlist URI
-def playlist.reloadable(~id="",~random=false,~on_done={()},~filter=fun(_)->true,uri)
+def playlist.reloadable(~id="",~random=false,~on_done={()},
+                        ~default_duration=30.,~length=10.,~conservative=false,
+                        ~filter=fun(_)->true,uri)
   # A reference to the playlist
   playlist = ref []
   # A reference to the uri
@@ -39,7 +44,8 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},~filter=fun(_)->true,
     end
   end
   # Instanciate the source
-  source = request.dynamic(id=id,next)
+  source = request.dynamic(id=id,conservative=conservative,default_duration=default_duration,
+                           length=length,next)
   # Get its id.
   id = source.id(source)
   # The load function
@@ -98,12 +104,19 @@ end
 # or playlist, play all files and stop.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
+# @param ~default_duration When unknown, assume this duration (in sec.) for files.
+# @param ~length How much audio (in sec.) should be queued in advance.
+# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
 # @param ~random Randomize playlist content
 # @param ~on_done Function to execute when the playlist is finished
 # @param ~reload_mode If set to "watch", will be reloaded when the playlist is changed
 # @param uri Playlist URI
-def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",uri)
-  rs = playlist.reloadable(id=id,random=random,on_done=on_done,uri)
+def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",
+                  ~default_duration=30.,~length=10.,~conservative=false,
+                  uri)
+  rs = playlist.reloadable(id=id,random=random,on_done=on_done,
+                           conservative=conservative,default_duration=default_duration,
+                           uri)
   reload = fst(rs)
   s = snd(rs)
   if reload_mode == "watch" then
@@ -116,10 +129,16 @@ end
 # Play the whole playlist as one track.
 # @category Source / Track Processing
 # @param ~id Force the value of the source ID.
+# @param ~default_duration When unknown, assume this duration (in sec.) for files.
+# @param ~length How much audio (in sec.) should be queued in advance.
+# @param ~conservative If true, estimated remaining time on the current track is not considered when computing queue length.
 # @param ~random Randomize playlist content
 # @param uri Playlist URI.
-def playlist.merge(~id="",~random=false,uri) =
-  pl = playlist.reloadable(id=id,random=random,uri)
+def playlist.merge(~id="",~random=false,
+                   ~default_duration=30.,~length=10.,~conservative=false,uri) =
+  pl = playlist.reloadable(id=id,random=random,
+                           conservative=conservative,default_duration=default_duration,
+                           uri)
   reload = fst(pl)
   s = snd(pl)
   s = merge_tracks(s)
