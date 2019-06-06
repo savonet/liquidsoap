@@ -254,7 +254,7 @@ class hls_output p =
       List.iter2 self#write_pipe streams b;
       if not reopening && Unix.gettimeofday () > segment_duration +. open_date then
         begin
-          self#log#warning "New segment..." ;
+          self#log#debug "New segment..." ;
           (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
           reopening <- true;
           self#output_stop;

@@ -267,7 +267,7 @@ object(self)
     source#get_ready [(self:>source)];
     (* Now we can create the log function *)
     log_ref := self#log#info "%s";
-    log_error := self#log#warning "%s";
+    log_error := self#log#debug "%s";
     handler <- Some (Process_handler.run ~on_stop ~on_start ~on_stdout 
                                          ~on_stdin:self#on_stdin
                                          ~on_stderr ~log process)

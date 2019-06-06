@@ -44,7 +44,7 @@ let tracks ?pwd s =
       (fun (a,b) -> recode_metas a, Playlist_parser.get_file ?pwd b) 
       (Xmlplaylist.tracks s)
   with
-    | Xmlplaylist.Error(e) -> log#warning "Parsing failed: %s" 
+    | Xmlplaylist.Error(e) -> log#debug "Parsing failed: %s" 
                                  (Xmlplaylist.string_of_error e) ;
 		              raise (Xmlplaylist.Error(e))
 

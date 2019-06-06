@@ -116,7 +116,7 @@ let video_resample () =
         (Utils.get_some !resampler) buf off len
       end
 
-let demuxer_log x = log#warning "%s" x
+let demuxer_log x = log#debug "%s" x
 
 module Make (Generator:Generator.S_Asio) =
 struct

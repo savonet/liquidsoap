@@ -500,7 +500,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               in
               let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
               log#info "Adding source on mountpoint %S with type %S." uri stype ;
-              log#warning "Relaying %s." (string_of_protocol hprotocol) ;
+              log#debug "Relaying %s." (string_of_protocol hprotocol) ;
               let protocol =
                 match hprotocol with
                 | `Icy -> "ICY"
@@ -560,7 +560,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       try
         match Websocket.read s with
         | `Text s -> (
-            log#warning "Hello packet: %s\n%!" s ;
+            log#debug "Hello packet: %s\n%!" s ;
             match extract_packet s with
             | "hello", data ->
                 let data = Utils.get_some data in
@@ -606,7 +606,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                       | `Text s -> (
                         match extract_packet s with
                         | "metadata", data ->
-                            log#warning "Metadata packet: %s\n%!" s ;
+                            log#debug "Metadata packet: %s\n%!" s ;
                             let data = Utils.get_some data in
                             let m =
                               List.map

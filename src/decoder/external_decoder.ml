@@ -39,7 +39,7 @@ let external_input process input =
     end
   in
   let on_stderr puller =
-    log#warning "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let log = log#important "%s" in
@@ -165,7 +165,7 @@ let log = Log.make ["decoder";"external";"oblivious"]
 
 let external_input_oblivious process filename prebuf = 
   let on_stderr puller =
-    log#warning "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let command = process filename in

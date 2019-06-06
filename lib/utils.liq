@@ -647,16 +647,10 @@ def log.info(~label="lang",msg) =
   log(label=label,level=4,msg)
 end
 
-# Log a warning message
-# @category Liquidsoap
-def log.warning(~label="lang",msg) =
-  log(label=label,level=5,msg)
-end
-
 # Log a debug message
 # @category Liquidsoap
 def log.debug(~label="lang",msg) =
-  log(label=label,level=6,msg)
+  log(label=label,level=5,msg)
 end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
