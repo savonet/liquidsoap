@@ -678,7 +678,7 @@ end
 # @param ~available Whether the source is available (`true`) or not (`false`).
 # @param s The stream.
 # @category Source / Track Processing
-def available(~id="available",~track_sensitive=bool_getter(true),~active=bool_getter(false),~available=bool_getter(true),s) =
+def mkavailable(~id="available",~track_sensitive=bool_getter(true),~active=bool_getter(false),~available=bool_getter(true),s) =
   output.dummy(switch([(to_bool_getter(active),s)]),fallible=true)
 
   switch(id=id,track_sensitive=to_bool_getter(track_sensitive),[(to_bool_getter(available),s)])

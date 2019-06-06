@@ -37,7 +37,7 @@ New:
 
 - Added `sleep` function.
 
-- Added `available` function.
+- Added `mkavailable` function.
 
 - Added `fade.skip` function. (#804)
 
