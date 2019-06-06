@@ -141,7 +141,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
   end
 
   def skip()
-    log("Skip fade FINISHED executing. Calling skip now") 
+    log("Fade finished executing. Calling skip now") 
     source.skip(s);
   end
 
