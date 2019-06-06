@@ -6,7 +6,7 @@ end
 
 # Height for all video frames.
 # @category Source / Video Processing
-def video.frame.width() =
+def video.frame.height() =
   get(default=-1,"frame.video.height")
 end
 
