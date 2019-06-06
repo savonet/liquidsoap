@@ -6,7 +6,7 @@ end
 
 # Height for all video frames.
 # @category Source / Video Processing
-def video.frame.width() =
+def video.frame.height() =
   get(default=-1,"frame.video.height")
 end
 
@@ -32,4 +32,10 @@ def video.add_image(~id="",~width=0,~height=0,~x=max_int(),~y=max_int(),~file,s)
   image = single(id=id,"annotate:#{width},#{height},#{x},#{y}:#{file}")
   image = mux_audio(audio=blank(), image)
   add([s,image])
+end
+
+# ffmpeg's test source video (useful for testing and debugging).
+# @category Source / Video Processing
+def video.external.testsrc()
+  input.external.avi("ffmpeg -f lavfi -i testsrc -f avi -vf format=rgb24 -vcodec rawvideo -r #{video.frame.rate()} -s #{video.frame.width()}x#{video.frame.height()} pipe:1")
 end
