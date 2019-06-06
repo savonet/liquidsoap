@@ -4,7 +4,8 @@
 # @param ~start Start value.
 # @param ~stop Stop value.
 # @param ~duration Duration in seconds.
-def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,s) =
+# @param ~on_done Function to execute when the fade is finished
+def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,~on_done={()},s) =
   log = log(label="mkfade")
 
   # Shape functions must map 0. -> 0. and 1. -> 1.
@@ -47,6 +48,7 @@ def mkfade(~type="lin",~start=0.,~stop=1.,~duration=3.,s) =
   def fade() =
     t = source.time(s) - start_time
     if t >= duration then
+      on_done ()
       stop
     else
       if start <= stop then
@@ -139,8 +141,8 @@ def fade.skip(~id="fade.skip",~duration=5.,
   end
 
   def skip()
+    log("Fade finished executing. Calling skip now") 
     source.skip(s);
-    -1.
   end
 
   def update_fade(m) = 
@@ -148,8 +150,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
       remaining = source.remaining(s)
       duration = if remaining < !duration then remaining else !duration end  
       log("Skip fade executed for: #{duration}s")      
-      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)     
-      add_timeout(duration,skip)        
+      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration, on_done=skip,s)       
     end
 
     if m[override_duration] != "" then
