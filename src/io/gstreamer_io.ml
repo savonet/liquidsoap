@@ -225,7 +225,7 @@ object (self)
       else
         pipeline
     in
-    self#log#warning "GStreamer pipeline: %s" pipeline;
+    self#log#debug "GStreamer pipeline: %s" pipeline;
     let bin = Pipeline.parse_launch pipeline in
     let audio_src =
       if has_audio then
@@ -535,7 +535,7 @@ object (self)
      else
        pipeline
    in
-   log#warning "GStreamer pipeline: %s" pipeline;
+   log#debug "GStreamer pipeline: %s" pipeline;
    let bin = Pipeline.parse_launch pipeline in
    let wrap_sink sink pull =
      let m = Mutex.create () in

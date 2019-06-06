@@ -43,7 +43,7 @@ module Make (Generator : Generator.S_Asio) = struct
     let decode_video = mode = `Both || mode = `Video in
 
     log#info "Using %s." (Gstreamer.version_string ());
-    log#warning "Decode A/V: %B/%B." decode_audio decode_video;
+    log#debug "Decode A/V: %B/%B." decode_audio decode_video;
 
     let gst_max_buffers = GU.max_buffers () in
 
@@ -69,7 +69,7 @@ module Make (Generator : Generator.S_Asio) = struct
         Printf.sprintf "filesrc location=%S ! decodebin name=d%s%s"
           fname audio_pipeline video_pipeline
       in
-      log#warning "Gstreamer pipeline: %s." pipeline;
+      log#debug "Gstreamer pipeline: %s." pipeline;
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
       let audio_sink =
         if decode_audio then
@@ -238,7 +238,7 @@ let get_type ~channels filename =
     GU.flush ~log bin;
     if state = Gstreamer.Element.State_paused then
       (
-        log#warning "File %s has audio." filename;
+        log#debug "File %s has audio." filename;
         channels
       )
     else
@@ -255,7 +255,7 @@ let get_type ~channels filename =
       ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
       if state = Gstreamer.Element.State_paused then
         (
-          log#warning "File %s has video." filename;
+          log#debug "File %s has video." filename;
           1
         )
       else

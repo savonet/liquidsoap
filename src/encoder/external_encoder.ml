@@ -54,7 +54,7 @@ let encoder id ext =
   in
 
   let on_stderr puller =
-    log#warning "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
+    log#debug "stderr: %s" (Bytes.unsafe_to_string (Process_handler.read 1024 puller));
     `Continue
   in
   let on_start pusher =

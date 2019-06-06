@@ -115,7 +115,7 @@ object (self)
                  | "dim" ->
                      play t [c;c+3;c+6]
                  | m ->
-                     self#log#warning "Unknown mode: %s\n%!" m
+                     self#log#debug "Unknown mode: %s\n%!" m
              );
         ) chords
 end

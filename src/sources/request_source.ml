@@ -80,7 +80,7 @@ object (self)
     assert (current = None) ;
     match self#get_next_file with
       | None ->
-          self#log#warning "Failed to prepare track: no file." ;
+          self#log#debug "Failed to prepare track: no file." ;
           false
       | Some req when Request.is_ready req ->
           assert (Frame.kind_sub_kind
@@ -404,7 +404,7 @@ object (self)
           Some r.request
       with
         | Queue.Empty ->
-            self#log#warning "Queue is empty!" ;
+            self#log#debug "Queue is empty!" ;
             None
     in
       Mutex.unlock qlock ;

@@ -157,7 +157,7 @@ object (self)
   method wake_up _ =
     (* Now we can create the log function *)
     log_ref := self#log#info "%s" ;
-    self#log#warning "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
+    self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
     self#log#important "Starting process.";
     let (_, in_d) as x = create () in
     let rec process ((in_e,in_d) as x) l =

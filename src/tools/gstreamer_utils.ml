@@ -133,7 +133,7 @@ let handler ~(log:Log.t) ~on_error msg =
             | Gstreamer.Element.State_void_pending -> ""
             | _ -> Printf.sprintf " (pending: %s)" (f p)
         in
-        log#warning "[%s] State change: %s -> %s%s" source o n p
+        log#debug "[%s] State change: %s -> %s%s" source o n p
     | _ -> assert false
 
 let flush ~log ?(types=[`Error;`Warning;`Info;`State_changed]) ?(on_error=fun _ -> ()) bin =
