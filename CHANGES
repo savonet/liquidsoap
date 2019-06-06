@@ -39,6 +39,8 @@ New:
 
 - Added `available` function.
 
+- Added `fade.skip` function. (#804)
+
 Changed:
 
 - Depends on OCaml >= 4.07.0

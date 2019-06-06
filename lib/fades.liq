@@ -148,8 +148,7 @@ def fade.skip(~id="fade.skip",~duration=5.,
       remaining = source.remaining(s)
       duration = if remaining < !duration then remaining else !duration end  
       log("Skip fade executed for: #{duration}s")      
-      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)
-      ignore(list.add((override_skip,""),m))  
+      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)     
       add_timeout(duration,skip)        
     end
 
