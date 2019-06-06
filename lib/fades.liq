@@ -112,6 +112,62 @@ def fade.out(~id="fade.out",~duration=3.,
   amplify(id=id,override="",apply,s)
 end
 
+# Fade when the metadata trigger is received and then skip.
+# @category Source / Sound Processing
+# @param ~id Force the value of the source ID.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for current track.
+# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+def fade.skip(~id="fade.skip",~duration=5.,
+             ~override_duration="liq_fade_skip",
+             ~override_type="liq_fade_skip",
+             ~override_skip="liq_skip_meta",
+             ~type="lin",s) =
+  log = log(label=source.id(s),level=4)
+  fn = ref (fun () -> 1.)
+  type = ref type
+  duration = ref duration  
+
+  def apply() =
+    fn = !fn
+    fn()
+  end
+
+  def stop_fade(_) =
+    fn := fun () -> 1.
+  end
+
+  def skip()
+    source.skip(s);
+    -1.
+  end
+
+  def update_fade(m) = 
+    if m[override_skip] == "true" then
+      remaining = source.remaining(s)
+      duration = if remaining < !duration then remaining else !duration end  
+      log("Skip fade executed for: #{duration}s")      
+      fn := mkfade(start=1.,stop=0.,type=!type,duration=duration,s)     
+      add_timeout(duration,skip)        
+    end
+
+    if m[override_duration] != "" then
+      duration := float_of_string(default=!duration,m[override_duration])
+      log("New fade duration: #{!duration}")
+    end
+
+    if m[override_type] != "" then
+      type := m[override_type]
+      log("New fade type: #{!type}")
+    end
+  end
+
+  s = on_metadata(update_fade,s)  
+  s = on_track(stop_fade,s)
+  amplify(id=id,override="",apply,s)
+end
+
 # Fade a stream to silence.
 # @category Source / Sound Processing
 # @param ~id Force the value of the source ID.

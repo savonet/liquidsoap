@@ -39,6 +39,8 @@ New:
 
 - Added `available` function.
 
+- Added `fade.skip` function. (#804)
+
 - Added `video.external.testsrc` function.
 
 Changed:
