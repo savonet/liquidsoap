@@ -101,12 +101,12 @@ conflicts: [
   "xmlplaylist" {< "0.1.3"}
 ]
 depexts: [
-  ["automake autoconf"] {os-distribution = "alpine"}
-  ["automake autoconf"] {os-distribution = "centos"}
-  ["automake autoconf"] {os-distribution = "fedora"}
-  ["automake autoconf"] {os-family = "suse"}
-  ["automake autoconf"] {os-distribution = "debian"}
-  ["automake autoconf"] {os-distribution = "ubuntu"}
+  ["automake" "autoconf"] {os-distribution = "alpine"}
+  ["automake" "autoconf"] {os-distribution = "centos"}
+  ["automake" "autoconf"] {os-distribution = "fedora"}
+  ["automake" "autoconf"] {os-family = "suse"}
+  ["automake" "autoconf"] {os-distribution = "debian"}
+  ["automake" "autoconf"] {os-distribution = "ubuntu"}
 ]
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
