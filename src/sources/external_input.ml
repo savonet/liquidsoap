@@ -158,6 +158,16 @@ object (self)
 
   (* Whether we should read headers. *)
   val mutable has_headers = true
+  val has_headers_m = Mutex.create ()
+
+  method create =
+    Tutils.mutexify has_headers_m create ()
+
+  method read_headers =
+    Tutils.mutexify has_headers_m
+      (fun fd ->
+        has_headers <- false;
+        read_headers fd)
 
   (* For producing warning about difference between audio and video filling. *)
   val mutable vadiff_offset = vadiff
@@ -167,7 +177,7 @@ object (self)
     log_ref := self#log#info "%s" ;
     self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
     self#log#important "Starting process.";
-    let (_, in_d) as x = create () in
+    let (_, in_d) as x = self#create in
     has_headers <- true;
     let rec process ((in_e,in_d) as x) l =
       let do_restart s restart f =
@@ -181,7 +191,7 @@ object (self)
         if restart then
           begin
             self#log#important "Restarting process.";
-            let ((_,in_d) as x) = create () in
+            let ((_,in_d) as x) = self#create in
             has_headers <- true;
             [{ Duppy.Task.
                priority = priority;
@@ -209,10 +219,7 @@ object (self)
               if List.mem (`Read in_d) l then
                 (* Do we need to read the headers? *)
                 if has_headers then
-                  (
-                    has_headers <- false;
-                    read_headers in_d
-                  )
+                  self#read_headers in_d
                 else
                   begin
                     try
