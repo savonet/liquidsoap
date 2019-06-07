@@ -153,7 +153,7 @@ let () =
     [ "", Lang.source_t k, None, None ]
     ~category:Lang.TrackProcessing
     ~descr:"Merge consecutive tracks from the input source. They will be \
-            considered as one big track, so on_track() will not trigger \
+            considered as one big track, so `on_track()` will not trigger \
             for example."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
