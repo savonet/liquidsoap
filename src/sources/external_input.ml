@@ -146,6 +146,8 @@ class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data =
   (* TODO: generators with 0 audio channels should work in `Both mode *)
   let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
   let priority = Tutils.Non_blocking in
+  (* How often to notify about difference between audio and video filling (in seconds). *)
+  let vadiff = 2. in
 object (self)
   inherit Source.source ~name:"input.external.video" kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
@@ -153,6 +155,9 @@ object (self)
   val mutable should_stop = false
 
   method stype = Source.Fallible
+
+  (* For producing warning about difference between audio and video filling. *)
+  val mutable vadiff_offset = vadiff
 
   method wake_up _ =
     (* Now we can create the log function *)
@@ -177,7 +182,7 @@ object (self)
                priority = priority;
                events   = [`Read in_d];
                handler  = process x
-             }]
+            }]
           end
         else
           begin
@@ -199,7 +204,20 @@ object (self)
               if List.mem (`Read in_d) l then
                 begin
                   try
-                    get_data in_d abg
+                    get_data in_d abg;
+                    (* Check that audio and video roughly get filled as the same speed. *)
+                    let lv = Frame.seconds_of_master (Generator.video_length abg) in
+                    let la = Frame.seconds_of_master (Generator.audio_length abg) in
+                    let d = abs_float (lv -. la) in
+                    if d -. vadiff_offset >= 0. then
+                      (
+                        vadiff_offset <- vadiff_offset +. vadiff_offset;
+                        let v, a = if lv >= la then "video", "audio" else "audio", "video" in
+                        self#log#severe
+                          "Got %00f seconds more of %s than of \
+                           %s. Are you sure that you are producing \
+                           the correct kind of data?" d v a
+                      )
                   with
                   | End_of_file -> raise (Finished ("Process exited.", restart))
                 end;
@@ -210,7 +228,7 @@ object (self)
            priority = priority;
            events   = events;
            handler  = process x
-         }]
+        }]
       with
       | Finished (s,b) -> do_restart s b (fun () -> ())
       | e ->
