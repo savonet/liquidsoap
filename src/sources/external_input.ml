@@ -145,7 +145,7 @@ class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_heade
   let log = (fun x -> !log_ref x) in
   (* TODO: generators with 0 audio channels should work in `Both mode *)
   let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
-  let priority = Tutils.Non_blocking in
+  let priority = Tutils.Maybe_blocking in
   (* How often to notify about difference between audio and video filling (in seconds). *)
   let vadiff = 2. in
 object (self)
