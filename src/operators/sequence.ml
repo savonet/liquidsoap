@@ -152,7 +152,9 @@ let () =
   Lang.add_operator "merge_tracks"
     [ "", Lang.source_t k, None, None ]
     ~category:Lang.TrackProcessing
-    ~descr:"Merge consecutive tracks from the input source."
+    ~descr:"Merge consecutive tracks from the input source. They will be \
+            considered as one big track, so on_track() will not trigger \
+            for example."
     ~kind:(Lang.Unconstrained k)
     (fun p kind ->
        new merge_tracks ~kind (Lang.to_source (List.assoc "" p)))
