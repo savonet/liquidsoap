@@ -23,6 +23,29 @@
 open Lang_builtins
 
 let () =
+  let t = "",Lang.int_t,None,None in
+    add_builtin "time_in_mod" ~cat:Other ~flags:[Lang.Hidden]
+      ~descr:("INTERNAL: time_in_mod(a,b,c) checks that the unix time T "^
+              "satisfies a <= T mod c < b")
+     [t;t;t] Lang.bool_t
+     (fun p ->
+        match List.map (fun (_,x) -> Lang.to_int x) p with
+          | [a;b;c] ->
+              let t = Unix.localtime (Unix.time ()) in
+              let t =
+                t.Unix.tm_sec +
+                t.Unix.tm_min * 60 +
+                t.Unix.tm_hour * 60 * 60 +
+                t.Unix.tm_wday * 24 * 60 * 60
+              in
+              let t = t mod c in
+                if a <= b then
+                  Lang.bool (a <= t && t < b)
+                else
+                  Lang.bool (not (b <= t && t < a))
+          | _ -> assert false)
+
+let () =
   add_builtin ~cat:Sys "time" ~descr:"Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
     [] Lang.float_t (fun _ ->
       Lang.float (Unix.gettimeofday ()));
