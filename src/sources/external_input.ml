@@ -214,9 +214,8 @@ object (self)
                         vadiff_offset <- vadiff_offset +. vadiff_offset;
                         let v, a = if lv >= la then "video", "audio" else "audio", "video" in
                         self#log#severe
-                          "Got %00f seconds more of %s than of \
-                           %s. Are you sure that you are producing \
-                           the correct kind of data?" d v a
+                          "Got %f seconds more of %s than of %s. Are you sure \
+                           that you are producing the correct kind of data?" d v a
                       )
                   with
                   | End_of_file -> raise (Finished ("Process exited.", restart))
