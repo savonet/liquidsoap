@@ -161,7 +161,10 @@ object (self)
   val has_headers_m = Mutex.create ()
 
   method create =
-    Tutils.mutexify has_headers_m create ()
+    Tutils.mutexify has_headers_m
+      (fun () ->
+        has_headers <- true;
+        create ()) ()
 
   method read_headers =
     Tutils.mutexify has_headers_m
@@ -178,7 +181,6 @@ object (self)
     self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
     self#log#important "Starting process.";
     let (_, in_d) as x = self#create in
-    has_headers <- true;
     let rec process ((in_e,in_d) as x) l =
       let do_restart s restart f =
         self#log#important "%s" s;
@@ -192,7 +194,6 @@ object (self)
           begin
             self#log#important "Restarting process.";
             let ((_,in_d) as x) = self#create in
-            has_headers <- true;
             [{ Duppy.Task.
                priority = priority;
                events   = [`Read in_d];
