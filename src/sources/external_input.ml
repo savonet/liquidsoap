@@ -138,14 +138,14 @@ let () =
 
 module Img = Image.RGBA32
       
-class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data =
+class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data =
   let abg_max_len = Frame.master_of_seconds max in
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
   (* TODO: generators with 0 audio channels should work in `Both mode *)
   let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
-  let priority = Tutils.Non_blocking in
+  let priority = Tutils.Maybe_blocking in
   (* How often to notify about difference between audio and video filling (in seconds). *)
   let vadiff = 2. in
 object (self)
@@ -156,6 +156,22 @@ object (self)
 
   method stype = Source.Fallible
 
+  (* Whether we should read headers. *)
+  val mutable has_headers = true
+  val has_headers_m = Mutex.create ()
+
+  method create =
+    Tutils.mutexify has_headers_m
+      (fun () ->
+        has_headers <- true;
+        create ()) ()
+
+  method read_headers =
+    Tutils.mutexify has_headers_m
+      (fun fd ->
+        has_headers <- false;
+        read_headers fd)
+
   (* For producing warning about difference between audio and video filling. *)
   val mutable vadiff_offset = vadiff
 
@@ -164,7 +180,7 @@ object (self)
     log_ref := self#log#info "%s" ;
     self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
     self#log#important "Starting process.";
-    let (_, in_d) as x = create () in
+    let (_, in_d) as x = self#create in
     let rec process ((in_e,in_d) as x) l =
       let do_restart s restart f =
         self#log#important "%s" s;
@@ -177,7 +193,7 @@ object (self)
         if restart then
           begin
             self#log#important "Restarting process.";
-            let ((_,in_d) as x) = create () in
+            let ((_,in_d) as x) = self#create in
             [{ Duppy.Task.
                priority = priority;
                events   = [`Read in_d];
@@ -193,7 +209,7 @@ object (self)
       in
       try
         let events =
-          if should_stop then raise (Finished ("Source stoped: closing process.",false));
+          if should_stop then raise (Finished ("Source stoped: closing process.", false));
           let len = Generator.length abg - abg_max_len in
           if len >= 0 then
             (* Wait until buffer is 3/4 full *)
@@ -202,24 +218,28 @@ object (self)
           else
             begin
               if List.mem (`Read in_d) l then
-                begin
-                  try
-                    get_data in_d abg;
-                    (* Check that audio and video roughly get filled as the same speed. *)
-                    let lv = Frame.seconds_of_master (Generator.video_length abg) in
-                    let la = Frame.seconds_of_master (Generator.audio_length abg) in
-                    let d = abs_float (lv -. la) in
-                    if d -. vadiff_offset >= 0. then
-                      (
-                        vadiff_offset <- vadiff_offset +. vadiff_offset;
-                        let v, a = if lv >= la then "video", "audio" else "audio", "video" in
-                        self#log#severe
-                          "Got %f seconds more of %s than of %s. Are you sure \
-                           that you are producing the correct kind of data?" d v a
-                      )
-                  with
-                  | End_of_file -> raise (Finished ("Process exited.", restart))
-                end;
+                (* Do we need to read the headers? *)
+                if has_headers then
+                  self#read_headers in_d
+                else
+                  begin
+                    try
+                      get_data in_d abg;
+                      (* Check that audio and video roughly get filled as the same speed. *)
+                      let lv = Frame.seconds_of_master (Generator.video_length abg) in
+                      let la = Frame.seconds_of_master (Generator.audio_length abg) in
+                      let d = abs_float (lv -. la) in
+                      if d -. vadiff_offset >= 0. then
+                        (
+                          vadiff_offset <- vadiff_offset +. vadiff_offset;
+                          let v, a = if lv >= la then "video", "audio" else "audio", "video" in
+                          self#log#severe
+                            "Got %f seconds more of %s than of %s. Are you sure \
+                             that you are producing the correct kind of data?" d v a
+                        )
+                    with
+                    | End_of_file -> raise (Finished ("Process exited.", restart))
+                  end;
               [`Read in_d]
             end
         in
@@ -284,20 +304,22 @@ let () =
       let audio_converter = ref None in
       let create () =
         let in_e = Unix.open_process_in command in
-        let f = Unix.descr_of_in_channel in_e in
-        let h, _ = Avi.Read.headers_simple f in
+        let fd = Unix.descr_of_in_channel in_e in
+        in_e, fd
+      in
+      let read_headers fd =
+        let h, _ = Avi.Read.headers_simple fd in
         let check = function
           | `Video (w,h,fps) ->
              if w <> width then failwith "Wrong video width.";
-            if h <> height then failwith "Wrong video height.";
-            if fps <> float (Lazy.force Frame.video_rate) then failwith "Wrong video rate."
+             if h <> height then failwith "Wrong video height.";
+             if fps <> float (Lazy.force Frame.video_rate) then failwith "Wrong video rate."
           | `Audio (channels, audio_src_rate) ->
              let audio_src_rate = float audio_src_rate in
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
              audio_converter := Some (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16 ~audio_src_rate)
         in
-        List.iter check h;
-        in_e, f
+        List.iter check h
       in
       let get_data fd abg =
         match Avi.Read.chunk fd with
@@ -305,10 +327,10 @@ let () =
         | `Frame (`Video, _, data) ->
            if String.length data <> width * height * 3 then
              failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
-          let data = Img.of_RGB24_string data width in
-          (* Img.swap_rb data; *)
-          (* Img.Effect.flip data; *)
-          Generator.put_video abg [|[|data|]|] 0 1
+           let data = Img.of_RGB24_string data width in
+           (* Img.swap_rb data; *)
+           (* Img.Effect.flip data; *)
+           Generator.put_video abg [|[|data|]|] 0 1
         | `Frame (`Audio, _, data) ->
            let converter = Utils.get_some !audio_converter in
            let data = converter data in
@@ -323,7 +345,7 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data):>Source.source))
+      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data):>Source.source))
 
 (***** raw video *****)
 
@@ -360,6 +382,7 @@ let () =
         let f = Unix.descr_of_in_channel in_e in
         in_e, f
       in
+      let read_headers _ = () in
       let buflen = width * height * 3 in
       let buf = Bytes.create buflen in
       let get_data fd abg =
@@ -377,4 +400,4 @@ let () =
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~get_data):>Source.source))
+      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data):>Source.source))
