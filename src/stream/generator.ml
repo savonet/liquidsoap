@@ -403,6 +403,9 @@ struct
     breaks = []
   }
 
+  let audio_size t =
+    Queue.fold (fun n a -> n) 0 t.audio.buffers
+
   (** Audio length, in ticks. *)
   let audio_length t = Generator.length t.audio
 
@@ -412,6 +415,12 @@ struct
   (** Total length. *)
   let length t =
     min (Generator.length t.audio) (Generator.length t.video)
+
+  let audio_size t = Utils.reachable_size t.audio
+
+  let video_size t = Utils.reachable_size t.video
+
+  let size t = audio_size t + video_size t
 
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t =
@@ -650,6 +659,10 @@ struct
   let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
+
+  let audio_size t = Tutils.mutexify t.lock Super.audio_size t.gen
+  let video_size t = Tutils.mutexify t.lock Super.video_size t.gen
+  let size t = Tutils.mutexify t.lock Super.size t.gen
 
   let set_rewrite_metadata t f = t.map_meta <- f
 
