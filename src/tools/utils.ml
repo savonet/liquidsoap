@@ -676,3 +676,14 @@ let environment () =
   in
   let l = Array.to_list l in
   List.map split l
+
+(** String representation of a size (in bytes). *)
+let string_of_size n =
+  if n < 1 lsl 10 then
+    Printf.sprintf "%d B" n
+  else if n < 1 lsl 20 then
+    Printf.sprintf "%.02f KiB" (float_of_int n /. float_of_int (1 lsl 10))
+  else if n < 1 lsl 30 then
+    Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
+  else
+    Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
