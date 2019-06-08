@@ -182,7 +182,10 @@ object (self)
   method output_start =
     let el = self#get_element in
     ignore (Element.set_state el.bin Element.State_playing);
-    ignore (Element.get_state el.bin);
+    (* Don't uncomment the following line, it locks the program. I guess that
+       GStreamer is waiting for some data before answering that we are
+       playing. *)
+    (* ignore (Element.get_state el.bin); *)
     self#register_task ~priority:Tutils.Blocking Tutils.scheduler;
     if clock_safe then (gst_clock ())#register_blocking_source
 
