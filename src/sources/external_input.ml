@@ -152,6 +152,17 @@ object (self)
   inherit Source.source ~name:"input.external.video" kind
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
+  initializer
+    self#register_command "buffer_length"
+      ~descr:"Show internal buffer length (in seconds)."
+      (fun _ ->
+        Printf.sprintf
+          "audio buffer length: %.02f s\nvideo buffer length: %.02f s\ntotal buffer length: %.02f s"
+          (Frame.seconds_of_master (Generator.audio_length abg))
+          (Frame.seconds_of_master (Generator.video_length abg))
+          (Frame.seconds_of_master (Generator.length abg))
+      )
+
   val mutable should_stop = false
 
   method stype = Source.Fallible
