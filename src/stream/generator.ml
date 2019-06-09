@@ -55,6 +55,9 @@ struct
 
 (** A chunk with given offset and length. *)
 type 'a chunk = 'a * int * int
+
+let chunk_data ((buf, _, _):'a chunk) = buf
+
 (** A buffer is a queue of chunks. *)
 type 'a buffer = 'a chunk Queue.t
 
@@ -403,9 +406,6 @@ struct
     breaks = []
   }
 
-  let audio_size t =
-    Queue.fold (fun n a -> n) 0 t.audio.buffers
-
   (** Audio length, in ticks. *)
   let audio_length t = Generator.length t.audio
 
@@ -416,9 +416,15 @@ struct
   let length t =
     min (Generator.length t.audio) (Generator.length t.video)
 
-  let audio_size t = Utils.reachable_size t.audio
+  let audio_size t =
+    let float_size = 8 in
+    Queue.fold (fun n a -> n + Array.length (Generator.chunk_data a) * float_size) 0 t.audio.Generator.buffers
 
-  let video_size t = Utils.reachable_size t.video
+  let video_size t =
+    let image_size (i:Image.RGBA32.t) = Bigarray.Array1.size_in_bytes (Image.RGBA32.data i) in
+    let video_size (v:Frame.video_t) = Array.fold_left (fun n i -> n + image_size i) 0 v in
+    let buffer_size (b:Frame.video_t array) = Array.fold_left (fun n v -> n + video_size v) 0 b in
+    Queue.fold (fun n a -> n + buffer_size (Generator.chunk_data a)) 0 t.video.Generator.buffers
 
   let size t = audio_size t + video_size t
 
