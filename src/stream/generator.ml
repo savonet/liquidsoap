@@ -55,6 +55,9 @@ struct
 
 (** A chunk with given offset and length. *)
 type 'a chunk = 'a * int * int
+
+let chunk_data ((buf, _, _):'a chunk) = buf
+
 (** A buffer is a queue of chunks. *)
 type 'a buffer = 'a chunk Queue.t
 
@@ -413,6 +416,18 @@ struct
   let length t =
     min (Generator.length t.audio) (Generator.length t.video)
 
+  let audio_size t =
+    let float_size = 8 in
+    Queue.fold (fun n a -> n + Array.length (Generator.chunk_data a) * float_size) 0 t.audio.Generator.buffers
+
+  let video_size t =
+    let image_size (i:Image.RGBA32.t) = Bigarray.Array1.size_in_bytes (Image.RGBA32.data i) in
+    let video_size (v:Frame.video_t) = Array.fold_left (fun n i -> n + image_size i) 0 v in
+    let buffer_size (b:Frame.video_t array) = Array.fold_left (fun n v -> n + video_size v) 0 b in
+    Queue.fold (fun n a -> n + buffer_size (Generator.chunk_data a)) 0 t.video.Generator.buffers
+
+  let size t = audio_size t + video_size t
+
   (** Duration of data (in ticks) before the next break, -1 if there's none. *)
   let remaining t =
     match t.breaks with
@@ -650,6 +665,10 @@ struct
   let video_length t = Tutils.mutexify t.lock Super.video_length t.gen
   let length t = Tutils.mutexify t.lock Super.length t.gen
   let remaining t = Tutils.mutexify t.lock Super.remaining t.gen
+
+  let audio_size t = Tutils.mutexify t.lock Super.audio_size t.gen
+  let video_size t = Tutils.mutexify t.lock Super.video_size t.gen
+  let size t = Tutils.mutexify t.lock Super.size t.gen
 
   let set_rewrite_metadata t f = t.map_meta <- f
 

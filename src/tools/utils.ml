@@ -677,6 +677,10 @@ let environment () =
   let l = Array.to_list l in
   List.map split l
 
+(** Size of an OCaml value (including referred elements) in bytes. *)
+let reachable_size x =
+  Obj.reachable_words (Obj.repr x) * Sys.word_size
+
 (** String representation of a size (in bytes). *)
 let string_of_size n =
   if n < 1 lsl 10 then
