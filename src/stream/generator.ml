@@ -418,7 +418,9 @@ struct
 
   let audio_size t =
     let float_size = 8 in
-    Queue.fold (fun n a -> n + Array.length (Generator.chunk_data a) * float_size) 0 t.audio.Generator.buffers
+    let track_size (t:Frame.audio_t) = Array.length t * float_size in
+    let audio_size = Array.fold_left (fun n t -> n + track_size t) 0 in
+    Queue.fold (fun n a -> n + audio_size (Generator.chunk_data a)) 0 t.audio.Generator.buffers
 
   let video_size t =
     let image_size (i:Image.RGBA32.t) = Bigarray.Array1.size_in_bytes (Image.RGBA32.data i) in
