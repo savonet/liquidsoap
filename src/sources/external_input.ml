@@ -27,32 +27,6 @@ module Generated = Generated.From_audio_video_plus
 
 (* {1 External Input handling} *)
 
-class virtual base ~kind ~name ~generator ~bufferize =
-object (self)
-  inherit Source.source ~name kind
-  inherit Generated.source generator ~empty_on_abort:false ~bufferize
-
-  initializer
-    self#register_command "buffer_length"
-      ~descr:"Show internal buffer length (in seconds)."
-      (fun _ ->
-        Printf.sprintf
-          "audio buffer length: %.02f s\nvideo buffer length: %.02f s\ntotal buffer length: %.02f s"
-          (Frame.seconds_of_master (Generator.audio_length generator))
-          (Frame.seconds_of_master (Generator.video_length generator))
-          (Frame.seconds_of_master (Generator.length generator))
-      );
-    self#register_command "buffer_size"
-      ~descr:"Show internal buffer size."
-      (fun _ ->
-        Printf.sprintf
-          "audio buffer size: %s\nvideo buffer size: %s\ntotal buffer size: %s"
-          (Utils.string_of_size (Generator.audio_size generator))
-          (Utils.string_of_size (Generator.video_size generator))
-          (Utils.string_of_size (Generator.size generator))
-      )
-end
-
 exception Finished of string*bool
 
 class external_input ~kind ~restart ~bufferize ~channels
@@ -88,8 +62,9 @@ class external_input ~kind ~restart ~bufferize ~channels
     | `Status (Unix.WEXITED 0) -> restart
     | _ -> restart_on_error
   in
-  object (self)
-    inherit base ~kind ~name:"input.external" ~generator:abg ~bufferize
+object (self)
+  inherit Source.source ~name:"input.external" kind
+  inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
   val mutable process = None
 
@@ -174,7 +149,28 @@ class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_heade
   (* How often to notify about difference between audio and video filling (in seconds). *)
   let vadiff = 2. in
 object (self)
-  inherit base ~name:"input.external.video" ~kind ~generator:abg ~bufferize
+  inherit Source.source ~name:"input.external.video" kind
+  inherit Generated.source abg ~empty_on_abort:false ~bufferize
+
+  initializer
+    self#register_command "buffer_length"
+      ~descr:"Show internal buffer length (in seconds)."
+      (fun _ ->
+        Printf.sprintf
+          "audio buffer length: %.02f s\nvideo buffer length: %.02f s\ntotal buffer length: %.02f s"
+          (Frame.seconds_of_master (Generator.audio_length abg))
+          (Frame.seconds_of_master (Generator.video_length abg))
+          (Frame.seconds_of_master (Generator.length abg))
+      );
+    self#register_command "buffer_size"
+      ~descr:"Show internal buffer size."
+      (fun _ ->
+        Printf.sprintf
+          "audio buffer size: %s\nvideo buffer size: %s\ntotal buffer size: %s"
+          (Utils.string_of_size (Generator.audio_size abg))
+          (Utils.string_of_size (Generator.video_size abg))
+          (Utils.string_of_size (Generator.size abg))
+      )
 
   val mutable should_stop = false
 
