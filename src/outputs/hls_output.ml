@@ -174,7 +174,14 @@ class hls_output p =
         let l = List.rev segments in
         let rm = List.hd l in
         segments <- List.rev (List.tl l);
-        List.iter (fun s -> Unix.unlink (self#segment_name ~segment:rm s)) streams
+        List.iter
+          (fun s ->
+            let fname = self#segment_name ~segment:rm s in
+            try
+              Unix.unlink fname
+            with Unix.Unix_error (_, _, msg) ->
+              self#log#important "Could not remove file %s: %s" fname msg
+          ) streams
       done;
       open_date <- Unix.gettimeofday ()
 
