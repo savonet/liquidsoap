@@ -182,8 +182,7 @@ module Read = struct
   let read n f =
     let s = Bytes.create n in
     let k = Unix.read_retry f s 0 n in
-    if k = 0 && n <> 0 then raise End_of_file;
-    assert (k = n);
+    if k <> n then raise End_of_file;
     Bytes.unsafe_to_string s
 
   let word f =

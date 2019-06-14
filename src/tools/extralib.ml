@@ -59,7 +59,7 @@ let read_retry read s buf off len =
   while !loop do
     let n = read s buf (off + !r) (len - !r) in
     r := !r + n;
-    loop := !r <> 0 && !r < len
+    loop := !r <> 0 && !r < len && n <> 0
   done;
   !r
 
