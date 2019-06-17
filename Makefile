@@ -1,4 +1,4 @@
-SUBDIRS= src examples doc gui scripts lib
+SUBDIRS= src examples doc gui scripts libs
 DISTFILES = CHANGES COPYING INSTALL README \
 	bootstrap configure.ac configure config.h.in \
 	Makefile Makefile.defs.in Makefile.rules install-sh
@@ -77,7 +77,7 @@ endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
 	$(INSTALL_PROGRAM) scripts/extract-replaygain $(libdir)/liquidsoap/$(libs_dir_version)
-	find lib | grep '\.liq$$' | while read l; do \
+	find libs | grep '\.liq$$' | while read l; do \
 	  $(INSTALL_DATA) $$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
