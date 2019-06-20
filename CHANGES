@@ -101,7 +101,7 @@ Changed:
 
 - Added `conservative`, `length` and `default_duration` params to `playlist.{reloadable,once,merge}` (#818)
 
-- Renamed `input.external` into `input.external.wav`, added `input.external.rawaudio`.
+- Renamed `input.external` into `input.external.rawaudio`, added `input.external.wav`.
 
 Fixed:
 
