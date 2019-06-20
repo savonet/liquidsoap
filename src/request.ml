@@ -478,7 +478,7 @@ let create ~kind ?(metadata=[]) ?(persistent=false) ?(indicators=[]) u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
-    if n mod leak_warning#get = 0 then
+    if n > 0 && n mod leak_warning#get = 0 then
       log#severe
         "There are currently %d RIDs, possible request leak! Please check that \
          you don't have a loop on empty/unavailable requests, or creating \
