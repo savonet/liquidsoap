@@ -65,10 +65,10 @@ let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
 let var_char =
-  [%sedlex.regexp? alphabetic | other_alphabetic | '_']
+  [%sedlex.regexp? alphabetic | other_alphabetic]
 
 let var_lit =
-  [%sedlex.regexp? var_char, Star(var_char | decimal_digit | '.' | '\'')]
+  [%sedlex.regexp? Star('_'), var_char, Star(var_char | decimal_digit | '.' | '\'')]
 
 let var_ref =
   [%sedlex.regexp? "ref", Plus(var_char | decimal_digit | '.' | '\'')]
@@ -179,6 +179,7 @@ let rec token lexbuf = match%sedlex lexbuf with
   | "ref" -> REF
   | "!"   -> GET
   | ":="  -> SET
+  | '_'   -> UNDERSCORE
 
   | "true"  -> BOOL true
   | "false" -> BOOL false

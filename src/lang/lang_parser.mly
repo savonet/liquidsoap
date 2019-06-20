@@ -184,6 +184,7 @@
 %token <string> BIN3
 %token TIMES
 %token MINUS
+%token UNDERSCORE
 %token NOT
 %token REF GET SET
 %token PP_IFDEF PP_IFNDEF PP_IFENCODER PP_IFNENCODER PP_ENDIF
@@ -560,8 +561,12 @@ app_list:
   | app_list_elem                { [$1] }
   | app_list_elem COMMA app_list { $1::$3 }
 
+bindvar:
+  | VAR { $1 }
+  | UNDERSCORE { "_" }
+
 pattern:
-  | VAR { PVar $1 }
+  | bindvar { PVar $1 }
   | LPAR pattern_list RPAR { PTuple $2 }
 
 pattern_list:
@@ -569,7 +574,7 @@ pattern_list:
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | VAR GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | bindvar GETS expr { (Doc.none (),[]),PVar $1,$3 }
   | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
   | DEF pattern g exprs END {
       let body = $4 in
@@ -596,7 +601,10 @@ arg:
   | TILD VAR opt { $2,$2,
                    T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)),
                    $3 }
-  | VAR opt      { "",$1,
+  | TILD VAR GETS UNDERSCORE opt { $2,"_",
+                   T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)),
+                   $5 }
+  | bindvar opt  { "",$1,
                    T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)),
                    $2 }
 opt:
