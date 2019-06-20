@@ -670,11 +670,15 @@ let rec (<:) a b =
          let m = List.map (fun _ -> `Ellipsis) m in
          raise (Error (`Tuple l, `Tuple m))
        end;
+     let n = ref 0 in
      List.iter2
        (fun a b ->
+         incr n;
          try a <: b with
-         (* TODO: the elipisis should keep length of the list... *)
-         | Error (a,b) -> raise (Error (`Tuple [`Ellipsis; a; `Ellipsis], `Tuple [`Ellipsis; b; `Ellipsis]))
+         | Error (a,b) ->
+            let l = List.init (!n-1) (fun _ -> `Ellipsis) in
+            let l' = List.init (List.length m - !n) (fun _ -> `Ellipsis) in
+            raise (Error (`Tuple (l@[a]@l'), `Tuple (l@[b]@l')))
        ) l m
   | Zero, Zero -> ()
   | Zero, Variable -> ()
