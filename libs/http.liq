@@ -125,7 +125,7 @@ end
 # Serve a static path
 # @category Interaction
 # @param ~port Port for incoming harbor (http) connections.
-# @param ~path Base path for hls URIs.
+# @param ~path Base path
 # @param ~headers Default response headers.
 # @param directory Local path to be served
 def harbor.http.static(~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],directory) =
@@ -136,7 +136,7 @@ end
 # Serve a static path
 # @category Interaction
 # @param ~port Port for incoming harbor (https) connections.
-# @param ~path Base path for hls URIs.
+# @param ~path Base path
 # @param ~headers Default response headers.
 # @param directory Local path to be served
 def harbor.https.static(~port=8000,~path="/",~headers=[("Access-Control-Allow-Origin","*")],directory) =

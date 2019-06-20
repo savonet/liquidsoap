@@ -94,8 +94,6 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
                            ~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
 
-  on_shutdown(fun () -> file.rmdir(tmp_dir))
-
   serve(port=port,path=path,tmp_dir)
 
   output.file.hls(id=id,fallible=fallible,on_start=on_start,on_stop=on_stop,
