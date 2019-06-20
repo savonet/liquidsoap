@@ -19,8 +19,8 @@ def input.external(~id="",~buffer=2.0,~channels=2,~max=10.0,
                    ~restart=true,~restart_on_error=false,
                    ~samplerate=44100,cmd) =
   log.severe(label="lang.deprecated",
-    "WARNING: \"input.external\" is deprecated! Please use \"input.external.audio\"")
-  input.external.audio(id=id,buffer=buffer,channels=channels,
-                       max=max,restart=restart,restart_on_error=restart_on_error,
-                       samplerate=samplerate,cmd)
+    "WARNING: \"input.external\" is deprecated! Please use \"input.external.wav\"")
+  input.external.wav(id=id,buffer=buffer,channels=channels,
+                     max=max,restart=restart,restart_on_error=restart_on_error,
+                     samplerate=samplerate,cmd)
 end

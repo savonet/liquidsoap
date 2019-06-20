@@ -320,7 +320,7 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
   on_metadata(fun (m) -> system(send^quote(display(m))),s)
 end
 
-%ifdef input.external
+%ifdef input.external.wav
 # Stream data from mplayer
 # @category Source / Input
 # @param s data URI.
@@ -332,13 +332,13 @@ end
 def input.mplayer(~id="input.mplayer",
          ~restart=true,~restart_on_error=false,
          ~buffer=0.2,~max=10.,s) =
-  input.external(id=id,restart=restart,
-                 restart_on_error=restart_on_error,
-                 buffer=buffer,max=max,
-                 "mplayer -really-quiet \
-                    -af resample=#{get(default=44100,\"frame.audio.samplerate\")},channels=#{get(default=2,\"frame.audio.channels\")} \
-                    -ao pcm:file=/dev/stdout \
-                    -vc null -vo null #{quote(s)} 2>/dev/null")
+  input.external.wav(id=id,restart=restart,
+                     restart_on_error=restart_on_error,
+                     buffer=buffer,max=max,
+                     "mplayer -really-quiet \
+                       -af resample=#{get(default=44100,\"frame.audio.samplerate\")},channels=#{get(default=2,\"frame.audio.channels\")} \
+                       -ao pcm:file=/dev/stdout \
+                       -vc null -vo null #{quote(s)} 2>/dev/null")
 end
 %endif
 

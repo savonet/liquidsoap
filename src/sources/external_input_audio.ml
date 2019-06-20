@@ -29,23 +29,16 @@ module Generated = Generated.From_audio_video_plus
 
 exception Finished of string*bool
 
-class external_input ~kind ~restart ~bufferize ~channels
-                     ~restart_on_error ~max
-                     ~samplerate command =
+class external_input ~name ~kind ~restart ~bufferize
+                     ~restart_on_error ~max ~converter
+                     ?read_header command =
   let abg_max_len = Frame.audio_of_seconds max in
-  let in_freq = float samplerate in
-  let converter =
-    Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
-                           ~audio_src_rate:in_freq
-  in
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
-  let log_error = ref (fun _ -> ()) in
   let abg = Generator.create ~log ~kind `Audio in
-  let on_stdout in_chan =
-    let s = Process_handler.read 1024 in_chan in
-    let data = converter (Bytes.unsafe_to_string s) in
+  let on_data s =
+    let data = converter s in
     let len = Array.length data.(0) in
     let buffered = Generator.length abg in
     Generator.put_audio abg data 0 (Array.length data.(0));
@@ -54,62 +47,43 @@ class external_input ~kind ~restart ~bufferize ~channels
     else
       `Continue
   in
-  let on_stderr in_chan =
-    (!log_error) (Bytes.unsafe_to_string (Process_handler.read 1024 in_chan));
-    `Continue
-  in
-  let on_stop = function
-    | `Status (Unix.WEXITED 0) -> restart
-    | _ -> restart_on_error
-  in
 object (self)
-  inherit Source.source ~name:"input.external.audio" kind
+  inherit External_input.base ~name ~kind ?read_header 
+                              ~restart ~restart_on_error ~on_data command as base
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
-  val mutable process = None
-
-  method stype = Source.Fallible
-
-  method wake_up _ =
+  method wake_up x =
     (* Now we can create the log function *)
     log_ref := self#log#important "%s";
-    log_error := self#log#info "%s";
-    process <- Some (Process_handler.run ~on_stop ~on_stdout 
-                                         ~on_stderr ~log command)
-
-  method sleep =
-    match process with
-      | Some h ->
-          Process_handler.kill h;
-          process <- None
-      | None -> ()
+    base#wake_up x
 end
 
+let proto = [
+  "buffer", Lang.float_t, Some (Lang.float 2.),
+  Some "Duration of the pre-buffered data." ;
+
+  "max", Lang.float_t, Some (Lang.float 10.),
+  Some "Maximum duration of the buffered data.";
+
+  "restart", Lang.bool_t, Some (Lang.bool true),
+  Some "Restart process when exited.";
+
+  "restart_on_error", Lang.bool_t, Some (Lang.bool false),
+  Some "Restart process when exited with error.";
+
+  "", Lang.string_t, None,
+  Some "Command to execute." ]
+
 let () =
-    Lang.add_operator "input.external.audio"
+    Lang.add_operator "input.external.rawaudio"
       ~category:Lang.Input
-      ~descr:"Stream data from an external application."
-      [
-        "buffer", Lang.float_t, Some (Lang.float 2.),
-         Some "Duration of the pre-buffered data." ;
-
-        "max", Lang.float_t, Some (Lang.float 10.),
-        Some "Maximum duration of the buffered data.";
-
+      ~descr:"Stream raw PCM data from an external application."
+      (proto @ [
         "channels", Lang.int_t, Some (Lang.int 2),
         Some "Number of channels.";
 
         "samplerate", Lang.int_t, Some (Lang.int 44100),
-        Some "Samplerate.";
-
-        "restart", Lang.bool_t, Some (Lang.bool true),
-        Some "Restart process when exited.";
-
-        "restart_on_error", Lang.bool_t, Some (Lang.bool false),
-        Some "Restart process when exited with error.";
-
-        "", Lang.string_t, None,
-        Some "Command to execute." ]
+        Some "Samplerate." ])
       ~kind:Lang.audio_any
       (fun p kind ->
          let command = Lang.to_string (List.assoc "" p) in
@@ -120,13 +94,73 @@ let () =
                    (List.assoc "channels" p,
                     "Incompatible number of channels, \
                      please use a conversion operator.")) ;
-         let samplerate = Lang.to_int (List.assoc "samplerate" p) in
+         let audio_src_rate =
+           float (Lang.to_int (List.assoc "samplerate" p))
+         in
+         let converter =
+            Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16
+                                   ~audio_src_rate
+         in
          let restart = Lang.to_bool (List.assoc "restart" p) in
          let restart_on_error =
            Lang.to_bool (List.assoc "restart_on_error" p)
          in
          let max = Lang.to_float (List.assoc "max" p) in
-          ((new external_input ~kind ~restart ~bufferize ~channels
-                               ~restart_on_error ~max
-                               ~samplerate command):>Source.source))
+          ((new external_input ~kind ~restart ~bufferize
+                               ~restart_on_error ~max ~name:"input.external.rawaudio"
+                               ~converter command):>Source.source))
 
+
+let wav_ops =
+  let really_input read buf ofs len =
+    let ret = read len in
+    Bytes.blit_string ret 0 buf ofs len
+  in
+  let input_byte read =
+    Char.code (String.get (read 1) 0)
+  in
+  let input read buf ofs len =
+    really_input read buf ofs len;
+    len
+  in
+  let seek read n = ignore(read n) in
+  let close _ = () in
+  {Wav_aiff.
+     really_input;
+     input_byte;
+     input;
+     seek;
+     close}
+
+let () =
+    Lang.add_operator "input.external.wav"
+      ~category:Lang.Input
+      ~descr:"Stream WAV data from an external application."
+      proto
+      ~kind:Lang.audio_any
+      (fun p kind ->
+         let command = Lang.to_string (List.assoc "" p) in
+         let bufferize = Lang.to_float (List.assoc "buffer" p) in
+         let converter_ref = ref (fun _ -> assert false) in
+         let converter data = !converter_ref data in
+         let read_header read =
+            let ops = wav_ops in
+            let header = Wav_aiff.read_header ops read in
+            let channels = Wav_aiff.channels header in
+            let audio_src_rate =
+              float (Wav_aiff.sample_rate header)
+            in
+            let samplesize = Wav_aiff.sample_size header in
+            Wav_aiff.close header;
+            converter_ref :=
+              Rutils.create_from_iff ~format:`Wav ~channels ~samplesize
+                                     ~audio_src_rate
+         in
+         let restart = Lang.to_bool (List.assoc "restart" p) in
+         let restart_on_error =
+           Lang.to_bool (List.assoc "restart_on_error" p)
+         in
+         let max = Lang.to_float (List.assoc "max" p) in
+          ((new external_input ~kind ~restart ~bufferize ~read_header
+                               ~restart_on_error ~max ~name:"input.external.wav"
+                               ~converter command):>Source.source))
