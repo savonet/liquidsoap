@@ -185,11 +185,11 @@ object (self)
         has_headers <- true;
         create ()) ()
 
-  method read_headers =
+  method read_headers fd : unit =
     Tutils.mutexify has_headers_m
       (fun fd ->
         has_headers <- false;
-        read_headers fd)
+        read_headers fd) fd
 
   (* For producing warning about difference between audio and video filling. *)
   val mutable vadiff_offset = vadiff
@@ -235,32 +235,33 @@ object (self)
             let delay = Frame.seconds_of_master (abg_max_len / 4 + len) in
             [`Delay delay]
           else
-            begin
+            try
               if List.mem (`Read in_d) l then
                 (* Do we need to read the headers? *)
                 if has_headers then
-                  self#read_headers in_d
+                  begin
+                    self#read_headers in_d;
+                    self#log#info "Got headers."
+                  end
                 else
                   begin
-                    try
-                      get_data in_d abg;
-                      (* Check that audio and video roughly get filled as the same speed. *)
-                      let lv = Frame.seconds_of_master (Generator.video_length abg) in
-                      let la = Frame.seconds_of_master (Generator.audio_length abg) in
-                      let d = abs_float (lv -. la) in
-                      if d -. vadiff_offset >= 0. then
-                        (
-                          vadiff_offset <- vadiff_offset +. vadiff_offset;
-                          let v, a = if lv >= la then "video", "audio" else "audio", "video" in
-                          self#log#severe
-                            "Got %f seconds more of %s than of %s. Are you sure \
-                             that you are producing the correct kind of data?" d v a
-                        )
-                    with
-                    | End_of_file -> raise (Finished ("Process exited.", restart))
+                    get_data in_d abg;
+                    (* Check that audio and video roughly get filled as the same speed. *)
+                    let lv = Frame.seconds_of_master (Generator.video_length abg) in
+                    let la = Frame.seconds_of_master (Generator.audio_length abg) in
+                    let d = abs_float (lv -. la) in
+                    if d -. vadiff_offset >= 0. then
+                      (
+                        vadiff_offset <- vadiff_offset +. vadiff_offset;
+                        let v, a = if lv >= la then "video", "audio" else "audio", "video" in
+                        self#log#severe
+                          "Got %f seconds more of %s than of %s. Are you sure \
+                           that you are producing the correct kind of data?" d v a
+                      )
                   end;
               [`Read in_d]
-            end
+            with
+            | End_of_file -> raise (Finished ("Process exited.", restart))
         in
         [{ Duppy.Task.
            priority = priority;
