@@ -565,7 +565,7 @@ pattern:
   | LPAR pattern_list RPAR { PTuple $2 }
 
 pattern_list:
-  | pattern { [$1] }
+  | pattern COMMA pattern { [$1;$3] }
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
