@@ -20,7 +20,7 @@ def register_flow(~server="",~user="default",~password="default",
   # If the server is "", we get the server from sf.net
   server =
     if server == "" then
-      let ((code,_,_),_,data) = http.get("http://liquidsoap.info/flows_server")
+      let ((_,code,_),_,data) = http.get("http://liquidsoap.info/flows_server")
       if code == 200 then
         data
       else

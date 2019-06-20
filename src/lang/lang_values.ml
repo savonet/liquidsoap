@@ -314,7 +314,7 @@ let check_unused ~lib tm =
                if Vars.mem s v then
                  (* There are exceptions: unit, active_source and functions when
                     at toplevel (sort of a lib situation...) *)
-                 if not (can_ignore def.t || (toplevel && is_fun def.t)) then
+                 if s <> "_" && not (can_ignore def.t || (toplevel && is_fun def.t)) then
                    let start_pos = fst (Utils.get_some tm.t.T.pos) in
                    raise (Unused_variable (s,start_pos))
              ) fvpat
