@@ -121,11 +121,14 @@ let init host =
       try
         let duration () =
           try
-            float_of_string (Hashtbl.find m "duration")
+            match float_of_string_opt (Hashtbl.find m "duration") with
+            | Some d -> d
+            | None -> raise Not_found
           with
-            | Not_found | Failure "float_of_string" ->
+            | Not_found ->
+               let exception Bad_rid in
                try
-                 let rid = int_of_string (Hashtbl.find m "rid") in
+                 let rid = match int_of_string_opt (Hashtbl.find m "rid") with Some rid -> rid | None -> raise Bad_rid in
                  let request = Request.from_id rid in
                    match request with
                      | Some s ->
@@ -137,7 +140,7 @@ let init host =
                      | None -> raise Not_found
                with
                  | Not_found -> raise Duration
-                 | Failure "int_of_string" ->
+                 | Bad_rid ->
                      log#severe "Metadata 'rid' is not associated to an integer!" ;
                      raise Duration
         in
