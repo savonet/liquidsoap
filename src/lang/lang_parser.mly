@@ -41,13 +41,13 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
-  let mk_rec_fun ~pos doc name args body =
+  let mk_rec_fun ~pos doc pat args body =
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let fv = Lang_values.free_vars ~bound body in
     let rec fn () =
       let fnv = mk ~pos (RFun (fv,args,fn)) in
-      mk ~pos (Let {doc=doc;var=name;gen=[];
-                    def=fnv;body=body})
+      mk ~pos (Let {doc=doc;pat;gen=[];
+                    def=fnv;body})
     in
       mk ~pos (RFun (fv,args,fn))
 
@@ -243,33 +243,33 @@ exprs:
   | expr s                   { $1 }
   | expr cexprs              { mk ~pos:$loc (Seq ($1,$2)) }
   | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
+  | binding s                { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
                                            gen = [] ; def=def ;
                                            body = mk ~pos:$loc unit }) }
-  | binding cexprs           { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding cexprs           { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $2 }) }
-  | binding SEQ exprs        { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding SEQ exprs        { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $3 }) }
 cexprs:
   | cexpr s                  { $1 }
   | cexpr cexprs             { mk ~pos:$loc (Seq ($1,$2)) }
   | cexpr SEQ exprs          { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding s                { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = mk ~pos:$loc unit }) }
-  | binding cexprs           { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding cexprs           { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $2 }) }
-  | binding SEQ exprs        { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding SEQ exprs        { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $3 }) }
 
 /* General expressions.
@@ -547,7 +547,7 @@ inner_list:
   |                        { [] }
 
 inner_uple:
-  | expr COMMA expr { [$1::$3] }
+  | expr COMMA expr { [$1;$3] }
   | expr COMMA inner_uple { $1::$3 }
 
 app_list_elem:
@@ -560,26 +560,34 @@ app_list:
   | app_list_elem                { [$1] }
   | app_list_elem COMMA app_list { $1::$3 }
 
+pattern:
+  | VAR { PVar $1 }
+  | LPAR pattern_list RPAR { PUple $2 }
+
+pattern_list:
+  | pattern { [$1] }
+  | pattern COMMA pattern_list { $1::$3 }
+
 binding:
-  | VAR GETS expr {
+  | pattern GETS expr {
        let body = $3 in
          (Doc.none (),[]),$1,body
     }
-  | DEF VAR g exprs END {
+  | DEF pattern g exprs END {
       let body = $4 in
         $1,$2,body
     }
   | DEF VARLPAR arglist RPAR g exprs END {
       let arglist = $3 in
       let body = mk_fun ~pos:$loc arglist $6 in
-        $1,$2,body
+        $1,PVar $2,body
     }
   | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
-      let name = $3 in
+      let pat = PVar $3 in
       let arglist = $4 in
-      let body = mk_rec_fun ~pos:$loc doc name arglist $7 in
-        doc,name,body
+      let body = mk_rec_fun ~pos:$loc doc pat arglist $7 in
+        doc,pat,body
     }
 
 arglist:
