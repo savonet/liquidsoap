@@ -124,7 +124,7 @@
   let mk_ty ~pos name args =
     match name with
       | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
-      | "unit" -> Lang_types.make (Lang_types.Ground Lang_types.Unit)
+      | "unit" -> Lang_types.make Lang_types.unit
       | "bool" -> Lang_types.make (Lang_types.Ground Lang_types.Bool)
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
@@ -216,7 +216,7 @@
 
 program:
   | error { raise (Parse_error ($loc, "Syntax error!")) } 
-  | EOF { mk ~pos:$loc Unit }
+  | EOF { mk ~pos:$loc unit }
   | exprs EOF { $1 }
 interactive:
   | error { raise (Parse_error ($loc, "Syntax error!")) }
@@ -246,7 +246,7 @@ exprs:
   | binding s                { let doc,name,def = $1 in
                                  mk ~pos:$loc (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
-                                           body = mk ~pos:$loc Unit }) }
+                                           body = mk ~pos:$loc unit }) }
   | binding cexprs           { let doc,name,def = $1 in
                                  mk ~pos:$loc (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
@@ -262,7 +262,7 @@ cexprs:
   | binding s                { let doc,name,def = $1 in
                                  mk ~pos:$loc (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
-                                           body = mk ~pos:$loc Unit }) }
+                                           body = mk ~pos:$loc unit }) }
   | binding cexprs           { let doc,name,def = $1 in
                                  mk ~pos:$loc (Let { doc=doc ; var=name ;
                                            gen = [] ; def=def ;
@@ -306,8 +306,8 @@ expr:
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk ~pos:$loc Unit }
-  | LPAR expr COMMA expr RPAR        { mk ~pos:$loc (Product ($2,$4)) }
+  | LPAR RPAR                        { mk ~pos:$loc (Uple []) }
+  | LPAR inner_uple RPAR             { mk ~pos:$loc (Uple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"),
@@ -393,13 +393,22 @@ ty:
   | VARLPAR ty_args RPAR      { mk_ty ~pos:$loc $1 $2 }
   | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some $loc) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
-  | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
+  | LPAR ty_uple RPAR         { Lang_types.make (Lang_types.Uple $2) }
   | INT                       { Lang_values.type_of_int $1 }
   | TIMES                     { Lang_values.variable_t }
   | TIMES BIN2 INT            { mk_var_mult $2 $3 }
   | INT BIN2 TIMES            { mk_var_mult $2 $1 }
   | LPAR argsty RPAR YIELDS ty
                               { Lang_types.make (Lang_types.Arrow ($2,$5)) }
+
+ty_list:
+  | { [] }
+  | ty { [$1] }
+  | ty COMMA ty_list { $1::$3 }
+
+ty_uple:
+  | ty COMMA ty { [$1; $3] }
+  | ty COMMA ty_uple { $1::$3 }
 
 ty_args:
   |                      { [] }
@@ -448,8 +457,8 @@ cexpr:
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk ~pos:$loc Unit }
-  | LPAR expr COMMA expr RPAR        { mk ~pos:$loc (Product ($2,$4)) }
+  | LPAR RPAR                        { mk ~pos:$loc (Uple []) }
+  | LPAR inner_uple RPAR             { mk ~pos:$loc (Uple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) } 
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"),
@@ -537,6 +546,10 @@ inner_list:
   | expr                   { [$1] }
   |                        { [] }
 
+inner_uple:
+  | expr COMMA expr { [$1::$3] }
+  | expr COMMA inner_uple { $1::$3 }
+
 app_list_elem:
   | VAR GETS expr { $1,$3 }
   | expr          { "",$1 }
@@ -596,7 +609,7 @@ if_elsif:
                                                         "else",else_b;
                                                         "then",then_b]))) }
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
-  |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc Unit) }
+  |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 
 app_opt:
   | %prec no_app { [] }

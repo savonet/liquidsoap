@@ -293,10 +293,8 @@ let compare_value a b =
     | Lang.Int    a, Lang.Int b     -> compare a b
     | Lang.String a, Lang.String b  -> compare a b
     | Lang.Bool   a, Lang.Bool b    -> compare a b
-    | Lang.Unit    , Lang.Unit      -> 0
-    | Lang.Product (a1,a2), Lang.Product (b1,b2) ->
-        let c = aux (a1.Lang.value,b1.Lang.value) in
-          if c = 0 then aux (a2.Lang.value,b2.Lang.value) else c
+    | Lang.Uple   l, Lang.Uple m ->
+       List.fold_left2 (fun cmp a b -> if cmp <> 0 then cmp else aux (a.Lang.value,b.Lang.value)) 0 l m
     | Lang.List l1, Lang.List l2 ->
         let rec cmp = function
           | [],[] -> 0
@@ -1433,7 +1431,6 @@ let rec to_json_compact v =
     Utils.escape_string (fun x -> Utils.escape_utf8 x) s
   in
   match v.Lang.value with
-    | Lang.Unit -> "null"
     | Lang.Bool b -> Printf.sprintf "%b" b
     | Lang.Int  i -> Printf.sprintf "%i" i
     | Lang.String s -> print_s s
@@ -1467,8 +1464,7 @@ let rec to_json_compact v =
                 (String.concat ","
                   (List.map to_json_compact l))
         end
-    | Lang.Product (p,q) ->
-       Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
+    | Lang.Uple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
@@ -1518,10 +1514,15 @@ let rec to_json_pp f v =
                in
                Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
         end
-    | Lang.Product (p,q) ->
-       Format.fprintf f
-         "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]"
-         to_json_pp p to_json_pp q
+    | Lang.Uple l ->
+       Format.fprintf f "@[[@;<1 1>@[";
+       let rec aux = function
+         | [] -> ()
+         | [p] -> Format.fprintf f "%a" to_json_pp p
+         | p::l -> Format.fprintf f "%a,;<1 0>" to_json_pp p; aux l
+       in
+       aux l;
+       Format.fprintf f "@]@;<1 0>]@]"
     | Lang.Ref v ->
        Format.fprintf  f
          "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"

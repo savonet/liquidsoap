@@ -33,14 +33,20 @@ let log = Log.make ["lang"]
 let ground_t x = T.make (T.Ground x)
 
 let int_t     = ground_t T.Int
-let unit_t    = ground_t T.Unit
+let unit_t    = T.make T.unit
 let float_t   = ground_t T.Float
 let bool_t    = ground_t T.Bool
 let string_t  = ground_t T.String
-let product_t a b = T.make (T.Product (a,b))
-let of_product_t t = match (T.deref t).T.descr with
-  | T.Product (t,t') -> t,t'
+let uple_t l = T.make (T.Uple l)
+let product_t a b = uple_t [a;b]
+
+let of_uple_t t = match (T.deref t).T.descr with
+  | T.Uple l -> l
   | _ -> assert false
+let of_product_t t =
+  match of_uple_t t with
+  | [a;b] -> a,b
+  | _ ->  assert false
 
 let fun_t p b = T.make (T.Arrow (p,b))
 
@@ -214,12 +220,13 @@ let kind_type_of_kind_format ~fresh fmt =
 (** Value construction *)
 
 let mk ~t v = { t = t ; value = v }
-let unit = mk ~t:unit_t Unit
+let unit = mk ~t:unit_t unit
 let int i = mk ~t:int_t (Int i)
 let bool i = mk ~t:bool_t (Bool i)
 let float i = mk ~t:float_t (Float i)
 let string i = mk ~t:string_t (String i)
-let product a b = mk ~t:(product_t a.t b.t) (Product (a,b))
+let uple l = mk ~t:(uple_t (List.map (fun a -> a.t) l)) (Uple l)
+let product a b = uple [a;b]
 
 let list ~t l = mk ~t:(list_t t) (List l)
 
@@ -249,7 +256,7 @@ let val_cst_fun p c =
     (* Convert the value into a term if possible,
      * to enable introspection, mostly for printing. *)
     match c.value with
-      | Unit -> f Term.Unit
+      | Uple [] -> f Term.unit
       | Int i -> f (Term.Int i)
       | Bool i -> f (Term.Bool i)
       | Float i -> f (Term.Float i)
@@ -429,12 +436,12 @@ let static_analysis_failed = ref []
 
 let iter_sources f v =
   let rec iter_term env v = match v.Term.term with
-    | Term.Unit | Term.Bool _ | Term.String _
+    | Term.Bool _ | Term.String _
     | Term.Int _ | Term.Float _ | Term.Encoder _ -> ()
     | Term.List l -> List.iter (iter_term env) l
     | Term.Ref a | Term.Get a -> iter_term env a
-    | Term.Let {Term.def=a;body=b;_}
-    | Term.Product (a,b) | Term.Seq (a,b) | Term.Set (a,b) ->
+    | Term.Uple l -> List.iter (iter_term env) l
+    | Term.Let {Term.def=a;body=b;_} | Term.Seq (a,b) | Term.Set (a,b) ->
         iter_term env a ; iter_term env b
     | Term.Var v ->
         (* If it's locally bound it won't be in [env]. *)
@@ -459,10 +466,9 @@ let iter_sources f v =
 
   and iter_value v = match v.value with
     | Source s -> f s
-    | Unit | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
+    | Bool _ | Int _ | Float _ | String _ | Request _ | Encoder _ -> ()
     | List l -> List.iter iter_value l
-    | Product (a,b) ->
-        iter_value a ; iter_value b
+    | Uple l -> List.iter iter_value l
     | Fun (proto,pe,env,body) ->
         (* The following is necessarily imprecise: we might see
          * sources that will be unused in the execution of the function. *)
@@ -521,7 +527,7 @@ let apply f p ~t =
 (** {1 High-level manipulation of values} *)
 
 let to_unit t = match t.value with
-  | Unit -> ()
+  | Uple [] -> ()
   | _ -> assert false
 
 let to_bool t = match t.value with
@@ -598,8 +604,12 @@ let to_list t = match t.value with
   | List l -> l
   | _ -> assert false
 
+let to_uple t = match t.value with
+  | Uple l -> l
+  | _ -> assert false
+
 let to_product t = match t.value with
-  | Product (a,b) -> (a,b)
+  | Uple [a;b] -> (a,b)
   | _ -> assert false
 
 let to_metadata_list t =

@@ -33,7 +33,6 @@ type t = Lang_types.t
 type value = Lang_values.V.value = { mutable t : t ; value : in_value }
 and full_env = (string * ((int*Lang_types.constraints) list * value)) list
 and in_value = Lang_values.V.in_value =
-  | Unit
   | Bool    of bool
   | Int     of int
   | String  of string
@@ -42,7 +41,7 @@ and in_value = Lang_values.V.in_value =
   | Request of Request.t
   | Encoder of Encoder.format
   | List    of value list
-  | Product of value * value
+  | Uple    of value list
   | Ref     of value ref
   | Fun     of (string * string * value option) list *
                full_env * full_env * Lang_values.term
@@ -180,6 +179,7 @@ val to_int : value -> int
 val to_int_getter : value -> unit -> int
 val to_list : value -> value list
 val to_product : value -> value * value
+val to_uple : value -> value list
 val to_metadata_list : value -> (string*string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
@@ -199,6 +199,8 @@ val bool_t     : t
 val string_t   : t
 val product_t  : t -> t -> t
 val of_product_t : t -> t * t
+val uple_t  : t list -> t
+val of_uple_t : t -> t list
 
 val list_t     : t -> t
 val of_list_t  : t -> t
@@ -253,6 +255,7 @@ val list : t:t -> value list -> value
 val source : Source.source -> value
 val request : Request.t -> value
 val product : value -> value -> value
+val uple : value list -> value
 
 (** Build a function from an OCaml function.
   * Items in the prototype indicate the label, type and optional

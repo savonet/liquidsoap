@@ -26,7 +26,7 @@ val print_pos : ?prefix:string -> pos -> string
 
 type variance = Covariant | Contravariant | Invariant
 
-type ground = Unit | Bool | Int | String | Float
+type ground = Bool | Int | String | Float
 val print_ground : ground -> string
 
 type constr = Num | Ord | Getter of ground | Dtools | Arity_fixed | Arity_any
@@ -39,11 +39,12 @@ and descr =
   | Constr of constructed
   | Ground of ground
   | List of t
-  | Product of t * t
+  | Uple of t list
   | Zero | Succ of t | Variable
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints
   | Link of t
+val unit : descr
 val make : ?pos:pos option -> ?level:int -> descr -> t
 val dummy : t
 

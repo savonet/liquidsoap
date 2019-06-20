@@ -130,14 +130,13 @@ and let_t = {
   body : term
 }
 and in_term =
-| Unit
 | Bool    of bool
 | Int     of int
 | String  of string
 | Float   of float
 | Encoder of Encoder.format
 | List    of term list
-| Product of term * term
+| Uple    of term list
 | Ref     of term
 | Get     of term
 | Set     of term * term
@@ -158,16 +157,17 @@ and in_term =
  * restrict the environment captured when a closure is
  * formed. *)
 
+let unit = Uple []
+
 (* Only used for printing very simple functions. *)
 let rec is_ground x = match x.term with
-  | Unit | Bool _ | Int _ | Float _ | String _
+  | Bool _ | Int _ | Float _ | String _
   | Encoder _ -> true
   | Ref x -> is_ground x
   | _ -> false
 
 (** Print terms, (almost) assuming they are in normal form. *)
 let rec print_term v = match v.term with
-  | Unit     -> "()"
   | Bool i   -> string_of_bool i
   | Int i    -> string_of_int i
   | Float f  -> string_of_float f
@@ -175,8 +175,8 @@ let rec print_term v = match v.term with
   | Encoder e -> Encoder.string_of_format e
   | List l ->
       "["^(String.concat ", " (List.map print_term l))^"]"
-  | Product (a,b) ->
-      Printf.sprintf "(%s,%s)" (print_term a) (print_term b)
+  | Uple l ->
+     "(" ^ String.concat "," (List.map print_term l) ^ ")"
   | Ref a ->
       Printf.sprintf "ref(%s)" (print_term a)
   | Fun (_,[],v) when is_ground v -> "{"^(print_term v)^"}"
@@ -192,11 +192,13 @@ let rec print_term v = match v.term with
   | Let _ | Seq _ | Get _ | Set _ -> assert false
 
 let rec free_vars tm = match tm.term with
-  | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
+  | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
       Vars.empty
   | Var x -> Vars.singleton x
   | Ref r | Get r -> free_vars r
-  | Product (a,b) | Seq (a,b) | Set (a,b) ->
+  | Uple l ->
+     List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
+  | Seq (a,b) | Set (a,b) ->
       Vars.union (free_vars a) (free_vars b)
   | List l ->
       List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
@@ -218,9 +220,11 @@ let free_vars ?bound body =
     | Some s ->
         List.fold_left (fun v x -> Vars.remove x v) (free_vars body) s
 
+(** Values which can be ignored (and will thus not raise a warning if
+   ignored). *)
 let can_ignore t =
   match (T.deref t).T.descr with
-    | T.Ground T.Unit | T.Constr {T.name="active_source";_} -> true
+    | T.Uple [] | T.Constr {T.name="active_source";_} -> true
     | T.EVar _ -> true
     | _ -> false
 
@@ -243,10 +247,11 @@ exception Unused_variable of (string*Lexing.position)
 let check_unused ~lib tm =
   let rec check ?(toplevel=false) v tm = match tm.term with
     | Var s -> Vars.remove s v
-    | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
+    | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
     | Ref r -> check v r
     | Get r -> check v r
-    | Product (a,b) | Set (a,b) -> check (check v a) b
+    | Uple l -> List.fold_left (fun a -> check a) v l
+    | Set (a,b) -> check (check v a) b
     | Seq (a,b) -> check ~toplevel (check v a) b
     | List l -> List.fold_left (fun x y -> check x y) v l
     | App (hd,l) ->
@@ -315,7 +320,7 @@ let rec map_types f (gen:'a list) tm =
     | (lbl,var,t,Some tm) -> lbl, var, f gen t, Some (map_types f gen tm)
   in
   match tm.term with
-  | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
+  | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       { tm with t = f gen tm.t }
   | Ref r ->
       { t = f gen tm.t ;
@@ -323,9 +328,9 @@ let rec map_types f (gen:'a list) tm =
   | Get r ->
       { t = f gen tm.t ;
         term = Get (map_types f gen r) }
-  | Product (a,b) ->
+  | Uple l ->
       { t = f gen tm.t ;
-        term = Product (map_types f gen a, map_types f gen b) }
+        term = Uple (List.map (map_types f gen) l) }
   | Seq (a,b) ->
       { t = f gen tm.t ;
         term = Seq (map_types f gen a, map_types f gen b) }
@@ -368,14 +373,16 @@ let rec fold_types f gen x tm =
      x p
   in
   match tm.term with
-  | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
+  | Bool _ | Int _ | String _ | Float _ | Encoder _ | Var _ ->
       f gen x tm.t
   | List l ->
       List.fold_left (fun x tm -> fold_types f gen x tm) (f gen x tm.t) l
   (* In the next cases, don't care about tm.t, nothing "new" in it. *)
   | Ref r | Get r ->
       fold_types f gen x r
-  | Product (a,b) | Seq (a,b) | Set (a,b) ->
+  | Uple l ->
+       List.fold_left (fold_types f gen) x l
+  | Seq (a,b) | Set (a,b) ->
       fold_types f gen (fold_types f gen x a) b
   | App (tm,l) ->
       let x = fold_types f gen x tm in
@@ -400,7 +407,6 @@ struct
   type value = { mutable t : T.t ; value : in_value }
   and full_env = (string * ((int*T.constraints)list*value)) list
   and in_value =
-    | Unit
     | Bool    of bool
     | Int     of int
     | String  of string
@@ -409,7 +415,7 @@ struct
     | Request of Request.t
     | Encoder of Encoder.format
     | List    of value list
-    | Product of value * value
+    | Uple    of value list
     | Ref     of value ref
     (** The first environment contains the parameters already passed
       * to the function. Next parameters will be inserted between that
@@ -419,7 +425,9 @@ struct
     (** For a foreign function only the arguments are visible,
       * the closure doesn't capture anything in the environment. *)
     | FFI     of (string * string * value option) list *
-                 full_env * (full_env -> T.t -> value)
+                   full_env * (full_env -> T.t -> value)
+
+  let unit : in_value = Uple []
 
   type env = (string*value) list
 
@@ -431,7 +439,6 @@ struct
       s
 
   let rec print_value v = match v.value with
-    | Unit     -> "()"
     | Bool i   -> string_of_bool i
     | Int i    -> string_of_int i
     | Float f  -> string_of_float f
@@ -443,8 +450,8 @@ struct
         "["^(String.concat ", " (List.map print_value l))^"]"
     | Ref a ->
         Printf.sprintf "ref(%s)" (print_value !a)
-    | Product (a,b) ->
-        Printf.sprintf "(%s,%s)" (print_value a) (print_value b)
+    | Uple l ->
+       "(" ^ String.concat "," (List.map print_value l) ^ ")"
     | Fun ([],_,_,x) when is_ground x -> "{"^print_term x^"}"
     | Fun (l,_,_,x) when is_ground x -> 
         let f (label,_,value) =
@@ -466,11 +473,11 @@ struct
 
   (** Map a function on all types occurring in a value. *)
   let rec map_types f gen v = match v.value with
-    | Unit | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
+    | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
         { v with t = f gen v.t }
-    | Product (a,b) ->
+    | Uple l ->
         { t = f gen v.t ;
-          value = Product (map_types f gen a, map_types f gen b) }
+          value = Uple (List.map (map_types f gen) l) }
     | List l ->
         { t = f gen v.t ;
           value = List (List.map (map_types f gen) l) }
@@ -524,8 +531,7 @@ let (>:) = T.(>:)
 let rec value_restriction t = match t.term with
   | Var _ -> true
   | Fun _ -> true
-  | List l -> List.for_all value_restriction l
-  | Product (a,b) -> value_restriction a && value_restriction b
+  | List l | Uple l -> List.for_all value_restriction l
   | _ -> false
 
 exception Unbound of T.pos option * string
@@ -590,7 +596,6 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       e.t >: mk (T.Arrow (proto_t,body.t))
   in
   match e.term with
-  | Unit      -> e.t >: mkg T.Unit
   | Bool    _ -> e.t >: mkg T.Bool
   | Int     _ -> e.t >: mkg T.Int
   | String  _ -> e.t >: mkg T.String
@@ -618,9 +623,9 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       in
         e.t >: mk (T.List tsup) ;
         List.iter (fun item -> item.t <: tsup) l
-  | Product (a,b) ->
-      check ~level ~env a ; check ~level ~env b ;
-      e.t >: mk (T.Product (a.t,b.t))
+  | Uple l ->
+     List.iter (fun a -> check ~level ~env a) l;
+     e.t >: mk (T.Uple (List.map (fun a -> a.t) l))
   | Ref a ->
       check ~level ~env a ;
       e.t >: ref_t ~pos ~level a.t
@@ -631,7 +636,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       check ~level ~env a ;
       check ~level ~env b ;
       a.t <: ref_t ~pos ~level b.t ;
-      e.t >: mkg T.Unit
+      e.t >: mk T.unit
   | Seq (a,b) ->
       check ~env ~level a ;
       if not (can_ignore a.t) then raise (Ignored a) ;
@@ -745,7 +750,7 @@ let check ?(ignored=false) e =
   let print_toplevel = !Configure.display_types in
     try
       check ~print_toplevel ~level:(List.length builtins#get_all) ~env:[] e ;
-      if print_toplevel && (T.deref e.t).T.descr <> T.Ground T.Unit then
+      if print_toplevel && (T.deref e.t).T.descr <> T.unit then
         add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." T.pp_type e.t) ;
       if ignored && not (can_ignore e.t) then raise (Ignored e) ;
@@ -850,14 +855,13 @@ let rec eval ~env tm =
   in
   let mk v = { V.t = tm.t ; V.value = v } in
     match tm.term with
-      | Unit -> mk (V.Unit)
       | Bool    x -> mk (V.Bool x)
       | Int     x -> mk (V.Int x)
       | String  x -> mk (V.String x)
       | Float   x -> mk (V.Float x)
       | Encoder x -> mk (V.Encoder x)
       | List l -> mk (V.List (List.map (eval ~env) l))
-      | Product (a,b) -> mk (V.Product (eval ~env a, eval ~env b))
+      | Uple l -> mk (V.Uple (List.map (fun a -> eval ~env a) l))
       | Ref v -> mk (V.Ref (ref (eval ~env v)))
       | Get r ->
           begin match (eval ~env r).V.value with
@@ -868,7 +872,7 @@ let rec eval ~env tm =
           begin match (eval ~env r).V.value with
             | V.Ref r ->
                 r := eval ~env v ;
-                mk V.Unit
+                mk V.unit
             | _ -> assert false
           end
       | Let {gen=generalized;var=x;def=v;body=b;_} ->
@@ -1035,7 +1039,7 @@ let rec eval_toplevel ?(interactive=false) t =
         eval_toplevel ~interactive b
     | _ ->
         let v = eval ~env:builtins#get_all t in
-          if interactive && t.term <> Unit then
+          if interactive && t.term <> unit then
             Format.printf "- : %a = %s@."
               T.pp_type v.V.t
               (V.print_value v) ;
