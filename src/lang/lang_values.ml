@@ -158,7 +158,7 @@ and in_term =
  * formed. *)
 and pattern =
   | PVar of string (** a variable *)
-  | PTuple of pattern list (** an tuple *)
+  | PTuple of pattern list (** a tuple *)
 
 let unit = Tuple []
 
