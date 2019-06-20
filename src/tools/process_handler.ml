@@ -132,26 +132,29 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
     let on_stop =
       with_default (fun _ -> false) on_stop
     in
+    let mutex = Mutex.create () in
     let create () =
       log "Starting process";
       let p =
         Process_utils.open_process command env
       in
       let out_pipe,in_pipe = Unix.pipe () in
-      {in_pipe;out_pipe;p;stopped=false;status=None}
+      let process =
+        {in_pipe;out_pipe;p;stopped=false;status=None}
+      in
+      ignore(Thread.create (fun () ->
+        try
+          let _,status =
+            Process_utils.wait p
+          in
+          Tutils.mutexify mutex (fun () ->
+            process.status <- Some status) ();
+          ignore(Unix.write in_pipe done_c 0 1)
+        with _ -> ()) ());
+      process
     in
     let process = create () in
-    let mutex = Mutex.create () in
     let t = {mutex;process=Some process} in
-    ignore(Thread.create (fun () ->
-      try
-        let _,status =
-          Process_utils.wait process.p
-        in
-        Tutils.mutexify t.mutex (fun () ->
-          process.status <- Some status) ();
-        ignore(Unix.write process.in_pipe done_c 0 1)
-      with _ -> ()) ());
     let create = Tutils.mutexify t.mutex (fun () ->
       _kill t.process;
       t.process <- Some (create ()))
