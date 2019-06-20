@@ -121,19 +121,19 @@ and descr =
   | Constr  of constructed
   | Ground  of ground
   | List    of t
-  | Uple    of t list
+  | Tuple    of t list
   | Zero | Succ of t | Variable
   | Arrow     of (bool*string*t) list * t
   | EVar      of int*constraints (* type variable *)
   | Link      of t
 
-let unit = Uple []
+let unit = Tuple []
 
 type repr = [
   | `Constr  of string * (variance*repr) list
   | `Ground  of ground
   | `List    of repr
-  | `Uple    of repr list
+  | `Tuple    of repr list
   | `Zero | `Succ of repr | `Variable
   | `Arrow     of (bool*string*repr) list * repr
   | `EVar      of string*constraints (* existential variable *)
@@ -218,7 +218,7 @@ let repr ?(filter_out=fun _->false) ?(generalized=[]) t : repr =
       match t.descr with
       | Ground g -> `Ground g
       | List t -> `List (repr t)
-      | Uple l -> `Uple (List.map repr l)
+      | Tuple l -> `Tuple (List.map repr l)
       | Zero -> `Zero
       | Variable -> `Variable
       | Succ t -> `Succ (repr t)
@@ -283,8 +283,8 @@ let print_repr f t =
            vars
          end
     | `Ground g -> Format.fprintf f "%s" (print_ground g) ; vars
-    | `Uple [] -> Format.fprintf f "unit" ; vars
-    | `Uple l ->
+    | `Tuple [] -> Format.fprintf f "unit" ; vars
+    | `Tuple l ->
        if par then
          Format.fprintf f "@[<1>("
        else
@@ -438,7 +438,7 @@ let rec occur_check a b =
   if a == b then raise (Occur_check (a,b)) ;
   match b.descr with
   | Constr c -> List.iter (fun (_,x) -> occur_check a x) c.params
-  | Uple l -> List.iter (occur_check a) l
+  | Tuple l -> List.iter (occur_check a) l
   | List t -> occur_check a t
   | Succ t -> occur_check a t
   | Zero | Variable -> ()
@@ -496,7 +496,7 @@ let rec bind a0 b =
                  | EVar (j,c) ->
                     if List.mem Ord c then () else
                       b.descr <- EVar (j,Ord::c)
-                 | Uple l ->
+                 | Tuple l ->
                     List.iter (fun b -> check (deref b)) l
                  | List b -> check (deref b)
                  | _ -> raise (Unsatisfied_constraint (Ord,b))
@@ -507,7 +507,7 @@ let rec bind a0 b =
                | Ground g ->
                   if not (List.mem g [Bool;Int;Float;String]) then
                     raise (Unsatisfied_constraint (Dtools,b))
-               | Uple [] -> ()
+               | Tuple [] -> ()
                | List b' ->
                   begin match (deref b').descr with
                   | Ground g ->
@@ -663,12 +663,12 @@ let rec (<:) a b =
      begin try t1 <: t2 with
            | Error (a,b) -> raise (Error (`List a, `List b))
      end
-  | Uple l, Uple m ->
-     if List.length l <> List.length m then raise (Error (`Uple [`Ellipsis], `Uple [`Ellipsis]));
+  | Tuple l, Tuple m ->
+     if List.length l <> List.length m then raise (Error (`Tuple [`Ellipsis], `Tuple [`Ellipsis]));
      List.iter2
        (fun a b ->
          try a <: b with
-         | Error (a,b) -> raise (Error (`Uple [`Ellipsis; a; `Ellipsis], `Uple [`Ellipsis; b; `Ellipsis]))
+         | Error (a,b) -> raise (Error (`Tuple [`Ellipsis; a; `Ellipsis], `Tuple [`Ellipsis; b; `Ellipsis]))
        ) l m
   | Zero, Zero -> ()
   | Zero, Variable -> ()
@@ -822,7 +822,7 @@ let filter_vars f t =
     match t.descr with
     | Ground _ | Zero | Variable -> l
     | Succ t | List t -> aux l t
-    | Uple aa -> List.fold_left aux l aa
+    | Tuple aa -> List.fold_left aux l aa
     | Constr c ->
        List.fold_left (fun l (_,t) -> aux l t) l c.params
     | Arrow (p,t) ->
@@ -858,7 +858,7 @@ let copy_with subst t =
        cp (Constr { c with params = params })
     | Ground _ -> cp t.descr
     | List t -> cp (List (aux t))
-    | Uple l -> cp (Uple (List.map aux l))
+    | Tuple l -> cp (Tuple (List.map aux l))
     | Zero | Variable -> cp t.descr
     | Succ t -> cp (Succ (aux t))
     | Arrow (p,t) ->
@@ -905,7 +905,7 @@ let iter_constr f t =
     | Ground _ -> ()
     | Succ _ | Zero | Variable -> ()
     | List t -> aux pos t
-    | Uple l -> List.iter (aux pos) l
+    | Tuple l -> List.iter (aux pos) l
     | Constr c ->
        f pos c ;
        List.iter (fun (_,t) -> aux pos t) c.params

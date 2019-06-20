@@ -293,7 +293,7 @@ let compare_value a b =
     | Lang.Int    a, Lang.Int b     -> compare a b
     | Lang.String a, Lang.String b  -> compare a b
     | Lang.Bool   a, Lang.Bool b    -> compare a b
-    | Lang.Uple   l, Lang.Uple m ->
+    | Lang.Tuple   l, Lang.Tuple m ->
        List.fold_left2 (fun cmp a b -> if cmp <> 0 then cmp else aux (a.Lang.value,b.Lang.value)) 0 l m
     | Lang.List l1, Lang.List l2 ->
         let rec cmp = function
@@ -1464,7 +1464,7 @@ let rec to_json_compact v =
                 (String.concat ","
                   (List.map to_json_compact l))
         end
-    | Lang.Uple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
+    | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
@@ -1514,7 +1514,7 @@ let rec to_json_pp f v =
                in
                Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
         end
-    | Lang.Uple l ->
+    | Lang.Tuple l ->
        Format.fprintf f "@[[@;<1 1>@[";
        let rec aux = function
          | [] -> ()

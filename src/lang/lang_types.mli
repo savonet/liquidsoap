@@ -39,7 +39,7 @@ and descr =
   | Constr of constructed
   | Ground of ground
   | List of t
-  | Uple of t list
+  | Tuple of t list
   | Zero | Succ of t | Variable
   | Arrow of (bool * string * t) list * t
   | EVar of int * constraints

@@ -306,8 +306,8 @@ expr:
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk ~pos:$loc (Uple []) }
-  | LPAR inner_uple RPAR             { mk ~pos:$loc (Uple $2) }
+  | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
+  | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"),
@@ -393,7 +393,7 @@ ty:
   | VARLPAR ty_args RPAR      { mk_ty ~pos:$loc $1 $2 }
   | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some $loc) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
-  | LPAR ty_uple RPAR         { Lang_types.make (Lang_types.Uple $2) }
+  | LPAR ty_tuple RPAR         { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
   | TIMES                     { Lang_values.variable_t }
   | TIMES BIN2 INT            { mk_var_mult $2 $3 }
@@ -406,9 +406,9 @@ ty_list:
   | ty { [$1] }
   | ty COMMA ty_list { $1::$3 }
 
-ty_uple:
+ty_tuple:
   | ty COMMA ty { [$1; $3] }
-  | ty COMMA ty_uple { $1::$3 }
+  | ty COMMA ty_tuple { $1::$3 }
 
 ty_args:
   |                      { [] }
@@ -457,8 +457,8 @@ cexpr:
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk ~pos:$loc (Uple []) }
-  | LPAR inner_uple RPAR             { mk ~pos:$loc (Uple $2) }
+  | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
+  | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) } 
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"),
@@ -546,9 +546,9 @@ inner_list:
   | expr                   { [$1] }
   |                        { [] }
 
-inner_uple:
+inner_tuple:
   | expr COMMA expr { [$1;$3] }
-  | expr COMMA inner_uple { $1::$3 }
+  | expr COMMA inner_tuple { $1::$3 }
 
 app_list_elem:
   | VAR GETS expr { $1,$3 }
@@ -562,7 +562,7 @@ app_list:
 
 pattern:
   | VAR { PVar $1 }
-  | LPAR pattern_list RPAR { PUple $2 }
+  | LPAR pattern_list RPAR { PTuple $2 }
 
 pattern_list:
   | pattern { [$1] }

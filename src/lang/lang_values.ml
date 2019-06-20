@@ -136,7 +136,7 @@ and in_term =
 | Float   of float
 | Encoder of Encoder.format
 | List    of term list
-| Uple    of term list
+| Tuple    of term list
 | Ref     of term
 | Get     of term
 | Set     of term * term
@@ -158,9 +158,9 @@ and in_term =
  * formed. *)
 and pattern =
   | PVar of string (** a variable *)
-  | PUple of pattern list (** an uple *)
+  | PTuple of pattern list (** an tuple *)
 
-let unit = Uple []
+let unit = Tuple []
 
 (* Only used for printing very simple functions. *)
 let rec is_ground x = match x.term with
@@ -178,7 +178,7 @@ let rec print_term v = match v.term with
   | Encoder e -> Encoder.string_of_format e
   | List l ->
       "["^(String.concat ", " (List.map print_term l))^"]"
-  | Uple l ->
+  | Tuple l ->
      "(" ^ String.concat ", " (List.map print_term l) ^ ")"
   | Ref a ->
       Printf.sprintf "ref(%s)" (print_term a)
@@ -196,18 +196,18 @@ let rec print_term v = match v.term with
 
 let rec string_of_pat = function
   | PVar x -> x
-  | PUple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
+  | PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
 
 let rec free_vars_pat = function
   | PVar var -> Vars.singleton var
-  | PUple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
+  | PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
 
 let rec free_vars tm = match tm.term with
   | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
       Vars.empty
   | Var x -> Vars.singleton x
   | Ref r | Get r -> free_vars r
-  | Uple l ->
+  | Tuple l ->
      List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
   | Seq (a,b) | Set (a,b) ->
       Vars.union (free_vars a) (free_vars b)
@@ -235,7 +235,7 @@ let free_vars ?bound body =
    ignored). *)
 let can_ignore t =
   match (T.deref t).T.descr with
-    | T.Uple [] | T.Constr {T.name="active_source";_} -> true
+    | T.Tuple [] | T.Constr {T.name="active_source";_} -> true
     | T.EVar _ -> true
     | _ -> false
 
@@ -261,7 +261,7 @@ let check_unused ~lib tm =
     | Bool _ | Int _ | String _ | Float _ | Encoder _ -> v
     | Ref r -> check v r
     | Get r -> check v r
-    | Uple l -> List.fold_left (fun a -> check a) v l
+    | Tuple l -> List.fold_left (fun a -> check a) v l
     | Set (a,b) -> check (check v a) b
     | Seq (a,b) -> check ~toplevel (check v a) b
     | List l -> List.fold_left (fun x y -> check x y) v l
@@ -340,9 +340,9 @@ let rec map_types f (gen:'a list) tm =
   | Get r ->
       { t = f gen tm.t ;
         term = Get (map_types f gen r) }
-  | Uple l ->
+  | Tuple l ->
       { t = f gen tm.t ;
-        term = Uple (List.map (map_types f gen) l) }
+        term = Tuple (List.map (map_types f gen) l) }
   | Seq (a,b) ->
       { t = f gen tm.t ;
         term = Seq (map_types f gen a, map_types f gen b) }
@@ -392,7 +392,7 @@ let rec fold_types f gen x tm =
   (* In the next cases, don't care about tm.t, nothing "new" in it. *)
   | Ref r | Get r ->
       fold_types f gen x r
-  | Uple l ->
+  | Tuple l ->
        List.fold_left (fold_types f gen) x l
   | Seq (a,b) | Set (a,b) ->
       fold_types f gen (fold_types f gen x a) b
@@ -427,7 +427,7 @@ struct
     | Request of Request.t
     | Encoder of Encoder.format
     | List    of value list
-    | Uple    of value list
+    | Tuple    of value list
     | Ref     of value ref
     (** The first environment contains the parameters already passed
       * to the function. Next parameters will be inserted between that
@@ -439,7 +439,7 @@ struct
     | FFI     of (string * string * value option) list *
                    full_env * (full_env -> T.t -> value)
 
-  let unit : in_value = Uple []
+  let unit : in_value = Tuple []
 
   type env = (string*value) list
 
@@ -462,7 +462,7 @@ struct
         "["^(String.concat ", " (List.map print_value l))^"]"
     | Ref a ->
         Printf.sprintf "ref(%s)" (print_value !a)
-    | Uple l ->
+    | Tuple l ->
        "(" ^ String.concat ", " (List.map print_value l) ^ ")"
     | Fun ([],_,_,x) when is_ground x -> "{"^print_term x^"}"
     | Fun (l,_,_,x) when is_ground x -> 
@@ -487,9 +487,9 @@ struct
   let rec map_types f gen v = match v.value with
     | Bool _ | Int _ | String _ | Float _ | Encoder _ ->
         { v with t = f gen v.t }
-    | Uple l ->
+    | Tuple l ->
         { t = f gen v.t ;
-          value = Uple (List.map (map_types f gen) l) }
+          value = Tuple (List.map (map_types f gen) l) }
     | List l ->
         { t = f gen v.t ;
           value = List (List.map (map_types f gen) l) }
@@ -543,7 +543,7 @@ let (>:) = T.(>:)
 let rec value_restriction t = match t.term with
   | Var _ -> true
   | Fun _ -> true
-  | List l | Uple l -> List.for_all value_restriction l
+  | List l | Tuple l -> List.for_all value_restriction l
   | _ -> false
 
 exception Unbound of T.pos option * string
@@ -569,7 +569,7 @@ let rec type_of_pat ~level ~pos = function
   | PVar x ->
      let a = T.fresh_evar ~level ~pos in
      [x,a], a
-  | PUple l ->
+  | PTuple l ->
      let env,l =
        List.fold_left
          (fun (env,l) p ->
@@ -578,7 +578,7 @@ let rec type_of_pat ~level ~pos = function
          ) ([],[]) l
      in
      let l = List.rev l in
-     env, T.make ~level ~pos (T.Uple l)
+     env, T.make ~level ~pos (T.Tuple l)
 
 (* Type-check an expression.
  * [level] should be the sum of the lengths of [env] and [builtins],
@@ -651,9 +651,9 @@ let rec check ?(print_toplevel=false) ~level ~env e =
       in
         e.t >: mk (T.List tsup) ;
         List.iter (fun item -> item.t <: tsup) l
-  | Uple l ->
+  | Tuple l ->
      List.iter (fun a -> check ~level ~env a) l;
-     e.t >: mk (T.Uple (List.map (fun a -> a.t) l))
+     e.t >: mk (T.Tuple (List.map (fun a -> a.t) l))
   | Ref a ->
       check ~level ~env a ;
       e.t >: ref_t ~pos ~level a.t
@@ -878,7 +878,7 @@ let eval_pat pat v =
   let rec aux env pat v =
     match pat, v with
     | PVar x, v -> (x,v)::env
-    | PUple pl, { V.value = V.Uple l } -> List.fold_left2 aux env pl l
+    | PTuple pl, { V.value = V.Tuple l } -> List.fold_left2 aux env pl l
     | _ -> assert false
   in
   aux [] pat v
@@ -907,7 +907,7 @@ let rec eval ~env tm =
       | Float   x -> mk (V.Float x)
       | Encoder x -> mk (V.Encoder x)
       | List l -> mk (V.List (List.map (eval ~env) l))
-      | Uple l -> mk (V.Uple (List.map (fun a -> eval ~env a) l))
+      | Tuple l -> mk (V.Tuple (List.map (fun a -> eval ~env a) l))
       | Ref v -> mk (V.Ref (ref (eval ~env v)))
       | Get r ->
           begin match (eval ~env r).V.value with
