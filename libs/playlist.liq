@@ -61,8 +61,7 @@ def playlist.reloadable(~id="",~random=false,~on_done={()},
             playlist = request.filename(playlist)
             files = playlist.parse(playlist)
             def file_request(el) =
-              meta = fst(el)
-              file = snd(el)
+              let (meta, file) = el
               s = list.fold(fun (cur, el) ->
                 "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
               if s == "" then
@@ -114,11 +113,9 @@ end
 def playlist.once(~id="",~random=false,~on_done={()},~reload_mode="",
                   ~default_duration=30.,~length=10.,~conservative=false,
                   uri)
-  rs = playlist.reloadable(id=id,random=random,on_done=on_done,
+  let (reload, s) = playlist.reloadable(id=id,random=random,on_done=on_done,
                            conservative=conservative,default_duration=default_duration,
                            uri)
-  reload = fst(rs)
-  s = snd(rs)
   if reload_mode == "watch" then
     unwatch = file.watch(uri,fun () -> reload())
     source.on_shutdown(s,unwatch)
@@ -139,8 +136,7 @@ def playlist.merge(~id="",~random=false,
   pl = playlist.reloadable(id=id,random=random,
                            conservative=conservative,default_duration=default_duration,
                            uri)
-  reload = fst(pl)
-  s = snd(pl)
+  let (reload, s) = pl
   s = merge_tracks(s)
   on_end(delay=0.,fun(_,_)->reload(),s)
 end

@@ -23,8 +23,7 @@ def input.hls(~id="",~reload=10.,uri)
       # Fill the files
       files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
       def file_request(el) =
-        meta = fst(el)
-        file = snd(el)
+        let (meta,file) = el
         s = list.fold(fun (cur, el) -> "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
         if s == "" then file else "annotate:#{s}:#{file}" end
       end
