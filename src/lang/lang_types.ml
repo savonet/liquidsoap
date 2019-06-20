@@ -317,9 +317,10 @@ let print_repr f t =
               vars
        in
        aux 0 t
-    | `EVar (_,[Getter a]) | `UVar (_,[Getter a]) when !pretty_getters ->
-       let t = print_ground a in
-       Format.fprintf f "{%s}" t ; vars
+    | `EVar (_,[Getter a]) when !pretty_getters ->
+       Format.fprintf f "?{%s}" (print_ground a) ; vars
+    | `UVar (_,[Getter a]) when !pretty_getters ->
+       Format.fprintf f "{%s}" (print_ground a) ; vars
     | `EVar (name,c) | `UVar (name,c) ->
        Format.fprintf f "%s" name ;
        if c<>[] then DS.add (name,c) vars else vars
