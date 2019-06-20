@@ -96,7 +96,7 @@ let report lexbuf f =
       | Lang_values.Parse_error (pos,s) ->
         let pos = T.print_pos pos in
         error_header 3 pos;
-        Format.printf "@%s@]@." s;
+        Format.printf "%s@]@." s;
         raise Error
       | Term.Unbound (pos,s) ->
           let pos = T.print_pos (Utils.get_some pos) in
