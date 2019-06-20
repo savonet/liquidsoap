@@ -2017,10 +2017,10 @@ let add_http_request http name descr request =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let status_t =
-    Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t
+    Lang.tuple_t [Lang.string_t; Lang.int_t; Lang.string_t]
   in
   let request_return_t =
-    Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t
+    Lang.tuple_t [status_t; headers_t; Lang.string_t]
   in
   let params =
     if List.mem request [Get;Head;Delete] then
@@ -2079,9 +2079,7 @@ let add_http_request http name descr request =
                   (Printexc.to_string e))
       in
       let status =
-        Lang.product
-          (Lang.product (Lang.string x) (Lang.int y))
-          (Lang.string z)
+        Lang.tuple [Lang.string x; Lang.int y; Lang.string z]
       in
       let headers =
         List.map
@@ -2089,29 +2087,27 @@ let add_http_request http name descr request =
           headers
       in
       let headers = Lang.list ~t:header_t headers in
-      Lang.product
-        (Lang.product status headers)
-        (Lang.string data))
+      Lang.tuple [status;headers;Lang.string data])
 
 let () =
   let add_http_request = add_http_request (module Http) in
   add_http_request
     "http.get"
-    "Perform a full Http GET request and return (status,headers),data."
+    "Perform a full Http GET request and return `(status,headers,data)`."
     Get;
   add_http_request
     "http.post"
-    "Perform a full Http POST request and return (status,headers),data."
+    "Perform a full Http POST request and return `(status,headers,data)`."
     Post;
   add_http_request
     "http.put"
-    "Perform a full Http PUT request and return (status,headers),data."
+    "Perform a full Http PUT request and return `(status,headers,data)`."
     Put;
   add_http_request
     "http.head"
-    "Perform a full Http HEAD request and return (status,headers),data."
+    "Perform a full Http HEAD request and return `(status,headers,data)`."
     Head;
   add_http_request
     "http.delete"
-    "Perform a full Http DELETE request and return (status,headers),data."
+    "Perform a full Http DELETE request and return `(status,headers,data)`."
     Delete

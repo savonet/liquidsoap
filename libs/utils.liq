@@ -198,7 +198,8 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
 def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  fst(fst(run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)))
+  let (stdout, _, _) = run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)
+  stdout
 end
 
 # Perform a shell call and return the list of its output lines.
@@ -218,7 +219,7 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to test
 def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  let (_, status) = run_process(timeout=timeout,env=env,command)
+  let (_, _, status) = run_process(timeout=timeout,env=env,command)
   status == ("exit","0")
 end
 

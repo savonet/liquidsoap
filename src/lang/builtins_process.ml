@@ -25,9 +25,9 @@ open Lang_builtins
 let log = Log.make ["lang";"run_process"]
 
 let () =
-  let ret_t = Lang.product_t
-    (Lang.product_t Lang.string_t Lang.string_t)
-    (Lang.product_t Lang.string_t Lang.string_t)
+  let ret_t = Lang.tuple_t
+    [Lang.string_t; Lang.string_t;
+     Lang.product_t Lang.string_t Lang.string_t]
   in
   let env_t =
     Lang.product_t Lang.string_t Lang.string_t
@@ -37,7 +37,7 @@ let () =
   in
   add_builtin "run_process" ~cat:Sys
     ~descr:"Run a process in a shell environment. Returns: \
-            `((stdout,stderr),status)` where status is one of: \
+            `((stdout,stderr,status)` where status is one of: \
             `(\"exit\",\"\")`, `(\"killed\",\"<signal number>\")`, \
             `(\"stopped\",\"<signal number>\")`, `(\"exception\",\"<exception description>\")`, \
             `(\"timeout\",\"<run time>\")`."
@@ -144,9 +144,8 @@ let () =
                  end
              | _ -> assert false
          in
-         Lang.product
-           (Lang.product (Lang.string stdout) (Lang.string stderr))
-           (Lang.product (Lang.string status) (Lang.string arg))
+         Lang.tuple [Lang.string stdout; Lang.string stderr;
+                     Lang.product (Lang.string status) (Lang.string arg)]
        in
        let synchronous () =
          let ((in_chan,out_ch,err_chan) as p) = Unix.open_process_full cmd env in

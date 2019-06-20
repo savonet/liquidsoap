@@ -20,9 +20,8 @@ def register_flow(~server="",~user="default",~password="default",
   # If the server is "", we get the server from sf.net
   server =
     if server == "" then
-      server = http.get("http://liquidsoap.info/flows_server")
-      html_status = snd(fst(fst(fst(server))))
-      if html_status == 200 then
+      let ((code,_,_),_,data) = http.get("http://liquidsoap.info/flows_server")
+      if code == 200 then
         snd(server)
       else
         # If sf is down, we use the hardcoded server
@@ -64,8 +63,7 @@ def register_flow(~server="",~user="default",~password="default",
 
     # TODO: do something with errors!
     answer = http.get(url)
-    let ((status, headers), data) = answer
-    let ((protocol, code), desc) = status
+    let ((protocol, code, desc), headers, data) = answer
     log(level=4,"Response status: #{protocol} #{code} #{desc}")
     log(level=4,"Response headers:")
     list.iter(log_arg,headers)
