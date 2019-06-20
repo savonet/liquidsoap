@@ -162,8 +162,7 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
 
   def head_mime(~name, ret) =
     def get_mime() =
-      let (status, headers) = fst(ret)
-      code = snd(fst(status))
+      let ((code, _, _), headers, _) = ret
       if 200 <= code and code < 300 then
         headers["content-type"]
       else

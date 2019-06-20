@@ -22,7 +22,7 @@ def register_flow(~server="",~user="default",~password="default",
     if server == "" then
       let ((code,_,_),_,data) = http.get("http://liquidsoap.info/flows_server")
       if code == 200 then
-        snd(server)
+        data
       else
         # If sf is down, we use the hardcoded server
         "http://savonet.rastageeks.org/liqflows.py"
@@ -85,8 +85,7 @@ def register_flow(~server="",~user="default",~password="default",
 
   # Register streams
   def register_stream(format_url)
-    format = fst(format_url);
-    url = snd(format_url);
+    let (format, url) = format_url
     params = [("stream_format",format),("stream_url",url)]
     request(cmd="add stream",params=params)
   end
