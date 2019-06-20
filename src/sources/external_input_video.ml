@@ -31,18 +31,36 @@ module Img = Image.RGBA32
 
 exception Finished of string*bool
       
-class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data =
-  let abg_max_len = Frame.master_of_seconds max in
+class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?read_header command =
+  let abg_max_len = Frame.master_of_seconds max in  
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
+  let log_error = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
-  (* TODO: generators with 0 audio channels should work in `Both mode *)
   let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
-  let priority = Tutils.Maybe_blocking in
-  (* How often to notify about difference between audio and video filling (in seconds). *)
   let vadiff = 2. in
+  let on_data s =
+    on_data abg s;
+    (* Check that audio and video roughly get filled as the same speed. *)
+    let lv = Frame.seconds_of_master (Generator.video_length abg) in
+    let la = Frame.seconds_of_master (Generator.audio_length abg) in
+    let d = abs_float (lv -. la) in
+    if d >= vadiff then
+    (
+      let v, a = if lv >= la then "video", "audio" else "audio", "video" in
+      (!log_error) (Printf.sprintf
+        "Got %f seconds more of %s than of %s. Are you sure \
+         that you are producing the correct kind of data?" d v a)
+    );
+    let buffered = Generator.length abg in
+    if abg_max_len < buffered then
+      `Delay (Frame.seconds_of_audio (buffered-3*abg_max_len/4))
+    else
+      `Continue
+  in
 object (self)
-  inherit Source.source ~name:"input.external.video" kind
+  inherit External_input.base ~name ~kind ?read_header
+                              ~restart ~restart_on_error ~on_data command as base
   inherit Generated.source abg ~empty_on_abort:false ~bufferize
 
   initializer
@@ -65,123 +83,13 @@ object (self)
           (Utils.string_of_size (Generator.size abg))
       )
 
-  val mutable should_stop = false
-
-  method stype = Source.Fallible
-
-  (* Whether we should read headers. *)
-  val mutable has_headers = true
-  val has_headers_m = Mutex.create ()
-
-  method create =
-    Tutils.mutexify has_headers_m
-      (fun () ->
-        has_headers <- true;
-        create ()) ()
-
-  method read_headers fd : unit =
-    Tutils.mutexify has_headers_m
-      (fun fd ->
-        has_headers <- false;
-        read_headers fd) fd
-
-  (* For producing warning about difference between audio and video filling. *)
-  val mutable vadiff_offset = vadiff
-
-  method wake_up _ =
+  method wake_up x =
     (* Now we can create the log function *)
     log_ref := self#log#info "%s" ;
+    log_error := self#log#severe "%s" ;
     self#log#debug "Generator mode: %s." (match Generator.mode abg with `Video -> "video" | `Both -> "both" | _ -> "???");
-    self#log#important "Starting process.";
-    let (_, in_d) as x = self#create in
-    let rec process ((in_e,in_d) as x) l =
-      let do_restart s restart f =
-        self#log#important "%s" s;
-        begin
-          try
-            ignore (Unix.close_process_in in_e);
-          with
-          | _ -> ()
-        end;
-        if restart then
-          begin
-            self#log#important "Restarting process.";
-            let ((_,in_d) as x) = self#create in
-            [{ Duppy.Task.
-               priority = priority;
-               events   = [`Read in_d];
-               handler  = process x
-            }]
-          end
-        else
-          begin
-            f ();
-            self#log#important "Task exited.";
-            []
-          end
-      in
-      try
-        let events =
-          if should_stop then raise (Finished ("Source stoped: closing process.", false));
-          let len = Generator.length abg - abg_max_len in
-          if len >= 0 then
-            (* Wait until buffer is 3/4 full *)
-            let delay = Frame.seconds_of_master (abg_max_len / 4 + len) in
-            [`Delay delay]
-          else
-            try
-              if List.mem (`Read in_d) l then
-                (* Do we need to read the headers? *)
-                if has_headers then
-                  begin
-                    self#read_headers in_d;
-                    self#log#info "Got headers."
-                  end
-                else
-                  begin
-                    get_data in_d abg;
-                    (* Check that audio and video roughly get filled as the same speed. *)
-                    let lv = Frame.seconds_of_master (Generator.video_length abg) in
-                    let la = Frame.seconds_of_master (Generator.audio_length abg) in
-                    let d = abs_float (lv -. la) in
-                    if d -. vadiff_offset >= 0. then
-                      (
-                        vadiff_offset <- vadiff_offset +. vadiff_offset;
-                        let v, a = if lv >= la then "video", "audio" else "audio", "video" in
-                        self#log#severe
-                          "Got %f seconds more of %s than of %s. Are you sure \
-                           that you are producing the correct kind of data?" d v a
-                      )
-                  end;
-              [`Read in_d]
-            with
-            | End_of_file -> raise (Finished ("Process exited.", restart))
-        in
-        [{ Duppy.Task.
-           priority = priority;
-           events   = events;
-           handler  = process x
-        }]
-      with
-      | Finished (s,b) -> do_restart s b (fun () -> ())
-      | e ->
-         do_restart
-           (Printf.sprintf "Process exited with error: %s" (Printexc.to_string e)) restart_on_error
-           (fun () -> raise e)
-    in
-    let task =
-      { Duppy.Task.
-        priority = priority;
-        events   = [`Read in_d];
-        handler  = process x
-      }
-    in
-    Duppy.Task.add Tutils.scheduler task
-
-  method sleep = should_stop <- true
+    base#wake_up x
 end
-
-(* TODO: factorize some code with input.external.rawvideo *)
 
 (***** AVI *****)
 
@@ -216,13 +124,8 @@ let () =
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in
       let audio_converter = ref None in
-      let create () =
-        let in_e = Unix.open_process_in command in
-        let fd = Unix.descr_of_in_channel in_e in
-        in_e, fd
-      in
-      let read_headers fd =
-        let h, _ = Avi.Read.headers_simple fd in
+      let read_header read =
+        let h, _ = Avi.Read.headers_simple read in
         let check = function
           | `Video (w,h,fps) ->
              if w <> width then failwith "Wrong video width.";
@@ -235,31 +138,37 @@ let () =
         in
         List.iter check h
       in
-      let get_data fd abg =
-        match Avi.Read.chunk fd with
-        | `Frame (_, _, data) when String.length data = 0 -> ()
-        | `Frame (`Video, _, data) ->
-           if String.length data <> width * height * 3 then
-             failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
-           let data = Img.of_RGB24_string data width in
-           (* Img.swap_rb data; *)
-           (* Img.Effect.flip data; *)
-           Generator.put_video abg [|[|data|]|] 0 1
-        | `Frame (`Audio, _, data) ->
-           let converter = Utils.get_some !audio_converter in
-           let data = converter data in
-           if kind.Frame.audio = Frame.Zero then
-             log#info "Received audio data whereas the type indicates that there \
-                       are no audio channels, ingoring it."
-           else
-             Generator.put_audio abg data 0 (Array.length data.(0))
-        | _ -> failwith "Invalid chunk."
+      let reader =
+        External_input.Async_read.init ()
+      in
+      let on_data abg buf =
+        External_input.Async_read.add_string reader buf;
+        try
+          match Avi.Read.chunk (External_input.Async_read.read reader) with
+          | `Frame (_, _, data) when String.length data = 0 -> ()
+          | `Frame (`Video, _, data) ->
+             if String.length data <> width * height * 3 then
+               failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
+             let data = Img.of_RGB24_string data width in
+             (* Img.swap_rb data; *)
+             (* Img.Effect.flip data; *)
+             Generator.put_video abg [|[|data|]|] 0 1
+          | `Frame (`Audio, _, data) ->
+             let converter = Utils.get_some !audio_converter in
+             let data = converter data in
+             if kind.Frame.audio = Frame.Zero then
+               log#info "Received audio data whereas the type indicates that there \
+                         are no audio channels, ingoring it."
+             else
+               Generator.put_audio abg data 0 (Array.length data.(0))
+          | _ -> failwith "Invalid chunk."
+        with External_input.Async_read.Not_enough_data -> ()
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data):>Source.source))
+      ((new video ~name:"input.external.avi" ~kind ~restart ~bufferize ~restart_on_error ~max ~read_header ~on_data command):>Source.source))
 
 (***** raw video *****)
 
@@ -291,27 +200,22 @@ let () =
       let command = Lang.to_string (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in
-      let create () =
-        let in_e = Unix.open_process_in command in
-        let f = Unix.descr_of_in_channel in_e in
-        in_e, f
-      in
-      let read_headers _ = () in
       let buflen = width * height * 3 in
-      let buf = Bytes.create buflen in
-      let get_data fd abg =
-        let r = Unix.read_retry fd buf 0 buflen in
-        if r > 0 then
-          (
-            if r <> buflen then failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)." r buflen);
-            let data = Img.of_RGB24_string (Bytes.unsafe_to_string buf) width in
-            (* Img.swap_rb data; *)
-            (* Img.Effect.flip data; *)
-            Generator.put_video abg [|[|data|]|] 0 1
-          )
+      let reader =
+        External_input.Async_read.init ()
+      in
+      let on_data abg buf =
+        External_input.Async_read.add_string reader buf;
+        try
+          let buf = External_input.Async_read.read reader buflen in
+          let data = Img.of_RGB24_string buf width in
+          (* Img.swap_rb data; *)
+          (* Img.Effect.flip data; *)
+          Generator.put_video abg [|[|data|]|] 0 1
+        with External_input.Async_read.Not_enough_data -> ()
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
       let max = Lang.to_float (List.assoc "max" p) in
-      ((new video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data):>Source.source))
+      ((new video ~name:"input.external.rawvideo" ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data command):>Source.source))
