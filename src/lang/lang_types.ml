@@ -507,6 +507,7 @@ let rec bind a0 b =
                | Ground g ->
                   if not (List.mem g [Bool;Int;Float;String]) then
                     raise (Unsatisfied_constraint (Dtools,b))
+               | Uple [] -> ()
                | List b' ->
                   begin match (deref b').descr with
                   | Ground g ->
