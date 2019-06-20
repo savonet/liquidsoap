@@ -664,10 +664,16 @@ let rec (<:) a b =
            | Error (a,b) -> raise (Error (`List a, `List b))
      end
   | Tuple l, Tuple m ->
-     if List.length l <> List.length m then raise (Error (`Tuple [`Ellipsis], `Tuple [`Ellipsis]));
+     if List.length l <> List.length m then
+       begin
+         let l = List.map (fun _ -> `Ellipsis) l in
+         let m = List.map (fun _ -> `Ellipsis) m in
+         raise (Error (`Tuple l, `Tuple m))
+       end;
      List.iter2
        (fun a b ->
          try a <: b with
+         (* TODO: the elipisis should keep length of the list... *)
          | Error (a,b) -> raise (Error (`Tuple [`Ellipsis; a; `Ellipsis], `Tuple [`Ellipsis; b; `Ellipsis]))
        ) l m
   | Zero, Zero -> ()

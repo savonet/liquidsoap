@@ -765,7 +765,7 @@ let rec check ?(print_toplevel=false) ~level ~env e =
           []
       in
       let penv, pa = type_of_pat ~level ~pos pat in
-      pa >: def.t;
+      def.t <: pa;
       let penv = List.map (fun (x,a) -> x,(generalized,a)) penv in
       let env = penv@env in
       l.gen <- generalized ;

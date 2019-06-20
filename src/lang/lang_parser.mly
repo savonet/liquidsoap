@@ -569,10 +569,7 @@ pattern_list:
   | pattern COMMA pattern_list { $1::$3 }
 
 binding:
-  | pattern GETS expr {
-       let body = $3 in
-         (Doc.none (),[]),$1,body
-    }
+  | VAR GETS expr { (Doc.none (),[]),PVar $1,$3 }
   | DEF pattern g exprs END {
       let body = $4 in
         $1,$2,body
