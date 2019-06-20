@@ -170,7 +170,7 @@
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
-%token BEGIN END REC GETS TILD QUESTION
+%token BEGIN END REC GETS TILD QUESTION LET
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
@@ -570,6 +570,7 @@ pattern_list:
 
 binding:
   | VAR GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
   | DEF pattern g exprs END {
       let body = $4 in
         $1,$2,body
