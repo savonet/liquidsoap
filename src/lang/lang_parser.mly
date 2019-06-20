@@ -291,7 +291,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (Bool $1) }
   | FLOAT                            { mk ~pos:$loc (Float  $1) }
   | STRING                           { mk ~pos:$loc (String $1) }
-  | list                             { mk ~pos:$loc (List $1) }
+  | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }
   | expr SET expr                    { mk ~pos:$loc (Set ($1,$3)) }
@@ -402,11 +402,6 @@ ty:
   | LPAR argsty RPAR YIELDS ty
                               { Lang_types.make (Lang_types.Arrow ($2,$5)) }
 
-ty_list:
-  | { [] }
-  | ty { [$1] }
-  | ty COMMA ty_list { $1::$3 }
-
 ty_tuple:
   | ty COMMA ty { [$1; $3] }
   | ty COMMA ty_tuple { $1::$3 }
@@ -442,7 +437,7 @@ cexpr:
   | BOOL                             { mk ~pos:$loc (Bool $1) }
   | FLOAT                            { mk ~pos:$loc (Float  $1) }
   | STRING                           { mk ~pos:$loc (String $1) }
-  | list                             { mk ~pos:$loc (List $1) }
+  | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }
   | cexpr SET expr                   { mk ~pos:$loc (Set ($1,$3)) }
@@ -540,7 +535,7 @@ cexpr:
   | INTERVAL                       { mk_time_pred ~pos:$loc (between ~pos:$loc (fst $1) (snd $1)) }
   | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
-list:
+varlist:
   | LBRA inner_list RBRA { $2 }
 inner_list:
   | expr COMMA inner_list  { $1::$3 }
