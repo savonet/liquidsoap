@@ -133,8 +133,7 @@ let () =
 
 
 
-(* Video-only input. Ideally this should be merged with previous one and we
-   should add support for audio in AVI files. *)
+(* Video-only input. Ideally this should be merged with previous one. *)
 
 module Img = Image.RGBA32
       
