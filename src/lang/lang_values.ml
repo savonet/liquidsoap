@@ -1018,7 +1018,7 @@ and apply ~t f l =
 (** Add toplevel definitions to [builtins] so they can be looked during the
    evaluation of the next scripts. Also try to generate a structured
    documentation from the source code. *)
-let toplevel_add (doc,params) x ~generalized v =
+let toplevel_add (doc,params) pat ~generalized v =
   let ptypes =
     match (T.deref v.V.t).T.descr with
       | T.Arrow (p,_) -> p
@@ -1062,28 +1062,23 @@ let toplevel_add (doc,params) x ~generalized v =
   in
     List.iter
       (fun (s,_) ->
-         Printf.eprintf "WARNING: Unused @param %S for %s!\n" s x)
+         Printf.eprintf "WARNING: Unused @param %S for %s!\n" s (string_of_pat pat))
       params ;
-    doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t) ;
-    builtins#register ~doc x (generalized,v)
+    doc#add_subsection "_type" (T.doc_of_type ~generalized v.V.t);
+    List.iter (fun (x,v) -> builtins#register ~doc x (generalized,v)) (eval_pat pat v)
 
 let rec eval_toplevel ?(interactive=false) t =
   match t.term with
     | Let {doc=comment; gen=generalized; pat; def; body} ->
        let env = builtins#get_all in
        let def = eval ~env def in
-       let name =
-         match pat with
-         | PVar var -> var
-         | _ -> failwith "Patterns are not supported (yet) at toplevel."
-       in
-       toplevel_add comment name ~generalized def ;
+       toplevel_add comment pat ~generalized def ;
        if debug then
          Printf.eprintf "Added toplevel %s : %s\n"
-           name (T.print ~generalized def.V.t) ;
+           (string_of_pat pat) (T.print ~generalized def.V.t) ;
        if interactive then
          Format.printf "@[<2>%s :@ %a =@ %s@]@."
-           name
+           (string_of_pat pat)
            (T.pp_type_generalized generalized) def.V.t
            (V.print_value def) ;
        eval_toplevel ~interactive body
