@@ -150,8 +150,6 @@ let () =
              if String.length data <> width * height * 3 then
                failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
              let data = Img.of_RGB24_string data width in
-             (* Img.swap_rb data; *)
-             (* Img.Effect.flip data; *)
              Generator.put_video abg [|[|data|]|] 0 1
           | `Frame (`Audio, _, data) ->
              let converter = Utils.get_some !audio_converter in

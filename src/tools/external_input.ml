@@ -43,7 +43,10 @@ module Async_read = struct
   let read t =
     Tutils.mutexify t.m (fun n ->
       if Buffer.length t.buf < n+t.offset then
-        raise Not_enough_data;
+       begin
+        t.offset <- 0;
+        raise Not_enough_data
+       end;
       let ret = Buffer.sub t.buf t.offset n in
       t.offset <- t.offset + n;
       ret)
