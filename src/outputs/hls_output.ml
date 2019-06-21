@@ -277,6 +277,7 @@ class hls_output p =
       output_string oc b
 
     method private cleanup_segments =
+      self#unlink_segment current_segment;
       Queue.iter self#unlink_segment segments;
       Queue.clear segments;
       List.iter (fun s ->
