@@ -70,6 +70,12 @@ let hls_proto kind =
      "", Lang.source_t kind, None, None
   ])
 
+type segment =
+  {
+     id: int;
+     mutable len: int
+  }
+
 (** A stream in the HLS (which typically contains many, with different qualities). *)
 type hls_stream_desc =
   {
@@ -166,6 +172,9 @@ class hls_output p =
     Frame.master_of_seconds segment_duration /
       Lazy.force Frame.size
   in
+  let segment_duration =
+    Frame.seconds_of_master (segment_ticks * Lazy.force Frame.size)
+  in
   let max_segments = Lang.to_int (List.assoc "segments" p) in
   let file_perm = Lang.to_int (List.assoc "perm" p) in
   let kind = Encoder.kind_of_format (List.hd streams).hls_format in
@@ -178,8 +187,8 @@ class hls_output p =
         ~output_kind:"output.file" ~name
         ~content_kind:kind source
 
-    (** Current segment *)
-    val mutable segment = -1
+    (** Current segment ID *)
+    val mutable current_segment = {id=(-1);len=0}
 
     (** Available segments *)
     val mutable segments = Queue.create ()
@@ -188,9 +197,9 @@ class hls_output p =
     val mutable open_tick = 0
     val mutable current_metadata = None
 
-    method private segment_name ?(relative=false) ?(segment=segment) stream =
+    method private segment_name ?(relative=false) ~segment stream =
       let fname =
-        Printf.sprintf "%s_%d.%s" stream.hls_name segment (Encoder.extension stream.hls_format)
+        Printf.sprintf "%s_%d.%s" stream.hls_name segment.id (Encoder.extension stream.hls_format)
       in
       (if relative then "" else directory) ^^ fname
 
@@ -209,7 +218,7 @@ class hls_output p =
         self#log#important "Could not remove file %s: %s" fname msg
 
     method private unlink_segment segment =
-      self#log#debug "Cleaning up segment %d.." segment ;
+      self#log#debug "Cleaning up segment %d.." segment.id ;
       List.iter (fun s ->
         self#unlink (self#segment_name ~segment s)) streams
 
@@ -230,7 +239,7 @@ class hls_output p =
         | None -> Meta_format.empty_metadata
       in
       s.hls_encoder.Encoder.insert_metadata meta; 
-      let fname = self#segment_name s in
+      let fname = self#segment_name ~segment:current_segment s in
       let oc = self#open_out fname in
       s.hls_oc <- Some (fname, oc);
       match s.hls_encoder.Encoder.header with
@@ -238,21 +247,22 @@ class hls_output p =
         | None -> ()
 
     method private new_segment =
-      segment <- segment + 1;
+      if current_segment.id <> -1 then
+        Queue.push current_segment segments;
+      current_segment <- {id=current_segment.id+1;len=0};
       open_tick <- self#current_tick;
-      self#log#debug "Opening segment %d.." segment ;
+      self#log#debug "Opening segment %d.." current_segment.id ;
       List.iter (fun s ->
         self#close_segment s;
         self#open_segment s) streams;
-      let s =
+      let old_segment =
         if Queue.length segments >= max_segments then
           Some (Queue.take segments)
         else
           None
       in
-      Queue.push segment segments;
       self#write_playlists;
-      match s with
+      match old_segment with
         | Some s -> self#unlink_segment s
         | None -> ()  
 
@@ -279,17 +289,20 @@ class hls_output p =
 
     method private write_playlists =
       List.iter (fun s ->
-          let fname = self#playlist_name s in
-          let oc = self#open_out fname in
-          output_string oc "#EXTM3U\n";
-          output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (segment_duration +. 1.)));
-          output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (Queue.peek segments));
-          Queue.iter (fun segment ->
-              output_string oc (Printf.sprintf "#EXTINF:%d,\n" (int_of_float (segment_duration +. 0.5)));
-              output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
-            ) segments;
-          (* output_string oc "#EXT-X-ENDLIST\n"; *)
-          self#close_out (fname, oc);
+          if Queue.length segments > 0 then
+           begin
+            let fname = self#playlist_name s in
+            let oc = self#open_out fname in
+            output_string oc "#EXTM3U\n";
+            output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (ceil segment_duration)));
+            output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (Queue.peek segments).id);
+            Queue.iter (fun segment ->
+                output_string oc (Printf.sprintf "#EXTINF:%.03f,\n" (Frame.seconds_of_master segment.len));
+                output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
+              ) segments;
+            (* output_string oc "#EXT-X-ENDLIST\n"; *)
+            self#close_out (fname, oc);
+           end
         ) streams;
       let fname = directory^^playlist in
       let oc = self#open_out fname in
@@ -325,6 +338,7 @@ class hls_output p =
     method output_reset = ()
 
     method encode frame ofs len =
+      current_segment.len <- current_segment.len + len;
       List.map (fun s ->
           s.hls_encoder.Encoder.encode frame ofs len
         ) streams
