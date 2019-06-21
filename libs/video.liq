@@ -38,5 +38,6 @@ end
 # @category Source / Video Processing
 def video.external.testsrc()
   audio_rate = get(default=-1,"frame.audio.samplerate")
-  input.external.avi("ffmpeg -f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=1000:sample_rate=#{audio_rate} -f avi -vf format=rgb24 -c:v rawvideo -c:a pcm_s16le -ac 2 pipe:1")
+  cmd = "ffmpeg -f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=1000:sample_rate=#{audio_rate} -f avi -vf format=rgb24 -c:v rawvideo -c:a pcm_s16le -ac 2 pipe:1"
+  (input.external.avi(cmd):source(audio=2,video=1,midi=0))
 end
