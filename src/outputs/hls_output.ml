@@ -277,7 +277,6 @@ class hls_output p =
           output_string oc "#EXTM3U\n";
           output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (segment_duration +. 1.)));
           output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (Queue.peek segments));
-          output_string oc "#EXT-X-PLAYLIST-TYPE:VOD\n";
           Queue.iter (fun segment ->
               output_string oc (Printf.sprintf "#EXTINF:%d,\n" (int_of_float (segment_duration +. 0.5)));
               output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
