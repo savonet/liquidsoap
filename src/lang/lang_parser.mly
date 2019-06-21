@@ -41,13 +41,13 @@
     let fv = Lang_values.free_vars ~bound body in
       mk ~pos (Fun (fv,args,body))
 
-  let mk_rec_fun ~pos doc name args body =
+  let mk_rec_fun ~pos doc pat args body =
     let bound = List.map (fun (_,x,_,_) -> x) args in
     let fv = Lang_values.free_vars ~bound body in
     let rec fn () =
       let fnv = mk ~pos (RFun (fv,args,fn)) in
-      mk ~pos (Let {doc=doc;var=name;gen=[];
-                    def=fnv;body=body})
+      mk ~pos (Let {doc=doc;pat;gen=[];
+                    def=fnv;body})
     in
       mk ~pos (RFun (fv,args,fn))
 
@@ -124,7 +124,7 @@
   let mk_ty ~pos name args =
     match name with
       | "_" -> Lang_types.fresh_evar ~level:(-1) ~pos:None
-      | "unit" -> Lang_types.make (Lang_types.Ground Lang_types.Unit)
+      | "unit" -> Lang_types.make Lang_types.unit
       | "bool" -> Lang_types.make (Lang_types.Ground Lang_types.Bool)
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
@@ -170,7 +170,7 @@
 %token OGG FLAC OPUS VORBIS VORBIS_CBR VORBIS_ABR THEORA SPEEX GSTREAMER
 %token WAV AVI FDKAAC MP3 MP3_VBR MP3_ABR SHINE EXTERNAL
 %token EOF
-%token BEGIN END REC GETS TILD QUESTION
+%token BEGIN END REC GETS TILD QUESTION LET
 %token <Doc.item * (string*string) list> DEF
 %token IF THEN ELSE ELSIF
 %token SERVER_WAIT
@@ -184,6 +184,7 @@
 %token <string> BIN3
 %token TIMES
 %token MINUS
+%token UNDERSCORE
 %token NOT
 %token REF GET SET
 %token PP_IFDEF PP_IFNDEF PP_IFENCODER PP_IFNENCODER PP_ENDIF
@@ -216,7 +217,7 @@
 
 program:
   | error { raise (Parse_error ($loc, "Syntax error!")) } 
-  | EOF { mk ~pos:$loc Unit }
+  | EOF { mk ~pos:$loc unit }
   | exprs EOF { $1 }
 interactive:
   | error { raise (Parse_error ($loc, "Syntax error!")) }
@@ -243,33 +244,33 @@ exprs:
   | expr s                   { $1 }
   | expr cexprs              { mk ~pos:$loc (Seq ($1,$2)) }
   | expr SEQ exprs           { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
+  | binding s                { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
                                            gen = [] ; def=def ;
-                                           body = mk ~pos:$loc Unit }) }
-  | binding cexprs           { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+                                           body = mk ~pos:$loc unit }) }
+  | binding cexprs           { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $2 }) }
-  | binding SEQ exprs        { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding SEQ exprs        { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $3 }) }
 cexprs:
   | cexpr s                  { $1 }
   | cexpr cexprs             { mk ~pos:$loc (Seq ($1,$2)) }
   | cexpr SEQ exprs          { mk ~pos:$loc (Seq ($1,$3)) }
-  | binding s                { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
-                                           body = mk ~pos:$loc Unit }) }
-  | binding cexprs           { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding s                { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
+                                           body = mk ~pos:$loc unit }) }
+  | binding cexprs           { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $2 }) }
-  | binding SEQ exprs        { let doc,name,def = $1 in
-                                 mk ~pos:$loc (Let { doc=doc ; var=name ;
-                                           gen = [] ; def=def ;
+  | binding SEQ exprs        { let doc,pat,def = $1 in
+                                 mk ~pos:$loc (Let { doc ; pat ;
+                                           gen = [] ; def ;
                                            body = $3 }) }
 
 /* General expressions.
@@ -290,7 +291,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (Bool $1) }
   | FLOAT                            { mk ~pos:$loc (Float  $1) }
   | STRING                           { mk ~pos:$loc (String $1) }
-  | list                             { mk ~pos:$loc (List $1) }
+  | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }
   | expr SET expr                    { mk ~pos:$loc (Set ($1,$3)) }
@@ -306,8 +307,8 @@ expr:
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk ~pos:$loc Unit }
-  | LPAR expr COMMA expr RPAR        { mk ~pos:$loc (Product ($2,$4)) }
+  | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
+  | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"),
@@ -393,13 +394,17 @@ ty:
   | VARLPAR ty_args RPAR      { mk_ty ~pos:$loc $1 $2 }
   | REF LPAR ty RPAR          { Lang_values.ref_t ~pos:(Some $loc) $3 }
   | LBRA ty RBRA              { Lang_types.make (Lang_types.List $2) }
-  | LPAR ty TIMES ty RPAR     { Lang_types.make (Lang_types.Product ($2,$4)) }
+  | LPAR ty_tuple RPAR         { Lang_types.make (Lang_types.Tuple $2) }
   | INT                       { Lang_values.type_of_int $1 }
   | TIMES                     { Lang_values.variable_t }
   | TIMES BIN2 INT            { mk_var_mult $2 $3 }
   | INT BIN2 TIMES            { mk_var_mult $2 $1 }
   | LPAR argsty RPAR YIELDS ty
                               { Lang_types.make (Lang_types.Arrow ($2,$5)) }
+
+ty_tuple:
+  | ty COMMA ty { [$1; $3] }
+  | ty COMMA ty_tuple { $1::$3 }
 
 ty_args:
   |                      { [] }
@@ -432,7 +437,7 @@ cexpr:
   | BOOL                             { mk ~pos:$loc (Bool $1) }
   | FLOAT                            { mk ~pos:$loc (Float  $1) }
   | STRING                           { mk ~pos:$loc (String $1) }
-  | list                             { mk ~pos:$loc (List $1) }
+  | varlist                          { mk ~pos:$loc (List $1) }
   | REF expr                         { mk ~pos:$loc (Ref $2) }
   | GET expr                         { mk ~pos:$loc (Get $2) }
   | cexpr SET expr                   { mk ~pos:$loc (Set ($1,$3)) }
@@ -448,8 +453,8 @@ cexpr:
   | AVI app_opt                      { mk_enc ~pos:$loc (Lang_avi.make $2) }
   | OGG LPAR ogg_items RPAR          { mk ~pos:$loc (Encoder (Encoder.Ogg $3)) }
   | top_level_ogg_item               { mk ~pos:$loc (Encoder (Encoder.Ogg [$1])) }
-  | LPAR RPAR                        { mk ~pos:$loc Unit }
-  | LPAR expr COMMA expr RPAR        { mk ~pos:$loc (Product ($2,$4)) }
+  | LPAR RPAR                        { mk ~pos:$loc (Tuple []) }
+  | LPAR inner_tuple RPAR            { mk ~pos:$loc (Tuple $2) }
   | VAR                              { mk ~pos:$loc (Var $1) } 
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc (Var $1), $2)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "_[_]"),
@@ -530,12 +535,16 @@ cexpr:
   | INTERVAL                       { mk_time_pred ~pos:$loc (between ~pos:$loc (fst $1) (snd $1)) }
   | TIME                           { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
-list:
+varlist:
   | LBRA inner_list RBRA { $2 }
 inner_list:
   | expr COMMA inner_list  { $1::$3 }
   | expr                   { [$1] }
   |                        { [] }
+
+inner_tuple:
+  | expr COMMA expr { [$1;$3] }
+  | expr COMMA inner_tuple { $1::$3 }
 
 app_list_elem:
   | VAR GETS expr { $1,$3 }
@@ -547,26 +556,36 @@ app_list:
   | app_list_elem                { [$1] }
   | app_list_elem COMMA app_list { $1::$3 }
 
+bindvar:
+  | VAR { $1 }
+  | UNDERSCORE { "_" }
+
+pattern:
+  | bindvar { PVar $1 }
+  | LPAR pattern_list RPAR { PTuple $2 }
+
+pattern_list:
+  | pattern COMMA pattern { [$1;$3] }
+  | pattern COMMA pattern_list { $1::$3 }
+
 binding:
-  | VAR GETS expr {
-       let body = $3 in
-         (Doc.none (),[]),$1,body
-    }
-  | DEF VAR g exprs END {
+  | bindvar GETS expr { (Doc.none (),[]),PVar $1,$3 }
+  | LET pattern GETS expr { (Doc.none (),[]),$2,$4 }
+  | DEF pattern g exprs END {
       let body = $4 in
         $1,$2,body
     }
   | DEF VARLPAR arglist RPAR g exprs END {
       let arglist = $3 in
       let body = mk_fun ~pos:$loc arglist $6 in
-        $1,$2,body
+        $1,PVar $2,body
     }
   | DEF REC VARLPAR arglist RPAR g exprs END {
       let doc = $1 in
-      let name = $3 in
+      let pat = PVar $3 in
       let arglist = $4 in
-      let body = mk_rec_fun ~pos:$loc doc name arglist $7 in
-        doc,name,body
+      let body = mk_rec_fun ~pos:$loc doc pat arglist $7 in
+        doc,pat,body
     }
 
 arglist:
@@ -577,7 +596,10 @@ arg:
   | TILD VAR opt { $2,$2,
                    T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)),
                    $3 }
-  | VAR opt      { "",$1,
+  | TILD VAR GETS UNDERSCORE opt { $2,"_",
+                   T.fresh_evar ~level:(-1) ~pos:(Some $loc($2)),
+                   $5 }
+  | bindvar opt  { "",$1,
                    T.fresh_evar ~level:(-1) ~pos:(Some $loc($1)),
                    $2 }
 opt:
@@ -596,7 +618,7 @@ if_elsif:
                                                         "else",else_b;
                                                         "then",then_b]))) }
   | ELSE exprs                      { mk_fun ~pos:($startpos($1),$endpos($2)) [] $2 }
-  |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc Unit) }
+  |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
 
 app_opt:
   | %prec no_app { [] }

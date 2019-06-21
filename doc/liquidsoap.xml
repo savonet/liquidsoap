@@ -16,6 +16,7 @@
   <highlighting>
     <list name="Keywords">
       <item>def</item>
+      <item>let</item>
       <item>fun</item>
       <item>begin</item>
       <item>end</item>

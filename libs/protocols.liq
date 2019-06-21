@@ -72,11 +72,11 @@ def process_protocol(~rlog,~maxtime,arg)
     inherit_env = get(default=true,"protocol.process.inherit_env")
 
     delay = maxtime - gettimeofday()
-    ret = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
-    if snd(ret) == ("exit","0") then
+    let (_,_,status) = run_process(timeout=delay,env=env,inherit_env=inherit_env,cmd)
+    if status == ("exit","0") then
       [output]
     else
-      log(level=3,"Failed to execute #{cmd}: #{snd(ret)}")
+      log(level=3,"Failed to execute #{cmd}: #{status}")
       []
     end
   end
@@ -148,22 +148,21 @@ def download_protocol(proto,~rlog,~maxtime,arg) =
   def get_mime() =
     cmd = "#{curl} -sLI -X HEAD #{quote(uri)} | grep -i '^content-type' | tail -n 1 | cut -d':' -f 2 | cut -d';' -f 1"
     log(level=4,"Running #{cmd}")
-    x = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
-    if fst(snd(x)) != "exit" or snd(snd(x)) != "0" then
+    ret = run_process(timeout=timeout,env=env,inherit_env=inherit_env,cmd)
+    let (stdout,_,(status,code)) = ret
+    if status != "exit" or code != "0" then
       log(level=3,"Failed to fetch mime-type for #{uri} via curl.")
-      log(level=4,"Process return status: #{x}")
+      log(level=4,"Process return status: #{ret}")
       ""
     else
-      lines = string.split(separator="\\n",fst(fst(x)))
+      lines = string.split(separator="\\n",stdout)
       string.case(lower=true,string.trim(list.hd(default="",lines)))
     end
   end
 
   def head_mime(~name, ret) =
     def get_mime() =
-      status = fst(fst(ret))
-      headers = snd(fst(ret))
-      code = snd(fst(status))
+      let ((_, code, _), headers, _) = ret
       if 200 <= code and code < 300 then
         headers["content-type"]
       else

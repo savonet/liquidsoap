@@ -102,8 +102,8 @@ def harbor.http.static.base(serve,~path,~port,~headers,directory) =
     if list.length(ret) == 0 then
       http_response(protocol=protocol,code=404,headers=headers,data="Not Found!")
     else
-      match = list.hd(default=("1","foo"),ret)
-      file = path.concat(directory, snd(match))
+      let (_,match) = list.hd(default=("1","foo"),ret)
+      file = path.concat(directory, match)
       if file.exists(file) then
         if method == "OPTIONS" then
           http_response(protocol=protocol,code=200,headers=headers)

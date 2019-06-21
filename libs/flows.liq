@@ -20,10 +20,9 @@ def register_flow(~server="",~user="default",~password="default",
   # If the server is "", we get the server from sf.net
   server =
     if server == "" then
-      server = http.get("http://liquidsoap.info/flows_server")
-      html_status = snd(fst(fst(fst(server))))
-      if html_status == 200 then
-        snd(server)
+      let ((_,code,_),_,data) = http.get("http://liquidsoap.info/flows_server")
+      if code == 200 then
+        data
       else
         # If sf is down, we use the hardcoded server
         "http://savonet.rastageeks.org/liqflows.py"
@@ -47,8 +46,7 @@ def register_flow(~server="",~user="default",~password="default",
     log = log(label=radio)
     log(level=4,"Processing command #{cmd} with arguments:")
     def log_arg(x) =
-      label = fst(x)
-      value = snd(x)
+      let (label, value) = x
       log(level=4,"  #{label}: #{value}")
     end
     list.iter(log_arg,params)
@@ -56,8 +54,8 @@ def register_flow(~server="",~user="default",~password="default",
     cmd = url.encode(cmd)
     params = list.append(base_params,params)
     def f(z) =
-      x = fst(z)
-      y = url.encode(snd(z))
+      let (x, y) = z
+      y = url.encode(y)
       "#{x}=#{y}"
     end
     params = string.concat(separator="&",list.map(f,params))
@@ -65,14 +63,7 @@ def register_flow(~server="",~user="default",~password="default",
 
     # TODO: do something with errors!
     answer = http.get(url)
-    x = fst(answer)
-    status = fst(x)
-    y = fst(status)
-    protocol = fst(y)
-    code = snd(y)
-    desc = snd(status)
-    headers = snd(x)
-    data = snd(answer)
+    let ((protocol, code, desc), headers, data) = answer
     log(level=4,"Response status: #{protocol} #{code} #{desc}")
     log(level=4,"Response headers:")
     list.iter(log_arg,headers)
@@ -94,8 +85,7 @@ def register_flow(~server="",~user="default",~password="default",
 
   # Register streams
   def register_stream(format_url)
-    format = fst(format_url);
-    url = snd(format_url);
+    let (format, url) = format_url
     params = [("stream_format",format),("stream_url",url)]
     request(cmd="add stream",params=params)
   end

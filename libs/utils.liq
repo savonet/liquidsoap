@@ -198,7 +198,8 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to run
 def get_process_output(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  fst(fst(run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)))
+  let (stdout, _, _) = run_process(timeout=timeout,env=env,inherit_env=inherit_env,command)
+  stdout
 end
 
 # Perform a shell call and return the list of its output lines.
@@ -218,8 +219,8 @@ end
 # @param ~inherit_env Inherit calling process's environment when `env` parameter is empty.
 # @param command Command to test
 def test_process(~timeout=(-1.),~env=[],~inherit_env=true,command) =
-  res = run_process(timeout=timeout,env=env,command)
-  snd(res) == ("exit","0")
+  let (_, _, status) = run_process(timeout=timeout,env=env,command)
+  status == ("exit","0")
 end
 
 # Split the arguments of an url of the form arg=bar&arg2=bar2 into
@@ -258,8 +259,7 @@ end
 # @param ~id Force the value of the source ID.
 def server.insert_metadata(~id="",s) =
   x = insert_metadata(id=id,s)
-  insert = fst(x)
-  s = snd(x)
+  let (insert, s) = x
   def insert(s) =
     l = string.split(separator='([^=]+\\s*=\\s*"(\\"|[^"])*")\\s*,\\s*',s)
     def f(l,x) =
@@ -297,9 +297,7 @@ end
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.
 def server.rms(~id="",s) =
-  x = rms(id=id,s)
-  rms = fst(x)
-  s = snd(x)
+  let (rms, s) = rms(id=id,s)
   id = source.id(s)
   def rms(_) =
     rms = rms()
@@ -586,10 +584,9 @@ def overlap_sources(~id="",~normalize=false,
   source = add(id=id,normalize=normalize,weights=weights,sources)
 
   # Set send_to_main_source
-  x = insert_metadata(source)
-  f = fst(x)
+  let (f,s) = insert_metadata(source)
   send_to_main_source := fun (m) -> f(m)
-  snd(x)
+  s
 end
 
 # Restart one server client waiting on the given condition
@@ -660,9 +657,7 @@ end
 # @category Source / Track Processing
 def chop(~duration=float_getter(3.),~metadata=[],s) =
   duration=to_float_getter(duration)
-  is = insert_metadata(s)
-  insert = fst(is)
-  s = snd(is)
+  let (insert, s) = insert_metadata(s)
   def f () =
     insert(new_track=true, metadata)
     duration()
