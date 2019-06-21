@@ -47,6 +47,16 @@ let hls_proto kind =
            The default value is however displayed in decimal \
            (0o666 = 6*8^2 + 4*8 + 4 = 412)." ;
 
+     "on_file_change",
+     Lang.fun_t [false,"state",Lang.string_t;
+                 false,"",Lang.string_t] Lang.unit_t,
+      Some (Lang.val_cst_fun ["state",Lang.string_t,None;
+                              "",Lang.string_t,None] Lang.unit),
+      Some "Callback executed when a file changes. `state` is one of: \
+            `\"opened\"`, `\"closed\"` or `\"deleted\"`, second argument is \
+            file path. Typical use: upload files to a CDN when done writting (`\"close\"` \
+            state and remove when `\"deleted\"`.";
+
      "",
      Lang.string_t,
      None,
@@ -66,14 +76,21 @@ type hls_stream_desc =
     hls_name : string; (** name of the stream *)
     hls_format : Encoder.format;
     hls_encoder : Encoder.encoder;
-    hls_bandwidth : int;
+    hls_bandwidth : int option;
     hls_codec : string; (** codec (see RFC 6381) *)
-    mutable hls_oc : out_channel option; (** currently encoded file *)
+    mutable hls_oc : (string*out_channel) option; (** currently encoded file *)
   }
 
 open Extralib
 
 let (^^) = Filename.concat
+
+type file_state = [`Opened|`Closed|`Deleted]
+
+let string_of_file_state = function
+  | `Opened -> "opened"
+  | `Closed -> "closed"
+  | `Deleted -> "deleted"
 
 (* TODO: can we share more with other classes? *)
 class hls_output p =
@@ -84,6 +101,12 @@ class hls_output p =
   let on_stop =
     let f = List.assoc "on_stop" p in
     fun () -> ignore (Lang.apply ~t:Lang.unit_t f [])
+  in
+  let on_file_change =
+    let f = List.assoc "on_file_change" p in
+    fun ~state fname ->
+      ignore (Lang.apply ~t:Lang.unit_t f ["state",Lang.string (string_of_file_state state);
+                                           "",Lang.string fname])
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -105,9 +128,8 @@ class hls_output p =
       let hls_format = Lang.to_format fmt in
       let hls_bandwidth =
         try
-          Encoder.bitrate hls_format
-        with Not_found ->
-          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))
+          Some (Encoder.bitrate hls_format)
+        with Not_found -> None
       in
       let hls_encoder_factory =
         try Encoder.get_factory hls_format
@@ -172,7 +194,15 @@ class hls_output p =
       in
       (if relative then "" else directory) ^^ fname
 
+    method private open_out fname =
+      let mode = [Open_wronly; Open_creat; Open_trunc] in
+      let oc = open_out_gen mode file_perm fname in
+      set_binary_mode_out oc true;
+      on_file_change ~state:`Opened fname;
+      oc
+
     method private unlink fname =
+      on_file_change ~state:`Deleted fname;
       try
         Unix.unlink fname
       with Unix.Unix_error (_, _, msg) ->
@@ -183,11 +213,15 @@ class hls_output p =
       List.iter (fun s ->
         self#unlink (self#segment_name ~segment s)) streams
 
+    method private close_out (fname, oc) =
+      close_out oc;
+      on_file_change ~state:`Closed fname
+
     method private close_segment s =
       match s.hls_oc with 
         | None -> ()
-        | Some oc ->
-            close_out oc;
+        | Some v ->
+            self#close_out v;
             s.hls_oc <- None
 
     method private open_segment s =
@@ -196,10 +230,9 @@ class hls_output p =
         | None -> Meta_format.empty_metadata
       in
       s.hls_encoder.Encoder.insert_metadata meta; 
-      let mode = [Open_wronly; Open_creat; Open_trunc] in
-      let oc = open_out_gen mode file_perm (self#segment_name s) in
-      set_binary_mode_out oc true;
-      s.hls_oc <- Some oc;
+      let fname = self#segment_name s in
+      let oc = self#open_out fname in
+      s.hls_oc <- Some (fname, oc);
       match s.hls_encoder.Encoder.header with
         | Some s -> output_string oc s;
         | None -> ()
@@ -223,14 +256,14 @@ class hls_output p =
         0
 
     method private write_pipe s b =
-      let oc = Utils.get_some s.hls_oc in
+      let _, oc = Utils.get_some s.hls_oc in
       output_string oc b
 
     method private cleanup_segments =
       Queue.iter self#unlink_segment segments;
       Queue.clear segments;
       List.iter (fun s ->
-          close_out (Utils.get_some s.hls_oc);
+          self#close_out (Utils.get_some s.hls_oc);
           s.hls_oc <- None
         ) streams
 
@@ -240,7 +273,7 @@ class hls_output p =
     method private write_playlists =
       List.iter (fun s ->
           let fname = self#playlist_name s in
-          let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm fname in
+          let oc = self#open_out fname in
           output_string oc "#EXTM3U\n";
           output_string oc (Printf.sprintf "#EXT-X-TARGETDURATION:%d\n" (int_of_float (segment_duration +. 1.)));
           output_string oc (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\n" (Queue.peek segments));
@@ -250,20 +283,26 @@ class hls_output p =
               output_string oc ((self#segment_name ~relative:true ~segment s) ^ "\n")
             ) segments;
           (* output_string oc "#EXT-X-ENDLIST\n"; *)
-          close_out oc
+          self#close_out (fname, oc);
         ) streams;
-      let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc] file_perm (directory^^playlist) in
+      let fname = directory^^playlist in
+      let oc = self#open_out fname in
       output_string oc "#EXTM3U\n";
       List.iter (fun s ->
           let line =
+            let bandwidth =
+              match s.hls_bandwidth with
+                | Some b -> Printf.sprintf "AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d," b b
+                | None -> ""
+            in
             Printf.sprintf
-              "#EXT-X-STREAM-INF:AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d,CODECS=\"%s\"\n"
-              s.hls_bandwidth s.hls_bandwidth s.hls_codec
+              "#EXT-X-STREAM-INF:%sCODECS=\"%s\"\n"
+              bandwidth s.hls_codec
           in
           output_string oc line;
           output_string oc (s.hls_name^".m3u8\n")
         ) streams;
-      close_out oc
+      self#close_out (fname, oc)
 
     method private cleanup_playlists =
       List.iter (fun s ->
