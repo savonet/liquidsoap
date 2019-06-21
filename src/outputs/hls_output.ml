@@ -244,10 +244,17 @@ class hls_output p =
       List.iter (fun s ->
         self#close_segment s;
         self#open_segment s) streams;
-      if Queue.length segments >= max_segments then
-       self#unlink_segment (Queue.take segments);
+      let s =
+        if Queue.length segments >= max_segments then
+          Some (Queue.take segments)
+        else
+          None
+      in
       Queue.push segment segments;
-      self#write_playlists
+      self#write_playlists;
+      match s with
+        | Some s -> self#unlink_segment s
+        | None -> ()  
 
     method private current_tick =
       if Source.Clock_variables.is_known self#clock then
