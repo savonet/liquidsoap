@@ -56,13 +56,13 @@ Authors
 -------
 
 * Developers:
-  * David     Baelde     <david.baelde@ens-lyon.org>
-  * Romain    Beauxis    <toots@rastageeks.org>
-  * Samuel    Mimram     <samuel.mimram@ens-lyon.org>
+  * [David Baelde](http://www.lsv.fr/~baelde/)
+  * [Romain Beauxis](https://github.com/toots)
+  * [Samuel Mimram](http://www.mimram.fr)
 * Contributors:
-  * Florent   Bouchez    <florent.bouchez@ens-lyon.org>
-  * Julien    Cristau    <julien.cristau@ens-lyon.org>
-  * Stéphane  Gimenez    <stephane.gimenez@ens-lyon.org>
-  * Clément   Renard     <clement.renard@ens-lyon.org>
-  * Vincent   Tabard     <vincent@radiopytagor.com>
-  * Sattisvar Tandabany  <sattisvar.tandabany@ens-lyon.org>
+  * Florent   Bouchez
+  * Julien    Cristau
+  * Stéphane  Gimenez
+  * Clément   Renard
+  * Vincent   Tabard
+  * Sattisvar Tandabany
