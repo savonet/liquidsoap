@@ -52,8 +52,7 @@ end
 # @category Source / Video Processing
 # @param input ffmpeg options specifying the output
 def output.external.ffmpeg(~id="",output,s)
-  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -ar #{audio.samplerate()} -i pipe:0 #{output}"
-  print("EXTERNAL: #{cmd}\n\n\n")
+  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{output}"
   output.external(id=id, %avi(), cmd, s)
 end
 
