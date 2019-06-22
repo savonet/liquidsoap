@@ -109,6 +109,8 @@ Changed:
 
 - Added `conservative`, `length` and `default_duration` params to `playlist.{reloadable,once,merge}` (#818)
 
+- Added `reopend` telnet command in `output.external`.
+
 Fixed:
 
 - Lack of documentation for `cross`/`crossfade` (#743)
