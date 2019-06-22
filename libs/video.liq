@@ -44,15 +44,17 @@ end
 
 # ffmpeg's test source video (useful for testing and debugging).
 # @category Source / Video Processing
-def video.external.testsrc()
-  input.external.ffmpeg("-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=1000:sample_rate=#{audio.samplerate()}")
+def video.external.testsrc(~id="")
+  input.external.ffmpeg(id=id, "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=1000:sample_rate=#{audio.samplerate()}")
 end
 
 # Output to ffmpeg.
 # @category Source / Video Processing
 # @param input ffmpeg options specifying the output
-def output.external.ffmpeg(~id="",output)
-  output.external(%avi(), "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -ar #{audio.samplerate()} -i pipe:0 #{output}")
+def output.external.ffmpeg(~id="",output,s)
+  cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -ar #{audio.samplerate()} -i pipe:0 #{output}"
+  print("EXTERNAL: #{cmd}\n\n\n")
+  output.external(id=id, %avi(), cmd, s)
 end
 
 # Stream to youtube.
@@ -61,10 +63,10 @@ end
 # @param ~bitrate Bitrate of the video (in kbps)
 # @param ~quality Quality of the video (low / medium / high)
 # @param ~key Your secret youtube key
-def youtube(~id="",~bitrate="2500",~quality="medium",~key,s)
-  url = "rtmp://a.rtmp.youtube.com/live2"
+def output.youtube(~id="",~bitrate="2500",~quality="medium",~key,s)
   # Output parameters
+  url = "rtmp://a.rtmp.youtube.com/live2"
   fps = video.frame.rate()
   samplerate = audio.samplerate()
-  output.external.ffmpeg("-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 712000 -bufsize 512k -f flv \"#{url}/#{key}\"")
+  output.external.ffmpeg(id=id, "-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 712000 -bufsize 512k -f flv \"#{url}/#{key}\"", s)
 end
