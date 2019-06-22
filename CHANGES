@@ -47,6 +47,8 @@ New:
 
 - Added `video.external.testsrc` function.
 
+- Added `video.frame.*` and `audio.samplerate`.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
