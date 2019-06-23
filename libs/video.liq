@@ -63,7 +63,7 @@ end
 # @param ~bitrate Bitrate of the video (in kbps)
 # @param ~quality Quality of the video (low / medium / high)
 # @param ~key Your secret youtube key
-def output.youtube(~id="",~url="rtmp://a.rtmp.youtube.com/live2",~bitrate="2500",~quality="medium",~key,s)
+def output.youtube.live.ffmpeg(~id="",~url="rtmp://a.rtmp.youtube.com/live2",~bitrate="2500",~quality="medium",~key,s)
   # Output parameters
   fps = video.frame.rate()
   samplerate = audio.samplerate()

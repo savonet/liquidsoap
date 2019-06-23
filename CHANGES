@@ -51,7 +51,7 @@ New:
 
 - Added `input.external.ffmpeg` and `output.external.ffmpeg`.
 
-- Added `output.youtube`.
+- Added `output.youtube.live.ffmpeg`.
 
 Changed:
 
