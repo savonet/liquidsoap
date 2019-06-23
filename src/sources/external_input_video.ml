@@ -132,9 +132,9 @@ let () =
         let h, _ = Avi.Read.headers_simple read in
         let check = function
           | `Video (w,h,fps) ->
-             if w <> width then failwith "Wrong video width.";
-             if h <> height then failwith "Wrong video height.";
-             if fps <> float (Lazy.force Frame.video_rate) then failwith "Wrong video rate."
+             if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width);
+             if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height);
+             if fps <> float (Lazy.force Frame.video_rate) then failwith (Printf.sprintf "Wrong video rate (%f instead of %d)." fps (Lazy.force Frame.video_rate));
           | `Audio (channels, audio_src_rate) ->
              let audio_src_rate = float audio_src_rate in
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
