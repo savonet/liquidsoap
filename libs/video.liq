@@ -59,6 +59,7 @@ end
 # Stream to youtube.
 # @category Source / Video Processing
 # @param ~id Force the value of the source ID.
+# @param ~url URL to stream to
 # @param ~bitrate Bitrate of the video (in kbps)
 # @param ~quality Quality of the video (low / medium / high)
 # @param ~key Your secret youtube key
