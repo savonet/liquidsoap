@@ -62,9 +62,8 @@ end
 # @param ~bitrate Bitrate of the video (in kbps)
 # @param ~quality Quality of the video (low / medium / high)
 # @param ~key Your secret youtube key
-def output.youtube(~id="",~bitrate="2500",~quality="medium",~key,s)
+def output.youtube(~id="",~url="rtmp://a.rtmp.youtube.com/live2",~bitrate="2500",~quality="medium",~key,s)
   # Output parameters
-  url = "rtmp://a.rtmp.youtube.com/live2"
   fps = video.frame.rate()
   samplerate = audio.samplerate()
   output.external.ffmpeg(id=id, "-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 712000 -bufsize 512k -f flv \"#{url}/#{key}\"", s)
