@@ -251,7 +251,7 @@ class hls_output p =
         Queue.push current_segment segments;
       current_segment <- {id=current_segment.id+1;len=0};
       open_tick <- self#current_tick;
-      self#log#debug "Opening segment %d.." current_segment.id ;
+      self#log#debug "Opening segment %d." current_segment.id ;
       List.iter (fun s ->
         self#close_segment s;
         self#open_segment s) streams;
