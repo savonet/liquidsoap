@@ -5,6 +5,10 @@ New:
 
 - UTF8 parsing!
 
+- Added support for tuples: `x = (1,"aa",false)` (#838)
+
+- Added support for deconstructing tuples: `let (z,t,_) = x` (#838) 
+
 - Added `input.{file,harbor}.hls` to read HLS stream (#59, #295, #296).
 
 - Added `output.hls` to natively stream in HLS (#758).
@@ -43,9 +47,13 @@ New:
 
 - Added `video.external.testsrc` function.
 
+- Added `video.frame.*` and `audio.samplerate`.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
+
+- Changed return type of `http.*` and `run_process` to use tuples (#838)
 
 - Better error reporting with coloring and uniform format. (#790)
 

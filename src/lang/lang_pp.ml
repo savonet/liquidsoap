@@ -345,6 +345,18 @@ let parse_comments tokenizer =
 let strip_newlines tokenizer =
   let state = ref None in
   let rec token () =
+    let inject_varlpar var v =
+      match tokenizer() with
+        | Lang_parser.LPAR,startp,endp ->
+            state := None ;
+            Lang_parser.VARLPAR var,startp,endp
+        | Lang_parser.LBRA,startp,endp ->
+            state := None ;
+            Lang_parser.VARLBRA var,startp,endp
+        | Lang_parser.PP_ENDL,_,_ ->
+            state := None ; v
+        | x -> state := Some x ; v
+    in
     match !state with
       | None ->
           begin match tokenizer () with
@@ -355,17 +367,9 @@ let strip_newlines tokenizer =
             | x -> x
           end
       | Some ((Lang_parser.VAR var,_,_) as v) ->
-          begin match tokenizer() with
-            | Lang_parser.LPAR,startp,endp ->
-                state := None ;
-                Lang_parser.VARLPAR var,startp,endp
-            | Lang_parser.LBRA,startp,endp ->
-                state := None ;
-                Lang_parser.VARLBRA var,startp,endp
-            | Lang_parser.PP_ENDL,_,_ ->
-                state := None ; v
-            | x -> state := Some x ; v
-          end
+          inject_varlpar var v
+      | Some ((Lang_parser.UNDERSCORE,_,_) as v) ->
+          inject_varlpar "_" v
       | Some x -> state := None ; x
   in
   token

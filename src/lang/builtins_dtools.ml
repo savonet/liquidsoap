@@ -80,7 +80,7 @@ let () =
                    (List.map Lang.string l)
                in
                make to_value (Dtools.Conf.list ~d:l)
-           | Lang.Unit     ->
+           | Lang.Tuple []  ->
                Dtools.Conf.void
            | _ -> assert false
        in
@@ -109,7 +109,7 @@ let () =
          let s = Lang.assoc "" 1 p in
          let path = Lang.to_string s in
            try begin match (Lang.assoc "" 2 p).Lang.value with
-               | Lang.Unit     -> set Dtools.Conf.as_unit   path ()
+               | Lang.Tuple []  -> set Dtools.Conf.as_unit   path ()
                | Lang.String s -> set Dtools.Conf.as_string path s
                | Lang.Int    s -> set Dtools.Conf.as_int    path s
                | Lang.Bool   s -> set Dtools.Conf.as_bool   path s
@@ -161,7 +161,7 @@ let () =
          let path = Lang.to_string (List.assoc "" p) in
          let v = List.assoc "default" p in
            match v.Lang.value with
-             | Lang.Unit ->
+             | Lang.Tuple [] ->
                  Lang.unit
              | Lang.String s ->
                  Lang.string (get Dtools.Conf.as_string path s)

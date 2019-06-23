@@ -10,6 +10,7 @@
 %include "flows.liq"
 %include "http.liq"
 %include "hls.liq"
+%include "audio.liq"
 %include "video.liq"
 %include "gstreamer.liq"
 %include "deprecations.liq"

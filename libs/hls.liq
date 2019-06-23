@@ -23,8 +23,7 @@ def input.hls(~id="",~reload=10.,uri)
       # Fill the files
       files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
       def file_request(el) =
-        meta = fst(el)
-        file = snd(el)
+        let (meta,file) = el
         s = list.fold(fun (cur, el) -> "#{cur},#{fst(el)}=#{string.escape(snd(el))}", "", meta)
         if s == "" then file else "annotate:#{s}:#{file}" end
       end
@@ -93,8 +92,6 @@ def output.harbor.hls.base(~id,~fallible,~on_start,~on_stop,
                            ~playlist,~segment_duration,~segments,
                            ~start,~port,~path,serve,formats,s)
   tmp_dir = file.temp_dir("hls","")
-
-  on_shutdown(fun () -> file.rmdir(tmp_dir))
 
   serve(port=port,path=path,tmp_dir)
 

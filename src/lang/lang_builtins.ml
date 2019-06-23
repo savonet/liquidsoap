@@ -94,9 +94,10 @@ let add_getters name get_t type_t to_get to_val =
       Lang.val_fun [] ~ret_t:type_t (fun _ _ ->
         to_val (getter ())));
   add_builtin ~cat:Liq (name ^ "_getter")
-    ~descr:("Create a " ^ name ^ " getter")
+    ~descr:("Identity function over " ^ name ^ " getters. " ^
+            "This is useful to make types explicit.")
     ["",get_t 1,None,None]
-    (get_t 2)
+    (get_t 1)
     (fun p -> List.assoc "" p)
 
 let () =
@@ -293,10 +294,8 @@ let compare_value a b =
     | Lang.Int    a, Lang.Int b     -> compare a b
     | Lang.String a, Lang.String b  -> compare a b
     | Lang.Bool   a, Lang.Bool b    -> compare a b
-    | Lang.Unit    , Lang.Unit      -> 0
-    | Lang.Product (a1,a2), Lang.Product (b1,b2) ->
-        let c = aux (a1.Lang.value,b1.Lang.value) in
-          if c = 0 then aux (a2.Lang.value,b2.Lang.value) else c
+    | Lang.Tuple   l, Lang.Tuple m ->
+       List.fold_left2 (fun cmp a b -> if cmp <> 0 then cmp else aux (a.Lang.value,b.Lang.value)) 0 l m
     | Lang.List l1, Lang.List l2 ->
         let rec cmp = function
           | [],[] -> 0
@@ -1433,7 +1432,6 @@ let rec to_json_compact v =
     Utils.escape_string (fun x -> Utils.escape_utf8 x) s
   in
   match v.Lang.value with
-    | Lang.Unit -> "null"
     | Lang.Bool b -> Printf.sprintf "%b" b
     | Lang.Int  i -> Printf.sprintf "%i" i
     | Lang.String s -> print_s s
@@ -1467,8 +1465,7 @@ let rec to_json_compact v =
                 (String.concat ","
                   (List.map to_json_compact l))
         end
-    | Lang.Product (p,q) ->
-       Printf.sprintf "[%s,%s]"  (to_json_compact p) (to_json_compact q)
+    | Lang.Tuple l -> "[" ^ String.concat "," (List.map to_json_compact l) ^ "]"
     | Lang.Source _ -> "\"<source>\""
     | Lang.Ref v -> Printf.sprintf  "{\"reference\":%s}" (to_json_compact !v)
     | Lang.Encoder e -> print_s (Encoder.string_of_format e)
@@ -1518,10 +1515,15 @@ let rec to_json_pp f v =
                in
                Format.fprintf f "@[[@;<1 1>@[%a@]@;<1 0>]@]" print l
         end
-    | Lang.Product (p,q) ->
-       Format.fprintf f
-         "@[[@;<1 1>@[%a,@;<1 0>%a@]@;<1 0>]@]"
-         to_json_pp p to_json_pp q
+    | Lang.Tuple l ->
+       Format.fprintf f "@[[@;<1 1>@[";
+       let rec aux = function
+         | [] -> ()
+         | [p] -> Format.fprintf f "%a" to_json_pp p
+         | p::l -> Format.fprintf f "%a,;<1 0>" to_json_pp p; aux l
+       in
+       aux l;
+       Format.fprintf f "@]@;<1 0>]@]"
     | Lang.Ref v ->
        Format.fprintf  f
          "@[{@;<1 1>@[\"reference\":@;<0 1>%a@]@;<1 0>}@]"
@@ -2015,10 +2017,10 @@ let add_http_request http name descr request =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let status_t =
-    Lang.product_t (Lang.product_t Lang.string_t Lang.int_t) Lang.string_t
+    Lang.tuple_t [Lang.string_t; Lang.int_t; Lang.string_t]
   in
   let request_return_t =
-    Lang.product_t (Lang.product_t status_t headers_t) Lang.string_t
+    Lang.tuple_t [status_t; headers_t; Lang.string_t]
   in
   let params =
     if List.mem request [Get;Head;Delete] then
@@ -2077,9 +2079,7 @@ let add_http_request http name descr request =
                   (Printexc.to_string e))
       in
       let status =
-        Lang.product
-          (Lang.product (Lang.string x) (Lang.int y))
-          (Lang.string z)
+        Lang.tuple [Lang.string x; Lang.int y; Lang.string z]
       in
       let headers =
         List.map
@@ -2087,29 +2087,27 @@ let add_http_request http name descr request =
           headers
       in
       let headers = Lang.list ~t:header_t headers in
-      Lang.product
-        (Lang.product status headers)
-        (Lang.string data))
+      Lang.tuple [status;headers;Lang.string data])
 
 let () =
   let add_http_request = add_http_request (module Http) in
   add_http_request
     "http.get"
-    "Perform a full Http GET request and return (status,headers),data."
+    "Perform a full Http GET request and return `(status,headers,data)`."
     Get;
   add_http_request
     "http.post"
-    "Perform a full Http POST request and return (status,headers),data."
+    "Perform a full Http POST request and return `(status,headers,data)`."
     Post;
   add_http_request
     "http.put"
-    "Perform a full Http PUT request and return (status,headers),data."
+    "Perform a full Http PUT request and return `(status,headers,data)`."
     Put;
   add_http_request
     "http.head"
-    "Perform a full Http HEAD request and return (status,headers),data."
+    "Perform a full Http HEAD request and return `(status,headers,data)`."
     Head;
   add_http_request
     "http.delete"
-    "Perform a full Http DELETE request and return (status,headers),data."
+    "Perform a full Http DELETE request and return `(status,headers,data)`."
     Delete
