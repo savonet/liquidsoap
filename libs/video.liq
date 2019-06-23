@@ -37,8 +37,10 @@ end
 # Input from ffmpeg.
 # @category Source / Video Processing
 # @param input ffmpeg options specifying the input
-def input.external.ffmpeg(~id="",input)
+def input.external.ffmpeg(~id="", ~show_command=false, input)
+  input = (input : string)
   cmd = "ffmpeg #{input} -f avi -vf format=rgb24 -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 -ar #{audio.samplerate()} pipe:1"
+  if show_command then log.important("command: #{cmd}") end
   (input.external.avi(cmd):source(audio=2,video=1,midi=0))
 end
 
@@ -51,9 +53,18 @@ end
 # Output to ffmpeg.
 # @category Source / Video Processing
 # @param input ffmpeg options specifying the output
-def output.external.ffmpeg(~id="",output,s)
+def output.external.ffmpeg(~id="", ~show_command=false, output, s)
+  output = (output : string)
   cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{output}"
+  if show_command then log.important(label="output.external.ffmpeg", "command: #{cmd}") end
   output.external(id=id, %avi(), cmd, s)
+end
+
+def output.file.hls.ffmpeg(~id="", ~playlist="stream.m3u8", dir, s)
+  width = video.frame.width()
+  height = video.frame.height()
+  cmd = "-profile:v baseline -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{dir}/#{playlist}"
+  output.external.ffmpeg(id=id, cmd, s)
 end
 
 # Stream to youtube.

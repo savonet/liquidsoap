@@ -53,6 +53,8 @@ New:
 
 - Added `output.youtube.live.ffmpeg`.
 
+- Added `output.file.hls.ffmpeg`.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
