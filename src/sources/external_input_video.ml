@@ -47,7 +47,7 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?rea
     let lv = Frame.seconds_of_master (Generator.video_length abg) in
     let la = Frame.seconds_of_master (Generator.audio_length abg) in
     let d = abs_float (lv -. la) in
-    if d -. !last_vadiff_warning >= vadiff then
+    if d > vadiff && d -. !last_vadiff_warning >= vadiff then
       (
         last_vadiff_warning := d;
         let v, a = if lv >= la then "video", "audio" else "audio", "video" in
