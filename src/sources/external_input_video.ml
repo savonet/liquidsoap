@@ -38,20 +38,24 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?rea
   let log_error = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
   let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
+  (* Maximal difference between audio and video in seconds before a warning. *)
   let vadiff = 2. in
+  let last_vadiff_warning = ref 0. in
   let on_data s =
     on_data abg s;
     (* Check that audio and video roughly get filled as the same speed. *)
     let lv = Frame.seconds_of_master (Generator.video_length abg) in
     let la = Frame.seconds_of_master (Generator.audio_length abg) in
     let d = abs_float (lv -. la) in
-    if d >= vadiff then
-    (
-      let v, a = if lv >= la then "video", "audio" else "audio", "video" in
-      (!log_error) (Printf.sprintf
-        "Got %f seconds more of %s than of %s. Are you sure \
-         that you are producing the correct kind of data?" d v a)
-    );
+    if d -. !last_vadiff_warning >= vadiff then
+      (
+        last_vadiff_warning := d;
+        let v, a = if lv >= la then "video", "audio" else "audio", "video" in
+        (!log_error)
+          (Printf.sprintf
+             "Got %f seconds more of %s than of %s. Are you sure that you are \
+              producing the correct kind of data?" d v a)
+      );
     let buffered = Generator.length abg in
     if abg_max_len < buffered then
       `Delay (Frame.seconds_of_audio (buffered-3*abg_max_len/4))
