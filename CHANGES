@@ -49,6 +49,10 @@ New:
 
 - Added `video.frame.*` and `audio.samplerate`.
 
+- Added `input.external.ffmpeg` and `output.external.ffmpeg`.
+
+- Added `output.youtube`.
+
 Changed:
 
 - Depends on OCaml >= 4.07.0
