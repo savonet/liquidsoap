@@ -39,7 +39,7 @@ class video ~name ~kind ~restart ~bufferize ~restart_on_error ~max ~on_data ?rea
   let log = (fun x -> !log_ref x) in
   let abg = Generator.create ~log ~kind (if kind.Frame.audio = Frame.Zero then `Video else `Both) in
   (* Maximal difference between audio and video in seconds before a warning. *)
-  let vadiff = 2. in
+  let vadiff = 10. in
   let last_vadiff_warning = ref 0. in
   let on_data s =
     on_data abg s;
