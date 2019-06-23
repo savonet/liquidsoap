@@ -148,7 +148,8 @@ class hls_output p =
         try
           Encoder.rfc6381 hls_format
         with Not_found ->
-          raise (Lang_errors.Invalid_value (fmt, "Unsupported format"))  
+          let err = Printf.sprintf "Unsupported format: RFC 6381 identifier for %s should be added in Liquidsoap" (Encoder.string_of_format hls_format) in
+          raise (Lang_errors.Invalid_value (fmt, err))
       in
       {
         hls_name;
