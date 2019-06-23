@@ -22,6 +22,8 @@
 
 (** HLS output. *)
 
+let log = Log.make ["hls"; "output"]
+
 let hls_proto kind =
   (Output.proto @ [
      "playlist",
@@ -83,7 +85,7 @@ type hls_stream_desc =
     hls_format : Encoder.format;
     hls_encoder : Encoder.encoder;
     hls_bandwidth : int option;
-    hls_codec : string; (** codec (see RFC 6381) *)
+    hls_codec : string option; (** codec (see RFC 6381) *)
     mutable hls_oc : (string*out_channel) option; (** currently encoded file *)
   }
 
@@ -146,10 +148,10 @@ class hls_output p =
       in
       let hls_codec =
         try
-          Encoder.iso_base_file_media_file_format hls_format
+          Some (Encoder.iso_base_file_media_file_format hls_format)
         with Not_found ->
-          let err = Printf.sprintf "Unsupported format: RFC 6381 identifier for %s should be added in Liquidsoap" (Encoder.string_of_format hls_format) in
-          raise (Lang_errors.Invalid_value (fmt, err))
+          log#important "Unknown ISO Base Media File Format, none will be output in the playlist.";
+          None
       in
       {
         hls_name;
@@ -313,12 +315,17 @@ class hls_output p =
           let line =
             let bandwidth =
               match s.hls_bandwidth with
-                | Some b -> Printf.sprintf "AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d," b b
+                | Some b -> Printf.sprintf "AVERAGE-BANDWIDTH=%d,BANDWIDTH=%d" b b
                 | None -> ""
             in
+            let codecs =
+              match s.hls_codec with
+              | Some codec -> Printf.sprintf "CODECS=\"%s\"" codec
+              | None -> ""
+            in
             Printf.sprintf
-              "#EXT-X-STREAM-INF:%sCODECS=\"%s\"\n"
-              bandwidth s.hls_codec
+              "#EXT-X-STREAM-INF:%s%s%s\n"
+              bandwidth (if bandwidth = "" then "" else ",") codecs
           in
           output_string oc line;
           output_string oc (s.hls_name^".m3u8\n")
