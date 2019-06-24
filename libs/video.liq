@@ -63,7 +63,7 @@ end
 def output.file.hls.ffmpeg(~id="", ~playlist="stream.m3u8", dir, s)
   width = video.frame.width()
   height = video.frame.height()
-  cmd = "-profile:v baseline -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{dir}/#{playlist}"
+  cmd = "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{dir}/#{playlist}"
   output.external.ffmpeg(id=id, cmd, s)
 end
 
