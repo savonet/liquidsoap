@@ -97,7 +97,7 @@ end
 
 (***** AVI *****)
 
-let log = Log.make ["input"; "external"]
+let log = Log.make ["input"; "external"; "video"]
   
 let () =
   let k = Lang.kind_type_of_kind_format ~fresh:1 Lang.audio_video_any in
@@ -125,32 +125,51 @@ let () =
     ~kind
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
+      let video_format = ref None in
       let width = ref None in
       let height = ref None in
       let audio_converter = ref None in
-      let video_converter =
-        let conv = Video_converter.find_converter (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32) (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32) in
-        fun src ->
-        let in_width = Img.width src in
-        let in_height = Img.height src in
-        let out_width = Lazy.force Frame.video_width in
-        let out_height = Lazy.force Frame.video_height in
-        if out_width = in_width && out_height = in_height then
-          src
-        else
-          let dst = Img.create out_width out_height in
-          conv (Image.Generic.of_RGBA32 src) (Image.Generic.of_RGBA32 dst);
-          dst
-      in
+      let video_converter = ref None in
       let read_header read =
         let h, _ = Avi.Read.headers_simple read in
         let check = function
-          | `Video (w,h,fps) ->
+          | `Video (fmt,w,h,fps) ->
              (* if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width); *)
              (* if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height); *)
+             log#info "Format: %s." (match fmt with `RGB24 -> "RGB24" | `I420 -> "YUV420");
+             video_format := Some fmt;
              width := Some w;
              height := Some h;
-             if fps <> float (Lazy.force Frame.video_rate) then failwith (Printf.sprintf "Wrong video rate (%f instead of %d). Support for timestretching should be added some day in the future." fps (Lazy.force Frame.video_rate))
+             if fps <> float (Lazy.force Frame.video_rate) then failwith (Printf.sprintf "Wrong video rate (%f instead of %d). Support for timestretching should be added some day in the future." fps (Lazy.force Frame.video_rate));
+             let converter =
+               let conv =
+                 let pix =
+                   match fmt with
+                   | `RGB24 -> Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32
+                   | `I420 -> Image.Generic.Pixel.YUV Image.Generic.Pixel.YUVJ420
+                 in
+                 Video_converter.find_converter pix (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32)
+               in
+               fun data ->
+               let video_format = Option.get !video_format in
+               let of_string s =
+                 match video_format with
+                 | `RGB24 -> Image.Generic.of_RGBA32 (Img.of_RGB24_string s w)
+                 | `I420 -> Image.Generic.of_YUV420 (Image.YUV420.of_string s w)
+               in
+               let src = of_string data in
+               let in_width = Image.Generic.width src in
+               let in_height = Image.Generic.height src in
+               let out_width = Lazy.force Frame.video_width in
+               let out_height = Lazy.force Frame.video_height in
+               if out_width = in_width && out_height = in_height && video_format = `RGB24 then
+                 Image.Generic.to_RGBA32 src
+               else
+                 let dst = Img.create out_width out_height in
+                 conv src (Image.Generic.of_RGBA32 dst);
+                 dst
+             in
+             video_converter := Some converter
           | `Audio (channels, audio_src_rate) ->
              let audio_src_rate = float audio_src_rate in
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
@@ -164,27 +183,30 @@ let () =
       let on_data abg buf =
         External_input.Async_read.add_string reader buf;
         try
-         begin
-          match Avi.Read.chunk (External_input.Async_read.read reader) with
-          | `Frame (_, _, data) when String.length data = 0 -> ()
-          | `Frame (`Video, _, data) ->
-             let width = Option.get !width in
-             let height = Option.get !height in
-             if String.length data <> width * height * 3 then
-               failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
-             let data = video_converter (Img.of_RGB24_string data width) in
-             Generator.put_video abg [|[|data|]|] 0 1
-          | `Frame (`Audio, _, data) ->
-             let converter = Utils.get_some !audio_converter in
-             let data = converter data in
-             if kind.Frame.audio = Frame.Zero then
-               log#info "Received audio data whereas the type indicates that there \
-                         are no audio channels, ingoring it."
-             else
-               Generator.put_audio abg data 0 (Array.length data.(0))
-          | _ -> failwith "Invalid chunk."
-         end;
-         External_input.Async_read.advance reader
+          begin
+            match Avi.Read.chunk (External_input.Async_read.read reader) with
+            | `Frame (_, _, data) when String.length data = 0 -> ()
+            | `Frame (`Video, _, data) ->
+               let width = Option.get !width in
+               let height = Option.get !height in
+               let video_format = Option.get !video_format in
+               if (video_format = `RGB24 && String.length data <> width * height * 3)
+                  || (video_format = `I420 && String.length data <> (width * height * 6) / 4)
+               then
+                 failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
+               let data = (Option.get !video_converter) data in
+               Generator.put_video abg [|[|data|]|] 0 1
+            | `Frame (`Audio, _, data) ->
+               let converter = Utils.get_some !audio_converter in
+               let data = converter data in
+               if kind.Frame.audio = Frame.Zero then
+                 log#info "Received audio data whereas the type indicates that there \
+                           are no audio channels, ingoring it."
+               else
+                 Generator.put_audio abg data 0 (Array.length data.(0))
+            | _ -> failwith "Invalid chunk."
+          end;
+          External_input.Async_read.advance reader
         with External_input.Async_read.Not_enough_data -> ()
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in

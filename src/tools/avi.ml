@@ -250,7 +250,7 @@ module Read = struct
        let stream_type = read 4 in
        must "Wrong strh length." (len = 56);
        let fourcc = dword read in
-       if not (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218 (* RGB24 *)) then
+       if not (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218 (* RGB24 *) || fourcc = 0x30323449 (* I420 *)) then
          (
            let err = Printf.sprintf "Wrong %s fourcc: 0x%x." stream_type fourcc in
            must err false
@@ -285,7 +285,7 @@ module Read = struct
        let _ = word read in
        (* bottom *)
        let _ = word read in
-       `strh (stream_type, fps)
+       `strh (stream_type, fourcc, fps)
     | "strf" ->
        let s = read len in
        `strf s
@@ -363,11 +363,17 @@ module Read = struct
         let dword = dword strf in
         begin
           match List.hd l with
-          | `strh (stream_type, fps) ->
+          | `strh (stream_type, fourcc, fps) ->
              if stream_type = "vids" then
                (
                  (* Printf.printf "video: %dx%d@%f\n%!" width height fps; *)
-                 streams := `Video (width, height, fps) :: !streams
+                 let fourcc =
+                   match fourcc with
+                   | 0x52474218 -> `RGB24
+                   | 0x30323449 -> `I420
+                   | _ -> assert false
+                 in
+                 streams := `Video (fourcc, width, height, fps) :: !streams
                )
              else if stream_type = "auds" then
                let codec = word 0 in
