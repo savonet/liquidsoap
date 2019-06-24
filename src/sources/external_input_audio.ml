@@ -37,7 +37,8 @@ class external_input ~name ~kind ~restart ~bufferize
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
   let abg = Generator.create ~log ~kind `Audio in
-  let on_data s =
+  let on_data reader =
+    let s = External_input.Async_read.read_all reader in
     let data = converter s in
     let len = Array.length data.(0) in
     let buffered = Generator.length abg in
