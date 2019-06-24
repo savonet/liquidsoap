@@ -125,16 +125,32 @@ let () =
     ~kind
     (fun p kind ->
       let command = Lang.to_string (List.assoc "" p) in
-      let width = Lazy.force Frame.video_width in
-      let height = Lazy.force Frame.video_height in
+      let width = ref None in
+      let height = ref None in
       let audio_converter = ref None in
+      let video_converter =
+        let conv = Video_converter.find_converter (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32) (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32) in
+        fun src ->
+        let in_width = Option.get !width in
+        let in_height = Option.get !height in
+        let out_width = Lazy.force Frame.video_width in
+        let out_height = Lazy.force Frame.video_height in
+        if out_width = in_width && out_height = in_height then
+          src
+        else
+          let dst = Img.create out_width out_height in
+          conv (Image.Generic.of_RGBA32 src) (Image.Generic.of_RGBA32 dst);
+          dst
+      in
       let read_header read =
         let h, _ = Avi.Read.headers_simple read in
         let check = function
           | `Video (w,h,fps) ->
-             if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width);
-             if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height);
-             if fps <> float (Lazy.force Frame.video_rate) then failwith (Printf.sprintf "Wrong video rate (%f instead of %d)." fps (Lazy.force Frame.video_rate));
+             (* if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width); *)
+             (* if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height); *)
+             width := Some w;
+             height := Some h;
+             if fps <> float (Lazy.force Frame.video_rate) then failwith (Printf.sprintf "Wrong video rate (%f instead of %d). Support for timestretching should be added some day in the future." fps (Lazy.force Frame.video_rate))
           | `Audio (channels, audio_src_rate) ->
              let audio_src_rate = float audio_src_rate in
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
@@ -152,9 +168,11 @@ let () =
           match Avi.Read.chunk (External_input.Async_read.read reader) with
           | `Frame (_, _, data) when String.length data = 0 -> ()
           | `Frame (`Video, _, data) ->
+             let width = Option.get !width in
+             let height = Option.get !height in
              if String.length data <> width * height * 3 then
                failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
-             let data = Img.of_RGB24_string data width in
+             let data = video_converter (Img.of_RGB24_string data width) in
              Generator.put_video abg [|[|data|]|] 0 1
           | `Frame (`Audio, _, data) ->
              let converter = Utils.get_some !audio_converter in
