@@ -250,8 +250,11 @@ module Read = struct
        let stream_type = read 4 in
        must "Wrong strh length." (len = 56);
        let fourcc = dword read in
-       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0 ||
-           fourcc = 0x52474218 (* RGB24 *));
+       if not (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218 (* RGB24 *)) then
+         (
+           let err = Printf.sprintf "Wrong %s fourcc: 0x%x." stream_type fourcc in
+           must err false
+         );
        must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
        let flags = dword read in
        must "Wrong strh flags." (flags = 0);
