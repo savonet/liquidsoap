@@ -35,7 +35,7 @@ New:
 
 Changed:
 
-- Depends on OCaml >= 4.07.0
+- Depends on OCaml >= 4.08.0
 - Changed return type of `http.*` and `run_process` to use tuples (#838)
 - Better error reporting with coloring and uniform format. (#790)
 - Improved reporting of file, line and character during parsing errors.
