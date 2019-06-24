@@ -213,6 +213,7 @@ let () =
         External_input.Async_read.add_string reader buf;
         try
           let buf = External_input.Async_read.read reader buflen in
+          External_input.Async_read.advance reader;
           let data = Img.of_RGB24_string buf width in
           (* Img.swap_rb data; *)
           (* Img.Effect.flip data; *)
