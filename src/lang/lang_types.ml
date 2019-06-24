@@ -634,6 +634,7 @@ let doc_of_type ~generalized t =
 let constr_sub x y =
   match x,y with
   | _,_ when x=y -> true
+  | "source", "active_source"
   | "active_source", "source" -> true
   | _ -> false
 

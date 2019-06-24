@@ -136,7 +136,7 @@ and in_term =
 | Float   of float
 | Encoder of Encoder.format
 | List    of term list
-| Tuple    of term list
+| Tuple   of term list
 | Ref     of term
 | Get     of term
 | Set     of term * term
@@ -427,7 +427,7 @@ struct
     | Request of Request.t
     | Encoder of Encoder.format
     | List    of value list
-    | Tuple    of value list
+    | Tuple   of value list
     | Ref     of value ref
     (** The first environment contains the parameters already passed
       * to the function. Next parameters will be inserted between that
