@@ -277,7 +277,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             in
             ignore(Unix.close in_pipe);
             ignore(Unix.close out_pipe);
-            close_process p;
+            ignore(close_process p);
             let status =
               match status with
                 | Some status -> status
