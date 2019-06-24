@@ -369,7 +369,7 @@ module Read = struct
                  (* Printf.printf "video: %dx%d@%f\n%!" width height fps; *)
                  let fourcc =
                    match fourcc with
-                   | 0x52474218 -> `RGB24
+                   | 0 | 0x52474218 -> `RGB24
                    | 0x30323449 -> `I420
                    | _ -> assert false
                  in
