@@ -370,7 +370,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.4.1],[],[1])
 
 #
 # xmlplaylist
