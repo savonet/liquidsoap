@@ -148,6 +148,7 @@ let () =
       let on_data abg buf =
         External_input.Async_read.add_string reader buf;
         try
+         begin
           match Avi.Read.chunk (External_input.Async_read.read reader) with
           | `Frame (_, _, data) when String.length data = 0 -> ()
           | `Frame (`Video, _, data) ->
@@ -164,6 +165,8 @@ let () =
              else
                Generator.put_audio abg data 0 (Array.length data.(0))
           | _ -> failwith "Invalid chunk."
+         end;
+         External_input.Async_read.advance reader
         with External_input.Async_read.Not_enough_data -> ()
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in

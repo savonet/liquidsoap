@@ -51,6 +51,10 @@ module Async_read = struct
       t.offset <- t.offset + n;
       ret)
 
+  let advance t =
+    Tutils.mutexify t.m (fun () ->
+      Utils.buffer_drop t.buf t.offset) ()
+
   let close t =
     Tutils.mutexify t.m (fun () ->
       Utils.buffer_drop t.buf t.offset;
