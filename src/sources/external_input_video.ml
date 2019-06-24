@@ -131,6 +131,12 @@ let () =
       let audio_converter = ref None in
       let video_converter = ref None in
       let read_header read =
+        (* Reset the state. *)
+        video_format := None;
+        width := None;
+        height := None;
+        audio_converter := None;
+        video_converter := None;
         let h, _ = Avi.Read.headers_simple read in
         let check = function
           | `Video (fmt,w,h,fps) ->
