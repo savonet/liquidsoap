@@ -47,7 +47,9 @@ end
 # ffmpeg's test source video (useful for testing and debugging).
 # @category Source / Video Processing
 def video.external.testsrc(~id="")
-  input.external.ffmpeg(id=id, "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}")
+  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} \
+         -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()} -ac 2"
+  (input.external.ffmpeg(id=id, cmd):source(audio=2,video=1,midi=0))
 end
 
 # Output to ffmpeg.
