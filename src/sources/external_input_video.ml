@@ -131,8 +131,8 @@ let () =
       let video_converter =
         let conv = Video_converter.find_converter (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32) (Image.Generic.Pixel.RGB Image.Generic.Pixel.RGBA32) in
         fun src ->
-        let in_width = Option.get !width in
-        let in_height = Option.get !height in
+        let in_width = Img.width src in
+        let in_height = Img.height src in
         let out_width = Lazy.force Frame.video_width in
         let out_height = Lazy.force Frame.video_height in
         if out_width = in_width && out_height = in_height then
