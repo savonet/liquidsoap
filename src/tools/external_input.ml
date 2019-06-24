@@ -37,8 +37,8 @@ module Async_read = struct
      m      = Mutex.create ();
      offset = 0}
 
-  let add_string {buf;m} =
-    Tutils.mutexify m (Buffer.add_string buf)
+  let add_bytes {buf;m} =
+    Tutils.mutexify m (Buffer.add_bytes buf)
 
   let read t =
     Tutils.mutexify t.m (fun n ->
@@ -51,14 +51,21 @@ module Async_read = struct
       t.offset <- t.offset + n;
       ret)
 
+  let read_all t =
+    Tutils.mutexify t.m (fun () ->
+      let ret =
+        Buffer.sub t.buf t.offset (Buffer.length t.buf - t.offset);
+      in
+      t.offset <- Buffer.length t.buf;
+      ret) ()
+
   let advance t =
     Tutils.mutexify t.m (fun () ->
       Utils.buffer_drop t.buf t.offset) ()
 
-  let close t =
+  let reset t =
     Tutils.mutexify t.m (fun () ->
-      Utils.buffer_drop t.buf t.offset;
-      Buffer.contents t.buf) ()
+      Buffer.reset t.buf) ()
 end
 
 (* {1 External Input handling} *)
@@ -66,6 +73,7 @@ end
 class virtual base ~name ~kind ~restart ~restart_on_error
                    ~on_data ?read_header command =
   let reader = Async_read.init () in
+  let read = Async_read.read reader in
   let header_read, read_header = match read_header with
     | None   -> true, fun _ -> assert false
     | Some f -> false, f
@@ -81,19 +89,21 @@ object (self)
   method wake_up _ =
     let on_stdout in_chan =
       let s = Process_handler.read 1024 in_chan in
-      let s = Bytes.unsafe_to_string s in
-      if not header_read then
-       try
-         Async_read.add_string reader s;
-         read_header (Async_read.read reader);
-         let ret =
-           Async_read.close reader
-         in
-         self#log#info "Header read!";
-         header_read <- true;
-         if ret <> "" then on_data ret else `Continue
-       with Async_read.Not_enough_data -> `Continue
-     else on_data s
+      Async_read.add_bytes reader s;
+      try
+        let ret =
+          if not header_read then
+           begin
+            read_header read;
+            self#log#info "Header read!";
+            header_read <- true;
+            `Continue
+           end
+          else on_data reader
+        in
+        Async_read.advance reader;
+        ret
+      with Async_read.Not_enough_data -> `Continue
     in
     let on_stderr in_chan =
       self#log#info "%s" (Bytes.unsafe_to_string (Process_handler.read 1024 in_chan));
@@ -106,7 +116,11 @@ object (self)
         | _ -> restart_on_error
     in
     let log = self#log#important "%s" in
-    process <- Some (Process_handler.run ~on_stop ~on_stdout 
+    let on_start _ =
+      Async_read.reset reader;
+      `Continue
+    in
+    process <- Some (Process_handler.run ~on_stop ~on_stdout ~on_start
                                          ~on_stderr ~log command)
 
   method sleep =
