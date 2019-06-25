@@ -123,6 +123,7 @@ let pusher fd buf ofs len =
   Unix.write fd buf ofs len
 
 let puller in_pipe fd buf ofs len =
+  if len = 0 then 0 else
   let ret = 
     try
       Unix.read fd buf ofs len
