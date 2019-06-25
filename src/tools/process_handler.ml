@@ -123,6 +123,7 @@ let pusher fd buf ofs len =
   Unix.write fd buf ofs len
 
 let puller in_pipe fd buf ofs len =
+  if len = 0 then 0 else
   let ret = 
     try
       Unix.read fd buf ofs len
@@ -163,8 +164,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
         try
           let _,status = wait p in
           Tutils.mutexify mutex (fun () ->
-            process.status <- Some status) ();
-          ignore(Unix.write in_pipe done_c 0 1)
+            if process.status = None then
+             begin
+              process.status <- Some status;
+              ignore(Unix.write in_pipe done_c 0 1)
+             end) ()
         with _ -> ()) ());
       process
     in
@@ -277,11 +281,10 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             in
             ignore(Unix.close in_pipe);
             ignore(Unix.close out_pipe);
-            ignore(close_process p);
             let status =
               match status with
                 | Some status -> status
-                | None -> snd (wait p)
+                | None -> close_process p
             in
             let descr =
               match status with

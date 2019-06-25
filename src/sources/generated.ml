@@ -61,12 +61,17 @@ object (self)
 
   method private length = Generator.length generator
 
+  val mutable last_buffering_warning = -1
+
   method is_ready =
     let r = self#length in
-      if buffering then begin
+    if buffering then begin
         (* We have some data, but not enough for safely starting to play it. *)
-        if bufferize > 0 && r <= bufferize then
-          self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize ;
+        if bufferize > 0 && r <= bufferize && r <> last_buffering_warning then
+          (
+            last_buffering_warning <- r;
+            self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize;
+          );
         r > bufferize
       end else begin
         (* This only happens if the end of track has not been played yet,
