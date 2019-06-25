@@ -43,13 +43,14 @@ module Async_read = struct
   let read t =
     Tutils.mutexify t.m (fun n ->
       if Buffer.length t.buf < n+t.offset then
-       begin
-        t.offset <- 0;
-        raise Not_enough_data
-       end;
+        raise Not_enough_data;
       let ret = Buffer.sub t.buf t.offset n in
       t.offset <- t.offset + n;
       ret)
+
+  let reset t =
+    Tutils.mutexify t.m (fun () ->
+      t.offset <- 0) ()
 
   let read_all t =
     Tutils.mutexify t.m (fun () ->
@@ -61,11 +62,13 @@ module Async_read = struct
 
   let advance t =
     Tutils.mutexify t.m (fun () ->
-      Utils.buffer_drop t.buf t.offset) ()
+      Utils.buffer_drop t.buf t.offset;
+      t.offset <- 0) ()
 
-  let reset t =
+  let clear t =
     Tutils.mutexify t.m (fun () ->
-      Buffer.reset t.buf) ()
+      Buffer.clear t.buf;
+      t.offset <- 0) ()
 end
 
 (* {1 External Input handling} *)
@@ -103,7 +106,9 @@ object (self)
         in
         Async_read.advance reader;
         ret
-      with Async_read.Not_enough_data -> `Continue
+      with Async_read.Not_enough_data ->
+        Async_read.reset reader;
+        `Continue
     in
     let on_stderr in_chan =
       self#log#info "%s" (Bytes.unsafe_to_string (Process_handler.read 1024 in_chan));
@@ -117,7 +122,7 @@ object (self)
     in
     let log = self#log#important "%s" in
     let on_start _ =
-      Async_read.reset reader;
+      Async_read.clear reader;
       `Continue
     in
     process <- Some (Process_handler.run ~on_stop ~on_stdout ~on_start
