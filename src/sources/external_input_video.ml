@@ -186,7 +186,7 @@ let () =
         List.iter check h
       in
       let on_data abg reader =
-        match Avi.Read.chunk (External_input.Async_read.read reader) with
+        match Avi.Read.chunk reader with
           | `Frame (_, _, data) when String.length data = 0 -> ()
           | `Frame (`Video, _, data) ->
              let width = Option.get !width in
@@ -245,9 +245,10 @@ let () =
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in
       let buflen = width * height * 3 in
+      let buf = Bytes.create buflen in
       let on_data abg reader =
-        let buf = External_input.Async_read.read reader buflen in
-        let data = Img.of_RGB24_string buf width in
+        let ret = reader buf 0 buflen in
+        let data = Img.of_RGB24_string (Bytes.sub_string buf 0 ret) width in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
         Generator.put_video abg [|[|data|]|] 0 1

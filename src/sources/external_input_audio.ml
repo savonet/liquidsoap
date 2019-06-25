@@ -37,9 +37,11 @@ class external_input ~name ~kind ~restart ~bufferize
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
   let abg = Generator.create ~log ~kind `Audio in
+  let buflen = 1024 in
+  let buf = Bytes.create buflen in
   let on_data reader =
-    let s = External_input.Async_read.read_all reader in
-    let data = converter s in
+    let ret = reader buf 0 buflen in
+    let data = converter (Bytes.sub_string buf 0 ret) in
     let len = Array.length data.(0) in
     let buffered = Generator.length abg in
     Generator.put_audio abg data 0 (Array.length data.(0));
@@ -114,17 +116,21 @@ let () =
 
 let wav_ops =
   let really_input read buf ofs len =
-    let ret = read len in
-    Bytes.blit_string ret 0 buf ofs len
+    let ret =
+       Extralib.read_retry read buf ofs len
+    in
+    if ret < len then raise End_of_file
+  in
+  let input read = read in
+  let _read read len =
+    let buf = Bytes.create len in
+    really_input read buf 0 len;
+    buf
   in
   let input_byte read =
-    Char.code (String.get (read 1) 0)
+    Char.code (Bytes.get (_read read 1) 0)
   in
-  let input read buf ofs len =
-    really_input read buf ofs len;
-    len
-  in
-  let seek read n = ignore(read n) in
+  let seek read n = ignore(_read read n) in
   let close _ = () in
   {Wav_aiff.
      really_input;

@@ -179,13 +179,19 @@ let video_chunk b =
   chunk "00db" b
 
 module Read = struct
-  let word read =
-    let s = read 2 in
+  let read n f =
+    let s = Bytes.create n in
+    let k = read_retry f s 0 n in
+    if k <> n then raise End_of_file;
+    Bytes.unsafe_to_string s
+
+  let word f =
+    let s = read 2 f in
     int_of_char (String.get s 0)
     + int_of_char (String.get s 1) lsl 8
 
-  let dword read =
-    let s = read 4 in
+  let dword f =
+    let s = read 4 f in
     int_of_char (String.get s 0)
     + int_of_char (String.get s 1) lsl 8
     + int_of_char (String.get s 2) lsl 16
@@ -195,14 +201,14 @@ module Read = struct
 
   let must s b = if not b then raise (Invalid s)
 
-  let rec chunk read =
-    let tag = read 4 in
-    let len = dword read in
+  let rec chunk f =
+    let tag = read 4 f in
+    let len = dword f in
     (* Printf.printf "Read: %s (%d)\n%!" tag len; *)
     len + 8,
     match tag with
     | "LIST" ->
-       let subtag = read 4 in
+       let subtag = read 4 f in
        if subtag = "movi" then
          (* for obvious size reasons we stop parsing here *)
          `movi (len - 4)
@@ -212,7 +218,7 @@ module Read = struct
          (* Printf.printf "<<\n%!"; *)
          while !rem <> 0 do
            if !rem < 0 then raise (Invalid "Wrong header size.");
-           let l,c = chunk read in
+           let l,c = chunk f in
            rem := !rem - l;
            ll := c :: !ll
          done;
@@ -220,101 +226,101 @@ module Read = struct
          `LIST (subtag, List.rev !ll)
     | "avih" ->
        (* microsec_per_frame *)
-       let _ = dword read in
+       let _ = dword f in
        (* max_bytes_per_sec *)
-       let _ = dword read in
+       let _ = dword f in
        (* reserved *)
-       let _ = read 4 in
-       let flags = dword read in
+       let _ = read 4 f in
+       let flags = dword f in
        must "Not interleaved." (flags land 0x0100 <> 0); (* interleaved *)
        (* total_frame *)
-       let _ = dword read in
+       let _ = dword f in
        (* init_frame *)
-       let _ = dword read in
+       let _ = dword f in
        (* nb_stream *)
-       let _ = dword read in
+       let _ = dword f in
        (* sug_buf_size *)
-       let _ = dword read in
-       let width = dword read in
-       let height = dword read in
-       let scale = dword read in
+       let _ = dword f in
+       let width = dword f in
+       let height = dword f in
+       let scale = dword f in
        must "Non-zero scale." (scale = 0);
        (* rate *)
-       let _ = dword read in
+       let _ = dword f in
        (* start *)
-       let _ = dword read in
+       let _ = dword f in
        (* length *)
-       let _ = dword read in
+       let _ = dword f in
        `avih (width, height)
     | "strh" ->
-       let stream_type = read 4 in
+       let stream_type = read 4 f in
        must "Wrong strh length." (len = 56);
-       let fourcc = dword read in
+       let fourcc = dword f in
        if not (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218 (* RGB24 *) || fourcc = 0x30323449 (* I420 *)) then
          (
            let err = Printf.sprintf "Wrong %s fourcc: 0x%x." stream_type fourcc in
            must err false
          );
        must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
-       let flags = dword read in
+       let flags = dword f in
        must "Wrong strh flags." (flags = 0);
        (* priority *)
-       let _ = word read in
+       let _ = word f in
        (* language *)
-       let _ = word read in
+       let _ = word f in
        (* init_frames *)
-       let _ = dword read in
-       let scale = dword read in
-       let rate = dword read in
+       let _ = dword f in
+       let scale = dword f in
+       let rate = dword f in
        let fps = float rate /. float scale in
        (* start *)
-       let _ = dword read in
+       let _ = dword f in
        (* length *)
-       let _ = dword read in
+       let _ = dword f in
        (* buf_size *)
-       let _ = dword read in
+       let _ = dword f in
        (* quality *)
-       let _ = dword read in
+       let _ = dword f in
        (* sample_size *)
-       let _ = dword read in
+       let _ = dword f in
        (* left *)
-       let _ = word read in
+       let _ = word f in
        (* top *)
-       let _ = word read in
+       let _ = word f in
        (* right *)
-       let _ = word read in
+       let _ = word f in
        (* bottom *)
-       let _ = word read in
+       let _ = word f in
        `strh (stream_type, fourcc, fps)
     | "strf" ->
-       let s = read len in
+       let s = read len f in
        `strf s
     | "JUNK" ->
-       let s = read len in
+       let s = read len f in
        `JUNK s
     | "00dc" ->
-       let s = read len in
+       let s = read len f in
        (* TODO: other channels and audio frames too (first argument is channel
           number) *)
        `Frame (`Video, 0, s)
     | "00wb" | "01wb" ->
-       let s = read len in
+       let s = read len f in
        `Frame (`Audio, 0, s)
     | _ ->
-       let s = read len in
+       let s = read len f in
        `Other s
 
-  let chunk read = snd (chunk read)
+  let chunk f = snd (chunk f)
 
-  let headers read =
-    must "Not a RIFF file." (read 4 = "RIFF");
+  let headers f =
+    must "Not a RIFF file." (read 4 f = "RIFF");
     (* filesize *)
-    let _ = dword read in
-    must "Not an AVI file." (read 4 = "AVI ");
+    let _ = dword f in
+    must "Not an AVI file." (read 4 f = "AVI ");
     let h = ref [] in
     try
       while true do
-        let c = chunk read in
+        let c = chunk f in
         h := c :: !h;
         match c with
         | `movi _ -> raise Exit
@@ -325,8 +331,8 @@ module Read = struct
     | Exit ->
        List.rev !h
 
-  let headers_simple read =
-    let headers = headers read in
+  let headers_simple f =
+    let headers = headers f in
     if List.length headers < 2 then raise (Invalid "Not enough headers.");
     let h =
       match List.hd headers with
