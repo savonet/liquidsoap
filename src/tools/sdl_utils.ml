@@ -163,11 +163,12 @@ let to_32_bigarray rgb fmt width height pitch s =
 let to_32 rgb surface =
   keep_alive surface
     (fun () ->
-       let width,height,stride = Sdlvideo.surface_dims surface in
-       let pitch = stride/4 in
-       let fmt = Sdlvideo.surface_format surface in
-         assert (width = Video.Image.width rgb && height = Video.Image.height rgb);
-         assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+      let width,height,stride = Sdlvideo.surface_dims surface in
+      let pitch = stride/4 in
+      let fmt = Sdlvideo.surface_format surface in
+      assert (width = Video.Image.width rgb && height = Video.Image.height rgb);
+      assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
+      (*
          if fmt.Sdlvideo.rshift = 16 && fmt.Sdlvideo.gshift = 8 &&
             fmt.Sdlvideo.bshift = 0 && not Configure.big_endian
          then
@@ -176,8 +177,9 @@ let to_32 rgb surface =
            let sdl = Gen.make_rgb pix ~stride width height s in
            Video.Image.to_generic rgb sdl
          else
-           to_32_bigarray rgb fmt width height pitch
-             (Sdlvideo.pixel_data_32 surface))
+       *)
+      to_32_bigarray rgb fmt width height pitch
+        (Sdlvideo.pixel_data_32 surface))
 
 let from_32 surface =
   keep_alive surface

@@ -22,9 +22,6 @@
 
 open Source
 
-module Image = FrameImage
-             module Video = FrameVideo
-
 (** Fade-in at the beginning of every track.
   * The [duration] is in seconds. *)
 class fade_in ~kind ?(meta="liq_video_fade_in") duration
@@ -167,18 +164,18 @@ let proto =
 let rec transition_of_string p transition =
   let ifm n a = int_of_float ((float_of_int n) *. a) in
     match transition with
-      | "fade" -> fun () -> Image.Effect.Alpha.scale
+      | "fade" -> fun () -> Video.Image.Effect.Alpha.scale
       | "slide_left" ->
           fun () buf t ->
-            Image.Effect.translate buf
+            Video.Image.Effect.translate buf
               (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
       | "slide_right" ->
           fun () buf t ->
-            Image.Effect.translate buf
+            Video.Image.Effect.translate buf
               (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
       | "slide_up" ->
           fun () buf t ->
-            Image.Effect.translate buf
+            Video.Image.Effect.translate buf
               0 (ifm (Lazy.force Frame.video_height) (1.-.t))
           (*
       | "slide_down" ->

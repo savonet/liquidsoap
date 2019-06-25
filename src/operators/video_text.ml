@@ -22,10 +22,6 @@
 
 open Source
 
-module Img = Image
-module Image = FrameImage
-module Video = FrameVideo
-
 class text ~kind
   init render_text ttf ttf_size color tx ty speed cycle meta text (source:source) =
   let () = init () in
@@ -51,12 +47,12 @@ object (self)
 
   method private render_text text =
     let w, h, get_pixel = render_text ~font:ttf ~size:ttf_size text in
-    let tf = Image.create w h in
-    let tr, tg, tb = Img.RGB8.Color.of_int color in
+    let tf = Video.Image.create w h in
+    let tr, tg, tb = Image.RGB8.Color.of_int color in
     for y = 0 to h - 1 do
       for x = 0 to w - 1 do
         let a = get_pixel x y in
-        Image.set_pixel tf x y (tr, tg, tb, a)
+        Video.Image.set_pixel tf x y (tr, tg, tb, a)
       done
     done;
     text_frame <- Some tf
@@ -74,7 +70,7 @@ object (self)
       | Some (rgb,off,len) ->
           let rgb = rgb.(0) in
           let tf = self#get_text_frame in
-          let tfw = Image.width tf in
+          let tfw = Video.Image.width tf in
           let text =
             match meta with
               | None -> text ()
@@ -97,13 +93,13 @@ object (self)
             for i = off to off + len - 1 do
               if speed = 0 then
                 (
-                  Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y ;
+                  Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y ;
                   pos_x <- tx () ;
                   pos_y <- ty ()
                 )
               else
                 (
-                  if pos_x <> -tfw then Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y ;
+                  if pos_x <> -tfw then Video.Image.add tf (Video.get rgb i) ~x:pos_x ~y:pos_y ;
                   pos_x <- pos_x - speed ;
                   if pos_x < -tfw then
                     if cycle then

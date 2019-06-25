@@ -22,7 +22,6 @@
 
 (** Decode and read ogg files. *)
 
-module Img = Image.RGBA32
 module Gen = Image.Generic
 module P = Gen.Pixel
 
@@ -59,19 +58,14 @@ let video_convert =
     let converter = converter buf.Ogg_demuxer.format in
     let width = Lazy.force Frame.video_width in
     let height = Lazy.force Frame.video_height in
-    let rgb = Img.create width height in
-    let frame = Gen.of_RGBA32 rgb in
-    let sframe = 
-      Image.YUV420.make 
+    let rgb = Video.Image.create width height in
+    let img =
+      Image.I420.make_stride
         buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height 
-        buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride 
-        buf.Ogg_demuxer.u buf.Ogg_demuxer.v 
-        buf.Ogg_demuxer.uv_stride 
-   in
-    converter
-      (Gen.of_YUV420 sframe)
-      frame;
-    rgb)
+        buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
+        buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
+    in
+    Video.Image.of_i420 img)
 
 (** Stupid nearest neighbour resampling.
   * For meaningful results, one should first partially apply the freq params,

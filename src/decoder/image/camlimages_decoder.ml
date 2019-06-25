@@ -49,10 +49,10 @@ let load_image filename =
       | OImages.Cmyk32 _ ->
         failwith "CMYK32 images are not supported for now."
   in
-  let img = Img.create width height in
+  let img = Video.Image.create width height in
   for j = 0 to height - 1 do
     for i = 0 to width - 1 do
-      Img.set_pixel img i j (p i j)
+      Video.Image.set_pixel img i j (p i j)
     done
   done;
   img

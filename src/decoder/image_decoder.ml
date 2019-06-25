@@ -21,8 +21,6 @@
  *****************************************************************************)
 
 module Gen = Image.Generic
-module Image = FrameImage
-module Video = FrameVideo
 
 (** Converter used to resize images. *)
 let converter = lazy
@@ -90,7 +88,7 @@ let off_string iw ih ox oy =
 
 let create_decoder metadata img =
   (* Dimensions. *)
-  let img_w, img_h = Image.dimensions img in
+  let img_w, img_h = Video.Image.dimensions img in
   let width = try Hashtbl.find metadata "width" with Not_found -> "" in
   let height = try Hashtbl.find metadata "height" with Not_found -> "" in
   let width, height = wh_string img_w img_h width height in
@@ -102,7 +100,7 @@ let create_decoder metadata img =
     let img =
       if (width,height) = (img_w,img_h) then img else
         (* Img.Scale.create img width height *)
-        let img' = Image.create width height in
+        let img' = Video.Image.create width height in
         failwith "TODO: restore the two lines below";
         (* let converter = Lazy.force converter in *)
         (* converter (Gen.of_RGBA32 img) (Gen.of_RGBA32 img'); *)
@@ -110,9 +108,9 @@ let create_decoder metadata img =
     in
     let img =
       if (off_x,off_y) = (0,0) then img else
-        let img' = Image.create (width+off_x) (height+off_y) in
-        Image.blank img';
-        Image.add img img' ~x:off_x ~y:off_y;
+        let img' = Video.Image.create (width+off_x) (height+off_y) in
+        Video.Image.blank img';
+        Video.Image.add img img' ~x:off_x ~y:off_y;
         img'
     in
     img
@@ -140,7 +138,7 @@ let create_decoder metadata img =
        * layer will be re-used.  In fact, we might even need to explicitly
        * blankify because our image might be transparent and the current frame
        * might contain random stuff. *)
-      Image.blit img (Video.get video i)
+      Video.Image.blit img (Video.get video i)
     done ;
     if !duration = -1 then -1 else begin
       duration := !duration - (stop-start);

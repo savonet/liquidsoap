@@ -24,8 +24,6 @@
 
 open Avi_format
 
-module Image = FrameImage
-
 let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let content =

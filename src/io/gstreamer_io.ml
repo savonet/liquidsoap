@@ -24,7 +24,6 @@ open Extralib
 open Gstreamer
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
 
 let log = Log.make ["io";"gstreamer"]
 let gst_clock = Tutils.lazy_cell (fun () -> new Clock.self_sync "gstreamer")
@@ -268,8 +267,9 @@ object (self)
           (
             let buf = content.Frame.video.(0) in
             for i = 0 to Array.length buf - 1 do
-              let data = Img.data buf.(i) in
-              Gstreamer.App_src.push_buffer_data ~duration ~presentation_time  (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)
+              let img = Video.get buf i in
+              let data = Image.I420.data img in
+              Gstreamer.App_src.push_buffer_data ~duration ~presentation_time (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)
             done;
           );
         presentation_time <- Int64.add presentation_time duration;
@@ -595,9 +595,10 @@ object (self)
   method private fill_video video =
     while video.pending () > 0 && not self#is_generator_at_max do
       let b = video.pull () in
-      let img = Img.make width height b in
-      let stream = [|img|] in
-      Generator.put_video gen [|stream|] 0 (Array.length stream)
+      let img = Image.I420.make width height b in
+      let img = Video.Image.of_i420 img in
+      let stream = Video.single img in
+      Generator.put_video gen [|stream|] 0 (Video.length stream)
     done
 
   method get_frame frame =

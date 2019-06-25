@@ -23,9 +23,6 @@
 open Source
 open Extralib
 
-module Image = FrameImage
-module Video = FrameVideo
-
 type t = Float | Int | Bool
 
 let log = Log.make ["frei0r"]

@@ -22,9 +22,6 @@
 
 open Source
 
-module Image = FrameImage
-module Video = FrameVideo
-
 class effect ~kind effect (source:source) =
 object
   inherit operator ~name:"video.effect" kind [source]
@@ -56,7 +53,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Image.Effect.greyscale src)
+         new effect ~kind Video.Image.Effect.greyscale src)
 
 let () =
   Lang.add_operator "video.sepia"
@@ -67,7 +64,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Image.Effect.sepia src)
+         new effect ~kind Video.Image.Effect.sepia src)
 
 let () =
   Lang.add_operator "video.invert"
@@ -78,7 +75,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Image.Effect.invert src)
+         new effect ~kind Video.Image.Effect.invert src)
 
 (*
 let () =

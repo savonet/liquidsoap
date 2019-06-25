@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Img = Image.RGBA32
 module GU = Gstreamer_utils
 
 let init () = ()
@@ -34,7 +33,7 @@ let render_text ~font ~size text =
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
   let get_pixel x y =
-    let z,_,_,_ = Img.get_pixel img x y in
+    let z,_,_,_ = Video.Image.get_pixel img x y in
     z
   in
   width, height, get_pixel

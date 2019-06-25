@@ -25,7 +25,6 @@
 open Gstreamer_format
 
 module GU = Gstreamer_utils
-module Image = FrameImage
 
 let log = Log.make ["encoder"; "gstreamer"]
 

@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 module Img = Image.Generic
-module P = Img.Pixel
 
 let create_encoder ~theora ~metadata () =
    let quality,bitrate =
@@ -95,27 +94,21 @@ let create_encoder ~theora ~metadata () =
     Ogg_muxer.flush_pages os
   in
   let yuv = Image.YUV420.create width height in
-  let (y,y_stride), (u, v, uv_stride) = Image.YUV420.internal yuv in
   let theora_yuv =
   {
     Theora.y_width = width ;
     Theora.y_height = height ;
-    Theora.y_stride = y_stride;
+    Theora.y_stride = width;
     Theora.u_width = width / 2;
     Theora.u_height = height / 2;
-    Theora.u_stride = uv_stride;
+    Theora.u_stride = width / 2;
     Theora.v_width = width / 2;
     Theora.v_height = height / 2;
-    Theora.v_stride = uv_stride;
-    Theora.y = y;
-    Theora.u = u;
-    Theora.v = v;
+    Theora.v_stride = width / 2;
+    Theora.y = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.C_layout 0;
+    Theora.u = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.C_layout 0;
+    Theora.v = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.C_layout 0;
   }
-  in
-  let convert =
-    Video_converter.find_converter
-      (P.RGB P.RGBA32)
-      (P.YUV P.YUVJ420)
   in
   let data_encoder data os _ = 
     if not !started then
@@ -124,10 +117,10 @@ let create_encoder ~theora ~metadata () =
                     data.Ogg_muxer.length 
     in
     for i = ofs to ofs+len-1 do
-      let frame = Img.of_RGBA32 b.(i) in
-      convert
-        frame
-        (Img.of_YUV420 yuv);
+      let img = Video.get b i in
+      let img = Video.Image.to_I420 img in
+      let y,u,v = Image.I420.data_split img in
+      let theora_yuv = { theora_yuv with Theora.y = y; u; v } in
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in

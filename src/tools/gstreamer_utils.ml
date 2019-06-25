@@ -1,5 +1,3 @@
-module Img = Image.RGBA32
-
 let conf_gstreamer =
   Dtools.Conf.void ~p:(Configure.conf#plug "gstreamer")
     "Media decoding/endcoding through gstreamer."
@@ -67,7 +65,7 @@ module Pipeline = struct
     let height = Lazy.force Frame.video_height in
     let fps = Lazy.force Frame.video_rate in
     Printf.sprintf
-      "video/x-raw,format=RGBA,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
+      "video/x-raw,format=I420,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
       width height fps
 
   let video_src ?(block=true) ?(maxBytes=10*1024) ?(format=Gstreamer.Format.Time) name =
@@ -102,7 +100,8 @@ let render_image pipeline =
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_playing);
   ignore (Gstreamer.Element.get_state bin);
   let buf = Gstreamer.App_sink.pull_buffer_data sink in
-  let img = Img.make width height buf in
+  let img = Image.I420.make width height buf in
+  let img = Video.Image.of_i420 img  in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img
 
