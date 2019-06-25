@@ -131,7 +131,6 @@
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
       | "source" ->
           (* TODO less confusion in hiding the stream_kind constructed type *)
-          (* TODO print position in error message *)
           let audio,video,midi =
             match args with
               | ["",a;"",v;"",m] -> a,v,m
