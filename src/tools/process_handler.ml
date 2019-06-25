@@ -148,8 +148,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
             Process_utils.wait p
           in
           Tutils.mutexify mutex (fun () ->
-            process.status <- Some status) ();
-          ignore(Unix.write in_pipe done_c 0 1)
+            if process.status = None then
+             begin
+              process.status <- Some status;
+              ignore(Unix.write in_pipe done_c 0 1)
+             end) ()
         with _ -> ()) ());
       process
     in
