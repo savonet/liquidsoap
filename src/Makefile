@@ -1,6 +1,4 @@
 SUBDIRS=tools \
-	$(if $(WIN32_HOST),win32) \
-	$(if $(UNIX_HOST),unix) \
 	decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization analyze synth harbor lang_encoders encoder_formats
@@ -172,8 +170,6 @@ io = io/udp_io.ml \
 
 tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
         tools/utils.ml tools/plug.ml \
-	$(if $(WIN32_HOST),win32/process_utils.ml) \
-	$(if $(UNIX_HOST),unix/process_utils.ml) \
 	tools/rqueue.ml tools/sedlexing_compat.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \
