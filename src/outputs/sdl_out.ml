@@ -22,7 +22,6 @@
 
 (** Output using SDL lib. *)
 
-module Video = FrameVideo
 
 class output ~infallible ~on_start ~on_stop ~autostart ~kind source =
   let video_width    = Lazy.force Frame.video_width in

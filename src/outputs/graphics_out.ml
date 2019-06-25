@@ -19,8 +19,6 @@
 
  *****************************************************************************)
 
-module Image = FrameImage
-module Video = FrameVideo
 
 class output ~kind ~infallible ~autostart ~on_start ~on_stop source =
   let video_width    = Lazy.force Frame.video_width in
@@ -46,7 +44,7 @@ object
         c.Frame.video.(0)
     in
       for frame = 0 to 0 do
-        let img = Image.to_int_image (Video.get rgb frame) in
+        let img = Video.Image.to_int_image (Video.get rgb frame) in
         let img = Graphics.make_image img in
           Graphics.draw_image img 0 0
       done

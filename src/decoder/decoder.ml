@@ -58,8 +58,6 @@
   * The WAV decoder doesn't fit the approx duration computation. (Toots: is that true?)
   * The MIDI decoder doesn't use a buffer. TODO look at this carefully. *)
 
-module Image = FrameImage
-
 let log = Log.make ["decoder"]
 
 (** A local file is simply identified by its filename. *)
@@ -145,7 +143,7 @@ let file_decoders :
     ~register_hook:(fun (name,_) -> f conf_file_decoders name)
     ~doc:"File decoding methods." ~insensitive:true "file decoding"
 
-let image_file_decoders : (file -> Image.t option) Plug.plug =
+let image_file_decoders : (file -> Video.Image.t option) Plug.plug =
   Plug.create
     ~register_hook:(fun (name,_) -> f conf_image_file_decoders name)
     ~doc:"Image file decoding methods." ~insensitive:true "image file decoding"

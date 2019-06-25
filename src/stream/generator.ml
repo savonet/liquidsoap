@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Video = FrameVideo
-
 exception Incorrect_stream_type
 
 module type S =

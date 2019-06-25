@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 module Gen = Image.Generic
-module Image = FrameImage
 
 type event = 
         [ `AUDIO
@@ -68,13 +67,13 @@ let from_8 surface =
     (fun () ->
        let width,height,pitch = Sdlvideo.surface_dims surface in
        let image = Sdlvideo.pixel_data_8 surface in
-       let a = Image.create width height in
+       let a = Video.Image.create width height in
          for i = 0 to width-1 do
            for j = 0 to height-1 do
              let r,g,b =
                Sdlvideo.get_palette_color surface image.{i+j*pitch}
              in
-               Image.set_pixel a i j (r,g,b,0xff)
+               Video.Image.set_pixel a i j (r,g,b,0xff)
            done
          done ;
          a)
@@ -87,11 +86,11 @@ let to_16 rgb surface =
        let width,height,pitch = Sdlvideo.surface_dims surface in
        let pitch = pitch/2 in (* initial pitch was in bytes *)
        let fmt = Sdlvideo.surface_format surface in
-         assert (width = Image.width rgb && height = Image.height rgb) ;
+         assert (width = Video.Image.width rgb && height = Video.Image.height rgb) ;
          assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette) ;
          for i = 0 to width-1 do
            for j = 0 to height-1 do
-             let r,g,b,_ = Image.get_pixel rgb i j in
+             let r,g,b,_ = Video.Image.get_pixel rgb i j in
              let color =
                ((r lsr fmt.Sdlvideo.rloss) lsl fmt.Sdlvideo.rshift) lor
                ((g lsr fmt.Sdlvideo.gloss) lsl fmt.Sdlvideo.gshift) lor
@@ -113,7 +112,7 @@ let from_24 surface =
        let width,height,pitch = Sdlvideo.surface_dims surface in
        let fmt = Sdlvideo.surface_format surface in
        let rgb = Sdlvideo.pixel_data_24 surface in
-       let a = Image.create width height in
+       let a = Video.Image.create width height in
        let col = Array.make 3 0 in
          for i = 0 to width-1 do
            for j = 0 to height-1 do
@@ -121,7 +120,7 @@ let from_24 surface =
                let c' = if fmt.Sdlvideo.rshift = 0 then c else 2-c in
                  col.(c) <- rgb.{c'+i*3+j*pitch}
              done ;
-             Image.set_pixel a i j (col.(0),col.(1),col.(2),0xff)
+             Video.Image.set_pixel a i j (col.(0),col.(1),col.(2),0xff)
            done
          done ;
          a)
@@ -150,7 +149,7 @@ let from_24 surface =
 let to_32_bigarray rgb fmt width height pitch s =
   for i = 0 to width-1 do
     for j = 0 to height-1 do
-      let r,g,b,_ = Image.get_pixel rgb i j in
+      let r,g,b,_ = Video.Image.get_pixel rgb i j in
       let color =
         Int32.of_int
           ((r lsl fmt.Sdlvideo.rshift) lor
@@ -167,7 +166,7 @@ let to_32 rgb surface =
        let width,height,stride = Sdlvideo.surface_dims surface in
        let pitch = stride/4 in
        let fmt = Sdlvideo.surface_format surface in
-         assert (width = Image.width rgb && height = Image.height rgb);
+         assert (width = Video.Image.width rgb && height = Video.Image.height rgb);
          assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette);
          if fmt.Sdlvideo.rshift = 16 && fmt.Sdlvideo.gshift = 8 &&
             fmt.Sdlvideo.bshift = 0 && not Configure.big_endian
@@ -175,7 +174,7 @@ let to_32 rgb surface =
            let s = Sdlvideo.pixel_data surface in
            let pix = Gen.Pixel.BGR32 in
            let sdl = Gen.make_rgb pix ~stride width height s in
-           Image.to_generic rgb sdl
+           Video.Image.to_generic rgb sdl
          else
            to_32_bigarray rgb fmt width height pitch
              (Sdlvideo.pixel_data_32 surface))
@@ -188,7 +187,7 @@ let from_32 surface =
        let fmt = Sdlvideo.surface_format surface in
        (* pitch is in bytes, convert for int32 array *)
        let pitch = pitch/4 in
-       let f = Image.create width height in
+       let f = Video.Image.create width height in
          assert (fmt.Sdlvideo.rloss = 0 &&
                  fmt.Sdlvideo.gloss = 0 &&
                  fmt.Sdlvideo.bloss = 0) ;
@@ -213,7 +212,7 @@ let from_32 surface =
                  Int32.to_int
                    ((pixel && fmt.Sdlvideo.amask) >> fmt.Sdlvideo.ashift)
                in
-                 Image.set_pixel f i j (r,g,b,a)
+                 Video.Image.set_pixel f i j (r,g,b,a)
              done
            done ;
            f)

@@ -40,7 +40,7 @@ type content_type = (int, int, int) fields
 (** Actual content of a frame. *)
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer (** Audio data. *)
-and video_t = FrameVideo.t (** Video data. *)
+and video_t = Video.t (** Video data. *)
 and midi_t = MIDI.buffer (** MIDI data. *)
 
 (** [blit_content c1 o1 c2 o2 l] copies [l] data from [c1] starting at offset

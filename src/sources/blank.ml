@@ -22,8 +22,6 @@
 
 open Source
 
-module Video = FrameVideo
-
 class blank ~kind duration =
   let ticks =
     if duration = 0. then -1 else Frame.master_of_seconds duration

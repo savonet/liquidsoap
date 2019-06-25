@@ -27,9 +27,6 @@ open Extralib
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus
 
-module Image = FrameImage
-module Video = FrameVideo
-
 exception Finished of string*bool
       
 class video ~kind ~restart ~bufferize ~restart_on_error ~max ~create ~read_headers ~get_data =
@@ -242,7 +239,7 @@ let () =
         | `Frame (`Video, _, data) ->
            if String.length data <> width * height * 3 then
              failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
-           let data = Image.of_RGB24_string data width in
+           let data = Video.Image.of_RGB24_string data width in
            (* Img.swap_rb data; *)
            (* Img.Effect.flip data; *)
            Generator.put_video abg [|Video.single data|] 0 1
@@ -305,7 +302,7 @@ let () =
         if r > 0 then
           (
             if r <> buflen then failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)." r buflen);
-            let data = Image.of_RGB24_string (Bytes.unsafe_to_string buf) width in
+            let data = Video.Image.of_RGB24_string (Bytes.unsafe_to_string buf) width in
             (* Img.swap_rb data; *)
             (* Img.Effect.flip data; *)
             Generator.put_video abg [|Video.single data|] 0 1

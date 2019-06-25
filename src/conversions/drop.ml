@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Image = FrameImage
-module Video = FrameVideo
 
 class drop_video ~kind source =
 object
@@ -89,7 +87,7 @@ object
         for i = 0 to Array.length src.Frame.video - 1 do
           let (!) = Frame.video_of_master in
           for j = 0 to !len-1 do
-            Image.blit
+            Video.Image.blit
               (Video.get src.Frame.video.(i) (!start+j))
               (Video.get dst.Frame.video.(i) (!start+j))
           done
@@ -142,7 +140,7 @@ object
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
               for j = 0 to !len-1 do
-                Image.blit
+                Video.Image.blit
                   (Video.get src.Frame.video.(i) (!start+j))
                   (Video.get dst.Frame.video.(i) (!start+j))
               done

@@ -24,9 +24,6 @@
 
 open Source
 
-module Image = FrameImage
-module Video = FrameVideo
-
 let max a b = if b = -1 || a = -1 then -1 else max a b
 
 let get_again s buf =
@@ -220,7 +217,7 @@ let () =
          new add ~kind ~renorm
                (List.map2 (fun w s -> (w,s)) weights sources)
                (fun _ -> ())
-               (fun _ buf tmp -> Image.add tmp buf))
+               (fun _ buf tmp -> Video.Image.add tmp buf))
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -270,7 +267,7 @@ let () =
          let x, y, w, h = tp.(n) in
          let x, y, w, h =
            if proportional then
-             let sw, sh = Image.width buf, Image.height buf in
+             let sw, sh = Video.Image.width buf, Video.Image.height buf in
                if w * sh < sw * h then
                  let h' = sh * w / sw in
                    x, y+(h-h')/2, w, h'
@@ -280,7 +277,7 @@ let () =
            else
              x, y, w, h
          in
-           Image.blit ~blank:false tmp buf ~x ~y ~w ~h
+           Video.Image.blit ~blank:false tmp buf ~x ~y ~w ~h
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then
