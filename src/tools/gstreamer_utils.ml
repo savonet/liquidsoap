@@ -101,7 +101,7 @@ let render_image pipeline =
   ignore (Gstreamer.Element.get_state bin);
   let buf = Gstreamer.App_sink.pull_buffer_data sink in
   let img = Image.I420.make width height buf in
-  let img = Video.Image.of_i420 img  in
+  let img = Video.Image.of_I420 img  in
   ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
   img
 

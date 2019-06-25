@@ -137,7 +137,7 @@ module Make (Generator : Generator.S_Asio) = struct
             failwith "Not in playing state!";
           let b = Gstreamer.App_sink.pull_buffer_data (Utils.get_some gst.video_sink) in
           let img = Image.I420.make width height b in
-          let img = Video.Image.of_i420 img in
+          let img = Video.Image.of_I420 img in
           let stream = Video.single img in
           Generator.put_video buffer [|stream|] 0 (Video.length stream)
         );

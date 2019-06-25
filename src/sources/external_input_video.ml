@@ -160,20 +160,26 @@ let () =
                let video_format = Option.get !video_format in
                let of_string s =
                  match video_format with
-                 | `RGB24 -> Image.Generic.of_RGBA32 (Img.of_RGB24_string s w)
-                 | `I420 -> Image.Generic.of_YUV420 (Image.YUV420.of_string s w)
+                 | `RGB24 ->
+                    failwith "TODO";
+                    (* Image.Generic.of_RGBA32 (Img.of_RGB24_string s w) *)
+                 | `I420 ->
+                    Video.Image.of_I420_string s w
                in
                let src = of_string data in
-               let in_width = Image.Generic.width src in
-               let in_height = Image.Generic.height src in
+               let in_width = Video.Image.width src in
+               let in_height = Video.Image.height src in
                let out_width = Lazy.force Frame.video_width in
                let out_height = Lazy.force Frame.video_height in
-               if out_width = in_width && out_height = in_height && video_format = `RGB24 then
-                 Image.Generic.to_RGBA32 src
+               if out_width = in_width && out_height = in_height && video_format = `I420 then
+                 src
                else
-                 let dst = Img.create out_width out_height in
+                 failwith "TODO"
+                 (*
+                 let dst = Video.Image.create out_width out_height in
                  conv src (Image.Generic.of_RGBA32 dst);
                  dst
+                  *)
              in
              video_converter := Some converter
           | `Audio (channels, audio_src_rate) ->
@@ -246,10 +252,10 @@ let () =
       let buf = Bytes.create buflen in
       let on_data abg reader =
         let ret = reader buf 0 buflen in
-        let data = Img.of_RGB24_string (Bytes.sub_string buf 0 ret) width in
+        let data = Video.Image.of_I420_string (Bytes.sub_string buf 0 ret) width in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
-        Generator.put_video abg [|[|data|]|] 0 1
+        Generator.put_video abg [|Video.single data|] 0 1
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in

@@ -65,7 +65,7 @@ let video_convert =
         buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
         buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
     in
-    Video.Image.of_i420 img)
+    Video.Image.of_I420 img)
 
 (** Stupid nearest neighbour resampling.
   * For meaningful results, one should first partially apply the freq params,
