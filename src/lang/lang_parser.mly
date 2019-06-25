@@ -129,7 +129,7 @@
       | "int" -> Lang_types.make (Lang_types.Ground Lang_types.Int)
       | "float" -> Lang_types.make (Lang_types.Ground Lang_types.Float)
       | "string" -> Lang_types.make (Lang_types.Ground Lang_types.String)
-      | "source" | "active_source" ->
+      | "source" ->
           (* TODO less confusion in hiding the stream_kind constructed type *)
           (* TODO print position in error message *)
           let audio,video,midi =
@@ -151,8 +151,7 @@
                   in
                     assoc "audio", assoc "video", assoc "midi"
           in
-            Lang_values.source_t
-              ~active:(name <> "source")
+            Lang_values.source_t ~active:false
               (Lang_values.frame_kind_t audio video midi)
       | _ -> raise (Parse_error (pos, "Unknown type constructor."))
 
