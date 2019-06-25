@@ -22,6 +22,9 @@
 
 (** Generate a white noise *)
 
+module Image = FrameImage
+module Video = FrameVideo
+
 class noise ~kind duration =
   let ctype = Frame.type_of_kind kind in
   let () = assert (ctype.Frame.midi = 0) in
@@ -43,7 +46,7 @@ object
       let len = Frame.video_of_master len in
       let b = content.Frame.video in
       for c = 0 to Array.length b - 1 do
-        Video.randomize b.(c) off len
+        Video.iter Image.randomize b.(c) off len
       done
     end
 

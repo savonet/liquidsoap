@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+module Image = FrameImage
+module Video = FrameVideo
+
 class drop_video ~kind source =
 object
   inherit Source.operator kind [source] ~name:"drop_video"
@@ -83,20 +86,20 @@ object
       if Array.length src.Frame.audio > 0 then
         let new_type = { (Frame.type_of_content src) with Frame.audio = 0 } in
         let dst = Frame.content_of_type frame start new_type in
-          for i = 0 to Array.length src.Frame.video - 1 do
-            let (!) = Frame.video_of_master in
-              for j = 0 to !len-1 do
-                Image.RGBA32.blit
-                  src.Frame.video.(i).(!start+j)
-                  dst.Frame.video.(i).(!start+j)
-              done
-          done ;
-          for i = 0 to Array.length src.Frame.midi - 1 do
-            MIDI.blit
-              src.Frame.midi.(i) start
-              dst.Frame.midi.(i) start
-              len
+        for i = 0 to Array.length src.Frame.video - 1 do
+          let (!) = Frame.video_of_master in
+          for j = 0 to !len-1 do
+            Image.blit
+              (Video.get src.Frame.video.(i) (!start+j))
+              (Video.get dst.Frame.video.(i) (!start+j))
           done
+        done ;
+        for i = 0 to Array.length src.Frame.midi - 1 do
+          MIDI.blit
+            src.Frame.midi.(i) start
+            dst.Frame.midi.(i) start
+            len
+        done
 end
 
 let () =
@@ -139,9 +142,9 @@ object
           for i = 0 to Array.length src.Frame.video - 1 do
             let (!) = Frame.video_of_master in
               for j = 0 to !len-1 do
-                Image.RGBA32.blit
-                  src.Frame.video.(i).(!start+j)
-                  dst.Frame.video.(i).(!start+j)
+                Image.blit
+                  (Video.get src.Frame.video.(i) (!start+j))
+                  (Video.get dst.Frame.video.(i) (!start+j))
               done
           done
 end

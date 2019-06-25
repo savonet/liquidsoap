@@ -22,7 +22,8 @@
 
 open Source
 
-module Img = Image.RGBA32
+module Image = FrameImage
+module Video = FrameVideo
 
 class effect ~kind effect (source:source) =
 object
@@ -39,10 +40,8 @@ object
     match VFrame.get_content buf source with
       | None -> ()
       | Some (rgb,offset,length) ->
-          let rgb = rgb.(0) in
-            for i = offset to offset + length - 1 do
-              effect rgb.(i)
-            done
+         let rgb = rgb.(0) in
+         Video.iter effect rgb offset length
 end
 
 let kind =
@@ -57,7 +56,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Img.Effect.greyscale src)
+         new effect ~kind Image.Effect.greyscale src)
 
 let () =
   Lang.add_operator "video.sepia"
@@ -68,7 +67,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Img.Effect.sepia src)
+         new effect ~kind Image.Effect.sepia src)
 
 let () =
   Lang.add_operator "video.invert"
@@ -79,8 +78,9 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Img.Effect.invert src)
+         new effect ~kind Image.Effect.invert src)
 
+(*
 let () =
   Lang.add_operator "video.opacity"
     [
@@ -93,7 +93,7 @@ let () =
     (fun p kind ->
        let a = Lang.to_float (Lang.assoc "" 1 p) in
        let src = Lang.to_source (Lang.assoc "" 2 p) in
-         new effect ~kind (fun buf -> Img.Effect.Alpha.scale buf a) src)
+         new effect ~kind (fun buf -> Image.Effect.Alpha.scale buf a) src)
 
 let () =
   Lang.add_operator "video.opacity.blur"
@@ -105,7 +105,7 @@ let () =
     ~descr:"Blur opacity of video."
     (fun p kind ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
-         new effect ~kind Img.Effect.Alpha.blur src)
+         new effect ~kind Image.Effect.Alpha.blur src)
 
 let () =
   Lang.add_operator "video.lomo"
@@ -116,7 +116,7 @@ let () =
     (fun p kind ->
        let f v = List.assoc v p in
        let src = Lang.to_source (f "") in
-         new effect ~kind Img.Effect.lomo src)
+         new effect ~kind Image.Effect.lomo src)
 
 let () =
   Lang.add_operator "video.transparent"
@@ -142,7 +142,7 @@ let () =
        in
        let prec = int_of_float (prec *. 255.) in
        let color = Image.RGB8.Color.of_int color in
-         new effect ~kind (fun buf -> Img.Effect.Alpha.of_color buf color prec) src)
+         new effect ~kind (fun buf -> Image.Effect.Alpha.of_color buf color prec) src)
 
 let () =
   Lang.add_operator "video.fill"
@@ -162,7 +162,7 @@ let () =
          Lang.to_source (f "")
        in
        let r,g,b = Image.RGB8.Color.of_int color in
-         new effect ~kind (fun buf -> Img.fill_all buf (r, g, b, 0xff)) src)
+         new effect ~kind (fun buf -> Image.fill_all buf (r, g, b, 0xff)) src)
 
 let () =
   Lang.add_operator "video.scale"
@@ -189,7 +189,7 @@ let () =
          Lang.to_int (f "y")
        in
          new effect ~kind
-           (fun buf -> Img.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
+           (fun buf -> Image.Effect.affine buf (c*.cx) (c*.cy) ox oy) src)
 
 let () =
   Lang.add_operator "video.rotate"
@@ -225,6 +225,7 @@ let () =
           )
         else
           angle := !angle +. da ();
-        Img.Effect.rotate buf !angle
+        Image.Effect.rotate buf !angle
       in
       new effect ~kind effect src)
+ *)

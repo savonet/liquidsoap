@@ -223,7 +223,7 @@ type content_type = (int,int,int) fields
 
 type content = (audio_t array, video_t array, midi_t array) fields
 and audio_t = Audio.Mono.buffer
-and video_t = Video.buffer
+and video_t = FrameVideo.t
 and midi_t  = MIDI.buffer
 
 (** Compatibilities between content kinds, types and values.
@@ -352,7 +352,7 @@ let create_content content_type =
     video =
       Array.init content_type.video
         (fun _ ->
-           Video.make (video_of_master !!size) !!video_width !!video_height);
+           FrameVideo.make (video_of_master !!size) !!video_width !!video_height);
     midi =
       Array.init content_type.midi
         (fun _ -> MIDI.create (midi_of_master !!size))
@@ -550,7 +550,7 @@ let blit_content src src_pos dst dst_pos len =
     (fun v v' ->
        if v != v' then
          let (!) = video_of_master in
-         Video.blit v !src_pos v' !dst_pos !len) ;
+         FrameVideo.blit v !src_pos v' !dst_pos !len) ;
   Utils.array_iter2 src.midi dst.midi
     (fun m m' ->
        if m != m' then
@@ -630,5 +630,5 @@ let get_chunk ab from =
 
 let copy content =
   { audio = Array.map Audio.Mono.copy content.audio ;
-    video = Array.map Video.copy content.video ;
+    video = Array.map FrameVideo.copy content.video ;
     midi = Array.map MIDI.copy content.midi }

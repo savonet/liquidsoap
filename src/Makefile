@@ -184,7 +184,8 @@ tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
 	tools/pool.ml tools/sha1.ml tools/websocket.ml \
 	$(if $(W_INOTIFY),tools/file_watcher_inotify.ml)
 
-stream =stream/frame.ml stream/generator.ml \
+stream =stream/frameImage.ml stream/frameVideo.ml \
+	stream/frame.ml stream/generator.ml \
 	stream/aFrame.ml stream/vFrame.ml stream/mFrame.ml \
 	$(if $(W_GSTREAMER),tools/gstreamer_utils.ml)
 

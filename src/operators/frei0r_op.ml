@@ -23,7 +23,8 @@
 open Source
 open Extralib
 
-module Img = Image.RGBA32
+module Image = FrameImage
+module Video = FrameVideo
 
 type t = Float | Int | Bool
 
@@ -63,12 +64,15 @@ object
       params ();
       let rgb = rgb.(0) in
       for i = offset to offset + length - 1 do
-        let img = rgb.(i) in
+        let img = Video.get rgb i in
+        failwith "TODO: restore frei0r";
+        (*
         if bgra then Img.swap_rb img;
         let src = Img.data (Img.copy img) in
         let dst = Img.data img in
         Frei0r.update1 instance t src dst;
         if bgra then Img.swap_rb img;
+         *)
         t <- t +. dt
       done
 end
@@ -118,6 +122,8 @@ object
       let rgb = rgb.(0) in
       let rgb' = rgb'.(0) in
       for i = offset to offset + length - 1 do
+        failwith "TODO: restore frei0r";
+        (*
         let img = rgb.(i) in
         let img' = rgb'.(i) in
         if bgra then Img.swap_rb img;
@@ -128,6 +134,7 @@ object
         Frei0r.update2 instance t src src' dst;
         if bgra then Img.swap_rb img;
         t <- t +. dt
+         *)
       done
     | _ -> ()
 end
@@ -158,11 +165,14 @@ object
       let buf = VFrame.content_of_type frame ~channels:1 in
       let buf = buf.(0) in
       for i = start to stop - 1 do
+        failwith "TODO: restore frei0r";
+        (*
         let img = buf.(i) in
         let buf = Img.data img in
         Frei0r.update0 instance t buf;
         if bgra then Img.swap_rb img;
         t <- t +. dt
+         *)
       done;
       VFrame.add_break frame stop
     end

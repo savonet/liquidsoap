@@ -25,7 +25,7 @@
 open Gstreamer_format
 
 module GU = Gstreamer_utils
-module Img = Image.RGBA32
+module Image = FrameImage
 
 let log = Log.make ["encoder"; "gstreamer"]
 
@@ -189,6 +189,8 @@ let encoder ext =
       let vbuf = vbuf.(0) in
       let vstart = Frame.video_of_master start in
       let vlen = Frame.video_of_master len in
+      failwith "TODO: put video data";
+      (*
       for i = vstart to vstart+vlen-1 do
         let data = Img.data vbuf.(i) in
         let presentation_time =
@@ -197,6 +199,7 @@ let encoder ext =
         Gstreamer.App_src.push_buffer_data ~presentation_time ~duration:vduration
           (Utils.get_some gst.video_src) data 0 (Bigarray.Array1.dim data);
       done;
+       *)
      end;
     GU.flush ~log gst.bin;
     (* Return result. *)

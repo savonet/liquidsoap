@@ -27,7 +27,8 @@ open Extralib
 module Generator = Generator.From_audio_video_plus
 module Generated = Generated.From_audio_video_plus
 
-module Img = Image.RGBA32
+module Image = FrameImage
+module Video = FrameVideo
 
 exception Finished of string*bool
       
@@ -241,10 +242,10 @@ let () =
         | `Frame (`Video, _, data) ->
            if String.length data <> width * height * 3 then
              failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
-           let data = Img.of_RGB24_string data width in
+           let data = Image.of_RGB24_string data width in
            (* Img.swap_rb data; *)
            (* Img.Effect.flip data; *)
-           Generator.put_video abg [|[|data|]|] 0 1
+           Generator.put_video abg [|Video.single data|] 0 1
         | `Frame (`Audio, _, data) ->
            let converter = Utils.get_some !audio_converter in
            let data = converter data in
@@ -304,10 +305,10 @@ let () =
         if r > 0 then
           (
             if r <> buflen then failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)." r buflen);
-            let data = Img.of_RGB24_string (Bytes.unsafe_to_string buf) width in
+            let data = Image.of_RGB24_string (Bytes.unsafe_to_string buf) width in
             (* Img.swap_rb data; *)
             (* Img.Effect.flip data; *)
-            Generator.put_video abg [|[|data|]|] 0 1
+            Generator.put_video abg [|Video.single data|] 0 1
           )
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in

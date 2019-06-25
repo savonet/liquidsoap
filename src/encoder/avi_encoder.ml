@@ -24,7 +24,7 @@
 
 open Avi_format
 
-module Img = Image.RGBA32
+module Image = FrameImage
 
 let encode_frame ~channels ~samplerate ~converter frame start len =
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
@@ -61,8 +61,10 @@ let encode_frame ~channels ~samplerate ~converter frame start len =
     for i = vstart to vstart+vlen-1 do
       (* TODO: mplayer needs flipping, but not vlc or GStreamer... *)
       (* Img.Effect.flip vbuf.(i); *)
-      Img.swap_rb vbuf.(i);
-      data := !data ^ Img.to_RGB24_string vbuf.(i)
+      failwith "TODO: restore swap_rb below";
+      (* Img.swap_rb vbuf.(i); *)
+      failwith "TODO: use yuv below";
+      (* data := !data ^ Img.to_RGB24_string vbuf.(i) *)
     done;
     Avi.video_chunk !data
   in
