@@ -53,11 +53,11 @@ module String = struct
     List.rev (aux [] 0)
 end
 
-let read_retry read s buf off len =
+let read_retry read buf off len =
   let r = ref 0 in
   let loop = ref true in
   while !loop do
-    let n = read s buf (off + !r) (len - !r) in
+    let n = read buf (off + !r) (len - !r) in
     r := !r + n;
     loop := !r <> 0 && !r < len && n <> 0
   done;
@@ -66,7 +66,7 @@ let read_retry read s buf off len =
 module Unix = struct
   include Unix
 
-  let read_retry = read_retry read
+  let read_retry fd = read_retry (read fd)
 
   let rm_dir dir =
     let rec finddepth f roots =

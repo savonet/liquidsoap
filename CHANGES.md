@@ -71,6 +71,8 @@ Changed:
 - Use getters for weights of `rotate`. (#808)
 - Added `conservative`, `length` and `default_duration` params to
   `playlist.{reloadable,once,merge}` (#818)
+- Renamed `input.external` into `input.external.rawaudio`, added
+  `input.external.wav`.
 
 Fixed:
 

@@ -181,7 +181,7 @@ let video_chunk b =
 module Read = struct
   let read n f =
     let s = Bytes.create n in
-    let k = Unix.read_retry f s 0 n in
+    let k = read_retry f s 0 n in
     if k <> n then raise End_of_file;
     Bytes.unsafe_to_string s
 
@@ -256,8 +256,11 @@ module Read = struct
        let stream_type = read 4 f in
        must "Wrong strh length." (len = 56);
        let fourcc = dword f in
-       must "Wrong vids fourcc." (stream_type <> "vids" || fourcc = 0 ||
-           fourcc = 0x52474218 (* RGB24 *));
+       if not (stream_type <> "vids" || fourcc = 0 || fourcc = 0x52474218 (* RGB24 *) || fourcc = 0x30323449 (* I420 *)) then
+         (
+           let err = Printf.sprintf "Wrong %s fourcc: 0x%x." stream_type fourcc in
+           must err false
+         );
        must "Wrong auds fourcc." (stream_type <> "auds" || fourcc = 1);
        let flags = dword f in
        must "Wrong strh flags." (flags = 0);
@@ -288,7 +291,7 @@ module Read = struct
        let _ = word f in
        (* bottom *)
        let _ = word f in
-       `strh (stream_type, fps)
+       `strh (stream_type, fourcc, fps)
     | "strf" ->
        let s = read len f in
        `strf s
@@ -366,11 +369,17 @@ module Read = struct
         let dword = dword strf in
         begin
           match List.hd l with
-          | `strh (stream_type, fps) ->
+          | `strh (stream_type, fourcc, fps) ->
              if stream_type = "vids" then
                (
                  (* Printf.printf "video: %dx%d@%f\n%!" width height fps; *)
-                 streams := `Video (width, height, fps) :: !streams
+                 let fourcc =
+                   match fourcc with
+                   | 0 | 0x52474218 -> `RGB24
+                   | 0x30323449 -> `I420
+                   | _ -> assert false
+                 in
+                 streams := `Video (fourcc, width, height, fps) :: !streams
                )
              else if stream_type = "auds" then
                let codec = word 0 in
