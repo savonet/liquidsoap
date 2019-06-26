@@ -140,7 +140,7 @@ let () =
           | `Video (fmt,w,h,fps) ->
              (* if w <> width then failwith (Printf.sprintf "Wrong video width (%d instead of %d)." w width); *)
              (* if h <> height then failwith (Printf.sprintf "Wrong video height (%d instead of %d)." h height); *)
-             log#info "Format: %s." (match fmt with `RGB24 -> "RGB24" | `I420 -> "YUV420");
+             log#info "Format: %s." (match fmt with `RGB24 -> "RGB24" | `I420 -> "I420");
              video_format := Some fmt;
              width := Some w;
              height := Some h;

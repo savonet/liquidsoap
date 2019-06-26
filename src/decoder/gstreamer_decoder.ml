@@ -136,6 +136,7 @@ module Make (Generator : Generator.S_Asio) = struct
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
           let b = Gstreamer.App_sink.pull_buffer_data (Utils.get_some gst.video_sink) in
+          if Bigarray.Array1.dim b <> width*height*6/4 then failwith (Printf.sprintf "gstreamer: got %d instead of %d" (Bigarray.Array1.dim b) (width*height*6/4));
           let img = Image.I420.make width height b in
           let img = Video.Image.of_I420 img in
           let stream = Video.single img in
