@@ -73,7 +73,7 @@ let from_8 surface =
              let r,g,b =
                Sdlvideo.get_palette_color surface image.{i+j*pitch}
              in
-               Video.Image.set_pixel a i j (r,g,b,0xff)
+               Video.Image.set_pixel_rgba a i j (r,g,b,0xff)
            done
          done ;
          a)
@@ -90,7 +90,7 @@ let to_16 rgb surface =
          assert (fmt.Sdlvideo.amask = 0l && not fmt.Sdlvideo.palette) ;
          for i = 0 to width-1 do
            for j = 0 to height-1 do
-             let r,g,b,_ = Video.Image.get_pixel rgb i j in
+             let r,g,b,_ = Video.Image.get_pixel_rgba rgb i j in
              let color =
                ((r lsr fmt.Sdlvideo.rloss) lsl fmt.Sdlvideo.rshift) lor
                ((g lsr fmt.Sdlvideo.gloss) lsl fmt.Sdlvideo.gshift) lor
@@ -120,7 +120,7 @@ let from_24 surface =
                let c' = if fmt.Sdlvideo.rshift = 0 then c else 2-c in
                  col.(c) <- rgb.{c'+i*3+j*pitch}
              done ;
-             Video.Image.set_pixel a i j (col.(0),col.(1),col.(2),0xff)
+             Video.Image.set_pixel_rgba a i j (col.(0),col.(1),col.(2),0xff)
            done
          done ;
          a)
@@ -149,7 +149,7 @@ let from_24 surface =
 let to_32_bigarray rgb fmt width height pitch s =
   for i = 0 to width-1 do
     for j = 0 to height-1 do
-      let r,g,b,_ = Video.Image.get_pixel rgb i j in
+      let r,g,b,_ = Video.Image.get_pixel_rgba rgb i j in
       let color =
         Int32.of_int
           ((r lsl fmt.Sdlvideo.rshift) lor
@@ -214,7 +214,7 @@ let from_32 surface =
                  Int32.to_int
                    ((pixel && fmt.Sdlvideo.amask) >> fmt.Sdlvideo.ashift)
                in
-                 Video.Image.set_pixel f i j (r,g,b,a)
+                 Video.Image.set_pixel_rgba f i j (r,g,b,a)
              done
            done ;
            f)

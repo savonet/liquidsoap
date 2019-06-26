@@ -99,19 +99,18 @@ let create_decoder metadata img =
   let img =
     let img =
       if (width,height) = (img_w,img_h) then img else
-        (* Img.Scale.create img width height *)
         let img' = Video.Image.create width height in
-        failwith "TODO: restore the two lines below";
+        Video.Image.scale img img';
         (* let converter = Lazy.force converter in *)
         (* converter (Gen.of_RGBA32 img) (Gen.of_RGBA32 img'); *)
         img'
     in
     let img =
-      if (off_x,off_y) = (0,0) then img else
-        let img' = Video.Image.create (width+off_x) (height+off_y) in
-        Video.Image.blank img';
-        Video.Image.add img img' ~x:off_x ~y:off_y;
-        img'
+      let img' = Video.Image.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height) in
+      Video.Image.blank img';
+      Image.I420.fill_alpha img' 0;
+      Video.Image.add img img' ~x:off_x ~y:off_y;
+      img'
     in
     img
   in

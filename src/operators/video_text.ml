@@ -46,13 +46,13 @@ object (self)
   val mutable cur_text = text ()
 
   method private render_text text =
-    let w, h, get_pixel = render_text ~font:ttf ~size:ttf_size text in
+    let w, h, get_pixel_rgba = render_text ~font:ttf ~size:ttf_size text in
     let tf = Video.Image.create w h in
     let tr, tg, tb = Image.RGB8.Color.of_int color in
     for y = 0 to h - 1 do
       for x = 0 to w - 1 do
-        let a = get_pixel x y in
-        Video.Image.set_pixel tf x y (tr, tg, tb, a)
+        let a = get_pixel_rgba x y in
+        Video.Image.set_pixel_rgba tf x y (tr, tg, tb, a)
       done
     done;
     text_frame <- Some tf

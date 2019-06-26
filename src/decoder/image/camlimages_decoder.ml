@@ -52,7 +52,7 @@ let load_image filename =
   let img = Video.Image.create width height in
   for j = 0 to height - 1 do
     for i = 0 to width - 1 do
-      Video.Image.set_pixel img i j (p i j)
+      Video.Image.set_pixel_rgba img i j (p i j)
     done
   done;
   img
