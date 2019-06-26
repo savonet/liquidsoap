@@ -36,18 +36,46 @@ end
 
 # Input from ffmpeg.
 # @category Source / Video Processing
+# @param ~restart restart on exit.
+# @param ~restart_on_error restart on exit with error.
+# @param ~buffer Duration of the pre-buffered data.
+# @param ~max Maximum duration of the buffered data.
 # @param input ffmpeg options specifying the input
-def input.external.ffmpeg(~id="", ~show_command=false, input)
+def input.external.ffmpeg(~id="", ~show_command=false, 
+                          ~restart=true,~restart_on_error=false,
+                          ~buffer=0.2,~max=10.,input)
   input = (input : string)
-  cmd = "ffmpeg #{input} -f avi -vf format=rgb24 -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:#{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 -ar #{audio.samplerate()} pipe:1"
+  ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
+  cmd = "#{ffmpeg} #{input} -f avi -vf format=rgb24 \
+         -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:\
+               force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:\
+               #{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" \
+         -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 \
+         -ar #{audio.samplerate()} pipe:1"
+
   if show_command then log.important("command: #{cmd}") end
-  (input.external.avi(cmd):source(audio=2,video=1,midi=0))
+
+  (input.external.avi(id=id,restart=restart,
+                      restart_on_error=restart_on_error,
+                      buffer=buffer,max=max,cmd):source(audio=2,video=1,midi=0))
 end
 
 # ffmpeg's test source video (useful for testing and debugging).
+# @param ~restart restart on exit.
+# @param ~restart_on_error restart on exit with error.
+# @param ~buffer Duration of the pre-buffered data.
+# @param ~max Maximum duration of the buffered data.
 # @category Source / Video Processing
-def video.external.testsrc(~id="")
-  input.external.ffmpeg(id=id, "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}")
+def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,
+                          ~buffer=0.2,~max=10.)
+
+  cmd = "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:\
+                     rate=#{video.frame.rate()} \
+         -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}"
+
+  input.external.ffmpeg(id=id,restart=restart,
+                        restart_on_error=restart_on_error,
+                        buffer=buffer,max=max,cmd)
 end
 
 # Output to ffmpeg.
