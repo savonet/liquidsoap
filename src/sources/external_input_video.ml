@@ -201,7 +201,7 @@ let () =
              then
                failwith (Printf.sprintf "Wrong video frame size (%d instead of %d)" (String.length data) (width * height * 3));
              let data = (Option.get !video_converter) data in
-             Generator.put_video abg [|[|data|]|] 0 1
+             Generator.put_video abg [|Video.single data|] 0 1
           | `Frame (`Audio, _, data) ->
              let converter = Utils.get_some !audio_converter in
              let data = converter data in

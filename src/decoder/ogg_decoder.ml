@@ -225,9 +225,9 @@ let create_decoder ?(merge_tracks=false) source mode input =
                       float info.Ogg_demuxer.fps_denominator
         in
         let stream = 
-          video_resample ~in_freq ~out_freq [|rgb|] 0 1 
+          video_resample ~in_freq ~out_freq (Video.single rgb) 0 1
         in
-        Generator.put_video buffer [|stream|] 0 (Array.length stream) ;
+        Generator.put_video buffer [|stream|] 0 (Video.length stream) ;
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then

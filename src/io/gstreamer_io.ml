@@ -266,7 +266,7 @@ object (self)
         if has_video then
           (
             let buf = content.Frame.video.(0) in
-            for i = 0 to Array.length buf - 1 do
+            for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
               let data = Image.I420.data img in
               Gstreamer.App_src.push_buffer_data ~duration ~presentation_time (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)

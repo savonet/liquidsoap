@@ -93,7 +93,7 @@ object (self)
       let start = Frame.video_of_master offset in
       let stop = start + Frame.video_of_master len in
       for f = start to stop - 1 do
-        let buf = buf.(f) in
+        let buf = Video.get buf f in
         Video.Image.blank buf;
         for i = 0 to channels - 1 do
           let y = int_of_float (volheight *. float i) in
