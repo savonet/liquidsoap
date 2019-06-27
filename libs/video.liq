@@ -79,32 +79,79 @@ def video.external.testsrc(~id="",~restart=true,~restart_on_error=false,
 end
 
 # Output to ffmpeg.
-# @category Source / Video Processing
-# @param input ffmpeg options specifying the output
-def output.external.ffmpeg(~id="", ~show_command=false, output, s)
+# @category Output
+# @param ~id Force the value of the source ID.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~flush Perform a flush after each write.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
+# @param ~reopen_delay Prevent re-opening within that delay, in seconds.
+# @param ~reopen_on_metadata Re-open on every new metadata information.
+# @param ~reopen_when When should the output be re-opened.
+# @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+def output.external.ffmpeg(~id="", ~show_command=false, ~flush=false, ~fallible=false, 
+                           ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
+                           ~reopen_on_metadata=false, ~reopen_when={false},
+                           ~start=true, output, s)
   output = (output : string)
   cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{output}"
   if show_command then log.important(label="output.external.ffmpeg", "command: #{cmd}") end
-  output.external(id=id, %avi(), cmd, s)
+  output.external(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
+                  reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, %avi, cmd, s)
 end
 
-def output.file.hls.ffmpeg(~id="", ~playlist="stream.m3u8", dir, s)
+# Output a HLS playlist using ffmpeg
+# @category Output
+# @param ~id Force the value of the source ID.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~flush Perform a flush after each write.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
+# @param ~reopen_delay Prevent re-opening within that delay, in seconds.
+# @param ~reopen_on_metadata Re-open on every new metadata information.
+# @param ~reopen_when When should the output be re-opened.
+# @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+# @param ~playlist Playlist name
+# @param ~directory Directory to write to
+def output.file.hls.ffmpeg(~id="", ~flush=false, ~fallible=false,
+                           ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
+                           ~reopen_on_metadata=false, ~reopen_when={false},
+                           ~start=true, ~playlist="stream.m3u8", ~directory, s)
   width = video.frame.width()
   height = video.frame.height()
-  cmd = "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{dir}/#{playlist}"
-  output.external.ffmpeg(id=id, cmd, s)
+  directory = (directory : string)
+  cmd = "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{directory}/#{playlist}"
+  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
+                         reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
 
 # Stream to youtube.
-# @category Source / Video Processing
+# @category Output
 # @param ~id Force the value of the source ID.
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~flush Perform a flush after each write.
+# @param ~on_start Callback executed when outputting starts.
+# @param ~on_stop Callback executed when outputting stops.
+# @param ~reopen_delay Prevent re-opening within that delay, in seconds.
+# @param ~reopen_on_metadata Re-open on every new metadata information.
+# @param ~reopen_when When should the output be re-opened.
+# @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~url URL to stream to
 # @param ~bitrate Bitrate of the video (in kbps)
 # @param ~quality Quality of the video (low / medium / high)
 # @param ~key Your secret youtube key
-def output.youtube.live.ffmpeg(~id="",~url="rtmp://a.rtmp.youtube.com/live2",~bitrate="2500",~quality="medium",~key,s)
+def output.youtube.live.ffmpeg(~id="",~flush=false, ~fallible=false,
+                           ~on_start={()}, ~on_stop={()}, ~reopen_delay=120.,
+                           ~reopen_on_metadata=false, ~reopen_when={false},
+                           ~start=true, ~url="rtmp://a.rtmp.youtube.com/live2",
+                           ~bitrate="2500",~quality="medium",~key,s)
   # Output parameters
   fps = video.frame.rate()
   samplerate = audio.samplerate()
-  output.external.ffmpeg(id=id, "-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 712000 -bufsize 512k -f flv \"#{url}/#{key}\"", s)
+  key = (key : string)
+  cmd = "-deinterlace -vcodec libx264 -pix_fmt yuv420p -preset #{quality} -r #{fps} -g $((#{fps} * 2)) \
+          -b:v #{bitrate}k -acodec libmp3lame -ar #{samplerate} -threads 6 -qscale:v 3 -b:a 712000 \
+          -bufsize 512k -f flv \"#{url}/#{key}\""
+  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, reopen_delay=reopen_delay,
+                         reopen_on_metadata=reopen_on_metadata, reopen_when=reopen_when, start=start, cmd, s)
 end
