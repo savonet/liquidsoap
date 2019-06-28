@@ -54,7 +54,7 @@ decoders = \
 	$(if $(W_TAGLIB),decoder/taglib_plug.ml) \
 	$(if $(W_CAMLIMAGES),decoder/image/camlimages_decoder.ml) \
 	$(if $(W_SDL),decoder/image/sdlimage_decoder.ml) \
-	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml) \
+	$(if $(W_GSTREAMER),decoder/gstreamer_decoder.ml)
 
 playlists = \
 	playlists/playlist_basic.ml \

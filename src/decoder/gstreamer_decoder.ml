@@ -135,10 +135,17 @@ module Make (Generator : Generator.S_Asio) = struct
           let _, state, _ = Gstreamer.Element.get_state gst.bin in
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
-          let b = Gstreamer.App_sink.pull_buffer_data (Utils.get_some gst.video_sink) in
-          if Bigarray.Array1.dim b <> width*height*6/4 then failwith (Printf.sprintf "gstreamer: got %d instead of %d" (Bigarray.Array1.dim b) (width*height*6/4));
-          let img = Image.I420.make width height b in
-          let img = Video.Image.of_I420 img in
+          let buf = Gstreamer.App_sink.pull_buffer (Utils.get_some gst.video_sink) in
+          let vm = Gstreamer.Buffer.get_video_meta buf in
+          Printf.printf "%dx%d : %d\n%!" vm.video_meta_width vm.video_meta_height vm.video_meta_planes;
+          Printf.printf "%d, %d, %d\n%!" vm.video_meta_stride.(0) vm.video_meta_stride.(1) vm.video_meta_stride.(2);
+          Printf.printf "%d, %d, %d\n%!" vm.video_meta_offset.(0) vm.video_meta_offset.(1) vm.video_meta_offset.(2);
+          let buf = Gstreamer.Buffer.to_data buf in
+          (* GStreamer's lines are strided to multiples of 4. *)
+          let round4 n = ((n+3) lsr 2) lsl 2 in
+          let y_stride = round4 width in
+          let uv_stride = round4 (width/2) in
+          let img = Image.I420.make_stride width height buf y_stride uv_stride in
           let stream = Video.single img in
           Generator.put_video buffer [|stream|] 0 (Video.length stream)
         );

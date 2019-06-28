@@ -28,8 +28,8 @@ let load_image fname =
   let data = Bytes.create len in
   really_input ic data 0 len;
   close_in ic;
-  failwith "TODO"
-  (* Video.Image.of_PPM (Bytes.unsafe_to_string data) *)
+  let img = Image.I420.of_PPM (Bytes.unsafe_to_string data) in
+  img
 
 let () =
   Decoder.image_file_decoders#register "ppm"

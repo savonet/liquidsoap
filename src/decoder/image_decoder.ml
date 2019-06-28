@@ -98,18 +98,20 @@ let create_decoder metadata img =
   let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
   let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
+  let scale = Video_converter.scaler () in
   let img =
     let img =
       if (width,height) = (img_w,img_h) then img else
         let img' = Video.Image.create width height in
-        Video.Image.scale img img';
+        scale img img';
         (* let converter = Lazy.force converter in *)
         (* converter (Gen.of_RGBA32 img) (Gen.of_RGBA32 img'); *)
         img'
     in
     let img =
       let img' = Video.Image.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height) in
-      Video.Image.blank img';
+      (* The following can be uncommented to make valgrind happier *)
+      (* Video.Image.blank img'; *)
       Image.I420.fill_alpha img' 0;
       Video.Image.add img img' ~x:off_x ~y:off_y;
       img'

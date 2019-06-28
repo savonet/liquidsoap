@@ -118,7 +118,6 @@ let create_encoder ~theora ~metadata () =
     in
     for i = ofs to ofs+len-1 do
       let img = Video.get b i in
-      let img = Video.Image.to_I420 img in
       let y,u,v = Image.I420.data_split img in
       let theora_yuv = { theora_yuv with Theora.y = y; u; v } in
       Theora.Encoder.encode_buffer enc os theora_yuv 

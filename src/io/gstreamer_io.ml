@@ -596,7 +596,6 @@ object (self)
     while video.pending () > 0 && not self#is_generator_at_max do
       let b = video.pull () in
       let img = Image.I420.make width height b in
-      let img = Video.Image.of_I420 img in
       let stream = Video.single img in
       Generator.put_video gen [|stream|] 0 (Video.length stream)
     done

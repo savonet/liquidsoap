@@ -45,3 +45,4 @@ val video_converters : converter_plug Plug.plug
   * for now. Returns a conversion function: frame -> frame -> unit. *)
 val find_converter : Image.Generic.Pixel.format -> Image.Generic.Pixel.format -> (Image.Generic.t -> Image.Generic.t -> unit)
 
+val scaler : unit -> ?proportional:bool -> Video.Image.t -> Video.Image.t -> unit
