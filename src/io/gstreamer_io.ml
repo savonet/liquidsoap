@@ -268,7 +268,7 @@ object (self)
             let buf = content.Frame.video.(0) in
             for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
-              let data = Image.I420.data img in
+              let data = Image.YUV420.data img in
               Gstreamer.App_src.push_buffer_data ~duration ~presentation_time (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)
             done;
           );
@@ -595,7 +595,7 @@ object (self)
   method private fill_video video =
     while video.pending () > 0 && not self#is_generator_at_max do
       let b = video.pull () in
-      let img = Image.I420.make width height b in
+      let img = Image.YUV420.make width height b (Image.Data.round 4 width) (Image.Data.round 4 (width/2)) in
       let stream = Video.single img in
       Generator.put_video gen [|stream|] 0 (Video.length stream)
     done

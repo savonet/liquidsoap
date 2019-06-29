@@ -60,7 +60,7 @@ let video_convert scale =
     (* let converter = converter buf.Ogg_demuxer.format in *)
     if buf.Ogg_demuxer.format <> Ogg_demuxer.Yuvj_420 then failwith ("Only YUV420 format is supported for now....\n");
     let img =
-      Image.I420.make_stride_planes
+      Image.YUV420.make_planes
         buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height 
         buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
         buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v

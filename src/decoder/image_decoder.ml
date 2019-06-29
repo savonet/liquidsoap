@@ -112,7 +112,7 @@ let create_decoder metadata img =
       let img' = Video.Image.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height) in
       (* The following can be uncommented to make valgrind happier *)
       (* Video.Image.blank img'; *)
-      Image.I420.fill_alpha img' 0;
+      Image.YUV420.fill_alpha img' 0;
       Video.Image.add img img' ~x:off_x ~y:off_y;
       img'
     in
