@@ -338,6 +338,7 @@ struct
         with
           | e ->
              log#info "Decoding %S ended: %s." filename (Printexc.to_string e) ;
+             log#debug "%s" (Printexc.get_backtrace ()) ;
              decoding_done := true ;
              if conf_debug#get then raise e
         end ;

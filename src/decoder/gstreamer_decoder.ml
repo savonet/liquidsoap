@@ -136,10 +136,7 @@ module Make (Generator : Generator.S_Asio) = struct
           if state <> Gstreamer.Element.State_playing then
             failwith "Not in playing state!";
           let buf = Gstreamer.App_sink.pull_buffer (Utils.get_some gst.video_sink) in
-          let vm = Gstreamer.Buffer.get_video_meta buf in
-          Printf.printf "%dx%d : %d\n%!" vm.video_meta_width vm.video_meta_height vm.video_meta_planes;
-          Printf.printf "%d, %d, %d\n%!" vm.video_meta_stride.(0) vm.video_meta_stride.(1) vm.video_meta_stride.(2);
-          Printf.printf "%d, %d, %d\n%!" vm.video_meta_offset.(0) vm.video_meta_offset.(1) vm.video_meta_offset.(2);
+          (* let vm = Gstreamer.Buffer.get_video_meta buf in *)
           let buf = Gstreamer.Buffer.to_data buf in
           (* GStreamer's lines are strided to multiples of 4. *)
           let round4 n = ((n+3) lsr 2) lsl 2 in

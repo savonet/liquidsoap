@@ -20,17 +20,6 @@
 
  *****************************************************************************)
 
-module Gen = Image.Generic
-
-(*
-(** Converter used to resize images. *)
-let converter = lazy
-  ((fun () ->
-    Video_converter.find_converter
-      (Gen.Pixel.RGB Gen.Pixel.RGBA32)
-      (Gen.Pixel.RGB Gen.Pixel.RGBA32)) ())
- *)
-
 (** Function to retrieve width an height from parameters. *)
 (* TODO: put this in some library as it can be used in many other places... *)
 let wh iw ih w h =
@@ -104,8 +93,6 @@ let create_decoder metadata img =
       if (width,height) = (img_w,img_h) then img else
         let img' = Video.Image.create width height in
         scale img img';
-        (* let converter = Lazy.force converter in *)
-        (* converter (Gen.of_RGBA32 img) (Gen.of_RGBA32 img'); *)
         img'
     in
     let img =

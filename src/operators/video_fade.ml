@@ -162,28 +162,43 @@ let proto =
   ]
 
 let rec transition_of_string p transition =
+  let translate img x y =
+    let tmp = Video.Image.copy img in
+    Image.YUV420.fill_alpha img 0;
+    Video.Image.add tmp ~x ~y img
+  in
   let ifm n a = int_of_float ((float_of_int n) *. a) in
     match transition with
-      | "fade" -> fun () -> Video.Image.Effect.Alpha.scale
+      | "fade" ->
+          fun () img t ->
+          Video.Image.fill_alpha img (ifm 256 t)
       | "slide_left" ->
           fun () buf t ->
-            Video.Image.Effect.translate buf
-              (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
+            translate buf (ifm (Lazy.force Frame.video_width) (t-.1.)) 0
       | "slide_right" ->
           fun () buf t ->
-            Video.Image.Effect.translate buf
-              (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
+            translate buf (ifm (Lazy.force Frame.video_width) (1.-.t)) 0
       | "slide_up" ->
           fun () buf t ->
-            Video.Image.Effect.translate buf
-              0 (ifm (Lazy.force Frame.video_height) (1.-.t))
-          (*
+            translate buf 0 (ifm (Lazy.force Frame.video_height) (1.-.t))
       | "slide_down" ->
           fun () buf t ->
-            Image.Effect.translate buf
-              0 (ifm (Lazy.force Frame.video_height) (t-.1.))
-      | "grow" -> fun () buf t -> Image.Effect.affine buf t t 0 0
+            translate buf 0 (ifm (Lazy.force Frame.video_height) (t-.1.))
+      | "grow" ->
+         fun () img t ->
+         let w = Video.Image.width img in
+         let h = Video.Image.height img in
+         let w' = ifm w t in
+         let h' = ifm h t in
+         let tmp = Video.Image.create w' h' in
+         Video.Image.scale img tmp;
+         Video.Image.fill_alpha img 0;
+         let x = (w - w') / 2 in
+         let y = (h - h') / 2 in
+         Video.Image.add ~x ~y tmp img
       | "disc" ->
+         failwith "disc transition not implemented."
+               (*
           let w = Lazy.force Frame.video_width in
           let h = Lazy.force Frame.video_height in
           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
