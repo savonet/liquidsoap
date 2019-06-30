@@ -28,8 +28,7 @@ let load_image fname =
   let data = Bytes.create len in
   really_input ic data 0 len;
   close_in ic;
-  let img = Image.YUV420.of_PPM (Bytes.unsafe_to_string data) in
-  img
+  Image.YUV420.of_PPM (Bytes.unsafe_to_string data)
 
 let () =
   Decoder.image_file_decoders#register "ppm"

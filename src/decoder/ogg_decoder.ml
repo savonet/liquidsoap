@@ -22,8 +22,7 @@
 
 (** Decode and read ogg files. *)
 
-module Gen = Image.Generic
-module P = Gen.Pixel
+module P = Image.Generic.Pixel
 
 let log = Log.make ["decoder";"ogg"]
 
@@ -31,7 +30,6 @@ let log = Log.make ["decoder";"ogg"]
 
 exception Channels of int
 
-(*
 let converter () =
   let current_format = ref None in
   (fun format ->
@@ -47,27 +45,39 @@ let converter () =
         let converter =
           Video_converter.find_converter
              (P.YUV format)
-             (P.RGB P.RGBA32)
+             (P.YUV P.YUVJ420)
         in
         current_format := Some (format,converter) ;
         converter)
-*)
 
-(** Convert a video frame to RGB *)
+(** Convert a video frame to YUV *)
 let video_convert scale =
-  (* let converter = converter () in *)
+  let converter = converter () in
   (fun buf ->
-    (* let converter = converter buf.Ogg_demuxer.format in *)
-    if buf.Ogg_demuxer.format <> Ogg_demuxer.Yuvj_420 then failwith ("Only YUV420 format is supported for now....\n");
-    let img =
-      Image.YUV420.make_planes
-        buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height 
-        buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
-        buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
-    in
-    let img2 = Video.Image.create (Lazy.force Frame.video_width) (Lazy.force Frame.video_height) in
-    scale img img2;
-    img2)
+    let width = Lazy.force Frame.video_width in
+      let height = Lazy.force Frame.video_height in
+    if buf.Ogg_demuxer.format <> Ogg_demuxer.Yuvj_420 then
+      let img =
+        Image.YUV420.make_planes
+          buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height
+          buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
+          buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
+      in
+      let img2 = Video.Image.create width height in
+      scale img img2;
+      img2
+    else
+      let converter = converter buf.Ogg_demuxer.format in
+      let yuv = Video.Image.create width height in
+      let frame = Image.Generic.of_YUV420 yuv in
+      let sframe =
+        Image.YUV420.make_planes
+          buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height
+          buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
+          buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
+      in
+      converter (Image.Generic.of_YUV420 sframe) frame;
+      yuv)
 
 (** Stupid nearest neighbour resampling.
   * For meaningful results, one should first partially apply the freq params,
