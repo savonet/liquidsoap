@@ -58,10 +58,10 @@ let video_convert scale =
       let height = Lazy.force Frame.video_height in
     if buf.Ogg_demuxer.format <> Ogg_demuxer.Yuvj_420 then
       let img =
-        Image.YUV420.make_planes
+        Image.YUV420.make
           buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height
-          buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
-          buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
+          buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride
+          buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride
       in
       let img2 = Video.Image.create width height in
       scale img img2;
@@ -71,10 +71,10 @@ let video_convert scale =
       let yuv = Video.Image.create width height in
       let frame = Image.Generic.of_YUV420 yuv in
       let sframe =
-        Image.YUV420.make_planes
+        Image.YUV420.make
           buf.Ogg_demuxer.frame_width buf.Ogg_demuxer.frame_height
-          buf.Ogg_demuxer.y_stride buf.Ogg_demuxer.y
-          buf.Ogg_demuxer.uv_stride buf.Ogg_demuxer.u buf.Ogg_demuxer.v
+          buf.Ogg_demuxer.y buf.Ogg_demuxer.y_stride
+          buf.Ogg_demuxer.u buf.Ogg_demuxer.v buf.Ogg_demuxer.uv_stride
       in
       converter (Image.Generic.of_YUV420 sframe) frame;
       yuv)

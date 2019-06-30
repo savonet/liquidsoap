@@ -268,7 +268,12 @@ object (self)
             let buf = content.Frame.video.(0) in
             for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
-              let data = Image.YUV420.data img in
+              let y,u,v = Image.YUV420.data img in
+              (* TODO: directly copy into the gstreamer buffer instead of concatenating y/u/v first *)
+              let data = Image.Data.alloc (Image.Data.length y + Image.Data.length u + Image.Data.length v) in
+              Image.Data.blit y 0 data 0 (Image.Data.length y);
+              Image.Data.blit u 0 data (Image.Data.length y) (Image.Data.length u);
+              Image.Data.blit v 0 data (Image.Data.length y + Image.Data.length u) (Image.Data.length v);
               Gstreamer.App_src.push_buffer_data ~duration ~presentation_time (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)
             done;
           );
@@ -595,7 +600,7 @@ object (self)
   method private fill_video video =
     while video.pending () > 0 && not self#is_generator_at_max do
       let b = video.pull () in
-      let img = Image.YUV420.make width height b (Image.Data.round 4 width) (Image.Data.round 4 (width/2)) in
+      let img = Image.YUV420.make_data width height b (Image.Data.round 4 width) (Image.Data.round 4 (width/2)) in
       let stream = Video.single img in
       Generator.put_video gen [|stream|] 0 (Video.length stream)
     done
