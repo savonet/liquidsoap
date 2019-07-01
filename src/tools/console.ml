@@ -35,8 +35,7 @@ let conf_colorize =
 let dumb_term = lazy (
   try
     Sys.getenv "TERM" = "dumb"
-  with Not_found ->
-    not Sys.win32
+  with Not_found -> Sys.win32
 )
 
 let color =
@@ -48,7 +47,7 @@ let color =
     | "never" -> false
     | "auto" -> Lazy.force auto
     | _ ->
-        log#important "Invalid color configuration, usin default \"auto\"";
+        log#important "Invalid color configuration, using default \"auto\"";
         Lazy.force auto
 
 type text_style =
