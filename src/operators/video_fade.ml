@@ -197,13 +197,10 @@ let rec transition_of_string p transition =
          let y = (h - h') / 2 in
          Video.Image.add ~x ~y tmp img
       | "disc" ->
-         failwith "disc transition not implemented."
-               (*
           let w = Lazy.force Frame.video_width in
           let h = Lazy.force Frame.video_height in
           let r_max = int_of_float (sqrt (float_of_int (w * w + h * h))) / 2 in
-            fun () buf t -> Image.Effect.Alpha.disk buf (w/2) (h/2) (ifm r_max t)
-           *)
+          fun () buf t -> Image.YUV420.disk_alpha buf (w/2) (h/2) (ifm r_max t)
       | "random" ->
           let trans =
             [|"slide_left"; "slide_right"; "slide_up"; "slide_down";
