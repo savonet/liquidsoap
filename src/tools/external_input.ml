@@ -60,7 +60,7 @@ object (self)
         | _ -> restart_on_error
     in
     let log = self#log#important "%s" in
-    process <- Some (Process_handler.run ~priority:Tutils.Maybe_blocking ~on_stop 
+    process <- Some (Process_handler.run ~priority:Tutils.Blocking ~on_stop 
                                          ~on_stdout ~on_stderr ~log command)
 
   method sleep =
