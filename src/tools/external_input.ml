@@ -42,10 +42,10 @@ object (self)
     let on_stdout reader =
       if not header_read then
         begin
-          read_header reader;
+          let ret = read_header reader in
           self#log#info "Header read!";
           header_read <- true;
-          `Continue
+          ret
         end
       else on_data reader
     in

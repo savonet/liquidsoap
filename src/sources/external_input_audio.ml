@@ -135,7 +135,8 @@ let () =
             Wav_aiff.close header;
             converter_ref :=
               Rutils.create_from_iff ~format:`Wav ~channels ~samplesize
-                                     ~audio_src_rate
+                                     ~audio_src_rate;
+            `Reschedule Tutils.Non_blocking
          in
          let restart = Lang.to_bool (List.assoc "restart" p) in
          let restart_on_error =

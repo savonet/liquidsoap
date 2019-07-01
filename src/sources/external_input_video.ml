@@ -183,7 +183,8 @@ let () =
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
              audio_converter := Some (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16 ~audio_src_rate)
         in
-        List.iter check h
+        List.iter check h;
+        `Continue
       in
       let on_data abg reader =
         match Avi.Read.chunk reader with

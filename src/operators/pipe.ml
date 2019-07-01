@@ -85,7 +85,7 @@ class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (
           Rutils.create_from_iff ~format:`Wav ~channels
             ~samplesize:!samplesize
             ~audio_src_rate:(float (Wav_aiff.sample_rate wav))) ();
-        `Continue
+        `Reschedule Tutils.Non_blocking
      end
     else
       let data = Process_handler.read 1024 pull in
