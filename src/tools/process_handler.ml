@@ -133,7 +133,7 @@ let puller in_pipe fd buf ofs len =
   let ret = 
     try
       Unix.read fd buf ofs len
-    with _ when Sys.os_type = "Win32" ->  0
+    with _ when Sys.win32 ->  0
   in
   if len > 0 && ret = 0 then ignore(Unix.write in_pipe done_c 0 1);
   ret

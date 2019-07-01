@@ -450,7 +450,7 @@ let home_unrelate =
     unrel
 
 let get_tempdir () =
-  if Sys.os_type = "Win32" then
+  if Sys.win32 then
     getenv ~default:"C:\\temp" "TEMP"
   else
     getenv ~default:"/tmp" "TMPDIR"

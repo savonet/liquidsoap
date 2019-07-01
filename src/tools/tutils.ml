@@ -83,7 +83,7 @@ let finalize ~k f =
   try let x = f () in k () ; x with e -> k () ; raise e
 
 let seems_locked =
-  if Sys.os_type = "Win32" then (fun _ -> true) else
+  if Sys.win32 then (fun _ -> true) else
     fun m ->
       if Mutex.try_lock m then begin
         Mutex.unlock m ;
