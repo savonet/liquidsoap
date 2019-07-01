@@ -92,13 +92,16 @@ object (self)
       let buf = dst.Frame.video.(0) in
       let start = Frame.video_of_master offset in
       let stop = start + Frame.video_of_master len in
+      let line img c p q =
+        let f i j = if 0 <= i && i < Image.YUV420.width img && 0 <= j && j < Image.YUV420.height img then Image.YUV420.set_pixel_rgba img i j c in
+        Image.Draw.line f p q
+      in
       for f = start to stop - 1 do
         let buf = Video.get buf f in
         Video.Image.blank buf;
         for i = 0 to channels - 1 do
           let y = int_of_float (volheight *. float i) in
-          failwith "TODO: restore line drawing";
-          (* Img.Draw.line buf (90,90,90,0xff) (0,y) (width-1,y); *)
+          line buf (90,90,90,0xff) (0,y) (width-1,y);
           for chan = 0 to channels-1 do
             let vol = vol.(chan) in
             let chan_height = int_of_float (volheight *. float chan) in
@@ -110,8 +113,7 @@ object (self)
                 int_of_float (volwidth *. float i),
                 height - (chan_height + int_of_float (volheight *. vol.((i+pos) mod backpoints))) - 1
               in
-              failwith "TODO: restore line drawing";
-              (* Img.Draw.line buf (0,0xff,0,0xff) !pt0 pt1; *)
+              line buf (0,0xff,0,0xff) !pt0 pt1;
               pt0 := pt1
             done
           done
