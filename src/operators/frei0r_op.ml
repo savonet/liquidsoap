@@ -61,15 +61,16 @@ object
       params ();
       let rgb = rgb.(0) in
       for i = offset to offset + length - 1 do
+        (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
         let img = Video.get rgb i in
-        failwith "TODO: restore frei0r";
-        (*
-        if bgra then Img.swap_rb img;
-        let src = Img.data (Img.copy img) in
-        let dst = Img.data img in
+        let img = Image.YUV420.to_RGBA32 img in
+        if bgra then Image.RGBA32.swap_rb img;
+        let src = Image.RGBA32.data (Image.RGBA32.copy img) in
+        let dst = Image.RGBA32.data img in
         Frei0r.update1 instance t src dst;
-        if bgra then Img.swap_rb img;
-         *)
+        if bgra then Image.RGBA32.swap_rb img;
+        let img = Image.YUV420.of_RGBA32 img in
+        Video.set rgb i img;
         t <- t +. dt
       done
 end
