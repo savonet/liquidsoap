@@ -94,22 +94,6 @@ let create_encoder ~theora ~metadata () =
     Ogg_muxer.flush_pages os
   in
   let yuv = Image.YUV420.create width height in
-  let theora_yuv =
-  {
-    Theora.y_width = width ;
-    Theora.y_height = height ;
-    Theora.y_stride = width;
-    Theora.u_width = width / 2;
-    Theora.u_height = height / 2;
-    Theora.u_stride = width / 2;
-    Theora.v_width = width / 2;
-    Theora.v_height = height / 2;
-    Theora.v_stride = width / 2;
-    Theora.y = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.C_layout 0;
-    Theora.u = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.C_layout 0;
-    Theora.v = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.C_layout 0;
-  }
-  in
   let data_encoder data os _ = 
     if not !started then
       started := true;
@@ -118,8 +102,22 @@ let create_encoder ~theora ~metadata () =
     in
     for i = ofs to ofs+len-1 do
       let img = Video.get b i in
-      let y,u,v = Image.YUV420.data img in
-      let theora_yuv = { theora_yuv with Theora.y = y; u; v } in
+      let theora_yuv =
+        {
+          Theora.y_width = width ;
+          Theora.y_height = height ;
+          Theora.y_stride = Image.YUV420.y_stride img;
+          Theora.u_width = width / 2;
+          Theora.u_height = height / 2;
+          Theora.u_stride = Image.YUV420.uv_stride img;
+          Theora.v_width = width / 2;
+          Theora.v_height = height / 2;
+          Theora.v_stride = Image.YUV420.uv_stride img;
+          Theora.y = Image.YUV420.y img;
+          Theora.u = Image.YUV420.u img;
+          Theora.v = Image.YUV420.v img;
+        }
+      in
       Theora.Encoder.encode_buffer enc os theora_yuv 
     done
   in
@@ -139,10 +137,26 @@ let create_encoder ~theora ~metadata () =
   let end_of_stream os =
     (* Encode at least some data.. *)
     if not !started then
-     begin
-      Image.YUV420.blank_all yuv;
-      Theora.Encoder.encode_buffer enc os theora_yuv
-     end;
+      begin
+        let theora_yuv =
+          {
+            Theora.y_width = width ;
+            Theora.y_height = height ;
+            Theora.y_stride = width;
+            Theora.u_width = width / 2;
+            Theora.u_height = height / 2;
+            Theora.u_stride = width / 2;
+            Theora.v_width = width / 2;
+            Theora.v_height = height / 2;
+            Theora.v_stride = width / 2;
+            Theora.y = Image.Data.alloc width;
+            Theora.u = Image.Data.alloc (width/2);
+            Theora.v = Image.Data.alloc (width/2);
+          }
+        in
+        Image.YUV420.blank_all yuv;
+        Theora.Encoder.encode_buffer enc os theora_yuv
+      end;
     Theora.Encoder.eos enc os
   in
   {

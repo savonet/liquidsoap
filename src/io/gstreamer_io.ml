@@ -269,12 +269,10 @@ object (self)
             for i = 0 to Video.length buf - 1 do
               let img = Video.get buf i in
               let y,u,v = Image.YUV420.data img in
-              (* TODO: directly copy into the gstreamer buffer instead of concatenating y/u/v first *)
-              let data = Image.Data.alloc (Image.Data.length y + Image.Data.length u + Image.Data.length v) in
-              Image.Data.blit y 0 data 0 (Image.Data.length y);
-              Image.Data.blit u 0 data (Image.Data.length y) (Image.Data.length u);
-              Image.Data.blit v 0 data (Image.Data.length y + Image.Data.length u) (Image.Data.length v);
-              Gstreamer.App_src.push_buffer_data ~duration ~presentation_time (Utils.get_some el.video) data 0 (Bigarray.Array1.dim data)
+              let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
+              Gstreamer.Buffer.set_duration buf duration;
+              Gstreamer.Buffer.set_presentation_time buf presentation_time;
+              Gstreamer.App_src.push_buffer (Utils.get_some el.video) buf
             done;
           );
         presentation_time <- Int64.add presentation_time duration;

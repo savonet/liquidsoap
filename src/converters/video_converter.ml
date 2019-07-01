@@ -99,7 +99,6 @@ let find_converter src dst =
     | Exit x -> x ~proportional:proportional_scale_conf#get
 
 let scaler () ?(proportional=true) =
-  (* TODO: use better implementations... *)
   (* Video.Image.scale ~proportional *)
   ignore proportional;
   fun src dst ->
