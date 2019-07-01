@@ -28,6 +28,7 @@ object (self)
   method is_ready = s#is_ready
   method abort_track = s#abort_track
   method remaining = s#remaining
+  method seek = s#seek
 
   val metadata_q = Queue.create ()
 

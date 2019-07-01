@@ -122,6 +122,8 @@ object (self)
 
   method is_ready = source#is_ready
 
+  method seek = source#seek
+
   method abort_track = source#abort_track
 
   method private get_frame buf =
