@@ -39,7 +39,7 @@ end
 # @param input ffmpeg options specifying the input
 def input.external.ffmpeg(~id="", ~show_command=false, input)
   input = (input : string)
-  cmd = "ffmpeg #{input} -f avi -vf format=rgb24 -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:#{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" -c:v rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 -ar #{audio.samplerate()} pipe:1"
+  cmd = "ffmpeg #{input} -f avi -vf \"scale=#{video.frame.width()}:#{video.frame.height()}:force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:#{video.frame.height()}:(ow-iw)/2:(oh-ih)/2\" -c:v rawvideo -vf format=yuv420p -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 -ar #{audio.samplerate()} pipe:1"
   if show_command then log.important("command: #{cmd}") end
   (input.external.avi(cmd):source(audio=2,video=1,midi=0))
 end
@@ -47,7 +47,7 @@ end
 # ffmpeg's test source video (useful for testing and debugging).
 # @category Source / Video Processing
 def video.external.testsrc(~id="")
-  input.external.ffmpeg(id=id, "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}")
+  input.external.ffmpeg(id=id, show_command=true, "-f lavfi -i testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{video.frame.rate()} -f lavfi -i sine=frequency=440:sample_rate=#{audio.samplerate()}")
 end
 
 # Output to ffmpeg.

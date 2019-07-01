@@ -189,7 +189,11 @@ let encoder ext =
       let vstart = Frame.video_of_master start in
       let vlen = Frame.video_of_master len in
       for i = vstart to vstart+vlen-1 do
-        let y,u,v = Image.YUV420.data vbuf.(i) in
+        let img = Video.get vbuf i in
+        (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
+        assert (Image.YUV420.y_stride img mod 4 = 0);
+        assert (Image.YUV420.uv_stride img mod 4 = 0);
+        let y,u,v = Image.YUV420.data img in
         let presentation_time = Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration) in
         let buf = Gstreamer.Buffer.of_data_list (List.map (fun d -> d,0,Image.Data.length d) [y;u;v]) in
         Gstreamer.Buffer.set_presentation_time buf presentation_time;

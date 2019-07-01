@@ -79,7 +79,7 @@ let header ~channels ~samplerate () =
         "strh"
         (
           "vids" (* stream type *)
-          ^ dword 0 (* stream codec *)
+          ^ dword 0x30323449 (* fourcc (codec) *)
           ^ dword 0 (* flags *)
           ^ word 0 (* priority *)
           ^ word 0 (* language *)
@@ -106,9 +106,9 @@ let header ~channels ~samplerate () =
           ^ dword width (* width *)
           ^ dword height (* height *)
           ^ word 1 (* panes *)
-          ^ word 24 (* depth *)
-          ^ dword 0 (* RGB uncompressed format *)
-          ^ dword 0 (* image size *)
+          ^ word 12 (* depth *)
+          ^ dword 0x30323449 (* codec: I420 *)
+          ^ dword (width*height*6/4) (* image size *)
           ^ dword 0 (* pixels / x meter *)
           ^ dword 0 (* pixels / y meter *)
           ^ dword 0 (* colors used *)

@@ -263,6 +263,7 @@ let () =
        let renorm = Lang.to_bool (List.assoc "normalize" p) in
        let proportional = Lang.to_bool (List.assoc "proportional" p) in
        let tp = tile_pos (List.length sources) in
+       let scale = Video_converter.scaler () in
        let video_loop n buf tmp =
          let x, y, w, h = tp.(n) in
          let x, y, w, h =
@@ -277,8 +278,9 @@ let () =
            else
              x, y, w, h
          in
-         failwith "TODO: add scaling"
-         (* Video.Image.blit tmp buf ~x ~y ~w ~h *)
+         let tmp' = Video.Image.create w h in
+         scale tmp tmp';
+         Video.Image.add tmp' ~x ~y buf
        in
        let video_init buf = video_loop 0 buf buf in
          if List.length weights <> List.length sources then

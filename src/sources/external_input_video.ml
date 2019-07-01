@@ -128,6 +128,7 @@ let () =
       let height = ref None in
       let audio_converter = ref None in
       let video_converter = ref None in
+      let video_scaler = Video_converter.scaler () in
       let read_header read =
         (* Reset the state. *)
         video_format := None;
@@ -161,11 +162,10 @@ let () =
                let of_string s =
                  match video_format with
                  | `RGB24 ->
-                    failwith "TODO";
-                    (* Image.Generic.of_RGBA32 (Img.of_RGB24_string s w) *)
+                    Image.YUV420.of_RGB24_string s w
                  | `I420 ->
                     (* TODO: can there be stride in avi videos? *)
-                    let h = String.length s / w in
+                    let h = (String.length s * 4 / 6) / w in
                     Video.Image.of_YUV420_string s w h
                in
                let src = of_string data in
@@ -176,12 +176,9 @@ let () =
                if out_width = in_width && out_height = in_height && video_format = `I420 then
                  src
                else
-                 failwith "TODO"
-                 (*
                  let dst = Video.Image.create out_width out_height in
-                 conv src (Image.Generic.of_RGBA32 dst);
+                 video_scaler src dst;
                  dst
-                  *)
              in
              video_converter := Some converter
           | `Audio (channels, audio_src_rate) ->
