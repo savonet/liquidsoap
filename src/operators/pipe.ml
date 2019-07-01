@@ -268,7 +268,7 @@ let pipe p kind =
   let f v = List.assoc v p in
   let process, data_len, bufferize, max, restart, restart_on_error, src =
     Lang.to_string (f "process"),
-    Lang.to_int (f "data_len"),
+    Lang.to_int (f "data_length"),
     Lang.to_float (f "buffer"),
     Lang.to_float (f "max"),
     Lang.to_bool (f "restart"),
