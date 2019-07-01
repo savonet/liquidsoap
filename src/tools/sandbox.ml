@@ -51,7 +51,11 @@ let conf_network =
   "Enable network"
 
 let is_docker = lazy (
-  Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0
+  match Sys.os_type with
+    | "Win32" ->
+       false
+    | _ ->
+        Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0
 )
 
 let () =
