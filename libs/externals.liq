@@ -97,7 +97,7 @@ def enable_external_mpc_decoder() =
 
   if which(mpcdec) != "" then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
-    mpcdec_p = fun(f) -> "#{mpcdec} #{quote(f)} - 2>/dev/null"
+    mpcdec_p = fun(f) -> "#{mpcdec} #{quote(f)} -"
     add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
                 musepack decoder binary",test=test_mpc,mpcdec_p)
   else
@@ -126,13 +126,12 @@ def enable_external_flac_decoder() =
 
   if which(flac) != "" then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
-    flac_p = "#{flac} -d -c - 2>/dev/null"
+    flac_p = "#{flac} -d -c -"
     def test_flac(file) =
       if which(metaflac) != "" then
         channels = list.hd(default="",
                            get_process_lines("#{metaflac} \
-                                              --show-channels #{quote(file)} \
-                                              2>/dev/null"))
+                                              --show-channels #{quote(file)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
@@ -157,7 +156,7 @@ def enable_external_flac_decoder() =
                 resolver.")
     def flac_meta(file)
       ret = get_process_lines("#{metaflac} --export-tags-to=- \
-                   #{quote(file)} 2>/dev/null")
+                   #{quote(file)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
       def f(l',l)=
@@ -225,7 +224,7 @@ def enable_external_faad_decoder() =
   if which(faad) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FAAD decoder and \
                  metadata resolver.")
-    faad_p = (fun (f) -> "#{faad} -w #{quote(f)} 2>/dev/null")
+    faad_p = (fun (f) -> "#{faad} -w #{quote(f)}")
     def test_faad(file) =
       if faad_test(file) then
         channels = list.hd(default="",

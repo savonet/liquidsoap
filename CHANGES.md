@@ -32,6 +32,7 @@ New:
 - Added `input.external.ffmpeg` and `output.external.ffmpeg`.
 - Added `output.youtube.live.ffmpeg`.
 - Added `output.file.hls.ffmpeg`.
+- Enabled external decoders in windows (#742)
 
 Changed:
 
