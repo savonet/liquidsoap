@@ -40,7 +40,7 @@ type chunk = {
   mutable len: int
 }
 
-class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:source) =
+class pipe ~kind ~data_len ~process ~bufferize ~max ~restart ~restart_on_error (source:source) =
   (* We need a temporary log until the source has an id *)
   let log_ref = ref (fun _ -> ()) in
   let log = (fun x -> !log_ref x) in
@@ -54,10 +54,15 @@ class pipe ~kind ~process ~bufferize ~max ~restart ~restart_on_error (source:sou
     (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:!samplesize
                             ~audio_src_rate)
   in
+  let len =
+    match data_len with
+      | x when x < 0 -> None
+      | l -> Some l
+  in
   let header = 
     Bytes.unsafe_of_string
       (Wav_aiff.wav_header ~channels ~sample_rate
-                           ~sample_size:16 ())
+                           ?len ~sample_size:16 ())
   in
   let on_start push =
     Process_handler.write header push;
@@ -235,6 +240,15 @@ let proto =
     "process", Lang.string_t, None,
     Some "Process used to pipe data to.";
 
+    "data_length", Lang.int_t, Some (Lang.int (-1)),
+    Some "Length passed in the WAV data chunk. \
+          Data is streamed so no the consuming program \
+          should process it as it comes. Some program \
+          operate better when this value is set to `0`, \
+          some other when it is set to the maximum length \
+          allowed by the WAV specs. Use any negative value \
+          to set to maximum length.";
+
     "buffer", Lang.float_t, Some (Lang.float 1.),
     Some "Duration of the pre-buffered data." ;
 
@@ -252,15 +266,16 @@ let proto =
 
 let pipe p kind =
   let f v = List.assoc v p in
-  let process, bufferize, max, restart, restart_on_error, src =
+  let process, data_len, bufferize, max, restart, restart_on_error, src =
     Lang.to_string (f "process"),
+    Lang.to_int (f "data_len"),
     Lang.to_float (f "buffer"),
     Lang.to_float (f "max"),
     Lang.to_bool (f "restart"),
     Lang.to_bool (f "restart_on_error"),
     Lang.to_source (f "")
   in
-  ((new pipe ~kind ~bufferize ~max ~restart ~restart_on_error ~process src):>source)
+  ((new pipe ~kind ~data_len ~bufferize ~max ~restart ~restart_on_error ~process src):>source)
 
 let () =
   Lang.add_operator "pipe" proto
