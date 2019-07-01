@@ -22,7 +22,6 @@ register(
   "decoder.mime_types.ffmpeg",
   [])
 
-%ifdef add_decoder
 # Enable ffmpeg decoder.
 # @category Liquidsoap
 def enable_external_ffmpeg_decoder() =
@@ -179,9 +178,7 @@ def enable_external_flac_decoder() =
     log(label="decoder.external","Did not find metaflac binary. Please adjust using the \"decoder.external.metaflac.path\" setting.")
   end
 end
-%endif
 
-%ifdef add_oblivious_decoder
 register(
   name="faad path",
   descr="Path to faad binary",
@@ -273,7 +270,6 @@ def enable_external_faad_decoder() =
     log(label="external.decoder","Did not find faad binary. Please adjust using the \"decoder.external.faad.path\" setting.")
   end
 end
-%endif
 
 # Standard function for displaying metadata.
 # Shows artist and title, using "Unknown" when a field is empty.
