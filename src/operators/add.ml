@@ -65,6 +65,11 @@ object (self)
 
   method is_ready = List.exists (fun (_,s) -> s#is_ready) sources
 
+  method seek n =
+    match sources with
+      | (_,s) :: [] -> s#seek n
+      | _ -> 0
+
   (* We fill the buffer as much as possible, removing internal breaks.
    * Every ready source is asked for as much data as possible, by asking
    * it to fill the intermediate [tmp] buffer. Then that data is added
