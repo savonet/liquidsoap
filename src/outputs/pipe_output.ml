@@ -90,6 +90,11 @@ object (self)
       ~output_kind:"output.file" ~name
       ~content_kind:kind source
 
+  initializer
+    self#register_command "reopen"
+      ~descr:"Re-open the output."
+      (fun _ -> self#reopen; "Done.")
+
   val mutable encoder = None
   val mutable open_date = 0.
   val mutable current_metadata = None
@@ -136,7 +141,16 @@ object (self)
 
   method encode frame ofs len =
     let enc = Utils.get_some encoder in
-      enc.Encoder.encode frame ofs len
+    enc.Encoder.encode frame ofs len
+
+  method reopen : unit =
+    self#log#important "Re-opening output pipe.";
+    (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
+    reopening <- true ;
+    self#output_stop ;
+    self#output_start ;
+    reopening <- false ;
+    need_reset <- false
 
   method send b =
     if not self#is_open then
@@ -145,17 +159,8 @@ object (self)
     if not reopening then
       if need_reset || 
          (Unix.gettimeofday () > reload_delay +. open_date &&
-          (Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []))) then
-          begin
-            self#log#important "Re-opening output pipe..." ;
-            (* #output_stop can trigger #send,
-             * the [reopening] flag avoids loops *)
-            reopening <- true ;
-            self#output_stop ;
-            self#output_start ;
-            reopening <- false ;
-            need_reset <- false ;
-          end
+            (Lang.to_bool (Lang.apply ~t:Lang.bool_t reload_predicate []))) then
+        self#reopen
 
   method insert_metadata m =
     if reload_on_metadata then
