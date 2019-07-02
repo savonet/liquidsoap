@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "dev"
+name: "liquidsoap"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
@@ -21,7 +21,7 @@ depends: [
   "dtools" {>= "0.4.1"}
   "duppy" {>= "0.8.0"}
   "menhir"
-  "mm" {>= "0.4.0"}
+  "mm" {>= "0.4.1"}
   "ocamlfind" {build}
   "pcre"
   "sedlex" {>= "2.0"}
