@@ -32,6 +32,7 @@ New:
 - Added `input.external.ffmpeg` and `output.external.ffmpeg`.
 - Added `output.youtube.live.ffmpeg`.
 - Added `output.file.hls.ffmpeg`.
+- Added `reopen` telnet command in `output.external`.
 - Enabled external decoders in windows (#742)
 - Added support for bash completion.
 
