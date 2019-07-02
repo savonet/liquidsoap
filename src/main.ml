@@ -431,6 +431,13 @@ let options = [
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
 
+    ["--list-functions"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_functions (Plug.plugs:Doc.item)),
+    Printf.sprintf "List all functions." ;
+
     ["--list-functions-md"],
     Arg.Unit (fun () ->
                 secondary_task := true ;

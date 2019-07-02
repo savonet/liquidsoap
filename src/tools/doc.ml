@@ -89,6 +89,17 @@ let rec to_json doc =
 let print_json item =
   Printf.printf "%s\n" (JSON.to_string (to_json item))
 
+let print_functions doc =
+  let doc = to_json doc in
+  let to_assoc = function `Assoc l -> l | _ -> assert false in
+  let doc = List.assoc "scripting values" (to_assoc doc) in
+  let doc = List.tl (to_assoc doc) in
+  let functions = ref [] in
+  let add (f,_) = functions := f :: !functions in
+  List.iter add doc;
+  let functions = List.sort compare !functions in
+  List.iter print_endline functions
+
 let print_functions_md doc =
   let doc = to_json doc in
   let to_assoc = function `Assoc l -> l | _ -> assert false in
