@@ -86,8 +86,8 @@ endif
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
 	$(INSTALL_DATA) scripts/liquidsoap.logrotate \
 	  ${sysconfdir}/logrotate.d/liquidsoap
-	$(INSTALL_DIRECTORY) ${bashcompletiondir}
-	$(INSTALL_DATA) scripts/bash-completion ${bashcompletiondir}/liquidsoap
+	$(INSTALL_DIRECTORY) ${bashcompdir}
+	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
 
 gentoo-install:
 	$(INSTALL_PROGRAM) -D \
