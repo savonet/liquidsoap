@@ -166,7 +166,7 @@ let () =
                  | `I420 ->
                     (* TODO: can there be stride in avi videos? *)
                     let h = (String.length s * 4 / 6) / w in
-                    Video.Image.of_YUV420_string s w h
+                    Image.YUV420.of_YUV420_string s w h
                in
                let src = of_string data in
                let in_width = Video.Image.width src in
@@ -251,7 +251,7 @@ let () =
       let buf = Bytes.create buflen in
       let on_data abg reader =
         let ret = reader buf 0 buflen in
-        let data = Video.Image.of_YUV420_string (Bytes.sub_string buf 0 ret) width height in
+        let data = Image.YUV420.of_YUV420_string (Bytes.sub_string buf 0 ret) width height in
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
         Generator.put_video abg [|Video.single data|] 0 1

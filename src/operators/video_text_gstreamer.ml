@@ -28,7 +28,7 @@ let render_text ~font ~size text =
   (* Override default value... *)
   let font = if font.[0] = '/' then "Helvetica" else font in
   let font = Printf.sprintf "%s %d" font size in
-  let pipeline = Printf.sprintf "videotestsrc pattern=black ! textoverlay font-desc=\"%s\" text=\"%s\" ypad=0" font text in
+  let pipeline = Printf.sprintf "videotestsrc pattern=black ! textoverlay font-desc=\"%s\" valignment=top halignment=left text=\"%s\" ypad=0" font text in
   let img = GU.render_image pipeline in
   let width = Lazy.force Frame.video_width in
   let height = Lazy.force Frame.video_height in
