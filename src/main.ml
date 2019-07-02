@@ -395,7 +395,7 @@ let options = [
      and ignored expressions. " ]
     @
     (* Unix.fork is not implemented in Win32. *)
-    (if Sys.os_type <> "Win32" then
+    (if not Sys.win32 then
       [["-d";"--daemon"],
        Arg.Unit (fun _ -> Dtools.Init.conf_daemon#set true),
        "Run in daemon mode."]
@@ -637,14 +637,14 @@ struct
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640
        * for this: we want Unix EPIPE error and not SIGPIPE, which
        * crashes the program.. *)
-      if Sys.os_type <> "Win32" then
+      if not Sys.win32 then
        begin
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe])
        end;
       (* On Windows we need to initiate shutdown ourselves by catching INT
        * since dtools doesn't do it. *)
-      if Sys.os_type = "Win32" then
+      if Sys.win32 then
         Sys.set_signal Sys.sigint
           (Sys.Signal_handle (fun _ -> Tutils.shutdown ())) ;
       (* TODO if start fails (e.g. invalid password or mountpoint) it

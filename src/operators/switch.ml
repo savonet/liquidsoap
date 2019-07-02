@@ -243,6 +243,10 @@ object (self)
       | Some (_,s) -> s#abort_track
       | None -> ()
 
+  method seek n =
+    match selected with
+      | Some (_,s) -> s#seek n
+      | None -> 0
 end
 
 (** Common tools for Lang bindings of switch operators *)

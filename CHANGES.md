@@ -89,6 +89,8 @@ Fixed:
 - Fixed exit getting stuck when using `input.jack` (#769)
 - Stop lo server on shutdown. (#820)
 - Fixed external process stop not detected on second and further calls (#833)
+- Add `seek` in operators where implementation is clear (#853) 
+- Do not enter buffering mode between tracks in `buffer` (#836)
 
 1.3.7 (09-04-2019)
 =====

@@ -82,6 +82,7 @@ object (self)
   method is_ready = source#is_ready
   method abort_track = source#abort_track
   method remaining = source#remaining
+  method seek = source#seek
 
   method private get_frame ab =
     let p0 = AFrame.position ab in
@@ -116,6 +117,7 @@ object (self)
   method stype = Fallible
   method is_ready = not self#in_blank && source#is_ready
   method remaining = if self#in_blank then 0 else source#remaining
+  method seek n = if self#in_blank then 0 else source#seek n
   method abort_track = source#abort_track
 
   method private get_frame ab =
@@ -163,6 +165,7 @@ object (self)
   method stype = Fallible
   method is_ready = source#is_ready
   method remaining = source#remaining
+  method seek = source#seek
   method abort_track = source#abort_track
 
   method private get_frame ab =

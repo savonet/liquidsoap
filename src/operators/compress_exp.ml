@@ -31,6 +31,7 @@ object
   method remaining = source#remaining
   method is_ready = source#is_ready
   method abort_track = source#abort_track
+  method seek = source#seek
 
   method private get_frame buf =
     let offset = AFrame.position buf in
