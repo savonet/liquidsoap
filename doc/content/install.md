@@ -21,7 +21,7 @@ how to use OPAM. In order to use it:
 - [you should have at least OPAM version 2.0](https://opam.ocaml.org/doc/Install.html),
 - you should have at least OCaml version 3.08.0, which can be achieved by typing
   ```
-  opam switch install 3.08.0
+  opam switch create 3.08.0
   ```
 
 A typical installation with MP3 and Vorbis encoding/decoding and icecast support
