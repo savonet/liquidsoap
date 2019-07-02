@@ -24,11 +24,11 @@ _liquidsoap()
 
     case "$prev" in
         "--conf-descr-key")
-            _liquidsoap_add_f ../src/liquidsoap --list-conf-keys
+            _liquidsoap_add_f liquidsoap --list-conf-keys
             ;;
 
         "-h"|"-help"|"--help")
-            _liquidsoap_add_f ../src/liquidsoap --list-functions
+            _liquidsoap_add_f liquidsoap --list-functions
             ;;
 
         *)
