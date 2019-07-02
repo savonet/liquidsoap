@@ -127,7 +127,10 @@ if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
 
-PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+dnl The following does not correctly uses prefix
+dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
 AC_SUBST(bashcompdir)
 
 # Check endianess
