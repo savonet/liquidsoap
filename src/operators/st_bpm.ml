@@ -30,6 +30,7 @@ object
   method stype = source#stype
   method is_ready = source#is_ready
   method remaining = source#remaining
+  method seek = source#seek
   method abort_track = source#abort_track
 
   val bpm = Soundtouch.BPM.make ((Frame.type_of_kind kind).Frame.audio) (Lazy.force Frame.audio_rate)

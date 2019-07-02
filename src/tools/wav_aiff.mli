@@ -42,6 +42,11 @@ type 'a read_ops =
 
 val in_chan_ops :  in_channel read_ops
 
+(* buffer ofs len *)
+type callback = Bytes.t -> int -> int -> int
+
+val callback_ops : callback read_ops
+
 val fopen : string -> in_channel t
 (** Open the named file for reading, and return a new wav descriptor.
    Raise [Sys_error] if the file could not be opened and [Not_a_iff_file]

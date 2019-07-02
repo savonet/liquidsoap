@@ -1,10 +1,10 @@
 opam-version: "2.0"
-version: "dev"
+name: "liquidsoap"
 maintainer: "romain.beauxis@gmail.com"
 homepage: "https://github.com/savonet/liquidsoap"
 authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
 build: [
-  ["./bootstrap"]
+  ["./bootstrap"] {dev}
   ["./configure" "--prefix" prefix "--sbindir=%{lib}%/liquidsoap/sbin" "--libexecdir=%{lib}%/liquidsoap/libexec" "--sysconfdir=%{lib}%/liquidsoap/etc" "--sharedstatedir=%{lib}%/liquidsoap/com" "--localstatedir=%{lib}%/liquidsoap/var" "--libdir=%{lib}%/liquidsoap/lib" "--includedir=%{lib}%/liquidsoap/include" "--datarootdir=%{lib}%/liquidsoap/share" "--disable-graphics" "--with-user=dummy" "--with-group=dummy"]
   [make "clean"]
   [make]
@@ -16,12 +16,12 @@ remove: [
   ["rm" "-rf" "%{lib}%/liquidsoap" "%{prefix}%/bin/liquidsoap"]
 ]
 depends: [
-  "ocaml" {>= "4.07"}
+  "ocaml" {>= "4.08"}
   "camomile" {>= "1.0.0"}
   "dtools" {>= "0.4.1"}
   "duppy" {>= "0.8.0"}
   "menhir"
-  "mm" {>= "0.4.0"}
+  "mm" {>= "0.4.1"}
   "ocamlfind" {build}
   "pcre"
   "sedlex" {>= "2.0"}

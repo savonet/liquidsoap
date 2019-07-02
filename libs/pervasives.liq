@@ -1,3 +1,4 @@
+%include "audio.liq"
 %include "ref.liq"
 %include "utils.liq"
 %include "playlist.liq"
@@ -10,7 +11,6 @@
 %include "flows.liq"
 %include "http.liq"
 %include "hls.liq"
-%include "audio.liq"
 %include "video.liq"
 %include "gstreamer.liq"
 %include "deprecations.liq"

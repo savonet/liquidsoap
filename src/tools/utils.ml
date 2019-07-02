@@ -204,9 +204,9 @@ let read_all filename =
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
   assert (len <= size) ;
-  if len = size then Buffer.reset buffer else
+  if len = size then Buffer.clear buffer else
     let tmp = Buffer.sub buffer len (size-len) in
-      Buffer.reset buffer ;
+      Buffer.clear buffer ;
       Buffer.add_string buffer tmp
 
 let unix_translator = 
@@ -450,7 +450,7 @@ let home_unrelate =
     unrel
 
 let get_tempdir () =
-  if Sys.os_type = "Win32" then
+  if Sys.win32 then
     getenv ~default:"C:\\temp" "TEMP"
   else
     getenv ~default:"/tmp" "TMPDIR"

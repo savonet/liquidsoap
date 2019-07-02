@@ -22,7 +22,6 @@ register(
   "decoder.mime_types.ffmpeg",
   [])
 
-%ifdef add_decoder
 # Enable ffmpeg decoder.
 # @category Liquidsoap
 def enable_external_ffmpeg_decoder() =
@@ -98,7 +97,7 @@ def enable_external_mpc_decoder() =
 
   if which(mpcdec) != "" then
     log(label="external.decoder","Enabling MPCDEC external decoder.")
-    mpcdec_p = fun(f) -> "#{mpcdec} #{quote(f)} - 2>/dev/null"
+    mpcdec_p = fun(f) -> "#{mpcdec} #{quote(f)} -"
     add_oblivious_decoder(name="MPCDEC",description="Decode files using the mpcdec \
                 musepack decoder binary",test=test_mpc,mpcdec_p)
   else
@@ -127,13 +126,12 @@ def enable_external_flac_decoder() =
 
   if which(flac) != "" then
     log(label="external.decoder","Enabling EXTERNAL_FLAC external decoder.")
-    flac_p = "#{flac} -d -c - 2>/dev/null"
+    flac_p = "#{flac} -d -c -"
     def test_flac(file) =
       if which(metaflac) != "" then
         channels = list.hd(default="",
                            get_process_lines("#{metaflac} \
-                                              --show-channels #{quote(file)} \
-                                              2>/dev/null"))
+                                              --show-channels #{quote(file)}"))
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
@@ -158,7 +156,7 @@ def enable_external_flac_decoder() =
                 resolver.")
     def flac_meta(file)
       ret = get_process_lines("#{metaflac} --export-tags-to=- \
-                   #{quote(file)} 2>/dev/null")
+                   #{quote(file)}")
       ret = list.map(string.split(separator="="),ret)
       # Could be made better..
       def f(l',l)=
@@ -179,9 +177,7 @@ def enable_external_flac_decoder() =
     log(label="decoder.external","Did not find metaflac binary. Please adjust using the \"decoder.external.metaflac.path\" setting.")
   end
 end
-%endif
 
-%ifdef add_oblivious_decoder
 register(
   name="faad path",
   descr="Path to faad binary",
@@ -228,7 +224,7 @@ def enable_external_faad_decoder() =
   if which(faad) != "" then
     log(label="decoder.external","Enabling EXTERNAL_FAAD decoder and \
                  metadata resolver.")
-    faad_p = (fun (f) -> "#{faad} -w #{quote(f)} 2>/dev/null")
+    faad_p = (fun (f) -> "#{faad} -w #{quote(f)}")
     def test_faad(file) =
       if faad_test(file) then
         channels = list.hd(default="",
@@ -273,7 +269,6 @@ def enable_external_faad_decoder() =
     log(label="external.decoder","Did not find faad binary. Please adjust using the \"decoder.external.faad.path\" setting.")
   end
 end
-%endif
 
 # Standard function for displaying metadata.
 # Shows artist and title, using "Unknown" when a field is empty.
@@ -320,7 +315,7 @@ def notify_metadata(~urgency="low",~icon="stock_smiley-22",~time=3000,
   on_metadata(fun (m) -> system(send^quote(display(m))),s)
 end
 
-%ifdef input.external
+%ifdef input.external.wav
 # Stream data from mplayer
 # @category Source / Input
 # @param s data URI.
@@ -332,61 +327,12 @@ end
 def input.mplayer(~id="input.mplayer",
          ~restart=true,~restart_on_error=false,
          ~buffer=0.2,~max=10.,s) =
-  input.external(id=id,restart=restart,
-                 restart_on_error=restart_on_error,
-                 buffer=buffer,max=max,
-                 "mplayer -really-quiet \
-                    -af resample=#{get(default=44100,\"frame.audio.samplerate\")},channels=#{get(default=2,\"frame.audio.channels\")} \
-                    -ao pcm:file=/dev/stdout \
-                    -vc null -vo null #{quote(s)} 2>/dev/null")
+  input.external.wav(id=id,restart=restart,
+                     restart_on_error=restart_on_error,
+                     buffer=buffer,max=max,
+                     "mplayer -really-quiet \
+                       -af resample=#{audio.samplerate()},channels=#{audio.channels()} \
+                       -ao pcm:file=/dev/stdout \
+                       -vc null -vo null #{quote(s)} 2>/dev/null")
 end
-%endif
-
-%ifdef input.external.avi
-  # Stream video from ffmpeg
-  # @category Source / Input
-  # @param s data URI.
-  # @param ~restart restart on exit.
-  # @param ~restart_on_error restart on exit with error.
-  # @param ~buffer Duration of the pre-buffered data.
-  # @param ~max Maximum duration of the buffered data.
-  # @category Source / Input
-  def input.ffmpeg.video(~id="input.ffmpeg.video",
-    ~restart=true,~restart_on_error=false,
-    ~buffer=0.2,~max=10.,~format="",s) =
-      ffmpeg = get(default="ffmpeg#{exe_ext}","decoder.external.ffmpeg.path")
-      format = if format == "" then "" else "-f #{format}" end
-      audiorate = get(default=44100,"frame.audio.samplerate")
-      width = get(default=320,"frame.video.width")
-      height = get(default=240,"frame.video.height")
-      videorate = get(default=24,"frame.video.samplerate")
-      command = "#{ffmpeg} -v 16 #{format} -i #{quote(s)} \
-      -f avi -vf format=rgb24 -vcodec rawvideo -r #{videorate} -s #{width}x#{height} \
-      -acodec pcm_s16le -ar #{audiorate} \
-      pipe:1"
-      log("FFMpeg command: " ^ command)
-      input.external.avi(id=id,restart=restart,
-        restart_on_error=restart_on_error,
-        buffer=buffer,max=max,
-        command)
-  end
-%endif
-
-%ifdef input.external.rawvideo
-  # Decode video using memncoder
-  # @category Source / Input
-  def input.mencoder.video(~id="input.mencoder.video",
-    ~restart=true,~restart_on_error=false,
-    ~buffer=0.2,~max=10.,s) =
-      # audiorate = get(default=44100,"frame.audio.samplerate")
-      # width = get(default=320,"frame.video.width")
-      # height = get(default=240,"frame.video.height")
-      # videorate = get(default=24,"frame.video.samplerate")
-      command = "mencoder -really-quiet #{quote(s)} -of rawvideo -ovc raw -vf format=rgb24 -oac copy -o -"
-      log(command)
-      input.external.rawvideo(id=id,restart=restart,
-        restart_on_error=restart_on_error,
-        buffer=buffer,max=max,
-        command)
-  end
 %endif

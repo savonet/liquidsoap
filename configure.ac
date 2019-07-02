@@ -10,7 +10,7 @@ dnl $libdir/liquidsoap/$libs_dir_version
 AC_INIT([liquidsoap],[1.4.0+scm])
 scm_snapshot=true
 version=1.4.0
-min_ocaml_version=4.07.0
+min_ocaml_version=4.08.0
 
 if test $scm_snapshot != "false"; then
   version="$version+scm"
@@ -126,6 +126,15 @@ AC_PROG_CC
 if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
+
+dnl The following does not correctly uses prefix
+dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
+AC_SUBST(bashcompdir)
+
+emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
+AC_SUBST(emacsdir)
 
 # Check endianess
 AC_C_BIGENDIAN
@@ -273,7 +282,7 @@ AC_MSG_RESULT([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION])
 
 AC_OCAML_COMPARE_VERSION([$OCAML_MAJOR.$OCAML_MINOR.$OCAML_REVISION],[$min_ocaml_version])
 if test -z "${VERSION_OK}"; then
-  AC_MSG_ERROR([version 4.07.0 or greater of the OCaml compiler is required to build liquidsoap])
+  AC_MSG_ERROR([version 4.08.0 or greater of the OCaml compiler is required to build liquidsoap])
 fi
 
 AC_SUBST(BYTE)
@@ -370,7 +379,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.4.0],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.4.1],[],[1])
 
 #
 # xmlplaylist
@@ -935,6 +944,8 @@ cat <<EOMSG
  logrotate conf : $sysconfdir/logrotate.d
  man page       : $mandir/man1
  doc            : $datadir/doc
+ bash completion: $bashcompdir
+ emacs mode     : $emacsdir
  sandbox        : $SANDBOX_TOOL
  sanxbox binary : $SANDBOX_BINARY
 

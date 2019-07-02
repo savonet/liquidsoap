@@ -50,9 +50,18 @@ let conf_network =
   Dtools.Conf.bool ~p:(conf_sandbox#plug "network") ~d:true
   "Enable network"
 
+let is_docker = lazy (
+  Sys.unix && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0
+)
+
 let () =
   ignore(Dtools.Init.at_start (fun () ->
-    if conf_tool#get = "disabled" then
+    if Lazy.force is_docker then
+     begin
+      log#important "Running inside a docker container, disabling sandboxing..";
+      conf_tool#set "disabled" 
+     end
+    else if conf_tool#get = "disabled" then
       log#important "Sandboxing disabled"
     else
      begin

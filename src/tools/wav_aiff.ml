@@ -36,6 +36,33 @@ let in_chan_ops = { really_input = really_input ;
                       seek_in ic ((pos_in ic) + len));
                     close = close_in }
 
+(* buffer ofs len *)
+type callback = Bytes.t -> int -> int -> int
+
+let callback_ops =
+  let really_input read buf ofs len =
+    let ret =
+       Extralib.read_retry read buf ofs len
+    in
+    if ret < len then raise End_of_file
+  in
+  let input read = read in
+  let _read read len =
+    let buf = Bytes.create len in
+    really_input read buf 0 len;
+    buf
+  in
+  let input_byte read =
+    Char.code (Bytes.get (_read read 1) 0)
+  in
+  let seek read n = ignore(_read read n) in
+  let close _ = () in
+  {really_input;
+   input_byte;
+   input;
+   seek;
+   close}
+
 type format = [ `Aiff | `Wav ]
 
 type 'a t =

@@ -1,6 +1,4 @@
 SUBDIRS=tools \
-	$(if $(WIN32_HOST),win32) \
-	$(if $(UNIX_HOST),unix) \
 	decoder playlists encoder protocols plugins stream lang \
 	ogg_formats converters operators sources conversions outputs io \
 	visualization analyze synth harbor lang_encoders encoder_formats
@@ -77,7 +75,7 @@ sources = \
 	harbor/harbor_base.ml harbor/harbor.ml sources/harbor_input.ml \
 	$(if $(W_SSL),harbor/harbor_ssl.ml sources/harbor_input_ssl.ml) \
 	$(if $(W_OSX_SECURE_TRANSPORT),harbor/harbor_secure_transport.ml sources/harbor_input_secure_transport.ml) \
-	sources/external_input_audio.ml sources/external_input_video.ml \
+        tools/external_input.ml sources/external_input_audio.ml sources/external_input_video.ml \
 	tools/liqMM.ml tools/sandbox.ml \
 	$(if $(W_BJACK),sources/bjack_in.ml) \
 	$(if $(W_ALSA),sources/alsa_in.ml)
@@ -172,8 +170,6 @@ io = io/udp_io.ml \
 
 tools = tools/extralib.ml tools/JSON.ml tools/doc.ml \
         tools/utils.ml tools/plug.ml \
-	$(if $(WIN32_HOST),win32/process_utils.ml) \
-	$(if $(UNIX_HOST),unix/process_utils.ml) \
 	tools/rqueue.ml tools/sedlexing_compat.ml \
 	$(if $(W_LAME_DYN),tools/lame_dynlink.ml) \
 	$(if $(W_FDKAAC_DYN),tools/fdkaac_dynlink.ml) \

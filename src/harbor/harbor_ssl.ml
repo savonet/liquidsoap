@@ -43,7 +43,7 @@ module Websocket_transport =
 struct
   type socket = Ssl.socket
   let read = Ssl.read
-  let read_retry = Extralib.read_retry Ssl.read
+  let read_retry fd = Extralib.read_retry (Ssl.read fd)
   let write = Ssl.write
 end
 

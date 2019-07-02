@@ -69,10 +69,8 @@ api-doc-install:
 
 install-local: doc-install
 ifeq ($(INSTALL_DAEMON),yes)
-	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 \
-	  ${localstatedir}/log/liquidsoap
-	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 \
-	  ${localstatedir}/run/liquidsoap
+	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/log/liquidsoap
+	$(INSTALL_DIRECTORY) -o ${user} -g ${group} -m 2775 ${localstatedir}/run/liquidsoap
 endif
 	$(INSTALL_DIRECTORY) $(bindir)
 	$(INSTALL_DIRECTORY) $(libdir)/liquidsoap/$(libs_dir_version)
@@ -81,16 +79,16 @@ endif
 	  $(INSTALL_DATA) $$l $(libdir)/liquidsoap/$(libs_dir_version) ; \
 	done
 	$(INSTALL_DIRECTORY) ${sysconfdir}/liquidsoap
-	$(INSTALL_DATA) examples/radio.liq \
-	  ${sysconfdir}/liquidsoap/radio.liq.example
+	$(INSTALL_DATA) examples/radio.liq ${sysconfdir}/liquidsoap/radio.liq.example
 	$(INSTALL_DIRECTORY) ${sysconfdir}/logrotate.d
-	$(INSTALL_DATA) scripts/liquidsoap.logrotate \
-	  ${sysconfdir}/logrotate.d/liquidsoap
+	$(INSTALL_DATA) scripts/liquidsoap.logrotate ${sysconfdir}/logrotate.d/liquidsoap
+	$(INSTALL_DIRECTORY) ${bashcompdir}
+	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
+	$(INSTALL_DIRECTORY) ${emacsdir}
+	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
 
 gentoo-install:
-	$(INSTALL_PROGRAM) -D \
-		scripts/liquidsoap.gentoo.initd ${sysconfdir}/init.d/liquidsoap
+	$(INSTALL_PROGRAM) -D scripts/liquidsoap.gentoo.initd ${sysconfdir}/init.d/liquidsoap
 
 service-install:
-	$(INSTALL_PROGRAM) -D \
-		scripts/liquidsoap.initd ${sysconfdir}/init.d/liquidsoap
+	$(INSTALL_PROGRAM) -D scripts/liquidsoap.initd ${sysconfdir}/init.d/liquidsoap

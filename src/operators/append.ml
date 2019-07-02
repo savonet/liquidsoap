@@ -116,6 +116,15 @@ object (self)
           source#remaining
       | `Append s -> s#remaining
 
+  method seek n =
+    match state with
+      | `Idle | `Replay None -> source#seek n
+      | `Replay (Some s) when s#is_ready && merge ->
+          0
+      | `Replay (Some _) ->
+          source#seek n
+      | `Append s -> s#seek n 
+
   (* Other behaviours could be wanted, but for now #abort_track won't cancel
    * any to-be-appended track. *)
   method abort_track = source#abort_track

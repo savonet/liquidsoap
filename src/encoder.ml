@@ -93,7 +93,8 @@ let string_of_format = function
   | External w -> External_encoder_format.to_string w
   | GStreamer w -> Gstreamer_format.to_string w
 
-let rfc6381 = function
+(** ISO Base Media File Format, see RFC 6381 section 3.3. *)
+let iso_base_file_media_file_format = function
   | MP3 _ | Shine _ -> "mp4a.40.34"
   | FdkAacEnc _ -> "mp4a.40.2"
   | _ -> raise Not_found

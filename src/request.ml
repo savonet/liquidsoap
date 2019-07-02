@@ -246,6 +246,11 @@ let get_log t = t.log
 
 exception No_indicator
 
+let () =
+  Printexc.register_printer (function
+    | No_indicator -> Some "All options exhausted while processing request" 
+    | _ -> None)
+
 let peek_indicator t =
   match t.indicators with
     | (h::_)::_ -> h
