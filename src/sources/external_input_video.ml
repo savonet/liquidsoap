@@ -163,7 +163,7 @@ let () =
                let of_string s =
                  match video_format with
                  | `RGB24 -> Image.Generic.of_RGBA32 (Img.of_RGB24_string s w)
-                 | `I420 -> Image.Generic.of_YUV420 (Image.YUV420.of_string s w)
+                 | `I420 -> Image.Generic.of_YUV420 (Image.YUV420.of_YUV420_string s w h)
                in
                let src = of_string data in
                let in_width = Image.Generic.width src in

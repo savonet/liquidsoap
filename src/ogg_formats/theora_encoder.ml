@@ -95,7 +95,11 @@ let create_encoder ~theora ~metadata () =
     Ogg_muxer.flush_pages os
   in
   let yuv = Image.YUV420.create width height in
-  let (y,y_stride), (u, v, uv_stride) = Image.YUV420.internal yuv in
+  let y = Image.YUV420.y yuv in
+  let u = Image.YUV420.u yuv in
+  let v = Image.YUV420.v yuv in
+  let y_stride = Image.YUV420.y_stride yuv in
+  let uv_stride = Image.YUV420.uv_stride yuv in
   let theora_yuv =
   {
     Theora.y_width = width ;
