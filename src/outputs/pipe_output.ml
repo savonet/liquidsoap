@@ -143,14 +143,19 @@ object (self)
     let enc = Utils.get_some encoder in
     enc.Encoder.encode frame ofs len
 
+  val m = Mutex.create ()
+
   method reopen : unit =
-    self#log#important "Re-opening output pipe.";
-    (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
-    reopening <- true ;
-    self#output_stop ;
-    self#output_start ;
-    reopening <- false ;
-    need_reset <- false
+    Tutils.mutexify m
+      (fun () ->
+        self#log#important "Re-opening output pipe.";
+        (* #output_stop can trigger #send, the [reopening] flag avoids loops *)
+        reopening <- true ;
+        self#output_stop ;
+        self#output_start ;
+        reopening <- false ;
+        need_reset <- false
+      ) ()
 
   method send b =
     if not self#is_open then
