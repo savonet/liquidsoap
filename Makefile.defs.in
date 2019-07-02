@@ -18,6 +18,7 @@ sysconfdir = @sysconfdir@
 localstatedir = @localstatedir@
 datarootdir = @datarootdir@
 datadir = @datadir@
+bashcompdir = @bashcompdir@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DIRECTORY = @INSTALL@ -d

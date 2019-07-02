@@ -33,6 +33,7 @@ New:
 - Added `output.youtube.live.ffmpeg`.
 - Added `output.file.hls.ffmpeg`.
 - Enabled external decoders in windows (#742)
+- Added support for bash completion.
 
 Changed:
 

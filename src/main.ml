@@ -228,7 +228,17 @@ struct
         end ^
         String.concat "" subs
     in
-      aux (string_of_path prefix) (t#path prefix)
+    aux (string_of_path prefix) (t#path prefix)
+
+  let list_conf_keys ?(prefix=[]) t =
+    let rec aux prefix t =
+      let p s = if prefix = "" then s else prefix ^ "." ^ s in
+      let subs = List.map (function s -> aux (p s) (t#path [s])) t#subs in
+      prefix :: (List.flatten subs)
+    in
+    let l = aux (string_of_path prefix) (t#path prefix) in
+    let l = List.sort compare l in
+    String.concat "\n" l ^ "\n"
 
   let descr ?(md=false) ?(prefix=[]) t =
     let rec aux level prefix t =
@@ -293,6 +303,11 @@ struct
         load_libs () ;
         print_string (dump t); exit 0),
       "Dump the configuration state";
+      ["--list-conf-keys"],
+      Arg.Unit (fun () ->
+          load_libs();
+          print_string (list_conf_keys t); exit 0),
+      "List configuration keys.";
     ]
 
 end
@@ -430,6 +445,13 @@ let options = [
     Printf.sprintf
       "List all plugins (builtin scripting values, \
        supported formats and protocols)." ;
+
+    ["--list-functions"],
+    Arg.Unit (fun () ->
+                secondary_task := true ;
+                load_libs () ;
+                Doc.print_functions (Plug.plugs:Doc.item)),
+    Printf.sprintf "List all functions." ;
 
     ["--list-functions-md"],
     Arg.Unit (fun () ->
