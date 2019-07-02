@@ -133,6 +133,9 @@ bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completi
 AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
 AC_SUBST(bashcompdir)
 
+emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
+AC_SUBST(emacsdir)
+
 # Check endianess
 AC_C_BIGENDIAN
 if test "x$ac_cv_c_bigendian" = "xyes"; then
@@ -942,6 +945,7 @@ cat <<EOMSG
  man page       : $mandir/man1
  doc            : $datadir/doc
  bash completion: $bashcompdir
+ emacs mode     : $emacsdir
  sandbox        : $SANDBOX_TOOL
  sanxbox binary : $SANDBOX_BINARY
 

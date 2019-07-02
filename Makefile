@@ -88,6 +88,8 @@ endif
 	  ${sysconfdir}/logrotate.d/liquidsoap
 	$(INSTALL_DIRECTORY) ${bashcompdir}
 	$(INSTALL_DATA) scripts/bash-completion ${bashcompdir}/liquidsoap
+	$(INSTALL_DIRECTORY) ${emacsdir}
+	$(INSTALL_DATA) scripts/liquidsoap-mode.el ${emacsdir}/
 
 gentoo-install:
 	$(INSTALL_PROGRAM) -D \
