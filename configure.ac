@@ -127,6 +127,9 @@ if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
 
+bashcompletiondir='${prefix}'`pkg-config --variable=completionsdir bash-completion`
+AC_SUBST(bashcompletiondir)
+
 # Check endianess
 AC_C_BIGENDIAN
 if test "x$ac_cv_c_bigendian" = "xyes"; then
@@ -935,6 +938,7 @@ cat <<EOMSG
  logrotate conf : $sysconfdir/logrotate.d
  man page       : $mandir/man1
  doc            : $datadir/doc
+ bash completion: $bashcompletiondir
  sandbox        : $SANDBOX_TOOL
  sanxbox binary : $SANDBOX_BINARY
 
