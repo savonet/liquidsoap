@@ -37,7 +37,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
-def gstreamer.hls(~id="",~on_error=fun(_)->3.,uri) =
+def output.file.hls.gstreamer(~id="",~on_error=fun(_)->3.,uri) =
   uri = to_string_getter(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\" ! tee name=t"}
   audio_pipeline = "t. ! queue"
@@ -50,7 +50,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~on_error Callback executed when an error happens.
 # @param uri URI of the HLS stream index.
-def gstreamer.hls.audio(~id="",~on_error=fun(_)->3.,uri) =
+def output.file.hls.gstreamer.audio(~id="",~on_error=fun(_)->3.,uri) =
   uri = to_string_getter(uri)
   pipeline = {"souphttpsrc location=\"#{uri()}\""}
   input.gstreamer.audio(id=id, pipeline=pipeline, on_error=on_error)
