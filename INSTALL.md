@@ -1,8 +1,6 @@
-Liquidsoap 1.4.0
-================
+# Liquidsoap 1.4.0
 
-Forewords
----------
+## Forewords
 
 Installing liquidsoap can be a difficult task. The software relies on a up-to date
 `OCaml` compiler, as well as a bunch of `OCaml` modules and, for most of them, corresponding
@@ -18,8 +16,7 @@ We recommend that any interested user head over to this link to install the soft
 The following of this document describes how to install the software via its `configure` script and is
 intended either for system administrators or package maintainers.
 
-Dependencies
-------------
+## Dependencies
 
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
 provide extra features. They need to be detected by the `configure` script.
@@ -39,7 +36,7 @@ Libraries not developed by Savonet are:
 - ocaml-sdl
 - yojson
 
-Mandatory dependencies:
+### Mandatory dependencies:
 
 | Dependency     | Version   |
 | -------------- | --------- |
@@ -51,14 +48,13 @@ Mandatory dependencies:
 | menhir         |           |
 | sedlex         |           |
 
-Recommended dependencies:
+### Recommended dependencies:
 
 | Dependency     | Version   | Functionality                |
 | -------------- | --------- | ---------------------------- |
 | camomile       | >=1.0.0   | Charset recoding in metadata |
 
-Optional dependencies:
-
+### Optional dependencies:
 
 | Dependency          | Version | Functionality                                 |
 | ------------------- | ------- | --------------------------------------------- |
@@ -104,8 +100,7 @@ Runtime optional dependencies:
     
 - curl                           http/https/ftp support
     
-Installing via configure
-------------------------
+## Installing via configure
 
 The build processus starts with by invoking the `configure` script:
 
