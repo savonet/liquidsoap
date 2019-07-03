@@ -2,11 +2,12 @@ Liquidsoap 1.4.0
 ================
 
 Below is a list of dependencies, mostly OCaml libraries. Optional libraries
-provide extra features. They need to be detected by the "configure" script.
+provide extra features. They need to be detected by the `configure` script.
 
 Most of the libraries are developed by the Savonet project and, in addition to
 being available through traditional distribution channels, are bundled in the
-liquidsoap-<version>-full.tar.bz2 tarballs for easier builds.
+[liquidsoap-&lt;version&gt;-full.tar.bz2](https://github.com/savonet/liquidsoap/releases)
+tarballs for easier builds.
 
 Libraries not developed by Savonet are:
 
@@ -20,58 +21,64 @@ Libraries not developed by Savonet are:
 
 Mandatory dependencies:
 
-- OCaml compiler        >= 4.07.0
-- ocaml-dtools          >= 0.4.0
-- ocaml-duppy           >= 0.6.0
-- ocaml-mm              >= 0.5.0
-- ocaml-pcre
-- menhir
-- sedlex
+| Dependency     | Version   |
+| -------------- | --------- |
+| OCaml compiler | >= 4.08.0 |
+| ocaml-dtools   | >= 0.4.0  |
+| ocaml-duppy    | >= 0.6.0  |
+| ocaml-mm       | >= 0.5.0  |
+| ocaml-pcre     |           |
+| menhir         |           |
+| sedlex         |           |
 
 Recommended dependencies:
 
-- camomile              >=1.0.0  Charset recoding in metadata
-- ocaml-magic           >=0.6    File type detection
-- festival                       Speech synthesis
+| Dependency     | Version   | Functionality                |
+| -------------- | --------- | ---------------------------- |
+| camomile       | >=1.0.0   | Charset recoding in metadata |
 
 Optional dependencies:
 
-- ocaml-cry             >=0.6.0  Sending to Shoutcast & Icecast
-- ocaml-ogg             >=0.5.0  Ogg codecs
-- ocaml-vorbis          >=0.7.0  Ogg/Vorbis codec
-- ocaml-opus            >=0.1.1  Ogg/Opus codec
-- ocaml-theora          >=0.3.1  Ogg/Theora codec
-- ocaml-speex           >=0.2.1  Ogg/Speex codec
-- ocaml-flac            >=0.1.5  Flac and Ogg/Flac codec
-- ocaml-mad             >=0.4.4  MP3 decoding
-- ocaml-lame            >=0.3.2  MP3 encoding
-- ocaml-shine           >=0.2.0  Fixed-point MP3 encoding
-- ocaml-taglib          >=0.3.0  MP3ID3 metadata access
-- ocaml-faad            >=0.4.0  AAC stream decoding
-- ocaml-fdkaac          >=0.3.0  AAC(+) encoding
-- camlimages            >=4.0.0  Image decoding
-- ocaml-sdl                      Display, font & image support
-- ocaml-gavl            >=0.1.4  Video conversion using the gavl library
-- ocaml-ffmpeg          >=0.2.0  Video conversion using the ffmpeg library
-- ocaml-samplerate      >=0.1.1  Libsamplerate audio conversion
-- ocaml-lastfm          >=0.3.0  Lastfm protocol support
-- ocaml-xmlplaylist     >=0.1.3  XML-based playlist formats
-- ocaml-dssi            >=0.1.1  DSSI sound synthesis
-- ocaml-frei0r          >=0.1.0  Frei0r plugins
-- ocaml-lo              >=0.1.0  OSC (Open Sound Control) support
-- ocaml-ladspa          >=0.1.4  LADSPA plugins
-- ocaml-soundtouch      >=0.1.7  Libsoundtouch's audio effects
-- ocaml-ao              >=0.2.0  Output via libao
-- ocaml-alsa            >=0.2.1  ALSA I/O
-- ocaml-portaudio       >=0.2.0  Portaudio I/O
-- ocaml-pulseaudio      >=0.1.2  PulseAudio I/O
-- ocaml-bjack           >=0.1.3  Jack support
-- ocaml-gstreamer       >=0.3.0  GStreamer input, output and encoding/decoding
-- ocaml-inotify         >=1.0    Reloading playlists when changed
-- ocaml-ssl             >=0.5.2  SSL/https support
-- osx-secure-transport           SSL/https support via OSX's SecureTransport
-- yojson                         Parsing JSON data (of_json function)
-- gd4o                           Video.add_text() on servers without X
+
+| Dependency          | Version | Functionality                                 |
+| ------------------- | ------- | --------------------------------------------- |
+| camlimages          | >=4.0.0 | Image decoding                                |
+| gd4o                |         | Video.add_text() on servers without X         |
+| ocaml-alsa          | >=0.2.1 | ALSA I/O                                      |
+| ocaml-ao            | >=0.2.0 | Output via libao                              |
+| ocaml-bjack         | >=0.1.3 | Jack support                                  |
+| ocaml-cry           | >=0.6.0 | Sending to Shoutcast & Icecast                |
+| ocaml-dssi          | >=0.1.1 | DSSI sound synthesis                          |
+| ocaml-faad          | >=0.4.0 | AAC stream decoding                           |
+| ocaml-fdkaac        | >=0.3.0 | AAC(+) encoding                               |
+| ocaml-ffmpeg        | >=0.2.0 | Video conversion using the ffmpeg library     | 
+| ocaml-flac          | >=0.1.5 | Flac and Ogg/Flac codec                       |
+| ocaml-frei0r        | >=0.1.0 | Frei0r plugins                                |
+| ocaml-gavl          | >=0.1.4 | Video conversion using the gavl library       |
+| ocaml-gstreamer     | >=0.3.0 | GStreamer input, output and encoding/decoding |
+| ocaml-inotify       | >=1.0   | Reloading playlists when changed              |
+| ocaml-ladspa        | >=0.1.4 | LADSPA plugins                                |
+| ocaml-lame          | >=0.3.2 | MP3 encoding                                  |
+| ocaml-lastfm        | >=0.3.0 | Lastfm scrobbling                             |
+| ocaml-lo            | >=0.1.0 | OSC (Open Sound Control) support              |
+| ocaml-mad           | >=0.4.4 | MP3 decoding                                  |
+| ocaml-magic         | >=0.6   | File type detection                           |
+| ocaml-ogg           | >=0.5.0 | Ogg codecs                                    |
+| ocaml-opus          | >=0.1.1 | Ogg/Opus codec                                |
+| ocaml-portaudio     | >=0.2.0 | Portaudio I/O                                 |
+| ocaml-pulseaudio    | >=0.1.2 | PulseAudio I/O                                |
+| ocaml-samplerate    | >=0.1.1 | Libsamplerate audio conversion                |
+| ocaml-sdl           |         | Display, font & image support                 |
+| ocaml-shine         | >=0.2.0 | Fixed-point MP3 encoding                      |
+| ocaml-soundtouch    | >=0.1.7 | Libsoundtouch's audio effects                 |
+| ocaml-speex         | >=0.2.1 | Ogg/Speex codec                               |
+| ocaml-ssl           | >=0.5.2 | SSL/https support                             |
+| ocaml-taglib        | >=0.3.0 | MP3ID3 metadata access                        |
+| ocaml-theora        | >=0.3.1 | Ogg/Theora codec                              |
+| ocaml-vorbis        | >=0.7.0 | Ogg/Vorbis codec                              |
+| ocaml-xmlplaylist   | >=0.1.3 | XML-based playlist formats                    |
+| osx-secure-transport|         | SSL/https support via OSX's SecureTransport   |
+| yojson              |         | Parsing JSON data (of_json function)          |
 
 Runtime optional dependencies:
     
