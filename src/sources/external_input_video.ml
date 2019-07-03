@@ -161,8 +161,7 @@ let () =
                let video_format = Option.get !video_format in
                let of_string s =
                  match video_format with
-                 | `RGB24 ->
-                    Image.YUV420.of_RGB24_string s w
+                 | `RGB24 -> Image.YUV420.of_RGB24_string s w
                  | `I420 ->
                     (* TODO: can there be stride in avi videos? *)
                     let h = (String.length s * 4 / 6) / w in
@@ -186,7 +185,8 @@ let () =
              if !audio_converter <> None then failwith "Only one audio track is supported for now.";
              audio_converter := Some (Rutils.create_from_iff ~format:`Wav ~channels ~samplesize:16 ~audio_src_rate)
         in
-        List.iter check h
+        List.iter check h;
+        `Continue
       in
       let on_data abg reader =
         match Avi.Read.chunk reader with

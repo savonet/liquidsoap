@@ -127,6 +127,15 @@ if test -z `which pkg-config 2>/dev/null` ; then
   AC_MSG_ERROR(Cannot find pkg-config)
 fi
 
+dnl The following does not correctly uses prefix
+dnl PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir], , bashcompdir="${sysconfdir}/bash_completion.d")
+bashcompdir=`pkg-config --define-variable=prefix='${prefix}' --variable=completionsdir bash-completion 2>/dev/null`
+AS_IF([test -z "$bashcompdir"], [bashcompdir="${sysconfdir}/bash_completion.d"])
+AC_SUBST(bashcompdir)
+
+emacsdir='${prefix}'/share/emacs/site-lisp/liquidsoap-mode
+AC_SUBST(emacsdir)
+
 # Check endianess
 AC_C_BIGENDIAN
 if test "x$ac_cv_c_bigendian" = "xyes"; then
@@ -370,7 +379,7 @@ AC_CHECK_OCAML_BINDING([cry],[0.6.0])
 # ocaml-mm
 #
 
-AC_CHECK_OCAML_BINDING([mm],[0.4.1],[],[1])
+AC_CHECK_OCAML_BINDING([mm],[0.5.0],[],[1])
 
 #
 # xmlplaylist
@@ -935,6 +944,8 @@ cat <<EOMSG
  logrotate conf : $sysconfdir/logrotate.d
  man page       : $mandir/man1
  doc            : $datadir/doc
+ bash completion: $bashcompdir
+ emacs mode     : $emacsdir
  sandbox        : $SANDBOX_TOOL
  sanxbox binary : $SANDBOX_BINARY
 

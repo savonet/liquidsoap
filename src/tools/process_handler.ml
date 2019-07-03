@@ -43,6 +43,7 @@ type _t = {
   in_pipe:  Unix.file_descr;
   out_pipe: Unix.file_descr;
   p:        process;
+  mutable priority: Tutils.priority;
   mutable status: Unix.process_status option;
   mutable stopped: bool
 }
@@ -57,6 +58,7 @@ type continuation = [
   | `Stop
   | `Kill
   | `Delay of float
+  | `Reschedule of Tutils.priority
 ]
 
 type 'a callback = 'a -> continuation
@@ -79,6 +81,11 @@ let get_process {process;_} =
   match process with
     | Some process -> process
     | None -> raise Finished
+
+let set_priority t = Tutils.mutexify t.mutex (fun priority ->
+  match t.process with
+    | None -> raise Finished
+    | Some p -> p.priority <- priority)
 
 let stop_c,kill_c,done_c =
   let fn = Bytes.make 1 in
@@ -123,13 +130,12 @@ let pusher fd buf ofs len =
   Unix.write fd buf ofs len
 
 let puller in_pipe fd buf ofs len =
-  if len = 0 then 0 else
   let ret = 
     try
       Unix.read fd buf ofs len
-    with _ when Sys.os_type = "Win32" ->  0
+    with _ when Sys.win32 ->  0
   in
-  if ret = 0 then ignore(Unix.write in_pipe done_c 0 1);
+  if len > 0 && ret = 0 then ignore(Unix.write in_pipe done_c 0 1);
   ret
 
 let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log command =
@@ -158,7 +164,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       let p = open_process command env in
       let out_pipe,in_pipe = Unix.pipe () in
       let process =
-        {in_pipe;out_pipe;p;stopped=false;status=None}
+        {in_pipe;out_pipe;p;priority;stopped=false;status=None}
       in
       ignore(Thread.create (fun () ->
         try
@@ -201,11 +207,12 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
       let events = match decision with
         | `Kill -> cleanup ~log t; []
         | `Stop -> send_stop ~log t; read_events
+        | `Reschedule p -> process.priority <- p; continue_events
         | `Continue -> continue_events
         | `Delay d -> [`Delay d; `Read process.out_pipe]
       in
       { Duppy.Task.
-          priority = priority;
+          priority = process.priority;
           events   = events;
           handler  = handler
       }
@@ -265,12 +272,13 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log c
               | `Write fd -> (on_stdin (pusher fd))::cur
               | `Delay _ -> cur) [] l
             in
-            List.fold_left (fun (cur:continuation) decision ->
+            List.fold_left (fun cur decision ->
                 match decision, cur with
                   | `Kill, _
                   |  _, `Kill -> `Kill
                   | `Stop, _
                   | _, `Stop -> `Stop
+                  | `Reschedule p, cur -> process.priority <- p; cur
                   | `Continue, `Continue -> `Continue
                   | `Delay d, `Delay d' -> `Delay (max d d')
                   | `Delay d, _ 

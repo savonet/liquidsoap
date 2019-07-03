@@ -30,6 +30,7 @@ object (self)
   method stype = source#stype
   method is_ready = source#is_ready
   method remaining = source#remaining
+  method seek = source#seek
   method abort_track = source#abort_track
 
   val mutable metadata = None

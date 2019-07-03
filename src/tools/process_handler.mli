@@ -49,6 +49,7 @@ type continuation = [
              and waiting for termination *)
   | `Kill (** kill the process immediately *)
   | `Delay of float (** wait for a given amount of seconds *)
+  | `Reschedule of Tutils.priority (** Update the process' priority and continue processing. *)
 ]
 
 (** A call back. *)
@@ -81,6 +82,10 @@ val run : ?priority:Tutils.priority ->
           ?on_stop:(status -> bool) ->
           ?log:(string->unit) ->
           string -> t
+
+(** Change the process' asynchronous task priority. Useful when switching from
+    blocking read to non-blocking read. *)
+val set_priority : t -> Tutils.priority -> unit
 
 (** Asynchronous stop. The process' stdin will be closed some time in the
    future. *)

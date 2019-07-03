@@ -53,6 +53,8 @@ object (self)
 
   method abort_track = source#abort_track
 
+  method seek = source#seek
+
   val mutable notes_on = []
 
   method private get_frame buf =

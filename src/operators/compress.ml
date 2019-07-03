@@ -36,6 +36,8 @@ object
 
   method remaining = source#remaining
 
+  method seek = source#seek
+
   method is_ready = source#is_ready
 
   method abort_track = source#abort_track

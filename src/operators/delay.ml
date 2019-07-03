@@ -32,6 +32,7 @@ object (self)
   method stype = Fallible
   method remaining = source#remaining
   method abort_track = source#abort_track
+  method seek = source#seek
 
   val mutable last = if initial then Unix.time () else 0.
   val mutable in_track = false

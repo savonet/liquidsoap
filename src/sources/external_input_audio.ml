@@ -114,31 +114,6 @@ let () =
                                ~converter command):>Source.source))
 
 
-let wav_ops =
-  let really_input read buf ofs len =
-    let ret =
-       Extralib.read_retry read buf ofs len
-    in
-    if ret < len then raise End_of_file
-  in
-  let input read = read in
-  let _read read len =
-    let buf = Bytes.create len in
-    really_input read buf 0 len;
-    buf
-  in
-  let input_byte read =
-    Char.code (Bytes.get (_read read 1) 0)
-  in
-  let seek read n = ignore(_read read n) in
-  let close _ = () in
-  {Wav_aiff.
-     really_input;
-     input_byte;
-     input;
-     seek;
-     close}
-
 let () =
     Lang.add_operator "input.external.wav"
       ~category:Lang.Input
@@ -151,8 +126,7 @@ let () =
          let converter_ref = ref (fun _ -> assert false) in
          let converter data = !converter_ref data in
          let read_header read =
-            let ops = wav_ops in
-            let header = Wav_aiff.read_header ops read in
+            let header = Wav_aiff.read_header Wav_aiff.callback_ops read in
             let channels = Wav_aiff.channels header in
             let audio_src_rate =
               float (Wav_aiff.sample_rate header)
@@ -161,7 +135,8 @@ let () =
             Wav_aiff.close header;
             converter_ref :=
               Rutils.create_from_iff ~format:`Wav ~channels ~samplesize
-                                     ~audio_src_rate
+                                     ~audio_src_rate;
+            `Reschedule Tutils.Non_blocking
          in
          let restart = Lang.to_bool (List.assoc "restart" p) in
          let restart_on_error =
